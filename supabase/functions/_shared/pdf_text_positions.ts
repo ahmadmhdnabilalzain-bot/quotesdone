@@ -172,13 +172,14 @@ function runsFromContent(src: string, mb: number[]): TextRun[] {
   return runs;
 }
 
-/** Pages in order, each with its text runs in normalised top-left coordinates. [] when unreadable. */
-export async function pdfPages(bytes: Uint8Array): Promise<PdfPage[]> {
+/** Pages in order, each with its text runs AND its decoded content stream (for pdf_measure's path
+ *  operators). [] when unreadable. */
+export async function pdfPageContents(bytes: Uint8Array): Promise<{ page: PdfPage; content: string }[]> {
   if (!bytes || bytes.length < 5 || DEC.decode(bytes.subarray(0, 5)) !== '%PDF-') return [];
   const head = DEC.decode(bytes.subarray(0, Math.min(bytes.length, 4096)));
   if (/\/Encrypt\b/.test(head) || /\/Encrypt\b/.test(DEC.decode(bytes.subarray(Math.max(0, bytes.length - 4096))))) return [];
   const objs = await readObjects(bytes);
-  const pages: PdfPage[] = [];
+  const pages: { page: PdfPage; content: string }[] = [];
   for (const p of pageTree(objs)) {
     const d = objs.get(p.num)!.dict;
     const cm = d.match(/\/Contents\s*(\[[^\]]*\]|\d+\s+\d+\s+R)/);
@@ -187,7 +188,16 @@ export async function pdfPages(bytes: Uint8Array): Promise<PdfPage[]> {
       const o = objs.get(r); if (!o || !o.stream) continue;
       const dec = await decodeStream(o.dict, o.stream); if (dec) src += DEC.decode(dec) + '\n';
     }
-    pages.push({ width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs: runsFromContent(src, p.mb) });
+    pages.push({ page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs: runsFromContent(src, p.mb) }, content: src });
   }
   return pages;
 }
+
+/** Pages in order, each with its text runs in normalised top-left coordinates. [] when unreadable. */
+export async function pdfPages(bytes: Uint8Array): Promise<PdfPage[]> {
+  return (await pdfPageContents(bytes)).map((p) => p.page);
+}
+
+// Shared with pdf_measure, which walks the same content streams for path operators.
+export { tokens, mul, ID };
+export type { M };

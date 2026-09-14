@@ -222,8 +222,10 @@ Deno.test('legacy .xls and delimited text are identified, and text is not mistak
   assertEquals(sniff(u8(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0)), 'application/vnd.ms-excel');
   assertEquals(sniff(enc('sku,name,price\r\nA1,Tile,12.50\r\n')), 'text/csv');
   assertEquals(sniff(enc('sku\tname\tprice\nA1\tTile\t12.5\n')), 'text/csv');
-  // Prose with no delimiter is not a table, and is not claimed to be one.
-  assertEquals(sniff(enc('just some plain prose with no delimiters at all')), 'application/octet-stream');
+  // Prose with no delimiter is not a table, and is not claimed to be one. Since 14 Sep 2026 it is
+  // identified as text/plain (doc_read reads .txt), and the sheet route still refuses it.
+  assertEquals(sniff(enc('just some plain prose with no delimiters at all')), 'text/plain');
+  assert(!sanitizeUpload({ input: enc('just some plain prose with no delimiters at all'), allow: SAFE_SHEET }).ok);
 });
 
 Deno.test('THE DISGUISED UPLOAD: the sheet route refuses what it is really given', () => {

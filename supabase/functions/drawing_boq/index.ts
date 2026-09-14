@@ -11,6 +11,9 @@ import { observe } from '../_shared/observe.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { boqFromPages } from './boq_from_text.ts';
 import { boqFromSheet } from './boq_from_sheet.ts';
+import { boqFromExtracted } from './boq_from_document.ts';
+import { readDocument } from '../_shared/doc_read/index.ts';
+import { empty } from '../_shared/doc_read/types.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -45,6 +48,15 @@ Deno.serve(observe('drawing_boq', async (req) => {
       const r = boqFromSheet(String(body.file_b64 || ''), String(body.mime || ''), String(body.filename || ''), hint);
       return r.ok ? J({ ok: true, boq: r.boq }) : J({ ok: false, error: r.error, detail: r.detail }, 422);
     }
+    // 14 Sep 2026 (founder: "the sales agent need to be extremely capable of reading all types of
+    // document"). ANY document _shared/doc_read opens — Word, PowerPoint, ODF, RTF, text, email, DXF,
+    // IFC, GAEB, zip, PDF — read with no model. ocr_text is the customer's browser OCR of a photo.
+    const ocrText = String(body.ocr_text || '').slice(0, 200_000);
+    if (body.mode === 'document') {
+      const r = await readDocument(String(body.file_b64 || ''), String(body.filename || ''), String(body.mime || ''));
+      if (!r.ok) return J({ ok: false, error: r.error, detail: r.detail }, 422);
+      return J({ ok: true, boq: boqFromExtracted(r, hint, ocrText), kind: r.kind, needs: r.needs });
+    }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below
     // returned ai_error on every drawing and the customer's file never informed the brief (website
     // audit 14 Sep, finding 3). A PDF drawing usually carries its schedules and area tags as real
@@ -53,7 +65,8 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // PDF (original_b64, or file_b64 with a PDF mime): page images carry no text layer.
     const pdfB64 = String(body.original_b64 || (/pdf/i.test(String(body.mime || '')) ? body.file_b64 || '' : '') || '');
     const deterministic = async (why: string) => {
-      if (!pdfB64) return null;
+      // A photo has no text layer: the customer's browser OCR (ocr_text) is what can be read of it.
+      if (!pdfB64) return ocrText ? J({ ok: true, boq: { ...boqFromExtracted(empty('image'), hint, ocrText), fallback_reason: why } }) : null;
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
         const out = boqFromPages(await pdfPages(bytes), hint);

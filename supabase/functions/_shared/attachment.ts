@@ -70,6 +70,28 @@ export const SAFE_SHEET = [
   'text/csv',                                                          // csv / tsv / txt
 ] as const;
 
+// 14 SEP 2026 — EVERY DOCUMENT THE SALES SIDE READS. Founder: "the sales agent need to be extremely
+// capable of reading all types of document." These are the types _shared/doc_read can open with no
+// model. Like SAFE_SHEET this WIDENS NOTHING by itself: only a caller that passes SAFE_DOCS accepts
+// them, and every danger/* branch in sniff() still runs first. application/zip is on the list because
+// doc_read re-sniffs and re-sanitizes EVERY entry with this same list before reading it, and costs the
+// archive before inflating a byte — a zip is only ever a way to deliver the other types.
+export const SAFE_OFFICE = [
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',   // docx
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation', // pptx
+  'application/vnd.oasis.opendocument.text',                                   // odt
+  'application/vnd.oasis.opendocument.spreadsheet',                            // ods
+  'application/vnd.oasis.opendocument.presentation',                           // odp
+  'application/msword',                                                        // doc (OLE2)
+  'application/rtf',
+  'text/plain',
+] as const;
+export const SAFE_MAIL = ['message/rfc822', 'application/vnd.ms-outlook'] as const;      // eml, msg
+export const SAFE_BIM  = ['application/x-step', 'application/x-gaeb+xml'] as const;       // ifc, GAEB DA XML
+export const SAFE_PHOTO_EXTRA = ['image/tiff', 'image/heic', 'image/gif'] as const;      // stored; need OCR
+export const SAFE_DOCS = [...SAFE_UPLOAD, ...SAFE_SHEET, ...SAFE_CAD, ...SAFE_OFFICE, ...SAFE_MAIL, ...SAFE_BIM,
+                          ...SAFE_PHOTO_EXTRA, 'application/zip'] as const;
+
 const EXT: Record<string, string> = {
   'application/pdf': 'pdf',
   'image/jpeg': 'jpg',
@@ -87,6 +109,22 @@ const EXT: Record<string, string> = {
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
   'application/vnd.ms-excel': 'xls',
   'text/csv': 'csv',
+  // 14 Sep 2026 (doc_read)
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/vnd.oasis.opendocument.text': 'odt',
+  'application/vnd.oasis.opendocument.spreadsheet': 'ods',
+  'application/vnd.oasis.opendocument.presentation': 'odp',
+  'application/msword': 'doc',
+  'application/rtf': 'rtf',
+  'text/plain': 'txt',
+  'message/rfc822': 'eml',
+  'application/vnd.ms-outlook': 'msg',
+  'application/x-step': 'ifc',
+  'application/x-gaeb+xml': 'xml',
+  'application/zip': 'zip',
+  'image/tiff': 'tif',
+  'image/heic': 'heic',
 };
 
 function startsWith(b: Uint8Array, sig: number[], at = 0): boolean {
@@ -135,6 +173,12 @@ export function sniff(b: Uint8Array): string {
   if (startsWith(b, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'image/png';
   if (startsWith(b, [0x47, 0x49, 0x46, 0x38])) return 'image/gif';
   if (startsWith(b, [0x52, 0x49, 0x46, 0x46]) && asciiAt(b, 8, 4) === 'WEBP') return 'image/webp';
+  // 14 Sep 2026 (doc_read). TIFF (scanner output) and HEIC/HEIF (phone photos): stored, OCR'd in the
+  // browser. And a UTF-16 text file: its byte-order mark FF FE would otherwise match the bare-MP3
+  // frame-sync test below and be answered as audio.
+  if (startsWith(b, [0x49, 0x49, 0x2a, 0x00]) || startsWith(b, [0x4d, 0x4d, 0x00, 0x2a])) return 'image/tiff';
+  if (asciiAt(b, 4, 4) === 'ftyp' && /^(heic|heix|heim|heis|hevc|mif1|msf1)$/.test(asciiAt(b, 8, 4))) return 'image/heic';
+  if ((b[0] === 0xff && b[1] === 0xfe) || (b[0] === 0xfe && b[1] === 0xff)) return 'text/plain';
 
   // ---- audio (transcribe) ----------------------------------------------------------------
   // RIFF is shared with WebP, so the WAVE branch must sit beside it and after it.
@@ -170,7 +214,17 @@ export function sniff(b: Uint8Array): string {
   // OLE2 compound document. Legacy .xls (and .doc, .ppt) share this header; the caller's allow-list
   // decides whether that is acceptable, and supplier_catalog_ingest hands whatever comes back to
   // SheetJS, which reads the workbook stream or fails honestly.
-  if (startsWith(b, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) return 'application/vnd.ms-excel';
+  // 14 Sep 2026: a Word .doc and an Outlook .msg are OLE2 too, and were answered as spreadsheets. The
+  // directory stores every stream name UTF-16LE, so the name that defines each format is findable
+  // without parsing: 'WordDocument' (Word), '__substg1.0_' (Outlook), 'Workbook'/'Book' (Excel). A
+  // container with none of them keeps the old answer, so no existing sheet caller changes.
+  if (startsWith(b, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) {
+    const LIM = 4 * 1024 * 1024;
+    if (indexOfBytes(b, utf16le('Workbook'), LIM) >= 0 || indexOfBytes(b, utf16le('Book'), LIM) >= 0) return 'application/vnd.ms-excel';
+    if (indexOfBytes(b, utf16le('WordDocument'), LIM) >= 0) return 'application/msword';
+    if (indexOfBytes(b, utf16le('__substg1.0_'), LIM) >= 0) return 'application/vnd.ms-outlook';
+    return 'application/vnd.ms-excel';
+  }
 
   // XLSX is a ZIP. Distinguishing it from a plain archive means looking at what is INSIDE: an OOXML
   // workbook always carries the part `xl/workbook.xml`, and a zip stores every entry's name
@@ -180,6 +234,12 @@ export function sniff(b: Uint8Array): string {
   if (startsWith(b, [0x50, 0x4b, 0x03, 0x04]) || startsWith(b, [0x50, 0x4b, 0x05, 0x06])) {
     const scan = asciiAt(b, 0, Math.min(b.length, 4 * 1024 * 1024));
     if (scan.includes('xl/workbook.xml')) return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    // 14 Sep 2026 (doc_read): the other OOXML and ODF documents, by the part each one must carry. An
+    // ODF package stores its `mimetype` entry FIRST and UNCOMPRESSED, so the type string is literal.
+    if (scan.includes('word/document.xml')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (scan.includes('ppt/presentation.xml') || scan.includes('ppt/slides/slide')) return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    const odf = scan.match(/mimetypeapplication\/vnd\.oasis\.opendocument\.(text|spreadsheet|presentation)/);
+    if (odf) return `application/vnd.oasis.opendocument.${odf[1]}`;
     return 'application/zip';
   }
   if (startsWith(b, [0x1f, 0x8b])) return 'application/gzip';
@@ -207,7 +267,18 @@ export function sniff(b: Uint8Array): string {
   // "these bytes are text and they have a delimiter". It sits LAST on purpose: every danger/*
   // branch, and every binary and DXF branch, has already had its say, so an HTML document, an SVG
   // or a PHP file named .csv is refused as what it is rather than read as a table here.
+  // 14 Sep 2026 (doc_read). Text formats identified by their own opening structure, still AFTER
+  // every danger/* branch: IFC opens with the STEP header, GAEB DA XML with a <GAEB> root, an email
+  // with RFC 5322 header lines (at least two, one of them a header only mail carries).
+  if (/^ISO-10303-21;/.test(head)) return 'application/x-step';
+  if (/^<\?xml/.test(lower) && /<gaeb[\s>]/.test(lower)) return 'application/x-gaeb+xml';
+  if (isProbablyText(b) && /^(?:[\w-]+:[^\r\n]*\r?\n(?:[ \t][^\r\n]*\r?\n)*){2,}/.test(head) &&
+      /^(?:from|date|subject|message-id|received|mime-version|return-path):/im.test(head)) return 'message/rfc822';
+
   if (isProbablyText(b) && /[,;\t]/.test(head.slice(0, 512))) return 'text/csv';
+  // Plain text, last of all: before 14 Sep this answered application/octet-stream and every
+  // allow-list refused it. Only a caller passing SAFE_DOCS (text/plain) accepts it now.
+  if (isProbablyText(b)) return 'text/plain';
 
   return 'application/octet-stream';
 }
@@ -261,8 +332,12 @@ const utf16le = (s: string) => Array.from(s).flatMap((c) => [c.charCodeAt(0), 0]
  * A file with neither is not macro-bearing; a file with either is, whatever it was named.
  */
 export function looksMacroEnabled(b: Uint8Array, mime: string): string | null {
-  const isOoxml = mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-  const isOle2  = mime === 'application/vnd.ms-excel';
+  // 14 Sep 2026: Word and PowerPoint carry macros the same way (a .docm/.pptm renamed .docx/.pptx
+  // still holds vbaProject.bin; a .doc holds a Macros storage with _VBA_PROJECT inside).
+  const isOoxml = mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    || mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    || mime === 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  const isOle2  = mime === 'application/vnd.ms-excel' || mime === 'application/msword';
   if (!isOoxml && !isOle2) return null;
   const LIMIT = 16 * 1024 * 1024;
   if (isOoxml && indexOfBytes(b, ascii('vbaProject.bin'), LIMIT) >= 0) {

@@ -37,6 +37,17 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 // tags; removing it needs a per-request nonce, which forces every page dynamic and loses the static
 // HTML the marketing pages are served from. The CSP still earns its keep through frame-ancestors,
 // object-src, base-uri, form-action and a closed connect-src list.
+//
+// IN-BROWSER OCR (14 Sep 2026, src/components/me/ocrClient.ts). Paid vision is on hold and an Edge
+// function has ~2 s of CPU, so photos and scanned BOQs are read by tesseract.js on the customer's
+// machine. Its worker, wasm core and eng/ara language data are SELF-HOSTED under /public/ocr (pinned
+// 7.0.0, sha256 in ocrClient.ts), so no new host is trusted: 'self' already covers the worker
+// (worker-src), the core it importScripts() (script-src) and the traineddata it fetches (connect-src).
+// The ONLY addition is script-src 'wasm-unsafe-eval', which lets the core compile WebAssembly; it
+// permits wasm compilation only, never eval() of JavaScript. cdn.jsdelivr.net is deliberately NOT in
+// script-src or worker-src: it serves anything anyone publishes to npm or GitHub, so trusting it would
+// let any package run on every page. The connect-src jsDelivr entry below predates OCR (troika) and OCR
+// does not use it.
 const SUPA = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://htdblwldjkcgjvmqkbeh.supabase.co').host;
 const isDev = process.env.NODE_ENV !== 'production';
 // Vercel injects its feedback toolbar on preview deployments only.
@@ -44,7 +55,7 @@ const vercelLive = process.env.VERCEL_ENV === 'preview' ? ' https://vercel.live'
 
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://cdnjs.cloudflare.com${vercelLive}`,
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''} https://cdnjs.cloudflare.com${vercelLive}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://${SUPA}`,
   "font-src 'self' data:",
