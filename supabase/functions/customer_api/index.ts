@@ -10,6 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef } from '../_shared/quote_documents.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
 import { portalLink } from '../_shared/site_origins.ts';
+import { revealCharge } from '../_shared/reveal_fee.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -1191,7 +1192,9 @@ Deno.serve(observe('customer_api', async (req) => {
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
       if (existing) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
-      return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), currency: 'AED' });
+      // The breakdown the confirm dialog prints is the one stripe_checkout charges: one module.
+      const ch = revealCharge(Number(q.quote_amount), Number(cfg.standard_reveal_rate));
+      return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: ch.base_fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
     }
 
     if (action === 'request_refund') {
