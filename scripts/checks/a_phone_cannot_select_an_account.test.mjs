@@ -44,8 +44,11 @@ const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
 const PROJECTS = { production: 'htdblwldjkcgjvmqkbeh' };
 // A number in no account and in no admin_mfa_phone. 5-series is a real UAE mobile prefix, so it
 // exercises toE164 rather than being rejected as malformed before the resolver is reached.
-const UNKNOWN = '+971500000042';
-const SHARED = '+971500000043';
+// Both sit in 90-99, which scripts/e2e/fixtures.mjs demoMobile() never issues (15 Sep 2026). They
+// were 42 and 43, inside the range the e2e harness hands out; on 14 Sep a run's supplier held 42 and
+// production correctly answered this "unknown" number as a known supplier - and texted it.
+const UNKNOWN = '+971500000098';
+const SHARED = '+971500000097';
 
 const q = async (project, query) => {
   const r = await fetch(`https://api.supabase.com/v1/projects/${project}/database/query`, {
@@ -70,6 +73,11 @@ const send = async (project, user_kind, identifier) => {
 for (const [label, project] of Object.entries(PROJECTS)) {
   test(`an unknown number resolves to nobody for every kind on ${label}`, async (t) => {
     if (!mgmtToken) { t.skip('no management token'); return; }
+    // "Unknown" must be measured, not assumed: if any account carries the number, a 200 below would
+    // be production answering correctly, and the check would be blaming it for its own fixture.
+    const holders = await q(project, `select 'customers' t, count(*)::int n from public.customers where phone like '%${UNKNOWN.slice(-9)}'
+      union all select 'leads', count(*)::int from public.leads where phone like '%${UNKNOWN.slice(-9)}' or whatsapp_phone like '%${UNKNOWN.slice(-9)}'`);
+    assert.deepEqual(holders.filter((h) => h.n > 0), [], `${UNKNOWN} is held by an account, so it is not an unknown number: ${JSON.stringify(holders)}`);
 
     for (const kind of ['customer', 'supplier', 'admin']) {
       const { status, body } = await send(project, kind, UNKNOWN);

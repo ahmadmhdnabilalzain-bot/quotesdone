@@ -19,6 +19,56 @@
 create function pg_temp.zz_assert(p_cond boolean, p_msg text) returns void language plpgsql as $f$
 begin if not coalesce(p_cond, false) then raise exception 'ZZFAIL: %', p_msg; end if; end $f$;
 
+-- COSTS: what may never be POSTED, whatever else the batch did. NULL when the ledger is clean. The only
+-- bank entry allowed posted is one whose bank line exists, is not ZZ DEMO, and was posted with the hold at 0.
+-- An orphan (a posted bank entry whose line is gone) is the #690 class and is caught, never allowed.
+create function pg_temp.zz_costs_bad() returns text language sql as $f$
+  select string_agg(distinct why, '; ') from (
+    select case
+             when g.source = 'stripe_fee_bt_test' then 'a test-mode Stripe fee was POSTED'
+             when bl.id is null then 'a bank entry was POSTED against a bank line that does not exist'
+             when bl.account = 'zz_demo' then 'a ZZ DEMO bank line was POSTED'
+             when g.created_at = now()
+                  and coalesce((select num_value from public.gl_settings where key = 'bank_booking_on_hold'), 1) <> 0
+               then 'a bank entry was POSTED under the bank-booking hold'
+           end as why
+      from public.gl_journal g
+      left join public.bank_statement_line bl on bl.id::text = g.source_ref
+     where g.status = 'posted' and g.source in ('stripe_fee_bt_test', 'bank_charge', 'bank_interest', 'owner_capital')) x
+   where why is not null
+$f$;
+
+-- A TRUE POSITIVE for each condition: post the defect inside a savepoint, run the REAL costs assertion, and
+-- report whether its ZZFAIL fired. The savepoint undoes the defect either way.
+create function pg_temp.zz_costs_fires(p_case text) returns boolean language plpgsql as $f$
+declare v_line bigint; v_fired boolean := false;
+  v_lines jsonb := jsonb_build_array(jsonb_build_object('account', '6300', 'debit', 1), jsonb_build_object('account', '1000', 'credit', 1));
+begin
+  begin
+    if p_case = 'test_mode_fee' then
+      perform public.fn_gl_entry(current_date, 'ZZ DEMO costs probe', 'stripe_fee_bt_test', 'txn_zz_costs_' || p_case, v_lines, 'zz_probe');
+    elsif p_case = 'orphan_bank_line' then
+      perform public.fn_gl_entry(current_date, 'ZZ DEMO costs probe', 'bank_charge', 'zz_no_such_bank_line', v_lines, 'zz_probe');
+    else
+      if p_case = 'posted_under_hold' then
+        update public.gl_settings set num_value = 1 where key = 'bank_booking_on_hold';
+      end if;
+      insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash)
+      -- zz_probe_stmt is the ZZ DEMO statement section 1 of this batch puts in bank_statement_intake (the line's FK)
+      values (case when p_case = 'zz_demo_line' then 'zz_demo' else 'zz_costs_probe' end, 'zz_probe_stmt',
+              current_date, 'ZZ DEMO COSTS PROBE ' || p_case, -1, 'zz_costs_probe_' || p_case)
+      returning id into v_line;
+      perform public.fn_gl_entry(current_date, 'ZZ DEMO costs probe', 'bank_charge', v_line::text, v_lines, 'zz_probe');
+    end if;
+    perform pg_temp.zz_assert(pg_temp.zz_costs_bad() is null, 'costs: ' || coalesce(pg_temp.zz_costs_bad(), ''));
+    raise exception 'zz_undo';
+  exception when others then
+    v_fired := sqlerrm like 'ZZFAIL: costs:%';
+    if not v_fired and sqlerrm <> 'zz_undo' then raise; end if;
+  end;
+  return v_fired;
+end $f$;
+
 create function pg_temp.zz_case(p_tag text, p_quote numeric, p_fee numeric, p_total numeric) returns uuid language plpgsql as $f$
 declare c uuid; l bigint; i uuid; q uuid; t uuid;
 begin
@@ -105,8 +155,14 @@ begin
   v := public.fn_accountant_book_bank_charges();
   perform pg_temp.zz_assert(exists (select 1 from public.gl_journal where source = 'bank_charge' and status = 'draft' and memo like 'ZZ DEMO%'),
     'costs: the ZZ DEMO bank charge was not prepared as a draft');
-  perform pg_temp.zz_assert(not exists (select 1 from public.gl_journal where source in ('bank_charge', 'stripe_fee_bt_test') and status = 'posted'),
-    'costs: a bank or test-mode entry was POSTED');
+  -- A REAL bank entry posted is correct once the founder lifts the hold (gl_settings.bank_booking_on_hold = 0;
+  -- 15 Sep 2026, journals 692-695). Everything else pg_temp.zz_costs_bad names is a defect, whatever the hold.
+  perform pg_temp.zz_assert(pg_temp.zz_costs_bad() is null, 'costs: ' || coalesce(pg_temp.zz_costs_bad(), ''));
+  -- ...and the assertion is not vacuous: each defect, posted for real inside a savepoint, trips it.
+  perform pg_temp.zz_assert(pg_temp.zz_costs_fires('test_mode_fee'),     'costs: a POSTED test-mode fee did not trip the check');
+  perform pg_temp.zz_assert(pg_temp.zz_costs_fires('zz_demo_line'),      'costs: a POSTED ZZ DEMO bank charge did not trip the check');
+  perform pg_temp.zz_assert(pg_temp.zz_costs_fires('posted_under_hold'), 'costs: a bank charge POSTED under the hold did not trip the check');
+  perform pg_temp.zz_assert(pg_temp.zz_costs_fires('orphan_bank_line'),  'costs: a bank charge POSTED against a missing bank line did not trip the check');
   v := public.fn_accountant_book_stripe_fees(false, jsonb_build_array(jsonb_build_object('id', 'txn_zz_probe_usd', 'type', 'stripe_fee',
     'amount', -300, 'currency', 'usd', 'created', extract(epoch from now())::bigint)));
   perform pg_temp.zz_assert(pg_temp.zz_open('acct:stripe_fees_test:currency:txn_zz_probe_usd'), 'costs: a non-AED Stripe fee was skipped without a finding');

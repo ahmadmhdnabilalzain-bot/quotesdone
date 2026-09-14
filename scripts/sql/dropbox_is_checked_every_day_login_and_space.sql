@@ -111,6 +111,9 @@ begin
       'internal', 0, jsonb_build_object('duty', 'dropbox_space', 'owner_seat', 'ceo', 'subject', 'dropbox_backup', 'demo', false,
         'space_error', left(p->>'space_error', 300), 'space_class', p->>'space_class'),
       '{}'::text[], '{}'::text[], 'it_engineer.dropbox_space');
+  else
+    -- login probe AND space read both failed: any open dropbox_space finding is deliberately left untouched this tick; the login finding is already loud, and space is re-evaluated on the next good reading
+    null;
   end if;
 
   v_status := case when not v_ok then 'error'

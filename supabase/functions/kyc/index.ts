@@ -1,6 +1,7 @@
 // kyc — passwordless account completion: mobile (SMS) + email verification, REQUIRED DOB (18+) profile, terms->signed PDF.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
@@ -91,6 +92,11 @@ Deno.serve(observe('kyc', async (req) => {
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
     const email = user.email.toLowerCase();
     const b = await req.json().catch(() => ({} as any)); const action = String(b.action || '');
+    // Every action that sends or checks a Twilio Verify code refuses a fixture number first.
+    if (['send_sms', 'verify_sms', 'whatsapp_send_code', 'whatsapp_verify'].includes(action) && isDemoPhone(toE164(String(b.phone || '')))) {
+      await logRun('skipped', { action, captured: 1 }, FIXTURE_CAPTURE_NOTE);
+      return J(FIXTURE_REFUSAL);
+    }
 
     const { data: lead } = await admin.from('leads').select('id,contact_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,signed_terms_url,company_name').eq('claimed_by', email).maybeSingle();
     const { data: cust } = await admin.from('customers').select('id,full_name,phone,date_of_birth,email_verified,phone_verified,tos_accepted_at,signed_terms_url').eq('email', email).maybeSingle();

@@ -22,7 +22,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
-import { isDemoPhone } from '../_shared/demo_identity.ts';
+import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
@@ -230,7 +230,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // not guaranteed to be unassigned. The database captures these rows before they are ever
       // queued (zzzz_notifications_demo_capture); this is the second, independent lock at the only
       // place a WhatsApp message can leave.
-      if (isDemoPhone(to)) { await admin.from('notifications').update({ status: 'suppressed', last_error: 'captured: reserved fixture mobile (+971 50 000 00xx) - recorded for the rehearsal, never handed to Twilio' }).eq('id', n.id); skipped++; continue; }
+      if (isDemoPhone(to)) { await admin.from('notifications').update({ status: 'suppressed', last_error: FIXTURE_CAPTURE_NOTE }).eq('id', n.id); skipped++; continue; }
       // A STALE ALERT IS A LIE, NOT A BACKLOG. Nothing drained this queue between 7 Sep 2026 (when
       // pg_cron was removed and its wa_flush job with it) and 9 Sep, so a 'SCHEDULER DOWN' message
       // sat here for two days while the scheduler was in fact fine. Delivering it on the first tick
