@@ -50,7 +50,7 @@ const T = {
     title: 'AI Assistant', ask: 'Why am I losing RFQs?',
     lossTitle: 'Lost opportunities', recTitle: 'What to do next',
     noHistory: 'You have not quoted on anything yet, so there is nothing to analyse. '
-      + 'No breakdown is shown rather than an invented one.',
+      + 'Your breakdown appears here after your first quotes.',
     submitted: 'Quoted', won: 'Won', rejected: 'Rejected',
     fix: 'Fix this', loading: 'Analysing your account…',
     allGood: 'Nothing to fix.', opportunities: 'live opportunities',
@@ -60,7 +60,7 @@ const T = {
     title: 'المساعد الذكي', ask: 'لماذا أخسر الطلبات؟',
     lossTitle: 'الفرص الخاسرة', recTitle: 'الخطوة التالية',
     noHistory: 'لم تقدّم أي عرض سعر بعد، لذا لا يوجد ما يمكن تحليله. '
-      + 'لا نعرض تحليلًا مُختلقًا.',
+      + 'يظهر تحليلك هنا بعد أول عروضك.',
     submitted: 'عروض مقدمة', won: 'فائزة', rejected: 'مرفوضة',
     fix: 'إصلاح', loading: 'جارٍ تحليل حسابك…',
     allGood: 'لا يوجد ما يحتاج إصلاحًا.', opportunities: 'فرص متاحة',

@@ -72,7 +72,7 @@ const T = {
     created: 'Quote created from these terms.', pickOne: 'Choose a project above to get a recommendation.',
     whyThis: 'Why this figure', signalsTitle: 'What could go wrong',
     lowRisk: 'low', medRisk: 'medium', highRisk: 'high',
-    demoBanner: 'Demonstration data. This recommendation is computed from QuotesDone demo fixtures, not from live trading.',
+    demoBanner: 'Sample data. This recommendation is an illustration, not based on live market trading.',
   },
   ar: {
     title: 'منشئ عروض الأسعار',

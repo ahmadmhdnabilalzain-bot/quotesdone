@@ -22,6 +22,9 @@ export async function call(fn: string, body: Record<string, unknown>, token: str
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
       body: JSON.stringify(body),
+      // A request that never answers used to leave the surface on its loader forever (founder walk,
+      // 14 Sep 2026: "What you may need next" stuck). A timeout turns it into a stated error + Retry.
+      signal: AbortSignal.timeout(20_000),
     });
     const json = (await r.json().catch(() => null)) as Record<string, unknown> | null;
     if (!json) return { ok: false, error: 'no_response' };

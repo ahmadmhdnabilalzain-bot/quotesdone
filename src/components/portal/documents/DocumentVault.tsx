@@ -78,8 +78,10 @@ const EN = {
   kinds: {
     quotation: 'Quotations', quote: 'Quotations', contract: 'Contracts', invoice: 'Invoices',
     certificate: 'Certificates', drawing: 'Drawings', purchase_order: 'Purchase orders',
-    licence: 'Licences', license: 'Licences', boq: 'Bills of quantities',
+    licence: 'Licences', license: 'Licences', boq: 'Bills of quantities', warranty: 'Warranties',
   } as Record<string, string>,
+  // Extraction keys an expiry/coverage came out of, shown as "from <source>".
+  sources: { document: 'the document', filename: 'the file name', summary: 'the summary' } as Record<string, string>,
 };
 
 const AR: typeof EN = {
@@ -125,8 +127,9 @@ const AR: typeof EN = {
   kinds: {
     quotation: 'عروض الأسعار', quote: 'عروض الأسعار', contract: 'العقود', invoice: 'الفواتير',
     certificate: 'الشهادات', drawing: 'الرسومات', purchase_order: 'أوامر الشراء',
-    licence: 'الرخص', license: 'الرخص', boq: 'جداول الكميات',
+    licence: 'الرخص', license: 'الرخص', boq: 'جداول الكميات', warranty: 'الضمانات',
   },
+  sources: { document: 'المستند', filename: 'اسم الملف', summary: 'الملخص' },
 };
 
 const W = (lang: Lang) => (lang === 'ar' ? AR : EN);
@@ -155,8 +158,8 @@ const fmtDate = (iso: string | null, lang: Lang) => {
 /** Label + value, where a MISSING value is a sentence saying it is missing, not a blank or a guess.
  *  `source` is the extraction key the value came out of, shown only when there IS a value — it is
  *  provenance for a real figure, and printing it under "not stated" would suggest one exists. */
-function Field({ label, value, missing, source, fromWord }: {
-  label: string; value: string | null; missing: string; source?: string | null; fromWord?: string;
+function Field({ label, value, missing, source, fromWord, sourceWords }: {
+  label: string; value: string | null; missing: string; source?: string | null; fromWord?: string; sourceWords?: Record<string, string>;
 }) {
   const has = !!value;
   return (
@@ -165,7 +168,7 @@ function Field({ label, value, missing, source, fromWord }: {
       <div className={cn('mt-0.5 text-[13px] font-semibold leading-snug break-words', has ? 'text-foreground' : 'text-muted-foreground font-normal italic')}>
         {has ? value : missing}
       </div>
-      {has && source ? <div className="text-[10.5px] text-muted-foreground">{fromWord} {source}</div> : null}
+      {has && source ? <div className="text-[10.5px] text-muted-foreground">{fromWord} {sourceWords?.[source] || source.replace(/_/g, ' ')}</div> : null}
     </div>
   );
 }
@@ -249,8 +252,8 @@ export function DocumentRow({ doc, token, lang = 'en', showMatch = false, classN
 
       <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-3">
         <Field label={w.f_supplier} value={supplierValue} missing={supplierMissing} />
-        <Field label={w.f_expiry} value={fmtDate(doc.expiry_date, lang)} missing={w.no_expiry} source={doc.expiry_source} fromWord={w.from_field} />
-        <Field label={w.f_coverage} value={doc.covers} missing={w.no_coverage} source={doc.covers_source} fromWord={w.from_field} />
+        <Field label={w.f_expiry} value={fmtDate(doc.expiry_date, lang)} missing={w.no_expiry} source={doc.expiry_source} fromWord={w.from_field} sourceWords={w.sources} />
+        <Field label={w.f_coverage} value={doc.covers} missing={w.no_coverage} source={doc.covers_source} fromWord={w.from_field} sourceWords={w.sources} />
       </div>
 
       {doc.summary ? <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">{doc.summary}</p> : null}

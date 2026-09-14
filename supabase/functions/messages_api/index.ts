@@ -10,6 +10,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 import { observe } from '../_shared/observe.ts';
+import { isCustomerCorrespondence } from '../_shared/customer_mail.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -70,11 +71,15 @@ async function otherChannels(cust: { id: string; phone?: string | null; phone_ve
   // `or` filter unambiguously is not queried at all; returning no e-mail channel is a correct
   // answer, and building the filter anyway would let a stored address change what is selected.
   const cEmail = String((cust as any).email || '').toLowerCase();
+  // isCustomerCorrespondence drops back-office mail (receipts forwarded to expenses@, rows a seat
+  // owns) — the join key alone showed the founder his own expense forwards as customer mail.
+  // ponytail: filtered after the 50-row window, so a heavy forwarder sees fewer than 50; push the
+  // predicate into the query if that is ever measured to hide real customer mail.
   const em = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(cEmail)
-    ? (await admin.from('inbound_messages')
-        .select('id,from_email,to_email,subject,ai_summary,body,created_at,replied_at')
+    ? ((await admin.from('inbound_messages')
+        .select('id,from_email,to_email,subject,ai_summary,body,created_at,replied_at,owner_role')
         .or(`from_email.eq.${cEmail},to_email.eq.${cEmail}`)
-        .order('created_at', { ascending: false }).limit(50)).data
+        .order('created_at', { ascending: false }).limit(50)).data || []).filter(isCustomerCorrespondence)
     : [];
   if ((em || []).length) out.push({ channel: 'email', inquiry_id: null, supplier_id: null,
     counterpart: 'QuotesDone by e-mail', subject: em![0].subject || 'E-mail', chat_status: 'open',
@@ -295,10 +300,10 @@ Deno.serve(observe('messages_api', async (req) => {
         const cEmail = String((cust as Record<string, unknown>).email || '').toLowerCase();
         if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(cEmail)) return J({ ok: true, channel, counterpart: 'QuotesDone by e-mail', messages: [] });
         const { data: em } = await admin.from('inbound_messages')
-          .select('id,from_email,to_email,subject,ai_summary,body,created_at,replied_at')
+          .select('id,from_email,to_email,subject,ai_summary,body,created_at,replied_at,owner_role')
           .or(`from_email.eq.${cEmail},to_email.eq.${cEmail}`)
           .order('created_at', { ascending: true }).limit(50);
-        const messages = (em || []).map((r: Record<string, unknown>) => ({
+        const messages = (em || []).filter(isCustomerCorrespondence).map((r: Record<string, unknown>) => ({
           id: String(r.id), sender: String(r.from_email || '').toLowerCase() === cEmail ? 'customer' : 'quotesdone',
           subject: r.subject || null, body: clip(r.body || r.ai_summary, 8000), created_at: r.created_at,
           replied_at: r.replied_at || null,

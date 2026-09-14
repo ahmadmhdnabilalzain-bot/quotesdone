@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { categoryLabel } from '@/lib/categoryLabel';
 import { call } from './api';
 import { aed, fmtDate, numOrNull, projection, urgency, type Forecast, type Lang, type Prediction } from './model';
 import { Empty, Field } from './parts';
@@ -49,7 +50,7 @@ function PredictionCard({ prediction, lang }: { prediction: Prediction; lang: La
     <Card className="p-4 transition-colors hover:border-primary/40">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h4 className="text-[15px] font-bold text-foreground">{prediction.category}</h4>
+          <h4 className="text-[15px] font-bold text-foreground">{categoryLabel(prediction.category, lang)}</h4>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
             {tr(lang, 'p_for')} {prediction.project_name}
           </p>
@@ -120,7 +121,7 @@ function ForecastPanel({ forecast, lang }: { forecast: Forecast; lang: Lang }) {
           <ul className="mt-1.5 flex list-none flex-col gap-1.5 p-0">
             {by_category.map((c) => (
               <li key={c.category} className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-border bg-white/[0.02] px-3 py-2">
-                <span className="text-[13px] text-foreground">{c.category}</span>
+                <span className="text-[13px] text-foreground">{categoryLabel(c.category, lang)}</span>
                 <span className="text-[12px] tabular-nums text-muted-foreground">
                   {c.share_pct === null || c.share_pct === undefined ? '' : `${c.share_pct}% ${tr(lang, 'fc_share')} · `}
                   {c.projected_spend_aed === null || c.projected_spend_aed === undefined
@@ -164,7 +165,14 @@ export function PredictiveIntelligence({ token, lang = 'en', horizonDays = 365, 
       }
       // The one cast, at the wire boundary. ./model is the transcription of what
       // fn_customer_forecast actually emits; nothing below re-derives a field it does not serve.
-      setForecast((res.data.forecast as Forecast | undefined) || null);
+      // An ok answer without a forecast object would otherwise leave forecast === null, which this
+      // component reads as "still loading" — the loader would never end. Say it failed instead.
+      const f = res.data.forecast as Forecast | undefined;
+      if (!f || typeof f !== 'object') {
+        setError(errText(lang, 'no_forecast'));
+        return;
+      }
+      setForecast(f);
     });
     return () => {
       live = false;
@@ -195,7 +203,7 @@ export function PredictiveIntelligence({ token, lang = 'en', horizonDays = 365, 
 
       {forecast === null && !error ? (
         <>
-          <p className="sr-only" role="status">
+          <p className="text-[12.5px] text-muted-foreground" role="status">
             {tr(lang, 'loading_predict')}
           </p>
           <Skeleton className="h-[168px] w-full rounded-lg" aria-hidden="true" />
