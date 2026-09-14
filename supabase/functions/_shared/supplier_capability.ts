@@ -41,13 +41,26 @@ export async function capabilityState(admin: Admin, supplierId: number) {
   return { ok: true, capability: cap || null, confirmed: !!cap?.confirmed_at, history: hist || [], vocabulary };
 }
 
-// Returns [httpStatus, body]. What the supplier agrees to is what we store, validated against the
-// controlled vocabulary so a bad client cannot inject codes that would silently never match.
+/** A trade name as a code: lower case, every run of non-letters/digits becomes '_'. The TS twin of
+ *  public.fn_trade_code (every_intake_trade_resolves_to_the_capability_vocabulary.sql) — the two
+ *  must agree, because a request's category resolves through that one and a supplier's typed trade
+ *  through this one, and they meet on string equality in fn_match_capability. */
+export const tradeCode = (name: unknown): string =>
+  String(name ?? '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
+
+// Returns [httpStatus, body]. What the supplier agrees to is what we store.
+//
+// THE TRADE LIST IS OPEN (founder, 14 Sep 2026: "our categories are not finalized. if a supplier
+// comes tomorrow and register for packaging services he is welcomed"). Until then a trade outside
+// taxonomy_trade was silently dropped here, so a supplier of a trade nobody had listed could never be
+// matched. Now any trade the supplier names is stored as given, normalised by tradeCode, and matches
+// a request whose category is that same trade — exactly, never a neighbour. Roles stay a closed
+// vocabulary: they drive the supplies/executes/whole_scope logic, not the trade gate.
 export async function capabilityConfirm(admin: Admin, supplierId: number, body: Record<string, unknown>): Promise<[number, Record<string, unknown>]> {
   const vocab = await capabilityVocabulary(admin);
   const okTrade = new Set(vocab.trades.map((t: { code: string }) => t.code));
   const okRole = new Set(vocab.roles.map((r: { code: string }) => r.code));
-  const trades = strArr(body.trades, 25, 40).filter((c) => okTrade.has(c));
+  const trades = [...new Set(strArr(body.trades, 25, 60).map(tradeCode).filter(Boolean))];
   const roles = strArr(body.roles, 8, 40).filter((c) => okRole.has(c));
   if (!trades.length || !roles.length) {
     return [400, { error: 'need_at_least_one_trade_and_role', code: 'capability_need_trade_role', valid_trades: [...okTrade], valid_roles: [...okRole] }];
