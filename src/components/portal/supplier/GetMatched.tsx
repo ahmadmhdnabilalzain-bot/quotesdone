@@ -1,0 +1,152 @@
+'use client';
+// GET MATCHED — the supplier's one journey, drawn from the eligibility payload (14 Sep 2026).
+//
+// The dashboard used to open on 24 equal tabs; the one thing each supplier must do next sat in a
+// panel under the alerts. supplier_portal's eligibility action already evaluates every real clause
+// (the mandatory six from _shared/supplier_registration.ts, the scope gate fn_match_capability opens
+// with, and the pauses match_suppliers_kw honours), so this screen is that payload drawn as a
+// progress ring and an ordered checklist, with the next step as the one primary button.
+// Every step and its count come from the server; nothing here is estimated.
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { call } from './api';
+import { itemCopy, srvText } from './serverCopy';
+
+type Lang = 'en' | 'ar' | string;
+type Step = { code: string; label: string; done: boolean; fix: string };
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+function Ring({ done, total, lang }: { done: number; total: number; lang: Lang }) {
+  const reduce = useReducedMotion();
+  const R = 44, C = 2 * Math.PI * R;
+  const frac = total ? done / total : 0;
+  return (
+    <div className="relative h-[112px] w-[112px] shrink-0" role="img"
+      aria-label={lang === 'ar' ? `${done} من ${total} خطوات مكتملة` : `${done} of ${total} steps complete`}>
+      <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+        <defs>
+          <linearGradient id="qd-ring" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="rgb(45,212,191)" /><stop offset="100%" stopColor="rgb(214,178,94)" />
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r={R} fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="8" />
+        <motion.circle cx="50" cy="50" r={R} fill="none" stroke="url(#qd-ring)" strokeWidth="8" strokeLinecap="round"
+          strokeDasharray={C}
+          initial={reduce ? false : { strokeDashoffset: C }}
+          animate={{ strokeDashoffset: C * (1 - frac) }}
+          transition={{ duration: 1.1, ease: EASE }}
+          style={{ filter: 'drop-shadow(0 0 6px rgba(45,212,191,.35))' }} />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-center">
+        <div>
+          <div className="font-[family-name:var(--font-head)] text-[26px] font-extrabold leading-none text-foreground tabular-nums">{done}<span className="text-[15px] text-muted-foreground">/{total}</span></div>
+          <div className="mt-1 text-[10.5px] font-semibold uppercase tracking-[.1em] text-muted-foreground">{lang === 'ar' ? 'خطوات' : 'steps'}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function GetMatched({ token, lang, go }: { token: string; lang: Lang; go: (where: string) => void }) {
+  const ar = lang === 'ar';
+  const reduce = useReducedMotion();
+  const [e, setE] = useState<any>(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    let live = true;
+    call('supplier_portal', { action: 'eligibility' }, token)
+      .then((j) => { if (!live) return; if (j && j.ok) setE(j); else setErr(true); })
+      .catch(() => live && setErr(true));
+    return () => { live = false; };
+  }, [token]);
+  if (err) return null;
+  if (!e) return <div className="qd-panel mb-4 h-[180px] animate-pulse motion-reduce:animate-none" aria-busy="true" />;
+
+  const blocking: any[] = e.blocking || [];
+  const improving: any[] = e.improving || [];
+  const reg: any[] = Array.isArray(e.required_to_register) ? e.required_to_register : [];
+  const scopeOpen = blocking.some((b) => b.code === 'scope_unconfirmed');
+  const steps: Step[] = [
+    ...reg.map((r) => ({ code: r.code, label: srvText(lang, r.code, {}, r.code), done: !!r.done, fix: r.fix })),
+    { code: 'scope', label: ar ? 'تأكيد نطاق عملك' : 'Confirm your scope', done: !scopeOpen, fix: 'scope' },
+  ];
+  const done = steps.filter((s) => s.done).length;
+  const next = steps.find((s) => !s.done);
+  // Everything else that stops requests (a pause, a suspension, an empty listing) is listed under the
+  // checklist; not_registered and scope_unconfirmed are already the checklist itself.
+  const otherBlocking = blocking.filter((b) => b.code !== 'scope_unconfirmed' && b.code !== 'not_registered');
+  const fixLabel = (fix: string) => fix === 'documents' ? (ar ? 'إلى المستندات' : 'Go to Documents') : fix === 'scope' ? (ar ? 'تأكيد نطاقي' : 'Confirm my scope') : fix === 'contact' ? '' : (ar ? 'إلى الملف' : 'Go to Profile');
+
+  return (
+    <section aria-labelledby="qd-getmatched-h" className="qd-panel mb-4 p-5">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+        <Ring done={done} total={steps.length} lang={lang} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="qd-getmatched-h" className="font-[family-name:var(--font-head)] text-[18px] font-bold tracking-[-.02em] text-white">{ar ? 'احصل على المطابقة' : 'Get matched'}</h2>
+            <Badge variant={e.eligible ? 'ok' : 'destructive'}>{e.eligible ? (ar ? 'مؤهّل للمطابقة' : 'Eligible for matching') : (ar ? 'غير مؤهّل بعد' : 'Not eligible yet')}</Badge>
+          </div>
+          <p className="mt-1 max-w-[62ch] text-[13px] leading-[1.65] text-muted-foreground">
+            {next ? (ar ? 'الخطوة التالية: ' : 'Next step: ') + next.label + '.' : srvText(lang, e.note_code, {}, e.note)}
+          </p>
+          {next && next.fix !== 'contact' && <Button className="mt-3" onClick={() => go(next.fix)}>{fixLabel(next.fix)} {ar ? '←' : '→'}</Button>}
+        </div>
+        <dl className="grid grid-cols-3 gap-4 sm:w-[240px]">
+          {[[e.reach?.matched_requests ?? 0, ar ? 'طلبات مطابقة' : 'matched'], [e.reach?.quotes_sent ?? 0, ar ? 'عروض مُرسلة' : 'quoted'], [e.reach?.shortlist_size ?? 8, ar ? 'حجم القائمة' : 'shortlist']].map(([v, l], i) => (
+            <div key={i}><dd className="font-[family-name:var(--font-head)] text-[20px] font-extrabold leading-none text-foreground tabular-nums">{v}</dd><dt className="mt-1 text-[11px] text-muted-foreground">{l}</dt></div>
+          ))}
+        </dl>
+      </div>
+
+      <ol className="mt-5 grid gap-2 sm:grid-cols-2">
+        {steps.map((s, i) => (
+          <motion.li key={s.code}
+            initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: EASE, delay: reduce ? 0 : 0.05 * i }}>
+            <button type="button" disabled={s.done} onClick={() => go(s.fix)}
+              className={cn('flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-start transition-colors',
+                s.done ? 'cursor-default border-[var(--line)] bg-white/[.02]' : 'border-primary/30 bg-primary/[.06] hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring')}>
+              <span aria-hidden className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-full text-[12px] font-bold',
+                s.done ? 'bg-primary text-primary-foreground' : 'border border-primary/50 text-primary')}>{s.done ? '✓' : i + 1}</span>
+              <span className={cn('text-[13.5px]', s.done ? 'text-muted-foreground line-through decoration-white/20' : 'font-semibold text-foreground')}>{s.label}</span>
+              <span className="sr-only">{s.done ? (ar ? ' — مكتمل' : ' — done') : (ar ? ' — مطلوب' : ' — to do')}</span>
+            </button>
+          </motion.li>
+        ))}
+      </ol>
+
+      {otherBlocking.length > 0 && (
+        <div className="mt-5">
+          <h3 className="text-[12.5px] font-bold text-red-400">{ar ? 'يمنع وصول الطلبات إليك' : 'Stopping requests reaching you'}</h3>
+          <ul className="mt-2 flex flex-col gap-2.5">{otherBlocking.map((it, i) => <Row key={i} it={it} lang={lang} tone="block" go={go} fixLabel={fixLabel} />)}</ul>
+        </div>
+      )}
+      {improving.length > 0 && (
+        <details className="mt-5 group">
+          <summary className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">{ar ? `يرفع ترتيبك (${improving.length})` : `Improves your ranking (${improving.length})`}</summary>
+          <ul className="mt-2 flex flex-col gap-2.5">{improving.slice(0, 8).map((it, i) => <Row key={i} it={it} lang={lang} tone="improve" go={go} fixLabel={fixLabel} />)}</ul>
+        </details>
+      )}
+    </section>
+  );
+}
+
+function Row({ it, lang, tone, go, fixLabel }: { it: any; lang: Lang; tone: 'block' | 'improve'; go: (w: string) => void; fixLabel: (f: string) => string }) {
+  const { title, detail } = itemCopy(lang, it);
+  const label = fixLabel(String(it.fix || ''));
+  return (
+    <li className="flex items-start gap-2.5">
+      <span aria-hidden className={cn('mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full', tone === 'block' ? 'bg-red-500' : 'bg-primary')} />
+      <div className="flex-1">
+        <div className="text-[13.5px] font-semibold text-foreground">{title}</div>
+        <div className="text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]">{detail}</div>
+        {label && ['profile', 'documents', 'scope'].includes(it.fix) && (
+          <button type="button" className="mt-1 text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" onClick={() => go(it.fix)}>{label} {lang === 'ar' ? '←' : '→'}</button>
+        )}
+      </div>
+    </li>
+  );
+}
