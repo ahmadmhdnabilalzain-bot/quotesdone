@@ -63,7 +63,7 @@ const THIN = { stroke: '#6EE7D4', strokeOpacity: 0.35, fill: 'none', strokeWidth
 function Sheet({ fields }: { fields: string[] }) {
   return (
     <svg viewBox="0 0 320 300" className="h-full w-full" aria-hidden>
-      <rect x="4" y="4" width="312" height="292" rx="6" fill="#0C2330" stroke="rgba(110,231,212,.19)" />
+      <rect x="4" y="4" width="312" height="292" rx="6" fill="#0F2231" stroke="rgba(110,231,212,.19)" />
       {/* grid bubbles A–D / 1–4 */}
       {['A', 'B', 'C', 'D'].map((g, i) => (
         <g key={g}>
@@ -88,15 +88,15 @@ function Sheet({ fields }: { fields: string[] }) {
       <path d="M164 174A24 24 0 0 0 188 150" {...THIN} />
       {/* dimension line */}
       <path d="M40 222H226M40 217V227M226 217V227" {...THIN} />
-      <rect x="112" y="217" width="42" height="9" fill="#0C2330" />
+      <rect x="112" y="217" width="42" height="9" fill="#0F2231" />
       <path d="M118 222H148" stroke="#6EE7D4" strokeOpacity="0.5" strokeWidth="1.5" />
       {/* title block */}
       <path d="M244 204H312V292H244Z" {...THIN} />
       {fields.map((f, i) => (
         <g key={f}>
-          <text x="248" y={216 + i * 20} fontSize="5.5" fill="#9DB2B2" letterSpacing="0.6">{f}</text>
-          <path d={`M248 ${222 + i * 20}H${300 - i * 6}`} stroke="#EAF4F2" strokeOpacity="0.55" strokeWidth="2" />
-          <rect className="qd-black" x="247" y={218 + i * 20} width={56 - i * 6} height="8" fill="#14303E" />
+          <text x="248" y={216 + i * 20} fontSize="5.5" fill="#A7B9BB" letterSpacing="0.6">{f}</text>
+          <path d={`M248 ${222 + i * 20}H${300 - i * 6}`} stroke="#EEF6F4" strokeOpacity="0.55" strokeWidth="2" />
+          <rect className="qd-black" x="247" y={218 + i * 20} width={56 - i * 6} height="8" fill="#1B3445" />
         </g>
       ))}
       {/* scan line */}
@@ -126,14 +126,14 @@ export default function DrawingScan({ locale }: SceneProps) {
         <Sheet fields={t.fields} />
       </div>
       <div className="flex flex-1 flex-col justify-center gap-2" aria-hidden>
-        <div className="flex items-center justify-between pb-1 font-mono text-[12px] uppercase tracking-[0.16em] text-faint">
+        <div className="flex items-center justify-between pb-1 font-mono text-label uppercase tracking-caps text-faint">
           <span>{t.boq}</span>
           <span className="rounded-full border border-[var(--line2)] px-2 py-0.5 normal-case tracking-normal">{t.demo}</span>
         </div>
         {t.rows.map(([desc, unit], i) => (
-          <div key={desc} className={`qd-row-${i} flex items-center gap-3 rounded-lg border border-[var(--line)] bg-teal-light/[0.03] px-3 py-2.5`}>
-            <span className="min-w-0 flex-1 text-[12.5px] leading-snug text-paper/90">{desc}</span>
-            <span className="shrink-0 font-mono text-[12px] text-muted" title={t.unit}>{unit}</span>
+          <div key={desc} className={`qd-row-${i} flex items-center gap-3 rounded-panel border border-line bg-surf/60 shadow-key px-3 py-2.5`}>
+            <span className="min-w-0 flex-1 text-small leading-snug text-paper/90">{desc}</span>
+            <span className="shrink-0 font-mono text-label text-muted" title={t.unit}>{unit}</span>
             <span className="redact h-2.5 shrink-0" style={{ width: 28 + ((i * 17) % 26) }} />
           </div>
         ))}
