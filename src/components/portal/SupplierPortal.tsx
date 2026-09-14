@@ -12,7 +12,7 @@ import SupplierEntryHero from './supplier/SupplierEntryHero';
 import SupplierCommandPalette from './supplier/SupplierCommandPalette';
 import GetMatched from './supplier/GetMatched';
 import Insights, { INSIGHT_PANELS } from './supplier/Insights';
-import { DrawingGallery, BoqTable, ClarifyThread, WithheldCustomer } from './supplier/RfqParts';
+import { DrawingGallery, BoqTable, ClarifyThread, WithheldCustomer, RequestedTerms } from './supplier/RfqParts';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, CATEGORY_AR } from './supplier/serverCopy';
 import { call } from './supplier/api';
@@ -894,6 +894,7 @@ function Rfqs({ token, lang, focus = null, onFocused = null }) {
       </div>
       {q && q.status === 'draft' && canQuote && open !== i.id ? <HeldNotes q={q} lang={lang} onFix={() => setOpen(i.id)} /> : null}
       {i.summary && <p className={cn(S.sub, 'mt-2')}>{i.summary}</p>}
+      <RequestedTerms spec={i.spec} lang={lang} />
       <DrawingGallery pages={i.drawing_pages || []} lang={lang} />
       <BoqTable boq={i.boq} confidence={i.boq_confidence} lang={lang} onQuote={canQuote && !q ? (rows) => quoteBoq(i.id, rows) : undefined} />
       {i.boq_withheld ? <div className={cn(S.sub, 'mt-3')}>{ar ? 'حُجب جدول الكميات لأننا لم نتمكّن من إثبات خلوّه من بيانات العميل. سعّر من المخططات والوصف.' : 'The bill of quantities is held back because we could not prove it free of the customer’s details. Price from the drawings and the description.'}</div> : null}

@@ -96,6 +96,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [ready, setReady] = useState(false);
   const [meta, setMeta] = useState({}); // what the last intake turn said about itself
   const [combineMode, setCombineMode] = useState('multi');
+  const [edits, setEdits] = useState({}); // requirement key -> label the customer tapped on the summary card
+  const [posted, setPosted] = useState(null); // set when create_inquiry answered ok and reached no supplier
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [rec, setRec] = useState(false); const [voxBusy, setVoxBusy] = useState(false); const recRef = useRef(null);
@@ -110,13 +112,15 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     setThinking(false);
     if (!r || r.error) { push({ role: 'assistant', text: errText(r, lang, 'nr_err_generic') }); return; }
     if (r.intake_id) setIntakeId(r.intake_id);
-    const questions = (Array.isArray(r.questions) ? r.questions : []).map(qText).filter(Boolean);
+    // remaining_questions (14 Sep 2026): every question still open, the category's and the sales
+    // engineer's alike, so the customer sees exactly what is left instead of one question with no end.
+    const questions = (Array.isArray(r.remaining_questions) && r.remaining_questions.length ? r.remaining_questions : (Array.isArray(r.questions) ? r.questions : [])).map(qText).filter(Boolean);
     const next = r.next_question ? qText(r.next_question) : '';
     // next_question.options, when the intake offers them, are complete answers: one tap sends one.
     const options = (r.next_question && Array.isArray(r.next_question.options) ? r.next_question.options : []).map(qText).filter(Boolean).slice(0, 8);
     setMeta({ agent_name: r.agent_name || null, urgency: r.urgency || null, override: r.classifier_override || null, readiness: readinessPct(r.readiness ?? r.readiness_score), category: r.category || null });
-    push({ role: 'assistant', text: r.assistant_message || '', questions: next ? [next, ...questions.filter((q) => q !== next)] : questions, next, options });
-    if (r.status === 'ready') { setBrief(r.brief || null); setReady(true); } else setReady(false);
+    push({ role: 'assistant', text: r.assistant_message || '', questions: next ? [next, ...questions.filter((q) => q !== next)] : questions, next, options, left: r.status === 'ready' ? 0 : questions.length });
+    if (r.status === 'ready') { setBrief(r.brief || null); setReady(true); setEdits({}); } else setReady(false);
   };
   const sendText = async (text) => { const v = String(text || '').trim(); if (!v) return; push({ role: 'user', text: v }); setInput(''); await runIntake(v); };
   const send = () => sendText(input);
@@ -247,10 +251,19 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const category = (brief && brief.category) || (drawing && drawing.boq && drawing.boq.category) || '';
     const firstUser = messages.find((m) => m.role === 'user' && m.text);
     const summary = (brief && brief.summary) || (firstUser ? firstUser.text.slice(0, 180) : category);
-    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing }, token).catch(() => null);
+    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, requirement_edits: edits }, token).catch(() => null);
     setBusy(false);
-    if (r && r.ok) onDone();
-    else if (r && r.error === 'intake_required') { setReady(false); push({ role: 'assistant', text: t(lang, 'nr_more_details') }); }
+    // THE HONEST AFTER-POST (14 Sep 2026). A request no registered supplier covers is still posted and
+    // flagged to the team (customer_api flagCoverageGap), but the composer used to close with nothing
+    // said. The customer is now told, in their language, that quotes may take longer and why.
+    if (r && r.ok) {
+      const reached = Array.isArray(r.children) ? r.children.reduce((n, c) => n + (Number(c && c.matches) || 0), 0) : Number(r.matches) || 0;
+      if (reached > 0) onDone(); else setPosted({ none: true });
+    }
+    // Never a dead end: when the server says something is still open, the next question is fetched at
+    // once instead of leaving the customer to guess what "more details" means.
+    else if (r && (r.error === 'intake_required' || r.error === 'requirements_incomplete')) { setReady(false); push({ role: 'assistant', text: t(lang, 'nr_more_details') }); await runIntake(''); }
+    else if (r && r.error === 'requirements_invalid') setMsg(t(lang, 'nr_req_invalid'));
     else setMsg(errText(r, lang, 'nr_could_not_send'));
   };
 
@@ -258,6 +271,13 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const boq = drawing && drawing.boq;
   const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
   const urgencyIcon = meta.urgency === 'emergency' ? Siren : AlertTriangle;
+  if (posted) return (
+    <section dir={ar ? 'rtl' : 'ltr'} className="qd-panel mb-3.5 p-5 shadow-e2" aria-live="polite">
+      <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{t(lang, 'nr_posted')}</h2>
+      <p className="mt-2 text-copy leading-relaxed text-foreground">{t(lang, 'nr_posted_none')}</p>
+      <Button size="lg" className="mt-4" onClick={onDone}>{t(lang, 'nr_posted_view')}</Button>
+    </section>
+  );
   return (
     <section dir={ar ? 'rtl' : 'ltr'} className="qd-panel qd-grain mb-3.5 flex flex-col overflow-hidden shadow-e2" style={{ height: 'min(78vh, 720px)' }} aria-label={t(lang, 'nr_title')}>
       {/* The command-surface status bar: window dots, the surface's name, and what it is doing now. */}
@@ -288,7 +308,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                   <div className={cn('max-w-[85%] whitespace-pre-wrap rounded-card px-3.5 py-2.5 text-copy leading-relaxed', m.role === 'user' ? 'bg-primary text-primary-foreground shadow-e1' : 'border border-border bg-secondary/40 text-foreground')}>{m.text}</div>
                 </div>}
             {m === lastAssistant && Array.isArray(m.questions) && m.questions.length > 0 && (
-              <QuestionChips questions={m.questions} next={m.next} lang={lang} onPick={answerChip} reduce={reduce} />
+              <QuestionChips questions={m.questions} next={m.next} left={m.left} lang={lang} onPick={answerChip} reduce={reduce} />
             )}
             {m === lastAssistant && Array.isArray(m.options) && m.options.length > 0 && !thinking && (
               <div className="mt-1.5 flex flex-wrap gap-1.5 ps-1" role="group" aria-label={m.next || t(lang, 'nr_chips_hint')}>
@@ -326,6 +346,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 {brief.timeline ? <Fact k={t(lang, 'nr_timeline')} v={brief.timeline} /> : null}
                 {brief.budget ? <Fact k={t(lang, 'nr_budget')} v={brief.budget} /> : null}
               </dl>
+              {Array.isArray(brief.requirement_questions) && brief.requirement_questions.length ? <RequirementsCard items={brief.requirement_questions} edits={edits} onEdit={(k, v) => setEdits((e) => ({ ...e, [k]: v }))} lang={lang} /> : null}
               {Array.isArray(brief.required_documents) && brief.required_documents.length ? (
                 <div className="mt-2.5">
                   <div className="text-[12.5px] font-semibold text-foreground">{t(lang, 'nr_req_docs')}</div>
@@ -400,6 +421,42 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
 
 const Fact = ({ k, v }) => <div className="flex gap-1.5"><dt className="text-muted-foreground">{k}:</dt><dd className="text-foreground">{v}</dd></div>;
 
+// WHAT THE CUSTOMER TOLD THE SALES ENGINEER, editable before Send: one row per question (materials,
+// installation, warranty, the date). "Change" offers the same options the question did; the tapped
+// label goes to create_inquiry as requirement_edits and the server reads it again
+// (_shared/intake_requirements.ts applyEdits), so nothing the browser sends is trusted as parsed.
+function RequirementsCard({ items, edits, onEdit, lang }) {
+  const [open, setOpen] = useState(null);
+  return (
+    <div className="mt-3 rounded-xl border border-border bg-card/60 p-3">
+      <div className="text-[12.5px] font-semibold text-foreground">{t(lang, 'nr_req_title')}</div>
+      <dl className="mt-1 space-y-1.5">
+        {items.map((it) => {
+          const shown = edits[it.key] || it.answer;
+          return (
+            <div key={it.key}>
+              <div className="flex flex-wrap items-baseline gap-x-1.5 text-[12.5px]">
+                <dt className="text-muted-foreground">{it.label}:</dt>
+                <dd className="text-foreground">{shown}</dd>
+                <button type="button" className="ms-auto text-[12px] font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-expanded={open === it.key} onClick={() => setOpen(open === it.key ? null : it.key)}>{t(lang, open === it.key ? 'nr_req_keep' : 'nr_req_change')}</button>
+              </div>
+              {open === it.key ? (
+                <div className="mt-1 flex flex-wrap gap-1.5" role="group" aria-label={it.question}>
+                  {it.options.map((o) => (
+                    <button key={o} type="button" onClick={() => { onEdit(it.key, o); setOpen(null); }}
+                      className={cn('rounded-full border px-2.5 py-1 text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', shown === o ? 'border-primary/55 bg-primary/15 font-semibold text-primary' : 'border-border bg-card/60 text-foreground hover:border-primary/40')}>{o}</button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </dl>
+    </div>
+  );
+}
+
 function ReadinessBar({ pct, lang, reduce }) {
   return (
     <div className="border-b border-border px-5 py-2">
@@ -411,12 +468,12 @@ function ReadinessBar({ pct, lang, reduce }) {
   );
 }
 
-function QuestionChips({ questions, next, lang, onPick, reduce }) {
+function QuestionChips({ questions, next, left, lang, onPick, reduce }) {
   return (
     <div className="mt-2 ps-1">
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t(lang, 'nr_chips_hint')}</div>
+      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{left > 0 ? tf(lang, 'nr_left', { n: left }) : t(lang, 'nr_chips_hint')}</div>
       <div className="flex flex-wrap gap-1.5">
-        {questions.slice(0, 5).map((q, i) => (
+        {questions.slice(0, 8).map((q, i) => (
           <motion.button key={q + i} type="button" onClick={() => onPick(q)}
             initial={reduce ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.2, delay: reduce ? 0 : 0.05 * i }}
             className={cn('rounded-full border px-3 py-1.5 text-start text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
