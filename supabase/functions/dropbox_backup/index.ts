@@ -1,3 +1,7 @@
+// dropbox_backup v7 (14 Sep 2026, agent: it_engineer): body.ids re-checks named rows (job 'targeted');
+// the daily sample is new-unverified rows plus, once a Dubai week, a random sample of older ones; the
+// uploader skips entity 'zz_demo'. SQL: scripts/sql/the_it_engineer_knows_what_should_be_backed_up_and_closes_the_loop.sql
+//
 // dropbox_backup v6 (14 Sep 2026, agent: ceo, owner: sales_engineer) — A BACKUP IS CONFIRMED, NOT ASSUMED.
 // v5 marked a row 'done' the moment files/upload returned 200. v6 hashes the bytes it sent (Dropbox
 // content_hash: SHA-256 per 4 MiB block, SHA-256 of the concatenation — see content_hash.ts), then
@@ -110,8 +114,11 @@ async function verifyUploaded(token: string, dest: string, hash: string, size: n
 // WEEKLY RECONCILIATION. Verified rows are compared against the hash recorded at upload. Rows done
 // before v6 have no recorded hash, so their source is downloaded and hashed once (if it still exists
 // and is not huge) — the first real confirmation those rows ever get.
-async function reconcile(token: string, n: number){
-  const { data: rows, error } = await admin.rpc('fn_dropbox_reconcile_sample', { p_n: n });
+// v7: body.ids re-checks exactly those rows (job 'targeted', which never counts as the daily check).
+async function reconcile(token: string, n: number, ids?: number[]){
+  const { data: rows, error } = ids?.length
+    ? await admin.from('doc_backups').select('id,dropbox_path,bucket,path,bytes,dropbox_content_hash').in('id', ids)
+    : await admin.rpc('fn_dropbox_reconcile_sample', { p_n: n });
   if (error) throw new Error('sample '+error.message);
   const results: any[] = [];
   for (const row of (rows||[]) as any[]){
@@ -125,10 +132,12 @@ async function reconcile(token: string, n: number){
         if (!blob){ results.push({ id: row.id, outcome: 'unverifiable', hash: m.content_hash, size: m.size, note: 'source object no longer in storage' }); continue; }
         expect = await dropboxContentHash(new Uint8Array(await (blob as Blob).arrayBuffer())); basis = 'source';
       }
-      results.push({ id: row.id, outcome: m.content_hash === expect ? 'ok' : 'changed', hash: m.content_hash, size: m.size, basis });
+      results.push({ id: row.id, outcome: m.content_hash === expect ? 'ok' : 'changed', hash: m.content_hash, size: m.size, basis, why: row.why });
     } catch (e){ results.push({ id: row.id, outcome: 'error', note: String((e as Error)?.message||e).slice(0,160) }); }
   }
-  const { data: applied, error: aerr } = await admin.rpc('fn_dropbox_reconcile_apply', { p_results: results });
+  const { data: applied, error: aerr } = ids?.length
+    ? await admin.rpc('fn_it_backup_check', { p_results: results, p_job: 'targeted' })
+    : await admin.rpc('fn_dropbox_reconcile_apply', { p_results: results });
   if (aerr) throw new Error('apply '+aerr.message);
   return applied;
 }
@@ -208,7 +217,8 @@ Deno.serve(observe('dropbox_backup', async (req) => {
       try {
         const token = await accessToken();
         if (!token) throw new Error('no_dropbox_auth');
-        return J({ ok:true, mode:'reconcile', result: await reconcile(token, Math.min(Number(body.limit)||20, 200)) });
+        const ids = Array.isArray(body.ids) ? body.ids.map(Number).filter(Number.isFinite).slice(0, 50) : undefined;
+        return J({ ok:true, mode:'reconcile', result: await reconcile(token, Math.min(Number(body.limit)||20, 200), ids) });
       } catch (e){
         const msg = String((e as Error)?.message||e).slice(0,300);
         await admin.rpc('fn_dropbox_reconcile_apply', { p_results: [], p_error: msg });
@@ -222,7 +232,8 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     const token = await accessToken();
     if (!token) { await logThrottled('no_dropbox_auth', 60, 'error', { stage:'token', enqueued }, 'Dropbox backup could not obtain an access token (refresh token expired/revoked or app key/secret missing). No documents are being backed up to Dropbox and the backup set is going stale from this point onward.'); return J({ ok:false, error:'no_dropbox_auth', enqueued }); }
 
-    const { data: rows } = await admin.from('doc_backups').select('*').in('status',['pending','error']).lt('attempts',5).order('id',{ ascending:true }).limit(limit);
+    // v7: ZZ DEMO rows are never uploaded; the it_engineer's loop is proved on them without a Dropbox write.
+    const { data: rows } = await admin.from('doc_backups').select('*').in('status',['pending','error']).lt('attempts',5).neq('entity','zz_demo').order('id',{ ascending:true }).limit(limit);
     let done=0, failed=0, skipped=0; const results:any[]=[];
     const errNotes:string[] = [];
     for (const row of (rows||[])){

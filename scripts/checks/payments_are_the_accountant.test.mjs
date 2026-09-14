@@ -25,8 +25,11 @@ import { fileURLToPath } from 'node:url';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
 const SQL = join(REPO, 'scripts', 'sql');
-// In MANIFEST order: a later file redefines a routine, and the LAST definition is the live one.
-const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_together.sql', 'the_dropbox_backup_is_confirmed_not_assumed.sql'];
+// In MANIFEST order: a later file redefines a routine, and the LAST definition is the live one. Only
+// files whose definitions are still canonical: the_dropbox_backup_is_confirmed_not_assumed.sql is
+// superseded by the last file and cannot be replayed over it (fn_dropbox_reconcile_sample changed shape).
+const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_together.sql',
+  'the_it_engineer_knows_what_should_be_backed_up_and_closes_the_loop.sql'];
 
 // Every payment function, as function_owner lists them. quote_pdf has an owner row and no directory
 // in this repository (it is not deployed from here); it is checked against production only.
