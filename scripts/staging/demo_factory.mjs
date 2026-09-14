@@ -1058,7 +1058,23 @@ export async function teardown(run) {
   // 2. rows, children before parents. Everything below is one statement per table so a failure
   //    names the table it failed on instead of collapsing into one opaque constraint error.
   const counts = {};
+  // THE RUN'S MONEY GOES BEFORE THE PEOPLE IT NAMES (15 Sep 2026). supplier_dues has no foreign key to its
+  // supplier or transaction, and no step here touched it, so an e2e clawback due outlived the lead and the
+  // transaction it named. The first booking tick after the bank-booking hold lifted posted that orphan
+  // (supplier_dues #272) into the real ledger as journal #690. Every money row a run can create is removed
+  // here while the transaction, lead and customer rows that scope it still exist.
+  const TX = `(select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`;
+  const DUES_W = `(transaction_id in ${TX} or supplier_id in ${LEAD} or quote_id in ${QUO})`;
+  // A run's due that already reached the ledger must not be deleted from under its journal: stop and say so.
+  // fn_gl_sync_business refuses fixture dues, so this should never fire.
+  const booked = await mgmtRead(REF, `select d.id from public.supplier_dues d where ${DUES_W} and exists (select 1 from public.gl_journal g
+      where g.source in ('commission_accrue','commission_collect') and g.source_ref = d.id::text and g.status in ('draft','posted'))`);
+  if (booked.length) throw new Error(`teardown refused: supplier_dues ${booked.map((r) => r.id).join(', ')} of run ${tag} are in the ledger; the accountant reverses them first (fn_gl_reverse)`);
   const steps = [
+    ['accountant_issued_document', `delete from public.accountant_issued_document where due_id in (select id from public.supplier_dues where ${DUES_W})`],
+    ['supplier_dues', `delete from public.supplier_dues where ${DUES_W}`],
+    ...['charge_audit', 'reveal_invoices', 'stripe_dispute', 'supplier_response_watch'].map((t) => [t,
+      `delete from public.${t} where transaction_id in ${TX}`]),
     // trg_event_transaction emits payment.received keyed on the transaction id (as TEXT), so it must go
     // before the transaction row it names — the same ordering rule as the quote/inquiry/lead log rows.
     // THE REFUND LOOP'S ROWS (14 Sep 2026). A demo customer's refund request opens a refunds case, and
