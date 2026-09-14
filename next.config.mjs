@@ -93,6 +93,10 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Audit 14 Sep: Supplier Agreement §16 linked /legal?doc=privacy, a 404. The text is fixed,
+      // but copies accepted before the fix still carry the old link, so the old URL resolves too.
+      { source: '/legal', has: [{ type: 'query', key: 'doc', value: 'privacy' }], destination: '/privacy', permanent: true },
+      { source: '/ar/legal', has: [{ type: 'query', key: 'doc', value: 'privacy' }], destination: '/ar/privacy', permanent: true },
       { source: '/app', destination: '/me', permanent: false },
       { source: '/app/:path*', destination: '/me', permanent: false },
       { source: '/ar/app', destination: '/ar/me', permanent: false },
