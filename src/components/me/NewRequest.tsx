@@ -330,6 +330,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     // once instead of leaving the customer to guess what "more details" means.
     else if (r && (r.error === 'intake_required' || r.error === 'requirements_incomplete')) { setReady(false); push({ role: 'assistant', text: t(lang, 'nr_more_details') }); await runIntake(''); }
     else if (r && r.error === 'requirements_invalid') setMsg(t(lang, 'nr_req_invalid'));
+    // All or nothing (customer_api, _shared/inquiry_split.ts): the customer is told exactly which trades
+    // could not go out, and that nothing was sent, so pressing Send again is safe.
+    else if (r && r.error === 'split_failed') setMsg(tf(lang, 'nr_split_failed', { list: (Array.isArray(r.failed_trades) ? r.failed_trades : []).map((c) => categoryLabel(c, lang)).join(ar ? '، ' : ', ') }));
     else setMsg(errText(r, lang, 'nr_could_not_send'));
   };
 
