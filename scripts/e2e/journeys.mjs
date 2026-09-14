@@ -400,7 +400,9 @@ export async function journeyComparison(ctx) {
       // promise is now what is checked, waiting up to 20 s for it: My requests is the current page
       // (the overview never is), the request's card is visible, and the link was consumed from the URL
       // (CustomerPortal resolveQuoteLink -> openRfq -> history.replaceState).
-      const reqNav = m.lang === 'ar' ? /^طلباتي/ : /^My requests/;
+      // Either label: the portal follows customers.locale, and journey c registers the demo customer in
+      // English before this loop, so /ar correctly shows English here (run 2026-09-14T20-25-56).
+      const reqNav = /^(My requests|طلباتي)/;
       const onRequests = await s.page.locator('button[aria-current="page"]:visible').filter({ hasText: reqNav }).first()
         .waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
       const cardShown = await s.page.locator(`[id="inq-${inquiryId}"]`).first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true).catch(() => false);
