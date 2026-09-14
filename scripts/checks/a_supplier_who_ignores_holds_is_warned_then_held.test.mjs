@@ -38,16 +38,22 @@ declare
   v_lead bigint; v_mail text; r jsonb := '{}'::jsonb; v_before jsonb; v_after jsonb; v_fi bigint; v_ok boolean;
   v_matchable_before boolean; v_matchable_held boolean; v_tl jsonb;
 begin
-  select l.id, coalesce(l.claimed_by, l.email) into v_lead, v_mail from public.leads l
+  -- A ZZ DEMO supplier if one exists; otherwise any lead, whose every contact field is overwritten
+  -- with a fixture address and number as the FIRST statement below. Either way, inside this
+  -- transaction (which is rolled back) no notice can be addressed to a real person, and none survives.
+  select l.id into v_lead from public.leads l
    where l.company_name ilike 'ZZ DEMO%' and coalesce(l.claimed_by, l.email) ilike '%@example.invalid' order by l.id limit 1;
-  if v_lead is null then raise exception 'PROBE<<{"skipped":"no ZZ DEMO supplier fixture"}>>'; end if;
+  if v_lead is null then select l.id into v_lead from public.leads l order by l.id limit 1; end if;
+  if v_lead is null then raise exception 'PROBE<<{"skipped":"no lead at all to stand in as the fixture"}>>'; end if;
+  v_mail := 'zz-demo-collab-probe@example.invalid';
   select jsonb_build_object('notifications', (select count(*) from public.notifications), 'cases', (select count(*) from public.support_case),
                             'events', (select count(*) from public.supplier_collaboration_event), 'collab', (select count(*) from public.supplier_collaboration))
     into v_before;
 
-  -- A clean, matchable fixture for the length of this transaction only.
-  update public.leads set verified = true, banned = false, matching_blocked = false, matching_block_reason = null,
-         approval_status = 'approved', permanently_closed = false, phone = '+971500000093', whatsapp = null where id = v_lead;
+  -- A clean, matchable fixture, reachable only at reserved addresses, for this transaction only.
+  update public.leads set email = v_mail, claimed_by = v_mail, phone = '+971500000093', whatsapp = null, phone_e164 = null,
+         verified = true, banned = false, matching_blocked = false, matching_block_reason = null,
+         approval_status = 'approved', permanently_closed = false where id = v_lead;
   delete from public.supplier_collaboration where lead_id = v_lead;
   select public.fn_is_matchable(verified, banned, matching_blocked, approval_status, permanently_closed, chat_strikes) into v_matchable_before from public.leads where id = v_lead;
 
@@ -101,7 +107,7 @@ begin
   raise exception 'PROBE<<%>>', (r || jsonb_build_object('before', v_before))::text;
 end $probe$;`;
 
-test('production: the run, the warning through support, the hold, and the founder-only lift', { skip: SKIP }, async () => {
+test('production: the run, the warning through support, the hold, and the founder-only lift', { skip: SKIP }, async (t) => {
   const { sql } = await import('../lib/db.mjs');
   let out = null;
   // The Management API hands the exception message back inside its own JSON, so the report arrives
@@ -109,7 +115,8 @@ test('production: the run, the warning through support, the hold, and the founde
   const parse = (s) => { try { return JSON.parse(s); } catch { return JSON.parse(s.replace(/\\\\/g, '\\').replace(/\\"/g, '"')); } };
   try { await sql(PROBE); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
   assert.ok(out, 'the probe did not report');
-  if (out.skipped) { console.log('skipped:', out.skipped); return; }
+  // A probe that could not run reports a SKIP, never a pass: a check that proves nothing must not read green.
+  if (out.skipped) { t.skip(out.skipped); return; }
   assert.equal(out.after_one, 1); assert.equal(out.after_fix, 0, 'a fix before the decision resets the run');
   assert.equal(out.warned_after_broken_run, false, 'a fix in between breaks the run');
   assert.equal(out.second, 2); assert.equal(out.warned, true); assert.equal(out.support_cases, 1, 'customer_support is informed with a case');
