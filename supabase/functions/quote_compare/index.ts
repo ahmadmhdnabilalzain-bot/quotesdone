@@ -209,8 +209,9 @@ Deno.serve(observe('quote_compare', async (req) => {
     // actually stated is worth incomparably more than an empty screen, and it costs nothing.
     // It is NOT cached — the model result must win as soon as the model works again.
     const degradedBecause = (why: string) => {
+      // deterministicCompare sets its own closing paragraph: DISCLAIMER_* claims a match "on
+      // specification", which a rules ranking never assesses.
       const analysis = deterministicCompare(labelled as never, lang as 'en' | 'ar');
-      analysis.disclaimer = (lang === 'ar') ? DISCLAIMER_AR : DISCLAIMER_EN;
       return { analysis, why };
     };
     if (!parsed) {

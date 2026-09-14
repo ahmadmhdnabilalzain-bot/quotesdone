@@ -293,8 +293,8 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
       blocks.push({ t: 'note', text: T(`${labelFor(r.label, lang)} is on hold: ${why}. It is not ranked until the supplier completes it.`,
         `${labelFor(r.label, lang)} معلّق: ${why}. لا يدخل الترتيب حتى يستكمله المورّد.`) });
     }
-    blocks.push({ t: 'note', text: T('Every quote above stays open to you - the shortlist is advice, not a limit. Open your QuotesDone portal to view or reveal any of them.',
-      'كل العروض أعلاه تبقى متاحة لك - القائمة المختصرة نصيحة وليست قيدًا. افتح بوابتك في QuotesDone لعرض أي منها أو كشفه.'), link: args.portalUrl });
+    blocks.push({ t: 'note', text: T('Every quote above stays open to you - the shortlist is advice, not a limit. You can choose any of them: open your QuotesDone portal to view or reveal it.',
+      'كل العروض أعلاه تبقى متاحة لك - القائمة المختصرة نصيحة وليست قيدًا. يمكنك اختيار أي منها: افتح بوابتك في QuotesDone لعرضه أو كشفه.'), link: args.portalUrl });
   }
   if (a.best_value_reason) { blocks.push({ t: 'h2', text: T('Why that pick', 'سبب الاختيار') }); blocks.push({ t: 'p', text: String(a.best_value_reason) }); }
   if (arrOf(a.watch_outs).length) { blocks.push({ t: 'h2', text: T('Watch out', 'انتبه') }); for (const w of arrOf(a.watch_outs)) blocks.push({ t: 'li', text: String(w) }); }

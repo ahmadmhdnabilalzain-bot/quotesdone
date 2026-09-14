@@ -28,7 +28,10 @@ export type Labelled = {
   completeness?: { score: number | null; passed: boolean | null; missing_mandatory: number | null };
 };
 
-const clamp15 = (n: number) => Math.max(1, Math.min(5, Math.round(n)));
+export const RULES_DISCLAIMER_EN = "This is QuotesDone's impartial recommendation, prepared to make your decision easier. From all the quotes you received, we have shortlisted three, ranked on the price, completeness, lead time, warranty and payment terms each supplier stated, and compared those in detail. You remain completely free to reveal and choose any supplier from your full list of quotes.";
+export const RULES_DISCLAIMER_AR = 'هذه توصية محايدة من QuotesDone أعددناها لتسهيل قرارك. من بين جميع العروض التي استلمتها، اخترنا ثلاثة عروض رُتّبت وفق السعر واكتمال العرض ومدة التنفيذ والضمان وشروط الدفع التي ذكرها كل مورّد، وقارنّاها بالتفصيل. يبقى لك كامل الحرية في كشف واختيار أي مورّد من قائمة عروضك الكاملة.';
+
+const clamp15 =(n: number) => Math.max(1, Math.min(5, Math.round(n)));
 
 // Score a lower-is-better value ACROSS THE RANGE THE QUOTES ACTUALLY OCCUPY, not as a ratio to
 // the best one. Found by running this against four real staging quotes: prices 862,400-1,107,400
@@ -172,8 +175,11 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
   }));
 
   const note = ar
-    ? 'هذه مقارنة بالقواعد فقط: المساعد الذكي غير متاح الآن، لذلك رُتّبت العروض من الأرقام المذكورة فقط دون قراءة المواصفات. راجع المواصفات بنفسك قبل الدفع.'
-    : 'This is a rules-only comparison. The AI adviser was unavailable, so these quotes are ranked on the figures the suppliers stated — price, completeness, lead time, warranty and payment terms — and NOT on a reading of the specifications. Check the specs yourself before paying.';
+    // THE METHOD, NEVER THE MACHINERY (coordinator review of the #600 samples, 14 Sep 2026). This
+    // said the "AI adviser was unavailable". A customer must never read that something of ours is
+    // down; they need to know how the ranking was made and what it did not look at. Same facts.
+    ? 'رُتّبت العروض وفق الأرقام التي ذكرها كل مورّد: السعر، واكتمال العرض، ومدة التنفيذ، والضمان، وشروط الدفع. لم تُقيَّم المواصفات؛ يُرجى التحقق منها قبل الدفع.'
+    : 'Quotes are ranked on the figures each supplier stated: price, completeness, lead time, warranty and payment terms. Specifications are not assessed; check them before you pay.';
 
   return {
     degraded: true,
@@ -181,12 +187,15 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     // Declared here so the caller can stamp it. Without it the returned object literal's inferred
     // type has no such property and `analysis.disclaimer = ...` is a TS2339 — which the Supabase
     // CLI does not catch, because it bundles without typechecking, but CI does.
-    disclaimer: '',
+    // The rules ranking carries its own closing paragraph. The model's one says the shortlist
+    // matches "on specification, value and terms", which is untrue here: specs are not assessed.
+    disclaimer: ar ? RULES_DISCLAIMER_AR : RULES_DISCLAIMER_EN,
     trade: '',
     considered: labelled.length,
     shortlist_reason: ar
-      ? `رُتّبت ${labelled.length} عروض بالنقاط وعُرضت أفضل ${short.length}.`
-      : `All ${labelled.length} quotes were scored on stated figures and the strongest ${short.length} are shown.`,
+      // Founder's standing rule: never imply only the shortlist is shown. Every quote is listed.
+      ? `جميع العروض الـ${labelled.length} مدرجة في هذا التقرير، وتُقارن أفضل ${short.length} منها بالتفصيل.`
+      : `All ${labelled.length} quotes are listed in this report; the top ${short.length} are compared in detail.`,
     bottom_line: best
       ? (ar ? `${best} هو الأعلى نقاطاً. ${note}` : `${best} scores highest overall. ${note}`)
       : note,
@@ -206,8 +215,7 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     watch_outs: [
       ...(scored.some(s => s.flags.some(f => /expired|انتهت/.test(f)))
         ? [ar ? 'أحد العروض منتهي الصلاحية.' : 'At least one quote has expired — reconfirm before you rely on it.'] : []),
-      ...(scored.some(s => !s.flags.length) ? [] : []),
-      note,
+      // The method line is said once, in the bottom line; repeating it here read as a warning.
     ],
     advice: ar
       ? 'راجع المواصفات والبنود الناقصة مع المورد قبل الدفع.'
