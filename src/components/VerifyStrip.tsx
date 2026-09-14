@@ -25,8 +25,12 @@ export function VerifyStrip() {
       <dl className={`reveal mt-12 grid border-t border-[var(--line2)] md:grid-cols-2 lg:grid-cols-4`}>
         {items.map((it, i) => (
           <div key={it.k} className="border-b border-[var(--line)] py-7 md:pe-8 lg:border-b-0 lg:[&:not(:first-child)]:border-s lg:[&:not(:first-child)]:ps-8">
-            <span className="font-mono text-[12px] tabular text-teal-light">{String(i + 1).padStart(2, '0')}</span>
-            <dt className="mt-4 font-head text-[18px] font-semibold tracking-[-0.02em] text-white rtl:tracking-normal">{it.k}</dt>
+            {/* The index sits inside the <dt>: a <div> in a <dl> may hold only dt/dd, and the bare <span>
+                here cost the homepage its accessibility 1.0 (Lighthouse definition-list, 14 Sep 2026). */}
+            <dt className="font-head text-[18px] font-semibold tracking-[-0.02em] text-white rtl:tracking-normal">
+              <span className="mb-4 block font-mono text-[12px] font-normal tracking-normal tabular text-teal-light" aria-hidden>{String(i + 1).padStart(2, '0')}</span>
+              {it.k}
+            </dt>
             <dd className="mt-2 text-[14px] leading-relaxed text-muted">{it.v}</dd>
           </div>
         ))}
