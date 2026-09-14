@@ -40,7 +40,7 @@ test('the composer introduces the sales engineer, in both languages', () => {
   assert.match(src, /I'm your QuotesDone sales engineer/);
   assert.match(src, /أنا مهندس المبيعات في QuotesDone/);
   assert.doesNotMatch(src, /intake assistant/, 'the generic "intake assistant" name is gone');
-  for (const k of ['nr_left', 'nr_req_title', 'nr_req_change', 'nr_req_keep', 'nr_req_invalid', 'nr_posted', 'nr_posted_view', 'nr_posted_none']) {
+  for (const k of ['nr_left', 'nr_req_title', 'nr_req_change', 'nr_req_keep', 'nr_req_invalid', 'nr_posted', 'nr_posted_view', 'nr_posted_none', 'nr_suggested']) {
     assert.equal((src.match(new RegExp(`\\b${k}:`, 'g')) || []).length, 2, `${k} exists in English and Arabic`);
   }
 });
