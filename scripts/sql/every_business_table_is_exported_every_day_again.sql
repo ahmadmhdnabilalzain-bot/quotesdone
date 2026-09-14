@@ -1,10 +1,13 @@
--- EVERY BUSINESS TABLE IS EXPORTED EVERY DAY AGAIN, INTO THE BACKUPS BUCKET AND ON TO DROPBOX.
+-- EVERY BUSINESS TABLE AND EVERY KNOWLEDGE TABLE IS EXPORTED EVERY DAY AGAIN, INTO THE BACKUPS
+-- BUCKET AND ON TO DROPBOX.
 --
 -- Assigned: it_engineer. 14 Sep 2026.
 --
 -- The founder, 14 Sep 2026: backups go to two places, the Supabase private 'backups' bucket and
 -- Dropbox, in the entity -> type -> date tree, and "there is no reason for the loop of the back up to
 -- fail except literally a disconnection from dropbox and supabase for a server issue from their end".
+-- Coordinator ruling the same day: the knowledge tables are included, vectors stripped (the text is
+-- the knowledge; embeddings regenerate for free in-region), and kb_chunks is never truncated.
 --
 -- MEASURED BEFORE WRITING (14 Sep 2026, production, read-only):
 --   * storage.objects in 'backups' holds a dated export <YYYY-MM-DD>/<table>/page_NNNN.json for every
@@ -12,7 +15,7 @@
 --     tables: customers, inquiries, quotes, transactions, supplier_dues, reviews, questions,
 --     inquiry_matches, reveal_invoices, pricing_config, expenses, content_drafts, category_specs,
 --     category_agents, agent_memory, agent_chats, agent_knowledge, dept_library, ops_knowledge,
---     kb_chunks (200 pages) and leads (a column subset).
+--     kb_chunks (201 pages) and leads (a column subset).
 --   * Its writer was supabase/functions/backup, fired at 03:30 UTC by pg_cron job 109 (through the
 --     kernel's cron executor, since dropped); cron.job_run_details shows its last run
 --     2026-09-07 03:30:00 UTC. pg_cron's last run of any job is 2026-09-07 17:51 UTC: every job was
@@ -23,22 +26,45 @@
 --     clean-up, and nothing re-homed the daily table export the way dropbox_backup, the WhatsApp
 --     drain and the refund ladder were re-homed onto resilience_ping. No decision was made to stop
 --     backing up the database; the loop simply lost its clock and its worker.
---   * v1 had two silent failures of its own: it stopped at 200,000 rows (kb_chunks now holds 2.69 M,
---     so its "backup" was a truncated one), and a table that errored was written as -1 while the
+--   * v1 had two silent failures of its own: it stopped at 200,000 rows, so kb_chunks (2,615,397 rows
+--     today) was truncated at under 8%, and a table that errored was written as -1 while the
 --     manifest still said ok.
 --
+-- KB_CHUNKS: FULL WEEKLY, INCREMENTAL DAILY — CHOSEN BY MEASUREMENT (14 Sep 2026):
+--   * a 1,000-row keyset page, vector stripped, demo filter on: 115-320 ms, 2.6-3.7 MB of JSON, at five
+--     points across the id range (3,557 .. 3,087,832). A full copy is ~2,616 pages, ~7.3 GB.
+--   * v1's own end-to-end rate on 7 Sep (read + upload, from storage.objects timestamps): 201 pages in
+--     250 s = 1.25 s per 2.8 MB page. A full copy is therefore ~55 minutes of worker time, ~110 slices
+--     of 30 s. Each slice is its own edge invocation, so it fits any per-invocation limit; the
+--     resilience_ping heartbeat only claims the day and never waits for the chain.
+--   * Daily, that is ~7.3 GB a day into storage AND Dropbox, kept forever: ~220 GB a month. Weekly it
+--     is ~32 GB a month. kb_chunks gained 0 rows in the last 7 days; its 598,880 recorded updates are
+--     the embedding backfill writing embedding_gte, which the export strips.
+--   * So: a FULL copy of every table every Friday (Asia/Dubai), and whenever no full copy has
+--     succeeded in the 7 days before; on the other days kb_chunks exports only the rows its change
+--     log names since 6 hours before the previous successful export started (the margin covers a
+--     transaction that began before that export and committed after it). The change log is filled
+--     by statement-level triggers on INSERT and on an UPDATE that changes a text column; embedding
+--     and backfill bookkeeping columns (embedding_gte, embed_claimed_at, fts) do not count. A
+--     restore of kb_chunks is the latest full copy plus every later daily file; each manifest
+--     names its kind and since. Every other table, knowledge included, is a full copy every day:
+--     the largest, ops_knowledge (9,140 rows), reads at 1.1 s and 8.3 MB per 1,000 rows.
+--
 -- WHAT CHANGES (no pg_cron, nothing the founder removed is re-registered):
---   public.table_export_run                 one row per Asia/Dubai day: status, attempts, heartbeat,
---                                           the worker's resume point and the manifest
+--   public.table_export_run                 one row per Asia/Dubai day: kind (full/incremental),
+--                                           since, status, attempts, heartbeat, resume point, manifest
+--   public.kb_chunks_export_change          kb_chunks change log (+ two statement triggers)
 --   public.fn_table_export_list()           THE list of exported tables (below, with the reason)
 --   public.fn_table_export_page()           one keyset page of one table, demo rows excluded,
---                                           vector columns stripped
+--                                           vector columns stripped, optionally only logged changes
 --   public.fn_table_export_due()            called by resilience_ping every 15 min: claims today's
---                                           export after 03:00 Dubai, resumes a chain whose
---                                           heartbeat stopped, retries a failed day (6 attempts)
+--                                           export after 03:00 Dubai, decides full or incremental,
+--                                           resumes a chain whose heartbeat stopped, retries a
+--                                           failed day (6 attempts)
 --   public.fn_table_export_save()           the worker's resume point after every slice
---   public.fn_table_export_finish()         verifies every page is in storage, marks the day, and
---                                           queues the files for Dropbox
+--   public.fn_table_export_finish()         verifies every page is in storage, marks the day, prunes
+--                                           the change log after a full copy, queues the files for
+--                                           Dropbox
 --   public.fn_enqueue_doc_backups()         + TABLE EXPORTS: every file of a finished day is filed
 --                                           under /QuotesDone Backup/Company/Database Exports/
 --                                           <YYYY-MM>/<YYYY-MM-DD>/ (entity -> type -> date)
@@ -47,13 +73,9 @@
 -- The expected list (fn_it_backup_expected) and the source registry are in
 -- every_stored_document_source_is_registered_for_backup.sql, applied AFTER this file.
 --
--- THE TABLE LIST, and why. In: every table holding a customer, supplier, inquiry, quote, payment,
--- accounting, conversation, consent/legal record, or a founder decision; plus the rules a quote is
--- checked against. The v1 business tables are all in. Out, by name:
---   * knowledge, not a business record: kb_chunks, dept_library, ops_knowledge, agent_knowledge,
---     support_knowledge, accountant_knowledge, ceo_knowledge. They are what v1 spent 700 MB a day on
---     (kb_chunks truncated at 200,000 of 2.69 M rows). NOT covered by this export; they need their
---     own decision, which is not taken here.
+-- THE TABLE LIST (110 tables), and why. In: every table holding a customer, supplier, inquiry, quote,
+-- payment, accounting, conversation, consent/legal record, or a founder decision; the rules a quote
+-- is checked against; and the ten knowledge tables. Every v1 table is in except three. Out, by name:
 --   * agent working state from v1: agent_memory, content_drafts, category_agents.
 --   * derived, regenerated from the tables above: supplier_score, customer_score, *_kpi_snapshots,
 --     finance_snapshots, finance_reports, accountant_weekly_report, accountant_spend_report,
@@ -70,6 +92,8 @@
 -- ── 1. THE RECORD OF EACH DAY'S EXPORT ─────────────────────────────────────────────────────────────
 create table if not exists public.table_export_run (
   stamp        date primary key,                       -- the Asia/Dubai day the export belongs to
+  kind         text not null default 'full' check (kind in ('full', 'incremental')),
+  since        timestamptz,                            -- incremental: changes logged at or after this
   status       text not null default 'running' check (status in ('running', 'done', 'failed')),
   attempts     integer not null default 1,
   started_at   timestamptz not null default now(),
@@ -77,21 +101,69 @@ create table if not exists public.table_export_run (
   finished_at  timestamptz,
   state        jsonb,                                  -- the worker's resume point (queue, per-table counts)
   manifest     jsonb,
-  error        text
+  error        text,
+  check ((kind = 'full') = (since is null))
 );
 comment on table public.table_export_run is
-  'One row per Asia/Dubai day of the daily business-table export (supabase/functions/backup v2). Written only by fn_table_export_due/_save/_finish. every_business_table_is_exported_every_day_again.sql';
+  'One row per Asia/Dubai day of the daily table export (supabase/functions/backup v2). Written only by fn_table_export_due/_save/_finish. every_business_table_is_exported_every_day_again.sql';
 alter table public.table_export_run enable row level security;
 drop policy if exists table_export_run_service_role_only on public.table_export_run;
 create policy table_export_run_service_role_only on public.table_export_run
   as permissive for all to public using (false) with check (false);
 revoke all on public.table_export_run from anon, authenticated;
 
--- ── 2. THE LIST ────────────────────────────────────────────────────────────────────────────────────
+-- ── 2. THE KB_CHUNKS CHANGE LOG ────────────────────────────────────────────────────────────────────
+-- kb_chunks has no updated_at, and an id watermark would miss a row whose transaction took an id
+-- before the export read and committed after it. So every insert, and every update that changes a
+-- text column, writes the row's id here. Statement-level with transition tables: one INSERT ... SELECT
+-- per statement, not one per row, so a bulk load or the embedding backfill costs one join.
+create table if not exists public.kb_chunks_export_change (
+  id         bigint not null,
+  changed_at timestamptz not null default now()
+);
+create index if not exists kb_chunks_export_change_changed_at_idx on public.kb_chunks_export_change (changed_at, id);
+comment on table public.kb_chunks_export_change is
+  'Ids of kb_chunks rows inserted or whose text changed, read by the daily incremental export and pruned after each full copy. every_business_table_is_exported_every_day_again.sql';
+alter table public.kb_chunks_export_change enable row level security;
+drop policy if exists kb_chunks_export_change_service_role_only on public.kb_chunks_export_change;
+create policy kb_chunks_export_change_service_role_only on public.kb_chunks_export_change
+  as permissive for all to public using (false) with check (false);
+revoke all on public.kb_chunks_export_change from anon, authenticated;
+
+create or replace function public.trg_kb_chunks_export_change()
+returns trigger
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+begin
+  if tg_op = 'INSERT' then
+    insert into public.kb_chunks_export_change (id) select nr.id from new_rows nr;
+  else
+    -- a text column changed; embedding_gte, embed_claimed_at and fts (derived) do not count
+    insert into public.kb_chunks_export_change (id)
+    select nr.id from new_rows nr join old_rows orw on orw.id = nr.id
+     where (nr.source_kind, nr.source_id, nr.category, nr.title, nr.content, nr.citation, nr.effective_date, nr.category_norm)
+           is distinct from
+           (orw.source_kind, orw.source_id, orw.category, orw.title, orw.content, orw.citation, orw.effective_date, orw.category_norm);
+  end if;
+  return null;
+end $fn$;
+revoke execute on function public.trg_kb_chunks_export_change() from public, anon, authenticated;
+
+drop trigger if exists kb_chunks_export_change_ins on public.kb_chunks;
+create trigger kb_chunks_export_change_ins after insert on public.kb_chunks
+  referencing new table as new_rows for each statement execute function public.trg_kb_chunks_export_change();
+drop trigger if exists kb_chunks_export_change_upd on public.kb_chunks;
+create trigger kb_chunks_export_change_upd after update on public.kb_chunks
+  referencing old table as old_rows new table as new_rows for each statement execute function public.trg_kb_chunks_export_change();
+
+-- ── 3. THE LIST ────────────────────────────────────────────────────────────────────────────────────
+-- change_log: the log an incremental day reads for that table (null = always a full copy).
 create or replace function public.fn_table_export_list()
-returns table(table_name text, subject text)
+returns table(table_name text, subject text, change_log text)
 language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  values
+  select v.t, v.s, case when v.t = 'kb_chunks' then 'kb_chunks_export_change' end
+  from (values
     ('customers','customer'), ('customer_preference','customer'), ('customer_calls','customer'), ('projects','customer'),
     ('leads','supplier'), ('lead_category','supplier'), ('lead_subcategory','supplier'), ('supplier_capabilities','supplier'),
     ('supplier_catalog','supplier'), ('supplier_product','supplier'), ('supplier_product_variant','supplier'),
@@ -121,30 +193,35 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('wa_messages','conversation'), ('wa_conversation','conversation'), ('wa_turn','conversation'),
     ('wa_document_intake','conversation'), ('notifications','conversation'), ('agent_chats','conversation'),
     ('legal_reviews','legal'), ('pdpl_requests','legal'), ('pdpl_erase_files','legal'), ('email_suppressions','legal'),
-    ('founder_instruction','decision'), ('company_policy_decision','decision')
+    ('founder_instruction','decision'), ('company_policy_decision','decision'),
+    ('kb_chunks','knowledge'), ('dept_library','knowledge'), ('ops_knowledge','knowledge'), ('agent_knowledge','knowledge'),
+    ('sales_knowledge','knowledge'), ('ceo_knowledge','knowledge'), ('support_knowledge','knowledge'),
+    ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge')
+  ) v(t, s)
 $fn$;
 revoke execute on function public.fn_table_export_list() from public, anon, authenticated;
 
--- ── 3. ONE PAGE OF ONE TABLE ───────────────────────────────────────────────────────────────────────
+-- ── 4. ONE PAGE OF ONE TABLE ───────────────────────────────────────────────────────────────────────
 -- Keyset on the primary key (p_after is the previous page's last key as a JSON array), so a page
--- costs the same at row 20,000 as at row 1 and nothing stops at an arbitrary row count. A row is a
+-- costs the same at row 2,000,000 as at row 1 and nothing stops at an arbitrary row count. A row is a
 -- demo row when any of its values carries the fixture markers (ZZ DEMO, @example.invalid), when it
 -- is_demo, or when it belongs to a demo customer, supplier, inquiry or quote. The page is filtered
--- BEFORE the limit, so done is exact.
-create or replace function public.fn_table_export_page(p_table text, p_after jsonb default null, p_limit integer default 500)
+-- BEFORE the limit, so done is exact. p_since, for a table with a change log, limits the page to rows
+-- the log names at or after p_since (an incremental day); it is ignored for every other table.
+create or replace function public.fn_table_export_page(p_table text, p_after jsonb default null, p_limit integer default 1000,
+                                                       p_since timestamptz default null)
 returns jsonb
 language plpgsql stable security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  v_rel regclass; v_cols text; v_keyvals text; v_after text := 'true'; v_where text;
-  v_strip text[]; v_lim integer := greatest(1, least(coalesce(p_limit, 500), 1000));
+  v_rel regclass; v_cols text; v_keyvals text; v_after text := 'true'; v_where text; v_log text;
+  v_strip text[]; v_lim integer := greatest(1, least(coalesce(p_limit, 1000), 1000));
   v_dc text[]; v_dl text[]; v_di text[]; v_dq text[];
   v_rows jsonb; v_n integer; v_last jsonb;
 begin
-  if not exists (select 1 from public.fn_table_export_list() x where x.table_name = p_table) then
-    raise exception 'fn_table_export_page: % is not in fn_table_export_list()', p_table;
-  end if;
+  select x.change_log into v_log from public.fn_table_export_list() x where x.table_name = p_table;
+  if not found then raise exception 'fn_table_export_page: % is not in fn_table_export_list()', p_table; end if;
   v_rel := to_regclass(format('public.%I', p_table));
   if v_rel is null then raise exception 'fn_table_export_page: public.% does not exist', p_table; end if;
 
@@ -182,6 +259,9 @@ begin
     from pg_attribute a
    where a.attrelid = v_rel and a.attnum > 0 and not a.attisdropped
      and a.attname in ('is_demo', 'customer_id', 'supplier_id', 'lead_id', 'inquiry_id', 'quote_id');
+  if p_since is not null and v_log is not null then
+    v_where := v_where || format(' and t.id in (select cl.id from public.%I cl where cl.changed_at >= $7)', v_log);
+  end if;
 
   execute format(
     'select coalesce(jsonb_agg(y.j order by y.ord), ''[]''::jsonb), count(*)::int, (array_agg(y.k order by y.ord desc))[1]
@@ -190,17 +270,21 @@ begin
                        from public.%2$I t where %3$s and %4$s order by %1$s limit %5$s) x) y',
     v_cols, p_table, v_after, v_where, v_lim)
     into v_rows, v_n, v_last
-    using p_after, v_strip, v_dc, v_dl, v_di, v_dq;
+    using p_after, v_strip, v_dc, v_dl, v_di, v_dq, p_since;
 
-  return jsonb_build_object('table', p_table, 'rows', v_rows, 'n', v_n, 'last', v_last, 'done', v_n < v_lim);
+  return jsonb_build_object('table', p_table, 'rows', v_rows, 'n', v_n, 'last', v_last, 'done', v_n < v_lim,
+                            'mode', case when p_since is not null and v_log is not null then 'changes_since' else 'full' end);
 end $fn$;
-revoke execute on function public.fn_table_export_page(text, jsonb, integer) from public, anon, authenticated;
+revoke execute on function public.fn_table_export_page(text, jsonb, integer, timestamptz) from public, anon, authenticated;
 
--- ── 4. THE CLOCK: resilience_ping asks every 15 minutes ────────────────────────────────────────────
--- Due once per Asia/Dubai day after 03:00 local. A 'running' day whose heartbeat is older than 10
--- minutes is a chain that died between hops: it is resumed from its saved state. A 'failed' day is
--- restarted from the first table. After 6 attempts the day stays failed and the missing _manifest.json
--- is what the IT engineer's expected list reports.
+-- ── 5. THE CLOCK: resilience_ping asks every 15 minutes ────────────────────────────────────────────
+-- Due once per Asia/Dubai day after 03:00 local. The day is a FULL copy on Friday, when there is no
+-- earlier successful day to count changes from, or when no full copy succeeded in the 7 days before;
+-- otherwise INCREMENTAL from 6 hours before the previous successful day started. A 'running' day whose
+-- heartbeat is older than 10 minutes is a chain that died between hops: it is resumed from its saved
+-- state. A 'failed' day is restarted from the first table with the same kind and since. After 6
+-- attempts the day stays failed; the missing _manifest.json is what the IT engineer's expected list
+-- reports, and the next day's since still reaches back to the last day that succeeded.
 create or replace function public.fn_table_export_due()
 returns jsonb
 language plpgsql volatile security definer
@@ -210,18 +294,26 @@ declare
   v_local timestamp := now() at time zone 'Asia/Dubai';
   v_stamp date := (now() at time zone 'Asia/Dubai')::date;
   v_run public.table_export_run;
+  v_kind text; v_since timestamptz;
 begin
   if v_local::time < time '03:00' then
     return jsonb_build_object('due', false, 'stamp', v_stamp, 'reason', 'before 03:00 Asia/Dubai');
   end if;
   select * into v_run from public.table_export_run r where r.stamp = v_stamp for update;
   if not found then
-    insert into public.table_export_run (stamp) values (v_stamp) on conflict (stamp) do nothing;
+    select r.started_at - interval '6 hours' into v_since
+      from public.table_export_run r where r.status = 'done' and r.stamp < v_stamp order by r.stamp desc limit 1;
+    v_kind := case when extract(isodow from v_local) = 5 or v_since is null
+                     or not exists (select 1 from public.table_export_run r
+                                     where r.status = 'done' and r.kind = 'full' and r.stamp >= v_stamp - 7 and r.stamp < v_stamp)
+                   then 'full' else 'incremental' end;
+    if v_kind = 'full' then v_since := null; end if;
+    insert into public.table_export_run (stamp, kind, since) values (v_stamp, v_kind, v_since) on conflict (stamp) do nothing;
     if not found then return jsonb_build_object('due', false, 'stamp', v_stamp, 'reason', 'claimed concurrently'); end if;
-    return jsonb_build_object('due', true, 'stamp', v_stamp, 'attempt', 1, 'resume', null);
+    return jsonb_build_object('due', true, 'stamp', v_stamp, 'attempt', 1, 'resume', null, 'kind', v_kind, 'since', v_since);
   end if;
   if v_run.status = 'done' then
-    return jsonb_build_object('due', false, 'stamp', v_stamp, 'status', 'done');
+    return jsonb_build_object('due', false, 'stamp', v_stamp, 'status', 'done', 'kind', v_run.kind);
   end if;
   if v_run.heartbeat_at > now() - interval '10 minutes' then
     return jsonb_build_object('due', false, 'stamp', v_stamp, 'status', v_run.status, 'reason', 'in progress or waiting to retry');
@@ -236,7 +328,8 @@ begin
    where r.stamp = v_stamp;
   return jsonb_build_object('due', true, 'stamp', v_stamp,
     'attempt', v_run.attempts + case when v_run.status = 'failed' then 1 else 0 end,
-    'resume', case when v_run.status = 'running' then v_run.state end);
+    'resume', case when v_run.status = 'running' then v_run.state end,
+    'kind', v_run.kind, 'since', v_run.since);
 end $fn$;
 revoke execute on function public.fn_table_export_due() from public, anon, authenticated;
 
@@ -251,7 +344,7 @@ as $fn$
 $fn$;
 revoke execute on function public.fn_table_export_save(date, jsonb) from public, anon, authenticated;
 
--- ── 5. THE DAY IS DONE ONLY WHEN STORAGE SAYS SO ───────────────────────────────────────────────────
+-- ── 6. THE DAY IS DONE ONLY WHEN STORAGE SAYS SO ───────────────────────────────────────────────────
 create or replace function public.fn_table_export_finish(p_stamp date, p_manifest jsonb, p_error text default null)
 returns jsonb
 language plpgsql volatile security definer
@@ -259,8 +352,10 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare
   v_day text := to_char(p_stamp, 'YYYY-MM-DD');
-  v_bad text; v_queued integer;
+  v_bad text; v_queued integer; v_pruned integer := 0; v_run public.table_export_run;
 begin
+  select * into v_run from public.table_export_run r where r.stamp = p_stamp;
+  if not found then return jsonb_build_object('ok', false, 'stamp', p_stamp, 'error', 'no table_export_run row for this day'); end if;
   if p_error is null then
     select string_agg(x.table_name, ', ') into v_bad
       from public.fn_table_export_list() x
@@ -281,12 +376,17 @@ begin
 
   update public.table_export_run r set status = 'done', finished_at = now(), heartbeat_at = now(), manifest = p_manifest, error = null
    where r.stamp = p_stamp;
+  -- a full copy holds every row, so changes logged well before it started are no longer needed
+  if v_run.kind = 'full' then
+    delete from public.kb_chunks_export_change cl where cl.changed_at < v_run.started_at - interval '1 day';
+    get diagnostics v_pruned = row_count;
+  end if;
   v_queued := public.fn_enqueue_doc_backups();
-  return jsonb_build_object('ok', true, 'stamp', p_stamp, 'queued_for_dropbox', v_queued);
+  return jsonb_build_object('ok', true, 'stamp', p_stamp, 'kind', v_run.kind, 'queued_for_dropbox', v_queued, 'change_log_pruned', v_pruned);
 end $fn$;
 revoke execute on function public.fn_table_export_finish(date, jsonb, text) from public, anon, authenticated;
 
--- ── 6. THE DROPBOX HALF: fn_enqueue_doc_backups + TABLE EXPORTS ────────────────────────────────────
+-- ── 7. THE DROPBOX HALF: fn_enqueue_doc_backups + TABLE EXPORTS ────────────────────────────────────
 -- The body is the MANIFEST-last definition (every_conversation_is_kept_backed_up_twice_and_readable_
 -- by_the_sales_engineer.sql) with ONE section added at the end. PR #659 also redefines this routine
 -- (the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql, + ACCOUNTING):
@@ -484,10 +584,10 @@ begin
 end $function$;
 revoke execute on function public.fn_enqueue_doc_backups() from public, anon, authenticated;
 
--- ── 7. THE WRITER, ITS OWNER AND ITS CALLER ────────────────────────────────────────────────────────
+-- ── 8. THE WRITER, ITS OWNER AND ITS CALLER ────────────────────────────────────────────────────────
 insert into public.function_owner (function_slug, owner, note) values
  ('backup', 'it_engineer',
-  'The daily export of every business table into the private backups bucket (<YYYY-MM-DD>/<table>/page_NNNN.json), queued on to Dropbox by fn_table_export_finish. Revived 14 Sep 2026 on the founder''s ruling that backups go to Supabase and Dropbox; deleted 8 Sep by #530 when no seat owned it. Scheduled by resilience_ping through fn_table_export_due.')
+  'The daily export of every business and knowledge table into the private backups bucket (<YYYY-MM-DD>/<table>/page_NNNN.json), queued on to Dropbox by fn_table_export_finish; kb_chunks full on Fridays, its logged changes on other days. Revived 14 Sep 2026 on the founder''s ruling that backups go to Supabase and Dropbox; deleted 8 Sep by #530 when no seat owned it. Scheduled by resilience_ping through fn_table_export_due.')
 on conflict (function_slug) do update
   set owner = excluded.owner, note = excluded.note, recorded_at = now(), moves_to = null, moves_to_note = null;
 
@@ -495,7 +595,7 @@ on conflict (function_slug) do update
 update public.internal_credential set scope = array_append(scope, 'backup')
  where context = 'fn.resilience_ping' and not ('backup' = any(scope));
 
--- ── 8. PROBE: read-only, leaves nothing behind (this file defines things, so it ends in notice) ────
+-- ── 9. PROBE: read-only, leaves nothing behind (this file defines things, so it ends in notice) ────
 do $probe$
 declare v_missing text; v_nopk text; v_tables int; v_page jsonb; v_demo_left int; v_real int; v_exported int;
 begin
@@ -527,6 +627,12 @@ begin
   v_page := public.fn_table_export_page('lead_subcategory', null, 50);
   assert jsonb_array_length(v_page->'last') = 2, 'lead_subcategory: the composite key was not returned';
 
-  raise notice 'table export: % tables listed, customers % exported of % non-demo, leads paged and clean; due now: %',
-    v_tables, v_exported, v_real, (select count(*) from public.table_export_run);
+  -- kb_chunks: a full page carries no vector; an incremental page reads only the change log
+  v_page := public.fn_table_export_page('kb_chunks', null, 10);
+  assert (v_page->>'n')::int = 10 and not ((v_page->'rows'->0) ? 'embedding_gte'), 'kb_chunks: full page wrong or vector not stripped';
+  v_page := public.fn_table_export_page('kb_chunks', null, 10, now() + interval '1 day');
+  assert (v_page->>'n')::int = 0 and v_page->>'mode' = 'changes_since', 'kb_chunks: an incremental page read outside the change log';
+
+  raise notice 'table export: % tables listed, customers % exported of % non-demo, leads and kb_chunks paged and clean',
+    v_tables, v_exported, v_real;
 end $probe$;

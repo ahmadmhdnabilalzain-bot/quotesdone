@@ -295,7 +295,7 @@ async function tableExportTick(): Promise<unknown> {
     const secret = await sec('cred_fn_resilience_ping');
     const started = fetch(FN + '/backup', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: secret, stamp: d.stamp, state: d.resume ?? null }),
+      body: JSON.stringify({ __secret: secret, stamp: d.stamp, kind: d.kind, since: d.since ?? null, state: d.resume ?? null }),
     }).then((r) => r.body?.cancel()).catch(() => {});
     // deno-lint-ignore no-explicit-any
     (globalThis as any).EdgeRuntime?.waitUntil?.(started);
