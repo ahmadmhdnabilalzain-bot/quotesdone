@@ -3,6 +3,8 @@ import { BriefBox } from '@/components/BriefBox';
 import { SupplierLink } from '@/components/HeroCtas';
 import { Counters } from '@/components/Counters';
 import { HeroScene } from '@/components/visual/slots';
+import { HeroPoster } from '@/components/visual/posters';
+import { DesktopOnly } from '@/components/home/DesktopOnly';
 import s from '@/components/home/sealed.module.css';
 
 type Fact = { k: string; v: string };
@@ -52,7 +54,10 @@ export function Hero() {
           <div className="relative hidden h-[250px] lg:block" aria-hidden>
             <span className="halo -inset-x-16 -top-10 bottom-0" />
             <div className="absolute -inset-x-10 -top-8 bottom-0">
-              <HeroScene locale={locale === 'ar' ? 'ar' : 'en'} />
+              {/* the poster is server-rendered; only a desktop viewport mounts the lazy 3D slot */}
+              <DesktopOnly fallback={<HeroPoster />}>
+                <HeroScene locale={locale === 'ar' ? 'ar' : 'en'} />
+              </DesktopOnly>
             </div>
           </div>
           <div id="brief" className="relative z-10 scroll-mt-24 lg:-mt-20">
