@@ -7,7 +7,7 @@ import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
-import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef } from '../_shared/quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef, type Item } from '../_shared/quote_documents.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
 import { portalLink } from '../_shared/site_origins.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -385,10 +385,15 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   const letter = await letterOf(q);
   // The supplier's OWN priced breakdown lives in quote_items; the customer's requested BOQ is only
   // the fallback when the supplier priced a lump sum.
-  let items: { desc: string; qty: string; unit: string }[] = [];
+  // Each line carries its own price and technical specification (brand, model, specification, and the
+  // spec agent's per-attribute `specs` when that column exists), so the quotation can show them.
+  let items: Item[] = [];
   try {
-    const { data: qi } = await admin.from('quote_items').select('line_no,description,qty,unit').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60);
-    items = (qi || []).map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc);
+    const { data: qi } = await admin.from('quote_items').select('*').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60);
+    items = (qi || []).map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || ''),
+      unit_price: b.unit_price == null ? null : Number(b.unit_price), amount: b.amount == null ? null : Number(b.amount),
+      brand: b.brand ?? null, model: b.model ?? null, specification: b.specification ?? null,
+      specs: (b.specs && typeof b.specs === 'object' && !Array.isArray(b.specs)) ? b.specs : null })).filter((x: any) => x.desc);
   } catch (_e) { items = []; }
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
   const quoteRow = { ...q, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
