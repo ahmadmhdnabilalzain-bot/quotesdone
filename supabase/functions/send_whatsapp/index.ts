@@ -22,6 +22,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { isDemoPhone } from '../_shared/demo_identity.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
@@ -223,6 +224,13 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0; let lastErr=''; const unmappedTypes = new Set<string>();
     for (const n of (rows||[])) {
       const to = normPhone(String(n.to_phone||'')); if(!to){ await admin.from('notifications').update({status:'failed'}).eq('id',n.id); failed++; continue; }
+      // A DEMO MOBILE IS CAPTURED, NEVER SENT (14 Sep 2026). The e2e harness (scripts/e2e/) addresses
+      // every demo party at +971 50 000 00xx. Until today this loop checked only that a number was
+      // well-formed, so a fixture number would have gone to Twilio - and a number that looks fake is
+      // not guaranteed to be unassigned. The database captures these rows before they are ever
+      // queued (zzzz_notifications_demo_capture); this is the second, independent lock at the only
+      // place a WhatsApp message can leave.
+      if (isDemoPhone(to)) { await admin.from('notifications').update({ status: 'suppressed', last_error: 'captured: reserved fixture mobile (+971 50 000 00xx) - recorded for the rehearsal, never handed to Twilio' }).eq('id', n.id); skipped++; continue; }
       // A STALE ALERT IS A LIE, NOT A BACKLOG. Nothing drained this queue between 7 Sep 2026 (when
       // pg_cron was removed and its wa_flush job with it) and 9 Sep, so a 'SCHEDULER DOWN' message
       // sat here for two days while the scheduler was in fact fine. Delivering it on the first tick
