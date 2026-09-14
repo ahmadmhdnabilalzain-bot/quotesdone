@@ -40,16 +40,14 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 //
 // IN-BROWSER OCR (14 Sep 2026, src/components/me/ocrClient.ts). Paid vision is on hold and an Edge
 // function has ~2 s of CPU, so photos and scanned BOQs are read by tesseract.js on the customer's
-// machine. Its worker is a blob: URL (already allowed in worker-src) that importScripts() the pinned
-// worker and core from cdn.jsdelivr.net, and importScripts inside a worker is governed by script-src:
-//   · script-src  https://cdn.jsdelivr.net — tesseract.js@7.0.0/dist/worker.min.js and
-//                 tesseract.js-core@7.0.0/*.wasm.js. Exact versions are pinned in ocrClient.ts.
-//   · script-src  'wasm-unsafe-eval' — lets the core compile its WebAssembly. It permits wasm
-//                 compilation only, not eval() of JavaScript.
-//   · connect-src https://cdn.jsdelivr.net — already present (troika); the eng/ara traineddata
-//                 (@tesseract.js-data/<lang>/4.0.0_best_int, 2.95 MB + 1.66 MB gzipped) is fetched.
-//   · worker-src  https://cdn.jsdelivr.net — only if a browser refuses the blob: bootstrap and
-//                 loads the worker URL directly.
+// machine. Its worker, wasm core and eng/ara language data are SELF-HOSTED under /public/ocr (pinned
+// 7.0.0, sha256 in ocrClient.ts), so no new host is trusted: 'self' already covers the worker
+// (worker-src), the core it importScripts() (script-src) and the traineddata it fetches (connect-src).
+// The ONLY addition is script-src 'wasm-unsafe-eval', which lets the core compile WebAssembly; it
+// permits wasm compilation only, never eval() of JavaScript. cdn.jsdelivr.net is deliberately NOT in
+// script-src or worker-src: it serves anything anyone publishes to npm or GitHub, so trusting it would
+// let any package run on every page. The connect-src jsDelivr entry below predates OCR (troika) and OCR
+// does not use it.
 const SUPA = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://htdblwldjkcgjvmqkbeh.supabase.co').host;
 const isDev = process.env.NODE_ENV !== 'production';
 // Vercel injects its feedback toolbar on preview deployments only.
@@ -57,13 +55,13 @@ const vercelLive = process.env.VERCEL_ENV === 'preview' ? ' https://vercel.live'
 
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''} https://cdnjs.cloudflare.com https://cdn.jsdelivr.net${vercelLive}`,
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''} https://cdnjs.cloudflare.com${vercelLive}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://${SUPA}`,
   "font-src 'self' data:",
   `connect-src 'self' https://${SUPA} wss://${SUPA} https://cdn.jsdelivr.net${vercelLive}${isDev ? ' ws:' : ''}`,
   `media-src 'self' blob: data: https://${SUPA}`,
-  "worker-src 'self' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+  "worker-src 'self' blob: https://cdnjs.cloudflare.com",
   `frame-src 'self'${vercelLive}`,
   "object-src 'none'",
   "base-uri 'self'",

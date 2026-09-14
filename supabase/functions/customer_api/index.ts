@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
+import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
@@ -735,21 +736,23 @@ Deno.serve(observe('customer_api', async (req) => {
             ? pg.slice(0, 40).map((bx: any) => ({ x: c01(bx?.x), y: c01(bx?.y), w: c01(bx?.w), h: c01(bx?.h) })).filter((bx) => bx.w > 0 && bx.h > 0)
             : [])
           : null;
-        // THE TITLE BLOCK, BOXED WITHOUT A MODEL (14 Sep 2026). A PDF drawing's title block, revision
-        // table and every run carrying this customer's name / email / phone / file name or a plot,
-        // Makani, address or permit pattern are boxed from the PDF's own text positions. Applied on
-        // their own ONLY at 'medium' confidence with nothing left over; at 'low' (a scan, a rotated
-        // page, a title block drawn as vectors) no automatic boxes are sent, so drawing_redact asks for
-        // the customer's boxes and the pages are not shared until they exist. Fail closed.
+        // THE TITLE BLOCK, BOXED WITHOUT A MODEL, AND THE TRUST BOUNDARY (14 Sep 2026). A PDF drawing's
+        // title block, revision table and every run carrying this customer's name / email / phone /
+        // file name or a plot, Makani, address or permit pattern are boxed by the SERVER from the stored
+        // original's own text positions. The customer's boxes come from their browser and prove nothing:
+        // they are only ever added as extra cover (supplier_copy.supplierBoxes). When the server cannot
+        // derive the boxes itself — any photo, scan or CAD raster (no text layer), a rotated page, a
+        // title block it did not find, a residual it could not cover — no boxes are sent at all, and
+        // drawing_redact holds every page. Fail closed.
+        let serverBoxes: { x: number; y: number; w: number; h: number }[][] | null = null;
         if (/pdf/i.test(mime) && body.original_b64) {
           try {
             const bytes = Uint8Array.from(atob(String(body.original_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
             const tb = titleBlockBoxes(await pdfPages(bytes), seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
-            const confident = tb.confidence === 'medium' && tb.residual.length === 0;
-            if (manualBoxes) manualBoxes = manualBoxes.map((pg, i) => [...pg, ...(tb.boxes[i] || [])]);
-            else if (confident) manualBoxes = images.map((_: unknown, i: number) => tb.boxes[i] || []);
-          } catch (_e) { /* unreadable PDF text: low confidence, the customer boxes it */ }
+            serverBoxes = supplierBoxes(tb, manualBoxes, images.length);
+          } catch (_e) { serverBoxes = null; }
         }
+        manualBoxes = serverBoxes;
         const redactBatch = async (slice: any[], from: number) => {
           const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, original_b64: body.original_b64 || null, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }) });
           return await r.json();
@@ -781,7 +784,7 @@ Deno.serve(observe('customer_api', async (req) => {
         // redaction_complete compared redOut >= redIn, and both are 0 when the redactor dies before
         // it can report anything - so total failure read as "complete". It now requires that pages
         // were sent AND that every one of them came back.
-        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn, needs_manual_boxes: needsManual && !(redIn > 0 && redOut === redIn) };
+        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn, needs_manual_boxes: false /* the customer's boxes no longer make a page shareable (trust boundary, 14 Sep 2026), so they are not asked for */ };
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
         const jd = await boqRes.value.json();
         if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);

@@ -15,6 +15,8 @@ import { pdfPages } from './pdf_text_positions.ts';
 import { redactBoq, redactText, residualScan, seedTerms, titleBlockBoxes } from './anonymise.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from './attachment.ts';
 import { boqFromExtracted } from '../drawing_boq/boq_from_document.ts';
+import { supplierBoxes, supplierPageReadable } from './supplier_copy.ts';
+import { empty } from './doc_read/types.ts';
 
 const SEEDS = seedTerms({ name: 'Ahmed Al Mansoori', email: 'ahmed@almansoori.example.invalid', phone: '+971 50 123 4567', project: 'Jumeirah Park Villa 23' });
 const LEAK = /mansoori|almansoori\.example|123\s?4567|jumeirah/i;
@@ -117,4 +119,30 @@ Deno.test('FAIL CLOSED: a residual seed, or no seed list at all, holds the BOQ',
   const clean = { ...boq, boq: [{ ...boq.boq[0], description: 'Porcelain tiles' }] };
   assert(!redactBoq(clean, SEEDS).held);
   assert(redactBoq(clean, []).held, 'with no seed list nothing can be proven clean');
+});
+
+// TRUST BOUNDARY (14 Sep 2026). OCR text and redaction boxes come from the customer's browser. These
+// prove the supplier copy never depends on them: the server decides from the stored original.
+Deno.test('TRUST BOUNDARY: client boxes never make an unreadable page shareable', () => {
+  const full = [[{ x: 0, y: 0, w: 1, h: 1 }]];
+  // A photo, a scan or a CAD raster: no text layer. Held, even when the client "covered" everything.
+  assert(!supplierPageReadable({ runs: [] }), 'scan page');
+  assert(!supplierPageReadable(undefined), 'image upload with no PDF at all');
+  assert(!supplierPageReadable({ runs: [{}], rotate: 90 }), 'rotated page');
+  // The server's own detection was not confident: client boxes are ignored, the answer is HOLD.
+  assertEquals(supplierBoxes({ boxes: [[]], confidence: 'low', residual: [] }, full, 1), null);
+  assertEquals(supplierBoxes({ boxes: [[]], confidence: 'medium', residual: ['seed:mansoori'] }, full, 1), null);
+  // Confident: the server's boxes are always applied; a client's tiny or empty boxes cannot remove them.
+  const server = [[{ x: 0.7, y: 0.8, w: 0.3, h: 0.2 }]];
+  assertEquals(supplierBoxes({ boxes: server, confidence: 'medium', residual: [] }, [[]], 1), server);
+  assertEquals(supplierBoxes({ boxes: server, confidence: 'medium', residual: [] }, null, 1), server);
+});
+
+Deno.test('TRUST BOUNDARY: tampered or skipped client OCR cannot put the customer in front of a supplier', () => {
+  // Tampered: OCR text that names the customer is gated like any other text.
+  const tampered = redactBoq(boqFromExtracted(empty('image'), '', 'Tiles for Ahmed Al Mansoori villa 120 sqm\nCall +971 50 123 4567'), SEEDS);
+  assert(tampered.held || !LEAK.test(JSON.stringify(tampered.boq)), 'tampered OCR leaked');
+  // Skipped: no OCR text means no BOQ lines, so there is nothing to share, and the page itself is held.
+  assertEquals(boqFromExtracted(empty('image')).boq.length, 0);
+  assert(!supplierPageReadable(undefined));
 });

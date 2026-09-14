@@ -26,6 +26,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
+import { supplierPageReadable } from '../_shared/supplier_copy.ts';
 
 // ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
 // Every model route is held, so detection below fails and no drawing page has reached a supplier
@@ -305,7 +306,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
           // HELD, never published, and the run is recorded as partial or failed.
           const pg = pdf[pageOffset + i];
           const readable = !!(pg && pg.runs && pg.runs.length) && !tl.rotated;
-          if (!readable && boxes.length === 0) { skipped++; detail.push({ page: i, skipped: 'held_unverified_no_text_no_boxes' }); continue; }
+          // TRUST BOUNDARY (14 Sep 2026): boxes come from the customer's browser and prove nothing on a
+          // page the server cannot read. Such a page is held whatever boxes arrived with it.
+          if (!supplierPageReadable(pg, tl.rotated)) { skipped++; detail.push({ page: i, skipped: boxes.length ? 'held_unverifiable_client_boxes_ignored' : 'held_unverified_no_text_no_boxes' }); continue; }
           const b = (imgs[i] && (imgs[i].b64 || imgs[i].data)) || imgs[i];
           let img = await Image.decode(b64ToBytes(String(b)));
           if (img.width > MAXW) img = img.resize(MAXW, Image.RESIZE_AUTO);

@@ -11,11 +11,22 @@
 //   ocrImages(images) -> tesseract.js (Apache-2.0), 'eng+ara' by default, one worker reused across
 //     up to 10 pages and terminated at the end. Returns the joined text and mean confidence (0-100).
 //
-// WHERE tesseract loads from, pinned to exact versions on cdn.jsdelivr.net (see the CSP comment in
-// next.config.mjs): worker tesseract.js@7.0.0 (~110 KB), core tesseract.js-core@7.0.0 (the LSTM wasm
-// build, ~3.9 MB uncompressed), traineddata @tesseract.js-data/<lang>/4.0.0_best_int (tesseract's
-// own default for LSTM; measured 14 Sep 2026: eng 2.95 MB + ara 1.66 MB gzipped). The browser caches
-// all of it after the first OCR. Self-hosting would put ~8 MB of wasm variants in /public for no gain.
+// WHERE tesseract loads from: SELF-HOSTED under /public/ocr, same origin, so the CSP trusts no new
+// host (see next.config.mjs). A CDN such as jsDelivr serves anything anyone publishes, and trusting it
+// in script-src would let any package run on every page. Files, pinned and hashed (sha256, 14 Sep 2026):
+//   /ocr/worker.min.js                            tesseract.js@7.0.0            111 KB
+//     576b7df7e3393e137e51849357c9adb53fe7ac1bb69bfa06cf3d61520f182c6d
+//   /ocr/core/tesseract-core-relaxedsimd-lstm.wasm.js  tesseract.js-core@7.0.0  3.9 MB
+//   /ocr/core/tesseract-core-simd-lstm.wasm.js         tesseract.js-core@7.0.0  3.9 MB
+//   /ocr/core/tesseract-core-lstm.wasm.js              tesseract.js-core@7.0.0  3.9 MB
+//     (the worker's getCore loads exactly ONE of the three, by the browser's SIMD support; LSTM-only
+//      because createWorker is called with OEM 1; hashes in public/ocr/SHA256SUMS)
+//   /ocr/lang/eng.traineddata.gz   @tesseract.js-data/eng@1.0.0 4.0.0_best_int  2.95 MB
+//     45b4cb346724ac1774f1c36f42f182b887bcdb28ebe63e6fff90ac41f3fcff91
+//   /ocr/lang/ara.traineddata.gz   @tesseract.js-data/ara@1.0.0 4.0.0_best_int  1.66 MB
+//     f4746c44b02342dd5b3d4f0198000f47d7c49f1a229e63e0f436c0592dcd9639
+// FIRST USE costs the customer ~8.5 MB (111 KB worker + one 3.9 MB core + 4.6 MB language data); the
+// browser caches it. None of it loads on page load: only when a photo or scan is attached.
 //
 // HEIC: heic2any was rejected. It bundles libheif (LGPL-3) and libheif's author disputes that
 // bundling. iPhones already hand a JPEG to a file picker that does not list HEIC, so the fallback is
@@ -34,9 +45,9 @@ const MAX_WIDTH = 2400;
 const MAX_PAGES = 10;
 const JPEG_QUALITY = 0.85;
 
-// Pinned CDN locations. Bump together with package.json, never to a floating tag.
-const TESSERACT_WORKER = 'https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/worker.min.js';
-const TESSERACT_CORE = 'https://cdn.jsdelivr.net/npm/tesseract.js-core@7.0.0';
+// Self-hosted, same-origin locations (absolute, because a worker resolves relative URLs against its own
+// script). Bump the files together with package.json, never to a floating tag.
+const ocrUrl = (p: string) => `${window.location.origin}/ocr/${p}`;
 
 /** Thrown when the browser cannot decode a HEIC/HEIF photo. The UI maps it to "export as JPEG". */
 export const HEIC_UNSUPPORTED = 'HEIC_UNSUPPORTED';
@@ -112,10 +123,11 @@ export async function ocrImages(
   const { createWorker } = await import('tesseract.js');
   let done = 0;
   const worker = await createWorker(opts?.langs || 'eng+ara', 1 /* LSTM only */, {
-    workerPath: TESSERACT_WORKER,
-    corePath: TESSERACT_CORE,
-    // langPath left to tesseract's pinned default (@tesseract.js-data/<lang>/4.0.0_best_int): a
-    // single explicit langPath would be shared by eng and ara and break the per-language folder.
+    workerPath: ocrUrl('worker.min.js'),
+    corePath: ocrUrl('core'),
+    langPath: ocrUrl('lang'),
+    // Load the worker from its own URL (worker-src 'self') rather than a blob: bootstrap.
+    workerBlobURL: false,
     logger: (m: { status: string; progress: number }) => {
       if (m.status === 'recognizing text') opts?.onProgress?.((done + m.progress) / pages.length);
     },
