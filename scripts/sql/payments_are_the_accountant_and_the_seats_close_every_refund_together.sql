@@ -610,7 +610,8 @@ begin
     if coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on' then
       return jsonb_build_object('channel', 'founder', 'stubbed', true, 'event', d->>'event');
     end if;
-    v_res := public.fn_notify_founder(d->>'event', d->>'detail', coalesce(d->>'level', 'high'), d->>'kind', d->>'dedupe_key', 'customer_support');
+    v_res := public.fn_notify_founder(p_event => d->>'event', p_detail => d->>'detail', p_level => coalesce(d->>'level', 'high'),
+                                      p_kind => d->>'kind', p_dedupe_key => d->>'dedupe_key', p_owner_agent => 'customer_support');
     return jsonb_build_object('channel', 'founder', 'notify', v_res);
   end if;
 
