@@ -221,7 +221,8 @@ export function CustomerPortal() {
   </header>);
   return (<div dir={rtl ? 'rtl' : 'ltr'} data-theme={theme} className="osx min-h-screen bg-background text-foreground">
     {!mounted ? <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></> : (<>
-      {phase === 'login' && <>{strip}<Login onAuth={onAuth} lang={lang} /></>}
+      {/* The signed-in shell carries its own <main>; the doorway screens need one too (audit 14 Sep). */}
+      {phase === 'login' && <>{strip}<main><Login onAuth={onAuth} lang={lang} /></main></>}
       {phase === 'app' && <Authed token={token} lang={lang} strip={strip} theme={theme} onSwapTheme={swapTheme} onSetLang={setLang} onSignOut={doSignOut} onServedLocale={onServedLocale} />}
     </>)}
   </div>);
@@ -319,7 +320,7 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
     <Button className="w-full mt-3" onClick={() => load()}>{t(lang, 'retry')}</Button></Card></div></>;
   if (!k) return <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></>;
   const complete = k.full_name && k.phone_verified && k.email_verified && k.terms_signed;
-  if (!complete) return <>{strip}<ProfileGate token={token} lang={lang} theme={theme} onDone={() => load()} /></>;
+  if (!complete) return <>{strip}<main><ProfileGate token={token} lang={lang} theme={theme} onDone={() => load()} /></main></>;
   return <Dashboard token={token} lang={lang} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang} onSignOut={onSignOut} onServedLocale={onServedLocale} />;
 }
 function ProfileGate({ token, lang, theme, onDone }) {
