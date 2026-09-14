@@ -39,6 +39,10 @@
 --      fn_doc_backups_next(limit) is what the uploader now reads: it promotes parked rows whose
 --      object has arrived, backs off an erroring row exponentially (2, 4, 8 ... minutes after its
 --      last attempt), puts a half-finished chunked upload first, and leaves ZZ DEMO rows out.
+--      The credential travels in the pg_net JSON body, the convention of every net.http_post in
+--      scripts/sql (fn_kb_embed_dispatch and 19 others). Measured: anon and authenticated hold no
+--      privilege on any net table (USAGE on the schema only); pg_net.ttl is 6 hours, so response
+--      rows are purged; sent requests leave net.http_request_queue when dispatched.
 --   4. doc_backups gains upload_state (the Dropbox session id, offset and block hashes of a
 --      chunked upload, so the next run resumes it) and last_attempt_at (the backoff clock).
 --
@@ -114,6 +118,10 @@ update public.doc_backups d set entity = 'zz_demo'
    and (coalesce(d.dropbox_path, '') ~* 'zz[ _-]?demo' or coalesce(d.path, '') ~* 'zz[ _-]?demo'
         or (d.entity = 'supplier' and exists (select 1 from public.leads l where l.id::text = d.entity_id and l.is_demo))
         or (d.entity = 'customer' and exists (select 1 from public.customers c where c.id::text = d.entity_id and c.is_demo)));
+-- the fixtures behind those rows were torn down; the rows say so rather than wait for ever
+update public.doc_backups d
+   set status = 'abandoned', error = 'abandoned: ZZ DEMO fixture of a rehearsal, torn down; never uploaded (14 Sep 2026)'
+ where d.entity = 'zz_demo' and d.status in ('error', 'waiting_source') and d.created_at < now() - interval '1 hour';
 update public.doc_backups d
    set status = 'waiting_source', error = left('waiting: storage holds no object at ' || d.bucket || '/' || d.path, 300)
  where d.status in ('pending', 'error') and d.source = 'storage'
@@ -121,23 +129,40 @@ update public.doc_backups d
 update public.doc_backups d set dropbox_path = public.fn_dbx_path(d.dropbox_path)
  where d.status in ('pending', 'error', 'waiting_source') and d.dropbox_path is distinct from public.fn_dbx_path(d.dropbox_path);
 
--- What the uploader reads. security definer + revoked: only the service role calls it.
-create or replace function public.fn_doc_backups_next(p_limit integer default 8)
+-- What the uploader reads - its ONLY reader. Rows are CLAIMED atomically (status 'processing',
+-- FOR UPDATE SKIP LOCKED), so two overlapping runs (a kick, the drain chain, the 15-minute tick)
+-- never upload the same row. A claim older than 10 minutes belonged to a run that died (the edge
+-- limit is 150 s) and goes back to 'pending'. p_demo claims ONLY zz_demo rows: the probes prove the
+-- contract on them; the edge function never passes it, so it never sees a demo row.
+alter table public.doc_backups add column if not exists claimed_at timestamptz;
+alter table public.doc_backups add column if not exists claimed_by text;
+drop function if exists public.fn_doc_backups_next(integer);
+create or replace function public.fn_doc_backups_next(p_limit integer default 8, p_run text default null, p_demo boolean default false)
 returns setof public.doc_backups
 language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 begin
+  if coalesce(btrim(p_run), '') = '' then raise exception 'fn_doc_backups_next: p_run (the claiming run id) is required'; end if;
+  update public.doc_backups d set status = 'pending', claimed_at = null, claimed_by = null,
+         error = left('claim by ' || coalesce(d.claimed_by, '?') || ' expired after 10 minutes; requeued', 300)
+   where d.status = 'processing' and d.claimed_at < now() - interval '10 minutes';
   update public.doc_backups d set status = 'pending', error = null
    where d.status = 'waiting_source'
      and exists (select 1 from storage.objects o where o.bucket_id = d.bucket and o.name = d.path);
   return query
-    select d.* from public.doc_backups d
-     where d.status in ('pending', 'error') and d.attempts < 5 and d.entity <> 'zz_demo'
-       and (d.status = 'pending' or d.last_attempt_at is null
-            or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.attempts, 8)))
-     order by (d.upload_state is not null) desc, d.id
-     limit greatest(1, least(coalesce(p_limit, 8), 25));
+    with c as (
+      select d.id from public.doc_backups d
+       where d.status in ('pending', 'error') and d.attempts < 5
+         and (d.entity = 'zz_demo') = coalesce(p_demo, false)
+         and (d.status = 'pending' or d.last_attempt_at is null
+              or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.attempts, 8)))
+       order by (d.upload_state is not null) desc, d.id
+       limit greatest(1, least(coalesce(p_limit, 8), 25))
+       for update skip locked)
+    update public.doc_backups d set status = 'processing', claimed_at = now(), claimed_by = p_run
+      from c where d.id = c.id
+    returning d.*;
 end $fn$;
-revoke execute on function public.fn_doc_backups_next(integer) from public, anon, authenticated;
+revoke execute on function public.fn_doc_backups_next(integer, text, boolean) from public, anon, authenticated;
 
 -- ── 4. THE KICK ────────────────────────────────────────────────────────────────────────────────────
 -- Its own credential, so internal_credential_audit names the database, not the watchdog.
@@ -160,7 +185,9 @@ begin
   if p_mode not in ('process_only', 'enqueue') then
     raise exception 'fn_backup_kick: mode must be process_only or enqueue, got %', p_mode;
   end if;
-  if exists (select 1 from public.agent_runs where agent = 'backup_kick' and status = 'ok'
+  -- the lock makes check-then-act atomic: two kicks in the same instant cannot both pass
+  if not pg_try_advisory_xact_lock(hashtext('fn_backup_kick'))
+     or exists (select 1 from public.agent_runs where agent = 'backup_kick' and status = 'ok'
                 and started_at > now() - interval '60 seconds') then
     return jsonb_build_object('kicked', false, 'reason', 'debounced: a kick in the last 60 seconds is still draining');
   end if;
@@ -241,7 +268,7 @@ revoke execute on function public.fn_conversation_archived(text, text, text, big
 do $probe$
 declare
   long text := repeat('شركة المقاولات العامة ', 14);          -- 308 characters of Arabic
-  p text; n int; v_id bigint;
+  p text; n int; v_id bigint; v_a bigint[]; v_b bigint[]; v_c bigint[];
 begin
   p := public.fn_dbx_path('/QuotesDone Backup/Suppliers/Fit-out/' || long || ' (30999)/Trade licence - ' || repeat('x', 290) || '.pdf');
   assert p like '%(30999)/%', 'the id suffix must survive truncation: ' || p;
@@ -260,7 +287,35 @@ begin
   returning id into v_id;
   assert (select status from public.doc_backups where id = v_id) = 'waiting_source', 'a missing original must be parked, not queued';
   assert (select dropbox_path from public.doc_backups where id = v_id) = '/QuotesDone Backup/_zz_demo/ZZ DEMO file', 'the path must be normalised on insert';
-  delete from public.doc_backups where id = v_id;
+  -- the object arrives -> promoted -> claimed -> marked done the way dropbox_backup marks it
+  update public.doc_backups
+     set bucket = 'brand',
+         path = (select o.name from storage.objects o
+                  where o.bucket_id = 'brand'
+                    and not exists (select 1 from public.doc_backups d where d.bucket = o.bucket_id and d.path = o.name)
+                  order by o.name limit 1)
+   where id = v_id;
+  insert into public.doc_backups (entity, entity_id, doc_type, source, gen_kind, gen_ref, dropbox_path, dedupe_key)
+  select 'zz_demo', 'zz_demo', 'ZZ DEMO', 'generated', 'zz_demo', g::text, '/QuotesDone Backup/_zz_demo/' || g || '.pdf', 'ZZDEMO:admit:claim:' || g || ':' || txid_current()
+    from generate_series(1, 3) g;
+  select array_agg(id) into v_a from public.fn_doc_backups_next(2, 'zz_demo_run_A', true);
+  v_b := '{}';
+  for i in 1..40 loop     -- other rehearsals' zz_demo rows come first by id; claim until none is left
+    select array_agg(id) into v_c from public.fn_doc_backups_next(25, 'zz_demo_run_B', true);
+    exit when v_c is null;
+    assert not (v_b && v_c) and not (v_a && v_c), 'a row was claimed twice';
+    v_b := v_b || v_c;
+  end loop;
+  -- another rehearsal's zz_demo rows may be claimed too; they are handed back below
+  assert v_id = any(v_a || v_b), 'the parked row must be promoted and claimed once its object exists';
+  assert cardinality(v_a) <= 2 and not (v_a && v_b), 'two claims must be disjoint: ' || v_a::text || ' / ' || coalesce(v_b::text, '{}');
+  assert (select count(*) from public.doc_backups where dedupe_key like 'ZZDEMO:admit:%' and status = 'processing') = 4, 'all four probe rows claimed, as processing';
+  update public.doc_backups set status = 'done', claimed_at = null, claimed_by = null, verified_at = now()
+   where dedupe_key like 'ZZDEMO:admit:%';
+  assert (select count(*) from public.fn_doc_backups_next(25, 'zz_demo_run_C', true) x where x.dedupe_key like 'ZZDEMO:admit:%') = 0, 'a done row is never claimed again';
+  update public.doc_backups set status = 'pending', claimed_at = null, claimed_by = null
+   where claimed_by in ('zz_demo_run_A', 'zz_demo_run_B', 'zz_demo_run_C') and dedupe_key not like 'ZZDEMO:admit:%';
+  delete from public.doc_backups where dedupe_key like 'ZZDEMO:admit:%';
   select count(*) into n from public.doc_backups where dedupe_key like 'ZZDEMO:admit:%';
   assert n = 0, 'probe rows left behind';
   raise notice 'names and admission: ok (sample %)', left(p, 120);

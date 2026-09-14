@@ -7,6 +7,7 @@ import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { storedAt } from '../_shared/stored_at.ts';
 import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef, type Item } from '../_shared/quote_documents.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
@@ -349,6 +350,8 @@ async function storeOriginal(custId: string, email: string, name: string, mime: 
     // both layers returned the same null: the caller could not tell "we would not accept this" from
     // "the bucket would not accept this" from "the network failed".
     if (up.error) { console.warn(`[9.1] drawing accepted by the sanitizer as ${s.mime} but REJECTED by storage: ${up.error.message}`); return null; }
+    // 14 Sep 2026: the path is returned (and later backed up) only once storage confirms the object.
+    if (!(await storedAt(admin, 'drawing-files', path))) { console.warn(`[9.1] drawing upload returned no error but storage does not hold ${path}`); return null; }
     // 5 Aug 2026. THE ORPHAN WINDOW. At this point the object exists and the ONLY record of it is
     // the path about to be returned to the client. If the customer never submits, swaps the
     // attachment, or create_inquiry refuses, no row anywhere names it — and both pdpl_erase and
