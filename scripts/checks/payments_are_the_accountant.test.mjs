@@ -28,9 +28,11 @@ const SQL = join(REPO, 'scripts', 'sql');
 // In MANIFEST order: a later file redefines a routine, and the LAST definition is the live one. Only
 // files whose definitions are still canonical: the_dropbox_backup_is_confirmed_not_assumed.sql is
 // superseded by the last file and cannot be replayed over it (fn_dropbox_reconcile_sample changed shape).
-// every_send_comes_back_to_whoever_asked.sql is last: it carries support's handler and the watch.
+// the_it_engineer_closes_every_loop_it_opens.sql is the ONE definer of fn_seat_handoff_types and
+// fn_seat_handoff_act; every_send_comes_back_to_whoever_asked.sql is last: support's handler and the watch.
 const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_together.sql',
   'the_it_engineer_knows_what_should_be_backed_up_and_closes_the_loop.sql',
+  'the_it_engineer_closes_every_loop_it_opens.sql',
   'every_send_comes_back_to_whoever_asked.sql'];
 
 // Every payment function, as function_owner lists them. quote_pdf has an owner row and no directory
@@ -84,15 +86,21 @@ test('every conversation has a producer and a handler in the receiving seat', ()
     accountant: fnBody('fn_accountant_acts_on_handoff'),
     customer_support: fnBody('fn_customer_support_acts_on_handoff'),
   };
+  // A delivery.result and an it.finding are received by whichever seat they are addressed to, through
+  // fn_seat_handoff_act itself (the generic close, and fn_seat_answers_it_finding), not a per-seat handler.
+  const handlerOf = (type, to) => (['delivery.result', 'it.finding'].includes(type) ? fnBody('fn_seat_handoff_act') : handlers[to]);
   const ts = slugs.map(fnSource).join('\n');
   const missing = [];
   for (const k of tsRegistry()) {
     const [type, from, to] = k.split('|');
-    if (!handlers[to].includes(`'${type}'`)) missing.push(`${k}: ${to} has no handler`);
+    if (!handlerOf(type, to)?.includes(`'${type}'`)) missing.push(`${k}: ${to} has no handler`);
     const produced = sqlText.includes(`fn_seat_handoff('${from}', '${to}', '${type}'`)
       || (type === 'delivery.request' && from === 'sales_engineer' && sqlText.includes('fn_seat_handoff(\'sales_engineer\', \'customer_support\', \'delivery.request\''))
-      // the watch answers whoever asked (every_send_comes_back_to_whoever_asked.sql)
+      // the edge door opens a request from the seat that owns the type; the watch answers whoever asked
+      || (type === 'delivery.request' && sqlText.includes("fn_seat_handoff(v_seat, 'customer_support', 'delivery.request'"))
       || (type === 'delivery.result' && sqlText.includes("fn_seat_handoff('customer_support', q.detail->>'from', 'delivery.result'"))
+      // the IT engineer addresses a finding to the seat that owns the faulty component
+      || (type === 'it.finding' && sqlText.includes("fn_seat_handoff('it_engineer', v_owner, 'it.finding'"))
       || new RegExp(`p_from: '${from}', p_to: '${to}', p_type: '${type.replace('.', '\\.')}'`).test(ts)
       || (type === 'refund.remediate' && sqlText.includes("fn_seat_handoff('ceo', x.owner, 'refund.remediate'"))
       || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"));
