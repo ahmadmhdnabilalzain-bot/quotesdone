@@ -7,6 +7,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
+import { prefixBlocked } from '../_shared/otp_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -65,6 +66,8 @@ Deno.serve(observe('mobile_otp', async (req) => {
       if (!smsEnabled) return J({ ok: false, error: 'sms_not_configured' }, 200);
       const phone = normPhone(String(body.phone || ''));
       if (!phone || phone.replace(/\D/g,'').length < 9) return J({ ok: false, error: 'bad_phone' }, 200);
+      // A prefix the IT engineer blocked for OTP pumping gets no code (public.otp_blocked_prefix).
+      if ((await prefixBlocked(admin, phone)).blocked) return J({ ok: false, error: 'prefix_blocked' }, 403);
       // rate-limit: max 5 sends / 10 min / customer (ledger row, no code stored - Twilio Verify holds the code)
       const tenMinAgo = new Date(Date.now() - 600e3).toISOString();
       const { count } = await admin.from('customer_phone_otps').select('id', { count: 'exact', head: true }).eq('customer_id', cust!.id).gte('created_at', tenMinAgo);

@@ -316,6 +316,32 @@ Deno.serve(async (req) => {
     // company is. The embedding is optional and is not computed here -- with none the routine falls
     // back to the stricter lexical-only bar, which is the honest behaviour rather than a silent
     // widening of what counts as a match.
+    // ── INCIDENT PDF ───────────────────────────────────────────────────────────────────────────
+    // Duty 18: an incident record rendered for an external auditor, EN only, from the fixed template
+    // in fn_it_incident_pdf_blocks. pdf_native draws it and stores it; the path goes on the record.
+    if (action === 'incident_pdf') {
+      const id = Number(body.incident_id);
+      if (!Number.isInteger(id) || id <= 0) return J({ error: 'incident_id_required' }, 400);
+      const { data: doc, error } = await admin.rpc('fn_it_incident_pdf_blocks', { p_id: id });
+      if (error) { await run('incident_pdf', 'error', { incident_id: id }, error.message); return J({ error: error.message }, 404); }
+      const d = doc as { title: string; blocks: unknown[] };
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/pdf_native', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: await sec('cred_fn_to_pdf_native'), title: d.title, blocks: d.blocks,
+                               bucket: 'agent-docs', folder: 'it_engineer/incidents', name: 'incident_' + id }),
+        signal: AbortSignal.timeout(60000),
+      });
+      const out = await r.json().catch(() => null) as { path?: string; url?: string } | null;
+      if (!r.ok || !out?.path) {
+        await run('incident_pdf', 'error', { incident_id: id, status: r.status }, 'pdf_native answered ' + r.status);
+        return J({ error: 'pdf_failed', status: r.status }, 502);
+      }
+      const { error: upErr } = await admin.from('it_incident').update({ pdf_path: out.path, updated_at: new Date().toISOString() }).eq('id', id);
+      if (upErr) { await run('incident_pdf', 'error', { incident_id: id }, upErr.message); return J({ error: upErr.message }, 500); }
+      await run('incident_pdf', 'ok', { incident_id: id });
+      return J({ ok: true, incident_id: id, path: out.path, url: out.url ?? null });
+    }
+
     if (action === 'assist') {
       const text = String(body.text || body.question || '').trim();
       if (!text) return J({ error: 'text_required' }, 400);
