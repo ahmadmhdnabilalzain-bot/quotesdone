@@ -93,11 +93,16 @@ export function BriefBox() {
                   onClick={() => { setText(ex); check(ex); }}
                   className="rounded-full px-3 py-1.5 text-[12px] text-muted shadow-[inset_0_0_0_1px_rgba(110,231,212,.14)] transition-[color,box-shadow] duration-300 hover:text-white hover:shadow-[inset_0_0_0_1px_rgba(110,231,212,.4)]"
                 >
-                  {/* an example in the other language is tagged, so it reads as the bilingual router it demonstrates */}
-                  {/[؀-ۿ]/.test(ex) !== (locale === 'ar') && (
-                    <span className="me-1.5 font-semibold text-teal-light" dir={locale === 'ar' ? 'rtl' : 'ltr'}>{t('otherLang')}</span>
-                  )}
-                  {ex}
+                  {/* An example in the other language is tagged, so it reads as the bilingual router it
+                      demonstrates. The tag follows the page direction and the example is isolated in
+                      <bdi>, so the two never interleave (dir="auto" on the button put the tag inside
+                      the Arabic phrase on the English page). */}
+                  {/[؀-ۿ]/.test(ex) !== (locale === 'ar') ? (
+                    <span dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+                      <span className="me-2 font-semibold text-teal-light">{t('otherLang')}</span>
+                      <bdi>{ex}</bdi>
+                    </span>
+                  ) : ex}
                 </button>
               ))}
             </div>
