@@ -1,0 +1,69 @@
+// whatsapp_choice — the pure half of "Is this number on WhatsApp?" (kyc actions whatsapp_*).
+//
+// Founder, 14 Sep 2026: "what if the customer has whatsapp on another phone number, maybe we should
+// confirm this point through the sign up". After the mobile is verified the customer or supplier
+// answers Yes (same) / No, it's a different number (other) / I don't use WhatsApp (none). A different
+// number is proven by a code sent OVER WHATSAPP, so an unverified WhatsApp number is never written:
+// every patch below that sets whatsapp_phone also sets whatsapp_verified_at in the same object.
+// Email stays the identity; nothing here reads or writes a lookup by phone, and leads.whatsapp (a
+// legacy scraped number) is deliberately not a column this module knows about.
+//
+// Columns (customers and leads alike): whatsapp_phone, whatsapp_verified_at, whatsapp_opt
+// ('same'|'other'|'none', null = not answered), whatsapp_asked_at, and the existing wa_optin.
+
+export type WhatsAppOpt = 'same' | 'other' | 'none';
+export type ChoiceOpt = 'same' | 'none';
+
+// 'other' is not choosable directly: it is only ever the result of whatsapp_verify approving a code.
+export function parseChoiceOpt(v: unknown): ChoiceOpt | null {
+  return v === 'same' || v === 'none' ? v : null;
+}
+
+export interface WhatsAppRow {
+  whatsapp_phone?: string | null;
+  whatsapp_verified_at?: string | null;
+  whatsapp_opt?: string | null;
+  whatsapp_asked_at?: string | null;
+}
+
+export function whatsappState(r: WhatsAppRow | null | undefined) {
+  const row = r || {};
+  const opt = row.whatsapp_opt === 'same' || row.whatsapp_opt === 'other' || row.whatsapp_opt === 'none' ? row.whatsapp_opt : null;
+  // A phone with no verification timestamp is reported as absent: the UI must never show, and no
+  // sender may use, a number that did not come back with a code.
+  const verified = !!row.whatsapp_verified_at && !!row.whatsapp_phone;
+  return { opt, phone: verified ? row.whatsapp_phone! : null, verified, asked: !!row.whatsapp_asked_at || opt !== null };
+}
+
+// Twilio answers that mean "the WhatsApp channel is not set up on this Verify service", as opposed to
+// a bad number or a transient fault. The brief names 68008, 63008 and 60410; a 4xx whose message
+// mentions WhatsApp is included because Twilio's wording for an unconfigured channel varies by
+// account state and a false "sent" is the one outcome this must never produce.
+const UNAVAILABLE_CODES = new Set([68008, 63008, 60410]);
+export function whatsappUnavailable(httpStatus: number, body: { code?: unknown; message?: unknown } | null | undefined): boolean {
+  const code = Number(body?.code);
+  if (UNAVAILABLE_CODES.has(code)) return true;
+  return httpStatus >= 400 && httpStatus < 500 && /whats\s*app/i.test(String(body?.message || ''));
+}
+
+export type Patch = Record<string, string | boolean | null>;
+
+// whatsapp_choose. Caller has already refused 'same' when the mobile is not verified; verifiedMobile
+// is required here too so a patch can never write an unverified number even if that check moves.
+export function choosePatch(opt: ChoiceOpt, verifiedMobile: string | null, nowIso: string): Patch | null {
+  if (opt === 'same') {
+    if (!verifiedMobile) return null;
+    return { whatsapp_opt: 'same', whatsapp_phone: verifiedMobile, whatsapp_verified_at: nowIso, wa_optin: true, whatsapp_asked_at: nowIso };
+  }
+  return { whatsapp_opt: 'none', whatsapp_phone: null, whatsapp_verified_at: null, wa_optin: false, whatsapp_asked_at: nowIso };
+}
+
+// whatsapp_verify approved. The previously verified number is replaced only here, never at send time.
+export function verifiedPatch(phone: string, nowIso: string): Patch {
+  return { whatsapp_opt: 'other', whatsapp_phone: phone, whatsapp_verified_at: nowIso, wa_optin: true, whatsapp_asked_at: nowIso };
+}
+
+// whatsapp_later and whatsapp_send_code: existing accounts are asked once and never blocked.
+export function askedPatch(nowIso: string): Patch {
+  return { whatsapp_asked_at: nowIso };
+}

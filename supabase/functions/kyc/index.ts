@@ -4,6 +4,7 @@ import { observe } from '../_shared/observe.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
+import { askedPatch, choosePatch, parseChoiceOpt, verifiedPatch, whatsappState, whatsappUnavailable, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -31,6 +32,26 @@ async function rl(key: string, limit: number, seconds: number): Promise<boolean>
   catch (_e) { return true; } // limiter unavailable must not lock legitimate users out of account completion
 }
 async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const secret = await sec('twilio_api_key_secret'); const va = await sec('twilio_verify_service_sid'); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
+type TwAuth = { hdr: string; va: string };
+// ONE Verify send, ONE check, ONE per-number limit for every channel (14 Sep 2026). send_sms owned
+// these inline; the WhatsApp question needs the identical machinery on Channel=whatsapp, and two
+// copies of a rate limit is how one of them ends up looser. The limit counts phone_verifications rows
+// for the number in the last hour regardless of channel, so SMS, call and WhatsApp share 5 per hour.
+async function phoneRateLimited(phone: string): Promise<boolean> {
+  const since = new Date(Date.now() - 3600e3).toISOString();
+  const { count } = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('phone', phone).gte('created_at', since);
+  return (count || 0) >= 5;
+}
+async function verifySend(tw: TwAuth, phone: string, channel: string, locale: string) {
+  const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel, Locale: locale }) });
+  const jd: any = await r.json().catch(() => ({}));
+  return { r, jd };
+}
+async function verifyCheck(tw: TwAuth, phone: string, code: string): Promise<boolean> {
+  const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Code: code }) });
+  const jd: any = await r.json().catch(() => ({}));
+  return jd?.status === 'approved';
+}
 async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; try { const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, subject, html }) }); return r.ok; } catch { return false; } }
 // SUPPRESSION BYPASS 28 Jul 2026 ----------------------------------------------------------------
 // login_otp and contact_submit both consult email_suppressions before handing anything to Resend,
@@ -75,6 +96,32 @@ Deno.serve(observe('kyc', async (req) => {
     const { data: cust } = await admin.from('customers').select('id,full_name,phone,date_of_birth,email_verified,phone_verified,tos_accepted_at,signed_terms_url').eq('email', email).maybeSingle();
     const kind = lead ? 'supplier' : 'customer';
 
+    // The whatsapp_* columns are read in their OWN query, not added to the two selects above. A
+    // select naming a column that does not exist returns data=null, and a null lead flips every
+    // supplier to kind='customer' - so deploying this before the schema would have mis-routed every
+    // action for every supplier. Isolated here, the worst case is a logged read error.
+    const waTable = kind === 'supplier' ? 'leads' : 'customers';
+    const waKey = kind === 'supplier' ? 'claimed_by' : 'email';
+    const readWa = async (): Promise<WhatsAppRow | null> => {
+      const { data, error } = await admin.from(waTable).select('whatsapp_phone,whatsapp_verified_at,whatsapp_opt,whatsapp_asked_at').eq(waKey, email).maybeSingle();
+      if (error) { await logRun('error', { action, kind, stage: 'whatsapp_read' }, 'kyc could not read the whatsapp_* columns on ' + waTable + ': ' + error.message); return null; }
+      return data as WhatsAppRow | null;
+    };
+    const writeWa = async (patch: Patch): Promise<boolean> => {
+      const { data, error } = await admin.from(waTable).update(patch).eq(waKey, email).select('id');
+      if (!error && (data?.length || 0) > 0) return true;
+      // Same rule as verify_email: a customer may have a session and no customers row yet.
+      if (!error && kind === 'customer') {
+        const ins = await admin.from('customers').insert({ email, locale: asLocale(b.lang), ...patch });
+        if (!ins.error) return true;
+        await logRun('error', { action, kind, stage: 'whatsapp_write' }, 'kyc could not create the customers row for the WhatsApp answer: ' + ins.error.message);
+        return false;
+      }
+      await logRun('error', { action, kind, stage: 'whatsapp_write' }, 'kyc could not save the WhatsApp answer on ' + waTable + ': ' + (error ? error.message : 'no row matched'));
+      return false;
+    };
+    const saveFailed = () => J({ ok: false, error: 'save_failed', code: 'save_failed' }, 500);
+
     if (action === 'state') {
       // SECURITY FIX (27 Jul 2026): 'state' derived `emailProven` from the auth provider's
       // email_confirmed_at / confirmed_at and, on a plain READ, flipped owner_email_verified /
@@ -87,13 +134,14 @@ Deno.serve(observe('kyc', async (req) => {
       // report insert from the earlier fix is gone too: with nothing granted here there is nothing to
       // persist, and a customer with no row is simply not verified yet (save_customer /
       // verify_email create it). Response shape is unchanged for CustomerPortal / SupplierPortal.
+      const whatsapp = whatsappState(await readWa());
       if (kind === 'supplier') {
         const ev = !!lead!.owner_email_verified;
-        return J({ ok: true, kind, email, full_name: lead!.contact_name, phone: lead!.phone, dob: lead!.owner_dob, email_verified: ev, phone_verified: !!lead!.owner_phone_verified, terms_signed: !!lead!.signed_terms_url });
+        return J({ ok: true, kind, email, full_name: lead!.contact_name, phone: lead!.phone, dob: lead!.owner_dob, email_verified: ev, phone_verified: !!lead!.owner_phone_verified, terms_signed: !!lead!.signed_terms_url, whatsapp });
       }
       const c = cust || {} as any;
       const ev = !!c.email_verified;
-      return J({ ok: true, kind, email, full_name: c.full_name || '', phone: c.phone || '', dob: c.date_of_birth || '', email_verified: ev, phone_verified: !!c.phone_verified, terms_signed: !!c.signed_terms_url });
+      return J({ ok: true, kind, email, full_name: c.full_name || '', phone: c.phone || '', dob: c.date_of_birth || '', email_verified: ev, phone_verified: !!c.phone_verified, terms_signed: !!c.signed_terms_url, whatsapp });
     }
 
     if (action === 'save_customer') {
@@ -197,9 +245,7 @@ Deno.serve(observe('kyc', async (req) => {
     if (action === 'send_sms') {
       const phone = toE164(String(b.phone || '')); if (!phone) return J({ error: 'Enter a valid mobile number.' }, 400);
       const tw = await twilioAuth(); if (!tw) { await logRun('error', { action, kind }, 'SMS not configured: missing twilio_api_key_sid / secret / verify_service_sid'); return J({ error: 'SMS is not configured.' }, 500); }
-      const since = new Date(Date.now() - 3600e3).toISOString();
-      const { count } = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('phone', phone).gte('created_at', since);
-      if ((count || 0) >= 5) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour'); return J({ error: 'Too many code requests. Please try again later.' }, 429); }
+      if (await phoneRateLimited(phone)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour'); return J({ error: 'Too many code requests. Please try again later.' }, 429); }
       // LANDLINE FALLBACK (12 Aug 2026). Twilio Verify refuses SMS to a landline with error 21635,
       // and the only customer on file registered a Dubai landline: Twilio Lookup returns
       // type=landline for +97142587734, and a real send returned HTTP 400 / 21635. So the one
@@ -210,11 +256,9 @@ Deno.serve(observe('kyc', async (req) => {
       // "we are calling you" instead of asking him to watch for an SMS that cannot arrive.
       // Locale: the SMS or voice call speaks the registered language (founder, 14 Sep 2026).
       const vLocale = await registeredLocale(admin, { role: kind, email }, b.lang);
-      const sendCode = (channel: string) => fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel, Locale: vLocale }) });
       let channel = String(b.channel || 'sms'); if (channel !== 'sms' && channel !== 'call') channel = 'sms';
-      let r = await sendCode(channel);
-      let jd = await r.json().catch(() => ({}));
-      if (jd?.code === 21635 && channel === 'sms') { channel = 'call'; r = await sendCode(channel); jd = await r.json().catch(() => ({})); }
+      let { r, jd } = await verifySend(tw, phone, channel, vLocale);
+      if (jd?.code === 21635 && channel === 'sms') { channel = 'call'; ({ r, jd } = await verifySend(tw, phone, channel, vLocale)); }
       if (!r.ok || jd?.status === 'canceled') { await logRun('error', { action, kind, http: r.status, channel }, 'twilio verify send failed on channel ' + channel + ': ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ error: jd?.message || 'Could not send the code.' }, 502); }
       await admin.from('phone_verifications').insert({ email, phone, code: 'twilio', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       await logRun('ok', { action, kind, channel }, '');
@@ -224,10 +268,66 @@ Deno.serve(observe('kyc', async (req) => {
       const phone = toE164(String(b.phone || '')); const code = String(b.code || '').replace(/\D/g, '');
       if (!phone || !code) return J({ error: 'Enter the 6-digit code.' }, 400);
       const tw = await twilioAuth(); if (!tw) { await logRun('error', { action, kind }, 'SMS not configured: missing twilio credentials'); return J({ error: 'SMS is not configured.' }, 500); }
-      const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Code: code }) });
-      const jd = await r.json(); if (jd?.status !== 'approved') return J({ error: 'Incorrect or expired code.' }, 400);
+      if (!(await verifyCheck(tw, phone, code))) return J({ error: 'Incorrect or expired code.' }, 400);
       if (kind === 'supplier') await admin.from('leads').update({ owner_phone_verified: true, phone }).eq('claimed_by', email); else await admin.from('customers').update({ phone_verified: true, phone }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', phone).is('used_at', null);
+      await logRun('ok', { action, kind }, '');
+      return J({ ok: true });
+    }
+
+    // ---- "Is this number on WhatsApp?" (founder, 14 Sep 2026; pure rules in _shared/whatsapp_choice.ts)
+    // Every refusal carries a `code` the portal maps to EN/AR text. Nothing is stored about a number
+    // until Twilio approves a code sent to it over WhatsApp itself; only whatsapp_asked_at moves early.
+    if (action === 'whatsapp_choose') {
+      const opt = parseChoiceOpt(b.opt);
+      if (!opt) return J({ ok: false, error: 'bad_opt', code: 'bad_opt' }, 400);
+      const mobileVerified = kind === 'supplier' ? !!lead!.owner_phone_verified : !!(cust as any)?.phone_verified;
+      const mobile = mobileVerified ? toE164(String((kind === 'supplier' ? lead!.phone : (cust as any)?.phone) || '')) : '';
+      const patch = choosePatch(opt, mobile || null, new Date().toISOString());
+      if (!patch) return J({ ok: false, error: 'mobile_not_verified', code: 'mobile_not_verified' }, 400);
+      if (!(await writeWa(patch))) return saveFailed();
+      await logRun('ok', { action, kind, opt }, '');
+      return J({ ok: true, whatsapp: whatsappState(patch as WhatsAppRow) });
+    }
+    if (action === 'whatsapp_send_code') {
+      const phone = toE164(String(b.phone || ''));
+      if (!phone) return J({ ok: false, error: 'bad_phone', code: 'bad_phone' }, 400);
+      const tw = await twilioAuth();
+      if (!tw) { await logRun('error', { action, kind }, 'WhatsApp code not sent: missing twilio_api_key_sid / secret / verify_service_sid'); return J({ ok: false, error: 'whatsapp_unavailable', code: 'whatsapp_unavailable' }, 200); }
+      if (await phoneRateLimited(phone)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour (SMS, call and WhatsApp share it)'); return J({ ok: false, error: 'rate_limited', code: 'rate_limited' }, 429); }
+      if (!(await writeWa(askedPatch(new Date().toISOString())))) return saveFailed();
+      const { r, jd } = await verifySend(tw, phone, 'whatsapp', await registeredLocale(admin, { role: kind, email }, b.lang));
+      if (whatsappUnavailable(r.status, jd)) {
+        await logRun('error', { action, kind, http: r.status, twilio_code: jd?.code ?? null }, 'WhatsApp channel unavailable on the Verify service - no code was sent: ' + String(jd?.message || '').slice(0, 200));
+        return J({ ok: false, error: 'whatsapp_unavailable', code: 'whatsapp_unavailable', twilio_code: jd?.code ?? null }, 200);
+      }
+      if (!r.ok || jd?.status === 'canceled') {
+        await logRun('error', { action, kind, http: r.status, twilio_code: jd?.code ?? null }, 'twilio verify send failed on channel whatsapp: ' + String(jd?.message || jd?.status || '').slice(0, 200));
+        return J({ ok: false, error: 'send_failed', code: 'send_failed', twilio_code: jd?.code ?? null }, 502);
+      }
+      // The row is the rate-limit ledger shared with send_sms, not a record of the number as the
+      // account's WhatsApp - that is written only by whatsapp_verify.
+      const pv = await admin.from('phone_verifications').insert({ email, phone, code: 'twilio', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+      if (pv.error) await logRun('error', { action, kind, stage: 'phone_verifications' }, 'WhatsApp code sent but the rate-limit row was not written: ' + pv.error.message);
+      else await logRun('ok', { action, kind, channel: 'whatsapp' }, '');
+      return J({ ok: true, channel: 'whatsapp' });
+    }
+    if (action === 'whatsapp_verify') {
+      const phone = toE164(String(b.phone || '')); const code = String(b.code || '').replace(/\D/g, '');
+      if (!phone) return J({ ok: false, error: 'bad_phone', code: 'bad_phone' }, 400);
+      if (!code) return J({ ok: false, error: 'wrong_code', code: 'wrong_code' }, 400);
+      const tw = await twilioAuth();
+      if (!tw) { await logRun('error', { action, kind }, 'WhatsApp code not checked: missing twilio credentials'); return J({ ok: false, error: 'whatsapp_unavailable', code: 'whatsapp_unavailable' }, 200); }
+      if (!(await verifyCheck(tw, phone, code))) return J({ ok: false, error: 'wrong_code', code: 'wrong_code' }, 400);
+      const patch = verifiedPatch(phone, new Date().toISOString());
+      if (!(await writeWa(patch))) return saveFailed();
+      const used = await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', phone).is('used_at', null);
+      if (used.error) await logRun('error', { action, kind, stage: 'phone_verifications' }, 'WhatsApp number verified but its phone_verifications rows were not marked used: ' + used.error.message);
+      else await logRun('ok', { action, kind }, '');
+      return J({ ok: true, whatsapp: whatsappState(patch as WhatsAppRow) });
+    }
+    if (action === 'whatsapp_later') {
+      if (!(await writeWa(askedPatch(new Date().toISOString())))) return saveFailed();
       await logRun('ok', { action, kind }, '');
       return J({ ok: true });
     }
