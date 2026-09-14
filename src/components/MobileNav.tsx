@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from '@/i18n/routing';
 import { LangSwitch } from './LangSwitch';
 
@@ -64,7 +65,10 @@ export function MobileNav({ items, services, servicesLabel, cta, login, loginLab
         </svg>
       </button>
 
-      {open && (
+      {/* Portalled to <body>: the header bar carries backdrop-filter, which makes it the containing
+          block for position:fixed descendants. Rendered inside it, this sheet's inset-x-0 bottom-0
+          top-[68px] resolved against the 68px header and measured 1px tall on production (14 Sep 2026). */}
+      {open && createPortal(
         <div
           id={panelId}
           ref={panelRef}
@@ -106,7 +110,8 @@ export function MobileNav({ items, services, servicesLabel, cta, login, loginLab
               </Link>
             </div>
           </nav>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
