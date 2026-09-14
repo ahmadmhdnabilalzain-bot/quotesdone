@@ -82,16 +82,27 @@ on conflict (item) do update set kind = excluded.kind, owner_seat = excluded.own
   expires_on = coalesce(excluded.expires_on, public.it_expiry.expires_on), source = excluded.source;
 
 -- ── 6a. THE SECURITY BASELINE ────────────────────────────────────────────────────────────────────
--- What was already true when this file was applied, so the sweep reports what is NEW. The baseline is
--- the state on 14 Sep 2026 measured by the same queries the sweep runs; its size is in each finding.
+-- Exposures someone has ACCEPTED, each with its reason and who accepted it. It starts empty.
+-- Review of #636, 14 Sep 2026: the first cut seeded this from whatever was exposed at apply time and so
+-- accepted two live holes for good — fn_customer_documents(text,text,integer,text[]) and
+-- fn_customer_document_refs(), anon-executable SECURITY DEFINER routines that documents_customer_vault.sql
+-- meant for authenticated + service_role only. Those rows are deleted below and the sweep raises them.
 create table if not exists public.it_security_baseline (
   object      text not null,
   kind        text not null check (kind in ('anon_executable_definer', 'rls_off', 'rls_no_policy')),
   recorded_at timestamptz not null default now(),
   primary key (object, kind)
 );
+alter table public.it_security_baseline add column if not exists reason text;
+alter table public.it_security_baseline add column if not exists accepted_by text;
+delete from public.it_security_baseline where coalesce(btrim(reason), '') = '' or coalesce(btrim(accepted_by), '') = '';
+alter table public.it_security_baseline alter column reason set not null;
+alter table public.it_security_baseline alter column accepted_by set not null;
+alter table public.it_security_baseline drop constraint if exists it_security_baseline_accepted_with_reason;
+alter table public.it_security_baseline add constraint it_security_baseline_accepted_with_reason
+  check (btrim(reason) <> '' and btrim(accepted_by) <> '');
 comment on table public.it_security_baseline is
-  'Security exposures already present when the IT sweep started (14 Sep 2026). The sweep raises only what is not here; removing a row is how an accepted exposure stops being accepted.';
+  'Security exposures deliberately accepted, each with a stated reason and who accepted it (a reasonless row is refused). The sweep raises every exposure not listed here; removing a row withdraws the acceptance.';
 alter table public.it_security_baseline enable row level security;
 drop policy if exists it_security_baseline_service_role_only on public.it_security_baseline;
 create policy it_security_baseline_service_role_only on public.it_security_baseline as permissive for all to public using (false) with check (false);
@@ -114,10 +125,6 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
      and (has_table_privilege('anon', c.oid, 'select') or has_table_privilege('authenticated', c.oid, 'select'))
 $fn$;
 revoke execute on function public.fn_it_security_exposures() from public, anon, authenticated;
-
-insert into public.it_security_baseline (object, kind)
-select object, kind from public.fn_it_security_exposures()
-on conflict do nothing;
 
 -- ── THE DUTIES ───────────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_it_duties(p_r jsonb)
