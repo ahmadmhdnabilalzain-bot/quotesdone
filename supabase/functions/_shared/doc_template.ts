@@ -120,6 +120,16 @@ export function footerLines(id: DocIdentity): [string, string] {
   return [`${id.name} · ${id.licence} · ${id.permit}`, `${id.city} · ${id.email} · ${id.phone} · ${id.web}`];
 }
 
+/** The same two lines for an Arabic document (14 Sep 2026: the founder asked for the Arabic
+ * documents to be Arabic throughout). The trade name, licence number, permit number, email, phone
+ * and web address are proper nouns and codes and stay as written; the words around them are Arabic. */
+export function footerLinesAr(id: DocIdentity): [string, string] {
+  const no = (id.licence.match(/\d{5,}/) || [''])[0];
+  const permit = id.permit.replace(/^TDRA\s*/, '');
+  return [`${id.name} · رخصة تجارية من دائرة الاقتصاد والسياحة رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات TDRA ${permit}`,
+    `دبي، الإمارات العربية المتحدة · ${id.email} · ${id.phone} · ${id.web}`];
+}
+
 /**
  * Lockup width for a height. HEIGHT IS THE INPUT — never set both, and never set the width and let
  * the height follow (public.company_brand logo.never_size_by_width).

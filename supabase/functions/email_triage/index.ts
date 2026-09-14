@@ -28,7 +28,16 @@ Deno.serve(observe('email_triage', async (req) => {
       .eq('needs_review', true).is('triaged_at', null).is('replied_at', null).order('created_at', { ascending: true }).limit(20);
     for (const m of (msgs || [])) {
       let category = 'other', summary = '', reply = '';
-      const out = await llm(SYS, 'From: ' + (m.from_email||'') + '\nSubject: ' + (m.subject||'') + '\n\n' + String(m.body||'').slice(0, 4000), 800);
+      // THE SENDER'S CASE TIMELINE (14 Sep 2026): customer_support is the only seat on email, so the
+      // draft is written knowing what every seat has already done with this person. Deterministic
+      // (fn_contact_timeline); a failure to read it leaves the draft ungrounded, never the mail unread.
+      let tlText = '';
+      try {
+        const { data: tl } = await admin.rpc('fn_contact_timeline', { p_contact: String(m.from_email || ''), p_limit: 30 });
+        const ev = (tl as any)?.events;
+        if (Array.isArray(ev) && ev.length) tlText = '\n\nSENDER CASE TIMELINE (newest first; do not contradict it, do not promise what it shows is already done):\n' + JSON.stringify(ev).slice(0, 6000);
+      } catch (_e) { tlText = ''; }
+      const out = await llm(SYS, 'From: ' + (m.from_email||'') + '\nSubject: ' + (m.subject||'') + '\n\n' + String(m.body||'').slice(0, 4000) + tlText, 800);
       if (out) { const mm = out.match(/\{[\s\S]*\}/); if (mm) { try { const pj = JSON.parse(mm[0]); category = String(pj.category||'other').slice(0,40); summary = String(pj.summary||'').slice(0,500); reply = String(pj.reply||'').slice(0,4000); } catch (_e) {} } }
       await admin.from('inbound_messages').update({ ai_category: category, ai_summary: summary, ai_draft_reply: reply || null, triaged_at: new Date().toISOString() }).eq('id', m.id);
       counts.triaged++;

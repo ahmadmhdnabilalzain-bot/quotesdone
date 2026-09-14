@@ -190,7 +190,7 @@ Deno.serve(observe('refunds_api', async (req) => {
         refundPatch.refund_confirmed_at = new Date().toISOString();
       }
 
-      // 'refunded' fires the DB trigger: creates the 3% non-response due + blocks the supplier
+      // 'refunded' fires the DB trigger: creates the non-response due + blocks the supplier
       const { error: uErr } = await admin.from('transactions').update({ refund_status: newStatus, refund_note: note || null, refund_resolved_at: new Date().toISOString(), ...refundPatch }).eq('id', id);
       if (uErr) {
         // v4: the caller is now told the truth, and a founder alert fires regardless of the UI.
@@ -215,9 +215,9 @@ Deno.serve(observe('refunds_api', async (req) => {
         const { data: l } = await admin.from('leads').select('matching_blocked').eq('id', tx.supplier_id).maybeSingle();
         blocked = l?.matching_blocked ?? null;
         if (!due) {
-          await logRun('error', { transaction_id: id, supplier_id: tx.supplier_id }, 'refund approved but no supplier_dues row was created - the 3% non-response trigger may not have fired');
+          await logRun('error', { transaction_id: id, supplier_id: tx.supplier_id }, 'refund approved but no supplier_dues row was created - the non-response trigger may not have fired');
           await escalate('Refund approved but supplier was not charged: ' + id,
-            'A refund was approved for transaction ' + id + ', but no supplier_dues row was created, so the 3% non-response charge may not have been applied to supplier ' + String(tx.supplier_id ?? '') + '.\n\nThe refund itself DID apply. Please check the supplier charge manually.');
+            'A refund was approved for transaction ' + id + ', but no supplier_dues row was created, so the non-response charge may not have been applied to supplier ' + String(tx.supplier_id ?? '') + '.\n\nThe refund itself DID apply. Please check the supplier charge manually.');
         }
       }
       await logRun('ok', { transaction_id: id, decision, from_status: prevStatus, to_status: newStatus, supplier_id: tx.supplier_id, reveal_fee: tx.reveal_fee, charge_created: !!due, supplier_blocked: blocked, refund_stripe_id: refundPatch.refund_stripe_id || null, refunded_aed: refundPatch.refund_amount_aed ?? null },

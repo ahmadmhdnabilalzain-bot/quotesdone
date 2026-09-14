@@ -55,7 +55,7 @@ const L = {
       { title: 'Describe the job once', body: 'Text, photos, a drawing or a BOQ.' },
       { title: 'Licensed suppliers quote blind', body: 'Only trades licensed for the work, and they never see your name.' },
       { title: 'Compare every quote', body: 'All quotes in one list, plus a levelled technical report on the strongest three.' },
-      { title: 'Reveal one, or none', body: 'Pick any quote. You pay 3% only on the one you choose.' },
+      { title: 'Reveal one, or none', body: 'Pick any quote. You pay only on the one you choose: 3% of it plus the card processing fee.' },
     ],
   },
   ar: {
@@ -64,7 +64,7 @@ const L = {
       { title: 'صف المشروع مرة واحدة', body: 'نصًا أو صورًا أو مخططًا أو جدول كميات.' },
       { title: 'الموردون المرخّصون يسعّرون دون معرفتك', body: 'فقط أصحاب الرخص المطابقة للعمل، ولا يرون اسمك أبدًا.' },
       { title: 'قارن جميع العروض', body: 'كل عروض الأسعار في قائمة واحدة، مع تقرير فني مقارن لأقوى ثلاثة منها.' },
-      { title: 'اكشف موردًا واحدًا أو لا أحد', body: 'اختر أي عرض سعر، وتدفع 3% فقط على العرض الذي تختاره.' },
+      { title: 'اكشف موردًا واحدًا أو لا أحد', body: 'اختر أي عرض سعر، ولا تدفع إلا على العرض الذي تختاره: 3% منه مضافًا إليها رسوم معالجة البطاقة.' },
     ],
   },
 };

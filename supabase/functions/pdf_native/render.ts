@@ -8,6 +8,16 @@
 // the caller supplies the two things that need the network: the brand assets (fetchBytes) and the
 // letterhead identity. index.ts keeps auth and storage; the tests and the sample renderer call
 // this directly with ZZ DEMO data and never touch a real row.
+//
+// THE DESIGN (v2, 14 Sep 2026: "the format can be more professional and advanced (very simple now)").
+// A document that passes `cover` gets the consulting-deliverable layout: a navy cover band with the
+// document title, reference, date, request summary and a key-figures strip; numbered sections; tables
+// with a navy head, zebra rows, hairlines and end-aligned figures; status chips; ✓ / ≠ / — markers
+// drawn as vectors (no font needs the glyph); a compact scoring matrix; a totals block; and a header
+// and footer on EVERY page — legal line, contact line, document-control line and "Page X of Y".
+// Everything mirrors for Arabic: the start of a line is the right edge, columns run right to left.
+// Documents without `cover` (the brief, the finance reports, signed T&C copies) keep the letterhead
+// header they had and gain the same footer.
 import { PDFDocument, StandardFonts, rgb, PDFArray, PDFName, PDFString } from 'https://esm.sh/pdf-lib@1.17.1';
 // The published fontkit.d.ts has no default export (TS1192) even though the CJS module esm.sh
 // serves does. Import the namespace and take .default when it is there.
@@ -15,7 +25,7 @@ import * as fontkitMod from 'https://esm.sh/@pdf-lib/fontkit@1.1.1';
 // deno-lint-ignore no-explicit-any
 const fontkit = ((fontkitMod as any).default ?? fontkitMod) as any;
 import bidiFactory from 'https://esm.sh/bidi-js@1.0.3';
-import { footerLines, FALLBACK, LOCKUP, lockupWidthFor, type DocIdentity } from '../_shared/doc_template.ts';
+import { footerLines, footerLinesAr, FALLBACK, LOCKUP, lockupWidthFor, type DocIdentity } from '../_shared/doc_template.ts';
 import { shapeArabic } from './arabic_shape.ts';
 
 export type RenderDeps = {
@@ -32,44 +42,55 @@ export type RenderResult =
   | { ok: false; status: number; body: Record<string, unknown> };
 
 const CO_AR = { city: 'دبي، الإمارات العربية المتحدة', signer: 'أحمد الزين', title: 'المؤسس والمدير الإداري' };
-const NAVY = rgb(0.047, 0.137, 0.188), TEAL = rgb(0.078, 0.722, 0.651), GOLD = rgb(0.906, 0.71, 0.235), INK = rgb(0.08, 0.094, 0.11), MUT = rgb(0.4, 0.44, 0.52), LINE = rgb(0.9, 0.91, 0.93), WHITE = rgb(1, 1, 1), BANDTXT = rgb(0.82, 0.87, 0.9);
+// The Sealed brand: navy #0A1720, teal #14B8A6 / #6EE7D4 / #0B8276, gold #E3C065.
+const C = (r: number, g: number, b: number) => rgb(r / 255, g / 255, b / 255);
+const NAVY = C(10, 23, 32), TEAL = C(20, 184, 166), TEAL_L = C(110, 231, 212), TEAL_D = C(11, 130, 118), GOLD = C(227, 192, 101);
+const INK = C(22, 29, 37), MUT = C(88, 99, 113), HAIR = C(222, 227, 233), ZEBRA = C(246, 248, 250), WHITE = rgb(1, 1, 1), BANDTXT = C(196, 211, 220);
+const TINT_T = C(230, 247, 244), TINT_G = C(251, 244, 224), TINT_N = C(237, 241, 245), AMBER_D = C(128, 96, 10), MISS = C(160, 170, 182), LINE = HAIR;
 export function isArCode(c: number) { return (c >= 0x600 && c <= 0x6FF) || (c >= 0x750 && c <= 0x77F) || (c >= 0x8A0 && c <= 0x8FF) || (c >= 0xFB50 && c <= 0xFDFF) || (c >= 0xFE70 && c <= 0xFEFF); }
 // deno-lint-ignore no-explicit-any
 export function hasAr(s: any) { const t = String(s == null ? '' : s); for (const ch of t) { if (isArCode(ch.codePointAt(0) || 0)) return true; } return false; }
 // deno-lint-ignore no-explicit-any
 const bidi: any = bidiFactory();
 const MIRROR: Record<string, string> = { '(': ')', ')': '(', '[': ']', ']': '[', '{': '}', '}': '{', '<': '>', '>': '<' };
+// deno-lint-ignore no-explicit-any
 function bidiRuns(s: string) { const str = String(s == null ? '' : s); if (!str) return [] as { t: string; rtl: boolean }[]; let levels: any; try { levels = bidi.getEmbeddingLevels(str, 'rtl').levels; } catch (_e) { return [{ t: str, rtl: true }]; } for (let i = 0; i < str.length; i++) { if ('%٪#'.includes(str[i])) { const d = /[0-9]/.test(str[i + 1] || '') ? i + 1 : /[0-9]/.test(str[i - 1] || '') ? i - 1 : -1; if (d >= 0) levels[i] = levels[d]; } } const segs: { t: string; lv: number }[] = []; let st = 0; for (let i = 1; i <= str.length; i++) { if (i === str.length || levels[i] !== levels[st]) { segs.push({ t: str.slice(st, i), lv: levels[st] }); st = i; } } if (!segs.length) return [{ t: str, rtl: true }]; let maxL = 0; for (const sg of segs) if (sg.lv > maxL) maxL = sg.lv; const order = segs.map((_, i) => i); for (let L2 = maxL; L2 >= 1; L2--) { let i = 0; while (i < order.length) { if (segs[order[i]].lv >= L2) { let j = i; while (j < order.length && segs[order[j]].lv >= L2) j++; const sl = order.slice(i, j).reverse(); for (let k = i; k < j; k++) order[k] = sl[k - i]; i = j; } else i++; } } return order.map(i => { const rtl = segs[i].lv % 2 === 1; let t = segs[i].t; if (rtl) { let o = ''; for (const ch of t) o += (MIRROR[ch] || ch); t = o; } return { t, rtl }; }); }
 function decodeEnt(s: string) { return String(s || '').replace(/<br\s*\/?>/gi, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&rsquo;|&lsquo;/g, "'").replace(/&mdash;/g, '—').replace(/&ndash;/g, '–'); }
 function stripTags(s: string) { return decodeEnt(String(s || '').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim(); }
 // deno-lint-ignore no-explicit-any
 function parseHtml(frag: string) { const blocks: any[] = []; const re = /<(h2|h3|p|ul|ol|table)\b[^>]*>([\s\S]*?)<\/\1>/gi; let m: any; while ((m = re.exec(frag))) { const tag = m[1].toLowerCase(); const inner = m[2]; if (tag === 'h2') blocks.push({ t: 'h2', text: stripTags(inner) }); else if (tag === 'h3') blocks.push({ t: 'h3', text: stripTags(inner) }); else if (tag === 'p') { const tx = stripTags(inner); if (tx) blocks.push({ t: 'p', text: tx }); } else if (tag === 'ul' || tag === 'ol') { const lis = inner.match(/<li\b[^>]*>([\s\S]*?)<\/li>/gi) || []; lis.forEach((li: string) => { const tx = stripTags(li.replace(/<\/?li[^>]*>/gi, '')); if (tx) blocks.push({ t: 'li', text: tx }); }); } else if (tag === 'table') { const trs = inner.match(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi) || []; let head: string[] = []; const rows: string[][] = []; trs.forEach((tr: string, ri: number) => { const cells = (tr.match(/<(th|td)\b[^>]*>([\s\S]*?)<\/(?:th|td)>/gi) || []).map((c: string) => stripTags(c.replace(/<\/?(th|td)[^>]*>/gi, ''))); if (ri === 0 && /<th\b/i.test(tr)) head = cells; else rows.push(cells); }); if (!head.length && rows.length) head = rows.shift() as string[]; if (head.length || rows.length) blocks.push({ t: 'table', head, rows, widths: head.map(() => 1 / Math.max(1, head.length)) }); } } return blocks; }
 
-// 5 Aug 2026. Typographic characters are routine in model- and supplier-written prose; normalise
-// them to ASCII always, and drop only what the font actually in force cannot encode.
-const NORM: Record<string, string> = { '≠': '!=', '≈': '~', '≥': '>=', '≤': '<=', '±': '+/-', '—': '-', '–': '-', '−': '-', '‑': '-', '→': '->', '←': '<-', '×': 'x', '÷': '/', '·': '-', '•': '-', '…': '...', '“': '"', '”': '"', '„': '"', '‘': "'", '’': "'", '′': "'", '″': '"', '‚': ',', '€': 'EUR', '£': 'GBP', '™': '(TM)', '®': '(R)', '©': '(C)', '½': '1/2', '¼': '1/4', '¾': '3/4', '\u00a0': ' ', '\u200b': '', '\u200e': '', '\u200f': '', '\u202a': '', '\u202b': '', '\u202c': '' };
+// 5 Aug 2026. Typographic characters are routine in model- and supplier-written prose. Each is kept
+// when every font in force has its glyph (the brand faces carry — – · × …) and replaced by its ASCII
+// form only when one does not; anything else a font cannot encode is dropped and COUNTED.
+const NORM: Record<string, string> = { '≠': '!=', '≈': '~', '≥': '>=', '≤': '<=', '±': '+/-', '—': '-', '–': '-', '−': '-', '‑': '-', '→': '->', '←': '<-', '×': 'x', '÷': '/', '·': '-', '•': '-', '…': '...', '“': '"', '”': '"', '„': '"', '‘': "'", '’': "'", '′': "'", '″': '"', '‚': ',', '€': 'EUR', '£': 'GBP', '™': '(TM)', '®': '(R)', '©': '(C)', '½': '1/2', '¼': '1/4', '¾': '3/4', ' ': ' ', '​': '', '‎': '', '‏': '', '‪': '', '‫': '', '‬': '', '﻿': '' };
+const INVISIBLE = new Set(['​', '‎', '‏', '‪', '‫', '‬', '﻿']);
 
 // Subsetting is NOT why Arabic went missing (it was the first suspect, and embedding the face whole
 // changed nothing); fontkit's Arabic shaper is — see arabic_shape.ts. Subset stays on.
 const AR_SUBSET = true;
+type Flag = 'match' | 'differs' | 'missing' | 'na';
+type TC = { text: string; sub?: string; flag?: Flag; chip?: 'short' | 'open' | 'hold'; link?: string; bold?: boolean; group?: boolean };
+// deno-lint-ignore no-explicit-any
+const toCell = (c: any): TC => (c && typeof c === 'object' && !Array.isArray(c)) ? { ...c, text: String(c.text ?? '') } : { text: String(c ?? '') };
+
 // deno-lint-ignore no-explicit-any
 export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderResult> {
   const CO: DocIdentity = deps.identity ?? FALLBACK;
   const fetchBytes = deps.fetchBytes;
   let body = input ?? {};
   const lang = ['en', 'ar', 'bi'].includes(String(body.lang)) ? String(body.lang) : 'en';
-  let L = lang === 'bi' ? 'en' : lang;
+  const L = lang === 'ar' ? 'ar' : 'en';
+  const RTL = L === 'ar';
   const pdf = await PDFDocument.create(); pdf.registerFontkit(fontkit);
   let font = await pdf.embedFont(StandardFonts.Helvetica);
   let bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   let latinFull = false, arFull = false;
   try { const sr = await fetchBytes('qd_sora_regular.ttf'); const sb = await fetchBytes('qd_sora_bold.ttf'); if (sr) { font = await pdf.embedFont(sr, { subset: true }); latinFull = true; } if (sb) bold = await pdf.embedFont(sb, { subset: true }); } catch (_e) { /* Helvetica stands */ }
-  const PW = 595.28, PH = 841.89, M = 48; const CW = PW - 2 * M; const BAND = 92, BANDSLIM = 42;
+  const PW = 595.28, PH = 841.89, M = 46; const CW = PW - 2 * M; const BOTTOM = 78;
   const opt = body.options || {};
   const letterhead = !!opt.letterhead, doSign = !!opt.sign, doStamp = !!opt.stamp;
-  const isQuote = !!body.quote;
-  const probe = JSON.stringify(body.quote || '') + JSON.stringify(body.quote_ar || '') + String(body.body_html || '') + JSON.stringify(body.blocks || '') + String(body.title || '');
-  const needAr = lang !== 'en' || hasAr(probe);
+  const needAr = lang !== 'en' || hasAr(JSON.stringify(body));
   let arReg = font, arBold = bold;
   if (needAr) { const rb = await fetchBytes('qd_ar_regular.ttf'); const bb = await fetchBytes('qd_ar_bold.ttf'); if (rb) { arReg = await pdf.embedFont(rb, { subset: AR_SUBSET }); arFull = true; } if (bb) arBold = await pdf.embedFont(bb, { subset: AR_SUBSET }); if (arFull) { plainLayout(arReg); plainLayout(arBold); } }
 
@@ -95,9 +116,12 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   function safeText(s: string): string {
     let out = '';
     for (const ch of String(s == null ? '' : s)) {
-      const rep = NORM[ch];
-      if (rep !== undefined) { out += rep; continue; }
       const cp = ch.codePointAt(0) || 0;
+      const rep = NORM[ch];
+      if (rep !== undefined) {
+        const everyFontHasIt = !INVISIBLE.has(ch) && latinFull && hasGlyph(font, cp) && (!needAr || (arFull && hasGlyph(arReg, cp)));
+        out += everyFontHasIt ? ch : rep; continue;
+      }
       if (cp > 0xff) {
         if (isArCode(cp)) { if (arFull && hasGlyph(arReg, cp)) out += ch; else drop(ch); continue; }
         if (latinFull && hasGlyph(font, cp)) out += ch; else drop(ch);
@@ -108,11 +132,11 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
     return out;
   }
   // deno-lint-ignore no-explicit-any
-  function safeDeep(v: any): any {
-    if (typeof v === 'string') return safeText(v);
-    if (Array.isArray(v)) return v.map(safeDeep);
+  function safeDeep(v: any, key = ''): any {
+    if (typeof v === 'string') return key === 'link' ? v : safeText(v);
+    if (Array.isArray(v)) return v.map((x) => safeDeep(x));
     // deno-lint-ignore no-explicit-any
-    if (v && typeof v === 'object') { const o: any = {}; for (const k of Object.keys(v)) o[k] = safeDeep(v[k]); return o; }
+    if (v && typeof v === 'object') { const o: any = {}; for (const k of Object.keys(v)) o[k] = safeDeep(v[k], k); return o; }
     return v;
   }
   body = safeDeep(body);
@@ -128,11 +152,11 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
 
   // Our own constants never pass through safeDeep, so on the fallback font they could throw and
   // lose the whole PDF. Losing one glyph is acceptable; losing the customer's document is not.
+  // A draw that fails twice loses the WHOLE string, and until 14 Sep 2026 that loss was silent:
+  // every Arabic run died here while the response reported glyphs_dropped 0. It is counted now.
   // deno-lint-ignore no-explicit-any
   function armPage(p: any) { const orig = p.drawText.bind(p);
     // deno-lint-ignore no-explicit-any
-    // A draw that fails twice loses the WHOLE string, and until 14 Sep 2026 that loss was silent:
-    // every Arabic run died here while the response reported glyphs_dropped 0. It is counted now.
     p.drawText = (t: any, o: any) => { try { orig(String(t), o); } catch (_e) { try { orig(safeText(String(t)), o); } catch (_e2) { for (const ch of String(t)) { if (ch.trim()) drop(ch); } } } };
     return p; }
 
@@ -142,7 +166,8 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   // Western digits in the Arabic date too: the amounts, references and quantities on the same
   // page are Western, and a page mixing ٢٠٢٦ with 2026 reads as two documents stapled together.
   const dateAr = body.date_ar ? String(body.date_ar) : new Date().toLocaleDateString('ar-AE-u-nu-latn', { day: '2-digit', month: 'long', year: 'numeric' });
-  function dateFor() { return L === 'ar' ? dateAr : dateEn; }
+  const dateFor = () => RTL ? dateAr : dateEn;
+  const control = body.control ? String(body.control) : '';
   let lockupTrimmed = true;
   const logoLightImg = await (async () => { const b = await fetchBytes(LOCKUP.dark); return b ? await pdf.embedPng(b) : null; })();
   const logoImg = await (async () => { const b = await fetchBytes(LOCKUP.light); return b ? await pdf.embedPng(b) : null; })();
@@ -150,8 +175,13 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   const sig = doSign ? await (async () => { const b = await fetchBytes('qd_signature.png'); return b ? await pdf.embedPng(b) : null; })() : null;
   const stamp = doStamp ? await (async () => { const b = await fetchBytes('qd_stamp.png'); return b ? await pdf.embedPng(b) : null; })() : null;
 
-  let page = armPage(pdf.addPage([PW, PH])); let y = PH - M; let pageNo = 1;
+  // deno-lint-ignore no-explicit-any
+  const pages: any[] = [];
+  // deno-lint-ignore no-explicit-any
+  let page: any = armPage(pdf.addPage([PW, PH])); pages.push(page); let y = PH - M;
+  // deno-lint-ignore no-explicit-any
   function fontFor(s: any, b: boolean) { return hasAr(s) ? (b ? arBold : arReg) : (b ? bold : font); }
+  // deno-lint-ignore no-explicit-any
   function W(text: string, f: any, s: number) { try { return f.widthOfTextAtSize(text, s); } catch (_e) { return text.length * s * 0.5; } }
   // ── LINKS (9 Sep 2026). A PDF link is a /Annot dictionary on the page whose /Rect must be
   // computed from the same x, baseline, width and size the draw used. http(s) only.
@@ -174,107 +204,342 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   }
   // A right-to-left run is shaped in logical order, then reversed into the order it is drawn in.
   const visual = (r: { t: string; rtl: boolean }) => r.rtl ? [...shapeArabic(r.t)].reverse().join('') : r.t;
+  // deno-lint-ignore no-explicit-any
   function measRTL(s: string, f: any, size: number) { let w = 0; for (const r of bidiRuns(s)) w += W(visual(r), f, size); return w; }
+  // deno-lint-ignore no-explicit-any
   function drawRTL(s: string, size: number, f: any, color: any, yy: number, xRight: number) { const runs = bidiRuns(s).map((r) => ({ t: visual(r), rtl: r.rtl })); let tot = 0; const ws = runs.map(r => { const w = W(r.t, f, size); tot += w; return w; }); let x = xRight - tot; for (let i = 0; i < runs.length; i++) { if (runs[i].t.trim() !== '') page.drawText(runs[i].t, { x, y: yy, size, font: f, color }); x += ws[i]; } }
-  function putLine(text: string, size: number, b: boolean, color: any, align: 'l' | 'r', yy: number, x0 = M, w = CW, link?: unknown) { const f = fontFor(text, b); if (hasAr(text)) { const wr = measRTL(text, f, size); const xr = align === 'r' ? x0 + w : x0 + wr; drawRTL(text, size, f, color, yy, xr); if (link) linkAt(page, xr - wr, yy, wr, size, link); return wr; } const ww = W(text, f, size); const x = align === 'r' ? (x0 + w - ww) : x0; page.drawText(text, { x, y: yy, size, font: f, color }); if (link) linkAt(page, x, yy, ww, size, link); return ww; }
-  const [fl1, fl2] = footerLines(CO);
-  const footerEn = letterhead ? fl1 : 'QuotesDone · quotesdone.com';
-  const footerEn2 = letterhead ? fl2 : '';
-  // The page number is right-aligned by its own width; it sat at a fixed x and a long legal line
-  // ran underneath it.
-  function drawFooter() { page.drawLine({ start: { x: M, y: 54 }, end: { x: PW - M, y: 54 }, thickness: 0.5, color: LINE }); page.drawLine({ start: { x: M, y: 54 }, end: { x: M + 34, y: 54 }, thickness: 1.6, color: GOLD }); page.drawText(footerEn, { x: M, y: 42, size: 7, font, color: MUT }); if (footerEn2) page.drawText(footerEn2, { x: M, y: 32, size: 7, font, color: MUT }); const pn = (L === 'ar' ? 'Page ' : 'Page ') + pageNo; page.drawText(pn, { x: PW - M - W(pn, font, 7), y: 32, size: 7, font, color: MUT }); }
-  function headerBand(slim: boolean) { const h = slim ? BANDSLIM : BAND; page.drawRectangle({ x: 0, y: PH - h, width: PW, height: h, color: NAVY }); page.drawRectangle({ x: 0, y: PH - h, width: PW, height: 2.6, color: GOLD }); page.drawRectangle({ x: 0, y: PH - h + 2.6, width: PW, height: 1, color: TEAL }); const lg = logoLightImg || logoImg || logoMaster; if (lg) { const hh = lockupTrimmed ? (slim ? CO.logoPt * 0.8 : CO.logoPt) : lg.height * ((slim ? 92 : 128) / lg.width); const w = lockupTrimmed ? lockupWidthFor(hh) : (slim ? 92 : 128); page.drawImage(lg, { x: M, y: PH - (h / 2) - (hh / 2) + (slim ? 0 : 2), width: w, height: hh }); } if (!slim && letterhead) { const lines = [CO.name, CO.licence + ' · ' + CO.permit, CO.email + ' · ' + CO.phone]; let ly = PH - 26; lines.forEach((ln, i) => { const f = i === 0 ? bold : font; const s = i === 0 ? 11 : 8; page.drawText(ln, { x: PW - M - W(ln, f, s), y: ly - s, size: s, font: f, color: i === 0 ? WHITE : BANDTXT }); ly -= (i === 0 ? 15 : 11); }); } return PH - h; }
-  function quoteHeader() { const by = headerBand(false); y = by - 22; if (L === 'ar') { putLine('عرض أسعار', 22, true, NAVY, 'r', y - 16, M, CW); if (refText) putLine('الرقم المرجعي: ' + refText, 10, false, MUT, 'r', y - 32, M, CW); putLine('التاريخ: ' + dateFor(), 10, false, MUT, 'r', y - 46, M, CW); } else { page.drawText('QUOTATION', { x: M, y: y - 16, size: 22, font: bold, color: NAVY }); if (refText) page.drawText('Ref: ' + refText, { x: M, y: y - 32, size: 10, font, color: MUT }); page.drawText('Date: ' + dateFor(), { x: M, y: y - 46, size: 10, font, color: MUT }); } y = y - 64; drawFooter(); }
-  // The reference is printed under the title now: a report the customer takes to a meeting has to
-  // be citable, and the ref was passed in and silently never drawn on non-quote documents.
-  function docHeader() { const by = headerBand(false); y = by - 24; const ar = L === 'ar'; putLine(title, 20, true, NAVY, (ar || hasAr(title)) ? 'r' : 'l', y - 18); y -= 24; const meta = (refText ? (ar ? 'الرقم المرجعي: ' + refText : 'Ref: ' + refText) + ' · ' : '') + (ar ? CO_AR.city : CO.city) + ' · ' + dateFor(); putLine(meta, 10, false, MUT, ar ? 'r' : 'l', y - 10); y -= 22; drawFooter(); }
-  function newSection() { page = armPage(pdf.addPage([PW, PH])); pageNo++; y = PH - M; }
-  function ensure(h: number) { if (y - h < 70) { page = armPage(pdf.addPage([PW, PH])); pageNo++; const by = headerBand(true); drawFooter(); y = by - 18; } }
-  function wrap(t: string, f: any, s: number, w: number) { const isAr = hasAr(t); const meas = (str: string) => isAr ? measRTL(str, f, s) : W(str, f, s); const words = String(t == null ? '' : t).split(/\s+/); const lines: string[] = []; let cur = ''; for (const wd0 of words) { const test = cur ? cur + ' ' + wd0 : wd0; if (meas(test) > w && cur) { lines.push(cur); cur = wd0; } else cur = test; } if (cur) lines.push(cur); return lines.length ? lines : ['']; }
-  function para(t: string, s = 11, b = false, color = INK, lh = 1.45, x0 = M, w = CW, link?: unknown) { const isAr = hasAr(t); const f = fontFor(t, b); for (const ln of wrap(t, f, s, w)) { ensure(s * lh); if (isAr) { const wr = measRTL(ln, f, s); drawRTL(ln, s, f, color, y - s, x0 + w); if (link) linkAt(page, x0 + w - wr, y - s, wr, s, link); } else { page.drawText(ln, { x: x0, y: y - s, size: s, font: f, color }); if (link) linkAt(page, x0, y - s, W(ln, f, s), s, link); } y -= s * lh; } }
-  function bullet(t: string, s = 11, link?: unknown) { const isAr = hasAr(t); if (isAr) { para('•  ' + t, s, false, INK, 1.4, M, CW - 10, link); } else { para('•  ' + t, s, false, INK, 1.4, M + 10, CW - 12, link); } }
-  function headingBi(en: string, ar: string) { ensure(28); y -= 8; if (L === 'ar') { putLine(ar || en, 11, true, TEAL, 'r', y - 11); } else { page.drawText(String(en).toUpperCase(), { x: M, y: y - 11, size: 11, font: bold, color: TEAL }); } y -= 13; page.drawLine({ start: { x: M, y }, end: { x: PW - M, y }, thickness: 0.6, color: LINE }); if (L === 'ar') page.drawLine({ start: { x: PW - M - 34, y }, end: { x: PW - M, y }, thickness: 1.6, color: GOLD }); else page.drawLine({ start: { x: M, y }, end: { x: M + 34, y }, thickness: 1.6, color: GOLD }); y -= 10; }
-  function headingAuto(t: string, link?: unknown) { const isAr = hasAr(t); ensure(28); y -= 8; putLine(t, 11, true, TEAL, isAr ? 'r' : 'l', y - 11, M, CW, link); y -= 13; page.drawLine({ start: { x: M, y }, end: { x: PW - M, y }, thickness: 0.6, color: LINE }); if (isAr) page.drawLine({ start: { x: PW - M - 34, y }, end: { x: PW - M, y }, thickness: 1.6, color: GOLD }); else page.drawLine({ start: { x: M, y }, end: { x: M + 34, y }, thickness: 1.6, color: GOLD }); y -= 10; }
-  function h3(t: string, link?: unknown) { ensure(20); putLine(t, 13, true, NAVY, hasAr(t) ? 'r' : 'l', y - 12, M, CW, link); y -= 20; }
-  function space(h = 8) { ensure(h); y -= h; }
   // deno-lint-ignore no-explicit-any
-  const cellText = (c: any) => (c && typeof c === 'object' && !Array.isArray(c)) ? String(c.text == null ? '' : c.text) : String(c == null ? '' : c);
+  const meas = (t: string, f: any, s: number) => hasAr(t) ? measRTL(t, f, s) : W(t, f, s);
   // deno-lint-ignore no-explicit-any
-  const cellLink = (c: any) => (c && typeof c === 'object' && !Array.isArray(c) && typeof c.link === 'string') ? c.link : null;
-  // A table row taller than a page used to be drawn from `y` downward straight through the footer
-  // and off the paper: ensure() can only start a fresh page, it cannot make one taller. Such a row
-  // is now split across pages, carrying the remaining lines of every cell, with the header redrawn.
+  function wrap(t: string, f: any, s: number, w: number) { const words = String(t == null ? '' : t).split(/\s+/); const lines: string[] = []; let cur = ''; for (const wd0 of words) { const test = cur ? cur + ' ' + wd0 : wd0; if (meas(test, f, s) > w && cur) { lines.push(cur); cur = wd0; } else cur = test; } if (cur) lines.push(cur); return lines.length ? lines : ['']; }
+  const lines = (t: unknown, size: number, b: boolean, w: number) => { const s = String(t ?? ''); return s ? wrap(s, fontFor(s, b), size, w) : []; };
+
+  // ── Direction-aware primitives. `sx` is a logical offset from the START margin (left in English,
+  // right in Arabic); px turns a logical box into its physical left edge. Align 's' | 'e' | 'c' is
+  // logical too: 's' hugs the start edge of the box, 'e' the end edge (figures in a column).
+  const px = (sx: number, w: number) => RTL ? PW - M - sx - w : M + sx;
   // deno-lint-ignore no-explicit-any
-  function blockTable(head: string[], rows: any[][], widths: number[], rtl = false) {
-    let H = head.slice(), R = rows.map(r => r.slice()), Wd = widths.slice();
-    if (rtl) { H.reverse(); R = R.map(r => r.slice().reverse()); Wd = Wd.slice().reverse(); }
-    const colW = Wd.map(w => w * CW);
-    const drawHead = () => { ensure(22); page.drawRectangle({ x: M, y: y - 20, width: CW, height: 20, color: NAVY }); let cx = M; H.forEach((h, i) => { const isAr = hasAr(h); const f = isAr ? arBold : bold; if (isAr || rtl) { if (isAr) drawRTL(String(h), 9, f, WHITE, y - 14, cx + colW[i] - 8); else page.drawText(String(h), { x: cx + colW[i] - 8 - W(String(h), f, 9), y: y - 14, size: 9, font: f, color: WHITE }); } else page.drawText(String(h), { x: cx + 8, y: y - 14, size: 9, font: f, color: WHITE }); cx += colW[i]; }); y -= 20; page.drawLine({ start: { x: M, y }, end: { x: M + CW, y }, thickness: 1.4, color: GOLD }); };
-    drawHead();
-    const LH = 13, maxLinesPerPage = Math.floor((PH - 70 - BANDSLIM - 18 - 22 - 8) / LH);
-    R.forEach((r) => {
-      const cl = r.map((c, i) => { const tx = cellText(c); const isAr = hasAr(tx); const f = isAr ? arReg : font; return { isAr, f, link: cellLink(c), lines: wrap(tx, f, 10, colW[i] - 14) }; });
-      let from = 0; const total = Math.max(1, ...cl.map(c => c.lines.length));
-      while (from < total) {
-        const fit = Math.max(1, Math.min(total - from, Math.floor((y - 70 - 8) / LH)));
-        if ((y - 70 - 8) / LH < 1 || (fit < total - from && fit < 3 && total - from <= maxLinesPerPage)) { page = armPage(pdf.addPage([PW, PH])); pageNo++; const by = headerBand(true); drawFooter(); y = by - 18; drawHead(); continue; }
-        const n = Math.min(fit, total - from); const rh = n * LH + 8;
-        let cx = M;
-        r.forEach((_c, i) => { const cell = cl[i]; const col = cell.link ? TEAL : INK; let ly = y - 14; for (const ln of cell.lines.slice(from, from + n)) { if (cell.isAr) { const wr = measRTL(ln, cell.f, 10); drawRTL(ln, 10, cell.f, col, ly, cx + colW[i] - 8); if (cell.link) linkAt(page, cx + colW[i] - 8 - wr, ly, wr, 10, cell.link); } else if (rtl) { const wl = W(ln, cell.f, 10); page.drawText(ln, { x: cx + colW[i] - 8 - wl, y: ly, size: 10, font: cell.f, color: col }); if (cell.link) linkAt(page, cx + colW[i] - 8 - wl, ly, wl, 10, cell.link); } else { page.drawText(ln, { x: cx + 8, y: ly, size: 10, font: cell.f, color: col }); if (cell.link) linkAt(page, cx + 8, ly, W(ln, cell.f, 10), 10, cell.link); } ly -= LH; } cx += colW[i]; });
-        y -= rh; from += n;
-        page.drawLine({ start: { x: M, y }, end: { x: PW - M, y }, thickness: 0.5, color: LINE });
-        if (from < total) { page = armPage(pdf.addPage([PW, PH])); pageNo++; const by = headerBand(true); drawFooter(); y = by - 18; drawHead(); }
-      }
-    });
-    y -= 2;
+  function txt(t: unknown, x: number, w: number, yy: number, size: number, o: { bold?: boolean; color?: any; align?: string; link?: unknown } = {}) {
+    const s = String(t ?? ''); if (!s.trim()) return 0;
+    const f = fontFor(s, !!o.bold); const tw = meas(s, f, size);
+    const a = o.align || 's'; const phys = a === 'c' ? 'c' : ((a === 's') !== RTL ? 'l' : 'r');
+    const xl = phys === 'l' ? x : phys === 'r' ? x + w - tw : x + (w - tw) / 2;
+    const color = o.color ?? INK;
+    if (hasAr(s)) drawRTL(s, size, f, color, yy, xl + tw); else page.drawText(s, { x: xl, y: yy, size, font: f, color });
+    if (o.link) linkAt(page, xl, yy, tw, size, o.link);
+    return tw;
   }
-  // In an Arabic document the first pair sits in the RIGHT column and every value right-aligns,
-  // Arabic or not: a Latin value ("AED 18,500", "2 weeks") hanging off the left edge of an
-  // otherwise right-to-left grid is what made the Arabic quotation look like a broken English one.
-  function blockKV(pairs: [string, string][]) { const rtlDoc = L === 'ar'; const colW = CW / 2; const rows = Math.ceil(pairs.length / 2); for (let r = 0; r < rows; r++) { let maxLines = 1; for (let c = 0; c < 2; c++) { const idx = r * 2 + c; if (idx >= pairs.length) continue; const vv = String(pairs[idx][1]); const vfm = hasAr(vv) ? arBold : bold; const n = wrap(vv, vfm, 11, colW - 12).length; if (n > maxLines) maxLines = n; } const rowH = 29 + maxLines * 13; ensure(rowH); for (let c = 0; c < 2; c++) { const idx = r * 2 + c; if (idx >= pairs.length) continue; const x = rtlDoc ? (M + (1 - c) * colW) : (M + c * colW); const [k, v] = pairs[idx]; putLine(String(k), 8, false, MUT, (rtlDoc || hasAr(k)) ? 'r' : 'l', y - 12, x + 4, colW - 8); const vAr = hasAr(v); const vf = vAr ? arBold : bold; const vlines = wrap(String(v), vf, 11, colW - 12); let vy = y - 26; for (const ln of vlines) { if (vAr) drawRTL(ln, 11, vf, NAVY, vy, x + colW - 8); else if (rtlDoc) page.drawText(ln, { x: x + colW - 8 - W(ln, vf, 11), y: vy, size: 11, font: vf, color: NAVY }); else page.drawText(ln, { x: x + 4, y: vy, size: 11, font: vf, color: NAVY }); vy -= 13; } } y -= rowH; } }
-  function blockTotal(value: string) { ensure(64); const bw = 270, bx = PW - M - bw; const qt = L === 'ar' ? 'القيمة المعروضة' : 'Quoted total'; const lab = L === 'ar' ? 'الإجمالي' : 'TOTAL'; page.drawRectangle({ x: bx, y: y - 58, width: bw, height: 58, borderColor: TEAL, borderWidth: 2 }); page.drawRectangle({ x: bx, y: y - 4, width: bw, height: 4, color: GOLD }); const qf = hasAr(qt) ? arReg : font; if (hasAr(qt)) drawRTL(qt, 11, qf, INK, y - 22, bx + bw - 14); else page.drawText(qt, { x: bx + 14, y: y - 22, size: 11, font: qf, color: INK }); page.drawText(value, { x: hasAr(qt) ? (bx + 14) : (bx + bw - 14 - W(value, font, 11)), y: y - 22, size: 11, font, color: INK }); page.drawRectangle({ x: bx, y: y - 58, width: bw, height: 30, color: NAVY }); const lf = hasAr(lab) ? arBold : bold; if (hasAr(lab)) drawRTL(lab, 13, lf, WHITE, y - 49, bx + bw - 14); else page.drawText(lab, { x: bx + 14, y: y - 49, size: 13, font: lf, color: WHITE }); page.drawText(value, { x: hasAr(lab) ? (bx + 14) : (bx + bw - 14 - W(value, bold, 15)), y: y - 50, size: 15, font: bold, color: WHITE }); y -= 66; }
-  function blockBadge(en: string, ar: string, subEn: string, subAr: string) { ensure(46); const lab = L === 'ar' ? ('الجهة مقدّمة العرض') : 'QUOTING PARTY'; putLine(lab, 8, false, MUT, L === 'ar' ? 'r' : 'l', y - 10); const txt = L === 'ar' ? ar : en; const tAr = hasAr(txt); const f = tAr ? arBold : bold; const bw = (tAr ? measRTL(txt, f, 12) : W(txt, f, 12)) + 24; const bx = L === 'ar' ? (PW - M - bw) : M; page.drawRectangle({ x: bx, y: y - 34, width: bw, height: 22, color: NAVY }); if (tAr) drawRTL(txt, 12, f, WHITE, y - 29, bx + bw - 12); else page.drawText(txt, { x: bx + 12, y: y - 29, size: 12, font: f, color: WHITE }); const sub = L === 'ar' ? subAr : subEn; if (sub) { putLine(sub, 9, false, MUT, L === 'ar' ? 'r' : 'l', y - 28, L === 'ar' ? M : (bx + bw + 14), L === 'ar' ? (PW - 2 * M - bw - 14) : (CW - bw - 14)); } y -= 46; }
   // deno-lint-ignore no-explicit-any
-  function renderBlocks(blocks: any[]) { for (const b of blocks) { const t = b.t || b.type; if (t === 'h2' || t === 'heading') headingAuto(b.text || '', b.link); else if (t === 'h3') h3(b.text || '', b.link); else if (t === 'p' || t === 'para') para(b.text || '', b.size || 11, !!b.bold, INK, 1.45, M, CW, b.link); else if (t === 'li') bullet(b.text || '', 11, b.link); else if (t === 'kv') blockKV(b.pairs || []); else if (t === 'table') { const rtl = L === 'ar' || hasAr((b.head || []).join(' ') + ' ' + (b.rows || []).flat().map(cellText).join(' ')); blockTable(b.head || [], b.rows || [], b.widths || (b.head || []).map(() => 1 / Math.max(1, (b.head || []).length)), rtl); } else if (t === 'total') blockTotal(b.value || ''); else if (t === 'note') para(b.text || '', 9, false, MUT, 1.45, M, CW, b.link); else if (t === 'space') space(b.h || 10); } }
-  const disEn = "This quotation is presented in QuotesDone's standardized format from the supplier's submitted quote. Figures and scope are as quoted by the supplier; verify final details before ordering. QuotesDone charges the customer a 3% facilitation fee on the quoted value at the point of contact reveal.";
-  const disAr = 'هذا العرض مقدّم بصيغة QuotesDone الموحّدة استناداً إلى عرض المورّد. القيم والنطاق كما وردت من المورّد؛ يُرجى التحقق من التفاصيل النهائية قبل الطلب. تتقاضى QuotesDone رسوم تيسير بنسبة 3% من قيمة العرض عند كشف بيانات التواصل.';
+  function para(t: unknown, o: { size?: number; bold?: boolean; color?: any; lh?: number; sx?: number; w?: number; link?: unknown; align?: string } = {}) {
+    const size = o.size ?? 9.6, lh = o.lh ?? 1.5, sx = o.sx ?? 0, w = o.w ?? CW;
+    for (const ln of lines(t, size, !!o.bold, w)) { ensure(size * lh); txt(ln, px(sx, w), w, y - size, size, { bold: o.bold, color: o.color, link: o.link, align: o.align }); y -= size * lh; }
+  }
   // deno-lint-ignore no-explicit-any
-  function renderQuote(q: any) { const rtlT = L === 'ar';
-    blockBadge('Supplier ' + (q.supplier_label || '1'), 'المورّد ' + (q.supplier_label || '1'), 'Identity revealed only after the customer pays the reveal fee.', 'تُكشف هوية المورّد فقط بعد سداد العميل رسوم الكشف.');
-    // Trade and emirate on one line, the request on the next. As one line, an Arabic trade name
-    // followed by an English request was re-ordered by the bidi algorithm across the wrap and its
-    // brackets landed on the wrong line (first Arabic sample, 14 Sep 2026).
-    headingBi('Job', 'بيان العمل');
-    const jobMeta = [q.job_category, q.emirate].filter((v: unknown) => v != null && String(v).trim() !== '').join(' · ');
-    if (jobMeta) para(jobMeta, 11, true, NAVY);
-    if (q.job_summary) para(String(q.job_summary));
-    space(2); headingBi('Scope of supply', 'نطاق التوريد');
-    const items = Array.isArray(q.items) ? q.items : [];
-    if (items.length) { const head = L === 'ar' ? ['#', 'الوصف', 'الكمية', 'الوحدة'] : ['#', 'Description', 'Qty', 'Unit']; blockTable(head, items.map((it: any, i: number) => [String(i + 1), String(it.desc || ''), String(it.qty || ''), String(it.unit || '')]), [0.07, 0.69, 0.11, 0.13], rtlT); }
-    else if (q.scope) para(String(q.scope));
-    if (items.length && q.scope) { space(3); para(String(q.scope), 10, false, rgb(0.2, 0.25, 0.33)); }
-    headingBi('Commercial terms', 'الشروط التجارية');
-    const TL = (en: string, ar: string) => L === 'ar' ? ar : en;
-    blockKV([[TL('Lead time', 'مدة التنفيذ'), q.lead_time || '—'], [TL('Quote validity', 'صلاحية العرض'), q.validity || '—'], [TL('Warranty', 'الضمان'), q.warranty || '—'], [TL('Payment terms', 'شروط الدفع'), q.payment_terms || '—']]);
-    if (q.conditions) { headingBi('Conditions', 'الشروط'); para(String(q.conditions)); }
-    if (q.exclusions) { headingBi('Exclusions', 'الاستثناءات'); para(String(q.exclusions)); }
-    if (q.notes) { headingBi('Notes', 'ملاحظات'); para(String(q.notes)); }
-    space(6); blockTotal('AED ' + Number(q.total || 0).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-    space(8); para(L === 'ar' ? disAr : disEn, 9, false, MUT);
-    if (q.source_note) { space(2); para(String(q.source_note), 9, false, MUT); }
-    // Back to this quote on its request in the portal (quote_documents.ts sets q.link).
-    if (q.link) { space(4); para(L === 'ar' ? 'افتح هذا العرض في طلبك على بوابة QuotesDone' : 'Open this quote on your request in the QuotesDone portal', 10, true, TEAL, 1.45, M, CW, q.link); }
+  function hline(yy: number, color: any = HAIR, t = 0.5, x0 = M, x1 = PW - M) { page.drawLine({ start: { x: x0, y: yy }, end: { x: x1, y: yy }, thickness: t, color }); }
+  function rule(yy: number) { hline(yy, HAIR, 0.6); const gx = px(0, 40); page.drawLine({ start: { x: gx, y: yy }, end: { x: gx + 40, y: yy }, thickness: 1.8, color: GOLD }); }
+  // deno-lint-ignore no-explicit-any
+  function pill(x: number, yb: number, w: number, h: number, color: any) { const r = h / 2; page.drawRectangle({ x: x + r, y: yb, width: Math.max(0, w - 2 * r), height: h, color }); page.drawEllipse({ x: x + r, y: yb + r, xScale: r, yScale: r, color }); page.drawEllipse({ x: x + w - r, y: yb + r, xScale: r, yScale: r, color }); }
+  // ✓ matches · ≠ differs · — not stated · ○ N/A — drawn, so no font has to carry the glyph.
+  function marker(flag: Flag, cx: number, cy: number, r = 4.3) {
+    if (flag === 'na') { page.drawEllipse({ x: cx, y: cy, xScale: r, yScale: r, borderColor: MISS, borderWidth: 0.8 }); return; }
+    page.drawEllipse({ x: cx, y: cy, xScale: r, yScale: r, color: flag === 'match' ? TEAL : flag === 'differs' ? GOLD : MISS });
+    // deno-lint-ignore no-explicit-any
+    const ln = (a: number, b: number, c: number, d: number, col: any = WHITE, t = 1.15) => page.drawLine({ start: { x: cx + a, y: cy + b }, end: { x: cx + c, y: cy + d }, thickness: t, color: col });
+    if (flag === 'match') { ln(-2.1, 0.1, -0.6, -1.5); ln(-0.6, -1.5, 2.2, 1.7); }
+    else if (flag === 'differs') { ln(-2.2, 1.1, 2.2, 1.1, NAVY, 0.9); ln(-2.2, -1.1, 2.2, -1.1, NAVY, 0.9); ln(-1.0, -2.6, 1.0, 2.6, NAVY, 0.9); }
+    else ln(-2.1, 0, 2.1, 0);
+  }
+  function chip(text: string, kind: string, x: number, w: number, baseY: number, align = 's') {
+    const s = 7.4; const f = fontFor(text, true); const tw = meas(text, f, s); const cw = tw + 14, ch = 13;
+    const phys = align === 'c' ? 'c' : ((align !== 'e') !== RTL ? 'l' : 'r');
+    const x0 = phys === 'l' ? x : phys === 'r' ? x + w - cw : x + (w - cw) / 2;
+    const [bg, fg] = kind === 'short' ? [TINT_T, TEAL_D] : kind === 'hold' ? [TINT_G, AMBER_D] : [TINT_N, NAVY];
+    const yb = baseY - 3.4; pill(x0, yb, cw, ch, bg); txt(text, x0, cw, yb + 4.1, s, { bold: true, color: fg, align: 'c' });
   }
 
-  if (isQuote) {
-    if (lang === 'bi') { const qEn = body.quote; const qAr = body.quote_ar || body.quote; L = 'en'; quoteHeader(); renderQuote(qEn); newSection(); L = 'ar'; quoteHeader(); renderQuote(qAr); }
-    else { L = lang; quoteHeader(); renderQuote(body.quote); }
-  } else {
-    L = lang === 'bi' ? 'en' : lang; docHeader();
-    if (body.body_html) renderBlocks(parseHtml(String(body.body_html)));
-    else if (Array.isArray(body.blocks)) renderBlocks(body.blocks);
-    if (doSign || doStamp) { ensure(120); y -= 20; const baseY = y - 58; if (sig) { const w = 150, h = sig.height * (w / sig.width); page.drawImage(sig, { x: M + 90, y: baseY + 4, width: w, height: h }); } const sLabel = lang === 'ar' ? 'الموقّع المعتمد' : 'AUTHORISED SIGNATORY'; putLine(sLabel, 8, false, MUT, 'l', baseY + 50); page.drawLine({ start: { x: M, y: baseY }, end: { x: M + 230, y: baseY }, thickness: 0.8, color: rgb(0.2, 0.25, 0.33) }); const nm = lang === 'ar' ? CO_AR.signer : CO.signer; const tt = lang === 'ar' ? CO_AR.title : CO.title; putLine(nm, 11, true, NAVY, 'l', baseY - 14); putLine(tt, 9.5, false, MUT, 'l', baseY - 27); putLine(CO.name, 9.5, false, MUT, 'l', baseY - 39); if (stamp) { const w = 110, h = stamp.height * (w / stamp.width); page.drawImage(stamp, { x: PW - M - 140, y: baseY - 26, width: w, height: h, opacity: 0.9, rotate: { type: 'degrees', angle: -8 } as any }); } y = baseY - 50; }
+  // ── Page furniture ─────────────────────────────────────────────────────────────────────────
+  const lockupImg = () => logoLightImg || logoImg || logoMaster;
+  function drawLockup(hh: number, yb: number) { const lg = lockupImg(); if (!lg) return; const w = lockupTrimmed ? lockupWidthFor(hh) : 110; const h = lockupTrimmed ? hh : lg.height * (110 / lg.width); page.drawImage(lg, { x: px(0, w), y: yb, width: w, height: h }); }
+  function slimHeader() {
+    const h = 38; page.drawRectangle({ x: 0, y: PH - h, width: PW, height: h, color: NAVY }); page.drawRectangle({ x: 0, y: PH - h, width: PW, height: 1.8, color: GOLD });
+    drawLockup(13, PH - h / 2 - 5.5);
+    txt(refText ? `${title}  ·  ${refText}` : title, M, CW, PH - h / 2 - 2.6, 7.6, { color: BANDTXT, align: 'e' });
+    y = PH - h - 24;
   }
+  function newPage() { page = armPage(pdf.addPage([PW, PH])); pages.push(page); slimHeader(); }
+  function ensure(h: number) { if (y - h < BOTTOM) newPage(); }
+  function footers() {
+    const [fl1, fl2] = (RTL ? footerLinesAr(CO) : footerLines(CO)).map((s) => safeText(s));
+    const ctl = safeText(control);
+    pages.forEach((p, i) => {
+      page = p;
+      hline(64, HAIR, 0.5); const gx = px(0, 34); page.drawLine({ start: { x: gx, y: 64 }, end: { x: gx + 34, y: 64 }, thickness: 1.6, color: GOLD });
+      const pn = RTL ? `صفحة ${i + 1} من ${pages.length}` : `Page ${i + 1} of ${pages.length}`; const pw = 74;
+      txt(pn, px(CW - pw, pw), pw, 51, 7.4, { bold: true, color: NAVY, align: 'e' });
+      txt(letterhead ? fl1 : 'QuotesDone · quotesdone.com', px(0, CW - pw - 8), CW - pw - 8, 51, 6.6, { color: MUT });
+      if (letterhead) txt(fl2, px(0, CW - pw - 8), CW - pw - 8, 41, 6.6, { color: MUT });
+      if (ctl) txt(ctl, px(0, CW), CW, 31, 6.3, { color: MISS });
+    });
+  }
+  // The cover band: lockup and issuer, kicker, title, request summary, a meta row, then the
+  // key-figures strip on white beneath it.
+  // deno-lint-ignore no-explicit-any
+  function cover(cv: any) {
+    const H = 238;
+    page.drawRectangle({ x: 0, y: PH - H, width: PW, height: H, color: NAVY });
+    page.drawRectangle({ x: 0, y: PH - H, width: PW, height: 2.6, color: GOLD }); page.drawRectangle({ x: 0, y: PH - H + 2.6, width: PW, height: 1, color: TEAL });
+    drawLockup(CO.logoPt, PH - 30 - CO.logoPt);
+    const issuer = RTL ? [CO.name, `رخصة تجارية رقم ${(CO.licence.match(/\d{5,}/) || [''])[0]} · ${CO.permit}`] : [CO.name, `${CO.licence} · ${CO.permit}`];
+    txt(safeText(issuer[0]), M, CW, PH - 36, 9.5, { bold: true, color: WHITE, align: 'e' });
+    txt(safeText(issuer[1]), M, CW, PH - 48, 7, { color: BANDTXT, align: 'e' });
+    txt(cv.kicker, M, CW, PH - 94, 9, { bold: true, color: TEAL_L });
+    const kx = px(0, 30); page.drawLine({ start: { x: kx, y: PH - 101 }, end: { x: kx + 30, y: PH - 101 }, thickness: 1.6, color: GOLD });
+    txt(cv.title, M, CW, PH - 132, 27, { bold: true, color: WHITE });
+    let sy = PH - 154; for (const ln of lines(cv.subtitle, 9.8, false, CW * 0.9).slice(0, 2)) { txt(ln, px(0, CW * 0.9), CW * 0.9, sy, 9.8, { color: BANDTXT }); sy -= 14; }
+    const meta = Array.isArray(cv.meta) ? cv.meta.slice(0, 4) : []; const mw = CW / Math.max(1, meta.length);
+    meta.forEach(([k, v]: [string, string], i: number) => { const x = px(i * mw, mw); txt(k, x, mw - 10, PH - H + 42, 6.8, { color: TEAL_L }); txt((lines(v, 9.2, true, mw - 10)[0] || ''), x, mw - 10, PH - H + 26, 9.2, { bold: true, color: WHITE }); });
+    y = PH - H - 14;
+    const figs = Array.isArray(cv.figures) ? cv.figures.slice(0, 4) : [];
+    if (figs.length) {
+      const h = 58, fw = CW / figs.length;
+      page.drawRectangle({ x: M, y: y - h, width: CW, height: h, color: ZEBRA });
+      page.drawRectangle({ x: M, y: y - 2, width: CW, height: 2, color: TEAL_D });
+      figs.forEach(([k, v]: [string, string], i: number) => {
+        const x = px(i * fw, fw);
+        if (i > 0) { const sepX = RTL ? x + fw : x; page.drawLine({ start: { x: sepX, y: y - 12 }, end: { x: sepX, y: y - h + 10 }, thickness: 0.5, color: HAIR }); }
+        txt(k, x + 12, fw - 24, y - 19, 7.2, { color: MUT });
+        let s = 15; const vs = String(v ?? ''); while (s > 9 && meas(vs, fontFor(vs, true), s) > fw - 24) s -= 0.5;
+        txt(vs, x + 12, fw - 24, y - 42, s, { bold: true, color: NAVY });
+      });
+      y -= h + 26;
+    }
+  }
+  // The letterhead header documents without a cover keep (brief, finance reports, signed copies).
+  function legacyHeader() {
+    const h = 92; page.drawRectangle({ x: 0, y: PH - h, width: PW, height: h, color: NAVY }); page.drawRectangle({ x: 0, y: PH - h, width: PW, height: 2.6, color: GOLD }); page.drawRectangle({ x: 0, y: PH - h + 2.6, width: PW, height: 1, color: TEAL });
+    const lg = lockupImg(); if (lg) { const hh = lockupTrimmed ? CO.logoPt : lg.height * (128 / lg.width); const w = lockupTrimmed ? lockupWidthFor(hh) : 128; page.drawImage(lg, { x: M, y: PH - h / 2 - hh / 2 + 2, width: w, height: hh }); }
+    if (letterhead) { const ls = [CO.name, CO.licence + ' · ' + CO.permit, CO.email + ' · ' + CO.phone]; let ly = PH - 26; ls.forEach((ln, i) => { const f = i === 0 ? bold : font; const s = i === 0 ? 11 : 8; page.drawText(ln, { x: PW - M - W(ln, f, s), y: ly - s, size: s, font: f, color: i === 0 ? WHITE : BANDTXT }); ly -= (i === 0 ? 15 : 11); }); }
+    y = PH - h - 24;
+    txt(title, M, CW, y - 18, 20, { bold: true, color: NAVY }); y -= 24;
+    const meta = (refText ? (RTL ? 'الرقم المرجعي: ' + refText : 'Ref: ' + refText) + ' · ' : '') + (RTL ? CO_AR.city : CO.city) + ' · ' + dateFor();
+    txt(meta, M, CW, y - 10, 10, { color: MUT }); y -= 24;
+  }
+
+  // ── Blocks ─────────────────────────────────────────────────────────────────────────────────
+  function section(n: unknown, t: string) {
+    ensure(52); y -= 12; const box = 17;
+    if (n != null && n !== '') { const bx = px(0, box); page.drawRectangle({ x: bx, y: y - box, width: box, height: box, color: NAVY }); txt(String(n), bx, box, y - box + 5.2, 9, { bold: true, color: WHITE, align: 'c' }); }
+    const off = n != null && n !== '' ? box + 9 : 0;
+    txt(t, px(off, CW - off), CW - off, y - box + 4, 13, { bold: true, color: NAVY });
+    y -= box + 7; rule(y); y -= 13;
+  }
+  function h3(t: string, link?: unknown) { ensure(30); y -= 4; txt(t, px(0, CW), CW, y - 10, 10.2, { bold: true, color: NAVY, link }); y -= 19; }
+  // deno-lint-ignore no-explicit-any
+  function kv(pairs: any[]) {
+    const cw = CW / 2;
+    for (let r = 0; r < Math.ceil(pairs.length / 2); r++) {
+      const pr = [pairs[r * 2], pairs[r * 2 + 1]].filter(Boolean);
+      const ls = pr.map((p) => lines(toCell(p[1]).text, 10, true, cw - 14)); const h = 16 + Math.max(...ls.map((l) => l.length)) * 13 + 8;
+      ensure(h);
+      pr.forEach((p, c) => { const x = px(c * cw, cw); txt(p[0], x, cw - 14, y - 9, 7.4, { color: MUT }); let vy = y - 23; for (const ln of ls[c]) { txt(ln, x, cw - 14, vy, 10, { bold: true, color: NAVY }); vy -= 13; } });
+      y -= h;
+    }
+  }
+  // deno-lint-ignore no-explicit-any
+  function callout(b: any) {
+    const tone = b.tone || 'teal'; const fill = tone === 'gold' ? TINT_G : tone === 'grey' ? TINT_N : TINT_T; const edge = tone === 'gold' ? GOLD : tone === 'grey' ? HAIR : TEAL; const dark = tone === 'gold' ? AMBER_D : tone === 'grey' ? NAVY : TEAL_D;
+    const pad = 13, iw = CW - 2 * pad; const tl = lines(b.title, 10.2, true, iw); const bl = lines(b.text, 9, false, iw);
+    const h = pad * 2 + tl.length * 13.5 + (bl.length ? 5 + bl.length * 13 : 0) - 3;
+    ensure(h + 10); y -= 4;
+    page.drawRectangle({ x: M, y: y - h, width: CW, height: h, color: fill, borderColor: edge, borderWidth: 0.8 });
+    let yy = y - pad - 8; for (const ln of tl) { txt(ln, M + pad, iw, yy, 10.2, { bold: true, color: dark, link: b.link }); yy -= 13.5; }
+    yy -= 5; for (const ln of bl) { txt(ln, M + pad, iw, yy + 1, 9, { color: INK }); yy -= 13; }
+    y -= h + 12;
+  }
+  // deno-lint-ignore no-explicit-any
+  function party(b: any) {
+    ensure(56); txt(b.label, px(0, CW), CW, y - 8, 7.4, { color: MUT });
+    const s = 11.5; const tw = meas(String(b.chip), fontFor(b.chip, true), s); const cw = tw + 26, ch = 22; const x = px(0, cw);
+    pill(x, y - 40, cw, ch, NAVY); txt(b.chip, x, cw, y - 32.5, s, { bold: true, color: WHITE, align: 'c' });
+    const sw = CW - cw - 16; let yy = y - 24; for (const ln of lines(b.note, 8.2, false, sw).slice(0, 3)) { txt(ln, px(cw + 16, sw), sw, yy, 8.2, { color: MUT }); yy -= 11; }
+    y -= 52;
+  }
+  // deno-lint-ignore no-explicit-any
+  function table(b: any) {
+    // deno-lint-ignore no-explicit-any
+    const head: TC[] = (b.head || []).map(toCell); const n = head.length || ((b.rows || [])[0] || []).length || 1;
+    const widths: number[] = (Array.isArray(b.widths) && b.widths.length === n) ? b.widths : Array(n).fill(1 / n);
+    const colW = widths.map((w) => w * CW); const sxs: number[] = []; let acc = 0; for (const w of colW) { sxs.push(acc); acc += w; }
+    const align: string[] = b.align || [];
+    // A wide table (five suppliers side by side) may ask for a smaller face with b.fs.
+    const FS = Number(b.fs) > 0 ? Number(b.fs) : 8.5, LH = FS * 1.34, SFS = 7, SLH = 9.2, PX = 6, PY = 5.5, MK = 12;
+    const drawHead = () => {
+      ensure(22 + 26); page.drawRectangle({ x: M, y: y - 20, width: CW, height: 20, color: NAVY });
+      head.forEach((h, i) => { const x = px(sxs[i], colW[i]); txt(lines(h.text, 7.6, true, colW[i] - 2 * PX)[0] || '', x + PX, colW[i] - 2 * PX, y - 13.2, 7.6, { bold: true, color: WHITE, align: align[i] || 's' }); });
+      y -= 20; hline(y, GOLD, 1.2);
+    };
+    if (head.length) drawHead();
+    // deno-lint-ignore no-explicit-any
+    (b.rows || []).forEach((r0: any[], ri: number) => {
+      const r = r0.map(toCell);
+      if (r.length === 1 && r[0].group) {
+        const gl = lines(r[0].text, 8.6, true, CW - 2 * PX); const h = gl.length * LH + 2 * PY;
+        if (y - h - LH * 2 < BOTTOM) { newPage(); if (head.length) drawHead(); }
+        page.drawRectangle({ x: M, y: y - h, width: CW, height: h, color: TINT_N });
+        let yy = y - PY - 8; for (const ln of gl) { txt(ln, M + PX, CW - 2 * PX, yy, 8.6, { bold: true, color: NAVY }); yy -= LH; }
+        y -= h; hline(y); return;
+      }
+      const cells = r.map((c, i) => ({ c, main: c.chip ? [c.text] : lines(c.text || '', FS, !!c.bold, colW[i] - 2 * PX - (c.flag ? MK : 0)), sub: c.sub ? lines(c.sub, SFS, false, colW[i] - 2 * PX) : [] }));
+      const h = Math.max(LH, ...cells.map((x) => x.main.length * LH + (x.sub.length ? 3 + x.sub.length * SLH : 0))) + 2 * PY - 2;
+      if (y - h < BOTTOM) { newPage(); if (head.length) drawHead(); }
+      if (b.zebra && ri % 2 === 1) page.drawRectangle({ x: M, y: y - h, width: CW, height: h, color: ZEBRA });
+      cells.forEach(({ c, main, sub }, i) => {
+        const x = px(sxs[i], colW[i]); const a = align[i] || 's';
+        let yy = y - PY - FS + 1;
+        if (c.chip) { chip(c.text, c.chip, x + PX, colW[i] - 2 * PX, yy, a); return; }
+        let tx = x + PX; let tw = colW[i] - 2 * PX;
+        if (c.flag) { marker(c.flag, RTL ? x + colW[i] - PX - 4.3 : x + PX + 4.3, yy + 2.9); if (!RTL) tx += MK; tw -= MK; }
+        const color = c.link ? TEAL_D : (c.bold ? NAVY : INK);
+        for (const ln of main) { txt(ln, tx, tw, yy, FS, { bold: !!c.bold, color, link: c.link, align: a }); yy -= LH; }
+        if (sub.length) { yy -= 1; for (const ln of sub) { txt(ln, x + PX, colW[i] - 2 * PX, yy + (FS - SFS), SFS, { color: MUT, align: a }); yy -= SLH; } }
+      });
+      y -= h; hline(y);
+    });
+    y -= 10;
+  }
+  // deno-lint-ignore no-explicit-any
+  function scores(b: any) {
+    const head: string[] = b.head || []; const rows = b.rows || [];
+    const labelW = CW * 0.25; const dw = (CW - labelW) / 4; const rowH = 22;
+    ensure(18 + rows.length * rowH + 24);
+    head.forEach((h, i) => txt(h, px(labelW + i * dw, dw), dw, y - 9, 7.4, { bold: true, color: MUT }));
+    y -= 14; hline(y);
+    // deno-lint-ignore no-explicit-any
+    rows.forEach((r: any) => {
+      const cy = y - rowH / 2;
+      txt(`#${r.rank}`, px(0, 22), 22, cy - 3, 8, { bold: true, color: TEAL_D });
+      txt(r.label, px(24, labelW - 24), labelW - 24, cy - 3.2, 9, { bold: true, color: NAVY });
+      (r.scores || []).forEach((s: number, i: number) => {
+        const bx = px(labelW + i * dw, dw); const sw = 9.5, gap = 2;
+        for (let k = 0; k < 5; k++) { const x = RTL ? bx + dw - (k + 1) * sw - k * gap : bx + k * (sw + gap); page.drawRectangle({ x, y: cy - 3, width: sw, height: 6, color: k < s ? TEAL : HAIR }); }
+        const nx = RTL ? bx + dw - 5 * (sw + gap) - 22 : bx + 5 * (sw + gap) + 3; txt(String(s), nx, 18, cy - 3, 8, { bold: true, color: NAVY, align: RTL ? 'e' : 's' });
+      });
+      const ox = px(labelW + 3 * dw, dw); const tw = dw - 30; const tx = RTL ? ox + dw - tw : ox;
+      page.drawRectangle({ x: tx, y: cy - 3.5, width: tw, height: 7, color: HAIR });
+      const fw = tw * Math.max(0, Math.min(5, Number(r.overall) || 0)) / 5; page.drawRectangle({ x: RTL ? tx + tw - fw : tx, y: cy - 3.5, width: fw, height: 7, color: TEAL_D });
+      txt(String(r.overall), RTL ? ox : ox + tw + 4, 24, cy - 3.2, 8.4, { bold: true, color: NAVY, align: RTL ? 'e' : 's' });
+      y -= rowH; hline(y);
+    });
+    y -= 4; if (b.note) para(b.note, { size: 7.4, color: MUT, lh: 1.4 }); y -= 6;
+  }
+  // deno-lint-ignore no-explicit-any
+  function totals(b: any) {
+    const bw = 262; const x = px(CW - bw, bw); const rows = b.rows || [];
+    ensure(rows.length * 24 + 30); y -= 2;
+    // deno-lint-ignore no-explicit-any
+    rows.forEach(([l, v, strong]: any[]) => {
+      if (strong) {
+        page.drawRectangle({ x, y: y - 28, width: bw, height: 28, color: NAVY }); page.drawRectangle({ x, y: y - 2, width: bw, height: 2, color: GOLD });
+        txt(l, x + 12, bw - 24, y - 18.5, 9.4, { bold: true, color: WHITE }); txt(v, x + 12, bw - 24, y - 19, 12.5, { bold: true, color: WHITE, align: 'e' }); y -= 28;
+      } else { txt(l, x + 12, bw - 24, y - 13.5, 8.4, { color: MUT }); txt(v, x + 12, bw - 24, y - 13.5, 9, { bold: true, color: INK, align: 'e' }); y -= 20; hline(y, HAIR, 0.5, x, x + bw); }
+    });
+    y -= 8; if (b.note) para(b.note, { size: 8, color: AMBER_D }); y -= 4;
+  }
+  // deno-lint-ignore no-explicit-any
+  function checks(b: any) {
+    const items = b.items || []; const cw = (CW - 8) / 2;
+    for (let r = 0; r < Math.ceil(items.length / 2); r++) {
+      const pr = [items[r * 2], items[r * 2 + 1]].filter(Boolean);
+      // deno-lint-ignore no-explicit-any
+      const ls = pr.map((p: any) => lines(toCell(p[1]).text, 9, true, cw - 40)); const h = 30 + Math.max(...ls.map((l: string[]) => l.length)) * 12;
+      ensure(h + 8);
+      // deno-lint-ignore no-explicit-any
+      pr.forEach((p: any, c: number) => {
+        const cc = toCell(p[1]); const x = px(c * (cw + 8), cw);
+        page.drawRectangle({ x, y: y - h, width: cw, height: h, color: WHITE, borderColor: HAIR, borderWidth: 0.8 });
+        marker(cc.flag || 'missing', RTL ? x + cw - 15 : x + 15, y - 14.5, 5);
+        txt(p[0], x + 28, cw - 40, y - 17, 7.4, { color: MUT, align: RTL ? 'e' : 's' });
+        let vy = y - 31; for (const ln of ls[c]) { txt(ln, RTL ? x + 12 : x + 28, cw - 40, vy, 9, { bold: true, color: NAVY }); vy -= 12; }
+      });
+      y -= h + 8;
+    }
+    y -= 4;
+  }
+  // deno-lint-ignore no-explicit-any
+  function terms(b: any) {
+    const cols = b.cols || 3; const cells = b.cells || []; const cw = CW / cols;
+    hline(y, NAVY, 1);
+    for (let r = 0; r < Math.ceil(cells.length / cols); r++) {
+      const row = cells.slice(r * cols, r * cols + cols);
+      // deno-lint-ignore no-explicit-any
+      const ls = row.map((p: any) => ({ main: lines(toCell(p[1]).text, 9.4, true, cw - 20), sub: toCell(p[1]).sub ? lines(toCell(p[1]).sub, 6.8, false, cw - 20) : [] }));
+      // deno-lint-ignore no-explicit-any
+      const h = 30 + Math.max(...ls.map((l: any) => l.main.length * 12.5 + l.sub.length * 9)) - 4;
+      ensure(h);
+      // deno-lint-ignore no-explicit-any
+      row.forEach((p: any, c: number) => {
+        const x = px(c * cw, cw);
+        if (c > 0) { const sepX = RTL ? x + cw : x; page.drawLine({ start: { x: sepX, y: y - 6 }, end: { x: sepX, y: y - h + 6 }, thickness: 0.5, color: HAIR }); }
+        txt(p[0], x + 10, cw - 20, y - 13, 7.2, { color: MUT });
+        let vy = y - 27; for (const ln of ls[c].main) { txt(ln, x + 10, cw - 20, vy, 9.4, { bold: true, color: NAVY }); vy -= 12.5; }
+        for (const ln of ls[c].sub) { txt(ln, x + 10, cw - 20, vy + 3, 6.8, { color: MUT }); vy -= 9; }
+      });
+      y -= h; hline(y);
+    }
+    y -= 12;
+  }
+  // deno-lint-ignore no-explicit-any
+  function legend(b: any) {
+    ensure(22); let sx = 0;
+    for (const [flag, label] of (b.items || [])) {
+      const tw = meas(String(label), fontFor(label, false), 7.6); const w = tw + 15;
+      if (sx + w > CW) { y -= 14; sx = 0; }
+      const x = px(sx, w); marker(flag, RTL ? x + w - 4.5 : x + 4.5, y - 6.2);
+      txt(label, RTL ? x : x + 13, w - 13, y - 9, 7.6, { color: MUT, align: RTL ? 'e' : 's' });
+      sx += w + 16;
+    }
+    y -= 20;
+  }
+  function bullet(t: string, link?: unknown) { ensure(14); page.drawRectangle({ x: RTL ? PW - M - 4 : M + 1, y: y - 7.2, width: 3.2, height: 3.2, color: TEAL }); para(t, { sx: 12, w: CW - 12, link }); }
+  // deno-lint-ignore no-explicit-any
+  function renderBlocks(blocks: any[]) {
+    for (const b of blocks) {
+      const t = b.t || b.type;
+      if (t === 'section') section(b.n, b.text || '');
+      else if (t === 'h2' || t === 'heading') section(null, b.text || '');
+      else if (t === 'h3') h3(b.text || '', b.link);
+      else if (t === 'p' || t === 'para') {
+        if (b.label) { ensure(28); txt(b.label, px(0, CW), CW, y - 8, 7.4, { bold: true, color: MUT }); y -= 13; }
+        para(b.text || '', { size: b.size || 9.6, bold: !!b.bold, color: b.muted ? MUT : INK, link: b.link });
+        if (b.sub) para(b.sub, { size: 7.2, color: MUT, lh: 1.4 });
+        y -= 5;
+      }
+      else if (t === 'li') bullet(b.text || '', b.link);
+      else if (t === 'kv') kv(b.pairs || []);
+      else if (t === 'table') table(b);
+      else if (t === 'total') totals({ rows: [[RTL ? 'الإجمالي' : 'Total', b.value || '', true]] });
+      else if (t === 'totals') totals(b);
+      else if (t === 'note') { para(b.text || '', { size: 8, color: MUT, link: b.link, lh: 1.45 }); y -= 3; }
+      else if (t === 'link') { para(b.text || '', { size: 9.2, bold: true, color: TEAL_D, link: b.link }); y -= 4; }
+      else if (t === 'callout') callout(b);
+      else if (t === 'party') party(b);
+      else if (t === 'scores') scores(b);
+      else if (t === 'checks') checks(b);
+      else if (t === 'terms') terms(b);
+      else if (t === 'legend') legend(b);
+      else if (t === 'space') { ensure(b.h || 10); y -= b.h || 10; }
+    }
+  }
+  // The legacy putLine the signature block uses (plain left/right placement).
+  // deno-lint-ignore no-explicit-any
+  function putLine(text: string, size: number, b: boolean, color: any, align: 'l' | 'r', yy: number) { txt(text, M, CW, yy, size, { bold: b, color, align: (align === 'r') !== RTL ? 'e' : 's' }); }
+
+  if (body.cover) cover(body.cover); else legacyHeader();
+  if (body.body_html) renderBlocks(parseHtml(String(body.body_html)));
+  else if (Array.isArray(body.blocks)) renderBlocks(body.blocks);
+  if (doSign || doStamp) { ensure(120); y -= 20; const baseY = y - 58; if (sig) { const w = 150, h = sig.height * (w / sig.width); page.drawImage(sig, { x: M + 90, y: baseY + 4, width: w, height: h }); } putLine(RTL ? 'الموقّع المعتمد' : 'AUTHORISED SIGNATORY', 8, false, MUT, 'l', baseY + 50); page.drawLine({ start: { x: M, y: baseY }, end: { x: M + 230, y: baseY }, thickness: 0.8, color: LINE }); putLine(RTL ? CO_AR.signer : CO.signer, 11, true, NAVY, 'l', baseY - 14); putLine(RTL ? CO_AR.title : CO.title, 9.5, false, MUT, 'l', baseY - 27); putLine(CO.name, 9.5, false, MUT, 'l', baseY - 39); if (stamp) { const w = 110, h = stamp.height * (w / stamp.width); // deno-lint-ignore no-explicit-any
+    page.drawImage(stamp, { x: PW - M - 140, y: baseY - 26, width: w, height: h, opacity: 0.9, rotate: { type: 'degrees', angle: -8 } as any }); } y = baseY - 50; }
+  footers();
 
   pdf.setTitle(refText ? refText + ' — ' + title : title);
   pdf.setAuthor(CO.name); pdf.setCreator('QuotesDone pdf_native');
