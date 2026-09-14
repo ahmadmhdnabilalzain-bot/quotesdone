@@ -318,7 +318,12 @@ export async function journeyPayment(ctx) {
   // Checkout Session (the fallback path) paid with Stripe's test card in a real browser.
   const sess = await call('stripe_checkout', fx.customer.jwt, { quote_id: live.id, return_url: 'https://quotesdone.com/me' });
   if (!sess.json?.url) { ctx.paid = false; return rep.step(J, 'test checkout session created', 'FAIL', sess.text); }
-  const b = await ctx.browser.newContext(); const p = await b.newPage();
+  // Paid in the CUSTOMER's signed-in browser, as a customer does: Stripe returns to /me?session_id=…
+  // and the portal calls stripe_confirm, which records the reveal. Run 5 paid in a fresh browser with no
+  // session, so Stripe completed the payment (test, paid) but the return landed on a signed-out page
+  // and nothing recorded it.
+  const signed = await signedInPage(ctx.browser, fx.customer, { lang: 'en', viewport: 'desktop' });
+  const b = signed.ctx; const p = signed.page;
   try {
     await p.goto(sess.json.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await p.locator('#cardNumber').fill('4242 4242 4242 4242'); await p.locator('#cardExpiry').fill('12 / 34');
