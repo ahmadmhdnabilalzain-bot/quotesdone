@@ -10,6 +10,13 @@ import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
 import { registrationMissing } from '../_shared/supplier_registration.ts';
 import { SUPPLIER_AGREEMENT_VERSION, SUPPLIER_AGREEMENT_EN, SUPPLIER_AGREEMENT_AR } from '../_shared/supplier_agreement.ts';
+// The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
+// warranty and the ex-VAT price, or the quote is held; options are separate quotations.
+import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { assessQuote } from '../_shared/line_specs/assess.ts';
+import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
+import { readVat } from '../_shared/line_specs/vat.ts';
+import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 const agreementSha256 = async () => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SUPPLIER_AGREEMENT_EN + '\n' + SUPPLIER_AGREEMENT_AR)))).map((b) => b.toString(16).padStart(2, '0')).join('');
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
@@ -51,6 +58,9 @@ const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ?
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CO_SUFFIX = '(?:l\\.?\\s?l\\.?\\s?c\\.?|fz-?llc|fzc|fze|trading|contracting|establishment|est\\.?|general|co\\.?|company|group)';
 const ID_PATTERNS: RegExp[] = [
+  // A TRN or a licence number finds the company on a public register (founder, 14 Sep 2026). First,
+  // so the phone patterns below cannot take a 15-digit TRN apart and leave its label behind.
+  TRN_LABELLED, TRN_BARE, LICENCE_NO,
   /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
   /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
   /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info)(?:\.[A-Za-z]{2})?\b/gi,
@@ -147,6 +157,47 @@ async function aiReview(lead: Record<string, unknown>) {
   try { const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null; const profile: Record<string, unknown> = {}; for (const k of ['company_name','sector','emirate','service_emirates','contact_name','signatory_name','phone','services','products','description','trade_license_no','license_authority','license_expiry','trn','egr_number','bank_name','bank_account_name','bank_iban']) profile[k] = lead[k]; const r = await fetch(`${SUPA_URL}/functions/v1/supplier_review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, profile }) }); if (!r.ok) return null; return await r.json(); } catch (_e) { return null; }
 }
 async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await admin.from('notifications').insert(rows); } catch (_e) { /* */ } }
+
+// THE COMMERCIAL ACCEPT RULE, read from the stored quote (14 Sep 2026). It lived inline in
+// submit_quote; approving a regenerated quotation must clear the same bar, so both call this.
+// 5 Aug 2026: completeness is a property of the QUOTE, not of the screen it arrived through — an
+// uploaded quotation with priced lines, validity, warranty and lead time is as complete as a typed one.
+async function acceptRule(qid: string) {
+  const { data: q } = await admin.from('quotes').select('lead_time,validity,warranty').eq('id', qid).maybeSingle();
+  const { data: qi } = await admin.from('quote_items').select('unit_price,amount').eq('quote_id', qid);
+  // deno-lint-ignore no-explicit-any
+  let score: any = null; try { const { data } = await admin.rpc('fn_quote_structured_score', { p_quote: qid }); score = data; } catch (_e) { /* */ }
+  const submittable = !!(score && score.submittable);
+  try { await admin.from('quotes').update({ submittable }).eq('id', qid); } catch (_e) { /* */ }
+  const requireStructured = (await secretVal('require_structured_quotes')) === 'true';
+  const priced = (qi || []).filter((r: { unit_price: number | null; amount: number | null }) => (Number(r.unit_price) || 0) > 0 || (Number(r.amount) || 0) > 0).length;
+  const formComplete = priced >= 1 && !!q?.validity && !!q?.warranty && !!q?.lead_time;
+  return { accept: submittable || formComplete || !requireStructured, submittable, formComplete, requireStructured, priced, score };
+}
+async function notifyNewQuote(inquiryId: string) {
+  try {
+    const { data: inq } = await admin.from('inquiries').select('customer_id,summary').eq('id', inquiryId).maybeSingle();
+    if (!inq?.customer_id) return;
+    const { data: c } = await admin.from('customers').select('email').eq('id', inq.customer_id).maybeSingle();
+    if (c?.email) await notify([{ type: 'new_quote', to_email: c.email, to_role: 'customer', inquiry_id: inquiryId, subject: 'You have a new quote on QuotesDone', body: 'A supplier submitted a quote for your request' + (inq.summary ? ': ' + inq.summary : '') + '. Log in to view the full quotation and compare.' }]);
+  } catch (_e) { /* */ }
+}
+/** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
+async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
+  const r = await acceptRule(qid);
+  // deno-lint-ignore no-explicit-any
+  let coaching: any = null;
+  if (r.accept) {
+    try { await admin.from('quotes').update({ status: 'submitted' }).eq('id', qid); } catch (_e) { /* */ }
+    await admin.from('inquiries').update({ status: 'quoted' }).eq('id', inquiryId).in('status', ['sent', 'quoted']);
+    if (notifyCustomer) await notifyNewQuote(inquiryId);
+    if (!r.submittable) { try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: qid }); coaching = data; } catch (_e) { /* */ } }
+    return { accepted: true, submittable: r.submittable, score: r.score, coaching };
+  }
+  try { await admin.from('quotes').update({ status: 'draft' }).eq('id', qid); } catch (_e) { /* */ }
+  try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: qid }); coaching = data; } catch (_e) { /* */ }
+  return { accepted: false, submittable: false, score: r.score, coaching };
+}
 
 // DOCUMENTS-LEAD + DOUBLE CONFIRMATION 29 Jul 2026 ---------------------------------------------
 // Spec: "These documents are the PRIMARY data source. An agent extracts information from them to
@@ -701,7 +752,7 @@ Deno.serve(observe('supplier_api', async (req) => {
       // buyer's own name, all of which the retrieval-time scrub did catch.
       // scrubIdentity below is deliberately kept as a second, independent layer.
       const { data: inq } = await admin.from('inquiries_supplier_safe').select('id,category,emirate,summary,spec,created_at,budget,scope_type,brief_source,boq,boq_confidence,drawing_redacted_paths,status,outcome,hired_supplier_id').in('id', ids).order('created_at', { ascending: false }).limit(25);
-      const { data: myq } = await admin.from('quotes').select('id,inquiry_id,quote_amount,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,source,original_file_name,submittable').eq('supplier_id', sup.id).in('inquiry_id', ids);
+      const { data: myq } = await admin.from('quotes').select('id,inquiry_id,option_no,quote_amount,price_ex_vat,vat_treatment,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,source,original_file_name,submittable').eq('supplier_id', sup.id).in('inquiry_id', ids);
       // A DRAFT COULD NOT BE REOPENED (14 Sep 2026). The portal only ever offered the quote form on an
       // RFQ with no quote, so a quote the accept rule held as a draft sat there with "Complete it"
       // leading back to a card with no form, and nothing said what was missing. The inbox now carries
@@ -714,11 +765,20 @@ Deno.serve(observe('supplier_api', async (req) => {
         const { data: qi } = await admin.from('quote_items').select('quote_id,line_no,description,qty,unit,unit_price').in('quote_id', qIds).order('line_no', { ascending: true });
         for (const r of (qi || [])) (itemsOf[String(r.quote_id)] ||= []).push({ description: r.description, qty: r.qty, unit: r.unit, unit_price: r.unit_price });
       }
-      const qmap: Record<string, any> = {};
+      // A live hold (the sales engineer's, 14 Sep 2026) rides on its quote, so the card can say which
+      // line and which detail is missing and offer the two ways out.
+      const holdOf: Record<string, any> = {};
+      if (qIds.length) {
+        const { data: hs } = await admin.from('quote_spec_hold').select('quote_id,state,missing,opened_at').in('quote_id', qIds).in('state', ['open', 'awaiting_approval']);
+        for (const h of (hs || [])) holdOf[String(h.quote_id)] = { state: h.state, missing: h.missing, opened_at: h.opened_at };
+      }
+      // Every option is its own quote; an RFQ card lists them all, option 1 first.
+      const qmap: Record<string, any[]> = {};
+      const optsOf = (inqId: unknown) => (qmap[String(inqId)] || []).slice().sort((a, b) => (Number(a.option_no) || 1) - (Number(b.option_no) || 1));
       for (const x of (myq || [])) {
         let missing: string[] | null = null;
         if (x.status === 'draft') { try { const { data: sc } = await admin.rpc('fn_quote_structured_score', { p_quote: String(x.id) }); missing = Array.isArray((sc as any)?.missing) ? (sc as any).missing : null; } catch (_e) { /* the list is advice; the form still opens */ } }
-        qmap[String(x.inquiry_id)] = { ...x, items: itemsOf[String(x.id)] || [], missing };
+        (qmap[String(x.inquiry_id)] ||= []).push({ ...x, items: itemsOf[String(x.id)] || [], missing, spec_hold: holdOf[String(x.id)] || null });
       }
       // Reveal gate for the scrub below. customer_api treats the mere existence of a transactions
       // row as "revealed" (line ~430: every tx row for the customer goes into revealedQ with no
@@ -821,7 +881,7 @@ Deno.serve(observe('supplier_api', async (req) => {
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
         // through the same scrubIdentity as summary, behind the same reveal gate.
         const sBudget = revealed ? i.budget : (ownerResolved ? scrubIdentity(i.budget ?? null, buyerName, hits) : null);
-        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, revealed, quote: qmap[String(i.id)] || null });
+        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
@@ -899,8 +959,50 @@ Deno.serve(observe('supplier_api', async (req) => {
       if (!jd?.ok) return J({ error: jd?.error || 'Could not read the quotation. Please fill the form instead.', code: 'quote_read_failed', detail: jd?.detail || null }, 502);
       return J({ ok: true, proposal: jd.proposal, original_file_path, original_file_name });
     }
+    // THE TWO WAYS OUT OF A HOLD (founder, 14 Sep 2026). (a) fill in the missing details here: the
+    // sales engineer regenerates the standardised quotation and the supplier approves it, and only
+    // then is it released; (b) upload a revised quote, which is submit_quote again and supersedes the
+    // hold. Every step is the sales_engineer seat's (_shared/line_specs/workflow.ts).
+    if (action === 'spec_hold' || action === 'spec_fill' || action === 'spec_approve') {
+      const { data: sup } = await admin.from('leads').select('id,locale').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const qid = String(body.quote_id || '');
+      if (!UUID_RE.test(qid)) return J({ error: 'not found', code: 'not_found' }, 404);
+      const repo = supabaseRepo(admin);
+      const q = await repo.quote(qid);
+      if (!q || Number(q.supplier_id) !== Number(sup.id)) return J({ error: 'not found', code: 'not_found' }, 404);
+      const { data: inqRow } = await admin.from('inquiries').select('category,spec').eq('id', q.inquiry_id).maybeSingle();
+      const { count: optCount } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiry_id).eq('supplier_id', sup.id);
+      // deno-lint-ignore no-explicit-any
+      const spec: any = inqRow?.spec;
+      const ctx = { category: inqRow?.category ?? null, requirements: spec && typeof spec.requirements === 'object' ? spec.requirements : null, ref: String(q.inquiry_id).slice(0, 8).toUpperCase(), multiOption: (optCount || 0) > 1 };
+      const signed = async (b?: string | null, p?: string | null) => { if (!b || !p) return null; try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
+      if (action === 'spec_hold') {
+        const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
+        const hold = hs?.[0] || null;
+        const lines = await repo.lines(qid);
+        const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements });
+        return J({ ok: true, quote_id: qid, option_no: q.option_no, hold: hold ? { ...hold, pdf_url: await signed(hold.pdf_bucket, hold.pdf_path) } : null, schema: formSchema(a, lines) });
+      }
+      if (action === 'spec_fill') {
+        // The regenerated quotation is drawn by pdf_native, the existing quote renderer, both languages.
+        const render: Render = async (rec) => {
+          const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null;
+          const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, ...pdfBody(rec, 'Supplier'), bucket: 'quote-files', folder: `quotes/${sup.id}/${q.inquiry_id}/regenerated`, name: `quotation_${String(rec.quote_id).slice(0, 8)}_option${rec.option_no}` }) });
+          const j = await r.json().catch(() => null);
+          return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;
+        };
+        const out = await fillIn(repo, qid, Number(sup.id), body.values && typeof body.values === 'object' ? body.values : {}, ctx, render);
+        if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 400);
+        if (out.complete) return J({ ...out, pdf_url: await signed(out.pdf?.bucket, out.pdf?.path) });
+        return J(out);
+      }
+      const out = await approve(repo, qid, Number(sup.id), email, body.confirm, ctx, async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted);
+      if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
+      return J(out);
+    }
     if (action === 'submit_quote') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,locale,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       if (!sup.accepted_terms_at) return J({ error: 'accept the supplier terms first', code: 'terms_not_accepted' }, 400);
       // 3 SEP 2026 (MASTER_PLAN #11): there is no admin queue and never was - approval is the automatic
@@ -936,82 +1038,86 @@ Deno.serve(observe('supplier_api', async (req) => {
       const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions, 2000);
       const priorMasked: string[] = Array.isArray(body.masked_terms) ? body.masked_terms.map((x: unknown) => String(x)) : [];
       const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
-      const det = { inquiry_id: body.inquiry_id, supplier_id: sup.id, quote_amount: amt, notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', anonymized: true, original_file_path: body.original_file_path || null, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: items.length > 0 };
-      // Capture the status BEFORE the upsert. quotes.status defaults to 'submitted', so a row
-      // created by a dry_run preflight would land live and be visible to the customer even though
-      // the preflight is supposed to change nothing. Caught by a demo-data walkthrough on
-      // 21 Jul 2026: three dry_run calls produced a quote sitting in 'submitted'.
-      const { data: priorQ } = await admin.from('quotes').select('status').eq('inquiry_id', body.inquiry_id).eq('supplier_id', sup.id).maybeSingle();
-      const priorStatus = priorQ?.status || null;
-      const { data: q, error } = await admin.from('quotes').upsert(det, { onConflict: 'inquiry_id,supplier_id' }).select('id,quote_amount,status').maybeSingle();
-      if (error) return J({ error: error.message }, 500);
-      if (items.length) {
+      const { data: inqRow } = await admin.from('inquiries').select('category,spec').eq('id', body.inquiry_id).maybeSingle();
+      // deno-lint-ignore no-explicit-any
+      const requirements = ((inqRow?.spec as any)?.requirements && typeof (inqRow?.spec as any).requirements === 'object') ? (inqRow!.spec as any).requirements : null;
+      const category = inqRow?.category ?? null;
+
+      // VAT (founder, 14 Sep 2026: supplier VAT details are hidden from the customer). The price the
+      // customer compares and the 3% is taken on is the price EXCLUDING VAT; the supplier's VAT
+      // treatment, VAT amount and TRN are kept on the quote for the record only (vat.ts).
+      const vatText = [body.notes, body.scope, body.conditions, body.exclusions, body.payment_terms, body.vat_note, ...items.map((it: any) => it?.description)].filter(Boolean).map(String).join('\n');
+      const trn = findTrn(vatText) || (/^100\d{12}$/.test(String(body.trn || '')) ? String(body.trn) : null);
+
+      // OPTIONS (founder, 14 Sep 2026: "if a supplier wanted to share 2 options on his quote, they will
+      // be considered two different quotations ... each will have its own ID in the system"). A
+      // submission whose lines carry option headings becomes one quote row per option, sharing the
+      // submission's commercial terms; a single-option submission targets option_no (1, the one it
+      // is editing, or a new one when the supplier adds another option).
+      const normItems = items.map((it: any) => ({ ...it, description: String(it?.description ?? ''), amount: numOrNull(it?.amount) ?? (((numOrNull(it?.qty) || 0) * (numOrNull(it?.unit_price) || 0)) || null) }));
+      const opts = splitOptions(normItems, body.option_totals && typeof body.option_totals === 'object' ? body.option_totals : {});
+      const multi = opts.length > 1;
+      const { data: mine } = await admin.from('quotes').select('id,option_no,status').eq('inquiry_id', body.inquiry_id).eq('supplier_id', sup.id);
+      const maxOpt = Math.max(0, ...(mine || []).map((r: any) => Number(r.option_no) || 1));
+      const single = Number(body.option_no) >= 1 ? Math.floor(Number(body.option_no)) : (body.new_option === true ? maxOpt + 1 : 1);
+      const plan = multi ? opts.map((o) => ({ option_no: o.option_no, lines: o.lines, amount: optionAmount(o) })) : [{ option_no: single, lines: opts[0]?.lines ?? normItems, amount: amt as number | null }];
+      if (plan.some((p) => p.option_no > 20)) return J({ error: 'A quote can carry at most 20 options.', code: 'too_many_options' }, 400);
+      const noTotal = plan.find((p) => !(Number(p.amount) > 0));
+      if (noTotal) return J({ error: 'Enter the total for option ' + noTotal.option_no + '.', code: 'option_total_missing', params: { option: noTotal.option_no } }, 400);
+      const submission_id = crypto.randomUUID();
+      const repo = supabaseRepo(admin);
+      const supplier = { id: Number(sup.id), email: email || null, locale: (sup as any).locale || null };
+      const ref = String(body.inquiry_id).slice(0, 8).toUpperCase();
+      const multiOption = multi || single > 1 || (mine || []).length > 1;
+      const results: any[] = [];
+      let anyAccepted = false;
+      for (const p of plan) {
+        const vat = readVat({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
+          stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat) });
+        const det = { inquiry_id: body.inquiry_id, supplier_id: sup.id, option_no: p.option_no, submission_id, quote_amount: vat.price_ex_vat ?? p.amount, price_ex_vat: vat.price_ex_vat, vat_treatment: vat.treatment, vat_amount: vat.vat_amount, supplier_trn: trn, amount_as_stated: p.amount,
+          notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', anonymized: true, original_file_path: body.original_file_path || null, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
+        // Capture the status BEFORE the write. A new row is created as a draft, never in the
+        // 'submitted' column default: a dry_run preflight or a held quote must not be visible to the
+        // customer even for a moment (caught by a demo walkthrough on 21 Jul 2026).
+        const prior = (mine || []).find((r: any) => (Number(r.option_no) || 1) === p.option_no) || null;
+        let qid: string;
+        if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return J({ error: error.message }, 500); qid = String(prior.id); }
+        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
         try {
-          await admin.from('quote_items').delete().eq('quote_id', q!.id);
-          const rows = items.slice(0, 80).map((it: any, i: number) => ({ quote_id: q!.id, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand, 120), model: clip(it.model, 120), specification: clip(it.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300) }));
-          // Typed because `deno check` runs in CI now: the mapped row shape is inferred from an
-          // `any` element, so `r` has no type and noImplicitAny rejects it. A line item with no
-          // description is dropped, not stored blank - a quote line the buyer cannot read is worse
-          // than one that is absent.
+          await admin.from('quote_items').delete().eq('quote_id', qid);
+          const rows = p.lines.slice(0, 80).map((it: any, i: number) => ({ quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand, 120), model: clip(it.model, 120), specification: clip(it.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300) }));
+          // A line item with no description is dropped, not stored blank - a quote line the buyer
+          // cannot read is worse than one that is absent.
           const clean = rows.filter((r: { description: string | null }) => r.description);
           if (clean.length) await admin.from('quote_items').insert(clean);
         } catch (_e) { /* */ }
+        // Preflight (dry_run). Runs the real scorer, the real accept rule and the real hold gate's
+        // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
+        if (body.dry_run === true) {
+          const acc = await acceptRule(qid);
+          const a = assessQuote({ category, lines: await repo.lines(qid), terms: (await repo.quote(qid))!, requirements });
+          try { await admin.from('quotes').update({ status: prior?.status || 'draft' }).eq('id', qid); } catch (_e) { /* */ }
+          results.push({ quote_id: qid, option_no: p.option_no, dry_run: true, submittable: acc.submittable, would_accept: acc.accept && !a.held, status_after: prior?.status || 'draft',
+            accept_via: acc.submittable ? 'structured_score' : (acc.formComplete ? 'form_complete' : (!acc.requireStructured ? 'structured_not_required' : null)),
+            require_structured: acc.requireStructured, priced_items: acc.priced, total_items: p.lines.length, score: acc.score, spec_missing: a.missing, would_hold: a.held });
+          continue;
+        }
+        // THE HOLD GATE (founder, 14 Sep 2026). The sales engineer holds a quote that does not state
+        // every required detail exactly, records which line and which detail, and tells the supplier.
+        const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption });
+        if (g.held) { results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
+        const live = await acceptLive(qid, String(body.inquiry_id), false);
+        if (live.accepted) anyAccepted = true;
+        results.push({ quote_id: qid, option_no: p.option_no, held: false, ...live });
       }
-      let score: any = null; try { const { data } = await admin.rpc('fn_quote_structured_score', { p_quote: String(q!.id) }); score = data; } catch (_e) { /* */ }
-      const submittable = !!(score && score.submittable);
-      try { await admin.from('quotes').update({ submittable }).eq('id', q!.id); } catch (_e) { /* */ }
-      const requireStructured = (await secretVal('require_structured_quotes')) === 'true';
-      const pricedItems = items.filter((it: any) => (numOrNull(it.unit_price) || 0) > 0 || (numOrNull(it.amount) || 0) > 0).length;
-      // 5 Aug 2026. This required det.source === 'form', so an UPLOADED quotation could never be
-      // complete however complete it actually was. With require_structured_quotes = 'true' (its
-      // value in BOTH staging and production) acceptance then rested entirely on `submittable` -
-      // and as the note above records, the structured scorer says false for every real quote today.
-      // So no supplier who quoted by uploading their own PDF could ever be accepted: the quote was
-      // saved as a draft, the customer was never notified, and quote_compare filters drafts out, so
-      // the price vanished from the comparison. The supplier was told to "add the missing details"
-      // when nothing was missing - proven on staging with an extraction carrying validity, warranty,
-      // lead time and six priced line items. Completeness is a property of the QUOTE, not of the
-      // screen it arrived through; both paths must clear the same commercial bar, so test the bar.
-      const formComplete = pricedItems >= 1 && !!det.validity && !!det.warranty && !!det.lead_time;
-      const accept = submittable || formComplete || !requireStructured;
-
-      // Preflight (dry_run). Lets the portal confirm what is missing WHILE the supplier is still
-      // editing, instead of accepting the quote and emailing them about the gaps afterwards.
-      //
-      // It runs the real scorer and the real accept rule, then stops: the quote's status is put
-      // back as it was, no customer notification fires, and nothing reaches anyone.
-      // fn_quote_coach is deliberately NOT called here because it queues a coaching email, which
-      // must not fire while someone is mid-edit.
-      // fn_quote_structured_score is STABLE and already returns the `missing` codes, so the
-      // preflight needs nothing else.
-      //
-      // accept_via is returned explicitly and matters: today every real quote passes through
-      // `form_complete` at a score of 65 while the structured scorer says submittable=false.
-      // Reporting only "this will send" would hide that it goes out without per-item pricing or
-      // brand/model, which is exactly the gap the customer comparison depends on.
-      if (body.dry_run === true) {
-        // Put the status back exactly as it was. A brand-new row would otherwise sit in the
-        // 'submitted' column default and be shown to the customer; an existing submitted quote
-        // must not be demoted just because the supplier re-checked it. This is what makes the
-        // preflight genuinely non-mutating from the customer's point of view.
-        try { await admin.from('quotes').update({ status: priorStatus || 'draft' }).eq('id', q!.id); } catch (_e) { /* */ }
-        return J({ ok: true, dry_run: true, quote_id: q!.id, submittable, would_accept: accept,
-          status_after: priorStatus || 'draft',
-          accept_via: submittable ? 'structured_score' : (formComplete ? 'form_complete' : (!requireStructured ? 'structured_not_required' : null)),
-          require_structured: requireStructured, priced_items: pricedItems, total_items: items.length, score });
-      }
-
-      if (accept) {
-        try { await admin.from('quotes').update({ status: 'submitted' }).eq('id', q!.id); } catch (_e) { /* */ }
-        await admin.from('inquiries').update({ status: 'quoted' }).eq('id', body.inquiry_id).in('status', ['sent', 'quoted']);
-        try { const { data: inq } = await admin.from('inquiries').select('customer_id,summary').eq('id', body.inquiry_id).maybeSingle(); if (inq?.customer_id) { const { data: c } = await admin.from('customers').select('email').eq('id', inq.customer_id).maybeSingle(); if (c?.email) await notify([{ type: 'new_quote', to_email: c.email, to_role: 'customer', inquiry_id: body.inquiry_id, subject: 'You have a new quote on QuotesDone', body: 'A supplier submitted a quote for your request' + (inq.summary ? ': ' + inq.summary : '') + '. Log in to view the full quotation and compare.' }]); } } catch (_e) { /* */ }
-        let coaching: any = null; if (!submittable) { try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: String(q!.id) }); coaching = data; } catch (_e) { /* */ } }
-        return J({ ok: true, quote: q, submittable, accepted: true, coaching, score });
-      } else {
-        try { await admin.from('quotes').update({ status: 'draft' }).eq('id', q!.id); } catch (_e) { /* */ }
-        let coaching: any = null; try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: String(q!.id) }); coaching = data; } catch (_e) { /* */ }
-        return J({ ok: true, quote: q, submittable: false, accepted: false, coaching, score, code: 'draft_saved', message: 'Your quote was saved as a draft. Add the missing details so we can send it to the customer.' });
-      }
+      if (anyAccepted) await notifyNewQuote(String(body.inquiry_id));
+      if (multi) return J({ ok: true, options: results, submission_id, accepted: results.some((r) => r.accepted), held: results.some((r) => r.held), dry_run: body.dry_run === true, code: 'options_split', params: { count: results.length } });
+      const r0 = results[0];
+      const q = { id: r0.quote_id, option_no: r0.option_no, status: r0.accepted ? 'submitted' : 'draft' };
+      if (body.dry_run === true) return J({ ok: true, ...r0 });
+      if (r0.held) return J({ ok: true, quote: q, accepted: false, held: true, missing: r0.missing, code: 'spec_hold', message: 'Your quote is on hold until the exact details listed are stated. Fill them in here or upload a revised quote.' });
+      if (r0.accepted) return J({ ok: true, quote: q, submittable: r0.submittable, accepted: true, coaching: r0.coaching, score: r0.score });
+      return J({ ok: true, quote: q, submittable: false, accepted: false, coaching: r0.coaching, score: r0.score, code: 'draft_saved', message: 'Your quote was saved as a draft. Add the missing details so we can send it to the customer.' });
     }
     return J({ error: 'unknown action' }, 400);
   } catch (e) {

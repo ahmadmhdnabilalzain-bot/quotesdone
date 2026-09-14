@@ -189,6 +189,27 @@ export function WithheldCustomer({ lang }: { lang: Lang }) {
 
 // ── Pre-reveal clarification thread ──────────────────────────────────────────────────────────────
 type Clar = { id: string; question: string; answer?: string | null; asked_at?: string; answered_at?: string | null; supplier_label?: string | null };
+// WHAT THE CUSTOMER ASKED FOR (founder, 14 Sep 2026). The sales engineer asks every customer about
+// materials, installation, warranty and the date before a request can be posted, and a quote is
+// judged against those answers, so the supplier reads them with the brief. The rows are
+// spec.customer_requirements.display (docs/contracts/intake_answers.md), written in both languages
+// and scrubbed with the rest of the spec before supplier_api returns it.
+export function RequestedTerms({ spec, lang }: { spec: any; lang: Lang }) {
+  const ar = lang === 'ar';
+  const rows = spec?.customer_requirements?.display?.[ar ? 'ar' : 'en'];
+  if (!Array.isArray(rows) || !rows.length) return null;
+  return (
+    <div className="mt-2 rounded-lg border border-border bg-secondary/20 p-2.5">
+      <div className="text-[12px] font-semibold text-foreground">{ar ? 'ما طلبه العميل' : 'What the customer asked for'}</div>
+      <dl className="mt-1 grid grid-cols-1 gap-x-3 gap-y-0.5 text-[12px] sm:grid-cols-2">
+        {rows.map((r: any) => (
+          <div key={String(r?.key)} className="flex gap-1.5"><dt className="text-muted-foreground">{r?.label}:</dt><dd className="text-foreground">{r?.value}</dd></div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
 export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: string; token: string; lang: Lang; canAsk: boolean }) {
   const ar = lang === 'ar';
   const [items, setItems] = useState<Clar[] | null>(null);

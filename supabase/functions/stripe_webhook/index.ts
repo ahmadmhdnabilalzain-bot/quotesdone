@@ -1,7 +1,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS } from '../_shared/stripe_events.ts';
+import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS } from '../_shared/stripe_events.ts';
+import { handleRevealInvoiceEvent } from './invoice_event.ts';
+import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { observe } from '../_shared/observe.ts';
-import { splitPaid } from '../_shared/payment_handoffs.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const TOLERANCE_SECONDS = 600; // reject events whose signature timestamp is older/newer than this (replay guard)
 async function secret(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -87,6 +88,29 @@ async function captureInvoice(
   } catch (e) {
     await logRun('error', { transaction: txId, invoice: invoiceId },
       'invoice capture threw: ' + String((e as Error)?.message || e));
+  }
+}
+
+// WHAT STRIPE ACTUALLY KEPT (14 Sep 2026, agent: accountant). The customer is charged the 3% plus a
+// card-processing line grossed up at the conservative published rate (_shared/reveal_fee.ts). The
+// real fee depends on the card, and is only known from the balance transaction, so it is read here
+// and stored beside the sale. Best-effort and write-once: it is a record, never a reason to fail.
+async function recordStripeFee(sk: string, txId: string, pi: string,
+  logRun: (s: string, c: Record<string, unknown>, n: string) => Promise<void>): Promise<void> {
+  if (!/^pi_/.test(pi)) return;
+  try {
+    const r = await fetch('https://api.stripe.com/v1/payment_intents/' + encodeURIComponent(pi)
+      + '?expand[]=latest_charge.balance_transaction', { headers: { Authorization: 'Bearer ' + sk } });
+    const j = await r.json().catch(() => ({}));
+    const bt = j?.latest_charge?.balance_transaction;
+    if (!r.ok || !bt || typeof bt.fee !== 'number') {
+      await logRun('error', { transaction: txId, payment_intent: pi, http: r.status }, 'STRIPE FEE NOT READ - no balance transaction on the payment yet; stripe_fee_fils stays empty.');
+      return;
+    }
+    await admin.from('transactions').update({ stripe_fee_fils: bt.fee, stripe_fee_details: bt.fee_details || null })
+      .eq('id', txId).is('stripe_fee_fils', null);
+  } catch (e) {
+    await logRun('error', { transaction: txId }, 'stripe fee read threw: ' + String((e as Error)?.message || e));
   }
 }
 
@@ -246,16 +270,15 @@ Deno.serve(observe('stripe_webhook', async (req) => {
               const { data: inq } = await admin.from('inquiries').select('customer_id,summary').eq('id', q.inquiry_id).maybeSingle();
               const { data: cfg } = await admin.from('pricing_config').select('refund_window_working_days').eq('id', 1).maybeSingle();
               const { data: dl } = await admin.rpc('fn_add_working_days', { p_from: new Date().toISOString(), p_days: cfg?.refund_window_working_days ?? 3 });
-              // WHAT STRIPE TOOK, split into the 3% and the processing part (founder, 14 Sep 2026: the
-              // customer pays 3% plus Stripe's fee grossed up, and a refund returns all of it). The 3%
-              // is computed by the checkout and travels as metadata.reveal_fee; nothing is computed here.
-              const paid = splitPaid(s.amount_total, md.reveal_fee);
-              const fee = paid.reveal_fee;
+              const fee = Number(md.reveal_fee || (s.amount_total ? s.amount_total / 100 : 0));
               const amount = Number(md.quote_amount || q.quote_amount);
               const payRef = String(s.payment_intent || s.id);
               await admin.from('quotes').update({ status: 'revealed' }).eq('id', qid);
               await admin.from('inquiries').update({ status: 'revealed' }).eq('id', q.inquiry_id);
-              const { data: tx, error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: inq?.customer_id || md.customer_id || null, quote_amount: amount, reveal_fee: fee, app_fee: fee, total_charged: paid.total_charged, stripe_fee_aed: paid.processing, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl }).select('id').single();
+              // total_charged is what a refund returns (founder, 14 Sep 2026): everything the customer paid.
+              const totalCharged = s.amount_total ? s.amount_total / 100 : Number(md.total_charged || fee);
+              const processing = md.processing_fee != null ? Number(md.processing_fee) : Math.round((totalCharged - fee) * 100) / 100;
+              const { data: tx, error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: inq?.customer_id || md.customer_id || null, quote_amount: amount, reveal_fee: fee, app_fee: fee, processing_fee: processing, total_charged: totalCharged, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl }).select('id').single();
               if (e2) { await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - transaction insert failed: ' + e2.message + ' | payment_ref: ' + payRef); return new Response('insert failed: ' + e2.message, { status: 500 }); }
               // THE INVOICE (9 Sep 2026). invoice_creation is on for reveal-fee sessions, so a paid
               // session names its Invoice. Awaited rather than fired-and-forgotten, because an edge
@@ -263,8 +286,10 @@ Deno.serve(observe('stripe_webhook', async (req) => {
               // and the whole point is that the document arrives with the payment. It cannot fail
               // the payment: captureInvoice swallows everything into agent_runs.
               const invoiceId = String(s.invoice || '');
+              const modeKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
+              if (modeKey && tx?.id) await recordStripeFee(modeKey, String(tx.id), payRef, logRun);
               if (invoiceId && tx?.id) {
-                const invKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
+                const invKey = modeKey;
                 if (invKey) await captureInvoice(invKey, String(tx.id), invoiceId, logRun);
                 else await logRun('error', { quote_id: qid, invoice: invoiceId }, 'INVOICE NOT RETRIEVED - no Stripe secret key for the ' + sigMode + ' mode this event arrived on.');
               } else if (!invoiceId) {
@@ -322,6 +347,39 @@ Deno.serve(observe('stripe_webhook', async (req) => {
         await logRun(hErr ? 'error' : 'ok', { type: event.type, quote_id: md.quote_id },
           hErr ? 'payment.failed handoff refused: ' + hErr.message : 'reveal checkout did not complete; handed to the sales engineer');
       }
+    }
+    // ---- THE REVEAL-FEE INVOICE, ONCE STRIPE HAS FINALISED IT (14 Sep 2026, agent: accountant) --
+    // checkout.session.completed often arrives before Stripe has finalised the invoice PDF, which
+    // left the sale 'reference_only' until someone resent the event. invoice.finalized and
+    // invoice.paid carry the finished invoice; the rules for WHETHER to file are in invoice_event.ts.
+    if ((INVOICE_EVENTS as readonly string[]).includes(String(event.type))) {
+      const inv = event.data?.object || {};
+      const invKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
+      // THE PAYMENT ELEMENT REVEAL (14 Sep 2026). That flow has no Checkout Session, so its sale is
+      // recorded HERE on invoice.paid when the browser path (stripe_checkout element_pay/settle) did
+      // not already do it. recordRevealSale is idempotent on quote_id; the fee is written once.
+      if (String(event.type) === 'invoice.paid' && inv?.metadata?.flow === 'element' && inv?.metadata?.quote_id && invKey) {
+        const md = inv.metadata;
+        const ip = await fetch('https://api.stripe.com/v1/invoice_payments?invoice=' + encodeURIComponent(String(inv.id)), { headers: { Authorization: 'Bearer ' + invKey } })
+          .then((r) => r.json()).catch(() => ({}));
+        const pi = String(ip?.data?.[0]?.payment?.payment_intent || '');
+        const sale = await recordRevealSale(admin, { quoteId: String(md.quote_id), customerId: md.customer_id || null,
+          baseFee: Number(md.base_fee), processingFee: Number(md.processing_fee), totalCharged: Number(inv.amount_paid) / 100,
+          paymentRef: pi || String(inv.id) });
+        if ('error' in sale) await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id }, 'PAID BUT NOT RECORDED - element invoice.paid: ' + sale.error);
+        else if (pi) await recordStripeFee(invKey, sale.id, pi, logRun);
+      }
+      const res = await handleRevealInvoiceEvent({
+        findSale: async (quoteId) => {
+          const { data } = await admin.from('transactions').select('id,doc_path,stripe_invoice_id').eq('quote_id', quoteId).maybeSingle();
+          return data ? { id: String(data.id), doc_path: data.doc_path, stripe_invoice_id: data.stripe_invoice_id } : null;
+        },
+        capture: async (saleId, invoiceId) => {
+          if (invKey) await captureInvoice(invKey, saleId, invoiceId, logRun);
+          else await logRun('error', { sale: saleId, invoice: invoiceId }, 'INVOICE NOT RETRIEVED - no Stripe secret key for the ' + sigMode + ' mode this event arrived on.');
+        },
+      }, inv);
+      await logRun(res.action === 'other_invoice' ? 'error' : 'ok', { type: event.type, invoice: String(inv?.id || ''), ...res }, res.action === 'other_invoice' ? 'invoice event names a sale already billed under a different invoice - left untouched' : '');
     }
     // ---- REFUNDS (2 Aug 2026, Phase 1.7) ---------------------------------------------------
     // Until now the only Stripe event this function understood was checkout.session.completed, so

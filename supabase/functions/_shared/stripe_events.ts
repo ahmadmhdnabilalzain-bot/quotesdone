@@ -11,4 +11,8 @@ export const CHECKOUT_EVENTS = ['checkout.session.completed'] as const;
 // customer who abandoned a payment heard nothing at all.
 export const FAILED_CHECKOUT_EVENTS = ['checkout.session.expired', 'checkout.session.async_payment_failed'] as const;
 export const REFUND_EVENTS = ['charge.refunded', 'refund.created', 'refund.updated', 'refund.failed'] as const;
-export const HANDLED_STRIPE_EVENTS: readonly string[] = [...CHECKOUT_EVENTS, ...FAILED_CHECKOUT_EVENTS, ...REFUND_EVENTS];
+// 14 Sep 2026 (agent: accountant): the reveal-fee Invoice is finalised a beat after the session
+// completes, so its PDF often is not there on checkout.session.completed. These two events carry
+// the finished invoice and let the handler file it without waiting for a manual resend.
+export const INVOICE_EVENTS = ['invoice.finalized', 'invoice.paid'] as const;
+export const HANDLED_STRIPE_EVENTS: readonly string[] = [...CHECKOUT_EVENTS, ...FAILED_CHECKOUT_EVENTS, ...REFUND_EVENTS, ...INVOICE_EVENTS];

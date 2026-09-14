@@ -7,9 +7,12 @@ import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
-import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef } from '../_shared/quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef, type Item } from '../_shared/quote_documents.ts';
+import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
+import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
 import { portalLink } from '../_shared/site_origins.ts';
+import { revealCharge } from '../_shared/reveal_fee.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -387,10 +390,15 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   const letter = await letterOf(q);
   // The supplier's OWN priced breakdown lives in quote_items; the customer's requested BOQ is only
   // the fallback when the supplier priced a lump sum.
-  let items: { desc: string; qty: string; unit: string }[] = [];
+  // Each line carries its own price and technical specification (brand, model, specification, and the
+  // spec agent's per-attribute `specs` when that column exists), so the quotation can show them.
+  let items: Item[] = [];
   try {
-    const { data: qi } = await admin.from('quote_items').select('line_no,description,qty,unit').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60);
-    items = (qi || []).map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc);
+    const { data: qi } = await admin.from('quote_items').select('*').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60);
+    items = (qi || []).map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || ''),
+      unit_price: b.unit_price == null ? null : Number(b.unit_price), amount: b.amount == null ? null : Number(b.amount),
+      brand: b.brand ?? null, model: b.model ?? null, specification: b.specification ?? null,
+      specs: (b.specs && typeof b.specs === 'object' && !Array.isArray(b.specs)) ? b.specs : null })).filter((x: any) => x.desc);
   } catch (_e) { items = []; }
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
   const quoteRow = { ...q, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
@@ -420,12 +428,19 @@ async function buildBriefPdf(inq: any, lang: string) {
   const spec = (inq?.spec && typeof inq.spec === 'object' && !Array.isArray(inq.spec)) ? inq.spec : null;
   if (spec) {
     const rows = Object.entries(spec)
-      .filter(([, v]) => v != null && String(v).trim() !== '')
+      .filter(([k, v]) => k !== 'customer_requirements' && v != null && (typeof v !== 'object' || Array.isArray(v)) && String(v).trim() !== '')
       .map(([k, v]) => [clipCell(String(k).replace(/_/g, ' '), 40), clipCell(Array.isArray(v) ? v.join(', ') : v, 160)]);
     if (rows.length) {
       blocks.push({ t: 'h2', text: T('Specification', 'المواصفات') });
       blocks.push({ t: 'table', head: [T('Item', 'البند'), T('Detail', 'التفصيل')], rows, widths: [0.32, 0.68] });
     }
+  }
+  // What the customer asked the sales engineer for (docs/contracts/intake_answers.md), from the derived
+  // display rows so the PDF says exactly what the portal says, in the document's language.
+  const reqRows = (spec as any)?.customer_requirements?.display?.[ar ? 'ar' : 'en'];
+  if (Array.isArray(reqRows) && reqRows.length) {
+    blocks.push({ t: 'h2', text: T('What the customer asked for', 'ما طلبه العميل') });
+    blocks.push({ t: 'table', head: [T('Item', 'البند'), T('Requested', 'المطلوب')], rows: reqRows.map((r: any) => [clipCell(r?.label, 40), clipCell(r?.value, 160)]), widths: [0.32, 0.68] });
   }
   const boq = (inq?.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq : null;
   if (boq && boq.length) {
@@ -792,6 +807,24 @@ Deno.serve(observe('customer_api', async (req) => {
       const specIn = body.spec && typeof body.spec === 'object' ? body.spec : {};
       const spec = (briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : specIn;
       const budget = (body.budget ? String(body.budget) : (briefObj?.budget ? String(briefObj.budget) : '')).slice(0, 80) || null;
+      // THE SALES ENGINEER'S QUESTIONS GATE THE POST (founder, 14 Sep 2026: "do you require a warranty?
+      // do you require installation? do you have specific material in mind ... our job is to ask").
+      // inquiry_intake only marks an intake ready once they are answered; this re-checks the stored
+      // answers on the server, because a ready intake from before this change, or a body that edits
+      // them, must not post a request whose baseline is missing. Edits from the summary card are
+      // parsed again here (applyEdits); the browser's reading of them is never trusted. The answers go
+      // into spec, so the existing identity scrub (spec_masked, scrubDeep) covers them and suppliers
+      // read them with the rest of the brief (docs/contracts/intake_answers.md).
+      const reqCategory = String(briefObj?.requirements?.category || intake?.category || category);
+      let reqStored: any = briefObj?.requirements ?? null;
+      if (body.requirement_edits && typeof body.requirement_edits === 'object' && !Array.isArray(body.requirement_edits) && Object.keys(body.requirement_edits).length) {
+        const ed = applyEdits(reqCategory, reqStored, body.requirement_edits, new Date());
+        if (ed.invalid.length) return J({ error: 'requirements_invalid', keys: ed.invalid, message: 'One of your changes could not be read. Pick one of the options instead.' }, 422);
+        reqStored = ed.stored;
+      }
+      const reqCheck = validateStored(reqCategory, reqStored);
+      if (!reqCheck.ok) return J({ error: 'requirements_incomplete', missing: reqCheck.missing, message: 'A few quick questions are still open: materials, installation, warranty or the date you need it by.' }, 428);
+      spec.customer_requirements = reqStored;
       const scope_type = ['single','multi','turnkey'].includes(String(body.scope_type)) ? String(body.scope_type) : 'single';
       const tradesIn = Array.isArray(body.trades) ? body.trades.map((t: any) => String(t).toLowerCase()).filter(Boolean) : [];
       const d = detect(raw + ' ' + summary + ' ' + Object.values(spec).join(' '));
@@ -849,9 +882,12 @@ Deno.serve(observe('customer_api', async (req) => {
       // The window as stated, plus a resolved date when one can be resolved. Suppliers quote
       // against the phrase; the portal sorts against the date. `required_by` stays null rather than
       // guessing — "as soon as possible" is a real answer and is not a date.
-      const timelineTxt = briefObj?.timeline != null ? String(briefObj.timeline).slice(0, 120) : null;
+      const timelineTxt = briefObj?.timeline != null ? String(briefObj.timeline).slice(0, 120) : (reqStored?.required_by?.text ? String(reqStored.required_by.text).slice(0, 120) : null);
       const isoDay = /^\d{4}-\d{2}-\d{2}$/;
       const requiredBy = (() => {
+        // The date the customer gave the sales engineer is the customer's own answer and wins.
+        const asked = String(reqStored?.required_by?.date || '');
+        if (isoDay.test(asked)) return asked;
         const t = String(briefObj?.required_by || '').trim();
         if (isoDay.test(t)) return t;
         // The duration is found ANYWHERE in the phrase, not only at its start. Real answers read
@@ -897,7 +933,7 @@ Deno.serve(observe('customer_api', async (req) => {
           const { data: child, error: ec } = await admin.from('inquiries').insert({ customer_id: cust.id, parent_inquiry_id: parent!.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary, keywords: childKw, status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
           if (ec || !child) continue;
           const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
-          const { matches } = await matchAndNotify(String(child.id), { category: tr, emirate, keywords: childKw, summary: childSummary, budget, extra, useRouter: false, multi: false });
+          const { matches } = await matchAndNotify(String(child.id), { category: tr, emirate, keywords: childKw, summary: childSummary, budget, extra: extra + supplierLine(reqStored), useRouter: false, multi: false });
           children.push({ inquiry_id: child.id, trade: tr, label: tlabel, matches });
         }
         return J({ ok: true, split: true, scope_type: 'multi', parent_id: parent!.id, children, trades: distinctTrades });
@@ -910,7 +946,7 @@ Deno.serve(observe('customer_api', async (req) => {
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
         const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
-        const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, keywords: tkKeywords, summary, budget, extra, useRouter: false, multi: true });
+        const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, keywords: tkKeywords, summary, budget, extra: extra + supplierLine(reqStored), useRouter: false, multi: true });
         return J({ ok: true, inquiry_id: inq!.id, scope_type: 'turnkey', matches });
       }
 
@@ -918,7 +954,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (e1) return J({ error: e1.message }, 500);
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
-      const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, keywords, summary, budget, extra, useRouter: true, multi: false });
+      const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, keywords, summary, budget, extra: extra + supplierLine(reqStored), useRouter: true, multi: false });
       return J({ ok: true, inquiry_id: inq!.id, matches, routing });
     }
 
@@ -978,7 +1014,7 @@ Deno.serve(observe('customer_api', async (req) => {
       for (const k of kids) { (kidsByParent[String(k.parent_inquiry_id)] ||= []).push(k); }
       const ids = [...topIds, ...kids.map((k) => k.id)];
       let quotes: Record<string, any>[] = [];
-      if (ids.length) { const { data: qs } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }); quotes = qs || []; }
+      if (ids.length) { const { data: qs } = await admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }); quotes = qs || []; }
       // How many suppliers the request actually reached. Without this the portal cannot tell
       // "waiting for quotes" apart from "this reached nobody", and shows hope either way.
       const matchedBy: Record<string, number> = {};
@@ -1057,7 +1093,7 @@ Deno.serve(observe('customer_api', async (req) => {
         applied_filters: appliedFilters(i.routing),
         // §6/§7: the floor this RFQ is scoped to, and the delivery window the assistant extracted.
         floor: i.floor ?? null, required_by: i.required_by ?? null, delivery_window: i.delivery_window ?? null,
-        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: 'Supplier ' + supplierLabel(idx), price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
+        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
           // W9 badges: only measured facts, null when absent. Pre-reveal the response rate is floored
           // to a 10% band and the rating stays out (the banded rating above already shows it), so a
           // badge can never be an exact fingerprint of one company.
@@ -1191,7 +1227,9 @@ Deno.serve(observe('customer_api', async (req) => {
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
       if (existing) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
-      return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), currency: 'AED' });
+      // The breakdown the confirm dialog prints is the one stripe_checkout charges: one module.
+      const ch = revealCharge(Number(q.quote_amount), Number(cfg.standard_reveal_rate));
+      return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: ch.base_fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
     }
 
     if (action === 'request_refund') {
@@ -1230,7 +1268,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // request is under review when no case was opened.
       return J({ ok: true, refund_status: 'requested', refund_id: refundId, refund_ref: refundId ? refundRef(refundId) : null,
         not_opened: refundNote,
-        note: 'Your refund request has been received. We check whether the supplier ever replied to you, our chief executive decides on that record, and if it is due the fee is refunded in full.' });
+        note: 'Your refund request has been received. We check whether the supplier ever replied to you, our chief executive decides on that record, and if it is due, everything you paid is refunded.' });
     }
 
     if (action === 'rate_supplier') {

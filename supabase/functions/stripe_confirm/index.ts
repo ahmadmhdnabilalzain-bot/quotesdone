@@ -1,6 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { splitPaid } from '../_shared/payment_handoffs.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -50,15 +49,15 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     if (s.payment_status !== 'paid') { await logRun('ok', { quote_id: qid, payment_status: String(s.payment_status || '') }, 'session not paid yet - returned pending'); return J({ ok: false, pending: true }); }
     const { data: cfg } = await admin.from('pricing_config').select('refund_window_working_days').eq('id', 1).maybeSingle();
     const { data: dl } = await admin.rpc('fn_add_working_days', { p_from: new Date().toISOString(), p_days: cfg?.refund_window_working_days ?? 3 });
-    // What Stripe took, split into the 3% and the processing part (_shared/payment_handoffs.ts). The
-    // refund returns total_charged, so it is recorded on the one row a refund reads.
-    const paid = splitPaid(s.amount_total, md.reveal_fee);
-    const fee = paid.reveal_fee;
+    const fee = Number(md.reveal_fee || (s.amount_total ? s.amount_total / 100 : 0));
     const amount = Number(md.quote_amount || q.quote_amount);
     const payRef = String(s.payment_intent || s.id);
     await admin.from('quotes').update({ status: 'revealed' }).eq('id', qid);
     await admin.from('inquiries').update({ status: 'revealed' }).eq('id', q.inquiry_id);
-    const { error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: cust.id, quote_amount: amount, reveal_fee: fee, app_fee: fee, total_charged: paid.total_charged, stripe_fee_aed: paid.processing, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl });
+    // total_charged is what a refund returns (founder, 14 Sep 2026): the 3% plus card processing.
+    const totalCharged = s.amount_total ? s.amount_total / 100 : Number(md.total_charged || fee);
+    const processing = md.processing_fee != null ? Number(md.processing_fee) : Math.round((totalCharged - fee) * 100) / 100;
+    const { error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: cust.id, quote_amount: amount, reveal_fee: fee, app_fee: fee, processing_fee: processing, total_charged: totalCharged, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl });
     if (e2) { const { data: again } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle(); if (!again) { await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - insert failed and no row present: ' + e2.message + ' | payment_ref: ' + payRef); return J({ error: 'record_failed', detail: e2.message }, 500); } await logRun('ok', { quote_id: qid, raced: true }, 'insert conflicted but row exists - stripe_webhook won the race'); }
     // 14 Sep 2026: the supplier's "a customer revealed you" message is no longer queued here. The
     // insert above goes through z20_reveal_receipt, which hands the paid reveal from the accountant to
