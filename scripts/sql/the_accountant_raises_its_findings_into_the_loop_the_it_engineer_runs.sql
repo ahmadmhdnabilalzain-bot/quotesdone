@@ -15,7 +15,7 @@
 -- WHAT WAS MEASURED (14 Sep 2026, production htdblwldjkcgjvmqkbeh):
 --   * The IT engineer's loop (the_it_engineer_closes_every_loop_it_opens.sql) already turns an open,
 --     actionable public.it_engineer_finding into an it.finding handoff to the seat named in
---     evidence.owner_seat, gives it a four-hour reply window (seat_handoff_window), lets only the
+--     evidence.owner_seat, gives it a four-hour reply window (its public.seat_handoff_kind row, #648), lets only the
 --     it_engineer close it after the finding itself is closed, escalates to the CEO past the window,
 --     and has the CEO send the founder ONE deduped it_new_bug email through customer_support. A ZZ DEMO
 --     finding never reaches him. The finding table carries raised_by and a free evidence object.

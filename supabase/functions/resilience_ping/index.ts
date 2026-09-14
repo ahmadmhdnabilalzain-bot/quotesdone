@@ -99,6 +99,24 @@ async function archiveTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// NO SUPPLIER QUOTED THE EXACT SPEC (founder_instruction #321). Once a pass, sales_engineer checks
+// the inquiries whose quote window closed (or whose invited suppliers all quoted), opens an offer
+// where no eligible quote matches a mandatory requested value, and sends the due reminders and
+// lapses through customer_support. The loop's state and timing live in Postgres
+// (fn_spec_offer_candidates / fn_spec_offer_due), so calling it every pass is correct. sales_engineer
+// is deployed with verify_jwt on, so the service key goes to the gateway; __secret decides the caller.
+async function specOfferTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_resilience_ping');
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const r = await fetch(FN + '/sales_engineer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+      body: JSON.stringify({ __secret: secret, action: 'spec_offer_sweep', limit: 20 }), signal: AbortSignal.timeout(55000),
+    });
+    return { status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -590,6 +608,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // first would deliver the previous tick's picture of the estate.
     const itdetect = await itDetectTick();
     const itduties = await itDutiesTick();
+    const specoffer = await specOfferTick();
     const it = await itEngineerAlertTick();
     // One RPC. The HTTP work runs in pg_net's background worker, not in this invocation, so this
     // adds no meaningful wall clock to the heartbeat.
@@ -606,7 +625,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -630,6 +649,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, vat, ceoWeekly, ladder, refunds, warm });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, specoffer, it, outbox, vat, ceoWeekly, ladder, refunds, warm });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));
