@@ -16,13 +16,36 @@
 // reachable (`deno test --allow-net`), and the sample renderer in the PR proves the Arabic pages.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { PDFDocument, PDFDict, PDFName } from 'https://esm.sh/pdf-lib@1.17.1';
-import { quoteDocument, compareDocument, compareTable, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE } from './quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv } from './quote_documents.ts';
 import { footerLines, footerLinesAr, FALLBACK } from './doc_template.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { portalLink } from './site_origins.ts';
 import { latinLeaks } from './trade_glossary_ar.test.ts';
 import * as F from './quote_documents.fixture.ts';
+
+// Measured 14 Sep 2026 on the e2e harness's comparison (journey c): the commercial table and the CSV
+// clipped "Supplier A – Option 1" to "Supplier A – Option…", and the Arabic report kept "Option".
+Deno.test('two options of one supplier keep two distinct names, in English and in Arabic', () => {
+  assertEquals(labelFor('Supplier A – Option 2', 'ar'), 'المورّد A – الخيار 2');
+  const a = { quotes: [{ label: 'Supplier A – Option 1', price: 118500 }, { label: 'Supplier A – Option 2', price: 124900 }], all_quotes: [] };
+  assertEquals(compareTable(a, false)!.head.slice(1), ['Supplier A – Option 1', 'Supplier A – Option 2']);
+  assertEquals(compareTable(a, true)!.head.slice(1), ['المورّد A – الخيار 1', 'المورّد A – الخيار 2']);
+});
+Deno.test('compare_csv escapes every spreadsheet formula trigger, tab and carriage return included', () => {
+  const csv = toCsv(['h'], [['=1+1'], ['\t=2'], ['\r=3'], ['@a'], ['+b'], ['plain']]);
+  assertStringIncludes(csv, "'=1+1");
+  assertStringIncludes(csv, "'\t=2");
+  assertStringIncludes(csv, "\"'\r=3\"");
+  assertStringIncludes(csv, "'@a");
+  assertStringIncludes(csv, "\r\nplain\r\n");
+});
+Deno.test('a lead time counted from the order reads in Arabic', () => {
+  assert(arDuration('21 days'));
+  assertEquals(arDuration('21 days from order'), arDuration('21 days') + ' من تاريخ الطلب');
+  assertEquals(arDuration('4 weeks after approval'), arDuration('4 weeks') + ' من الاعتماد');
+  assertEquals(arDuration('21 days from the moon'), null);
+});
 
 const BRAND = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/';
 async function fetchBytes(p: string) { try { const r = await fetch(BRAND + p); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null; } catch { return null; } }

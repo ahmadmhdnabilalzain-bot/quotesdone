@@ -9,7 +9,11 @@ Deno.test('every conversation is between real seats and listed once', () => {
   const seats = new Set(['accountant', 'sales_engineer', 'customer_support', 'ceo', 'it_engineer']);
   const keys = HANDOFF_TYPES.map((h) => `${h.type}|${h.from}|${h.to}`);
   assertEquals(new Set(keys).size, keys.length);
-  for (const h of HANDOFF_TYPES) assert(seats.has(h.from) && seats.has(h.to) && h.from !== h.to, JSON.stringify(h));
+  // The one conversation a seat has with itself: support's own notice (a receipt, a contact-form
+  // alert) is queued and checked like any other (every_send_comes_back_to_whoever_asked.sql).
+  const selfTalk = (h: { type: string; from: string; to: string }) => h.from === 'customer_support' && h.to === 'customer_support'
+    && (h.type === 'delivery.request' || h.type === 'delivery.result');
+  for (const h of HANDOFF_TYPES) assert(seats.has(h.from) && seats.has(h.to) && (h.from !== h.to || selfTalk(h)), JSON.stringify(h));
 });
 
 Deno.test('the accountant and the sales engineer talk in both directions', () => {
@@ -17,9 +21,16 @@ Deno.test('the accountant and the sales engineer talk in both directions', () =>
   assert(HANDOFF_TYPES.some((h) => h.from === 'sales_engineer' && h.to === 'accountant'));
 });
 
-Deno.test('only customer_support delivers, and it answers only the sales engineer', () => {
+// Founder, 14 Sep 2026: "nothing literally should ever be a one way communication". Support carries
+// every send, and every seat that asks for one hears back what became of it.
+Deno.test('only customer_support delivers, and every seat that asks hears back', () => {
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) assertEquals(h.to, 'customer_support');
-  for (const h of HANDOFF_TYPES.filter((x) => x.from === 'customer_support')) assertEquals(h.to, 'sales_engineer');
+  // what support says to ANOTHER seat is only ever the answer to a send it was asked for
+  for (const h of HANDOFF_TYPES.filter((x) => x.from === 'customer_support' && x.to !== 'customer_support')) assertEquals(h.type, 'delivery.result');
+  for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {
+    assert(HANDOFF_TYPES.some((r) => r.type === 'delivery.result' && r.from === 'customer_support' && r.to === h.from),
+      `${h.from} asks for deliveries and gets no delivery.result back`);
+  }
 });
 
 Deno.test('the CEO sends back work to the two seats that own it, never to support', () => {
