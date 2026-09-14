@@ -21,16 +21,17 @@ export function WorkedCase() {
   if (!c || !c.quotes?.length) return null;
   return (
     <section className="container-x py-beat-s">
-      <div className="glass depth relative overflow-hidden rounded-[22px] p-7 md:p-9">
+      {/* the quotes are the sealed documents; the case around them is ruled, not boxed */}
+      <div className="relative border-t border-[var(--line2)] pt-9">
         <h2 className="font-head text-[26px] font-semibold tracking-[-0.03em] text-white">{t('caseTitle')}</h2>
         <p className="mt-2 text-[14px] text-muted">{t('caseSub')}</p>
         <p className="mt-4 text-[14px] text-paper">
           {c.category}{c.emirate ? ` · ${c.emirate}` : ''} · {t('posted', { month: c.posted_month })}
           {c.days_to_reveal != null && <> · {t('days', { d: c.days_to_reveal })}</>}
         </p>
-        <ul className="mt-6 grid gap-3 md:grid-cols-3">
+        <ul className="mt-6 grid gap-3 md:grid-cols-3 md:items-start">
           {c.quotes.map((q, i) => (
-            <li key={i} className={`rounded-[14px] border p-4 ${q.chosen ? 'border-gold/50 bg-gold/[0.06]' : 'border-[var(--line2)] bg-navy-deep/50'}`}>
+            <li key={i} className={`qd-env p-5 pt-8 md:[&:nth-child(2)]:mt-5 md:[&:nth-child(3)]:mt-10 ${q.chosen ? 'qd-env-gold' : ''}`}>
               <div className="flex items-center gap-2">
                 <span className="redact redact-sq !h-5 !w-5" aria-hidden />
                 <span className="text-[13px] text-muted">{t('quote', { n: i + 1 })}</span>

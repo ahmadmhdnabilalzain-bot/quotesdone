@@ -2,16 +2,18 @@ import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/routing';
 import { SectionHeader } from '@/components/SectionHeader';
 import { Arrow } from '@/components/HeroCtas';
+import { SealedCard } from '@/components/ui/sealed';
 import s from '@/components/home/sealed.module.css';
 
 // Paired "For customers / For suppliers" (website audit ADOPT 3). Teal is the customer's side; the
 // supplier side is set in paper — gold is reserved for the reveal and is not used here.
 type Side = { kicker: string; title: string; bullets: string[]; cta: string };
 
+// Not two equal boxes: the customer's side is the sealed document, the supplier's side is the open
+// ledger beside it, set lower so the pair reads as an offset spread (shape system, ui/sealed).
 function Block({ s: side, href, primary }: { s: Side; href: string; primary: boolean }) {
-  return (
-    <div className={`${s.shell} reveal h-full`}>
-      <div className={`qd-panel rounded-[22px] flex h-full flex-col p-7 md:p-10`}>
+  const body = (
+    <>
         <span className={`qd-kicker ${primary ? 'text-teal-light' : 'text-paper/80'}`}>{side.kicker}</span>
         <h3 className="mt-5 text-balance font-head text-[clamp(24px,2.6vw,34px)] font-semibold leading-[1.08] tracking-[-0.035em] text-white rtl:leading-[1.35] rtl:tracking-normal">
           {side.title}
@@ -33,9 +35,11 @@ function Block({ s: side, href, primary }: { s: Side; href: string; primary: boo
           {side.cta}
           <span className={s.arrowDot}><Arrow /></span>
         </Link>
-      </div>
-    </div>
+    </>
   );
+  return primary
+    ? <SealedCard size="lg" className="reveal flex h-full flex-col p-7 pt-12 md:p-10 md:pt-14">{body}</SealedCard>
+    : <div className="reveal flex h-full flex-col border-t border-[var(--line2)] pt-8 md:mt-20 md:pt-10">{body}</div>;
 }
 
 export function TwoSided() {
@@ -43,7 +47,7 @@ export function TwoSided() {
   return (
     <section id="sides" className="container-x py-beat-s md:py-beat">
       <SectionHeader eyebrow={t('eyebrow')} index="03" title={t('title')} />
-      <div className="mt-14 grid gap-5 md:mt-16 md:grid-cols-2">
+      <div className="mt-14 grid gap-12 md:mt-16 md:grid-cols-[1.12fr_1fr] lg:gap-16">
         <Block s={t.raw('customers') as Side} href="/me" primary />
         <Block s={t.raw('suppliers') as Side} href="/supplier" primary={false} />
       </div>

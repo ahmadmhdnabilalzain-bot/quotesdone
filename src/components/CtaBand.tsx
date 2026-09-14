@@ -1,7 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { HeroCtas } from '@/components/HeroCtas';
 import { MeasuredMedian } from '@/components/Counters';
-import s from '@/components/home/sealed.module.css';
 
 // ONE TIMELINE. The sub states the FAQ's operational figure (3–5 working days) and the measured
 // median appears only when the counters endpoint has one (website audit §1 finding 27).
@@ -10,8 +9,8 @@ export function CtaBand() {
   const t = useTranslations();
   return (
     <section className="container-x pb-beat md:pb-beat-l">
-      <div className={`${s.shell} reveal`}>
-        <div className={`qd-panel rounded-[22px] relative isolate overflow-hidden px-6 py-16 text-center md:px-16 md:py-24`}>
+      <div className="reveal">
+        <div className="qd-env qd-env-lg relative overflow-hidden px-6 py-16 text-center md:px-16 md:py-24">
           <span className="grid-tech" aria-hidden />
           <span className={`halo left-1/2 top-0 h-[560px] w-[760px] max-w-[160%] -translate-x-1/2 -translate-y-1/2`} aria-hidden />
           <div className="relative mx-auto flex w-fit items-center gap-2" aria-hidden>

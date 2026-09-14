@@ -6,7 +6,9 @@
  *   Seal            the brand motif: content under a redaction bar; `open` slides it off in gold
  *   Kicker          mono caps label with a live node (Arabic: weight + teal lead bar)
  *   SectionHead     kicker + display heading + lead, the one section opener
- *   Bento/BentoTile asymmetric feature grid on the sealed panel, pointer-lit
+ *   SealedCard      the shape-system card: a sealed document with a folded corner (globals.css .qd-env)
+ *   LedgerList      the shape-system list: ruled rows with mono serials instead of a grid of boxes
+ *   Bento/BentoTile asymmetric feature grid of sealed documents
  *   ProductFrame    faux-live application window; ALWAYS carries a visible "sample data" label
  *   ComparisonShowcase · BoqShowcase · MatchShowcase   product screens inside a ProductFrame
  *   StatBlock       one figure + label + source/note (never print a number nobody measured)
@@ -39,6 +41,41 @@ export function SectionHead({ kicker, title, lead, align = 'start', className }:
   );
 }
 
+/** A sealed document (founder, 14 Sep 2026: the square cards read as generic). `open` is the chosen
+ *  one, in gold; `hover` turns the fold gold under the pointer. Pad at least 24px so the fold clears. */
+export function SealedCard({ as: Tag = 'article', size, open, hover, className, children }: {
+  as?: 'article' | 'div' | 'li' | 'section'; size?: 'lg'; open?: boolean; hover?: boolean; className?: string; children: ReactNode;
+}) {
+  return <Tag className={cn('qd-env', size === 'lg' && 'qd-env-lg', open && 'qd-env-gold', hover && 'qd-env-hover', className)}>{children}</Tag>;
+}
+
+/** The seal mark carrying a document's serial. Decorative: the order is already in the markup. */
+export function Stamp({ n, open, className }: { n: number; open?: boolean; className?: string }) {
+  return <span aria-hidden className={cn('qd-stamp', open && 'qd-stamp-open', className)}>{String(n).padStart(2, '0')}</span>;
+}
+
+export type LedgerItem = { title: ReactNode; body?: ReactNode };
+/** An index of ruled rows, mono serial first. `lg` sets the serial at display size (a real sequence). */
+export function LedgerList({ items, start = 1, lg, titleAs: H = 'h3', className }: {
+  items: LedgerItem[]; start?: number; lg?: boolean; titleAs?: 'h2' | 'h3'; className?: string;
+}) {
+  return (
+    <ol className={cn('qd-ledger qd-ticks', lg && 'qd-ledger-lg', className)}>
+      {items.map((it, i) => (
+        <li key={i}>
+          <div className="qd-ledger-row">
+            <span className="qd-ledger-no" aria-hidden>{String(start + i).padStart(2, '0')}</span>
+            <div className="min-w-0 md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-8">
+              <H className="text-balance font-head text-[clamp(18px,1.7vw,21px)] font-semibold leading-snug tracking-snug text-white">{it.title}</H>
+              {it.body ? <div className="mt-2 max-w-[60ch] text-pretty text-copy text-muted md:mt-0">{it.body}</div> : null}
+            </div>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export function Bento({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn('grid auto-rows-[minmax(220px,auto)] grid-cols-1 gap-4 md:grid-cols-6', className)}>{children}</div>;
 }
@@ -48,9 +85,9 @@ export function BentoTile({ span = 2, tall, kicker, title, children, visual, cla
   span?: keyof typeof SPAN; tall?: boolean; kicker?: ReactNode; title: ReactNode; children?: ReactNode; visual?: ReactNode; className?: string;
 }) {
   return (
-    <article className={cn('qd-panel qd-panel-hover qd-lit qd-grain group flex flex-col overflow-hidden', SPAN[span], tall && 'md:row-span-2', className)}>
+    <article className={cn('qd-env qd-env-hover group flex flex-col overflow-hidden', SPAN[span], tall && 'md:row-span-2', className)}>
       {visual ? <div className="relative min-h-[140px] flex-1 overflow-hidden border-b border-line">{visual}</div> : null}
-      <div className="flex flex-col gap-2 p-6">
+      <div className="flex flex-col gap-2 p-6 pt-8">
         {kicker ? <span className="font-mono text-label uppercase tracking-caps text-faint">{kicker}</span> : null}
         <h3 className="font-head text-h3 text-white">{title}</h3>
         {children ? <div className="text-copy text-muted">{children}</div> : null}
@@ -215,8 +252,8 @@ export function ProofBand({ items, className }: { items: { claim: ReactNode; evi
   return (
     <div className={cn('grid gap-4 md:grid-cols-3', className)}>
       {items.map((p, i) => (
-        <div key={i} className="qd-panel qd-lit p-6">
-          <div className="font-mono text-label text-teal-light">{String(i + 1).padStart(2, '0')}</div>
+        <div key={i} className="qd-env p-6 pt-7">
+          <Stamp n={i + 1} />
           <div className="mt-4 font-head text-[19px] font-semibold leading-snug tracking-snug text-white">{p.claim}</div>
           <div className="mt-4 border-t border-line pt-4 text-small text-muted">{p.evidence}</div>
         </div>

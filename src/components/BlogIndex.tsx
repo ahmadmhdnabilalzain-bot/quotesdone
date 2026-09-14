@@ -47,7 +47,7 @@ export function BlogIndex({ locale }: { locale: string }) {
               <li key={p.slug} className={lead ? 'sm:col-span-2' : undefined}>
                 <Link
                   href={`/blog/${p.slug}/`}
-                  className={`qd-panel qd-panel-hover qd-lit group flex h-full flex-col p-6 md:p-7 ${lead ? 'qd-keylight md:min-h-[300px]' : ''}`}
+                  className={`qd-env qd-env-hover qd-lit group flex h-full flex-col p-6 pt-8 md:p-7 md:pt-9 ${lead ? 'qd-env-lg md:min-h-[300px]' : ''}`}
                 >
                   <span className="flex items-center justify-between gap-3">
                     {t.category ? <span className="font-mono text-label uppercase tracking-caps text-teal-light">{t.category}</span> : <span />}
