@@ -30,7 +30,7 @@
       },
       {
         "k": "3%",
-        "v": "of the quote you choose, paid only to reveal that supplier"
+        "v": "of the quote you choose, plus the card processing fee, paid only to reveal that supplier"
       }
     ],
     "stepsLabel": "How it works",
@@ -45,7 +45,7 @@
       },
       {
         "t": "Reveal the one you choose",
-        "b": "Pay 3% of that quote to see the supplier’s name and contact. The rest stay sealed."
+        "b": "Pay 3% of that quote plus the card processing fee to see the supplier’s name and contact. The rest stay sealed."
       }
     ],
     "supplierAsk": "Are you a supplier?"
@@ -125,7 +125,7 @@
   "cta": {
     "eyebrow": "Start now",
     "title": "Open one. Leave the rest sealed.",
-    "sub": "Post your job free. Licence-checked suppliers compete for it anonymously. You pay 3% of the quote you choose, nothing else — and only if you reveal.",
+    "sub": "Post your job free. Licence-checked suppliers compete for it anonymously. You pay 3% of the quote you choose plus the card processing fee, both shown before you pay, and only if you reveal.",
     "supplier": "Become a supplier",
     "median": "Measured: a median of {h} h to the first quote over the last 30 days ({n} jobs)."
   },
@@ -158,7 +158,7 @@
   },
   "meta": {
     "siteTitle": "QuotesDone — Anonymous quotes for every trade in the UAE",
-    "siteDesc": "Post your job once, in any trade except food & beverage. Licence-checked UAE suppliers quote anonymously; the top 3 come levelled in a comparison report, every other quote is listed too, and you pay 3% of the one you choose, nothing else."
+    "siteDesc": "Post your job once, in any trade except food & beverage. Licence-checked UAE suppliers quote anonymously; the top 3 come levelled in a comparison report, every other quote is listed too, and you pay 3% of the one you choose plus the card processing fee. No VAT is charged on the reveal fee."
   },
   "blog": {
     "onlyEnglish": "This article is currently available in English only."
@@ -215,12 +215,12 @@
         "body": "A quote missing its price, lead time, validity or warranty is held, with notes telling the supplier exactly what to add. Only a complete quote is shared with you."
       },
       {
-        "title": "3% to reveal, nothing else",
-        "body": "Posting and comparing are free. You pay only to open the one quote you choose."
+        "title": "3% to reveal, plus the card fee",
+        "body": "Posting and comparing are free. You pay only to open the one quote you choose: 3% of it plus the card processing fee, both shown in full before you pay. No VAT is charged on the reveal fee."
       },
       {
         "title": "A refund if the supplier stays silent",
-        "body": "If the supplier you revealed does not respond within 5 working days, the 3% is refunded in full through Stripe."
+        "body": "If the supplier you revealed does not respond within 5 working days, everything you paid is refunded through Stripe."
       }
     ],
     "brief": [
@@ -258,7 +258,7 @@
       "Validity"
     ],
     "returned": "On hold",
-    "pctNote": "of the quote you choose, only if you reveal",
+    "pctNote": "of the quote you choose, plus the card processing fee, only if you reveal",
     "refund": "Full refund",
     "day1": "Working day 1",
     "day5": "Working day 5",
@@ -283,7 +283,7 @@
         "Describe the job by text, photo, drawing or BOQ — no calls",
         "Only licence-checked suppliers for your trade are invited, from anywhere in the UAE",
         "The top 3 levelled into a comparison report on price, completeness and delivery, and every other quote listed, so you can pick any",
-        "3% of the quote you choose, nothing else — quotes usually arrive in 3–5 working days",
+        "3% of the quote you choose plus the card processing fee, shown before you pay — quotes usually arrive in 3–5 working days",
         "Every quote states how long its price is valid, so you know when it expires",
         "Updates reach you on WhatsApp as well as by email"
       ],
@@ -354,7 +354,7 @@
       },
       {
         "k": "Payment through Stripe",
-        "v": "The 3% reveal fee is paid through Stripe and refunded in full if the supplier does not respond within 5 working days."
+        "v": "The 3% reveal fee and the card processing fee are paid through Stripe. If the supplier does not respond within 5 working days, everything you paid is refunded."
       },
       {
         "k": "Our own licence",
@@ -420,7 +420,7 @@
       }
     ],
     "ruleTitle": "The non-response rule",
-    "ruleBody": "When a customer pays to reveal you, reply within 5 working days — we remind you after 3. If you stay silent, the customer is refunded in full and you owe the refunded fee plus an AED 250 administrative fee and 9% annual interest, and new matches pause until it is settled.",
+    "ruleBody": "When a customer pays to reveal you, reply within 5 working days — we remind you after 3. If you stay silent, everything the customer paid is refunded and you owe the exact amount refunded (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date. New matches pause until it is settled.",
     "honest": "QuotesDone is new. There are no completed jobs on the platform yet, so nothing here promises you a pipeline — only that when work arrives, it is matched on fit.",
     "finalTitle": "Ready when your licence is",
     "finalSub": "Registration takes a few minutes. Have your trade licence and company profile to hand."
@@ -454,7 +454,7 @@
       },
       {
         "title": "You reveal one — or none",
-        "body": "Pay 3% of the quote you choose, nothing else. Only that supplier learns who you are."
+        "body": "Pay 3% of the quote you choose plus the card processing fee, both shown before you pay. Only that supplier learns who you are."
       }
     ],
     "maskTitle": "Who sees what",
@@ -482,7 +482,7 @@
     "time": [
       "Quotes usually arrive within 3–5 working days, and you are notified as each one lands.",
       "After a reveal the supplier has 5 working days to respond; we chase them after 3.",
-      "If they stay silent, your 3% is refunded in full."
+      "If they stay silent, everything you paid is refunded."
     ],
     "caseTitle": "A real deal, anonymised",
     "caseSub": "Taken from the platform’s own records. Amounts rounded to the nearest AED 100; no names.",
@@ -560,7 +560,7 @@
     ],
     "revealed": "Name, phone, licence no.",
     "rejected": "quotes without a removal line were held, with notes to their suppliers, and never shown.",
-    "revealCta": "Reveal for AED 1,162.50 · 3%",
+    "revealCta": "Reveal for AED 1,162.50 (3%) + card fee",
     "note": "Sample data: a worked illustration of the steps on a fixed job, not a live request.",
     "moreListed": "+ 4 more quotes listed under the report · any of them can be chosen"
   },

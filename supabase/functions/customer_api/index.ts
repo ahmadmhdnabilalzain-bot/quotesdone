@@ -1230,7 +1230,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // request is under review when no case was opened.
       return J({ ok: true, refund_status: 'requested', refund_id: refundId, refund_ref: refundId ? refundRef(refundId) : null,
         not_opened: refundNote,
-        note: 'Your refund request has been received. We check whether the supplier ever replied to you, our chief executive decides on that record, and if it is due the fee is refunded in full.' });
+        note: 'Your refund request has been received. We check whether the supplier ever replied to you, our chief executive decides on that record, and if it is due, everything you paid is refunded.' });
     }
 
     if (action === 'rate_supplier') {
