@@ -81,7 +81,6 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('finance_reports.pdf_path',             'column', null, false, null, 'a report generated from the database, regenerated on demand'),
     ('accountant_weekly_report.pdf_path',    'column', null, false, null, 'a report generated from the database, regenerated on demand'),
     ('accountant_spend_report.pdf_path',     'column', null, false, null, 'a report generated from the database, regenerated on demand'),
-    ('it_incident.pdf_path',                 'column', null, false, null, 'an incident record rendered on demand from public.it_incident by fn_it_incident_pdf_blocks; the row is the record'),
     ('expense_entries.doc_path',             'column', null, false, null, 'an expense receipt; the source of truth is the expenses mailbox, whose folders are the durable record'),
     ('site',                                 'bucket', null, false, null, 'public website assets; their source is the repository'),
     ('brand',                                'bucket', null, false, null, 'public brand assets; their source is the repository'),
@@ -109,8 +108,11 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('supplier_dues.demand_letter_path',     'column', null, false, null, 'OPEN GAP: a demand letter is not yet in the Dropbox tree'),
     ('supplier_dues.case_file_path',         'column', null, false, null, 'OPEN GAP: a supplier dues case file is not yet in the Dropbox tree'),
     ('supplier_dues.evidence_terms_path',    'column', null, false, null, 'OPEN GAP: signed-terms evidence for a due is not yet in the Dropbox tree'),
-    -- The accountant's own records (PR #645). Kept, not regenerated: a month close the CEO signed must
-    -- stay as signed. Filing them into the Dropbox tree is the accountant's year-end-pack duty.
+    -- The accountant's own records (PR #645) are no longer open gaps: they are backed up above, filed by
+    -- fn_enqueue_doc_backups: ACCOUNTING (PR #659, the accountant's year-end-pack duty).
+    -- The IT engineer's incident PDF (PR #641, duty 18): rendered into agent-docs from the fixed template
+    -- fn_it_incident_pdf_blocks over the public.it_incident row, which is the record.
+    ('it_incident.pdf_path',                 'column', null, false, null, 'an incident record rendered on demand from public.it_incident by fn_it_incident_pdf_blocks; the row is the record'),
     ('quote-files',                          'bucket', null, false, null, 'OPEN GAP: quotation files are not yet in the Dropbox tree'),
     ('compliance-docs',                      'bucket', null, false, null, 'OPEN GAP: compliance documents are not yet in the Dropbox tree')
 $fn$;
