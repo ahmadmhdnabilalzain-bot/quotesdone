@@ -16,6 +16,7 @@
 // reason in missing_info — never a guess. Identity (emails, URLs, phones, company names) is scrubbed
 // from every item because this output is shown to competing suppliers.
 import type { PdfPage } from '../_shared/pdf_text_positions.ts';
+import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 
 export type BoqItem = { section: string; item: string; description: string; qty: number | null; unit: string; basis: string; confidence: 'low' | 'medium' };
 
@@ -32,6 +33,8 @@ export function scrubIdentity(s: string): string {
     .replace(/\b(?:https?:\/\/|www\.)\S+/gi, '')
     .replace(/(?:\+?971|00971|\b0)[\s-]?\d{1,2}[\s-]?\d{3}[\s-]?\d{4}\b/g, '')
     .replace(/\b[\w&.' -]{2,40}\s(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Est\.?|Establishment|Consultants?|Contracting|Architects?|Engineering\s+Consultants?)\b\.?/gi, '')
+    // TRNs and licence / registration numbers identify a company as surely as its phone (14 Sep 2026).
+    .replace(TRN_LABELLED, '').replace(TRN_BARE, '').replace(LICENCE_NO, '')
     .replace(/\s{2,}/g, ' ').trim();
 }
 

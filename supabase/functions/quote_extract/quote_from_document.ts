@@ -8,18 +8,33 @@
 //
 // WHAT IT KEEPS AND WHAT IT REMOVES. The PRICES are kept: this is the supplier's own quotation and the
 // customer compares on them. The SUPPLIER'S IDENTITY is removed, because the customer pays to reveal
-// it: emails, URLs, UAE phones and company-name patterns (scrubIdentity), plus the supplier's own
-// company name passed in as `terms`. Every removed term is listed in masked_terms, which the supplier
-// reviews and the customer never sees. Confidence is always 'low': a deterministic read of a column
-// layout it has not seen before can pick the wrong column, and the supplier confirms before sending.
+// it: emails, URLs, UAE phones, company-name patterns, TRNs and licence numbers (scrubIdentity), plus
+// the supplier's own company name passed in as `terms`. Every removed term is listed in masked_terms,
+// which the supplier reviews and the customer never sees. Confidence is always 'low': a deterministic
+// read of a column layout it has not seen before can pick the wrong column, and the supplier confirms
+// before sending.
+//
+// VAT (founder, 14 Sep 2026: supplier VAT details are hidden from the customer). The subtotal, the
+// VAT row and the grand total are read separately; `amount` is the price EXCLUDING VAT whenever that
+// can be determined exactly (line_specs/vat.ts), and the VAT figures and the supplier's TRN are
+// returned for the supplier's own review and the internal record only.
+//
+// OPTIONS (founder, 14 Sep 2026: two options are two quotations). A heading row ("Option 1",
+// "Alternative B", "الخيار 2") starts an option; each line after it carries `option`, and a total
+// written inside an option is that option's total (option_totals). supplier_api splits on them.
 import type { Cell, Extracted } from '../_shared/doc_read/types.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
+import { OPTION_HEAD, optionAmount, optionNumber, splitOptions } from '../_shared/line_specs/options.ts';
+import { readVat, type VatTreatment } from '../_shared/line_specs/vat.ts';
 
-export type QuoteLine = { description: string; qty: string; amount: number | null };
+export type QuoteLine = { description: string; qty: string; amount: number | null; option?: number };
 export type Proposal = {
   amount: number | null; currency: 'AED'; line_items: QuoteLine[]; lead_time: string; validity: string;
   payment_terms: string; warranty: string; scope: string; conditions: string; exclusions: string; notes: string;
   description_anonymized: string; masked_terms: string[]; confidence: 'low'; method: 'document';
+  /** Internal record only; never shown to a customer. */
+  subtotal: number | null; vat_amount: number | null; total_incl_vat: number | null; vat_treatment: VatTreatment; price_ex_vat: number | null; trn: string | null;
+  options: { option_no: number; amount: number | null }[]; option_totals: Record<string, number>;
 };
 
 const num = (v: Cell): number | null => {
@@ -39,32 +54,45 @@ function roleOf(h: string): Col | null {
   if (/(description|particulars|item|scope|material|الوصف|البيان|البند)/.test(h)) return 'desc';
   return null;
 }
-const TOTAL = /(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl|^\s*(?:sub\s*)?total\b|الإجمالي|المجموع)/i;
+const SUBTOTAL = /sub\s*-?\s*total|total\s*(?:before|excl\w*\.?)\s*(?:of\s*)?vat|المجموع الفرعي|الإجمالي قبل الضريبة|الإجمالي غير شامل/i;
+const TOTAL = /(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl|^\s*total\b|الإجمالي|المجموع)/i;
 const VAT = /(vat|tax|ضريبة)/i;
 
-function tableQuote(rows: Cell[][], clean: (s: string) => string) {
+type Table = { lines: QuoteLine[]; totals: Record<string, number>; subtotal: number | null; vat: number | null };
+function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null {
   for (let r = 0; r < Math.min(rows.length, 30); r++) {
     const cols: Partial<Record<Col, number>> = {};
     (rows[r] || []).forEach((c, i) => { const k = roleOf(norm(c)); if (k && cols[k] === undefined) cols[k] = i; });
     if (cols.desc === undefined || (cols.amount === undefined && cols.rate === undefined)) continue;
     const lines: QuoteLine[] = [];
-    let total: number | null = null, grand = false;
+    const totals: Record<string, number> = {}; const grand: Record<string, boolean> = {};
+    let subtotal: number | null = null, vat: number | null = null, cur: number | null = null, seq = 0;
     for (const row of rows.slice(r + 1)) {
       const at = (k: Col) => (cols[k] === undefined ? '' : row[cols[k]!]);
-      const desc = clean(String(at('desc') ?? '').trim());
+      const raw = String(at('desc') ?? '').trim();
+      const desc = clean(raw);
       const rate = num(at('rate')), qty = num(at('qty'));
       const amount = num(at('amount')) ?? (rate != null && qty != null ? Math.round(rate * qty * 100) / 100 : null);
       const label = (row || []).map((c) => String(c ?? '')).join(' ');
-      if (TOTAL.test(label) && !VAT.test(label)) {
-        const v = amount ?? [...row].reverse().map(num).find((x) => x != null) ?? null;
-        if (v != null && (!grand || /grand/i.test(label))) { total = v; grand = /grand|net|incl/i.test(label); }
+      const lastNum = () => amount ?? [...row].reverse().map(num).find((x) => x != null) ?? null;
+      const key = cur == null ? 'all' : String(cur);
+      if (raw && OPTION_HEAD.test(raw) && amount == null && qty == null) {
+        cur = optionNumber(raw, seq + 1); seq = Math.max(seq, cur);
+        lines.push({ description: desc.slice(0, 300), qty: '', amount: null, option: cur });
+        continue;
+      }
+      if (SUBTOTAL.test(label)) { const v = lastNum(); if (v != null && cur == null) subtotal = v; continue; }
+      if (VAT.test(label) && !/incl/i.test(label) && !TOTAL.test(label)) { const v = lastNum(); if (v != null && cur == null) vat = v; continue; }
+      if (TOTAL.test(label)) {
+        const v = lastNum();
+        if (v != null && (!grand[key] || /grand/i.test(label))) { totals[key] = v; grand[key] = /grand|net|incl/i.test(label); }
         continue;
       }
       // A row with neither a quantity nor a price ("Lead time: 3 weeks") is a note, not a priced line.
       if (!desc || VAT.test(desc) || (amount == null && qty == null)) continue;
-      lines.push({ description: desc.slice(0, 300), qty: [at('qty'), at('unit')].map((x) => String(x ?? '').trim()).filter(Boolean).join(' ').slice(0, 40), amount });
+      lines.push({ description: desc.slice(0, 300), qty: [at('qty'), at('unit')].map((x) => String(x ?? '').trim()).filter(Boolean).join(' ').slice(0, 40), amount, ...(cur != null ? { option: cur } : {}) });
     }
-    if (lines.length) return { lines, total };
+    if (lines.some((l) => l.amount != null || l.qty)) return { lines, totals, subtotal, vat };
   }
   return null;
 }
@@ -91,10 +119,13 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = []): Proposa
     return scrubbed;
   };
   const texts: string[] = [];
-  let best: { lines: QuoteLine[]; total: number | null } | null = null;
+  let best: Table | null = null;
   const visit = (e: Extracted) => {
     if (e.text) texts.push(e.text);
-    for (const tb of e.tables) { const q = tableQuote(tb, clean); if (q && (!best || q.lines.length > best.lines.length)) best = q; }
+    for (const tb of e.tables) {
+      texts.push(tb.map((row) => (row || []).map((c) => String(c ?? '')).join(' ')).join('\n'));
+      const q = tableQuote(tb, clean); if (q && (!best || q.lines.length > best.lines.length)) best = q;
+    }
     for (const c of e.children) visit(c.doc);
   };
   visit(ex);
@@ -106,18 +137,28 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = []): Proposa
   let textTotal: number | null = null;
   for (const m of text.matchAll(/(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl[^\n:]*|\btotal\b|الإجمالي|المجموع)[^\d\n]{0,40}([\d][\d,]*(?:\.\d+)?)/gi)) {
     if (VAT.test(m[0]) && !/incl/i.test(m[0])) continue;
+    if (SUBTOTAL.test(m[0])) continue;
     const v = num(m[2]);
     if (v != null && (textTotal == null || /grand|net|incl/i.test(m[1]))) textTotal = v;
   }
-  const b = best as { lines: QuoteLine[]; total: number | null } | null;
-  const sum = b ? b.lines.reduce((s, l) => s + (l.amount || 0), 0) : 0;
-  const amount = b?.total ?? textTotal ?? (sum > 0 ? Math.round(sum * 100) / 100 : null);
+  const b = best as Table | null;
+  const plain = b ? b.lines.filter((l) => l.amount != null || l.qty) : [];
+  const sum = plain.reduce((s, l) => s + (l.amount || 0), 0);
+  const gross = b?.totals.all ?? textTotal ?? (sum > 0 ? Math.round(sum * 100) / 100 : null);
+  const vat = readVat({ amount: gross, subtotal: b?.subtotal ?? null, vat_amount: b?.vat ?? null, text });
+  const option_totals: Record<string, number> = {};
+  for (const [k, v] of Object.entries(b?.totals ?? {})) if (k !== 'all') option_totals[k] = v;
+  const split = b && b.lines.some((l) => l.option != null) ? splitOptions(b.lines, option_totals) : [];
+  const options = split.length > 1 ? split.map((o) => ({ option_no: o.option_no, amount: optionAmount(o) })) : [];
   const p: Proposal = {
-    amount, currency: 'AED', line_items: b ? b.lines.slice(0, 200) : [], lead_time: '', validity: '', payment_terms: '', warranty: '',
-    scope: '', conditions: '', exclusions: '', description_anonymized: '', masked_terms: [], confidence: 'low', method: 'document',
-    notes: `Read from the ${ex.kind.toUpperCase()} file with no model${b ? `: ${b.lines.length} priced line(s)` : ''}. Please check every figure before sending.`,
+    amount: options.length ? options[0].amount : (vat.price_ex_vat ?? gross), currency: 'AED', line_items: b ? b.lines.slice(0, 200) : [],
+    lead_time: '', validity: '', payment_terms: '', warranty: '', scope: '', conditions: '', exclusions: '', description_anonymized: '', masked_terms: [], confidence: 'low', method: 'document',
+    notes: `Read from the ${ex.kind.toUpperCase()} file with no model${b ? `: ${plain.length} priced line(s)` : ''}${options.length ? `, ${options.length} options (each is sent as its own quotation)` : ''}. Please check every figure before sending.`,
+    subtotal: b?.subtotal ?? null, vat_amount: vat.vat_amount, total_incl_vat: vat.vat_amount && gross ? gross : null, vat_treatment: vat.treatment,
+    price_ex_vat: options.length ? null : vat.price_ex_vat, trn: vat.trn, options, option_totals,
   };
   for (const [k, re] of FIELD) { const m = text.match(re); if (m) (p as Record<string, unknown>)[k] = clean(m[1].trim()).slice(0, 200); }
+  if (vat.trn) masked.add('TRN');
   p.masked_terms = [...masked];
   return p;
 }

@@ -30,6 +30,7 @@
 import { arTrade, arUnit as glossaryUnit, arCount as glossaryCount, arAttr, CATEGORY_AR, CATEGORY_EN, WORKING_FORMS, UNIT_FORMS, type Unit } from './trade_glossary_ar.ts';
 import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.ts';
 
+import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 export type Lang = 'en' | 'ar';
 /** The version printed in each document's control line. Bump when the layout or wording changes. */
 export const DOC_VERSION = 'v2.0';
@@ -50,6 +51,9 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   t = t.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, H);
   t = t.replace(/\b(?:https?:\/\/|www\.)\S+/gi, H);
   t = t.replace(/\b[\w-]+\.(?:com|ae|net|org|co)(?:\.[a-z]{2})?\b/gi, H);
+  // A TRN or licence number finds the company on a public register (founder, 14 Sep 2026). Before
+  // the phone patterns, which would otherwise take a 15-digit TRN apart and leave its label behind.
+  t = t.replace(TRN_LABELLED, H).replace(TRN_BARE, H).replace(LICENCE_NO, H);
   // UAE numbers in every usual spelling, then any international-looking run of 9+ digits.
   t = t.replace(/(?:\+|00)?971[\s-]?\(?0?\)?[\s-]?\d(?:[\s-]?\d){6,8}\b/g, H);
   t = t.replace(/\b0[2-9](?:[\s-]?\d){7,8}\b/g, H);
