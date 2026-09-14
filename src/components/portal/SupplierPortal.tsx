@@ -2,7 +2,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { urlLocale, applyDocumentLocale, adoptLocale } from '@/lib/documentLocale';
-import { createClient } from '@supabase/supabase-js';
+import { supaClient } from '@/lib/supaClient';
 // 14 Sep 2026: the row-#5 intelligence panels are no longer top-level tabs; ./supplier/Insights loads
 // the ones whose routine has something to show, each on demand. The AI onboarding chat
 // (SupplierOnboarding) is not reachable while the OpenRouter hold stands — it has no model to call,
@@ -30,8 +30,8 @@ import { BrandMark } from '@/components/BrandMark';
 
 // Same as the customer portal: an inline production fallback meant an unconfigured preview let
 // suppliers upload trade licences into the LIVE database. See supaEnv.
-import { SUPA_URL as URL, SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
-const SB = createClient(URL, ANON, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'qd-portal-auth' } });
+import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+const SB = () => supaClient('qd-portal-auth');
 
 // call() lives in ./supplier/api.ts, shared with the journey, RFQ and insights components.
 // Every field carries a <label> (audit 2026-09-14: three unlabeled fields, the Emirate <select> with
@@ -515,13 +515,13 @@ export function SupplierPortal() {
     } catch (_e) {}
     try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
     try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
-    SB.auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {});
+    try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {}); } catch (_e) {}
     // THE HOUR MARK (14 Sep 2026). supabase-js refreshes the access token on schedule, and nothing here
     // listened — the customer portal learned this on 13 Aug; the supplier portal still sent the token
     // captured at mount, so after 60 minutes every tab answered "Something went wrong". One listener,
     // moving forward only: SIGNED_OUT carries no token and is not a refresh failure.
     let sub;
-    try { sub = SB.auth.onAuthStateChange((_evt, ss) => { const at = ss && ss.access_token; if (!at) return; setToken(at); try { localStorage.setItem('qd-sup-token', at); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} }); } catch (_e) {}
+    try { sub = SB().auth.onAuthStateChange((_evt, ss) => { const at = ss && ss.access_token; if (!at) return; setToken(at); try { localStorage.setItem('qd-sup-token', at); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} }); } catch (_e) {}
     return () => { try { sub && sub.data && sub.data.subscription && sub.data.subscription.unsubscribe(); } catch (_e) {} };
   }, []);
   // The root element, not only this div, carries the language: it is what a screen reader reads.
@@ -530,12 +530,12 @@ export function SupplierPortal() {
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
-  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
-  const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
+  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
+  const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401 from the dashboard: try the stored refresh token once, and only if that fails send the
   // supplier back to sign-in — never leave them on a retry button that cannot succeed.
   const onExpired = async () => {
-    try { const { data } = await SB.auth.refreshSession(); const ss = data && data.session; if (ss && ss.access_token) { onAuth(ss.access_token, ss.refresh_token); return; } } catch (_e) {}
+    try { const { data } = await SB().auth.refreshSession(); const ss = data && data.session; if (ss && ss.access_token) { onAuth(ss.access_token, ss.refresh_token); return; } } catch (_e) {}
     doSignOut();
   };
   const rtl = lang === 'ar';
