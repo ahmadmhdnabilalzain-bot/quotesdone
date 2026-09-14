@@ -10,6 +10,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { boqFromPages } from './boq_from_text.ts';
+import { boqFromSheet } from './boq_from_sheet.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -38,6 +39,12 @@ Deno.serve(observe('drawing_boq', async (req) => {
     const __auth = await requireInternal(admin, body?.__secret, 'drawing_boq');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
     const hint = body.hint ? String(body.hint).slice(0,400) : '';
+    // 14 Sep 2026. A BOQ SPREADSHEET the customer attached (customer_api analyze_boq). It is already a
+    // table of quantities, so it is read cell by cell with no model and no key, before anything below.
+    if (body.mode === 'sheet') {
+      const r = boqFromSheet(String(body.file_b64 || ''), String(body.mime || ''), String(body.filename || ''), hint);
+      return r.ok ? J({ ok: true, boq: r.boq }) : J({ ok: false, error: r.error, detail: r.detail }, 422);
+    }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below
     // returned ai_error on every drawing and the customer's file never informed the brief (website
     // audit 14 Sep, finding 3). A PDF drawing usually carries its schedules and area tags as real
