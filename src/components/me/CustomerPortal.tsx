@@ -411,7 +411,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false);
   // WHY THIS IS NO LONGER A `view`. Messages and Projects were whole-surface early returns: opening
   // either REPLACED the dashboard, which is the full-page navigation §21 asks the portal not to
-  // have — and it also stranded the intake assistant, because a branch that returns before the
+  // have — and it also stranded the intake chat, because a branch that returns before the
   // assistant's mount can never render it. Every module now opens in a window OVER the dashboard,
   // so the KPIs, the alerts and the assistant stay mounted underneath and no module needs a
   // "back to requests" button to undo a navigation that never happened.
