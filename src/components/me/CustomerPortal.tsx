@@ -1,6 +1,7 @@
 // @ts-nocheck
 'use client';
 import { useEffect, useState, useRef } from 'react';
+import { urlLocale, applyDocumentLocale, adoptLocale } from '@/lib/documentLocale';
 import { createClient } from '@supabase/supabase-js';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -47,6 +48,7 @@ import { parseQuoteLink, resolveQuoteLink } from '@/lib/portalLink';
 // in-page confirm each live in their own file under src/components/me; this file wires them in.
 import { NewRequest } from './NewRequest';
 import { Clarifications } from './Clarifications';
+import { SpecOffer } from './SpecOffer';
 import { RevealGuarantee } from './RevealGuarantee';
 import { QuoteBadges } from '@/components/QuoteBadges';
 import { useConfirm } from './ConfirmDialog';
@@ -80,7 +82,11 @@ const warmDashboard = (tk, lang) => {
   warm(tk, 'threads', () => call('messages_api', { action: 'threads' }, tk));
   warm(tk, 'decision_support', () => call('customer_portal', { action: 'decision_support', lang }, tk));
 };
-function initLang(){ try{ if(typeof window==='undefined') return 'en'; const ls=localStorage.getItem('qd-lang'); if(ls) return ls; const m=document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/); if(m && String(m[1]).startsWith('ar')) return 'ar'; }catch(_e){} return 'en'; }
+// Before sign-in the URL decides - it is what the [locale] layout already rendered, so the page never
+// flips. This read localStorage and the NEXT_LOCALE cookie only; in a fresh browser both are empty,
+// so /ar/me opened English and dir=ltr (e2e journey a, 14 Sep 2026). After sign-in the registered
+// language decides (onServedLocale). src/lib/documentLocale.ts.
+function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
 import { t, tf, errText, emirateName } from './portalText';
 // The account rule itself, not a copy: the same function customer_api create_inquiry gates on.
 import { accountMissing } from '../../../supabase/functions/_shared/account_rule';
@@ -198,7 +204,7 @@ export function CustomerPortal() {
   // Switching language while signed in IS a change of the registered language (founder, 14 Sep 2026:
   // the registered language follows every message), so it is saved to customers.locale exactly as
   // Account settings saves it. Signed out, it only changes this page.
-  const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} setLangState(l); if (token) call('customer_api', { action: 'set_locale', locale: l }, token).then((j) => { if (!j || !j.ok) console.error('set_locale refused - customers.locale unchanged', j); }).catch((e) => console.error('set_locale failed - customers.locale unchanged', e)); };
+  const setLang = (l) => { try { localStorage.setItem('qd-lang', l); } catch (_e) {} adoptLocale(l, setLangState); if (token) call('customer_api', { action: 'set_locale', locale: l }, token).then((j) => { if (!j || !j.ok) console.error('set_locale refused - customers.locale unchanged', j); }).catch((e) => console.error('set_locale failed - customers.locale unchanged', e)); };
 
   // THE DOCUMENT ITSELF NEVER LEARNED IT HAD SWITCHED LANGUAGE (13 Aug 2026). Measured in the
   // browser with the portal fully in Arabic: document.documentElement.dir was "ltr" and .lang was
@@ -207,11 +213,7 @@ export function CustomerPortal() {
   // and pronunciation rules, so an Arabic portal was being announced as English. It is also what
   // the browser uses for hyphenation, quotation marks, and the direction of anything that does not
   // carry a dir of its own. The panels keep their local dir; this sets the thing above them.
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    document.documentElement.lang = lang === 'ar' ? 'ar' : 'en';
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  }, [lang]);
+  useEffect(() => { applyDocumentLocale(lang); }, [lang]);
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
   // THE STORED PROFILE LOCALE. customers.locale has existed all along and the portal could not
   // honour it: my_inquiries did not serve it (fixed 5 Aug 2026) and this component decided language
@@ -227,9 +229,11 @@ export function CustomerPortal() {
   const onServedLocale = (l) => {
     if (l !== 'ar' && l !== 'en') return;
     try { localStorage.setItem('qd-lang', l); } catch (_e) {}
-    setLangState(l);
+    adoptLocale(l, setLangState);
   };
-  const onAuth = (access, refresh) => { try { localStorage.setItem('qd-cust-token', access || ''); if (refresh) localStorage.setItem('qd-cust-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
+  // login_otp returns the account's registered language with the session, so the first dashboard
+  // paint is already in it; the dashboard's own fetch then confirms it (onServedLocale).
+  const onAuth = (access, refresh, locale) => { onServedLocale(locale); try { localStorage.setItem('qd-cust-token', access || ''); if (refresh) localStorage.setItem('qd-cust-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
   const doSignOut = () => { try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
   const rtl = lang === 'ar';
   if (!mounted) return null;
@@ -296,7 +300,7 @@ function Login({ onAuth, lang }) {
   const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
     try { const g = await call('role_guard', { user_kind: 'customer', identifier: v }); if (g && g.conflict === 'supplier') { setBusy(false); setMsg(t(lang, 'conflict_supplier')); return; } } catch (_e) {}
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(errText(j, lang, 'err_code_send')); };
-  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim(), lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
+  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim(), lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token, j.locale); };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (<AuthShell lang={lang}><Card className="relative w-full overflow-hidden p-6 shadow-e3 sm:p-8">
     <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
@@ -1025,6 +1029,10 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
     </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
     <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} />
+    {/* No supplier could quote the exact spec (founder_instruction #321): the customer picks an
+        alternative or says no. OUTSIDE the collapsible details on purpose — a question the customer
+        has to open the card to find is a question that goes unanswered, and the reply window runs. */}
+    {inq.spec_offers && inq.spec_offers.length ? <div className="mt-3"><SpecOffer inq={inq} token={token} lang={lang} call={call} onDone={onChange} /></div> : null}
     {open && <div className="mt-3 border-t border-border pt-3 flex flex-col gap-3">
       <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
       <QuoteSpread quotes={quotes} lang={lang} />
@@ -1635,6 +1643,7 @@ function AccountSettings({ token, lang, onChanged }) {
               disabled={busy === 'loc' || me.locale === code} onClick={() => saveLocale(code)}>{labelText}</Button>
           ))}
         </div>
+        <div className="mt-1 text-[11.5px] text-muted-foreground">{t(lang, 'lang_note')}</div>
       </Row>
       <Row label={t(lang, 'acct_since')}><div className="text-[13px] text-foreground">{since || '—'}</div></Row>
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3.5">

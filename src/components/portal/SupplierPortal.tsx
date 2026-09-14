@@ -1,6 +1,7 @@
 // @ts-nocheck
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { urlLocale, applyDocumentLocale, adoptLocale } from '@/lib/documentLocale';
 import { createClient } from '@supabase/supabase-js';
 // 14 Sep 2026: the row-#5 intelligence panels are no longer top-level tabs; ./supplier/Insights loads
 // the ones whose routine has something to show, each on demand. The AI onboarding chat
@@ -240,8 +241,7 @@ const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 // The URL decides the language (14 Sep 2026). /ar/portal must render Arabic and /portal English, the
 // same as every other page and the same as the page's own <title>; a remembered localStorage choice
 // used to override the URL, so a shared /ar/portal link could open in English.
-function initLang(){ try{ if(typeof window==='undefined') return 'en'; return /^\/ar(\/|$)/.test(window.location.pathname) ? 'ar' : 'en'; }catch(_e){} return 'en'; }
-function switchLang(to){ try{ localStorage.setItem('qd-lang', to); document.cookie = 'NEXT_LOCALE=' + to + ';path=/;max-age=31536000;samesite=lax'; }catch(_e){} const p = window.location.pathname.replace(/^\/ar(?=\/|$)/, '') || '/'; window.location.href = (to === 'ar' ? '/ar' : '') + (p === '/' && to === 'ar' ? '' : p) + window.location.search; }
+function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
 // Typography and chrome carry the platform's voice: display weights are optically
 // tightened, body copy keeps a readable measure, and the tab bar is an inset well
 // with a RAISED active pill rather than a tinted one — so the current tab reads as
@@ -439,9 +439,16 @@ function CapabilityConfirmPanel({ token, lang }) {
   );
 }
 
+const LANG_NOTE = { en: 'The portal follows your account language. Switching here updates it (EN/AR).', ar: 'تتبع البوابة لغة حسابك، والتبديل هنا يحدّث لغة الحساب.' };
 export function SupplierPortal() {
   const [lang, setLang] = useState('en');
   const [token, setToken] = useState('');
+  const switchSupplierLang = (l) => {
+    adoptLocale(l, setLang);
+    if (token) call('supplier_api', { action: 'save_settings', locale: l }, token)
+      .then((j) => { if (!j || !j.ok) console.error('save_settings refused - leads.locale unchanged', j); })
+      .catch((e) => console.error('save_settings failed - leads.locale unchanged', e));
+  };
   const [phase, setPhase] = useState('login');
   const [mounted, setMounted] = useState(false);
   const [invite, setInvite] = useState(null);
@@ -483,7 +490,7 @@ export function SupplierPortal() {
     if (phase !== 'app' || !token) return;
     call('supplier_api', { action: 'settings' }, token).then((j) => {
       const l = j && j.ok && j.settings ? j.settings.locale : null;
-      if ((l === 'ar' || l === 'en') && l !== initLang()) switchLang(l);
+      if (l === 'ar' || l === 'en') adoptLocale(l, setLang);   // leads.locale, as the customer portal applies customers.locale
       else if (!(j && j.ok)) console.error('supplier settings unavailable - portal language left as the URL gives it', j);
     }).catch((e) => console.error('supplier settings failed - portal language left as the URL gives it', e));
   }, [phase, token]);
@@ -518,12 +525,12 @@ export function SupplierPortal() {
     return () => { try { sub && sub.data && sub.data.subscription && sub.data.subscription.unsubscribe(); } catch (_e) {} };
   }, []);
   // The root element, not only this div, carries the language: it is what a screen reader reads.
-  useEffect(() => { try { document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'; } catch (_e) {} }, [lang]);
+  useEffect(() => { applyDocumentLocale(lang); }, [lang]);
   // Light/dark is a per-device choice, the same key and the same .osx[data-theme] palette as the
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
-  const onAuth = (access, refresh) => { try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
+  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB.auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB.auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401 from the dashboard: try the stored refresh token once, and only if that fails send the
   // supplier back to sign-in — never leave them on a retry button that cannot succeed.
@@ -547,7 +554,7 @@ export function SupplierPortal() {
           <span>QuotesDone <span className="hidden sm:inline font-mono text-[10.5px] font-semibold uppercase tracking-[0.18em] text-primary align-middle">{t(lang, 'brand_sub')}</span></span>
         </a>
         <div className="flex gap-2 items-center shrink-0">
-          <Button variant="outline" size="sm" lang={lang === 'ar' ? 'en' : 'ar'} onClick={() => switchLang(lang === 'ar' ? 'en' : 'ar')}>{lang === 'ar' ? 'EN' : 'عربي'}</Button>
+          <Button variant="outline" size="sm" lang={lang === 'ar' ? 'en' : 'ar'} title={token ? LANG_NOTE[lang === 'ar' ? 'ar' : 'en'] : undefined} onClick={() => switchSupplierLang(lang === 'ar' ? 'en' : 'ar')}>{lang === 'ar' ? 'EN' : 'عربي'}</Button>
           <Button variant="outline" size="sm" onClick={swapTheme} aria-pressed={theme === 'light'} aria-label={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')} title={theme === 'dark' ? (rtl ? 'الوضع الفاتح' : 'Light mode') : (rtl ? 'الوضع الداكن' : 'Dark mode')}><span aria-hidden>{theme === 'dark' ? '☀' : '☾'}</span></Button>
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex"><a href={rtl ? '/ar' : '/'}>{t(lang, 'home')}</a></Button>
           {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
@@ -609,7 +616,7 @@ function Login({ onAuth, lang, startMode }) {
   const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
     try { const g = await call('role_guard', { user_kind: 'supplier', identifier: v }); if (g && g.conflict === 'customer') { setBusy(false); setMsg(t(lang, 'conflict_customer')); return; } } catch (_e) {}
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg((j && j.error) || t(lang, 'err_code_send')); };
-  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token); };
+  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token, j.locale); };
   const swap = (m) => { swapped.current = true; setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (
     <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
@@ -763,7 +770,7 @@ function Dashboard({ token, lang, onExpired }) {
       {tab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
       {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
       {tab === 'scope' && <CapabilityConfirmPanel token={token} lang={lang} />}
-      {tab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={switchLang} />}
+      {tab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={(l) => adoptLocale(l, setLang)} />}
     </div>
   );
 }

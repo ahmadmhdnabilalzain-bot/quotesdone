@@ -39,12 +39,18 @@ async function probe(label, capTrades, requested) {
     await sql(`do $probe$
       declare v_id bigint; v_n int; v_demo boolean;
       begin
-        v_id := (select coalesce(max(id), 0) from public.leads) + 1000000;
-        insert into public.leads (id, company_name, email, verified, approval_status)
-        values (v_id, 'ZZ DEMO routing probe ' || ${q(label)}, 'routing-probe-' || public.fn_trade_code(${q(label)}) || '@example.invalid', true, 'approved');
+        -- leads.id is GENERATED ALWAYS; the probe rolls back, so the id it takes is never kept.
+        insert into public.leads (company_name, email, verified, approval_status)
+        values ('ZZ DEMO routing probe ' || ${q(label)}, 'routing-probe-' || public.fn_trade_code(${q(label)}) || '@example.invalid', true, 'approved')
+        returning id into v_id;
         select is_demo into v_demo from public.leads where id = v_id;
-        insert into public.supplier_capabilities (supplier_id, trades, roles, confirmed_at)
-        values (v_id, ${capTrades}, array['contractor','installer','supplier'], now());
+        -- A trade that legally needs an approval (fire_fighting: civil_defence, security_systems: sira)
+        -- is only matched to a supplier holding it, so the probe supplier holds what its trades need.
+        insert into public.supplier_capabilities (supplier_id, trades, roles, confirmed_at, authority_approvals)
+        values (v_id, ${capTrades}, array['contractor','installer','supplier'], now(),
+                (select coalesce(jsonb_object_agg(a, true), '{}'::jsonb)
+                   from public.taxonomy_trade t, unnest(t.authority_required) a
+                  where t.code = any(${capTrades})));
         select count(*) into v_n
           from public.fn_match_capability(public.fn_taxonomy_trades_for(array[${q(requested)}]), 'executes', '{}'::text[], '{}'::text[], null, null, 'Dubai', 60) m
          where m.supplier_id = v_id;
@@ -53,7 +59,8 @@ async function probe(label, capTrades, requested) {
     return { invited: null, note: 'no exception at all' };
   } catch (e) {
     const m = String(e?.message || e).match(/CHK<<invited=(\d+) demo=(\w+)>>/);
-    return m ? { invited: Number(m[1]), demo: m[2] === 'true' } : { invited: null, note: String(e?.message || e).slice(0, 200) };
+    // RAISE prints a boolean as t/f, not true/false.
+    return m ? { invited: Number(m[1]), demo: m[2] === 't' || m[2] === 'true' } : { invited: null, note: String(e?.message || e).slice(0, 200) };
   }
 }
 /** Registered the way the portal registers a picked trade: the taxonomy code(s) of that trade. */
