@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T16:37:57.876Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T17:30:19.641Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -5814,12 +5814,15 @@ CREATE TABLE IF NOT EXISTS public.screening_run (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS public.seat_handoff_window (
+CREATE TABLE IF NOT EXISTS public.seat_handoff_kind (
   type text NOT NULL,
   from_seat text NOT NULL,
-  reply_within interval NOT NULL,
-  originator_closes boolean NOT NULL,
-  note text NOT NULL
+  to_seat text NOT NULL,
+  meaning text NOT NULL,
+  handler text NOT NULL,
+  reply_within interval,
+  originator_closes boolean DEFAULT false NOT NULL,
+  owner_file text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.security_advisor_baseline (
@@ -7226,7 +7229,7 @@ ALTER TABLE public.scope_disposition_kind ADD CONSTRAINT scope_disposition_kind_
 ALTER TABLE public.scrape_runs ADD CONSTRAINT scrape_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_pkey PRIMARY KEY (id);
 ALTER TABLE public.screening_run ADD CONSTRAINT screening_run_pkey PRIMARY KEY (id);
-ALTER TABLE public.seat_handoff_window ADD CONSTRAINT seat_handoff_window_pkey PRIMARY KEY (type, from_seat);
+ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_pkey PRIMARY KEY (type, from_seat, to_seat);
 ALTER TABLE public.security_advisor_baseline ADD CONSTRAINT security_advisor_baseline_pkey PRIMARY KEY (cache_key);
 ALTER TABLE public.security_audit_log ADD CONSTRAINT security_audit_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.security_events ADD CONSTRAINT security_events_pkey PRIMARY KEY (id);
@@ -7659,7 +7662,11 @@ ALTER TABLE public.sales_knowledge ADD CONSTRAINT sales_knowledge_authority_ck C
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'knowledge_added'::text, 'not_a_gap'::text])));
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_entry_type_check CHECK ((entry_type = ANY (ARRAY['individual'::text, 'entity'::text])));
 ALTER TABLE public.screening_run ADD CONSTRAINT screening_run_status_check CHECK ((status = ANY (ARRAY['ok'::text, 'failed'::text, 'unparseable'::text])));
-ALTER TABLE public.seat_handoff_window ADD CONSTRAINT seat_handoff_window_reply_within_check CHECK ((reply_within > '00:00:00'::interval));
+ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_handler_check CHECK ((handler ~ '^fn_[a-z0-9_]+$'::text));
+ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_meaning_check CHECK ((btrim(meaning) <> ''::text));
+ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_owner_file_check CHECK ((owner_file ~ '^scripts/sql/[a-z0-9_]+\.sql$'::text));
+ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_reply_within_check CHECK ((reply_within > '00:00:00'::interval));
+ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_type_check CHECK ((type ~ '^[a-z]+(\.[a-z_]+)+$'::text));
 ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_clickable CHECK ((((image_url IS NOT NULL) OR (media_missing IS NOT NULL)) AND ((NOT ((mode = 'now'::text) AND (status = ANY (ARRAY['sent'::text, 'published'::text])))) OR ((permalinks IS NOT NULL) AND (permalinks <> '{}'::jsonb)) OR (permalink_missing IS NOT NULL))));
@@ -22381,6 +22388,19 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_customer_by_whatsapp_sender(p_phone text)
+ RETURNS SETOF uuid
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select c.id from public.customers c
+   where length(regexp_replace(coalesce(p_phone, ''), '\D', '', 'g')) >= 8
+     and c.phone_verified is true
+     and regexp_replace(coalesce(c.phone, ''), '\D', '', 'g') = regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_counts()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -24258,6 +24278,22 @@ begin
     end if;
   end if;
   return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_delivery_result_acts(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff' and detail->>'type' = 'delivery.result';
+  if not found then raise exception 'fn_delivery_result_acts: % is not a delivery.result handoff', p_id; end if;
+  return case when a.agent = 'sales_engineer' and a.detail->>'result' in ('proof_of_response', 'no_response_confirmation')
+              then public.fn_sales_engineer_acts_on_handoff(p_id) else '{}'::jsonb end
+         || public.fn_originator_checks_delivery(p_id);
 end $function$
 
 
@@ -30574,7 +30610,7 @@ declare
   h public.agent_actions; f public.it_engineer_finding; v_window interval; v_rep jsonb; v_cleared boolean;
   n_closed int := 0; n_esc int := 0; n_wait int := 0;
 begin
-  select reply_within into v_window from public.seat_handoff_window where type = 'it.finding' and from_seat = 'it_engineer';
+  select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
   for h in select * from public.agent_actions
             where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
               and status in ('pending', 'failed') order by id loop
@@ -36486,16 +36522,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -36666,6 +36692,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -41537,13 +41573,11 @@ CREATE OR REPLACE FUNCTION public.fn_seat_handoff(p_from text, p_to text, p_type
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_id bigint; v_key text := p_type || ':' || p_subject_id;
+declare v_id bigint; v_key text := p_type || ':' || p_subject_id; v_known boolean;
 begin
-  if not exists (select 1 from public.fn_seat_handoff_types() h
-                  where h.type = p_type and h.from_seat = p_from and h.to_seat = p_to) then
-    raise exception 'no such handoff: % from % to % (fn_seat_handoff_types lists every conversation the seats have)', p_type, p_from, p_to;
-  end if;
   if coalesce(btrim(p_subject_id), '') = '' then raise exception 'a handoff must name its subject'; end if;
+  v_known := exists (select 1 from public.seat_handoff_kind k
+                      where k.type = p_type and k.from_seat = p_from and k.to_seat = p_to);
 
   select id into v_id from public.agent_actions
    where kind = 'handoff' and agent = p_to and target_id = v_key and status <> 'failed'
@@ -41551,13 +41585,27 @@ begin
   if v_id is not null then return v_id; end if;
 
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
-  values (p_to, 'handoff', 'pending', 'low',
+  values (p_to, 'handoff', case when v_known then 'pending' else 'failed' end, 'low',
           left(p_type || ' from ' || p_from || ' about ' || p_subject_table || ' ' || p_subject_id, 200),
           coalesce(p_payload, '{}'::jsonb) || jsonb_build_object(
             'type', p_type, 'from', p_from, 'from_name', p_from, 'to', p_to,
-            'subject_table', p_subject_table, 'subject_id', p_subject_id),
+            'subject_table', p_subject_table, 'subject_id', p_subject_id)
+          || case when v_known then '{}'::jsonb
+                  else jsonb_build_object('error', 'unregistered handoff kind: no row in public.seat_handoff_kind') end,
           p_subject_table, v_key)
   returning id into v_id;
+
+  if not v_known then
+    perform public.fn_seat_handoff_event(v_id, 'failed');
+    perform public.fn_it_engineer_finding_upsert(
+      'monitor:unregistered_handoff_kind:' || p_type || ':' || p_from || ':' || p_to,
+      'Unregistered handoff kind: ' || p_from || ' tried to start "' || p_type || '" with ' || p_to,
+      'public.fn_seat_handoff (caller: ' || p_from || ')', 'agent_facing', 1,
+      jsonb_build_object('type', p_type, 'from', p_from, 'to', p_to, 'handoff_id', v_id, 'owner_seat', 'ceo',
+                         'fix', 'insert the conversation into public.seat_handoff_kind with its handler, in the file of the build that starts it'),
+      '{}'::text[], array['which build starts this conversation and which handler answers it'], 'fn_seat_handoff');
+    return v_id;
+  end if;
   perform public.fn_seat_handoff_event(v_id, 'sent');
 
   -- THE RECEIVING SEAT ACTS NOW. A failure is recorded on the row and in the stream and never
@@ -41581,31 +41629,21 @@ CREATE OR REPLACE FUNCTION public.fn_seat_handoff_act(p_id bigint)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare a public.agent_actions; v jsonb; v_originator_closes boolean;
+declare a public.agent_actions; k public.seat_handoff_kind; v jsonb;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff' for update;
   if not found then raise exception 'no handoff %', p_id; end if;
   if a.status = 'done' then return a.evidence; end if;
 
-  if a.detail->>'type' = 'delivery.result' then
-    -- The delivery loop (customer_support's build): the originator checks what became of its send.
-    v := case when a.agent = 'sales_engineer' and a.detail->>'result' in ('proof_of_response', 'no_response_confirmation')
-              then public.fn_sales_engineer_acts_on_handoff(p_id) else '{}'::jsonb end
-         || public.fn_originator_checks_delivery(p_id);
-  elsif a.detail->>'type' = 'it.finding' then
-    v := public.fn_seat_answers_it_finding(p_id);
-  else
-    v := case a.agent
-           when 'sales_engineer'   then public.fn_sales_engineer_acts_on_handoff(p_id)
-           when 'accountant'       then public.fn_accountant_acts_on_handoff(p_id)
-           when 'customer_support' then public.fn_customer_support_acts_on_handoff(p_id)
-           else null end;
+  select * into k from public.seat_handoff_kind
+   where type = a.detail->>'type' and from_seat = a.detail->>'from' and to_seat = a.agent;
+  if not found then
+    raise exception 'no conversation % from % to % in public.seat_handoff_kind', a.detail->>'type', a.detail->>'from', a.agent;
   end if;
-  if v is null then raise exception 'seat % has no handler for %', a.agent, a.detail->>'type'; end if;
+  execute format('select public.%I($1)', k.handler) into v using p_id;
+  if v is null then raise exception '% answered nothing for handoff %', k.handler, p_id; end if;
 
-  select w.originator_closes into v_originator_closes from public.seat_handoff_window w
-   where w.type = a.detail->>'type' and w.from_seat = a.detail->>'from';
-  if v ? 'waiting' or coalesce(v_originator_closes, false) then
+  if v ? 'waiting' or k.originator_closes then
     update public.agent_actions
        set detail = detail || jsonb_build_object('awaiting', coalesce(v->>'waiting', a.detail->>'from' || ' re-verification'),
                                                  'replied_at', now()),
@@ -41668,44 +41706,10 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_seat_handoff_types()
  RETURNS TABLE(type text, from_seat text, to_seat text, meaning text)
  LANGUAGE sql
- IMMUTABLE
+ STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  values
-    ('reveal.paid',              'accountant',       'sales_engineer',   'A reveal charge settled at Stripe: tell the customer the contact is released and the supplier that they were revealed.'),
-    ('payment.failed',           'accountant',       'sales_engineer',   'A reveal checkout expired or failed: tell the customer nothing was charged and how to try again.'),
-    ('payment.received',         'accountant',       'sales_engineer',   'A supplier paid an outstanding charge or the registration fee: confirm it to them.'),
-    ('refund.request_checked',   'accountant',       'sales_engineer',   'The books checked a refund request: acknowledge it to the customer.'),
-    ('refund.paid',              'accountant',       'sales_engineer',   'A refund settled: tell the customer what came back and when the bank shows it.'),
-    ('refund.declined',          'accountant',       'sales_engineer',   'A refund was declined: tell the customer why.'),
-    ('refund.in_progress',       'accountant',       'sales_engineer',   'A refund is approved but not settled after a retry: tell the customer it is in progress.'),
-    ('nonresponse.charge_raised','accountant',       'sales_engineer',   'The non-response charge was raised: tell the supplier the figures.'),
-    ('charge.corrected',         'accountant',       'sales_engineer',   'A charge already sent was wrong: send a correction to whoever got the original.'),
-    ('subscription.due',         'accountant',       'sales_engineer',   'The yearly registration fee fell due: tell the supplier.'),
-    ('billing.answer',           'accountant',       'sales_engineer',   'The books answered a billing question: relay it.'),
-    ('charge.dispute_answer',    'accountant',       'sales_engineer',   'The books checked a disputed charge: relay the result to the supplier.'),
-    ('refund.requested',         'sales_engineer',   'accountant',       'A customer asked for a refund in the portal: check the money behind it.'),
-    ('billing.question',         'sales_engineer',   'accountant',       'A customer or supplier asked about a charge, an invoice or a refund: read the books.'),
-    ('charge.disputed',          'sales_engineer',   'accountant',       'A supplier disputed a charge: recompute it from the refund record.'),
-    ('refund.remediate',         'ceo',              'accountant',       'The CEO refused approval on a money check the accountant owns: fix it and report back.'),
-    ('refund.remediate',         'ceo',              'sales_engineer',   'The CEO refused approval on a ladder check the sales engineer owns: fix it and report back.'),
-    ('incident.fix',             'ceo',              'accountant',       'Post-payment re-verification found a mismatch: apply the fix the playbook names.'),
-    ('delivery.request',         'sales_engineer',   'customer_support', 'Deliver these words to a customer or supplier through the outbox, and watch for the reply when asked.'),
-    ('delivery.request',         'ceo',              'customer_support', 'Deliver this summary to the founder on his command channel.'),
-    ('delivery.request',         'accountant',       'customer_support', 'Deliver this money exception to the founder on his command channel.'),
-    ('delivery.request',         'it_engineer',      'customer_support', 'Deliver this platform notice to the founder.'),
-    ('delivery.request',         'customer_support', 'customer_support', 'Support''s own notice (a receipt, a contact-form alert): queued, and checked like any other.'),
-    ('delivery.result',          'customer_support', 'sales_engineer',   'What came back: proof the supplier responded, confirmation that nothing did, or what became of the send.'),
-    ('delivery.result',          'customer_support', 'accountant',       'What became of the send the accountant asked for: delivered with the provider''s id, or why not.'),
-    ('delivery.result',          'customer_support', 'ceo',              'What became of the send the CEO asked for: delivered with the provider''s id, or why not.'),
-    ('delivery.result',          'customer_support', 'it_engineer',      'What became of the send the IT engineer asked for: delivered with the provider''s id, or why not.'),
-    ('delivery.result',          'customer_support', 'customer_support', 'What became of support''s own notice: delivered with the provider''s id, or why not.'),
-    ('backup.refile',            'it_engineer',      'sales_engineer',   'The IT engineer found backed-up documents missing, changed, failed or never queued: file each again. Only the IT engineer closes it, once each new copy is verified.'),
-    ('backup.remediate',         'ceo',              'sales_engineer',   'The CEO read the IT engineer''s escalation and sends instructions back: re-file these documents or record why they cannot be. The IT engineer re-checks and closes.'),
-    ('it.finding',               'it_engineer',      'sales_engineer',   'The IT engineer found a fault in something the sales engineer owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
-    ('it.finding',               'it_engineer',      'accountant',       'The IT engineer found a fault in something the accountant owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
-    ('it.finding',               'it_engineer',      'customer_support', 'The IT engineer found a fault in something customer support owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
-    ('it.finding',               'it_engineer',      'ceo',              'The IT engineer found a fault in something only the CEO owns: decide the remedy or say there is none. The IT engineer re-verifies and closes.')
+  select k.type, k.from_seat, k.to_seat, k.meaning from public.seat_handoff_kind k
 $function$
 
 
@@ -42387,12 +42391,17 @@ AS $function$
          case when coalesce(qd.quoted, 0) >= inv.invited then 'every_invited_supplier_quoted' else 'quote_window_closed' end
     from public.inquiries i
     join inv on inv.inquiry_id = i.id
-    join quoted qd on qd.inquiry_id = i.id
+    left join quoted qd on qd.inquiry_id = i.id
    where i.spec_offer_checked_at is null
      and coalesce(i.status, '') not in ('closed', 'completed', 'cancelled')
      and i.parent_inquiry_id is null
+     -- THE TIMING GUARD, stated rather than implied by a join (review of #652): at least one live
+     -- (non-draft) quote. An inquiry whose window closed with no quote at all is not a case of "no
+     -- supplier quoted your exact spec": there is nothing to offer, and checking it would mark it
+     -- checked before any quote could arrive.
+     and exists (select 1 from public.quotes q1 where q1.inquiry_id = i.id and coalesce(q1.status, '') <> 'draft')
      and not exists (select 1 from public.transactions t join public.quotes q2 on q2.id = t.quote_id where q2.inquiry_id = i.id)
-     and (qd.quoted >= inv.invited or now() >= inv.first_sent + make_interval(days => (select days from pol)::int))
+     and (coalesce(qd.quoted, 0) >= inv.invited or now() >= inv.first_sent + make_interval(days => (select days from pol)::int))
    order by i.created_at
    limit greatest(1, least(p_limit, 100));
 $function$
@@ -42500,15 +42509,38 @@ AS $function$
 declare
   v_digits text := regexp_replace(coalesce(p_phone, ''), '\D', '', 'g');
   v_cust uuid;
+  v_matches int;
+  v_ref text;
   r public.spec_alternative_offer;
   v_t text := lower(btrim(translate(coalesce(p_text, ''), '٠١٢٣٤٥٦٧٨٩', '0123456789')));
   v_n int;
   v_choice text;
 begin
   if length(v_digits) < 8 then return jsonb_build_object('handled', false, 'reason', 'no_phone'); end if;
-  select c.id into v_cust from public.customers c
-   where regexp_replace(coalesce(c.phone, ''), '\D', '', 'g') = v_digits order by c.phone_verified desc nulls last, c.created_at limit 1;
-  if v_cust is null then return jsonb_build_object('handled', false, 'reason', 'not_a_customer'); end if;
+  -- The text's SHAPE first: only something that looks like an answer (a no, an option number, a bare
+  -- yes) goes any further. Otherwise a number two customers share would open a support case for
+  -- every "hello" it sends.
+  v_t := regexp_replace(v_t, '[[:space:][:punct:]]+$', '');
+  if not (v_t ~ '^(no|no thanks|decline|لا|لأ|لا شكرا|لا شكرًا)$'
+          or v_t ~ '^(option |choice |yes |نعم |الخيار )?[0-9]{1,2}$'
+          or v_t ~ '^(yes|ok|نعم|موافق)$') then
+    return jsonb_build_object('handled', false, 'reason', 'not_a_reply');
+  end if;
+  -- Who the sender is: fn_customer_by_whatsapp_sender alone decides (verified numbers only).
+  select count(*), min(s.id::text)::uuid into v_matches, v_cust
+    from public.fn_customer_by_whatsapp_sender(p_phone) as s(id)
+   where exists (select 1 from public.spec_alternative_offer o where o.customer_id = s.id and o.state = 'open');
+  if v_matches = 0 then return jsonb_build_object('handled', false, 'reason', 'no_verified_customer_with_open_offer'); end if;
+  if v_matches > 1 then
+    v_ref := 'SE-SPECOFFER-AMBIG-' || right(v_digits, 9) || '-' || to_char(now(), 'YYYYMMDD');
+    insert into public.support_case (case_ref, party_kind, party_id, subject, owner_role_id)
+    values (v_ref, 'unknown', null,
+            'From the sales engineer: a WhatsApp answer to a no-exact-spec offer came from a number that ' || v_matches ||
+            ' verified customers with open offers share. Nothing was recorded. Confirm with the customer which request it is for, then record it from the portal.',
+            'customer_support')
+    on conflict (case_ref) do nothing;
+    return jsonb_build_object('handled', false, 'reason', 'ambiguous_sender', 'case_ref', v_ref, 'matches', v_matches);
+  end if;
   select * into r from public.spec_alternative_offer where customer_id = v_cust and state = 'open' order by opened_at, id limit 1;
   if not found then return jsonb_build_object('handled', false, 'reason', 'no_open_offer'); end if;
   v_t := regexp_replace(v_t, '[[:space:][:punct:]]+$', '');
@@ -52733,8 +52765,8 @@ AS $function$
 declare v_closer text;
 begin
   if new.kind = 'handoff' and new.status = 'done' and old.status is distinct from 'done'
-     and exists (select 1 from public.seat_handoff_window w
-                  where w.type = new.detail->>'type' and w.from_seat = new.detail->>'from' and w.originator_closes) then
+     and exists (select 1 from public.seat_handoff_kind k
+                  where k.type = new.detail->>'type' and k.from_seat = new.detail->>'from' and k.originator_closes) then
     v_closer := coalesce(nullif(current_setting('qd.handoff_closer', true), ''),
                          nullif(current_setting('qd.backup_closer', true), ''));
     if v_closer is distinct from new.detail->>'from' then
@@ -53571,21 +53603,21 @@ CREATE TRIGGER z00_ceo_approval_append_only BEFORE UPDATE ON public.ceo_approval
 CREATE TRIGGER z20_ceo_command_state_guard BEFORE UPDATE ON public.ceo_command FOR EACH ROW EXECUTE FUNCTION fn_ceo_command_state_guard();
 CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
 CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
-CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
-CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
+CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
+CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
@@ -53608,15 +53640,15 @@ CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.hand
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
 CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
 CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
 CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
-CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
 CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
+CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -53626,20 +53658,20 @@ CREATE TRIGGER inquiry_scope_disposition_append_only BEFORE DELETE OR UPDATE ON 
 CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public.inquiry_state_audit FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
 CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON public.inquiry_trade_candidate_evidence FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
-CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
+CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER a10_it_engineer_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_it_engineer_knowledge_search_vector();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
 CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
 CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
 CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, iban_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
@@ -54146,7 +54178,7 @@ ALTER TABLE public.scope_disposition_kind ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scrape_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.screening_entry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.screening_run ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.seat_handoff_window ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_handoff_kind ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_advisor_baseline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
@@ -54252,7 +54284,7 @@ CREATE POLICY refund_ladder_evidence_service_role_only ON public.refund_ladder_e
 CREATE POLICY rfq_clarification_service_role_only ON public.rfq_clarification AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY os_owner_admin_read ON public.risk_register AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY routine_change_log_service_role_only ON public.routine_change_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
-CREATE POLICY seat_handoff_window_service_role_only ON public.seat_handoff_window AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY spec_alternative_offer_service_role_only ON public.spec_alternative_offer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collaboration AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_event_service_role_only ON public.supplier_collaboration_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
