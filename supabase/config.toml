@@ -58,6 +58,9 @@ verify_jwt = false
 [functions.contact_submit]
 verify_jwt = true
 
+[functions.conversation_archive]
+verify_jwt = false
+
 [functions.customer_api]
 verify_jwt = true
 

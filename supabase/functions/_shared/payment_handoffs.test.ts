@@ -6,7 +6,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { HANDOFF_TYPES } from './payment_handoffs.ts';
 
 Deno.test('every conversation is between real seats and listed once', () => {
-  const seats = new Set(['accountant', 'sales_engineer', 'customer_support', 'ceo']);
+  const seats = new Set(['accountant', 'sales_engineer', 'customer_support', 'ceo', 'it_engineer']);
   const keys = HANDOFF_TYPES.map((h) => `${h.type}|${h.from}|${h.to}`);
   assertEquals(new Set(keys).size, keys.length);
   for (const h of HANDOFF_TYPES) assert(seats.has(h.from) && seats.has(h.to) && h.from !== h.to, JSON.stringify(h));

@@ -25,7 +25,8 @@ import { fileURLToPath } from 'node:url';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
 const SQL = join(REPO, 'scripts', 'sql');
-const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_together.sql'];
+// In MANIFEST order: a later file redefines a routine, and the LAST definition is the live one.
+const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_together.sql', 'the_dropbox_backup_is_confirmed_not_assumed.sql'];
 
 // Every payment function, as function_owner lists them. quote_pdf has an owner row and no directory
 // in this repository (it is not deployed from here); it is checked against production only.
@@ -46,12 +47,12 @@ function tsRegistry() {
   return [...src.matchAll(/\{ type: '([a-z_.]+)', from: '([a-z_]+)', to: '([a-z_]+)' \}/g)].map((m) => `${m[1]}|${m[2]}|${m[3]}`).sort();
 }
 function sqlRegistry() {
-  const body = sqlText.slice(sqlText.indexOf('create or replace function public.fn_seat_handoff_types()'));
+  const body = sqlText.slice(sqlText.lastIndexOf('create or replace function public.fn_seat_handoff_types()'));
   const values = body.slice(0, body.indexOf('$fn$;'));
   return [...values.matchAll(/\('([a-z_.]+)',\s*'([a-z_]+)',\s*'([a-z_]+)',/g)].map((m) => `${m[1]}|${m[2]}|${m[3]}`).sort();
 }
 function fnBody(name) {
-  const at = sqlText.indexOf(`create or replace function public.${name}(`);
+  const at = sqlText.lastIndexOf(`create or replace function public.${name}(`);
   assert.ok(at >= 0, `${name} is not defined in the routine file`);
   return sqlText.slice(at, sqlText.indexOf('$fn$;', at));
 }

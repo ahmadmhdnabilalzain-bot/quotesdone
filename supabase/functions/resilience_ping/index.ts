@@ -87,6 +87,17 @@ async function ratingTick(): Promise<unknown> {
 // SELECT and returns — 96 a day, sending nothing and consuming none of the daily send cap — and in
 // exchange `send_outbox has not run` becomes a sentence that is only true when something IS broken.
 // A heartbeat that beats only under load is not a heartbeat.
+async function archiveTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_resilience_ping');
+    const r = await fetch(FN + '/conversation_archive', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, action: 'sweep', limit: 4 }), signal: AbortSignal.timeout(50000),
+    });
+    return { status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -193,6 +204,26 @@ async function vatThresholdTick(): Promise<unknown> {
     const { data, error } = await admin.rpc('fn_accountant_vat_threshold_check', { p_notify: true });
     if (error) return { ok: false, error: error.message };
     return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// The IT engineer's half of the backup (founder, 14 Sep 2026: "i think the IT agent need to check
+// such details yea?"): close verified refiles, run the 48-hour coverage watch, file the daily line
+// to the CEO, and once a Dubai week re-check a random sample of Dropbox files.
+// deno-lint-ignore no-explicit-any
+async function dropboxVerifyTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_it_backup_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    if (!(data as any)?.reconcile?.due) return data;
+    const secret = await sec('cred_fn_resilience_ping');
+    const r = await fetch(FN + '/dropbox_backup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, mode: 'reconcile', limit: 20 }), signal: AbortSignal.timeout(55000),
+    });
+    // deno-lint-ignore no-explicit-any
+    return { ...(data as any), reconcile_run: { status: r.status, result: await r.json().catch(() => null) } };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -474,6 +505,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     const digest = await digestTick();
     const ratings = await ratingTick();
     const backup = await backupTick();
+    const backupVerify = await dropboxVerifyTick();
     const weekly = await accountantWeeklyTick();
     const vat = await vatThresholdTick();
     const ceoWeekly = await ceoWeeklyTick();
@@ -491,12 +523,16 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // The queue is drained AFTER the ticks above, so anything they just wrote leaves on this same
     // pass rather than waiting fifteen minutes for the next one.
     const outbox = await outboxTick();
+    // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
+    // printed to PDF and kept in "supabase and dropbox"). Called every tick, work or none, for the
+    // same reason as the outbox: a heartbeat that beats only under load is not a heartbeat.
+    const archive = await archiveTick();
     // 1. Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly, ladder, refunds });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, it, outbox, archive, vat, ceoWeekly, ladder, refunds });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -520,6 +556,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly, ladder, refunds });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly, ladder, refunds });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));
