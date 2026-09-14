@@ -117,6 +117,135 @@ async function otherChannels(cust: { id: string; phone?: string | null; phone_ve
   return out;
 }
 
+// ── PRE-REVEAL ANONYMOUS Q&A (website audit 14 Sep 2026, verdict ABSENT) ───────────────────────
+// Every thread below is locked until a paid reveal, so between "posted" and "paid" a supplier who
+// needed one measurement could not ask it and the customer could not answer. public.rfq_clarification
+// is that channel, and this is its only writer of questions and answers:
+//   clarify_list   {inquiry_id}   -> the owner sees everything; a matched supplier sees their own
+//                                    questions plus every answered one (answers are addenda to the RFQ)
+//   clarify_ask    {inquiry_id, text}  supplier session, must be matched to the inquiry
+//   clarify_answer {id, text}          customer session, owner only; every matched supplier is told
+// Identities are masked both ways: suppliers appear to the customer as "Supplier A/B..." in the
+// order they were matched, the customer never appears at all, and contact details are stripped from
+// both texts here, server-side, before anything is stored or emailed.
+const STRIP: RegExp[] = [
+  /[A-Za-z0-9._%+-]+\s*(?:@|\(at\)|\[at\])\s*[A-Za-z0-9.-]+\s*(?:\.|\(dot\)|\[dot\])\s*[A-Za-z]{2,}/gi,
+  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
+  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info|app|link)(?:\.[A-Za-z]{2})?\b/gi,
+  /(?:\+|00)\s?971[\s.\-]?\d(?:[\s.\-]?\d){6,10}/g,
+  /\b0\d(?:[\s.\-]?\d){7,8}\b/g,
+  /\b5\d(?:[\s.\-]?\d){7}\b/g,
+  /\b(?:whats\s*app|wa\.me|telegram|t\.me|viber|botim|snapchat|skype|instagram)\b\S*/gi,
+  /(^|\s)@[A-Za-z0-9_.]{3,}/g,
+];
+const NAME_STOP = new Set(['llc', 'l.l.c', 'trading', 'contracting', 'general', 'company', 'group', 'est', 'establishment', 'services', 'technical', 'the', 'and']);
+// ponytail: a name is removed as whole words of 4+ letters; a nickname or misspelling survives.
+// Upgrade path is customer_api's companyRe if a leak is ever measured.
+function scrubName(text: string, name: unknown): string {
+  const words = String(name || '').split(/[^A-Za-z؀-ۿ]+/).filter((w) => w.length >= 4 && !NAME_STOP.has(w.toLowerCase()));
+  let out = text;
+  for (const w of words) out = out.replace(new RegExp('(^|[^A-Za-z؀-ۿ])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=$|[^A-Za-z؀-ۿ])', 'gi'), '$1[removed]');
+  return out;
+}
+function stripContact(raw: unknown, names: unknown[] = []): string {
+  // Arabic-Indic digits first, so ٠٥٠١٢٣٤٥٦٧ is caught by the same number patterns.
+  let s = clip(raw, 1500).replace(/[٠-٩]/g, (c) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g, (c) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c)));
+  for (const re of STRIP) s = s.replace(re, (m: string, lead?: string) => (typeof lead === 'string' && /^\s?$/.test(lead) && m.startsWith(lead) ? lead : '') + '[removed]');
+  for (const n of names) s = scrubName(s, n);
+  return s.trim();
+}
+const letterOf = (i: number) => 'Supplier ' + (i >= 0 && i < 26 ? String.fromCharCode(65 + i) : String(i + 1));
+type Res = { status: number; body: Record<string, unknown> };
+const R = (status: number, body: Record<string, unknown>): Res => ({ status, body });
+
+async function clarify(action: string, b: Record<string, unknown>, supLead: any, cust: any): Promise<Res> {
+  if (action === 'clarify_answer') {
+    if (!cust) return R(403, { error: 'forbidden' });
+    const id = Number(b.id);
+    if (!id) return R(400, { error: 'id_required' });
+    const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,kind,question,answered_at').eq('id', id).maybeSingle();
+    if (!row) return R(404, { error: 'not_found' });
+    const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status').eq('id', row.inquiry_id).maybeSingle();
+    if (!inq || inq.customer_id !== cust.id) return R(403, { error: 'not_your_inquiry' });
+    if (row.kind !== 'question') return R(400, { error: 'not_a_question' });
+    if (row.answered_at) return R(409, { error: 'already_answered' });
+    const { data: me } = await admin.from('customers').select('full_name').eq('id', cust.id).maybeSingle();
+    const text = stripContact(b.text, [me?.full_name]);
+    if (text.replace(/\[removed\]/g, '').trim().length < 1) return R(400, { error: 'text_required' });
+    const { error } = await admin.from('rfq_clarification').update({ answer: text, answered_at: new Date().toISOString() }).eq('id', id).is('answered_at', null);
+    if (error) return R(500, { error: 'save_failed' });
+    const notified = await notifyMatched(String(row.inquiry_id), inq, 'clarification_answered',
+      'The customer answered a question on a request you were invited to quote',
+      'On the ' + (inq.category || 'request') + (inq.emirate ? ' job in ' + inq.emirate : ' job') + ' you were invited to quote, a supplier asked:\n\n"' + String(row.question || '') + '"\n\nThe customer answered:\n\n"' + text + '"\n\nThis answer is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.');
+    return R(200, { ok: true, id, answer: text, notified });
+  }
+
+  const inquiry_id = String(b.inquiry_id || '');
+  if (!inquiry_id) return R(400, { error: 'inquiry_id_required' });
+  const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status').eq('id', inquiry_id).maybeSingle();
+  if (!inq) return R(404, { error: 'not_found' });
+  const { data: matches } = await admin.from('inquiry_matches').select('id,supplier_id').eq('inquiry_id', inquiry_id).order('id', { ascending: true });
+  const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
+  const isOwner = !!cust && inq.customer_id === cust.id;
+  const isMatched = !!supLead && order.includes(Number(supLead.id));
+  if (!isOwner && !isMatched) return R(403, { error: 'forbidden' });
+
+  if (action === 'clarify_ask') {
+    if (!isMatched) return R(403, { error: 'not_matched' });
+    if (supLead.banned === true) return R(403, { error: 'suspended' });
+    if (['cancelled', 'closed', 'completed'].includes(String(inq.status))) return R(409, { error: 'inquiry_closed' });
+    const text = stripContact(b.text, [supLead.company_name]);
+    if (text.replace(/\[removed\]/g, '').trim().length < 3) return R(400, { error: 'text_required' });
+    // Five a day per supplier per request: enough to scope a job, too few to turn it into a chat.
+    const since = new Date(Date.now() - 24 * 3600e3).toISOString();
+    const { count } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).eq('supplier_id', supLead.id).gte('asked_at', since);
+    if ((count || 0) >= 5) return R(429, { error: 'too_many_questions' });
+    const source = b.source === 'rfq_flag' ? 'rfq_flag' : 'portal';
+    const { data: ins, error } = await admin.from('rfq_clarification').insert({ inquiry_id, supplier_id: supLead.id, kind: 'question', question: text, source }).select('id').single();
+    if (error || !ins) return R(500, { error: 'save_failed' });
+    const label = letterOf(order.indexOf(Number(supLead.id)));
+    try {
+      const { data: c } = await admin.from('customers').select('email,full_name,locale').eq('id', inq.customer_id).maybeSingle();
+      if (c?.email && /@/.test(c.email)) {
+        const ar = String(c.locale || '') === 'ar';
+        await notify([{ type: 'clarification_requested', to_email: c.email, to_role: 'customer', inquiry_id, channel: 'email', status: 'queued',
+          subject: ar ? 'لدى أحد الموردين سؤال عن طلبك' : 'A supplier has a question about your request',
+          body: ar
+            ? ('مرحبًا ' + (c.full_name || '') + '،\n\nسأل ' + label.replace('Supplier', 'المورّد') + ' عن طلبك (' + (inq.category || '') + '):\n\n«' + text + '»\n\nافتح طلبك في QuotesDone وأجب هناك — تصل إجابتك إلى جميع الموردين المدعوين دون اسمك أو رقمك.')
+            : ('Hi ' + (c.full_name || 'there') + ',\n\n' + label + ' asked about your ' + (inq.category || '') + ' request:\n\n"' + text + '"\n\nOpen your request on QuotesDone and answer it there. Your answer reaches every invited supplier without your name or number, so they can all quote the same scope.') }]);
+      }
+    } catch (_e) { /* the question is stored either way; the portal shows it on the next load */ }
+    return R(200, { ok: true, id: ins.id, supplier_label: label });
+  }
+
+  if (action === 'clarify_list') {
+    const { data: rows, error } = await admin.from('rfq_clarification').select('id,supplier_id,kind,question,answer,asked_at,answered_at').eq('inquiry_id', inquiry_id).order('asked_at', { ascending: true }).limit(200);
+    if (error) return R(500, { error: 'load_failed' });
+    const visible = (rows || []).filter((r: any) => isOwner || r.kind === 'note' || Number(r.supplier_id) === Number(supLead?.id) || r.answered_at);
+    const items = visible.map((r: any) => ({
+      id: r.id, kind: r.kind, question: r.question ?? null, answer: r.answer ?? null, asked_at: r.asked_at, answered_at: r.answered_at ?? null,
+      supplier_label: r.supplier_id == null ? null : letterOf(order.indexOf(Number(r.supplier_id))),
+      mine: !isOwner && Number(r.supplier_id) === Number(supLead?.id),
+    }));
+    return R(200, { ok: true, role: isOwner ? 'customer' : 'supplier', items });
+  }
+  return R(400, { error: 'unknown action' });
+}
+
+// The same notification path matchAndNotify uses for the original invitation: one queued email
+// per matched supplier, addressed to the lead, carrying only text that has been through the
+// stripper above. Returns how many were queued so the caller can say so truthfully.
+async function notifyMatched(inquiry_id: string, _inq: unknown, type: string, subject: string, body: string): Promise<number> {
+  const { data: ms } = await admin.from('inquiry_matches').select('supplier_id').eq('inquiry_id', inquiry_id);
+  const ids = [...new Set((ms || []).map((m: { supplier_id: number }) => Number(m.supplier_id)).filter(Boolean))];
+  if (!ids.length) return 0;
+  const { data: ls } = await admin.from('leads').select('id,email,claimed_by,banned').in('id', ids);
+  const rows = (ls || []).filter((l: any) => l.banned !== true).map((l: any) => ({ id: l.id, to: String(l.claimed_by || l.email || '') })).filter((l) => /@/.test(l.to))
+    .map((l) => ({ type, to_email: l.to, to_role: 'supplier', lead_id: l.id, inquiry_id, channel: 'email', status: 'queued', subject, body }));
+  await notify(rows);
+  return rows.length;
+}
+
 Deno.serve(observe('messages_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
@@ -218,6 +347,13 @@ Deno.serve(observe('messages_api', async (req) => {
         return J({ ok: true, channel, counterpart: 'Calls', chat_status: 'open', messages });
       }
       return J({ error: 'unknown channel' }, 400);
+    }
+
+    // Pre-reveal Q&A is keyed on the inquiry alone, never on a supplier the customer has paid to
+    // see, so it is answered before the reveal gate below.
+    if (action === 'clarify_list' || action === 'clarify_ask' || action === 'clarify_answer') {
+      const res = await clarify(action, body, supLead, cust);
+      return J(res.body, res.status);
     }
 
     const inquiry_id = String(body.inquiry_id || ''); const supplier_id = Number(body.supplier_id || 0);
