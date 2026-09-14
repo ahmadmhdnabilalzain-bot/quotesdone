@@ -657,6 +657,36 @@ const ACCOUNT_TABS = ['profile', 'scope', 'settings'];
 // not the current one sees this card instead of the dashboard until they accept. A supplier who has never
 // accepted is in onboarding, which already asks. The record is written by supplier_api accept_terms (time,
 // server-read version, IP, text hash) and kyc accept_terms issues the signed acceptance certificate.
+// What each version changed, in the supplier's language. A supplier is shown every change after the version it
+// accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
+// supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11'];
+const AGREEMENT_CHANGES = {
+  11: {
+    en: [
+      'Notices may also reach you by WhatsApp and SMS on your registered mobile, alongside email and the portal (clause 21).',
+      'The Arabic text of the agreement is the one that counts for all purposes, including in court (clause 22).',
+      'The non-response charge is a fixed amount once our notice is issued, and the AED 250 fee is agreed compensation under the Civil Transactions Law (clause 33).',
+      'Our licence is described exactly as DET issued it: Trader License No. 1633275.',
+    ],
+    ar: [
+      'قد تصلك الإشعارات أيضًا عبر واتساب والرسائل النصية على رقم هاتفك المحمول المسجَّل، إلى جانب البريد الإلكتروني والبوابة (البند 21).',
+      'النص العربي للاتفاقية هو المعتمد لجميع الأغراض، بما في ذلك أمام المحاكم (البند 22).',
+      'رسم عدم الاستجابة مبلغ ثابت متى صدر إشعارنا، والرسم الإداري البالغ 250 درهمًا تعويض متفق عليه وفق قانون المعاملات المدنية (البند 33).',
+      'وصف رخصتنا مطابق لما صدر عن دائرة الاقتصاد والسياحة: رخصة تاجر رقم 1633275.',
+    ],
+  },
+  12: {
+    en: ['WhatsApp notices go to the WhatsApp number you confirm in the portal with a verification code, or to your registered mobile if you confirm it is your WhatsApp. SMS stays on your registered mobile (clause 21).'],
+    ar: ['تصلك إشعارات واتساب على رقم الواتساب الذي تؤكّده في البوابة برمز تحقق، أو على رقم هاتفك المحمول المسجَّل إذا أكّدت أنه رقم الواتساب الخاص بك. وتبقى الرسائل النصية على رقم هاتفك المحمول المسجَّل (البند 21).'],
+  },
+};
+export function agreementChanges(accepted, current, ar) {
+  const n = (v) => Number(String(v || '').replace(/\D/g, '')) || 0;
+  const from = n(accepted), to = n(current);
+  return Object.keys(AGREEMENT_CHANGES).map(Number).sort((a, b) => a - b)
+    .filter((v) => v > from && v <= to).flatMap((v) => AGREEMENT_CHANGES[v][ar ? 'ar' : 'en']);
+}
 export function needsReaccept(me) {
   return !!(me && me.accepted_terms_at && me.terms_current && me.accepted_terms_version !== me.terms_current);
 }
@@ -671,17 +701,9 @@ function ReacceptTerms({ token, lang, me, onDone }) {
     try { await call('kyc', { action: 'accept_terms' }, token); } catch (_e) { /* the acceptance is recorded; the certificate is retried by kyc's own trail */ }
     setBusy(false); onDone();
   };
-  const changes = ar ? [
-    'قد تصلك الإشعارات أيضًا عبر واتساب والرسائل النصية على رقم هاتفك المحمول المسجَّل، إلى جانب البريد الإلكتروني والبوابة (البند 21).',
-    'النص العربي للاتفاقية هو المعتمد لجميع الأغراض، بما في ذلك أمام المحاكم (البند 22).',
-    'رسم عدم الاستجابة مبلغ ثابت متى صدر إشعارنا، والرسم الإداري البالغ 250 درهمًا تعويض متفق عليه وفق قانون المعاملات المدنية (البند 33).',
-    'وصف رخصتنا مطابق لما صدر عن دائرة الاقتصاد والسياحة: رخصة تاجر رقم 1633275.',
-  ] : [
-    'Notices may also reach you by WhatsApp and SMS on your registered mobile, alongside email and the portal (clause 21).',
-    'The Arabic text of the agreement is the one that counts for all purposes, including in court (clause 22).',
-    'The non-response charge is a fixed amount once our notice is issued, and the AED 250 fee is agreed compensation under the Civil Transactions Law (clause 33).',
-    'Our licence is described exactly as DET issued it: Trader License No. 1633275.',
-  ];
+  const changes = agreementChanges(me.accepted_terms_version, me.terms_current, ar);
+  // The version this supplier accepted stays readable at /supplier-agreement/vN for every archived version.
+  const prev = ARCHIVED_AGREEMENTS.includes(me.accepted_terms_version) ? me.accepted_terms_version : null;
   return (
     <div className={S.center}>
       <Card className="qd-panel max-w-[600px] p-5" dir={ar ? 'rtl' : 'ltr'}>
@@ -690,7 +712,7 @@ function ReacceptTerms({ token, lang, me, onDone }) {
         <ul className="mt-3 flex list-disc flex-col gap-1.5 ps-5 text-[13px] text-foreground">{changes.map((c) => <li key={c}>{c}</li>)}</ul>
         <div className="mt-3 flex flex-wrap gap-4 text-[13px]">
           <a className="font-medium text-primary underline" href={pre + '/supplier-agreement/'} target="_blank" rel="noopener">{ar ? 'اقرأ الإصدار الجديد' : 'Read the new version'}</a>
-          <a className="text-muted-foreground underline" href={pre + '/supplier-agreement/v10/'} target="_blank" rel="noopener">{ar ? 'الإصدار السابق (v10)' : 'Previous version (v10)'}</a>
+          {prev ? <a className="text-muted-foreground underline" href={pre + '/supplier-agreement/' + prev + '/'} target="_blank" rel="noopener">{ar ? `الإصدار الذي قبلتَه (${prev})` : `The version you accepted (${prev})`}</a> : null}
         </div>
         <label className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} /> {ar ? `قرأتُ اتفاقية المورّد الإصدار ${me.terms_current} وأوافق عليها.` : `I have read and accept Supplier Agreement version ${me.terms_current}.`}</label>
         {msg ? <div className="mt-2 text-[13px] text-destructive" role="alert">{msg}</div> : null}
