@@ -17,8 +17,11 @@ import { assessQuote, componentAttr, componentOnLine, customerAnswer, customerRe
 import { attrsForLine, normText, TRADES, tradeOfCategory, tradeOfLine, type Attr } from './model.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 
-export type Flag = 'match' | 'differs' | 'missing' | 'stated' | 'not_applicable';
-export const MARKER: Record<Flag, string> = { match: '✓', differs: '≠', missing: '—', stated: '', not_applicable: 'n/a' };
+// optional_not_stated: the detail applies to this product and another supplier may state it, but it is
+// not mandatory, so its absence never holds a quote. Shown, so the customer sees the gap, and never
+// chased. Distinct from not_applicable (no such line, or the detail does not apply) and from missing.
+export type Flag = 'match' | 'differs' | 'missing' | 'optional_not_stated' | 'stated' | 'not_applicable';
+export const MARKER: Record<Flag, string> = { match: '✓', differs: '≠', missing: '—', optional_not_stated: '○', stated: '', not_applicable: 'n/a' };
 
 export type CmpQuote = { quote_id: string; label_en: string; label_ar: string; supplier_letter: string; option_no: number; lines: Line[]; terms: Terms };
 // Values shown to the customer never carry a TRN or licence number (identity_numbers.ts), and no VAT
@@ -130,10 +133,16 @@ export function technicalComparison(input: { category: string | null; request_li
         // line on the row (another supplier's own item), and the report told the customer "not stated —
         // ask for it". A quote that does not include an item is not missing a detail of it: not_applicable.
         if (!l) return cellOf(q.quote_id, false, null, baseline, noPref);
-        // On a line the quote does include, a detail is owed only when it is MANDATORY for that line; a
-        // mandatory one left unstated holds the quote (assess.ts, rankable), so a compared quote never
-        // carries one. An optional detail the supplier did not state is not_applicable, not "missing".
+        // On a line the quote does include, three states for a detail it did not state:
+        //  - MANDATORY for that line → missing. The hold gate (assess.ts, rankable) holds such a quote, so
+        //    a compared quote never carries one; the state stays as a safety net.
+        //  - applies to the product but OPTIONAL → optional_not_stated: a real difference between
+        //    suppliers the customer should see, never chased (review of #644, 14 Sep 2026).
+        //  - does not apply to what this line is → not_applicable.
         const owed = l.defs.some((d) => d.code === a.code && d.mandatory);
+        if (!l.spec[a.code] && !owed && l.asked.includes(a.code)) {
+          return { ...cellOf(q.quote_id, true, null, baseline, noPref, { source: null, quote_line_no: ln }), flag: 'optional_not_stated' as Flag, marker: MARKER.optional_not_stated };
+        }
         return cellOf(q.quote_id, owed || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln });
       });
       return { code: a.code, label_en: a.en, label_ar: a.ar, unit: a.unit ?? null, unit_ar: a.unit_ar ?? null, mandatory: defs.some((d) => d.code === a.code && d.mandatory), requested: rq && !noPref ? rq.value : null, requested_source: rq?.source ?? null, cells };
@@ -189,7 +198,7 @@ export function technicalComparison(input: { category: string | null; request_li
 //   stated (a value, no baseline) → 'match': the value is stated and the quote passed the gate.
 //   not_applicable → 'na'.
 // ---------------------------------------------------------------------------------------------
-export type RenderFlag = 'match' | 'differs' | 'missing' | 'na';
+export type RenderFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na';
 export type RenderCell = { value?: string | null; flag: RenderFlag; note?: string | null };
 export type RendererTechnical = {
   suppliers: string[];
@@ -198,7 +207,7 @@ export type RendererTechnical = {
   terms?: { lead_time?: RenderTerm | null; installation?: RenderTerm | null; warranty?: RenderTerm | null } | null;
 };
 type RenderTerm = { applicable?: boolean | null; requested?: string | null; values: Record<string, RenderCell> };
-const rflag = (f: Flag): RenderFlag => (f === 'not_applicable' ? 'na' : f === 'stated' ? 'match' : f);
+const rflag = (f: Flag): RenderFlag => (f === 'not_applicable' ? 'na' : f === 'stated' ? 'match' : f === 'optional_not_stated' ? 'optional' : f);
 
 export function rendererView(t: TechnicalComparison, lang: 'en' | 'ar'): RendererTechnical {
   const ar = lang === 'ar';

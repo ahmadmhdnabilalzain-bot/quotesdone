@@ -208,7 +208,7 @@ export type Item = {
 // its scope line: each quote's stated value per attribute, per scope line, with a flag against the
 // request, plus the three commercial completeness checks with an `applicable` flag. Values are keyed
 // by the anonymous label ("Supplier A"). A held quote is never a column: the roster decides.
-export type SpecFlag = 'match' | 'differs' | 'missing' | 'na';
+export type SpecFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na';
 export type SpecCell = { value?: string | null; flag: SpecFlag; note?: string | null };
 export type TechAttribute = { key: string; label?: string | null; unit?: string | null; requested?: string | null; values: Record<string, SpecCell> };
 export type TechLine = { line_no?: number | null; item: string; qty?: string | number | null; unit?: string | null; attributes: TechAttribute[] };
@@ -280,7 +280,7 @@ function kit(lang: Lang, names: string[] = []) {
   return { ar, T, money, loc, cell, dur, pay, label, sentence, today };
 }
 type Kit = ReturnType<typeof kit>;
-const FLAG_WORD: Record<SpecFlag, [string, string]> = { match: ['Matches', 'مطابق'], differs: ['Differs', 'مختلف'], missing: ['Not stated', 'غير مذكور'], na: ['N/A', 'لا ينطبق'] };
+const FLAG_WORD: Record<SpecFlag, [string, string]> = { match: ['Matches', 'مطابق'], differs: ['Differs', 'مختلف'], missing: ['Not stated', 'غير مذكور'], optional: ['Not stated (optional)', 'غير مذكورة (اختيارية)'], na: ['N/A', 'لا ينطبق'] };
 /** A spec or term value with its marker. An empty value takes the flag's own word. */
 function flagged(k: Kit, c: SpecCell | null | undefined): Cell {
   const flag: SpecFlag = c?.flag ?? 'missing';
@@ -292,7 +292,7 @@ function flagged(k: Kit, c: SpecCell | null | undefined): Cell {
   return { text: d.text + (note ? ` (${note})` : ''), ...(d.sub ? { sub: d.sub } : {}), flag };
 }
 function legendBlock(k: Kit) {
-  return { t: 'legend', items: [['match', k.T('Matches your request', 'مطابق لطلبك')], ['differs', k.T('Differs from your request', 'مختلف عن طلبك')], ['missing', k.T('Not stated by the supplier', 'لم يذكره المورّد')], ['na', k.T('N/A — does not apply', 'لا ينطبق')]] };
+  return { t: 'legend', items: [['match', k.T('Matches your request', 'مطابق لطلبك')], ['differs', k.T('Differs from your request', 'مختلف عن طلبك')], ['missing', k.T('Not stated by the supplier', 'لم يذكره المورّد')], ['optional', k.T('Not stated (optional detail)', 'غير مذكورة (تفصيل اختياري)')], ['na', k.T('N/A — does not apply', 'لا ينطبق')]] };
 }
 function specText(k: Kit, it: Item): Cell {
   const parts: Array<{ text: string; sub?: string }> = [];
@@ -482,7 +482,7 @@ function commercialRows(a: any, lang: Lang, names: string[] = []): { head: Cell[
   // e2e journey c). Labels are system-made ("Supplier X – Option N"), so their length is bounded.
   return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => k.label(q.label))], rows, labels: qs.map((q: any) => String(q.label)) };
 }
-const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', na: '' };
+const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '' };
 /** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */
 // deno-lint-ignore no-explicit-any
 export function compareTable(a: any, ar: boolean): { head: string[]; rows: string[][] } | null {
@@ -657,6 +657,9 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
         const c = at.values?.[String(q.label)]; if (!c || (c.flag !== 'differs' && c.flag !== 'missing')) return;
         const name = ar ? (arAttr(at.key) ?? k.loc(at.label || at.key).text) : String(at.label || at.key).replace(/_/g, ' ').toLowerCase();
         const item = k.loc(ln.item, 60).text; const no = ln.line_no ?? i + 1;
+        // Only differs and missing reach this list; an optional detail not stated is shown in the table
+        // as "Not stated (optional)" and is never chased. The missing branch is a SAFETY NET: the hold
+        // gate keeps a quote with an unstated mandatory detail out of the comparison altogether.
         // Before the reveal the customer cannot reach a supplier; QuotesDone chases a missing detail
         // (founder, 14 Sep 2026). A mandatory detail left unstated holds the quote, and the hold desk
         // asks the supplier through customer_support (WhatsApp and email) until it is filled — so the

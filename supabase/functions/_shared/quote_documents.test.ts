@@ -130,6 +130,23 @@ Deno.test('no document the customer receives tells them to ask or contact a supp
     assert(TELLS_CUSTOMER_TO_ASK.test(s), 'the guard misses: ' + s);
 });
 
+// State (c) on the page: an optional detail one supplier left out is SHOWN as "Not stated (optional)",
+// in both languages, and is never turned into a risk line (it is not chased).
+Deno.test('an optional detail left out is shown as not stated (optional) and never listed as a risk', () => {
+  const terms = { lead_time: '21 days', warranty: '2 years on workmanship', scope: 'Supply and installation of wardrobes by our team', exclusions: null, conditions: null, notes: null, terms_spec: null, price_ex_vat: 6000 };
+  const q = (id: string, letter: string, desc: string, price: number) => ({ quote_id: id, label_en: `Supplier ${letter}`, label_ar: `المورّد ${letter}`, supplier_letter: letter, option_no: 0, lines: [{ line_no: 1, description: desc, amount: price }], terms: { ...terms, price_ex_vat: price } });
+  const tech = technicalComparison({ category: 'joinery', request_lines: [{ line_no: 1, description: 'Wardrobe 18mm MDF HPL finish', qty: 4, unit: 'nos' }], requirements: null as never, on_hold: 0, now: new Date('2026-09-14'),
+    quotes: [q('q1', 'A', 'Wardrobes 18mm MR MDF, HPL finish, 2mm PVC edge banding', 6000), q('q2', 'B', 'Wardrobes 18mm MR MDF, HPL finish', 5500)] as never });
+  for (const lang of ['en', 'ar'] as Lang[]) {
+    const a = { quotes: [{ label: 'Supplier A', price: 6000 }, { label: 'Supplier B', price: 5500 }],
+      all_quotes: [{ label: 'Supplier A', quote_id: 'q1', price: 6000, status: 'shortlisted' }, { label: 'Supplier B', quote_id: 'q2', price: 5500, status: 'shortlisted' }],
+      top3: [], technical: rendererView(tech, lang), technical_detail: tech, total_quotes: 2 };
+    const s = JSON.stringify(compareDocument({ analysis: a, inquiry: { ...F.INQUIRY, category: 'joinery' }, lang, ...dates(lang) }).body);
+    assertStringIncludes(s, lang === 'ar' ? 'غير مذكورة (اختيارية)' : 'Not stated (optional)');
+    assert(!/edge band[^"]{0,40}not stated|شريط الحافة[^"]{0,40}غير مذكورة —/i.test(s), `${lang}: an optional gap became a risk line`);
+  }
+});
+
 function assertNoIdentity(body: unknown, c: CaseKey) {
   const s = JSON.stringify(body);
   for (const id of CASES[c].ids()) assert(!s.includes(id), 'supplier identity reached the page: ' + id);
@@ -153,7 +170,7 @@ function assertNoMachinery(body: unknown) {
 const SKIP = new Set(['sub', 'link', 't', 'tone', 'flag', 'lang', 'name', 'ref', 'align', 'options', 'widths', 'fs', 'zebra', 'n', 'size', 'muted', 'bold', 'group', 'cols', 'rank', 'scores', 'overall']);
 function primary(v: unknown, key = ''): string[] {
   if (SKIP.has(key)) return [];
-  if (typeof v === 'string') return /^(match|differs|missing|na|short|open|hold)$/.test(v) ? [] : [v];
+  if (typeof v === 'string') return /^(match|differs|missing|optional|na|short|open|hold)$/.test(v) ? [] : [v];
   if (Array.isArray(v)) return v.flatMap((x) => primary(x));
   if (v && typeof v === 'object') return Object.entries(v).flatMap(([k, x]) => primary(x, k));
   return [];
