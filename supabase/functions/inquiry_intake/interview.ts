@@ -209,8 +209,19 @@ function glossArabic(text: string): string {
 }
 
 /** Every option named in the text. A select field takes the first; a multiselect takes all. */
+// English says the same option several ways. Measured on harness journey a (14 Sep 2026): "supplied
+// and installed" never matched the option "Supply and install", so scope was asked again and the next
+// sentence the customer typed was stored as the answer.
+function glossEnglish(text: string): string {
+  const t = String(text || '').toLowerCase();
+  let add = '';
+  if (/\bsuppl(?:y|ied)\s+(?:and|&|\+)\s+install(?:ed|ation)?\b|\bsupply[\s-]+(?:and|&)[\s-]+fix\b|\binstalled\b/.test(t)) add += ' supply and install';
+  if (/\b(?:supply|deliver(?:y)?)\s+only\b|\bno installation\b|\bwithout installation\b/.test(t)) add += ' supply only';
+  return add;
+}
+
 export function matchOptions(options: string[], text: string): string[] {
-  const t = ' ' + String(text || '').toLowerCase() + glossArabic(String(text || '')) + ' ';
+  const t = ' ' + String(text || '').toLowerCase() + glossArabic(String(text || '')) + glossEnglish(String(text || '')) + ' ';
   const hits: string[] = [];
   for (const o of options) {
     const lo = o.toLowerCase();
@@ -269,7 +280,11 @@ export function parseAnswer(f: SpecField, text: string, targeted: boolean): stri
     const hits = matchOptions(opts, raw).filter((o) => targeted || !/not sure|recommend|advise|unknown|unsure/i.test(o));
     if (hits.length) return f.type === 'multiselect' ? hits.join(', ') : hits[0];
     if (targeted && isUnknown(raw)) return opts.find((o) => /not sure|recommend|advise|unknown|unsure/i.test(o)) || 'Not sure';
-    return targeted ? raw.slice(0, 300) : null;
+    // A tap question answered with a paragraph that names none of its options is a STATEMENT about
+    // something else, not this answer (measured, journey a: "Materials: thermal break aluminium
+    // frames, ..." was stored as the answer to "install or deliver only?"). Its facts are still read
+    // for the fields they fit; this question stays open.
+    return targeted && raw.length <= 80 && !/[.!?؟]\s+\S/.test(raw) ? raw.slice(0, 300) : null;
   }
   if (targeted && isUnknown(raw)) return 'Not sure';
   if (kind === 'emirate') {
@@ -283,6 +298,20 @@ export function parseAnswer(f: SpecField, text: string, targeted: boolean): stri
   if (kind === 'when') { const w = parseWhen(raw); return w ? w.text : (targeted ? raw.slice(0, 120) : null); }
   if (kind === 'measure') {
     const ms = parseMeasures(raw);
+    const q0 = `${f.key || ''} ${f.question || ''}`.toLowerCase();
+    // "40 aluminium windows ... Sizes 1200 x 1500 mm": a count of things and a size, however far
+    // apart, answer a "how many and how big" field outright (measured: journey a stated both in its
+    // first message and was asked for them anyway).
+    // Read from what was already said only (untargeted): a direct answer keeps the customer's own
+    // words, and a unit they did not write is never added.
+    if (!targeted && /quantity|how many|pieces|qty|dimensions/.test(q0)) {
+      const t = normDigits(raw);
+      const cnt = t.match(/\b(\d{1,4})\s+(?:[a-z\-]+\s+){0,2}?(windows?|doors?|units?|pieces?|pcs|panels?|shutters?|railings?|sets?|nos)\b/i);
+      const dim = t.match(/\b(\d{2,5})\s*[x×*]\s*(\d{2,5})(?:\s*[x×*]\s*\d{2,5})?\s*(mm|cm|m)?\b/i);
+      if (cnt) return `${cnt[1]} ${cnt[2].toLowerCase()}${dim ? `, ${dim[1]} x ${dim[2]}${dim[3] ? ' ' + dim[3].toLowerCase() : ''}` : ''}`;
+    }
+    // A "how many / how big" question answered with no number at all did not answer it.
+    if (targeted && !/\d/.test(normDigits(raw))) return null;
     if (targeted) {
       // A targeted multi-part answer ("3 windows, 1200x1500 each") is kept whole; a single bare
       // measure is normalised to "<n> <unit>".

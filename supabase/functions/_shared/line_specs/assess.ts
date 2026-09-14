@@ -26,6 +26,7 @@
 // Pure: no I/O, no model, no clock.
 import { attrsForLine, COMPOSITE, NON_MATERIAL, normText, TRADES, tradeOfCategory, tradeOfLine, VAGUE, type Attr } from './model.ts';
 import { OPTION_HEAD } from './options.ts';
+import { componentLabel } from '../intake_requirements.ts';
 
 export type Line = {
   line_no: number; description: string; brand?: string | null; model?: string | null; specification?: string | null;
@@ -143,11 +144,19 @@ function materialReader(m: Material) {
  * main body" — gets its own attribute read from the customer's own vocabulary, because the trade's
  * board-type reader cannot read "steel legs".
  */
+// A material's own labels first; a bare key ({component:'glass'}) takes the intake catalogue's names,
+// never the key itself. Measured 14 Sep 2026: the Arabic comparison printed "المادة — glass".
+// The key survives only for a component no trade defines.
+export function materialNames(m: Material): { en: string; ar: string } {
+  const cat = componentLabel(m.component);
+  const en = String(m.label_en || cat?.en || m.component.replace(/_/g, ' '));
+  return { en, ar: String(m.label_ar || cat?.ar || en) };
+}
 export function componentAttr(m: Material, _trade: string | null, base: Attr[]): Attr {
   const byCode = (c: string) => base.find((a) => a.code === c);
   const hit = (COMPONENT_ATTR[m.component] && byCode(COMPONENT_ATTR[m.component])) || (m.component === 'main' ? (MATERIAL_ATTRS.map(byCode).find(Boolean) || byCode('brand')) : undefined);
   if (hit) return { ...hit, mandatory: true };
-  const en = String(m.label_en || m.component.replace(/_/g, ' ')), ar = String(m.label_ar || en);
+  const { en, ar } = materialNames(m);
   return { code: `component_${m.component}`, en: `Material — ${en}`, ar: `المادة — ${ar}`, type: 'text', mandatory: true, find: materialReader(m) };
 }
 
@@ -284,7 +293,7 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     if (!m?.component || m.component === 'main' || named.has(m.component)) continue;
     const v = ts.components?.[m.component]?.value ?? null;
     components[m.component] = v && !VAGUE.test(normText(v)) ? v : null;
-    if (!components[m.component]) missing.push(termItem(`component:${m.component}`, [`Material — ${m.label_en || m.component}`, `المادة — ${m.label_ar || m.label_en || m.component}`]));
+    if (!components[m.component]) { const n = materialNames(m); missing.push(termItem(`component:${m.component}`, [`Material — ${n.en}`, `المادة — ${n.ar}`])); }
   }
 
   // (2) Delivery — every quote; the customer's required-by date is checked against it in the comparison.

@@ -285,19 +285,23 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   // key-figures strip on white beneath it.
   // deno-lint-ignore no-explicit-any
   function cover(cv: any) {
-    const H = 238;
+    // cover.compact (14 Sep 2026, agent: accountant): a band 58pt shorter — smaller title, one subtitle line —
+    // for letters and indexes, so a signed one-page letter keeps its signature on page 1 instead of sending
+    // it alone to an 83%-empty page 2. Opt-in; every other document keeps the full band.
+    const K = !!cv.compact;
+    const H = K ? 180 : 238;
     page.drawRectangle({ x: 0, y: PH - H, width: PW, height: H, color: NAVY });
     page.drawRectangle({ x: 0, y: PH - H, width: PW, height: 2.6, color: GOLD }); page.drawRectangle({ x: 0, y: PH - H + 2.6, width: PW, height: 1, color: TEAL });
     drawLockup(CO.logoPt, PH - 30 - CO.logoPt);
-    const issuer = RTL ? [CO.name, `رخصة تجارية رقم ${(CO.licence.match(/\d{5,}/) || [''])[0]} · ${CO.permit}`] : [CO.name, `${CO.licence} · ${CO.permit}`];
+    const issuer = RTL ? [CO.name, `رخصة تاجر رقم ${(CO.licence.match(/\d{5,}/) || [''])[0]} · ${CO.permit}`] : [CO.name, `${CO.licence} · ${CO.permit}`];
     txt(safeText(issuer[0]), M, CW, PH - 36, 9.5, { bold: true, color: WHITE, align: 'e' });
     txt(safeText(issuer[1]), M, CW, PH - 48, 7, { color: BANDTXT, align: 'e' });
-    txt(cv.kicker, M, CW, PH - 94, 9, { bold: true, color: TEAL_L });
-    const kx = px(0, 30); page.drawLine({ start: { x: kx, y: PH - 101 }, end: { x: kx + 30, y: PH - 101 }, thickness: 1.6, color: GOLD });
-    txt(cv.title, M, CW, PH - 132, 27, { bold: true, color: WHITE });
-    let sy = PH - 154; for (const ln of lines(cv.subtitle, 9.8, false, CW * 0.9).slice(0, 2)) { txt(ln, px(0, CW * 0.9), CW * 0.9, sy, 9.8, { color: BANDTXT }); sy -= 14; }
+    txt(cv.kicker, M, CW, PH - (K ? 80 : 94), 9, { bold: true, color: TEAL_L });
+    const kx = px(0, 30); page.drawLine({ start: { x: kx, y: PH - (K ? 87 : 101) }, end: { x: kx + 30, y: PH - (K ? 87 : 101) }, thickness: 1.6, color: GOLD });
+    txt(cv.title, M, CW, PH - (K ? 110 : 132), K ? 21 : 27, { bold: true, color: WHITE });
+    let sy = PH - (K ? 128 : 154); for (const ln of lines(cv.subtitle, 9.8, false, CW * 0.9).slice(0, K ? 1 : 2)) { txt(ln, px(0, CW * 0.9), CW * 0.9, sy, 9.8, { color: BANDTXT }); sy -= 14; }
     const meta = Array.isArray(cv.meta) ? cv.meta.slice(0, 4) : []; const mw = CW / Math.max(1, meta.length);
-    meta.forEach(([k, v]: [string, string], i: number) => { const x = px(i * mw, mw); txt(k, x, mw - 10, PH - H + 42, 6.8, { color: TEAL_L }); txt((lines(v, 9.2, true, mw - 10)[0] || ''), x, mw - 10, PH - H + 26, 9.2, { bold: true, color: WHITE }); });
+    meta.forEach(([k, v]: [string, string], i: number) => { const x = px(i * mw, mw); txt(k, x, mw - 10, PH - H + (K ? 30 : 42), 6.8, { color: TEAL_L }); txt((lines(v, 9.2, true, mw - 10)[0] || ''), x, mw - 10, PH - H + (K ? 14 : 26), 9.2, { bold: true, color: WHITE }); });
     y = PH - H - 14;
     const figs = Array.isArray(cv.figures) ? cv.figures.slice(0, 4) : [];
     if (figs.length) {
@@ -326,8 +330,10 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   }
 
   // ── Blocks ─────────────────────────────────────────────────────────────────────────────────
+  // Keep with next (14 Sep 2026): a section heading starts only where at least two lines of what follows fit
+  // too; the Arabic invoice left "الأساس والاستحقاق" alone at the foot of page 1 with its text on page 2.
   function section(n: unknown, t: string) {
-    ensure(52); y -= 12; const box = 17;
+    ensure(52 + 30); y -= 12; const box = 17;
     if (n != null && n !== '') { const bx = px(0, box); page.drawRectangle({ x: bx, y: y - box, width: box, height: box, color: NAVY }); txt(String(n), bx, box, y - box + 5.2, 9, { bold: true, color: WHITE, align: 'c' }); }
     const off = n != null && n !== '' ? box + 9 : 0;
     txt(t, px(off, CW - off), CW - off, y - box + 4, 13, { bold: true, color: NAVY });
@@ -437,11 +443,25 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
     const bw = 262; const x = px(CW - bw, bw); const rows = b.rows || [];
     ensure(rows.length * 24 + 30); y -= 2;
     // deno-lint-ignore no-explicit-any
+    // 14 Sep 2026 (agent: accountant). The label and the value shared one line with nothing between
+    // them, so a long label ran under the figure: "Interest (c) at 9% p.a. for 32 days to 17 November
+    // 2026" overlapped "AED 21.35" by 36pt in six of the fourteen legal samples (measured with
+    // scripts/legal/pdf_text_overlaps.mjs). The value keeps its line at the end edge; the label wraps
+    // in the width the value leaves, and the row grows with it.
+    const inner = bw - 24, GAP = 10;
     rows.forEach(([l, v, strong]: any[]) => {
-      if (strong) {
-        page.drawRectangle({ x, y: y - 28, width: bw, height: 28, color: NAVY }); page.drawRectangle({ x, y: y - 2, width: bw, height: 2, color: GOLD });
-        txt(l, x + 12, bw - 24, y - 18.5, 9.4, { bold: true, color: WHITE }); txt(v, x + 12, bw - 24, y - 19, 12.5, { bold: true, color: WHITE, align: 'e' }); y -= 28;
-      } else { txt(l, x + 12, bw - 24, y - 13.5, 8.4, { color: MUT }); txt(v, x + 12, bw - 24, y - 13.5, 9, { bold: true, color: INK, align: 'e' }); y -= 20; hline(y, HAIR, 0.5, x, x + bw); }
+      const ls = strong ? 9.4 : 8.4, vs = strong ? 12.5 : 9, vStr = String(v ?? '');
+      const vw = meas(vStr, fontFor(vStr, true), vs);
+      const ll = lines(l, ls, !!strong, Math.max(40, inner - vw - GAP)); const lh = ls * 1.3;
+      const h = Math.max(strong ? 28 : 20, (strong ? 12 : 8) + ll.length * lh + (strong ? 4 : 2));
+      ensure(h);
+      if (strong) { page.drawRectangle({ x, y: y - h, width: bw, height: h, color: NAVY }); page.drawRectangle({ x, y: y - 2, width: bw, height: 2, color: GOLD }); }
+      let ly = y - (strong ? 18.5 : 13.5);
+      const lx = RTL ? x + 12 + vw + GAP : x + 12; // the label box lies on the start side of the value
+      for (const ln of ll) { txt(ln, lx, inner - vw - GAP, ly, ls, { bold: !!strong, color: strong ? WHITE : MUT }); ly -= lh; }
+      const vx = RTL ? x + 12 : x + 12 + inner - vw;
+      txt(vStr, vx, vw, y - (strong ? 19 : 13.5), vs, { bold: true, color: strong ? WHITE : INK, align: 'e' });
+      y -= h; if (!strong) hline(y, HAIR, 0.5, x, x + bw);
     });
     y -= 8; if (b.note) para(b.note, { size: 8, color: AMBER_D }); y -= 4;
   }
@@ -537,7 +557,10 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   if (body.cover) cover(body.cover); else legacyHeader();
   if (body.body_html) renderBlocks(parseHtml(String(body.body_html)));
   else if (Array.isArray(body.blocks)) renderBlocks(body.blocks);
-  if (doSign || doStamp) { ensure(120); y -= 20; const baseY = y - 58; if (sig) { const w = 150, h = sig.height * (w / sig.width); page.drawImage(sig, { x: M + 90, y: baseY + 4, width: w, height: h }); } putLine(RTL ? 'الموقّع المعتمد' : 'AUTHORISED SIGNATORY', 8, false, MUT, 'l', baseY + 50); page.drawLine({ start: { x: M, y: baseY }, end: { x: M + 230, y: baseY }, thickness: 0.8, color: LINE }); putLine(RTL ? CO_AR.signer : CO.signer, 11, true, NAVY, 'l', baseY - 14); putLine(RTL ? CO_AR.title : CO.title, 9.5, false, MUT, 'l', baseY - 27); putLine(CO.name, 9.5, false, MUT, 'l', baseY - 39); if (stamp) { const w = 110, h = stamp.height * (w / stamp.width); // deno-lint-ignore no-explicit-any
+  // 14 Sep 2026 (agent: accountant): the signature image rose ~40pt above the space reserved for it and sat on the
+  // last line of text (Reminder 2). The drop below the preceding content now fits the tallest of the signature,
+  // the rotated stamp and the signatory lines, and the page break reserves exactly that.
+  if (doSign || doStamp) { const sigH = sig ? sig.height * (150 / sig.width) : 0, stH = stamp ? stamp.height * (110 / stamp.width) : 0; const drop = Math.max(58, sigH + 4, stH - 26 + 8); ensure(20 + drop + 50); y -= 20; const baseY = y - drop; if (sig) { const w = 150, h = sig.height * (w / sig.width); page.drawImage(sig, { x: M + 90, y: baseY + 4, width: w, height: h }); } putLine(RTL ? 'الموقّع المعتمد' : 'AUTHORISED SIGNATORY', 8, false, MUT, 'l', baseY + 50); page.drawLine({ start: { x: M, y: baseY }, end: { x: M + 230, y: baseY }, thickness: 0.8, color: LINE }); putLine(RTL ? CO_AR.signer : CO.signer, 11, true, NAVY, 'l', baseY - 14); putLine(RTL ? CO_AR.title : CO.title, 9.5, false, MUT, 'l', baseY - 27); putLine(CO.name, 9.5, false, MUT, 'l', baseY - 39); if (stamp) { const w = 110, h = stamp.height * (w / stamp.width); // deno-lint-ignore no-explicit-any
     page.drawImage(stamp, { x: PW - M - 140, y: baseY - 26, width: w, height: h, opacity: 0.9, rotate: { type: 'degrees', angle: -8 } as any }); } y = baseY - 50; }
   footers();
 

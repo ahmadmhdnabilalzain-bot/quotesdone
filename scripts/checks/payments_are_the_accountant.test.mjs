@@ -53,11 +53,23 @@ function tsRegistry() {
   const src = read(join(FNS, '_shared', 'payment_handoffs.ts'));
   return [...src.matchAll(/\{ type: '([a-z_.]+)', from: '([a-z_]+)', to: '([a-z_]+)' \}/g)].map((m) => `${m[1]}|${m[2]}|${m[3]}`).sort();
 }
-function sqlRegistry() {
-  const body = sqlText.slice(sqlText.lastIndexOf('create or replace function public.fn_seat_handoff_types()'));
-  const values = body.slice(0, body.indexOf('$fn$;'));
-  return [...values.matchAll(/\('([a-z_.]+)',\s*'([a-z_]+)',\s*'([a-z_]+)',/g)].map((m) => `${m[1]}|${m[2]}|${m[3]}`).sort();
+// The conversations are rows of public.seat_handoff_kind, inserted by whichever file owns them. A row
+// that names its handler ('fn_…' after the meaning) keeps it; a row that does not gets the handler the
+// owner file's INSERT derives: fn_seat_answers_it_finding, fn_delivery_result_acts, else the seat's own.
+const allSql = readdirSync(SQL).filter((f) => f.endsWith('.sql')).map((f) => read(join(SQL, f))).join('\n');
+function kindRows() {
+  const rows = [];
+  for (const m of allSql.matchAll(/insert into public\.seat_handoff_kind\b[\s\S]*?;\s*$/gm)) {
+    for (const t of m[0].matchAll(/\('([a-z_.]+)',\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'(?:[^']|'')*'(?:,\s*'(fn_[a-z0-9_]+)')?/g)) {
+      const [, type, from, to, named] = t;
+      const handler = named ?? (type === 'it.finding' ? 'fn_seat_answers_it_finding'
+        : type === 'delivery.result' ? 'fn_delivery_result_acts' : `fn_${to}_acts_on_handoff`);
+      rows.push({ type, from, to, handler });
+    }
+  }
+  return rows;
 }
+const sqlRegistry = () => kindRows().map((r) => `${r.type}|${r.from}|${r.to}`).sort();
 function fnBody(name) {
   const at = sqlText.lastIndexOf(`create or replace function public.${name}(`);
   assert.ok(at >= 0, `${name} is not defined in the routine file`);
@@ -81,20 +93,22 @@ test('the list of conversations is the same in TypeScript and in the database fi
 });
 
 test('every conversation has a producer and a handler in the receiving seat', () => {
-  const handlers = {
-    sales_engineer: fnBody('fn_sales_engineer_acts_on_handoff'),
-    accountant: fnBody('fn_accountant_acts_on_handoff'),
-    customer_support: fnBody('fn_customer_support_acts_on_handoff'),
-  };
-  // A delivery.result and an it.finding are received by whichever seat they are addressed to, through
-  // fn_seat_handoff_act itself (the generic close, and fn_seat_answers_it_finding), not a per-seat handler.
-  const handlerOf = (type, to) => (['delivery.result', 'it.finding'].includes(type) ? fnBody('fn_seat_handoff_act') : handlers[to]);
+  // A seat's generic handler (fn_<seat>_acts_on_handoff) branches on the type, so it must name it; a
+  // routine written for the conversation (fn_delivery_result_acts, an accountant money notice) only has
+  // to exist.
+  const handlerOk = ({ type, to, handler }) => (handler === `fn_${to}_acts_on_handoff`
+    ? fnBody(handler).includes(`'${type}'`)
+    : allSql.includes(`create or replace function public.${handler}(`));
+  const handlers = new Map(kindRows().map((r) => [`${r.type}|${r.from}|${r.to}`, r]));
   const ts = slugs.map(fnSource).join('\n');
   const missing = [];
   for (const k of tsRegistry()) {
     const [type, from, to] = k.split('|');
-    if (!handlerOf(type, to)?.includes(`'${type}'`)) missing.push(`${k}: ${to} has no handler`);
-    const produced = sqlText.includes(`fn_seat_handoff('${from}', '${to}', '${type}'`)
+    const row = handlers.get(k);
+    if (!row || !handlerOk(row)) missing.push(`${k}: ${to} has no handler${row ? ` (${row.handler})` : ''}`);
+    // A conversation's producer lives in the file that owns the kind (since #648 kinds are data a build
+    // adds), so it is looked for across every routine file, not only the FILES above.
+    const produced = allSql.includes(`fn_seat_handoff('${from}', '${to}', '${type}'`)
       || (type === 'delivery.request' && from === 'sales_engineer' && sqlText.includes('fn_seat_handoff(\'sales_engineer\', \'customer_support\', \'delivery.request\''))
       // the edge door opens a request from the seat that owns the type; the watch answers whoever asked
       || (type === 'delivery.request' && sqlText.includes("fn_seat_handoff(v_seat, 'customer_support', 'delivery.request'"))
@@ -126,7 +140,7 @@ test('production: every payment function and model binding is the accountant\'s'
 
 test('production: the live conversations and the triggers that start them', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const live = (await sql('select type, from_seat, to_seat from public.fn_seat_handoff_types()')).map((r) => `${r.type}|${r.from_seat}|${r.to_seat}`).sort();
+  const live = (await sql('select type, from_seat, to_seat from public.seat_handoff_kind')).map((r) => `${r.type}|${r.from_seat}|${r.to_seat}`).sort();
   assert.deepEqual(live, tsRegistry(), 'production fn_seat_handoff_types() is not the repository\'s list (is the file applied?)');
   const trg = (await sql(`select c.relname || '.' || t.tgname as t from pg_trigger t join pg_class c on c.oid = t.tgrelid
                            where not t.tgisinternal and t.tgname in ('z20_reveal_receipt','z30_refund_request_hands_to_accountant',

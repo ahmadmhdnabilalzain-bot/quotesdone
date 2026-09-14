@@ -3,9 +3,10 @@
 --
 -- Assigned: accountant (the finding ledger entries and the notices it asks for). The words a supplier
 -- reads are the sales_engineer's (fn_sales_engineer_writes_money_notice); the send is customer_support's.
--- fn_seat_handoff_act is the loop core and has ONE owner, the it_engineer's
--- the_it_engineer_closes_every_loop_it_opens.sql; the notice branch that calls this file's writer lives
--- there (review of #645: no second copy of the body), so that file is applied after this one.
+-- The loop core (fn_seat_handoff_act, fn_seat_handoff_types) has ONE owner, the it_engineer's
+-- the_it_engineer_closes_every_loop_it_opens.sql, and since #648 it dispatches every conversation by
+-- looking up its row in public.seat_handoff_kind. This file never redefines either routine: it INSERTs
+-- the accountant's five notice kinds (section 3b) and owns their handler.
 --
 -- The founder, 14 Sep 2026: "yea add them all" (the accountant's eight duties), "always make sure things
 -- are in loop. nothing literally should ever be a one way communication", and "just ignore the corporate
@@ -28,13 +29,12 @@
 --     'IT engineer duty' on every row, which would file the accountant's findings under the wrong seat.
 --     fn_accountant_duty_settle below is that routine with the accountant's name on it; both call the
 --     one upsert and the one close.
---   * The sales engineer has no words for a reminder, a renewal notice or dunning. Adding handoff TYPES
---     would mean redefining fn_seat_handoff_types, whose list three files share and whose TypeScript
---     mirror (payment_handoffs.ts) a check compares against a fixed file list. Instead the accountant
---     sends the EXISTING conversations ('nonresponse.charge_raised', 'subscription.due') with a
---     detail.notice naming which notice it is, and fn_seat_handoff_act routes a sales_engineer handoff
---     that carries a notice to fn_sales_engineer_writes_money_notice. Every conversation, producer and
---     handler the payments check knows about is unchanged.
+--   * The sales engineer had no words for a reminder, a final demand, a renewal notice or dunning. Since
+--     #648 a conversation is data: the accountant adds five rows to public.seat_handoff_kind
+--     (nonresponse.charge_reminder, nonresponse.final_demand, subscription.renewal_reminder,
+--     subscription.dunning, subscription.payment_failed; accountant -> sales_engineer), each naming
+--     fn_sales_engineer_writes_money_notice as its handler, which works out the notice from the type.
+--     The existing conversations and their handlers are unchanged.
 --
 -- WHAT THIS DOES NOT DO. It does not write any duty's detector; each duty is its own file and calls
 -- fn_accountant_duty_settle. It seeds no reminder or final-demand wording: those are configuration rows
@@ -212,10 +212,18 @@ declare
   v_sub_en text; v_body_en text; v_sub_ar text; v_body_ar text; v_req bigint; v_msg text;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff';
-  if not found or a.agent <> 'sales_engineer' or not (a.detail ? 'notice') then
-    raise exception 'fn_sales_engineer_writes_money_notice: % is not a sales engineer notice handoff', p_id;
+  -- THE KIND IS THE CONVERSATION'S TYPE (public.seat_handoff_kind, #648): fn_seat_handoff_act dispatches
+  -- each of the five rows inserted below to this routine, and the type alone says which notice it is.
+  v_notice := case a.detail->>'type'
+                when 'nonresponse.charge_reminder'  then 'charge_reminder'
+                when 'nonresponse.final_demand'     then 'final_demand'
+                when 'subscription.renewal_reminder' then 'subscription_renewal'
+                when 'subscription.dunning'         then 'subscription_dunning'
+                when 'subscription.payment_failed'  then 'subscription_payment_failed' end;
+  if not found or a.agent <> 'sales_engineer' or v_notice is null then
+    raise exception 'fn_sales_engineer_writes_money_notice: % is not one of the accountant''s notice kinds', p_id;
   end if;
-  d := a.detail; v_notice := d->>'notice';
+  d := a.detail;
   select l.id, l.company_name, coalesce(l.claimed_by, l.email) email into v_sup
     from public.leads l where l.id = (d->>'supplier_id')::bigint;
   if coalesce(v_sup.email, '') not like '%@%' then
@@ -288,6 +296,31 @@ begin
   return jsonb_build_object('notice', v_notice, 'delivery_request', v_req);
 end $fn$;
 revoke execute on function public.fn_sales_engineer_writes_money_notice(bigint) from public, anon, authenticated;
+
+-- ── 3b. THE NOTICES ARE THEIR OWN CONVERSATIONS ─────────────────────────────────────────────────
+-- #648 made every conversation a row of public.seat_handoff_kind naming its handler; a build adds its
+-- conversations by INSERT and never redefines fn_seat_handoff_act. The accountant hands the sales
+-- engineer five notices, each answered by fn_sales_engineer_writes_money_notice. The sales engineer's
+-- words then go to customer_support as a delivery.request, and the delivery.result comes back.
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
+  ('nonresponse.charge_reminder', 'accountant', 'sales_engineer',
+   'A non-response charge is still unpaid on a configured reminder day: remind the supplier, in the wording decision_policy holds.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('nonresponse.final_demand', 'accountant', 'sales_engineer',
+   'A non-response charge reached the final-demand day: send the formal demand, in the wording decision_policy holds.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('subscription.renewal_reminder', 'accountant', 'sales_engineer',
+   'A paying supplier''s annual subscription renews soon: tell them the date and the fee.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('subscription.dunning', 'accountant', 'sales_engineer',
+   'A supplier''s annual subscription is still unpaid on a configured dunning day: remind them.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql'),
+  ('subscription.payment_failed', 'accountant', 'sales_engineer',
+   'A supplier''s subscription payment did not complete: tell them nothing was charged and how to pay.',
+   'fn_sales_engineer_writes_money_notice', null, false, 'scripts/sql/the_accountant_raises_its_findings_into_the_loop_the_it_engineer_runs.sql')
+on conflict (type, from_seat, to_seat) do update
+  set meaning = excluded.meaning, handler = excluded.handler, reply_within = excluded.reply_within,
+      originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
 
 -- ── 4. PROOF: a finding raised, re-checked away, and a notice with no template refused ────────────
 -- This file defines routines, so the probe cleans up after itself and ends in a notice.

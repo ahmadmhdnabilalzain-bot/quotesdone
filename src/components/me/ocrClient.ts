@@ -114,6 +114,74 @@ export async function toJpegPages(file: File): Promise<PageImage[]> {
   }
 }
 
+// ── DRAWINGS (14 Sep 2026) ───────────────────────────────────────────────────────────────────────────
+// ocrImages reads a page the way a document is read: one pass, the image as it is. On a drawing that
+// read 0 of 70 device address tags on the founder's sample. ocrDrawing applies ocrPlan.ts — the plan
+// measured on that sheet — and returns the lines WITH their page boxes (the server reads the title
+// block by position), the sheet width, and the symbol counter's matches and per-type counts
+// (supabase/functions/drawing_boq/symbol_count.ts, the same file the fixture test runs), which the
+// portal draws as the marked-up copy (markup.ts). A phone runs only the first pass: the second costs
+// another ~40% of the time for a few more tags.
+export type DrawingOcr = {
+  text: string;
+  lines: { text: string; bbox: { x: number; y: number; w: number; h: number } }[];
+  width: number; height: number;
+  symbols: { counts: Record<string, number>; matches: { type: string; box: { x: number; y: number; w: number; h: number } }[] } | null;
+  ms: number;
+};
+
+export async function ocrDrawing(img: PageImage, opts?: { onProgress?: (p: number) => void; lite?: boolean }): Promise<DrawingOcr> {
+  const t0 = Date.now();
+  const plan = await import('./ocrPlan');
+  const bmp = await createImageBitmap(await (await fetch(`data:${img.mime};base64,${img.data}`)).blob());
+  const W0 = bmp.width, H0 = bmp.height;
+  const { createWorker } = await import('tesseract.js');
+  const worker = await createWorker('eng', 1, { workerPath: ocrUrl('worker.min.js'), corePath: ocrUrl('core'), langPath: ocrUrl('lang'), workerBlobURL: false });
+  const passes = opts?.lite ? plan.OCR_PASSES.slice(0, 1) : plan.OCR_PASSES;
+  const all: { text: string; bbox: { x: number; y: number; w: number; h: number }; pass: number }[] = [];
+  let pixels: Uint8ClampedArray | null = null;
+  try {
+    const jobs = passes.map((p) => { const s = plan.scaleFor(p, W0, H0); return { p, s, tiles: plan.tiles(Math.round(W0 * s), Math.round(H0 * s), p.tile) }; });
+    const total = jobs.reduce((n, j) => n + j.tiles.length, 0); let done = 0;
+    for (let pi = 0; pi < jobs.length; pi++) {
+      const { p, s, tiles } = jobs[pi];
+      const W = Math.round(W0 * s), H = Math.round(H0 * s);
+      const big = document.createElement('canvas'); big.width = W; big.height = H;
+      const ctx = big.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(bmp, 0, 0, W, H);
+      const id = ctx.getImageData(0, 0, W, H);
+      const g = plan.binarize(id.data, 4, W, H);
+      for (let i = 0; i < g.length; i++) { const v = g[i]; id.data[i * 4] = v; id.data[i * 4 + 1] = v; id.data[i * 4 + 2] = v; id.data[i * 4 + 3] = 255; }
+      ctx.putImageData(id, 0, 0);
+      // deno-lint-ignore no-explicit-any
+      await worker.setParameters({ tessedit_pageseg_mode: p.psm as any, user_defined_dpi: '300' } as any);
+      for (const t of tiles) {
+        const c = document.createElement('canvas'); c.width = t.w; c.height = t.h;
+        (c.getContext('2d') as CanvasRenderingContext2D).drawImage(big, t.x, t.y, t.w, t.h, 0, 0, t.w, t.h);
+        // deno-lint-ignore no-explicit-any
+        const { data } = await worker.recognize(c, {}, { blocks: true } as any) as any;
+        for (const b of data.blocks || []) for (const par of b.paragraphs || []) for (const ln of par.lines || []) {
+          const bb = ln.bbox; all.push({ text: ln.text, pass: pi, bbox: { x: (t.x + bb.x0) / s, y: (t.y + bb.y0) / s, w: (bb.x1 - bb.x0) / s, h: (bb.y1 - bb.y0) / s } });
+        }
+        opts?.onProgress?.(++done / total);
+      }
+    }
+    const c0 = document.createElement('canvas'); c0.width = W0; c0.height = H0;
+    const x0 = c0.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+    x0.fillStyle = '#fff'; x0.fillRect(0, 0, W0, H0); x0.drawImage(bmp, 0, 0);
+    pixels = x0.getImageData(0, 0, W0, H0).data;
+  } finally { await worker.terminate(); bmp.close(); }
+  const lines = plan.mergeLines(all).map(({ text, bbox }) => ({ text, bbox }));
+  let symbols: DrawingOcr['symbols'] = null;
+  try {
+    const sc = await import('../../../supabase/functions/drawing_boq/symbol_count');
+    const lv = await import('../../../supabase/functions/drawing_boq/legend_vocabulary');
+    const rows = sc.legendRows(lines, W0, lv.deviceTypeOf);
+    if (rows.length && pixels) { const r = sc.countSymbols({ w: W0, h: H0, px: pixels, channels: 4 }, rows); symbols = { counts: r.counts, matches: r.matches.map((m) => ({ type: m.type, box: m.box })) }; }
+  } catch (_e) { symbols = null; }
+  return { text: plan.linesToText(lines), lines, width: W0, height: H0, symbols, ms: Date.now() - t0 };
+}
+
 export async function ocrImages(
   images: PageImage[],
   opts?: { langs?: string; onProgress?: (p: number) => void },

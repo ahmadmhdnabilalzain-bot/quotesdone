@@ -4,7 +4,20 @@
 // price excluding VAT — each missing, and each not required.
 // deno test --no-lock --node-modules-dir=none supabase/functions/_shared/line_specs/assess.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { assessQuote, holdNotice, requirementsOf, SEAT_LABEL, validateLineValue, validateTerm, type Line, type Requirements, type Terms } from './assess.ts';
+import { assessQuote, holdNotice, materialNames, requirementsOf, SEAT_LABEL, validateLineValue, validateTerm, type Line, type Requirements, type Terms } from './assess.ts';
+
+// A stored material that carries only its key names itself from the intake catalogue, never by the
+// key (measured 14 Sep 2026: "المادة — glass" in the Arabic comparison and hold notice).
+Deno.test('a material named only by its key takes the catalogue names, in both languages', () => {
+  assertEquals(materialNames({ component: 'glass' }), { en: 'Glass', ar: 'الزجاج' });
+  assertEquals(materialNames({ component: 'glass', label_en: 'Glazing', label_ar: 'الزجاج المزدوج' }), { en: 'Glazing', ar: 'الزجاج المزدوج' });
+  assertEquals(materialNames({ component: 'no_such_part' }), { en: 'no such part', ar: 'no such part' });
+  const held = assessQuote({ category: 'aluminium', lines: [{ line_no: 1, description: 'Aluminium sliding windows, Schuco AWS 70', qty: 40, unit: 'nos', unit_price: 2962, amount: 118500 } as Line],
+    terms: { lead_time: '21 days' } as Terms, requirements: { materials: [{ component: 'glass', choice: 'double' }] } as Requirements });
+  const glass = held.missing.find((m) => m.attr === 'component:glass');
+  assert(glass, 'the glass requirement was not asked of the quote');
+  assertEquals(glass!.label_ar, 'المادة — الزجاج');
+});
 import { TRADES } from './model.ts';
 
 const L = (line_no: number, description: string, x: Partial<Line> = {}): Line => ({ line_no, description, ...x });
