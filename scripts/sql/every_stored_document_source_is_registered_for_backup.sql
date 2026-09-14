@@ -95,6 +95,12 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('supplier_dues.demand_letter_path',     'column', null, false, null, 'OPEN GAP: a demand letter is not yet in the Dropbox tree'),
     ('supplier_dues.case_file_path',         'column', null, false, null, 'OPEN GAP: a supplier dues case file is not yet in the Dropbox tree'),
     ('supplier_dues.evidence_terms_path',    'column', null, false, null, 'OPEN GAP: signed-terms evidence for a due is not yet in the Dropbox tree'),
+    -- The accountant's own records (PR #645). Kept, not regenerated: a month close the CEO signed must
+    -- stay as signed. Filing them into the Dropbox tree is the accountant's year-end-pack duty.
+    ('accountant_month_close.pdf_path',      'column', null, false, null, 'OPEN GAP: a CEO-signed month close is not yet in the Dropbox tree'),
+    ('accountant_month_close.csv_path',      'column', null, false, null, 'OPEN GAP: a CEO-signed month close (CSV) is not yet in the Dropbox tree'),
+    ('accountant_issued_document.file_path', 'column', null, false, null, 'OPEN GAP: a document the accountant issued is not yet in the Dropbox tree'),
+    ('bank_statement_intake.doc_path',       'column', null, false, null, 'OPEN GAP: a bank statement received from Mashreq is not yet in the Dropbox tree'),
     ('quote-files',                          'bucket', null, false, null, 'OPEN GAP: quotation files are not yet in the Dropbox tree'),
     ('compliance-docs',                      'bucket', null, false, null, 'OPEN GAP: compliance documents are not yet in the Dropbox tree')
 $fn$;

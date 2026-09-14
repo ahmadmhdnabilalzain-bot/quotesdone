@@ -106,7 +106,9 @@ test('every conversation has a producer and a handler in the receiving seat', ()
     const [type, from, to] = k.split('|');
     const row = handlers.get(k);
     if (!row || !handlerOk(row)) missing.push(`${k}: ${to} has no handler${row ? ` (${row.handler})` : ''}`);
-    const produced = sqlText.includes(`fn_seat_handoff('${from}', '${to}', '${type}'`)
+    // A conversation's producer lives in the file that owns the kind (since #648 kinds are data a build
+    // adds), so it is looked for across every routine file, not only the FILES above.
+    const produced = allSql.includes(`fn_seat_handoff('${from}', '${to}', '${type}'`)
       || (type === 'delivery.request' && from === 'sales_engineer' && sqlText.includes('fn_seat_handoff(\'sales_engineer\', \'customer_support\', \'delivery.request\''))
       // the edge door opens a request from the seat that owns the type; the watch answers whoever asked
       || (type === 'delivery.request' && sqlText.includes("fn_seat_handoff(v_seat, 'customer_support', 'delivery.request'"))
