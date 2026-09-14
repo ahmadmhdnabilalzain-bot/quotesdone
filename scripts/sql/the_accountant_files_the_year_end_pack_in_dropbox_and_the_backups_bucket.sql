@@ -23,9 +23,9 @@
 --       year_end_pack_day in January the pack for the year before is due, and two days late it is an
 --       accountant finding round the IT loop until it is filed.
 --   fn_enqueue_doc_backups gains ACCOUNTING (section 5), which files the four gap columns and the year-end
---       pack under /QuotesDone Backup/Finance/; fn_it_backup_expected gains the same files (section 6), so
---       the it_engineer's backup loop verifies each one reached Dropbox. The registry rows flip to backed up
---       in every_stored_document_source_is_registered_for_backup.sql.
+--       pack under /QuotesDone Backup/Finance/. The it_engineer's expected list, fn_it_backup_expected, is NOT
+--       defined here: every_stored_document_source_is_registered_for_backup.sql owns it, expects the same
+--       files, and is applied after this file. The registry rows flip to backed up in that file too.
 --
 -- WHAT IT DOES NOT DO. No corporate tax schedule and no VAT return (founder, 14 Sep 2026; no VAT until the
 -- AED 375,000 threshold). It does not close the other OPEN GAPs (refunds.doc_path, supplier_dues letters):
@@ -361,7 +361,9 @@ begin
   -- the entity -> type -> date tree under Finance: the month close the CEO signed for (PDF and CSV), the
   -- Mashreq statements, every document the accountant issued in the founder's name, and the year-end pack.
   -- A path stored as '<bucket>/<path>' (bank_statement_intake.doc_path, accountant_issued_document.file_path)
-  -- is split at its first slash; any other shape is not queued.
+  -- is split at its first slash; any other shape is not queued. Demo rows are filtered exactly as
+  -- fn_it_backup_expected filters them (a zz_demo account, an @example.invalid recipient, a ZZ DEMO path):
+  -- no demo document reaches Dropbox or the backups bucket.
   insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
   select 'company', 'close:' || to_char(c.month,'YYYY-MM'), v.doc_type, c.pdf_bucket, v.path,
          regexp_replace(v.path,'^.*/',''),
@@ -396,7 +398,7 @@ begin
            || ' - ' || regexp_replace(d.file_path,'^.*/',''),
          'storage', 'ACCT:issued:' || d.id
   from public.accountant_issued_document d
-  where d.file_path ~ '^[a-z0-9-]+/.+'
+  where d.file_path ~ '^[a-z0-9-]+/.+' and d.recipient !~* 'example\.invalid'
   on conflict (dedupe_key) do nothing;
   get diagnostics m = row_count; n := n + m;
 
@@ -405,7 +407,7 @@ begin
          '/QuotesDone Backup/Finance/Year End/' || p.year || '/' || (f->>'name'),
          'storage', 'ACCT:year_end:' || p.year || ':' || (f->>'name')
   from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
-  where p.rendered_at is not null
+  where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo'
   on conflict (dedupe_key) do nothing;
   get diagnostics m = row_count; n := n + m;
 
@@ -414,82 +416,3 @@ end $function$;
 
 revoke execute on function public.fn_enqueue_doc_backups() from public, anon, authenticated;
 
--- ── 6. VERIFIED BY THE IT ENGINEER: fn_it_backup_expected, the MANIFEST-last definition
--- (every_stored_document_source_is_registered_for_backup.sql) copied VERBATIM with ONE change: the
--- accountant's files above are expected, so fn_it_backup_expected_status and the backup loop verify each
--- one reached Dropbox. Nothing is read from doc_backups here: the list comes from the sources.
-create or replace function public.fn_it_backup_expected()
-returns table(item_key text, kind text, bucket text, path text, gen_kind text, gen_ref text, owner text, since timestamptz)
-language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  with rl as (select * from public.leads where not coalesce(is_demo, false)),
-       rc as (select * from public.customers where not coalesce(is_demo, false)),
-       ri as (select i.* from public.inquiries i join rc on rc.id = i.customer_id)
-  select 'obj:' || o.bucket_id || ':' || o.name, 'storage', o.bucket_id, o.name, null::text, null::text, x.owner, o.created_at
-    from storage.objects o
-    cross join lateral (select case
-      when o.bucket_id = 'supplier-docs' then (select 'supplier:' || l.id from rl l
-             where l.id::text = split_part(o.name, '/', 2)
-                or o.name in (l.license_doc_path, l.iban_doc_path, l.egr_doc_path, l.insurance_doc_path, l.vat_doc_path,
-                              l.iso_doc_path, l.manufacturer_auth_doc_path, l.company_profile_doc_path)
-                or o.name = any(coalesce(l.catalog_doc_paths, '{}')) limit 1)
-      when o.bucket_id = 'signed-terms' then coalesce(
-             (select 'customer:' || c.id from rc c where c.signed_terms_path = o.name limit 1),
-             (select 'supplier:' || l.id from rl l where l.signed_terms_path = o.name limit 1))
-      when o.bucket_id = 'drawing-files' then (select 'inquiry:' || i.id from ri i
-             where i.id::text = split_part(o.name, '/', 2) or i.drawing_file_path = o.name limit 1)
-      when o.bucket_id = 'finance-docs' then (select 'transaction:' || t.id from public.transactions t where t.doc_path = o.name limit 1)
-    end as owner) x
-   where o.bucket_id in (select r.bucket from public.fn_backup_source_registry() r where r.kind = 'bucket' and r.backed_up)
-     and x.owner is not null and o.name !~* 'zz[_ -]?demo'
-  union all
-  -- a Stripe invoice the transaction names but storage no longer holds is still expected
-  select 'obj:finance-docs:' || t.doc_path, 'invoice', 'finance-docs', t.doc_path, null, null, 'transaction:' || t.id, t.revealed_at
-    from public.transactions t
-    -- transactions carries no is_demo of its own: a sale is demo when either party is (review of
-    -- #628). Without this, a purged demo invoice would read never_queued forever and escalate.
-    left join public.customers tc on tc.id = t.customer_id
-    left join public.leads tl on tl.id = t.supplier_id
-   where t.doc_path is not null
-     and not coalesce(tc.is_demo, false) and not coalesce(tl.is_demo, false)
-     and coalesce(tc.email, '') !~* 'example\.invalid' and coalesce(tl.email, '') !~* 'example\.invalid'
-     and not exists (select 1 from storage.objects o where o.bucket_id = 'finance-docs' and o.name = t.doc_path)
-  union all
-  select 'msg:' || m.source_table || ':' || m.source_id, 'conversation', c.pdf_bucket, c.pdf_path, null, null,
-         coalesce(m.party_kind || ':' || m.party_id, 'company'), m.occurred_at
-    from public.v_conversation_message m
-    left join public.conversation_archive c on c.source_table = m.source_table and c.source_id = m.source_id
-   where not m.is_demo
-  union all
-  select 'gen:supplier_details:' || l.id, 'generated', null, null, 'supplier_details', l.id::text, 'supplier:' || l.id, l.created_at
-    from rl l
-   where l.approved_at is not null or l.registration_submitted_at is not null or l.signed_terms_path is not null
-      or l.company_profile_doc_path is not null or l.license_doc_path is not null or coalesce(l.claimed, false)
-  union all
-  select 'gen:customer_details:' || c.id, 'generated', null, null, 'customer_details', c.id::text, 'customer:' || c.id, c.created_at from rc c
-  union all
-  select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i
-  union all
-  -- ── ACCOUNTING (14 Sep 2026, accountant duty 4): what fn_enqueue_doc_backups files under Finance ──
-  select 'obj:' || c.pdf_bucket || ':' || v.path, 'storage', c.pdf_bucket, v.path, null, null,
-         'finance:close:' || to_char(c.month, 'YYYY-MM'), c.rendered_at
-    from public.accountant_month_close c cross join lateral (values (c.pdf_path), (c.csv_path)) v(path)
-   where c.rendered_at is not null and c.pdf_bucket is not null and length(coalesce(v.path, '')) > 0
-  union all
-  select 'obj:' || split_part(b.doc_path, '/', 1) || ':' || substr(b.doc_path, strpos(b.doc_path, '/') + 1), 'storage',
-         split_part(b.doc_path, '/', 1), substr(b.doc_path, strpos(b.doc_path, '/') + 1), null, null,
-         'finance:bank_statement:' || b.source_ref, b.received_at
-    from public.bank_statement_intake b
-   where b.doc_path ~ '^[a-z0-9-]+/.+' and b.account <> 'zz_demo'
-  union all
-  select 'obj:' || split_part(d.file_path, '/', 1) || ':' || substr(d.file_path, strpos(d.file_path, '/') + 1), 'storage',
-         split_part(d.file_path, '/', 1), substr(d.file_path, strpos(d.file_path, '/') + 1), null, null,
-         'finance:issued:' || d.id, d.issued_at
-    from public.accountant_issued_document d
-   where d.file_path ~ '^[a-z0-9-]+/.+' and d.recipient !~* 'example\.invalid'
-  union all
-  select 'obj:' || (f->>'bucket') || ':' || (f->>'path'), 'storage', f->>'bucket', f->>'path', null, null,
-         'finance:year_end:' || p.year, p.rendered_at
-    from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
-   where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo';
-$fn$;
-revoke execute on function public.fn_it_backup_expected() from public, anon, authenticated;

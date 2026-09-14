@@ -23,6 +23,12 @@
 --   source has no enqueue rule. fn_it_backup_expected (the IT engineer's independent expected list)
 --   now takes its buckets from the same registry.
 --
+-- 14 SEP 2026, accountant (review of #659): fn_it_backup_expected also expects the accountant's files that
+-- fn_enqueue_doc_backups: ACCOUNTING files - the month close, the Mashreq statements, the issued documents
+-- and the year-end pack - so the backup loop verifies each one reached Dropbox. This file stays the ONE
+-- definition; it is applied AFTER the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql,
+-- because a SQL-language body is checked when it is created and reads accountant_year_end_pack.
+--
 --   node scripts/apply_sql.mjs scripts/sql/every_stored_document_source_is_registered_for_backup.sql --apply --ddl
 
 create or replace function public.fn_backup_source_registry()
@@ -160,7 +166,30 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
   union all
   select 'gen:customer_details:' || c.id, 'generated', null, null, 'customer_details', c.id::text, 'customer:' || c.id, c.created_at from rc c
   union all
-  select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i;
+  select 'gen:inquiry_summary:' || i.id, 'generated', null, null, 'inquiry_summary', i.id::text, 'inquiry:' || i.id, i.created_at from ri i
+  union all
+  -- ── ACCOUNTING (14 Sep 2026, accountant duty 4): what fn_enqueue_doc_backups files under Finance ──
+  select 'obj:' || c.pdf_bucket || ':' || v.path, 'storage', c.pdf_bucket, v.path, null, null,
+         'finance:close:' || to_char(c.month, 'YYYY-MM'), c.rendered_at
+    from public.accountant_month_close c cross join lateral (values (c.pdf_path), (c.csv_path)) v(path)
+   where c.rendered_at is not null and c.pdf_bucket is not null and length(coalesce(v.path, '')) > 0
+  union all
+  select 'obj:' || split_part(b.doc_path, '/', 1) || ':' || substr(b.doc_path, strpos(b.doc_path, '/') + 1), 'storage',
+         split_part(b.doc_path, '/', 1), substr(b.doc_path, strpos(b.doc_path, '/') + 1), null, null,
+         'finance:bank_statement:' || b.source_ref, b.received_at
+    from public.bank_statement_intake b
+   where b.doc_path ~ '^[a-z0-9-]+/.+' and b.account <> 'zz_demo'
+  union all
+  select 'obj:' || split_part(d.file_path, '/', 1) || ':' || substr(d.file_path, strpos(d.file_path, '/') + 1), 'storage',
+         split_part(d.file_path, '/', 1), substr(d.file_path, strpos(d.file_path, '/') + 1), null, null,
+         'finance:issued:' || d.id, d.issued_at
+    from public.accountant_issued_document d
+   where d.file_path ~ '^[a-z0-9-]+/.+' and d.recipient !~* 'example\.invalid'
+  union all
+  select 'obj:' || (f->>'bucket') || ':' || (f->>'path'), 'storage', f->>'bucket', f->>'path', null, null,
+         'finance:year_end:' || p.year, p.rendered_at
+    from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
+   where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo';
 $fn$;
 revoke execute on function public.fn_it_backup_expected() from public, anon, authenticated;
 

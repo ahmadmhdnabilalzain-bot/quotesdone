@@ -382,10 +382,24 @@ begin
     'year end: the pack does not hold its seven CSVs');
   perform public.fn_accountant_month_close_attach(v_m, 'finance-reports', 'accountant/close/zz_probe/close.pdf', 'accountant/close/zz_probe/close.csv');
   update public.bank_statement_intake set doc_path = 'receipt-files/bank/zz_probe/statement.pdf' where source_ref = 'zz_probe_mashreq_balance';
-  v := public.fn_accountant_year_end_pack_attach(2019, jsonb_build_array(jsonb_build_object('name', '2019 Ledger.csv', 'bucket', 'backups',
-         'path', 'accountant/year-end/zz_demo_2019/2019 Ledger.csv')));
+  v := public.fn_accountant_year_end_pack_attach(2019, jsonb_build_array(
+         jsonb_build_object('name', '2019 Ledger.csv', 'bucket', 'backups', 'path', 'accountant/year-end/zz_probe_2019/2019 Ledger.csv'),
+         jsonb_build_object('name', 'ZZ DEMO 2019 Ledger.csv', 'bucket', 'backups', 'path', 'accountant/year-end/zz_demo_2019/ZZ DEMO 2019 Ledger.csv')));
   perform pg_temp.zz_assert(exists (select 1 from public.doc_backups where dedupe_key = 'ACCT:year_end:2019:2019 Ledger.csv'
                                        and dropbox_path like '%Finance/Year End/2019/%'), 'year end: the pack was not queued for Dropbox');
+  perform pg_temp.zz_assert(not exists (select 1 from public.doc_backups where dedupe_key = 'ACCT:year_end:2019:ZZ DEMO 2019 Ledger.csv'),
+    'year end: a ZZ DEMO pack file was queued for Dropbox');
+  -- A document issued to a ZZ DEMO recipient is neither queued nor expected. Its path carries no demo marker,
+  -- so the recipient filter is what is proved.
+  insert into public.accountant_issued_document (document_kind, template_version, content_sha256, recipient, file_path)
+  values ('invoice', 'zz_probe', repeat('a', 64), 'zz-demo-issued@example.invalid', 'backups/accountant/issued/zz_probe_issued.pdf')
+  returning id into v_n;
+  perform public.fn_enqueue_doc_backups();
+  perform pg_temp.zz_assert(not exists (select 1 from public.doc_backups where dedupe_key = 'ACCT:issued:' || v_n
+                                          or (bucket = 'backups' and path = 'accountant/issued/zz_probe_issued.pdf')),
+    'year end: a document issued to a ZZ DEMO recipient was queued for Dropbox');
+  perform pg_temp.zz_assert(not exists (select 1 from public.fn_it_backup_expected() e where e.item_key = 'obj:backups:accountant/issued/zz_probe_issued.pdf'),
+    'year end: the it_engineer expects a document issued to a ZZ DEMO recipient');
   perform pg_temp.zz_assert(exists (select 1 from public.doc_backups
                                      where dedupe_key = 'ACCT:close:' || to_char(v_m, 'YYYY-MM') || ':accountant/close/zz_probe/close.pdf'
                                        and dropbox_path like '%Finance/Month Close/%'), 'year end: the month close was not queued under Finance/Month Close');
