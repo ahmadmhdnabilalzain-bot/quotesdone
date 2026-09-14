@@ -11,7 +11,6 @@ const C = company;
 export function CompanyIdentity({ locale, variant = 'card', rights }: { locale: string; variant?: 'card' | 'footer'; rights?: string }) {
   const l: Loc = locale === 'ar' ? 'ar' : 'en';
   const licence = <>{C.licence[l]} <bdi dir="ltr">{C.licence_no}</bdi></>;
-  const register = <>{C.register[l]} <bdi dir="ltr">{C.register_no}</bdi></>;
   const phone = <a href={'tel:' + C.phone.tel} dir="ltr">{C.phone.number}</a>;
   const licencePhone = <a href={'tel:' + C.licence_phone.tel} dir="ltr">{C.licence_phone.number}</a>;
   const email = <a href={'mailto:' + C.email} dir="ltr">{C.email}</a>;
@@ -20,7 +19,7 @@ export function CompanyIdentity({ locale, variant = 'card', rights }: { locale: 
     return (
       <div className="space-y-1.5">
         <p>
-          © {new Date().getFullYear()} {C.legal_name} · {C.form[l]} · {licence} · {register} · {C.city[l]}
+          © {new Date().getFullYear()} {C.legal_name} · {C.form[l]} · {licence} · {C.city[l]}
           {rights ? <> · {rights}</> : null}
         </p>
         <p>
@@ -47,7 +46,6 @@ export function CompanyIdentity({ locale, variant = 'card', rights }: { locale: 
       <dl style={{ margin: 0 }}>
         {row(C.legal_name, C.form[l])}
         {row(l === 'ar' ? 'الرخصة' : 'Licence', licence)}
-        {row(l === 'ar' ? 'السجل التجاري' : 'Commercial register', register)}
         {row(C.address_label[l], C.city[l])}
         {row(C.phone.label[l], <>{phone} <span style={{ opacity: 0.7 }}>· {C.licence_phone.label[l]}: {licencePhone}</span></>)}
         {row(C.email_label[l], email)}

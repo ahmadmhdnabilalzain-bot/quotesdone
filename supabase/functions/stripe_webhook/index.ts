@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS, stripeEventMode, signingSecretFor } from '../_shared/stripe_events.ts';
+import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS, DISPUTE_EVENTS, stripeEventMode, signingSecretFor } from '../_shared/stripe_events.ts';
 import { handleRevealInvoiceEvent } from './invoice_event.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { shortfallAfterPayment } from '../_shared/reveal_fee.ts';
@@ -415,7 +415,23 @@ Deno.serve(observe('stripe_webhook', async (req) => {
         });
         await logRun(hErr ? 'error' : 'ok', { type: event.type, quote_id: md.quote_id },
           hErr ? 'payment.failed handoff refused: ' + hErr.message : 'reveal checkout did not complete; handed to the sales engineer');
+      } else if (String(md.kind || '') === 'supplier_registration' && Number(md.supplier_id) > 0 && s.payment_status !== 'paid') {
+        // 14 Sep 2026 (agent: accountant, duty 3): a subscription payment that did not complete is dunning,
+        // not silence. The sales engineer tells the supplier nothing was charged and how to pay.
+        const { error: sErr } = await admin.rpc('fn_accountant_subscription_payment_failed', {
+          p_supplier_id: Number(md.supplier_id), p_session: String(s.id || ''), p_reason: String(event.type) });
+        await logRun(sErr ? 'error' : 'ok', { type: event.type, supplier_id: Number(md.supplier_id) },
+          sErr ? 'subscription payment failure not handed on: ' + sErr.message : 'supplier subscription checkout did not complete; handed to the sales engineer');
       }
+    }
+    // ---- CARD DISPUTES (14 Sep 2026, agent: accountant, duty 7) --------------------------------
+    // Recorded the moment Stripe opens or moves one; the accountant runtime answers it with evidence
+    // before due_by. fn_accountant_dispute_record ignores a TEST-mode dispute not on a demo payment.
+    if ((DISPUTE_EVENTS as readonly string[]).includes(String(event.type))) {
+      const dp = event.data?.object || {};
+      const { data: rec, error: dErr } = await admin.rpc('fn_accountant_dispute_record', { p_dispute: dp, p_livemode: sigMode === 'live' });
+      await logRun(dErr ? 'error' : 'ok', { type: event.type, dispute: String(dp.id || ''), result: rec ?? null },
+        dErr ? 'DISPUTE NOT RECORDED - ' + dErr.message + '. The accountant runtime re-reads open disputes daily, but until then the evidence clock runs unwatched.' : '');
     }
     // ---- THE REVEAL-FEE INVOICE, ONCE STRIPE HAS FINALISED IT (14 Sep 2026, agent: accountant) --
     // checkout.session.completed often arrives before Stripe has finalised the invoice PDF, which

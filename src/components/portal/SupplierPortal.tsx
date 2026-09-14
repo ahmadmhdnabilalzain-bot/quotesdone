@@ -650,12 +650,64 @@ function Login({ onAuth, lang, startMode }) {
 // than wrapping, so on a phone it is one row.
 const MAIN_TABS = ['overview', 'rfqs', 'quotes', 'projects', 'messages', 'documents', 'billing', 'insights'];
 const ACCOUNT_TABS = ['profile', 'scope', 'settings'];
+// A NEW AGREEMENT VERSION IS ACCEPTED AGAIN ON THE NEXT SIGN-IN (14 Sep 2026, agent: sales_engineer).
+// The founder approved Supplier Agreement v11. Clause 23 says a material change is re-confirmed, and until
+// now nothing compared a supplier's accepted_terms_version with the live one, so a supplier who accepted v10
+// would have gone on working under v11 without ever seeing it. A supplier who has accepted SOME version but
+// not the current one sees this card instead of the dashboard until they accept. A supplier who has never
+// accepted is in onboarding, which already asks. The record is written by supplier_api accept_terms (time,
+// server-read version, IP, text hash) and kyc accept_terms issues the signed acceptance certificate.
+export function needsReaccept(me) {
+  return !!(me && me.accepted_terms_at && me.terms_current && me.accepted_terms_version !== me.terms_current);
+}
+function ReacceptTerms({ token, lang, me, onDone }) {
+  const ar = lang === 'ar'; const pre = ar ? '/ar' : '';
+  const [ok, setOk] = useState(false); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const accept = async () => {
+    if (!ok) { setMsg(t(lang, 'must_accept')); return; }
+    setBusy(true); setMsg('');
+    const j = await call('supplier_api', { action: 'accept_terms' }, token).catch(() => null);
+    if (!j || !j.ok) { setBusy(false); setMsg(t(lang, 'err_generic')); return; }
+    try { await call('kyc', { action: 'accept_terms' }, token); } catch (_e) { /* the acceptance is recorded; the certificate is retried by kyc's own trail */ }
+    setBusy(false); onDone();
+  };
+  const changes = ar ? [
+    'قد تصلك الإشعارات أيضًا عبر واتساب والرسائل النصية على رقم هاتفك المحمول المسجَّل، إلى جانب البريد الإلكتروني والبوابة (البند 21).',
+    'النص العربي للاتفاقية هو المعتمد لجميع الأغراض، بما في ذلك أمام المحاكم (البند 22).',
+    'رسم عدم الاستجابة مبلغ ثابت متى صدر إشعارنا، والرسم الإداري البالغ 250 درهمًا تعويض متفق عليه وفق قانون المعاملات المدنية (البند 33).',
+    'وصف رخصتنا مطابق لما صدر عن دائرة الاقتصاد والسياحة: رخصة تاجر رقم 1633275.',
+  ] : [
+    'Notices may also reach you by WhatsApp and SMS on your registered mobile, alongside email and the portal (clause 21).',
+    'The Arabic text of the agreement is the one that counts for all purposes, including in court (clause 22).',
+    'The non-response charge is a fixed amount once our notice is issued, and the AED 250 fee is agreed compensation under the Civil Transactions Law (clause 33).',
+    'Our licence is described exactly as DET issued it: Trader License No. 1633275.',
+  ];
+  return (
+    <div className={S.center}>
+      <Card className="qd-panel max-w-[600px] p-5" dir={ar ? 'rtl' : 'ltr'}>
+        <div className={S.h2}>{ar ? `تحديث اتفاقية المورّد — الإصدار ${me.terms_current}` : `The Supplier Agreement has been updated — version ${me.terms_current}`}</div>
+        <div className={cn(S.sub, 'mt-2')}>{ar ? `قبلتَ الإصدار ${me.accepted_terms_version || '—'}. يُرجى قراءة الإصدار الجديد وقبوله لمتابعة استخدام البوابة. ما الذي تغيّر:` : `You accepted version ${me.accepted_terms_version || '—'}. Please read the new version and accept it to keep using the portal. What changed:`}</div>
+        <ul className="mt-3 flex list-disc flex-col gap-1.5 ps-5 text-[13px] text-foreground">{changes.map((c) => <li key={c}>{c}</li>)}</ul>
+        <div className="mt-3 flex flex-wrap gap-4 text-[13px]">
+          <a className="font-medium text-primary underline" href={pre + '/supplier-agreement/'} target="_blank" rel="noopener">{ar ? 'اقرأ الإصدار الجديد' : 'Read the new version'}</a>
+          <a className="text-muted-foreground underline" href={pre + '/supplier-agreement/v10/'} target="_blank" rel="noopener">{ar ? 'الإصدار السابق (v10)' : 'Previous version (v10)'}</a>
+        </div>
+        <label className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} /> {ar ? `قرأتُ اتفاقية المورّد الإصدار ${me.terms_current} وأوافق عليها.` : `I have read and accept Supplier Agreement version ${me.terms_current}.`}</label>
+        {msg ? <div className="mt-2 text-[13px] text-destructive" role="alert">{msg}</div> : null}
+        <Button className="mt-4" disabled={busy} onClick={accept}>{busy ? t(lang, 'submitting') : (ar ? 'أوافق وأتابع' : 'Accept and continue')}</Button>
+      </Card>
+    </div>
+  );
+}
 function Dashboard({ token, lang, onExpired }) {
   const ar = lang === 'ar';
   const [ov, setOv] = useState(null); const [tab, setTab] = useState('overview'); const [err, setErr] = useState('');
   const [panel, setPanel] = useState(null); const [receipt, setReceipt] = useState(null);
   // Which record a card opened: an RFQ by inquiry id (from Quotes), a chat by inquiry id (from Projects).
   const [focusRfq, setFocusRfq] = useState(null); const [openChat, setOpenChat] = useState(null);
+  // Which agreement version this supplier accepted, against the live one (supplier_api me).
+  const [me, setMe] = useState(null);
+  useEffect(() => { call('supplier_api', { action: 'me' }, token).then((j) => setMe((j && j.supplier) || null)).catch(() => {}); }, [token]);
   const load = async () => { const j = await call('supplier_portal', { action: 'overview' }, token); if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
   useEffect(() => { load(); }, [token]);
   useEffect(() => {
@@ -680,6 +732,7 @@ function Dashboard({ token, lang, onExpired }) {
   };
   if (err === 'no_company') return <Onboarding token={token} lang={lang} onDone={() => { setErr(''); load(); }} />;
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div><Button className="mt-3" onClick={() => { setErr(''); load(); }}>{t(lang, 'bill_retry')}</Button></Card></div>;
+  if (needsReaccept(me)) return <ReacceptTerms token={token} lang={lang} me={me} onDone={() => setMe({ ...me, accepted_terms_version: me.terms_current })} />;
   if (!ov) return <div className={S.center} aria-busy="true">{t(lang, 'loading_dash')}</div>;
   const s = ov.stats || {}; const pp = s.price_positioning || {};
   const TAB = { overview: ar ? 'احصل على المطابقة' : 'Get matched', rfqs: t(lang, 't_rfqs'), quotes: t(lang, 't_quotes'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), documents: t(lang, 't_documents'), billing: t(lang, 't_billing'), insights: t(lang, 't_insights'), profile: t(lang, 't_profile'), scope: t(lang, 't_scope'), settings: t(lang, 't_settings') };

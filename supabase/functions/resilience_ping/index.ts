@@ -218,6 +218,24 @@ async function accountantRefundTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE ACCOUNTANT'S DUTIES (14 Sep 2026, founder: "yea add them all" / "yea add them"). Called every
+// tick; fn_accountant_duties_due inside the seat makes it hourly. Under the seat's own credential, so
+// the run is the accountant's. The result names only counts: this endpoint is public and secretless.
+async function accountantDutiesTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_accountant');
+    if (!secret) return { ok: false, error: 'cred_fn_accountant is not in app_secrets' };
+    const r = await fetch(FN + '/accountant', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, action: 'duties' }), signal: AbortSignal.timeout(55000),
+    });
+    // deno-lint-ignore no-explicit-any
+    const j = await r.json().catch(() => null) as any;
+    return { status: r.status, skipped: j?.skipped ? true : false, ok: j?.ok ?? null,
+             errors: Array.isArray(j?.result?.errors) ? j.result.errors.length : null };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function vatThresholdTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_accountant_vat_threshold_check', { p_notify: true });
@@ -584,6 +602,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // The ladder before the outbox and WhatsApp drains, so a chase written now leaves on this pass.
     const ladder = await refundLadderTick();
     const refunds = await accountantRefundTick();
+    const accountantDuties = await accountantDutiesTick();
     const whatsapp = await whatsappTick();
     // DETECT BEFORE ALERTING, always. itEngineerAlertTick reads the finding ledger; running it
     // first would deliver the previous tick's picture of the estate.
@@ -606,7 +625,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
