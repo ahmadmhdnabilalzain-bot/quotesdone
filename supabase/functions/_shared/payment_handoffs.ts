@@ -43,6 +43,10 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'refund.requested', from: 'sales_engineer', to: 'accountant' },
   { type: 'billing.question', from: 'sales_engineer', to: 'accountant' },
   { type: 'charge.disputed', from: 'sales_engineer', to: 'accountant' },
+  // it_engineer -> accountant: a licence, NOL or domain is inside its renewal window; the accountant budgets
+  // the fee and the it_engineer closes it once it reads the new expiry
+  // (scripts/sql/the_accountant_budgets_every_renewal_the_it_engineer_sees_coming.sql)
+  { type: 'renewal.due', from: 'it_engineer', to: 'accountant' },
   // the CEO sends back what failed his checks, and the fix a post-payment mismatch needs
   { type: 'refund.remediate', from: 'ceo', to: 'accountant' },
   { type: 'refund.remediate', from: 'ceo', to: 'sales_engineer' },

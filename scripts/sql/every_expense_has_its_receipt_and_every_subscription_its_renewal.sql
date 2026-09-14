@@ -60,7 +60,7 @@ returns jsonb language plpgsql security definer set search_path to 'public', 'pg
 declare
   v_as_of date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
   v_grace int := (select num_value::int from public.gl_settings where key = 'renewal_receipt_grace_days');
-  v_items jsonb := '[]'::jsonb; v_list jsonb; v_n int; v_gaps jsonb; n_next int;
+  v_items jsonb := '[]'::jsonb; v_list jsonb; v_n int; v_gaps jsonb; n_next int; v_vouched jsonb; v_demo boolean;
 begin
   if v_grace is null then raise exception 'fn_accountant_expense_duty: gl_settings.renewal_receipt_grace_days is missing'; end if;
 
@@ -74,16 +74,29 @@ begin
                      + case e.cadence when 'annual' then interval '1 year' else interval '1 month' end)::date;
   get diagnostics n_next = row_count;
 
-  -- (b) Booked with no document behind it.
-  select count(*), coalesce(jsonb_agg(jsonb_build_object('entry', id, 'vendor', vendor, 'charged_on', charged_on,
-                                                         'amount', amount, 'currency', currency) order by id), '[]'::jsonb)
-    into v_n, v_list from public.expense_entries where coalesce(btrim(doc_path), '') = '';
-  if v_n > 0 then
-    v_items := v_items || jsonb_build_object('item', 'no_document', 'owner_seat', 'accountant', 'subject', 'expense_entries',
-      'title', v_n || ' booked expense(s) have no receipt or invoice behind them',
-      'blast', 'internal', 'affected', v_n, 'evidence', jsonb_build_object('entries', v_list,
-        'remedy', 'forward each receipt to expenses@mail.quotesdone.com; the sweep attaches it by vendor, amount and date'));
-  end if;
+  -- (b) Booked with no document behind it. 14 Sep 2026: an expense the founder vouched for (doc_kind
+  -- 'founder_statement', allowed only on source founder_reported with his words in doc_note — expense 122,
+  -- the DET licence: "its ok no need for it. just note down the number of 1200 AED") is documented by his
+  -- word and is listed, not asked for. ZZ DEMO expenses are their own finding, so a rehearsal never judges,
+  -- or is judged by, a real row (scripts/sql/an_expense_the_founder_vouches_for_is_documented_by_his_word.sql).
+  select coalesce(jsonb_agg(jsonb_build_object('entry', id, 'vendor', vendor, 'amount', amount, 'currency', currency,
+                                               'statement', doc_note) order by id), '[]'::jsonb)
+    into v_vouched from public.expense_entries where coalesce(btrim(doc_path), '') = '' and doc_kind = 'founder_statement';
+  foreach v_demo in array array[false, true] loop
+    select count(*), coalesce(jsonb_agg(jsonb_build_object('entry', id, 'vendor', vendor, 'charged_on', charged_on,
+                                                           'amount', amount, 'currency', currency) order by id), '[]'::jsonb)
+      into v_n, v_list from public.expense_entries
+     where coalesce(btrim(doc_path), '') = '' and doc_kind is distinct from 'founder_statement'
+       and ((coalesce(vendor, '') || ' ' || coalesce(note, '')) ~* 'zz[ _-]?demo') = v_demo;
+    if v_n > 0 then
+      v_items := v_items || jsonb_build_object('item', case when v_demo then 'no_document:zz_demo' else 'no_document' end,
+        'owner_seat', 'accountant', 'subject', 'expense_entries', 'demo', v_demo,
+        'title', v_n || case when v_demo then ' ZZ DEMO' else '' end || ' booked expense(s) have no receipt or invoice behind them',
+        'blast', 'internal', 'affected', v_n, 'evidence', jsonb_build_object('entries', v_list,
+          'documented_by_founder_statement', v_vouched,
+          'remedy', 'forward each receipt to expenses@mail.quotesdone.com; the sweep attaches it by vendor, amount and date'));
+    end if;
+  end loop;
 
   -- (c) A vendor the founder named that has never been billed through the mailbox.
   select count(*), coalesce(jsonb_agg(v order by v), '[]'::jsonb) into v_n, v_list
@@ -123,6 +136,7 @@ begin
   end if;
 
   return jsonb_build_object('as_of', v_as_of, 'next_due_updated', n_next,
+    'documented_by_founder_statement', v_vouched,
     'findings', public.fn_accountant_duty_settle('expenses', v_items));
 end $fn$;
 revoke execute on function public.fn_accountant_expense_duty(date) from public, anon, authenticated;

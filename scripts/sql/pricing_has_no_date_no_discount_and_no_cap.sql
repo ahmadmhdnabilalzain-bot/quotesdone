@@ -50,12 +50,22 @@ alter table public.pricing_config add column if not exists category_open_min_sup
 alter table public.pricing_config drop constraint if exists pricing_config_category_open_ck;
 alter table public.pricing_config add constraint pricing_config_category_open_ck
   check (category_open_min_suppliers >= 1);
-         and promo_reveal_cap >= 99999999
-         and standard_reveal_cap >= 99999999);
 comment on column public.pricing_config.supplier_charging_starts is
   'Founder, 6 Sep 2026: NULL and stays NULL - supplier charging starts with the registration after supplier_free_count, never on a calendar date. Every reader treats NULL as "no date".';
 comment on column public.pricing_config.category_open_min_suppliers is
   'Founder, 6 Sep 2026: a category is OPEN (listed as available to the public) once it has this many verified registered suppliers. RFQ matching still needs one confirmed supplier.';
+-- No discount, no promo, no cap: the founder's decision as a constraint, not a convention.
+-- RESTORED 14 Sep 2026. dfbd98f's dedup (534 -> 470 lines, not re-applied) deleted this definition
+-- and kept only its last two lines, so the file commented on a constraint it no longer created and
+-- could not rebuild a fresh database. The text below is production's pg_get_constraintdef, read
+-- back on 14 Sep (convalidated = true). Guarded, so re-applying against production is a no-op.
+do $ck$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'pricing_config_no_discount_no_cap_ck') then
+    alter table public.pricing_config add constraint pricing_config_no_discount_no_cap_ck
+      CHECK (((promo_until IS NULL) AND (promo_reveal_rate = standard_reveal_rate) AND (promo_reveal_cap >= (99999999)::numeric) AND (standard_reveal_cap >= (99999999)::numeric)));
+  end if;
+end $ck$;
 comment on constraint pricing_config_no_discount_no_cap_ck on public.pricing_config is
   'Founder, 6 Sep 2026: reveal fee has no discount, no promotional rate, no coupon and no cap. The promo columns stay only because edge functions select them; this constraint keeps them inert.';
 

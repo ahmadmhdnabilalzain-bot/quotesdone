@@ -2,8 +2,10 @@
 // ROW #5 §24 — SETTINGS. Language, notification preferences, and the account facts underneath them.
 //
 // ── WHAT IS SETTABLE HERE AND WHAT IS DELIBERATELY NOT ──────────────────────────────────────────
-// Three preferences post to supplier_api save_settings, which has its own three-column allowlist:
-// locale, wa_optin, email_shared. Everything else on this screen is READ-ONLY and says so, because
+// Two preferences post to supplier_api save_settings, which has its own two-column allowlist: locale
+// and email_shared. (14 Sep 2026, #322: the WhatsApp alerts switch is gone. It saved wa_optin, which
+// nothing that routes WhatsApp reads any more; the WhatsApp question below - same number / a different
+// number verified by code / I don't use WhatsApp - is the one control, and 'I don't use WhatsApp' is off.) Everything else on this screen is READ-ONLY and says so, because
 // it is not a preference — verification state, approval state and the terms version are facts the
 // platform decides, and a settings screen that appeared to let a supplier edit them would be
 // offering a control that silently does nothing.
@@ -15,10 +17,12 @@
 // reads; and the fetch is the portal's shared call() rather than a second copy.
 import React, { useEffect, useState } from 'react';
 import { call } from './api';
+import { WhatsAppChoice } from '../WhatsAppChoice';
+import type { WaState } from '../whatsappChoiceText';
 
 type Lang = 'en' | 'ar';
 type Settings = {
-  company_name?: string; locale?: string | null; wa_optin?: boolean | null; email_shared?: boolean | null;
+  company_name?: string; locale?: string | null; email_shared?: boolean | null;
   claimed_by?: string | null; phone?: string | null; approval_status?: string | null;
   registration_status?: string | null; owner_email_verified?: boolean | null;
   owner_phone_verified?: boolean | null; accepted_terms_at?: string | null;
@@ -30,8 +34,8 @@ const T = {
     title: 'Settings', loading: 'Loading your settings…', loadErr: 'We could not load your settings. Please reload the page.',
     prefs: 'Preferences', language: 'Interface language', langNote: 'The portal follows your account language. Changing it here updates your account (EN/AR).', english: 'English', arabic: 'العربية',
     notifications: 'Notifications',
-    wa: 'Send me RFQ alerts on WhatsApp',
-    waHelp: 'We message the number on your account when a matching request arrives.',
+    waNumber: 'WhatsApp number',
+    waNumberNote: 'Where your WhatsApp messages go. Choose “I do not use WhatsApp” to receive them by email instead.',
     emailShare: 'Share my e-mail with customers I have quoted',
     emailShareHelp: 'Off by default. When off, customers reach you through the platform only.',
     save: 'Save preferences', saving: 'Saving…', saved: 'Saved.', saveErr: 'We could not save your preferences. Please try again.',
@@ -44,8 +48,8 @@ const T = {
     title: 'الإعدادات', loading: 'جارٍ تحميل إعداداتك…', loadErr: 'تعذّر تحميل إعداداتك. يُرجى إعادة تحميل الصفحة.',
     prefs: 'التفضيلات', language: 'لغة الواجهة', langNote: 'تتبع البوابة لغة حسابك، وتغييرها هنا يحدّث لغة الحساب.', english: 'English', arabic: 'العربية',
     notifications: 'الإشعارات',
-    wa: 'أرسل لي تنبيهات الطلبات على واتساب',
-    waHelp: 'نراسل الرقم المسجَّل في حسابك عند وصول طلب مطابق.',
+    waNumber: 'رقم WhatsApp',
+    waNumberNote: 'هنا تصل رسائل WhatsApp. اختر «لا أستخدم WhatsApp» لتصلك بالبريد الإلكتروني بدلًا منها.',
     emailShare: 'شارك بريدي مع العملاء الذين قدّمت لهم عرضًا',
     emailShareHelp: 'مغلق افتراضيًا. عند الإغلاق يتواصل العملاء عبر المنصة فقط.',
     save: 'حفظ التفضيلات', saving: 'جارٍ الحفظ…', saved: 'تم الحفظ.', saveErr: 'تعذّر حفظ تفضيلاتك. يُرجى المحاولة مرة أخرى.',
@@ -93,11 +97,14 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
   const [s, setS] = useState<Settings | null>(null);
   const [locale, setLocale] = useState<Lang>('en');
   const [langTouched, setLangTouched] = useState(false);
-  const [wa, setWa] = useState(false);
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  // The WhatsApp route is kyc's (whatsapp_*); undefined hides the section until kyc serves it.
+  const [waState, setWaState] = useState<WaState | undefined>(undefined);
+  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => setWaState(k && k.whatsapp ? k.whatsapp : undefined)).catch(() => {});
+  useEffect(() => { loadWa(); }, [token]);
 
   useEffect(() => {
     let live = true;
@@ -107,7 +114,6 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
         const x: Settings = j.settings || {};
         setS(x);
         setLocale(x.locale === 'ar' ? 'ar' : x.locale === 'en' ? 'en' : lang);
-        setWa(!!x.wa_optin);
         setShare(!!x.email_shared);
       } else setErr(t(lang, 'loadErr'));
     });
@@ -116,7 +122,7 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
 
   const save = async () => {
     setBusy(true); setMsg(''); setErr('');
-    const j = await call('supplier_api', { action: 'save_settings', locale, wa_optin: wa, email_shared: share }, token);
+    const j = await call('supplier_api', { action: 'save_settings', locale, email_shared: share }, token);
     setBusy(false);
     if (!(j && j.ok)) { setErr(t(lang, 'saveErr')); return; }
     // Switch the interface only when the supplier CHANGED the language here. A stored preference that
@@ -149,7 +155,6 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
 
         <div className="pt-2 border-t border-border">
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">{t(lang, 'notifications')}</div>
-          <Toggle on={wa} onChange={setWa} label={t(lang, 'wa')} help={t(lang, 'waHelp')} />
           <Toggle on={share} onChange={setShare} label={t(lang, 'emailShare')} help={t(lang, 'emailShareHelp')} />
         </div>
 
@@ -160,6 +165,12 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
         {msg && <p role="status" className="text-[12px] text-ok-fg mt-2">{msg}</p>}
         {err && <p role="alert" className="text-[12px] text-danger-fg mt-2">{err}</p>}
       </section>
+
+      {waState && <section className="qd-panel p-5" aria-labelledby="qd-set-wa">
+        <h3 id="qd-set-wa" className="text-xs uppercase tracking-wide text-muted-foreground mb-1">{t(lang, 'waNumber')}</h3>
+        <p className="mb-3 text-[11.5px] text-muted-foreground">{t(lang, 'waNumberNote')}</p>
+        <WhatsAppChoice token={token} lang={lang} mode="settings" current={waState} mobile={s.phone} onDone={loadWa} />
+      </section>}
 
       <section className="qd-panel p-5">
         <div className="flex justify-between items-baseline mb-2">
