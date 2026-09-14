@@ -24,6 +24,7 @@ import { SupplierRelationshipCard, DiscoveryReachPanel } from '@/components/port
 // surface can use them — rows it already holds, so nothing is fetched twice.
 import { SpatialModule } from '@/components/portal/spatial';
 import { DocumentVault } from '@/components/portal/documents';
+import { RevealPayment } from './RevealPayment';
 import { CommunicationCenter } from '@/components/portal/comms';
 import { OrdersList } from '@/components/portal/approvals';
 import { PredictiveIntelligence, NegotiationAssistant } from '@/components/portal/predict';
@@ -1280,6 +1281,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   const [state, setState] = useState(q.revealed ? 'revealed' : 'idle'); const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const [dialog, ask] = useConfirm(lang);
   const [negOpen, setNegOpen] = useState(false);
+  const [paying, setPaying] = useState(false);
   const reduce = useReducedMotion();
   // THE REVEAL MOMENT: the redaction bar lifts off the supplier the first time the customer sees
   // them — in this session, or on the return from Stripe (focus). Once; a later visit is plain.
@@ -1309,7 +1311,12 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     const total = aed(r.total_charged ?? r.reveal_fee ?? q.reveal_fee);
     const go = await ask(tf(lang, 'q_confirm_body', { fee, total, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), reveal: true, children: <><FeeBreakdown r={r} price={aed(q.price)} lang={lang} /><RevealGuarantee lang={lang} fee={total} terms={terms} compact /></> });
     if (!go) return;
-    setBusy(true);
+    // The Payment Element prices the card actually used (RevealPayment). The Checkout Session below
+    // is its fallback when the element cannot load, charged at the safest rate.
+    setPaying(true);
+  };
+  const checkoutFallback = async () => {
+    setPaying(false); setBusy(true);
     // /ar/me for an Arabic customer, so the Stripe return lands in their language; stripe_checkout
     // keeps any path that already ends in /me.
     const cr = await call('stripe_checkout', { quote_id: q.id, return_url: location.origin + (lang === 'ar' ? '/ar/me' : '/me') }, token).catch(() => null);
@@ -1359,6 +1366,9 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
           {/* Gold: the one action in the product that unseals an identity. */}
           <Button variant="reveal" disabled={busy || concluded} onClick={reveal}><Lock aria-hidden />{busy ? t(lang, 'q_wait') : t(lang, 'q_reveal')}</Button>
         </div>)}
+    {paying && !revealed ? <RevealPayment q={q} token={token} lang={lang} call={call}
+      onPaid={async () => { setPaying(false); unlock(await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null)); onChange && onChange(); }}
+      onFallback={checkoutFallback} onCancel={() => setPaying(false)} /> : null}
     {msg && <div className={S.err} role="alert">{msg}</div>}
   </div>);
 }

@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS } from '../_shared/stripe_events.ts';
 import { handleRevealInvoiceEvent } from './invoice_event.ts';
+import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const TOLERANCE_SECONDS = 600; // reject events whose signature timestamp is older/newer than this (replay guard)
@@ -328,6 +329,20 @@ Deno.serve(observe('stripe_webhook', async (req) => {
     if ((INVOICE_EVENTS as readonly string[]).includes(String(event.type))) {
       const inv = event.data?.object || {};
       const invKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
+      // THE PAYMENT ELEMENT REVEAL (14 Sep 2026). That flow has no Checkout Session, so its sale is
+      // recorded HERE on invoice.paid when the browser path (stripe_checkout element_pay/settle) did
+      // not already do it. recordRevealSale is idempotent on quote_id; the fee is written once.
+      if (String(event.type) === 'invoice.paid' && inv?.metadata?.flow === 'element' && inv?.metadata?.quote_id && invKey) {
+        const md = inv.metadata;
+        const ip = await fetch('https://api.stripe.com/v1/invoice_payments?invoice=' + encodeURIComponent(String(inv.id)), { headers: { Authorization: 'Bearer ' + invKey } })
+          .then((r) => r.json()).catch(() => ({}));
+        const pi = String(ip?.data?.[0]?.payment?.payment_intent || '');
+        const sale = await recordRevealSale(admin, { quoteId: String(md.quote_id), customerId: md.customer_id || null,
+          baseFee: Number(md.base_fee), processingFee: Number(md.processing_fee), totalCharged: Number(inv.amount_paid) / 100,
+          paymentRef: pi || String(inv.id) });
+        if ('error' in sale) await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id }, 'PAID BUT NOT RECORDED - element invoice.paid: ' + sale.error);
+        else if (pi) await recordStripeFee(invKey, sale.id, pi, logRun);
+      }
       const res = await handleRevealInvoiceEvent({
         findSale: async (quoteId) => {
           const { data } = await admin.from('transactions').select('id,doc_path,stripe_invoice_id').eq('quote_id', quoteId).maybeSingle();
