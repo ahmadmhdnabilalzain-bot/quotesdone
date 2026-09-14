@@ -23,6 +23,42 @@ import { renderPdf } from '../pdf_native/render.ts';
 import { portalLink } from './site_origins.ts';
 import { latinLeaks } from './trade_glossary_ar.test.ts';
 import * as F from './quote_documents.fixture.ts';
+import { technicalComparison, rendererView } from './line_specs/compare.ts';
+
+// FIXED LABELS ARE ARABIC. A fixed label is what the page itself names: a table's column heads, each
+// row's first cell, a key in a key-value block, a section or sub-heading. Supplier free text is not a
+// fixed label; it stays on the secondary line labelled as the supplier's original wording, by design.
+// Measured 14 Sep 2026: a request whose material carried only its key ({component:'glass'}) printed
+// "المادة — glass" as a row label in the Arabic comparison.
+const cellStr = (c: unknown) => typeof c === 'string' ? c : (c && typeof c === 'object' && 'text' in c) ? String((c as { text: unknown }).text ?? '') : '';
+function fixedLabels(body: { blocks?: unknown[] }): string[] {
+  const out: string[] = [];
+  // deno-lint-ignore no-explicit-any
+  for (const b of (body.blocks || []) as any[]) {
+    if (b.t === 'table') { out.push(...(b.head || []).map(cellStr)); for (const r of b.rows || []) out.push(cellStr(r[0])); }
+    else if (b.t === 'kv') for (const p of b.pairs || []) out.push(cellStr(p[0]));
+    else if (b.t === 'section' || b.t === 'h3') out.push(cellStr(b));
+  }
+  return out.filter(Boolean);
+}
+Deno.test('every fixed label in the Arabic comparison is Arabic, a material named only by its key included', () => {
+  const terms = { lead_time: '21 days', warranty: '2 years — materials and workmanship', scope: 'Supply and install', exclusions: null, conditions: null, notes: null, terms_spec: null, price_ex_vat: 118500 };
+  // The line does NOT name the glass: that is the case that printed the bare key (a line naming it
+  // maps to the trade's own glass attributes, which were always Arabic).
+  const line = { line_no: 1, description: 'Aluminium windows supply and install', qty: 40, unit: 'nos', unit_price: 2962, amount: 118500 };
+  const q = (id: string, letter: string, price: number) => ({ quote_id: id, label_en: `Supplier ${letter}`, label_ar: `المورّد ${letter}`, supplier_letter: letter, option_no: 0, lines: [line], terms: { ...terms, price_ex_vat: price } });
+  // The REQUEST line names the glass (compare.ts adds a customer's component to the lines that name it).
+  const tech = technicalComparison({ category: 'aluminium', request_lines: [{ line_no: 1, description: 'Aluminium windows, double glazed glass', qty: 40, unit: 'nos' }],
+    requirements: { materials: [{ component: 'glass', choice: 'double' }] } as never, on_hold: 0, now: new Date('2026-09-14'),
+    quotes: [q('q1', 'A', 118500), q('q2', 'B', 124900)] as never });
+  const a = { quotes: [{ label: 'Supplier A', price: 118500 }, { label: 'Supplier B', price: 124900 }],
+    all_quotes: [{ label: 'Supplier A', quote_id: 'q1', price: 118500, status: 'shortlisted' }, { label: 'Supplier B', quote_id: 'q2', price: 124900, status: 'shortlisted' }],
+    top3: [], technical: rendererView(tech, 'ar'), technical_detail: tech, total_quotes: 2 };
+  const { body } = compareDocument({ analysis: a, inquiry: { ...F.INQUIRY, category: 'aluminium' }, lang: 'ar', ...dates('ar') });
+  const labels = fixedLabels(body as { blocks?: unknown[] });
+  assert(labels.some((l) => l.includes('الزجاج')), 'the glass requirement never reached a row label: ' + JSON.stringify(labels.filter((l) => l.includes('المادة'))));
+  assertEquals(labels.flatMap((s) => latinLeaks(s).map((w) => `${w}  ←  ${s}`)), [], 'English in a fixed Arabic label');
+});
 
 // Measured 14 Sep 2026 on the e2e harness's comparison (journey c): the commercial table and the CSV
 // clipped "Supplier A – Option 1" to "Supplier A – Option…", and the Arabic report kept "Option".
