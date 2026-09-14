@@ -17,6 +17,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { stripeRefund } from '../_shared/stripe_refund.ts';
+import { isDemoEmail } from '../_shared/demo_identity.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -45,47 +47,17 @@ async function escalate(subject: string, detail: string) {
   } catch (_e) { /* */ }
 }
 
-// Ask Stripe to return the money. Returns the refund object on success, or an error string.
-// payment_ref is whatever the settling function stored: stripe_webhook writes
-// `s.payment_intent || s.id`, so it is normally a pi_… but can be a cs_… — handle both.
-async function stripeRefund(paymentRef: string, transactionId: string, amountFils: number): Promise<{ ok: true; refund: any } | { ok: false; error: string }> {
-  const sk = await sec('stripe_secret_key');
-  if (!sk) return { ok: false, error: 'stripe_secret_key missing from app_secrets - cannot issue a refund' };
-  if (!paymentRef) return { ok: false, error: 'transaction has no payment_ref, so there is no Stripe charge to refund' };
-
-  let pi = paymentRef;
-  if (paymentRef.startsWith('cs_')) {
-    try {
-      const sr = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(paymentRef), { headers: { Authorization: 'Bearer ' + sk } });
-      const sj = await sr.json();
-      if (!sr.ok || !sj?.payment_intent) return { ok: false, error: 'could not resolve a payment_intent from checkout session ' + paymentRef + ': ' + String(sj?.error?.message || sr.status) };
-      pi = String(sj.payment_intent);
-    } catch (e) { return { ok: false, error: 'error resolving checkout session: ' + String((e as Error)?.message || e) }; }
-  }
-
-  const form = new URLSearchParams();
-  form.set('payment_intent', pi);
-  form.set('reason', 'requested_by_customer');
-  form.set('metadata[transaction_id]', transactionId);
-  // THE AMOUNT IS STATED: total_charged, what the customer actually paid -- the 3% and the processing
-  // part together (founder, 14 Sep 2026). Stated rather than left to "refund in full" so the figure
-  // Stripe returns is the figure the books expect, and a charge that was partly refunded before cannot
-  // turn "in full" into a different number.
-  form.set('amount', String(amountFils));
-  try {
-    const r = await fetch('https://api.stripe.com/v1/refunds', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded', 'Idempotency-Key': 'qd_refund_' + transactionId },
-      body: form.toString(),
-    });
-    const j = await r.json();
-    if (!r.ok) return { ok: false, error: 'Stripe refused the refund (HTTP ' + r.status + '): ' + String(j?.error?.message || '').slice(0, 250) };
-    // 'pending' is a normal terminal-ish state for some methods; 'failed'/'canceled' are not.
-    if (j?.status && !['succeeded', 'pending'].includes(String(j.status))) {
-      return { ok: false, error: 'Stripe refund came back with status "' + j.status + '"' };
-    }
-    return { ok: true, refund: j };
-  } catch (e) { return { ok: false, error: 'network error calling Stripe refunds: ' + String((e as Error)?.message || e) }; }
+// Ask Stripe to return the money, through the one shared door (_shared/stripe_refund.ts). The key
+// follows the PAYER, derived from the customer's account exactly as stripe_checkout derived it when it
+// took the payment; until 14 Sep 2026 this read stripe_secret_key (LIVE) for every refund, test
+// payments included. THE AMOUNT IS STATED: total_charged, what the customer actually paid -- the 3%
+// and the processing part together (founder, 14 Sep 2026) -- so the figure Stripe returns is the
+// figure the books expect. Idempotency-Key is the transaction id, as before.
+async function stripeRefundFor(tx: { id: string; customer_id?: string | null; payment_ref?: string | null }, amountFils: number) {
+  const { data: c } = tx.customer_id ? await admin.from('customers').select('email').eq('id', tx.customer_id).maybeSingle() : { data: null };
+  if (!c) return { ok: false as const, error: 'the paying customer is not on record, so the Stripe mode of the payment cannot be known; nothing was sent to Stripe' };
+  return stripeRefund({ secret: sec }, { demoPayer: isDemoEmail(c.email), ref: String(tx.payment_ref || ''), amountFils,
+    idem: 'qd_refund_' + tx.id, metadata: { transaction_id: tx.id } });
 }
 
 async function enrich(txs: any[]) {
@@ -169,7 +141,7 @@ Deno.serve(observe('refunds_api', async (req) => {
     if (action === 'resolve') {
       const id = String(body.transaction_id || ''); const decision = String(body.decision || ''); const note = String(body.note || '').slice(0, 500);
       if (!id || !['approve', 'reject'].includes(decision)) return J({ error: 'transaction_id and decision(approve|reject) required' }, 400);
-      const { data: tx } = await admin.from('transactions').select('id,refund_status,supplier_id,reveal_fee,total_charged,payment_ref,refund_stripe_id').eq('id', id).maybeSingle();
+      const { data: tx } = await admin.from('transactions').select('id,refund_status,supplier_id,customer_id,reveal_fee,total_charged,payment_ref,refund_stripe_id,refund_deadline').eq('id', id).maybeSingle();
       if (!tx) { await logRun('error', { transaction_id: id, decision }, 'transaction_not_found - refund decision could not be applied'); return J({ error: 'transaction_not_found' }, 404); }
       const prevStatus = String(tx.refund_status || '');
       const newStatus = decision === 'approve' ? 'refunded' : 'rejected';
@@ -189,9 +161,14 @@ Deno.serve(observe('refunds_api', async (req) => {
           await logRun('error', { transaction_id: id, decision }, 'refund held: the CEO has paused refunds and supplier charges while a mismatch is open');
           return J({ ok: false, applied: false, error: 'refunds_paused', transaction_id: id, refund_status: prevStatus || null });
         }
+        // The supplier has five working days from the payment and the CEO's final call before a refund
+        // is decided (Terms v7 §5). Checked BEFORE Stripe: afterwards the money would already be gone.
+        if (tx.refund_deadline && Date.now() < new Date(tx.refund_deadline).getTime()) {
+          return J({ ok: false, applied: false, error: 'refund_window_not_yet_open', decision_after: tx.refund_deadline, transaction_id: id });
+        }
         const totalFils = Math.round(Number(tx.total_charged ?? tx.reveal_fee ?? 0) * 100);
         if (!(totalFils > 0)) return J({ ok: false, applied: false, error: 'no_amount_on_record', transaction_id: id });
-        const sr = await stripeRefund(String(tx.payment_ref || ''), id, totalFils);
+        const sr = await stripeRefundFor(tx, totalFils);
         if (!sr.ok) {
           await logRun('error', { transaction_id: id, decision, supplier_id: tx.supplier_id, reveal_fee: tx.reveal_fee, payment_ref: tx.payment_ref },
             'REFUND NOT ISSUED - Stripe refund failed, nothing was changed: ' + sr.error);

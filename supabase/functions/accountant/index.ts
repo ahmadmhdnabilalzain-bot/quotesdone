@@ -62,6 +62,8 @@ import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
+import { refundKey, stripeRefund } from '../_shared/stripe_refund.ts';
+import { isDemoEmail } from '../_shared/demo_identity.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -146,31 +148,6 @@ async function run(action: string, status: string, counts: Record<string, unknow
 // A refund sent to Stripe at a STATED amount, idempotent on a key this seat chooses, against the exact
 // payment it reverses (a checkout-session reference is resolved to its payment intent first).
 // deno-lint-ignore no-explicit-any
-async function stripeRefund(sk: string, ref: string, amountFils: number, idem: string, md: Record<string, string>): Promise<{ ok: true; refund: any; pi: string } | { ok: false; error: string }> {
-  if (!ref) return { ok: false, error: 'no Stripe payment reference on record' };
-  if (!(amountFils > 0)) return { ok: false, error: 'no amount to refund' };
-  let pi = ref;
-  if (ref.startsWith('cs_')) {
-    const sr = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(ref), { headers: { Authorization: 'Bearer ' + sk } });
-    const sj = await sr.json().catch(() => ({}));
-    if (!sr.ok || !sj?.payment_intent) return { ok: false, error: 'could not resolve a payment_intent from ' + ref };
-    pi = String(sj.payment_intent);
-  }
-  const form = new URLSearchParams();
-  form.set('payment_intent', pi);
-  form.set('amount', String(Math.round(amountFils)));
-  form.set('reason', 'requested_by_customer');
-  for (const [k, v] of Object.entries(md)) form.set('metadata[' + k + ']', v);
-  const r = await fetch('https://api.stripe.com/v1/refunds', {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded', 'Idempotency-Key': idem },
-    body: form.toString(),
-  });
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) return { ok: false, error: 'Stripe refused the refund (HTTP ' + r.status + '): ' + String(j?.error?.message || '').slice(0, 250) };
-  if (j?.status && !['succeeded', 'pending'].includes(String(j.status))) return { ok: false, error: 'Stripe refund came back ' + String(j.status) };
-  return { ok: true, refund: j, pi };
-}
 
 // THREE DIFFERENT FACTS PRINT AS THE CHARACTER 0 ON THIS DATABASE, and the accountant grant says so
 // in its own words: "An unmeasurable figure is reported as unknown, never estimated and never
@@ -626,8 +603,22 @@ Deno.serve(observe('accountant', async (req) => {
     //     cancel a duplicate). These run while paused: they ARE the fix.
     if (action === 'execute_refunds') {
       const { data: paused } = await admin.rpc('fn_refunds_paused');
-      const sk = await sec('stripe_secret_key');
-      if (!sk) { await run('execute_refunds', 'error', {}, 'stripe_secret_key missing'); return J({ ok: false, error: 'stripe_not_configured' }, 503); }
+      // THE KEY FOLLOWS THE PAYER (14 Sep 2026). Until today one stripe_secret_key (LIVE) was read here
+      // and used for every refund and every fix, test payments included. Each payment is now refunded
+      // with the key of the mode it was made in, and a payer this seat cannot identify is refused
+      // rather than guessed (_shared/stripe_refund.ts reads the payment back and checks livemode).
+      const deps = { secret: sec };
+      const payerIsDemo = async (customerId: unknown, paymentRef?: unknown, stripeRefundId?: unknown): Promise<boolean | null> => {
+        let cid = customerId ? String(customerId) : '';
+        if (!cid && paymentRef) cid = String((await admin.from('transactions').select('customer_id').eq('payment_ref', String(paymentRef)).maybeSingle()).data?.customer_id || '');
+        if (!cid && stripeRefundId) cid = String((await admin.from('refunds').select('customer_id').eq('stripe_refund_id', String(stripeRefundId)).maybeSingle()).data?.customer_id || '');
+        if (!cid) return null;
+        const { data: c } = await admin.from('customers').select('email').eq('id', cid).maybeSingle();
+        return c ? isDemoEmail(c.email) : null;
+      };
+      // One refund only, when named (the e2e harness drives a single ZZ DEMO case this way and must
+      // never sweep anyone else's approved refund along with it).
+      const onlyRefund = body.refund_id != null ? Number(body.refund_id) : null;
       const results: Array<Record<string, unknown>> = [];
       const settle = (refund: Record<string, unknown>, pi: string) => admin.rpc('fn_refund_settle', {
         p_stripe_refund_id: String(refund.id), p_status: String(refund.status || 'processing'),
@@ -635,31 +626,48 @@ Deno.serve(observe('accountant', async (req) => {
       });
 
       if (paused !== true) {
-        const { data: approved } = await admin.from('refunds')
-          .select('id,transaction_id,amount_fils,stripe_payment_intent,refund_decision_id,status')
-          .not('refund_decision_id', 'is', null).in('status', ['requested', 'approved']).is('stripe_refund_id', null).limit(20);
+        let aq = admin.from('refunds')
+          .select('id,transaction_id,customer_id,amount_fils,stripe_payment_intent,refund_decision_id,status')
+          .not('refund_decision_id', 'is', null).in('status', ['requested', 'approved']).is('stripe_refund_id', null);
+        if (onlyRefund != null) aq = aq.eq('id', onlyRefund);
+        const { data: approved } = await aq.limit(20);
         for (const r of approved || []) {
-          const res = await stripeRefund(sk, String(r.stripe_payment_intent || ''), Number(r.amount_fils), 'qd_refund_' + r.id,
-            { refund_id: String(r.id), transaction_id: String(r.transaction_id || ''), approved_by: 'ceo' });
+          // Before Stripe, because afterwards the money is gone: the refunds guard refuses 'processing'
+          // before the transaction's refund_deadline, and a refund paid but unrecordable is the worst case.
+          const { data: tr } = await admin.from('transactions').select('refund_deadline').eq('id', r.transaction_id).maybeSingle();
+          if (tr?.refund_deadline && Date.now() < new Date(tr.refund_deadline).getTime()) {
+            results.push({ refund_id: r.id, error: 'refund_window_not_yet_open', decision_after: tr.refund_deadline }); continue;
+          }
+          const demo = await payerIsDemo(r.customer_id, r.stripe_payment_intent);
+          if (demo === null) { results.push({ refund_id: r.id, error: 'payer_unknown: the Stripe mode of this payment cannot be known, nothing sent' }); continue; }
+          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(r.stripe_payment_intent || ''), amountFils: Number(r.amount_fils), idem: 'qd_refund_' + r.id,
+            metadata: { refund_id: String(r.id), transaction_id: String(r.transaction_id || ''), approved_by: 'ceo' } });
           if (!res.ok) { results.push({ refund_id: r.id, error: res.error }); continue; }
           await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(res.refund.id) }).eq('id', r.id).is('stripe_refund_id', null);
           await settle(res.refund, res.pi);
-          results.push({ refund_id: r.id, stripe_refund_id: res.refund.id, status: res.refund.status });
+          results.push({ refund_id: r.id, stripe_refund_id: res.refund.id, status: res.refund.status, mode: res.mode });
         }
       }
 
-      const { data: fixes } = await admin.from('agent_actions').select('id,detail')
+      // A single named refund (the harness) never picks up anyone's incident fixes.
+      const { data: fixes } = onlyRefund != null ? { data: [] } : await admin.from('agent_actions').select('id,detail')
         .eq('kind', 'handoff').eq('agent', 'accountant').eq('status', 'pending').filter('detail->>type', 'eq', 'incident.fix').limit(20);
       for (const f of fixes || []) {
         const d = (f.detail || {}) as Record<string, unknown>;
+        const firstRefundId = Array.isArray(d.refund_ids) ? (d.refund_ids as string[])[0] : undefined;
+        const demo = await payerIsDemo(null, d.payment_ref, firstRefundId);
+        if (demo === null) {
+          await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: 'the paying customer is not on record, so the Stripe mode of the payment cannot be known; nothing was sent' });
+          results.push({ fix: f.id, error: 'payer_unknown' }); continue;
+        }
         if (d.fix === 'refund_difference' || d.fix === 'retry_refund') {
           let amount = Number(d.amount_fils || 0);
           if (d.fix === 'retry_refund') {
             const { data: rr } = await admin.from('refunds').select('amount_fils').eq('id', Number(d.refund_id)).maybeSingle();
             amount = Number(rr?.amount_fils || 0);
           }
-          const res = await stripeRefund(sk, String(d.payment_ref || ''), amount, 'qd_incident_' + f.id,
-            { incident_id: String(d.incident_id || ''), fix: String(d.fix) });
+          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(d.payment_ref || ''), amountFils: amount, idem: 'qd_incident_' + f.id,
+            metadata: { incident_id: String(d.incident_id || ''), fix: String(d.fix) } });
           if (!res.ok) { await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: res.error }); results.push({ fix: f.id, error: res.error }); continue; }
           if (d.fix === 'retry_refund') {
             await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(res.refund.id), failure_reason: null })
@@ -671,10 +679,12 @@ Deno.serve(observe('accountant', async (req) => {
           results.push({ fix: f.id, stripe_refund_id: res.refund.id });
         } else if (d.fix === 'cancel_duplicate') {
           const ids = Array.isArray(d.refund_ids) ? (d.refund_ids as string[]).slice(1) : [];
+          const k = await refundKey(deps, demo);
+          if (!k.ok) { await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: k.error }); results.push({ fix: f.id, error: k.error }); continue; }
           let cancelled = 0; let lastErr = '';
           for (const rid of ids) {
             const cr = await fetch('https://api.stripe.com/v1/refunds/' + encodeURIComponent(rid) + '/cancel',
-              { method: 'POST', headers: { Authorization: 'Bearer ' + sk } });
+              { method: 'POST', headers: { Authorization: 'Bearer ' + k.sk } });
             const cj = await cr.json().catch(() => ({}));
             if (cr.ok) cancelled++; else lastErr = String(cj?.error?.message || cr.status);
           }
