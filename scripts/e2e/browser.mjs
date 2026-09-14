@@ -26,13 +26,11 @@ export async function launch() {
     // `playwright install chromium` on this machine fetched the full build but not the headless shell
     // (measured 14 Sep 2026: ms-playwright held chromium-1148 only). Fall back to the full build.
     if (!/Executable doesn't exist/.test(String(e.message))) throw e;
-    const { readdirSync, existsSync } = await import('node:fs');
-    const { join } = await import('node:path');
-    const root = process.env.PLAYWRIGHT_BROWSERS_PATH || join(process.env.LOCALAPPDATA || '', 'ms-playwright');
-    const dir = readdirSync(root).filter((d) => /^chromium-\d+$/.test(d)).sort().pop();
-    const exe = dir && [join(root, dir, 'chrome-win', 'chrome.exe'), join(root, dir, 'chrome-linux', 'chrome')].find(existsSync);
-    if (!exe) throw e;
-    return chromium.launch({ headless, executablePath: exe });
+    // Then the Chrome or Edge already installed on the machine - no download needed.
+    for (const channel of ['chrome', 'msedge']) {
+      try { return await chromium.launch({ headless, channel }); } catch { /* try the next one */ }
+    }
+    throw e;
   }
 }
 
