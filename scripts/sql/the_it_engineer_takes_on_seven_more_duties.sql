@@ -529,11 +529,11 @@ begin
         'blast', 'internal', 'affected', 1, 'evidence', jsonb_build_object('queryid', x.queryid, 'query', x.q, 'calls', x.calls, 'mean_ms', x.mean_ms));
     end loop;
     insert into public.it_table_size_daily (day, relid, bytes)
-    -- pc/pn, not c/n: c is a record variable of this function, and inside PL/pgSQL `c.oid` named the
-    -- variable ("record c is not assigned yet"), so the whole routine raised whenever db_health was due.
+    -- The alias is pc, not c: c is this function's rotation-loop record, and plpgsql would read c.oid
+    -- as that (unassigned) record instead of the table.
     select current_date, pc.oid::regclass::text, pg_total_relation_size(pc.oid)
-      from pg_class pc join pg_namespace pn on pn.oid = pc.relnamespace
-     where pn.nspname = 'public' and pc.relkind = 'r'
+      from pg_class pc join pg_namespace n on n.oid = pc.relnamespace
+     where n.nspname = 'public' and pc.relkind = 'r'
     on conflict (day, relid) do update set bytes = excluded.bytes;
     for x in select t.relid, t.bytes, o.bytes old_bytes from public.it_table_size_daily t
                join public.it_table_size_daily o on o.relid = t.relid and o.day = current_date - 7
@@ -573,7 +573,10 @@ begin
                 and (coalesce(ic.rotated_at, ic.created_at) < now() - make_interval(days => public.fn_it_threshold('credential_rotate_days')::int)
                      or ic.expires_at < now() + interval '30 days')
               order by coalesce(ic.rotated_at, ic.created_at)
-              limit public.fn_it_threshold('credential_rotations_per_run')::int loop
+              limit public.fn_it_threshold('credential_rotations_per_run')::int
+              -- Two ticks at the same instant must not rotate one credential twice: the first holds the
+              -- row until its rotation row ('overlap') exists, and the second skips what is held.
+              for update of ic skip locked loop
       perform public.fn_it_credential_rotate(c.id);
       v_rot := v_rot + 1;
     end loop;
