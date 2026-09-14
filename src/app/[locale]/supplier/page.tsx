@@ -24,7 +24,7 @@ const L = {
     chips: ['Fit-out', 'Dubai', 'Drawings attached'],
     boq: { code: 'Code', desc: 'Description', unit: 'Unit', qty: 'Qty' },
     lines: ['Gypsum board partition, 12.5 mm', 'Suspended ceiling, mineral tile', 'Porcelain floor tiling 600 × 600', 'Emulsion paint, two coats'],
-    econKicker: 'Economics', stepsKicker: 'Onboarding', coverage: 'Coverage', coverageNote: 'Briefs reach you only for the emirates you serve.',
+    econKicker: 'Economics', stepsKicker: 'Onboarding', coverage: 'Coverage', coverageNote: 'Briefs reach you from anywhere in the UAE, for the trades your licence covers.',
     ruleKicker: 'Obligation', finalKicker: 'Supplier portal',
   },
   ar: {
@@ -32,7 +32,7 @@ const L = {
     chips: ['تشطيبات', 'دبي', 'مخططات مرفقة'],
     boq: { code: 'الرمز', desc: 'الوصف', unit: 'الوحدة', qty: 'الكمية' },
     lines: ['قواطع ألواح جبسية، 12.5 مم', 'سقف معلّق، بلاطات معدنية', 'تبليط أرضيات بورسلان 600 × 600', 'دهان مائي، طبقتان'],
-    econKicker: 'الجدوى', stepsKicker: 'التسجيل', coverage: 'التغطية', coverageNote: 'لا تصلك الطلبات إلا من الإمارات التي تخدمها.',
+    econKicker: 'الجدوى', stepsKicker: 'التسجيل', coverage: 'التغطية', coverageNote: 'تصلك الطلبات من أي مكان في الإمارات، للأنشطة التي تغطيها رخصتك.',
     ruleKicker: 'التزام', finalKicker: 'بوابة الموردين',
   },
 };

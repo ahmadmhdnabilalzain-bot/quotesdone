@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T06:27:07.189Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T07:18:53.568Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -28677,7 +28677,13 @@ cand as (
   select sc.supplier_id, sc.trades, sc.roles, sc.products_norm, sc.brands, sc.project_types,
          sc.min_project_value, sc.max_project_value, sc.coverage_emirates,
          l.company_name, l.emirate as lead_emirate,
-         least(1, greatest(0, coalesce(sp.quote_rate, sp.perf_score, 0))) as track
+         least(1, greatest(0, coalesce(sp.quote_rate, sp.perf_score, 0))) as track,
+         -- TIE-BREAK ONLY. Every UAE supplier covers the whole country (founder, 14 Sep 2026), so the
+         -- job's emirate never removes a candidate; it only orders two equal scores.
+         (p_emirate is not null and (
+              exists (select 1 from unnest(sc.coverage_emirates) ce where ce ilike p_emirate)
+           or l.emirate ilike p_emirate
+           or l.license_city ilike p_emirate)) as in_emirate
   from public.supplier_capabilities sc
   join public.leads l on l.id = sc.supplier_id
   left join public.supplier_perf sp on sp.supplier_id = sc.supplier_id
@@ -28700,16 +28706,6 @@ cand as (
     and (p_value is null or (                               -- GATE: job size inside their range
           (sc.min_project_value is null or p_value >= sc.min_project_value)
       and (sc.max_project_value is null or p_value <= sc.max_project_value)))
-    -- GATE: coverage. A UAE supplier covers the whole country unless it says otherwise (founder,
-    -- 9 Sep 2026), so an empty coverage_emirates PASSES -- it is an absent restriction, not absent
-    -- evidence. A supplier who HAS stated coverage must list the emirate asked for. The emirate on
-    -- the lead row and the emirate on the trade licence both count as a stated location; the licence
-    -- is the authoritative one and is read here for when license_extract starts populating it.
-    and (p_emirate is null
-      or coalesce(cardinality(sc.coverage_emirates), 0) = 0
-      or exists (select 1 from unnest(sc.coverage_emirates) ce where ce ilike p_emirate)
-      or l.emirate ilike p_emirate
-      or l.license_city ilike p_emirate)
 ),
 scored as (
   select c.*,
@@ -28725,28 +28721,31 @@ scored as (
      )) as ptype_hit,
     (p_value is not null and c.min_project_value is not null and c.max_project_value is not null) as size_known
   from cand c
+),
+ranked as (
+  select s.*,
+    round(
+        w.w_prod  * (case when cardinality(p_products) > 0
+                          then s.product_hits::numeric / cardinality(p_products) else 0 end)
+      + w.w_brand * (case when s.brand_hit then 1 else 0 end)
+      + w.w_ptype * (case when s.ptype_hit then 1 else 0 end)
+      + w.w_track * s.track
+      + w.w_size  * (case when s.size_known then 1 else 0.5 end)
+    , 1) as score_v
+  from scored s, w
 )
-select s.supplier_id, s.company_name,
-  round(
-      w.w_prod  * (case when cardinality(p_products) > 0
-                        then s.product_hits::numeric / cardinality(p_products) else 0 end)
-    + w.w_brand * (case when s.brand_hit then 1 else 0 end)
-    + w.w_ptype * (case when s.ptype_hit then 1 else 0 end)
-    + w.w_track * s.track
-    + w.w_size  * (case when s.size_known then 1 else 0.5 end)
-  , 1) as score,
-  s.trades, s.roles, s.product_hits, s.brand_hit, s.ptype_hit, round(s.track,3) as track,
+select r.supplier_id, r.company_name, r.score_v as score,
+  r.trades, r.roles, r.product_hits, r.brand_hit, r.ptype_hit, round(r.track,3) as track,
   concat_ws(' · ',
-    'trades ' || array_to_string(array(select unnest(s.trades) intersect select unnest(p_trades)), '+'),
-    case when s.product_hits > 0 then s.product_hits||'/'||cardinality(p_products)||' products' end,
-    case when s.brand_hit then 'brand match' end,
-    case when s.ptype_hit then 'project type' end,
+    'trades ' || array_to_string(array(select unnest(r.trades) intersect select unnest(p_trades)), '+'),
+    case when r.product_hits > 0 then r.product_hits||'/'||cardinality(p_products)||' products' end,
+    case when r.brand_hit then 'brand match' end,
+    case when r.ptype_hit then 'project type' end,
     case when p_emirate is not null then
-      case when coalesce(cardinality(s.coverage_emirates),0) = 0 then 'UAE-wide (no stated limit)'
-           else 'covers ' || p_emirate end end
+      case when r.in_emirate then 'in ' || p_emirate else 'UAE-wide' end end
   ) as why
-from scored s, w
-order by score desc, s.track desc, s.supplier_id
+from ranked r
+order by r.score_v desc, r.in_emirate desc, r.track desc, r.supplier_id
 limit greatest(1, p_limit);
 $function$
 
@@ -47161,7 +47160,8 @@ AS $function$
          in_emirate
   from base
   where cat_match or strong_hits > 0 or turnkey_match
-  order by in_emirate desc, match_score desc, rating desc nulls last, reviews desc nulls last
+  -- Fit first. The job's emirate only breaks a tie between equal scores (founder, 14 Sep 2026).
+  order by match_score desc, in_emirate desc, rating desc nulls last, reviews desc nulls last
   limit coalesce(p_limit,8);
 $function$
 

@@ -21,6 +21,7 @@ export function SiteHeader() {
     login: t('login'), getQuotes: t('getQuotes'), menu: t('menu'), closeMenu: t('closeMenu'),
     myPortal: t('myPortal'), supplierPortal: t('supplierPortal'),
     servicesLead: c('sub'),
+    about: t('about'), allTrades: c('allTrades'), guides: c('guides'),
   };
   const services = (c.raw('items') as { title: string; slug: string; tags: string | string[] }[]).map<NavService>((s) => ({
     slug: s.slug,

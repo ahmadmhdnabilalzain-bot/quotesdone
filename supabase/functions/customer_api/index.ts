@@ -4,6 +4,7 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET } from 
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { accountMissing } from '../_shared/account_rule.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -750,7 +751,13 @@ Deno.serve(observe('customer_api', async (req) => {
     }
 
     if (action === 'create_inquiry') {
-      if (!cust.email_verified) return J({ error: 'Please verify your email before sending a request. Open the Account tab and enter the 6-digit code we email you.' }, 403);
+      // THE FOUNDER'S ACCOUNT RULE (14 Sep 2026): a request is made only by a signed-up customer with
+      // a name, an 18+ date of birth, an OTP-verified mobile OR email, and the Terms checkbox. The
+      // definition lives in _shared/account_rule.ts so kyc and this gate cannot drift. A reachable
+      // mobile stays required on top (the reveal hands the winning supplier a contact card).
+      const missingAcct = accountMissing(cust);
+      if (!String(cust.phone || '').trim()) missingAcct.push('mobile_number');
+      if (missingAcct.length) return J({ error: 'account_incomplete', code: 'account_incomplete', missing: missingAcct, message: 'Please finish setting up your account first: ' + missingAcct.join(', ') + '. Open the Account tab.' }, 403);
       // REGISTRATION COMPLETENESS GATE (2 Aug 2026, external code review). This endpoint checked
       // email_verified and nothing else, so the three things that make a buyer real — a name, a
       // reachable mobile, and an accepted version of the Terms — were enforced by the FRONTEND
@@ -765,14 +772,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // there is not the buyer's fault, is not a privacy risk, and blocking on it would take a
       // customer's ability to trade away for an operational fault of ours. It is repaired in the
       // background instead, so the evidence still lands and the gap stays visible.
-      const missingReg: string[] = [];
-      if (!String(cust.full_name || '').trim()) missingReg.push('your name');
-      if (!String(cust.phone || '').trim()) missingReg.push('a mobile number');
-      if (!cust.tos_accepted_at) missingReg.push('acceptance of the Terms & Conditions');
-      if (missingReg.length) {
-        const list = missingReg.length === 1 ? missingReg[0] : missingReg.slice(0, -1).join(', ') + ' and ' + missingReg[missingReg.length - 1];
-        return J({ error: 'registration_incomplete', missing: missingReg, message: `Please finish setting up your account first — we still need ${list}. Open the Account tab; it takes under a minute. Suppliers quote on your request without seeing who you are, but we need this on file before it goes out.` }, 428);
-      }
+      // (Enforced by the account-rule gate above since 14 Sep 2026.)
       if (!cust.signed_terms_path) {
         // Fire-and-forget repair. Never awaited: create_inquiry must not inherit the latency or
         // the failure mode of a PDF render and a Dropbox round-trip.

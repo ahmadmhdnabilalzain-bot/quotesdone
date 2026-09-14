@@ -24,7 +24,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 //     SupplierPortal.tsx:93. Being replaced by a self-hosted build; drop it here when that lands.
 //   · cdn.jsdelivr.net — drei <Text> with no `font` prop makes troika-three-text fetch glyph data
 //     from jsdelivr (unicode-font-resolver@v1.0.1). Used by SupplierEnvironment.tsx:107.
-//   · uploads.postiz.com — the two founder photos in src/content/marketing.json.
+//   (The founder photo on /about is self-hosted at public/brand/founder.jpg, so no photo host is listed.)
 //   · blob: workers — troika builds its worker from a blob URL; three.js loaders do the same.
 //   · blob:/data: media and images — voice recordings (MediaRecorder) and canvas previews.
 // NOT allowed, on purpose: www.gstatic.com/draco (drei's default decoder host). The one model we
@@ -46,7 +46,7 @@ const CSP = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://cdnjs.cloudflare.com${vercelLive}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://${SUPA} https://uploads.postiz.com`,
+  `img-src 'self' data: blob: https://${SUPA}`,
   "font-src 'self' data:",
   `connect-src 'self' https://${SUPA} wss://${SUPA} https://cdn.jsdelivr.net${vercelLive}${isDev ? ' ws:' : ''}`,
   `media-src 'self' blob: data: https://${SUPA}`,

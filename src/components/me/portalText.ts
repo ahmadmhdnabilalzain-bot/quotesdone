@@ -285,6 +285,7 @@ Object.assign(T.en, {
   err_suppressed: 'We cannot email this address because earlier mail to it bounced. Contact info@quotesdone.com and we will restore it.', err_invalid_id: 'Enter a valid email address or UAE mobile number.',
   err_name: 'Please enter your name.', err_phone: 'Please enter a valid mobile number.', err_sms_nc: 'SMS verification is not switched on yet. Please try again later.',
   err_suspended: 'Your account is suspended. Contact support@quotesdone.com if you believe this is a mistake.', err_registration: 'Please finish setting up your account first — open Account; it takes under a minute.',
+  err_under_18: 'You must be 18 or over to use QuotesDone.', err_dob_required: 'Please enter your date of birth.', err_dob_invalid: 'Please enter a valid date of birth.',
   err_email_verify: 'Please verify your email before sending a request.', err_rate: 'You have done that several times in a short while. Please try again later.', err_not_found: 'We could not find that item.',
   err_not_yours: 'That request is not on your account.', err_refund_window: 'The refund window has passed; our chief executive makes the final call and the refund is issued if the supplier does not respond.',
   err_refund_rated: 'You have rated this supplier, so the reveal fee is no longer refundable.', err_refund_hired: 'This job is marked completed with this supplier, so the reveal fee is no longer refundable.',
@@ -385,6 +386,7 @@ Object.assign(T.ar, {
   err_suppressed: 'لا يمكننا مراسلة هذا البريد لأن رسائل سابقة إليه ارتدّت. راسل info@quotesdone.com وسنعيد تفعيله.', err_invalid_id: 'أدخل بريدًا إلكترونيًا صحيحًا أو رقم جوال إماراتي.',
   err_name: 'يُرجى إدخال اسمك.', err_phone: 'يُرجى إدخال رقم جوال صحيح.', err_sms_nc: 'التحقق برسالة نصية غير مفعّل بعد. يُرجى المحاولة لاحقًا.',
   err_suspended: 'حسابك موقوف. راسل support@quotesdone.com إن كنت تعتقد أن ذلك خطأ.', err_registration: 'يُرجى إكمال إعداد حسابك أولًا — افتح «الحساب»؛ يستغرق ذلك أقل من دقيقة.',
+  err_under_18: 'يجب أن يكون عمرك 18 عامًا أو أكثر لاستخدام QuotesDone.', err_dob_required: 'يُرجى إدخال تاريخ ميلادك.', err_dob_invalid: 'يُرجى إدخال تاريخ ميلاد صحيح.',
   err_email_verify: 'يُرجى التحقق من بريدك الإلكتروني قبل إرسال طلب.', err_rate: 'كرّرتَ هذا عدة مرات في وقت قصير. يُرجى المحاولة لاحقًا.', err_not_found: 'تعذّر العثور على هذا العنصر.',
   err_not_yours: 'هذا الطلب ليس ضمن حسابك.', err_refund_window: 'انقضت مهلة الاسترداد؛ يتخذ رئيسنا التنفيذي القرار النهائي، ويُصرف الاسترداد إن لم يردّ المورّد.',
   err_refund_rated: 'لقد قيّمت هذا المورّد، لذا لم تعد رسوم الكشف قابلة للاسترداد.', err_refund_hired: 'هذا العمل مسجّل كمكتمل مع هذا المورّد، لذا لم تعد رسوم الكشف قابلة للاسترداد.',
@@ -403,6 +405,7 @@ export const emirateName = (e, lang) => (lang === 'ar' && EMIRATE_AR[e]) || e;
 // back to a localised generic line rather than to raw English or a snake_case code.
 const CODE_KEY = {
   stripe_not_configured: 'err_stripe_nc', stripe_error: 'err_stripe', intake_required: 'nr_more_details', registration_incomplete: 'err_registration',
+  account_incomplete: 'err_registration', dob_required: 'err_dob_required', dob_invalid: 'err_dob_invalid', under_18: 'err_under_18',
   unauthorized: 'session_expired', 'Not signed in': 'session_expired', text_required: 'err_text_required', inquiry_closed: 'err_closed',
   not_your_inquiry: 'err_not_yours', 'Not your inquiry': 'err_not_yours', already_answered: 'err_already_answered', too_many_questions: 'err_rate',
   too_many_notes: 'err_rate', refund_window_elapsed: 'err_refund_window', not_found: 'err_not_found', forbidden: 'err_not_yours',

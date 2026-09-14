@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
+import { CANONICAL_ORIGIN } from './domains';
 
-export const SITE = 'https://quotesdone.com';
+// One canonical site. quotesdone.ae serves the same pages to UAE visitors (src/lib/domains.ts), but
+// every canonical, hreflang and OG URL points at .com, so search engines index one copy, not two.
+export const SITE = CANONICAL_ORIGIN;
 const BRAND = 'QuotesDone';
 
 /** Trim a description to a length search engines actually render (~155 chars). */
@@ -103,8 +106,8 @@ const SHELL: Record<'me' | 'portal', { en: [string, string]; ar: [string, string
     ar: ['طلباتي — QuotesDone', 'انشر طلبك وقارن عروض الأسعار المجهولة واكشف هوية المورد الذي تختاره.'],
   },
   portal: {
-    en: ['Supplier portal — QuotesDone', 'Quote on UAE jobs matched to your licence, trade and emirate.'],
-    ar: ['بوابة الموردين — QuotesDone', 'قدّم عروض أسعارك على طلبات في الإمارات تطابق رخصتك ومجالك وإمارتك.'],
+    en: ['Supplier portal — QuotesDone', 'Quote on jobs from anywhere in the UAE, matched to your licence and trade.'],
+    ar: ['بوابة الموردين — QuotesDone', 'قدّم عروض أسعارك على طلبات من أي مكان في الإمارات تطابق رخصتك ونشاطك.'],
   },
 };
 export function appShellMeta(locale: string, shell: keyof typeof SHELL): Metadata {

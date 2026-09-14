@@ -2,6 +2,7 @@ import mk from '@/content/marketing.json';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { CompanyIdentity } from '@/components/CompanyIdentity';
+import { AllTrades } from '@/components/AllTrades';
 import { PageHero, splitHero, takeByClass, textOf } from '@/components/DocFrame';
 import { ProductFrame, Seal } from '@/components/ui/sealed';
 import { Button } from '@/components/ui/button';
@@ -24,13 +25,13 @@ const L = {
     sample: 'Sample data', verifyTitle: 'verification / new supplier', verifyStatus: '5 of 6',
     six: ['Business name', 'Mobile number', 'Email address', 'Trade licence', 'Company profile', 'Signed terms'],
     checked: 'Checked', pending: 'Pending', supplier: 'Supplier',
-    services: 'Services', trades: 'trades',
+    services: 'Guides for common jobs', trades: 'guides',
   },
   ar: {
     sample: 'بيانات نموذجية', verifyTitle: 'التحقق / مورد جديد', verifyStatus: '5 من 6',
     six: ['الاسم التجاري', 'رقم الهاتف المحمول', 'البريد الإلكتروني', 'الرخصة التجارية', 'ملف الشركة', 'الشروط الموقّعة'],
     checked: 'تم التحقق', pending: 'قيد المراجعة', supplier: 'المورد',
-    services: 'الخدمات', trades: 'تخصصًا',
+    services: 'أدلة لأعمال شائعة', trades: 'دليلاً',
   },
 };
 
@@ -100,6 +101,8 @@ export function MarketingDoc({ slug, locale }: { slug: string; locale: string })
           )) : undefined}
           aside={aside}
         />
+        {/* The whole offer first; the service pages below are guides for common jobs, not the scope. */}
+        {slug === 'services' ? <AllTrades /> : null}
         {index ? (
           <section className="container-x py-beat-s">
             <div className="mb-8 flex items-baseline justify-between gap-4 border-b border-line pb-5">
