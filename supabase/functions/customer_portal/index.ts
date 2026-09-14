@@ -5,8 +5,9 @@
 //   stats            §4  the six figures the command centre already showed
 //   alerts           §1  the recommendation feed. Two kinds existed (edit_window, quotes_ready) and
 //                        both are reactive — they describe something the customer already did. §1
-//                        asks for price moves, better lead times and approvals due, which are
-//                        things the system noticed on the customer's behalf.
+//                        asks for price moves and better lead times, which are things the system
+//                        noticed on the customer's behalf. (Its "approvals due" item was removed
+//                        with the Approvals tab on 14 Sep 2026.)
 //   headline         §1  ONE sentence stating what needs attention today. N cards are not that
 //                        sentence; the entry screen was showing cards and no line.
 //   twin             §2  the business profile. fn_twin's customer branch existed with ZERO
@@ -89,7 +90,6 @@ Deno.serve(observe('customer_portal', async (req) => {
         .select('quote_amount,inquiry_id,inquiries!inner(category)')
         .eq('customer_id', cust.id).eq('fee_status', 'paid').limit(200) : null;
       const pMatched = openIds.length ? admin.from('inquiry_matches').select('supplier_id,inquiry_id').in('inquiry_id', openIds).limit(400) : null;
-      const pAppr = rpc('fn_approval_list', { p_customer: cust.id });
       const pFc = rpc('fn_customer_forecast', { p_customer: cust.id, p_horizon_days: 90 });
       const pTw = rpc('fn_twin', { p_kind: 'customer', p_id: String(cust.id) });
       const pSaved = admin.from('customer_layout').select('layout,pinned,reason').eq('customer_id', cust.id).maybeSingle();
@@ -139,16 +139,10 @@ Deno.serve(observe('customer_portal', async (req) => {
         }
       }
 
-      // ── §1 APPROVALS DUE ──────────────────────────────────────────────────────────────────────
-      // "2 quotes require approval." fn_approval_list already projects every request with its steps
-      // for this customer; the entry screen simply had no reader of it.
-      const appr = await pAppr;
-      if (appr.err) degraded.push('approvals');
-      const pending = ((appr.data && appr.data.requests) || []).filter((r: any) => String(r.status || '') === 'pending');
-      if (pending.length) alerts.push({ kind: 'approval_due', severity: 'high',
-        title: ar ? (pending.length + ' طلب شراء بانتظار موافقة') : (pending.length + ' purchase request' + (pending.length > 1 ? 's' : '') + ' waiting on approval'),
-        detail: ar ? ('افتح لوحة الموافقات لمعرفة الخطوة المتوقفة ومن صاحبها.') : ('Open Approvals to see which step is holding and whose it is.'),
-        count: pending.length });
+      // ── NO APPROVALS-DUE ALERT ────────────────────────────────────────────────────────────────
+      // Removed 14 Sep 2026 with the Approvals tab. Founder: "even if a company signed up, we don't
+      // wanna interfere in their approvals process and they are treated like normal individuals".
+      // Nothing routes a purchase through a sign-off chain any more, so there is nothing to be due.
 
       // ── §20 FORECAST ──────────────────────────────────────────────────────────────────────────
       // "You will likely need electrical cables within 45 days." fn_customer_forecast computes it
@@ -189,7 +183,6 @@ Deno.serve(observe('customer_portal', async (req) => {
       const { data: saved } = await pSaved;
       const weight: Record<string, number> = {
         projects: (twin?.projects_active || 0) * 10,
-        approvals: pending.length * 40,
         messages: 0,
         documents: 0,
         orders: 0,
@@ -204,7 +197,7 @@ Deno.serve(observe('customer_portal', async (req) => {
         order,
         pinned,
         source: (saved?.layout && Array.isArray(saved.layout) && (saved.layout as unknown[]).length) ? 'saved' : 'computed',
-        reason: saved?.reason || (pending.length ? 'approvals are blocking work' : (twin?.projects_active ? 'ordered by live project activity' : 'default order — no activity to rank on yet')),
+        reason: saved?.reason || (twin?.projects_active ? 'ordered by live project activity' : 'default order — no activity to rank on yet'),
       };
 
       // ── ARE THE MODEL ROUTES OPEN ─────────────────────────────────────────────────────────────

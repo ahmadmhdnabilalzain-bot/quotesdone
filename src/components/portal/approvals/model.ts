@@ -1,78 +1,16 @@
-// The shape of what supabase/functions/procurement_api returns, and the pure derivations the two
-// surfaces in this folder share.
+// The shape of what supabase/functions/procurement_api returns, and the pure order derivations.
 //
 // Every type below is transcribed from what the endpoint ACTUALLY emits — nothing is invented:
-//   action:'approvals' -> fn_approval_list(customer)   { organizations[], policies[], requests[] }
-//                         each request carries steps[] already projected by public.v_approval_trace
-//   action:'trace'     -> { request, steps[] }         the same step shape, one request
-//   action:'decide'    -> fn_approval_decide(...)      { ok, status, decided_step, current_step, ... }
 //   action:'orders'    -> fn_customer_orders(customer) po_orders scoped to this customer, with lines[]
 // If a field is not here, procurement_api does not serve it. Do not add one without adding it there.
 //
-// This module imports nothing, so orders.test.mjs can execute the derivations straight off the repo
+// 14 Sep 2026: the §12 approval types (steps, requests, policies, organisations) and their two
+// derivations were removed with the Approvals tab — see ./index.ts for the founder's ruling.
+//
+// This module imports nothing, so model.test.mjs can execute the derivations straight off the repo
 // with no bundler, alias or framework.
 
 export type Lang = 'en' | 'ar';
-
-/* ── §12 Purchase Approval System ─────────────────────────────────────────────────────────── */
-
-/**
- * The five states public.v_approval_trace can put a step in.
- *  approved / rejected — a decision was recorded against THIS step
- *  pending            — this is the step the chain is waiting on right now
- *  waiting            — a later step that has not been reached
- *  blocked            — an earlier rejection stopped the chain before this step
- */
-export const STEP_STATUSES = ['approved', 'rejected', 'pending', 'waiting', 'blocked'] as const;
-export type StepStatus = (typeof STEP_STATUSES)[number];
-
-/** One row of public.v_approval_trace, as fn_approval_list nests it under a request. */
-export interface ApprovalStep {
-  step: number;
-  key: string | null;
-  label: string;
-  role: string | null;
-  /** One of STEP_STATUSES. Typed wide because the view is the authority, not this file. */
-  status: string;
-  decided_by: string | null;
-  decided_at: string | null;
-  note: string | null;
-}
-
-/** One public.procurement_approval_request, with its chain already projected. */
-export interface ApprovalRequest {
-  id: string;
-  organization_id: string;
-  entity_type: string | null;
-  entity_id: string | null;
-  policy_id: string | null;
-  /** pending | approved | rejected */
-  status: string;
-  current_step: number;
-  created_at: string;
-  steps: ApprovalStep[];
-}
-
-/** One public.procurement_approval_policy — the named chain, before anything has run through it. */
-export interface ApprovalPolicy {
-  id: string;
-  organization_id: string;
-  name: string | null;
-  active: boolean | null;
-  conditions: Record<string, unknown> | null;
-  steps: Array<{ key?: string; label?: string; role?: string }> | null;
-}
-
-export interface Organization {
-  id: string;
-  name: string | null;
-}
-
-export interface ApprovalsPayload {
-  organizations: Organization[];
-  policies: ApprovalPolicy[];
-  requests: ApprovalRequest[];
-}
 
 /* ── §22 Orders ───────────────────────────────────────────────────────────────────────────── */
 
@@ -108,36 +46,6 @@ export function numOrNull(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
-}
-
-export interface ChainProgress {
-  total: number;
-  approved: number;
-  rejected: number;
-  /** The step the chain is waiting on, or null when it is finished or stopped. */
-  pending: ApprovalStep | null;
-}
-
-export function chainProgress(steps: ApprovalStep[] | null | undefined): ChainProgress {
-  const rows = Array.isArray(steps) ? steps : [];
-  return {
-    total: rows.length,
-    approved: rows.filter((s) => s.status === 'approved').length,
-    rejected: rows.filter((s) => s.status === 'rejected').length,
-    pending: rows.find((s) => s.status === 'pending') ?? null,
-  };
-}
-
-/**
- * May this customer act on this step right now?
- *
- * Both halves are checked even though v_approval_trace only ever marks the current step 'pending':
- * a decide button that appears against a closed request would let a customer fire a call the
- * database will refuse, and an error toast is a worse answer than not offering the control.
- * The authority is still fn_approval_decide — it re-checks membership and the step's role in SQL.
- */
-export function canDecide(request: ApprovalRequest, step: ApprovalStep): boolean {
-  return request.status === 'pending' && step.status === 'pending' && step.step === request.current_step;
 }
 
 /**

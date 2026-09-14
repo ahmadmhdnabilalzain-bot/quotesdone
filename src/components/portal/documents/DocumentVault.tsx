@@ -256,11 +256,13 @@ export function DocumentRow({ doc, token, lang = 'en', showMatch = false, classN
         </Button>
       </div>
 
-      <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-3">
+      {/* An invoice has no supplier, expiry or coverage to report; three "not stated" lines under it
+          would read as missing data. It is the accountant's filed Stripe invoice (14 Sep 2026). */}
+      {doc.kind === 'invoice' ? null : <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-3">
         <Field label={w.f_supplier} value={supplierValue} missing={supplierMissing} />
         <Field label={w.f_expiry} value={fmtDate(doc.expiry_date, lang)} missing={w.no_expiry} source={doc.expiry_source} fromWord={w.from_field} sourceWords={w.sources} />
         <Field label={w.f_coverage} value={doc.covers} missing={w.no_coverage} source={doc.covers_source} fromWord={w.from_field} sourceWords={w.sources} />
-      </div>
+      </div>}
 
       {doc.summary ? <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">{doc.summary}</p> : null}
 

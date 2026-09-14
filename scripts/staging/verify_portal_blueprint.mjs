@@ -41,7 +41,10 @@ const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7);
 // says WHICH leg failed. --json writes every row whole so a verdict can be acted on without a
 // second run. It changes no check and no verdict.
 const JSON_OUT = (process.argv.find(a => a.startsWith('--json=')) || '').slice(7);
-const TOTAL = 147;
+// 147 until 14 Sep 2026. Eight requirements retired WITH their subject when the founder removed the
+// Approvals tab ("we don't wanna interfere in their approvals process and they are treated like
+// normal individuals"): §12's six, mod-approvals and twin-approval-chain.
+const TOTAL = 139;
 
 const rows = [];
 const q = async (sql) => (await mgmtRead(TARGET, sql))[0];

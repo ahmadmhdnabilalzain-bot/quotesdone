@@ -25,7 +25,7 @@ import { SupplierRelationshipCard, DiscoveryReachPanel } from '@/components/port
 import { SpatialModule } from '@/components/portal/spatial';
 import { DocumentVault } from '@/components/portal/documents';
 import { CommunicationCenter } from '@/components/portal/comms';
-import { ApprovalChain, OrdersList } from '@/components/portal/approvals';
+import { OrdersList } from '@/components/portal/approvals';
 import { PredictiveIntelligence, NegotiationAssistant } from '@/components/portal/predict';
 // §2 the Company Digital Twin, §9 Supplier Discovery and §17 Customer AI Memory. fn_twin,
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
@@ -453,7 +453,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     .then((j) => setUnread(((j && j.threads) || []).reduce((n, th) => n + (Number(th.unread) || 0), 0)))
     .catch(() => {});
   const refresh = () => { loadInq(); loadOv(); loadPd(); loadUnread(); };
-  // OPEN THIS REQUEST. Projects, the Project room, the supply-chain map, Messages, Approvals, Orders,
+  // OPEN THIS REQUEST. Projects, the Project room, the supply-chain map, Messages, Orders,
   // the alerts and "Help me decide" all hand the portal an inquiry id and asked it to open that
   // request — and every one of them was wired to onClose, which threw the id away and landed the
   // customer on the Overview. This is the one target they all call: My requests, filters cleared so
@@ -479,12 +479,12 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   }, [deepLink, data]);
   const openProject = (id) => { setFocusProject(id ? String(id) : ''); setView('projects'); };
   const openNew = (withFile) => { setPickFile(!!withFile); setShowNew(true); setView('home'); };
-  // Where an alert goes is decided by what it is about: a request it names, the approvals it counts,
-  // the need it forecasts. Kinds without a subject of their own (price moves, lead times) are about
-  // the requests list as a whole.
+  // Where an alert goes is decided by what it is about: a request it names, the need it forecasts.
+  // Kinds without a subject of their own (price moves, lead times) are about the requests list as a
+  // whole. (There is no approvals alert: the Approvals tab was removed on 14 Sep 2026 — a company
+  // buys exactly like an individual, and nothing routes a purchase through anyone's sign-off.)
   const onAlert = (a) => {
     if (a && a.inquiry_id) return openRfq(a.inquiry_id);
-    if (a && a.kind === 'approval_due') return setView('approvals');
     if (a && a.kind === 'forecast_need') return openNew(false);
     return openRfq('');
   };
@@ -593,7 +593,6 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     documents: () => setView('documents'),
     messages:  () => setView('messages'),
     orders:    () => setView('orders'),
-    approvals: () => setView('approvals'),
     spatial:   () => setView('spatial'),
     predict:   () => setView('predict'),
     profile:   () => setView('profile'),
@@ -700,7 +699,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     {!onlyRequests && <div className="mb-5"><DecisionSupport token={token} lang={lang === 'ar' ? 'ar' : 'en'} onOpenRfq={openRfq} /></div>}
     {/* §2 THE PROFILE, ON THE ENTRY SCREEN. Six KPI tiles say what the customer has DONE; the twin
         says who they ARE — industry, live projects, the suppliers they keep coming back to, the
-        categories they actually buy, their approval chain, and how much of that profile we hold.
+        categories they actually buy, and how much of that profile we hold.
         It is the same object the Company profile window opens, rendered from the overview payload
         the dashboard already has, so opening the portal costs no extra call. */}
     {/* ABOVE the twin, and above the request list, because it is the only thing on this screen
@@ -1118,6 +1117,31 @@ function QuotePdfLink({ q, token, lang }) {
     {msg ? <span className={cn(S.sub, 'text-danger')}>{msg}</span> : null}
   </span>);
 }
+// THE REVEAL INVOICE (14 Sep 2026). Stripe's own PDF, fetched fresh by reveal_invoice at click
+// time; reveal_invoice refuses any quote that is not this customer's own paid reveal.
+function InvoicePdfLink({ q, token, lang }) {
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const open = async (e) => {
+    e.stopPropagation(); setBusy(true); setMsg(''); let j = null;
+    const ok = await openDocument(lang, async () => { j = await call('reveal_invoice', { quote_id: q.id }, token); return j && j.ok && j.url ? j.url : null; });
+    setBusy(false); if (!ok) setMsg(errText(j, lang, 'q_inv_fail'));
+  };
+  return (<span className="inline-flex items-center gap-2">
+    <button type="button" className="text-primary font-semibold text-[12.5px]" disabled={busy} onClick={open}>{busy ? t(lang, 'q_pdf_busy') : '🧾 ' + t(lang, 'q_inv_pdf')}</button>
+    {msg ? <span className={cn(S.sub, 'text-danger')}>{msg}</span> : null}
+  </span>);
+}
+// The three lines the Stripe invoice prints, shown before the customer pays.
+function FeeBreakdown({ r, price, lang }) {
+  if (!r || r.total_charged == null) return null;
+  const row = (k, v, strong = false) => (<div className={cn('flex justify-between gap-4', strong && 'font-semibold text-foreground border-t border-border pt-1')}><span>{k}</span><span className="tabular font-mono">{v}</span></div>);
+  return (<div className="mb-3 rounded-md border border-border bg-secondary/20 p-3 text-[12.5px] text-muted-foreground">
+    {row(tf(lang, 'q_bd_fee', { price }), aed(r.reveal_fee))}
+    {row(t(lang, 'q_bd_proc'), aed(r.processing_fee))}
+    {row(t(lang, 'q_bd_total'), aed(r.total_charged), true)}
+    <div className="mt-1.5 text-[11.5px]">{t(lang, 'q_bd_refund')}</div>
+  </div>);
+}
 function Timeline({ inq, quotes, anyRevealed, lang }) {
   const steps = lang === 'ar' ? RFQ_STAGES.ar : RFQ_STAGES.en;
   const idx = rfqStageIdx(inq, quotes);
@@ -1134,6 +1158,11 @@ function DetailFacts({ inq, lang }) {
   if (inq.boq && inq.boq.boq && inq.boq.boq.length) rows.push([lang === 'ar' ? 'عدد البنود' : 'Line items', String(inq.boq.boq.length)]);
   const sp = inq.spec && typeof inq.spec === 'object' ? inq.spec : null;
   if (sp) for (const k of Object.keys(sp)) { const v = sp[k]; if (v && typeof v === 'string' && k !== 'plausibility' && k !== 'provenance') rows.push([k.replace(/_/g, ' '), v]); }
+  // What the customer told the sales engineer they want (installation, warranty, materials, date).
+  // `display` is written by _shared/intake_requirements.ts in both languages, so this reads it rather
+  // than re-deriving the words (docs/contracts/intake_answers.md).
+  const req = sp && sp.customer_requirements && sp.customer_requirements.display;
+  if (req && Array.isArray(req[lang === 'ar' ? 'ar' : 'en'])) for (const r of req[lang === 'ar' ? 'ar' : 'en']) if (r && r.label && r.value) rows.push([r.label, r.value]);
   // How confident the reader was about the BOQ it pulled off the customer's drawing. The customer
   // is the only person who can tell us it read the drawing wrong, and they were never shown it.
   const conf = Number(inq.boq_confidence);
@@ -1275,7 +1304,10 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     setBusy(false);
     const fee = aed(r.reveal_fee ?? q.reveal_fee);
     // The Reveal Guarantee is shown at the moment of payment, not only as a line under the button.
-    const go = await ask(tf(lang, 'q_confirm_body', { fee, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), reveal: true, children: <RevealGuarantee lang={lang} fee={fee} terms={terms} compact /> });
+    // 3% plus card processing (founder, 14 Sep 2026): the breakdown is customer_api's, computed by
+    // the same _shared/reveal_fee.ts stripe_checkout charges, so the dialog and Stripe cannot differ.
+    const total = aed(r.total_charged ?? r.reveal_fee ?? q.reveal_fee);
+    const go = await ask(tf(lang, 'q_confirm_body', { fee, total, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), reveal: true, children: <><FeeBreakdown r={r} price={aed(q.price)} lang={lang} /><RevealGuarantee lang={lang} fee={total} terms={terms} compact /></> });
     if (!go) return;
     setBusy(true);
     // /ar/me for an Arabic customer, so the Stripe return lands in their language; stripe_checkout
@@ -1308,7 +1340,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     {!exp && q.validity && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_validity') + q.validity}</div>}
     {/* match_reason is omitted by the API until reveal, because it can name the company. */}
     {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_why') + q.match_reason}</div>}
-    <div className="mt-1.5"><QuotePdfLink q={q} token={token} lang={lang} /></div>
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1"><QuotePdfLink q={q} token={token} lang={lang} />{revealed ? <InvoicePdfLink q={q} token={token} lang={lang} /> : null}</div>
     <div className="mt-2"><SupplierRelationshipCard quote={q} token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
     {/* Behind a disclosure: mounted on every quote card, it fired one negotiation_assistant call
         per quote on every open request, for guidance most customers never looked at. */}
@@ -1407,7 +1439,7 @@ function ReceiptNote({ receipt, inqs, lang, onClose }) {
 // inbox does and does not carry, so keeping both would have been two inboxes disagreeing.
 const MODULES = [
   ['projects', 'projects'], ['spatial', 'mod_spatial'], ['documents', 'mod_documents'],
-  ['messages', 'messages'], ['approvals', 'mod_approvals'], ['orders', 'mod_orders'],
+  ['messages', 'messages'], ['orders', 'mod_orders'],
   ['predict', 'mod_predict'], ['profile', 'mod_profile'], ['account', 'mod_account'],
 ];
 // A MODULE IS A PAGE NOW, NOT A POP-UP.
@@ -1444,7 +1476,6 @@ function ModuleWindow({ id, onClose, onOpenRfq, projectId, token, lang, inqs, on
       {id === 'spatial' && <SpatialModule token={token} lang={l2} inquiries={inqs} onOpenRfq={onOpenRfq} />}
       {id === 'documents' && <DocumentVault token={token} lang={l2} />}
       {id === 'messages' && <CommunicationCenter token={token} lang={l2} onOpenRfq={onOpenRfq} />}
-      {id === 'approvals' && <ApprovalChain token={token} lang={l2} onOpenRfq={onOpenRfq} />}
       {id === 'orders' && <OrdersList token={token} lang={l2} onOpenRfq={onOpenRfq} />}
       {id === 'predict' && <PredictiveIntelligence token={token} lang={l2} />}
       {/* §2 the twin, §9 discovery and §17 the memory — three surfaces whose backends were complete
@@ -1462,7 +1493,7 @@ function ModuleWindow({ id, onClose, onOpenRfq, projectId, token, lang, inqs, on
           customer, every field on this window is measured:
 
             CompanyTwin        read-only. industry, live projects, suppliers this customer has PAID
-                               to reveal, the categories they actually buy, their approval chain.
+                               to reveal, the categories they actually buy.
                                No input of any kind. Nothing writes customers.industry from any
                                customer surface - grepped customer_api and kyc, no writer exists.
             SupplierDiscovery  a text box for trades + an emirate, running the same matcher a real

@@ -1,51 +1,16 @@
-// Runnable checks for the only non-trivial logic in the Approvals/Orders module: the two figures
-// about someone's money that this surface is allowed to compute, and the rule that decides whether
-// an Approve button appears. Node 24 strips the types, so this runs with no framework and no build:
+// Runnable checks for the only non-trivial logic in the Orders module: the two figures about
+// someone's money that this surface is allowed to compute. (The approval-chain checks left with the
+// Approvals tab on 14 Sep 2026 — see ./index.ts.) Node 24 strips the types, so this runs with no
+// framework and no build:
 //
 //   node --test src/components/portal/approvals/model.test.mjs
 //   npm test        (the repository runner discovers *.test.mjs anywhere in the tree)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canDecide, chainProgress, orderValue, receivedPct } from './model.ts';
+import { orderValue, receivedPct } from './model.ts';
 
-const step = (o) => ({ step: 1, key: null, label: 'Step', role: null, status: 'waiting', decided_by: null, decided_at: null, note: null, ...o });
 const line = (o) => ({ line_no: 1, description: null, qty: null, unit_price: null, qty_received: null, ...o });
 const order = (o) => ({ id: 'o', po_no: null, status: null, order_date: null, expected_date: null, currency: 'AED', subtotal: null, memo: null, inquiry_id: null, quote_id: null, project_id: null, approved_at: null, lines: [], ...o });
-
-/* ── the chain, i.e. the spec's own worked example ─────────────────────────────────────────── */
-
-test("the spec's example projects as written: 2 approved, Finance pending, CEO waiting", () => {
-  const steps = [
-    step({ step: 1, label: 'Engineer', status: 'approved' }),
-    step({ step: 2, label: 'Project Manager', status: 'approved' }),
-    step({ step: 3, label: 'Finance', status: 'pending' }),
-    step({ step: 4, label: 'CEO', status: 'waiting' }),
-  ];
-  const p = chainProgress(steps);
-  assert.equal(p.total, 4);
-  assert.equal(p.approved, 2);
-  assert.equal(p.rejected, 0);
-  assert.equal(p.pending.label, 'Finance');
-});
-
-test('an empty or missing chain is zeros with no pending step, never a crash', () => {
-  assert.deepEqual(chainProgress([]), { total: 0, approved: 0, rejected: 0, pending: null });
-  assert.deepEqual(chainProgress(null), { total: 0, approved: 0, rejected: 0, pending: null });
-});
-
-test('a decide control appears ONLY on the live step of a live request', () => {
-  const live = step({ step: 3, status: 'pending' });
-  const pending = { status: 'pending', current_step: 3 };
-  assert.equal(canDecide(pending, live), true);
-  // A finished request must never offer a control the database would refuse.
-  assert.equal(canDecide({ status: 'approved', current_step: 3 }, live), false);
-  assert.equal(canDecide({ status: 'rejected', current_step: 3 }, live), false);
-  // Nor a step that is not the one the chain is on.
-  assert.equal(canDecide(pending, step({ step: 4, status: 'waiting' })), false);
-  assert.equal(canDecide(pending, step({ step: 1, status: 'approved' })), false);
-  // Nor a step whose number drifted from current_step, whatever the view called it.
-  assert.equal(canDecide({ status: 'pending', current_step: 2 }, live), false);
-});
 
 /* ── the two money figures ─────────────────────────────────────────────────────────────────── */
 
