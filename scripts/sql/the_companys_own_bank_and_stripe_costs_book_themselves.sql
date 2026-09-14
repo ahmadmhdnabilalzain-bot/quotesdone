@@ -22,6 +22,9 @@
 -- (6300 General & Administrative against 1000 Cash & Bank). fn_accountant_cost_booking_tick runs both
 -- and fn_gl_sync_business, so the P&L is complete without anyone running anything. TEST-mode Stripe
 -- fees and ZZ DEMO statements are only ever drafts.
+-- 14 Sep 2026 (section 3b): fn_accountant_book_owner_capital books a transfer from the licence holder's own
+-- account as Dr 1000 / Cr 3000 Owner Capital (founder_instruction 357), under the same hold, and makes every
+-- other unmatched credit an accountant finding. Probe: scripts/checks/owner_capital_fixtures.sql.
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_companys_own_bank_and_stripe_costs_book_themselves.sql --apply --ddl
 
@@ -132,13 +135,111 @@ begin
 end $fn$;
 revoke execute on function public.fn_accountant_book_bank_charges() from public, anon, authenticated;
 
+-- ── 3b. MONEY THE FOUNDER PUTS IN FROM HIS OWN ACCOUNT IS CAPITAL (14 Sep 2026) ─────────────────
+-- Founder, 14 Sep 2026 (founder_instruction 357), on the August 2026 statement's one credit, a
+-- person-to-person transfer from his own account: "yea capital from my other account". It is not revenue
+-- and not a loan, and it is the standing default: a transfer from his own account is capital unless he
+-- says loan.
+-- MEASURED BEFORE THIS: nothing classified a bank CREDIT at all. fn_accountant_bank_reconcile only matches
+-- credits to Stripe payouts; any other credit sat in bank_statement_line with no journal and no finding.
+-- WHAT THIS DOES, deterministically:
+--   * an owner transfer is a credit, not matched to a Stripe payout, whose description carries a transfer
+--     marker (gl_settings.owner_transfer_pattern) AND every word of the licence holder's name as whole
+--     words — the name is read from company_registration.owner_name, never written in code. The bank prints
+--     the sender's name inside the description of a person-to-person transfer.
+--   * it is booked Dr 1000 Cash & Bank / Cr 3000 Owner Capital (the chart's existing equity account). The
+--     VAT watch counts only posted 4xxx lines, so capital can never count toward the AED 375,000 threshold.
+--   * the founder's bank-booking hold (gl_settings.bank_booking_on_hold) is respected exactly as for bank
+--     charges: while it is 1 the entry is a DRAFT, prepared and reported, not posted.
+--   * bank_line_owner_ruling records his word on one line: 'loan' overrides the default. The chart has no
+--     owner-loan account, so a loan is an accountant finding, never booked as capital.
+--   * any other credit still unmatched once the payout window has passed is an accountant finding. Nothing
+--     is guessed.
+insert into public.gl_settings (key, num_value, txt_value) values
+  ('owner_transfer_pattern', null, 'transfer|p_?2_?p')
+on conflict (key) do nothing;
+
+create table if not exists public.bank_line_owner_ruling (
+  line_id                bigint primary key references public.bank_statement_line(id),
+  ruling                 text not null check (ruling in ('capital', 'loan')),
+  founder_instruction_id bigint,          -- public.founder_instruction.id carrying his words
+  noted_at               timestamptz not null default now()
+);
+comment on table public.bank_line_owner_ruling is
+  'The founder''s word on one bank credit from his own account. Default without a row: capital (founder_instruction 357). ''loan'' keeps it out of 3000 Owner Capital and raises an accountant finding.';
+alter table public.bank_line_owner_ruling enable row level security;
+drop policy if exists bank_line_owner_ruling_service_role_only on public.bank_line_owner_ruling;
+create policy bank_line_owner_ruling_service_role_only on public.bank_line_owner_ruling
+  as permissive for all to public using (false) with check (false);
+revoke all on public.bank_line_owner_ruling from anon, authenticated;
+
+-- Whether a bank line's description is a transfer from the licence holder's own account.
+create or replace function public.fn_bank_line_is_owner_transfer(p_description text)
+returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  with o as (select regexp_split_to_array(btrim(regexp_replace(upper(owner_name), '[^A-Z0-9]+', ' ', 'g')), ' ') toks
+               from public.company_registration order by recorded_at desc limit 1),
+       d as (select regexp_split_to_array(btrim(regexp_replace(upper(coalesce(p_description, '')), '[^A-Z0-9]+', ' ', 'g')), ' ') words)
+  select coalesce((select array_length(o.toks, 1) >= 2 and o.toks <@ d.words from o, d), false)
+     and coalesce(p_description, '') ~* coalesce((select txt_value from public.gl_settings where key = 'owner_transfer_pattern'), 'transfer')
+$fn$;
+revoke execute on function public.fn_bank_line_is_owner_transfer(text) from public, anon, authenticated;
+
+create or replace function public.fn_accountant_book_owner_capital()
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare
+  v_hold boolean := coalesce((select num_value from public.gl_settings where key = 'bank_booking_on_hold'), 1) <> 0;
+  v_after int := coalesce((select num_value::int from public.gl_settings where key = 'bank_match_days_after'), 5);
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  l record; v_lines jsonb; v_memo text; v_booked boolean; n_posted int := 0; n_draft int := 0; v_items jsonb := '[]'::jsonb;
+begin
+  for l in select b.*, r.ruling, r.founder_instruction_id
+             from public.bank_statement_line b left join public.bank_line_owner_ruling r on r.line_id = b.id
+            where b.amount_aed > 0
+              and not exists (select 1 from public.stripe_payout p where p.bank_line_id = b.id)
+            order by b.value_date, b.id loop
+    v_booked := exists (select 1 from public.gl_journal g where g.source = 'owner_capital' and g.source_ref = l.id::text and g.status in ('draft', 'posted'));
+    if l.ruling = 'loan' then
+      v_items := v_items || jsonb_build_object('item', 'loan:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
+        'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' was ruled a loan from the founder, and the chart has no owner-loan account'
+                 || case when v_booked then '; the capital entry already made for it must be reversed' else '' end,
+        'blast', 'agent_facing', 'affected', 1, 'demo', l.account = 'zz_demo',
+        'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'founder_instruction_id', l.founder_instruction_id));
+      continue;
+    end if;
+    continue when v_booked;
+    if l.ruling = 'capital' or public.fn_bank_line_is_owner_transfer(l.description) then
+      v_lines := jsonb_build_array(jsonb_build_object('account', '1000', 'debit', l.amount_aed),
+                                   jsonb_build_object('account', '3000', 'credit', l.amount_aed));
+      v_memo := case when l.account = 'zz_demo' then 'ZZ DEMO ' else '' end || 'Owner capital contribution (' || l.account || ', ' || l.value_date
+                || '), a transfer from the licence holder''s own account: capital unless he says loan (founder_instruction 357): ' || left(l.description, 120);
+      if v_hold or l.account = 'zz_demo' then
+        perform public.fn_accountant_draft_entry(l.value_date, v_memo, 'owner_capital', l.id::text, v_lines);
+        n_draft := n_draft + 1;
+      else
+        perform public.fn_gl_entry(l.value_date, v_memo, 'owner_capital', l.id::text, v_lines, 'accountant');
+        n_posted := n_posted + 1;
+      end if;
+    elsif l.value_date + v_after < v_today then
+      v_items := v_items || jsonb_build_object('item', 'unrecognised:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
+        'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' is neither a Stripe payout nor a transfer from the licence holder''s own account, so it is not booked',
+        'blast', 'agent_facing', 'affected', 1, 'demo', l.account = 'zz_demo',
+        'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'description', left(l.description, 200),
+                                       'remedy', 'the founder names what it is; an owner transfer is recorded in bank_line_owner_ruling'));
+    end if;
+  end loop;
+  return jsonb_build_object('posted', n_posted, 'drafted', n_draft, 'hold', v_hold,
+    'findings', public.fn_accountant_duty_settle('bank_credits', v_items));
+end $fn$;
+revoke execute on function public.fn_accountant_book_owner_capital() from public, anon, authenticated;
+
 -- ── 4. THE DUTY ──────────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_accountant_cost_booking_tick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v_sync int; v_bank jsonb;
+declare v_sync int; v_bank jsonb; v_cap jsonb;
 begin
   v_sync := public.fn_gl_sync_business();
   v_bank := public.fn_accountant_book_bank_charges();
-  return jsonb_build_object('gl_sync_business_entries', v_sync, 'bank_charges', v_bank);
+  v_cap := public.fn_accountant_book_owner_capital();
+  return jsonb_build_object('gl_sync_business_entries', v_sync, 'bank_charges', v_bank, 'owner_capital', v_cap);
 end $fn$;
 revoke execute on function public.fn_accountant_cost_booking_tick() from public, anon, authenticated;
