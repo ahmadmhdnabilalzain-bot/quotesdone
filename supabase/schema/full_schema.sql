@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T17:30:19.641Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T17:40:50.141Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -185,7 +185,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (485) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
+-- ===== TABLES (486) =====\nCREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   record_id text NOT NULL,
   record_type text NOT NULL,
   domain text,
@@ -3210,6 +3210,12 @@ CREATE TABLE IF NOT EXISTS public.institutional_memory (
   occurred_at timestamp with time zone DEFAULT now() NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   os_key text
+);
+
+CREATE TABLE IF NOT EXISTS public.intake_trade_taxonomy (
+  intake_slug text NOT NULL,
+  trade_codes text[] NOT NULL,
+  note text
 );
 
 CREATE TABLE IF NOT EXISTS public.integration_matrix (
@@ -7043,6 +7049,7 @@ ALTER TABLE public.inquiry_workstream ADD CONSTRAINT inquiry_workstream_pkey PRI
 ALTER TABLE public.inquiry_workstream_group ADD CONSTRAINT inquiry_workstream_group_pkey PRIMARY KEY (id);
 ALTER TABLE public.inquiry_workstream_requirement ADD CONSTRAINT inquiry_workstream_requirement_pkey PRIMARY KEY (id);
 ALTER TABLE public.institutional_memory ADD CONSTRAINT institutional_memory_pkey PRIMARY KEY (id);
+ALTER TABLE public.intake_trade_taxonomy ADD CONSTRAINT intake_trade_taxonomy_pkey PRIMARY KEY (intake_slug);
 ALTER TABLE public.integration_matrix ADD CONSTRAINT integration_matrix_pkey PRIMARY KEY (service);
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_pkey PRIMARY KEY (id);
 ALTER TABLE public.internal_credential_audit ADD CONSTRAINT internal_credential_audit_pkey PRIMARY KEY (id);
@@ -7518,6 +7525,7 @@ ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidat
 ALTER TABLE public.inquiry_trade_candidate ADD CONSTRAINT inquiry_trade_candidate_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'confirmed'::text, 'rejected'::text, 'inactive'::text])));
 ALTER TABLE public.inquiry_trade_candidate_evidence ADD CONSTRAINT inquiry_trade_candidate_evidence_score_basis_check CHECK ((score_basis = ANY (ARRAY['rule_weight_provisional'::text, 'calibrated_frequency'::text, 'measured_probability'::text])));
 ALTER TABLE public.inquiry_workstream_group ADD CONSTRAINT inquiry_workstream_group_rfq_mode_check CHECK ((rfq_mode = ANY (ARRAY['coordinated'::text, 'linked'::text])));
+ALTER TABLE public.intake_trade_taxonomy ADD CONSTRAINT intake_trade_taxonomy_trade_codes_check CHECK ((cardinality(trade_codes) > 0));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_context_check CHECK ((length(btrim(context)) > 2));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_scope_check CHECK ((array_length(scope, 1) >= 1));
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_affected_ck CHECK ((affected >= 0));
@@ -47082,6 +47090,38 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_taxonomy_trades_for(p_slugs text[])
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- Each name resolves to itself (normalised) and to the taxonomy code(s) of the same trade. Never to a
+  -- neighbour. A retired taxonomy code is dropped, so it never gates a match.
+  select coalesce(array_agg(distinct x.code order by x.code), '{}'::text[])
+    from (
+      select public.fn_trade_code(s) as code
+        from unnest(coalesce(p_slugs, '{}'::text[])) s
+      union
+      select unnest(m.trade_codes)
+        from unnest(coalesce(p_slugs, '{}'::text[])) s
+        join public.intake_trade_taxonomy m on public.fn_trade_code(m.intake_slug) = public.fn_trade_code(s)
+    ) x
+   where x.code is not null
+     and not exists (select 1 from public.taxonomy_trade t where t.code = x.code and not t.active);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trade_code(p_name text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select nullif(btrim(regexp_replace(lower(btrim(coalesce(p_name, ''))), '[^[:alnum:]]+', '_', 'g'), '_'), '');
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_transaction_attach_invoice(p_transaction_id uuid, p_invoice jsonb, p_doc_path text DEFAULT NULL::text, p_doc_name text DEFAULT NULL::text, p_doc_content_type text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -53992,6 +54032,7 @@ ALTER TABLE public.inquiry_workstream ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_workstream_group ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inquiry_workstream_requirement ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.institutional_memory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.intake_trade_taxonomy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.integration_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential_audit ENABLE ROW LEVEL SECURITY;
@@ -54262,6 +54303,7 @@ CREATE POLICY os_owner_admin_read ON public.expenses AS PERMISSIVE FOR SELECT TO
 CREATE POLICY founder_instruction_service_role_only ON public.founder_instruction AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.gl_journal AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.inquiries AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY intake_trade_taxonomy_service_role_only ON public.intake_trade_taxonomy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_expiry_service_role_only ON public.it_expiry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_hold_signature_service_role_only ON public.it_hold_signature AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

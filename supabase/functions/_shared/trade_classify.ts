@@ -35,7 +35,9 @@ export const KW: Record<string, string[]> = {
   flooring: ['floor', 'flooring', 'spc', 'vinyl', 'lvt', 'epoxy', 'parquet', 'laminate', 'tiles floor', 'marble floor', 'carpet', 'أرضيات', 'ارضيات', 'باركيه'],
   // 'facade' alone was here and filed "scaffolding for facade work" under glass; a facade is where
   // work happens, a glass facade is the trade.
-  glass: ['glass', 'glazing', 'shower enclosure', 'mirror', 'partition glass', 'glass facade', 'facade glazing', 'curtain wall', 'railing glass', 'زجاج'],
+  // Glass named AS the job (a railing, a balustrade, a partition, a mirror) keeps glass as its own
+  // trade even beside aluminium windows; plain "glass" inside a window job is a component (below).
+  glass: ['glass', 'glazing', 'shower enclosure', 'mirror', 'partition glass', 'glass partition', 'glass facade', 'facade glazing', 'curtain wall', 'railing glass', 'glass railing', 'glass balustrade', 'glass pane', 'زجاج', 'مرآه', 'مرايه', 'مرايا'],
   aluminium: ['aluminium', 'aluminum', 'window frame', 'sliding window', 'thermal break', 'ألمنيوم', 'المنيوم', 'الومنيوم'],
   steel: ['steel', 'metal fabrication', 'stainless', 'gate steel', 'staircase steel', 'canopy', 'حدادة'],
   gypsum: ['gypsum', 'ceiling', 'false ceiling', 'partition wall', 'drywall', 'plasterboard', 'جبس', 'اسقف معلقه', 'سقف معلق'],
@@ -148,10 +150,29 @@ export function detectCat(text: string): string | null {
   return best;
 }
 
-/** Every trade the text names, in KW order. */
+// COMPONENTS ARE NOT TRADES (14 Sep 2026). Harness journey a asked for "40 aluminium windows ...
+// double glazed ... 6-12-6 glass" and was split into two requests, aluminium and glass: the glass is
+// part of the window the aluminium supplier sells. A component trade is dropped when its parent
+// trade is also named AND every word that named the component is a generic component word. A
+// component named as its own job (a shower enclosure, a mirror, a glass railing or facade) is a
+// real second trade and still splits.
+const COMPONENT_OF: { component: string; parents: string[]; generic: RegExp }[] = [
+  { component: 'glass', parents: ['aluminium', 'carpentry', 'steel'], generic: /^(?:glass|glazing|زجاج)$/ },
+  { component: 'tiling', parents: ['flooring'], generic: /^(?:tiling|grouting|بلاط)$/ },
+  { component: 'painting', parents: ['steel', 'carpentry'], generic: /^(?:paint\*?|painters)$/ },
+];
+
+/** Every trade the text names, in KW order — without components of a trade also named. */
 export function detectTrades(text: string): string[] {
+  const hits = tradeHits(text);
   const s = scores(text);
-  return Object.keys(KW).filter((c) => (s.get(c) || 0) > 0);
+  const named = Object.keys(KW).filter((c) => (s.get(c) || 0) > 0);
+  return named.filter((c) => {
+    const rule = COMPONENT_OF.find((r) => r.component === c);
+    if (!rule || !rule.parents.some((p) => named.includes(p))) return true;
+    const own = hits.filter((h) => h.cat === c);
+    return !own.every((h) => rule.generic.test(normArabic(h.phrase).toLowerCase()));
+  });
 }
 
 /** The phrases that decided `cat` in this text — the keywords a supplier match can use. */
