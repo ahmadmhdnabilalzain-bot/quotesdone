@@ -1,6 +1,9 @@
 import services from '@/content/services.json';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
+import { PageHero, splitHero, textOf } from '@/components/DocFrame';
+import { ProductFrame, Stepper } from '@/components/ui/sealed';
+import { Button } from '@/components/ui/button';
 import { notFound } from 'next/navigation';
 import { buildMeta, textFromHtml } from '@/lib/seo';
 
@@ -44,6 +47,28 @@ export function svcMeta(slug: string, locale: string) {
   const body = textFromHtml(sub(c.html, loc, locale)).replace(title, '').trim();
   return buildMeta({ locale, path: '/services/' + slug, title, description: body });
 }
+
+const L = {
+  en: {
+    sample: 'Sample flow', frame: 'request', status: 'Sealed',
+    steps: [
+      { title: 'Describe the job once', body: 'Text, photos, a drawing or a BOQ.' },
+      { title: 'Licensed suppliers quote blind', body: 'Only trades licensed for the work, and they never see your name.' },
+      { title: 'Compare every quote', body: 'All quotes in one list, plus a levelled technical report on the strongest three.' },
+      { title: 'Reveal one, or none', body: 'Pick any quote. You pay 3% only on the one you choose.' },
+    ],
+  },
+  ar: {
+    sample: 'مسار نموذجي', frame: 'طلب', status: 'مختوم',
+    steps: [
+      { title: 'صف المشروع مرة واحدة', body: 'نصًا أو صورًا أو مخططًا أو جدول كميات.' },
+      { title: 'الموردون المرخّصون يسعّرون دون معرفتك', body: 'فقط أصحاب الرخص المطابقة للعمل، ولا يرون اسمك أبدًا.' },
+      { title: 'قارن جميع العروض', body: 'كل عروض الأسعار في قائمة واحدة، مع تقرير فني مقارن لأقوى ثلاثة منها.' },
+      { title: 'اكشف موردًا واحدًا أو لا أحد', body: 'اختر أي عرض سعر، وتدفع 3% فقط على العرض الذي تختاره.' },
+    ],
+  },
+};
+
 // `children` render after the service copy and BEFORE the footer. The price guide used to be placed
 // after <ServiceDoc/> in the page file, which put it (measured at 375px, 14 Sep 2026) below the
 // footer, so the page ended in a card instead of the footer's launcher-clear bottom padding.
@@ -51,12 +76,30 @@ export function ServiceDoc({ slug, locale, children }: { slug: string; locale: s
   const { service, loc } = parse(slug); const d = S[service];
   if (!d) return notFound();
   const c = (d as any)[locale] || d.en;
-  const html = arDoc(sub(c.html, loc, locale), locale);
+  const t = locale === 'ar' ? L.ar : L.en;
+  const hero = splitHero(arDoc(sub(c.html, loc, locale), locale));
+  const title = hero.title ?? sub(c.title, loc, locale);
   return (
     <>
       <SiteHeader />
-      <main id="main" className="mk" dir={locale === 'ar' ? 'rtl' : 'ltr'} dangerouslySetInnerHTML={{ __html: html }} />
-      {children}
+      <main id="main" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+        <PageHero
+          kicker={hero.kicker ? <span className="[&_a]:text-inherit [&_a:hover]:text-white" dangerouslySetInnerHTML={{ __html: hero.kicker }} /> : undefined}
+          title={<span dangerouslySetInnerHTML={{ __html: title }} />}
+          lead={hero.lead ? <span dangerouslySetInnerHTML={{ __html: hero.lead }} /> : undefined}
+          actions={hero.actions.map((a) => (
+            <Button key={a.href} asChild size="lg" variant={a.ghost ? 'secondary' : 'default'} className="qd-magnet"><a href={a.href}>{a.label}</a></Button>
+          ))}
+          aside={
+            <ProductFrame title={`${t.frame} / ${textOf(title).slice(0, 38)}`} sampleLabel={t.sample} status={t.status} className="shadow-e3">
+              <div className="p-6"><Stepper steps={t.steps.map((s, i) => ({ ...s, state: i === 0 ? 'done' : i === 1 ? 'current' : 'next' }))} /></div>
+            </ProductFrame>
+          }
+        />
+        {/* styles: globals.css §9 (.mk). The article column is held to a reading measure. */}
+        <div className="mk pb-8 [&_.wrap]:max-w-[900px]" dangerouslySetInnerHTML={{ __html: hero.rest }} />
+        {children}
+      </main>
       <SiteFooter />
     </>
   );
