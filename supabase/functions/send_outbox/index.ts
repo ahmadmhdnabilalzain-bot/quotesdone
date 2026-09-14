@@ -8,6 +8,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { encodeBase64 } from 'jsr:@std/encoding/base64';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { BRAND, lockupImg } from '../_shared/brand.ts';
+import { arabicFrame } from './arabic_frame.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
@@ -232,7 +233,15 @@ Deno.serve(observe('send_outbox', async (req) => {
       const reply = supplierSide ? (docReq ? replyDocs : replySup) : replyInfo;
       const unsub = (supplierSide && unsubKey) ? `${FN_BASE}/unsubscribe?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
-      const htmlBody = tmpl({ body: n.body || '', logo, name: sigName, title: sigTitle, channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
+      // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
+      // agent"), so its mail is signed by that seat, not with the founder's name.
+      const seatMail = String(n.kind || '').startsWith('sales_engineer_');
+      // THE FRAME SPEAKS THE RECIPIENT'S LANGUAGE TOO (founder, 14 Sep 2026). notifications.lang is
+      // the registered language; an Arabic body inside an English signature and footer is exactly the
+      // mixed message the rule forbids.
+      const arMail = !internal && n.lang === 'ar';
+      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'QuotesDone Sales Engineer') : sigName, title: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
+      const htmlBody = arMail ? arabicFrame(htmlBody0) : htmlBody0;
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the
       // founder would read "here is this week's report", find no report, and have no way to tell

@@ -5,8 +5,9 @@
 //   stats            §4  the six figures the command centre already showed
 //   alerts           §1  the recommendation feed. Two kinds existed (edit_window, quotes_ready) and
 //                        both are reactive — they describe something the customer already did. §1
-//                        asks for price moves, better lead times and approvals due, which are
-//                        things the system noticed on the customer's behalf.
+//                        asks for price moves and better lead times, which are things the system
+//                        noticed on the customer's behalf. (Its "approvals due" item was removed
+//                        with the Approvals tab on 14 Sep 2026.)
 //   headline         §1  ONE sentence stating what needs attention today. N cards are not that
 //                        sentence; the entry screen was showing cards and no line.
 //   twin             §2  the business profile. fn_twin's customer branch existed with ZERO
@@ -18,6 +19,7 @@
 // database with no traffic, and none of these branches invents a number to avoid one.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -34,17 +36,21 @@ async function rpc(name: string, args: Record<string, unknown>): Promise<{ data:
 
 Deno.serve(observe('customer_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
+  // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
+  if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user) return J({ error: 'unauthorized' }, 401);
     const email = (user.email || '').toLowerCase();
-    let { data: cust } = await admin.from('customers').select('id,full_name,email,industry').eq('id', user.id).maybeSingle();
-    if (!cust && email) { const r = await admin.from('customers').select('id,full_name,email,industry').eq('email', email).maybeSingle(); cust = r.data; }
+    let { data: cust } = await admin.from('customers').select('id,full_name,email,industry,locale').eq('id', user.id).maybeSingle();
+    if (!cust && email) { const r = await admin.from('customers').select('id,full_name,email,industry,locale').eq('email', email).maybeSingle(); cust = r.data; }
     if (!cust) return J({ error: 'no_customer', hint: 'no customer profile for this account' }, 400);
     const b = await req.json().catch(() => ({} as any));
     const action = b.action;
-    const ar = String(b.lang || 'en') === 'ar';
+    // The registered language (customers.locale), not the b.lang the page happened to send.
+    const ar = asLocale(cust.locale) === 'ar';
 
     if (action === 'overview') {
       const { data: stats, error } = await admin.rpc('fn_customer_stats', { p_customer: cust.id });
@@ -77,12 +83,24 @@ Deno.serve(observe('customer_portal', async (req) => {
       // against what THIS customer last paid in that category. A category the customer has never
       // bought produces nothing, and a category with too few quotes to have a median produces
       // nothing — `n` is printed in the card so the customer can see how thin the sample is.
+      //
+      // EVERY READ BELOW DEPENDS ONLY ON fn_customer_stats, NOT ON EACH OTHER, so they are started
+      // together here and awaited where each section uses them. They ran one after another — eight
+      // sequential round trips after the stats — and this overview is on the critical path of every
+      // portal load (747–1,534 ms measured on quotesdone.ae/me, 14 Sep 2026).
       const myCats = [...new Set(inqs.map((x: any) => String(x.category || '')).filter(Boolean))].slice(0, 12);
+      const openIds = inqs.filter((x: any) => !['completed', 'closed', 'cancelled'].includes(String(x.status))).map((x: any) => x.id).slice(0, 25);
+      const pPx = myCats.length ? admin.from('category_price_stats').select('category,n,median').in('category', myCats) : null;
+      const pMine = myCats.length ? admin.from('transactions')
+        .select('quote_amount,inquiry_id,inquiries!inner(category)')
+        .eq('customer_id', cust.id).eq('fee_status', 'paid').limit(200) : null;
+      const pMatched = openIds.length ? admin.from('inquiry_matches').select('supplier_id,inquiry_id').in('inquiry_id', openIds).limit(400) : null;
+      const pFc = rpc('fn_customer_forecast', { p_customer: cust.id, p_horizon_days: 90 });
+      const pTw = rpc('fn_twin', { p_kind: 'customer', p_id: String(cust.id) });
+      const pSaved = admin.from('customer_layout').select('layout,pinned,reason').eq('customer_id', cust.id).maybeSingle();
+      const pRoutes = admin.from('llm_route_health').select('open_until');
       if (myCats.length) {
-        const { data: px } = await admin.from('category_price_stats').select('category,n,median').in('category', myCats);
-        const { data: mine } = await admin.from('transactions')
-          .select('quote_amount,inquiry_id,inquiries!inner(category)')
-          .eq('customer_id', cust.id).eq('fee_status', 'paid').limit(200);
+        const [{ data: px }, { data: mine }] = await Promise.all([pPx!, pMine!]);
         const lastPaid: Record<string, number> = {};
         for (const t of (mine || []) as any[]) {
           const c = t?.inquiries?.category; const v = Number(t?.quote_amount);
@@ -107,9 +125,8 @@ Deno.serve(observe('customer_portal', async (req) => {
       // "5 suppliers have better lead times." Measured against the suppliers this customer's own
       // open RFQs actually reached — a faster supplier the customer never contacted is not news
       // about their procurement, it is an advert.
-      const openIds = inqs.filter((x: any) => !['completed', 'closed', 'cancelled'].includes(String(x.status))).map((x: any) => x.id).slice(0, 25);
       if (openIds.length) {
-        const { data: matched } = await admin.from('inquiry_matches').select('supplier_id,inquiry_id').in('inquiry_id', openIds).limit(400);
+        const { data: matched } = await pMatched!;
         const supIds = [...new Set((matched || []).map((m: any) => m.supplier_id).filter(Boolean))];
         if (supIds.length) {
           const { data: sc } = await admin.from('supplier_score').select('lead_id,avg_response_hours').in('lead_id', supIds);
@@ -127,21 +144,15 @@ Deno.serve(observe('customer_portal', async (req) => {
         }
       }
 
-      // ── §1 APPROVALS DUE ──────────────────────────────────────────────────────────────────────
-      // "2 quotes require approval." fn_approval_list already projects every request with its steps
-      // for this customer; the entry screen simply had no reader of it.
-      const appr = await rpc('fn_approval_list', { p_customer: cust.id });
-      if (appr.err) degraded.push('approvals');
-      const pending = ((appr.data && appr.data.requests) || []).filter((r: any) => String(r.status || '') === 'pending');
-      if (pending.length) alerts.push({ kind: 'approval_due', severity: 'high',
-        title: ar ? (pending.length + ' طلب شراء بانتظار موافقة') : (pending.length + ' purchase request' + (pending.length > 1 ? 's' : '') + ' waiting on approval'),
-        detail: ar ? ('افتح لوحة الموافقات لمعرفة الخطوة المتوقفة ومن صاحبها.') : ('Open Approvals to see which step is holding and whose it is.'),
-        count: pending.length });
+      // ── NO APPROVALS-DUE ALERT ────────────────────────────────────────────────────────────────
+      // Removed 14 Sep 2026 with the Approvals tab. Founder: "even if a company signed up, we don't
+      // wanna interfere in their approvals process and they are treated like normal individuals".
+      // Nothing routes a purchase through a sign-off chain any more, so there is nothing to be due.
 
       // ── §20 FORECAST ──────────────────────────────────────────────────────────────────────────
       // "You will likely need electrical cables within 45 days." fn_customer_forecast computes it
       // per customer with a horizon; nothing customer-facing called it.
-      const fc = await rpc('fn_customer_forecast', { p_customer: cust.id, p_horizon_days: 90 });
+      const fc = await pFc;
       if (fc.err) degraded.push('forecast');
       const preds = (Array.isArray(fc.data) ? fc.data : (fc.data && fc.data.predictions) || []).slice(0, 3);
       for (const p of preds as any[]) {
@@ -166,7 +177,7 @@ Deno.serve(observe('customer_portal', async (req) => {
               : (top.title + (alerts.length > 1 ? ' — and ' + (alerts.length - 1) + ' other item' + (alerts.length > 2 ? 's' : '') + '.' : '.')));
 
       // ── §2 THE TWIN ───────────────────────────────────────────────────────────────────────────
-      const tw = await rpc('fn_twin', { p_kind: 'customer', p_id: String(cust.id) });
+      const tw = await pTw;
       if (tw.err) degraded.push('twin');
       const twin = tw.data && !tw.data.error ? tw.data : null;
 
@@ -174,10 +185,9 @@ Deno.serve(observe('customer_portal', async (req) => {
       // Panels ordered by what this customer actually has, most-pressing first, with the reason
       // recorded beside it. A stored layout the customer arranged by hand WINS: a computed order
       // that silently overrides a deliberate choice is worse than no adaptation at all.
-      const { data: saved } = await admin.from('customer_layout').select('layout,pinned,reason').eq('customer_id', cust.id).maybeSingle();
+      const { data: saved } = await pSaved;
       const weight: Record<string, number> = {
         projects: (twin?.projects_active || 0) * 10,
-        approvals: pending.length * 40,
         messages: 0,
         documents: 0,
         orders: 0,
@@ -192,10 +202,22 @@ Deno.serve(observe('customer_portal', async (req) => {
         order,
         pinned,
         source: (saved?.layout && Array.isArray(saved.layout) && (saved.layout as unknown[]).length) ? 'saved' : 'computed',
-        reason: saved?.reason || (pending.length ? 'approvals are blocking work' : (twin?.projects_active ? 'ordered by live project activity' : 'default order — no activity to rank on yet')),
+        reason: saved?.reason || (twin?.projects_active ? 'ordered by live project activity' : 'default order — no activity to rank on yet'),
       };
 
+      // ── ARE THE MODEL ROUTES OPEN ─────────────────────────────────────────────────────────────
+      // Voice (transcribe) and drawing reading (drawing_boq/drawing_redact) all go through
+      // ai_gateway. Measured 14 Sep 2026: 8 of 8 llm_route_health rows carry open_until in the
+      // future under the founder's hold, so every one of those calls fails AFTER the customer has
+      // recorded or uploaded. The portal reads this to say "paused" before they try, instead of
+      // after. No rows at all is reported as unknown (null), never as available.
+      const { data: routeRows } = await pRoutes;
+      const routesTotal = (routeRows || []).length;
+      const routesHeld = (routeRows || []).filter((r: { open_until: string | null }) => r.open_until && new Date(r.open_until) > new Date()).length;
+      const llm_available = routesTotal ? routesHeld < routesTotal : null;
+
       return J({ ok: true, customer: { id: cust.id, name: cust.full_name, industry: cust.industry },
+                 llm_available, llm_routes: { total: routesTotal, held: routesHeld },
                  stats, alerts, alerts_count: alerts.length,
                  headline: headline, twin: twin, layout: layout,
                  degraded: degraded.length ? degraded : undefined });

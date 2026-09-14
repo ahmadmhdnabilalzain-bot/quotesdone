@@ -32,8 +32,6 @@ update public.internal_credential
 -- change. Do not restore this without his word: an estate reaches 235 scheduled jobs precisely
 -- by each build adding one and nothing ever removing one.
 
-$cron$);
-
 -- 4. THE MANUAL. s38-manual-always-current went MET earlier today by registering six undocumented
 --    jobs; a seventh added without an entry would take it straight back to MISSING.
 insert into public.cron_registry (jobname, human_name, category, purpose) values

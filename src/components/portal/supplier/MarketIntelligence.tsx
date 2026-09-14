@@ -24,6 +24,7 @@
 // reader, so a supplier who has done the work is told they are ahead instead of being told a lie.
 import React, { useEffect, useState } from 'react';
 import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { categoryLabel } from '@/lib/categoryLabel';
 
 type Blocked = { available?: boolean; value?: unknown; basis?: string; population?: number; note?: string };
 type Trend = Blocked & {
@@ -75,7 +76,7 @@ const T = {
     thisPeriod: 'enquiries in the last 14 days', priorPeriod: 'in the 14 before',
     shareOf: 'of all enquiries', newDemand: 'new', perWeek: 'Enquiries per week',
     median: 'median', quartiles: 'middle half', range: 'range', from: 'from',
-    demoBanner: 'Demonstration data. These figures are computed from QuotesDone demo fixtures, not from live trading.',
+    demoBanner: 'Sample data. These figures are an illustration, not live market trading.',
   },
   ar: {
     title: 'ذكاء السوق', competitors: 'المنافسون', inArea: 'في نطاق خدمتك',
@@ -171,15 +172,15 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
   // 'flat' gets its own mark rather than defaulting to a down arrow — no change is not a decline.
   const trend = m.demand_trend;
   const arrow = trend?.direction === 'up' ? '↑' : trend?.direction === 'down' ? '↓' : '→';
-  const dirTone = trend?.direction === 'up' ? 'text-emerald-300'
-    : trend?.direction === 'down' ? 'text-rose-300' : 'text-white/60';
+  const dirTone = trend?.direction === 'up' ? 'text-ok-fg'
+    : trend?.direction === 'down' ? 'text-danger-fg' : 'text-white/60';
 
   return (
     <div className="space-y-4">
       {/* A demo fixture must never be able to read its own figures as live trading. The routine
           says which population it computed over; the surface says so out loud. */}
       {m.population === 'demo' && (
-        <p className="rounded-xl border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2 text-[11px] leading-snug text-amber-200/80">
+        <p className="rounded-xl border border-warn/25 bg-warn/[0.06] px-3 py-2 text-[11px] leading-snug text-warn-fg/80">
           {t(lang, 'demoBanner')}
         </p>
       )}
@@ -199,12 +200,12 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'inArea')}</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold tabular-nums text-amber-300">{(c.matchable ?? 0).toLocaleString()}</div>
+            <div className="text-2xl font-semibold tabular-nums text-warn-fg">{(c.matchable ?? 0).toLocaleString()}</div>
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'matchable')}</div>
           </div>
         </div>
         {(c.matchable ?? 0) === 0 && (c.total ?? 0) > 0 && (
-          <p className={'text-[10px] mt-2 leading-snug ' + (c.me_matchable ? 'text-emerald-400/80' : 'opacity-45')}>
+          <p className={'text-[10px] mt-2 leading-snug ' + (c.me_matchable ? 'text-ok/80' : 'opacity-45')}>
             {t(lang, c.me_matchable ? 'matchableNoteAhead' : 'matchableNoteBlocked')}</p>
         )}
       </section>
@@ -256,7 +257,7 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
         {m.most_requested?.available ? (
           <Figure label={t(lang, 'mostRequested')}>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-semibold capitalize">{m.most_requested.value}</span>
+              <span className="text-lg font-semibold">{categoryLabel(String(m.most_requested.value || ''), lang)}</span>
               <span className="text-[11px] opacity-50">{m.most_requested.count} {t(lang, 'companies') === 'companies' ? 'enquiries' : 'طلب'}</span>
             </div>
             <p className="text-[10px] opacity-40 mt-1">{m.most_requested.basis}</p>

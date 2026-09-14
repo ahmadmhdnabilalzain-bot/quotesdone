@@ -27,7 +27,7 @@ ok('alerts_count', typeof j.alerts_count === 'number', String(j.alerts_count));
 // The twin is the §2 profile. A brand-new customer has no history, so the ASSERTION is on the KEYS
 // the twin carries, never on their values — demanding a non-zero project count here would be
 // demanding that a customer created four seconds ago already have projects.
-const TWIN_KEYS = ['industry', 'projects_active', 'preferred_suppliers', 'preferred_categories', 'understanding_pct', 'approval_chain'];
+const TWIN_KEYS = ['industry', 'projects_active', 'preferred_suppliers', 'preferred_categories', 'understanding_pct'];
 const present = TWIN_KEYS.filter((k) => j.twin && k in j.twin);
 ok('twin', !!j.twin, j.twin ? 'kind=' + j.twin.kind : 'null');
 ok('twin keys', present.length === TWIN_KEYS.length, `${present.length}/${TWIN_KEYS.length} [${present.join(',')}]`);

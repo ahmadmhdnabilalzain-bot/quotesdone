@@ -7,6 +7,10 @@
 // so any external monitor can wire it with just the URL.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
+import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
+import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
+import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -87,6 +91,35 @@ async function ratingTick(): Promise<unknown> {
 // SELECT and returns — 96 a day, sending nothing and consuming none of the daily send cap — and in
 // exchange `send_outbox has not run` becomes a sentence that is only true when something IS broken.
 // A heartbeat that beats only under load is not a heartbeat.
+async function archiveTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_resilience_ping');
+    const r = await fetch(FN + '/conversation_archive', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, action: 'sweep', limit: 4 }), signal: AbortSignal.timeout(50000),
+    });
+    return { status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// NO SUPPLIER QUOTED THE EXACT SPEC (founder_instruction #321). Once a pass, sales_engineer checks
+// the inquiries whose quote window closed (or whose invited suppliers all quoted), opens an offer
+// where no eligible quote matches a mandatory requested value, and sends the due reminders and
+// lapses through customer_support. The loop's state and timing live in Postgres
+// (fn_spec_offer_candidates / fn_spec_offer_due), so calling it every pass is correct. sales_engineer
+// is deployed with verify_jwt on, so the service key goes to the gateway; __secret decides the caller.
+async function specOfferTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_resilience_ping');
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const r = await fetch(FN + '/sales_engineer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+      body: JSON.stringify({ __secret: secret, action: 'spec_offer_sweep', limit: 20 }), signal: AbortSignal.timeout(55000),
+    });
+    return { status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -157,11 +190,80 @@ async function ceoWeeklyTick(): Promise<unknown> {
 // It runs from .github/workflows/kb-embed-backfill.yml instead, which can hold a connection for
 // half an hour. Measured there: 401.6 rows/min, 0 failures.
 
+// THE REFUND LADDER HAD NO SCHEDULER. Measured 14 Sep 2026: nothing called fn_refund_ladder_sweep --
+// pg_cron went on 7 Sep and no edge function picked it up -- so no day-3 chase and no day-5 final call
+// had run since. One RPC: the sales engineer's ladder steps, customer_support's watch for replies, and
+// the CEO's review loop (overdue tasks, held charges). The findings stay in the database; this
+// endpoint is public, so only counts come back.
+async function refundLadderTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_refund_ladder_sweep');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const d = data as any;
+    return { seen: d?.seen, chased: d?.chased, final_calls: d?.final_calls, support_watch: d?.support_watch, ceo_loop: d?.ceo_loop };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE ACCOUNTANT PAYS WHAT THE CEO APPROVED. The seat acts under its own credential
+// (cred_fn_accountant -> fn.accountant), so the run is the accountant's, not this watchdog's.
+async function accountantRefundTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_accountant');
+    if (!secret) return { ok: false, error: 'cred_fn_accountant is not in app_secrets' };
+    const r = await fetch(FN + '/accountant', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, action: 'execute_refunds' }), signal: AbortSignal.timeout(55000),
+    });
+    // deno-lint-ignore no-explicit-any
+    const j = await r.json().catch(() => null) as any;
+    return { status: r.status, paused: j?.paused ?? null, executed: Array.isArray(j?.results) ? j.results.length : null };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE ACCOUNTANT'S DUTIES (14 Sep 2026, founder: "yea add them all" / "yea add them"). Called every
+// tick; fn_accountant_duties_due inside the seat makes it hourly. Under the seat's own credential, so
+// the run is the accountant's. The result names only counts: this endpoint is public and secretless.
+async function accountantDutiesTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_accountant');
+    if (!secret) return { ok: false, error: 'cred_fn_accountant is not in app_secrets' };
+    const r = await fetch(FN + '/accountant', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, action: 'duties' }), signal: AbortSignal.timeout(55000),
+    });
+    // deno-lint-ignore no-explicit-any
+    const j = await r.json().catch(() => null) as any;
+    return { status: r.status, skipped: j?.skipped ? true : false, ok: j?.ok ?? null,
+             errors: Array.isArray(j?.result?.errors) ? j.result.errors.length : null };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function vatThresholdTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_accountant_vat_threshold_check', { p_notify: true });
     if (error) return { ok: false, error: error.message };
     return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// The IT engineer's half of the backup (founder, 14 Sep 2026: "i think the IT agent need to check
+// such details yea?"): close verified refiles, run the 48-hour coverage watch, file the daily line
+// to the CEO, and once a Dubai week re-check a random sample of Dropbox files.
+// deno-lint-ignore no-explicit-any
+async function dropboxVerifyTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_it_backup_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    if (!(data as any)?.reconcile?.due) return data;
+    const secret = await sec('cred_fn_resilience_ping');
+    const r = await fetch(FN + '/dropbox_backup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, mode: 'reconcile', limit: 20 }), signal: AbortSignal.timeout(55000),
+    });
+    // deno-lint-ignore no-explicit-any
+    return { ...(data as any), reconcile_run: { status: r.status, result: await r.json().catch(() => null) } };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -176,6 +278,30 @@ async function backupTick(): Promise<unknown> {
       body: JSON.stringify({ __secret: secret, limit: 25 }), signal: AbortSignal.timeout(55000),
     });
     return { due: true, status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE DAILY TABLE EXPORT HANGS HERE, FOR THE SAME REASON AS THE DROPBOX BACKUP (14 Sep 2026).
+// Its pg_cron job (109) went on 7 Sep and its worker (supabase/functions/backup) on 8 Sep; the last
+// export in the backups bucket is 2026-09-07. fn_table_export_due claims the Asia/Dubai day once
+// after 03:00, resumes a chain whose heartbeat stopped, and retries a failed day. The chain runs on
+// in its own invocations, so this tick only starts it and does not wait for it. Public endpoint:
+// counts and dates only.
+async function tableExportTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_table_export_due');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const d = data as any;
+    if (!d?.due) return { due: false, stamp: d?.stamp, status: d?.status ?? null };
+    const secret = await sec('cred_fn_resilience_ping');
+    const started = fetch(FN + '/backup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, stamp: d.stamp, kind: d.kind, since: d.since ?? null, state: d.resume ?? null }),
+    }).then((r) => r.body?.cancel()).catch(() => {});
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(started);
+    return { due: true, stamp: d.stamp, attempt: d.attempt, resumed: d.resume != null };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -333,6 +459,78 @@ async function openrouterMeterTick(): Promise<unknown> {
 // its result is carried in this function's response either way, so the failure is visible in the
 // watchdog's own output instead of vanishing into a catch. The watchdog still cannot be taken down
 // by it: an unreachable RPC returns ok:false here rather than throwing.
+// THE IT ENGINEER'S DUTIES, HOURLY (founder, 14 Sep 2026: "fine add them"). The readings Postgres
+// cannot take are taken here and handed to fn_it_duties, which decides; fn_it_duties_due keeps the
+// HTTP calls to once an hour. Only a count is returned: this endpoint is public and the findings
+// name internals. Runs before the alert tick so a new finding goes round the loop on this pass.
+async function itDutiesTick(): Promise<unknown> {
+  try {
+    const { data: due, error: dueErr } = await admin.rpc('fn_it_duties_due');
+    if (dueErr) return { ok: false, error: dueErr.message };
+    if (due !== true) return { due: false };
+    const { data, error } = await admin.rpc('fn_it_duties', { p_r: await takeDutyReadings(sec) });
+    if (error) return { ok: false, error: error.message };
+    return { due: true, duties: Object.keys((data ?? {}) as Record<string, unknown>).length };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// DUTIES 9-15 ON THEIR OWN CADENCES (founder, 14 Sep 2026: "fine build those tasks for IT agent").
+// fn_it_scheduled_due names what is due; only those readings are taken; fn_it_duties_scheduled decides.
+async function itScheduledTick(): Promise<unknown> {
+  try {
+    const { data: due, error: dueErr } = await admin.rpc('fn_it_scheduled_due');
+    if (dueErr) return { ok: false, error: dueErr.message };
+    const list = (due ?? []) as string[];
+    const { data: n } = await admin.rpc('fn_it_threshold', { p_key: 'restore_sample_files' });
+    const readings = await takeScheduledReadings(admin as never, sec, list, Number(n) || 5);
+    const { data, error } = await admin.rpc('fn_it_duties_scheduled', { p_r: readings });
+    if (error) return { ok: false, error: error.message };
+    return { due: list, settled: Object.keys((data ?? {}) as Record<string, unknown>) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE IT ENGINEER'S DUTIES 19-24 (founder, 14 Sep 2026: "add all for accountant and IT"). Each step is its
+// own try, so one failing duty is reported and never stops the others or the watchdog. Only booleans and
+// counts come back, because this endpoint is public. The routines each own a file in scripts/sql/.
+//   renewal        fn_it_renewal_watch   licences, domains, tokens: 60 and 30 days to the accountant (20)
+//   changes        GitHub's verdict on every revision a signed apply named, then fn_it_change_watch (24)
+//   usage          when it_duty_schedule says so: provider usage against the caps in it_threshold (22)
+//   restore_table  monthly: one table page from the newest finished export restored into scratch (19)
+// Duty 19's file half is duty 9's sample (itScheduledTick); 21 is duty 10's sender check; 23's patch PR
+// runs in .github/workflows/it-weekly-readings.yml. Runs before the alert tick, so anything raised here
+// goes round the IT loop on this same pass.
+async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
+  const out: Record<string, unknown> = {};
+  const rpc = async (fn: string, args?: Record<string, unknown>) => {
+    const { data, error } = await admin.rpc(fn, args);
+    if (error) throw new Error(fn + ': ' + error.message);
+    return data;
+  };
+  const step = async (name: string, run: () => Promise<unknown>) => {
+    try { out[name] = await run(); } catch (e) { out[name] = { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
+  };
+  await step('renewal', async () => { await rpc('fn_it_renewal_watch'); return { ok: true }; });
+  await step('changes', async () => {
+    const revs = ((await rpc('fn_it_change_revisions_due')) ?? []) as string[];
+    await rpc('fn_it_change_revisions_record', { p: await verifyRevisions(sec, revs) });
+    return { asked: revs.length };
+  });
+  await step('usage', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('usage')) return { due: false };
+    await rpc('fn_it_usage_watch', { p_r: await takeUsageReadings(sec) });
+    return { due: true };
+  });
+  // Its own step, never behind fn_it_restore_table_due: a drill that stops completing is a finding.
+  await step('restore_overdue', async () => rpc('fn_it_restore_table_overdue'));
+  await step('restore_table', async () => {
+    if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
+    const pick = await rpc('fn_it_restore_table_pick');
+    await rpc('fn_it_restore_table_record', { p: await runRestoreTable(admin, pick) });
+    return { due: true };
+  });
+  return out;
+}
+
 async function itEngineerAlertTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_it_engineer_alert_tick');
@@ -436,33 +634,85 @@ async function itDetectTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// KEEP THE PORTAL'S FIVE COLD ISOLATES WARM (14 Sep 2026 e2e finding; reviewed and corrected same
+// day). The customer Overview warms kyc, customer_api, customer_portal, project_api and messages_api
+// together on every sign-in (CustomerPortal.tsx warmDashboard) — five separate Deno isolates, any
+// one of which, cold, adds full V8-boot-plus-module-import latency on top of its query. This closes
+// isolate eviction BETWEEN sign-ins; the portal's own warmDashboard already covers a single sign-in.
+//
+// THE FIRST VERSION OF THIS RELIED ON A 401. That is only confirmed harmless for kyc and
+// customer_api; for customer_portal, project_api and messages_api an unauthenticated call could run
+// real code before failing, and every one of the five would write a 'warn' row to agent_runs every
+// ~15 minutes forever. Each of the five functions now checks `x-qd-warm: 1` as the very first thing
+// in its handler — before auth, before any DB read — and returns 204 with no side effect at all.
+// verify_jwt:true (customer_api, project_api, messages_api) still requires a signed JWT to pass the
+// PLATFORM GATEWAY before the handler ever runs, so the service key travels alongside the warm
+// header for those three; kyc and customer_portal (verify_jwt:false) do not need it and are sent it
+// anyway for one code path instead of two. A 204 classifies 'ok' in observe.ts (see classify()), so
+// none of this can be counted as a failure by any alerting the estate already runs.
+//
+// Piggybacks on this file's existing ~15min external trigger (.github/workflows/resilience-ping.yml)
+// so no new schedule or SQL is needed. Every call is best-effort and swallowed; a warm-ping failure
+// must never affect the watchdog's own health verdict.
+async function warmPortalTick(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
+  const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api'];
+  return Promise.all(targets.map(async (fn) => {
+    const t0 = Date.now();
+    try {
+      const r = await fetch(FN + '/' + fn, { method: 'GET',
+        headers: { 'x-qd-warm': '1', Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
+        signal: AbortSignal.timeout(8000) });
+      await r.body?.cancel().catch(() => {}); // release the connection; a 204 has nothing to read
+      return { fn, ms: Date.now() - t0, ok: r.status === 204 };
+    } catch (e) { return { fn, ms: Date.now() - t0, ok: false }; }
+  }));
+}
+
 Deno.serve(observe('resilience_ping', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   try {
+    // Fired now, awaited last: nothing below depends on the portal being warm, so the five pings
+    // run alongside the ticks instead of lengthening this already-sequential chain.
+    const warmP = warmPortalTick();
     // 0. The CEO's end-of-day digest, before any early return below.
     const digest = await digestTick();
     const ratings = await ratingTick();
     const backup = await backupTick();
+    const backupVerify = await dropboxVerifyTick();
+    const tableExport = await tableExportTick();
     const weekly = await accountantWeeklyTick();
     const vat = await vatThresholdTick();
     const ceoWeekly = await ceoWeeklyTick();
     const openrouter = await openrouterMeterTick();
+    // The ladder before the outbox and WhatsApp drains, so a chase written now leaves on this pass.
+    const ladder = await refundLadderTick();
+    const refunds = await accountantRefundTick();
+    const accountantDuties = await accountantDutiesTick();
     const whatsapp = await whatsappTick();
     // DETECT BEFORE ALERTING, always. itEngineerAlertTick reads the finding ledger; running it
     // first would deliver the previous tick's picture of the estate.
     const itdetect = await itDetectTick();
+    const itduties = await itDutiesTick();
+    const itscheduled = await itScheduledTick();
+    const itlater = await itLaterDutiesTick();
+    const specoffer = await specOfferTick();
     const it = await itEngineerAlertTick();
     // One RPC. The HTTP work runs in pg_net's background worker, not in this invocation, so this
     // adds no meaningful wall clock to the heartbeat.
     // The queue is drained AFTER the ticks above, so anything they just wrote leaves on this same
     // pass rather than waiting fifteen minutes for the next one.
     const outbox = await outboxTick();
+    const warm = await warmP.catch(() => []);
+    // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
+    // printed to PDF and kept in "supabase and dropbox"). Called every tick, work or none, for the
+    // same reason as the outbox: a heartbeat that beats only under load is not a heartbeat.
+    const archive = await archiveTick();
     // 1. Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, tableExport, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -486,6 +736,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, tableExport, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

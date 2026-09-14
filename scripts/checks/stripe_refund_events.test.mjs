@@ -39,15 +39,25 @@ test('the webhook handles all four refund event types', () => {
 test('a test-mode endpoint can share this handler without weakening live verification', () => {
   // Two endpoints, two signing secrets, each verified in full. This is what lets refund behaviour
   // be proven in Stripe test mode instead of by refunding real customer payments.
+  //
+  // 14 SEP 2026 — THE RULE CHANGED, THE PROTECTION DID NOT. The handler used to try the live secret,
+  // then the test secret. It now reads the livemode the event claims and verifies with THAT mode's
+  // secret only (_shared/stripe_events.ts stripeEventMode / signingSecretFor); a claim the signature
+  // does not back is rejected. So a live event is still verified with the live secret, a test event
+  // can never be accepted by the live secret, and neither mode has a shortcut: both go through the
+  // same full HMAC routine.
   assert.match(src, /stripe_webhook_secret_test/, 'no test-mode signing secret is accepted');
-  assert.match(src, /sigMode = 'live'/, 'the live secret is no longer tried');
-  assert.match(src, /sigMode = 'test'/, 'the test secret is no longer tried');
-  // Both must go through the same full HMAC comparison - no shortcut for test mode.
-  const testBranch = src.slice(src.indexOf("sigMode = 'live'"), src.indexOf("sigMode = 'test'") + 60);
-  assert.match(testBranch, /verifySig\(sig, raw, whsecTest\)/,
-    'the test-mode secret is not verified with the same routine as live');
-  // An unverified request must still be refused outright.
-  assert.match(src, /if \(!sigMode\)/, 'a request matching neither secret is no longer rejected');
+  assert.match(src, /stripe_webhook_secret'/, 'the live signing secret is no longer read');
+  assert.match(src, /signingSecretFor\(stripeEventMode\(event\), \{ live: whsecLive, test: whsecTest \}\)/,
+    'verification no longer picks the secret from the event\'s signed livemode');
+  assert.match(src, /verifySig\(sig, raw, whsecForMode\)/, 'the chosen secret is not verified with the full HMAC routine');
+  // The helper: a live event gets the LIVE secret, a test event the TEST secret, anything else none.
+  assert.match(shared, /livemode === true\) return 'live'/, 'a livemode:true event is no longer treated as live');
+  assert.match(shared, /livemode === false\) return 'test'/, 'a livemode:false event is no longer treated as test');
+  assert.match(shared, /mode === 'live' \? secrets\.live : mode === 'test' \? secrets\.test : ''/,
+    'signingSecretFor no longer maps live->live and test->test with nothing for an unknown mode');
+  // An unverified request must still be refused outright, before anything is written.
+  assert.match(src, /if \(!sigMode\)/, 'a request matching no secret is no longer rejected');
 });
 
 test('a refund amount is looked up with the key for the mode it arrived on', () => {

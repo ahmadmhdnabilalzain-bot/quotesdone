@@ -1,5 +1,6 @@
 import { setRequestLocale } from 'next-intl/server';
-import { MarketingDoc, mkMeta } from '@/components/MarketingDoc';
+import { mkMeta } from '@/components/MarketingDoc';
+import { BlogIndex } from '@/components/BlogIndex';
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const params = await props.params;
 
@@ -17,5 +18,5 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
   } = params;
 
   setRequestLocale(locale);
-  return <MarketingDoc slug="blog" locale={locale} />;
+  return <BlogIndex locale={locale} />;
 }

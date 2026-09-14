@@ -25,6 +25,11 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
+import { registeredLocale } from '../_shared/registered_locale.ts';
+import { portalLink } from '../_shared/site_origins.ts';
+import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
+import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -63,7 +68,86 @@ const SEAT_BY_CREDENTIAL: Record<string, 'sales_engineer'> = {
 // recorded as what it is. SERVICE_ACTIONS is the whole of what a service caller may reach, so a
 // widened credential scope cannot quietly hand customer_api the grant ledger or the sector
 // catalogue as well.
-const SERVICE_ACTIONS = new Set(['match']);
+// spec_offer_sweep: resilience_ping's daily pass (founder_instruction #321). The work is sales_engineer's
+// (detect, decide); every message goes out through customer_support's door (_shared/deliver.ts).
+const SERVICE_ACTIONS = new Set(['match', 'spec_offer_sweep']);
+
+// ── NO SUPPLIER QUOTED THE EXACT SPEC (founder_instruction #321) ─────────────────────────────────
+// One pass: (1) inquiries whose quote window closed, or whose invited suppliers all quoted, are
+// checked once against quote_compare's technical comparison (eligible quotes only) and an offer opens
+// for every mandatory requested value no eligible quote matches while at least one offers another;
+// (2) due reminders go out and lapsed offers close with an apology. State and timing: Postgres.
+async function customerContact(customerId: string | null) {
+  if (!customerId) return null;
+  const { data } = await admin.from('customers').select('id,email,locale,is_demo').eq('id', customerId).maybeSingle();
+  return data || null;
+}
+// deno-lint-ignore no-explicit-any
+async function tellCustomer(o: any, kind: 'offer' | 'reminder' | 'apology_no_reply', msg: { subject: string; body: string }, lang: 'en' | 'ar', cust: any): Promise<number[]> {
+  const base = { type: 'spec_offer_' + kind, kind: 'sales_engineer_spec_offer_' + kind, to_role: 'customer', inquiry_id: o.inquiry_id,
+    subject: msg.subject, body: msg.body, status: 'queued', lang, requested_by: 'sales_engineer', sender: 'customer_support' };
+  const rows: Record<string, unknown>[] = [];
+  if (cust?.email) rows.push({ ...base, channel: 'email', to_email: cust.email, dedupe_key: `spec_offer:${o.id}:${kind}:${o.reminders_sent ?? 0}:email` });
+  // WhatsApp goes only to the confirmed WhatsApp number (#322): the a03 trigger addresses it by email or records the skip.
+  if (cust?.email) rows.push({ ...base, channel: 'whatsapp', to_email: cust.email, dedupe_key: `spec_offer:${o.id}:${kind}:${o.reminders_sent ?? 0}:whatsapp` });
+  if (!rows.length) return [];
+  const { data } = await requestDelivery(admin, rows);
+  return (data || []).map((d) => d.notification_id).filter((x): x is number => typeof x === 'number');
+}
+async function specOfferSweep(limit: number) {
+  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, errors: [] as string[] };
+  const secret = await sec('cred_fn_sales_engineer');
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const { data: cands, error: cErr } = await admin.rpc('fn_spec_offer_candidates', { p_limit: limit });
+  if (cErr) out.errors.push('candidates: ' + cErr.message);
+  for (const c of (cands || []) as Array<{ inquiry_id: string; customer_id: string | null }>) {
+    try {
+      // The same comparison the customer sees, eligible quotes only. quote_compare runs with verify_jwt,
+      // so the service key passes the gateway and __secret decides the caller (the #630 lesson).
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/quote_compare', { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+        body: JSON.stringify({ __secret: secret, inquiry_id: c.inquiry_id, lang: 'en' }), signal: AbortSignal.timeout(45000) });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j) { out.errors.push(`${c.inquiry_id}: quote_compare HTTP ${r.status}`); continue; }
+      const offers = j.ok && j.analysis ? noExactSpec(j.analysis.technical_detail) : [];
+      const { data: opened, error: oErr } = await admin.rpc('fn_spec_offer_open', { p_inquiry: c.inquiry_id, p_offers: offers });
+      if (oErr) { out.errors.push(`${c.inquiry_id}: open ${oErr.message}`); continue; }
+      out.checked++; out.offers_opened += (opened || []).length;
+      if (!(opened || []).length) continue;
+      const cust = await customerContact(c.customer_id);
+      const lang = await registeredLocale(admin, { role: 'customer', customerId: c.customer_id });
+      const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', c.inquiry_id).maybeSingle();
+      // deno-lint-ignore no-explicit-any
+      for (const o of opened as any[]) {
+        if (o.last_sent_at) continue;
+        const ids = await tellCustomer(o, 'offer', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id) }), lang, cust);
+        await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'sent', p_notification_ids: ids });
+        out.offers_sent++;
+      }
+    } catch (e) { out.errors.push(`${c.inquiry_id}: ${String((e as Error)?.message || e).slice(0, 160)}`); }
+  }
+  const { data: due, error: dErr } = await admin.rpc('fn_spec_offer_due');
+  if (dErr) out.errors.push('due: ' + dErr.message);
+  for (const d of (due || []) as Array<{ offer_id: number; action: string; reminder_no: number; final: boolean }>) {
+    try {
+      const { data: o } = await admin.from('spec_alternative_offer').select('*').eq('id', d.offer_id).maybeSingle();
+      if (!o || o.state !== 'open') continue;
+      const cust = await customerContact(o.customer_id);
+      const lang = await registeredLocale(admin, { role: 'customer', customerId: o.customer_id });
+      const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', o.inquiry_id).maybeSingle();
+      if (d.action === 'remind') {
+        const ids = await tellCustomer(o, 'reminder', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final }), lang, cust);
+        await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'remind', p_notification_ids: ids });
+        out.reminders++;
+      } else if (d.action === 'close_no_reply') {
+        const ids = await tellCustomer(o, 'apology_no_reply', apologyMessage(o as OfferForText, lang, 'no_reply', { rfqNo: inq?.rfq_no }), lang, cust);
+        await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'close_no_reply', p_notification_ids: ids });
+        out.lapsed++;
+      }
+    } catch (e) { out.errors.push(`offer ${d.offer_id}: ${String((e as Error)?.message || e).slice(0, 160)}`); }
+  }
+  return out;
+}
 type Caller =
   | { kind: 'sales_engineer' | 'founder' }
   | { kind: 'service'; context: string }
@@ -156,6 +240,14 @@ Deno.serve(observe('sales_engineer', async (req) => {
     // opens an org_tasks row owned by sales_engineer, and the asker is given the task number and
     // the owner. Which records were retrieved, how close each was and which were cited are written
     // to sales_decision_log from INSIDE the retrieval routine, so this handler cannot forget to.
+    if (action === 'spec_offer_sweep') {
+      if (caller.kind !== 'service' && caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const res = await specOfferSweep(Math.max(1, Math.min(50, Number(body.limit) || 20)));
+      await run('spec_offer_sweep', res.errors.length ? 'error' : 'ok', { checked: res.checked, offers_opened: res.offers_opened, offers_sent: res.offers_sent, reminders: res.reminders, lapsed: res.lapsed, errors: res.errors.length },
+        res.errors.length ? res.errors.slice(0, 5).join(' | ') : undefined);
+      return J({ ok: true, ...res });
+    }
+
     if (action === 'assist') {
       const message = String(body.message || '').trim();
       if (!message) return J({ error: 'message_required' }, 400);
@@ -183,6 +275,18 @@ Deno.serve(observe('sales_engineer', async (req) => {
             String(x.content)).join('\n\n')
         : String(r.handoff || 'I do not have that yet.');
 
+      // 14 SEP 2026. This exchange was never saved: the customer's question and the answer existed
+      // only in the widget. The founder: "all conversations need to be saved and the sales agent
+      // has access to them at any time". assistant_logs is the store the website assistant already
+      // writes; audience 'customer:<id>' is what fn_conversation_party files it under.
+      try {
+        await admin.from('assistant_logs').insert({
+          message, reply, seat: 'sales_engineer', answered: r.answered === true,
+          audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind,
+          path: 'portal', gap_task_id: (r.task_id as number | undefined) ?? null,
+        });
+      } catch { /* the customer already has the answer; a failed log must not take it back */ }
+
       await run('assist', 'ok', {
         answered: r.answered === true,
         cited: Array.isArray(r.cited) ? r.cited.length : 0,
@@ -208,6 +312,28 @@ Deno.serve(observe('sales_engineer', async (req) => {
       });
     }
 
+    // ── CONVERSATIONS ──────────────────────────────────────────────────────────────────────────
+    // The founder, 14 Sep 2026: "all conversations need to be saved and the sales agent has access
+    // to them at any time. just in case we needed them for any reason". Every store - email in and
+    // out, WhatsApp, portal chat, clarifications, the website assistant, forms - read whole through
+    // fn_conversation_record, with a link to the PDF kept in the backups bucket. A customer caller
+    // reads its own record and nobody else's: the party comes from the session, never the body.
+    if (action === 'conversations') {
+      const contact = caller.kind === 'customer' ? 'customer:' + caller.customerId : String(body.contact || '').trim();
+      const { data, error } = await admin.rpc('fn_conversation_record', { p_contact: contact, p_limit: Number(body.limit ?? 200) });
+      if (error) return J({ ok: false, error: 'record_failed', detail: error.message }, 503);
+      const rec = data as { messages?: Array<Record<string, unknown>> } & Record<string, unknown>;
+      for (const m of (rec.messages || []).slice(0, 50)) {
+        const pdf = m.pdf as { bucket?: string; path?: string } | null;
+        if (pdf?.bucket && pdf.path) {
+          const { data: s } = await admin.storage.from(pdf.bucket).createSignedUrl(pdf.path, 3600);
+          m.pdf_url = s?.signedUrl ?? null;
+        }
+      }
+      await run('conversations', 'ok', { messages: Array.isArray(rec.messages) ? rec.messages.length : 0 });
+      return J({ seat: 'sales_engineer', ...rec });
+    }
+
     // ── REPORT ─────────────────────────────────────────────────────────────────────────────────
     // "he does the comparison reports, he basically fill the reports for suppliers and customers
     // about jobs won / supplier ratings / customer total spend literally everything related to
@@ -229,10 +355,51 @@ Deno.serve(observe('sales_engineer', async (req) => {
       return J(data);
     }
 
+    // ── ASK_ACCOUNTANT ─────────────────────────────────────────────────────────────────────────
+    // A customer asks about a charge, an invoice or a refund in the portal. The founder, 14 Sep 2026:
+    // "the accountant need to be in communication back and forth with the sales agent." The portal
+    // voice stays this seat's; the figures are the accountant's. The question is handed over
+    // (billing.question), the accountant reads the books and hands the facts back (billing.answer), and
+    // they are shown here and delivered by customer_support. No figure is composed in this file.
+    if (action === 'ask_accountant') {
+      const question = String(body.question || body.message || '').trim().slice(0, 1000);
+      if (!question) return J({ error: 'question_required' }, 400);
+      const customerId = caller.kind === 'customer' ? caller.customerId : String(body.customer_id || '');
+      if (!customerId) return J({ error: 'customer_id_required' }, 400);
+      const { data: hid, error: hErr } = await admin.rpc('fn_seat_handoff', {
+        p_from: 'sales_engineer', p_to: 'accountant', p_type: 'billing.question', p_subject_table: 'customers',
+        p_subject_id: customerId + ':' + crypto.randomUUID(),
+        p_payload: { party: 'customer', customer_id: customerId, transaction_id: body.transaction_id || null, question },
+      });
+      if (hErr) return J({ ok: false, error: 'handoff_failed', detail: hErr.message }, 503);
+      const { data: ans } = await admin.from('agent_actions').select('evidence,status')
+        .eq('kind', 'handoff').eq('target_id', 'billing.answer:' + String(hid)).maybeSingle();
+      await run('ask_accountant', 'ok', { handoff_id: hid, answered: ans?.status === 'done' });
+      return J({ ok: true, seat: 'sales_engineer', handoff_id: hid,
+        facts: (ans?.evidence as Record<string, unknown> | null)?.facts ?? [], delivered_by: 'customer_support, by email' });
+    }
+
     // Everything below `assist` and `report` is INTERNAL: seat readiness, the grant ledger, the
     // sector catalogue and the format matrix. A portal customer is authenticated but is not staff,
     // and an authenticated caller reaching an operator route is how privilege quietly widens.
     if (caller.kind === 'customer') return J({ error: 'forbidden', action }, 403);
+
+    // ── HANDOFFS ───────────────────────────────────────────────────────────────────────────────
+    // What other seats have handed this one and it has not closed (a remediation waiting on a
+    // customer's proof, a delivery result not yet back), and the door to close one with evidence.
+    if (action === 'handoffs') {
+      const { data } = await admin.from('agent_actions').select('id,status,title,detail,evidence,created_at')
+        .eq('kind', 'handoff').eq('agent', 'sales_engineer').neq('status', 'done').order('id').limit(100);
+      return J({ ok: true, seat: 'sales_engineer', open: data || [] });
+    }
+    if (action === 'complete_handoff') {
+      const { data: h } = await admin.from('agent_actions').select('id,agent').eq('id', Number(body.id)).eq('kind', 'handoff').maybeSingle();
+      if (!h || h.agent !== 'sales_engineer') return J({ error: 'not_this_seats_handoff' }, 404);
+      const { data, error } = await admin.rpc('fn_seat_handoff_complete', { p_id: Number(body.id), p_evidence: body.evidence ?? {} });
+      if (error) return J({ ok: false, error: error.message }, 400);
+      await run('complete_handoff', 'ok', { handoff_id: Number(body.id) });
+      return J(data);
+    }
 
     // ── MATCH ──────────────────────────────────────────────────────────────────────────────────
     // "match capability is the sales engineer task." (founder, 9 September 2026)
@@ -285,6 +452,19 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // "signage" and not "design". Reused, not re-written.
       let trades = arr(body.trades);
       if (!trades.length) trades = arr(inq?.trades);
+      // STORED TRADES ARE INTAKE SLUGS, THE MATCHER SPEAKS TAXONOMY CODES (14 Sep 2026). 39 of the 56
+      // intake slugs are not taxonomy codes ('glass' is 'glazing', 'fitout' is 'interior_fitout' ...),
+      // and passing them through made fn_match_capability answer zero for every request in those
+      // categories — measured: ['glass'] matched nobody while ['aluminium'] matched both demo
+      // suppliers. public.fn_taxonomy_trades_for is the one resolver
+      // (scripts/sql/every_intake_trade_resolves_to_the_capability_vocabulary.sql). It is EXACT ONLY
+      // (founder, 14 Sep 2026: "either exact match or no match"): a slug resolves to itself and to the
+      // same trade's taxonomy code, never to a neighbour. A category nobody is registered for matches
+      // nobody, and the no-match path below says so honestly.
+      if (trades.length) {
+        const { data: codes, error: resErr } = await admin.rpc('fn_taxonomy_trades_for', { p_slugs: trades });
+        if (!resErr && Array.isArray(codes)) trades = arr(codes);
+      }
       const brief = [inq?.summary, inq?.raw_input, inq?.category, arr(inq?.keywords).join(' '), body.text]
         .map((x) => String(x ?? '')).filter(Boolean).join(' ').slice(0, 4000);
       if (!trades.length && brief) {
@@ -358,7 +538,16 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // cleared the hard gates; `above_floor` is what then cleared the relevance floor. A gap after
       // the gates is a market fact; a gap after the floor is a policy fact; they call for different
       // work and were previously one number.
-      const aboveFloor = rows.filter((r) => Number(r.score) >= floor);
+      // THE FLOOR GATES ONLY WHAT IT CAN MEASURE (15 Sep 2026). Measured on production:
+      // fn_match_capability(['aluminium']) with no products scored two verified, confirmed demo
+      // aluminium suppliers at 5.0 (the product term is 0 and size is unknown, 0.5 x 10), and with
+      // products ['aluminium windows'] at 45.0. customer_api's create_inquiry match sends no products,
+      // so against the floor of 35 every supplier without a track record was dropped and a ready
+      // aluminium request invited nobody (smoke run 34888342875: 0/3 matched). The #658 check calls
+      // the SQL directly and never met this floor. With no product named there is no relevance to
+      // measure; the exact trade already is the relevance test ("either exact match or no match"),
+      // so the floor gates only when products were asked for. Fanout and per-trade caps still apply.
+      const aboveFloor = relevanceFloorApplies(products) ? rows.filter((r) => Number(r.score) >= floor) : rows;
 
       const usedByTrade = new Map<string, number>();
       const picked: Array<Record<string, unknown>> = [];

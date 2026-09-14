@@ -81,9 +81,25 @@ export async function keys() {
   if (_keys) return _keys;
   const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
     || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
-  const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
-    { headers: { Authorization: 'Bearer ' + mgmt } });
-  const k = await r.json();
+  // 14 SEP 2026, smoke run 34885431255: in CI this answered with something that was not an array and
+  // the harness died on "k.find is not a function", which names neither the status nor the reason.
+  // The same token ran /database/query in the same job, so it is the api-keys call itself (a scope, or
+  // a throttle). A 429 waits like scripts/lib/db.mjs; anything else fails saying what came back.
+  let r, k;
+  for (let attempt = 0; ; attempt++) {
+    r = await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
+      { headers: { Authorization: 'Bearer ' + mgmt } });
+    if ((r.status === 429 || r.status >= 500) && attempt < 5) {
+      await new Promise((res) => setTimeout(res, Math.min(2000 * 2 ** attempt, 30000)));
+      continue;
+    }
+    break;
+  }
+  const text = await r.text();
+  try { k = JSON.parse(text); } catch { k = null; }
+  if (!Array.isArray(k)) {
+    throw new Error(`the management api refused the project's api keys: HTTP ${r.status} ${text.slice(0, 300)}`);
+  }
   const ANON = k.find((x) => x.name === 'anon')?.api_key;
   const SERVICE = k.find((x) => x.name === 'service_role')?.api_key;
   if (!ANON || !SERVICE) throw new Error('could not read staging api keys');
@@ -247,7 +263,7 @@ export async function mkAuthUser(run, email) {
 async function deleteAuthUsersByTag(tag) {
   const { SERVICE } = await keys();
   const rows = await mgmtRead(REF,
-    `select id from auth.users where email like 'qd-${tag}-%@example.com'`);
+    `select id from auth.users where email like 'qd-${tag}-%@example.%'`);
   let n = 0;
   for (const r of rows) {
     const d = await fetch(`${BASE}/auth/v1/admin/users/${r.id}`, {
@@ -907,13 +923,13 @@ export async function makeBulkCorpus(run, opts = {}) {
 // surgery on a subquery, which is how the first cut of this file produced
 // `select id::text from (select id from ...)` and would have silently deleted nothing.
 function scopeForRun(tag) {
-  const cust = `email like 'qd-${tag}-%@example.com'`;
+  const cust = `email like 'qd-${tag}-%@example.%'`;
   const lead = `'qd_run:${tag}' = any(coalesce(tags,'{}'::text[]))`;
   const inq = `(customer_id in (select id from public.customers where ${cust})` +
               ` or provenance->>'qd_run' = '${tag}')`;
   const quote = `(inquiry_id in (select id from public.inquiries where ${inq})` +
                 ` or supplier_id in (select id from public.leads where ${lead}))`;
-  return { cust, lead, inq, quote, redaction: `(customer_id in (select id from public.customers where ${cust}) or owner_email like 'qd-${tag}-%@example.com')` };
+  return { cust, lead, inq, quote, redaction: `(customer_id in (select id from public.customers where ${cust}) or owner_email like 'qd-${tag}-%@example.%')` };
 }
 
 const scopeSql = (s) => ({
@@ -1045,11 +1061,24 @@ export async function teardown(run) {
   const steps = [
     // trg_event_transaction emits payment.received keyed on the transaction id (as TEXT), so it must go
     // before the transaction row it names — the same ordering rule as the quote/inquiry/lead log rows.
-    ['company_event (transaction)', `delete from public.company_event where entity_type='transaction' and entity_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
+    // THE REFUND LOOP'S ROWS (14 Sep 2026). A demo customer's refund request opens a refunds case, and
+    // the CEO's loop writes beside it. None of these cascade from the transaction, and refunds is
+    // ON DELETE SET NULL, so without these steps a run's refund case would outlive it as an orphan.
+    // refund_status_transition carries no transaction, refund or quote column, so it cannot be scoped
+    // to a run and is left alone on purpose.
+    ...['refund_case', 'refund_ceo_check', 'refund_ceo_review', 'refund_incident', 'refund_ladder_evidence'].map((t) => [t,
+      `delete from public.${t} where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})
+          or refund_id in (select id from public.refunds where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST})`]),
+    // trg_emit_refund_requested puts the case on the bus keyed on the refund id (entity_type 'refund').
+    ['company_event (refund)', `delete from public.company_event where entity_type='refund' and entity_id in (select id::text from public.refunds where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}) or quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST})`],
+    ['refunds', `delete from public.refunds where transaction_id in (select id from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}) or quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST}`],
+    // The accountant's reveal-invoice handoff to the sales engineer targets the transaction (14 Sep 2026).
+    ['agent_actions (transaction)', `delete from public.agent_actions where target_table='transactions' and target_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
+    ['company_event (transaction)',`delete from public.company_event where entity_type='transaction' and entity_id in (select id::text from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD})`],
     ['transactions', `delete from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
     // notifications names all three parents (inquiry_id, lead_id, quote_id) and has no children of
     // its own, so it goes first - after the quote is deleted the quote_id clause matches nothing.
-    ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.com'`],
+    ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.%'`],
     ['comparison_candidate_v2', `delete from public.comparison_candidate_v2 where quote_id in ${QUO}`],
     ['comparison_run_v2', `delete from public.comparison_run_v2 where inquiry_id in ${INQ}`],
     // doc_versions, documents, company_event and agent_actions key off the quote/inquiry/lead id as
@@ -1094,17 +1123,26 @@ export async function teardown(run) {
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
     ['leads', `delete from public.leads where id in ${LEAD}`],
-    ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.com'`],
+    ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.%'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
     ['customer_organization', `delete from public.customer_organization where owner_customer_id in ${CUST}`],
     ['company_event (customer)', `delete from public.company_event where entity_type='customer' and entity_id in (select id::text from public.customers where id in ${CUST})`],
     ['customers', `delete from public.customers where id in ${CUST}`],
-    ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-${tag}-%@example.com'`],
-    ['email_verifications', `delete from public.email_verifications where email like 'qd-${tag}-%@example.com'`],
+    ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-${tag}-%@example.%'`],
+    ['email_verifications', `delete from public.email_verifications where email like 'qd-${tag}-%@example.%'`],
   ];
+  // A TABLE THAT WAS DROPPED MUST NOT STRAND EVERYTHING AFTER IT (14 Sep 2026). The first e2e harness
+  // run died at 'comparison_candidate_v2' (42P01, the table no longer exists) and every later step -
+  // quotes, inquiries, leads, customers, auth users - never ran, so the run's rows survived its own
+  // teardown. A missing relation is skipped and named; any other error still stops the teardown.
   for (const [label, sql] of steps) {
-    const n = await delCount(`teardown ${label}`, sql);
-    if (n) counts[label] = n;
+    try {
+      const n = await delCount(`teardown ${label}`, sql);
+      if (n) counts[label] = n;
+    } catch (e) {
+      if (!/42P01|does not exist/.test(String(e.message))) throw e;
+      counts[`${label} (table no longer exists)`] = 0;
+    }
   }
 
   // 3. auth users last: the email pattern is the only handle on them once the rows are gone
@@ -1132,8 +1170,8 @@ export async function teardown(run) {
 export const PURGE_BUCKETS = ['drawing-files', 'quote-files', 'signed-terms', 'agent-docs', 'supplier-docs'];
 export const PROTECTED_BUCKETS = ['brand', 'site', 'demo-assets', 'social-media', 'kb-import-assets', 'backups'];
 
-const P_CUST = `(select id from public.customers where email like 'qd-%@example.com' or email is null or id not in (select id from auth.users))`;
-const P_LEAD = `(select id from public.leads where 'qd_demo' = any(coalesce(tags,'{}'::text[])) or company_name like 'Journey Test %' or company_name like 'QD Demo %' or source='demo_factory' or claimed_by like 'qd-%@example.com')`;
+const P_CUST = `(select id from public.customers where email like 'qd-%@example.%' or email is null or id not in (select id from auth.users))`;
+const P_LEAD = `(select id from public.leads where 'qd_demo' = any(coalesce(tags,'{}'::text[])) or company_name like 'Journey Test %' or company_name like 'QD Demo %' or source='demo_factory' or claimed_by like 'qd-%@example.%')`;
 const P_INQ = `(select id from public.inquiries where customer_id in ${P_CUST} or customer_id is null or provenance->>'qd_run' is not null)`;
 const P_QUO = `(select id from public.quotes where inquiry_id in ${P_INQ} or supplier_id in ${P_LEAD})`;
 
@@ -1166,12 +1204,12 @@ export async function purge(opts = {}) {
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${P_LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${P_LEAD} or supplier_id not in (select id from public.leads)`],
     ['leads', `delete from public.leads where id in ${P_LEAD}`],
-    ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id is null or customer_id not in (select id from public.customers) or owner_email like 'qd-%@example.com'`],
+    ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id is null or customer_id not in (select id from public.customers) or owner_email like 'qd-%@example.%'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${P_CUST}`],
     ['customer_organization', `delete from public.customer_organization where owner_customer_id in ${P_CUST}`],
     ['customers', `delete from public.customers where id in ${P_CUST}`],
-    ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-%@example.com' or customer_id is null or customer_id not in (select id from public.customers)`],
-    ['email_verifications', `delete from public.email_verifications where email like 'qd-%@example.com'`],
+    ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-%@example.%' or customer_id is null or customer_id not in (select id from public.customers)`],
+    ['email_verifications', `delete from public.email_verifications where email like 'qd-%@example.%'`],
     // orphan sweeps: run last, when "dangling" finally means what it says
     ['documents (dangling)', `delete from public.documents where (ref_table='inquiries' and ref_id not in (select id::text from public.inquiries)) or (ref_table='quotes' and ref_id not in (select id::text from public.quotes)) or (ref_table='leads' and ref_id not in (select id::text from public.leads))`],
     // notifications is a QUEUE, not a log. 66 'supplier_registered' rows addressed to
@@ -1179,7 +1217,7 @@ export async function purge(opts = {}) {
     // inquiry_id - every one of them for a supplier that no longer exists. email_enabled is false
     // on staging today, so they sat there harmlessly; the moment it is turned on behind a
     // recipient allowlist to prove notification, they would all fire at once.
-    ['notifications (dangling)', `delete from public.notifications where to_email like 'qd-%@example.com' or (inquiry_id is not null and inquiry_id not in (select id from public.inquiries)) or (lead_id is not null and lead_id not in (select id from public.leads)) or (quote_id is not null and quote_id not in (select id from public.quotes))`],
+    ['notifications (dangling)', `delete from public.notifications where to_email like 'qd-%@example.%' or (inquiry_id is not null and inquiry_id not in (select id from public.inquiries)) or (lead_id is not null and lead_id not in (select id from public.leads)) or (quote_id is not null and quote_id not in (select id from public.quotes))`],
     ['company_event (dangling)', `delete from public.company_event where (entity_type in ('inquiry','quote') and entity_id not in (select id::text from public.inquiries union all select id::text from public.quotes)) or (entity_type='lead' and entity_id not in (select id::text from public.leads))`],
     ['inquiry_supplier_brief (dangling)', `delete from public.inquiry_supplier_brief where inquiry_id not in (select id from public.inquiries)`],
     ['agent_actions (dangling)', `delete from public.agent_actions where (target_table='leads' and target_id not in (select id::text from public.leads)) or (target_table='inquiries' and target_id not in (select id::text from public.inquiries)) or (target_table='quotes' and target_id not in (select id::text from public.quotes))`],
@@ -1216,7 +1254,7 @@ export async function purge(opts = {}) {
   }
 
   let users = 0;
-  const orphanRows = await mgmtRead(REF, `select id from auth.users where email like 'qd-%@example.com'`);
+  const orphanRows = await mgmtRead(REF, `select id from auth.users where email like 'qd-%@example.%'`);
   if (dry) users = orphanRows.length;
   else {
     const { SERVICE } = await keys();

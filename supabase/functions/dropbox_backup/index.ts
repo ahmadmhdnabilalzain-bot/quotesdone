@@ -1,187 +1,298 @@
-// dropbox_backup v5 — organized Dropbox backup tree under '/QuotesDone Backup'. 'storage' rows are downloaded from
-// Supabase Storage; 'generated' rows are rendered to branded PDF via pdf_native first (customer/supplier details,
-// inquiry summary). Read-only on our storage; it only ever ADDS to Dropbox.
+// dropbox_backup v8 (14 Sep 2026; sales_engineer owns the upload, it_engineer owns auth and health).
+// The founder, 14 Sep 2026: "we need to eliminate all other causes with fixes. unless its a server
+// issue from dropbox or supabase then i see no reason for any failures".
+//   * Every Dropbox call goes through DropboxClient (dropbox.ts): a fresh token from the offline
+//     refresh token each run, and a 401 is refreshed and repeated once.
+//   * Every file larger than 8 MiB is a chunked upload session (upload.ts): per-chunk retry, and a run
+//     that reaches its deadline saves {session_id, offset, blocks} in doc_backups.upload_state so the
+//     next run resumes. The source is read with HTTP Range requests, so a large file is never held
+//     in memory whole. The 1 GB ceiling is gone.
+//   * The queue is read through fn_doc_backups_next (backoff, resume-first, no ZZ DEMO rows).
+//   * A pass that filled its batch calls itself again (process_only, up to 20 links) so a backlog
+//     drains in minutes instead of one batch per 15-minute tick.
+//   * op 'health' (it_engineer, daily): auth probe (write, read, delete in /_selftest/), space usage and
+//     plan, handed to fn_it_dropbox_health_record. op 'selftest_large': a synthetic multi-chunk file
+//     uploaded in two runs (stopped after one chunk, then resumed), hash-verified and deleted.
+// SQL: scripts/sql/a_document_reaches_dropbox_when_it_lands_and_only_once_it_exists.sql and
+// scripts/sql/the_it_engineer_fixes_what_it_finds_and_emails_only_a_new_bug.sql.
 //
-// RESTORED 9 Sep 2026 (agent: sales_engineer) after commit 182308b deleted it. Three changes from v4,
-// each forced by something measured about the estate it is coming back into:
-//
-// 1. make_pdf -> pdf_native. make_pdf was deleted in the same sweep and is not coming back; pdf_native
-//    is deployed (v29) and is what compliance_archive already renders its certificates with. Restoring
-//    one PDF renderer instead of two is the whole reason a second one is not being restored.
-//
-// 2. THE QUOTE-COMPARISON DOCUMENT IS GONE. It called quote_compare, which needs a model, and all 8
-//    llm_route_health routes are held with fn_kernel_paid_provider_gate denying globally. That path was
-//    already the single largest source of failure in the live queue: 15 of the 26 error rows in
-//    doc_backups are gen_kind='comparison', every one at attempts=5, sample error 'compare parse_failed'.
-//    Restoring it would restore a guaranteed-failing writer. The enqueue no longer emits those rows
-//    (see scripts/sql/...compliance_archive_and_the_dropbox_tree_back.sql) and this file no longer
-//    renders them. Nothing else in the tree depends on a model.
-//
-// 3. op:pdpl_erase IS DISABLED. It deleted files from the founder's Dropbox (files/delete_v2) and from
-//    storage. This restore is a backup that adds and never removes, so the branch now refuses and says
-//    so rather than being silently absent. Re-enabling it is a deliberate decision for whoever owns
-//    PDPL erasure, not a side effect of restoring a backup.
+// v7 and earlier (kept as history, still true): v7 body.ids re-checks named rows (job 'targeted') and
+// the daily sample is new-unverified rows plus a weekly random sample. v6 confirms every upload with
+// files/get_metadata (size AND content_hash). v5 builds the organised tree; 'generated' rows are
+// rendered by pdf_native. The quote-comparison document is gone (it needed a model). op pdpl_erase
+// is refused: this is an add-only backup.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { dropboxContentHash } from './content_hash.ts';
+import { DropboxClient, refreshAccessToken } from './dropbox.ts';
+import { CHUNK, uploadFile, type ReadChunk, type UploadState } from './upload.ts';
+
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
+const DEADLINE = T0 + 110_000;           // leave room under the 150 s edge limit to record the result
+const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/dropbox_backup';
+const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
+const errText = (e: unknown) => String((e as Error)?.message || e);
+
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
-  try {
-    await admin.from('agent_runs').insert({ agent: 'dropbox_backup', status, counts,
-      note: String(note || '').slice(0, 500),
-      started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() });
-  } catch (_e) { /* never let logging break the function */ }
+  const { error } = await admin.from('agent_runs').insert({ agent: 'dropbox_backup', status, counts,
+    note: String(note || '').slice(0, 500), started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() });
+  if (error) console.error('agent_runs insert failed:', error.message);
 }
 async function logThrottled(signal: string, minutes: number, status: string, counts: Record<string, unknown>, note: string) {
-  try {
-    const since = new Date(Date.now() - minutes * 60000).toISOString();
-    const { data } = await admin.from('agent_runs').select('id').eq('agent', 'dropbox_backup')
-      .gte('started_at', since).eq('counts->>signal', signal).limit(1);
-    if (data && data.length) return;
-  } catch (_e) { /* if the check fails, fall through and log */ }
+  const since = new Date(Date.now() - minutes * 60000).toISOString();
+  const { data } = await admin.from('agent_runs').select('id').eq('agent', 'dropbox_backup')
+    .gte('started_at', since).eq('counts->>signal', signal).limit(1);
+  if (data && data.length) return;
   await logRun(status, { ...counts, signal }, note);
 }
-const BASE = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
-// FAIL-CLOSED 27 Jul 2026: sec() returns undefined/'' when the app_secrets read fails or the row is
-// missing, and the guard below compared strictly, so a caller posting {} matched and gained full
-// service-role authority on a function that requires no JWT. The stored secret must now be a real
-// value before any caller value can equal it.
-const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
-const SINGLE_MAX = 140 * 1024 * 1024, HARD_MAX = 1073741824, CHUNK = 8 * 1024 * 1024;
-const esc = (s: unknown) => String(s ?? '—').replace(/[&<>]/g, (c)=>({'&':'&amp;','<':'&lt;','>':'&gt;'} as any)[c]);
-const fmtD = (s: unknown) => { if(!s) return '—'; try { return new Date(String(s)).toISOString().slice(0,10); } catch { return String(s); } };
+async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
+const esc = (s: unknown) => String(s ?? '—').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as Record<string, string>)[c]);
+const fmtD = (s: unknown) => { if (!s) return '—'; try { return new Date(String(s)).toISOString().slice(0, 10); } catch { return String(s); } };
 
-async function accessToken(): Promise<string|null> {
-  const rt = await sec('dropbox_refresh_token'); const ak = await sec('dropbox_app_key'); const as = await sec('dropbox_app_secret');
-  if (!rt || !ak || !as) return null;
-  const body = new URLSearchParams({ grant_type:'refresh_token', refresh_token:rt, client_id:ak, client_secret:as });
-  const r = await fetch('https://api.dropboxapi.com/oauth2/token', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
-  const j = await r.json(); return j?.access_token || null;
+async function client(): Promise<DropboxClient> {
+  const [rt, key, secret] = await Promise.all([sec('dropbox_refresh_token'), sec('dropbox_app_key'), sec('dropbox_app_secret')]);
+  return new DropboxClient(() => refreshAccessToken(rt, key, secret));
 }
-function arg(o: unknown){ return JSON.stringify(o).replace(/[-￿]/g, (c)=> '\\u'+c.charCodeAt(0).toString(16).padStart(4,'0')); }
-async function uploadSingle(token: string, dest: string, bytes: ArrayBuffer){
-  const r = await fetch('https://content.dropboxapi.com/2/files/upload', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': arg({ path:dest, mode:'overwrite', autorename:false, mute:true, strict_conflict:false }) }, body: bytes });
-  if (!r.ok) throw new Error('dbx_upload '+r.status+' '+(await r.text()).slice(0,200));
-}
-async function uploadSession(token: string, dest: string, signedUrl: string, size: number){
-  let r = await fetch('https://content.dropboxapi.com/2/files/upload_session/start', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': arg({ close:false }) }, body:new Uint8Array(0) });
-  if (!r.ok) throw new Error('session_start '+r.status);
-  const sid = (await r.json()).session_id as string; let off = 0;
-  while (off < size){ const end = Math.min(off+CHUNK, size)-1; const g = await fetch(signedUrl, { headers:{ 'Range':`bytes=${off}-${end}` } }); if(!(g.status===206||g.status===200)) throw new Error('range_get '+g.status); const buf = await g.arrayBuffer(); if(buf.byteLength===0) throw new Error('empty_chunk'); r = await fetch('https://content.dropboxapi.com/2/files/upload_session/append_v2', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': arg({ cursor:{ session_id:sid, offset:off }, close:false }) }, body:buf }); if(!r.ok) throw new Error('append '+r.status); off += buf.byteLength; }
-  r = await fetch('https://content.dropboxapi.com/2/files/upload_session/finish', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/octet-stream', 'Dropbox-API-Arg': arg({ cursor:{ session_id:sid, offset:size }, commit:{ path:dest, mode:'overwrite', autorename:false, mute:true } }) }, body:new Uint8Array(0) });
-  if (!r.ok) throw new Error('finish '+r.status);
-}
-function kvTable(rows: [string, unknown][]){ return '<table style="border-collapse:collapse;width:100%">' + rows.map(([k,v])=>`<tr><td style="padding:4px 10px 4px 0;color:#555;white-space:nowrap;vertical-align:top">${esc(k)}</td><td style="padding:4px 0"><b>${esc(v)}</b></td></tr>`).join('') + '</table>'; }
 
-async function renderGenerated(row: any): Promise<{bucket:string, path:string}>{
+// files/get_metadata. A 409 path/not_found is an ANSWER ("missing"); any other non-200 throws so a
+// Dropbox outage is never read as a missing file.
+async function dbxMeta(dbx: DropboxClient, path: string): Promise<{ missing: true } | { missing: false; size: number; content_hash: string }> {
+  const r = await dbx.call('api', 'files/get_metadata', { path });
+  const t = await r.text();
+  if (r.status === 409 && t.includes('not_found')) return { missing: true };
+  if (!r.ok) throw new Error('get_metadata ' + r.status + ' ' + t.slice(0, 160));
+  const j = JSON.parse(t);
+  if (j['.tag'] !== 'file') return { missing: true };
+  return { missing: false, size: Number(j.size), content_hash: String(j.content_hash || '') };
+}
+async function verifyUploaded(dbx: DropboxClient, dest: string, hash: string, size: number) {
+  const m = await dbxMeta(dbx, dest);
+  if (m.missing) throw new Error('verify: missing in Dropbox after upload');
+  if (m.size !== size) throw new Error(`verify: size ${m.size} in Dropbox != ${size} sent`);
+  if (m.content_hash !== hash) throw new Error('verify: content_hash mismatch ' + m.content_hash.slice(0, 12) + ' != ' + hash.slice(0, 12));
+}
+async function dbxDelete(dbx: DropboxClient, path: string): Promise<boolean> {
+  const r = await dbx.call('api', 'files/delete_v2', { path }); await r.body?.cancel(); return r.ok;
+}
+
+// A storage object read by HTTP Range: the first request also answers the size (Content-Range).
+async function storageSource(bucket: string, path: string): Promise<{ size: number; read: ReadChunk }> {
+  const { data: su, error } = await admin.storage.from(bucket).createSignedUrl(path, 3600);
+  if (error || !su?.signedUrl) throw new Error('download ' + (error?.message || 'object not found'));
+  const url = su.signedUrl;
+  const get = async (o: number, n: number) => {
+    const g = await fetch(url, { headers: { Range: `bytes=${o}-${o + n - 1}` } });
+    if (g.status === 416) { await g.body?.cancel(); return { bytes: new Uint8Array(0), total: 0 }; }
+    if (!(g.status === 206 || g.status === 200)) throw new Error('download range ' + g.status + ' ' + (await g.text()).slice(0, 120));
+    const total = g.status === 200 ? Number(g.headers.get('content-length')) : Number((g.headers.get('content-range') || '').split('/')[1]);
+    let bytes = new Uint8Array(await g.arrayBuffer());
+    if (g.status === 200) bytes = bytes.slice(o, o + n);    // server ignored Range
+    return { bytes, total };
+  };
+  const first = await get(0, CHUNK);
+  if (!Number.isFinite(first.total)) throw new Error('download: size unknown');
+  return { size: first.total, read: async (o, n) => (o === 0 && n <= first.bytes.length) ? first.bytes.slice(0, n) : (await get(o, n)).bytes };
+}
+
+// WEEKLY RECONCILIATION (v6/v7, unchanged in behaviour).
+async function reconcile(dbx: DropboxClient, n: number, ids?: number[]) {
+  const { data: rows, error } = ids?.length
+    ? await admin.from('doc_backups').select('id,dropbox_path,bucket,path,bytes,dropbox_content_hash').in('id', ids)
+    : await admin.rpc('fn_dropbox_reconcile_sample', { p_n: n });
+  if (error) throw new Error('sample ' + error.message);
+  const results: Record<string, unknown>[] = [];
+  for (const row of (rows || []) as Record<string, any>[]) {
+    try {
+      const m = await dbxMeta(dbx, row.dropbox_path);
+      if (m.missing) { results.push({ id: row.id, outcome: 'missing' }); continue; }
+      let expect: string | null = row.dropbox_content_hash, basis = 'recorded';
+      if (!expect) {
+        if (!row.bucket || !row.path || Number(row.bytes || 0) > 140 * 1024 * 1024) { results.push({ id: row.id, outcome: 'unverifiable', hash: m.content_hash, size: m.size, note: 'no recorded hash and source not hashable' }); continue; }
+        const { data: blob } = await admin.storage.from(row.bucket).download(row.path);
+        if (!blob) { results.push({ id: row.id, outcome: 'unverifiable', hash: m.content_hash, size: m.size, note: 'source object no longer in storage' }); continue; }
+        expect = await dropboxContentHash(new Uint8Array(await blob.arrayBuffer())); basis = 'source';
+      }
+      results.push({ id: row.id, outcome: m.content_hash === expect ? 'ok' : 'changed', hash: m.content_hash, size: m.size, basis, why: row.why });
+    } catch (e) { results.push({ id: row.id, outcome: 'error', note: errText(e).slice(0, 160) }); }
+  }
+  const { data: applied, error: aerr } = ids?.length
+    ? await admin.rpc('fn_it_backup_check', { p_results: results, p_job: 'targeted' })
+    : await admin.rpc('fn_dropbox_reconcile_apply', { p_results: results });
+  if (aerr) throw new Error('apply ' + aerr.message);
+  return applied;
+}
+
+function kvTable(rows: [string, unknown][]) { return '<table style="border-collapse:collapse;width:100%">' + rows.map(([k, v]) => `<tr><td style="padding:4px 10px 4px 0;color:#555;white-space:nowrap;vertical-align:top">${esc(k)}</td><td style="padding:4px 0"><b>${esc(v)}</b></td></tr>`).join('') + '</table>'; }
+
+// deno-lint-ignore no-explicit-any
+async function renderGenerated(row: any): Promise<{ bucket: string; path: string }> {
   let title = 'Document'; let inner = '';
-  if (row.gen_kind === 'supplier_details'){
+  if (row.gen_kind === 'supplier_details') {
     const { data: l } = await admin.from('leads').select('*').eq('id', Number(row.gen_ref)).maybeSingle();
     if (!l) throw new Error('supplier_missing');
-    title = 'Company Details — ' + (l.company_name || ('Supplier '+row.gen_ref));
+    title = 'Company Details — ' + (l.company_name || ('Supplier ' + row.gen_ref));
     inner = `<h2>${esc(l.company_name)}</h2>` + kvTable([
       ['Supplier ID', l.id], ['Category', l.categories || l.sector], ['Sub-type', l.sub_type], ['Emirate', l.emirate], ['City', l.city], ['Contact', l.contact_name],
       ['Phone', l.phone_e164 || l.phone], ['Email', l.email], ['Website', l.website],
       ['Trade licence no', l.trade_license_no], ['Licence authority', l.license_authority], ['Licence expiry', fmtD(l.license_expiry)], ['TRN', l.trn], ['VAT number', l.vat_number],
-      ['Registration status', l.registration_status], ['Approval status', l.approval_status], ['Approved at', fmtD(l.approved_at)], ['Services', Array.isArray(l.services)? l.services.join(', ') : l.services],
+      ['Registration status', l.registration_status], ['Approval status', l.approval_status], ['Approved at', fmtD(l.approved_at)], ['Services', Array.isArray(l.services) ? l.services.join(', ') : l.services],
     ]) + (l.capability_summary ? `<h3>Capability summary</h3><p>${esc(l.capability_summary)}</p>` : '');
-  } else if (row.gen_kind === 'customer_details'){
+  } else if (row.gen_kind === 'customer_details') {
     const { data: c } = await admin.from('customers').select('*').eq('id', row.gen_ref).maybeSingle();
     if (!c) throw new Error('customer_missing');
     title = 'Customer Details — ' + (c.full_name || 'Customer');
     inner = kvTable([
-      ['Customer ID', c.id], ['Full name', c.full_name], ['Phone', c.phone], ['Phone verified', c.phone_verified? 'Yes':'No'],
-      ['Email', c.email], ['Email verified', c.email_verified? 'Yes':'No'], ['Registered', fmtD(c.created_at)],
-      ['Terms version', c.tos_version], ['Terms accepted', fmtD(c.tos_accepted_at || c.signed_terms_at)], ['WhatsApp opt-in', c.wa_optin? 'Yes':'No'],
+      ['Customer ID', c.id], ['Full name', c.full_name], ['Phone', c.phone], ['Phone verified', c.phone_verified ? 'Yes' : 'No'],
+      ['Email', c.email], ['Email verified', c.email_verified ? 'Yes' : 'No'], ['Registered', fmtD(c.created_at)],
+      ['Terms version', c.tos_version], ['Terms accepted', fmtD(c.tos_accepted_at || c.signed_terms_at)], ['WhatsApp', c.whatsapp_opt === 'other' ? (c.whatsapp_verified_at ? 'Confirmed number ' + (c.whatsapp_phone || '') : 'Different number, not confirmed (not used)') : c.whatsapp_opt === 'same' ? 'Same as mobile' : c.whatsapp_opt === 'none' ? 'Does not use WhatsApp' : 'Not answered'],
     ]);
-  } else if (row.gen_kind === 'inquiry_summary'){
+  } else if (row.gen_kind === 'inquiry_summary') {
     const { data: i } = await admin.from('inquiries').select('*').eq('id', row.gen_ref).maybeSingle();
     if (!i) throw new Error('inquiry_missing');
     const { data: c } = await admin.from('customers').select('full_name').eq('id', i.customer_id).maybeSingle();
-    title = 'Inquiry Summary — ' + String(row.gen_ref).slice(0,8);
-    inner = kvTable([ ['Inquiry ID', i.id], ['Customer', c?.full_name], ['Status', i.status], ['Created', fmtD(i.created_at)], ['Drawing on file', i.drawing_file_name || (i.drawing_file_path? 'yes':'—')] ]) + (i.summary ? `<h3>Request</h3><p>${esc(i.summary)}</p>` : '');
+    title = 'Inquiry Summary — ' + String(row.gen_ref).slice(0, 8);
+    inner = kvTable([['Inquiry ID', i.id], ['Customer', c?.full_name], ['Status', i.status], ['Created', fmtD(i.created_at)], ['Drawing on file', i.drawing_file_name || (i.drawing_file_path ? 'yes' : '—')]]) + (i.summary ? `<h3>Request</h3><p>${esc(i.summary)}</p>` : '');
   } else throw new Error('unknown_gen_kind');
-
-  // pdf_native takes body_html and adds its own letterhead/title, so the <html> wrapper and the <h1>
-  // that make_pdf needed would both be duplicated here. It writes to storage and returns the path.
-  const body_html = inner + `<p style="margin-top:24px;color:#888;font-size:11px">Auto-generated backup document — QuotesDone · ${new Date().toISOString().slice(0,10)}</p>`;
-  const r = await fetch(`${BASE}/pdf_native`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_to_pdf_native'), title, body_html, name: (row.gen_kind+'_'+row.gen_ref).replace(/[^a-z0-9_]+/gi,'_').slice(0,60), bucket:'backups', folder:'generated', options:{ letterhead:true } }) });
-  const jd = await r.json().catch(()=>({} as any));
-  if (!jd?.path) throw new Error('pdf_native '+(jd?.error||r.status));
+  const body_html = inner + `<p style="margin-top:24px;color:#888;font-size:11px">Auto-generated backup document — QuotesDone · ${new Date().toISOString().slice(0, 10)}</p>`;
+  const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: await sec('cred_fn_to_pdf_native'), title, body_html, name: (row.gen_kind + '_' + row.gen_ref).replace(/[^a-z0-9_]+/gi, '_').slice(0, 60), bucket: 'backups', folder: 'generated', options: { letterhead: true } }) });
+  const jd = await r.json().catch(() => ({} as Record<string, unknown>));
+  if (!jd?.path) throw new Error('pdf_native ' + (jd?.error || r.status));
   return { bucket: 'backups', path: String(jd.path) };
+}
+
+// it_engineer: the daily auth probe and space/plan reading. Every stage is recorded, never thrown away.
+async function health() {
+  const out: Record<string, unknown> = { auth_ok: false, write_ok: false, read_ok: false, delete_ok: false };
+  try {
+    const dbx = await client();
+    const probe = `/QuotesDone Backup/_selftest/auth_probe_${Date.now()}.txt`;
+    const bytes = new TextEncoder().encode('quotesdone dropbox auth probe ' + new Date().toISOString());
+    const up = await uploadFile(dbx, probe, bytes.length, (o, n) => Promise.resolve(bytes.slice(o, o + n)));
+    out.auth_ok = true; out.write_ok = up.done;
+    if (up.done) { await verifyUploaded(dbx, probe, up.hash, bytes.length); out.read_ok = true; }
+    out.delete_ok = await dbxDelete(dbx, probe);
+    const s = await dbx.call('api', 'users/get_space_usage', null);
+    const sj = await s.json();
+    if (!s.ok) throw new Error('get_space_usage ' + s.status);
+    out.used = Number(sj.used); out.allocated = Number(sj.allocation?.allocated ?? sj.allocation?.used ?? 0);
+    const a = await dbx.call('api', 'users/get_current_account', null);
+    const aj = await a.json();
+    out.plan = a.ok ? String(aj.account_type?.['.tag'] || '') : 'unknown';
+    out.refreshes = dbx.refreshes;
+  } catch (e) { out.error = errText(e).slice(0, 300); }
+  const { data, error } = await admin.rpc('fn_it_dropbox_health_record', { p: out });
+  if (error) throw new Error('fn_it_dropbox_health_record: ' + error.message);
+  return { reading: out, recorded: data };
+}
+
+// sales_engineer: prove chunking and resume against the real Dropbox, in /_selftest/ only.
+async function selftestLarge(mb: number) {
+  const size = Math.round(Math.min(Math.max(mb, 9), 48) * 1024 * 1024);
+  const src = new Uint8Array(size); for (let i = 0; i < size; i++) src[i] = (i * 31 + (i >> 13)) & 255;
+  const read: ReadChunk = (o, n) => Promise.resolve(src.slice(o, o + n));
+  const dbx = await client();
+  const dest = `/QuotesDone Backup/_selftest/large_${Date.now()}.bin`;
+  const first = await uploadFile(dbx, dest, size, read, { maxChunks: 1 });
+  if (first.done) throw new Error('selftest_large: the first run was meant to stop after one chunk');
+  const state: UploadState = JSON.parse(JSON.stringify(first.state));   // as it would be stored
+  const second = await uploadFile(dbx, dest, size, read, { state });
+  if (!second.done) throw new Error('selftest_large: the resumed run did not finish');
+  const expect = await dropboxContentHash(src);
+  await verifyUploaded(dbx, dest, second.hash, size);
+  const deleted = await dbxDelete(dbx, dest);
+  return { bytes: size, chunks: first.chunks + second.chunks, stopped_at: state.offset, resumed: true,
+           hash_matches_source: second.hash === expect, verified_in_dropbox: true, deleted, retries: first.retries + second.retries };
 }
 
 Deno.serve(observe('dropbox_backup', async (req) => {
   try {
-    const body = await req.json().catch(()=>({} as any));
-    // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
-    // per-context credential and the legacy shared secret, and records which one called.
-    const __auth = await requireInternal(admin, body?.__secret, 'dropbox_backup');
-    if (!__auth.ok) { await logThrottled('forbidden', 60, 'error', { stage:'auth' }, 'dropbox_backup rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, no Dropbox backup is running at all and every backup is stale.'); return J({ error:'forbidden' }, 403); }
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const auth = await requireInternal(admin, body?.__secret, 'dropbox_backup');
+    if (!auth.ok) { await logThrottled('forbidden', 60, 'error', { stage: 'auth' }, 'dropbox_backup rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, no Dropbox backup is running at all and every backup is stale.'); return J({ error: 'forbidden' }, 403); }
 
-    if (body.op === 'selftest'){
-      const token = await accessToken(); if(!token) { await logThrottled('no_dropbox_auth', 60, 'error', { stage:'selftest' }, 'Dropbox selftest could not obtain an access token (refresh token / app key / app secret missing or rejected). Dropbox backups are not running; every document backup is stale until the OAuth credentials are restored.'); return J({ ok:false, error:'no_dropbox_auth' }); }
-      const dest = '/QuotesDone Backup/_selftest/probe_'+Date.now()+'.txt';
-      await uploadSingle(token, dest, new TextEncoder().encode('quotesdone dropbox backup selftest').buffer as ArrayBuffer);
-      const del = await fetch('https://api.dropboxapi.com/2/files/delete_v2', { method:'POST', headers:{ 'Authorization':'Bearer '+token, 'Content-Type':'application/json' }, body: JSON.stringify({ path: dest }) });
-      return J({ ok:true, uploaded:dest, deleted_probe: del.ok });
+    if (body.op === 'health') return J({ ok: true, op: 'health', ...(await health()) });
+    if (body.op === 'selftest_large') return J({ ok: true, op: 'selftest_large', ...(await selftestLarge(Number(body.mb) || 20)) });
+    if (body.op === 'pdpl_erase') {
+      await logRun('error', { stage: 'pdpl_erase_refused', request_id: String(body.request_id || '') },
+        'A PDPL file-erasure was requested from dropbox_backup and REFUSED. This function is an add-only backup and its delete path is disabled, so no file was removed from Dropbox or storage and no pdpl_erase_files row was marked erased. The erasure request is still outstanding and needs an owner who will re-enable this deliberately.');
+      return J({ ok: false, error: 'deletion_disabled', message: 'dropbox_backup is an add-only backup. It does not delete from Dropbox or storage. Nothing was erased and no row was marked erased.' }, 409);
     }
+    if (body.op !== undefined) return J({ ok: false, error: 'unknown_op' }, 400);
 
-    // DELETION IS NOT PART OF THIS RESTORE. The v4 body of this branch called Dropbox files/delete_v2
-    // and storage.remove() for every row in pdpl_erase_files. It is refused rather than removed so a
-    // caller learns the capability is off instead of getting a silent 'unknown op' and assuming the
-    // erasure ran. pdpl_erase_files rows are left untouched — nothing is marked 'erased' that is not.
-    if (body.op === 'pdpl_erase'){
-      await logRun('error', { stage:'pdpl_erase_refused', request_id: String(body.request_id||'') },
-        'A PDPL file-erasure was requested from dropbox_backup and REFUSED. This function was restored on '
-        + '9 Sep 2026 as an add-only backup and its delete path is disabled, so no file was removed from '
-        + 'Dropbox or storage and no pdpl_erase_files row was marked erased. The erasure request is still '
-        + 'outstanding and needs an owner who will re-enable this deliberately.');
-      return J({ ok:false, error:'deletion_disabled',
-        message:'dropbox_backup is an add-only backup since the 9 Sep 2026 restore. It no longer deletes from Dropbox or storage. Nothing was erased and no row was marked erased.' }, 409);
-    }
-
-    const limit = Math.min(Number(body.limit)||8, 25);
-    let enqueued = 0;
-    if (body.mode !== 'process_only') { const { data, error: enqErr } = await admin.rpc('fn_enqueue_doc_backups'); enqueued = Number(data)||0; if (enqErr) { await logThrottled('enqueue_failed', 60, 'error', { stage:'enqueue' }, 'fn_enqueue_doc_backups failed, so no new documents are being queued for Dropbox backup; newly uploaded documents will never reach Dropbox until this is fixed. ' + String(enqErr?.message||enqErr).slice(0,160)); } }
-    const token = await accessToken();
-    if (!token) { await logThrottled('no_dropbox_auth', 60, 'error', { stage:'token', enqueued }, 'Dropbox backup could not obtain an access token (refresh token expired/revoked or app key/secret missing). No documents are being backed up to Dropbox and the backup set is going stale from this point onward.'); return J({ ok:false, error:'no_dropbox_auth', enqueued }); }
-
-    const { data: rows } = await admin.from('doc_backups').select('*').in('status',['pending','error']).lt('attempts',5).order('id',{ ascending:true }).limit(limit);
-    let done=0, failed=0, skipped=0; const results:any[]=[];
-    const errNotes:string[] = [];
-    for (const row of (rows||[])){
+    if (body.mode === 'reconcile') {
+      // Logged ONLY through fn_dropbox_reconcile_apply (agent 'it_engineer'): a logRun here would read as a failed backup.
       try {
+        const ids = Array.isArray(body.ids) ? body.ids.map(Number).filter(Number.isFinite).slice(0, 50) : undefined;
+        return J({ ok: true, mode: 'reconcile', result: await reconcile(await client(), Math.min(Number(body.limit) || 20, 200), ids) });
+      } catch (e) {
+        const msg = errText(e).slice(0, 300);
+        await admin.rpc('fn_dropbox_reconcile_apply', { p_results: [], p_error: msg });
+        return J({ ok: false, mode: 'reconcile', error: msg }, 500);
+      }
+    }
+    if (body.mode !== undefined && !['process_only', 'enqueue'].includes(String(body.mode))) return J({ ok: false, error: 'unknown_mode' }, 400);
+
+    const limit = Math.min(Number(body.limit) || 8, 25);
+    const chain = Math.max(0, Math.min(Number(body.chain) || 0, 20));
+    let enqueued = 0;
+    if (body.mode !== 'process_only') {
+      const { data, error } = await admin.rpc('fn_enqueue_doc_backups'); enqueued = Number(data) || 0;
+      if (error) await logThrottled('enqueue_failed', 60, 'error', { stage: 'enqueue' }, 'fn_enqueue_doc_backups failed, so no new documents are being queued for Dropbox backup. ' + error.message.slice(0, 160));
+    }
+    const dbx = await client();
+    const run = `dropbox_backup:${T0}:${crypto.randomUUID().slice(0, 8)}`;
+    const { data: rows, error: qerr } = await admin.rpc('fn_doc_backups_next', { p_limit: limit, p_run: run });
+    if (qerr) throw new Error('fn_doc_backups_next: ' + qerr.message);
+
+    let done = 0, failed = 0, resumed = 0; const results: Record<string, unknown>[] = []; const errNotes: string[] = [];
+    // deno-lint-ignore no-explicit-any
+    for (const row of (rows || []) as any[]) {
+      const now = () => new Date().toISOString();
+      const release = { claimed_at: null, claimed_by: null };
+      try {
+        if (Date.now() >= DEADLINE) { await admin.from('doc_backups').update({ status: 'pending', ...release }).eq('id', row.id); continue; }
         let bucket = row.bucket, path = row.path;
-        if (row.source === 'generated' && !path){ const g = await renderGenerated(row); bucket = g.bucket; path = g.path; await admin.from('doc_backups').update({ bucket, path }).eq('id', row.id); }
+        if (row.source === 'generated' && !path) { const g = await renderGenerated(row); bucket = g.bucket; path = g.path; await admin.from('doc_backups').update({ bucket, path }).eq('id', row.id); }
         if (!bucket || !path) throw new Error('no_source');
-        const { data: blob, error: derr } = await admin.storage.from(bucket).download(path);
-        if (derr || !blob) throw new Error('download '+(derr?.message||'missing'));
-        const size = (blob as Blob).size;
-        if (size > HARD_MAX){ await admin.from('doc_backups').update({ status:'skipped_large', bytes:size, error:'>1GB', attempts:row.attempts+1 }).eq('id',row.id); skipped++; results.push({ id:row.id, skipped_large:size }); continue; }
-        if (size <= SINGLE_MAX){ await uploadSingle(token, row.dropbox_path, await (blob as Blob).arrayBuffer()); }
-        else { const { data: su } = await admin.storage.from(bucket).createSignedUrl(path, 900); if(!su?.signedUrl) throw new Error('sign_failed'); await uploadSession(token, row.dropbox_path, su.signedUrl, size); }
-        const { error: markErr } = await admin.from('doc_backups').update({ status:'done', bytes:size, backed_up_at:new Date().toISOString(), error:null, attempts:row.attempts+1 }).eq('id',row.id);
-        if (markErr) { await logRun('error', { stage:'mark_done', doc_backup_id: row.id }, 'Document ' + row.id + ' was uploaded to Dropbox but could not be marked done, so it will be re-uploaded on every future run and the backup queue will never drain. ' + String(markErr?.message||markErr).slice(0,160)); }
-        done++; results.push({ id:row.id, done:size, dest:row.dropbox_path });
-      } catch (e){
-        await admin.from('doc_backups').update({ status:'error', error:String((e as Error)?.message||e).slice(0,300), attempts:row.attempts+1 }).eq('id',row.id);
-        failed++; results.push({ id:row.id, error:String((e as Error)?.message||e).slice(0,160) });
-        if (errNotes.length < 3) errNotes.push('#'+row.id+': '+String((e as Error)?.message||e).slice(0,120));
+        const src = await storageSource(bucket, path);
+        const up = await uploadFile(dbx, row.dropbox_path, src.size, src.read, { state: row.upload_state, deadline: DEADLINE });
+        if (!up.done) {
+          await admin.from('doc_backups').update({ status: 'pending', ...release, upload_state: up.state, bytes: src.size, last_attempt_at: now(),
+            error: `resuming: ${up.state.offset} of ${src.size} bytes sent` }).eq('id', row.id);
+          resumed++; results.push({ id: row.id, resuming: up.state.offset }); continue;
+        }
+        await verifyUploaded(dbx, row.dropbox_path, up.hash, src.size);
+        const { error: markErr } = await admin.from('doc_backups').update({ status: 'done', ...release, bytes: src.size, backed_up_at: now(), error: null, attempts: row.attempts + 1,
+          last_attempt_at: now(), upload_state: null, dropbox_content_hash: up.hash, dropbox_size: src.size, verified_at: now() }).eq('id', row.id);
+        if (markErr) await logRun('error', { stage: 'mark_done', doc_backup_id: row.id }, 'Document ' + row.id + ' was uploaded and verified but could not be marked done: ' + markErr.message.slice(0, 160));
+        done++; results.push({ id: row.id, done: src.size, chunks: up.chunks, retries: up.retries });
+      } catch (e) {
+        const msg = errText(e).slice(0, 300);
+        await admin.from('doc_backups').update({ status: 'error', ...release, error: msg, attempts: row.attempts + 1, last_attempt_at: now(), upload_state: null }).eq('id', row.id);
+        failed++; results.push({ id: row.id, error: msg.slice(0, 160) });
+        if (errNotes.length < 3) errNotes.push('#' + row.id + ': ' + msg.slice(0, 120));
+        if (msg === 'no_dropbox_auth') break;   // every further row would fail the same way
       }
     }
-    const processed = (rows||[]).length;
-    if (processed > 0 || enqueued > 0 || failed > 0 || skipped > 0) {
-      const counts = { enqueued, processed, done, failed, skipped };
-      if (failed > 0 || skipped > 0) {
-        await logRun('error', counts, 'Dropbox backup finished with ' + failed + ' failed and ' + skipped + ' oversized-skipped document(s) out of ' + processed + '; those documents are NOT in Dropbox and will be missing if the backup is ever needed. ' + errNotes.join(' | '));
-      } else {
-        await logRun('ok', counts, 'Dropbox backup uploaded ' + done + ' document(s); queue drained cleanly.');
-      }
+    const processed = (rows || []).length;
+    const counts = { enqueued, processed, done, failed, resumed, chain, refreshes: dbx.refreshes, reason: body.reason ?? null };
+    if (processed || enqueued || failed) {
+      if (failed) await logRun('error', counts, 'Dropbox backup finished with ' + failed + ' failed document(s) out of ' + processed + '; the IT engineer classifies and fixes them. ' + errNotes.join(' | '));
+      else await logRun('ok', counts, 'Dropbox backup uploaded ' + done + ' document(s)' + (resumed ? ', ' + resumed + ' large file(s) resume next run' : '') + '.');
     }
-    return J({ ok:true, enqueued, processed:(rows||[]).length, done, failed, skipped, results });
-  } catch (e){ await logRun('error', { stage:'fatal' }, 'dropbox_backup crashed before completing; the Dropbox backup run did not finish and documents from this window are not backed up. ' + String((e as Error)?.message||e).slice(0,200)); return J({ error:String((e as Error)?.message||e) }, 500); }
+    // The batch was full: there is probably more. Drain it now instead of at the next tick.
+    if ((processed === limit || resumed > 0) && chain < 20 && failed < processed) {
+      const next = fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: body.__secret, mode: 'process_only', limit, chain: chain + 1, reason: 'drain' }) })
+        .then((r) => r.body?.cancel()).catch((e) => console.error('drain link failed:', errText(e)));
+      // deno-lint-ignore no-explicit-any
+      (globalThis as any).EdgeRuntime?.waitUntil?.(next);
+    }
+    return J({ ok: true, ...counts, results });
+  } catch (e) {
+    await logRun('error', { stage: 'fatal' }, 'dropbox_backup crashed before completing; this run backed nothing up. ' + errText(e).slice(0, 200));
+    return J({ error: errText(e) }, 500);
+  }
 }));

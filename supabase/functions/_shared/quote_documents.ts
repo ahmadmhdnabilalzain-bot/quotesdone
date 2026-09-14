@@ -1,0 +1,707 @@
+// quote_documents.ts — what goes ON the customer's quotation PDF and comparison report.
+//
+// 14 Sep 2026, agent: ceo. Two founder notes on the documents #600/#601 produced:
+//   "the format can be more professional and advanced (very simple now)"
+//   "what is arabic is not fully in arabic, many english words here and there"
+// and a third on the comparison report: it must be technically detailed — the exact material spec
+// (type of wood, thickness …) side by side, not only delivery time and installation.
+//
+// WHAT IT IS NOW. Each document is a cover (title, reference, date, request summary, a key-figures
+// strip) and numbered sections, laid out by pdf_native/render.ts. Both are built with no model:
+//   • Everything the platform knows the meaning of is translated deterministically (labels, trades,
+//     emirates, durations, payment terms, units).
+//   • Everything the supplier wrote — item descriptions, specification values, scope, exclusions —
+//     goes through the trade glossary (trade_glossary_ar.ts). What the glossary cannot translate is
+//     NOT left as bare English: the Arabic of the known parts is the primary text and the supplier's
+//     own words sit on a small secondary line labelled "النص الأصلي من المورد".
+//   • The comparison report carries a TECHNICAL COMPARISON: each scope line × each supplier's stated
+//     value per attribute, marked matches / differs / not stated against the request (see
+//     TechnicalComparison below — the renderer input the spec agent's contract fills).
+//   • The founder's four completeness checks (14 Sep 2026) are shown side by side for every quote:
+//     material specs per line, delivery / lead time, installation (where it applies: included, scope,
+//     timeline) and warranty (where it applies: period and coverage). "N/A" where it does not apply.
+//   • Who prepared it: "the QuotesDone sales engineer" (founder rule, 14 Sep 2026: "its always the
+//     sales agent. no other agent is involved in customer or supplier portal"). Never an AI, never
+//     an assistant, never another agent.
+//
+// ANONYMITY. The customer pays a reveal fee to learn who quoted. Supplier free text can carry a
+// name, a number or an email ("call Ahmed on 050…"), so every string in both documents passes
+// maskContacts, which also blanks the supplier names the caller hands in. Links are ids only.
+import { arTrade, arUnit as glossaryUnit, arCount as glossaryCount, arAttr, CATEGORY_AR, CATEGORY_EN, WORKING_FORMS, UNIT_FORMS, type Unit } from './trade_glossary_ar.ts';
+import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.ts';
+
+import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
+export type Lang = 'en' | 'ar';
+/** The version printed in each document's control line. Bump when the layout or wording changes. */
+export const DOC_VERSION = 'v2.0';
+const PREPARED_BY = { en: 'Prepared by the QuotesDone sales engineer', ar: 'أعدّه مهندس مبيعات QuotesDone' };
+
+/** A, B … Z, AA, AB … — the anonymous label for the i-th live quote by ascending price. */
+export function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
+
+// ── Anonymity ─────────────────────────────────────────────────────────────────────────────────
+const HIDDEN = { en: '[contact hidden until reveal]', ar: '[بيانات التواصل مخفية حتى الكشف]' };
+function escapeRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+/** Blank emails, phone numbers, web addresses and the named suppliers out of one string. */
+export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'): string {
+  let t = String(s == null ? '' : s);
+  // The placeholder follows the script of the text it sits in, not the page: an Arabic placeholder
+  // inside an English supplier note turned the whole note right-to-left and scrambled its order.
+  const H = HIDDEN[/[؀-ۿ]/.test(t) ? 'ar' : /[A-Za-z]/.test(t) ? 'en' : lang];
+  t = t.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, H);
+  t = t.replace(/\b(?:https?:\/\/|www\.)\S+/gi, H);
+  t = t.replace(/\b[\w-]+\.(?:com|ae|net|org|co)(?:\.[a-z]{2})?\b/gi, H);
+  // A TRN or licence number finds the company on a public register (founder, 14 Sep 2026). Before
+  // the phone patterns, which would otherwise take a 15-digit TRN apart and leave its label behind.
+  t = t.replace(TRN_LABELLED, H).replace(TRN_BARE, H).replace(LICENCE_NO, H);
+  // UAE numbers in every usual spelling, then any international-looking run of 9+ digits.
+  t = t.replace(/(?:\+|00)?971[\s-]?\(?0?\)?[\s-]?\d(?:[\s-]?\d){6,8}\b/g, H);
+  t = t.replace(/\b0[2-9](?:[\s-]?\d){7,8}\b/g, H);
+  t = t.replace(/\+\d(?:[\s-]?\d){8,13}\b/g, H);
+  for (const n of names) {
+    const v = String(n || '').trim();
+    if (v.length < 3) continue;
+    t = t.replace(new RegExp(escapeRe(v), 'gi'), H);
+    // "ZZ DEMO Cooling Services LLC" also appears as "ZZ DEMO Cooling Services".
+    const core = v.replace(/\b(?:l\.?l\.?c|fze|fzco|fz-llc|est|establishment|trading|co|company|ltd|limited)\.?\s*$/i, '').trim();
+    if (core.length >= 5 && core !== v) t = t.replace(new RegExp(escapeRe(core), 'gi'), H);
+  }
+  return t;
+}
+// deno-lint-ignore no-explicit-any
+function maskDeep(v: any, names: string[], lang: Lang): any {
+  if (typeof v === 'string') return maskContacts(v, names, lang);
+  if (Array.isArray(v)) return v.map((x) => maskDeep(x, names, lang));
+  // deno-lint-ignore no-explicit-any
+  if (v && typeof v === 'object') { const o: any = {}; for (const k of Object.keys(v)) o[k] = (k === 'link') ? v[k] : maskDeep(v[k], names, lang); return o; }
+  return v;
+}
+
+// ── Deterministic Arabic for what the platform knows ───────────────────────────────────────────────
+const hasArabic = (s: unknown) => /[؀-ۿ]/.test(String(s ?? ''));
+const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
+export const arCount = glossaryCount;
+export const arUnit = glossaryUnit;
+
+const EMIRATES: Record<string, string> = {
+  'dubai': 'دبي', 'abu dhabi': 'أبوظبي', 'sharjah': 'الشارقة', 'ajman': 'عجمان', 'umm al quwain': 'أم القيوين',
+  'umm al-quwain': 'أم القيوين', 'ras al khaimah': 'رأس الخيمة', 'ras al-khaimah': 'رأس الخيمة', 'rak': 'رأس الخيمة',
+  'fujairah': 'الفجيرة', 'al ain': 'العين', 'uae': 'الإمارات العربية المتحدة', 'all emirates': 'جميع الإمارات',
+};
+export function arEmirate(s: unknown): string | null { if (hasArabic(s)) return String(s); return EMIRATES[norm(s)] ?? null; }
+
+// Free-typed trade names that are not category codes (older rows, the brief form).
+const CATEGORIES: Array<[RegExp, string]> = [
+  [/^(hvac|ac|a\/c|air ?conditioning|hvac ?(and|&) ?refrigeration|cooling)$/, 'التكييف والتبريد'],
+  [/^mep$/, 'الأعمال الكهروميكانيكية'], [/^electrical( works)?$/, 'الأعمال الكهربائية'], [/^plumbing$/, 'السباكة'],
+  [/^(joinery|carpentry|woodwork)$/, 'النجارة'], [/^painting$/, 'الدهانات'], [/^flooring$/, 'الأرضيات'], [/^tiling$/, 'التبليط'],
+  [/^(glass|glazing|glass (and|&) aluminium|aluminium)$/, 'الزجاج والألمنيوم'], [/^(cctv|security|security systems)$/, 'كاميرات المراقبة والأنظمة الأمنية'],
+  [/^(fire|fire fighting|firefighting|fire alarm|fire protection)$/, 'أنظمة الحماية من الحريق'], [/^(steel|metal|metal works|steel works)$/, 'الأعمال المعدنية'],
+  [/^(signage|printing|signage (and|&) printing)$/, 'اللافتات والطباعة'], [/^cleaning$/, 'التنظيف'], [/^landscaping$/, 'تنسيق الحدائق'],
+  [/^(fit ?out|interior fit ?out|interiors)$/, 'التشطيبات الداخلية'], [/^civil( works)?$/, 'الأعمال المدنية'], [/^events?$/, 'الفعاليات'],
+  [/^(it|networking|it (and|&) networking)$/, 'الشبكات وتقنية المعلومات'], [/^waterproofing$/, 'العزل المائي'],
+];
+/** The English trade name as a person writes it: 'hvac' → 'HVAC', 'fit_out' → 'Fit Out'. */
+export function enCategory(s: unknown): string {
+  const code = String(s ?? '').toLowerCase().trim();
+  if (CATEGORY_EN[code]) return CATEGORY_EN[code];
+  const n = norm(s); if (!n) return '';
+  if (/^(hvac|mep|cctv|it|ac)$/.test(n)) return n.toUpperCase();
+  return n.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+}
+export function arCategory(s: unknown): string | null {
+  if (hasArabic(s)) return String(s);
+  const code = String(s ?? '').toLowerCase().trim();
+  if (CATEGORY_AR[code]) return CATEGORY_AR[code];
+  const n = norm(s); for (const [re, ar] of CATEGORIES) if (re.test(n)) return ar;
+  const t = arTrade(s); return t.complete && t.ar ? t.ar : null;
+}
+
+const UNIT_OF: Record<string, Unit> = { day: 'day', days: 'day', week: 'week', weeks: 'week', wk: 'week', wks: 'week', month: 'month', months: 'month', mo: 'month', mos: 'month', year: 'year', years: 'year', yr: 'year', yrs: 'year' };
+/** "2 weeks", "10-14 days", "12 months warranty", "3 working days", "immediate" → Arabic, or null. */
+export function arDuration(s: unknown): string | null {
+  if (hasArabic(s)) return String(s);
+  let t = norm(s).replace(/\.$/, '');
+  if (!t) return null;
+  if (/^(immediate(ly)?|asap|ex[- ]?stock|from stock|same day)$/.test(t)) return t.includes('stock') ? 'من المخزون فورًا' : 'فوري';
+  // "21 days from order" is the commonest lead time a supplier writes; it fell through to the
+  // "original wording" line on every Arabic report (measured 14 Sep 2026). The anchor is kept.
+  let from = '';
+  const anchor = t.match(/\s+(?:from|after)\s+(?:the\s+)?(order confirmation|purchase order|order|po|lpo|confirmation|approval|advance payment|advance|payment|drawing approval)$/);
+  if (anchor) {
+    from = /approval/.test(anchor[1]) ? ' من الاعتماد' : /advance|payment/.test(anchor[1]) ? ' من استلام الدفعة المقدمة' : ' من تاريخ الطلب';
+    t = t.slice(0, anchor.index);
+  }
+  const r = arDurationCore(t);
+  return r ? r + from : null;
+}
+function arDurationCore(t: string): string | null {
+  const m = t.match(/^(\d{1,4})(?:\s*(?:-|–|to)\s*(\d{1,4}))?\s*(working |business |calendar )?(days?|weeks?|wks?|months?|mos?|years?|yrs?)(?: (?:warranty|validity|guarantee))?$/);
+  if (!m) return null;
+  const a = Number(m[1]), b = m[2] ? Number(m[2]) : null, unit = UNIT_OF[m[4]], working = !!m[3] && /working|business/.test(m[3]);
+  if (!unit) return null;
+  if (b === null) return arCount(a, unit, working);
+  const f = working && unit === 'day' ? WORKING_FORMS : UNIT_FORMS[unit];
+  return `${a}–${b} ${b >= 3 && b <= 10 ? f[2] : f[3]}`;
+}
+const EVENTS: Array<[RegExp, string]> = [
+  [/^(completion|job completion|work completion|project completion)$/, 'الإنجاز'], [/^(delivery|material delivery|supply|delivery of materials|material delivery to site|delivery to site)$/, 'التسليم'],
+  [/^(installation|install)$/, 'التركيب'], [/^(handover|hand over|final handover)$/, 'التسليم النهائي'],
+  [/^(commissioning|testing (and|&) commissioning|t ?& ?c)$/, 'الاختبار والتشغيل'], [/^(approval|drawing approval|approval of drawings|shop drawing approval)$/, 'الاعتماد'],
+  [/^(order|order confirmation|confirmation|lpo|po|signing|contract signing|award)$/, 'تأكيد الطلب'], [/^dispatch$/, 'الشحن'],
+  [/^(mobili[sz]ation|site mobili[sz]ation)$/, 'التجهيز في الموقع'], [/^(invoice|invoicing|submission of invoice)$/, 'تقديم الفاتورة'], [/^(snagging|snag clearance)$/, 'معالجة الملاحظات'],
+];
+function arEvent(s: string): string | null { for (const [re, ar] of EVENTS) if (re.test(s.trim())) return ar; return null; }
+/** A payment-terms phrase is translated only when EVERY part of it is recognised; otherwise null. */
+export function arPayment(s: unknown): string | null {
+  if (hasArabic(s)) return String(s);
+  const t = norm(s).replace(/\.$/, '');
+  if (!t) return null;
+  const parts = t.split(/\s*(?:,|;|\+|\band\b|&)\s*/).filter(Boolean);
+  const out: string[] = [];
+  const LC = '(?:l\\/?c|letter of credit)';
+  for (const p of parts) {
+    let m: RegExpMatchArray | null;
+    if ((m = p.match(/^(\d{1,3})\s*%\s*(?:advance|down ?payment|deposit|upfront|mobili[sz]ation(?: advance)?)(?: payment)?$/))) { out.push(`${m[1]}% دفعة مقدّمة`); continue; }
+    if (new RegExp(`^(?:(?:balance|rest|remaining)\\s+(?:by|through|via|against)\\s+)?${LC}\\s*(?:at sight|sight)$`).test(p)) { out.push(/^(balance|rest|remaining)/.test(p) ? 'الرصيد باعتماد مستندي بالاطلاع' : 'اعتماد مستندي بالاطلاع'); continue; }
+    if ((m = p.match(new RegExp(`^(?:(\\d{1,3})\\s*%\\s*(?:by|through|via)?\\s*)?${LC}\\s*(?:at\\s*)?(\\d{1,3})\\s*days?(?: usance)?$`))) || (m = p.match(new RegExp(`^(?:(\\d{1,3})\\s*%\\s*)?(\\d{1,3})\\s*days?\\s*${LC}$`)))) { out.push(`${m[1] ? m[1] + '% ' : ''}اعتماد مستندي لأجل ${arCount(Number(m[2]), 'day')}`); continue; }
+    if (new RegExp(`^(?:balance|rest|remaining)\\s+(?:by|through|via|against)\\s+${LC}$`).test(p)) { out.push('الرصيد باعتماد مستندي'); continue; }
+    if ((m = p.match(new RegExp(`^(\\d{1,3})\\s*%\\s*(?:by|through|via|against)?\\s*${LC}$`)))) { out.push(`${m[1]}% باعتماد مستندي`); continue; }
+    if (new RegExp(`^${LC}$`).test(p)) { out.push('اعتماد مستندي'); continue; }
+    if ((m = p.match(/^(?:balance|rest|remaining)(?: amount| payment)?\s+(?:on|upon|after|at|against)\s+(.+)$/))) { const ev = arEvent(m[1]); if (!ev) return null; out.push(`الرصيد عند ${ev}`); continue; }
+    if ((m = p.match(/^(?:(\d{1,3})\s*%\s*)?(?:on|upon|after|at|against)\s+(.+)$/))) { const ev = arEvent(m[2]); if (!ev) return null; out.push(m[1] ? `${m[1]}% عند ${ev}` : `عند ${ev}`); continue; }
+    if ((m = p.match(/^(\d{1,3})\s*%\s*(?:before|prior to)\s+(.+)$/))) { const ev = arEvent(m[2]); if (!ev) return null; out.push(`${m[1]}% قبل ${ev}`); continue; }
+    if ((m = p.match(/^(\d{1,3})\s*%\s*(?:progress|monthly progress|against progress|as per progress|progressive)(?: payments?)?$/))) { out.push(`${m[1]}% حسب نسبة الإنجاز`); continue; }
+    if ((m = p.match(/^(\d{1,3})\s*%\s*retention(?:\s+(?:for|released after)\s+(\d{1,3})\s*(days?|months?))?$/)) || (m = p.match(/^retention\s*(?:of\s*)?(\d{1,3})\s*%$/))) { out.push(`${m[1]}% محتجزة لضمان حسن التنفيذ${m[2] ? ' لمدة ' + arCount(Number(m[2]), /month/.test(m[3] || '') ? 'month' : 'day') : ''}`); continue; }
+    if ((m = p.match(/^(\d{1,3})\s*days?\s*(?:credit|pdc)$/)) || (m = p.match(/^(?:credit|pdc)\s*(\d{1,3})\s*days?$/))) { out.push(`دفع آجل خلال ${arCount(Number(m[1]), 'day')}`); continue; }
+    if ((m = p.match(/^(?:within\s+)?(\d{1,3})\s*days?\s*(?:of|from|after)\s*(?:the\s*)?invoice(?: date)?$/))) { out.push(`خلال ${arCount(Number(m[1]), 'day')} من تاريخ الفاتورة`); continue; }
+    if (/^(cash|cash on delivery|cod)$/.test(p)) { out.push(p === 'cash' ? 'نقدًا' : 'نقدًا عند التسليم'); continue; }
+    if (/^(cheque|current cheque|cheque on delivery)$/.test(p)) { out.push(p === 'cheque on delivery' ? 'شيك عند التسليم' : 'شيك'); continue; }
+    if (/^(bank transfer|wire transfer|tt|telegraphic transfer)$/.test(p)) { out.push('تحويل بنكي'); continue; }
+    if (/^against invoice$/.test(p)) { out.push('مقابل الفاتورة'); continue; }
+    if (/^(100\s*%\s*)?(advance|full advance|full payment in advance)$/.test(p)) { out.push('100% دفعة مقدّمة'); continue; }
+    return null;
+  }
+  return out.length ? out.join('، ') : null;
+}
+
+// ── Types: what the caller hands in ─────────────────────────────────────────────────────────────
+export type QuoteRow = {
+  id?: string; quote_amount: number | null; lead_time?: string | null; validity?: string | null; warranty?: string | null;
+  payment_terms?: string | null; scope?: string | null; conditions?: string | null; exclusions?: string | null; notes?: string | null;
+  /** The founder's four completeness checks (14 Sep 2026). All optional: absent means "not stated". */
+  installation_applicable?: boolean | null; installation_included?: boolean | null; installation_scope?: string | null; installation_timeline?: string | null;
+  warranty_applicable?: boolean | null; warranty_coverage?: string | null;
+  /** The price excluding VAT (the spec/hold contract's `price_ex_vat`). Every customer document
+   * shows and compares this figure; the 3% fee is taken on it. Absent: quote_amount is ex-VAT. */
+  price_ex_vat?: number | null;
+};
+export type InquiryRow = { id: string; category?: string | null; summary?: string | null; emirate?: string | null };
+/** One priced line of the supplier's own breakdown (quote_items). `specs` is attribute → stated value. */
+export type Item = {
+  desc: string; qty: string; unit: string; unit_price?: number | null; amount?: number | null;
+  brand?: string | null; model?: string | null; specification?: string | null; specs?: Record<string, string | null> | null;
+};
+
+// THE TECHNICAL COMPARISON — the renderer's input. The spec agent (branch exact-specs-or-hold)
+// publishes the contract at docs/contracts/technical_comparison.md; this is the shape described in
+// its scope line: each quote's stated value per attribute, per scope line, with a flag against the
+// request, plus the three commercial completeness checks with an `applicable` flag. Values are keyed
+// by the anonymous label ("Supplier A"). A held quote is never a column: the roster decides.
+export type SpecFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na';
+export type SpecCell = { value?: string | null; flag: SpecFlag; note?: string | null };
+export type TechAttribute = { key: string; label?: string | null; unit?: string | null; requested?: string | null; values: Record<string, SpecCell> };
+export type TechLine = { line_no?: number | null; item: string; qty?: string | number | null; unit?: string | null; attributes: TechAttribute[] };
+export type TechTerm = { applicable?: boolean | null; requested?: string | null; values: Record<string, SpecCell> };
+export type TechnicalComparison = {
+  suppliers: string[];
+  lines: TechLine[];
+  terms?: { lead_time?: TechTerm | null; installation?: TechTerm | null; warranty?: TechTerm | null } | null;
+};
+
+export function quoteRef(inquiryId: string, letter: string) { return 'QD-' + String(inquiryId || '').slice(0, 8).toUpperCase() + '-' + letter; }
+export function clipCell(s: unknown, n: number) { const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; }
+// deno-lint-ignore no-explicit-any
+const arrOf = (x: any) => Array.isArray(x) ? x : [];
+/** "Supplier B" → "المورّد B" on an Arabic page; the letter stays the one on the customer's screen. */
+// "Option N" takes the same Arabic as labelQuotes' own .ar ("المورّد A – الخيار 2"). Measured 14 Sep
+// 2026: only "Supplier" was translated, so the Arabic report read "المورّد A – Option 1" in every table.
+export const arLabelWords = (s: string) => s.replace(/\bSupplier ([A-Z]{1,2})\b/g, 'المورّد $1').replace(/\bOption (\d{1,3})\b/g, 'الخيار $1');
+export function labelFor(label: unknown, lang: Lang) { const l = String(label ?? ''); return lang === 'ar' ? arLabelWords(l) : l; }
+
+// ── VAT never reaches the customer ─────────────────────────────────────────────────────────────
+// Founder, 14 Sep 2026: "our company is not vat registered so for our reveal fee there is no vat.
+// and for suppliers quotations, we definetely hide the vat details when sharing the quotes with the
+// customer." Every price is shown ex-VAT; the one neutral line below is the only mention; a sentence
+// of supplier or analysis text that mentions VAT, tax registration or a TRN is dropped whole.
+export const VAT_LINE = { en: 'Prices shown exclude VAT, where applicable.', ar: 'الأسعار المعروضة لا تشمل ضريبة القيمة المضافة حيثما تنطبق.' };
+export const VAT_RE = /\b(?:vat|trn|value[- ]added tax|tax registration(?: number)?|tax reg(?:istration)? no)\b|ضريبة القيمة المضافة|الرقم الضريبي|رقم التسجيل الضريبي|\b100\d{12}\b/i;
+/** Drop every sentence / clause that mentions VAT or a TRN. */
+export function stripVat(s: unknown): string {
+  const t = String(s ?? '');
+  if (!VAT_RE.test(t)) return t;
+  return t.split(/(?<=[.;!؛\n])\s+|\s*[;؛]\s*/).filter((part) => !VAT_RE.test(part)).join(' ').replace(/\s+/g, ' ').trim();
+}
+
+// ── Shared helpers for both documents ────────────────────────────────────────────────────────────
+type Cell = string | { text: string; sub?: string; flag?: SpecFlag; chip?: 'short' | 'open' | 'hold'; link?: string; bold?: boolean; group?: boolean };
+const ORIGINAL = 'النص الأصلي من المورد: ';
+function kit(lang: Lang, names: string[] = []) {
+  const ar = lang === 'ar';
+  // Contacts are masked and VAT dropped BEFORE translation, so neither can survive in the Arabic
+  // primary text or in the "original wording" line under it.
+  const clean = (v: unknown) => maskContacts(stripVat(v), names, 'en');
+  const T = (en: string, arx: string) => (ar ? arx : en);
+  const money = (v: unknown, dec = false) => {
+    if (v == null || v === '' || !(Number(v) > 0)) return '—';
+    const n = Number(v).toLocaleString('en-AE', { minimumFractionDigits: dec ? 2 : 0, maximumFractionDigits: dec ? 2 : 0 });
+    return ar ? `${n} درهم` : `AED ${n}`;
+  };
+  // Supplier or customer free text in the page's language. On an Arabic page it is translated by
+  // the glossary; what the glossary cannot finish keeps the original on a secondary line.
+  const loc = (v: unknown, max = 400): { text: string; sub?: string } => {
+    const s = clipCell(clean(v), max);
+    if (!s || !ar) return { text: s };
+    const t = arTrade(s);
+    if (t.complete) return { text: t.ar };
+    return { text: t.ar || 'انظر النص الأصلي أدناه', sub: ORIGINAL + s };
+  };
+  const cell = (v: unknown, max = 400): Cell => { const r = loc(v, max); return r.sub ? r : (r.text || '—'); };
+  const dur = (v: unknown) => { const c = clipCell(v, 60); if (!c) return ''; return ar ? (arDuration(c) ?? loc(c).text) : c; };
+  const pay = (v: unknown): Cell => { const c = clipCell(clean(v), 90); if (!c) return '—'; if (!ar) return c; const p = arPayment(c); return p ?? cell(c); };
+  const label = (l: unknown) => labelFor(l, lang);
+  // Analysis sentences name suppliers by label and prices in AED: both take the page's language.
+  // Any sentence about VAT is dropped in both languages.
+  // deno-lint-ignore no-explicit-any
+  const sentence = (v: any): any => typeof v === 'string'
+    ? (ar ? arLabelWords(stripVat(v)).replace(/\bAED\s?([\d,.]+)/g, '$1 درهم') : stripVat(v))
+    : Array.isArray(v) ? v.map(sentence) : (v && typeof v === 'object') ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === 'link' ? x : sentence(x)])) : v;
+  const today = () => new Date().toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  return { ar, T, money, loc, cell, dur, pay, label, sentence, today };
+}
+type Kit = ReturnType<typeof kit>;
+const FLAG_WORD: Record<SpecFlag, [string, string]> = { match: ['Matches', 'مطابق'], differs: ['Differs', 'مختلف'], missing: ['Not stated', 'غير مذكور'], optional: ['Not stated (optional)', 'غير مذكورة (اختيارية)'], na: ['N/A', 'لا ينطبق'] };
+/** A spec or term value with its marker. An empty value takes the flag's own word. */
+function flagged(k: Kit, c: SpecCell | null | undefined): Cell {
+  const flag: SpecFlag = c?.flag ?? 'missing';
+  const raw = c?.value == null ? '' : String(c.value);
+  if (flag === 'na') return { text: k.T('N/A', 'لا ينطبق'), flag };
+  if (!raw.trim()) return { text: k.T(FLAG_WORD[flag][0], FLAG_WORD[flag][1]), flag };
+  const d = k.ar ? (arDuration(raw) ? { text: arDuration(raw)! } as { text: string; sub?: string } : k.loc(raw, 120)) : { text: clipCell(raw, 120) } as { text: string; sub?: string };
+  const note = c?.note ? (k.ar ? k.loc(c.note, 120).text : clipCell(c.note, 120)) : '';
+  return { text: d.text + (note ? ` (${note})` : ''), ...(d.sub ? { sub: d.sub } : {}), flag };
+}
+function legendBlock(k: Kit) {
+  return { t: 'legend', items: [['match', k.T('Matches your request', 'مطابق لطلبك')], ['differs', k.T('Differs from your request', 'مختلف عن طلبك')], ['missing', k.T('Not stated by the supplier', 'لم يذكره المورّد')], ['optional', k.T('Not stated (optional detail)', 'غير مذكورة (تفصيل اختياري)')], ['na', k.T('N/A — does not apply', 'لا ينطبق')]] };
+}
+function specText(k: Kit, it: Item): Cell {
+  const parts: Array<{ text: string; sub?: string }> = [];
+  const specs = it.specs && typeof it.specs === 'object' ? Object.entries(it.specs).filter(([, v]) => v != null && String(v).trim() !== '') : [];
+  for (const [key, v] of specs) {
+    const name = k.ar ? (arAttr(key) ?? k.loc(key.replace(/_/g, ' ')).text) : key.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+    const val = k.loc(v, 120);
+    parts.push({ text: `${name}: ${val.text}`, sub: val.sub });
+  }
+  if (it.brand) parts.push({ text: `${k.T('Brand', 'العلامة التجارية')}: ${it.brand}` });
+  if (it.model) parts.push({ text: `${k.T('Model', 'الطراز')}: ${it.model}` });
+  if (it.specification) parts.push(k.loc(it.specification, 200));
+  if (!parts.length) return { text: k.T('Not stated', 'غير مذكور'), flag: 'missing' };
+  const subs = parts.filter((p) => p.sub).map((p) => p.sub!.replace(ORIGINAL, ''));
+  return { text: parts.map((p) => p.text).join(' · '), ...(subs.length ? { sub: ORIGINAL + subs.join(' · ') } : {}) };
+}
+const hasSpecs = (it: Item) => !!((it.specs && Object.values(it.specs).some((v) => v != null && String(v).trim() !== '')) || it.brand || it.model || it.specification);
+
+// ── The quotation ──────────────────────────────────────────────────────────────────────────────
+/** The pdf_native body for ONE quote in ONE language. Pure: the caller fetches the rows. */
+// requestUrl: the portal deep link back to this quote on its request (site_origins portalLink).
+export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string }) {
+  const { quote: q, inquiry: inq, letter, lang } = args;
+  // A line that is itself VAT ("VAT 5%") is not scope; it never reaches the page.
+  const items = (args.items || []).filter((it) => !VAT_RE.test(String(it.desc || '')));
+  const exVat = Number(q.price_ex_vat) > 0 ? Number(q.price_ex_vat) : Number(q.quote_amount) || 0;
+  const k = kit(lang, args.maskNames || []); const { T, ar } = k;
+  const ref = quoteRef(inq.id, letter);
+  const date = (ar ? args.date_ar : args.date) || k.today();
+  const party = k.label('Supplier ' + letter);
+  const trade = ar ? (arCategory(inq.category) ?? k.loc(inq.category).text) : enCategory(inq.category);
+  const emirate = ar ? (arEmirate(inq.emirate) ?? k.loc(inq.emirate).text) : String(inq.emirate || '');
+  const lead = k.dur(q.lead_time), validity = k.dur(q.validity), warranty = k.dur(q.warranty);
+  const summary = k.loc(inq.summary, 600);
+  // deno-lint-ignore no-explicit-any
+  const blocks: any[] = [];
+  let n = 0; const section = (en: string, arx: string) => blocks.push({ t: 'section', n: ++n, text: T(en, arx) });
+
+  section('Request and quoting party', 'الطلب والجهة مقدّمة العرض');
+  // `note`, not `sub`: in these blocks `sub` means one thing only — the supplier's original wording.
+  blocks.push({ t: 'party', label: T('Quoting party', 'الجهة مقدّمة العرض'), chip: party, note: T('Anonymous until you reveal it. The supplier\'s name and contact details are released only after the reveal fee is paid.', 'هوية المورّد مخفية حتى الكشف، ولا تُعرض بيانات التواصل إلا بعد سداد رسوم الكشف.') });
+  blocks.push({ t: 'kv', pairs: [[T('Trade', 'التخصص'), trade || '—'], [T('Emirate', 'الإمارة'), emirate || '—']] });
+  if (summary.text) blocks.push({ t: 'p', text: summary.text, sub: summary.sub, label: T('Your request', 'طلبك') });
+
+  section('Scope and technical specification', 'نطاق العمل والمواصفات الفنية');
+  const priced = items.some((it) => Number(it.amount) > 0 || Number(it.unit_price) > 0);
+  const specCol = items.some(hasSpecs);
+  if (items.length) {
+    const head: Cell[] = ['#', T('Description', 'الوصف')];
+    const widths = [0.05]; const align = ['c', 's'];
+    if (specCol) head.push(T('Specification', 'المواصفات'));
+    head.push(T('Qty', 'الكمية'), T('Unit', 'الوحدة'));
+    if (priced) head.push(T('Rate (AED)', 'سعر الوحدة (درهم)'), T('Amount (AED)', 'المبلغ (درهم)'));
+    widths.push(specCol ? (priced ? 0.22 : 0.33) : (priced ? 0.49 : 0.69));
+    if (specCol) { widths.push(priced ? 0.31 : 0.40); align.push('s'); }
+    widths.push(0.07, 0.08); align.push('e', 'c');
+    if (priced) { widths.push(0.12, 0.15); align.push('e', 'e'); }
+    const total = widths.reduce((a, b) => a + b, 0); const W = widths.map((w) => w / total);
+    const rows = items.map((it, i) => {
+      const r: Cell[] = [String(i + 1), k.cell(it.desc, 200)];
+      if (specCol) r.push(specText(k, it));
+      r.push(String(it.qty ?? ''), (ar ? (arUnit(it.unit) ?? k.loc(it.unit).text) : String(it.unit || '')) || '—');
+      // The currency sits in the column head, so each cell is the figure alone and stays on one line.
+      const num = (x: unknown) => Number(x) > 0 ? Number(x).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+      if (priced) r.push(num(it.unit_price), num(it.amount));
+      return r;
+    });
+    blocks.push({ t: 'table', head, rows, widths: W, align, zebra: true });
+  } else {
+    blocks.push({ t: 'callout', tone: 'gold', title: T('Lump-sum quote', 'عرض بسعر إجمالي'), text: T('The supplier priced this job as one sum with no line breakdown, so it cannot be checked item by item. Ask for an itemised breakdown before you commit.', 'سعّر المورّد العمل بمبلغ إجمالي واحد دون تفصيل بالبنود، لذا لا يمكن التحقق منه بندًا بندًا. اطلب تفصيلًا بالبنود قبل الالتزام.') });
+  }
+  // Totals: the lines' own sum where they carry amounts, then the total — both excluding VAT. No VAT
+  // line, amount, rate or TRN ever reaches the customer (founder, 14 Sep 2026: "we definetely hide
+  // the vat details when sharing the quotes with the customer"; a TRN would also name the supplier).
+  const sum = items.reduce((a, it) => a + (Number(it.amount) > 0 ? Number(it.amount) : 0), 0);
+  const trows: Array<[string, string, boolean?]> = [];
+  if (sum > 0) trows.push([T('Lines subtotal', 'مجموع البنود'), k.money(sum, true)]);
+  trows.push([T('Total quoted', 'إجمالي العرض'), k.money(exVat, true), true]);
+  const diff = sum > 0 && exVat > 0 && Math.abs(sum - exVat) > 1;
+  blocks.push({ t: 'totals', rows: trows, note: diff ? T(`The line amounts add up to ${k.money(sum, true)}; the quoted total is ${k.money(exVat, true)}. The quoted total is the price this supplier offered.`, `مجموع مبالغ البنود ${k.money(sum, true)} بينما إجمالي العرض ${k.money(exVat, true)}. إجمالي العرض هو السعر الذي قدّمه هذا المورّد.`) : '' });
+  blocks.push({ t: 'note', text: T(VAT_LINE.en, VAT_LINE.ar) });
+
+  section('Completeness check', 'فحص اكتمال العرض');
+  blocks.push({ t: 'p', text: T('A quote is complete when it states all four of these. Each is marked as the supplier stated it.', 'يكون العرض مكتملًا عندما يذكر هذه البنود الأربعة كلها. كل بند معلّم كما ذكره المورّد.'), muted: true });
+  const specN = items.filter(hasSpecs).length;
+  const checks: Array<[string, Cell]> = [];
+  checks.push([T('Material specification, per line', 'مواصفات المواد لكل بند'), !items.length ? { text: T('No line breakdown', 'لا يوجد تفصيل بالبنود'), flag: 'missing' }
+    : specN === items.length ? { text: T(`Stated on all ${items.length} lines`, `مذكورة في جميع البنود (${items.length})`), flag: 'match' }
+    : { text: T(`Missing on ${items.length - specN} of ${items.length} lines`, `ناقصة في ${items.length - specN} من ${items.length} بنود`), flag: 'missing' }]);
+  checks.push([T('Delivery / lead time', 'التسليم / مدة التنفيذ'), lead ? { text: lead, flag: 'match' } : { text: T('Not stated', 'غير مذكورة'), flag: 'missing' }]);
+  const instScope = [q.installation_scope ? k.loc(q.installation_scope, 120).text : '', q.installation_timeline ? k.dur(q.installation_timeline) : ''].filter(Boolean).join(' · ');
+  checks.push([T('Installation', 'التركيب'), q.installation_applicable === false ? { text: T('N/A', 'لا ينطبق'), flag: 'na' }
+    : q.installation_included === true ? { text: T('Included', 'مشمول') + (instScope ? ' — ' + instScope : ''), flag: instScope ? 'match' : 'missing' }
+    : q.installation_included === false ? { text: T('Not included', 'غير مشمول'), flag: 'differs' } : { text: T('Not stated', 'غير مذكور'), flag: 'missing' }]);
+  const coverage = q.warranty_coverage ? k.loc(q.warranty_coverage, 120).text : '';
+  checks.push([T('Warranty — period and coverage', 'الضمان — المدة والتغطية'), q.warranty_applicable === false ? { text: T('N/A', 'لا ينطبق'), flag: 'na' }
+    : warranty && coverage ? { text: `${warranty} — ${coverage}`, flag: 'match' }
+    : warranty ? { text: `${warranty} — ${T('coverage not stated', 'التغطية غير مذكورة')}`, flag: 'missing' } : { text: T('Not stated', 'غير مذكور'), flag: 'missing' }]);
+  blocks.push({ t: 'checks', items: checks });
+
+  section('Commercial terms', 'الشروط التجارية');
+  blocks.push({ t: 'terms', cols: 3, cells: [
+    [T('Lead time', 'مدة التنفيذ'), lead || '—'], [T('Quote validity', 'صلاحية العرض'), validity || '—'], [T('Warranty', 'الضمان'), warranty || '—'],
+    [T('Payment terms', 'شروط الدفع'), k.pay(q.payment_terms)],
+    [T('Installation', 'التركيب'), q.installation_applicable === false ? T('N/A', 'لا ينطبق') : q.installation_included === true ? T('Included', 'مشمول') : q.installation_included === false ? T('Not included', 'غير مشمول') : T('Not stated', 'غير مذكور')],
+    [T('Delivery to', 'التسليم إلى'), emirate || '—'],
+  ] });
+
+  const notes: Array<[string, string, unknown]> = [['Scope as stated by the supplier', 'نطاق العمل كما ذكره المورّد', q.scope], ['Assumptions and conditions', 'الافتراضات والشروط', q.conditions], ['Exclusions', 'الاستثناءات', q.exclusions], ['Supplier notes', 'ملاحظات المورّد', q.notes]];
+  if (notes.some(([, , v]) => v != null && String(v).trim() !== '')) {
+    section('Scope notes, assumptions and exclusions', 'ملاحظات النطاق والافتراضات والاستثناءات');
+    for (const [en, arx, v] of notes) { if (v == null || String(v).trim() === '') continue; const r = k.loc(v, 800); blocks.push({ t: 'p', label: T(en, arx), text: r.text, sub: r.sub }); }
+  }
+
+  blocks.push({ t: 'callout', tone: 'grey', title: T('Standardised by QuotesDone from the supplier\'s submission', 'وحّدته QuotesDone من العرض الذي قدّمه المورّد'),
+    text: T(`${PREPARED_BY.en}. This is QuotesDone's standard layout of the supplier's quote, not the supplier's own document, and it carries no signature. Figures, specifications and scope are as the supplier stated them; verify final details before ordering. QuotesDone charges the customer a 3% facilitation fee on the quoted value at the point of contact reveal.`,
+      `${PREPARED_BY.ar}. هذا هو التنسيق الموحّد لعرض المورّد لدى QuotesDone وليس مستند المورّد نفسه، ولا يحمل توقيعًا. القيم والمواصفات والنطاق كما ذكرها المورّد؛ يُرجى التحقق من التفاصيل النهائية قبل الطلب. تتقاضى QuotesDone من العميل رسوم تيسير بنسبة 3% من قيمة العرض عند كشف بيانات التواصل.`) });
+  if (args.requestUrl) blocks.push({ t: 'link', text: T('Open this quote on your request in the QuotesDone portal', 'افتح هذا العرض في طلبك على بوابة QuotesDone'), link: args.requestUrl });
+
+  const cover0 = {
+    kicker: T('Standardised quotation', 'عرض أسعار موحّد'), title: T('Quotation', 'عرض أسعار'),
+    subtitle: clipCell(summary.text, 170),
+    meta: [[T('Reference', 'الرقم المرجعي'), ref], [T('Date', 'التاريخ'), date], [T('Quoting party', 'مقدّم العرض'), party], [T('Trade', 'التخصص'), trade || '—']],
+    figures: [[T('Total quoted', 'إجمالي العرض'), k.money(exVat)], [T('Lead time', 'مدة التنفيذ'), lead || '—'], [T('Warranty', 'الضمان'), warranty || '—'], [T('Valid for', 'صالح لمدة'), validity || '—']],
+  };
+  const control = `${ref} · ${DOC_VERSION} · ${T('Generated', 'أُنشئ في')} ${date} · ${ar ? PREPARED_BY.ar : PREPARED_BY.en}`;
+  const names = args.maskNames || [];
+  const body: Record<string, unknown> = {
+    lang, ref, name: ref + '-quotation-' + lang, title: T('Quotation', 'عرض أسعار'),
+    cover: maskDeep(cover0, names, lang), control, blocks: maskDeep(blocks, names, lang), options: { letterhead: true },
+  };
+  if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
+  return { body, ref };
+}
+
+// ── The comparison report ───────────────────────────────────────────────────────────────────────
+// deno-lint-ignore no-explicit-any
+function techOf(a: any): TechnicalComparison | null {
+  const t = a?.technical;
+  return t && Array.isArray(t.suppliers) && Array.isArray(t.lines) ? t as TechnicalComparison : null;
+}
+// deno-lint-ignore no-explicit-any
+function heldLabels(a: any): Set<string> { return new Set(arrOf(a?.all_quotes).filter((r: any) => r && r.status === 'held').map((r: any) => String(r.label))); }
+const cellText = (c: Cell) => typeof c === 'string' ? c : c.text;
+// 'a.; b.' read as a typo: each item loses its own full stop before the list is joined.
+// deno-lint-ignore no-explicit-any
+const joinList = (x: any, ar = false) => arrOf(x).map((s: unknown) => String(s ?? '').trim().replace(/[.。]+$/, '')).filter(Boolean).join(ar ? '؛ ' : '; ');
+
+// THE SIDE-BY-SIDE COMMERCIAL TABLE, ONCE. The report renders the rich cells and compare_csv
+// exports the same rows as text (compareTable), so the spreadsheet can never disagree with the page.
+// deno-lint-ignore no-explicit-any
+function commercialRows(a: any, lang: Lang, names: string[] = []): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
+  const k = kit(lang, names); const { T } = k;
+  const held = heldLabels(a);
+  // deno-lint-ignore no-explicit-any
+  const qs = arrOf(a?.quotes).filter((q: any) => !held.has(String(q.label)));
+  if (!qs.length) return null;
+  const terms = techOf(a)?.terms || null;
+  const rows: Cell[][] = [];
+  // deno-lint-ignore no-explicit-any
+  const push = (label: string, get: (q: any) => Cell) => { const vals = qs.map(get); if (vals.some((v: Cell) => cellText(v) && cellText(v) !== '—')) rows.push([{ text: label, bold: true }, ...vals]); };
+  // deno-lint-ignore no-explicit-any
+  const term = (t: TechTerm | null | undefined, q: any, fallback: Cell): Cell => {
+    if (t && t.applicable === false) return { text: T('N/A', 'لا ينطبق'), flag: 'na' };
+    const c = t?.values?.[String(q.label)];
+    return c ? flagged(k, c) : fallback;
+  };
+  // deno-lint-ignore no-explicit-any
+  const list = (x: any, n: number): Cell => { const s = clipCell(joinList(x, k.ar), n); return s ? k.cell(k.sentence(s), n) : '—'; };
+  push(T('Price', 'السعر'), (q) => k.money(Number(q.price_ex_vat) > 0 ? q.price_ex_vat : q.price));
+  push(T('Delivery / lead time', 'التسليم / مدة التنفيذ'), (q) => term(terms?.lead_time, q, k.dur(q.lead_time) || '—'));
+  if (terms?.installation) push(T('Installation', 'التركيب'), (q) => term(terms.installation, q, '—'));
+  push(T('Warranty', 'الضمان'), (q) => term(terms?.warranty, q, k.dur(q.warranty) || '—'));
+  push(T('Payment terms', 'شروط الدفع'), (q) => k.pay(q.payment_terms));
+  push(T('Valid for', 'مدة الصلاحية'), (q) => k.dur(q.validity) || '—');
+  push(T('What you get', 'ما ستحصل عليه'), (q) => k.sentence(clipCell(q.getting, 240)) || '—');
+  push(T('Included', 'مشمول'), (q) => list(q.includes, 240));
+  push(T('Not included', 'غير مشمول'), (q) => list(q.excludes, 200));
+  push(T('Missing from your request', 'ناقص مما طلبت'), (q) => list(q.missing_from_request, 200));
+  push(T('Differs from your spec', 'اختلاف عن مواصفاتك'), (q) => list(q.spec_deviation, 200));
+  push(T('Track record', 'سجل الأداء'), (q) => q.track_record_note ? k.cell(k.sentence(q.track_record_note), 180) : '—');
+  push(T('Watch out', 'تنبيهات'), (q) => k.sentence(clipCell(joinList(q.flags, k.ar), 200)) || '—');
+  // deno-lint-ignore no-explicit-any
+  // The FULL label, never clipped: a label is the only thing that tells two options of one supplier
+  // apart. Clipped to 20 characters, "Supplier A – Option 1" and "Supplier A – Option 2" both became
+  // "Supplier A – Option…" in the report's commercial table and in compare_csv (measured 14 Sep 2026,
+  // e2e journey c). Labels are system-made ("Supplier X – Option N"), so their length is bounded.
+  return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => k.label(q.label))], rows, labels: qs.map((q: any) => String(q.label)) };
+}
+const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '' };
+/** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */
+// deno-lint-ignore no-explicit-any
+export function compareTable(a: any, ar: boolean): { head: string[]; rows: string[][] } | null {
+  const r = commercialRows(a, ar ? 'ar' : 'en');
+  if (!r) return null;
+  const txt = (c: Cell) => { if (typeof c === 'string') return c; const m = c.flag ? MARK[c.flag] : ''; return (m && c.text !== '—' ? m + ' ' : '') + c.text; };
+  return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)) };
+}
+/** RFC 4180 cells, plus a leading apostrophe on anything a spreadsheet would run as a formula. */
+// The trigger set is = + - @ AND a leading tab or carriage return (OWASP CSV injection): cells carry
+// supplier-written text (flags, inclusions, exclusions), and a spreadsheet trims a leading tab/CR
+// and then evaluates what follows. Until 14 Sep 2026 only the first four were escaped.
+export function toCsv(head: string[], rows: string[][]): string {
+  const cell = (v: unknown) => { let s = String(v ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  // The BOM is what makes Excel read the file as UTF-8; without it Arabic opens as mojibake.
+  return '﻿' + [head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n') + '\r\n';
+}
+
+/** The pdf_native body for the comparison report in ONE language. `a` is quote_compare's analysis;
+ * `a.technical` (optional) is the TechnicalComparison. */
+// linkFor: a quote id → the portal deep link that opens that quote (site_origins portalLink). With
+// it, every supplier cell in "Recommended" and "All quotes received" links to its own quote rather
+// than to the portal in general. The link carries ids only; the label beside it is the anonymous one.
+// deno-lint-ignore no-explicit-any
+export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang: Lang; maskNames?: string[]; portalUrl?: string; linkFor?: (quoteId: string) => string; date?: string; date_ar?: string }) {
+  const { analysis: a, inquiry: inq, lang } = args;
+  const k = kit(lang, args.maskNames || []); const { T, ar } = k;
+  const ref = 'QD-' + String(inq?.id || '').slice(0, 8).toUpperCase() + '-CMP';
+  const date = (ar ? args.date_ar : args.date) || k.today();
+  const roster = arrOf(a.all_quotes);
+  const held = heldLabels(a);
+  // deno-lint-ignore no-explicit-any
+  const qs = arrOf(a.quotes).filter((q: any) => !held.has(String(q.label)));
+  const received = roster.length || Number(a.total_quotes) || Number(a.considered) || qs.length;
+  const tech = techOf(a);
+  // top3 names quotes by label only; the roster carries each label's quote_id.
+  // deno-lint-ignore no-explicit-any
+  const idOf = new Map<string, string>(roster.filter((r: any) => r && r.label && r.quote_id).map((r: any) => [String(r.label), String(r.quote_id)]));
+  const linked = (text: string, quoteId: unknown, extra: Record<string, unknown> = {}): Cell => (args.linkFor && quoteId ? { text, link: args.linkFor(String(quoteId)), ...extra } : (Object.keys(extra).length ? { text, ...extra } : text));
+  const trade = ar ? (arCategory(inq?.category) ?? k.loc(inq?.category).text) : enCategory(inq?.category);
+  const emirate = ar ? (arEmirate(inq?.emirate) ?? k.loc(inq?.emirate).text) : String(inq?.emirate || '');
+  const summary = k.loc(inq?.summary, 600);
+  // deno-lint-ignore no-explicit-any
+  const prices = roster.filter((r: any) => r.status !== 'held' && Number(r.price_ex_vat ?? r.price) > 0).map((r: any) => Number(r.price_ex_vat ?? r.price));
+  const top = arrOf(a.top3);
+  // deno-lint-ignore no-explicit-any
+  const blocks: any[] = [];
+  let n = 0; const section = (en: string, arx: string) => blocks.push({ t: 'section', n: ++n, text: T(en, arx) });
+  // The report states its method once, in its own section; the rules ranking's bottom line repeats it.
+  const strip = (s: unknown) => String(s ?? '').replace(METHOD_NOTE_EN, '').replace(METHOD_NOTE_AR, '').replace(/\s+/g, ' ').trim();
+
+  // 1 — Executive summary
+  section('Executive summary', 'الملخص التنفيذي');
+  if (strip(a.bottom_line)) blocks.push({ t: 'p', text: k.sentence(strip(a.bottom_line)), size: 11 });
+  if (a.overview) blocks.push({ t: 'p', text: k.sentence(String(a.overview)) });
+  if (top.length) {
+    const t1 = top[0]; const id1 = idOf.get(String(t1.label));
+    blocks.push({ t: 'callout', tone: 'teal', title: T('Recommended: ', 'التوصية: ') + k.label(t1.label), text: k.sentence(String(t1.why || '')) + (t1.tradeoff ? ' ' + T('Catch: ', 'الاعتبار: ') + k.sentence(String(t1.tradeoff)) : ''), ...(id1 && args.linkFor ? { link: args.linkFor(id1) } : {}) });
+  }
+  if (a.shortlist_reason) blocks.push({ t: 'note', text: k.sentence(String(a.shortlist_reason)) });
+  if (top.length) {
+    blocks.push({ t: 'h3', text: T('Recommended', 'التوصية') });
+    blocks.push({ t: 'table', head: ['#', T('Supplier', 'المورّد'), T('Why', 'السبب'), T('Catch', 'الاعتبار')],
+      // deno-lint-ignore no-explicit-any
+      rows: top.map((r: any, i: number) => [String(r.rank ?? i + 1), linked(clipCell(k.label(r.label), 24), idOf.get(String(r.label)), { bold: true }), k.sentence(clipCell(r.why, 220)), k.sentence(clipCell(r.tradeoff, 160)) || '—']),
+      widths: [0.06, 0.17, 0.47, 0.30], align: ['c', 's', 's', 's'], zebra: true });
+    // deno-lint-ignore no-explicit-any
+    const scored = top.map((t: any) => arrOf(a.quotes).find((q: any) => q.label === t.label)).filter((q: any) => q && [q.price_score, q.quality_score, q.delivery_score].every((x: unknown) => Number(x) > 0));
+    if (scored.length) {
+      blocks.push({ t: 'scores', head: [T('Price', 'السعر'), T('Completeness', 'الاكتمال'), T('Delivery', 'التسليم'), T('Overall', 'الإجمالي')],
+        // deno-lint-ignore no-explicit-any
+        rows: scored.map((q: any, i: number) => ({ label: k.label(q.label), rank: i + 1, scores: [Number(q.price_score), Number(q.quality_score), Number(q.delivery_score)], overall: Math.round((q.price_score * 0.4 + q.quality_score * 0.4 + q.delivery_score * 0.2) * 10) / 10 })),
+        note: T('Scores run from 1 (weakest) to 5 (strongest), relative to the other quotes on this request. Overall weights price 40%, completeness 40% and delivery 20%.', 'الدرجات من 1 (الأضعف) إلى 5 (الأقوى) مقارنةً ببقية العروض على هذا الطلب. الإجمالي: السعر 40%، والاكتمال 40%، والتسليم 20%.') });
+    }
+  }
+
+  // 2 — Method and what is assessed
+  section('Method and scope of assessment', 'المنهجية ونطاق التقييم');
+  blocks.push({ t: 'p', text: T(`${PREPARED_BY.en} from the ${received} quotes submitted on your request. Quotes are ranked on the figures each supplier stated: price, completeness, lead time, warranty and payment terms.`,
+    `${PREPARED_BY.ar} استنادًا إلى العروض الـ${received} المقدّمة على طلبك. رُتّبت العروض وفق الأرقام التي ذكرها كل مورّد: السعر، واكتمال العرض، ومدة التنفيذ، والضمان، وشروط الدفع.`) });
+  blocks.push({ t: 'p', text: tech
+    ? T('Material specifications are compared line by line with your request, exactly as each supplier stated them: each value is marked as matching your request, differing from it, or not stated.', 'تُقارن مواصفات المواد بندًا بندًا مع طلبك، كما ذكرها كل مورّد تمامًا: كل قيمة معلّمة بأنها مطابقة لطلبك أو مختلفة عنه أو غير مذكورة.')
+    : T('Specifications are not assessed; check them before you pay.', 'لم تُقيَّم المواصفات؛ يُرجى التحقق منها قبل الدفع.') });
+  blocks.push({ t: 'kv', pairs: [
+    [T('Assessed', 'ما تم تقييمه'), T(`Price, completeness, lead time, installation, warranty, payment terms${tech ? ', line-by-line material specification' : ''}`, `السعر، والاكتمال، ومدة التنفيذ، والتركيب، والضمان، وشروط الدفع${tech ? '، ومواصفات المواد بندًا بندًا' : ''}`)],
+    [T('Not assessed', 'ما لم يتم تقييمه'), T('Workmanship, supplier capacity, site conditions, and anything a supplier did not state in writing', 'جودة التنفيذ، وقدرة المورّد، وظروف الموقع، وأي أمر لم يذكره المورّد كتابيًا')],
+  ] });
+
+  // 3 — Technical comparison
+  const cols = tech ? tech.suppliers.filter((l) => !held.has(String(l))) : [];
+  section('Technical comparison', 'المقارنة الفنية');
+  if (tech && cols.length) {
+    blocks.push(legendBlock(k));
+    blocks.push({ t: 'h3', text: T('Completeness: the four checks, side by side', 'الاكتمال: البنود الأربعة جنبًا إلى جنب') });
+    const matFor = (l: string): Cell => {
+      const flags = tech.lines.flatMap((ln) => ln.attributes.map((at) => at.values?.[l]?.flag ?? 'missing')).filter((f) => f !== 'na');
+      const miss = flags.filter((f) => f === 'missing').length, dif = flags.filter((f) => f === 'differs').length;
+      if (!flags.length) return { text: T('N/A', 'لا ينطبق'), flag: 'na' };
+      if (miss) return { text: T(`${miss} not stated`, `${miss} غير مذكورة`), flag: 'missing' };
+      if (dif) return { text: T(`${dif} of ${flags.length} differ`, `${dif} من ${flags.length} مختلفة`), flag: 'differs' };
+      return { text: T(`All ${flags.length} match`, `جميعها مطابقة (${flags.length})`), flag: 'match' };
+    };
+    const termRow = (en: string, arx: string, t: TechTerm | null | undefined): Cell[] => [{ text: T(en, arx), bold: true }, ...cols.map((l): Cell => t?.applicable === false ? { text: T('N/A', 'لا ينطبق'), flag: 'na' } : flagged(k, t?.values?.[l]))];
+    const cw = 0.72 / cols.length;
+    blocks.push({ t: 'table', head: [T('Check', 'البند'), ...cols.map((l) => k.label(l))], widths: [0.28, ...cols.map(() => cw)], zebra: true, rows: [
+      [{ text: T('Material specification, per line', 'مواصفات المواد لكل بند'), bold: true }, ...cols.map(matFor)],
+      termRow('Delivery / lead time', 'التسليم / مدة التنفيذ', tech.terms?.lead_time),
+      termRow('Installation', 'التركيب', tech.terms?.installation),
+      termRow('Warranty — period and coverage', 'الضمان — المدة والتغطية', tech.terms?.warranty),
+    ] });
+    blocks.push({ t: 'h3', text: T('Line by line: stated specification against your request', 'بندًا بندًا: المواصفات المذكورة مقابل طلبك') });
+    const rows: Cell[][] = [];
+    tech.lines.forEach((ln, i) => {
+      const qty = [ln.qty, ln.unit ? (ar ? (arUnit(ln.unit) ?? k.loc(ln.unit).text) : ln.unit) : ''].filter((x) => x != null && String(x) !== '').join(' ');
+      rows.push([{ text: `${ln.line_no ?? i + 1}. ${k.loc(ln.item, 120).text}${qty ? ' — ' + qty : ''}`, group: true }]);
+      for (const at of ln.attributes) {
+        const name = ar ? (arAttr(at.key) ?? arAttr(at.label) ?? k.loc(at.label || at.key).text) : String(at.label || at.key).replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+        rows.push([{ text: name, bold: true }, at.requested ? k.cell(at.requested, 120) : '—', ...cols.map((l) => flagged(k, at.values?.[l]))]);
+      }
+    });
+    blocks.push({ t: 'table', head: [T('Specification', 'المواصفة'), T('You asked for', 'طلبك'), ...cols.map((l) => k.label(l))], widths: [0.16, 0.18, ...cols.map(() => (0.66 / cols.length))], rows, zebra: true, fs: cols.length >= 4 ? 7.8 : 8.5 });
+  } else {
+    blocks.push({ t: 'p', text: T('The suppliers\' line specifications for this request are not in a comparable form yet, so no line-by-line specification table is shown. The commercial comparison below still applies, and each quotation shows its specification exactly as the supplier stated it.', 'لم تصل مواصفات البنود من المورّدين لهذا الطلب بصيغة قابلة للمقارنة بعد، لذا لا يظهر جدول المواصفات بندًا بندًا. المقارنة التجارية أدناه سارية، وكل عرض يعرض مواصفاته كما ذكرها المورّد تمامًا.'), muted: true });
+  }
+  if (tech) for (const l of held) blocks.push({ t: 'note', text: T(`${l} is on hold and is not compared here: its quote does not yet state everything a complete quote must.`, `${k.label(l)} معلّق ولا يُقارن هنا: عرضه لا يذكر بعد كل ما يجب أن يتضمنه العرض المكتمل.`) });
+  if (arrOf(a.line_findings).length) {
+    blocks.push({ t: 'h3', text: T('Line findings', 'ملاحظات البنود') });
+    // deno-lint-ignore no-explicit-any
+    blocks.push({ t: 'table', head: [T('Item', 'البند'), T('Finding', 'الملاحظة')], rows: arrOf(a.line_findings).map((f: any) => [k.cell(k.sentence(clipCell(f.item, 60))), k.cell(k.sentence(clipCell(f.finding, 300)))]), widths: [0.28, 0.72], zebra: true });
+  }
+
+  // 4 — Commercial comparison
+  const side = commercialRows(a, lang, args.maskNames || []);
+  if (side) {
+    section('Commercial comparison', 'المقارنة التجارية');
+    const colW = 0.76 / Math.max(1, side.labels.length);
+    blocks.push({ t: 'table', head: side.head, rows: side.rows, widths: [0.24, ...side.labels.map(() => colW)], zebra: true });
+    blocks.push({ t: 'note', text: T(VAT_LINE.en, VAT_LINE.ar) });
+  }
+
+  // 5 — Every quote received
+  if (roster.length) {
+    section(`All quotes received (${roster.length})`, `جميع العروض المستلمة (${roster.length})`);
+    blocks.push({ t: 'p', text: T(`All ${roster.length} quotes on your request are listed here, and each one stays open to you: you can view or reveal any of them from your portal.`, `جميع العروض الـ${roster.length} على طلبك مدرجة هنا، وكلها تبقى متاحة لك: يمكنك عرض أي منها أو كشفه من بوابتك.`), muted: true });
+    // deno-lint-ignore no-explicit-any
+    const chip = (r: any): Cell => r.status === 'shortlisted' ? { text: T(`Shortlisted #${r.rank}`, `ضمن القائمة المختصرة #${r.rank}`), chip: 'short' }
+      : r.status === 'held' ? { text: T('On hold', 'معلّق'), chip: 'hold' } : { text: T('Open to reveal', 'متاح للكشف'), chip: 'open' };
+    blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('Price', 'السعر'), T('Lead time', 'مدة التنفيذ'), T('Status', 'الحالة')],
+      // A held quote is counted, never detailed: no price and no lead time on the page.
+      // deno-lint-ignore no-explicit-any
+      rows: roster.map((r: any) => r.status === 'held'
+        ? [linked(k.label(r.label), r.quote_id, { bold: true }), '—', '—', chip(r)]
+        : [linked(k.label(r.label) + (r.expired ? T(' (expired)', ' (منتهي الصلاحية)') : ''), r.quote_id, { bold: true }), k.money(Number(r.price_ex_vat) > 0 ? r.price_ex_vat : r.price), k.dur(r.lead_time) || '—', chip(r)]),
+      widths: [0.26, 0.22, 0.22, 0.30], align: ['s', 'e', 's', 's'], zebra: true });
+    // deno-lint-ignore no-explicit-any
+    for (const r of roster.filter((x: any) => x.status === 'held')) {
+      const miss = typeof r.missing_mandatory === 'number' && r.missing_mandatory > 0 ? r.missing_mandatory : null;
+      const why = r.price == null ? T('no price stated', 'لا يوجد سعر مذكور')
+        : miss ? T(`${miss} mandatory detail(s) missing`, `${miss} من التفاصيل الإلزامية ناقصة`) : T('it does not pass our completeness check', 'لم يجتز فحص الاكتمال');
+      blocks.push({ t: 'note', text: T(`${r.label} is on hold: ${why}. It is counted here but not ranked or detailed until the supplier completes it.`, `${k.label(r.label)} معلّق: ${why}. يُحتسب هنا لكنه لا يدخل الترتيب ولا تُعرض تفاصيله حتى يستكمله المورّد.`) });
+    }
+    blocks.push({ t: 'link', text: T('Every quote above stays open to you — the shortlist is advice, not a limit. You can choose any of them: open your QuotesDone portal to view or reveal it.',
+      'كل العروض أعلاه تبقى متاحة لك، فالقائمة المختصرة نصيحة وليست قيدًا. يمكنك اختيار أي منها: افتح بوابتك في QuotesDone لعرضه أو كشفه.'), link: args.portalUrl });
+  }
+
+  // 6 — Risks and clarifications, per supplier
+  const risk: Cell[][] = [];
+  for (const q of qs) {
+    const pts: string[] = [...arrOf(q.flags), ...arrOf(q.missing_from_request), ...arrOf(q.spec_deviation)].map(String);
+    if (tech && cols.includes(String(q.label))) {
+      tech.lines.forEach((ln, i) => ln.attributes.forEach((at) => {
+        const c = at.values?.[String(q.label)]; if (!c || (c.flag !== 'differs' && c.flag !== 'missing')) return;
+        const name = ar ? (arAttr(at.key) ?? k.loc(at.label || at.key).text) : String(at.label || at.key).replace(/_/g, ' ').toLowerCase();
+        const item = k.loc(ln.item, 60).text; const no = ln.line_no ?? i + 1;
+        // Only differs and missing reach this list; an optional detail not stated is shown in the table
+        // as "Not stated (optional)" and is never chased. The missing branch is a SAFETY NET: the hold
+        // gate keeps a quote with an unstated mandatory detail out of the comparison altogether.
+        // Before the reveal the customer cannot reach a supplier; QuotesDone chases a missing detail
+        // (founder, 14 Sep 2026). A mandatory detail left unstated holds the quote, and the hold desk
+        // asks the supplier through customer_support (WhatsApp and email) until it is filled — so the
+        // sentence says that, never "ask for it". A difference is stated as the supplier quoted it.
+        pts.push(c.flag === 'missing'
+          ? T(`Line ${no} (${item}): ${name} not stated — we have asked the supplier; this report updates when they answer.`, `البند ${no} (${item}): ${name} غير مذكورة — طلبناها من المورّد، وسيُحدَّث التقرير عند الرد.`)
+          : T(`Line ${no} (${item}): ${name} is ${c.value ?? '—'}; you asked for ${at.requested ?? '—'}. This is what the supplier quoted in writing.`, `البند ${no} (${item}): ${name} ${k.loc(c.value ?? '—', 60).text} بينما طلبت ${k.loc(at.requested ?? '—', 60).text}. هذا ما قدّمه المورّد كتابيًا في عرضه.`));
+      }));
+    }
+    const uniq = [...new Set(pts.map((p) => p.trim()).filter(Boolean))];
+    uniq.forEach((p, i) => risk.push([i === 0 ? { text: k.label(q.label), bold: true } : '', k.cell(k.sentence(p), 240)]));
+    if (!uniq.length) risk.push([{ text: k.label(q.label), bold: true }, T('Nothing flagged from what the supplier stated.', 'لا توجد ملاحظات مما ذكره المورّد.')]);
+  }
+  if (risk.length) {
+    section('Risks and clarifications by supplier', 'المخاطر والاستيضاحات لكل مورّد');
+    blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('What to know before you choose', 'ما يجب معرفته قبل الاختيار')], rows: risk, widths: [0.2, 0.8] });
+  }
+
+  // 7 — Advice and next steps
+  if (a.best_value_reason || a.advice || arrOf(a.watch_outs).length) {
+    section('Advice and next steps', 'النصيحة والخطوات التالية');
+    if (a.best_value_reason) blocks.push({ t: 'p', text: k.sentence(String(a.best_value_reason)) });
+    if (a.advice) blocks.push({ t: 'p', text: k.sentence(String(a.advice)) });
+    for (const w of arrOf(a.watch_outs)) blocks.push({ t: 'li', text: k.sentence(String(w)) });
+  }
+  if (a.disclaimer) { blocks.push({ t: 'space', h: 4 }); blocks.push({ t: 'note', text: k.sentence(String(a.disclaimer)) }); }
+
+  const lo = prices.length ? Math.min(...prices) : 0, hi = prices.length ? Math.max(...prices) : 0;
+  const range = !prices.length ? '—' : lo === hi ? k.money(lo) : ar ? `${lo.toLocaleString('en-AE')}–${hi.toLocaleString('en-AE')} درهم` : `AED ${lo.toLocaleString('en-AE')}–${hi.toLocaleString('en-AE')}`;
+  const cover0 = {
+    kicker: T('Bid tabulation and technical comparison', 'جدول مقارنة العروض والمقارنة الفنية'), title: T('Quote comparison report', 'تقرير مقارنة العروض'),
+    subtitle: clipCell(summary.text, 170),
+    meta: [[T('Reference', 'الرقم المرجعي'), ref], [T('Date', 'التاريخ'), date], [T('Trade', 'التخصص'), trade || '—'], [T('Emirate', 'الإمارة'), emirate || '—']],
+    figures: [[T('Quotes received', 'العروض المستلمة'), String(received)], [T('Compared in detail', 'قورنت بالتفصيل'), T(`${qs.length} of ${received}`, `${qs.length} من ${received}`)],
+      [T('Price range', 'نطاق الأسعار'), range], [T('Recommended', 'الموصى به'), top.length ? k.label(top[0].label) : '—']],
+  };
+  const control = `${ref} · ${DOC_VERSION} · ${T('Generated', 'أُنشئ في')} ${date} · ${ar ? PREPARED_BY.ar : PREPARED_BY.en}`;
+  const names = args.maskNames || [];
+  const body: Record<string, unknown> = {
+    title: T('Quote comparison report', 'تقرير مقارنة العروض'), ref, name: ref + '-comparison-' + lang, lang,
+    cover: maskDeep(cover0, names, lang), control, blocks: maskDeep(blocks, names, lang), options: { letterhead: true },
+  };
+  if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
+  return { body, ref };
+}

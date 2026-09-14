@@ -40,6 +40,12 @@ if (!file) {
 }
 
 const sql = readFileSync(file, 'utf8');
+// Refused before anything is read from or written to the database (review of #661, scripts/lib/sql_text.mjs).
+{
+  const { refuseUnsignable } = await import('./lib/sql_text.mjs');
+  const why = refuseUnsignable(sql, file);
+  if (why) { console.error('REFUSED: ' + why); process.exit(2); }
+}
 const one = (rows) => (rows && rows[0]) ? Object.values(rows[0])[0] : null;
 
 const token = (process.env.SUPABASE_ACCESS_TOKEN
@@ -143,8 +149,12 @@ if (literals.length) {
 // project_parity would not have caught it either: that was a SHAPE check over columns and views,
 // and a missing function is neither.
 const CALLEE = /public\.((?:fn|trg|qd|run)_[a-z0-9_]+)\s*\(/g;
+// A DROP names a routine that is meant to be gone afterwards, so it is not a call. Without this, a file
+// that retires a routine could never be re-applied once the drop had run (14 Sep 2026, the loop file's
+// drop of fn_it_engineer_handover_body refused its own idempotent re-apply).
+const DROPPED_HERE = /drop\s+(?:function|procedure)\s+(?:if\s+exists\s+)?public\.[a-z0-9_]+\s*\(/gi;
 const selfDefined = new Set(uniq);
-const wanted = [...new Set([...sql.matchAll(CALLEE)].map(m => m[1].toLowerCase()))]
+const wanted = [...new Set([...sql.replace(DROPPED_HERE, '').matchAll(CALLEE)].map(m => m[1].toLowerCase()))]
   .filter(c => !selfDefined.has(c));
 if (wanted.length) {
   const rows = await mgmtRead(PROD_REF, `select distinct lower(p.proname) n
@@ -203,7 +213,26 @@ if (!APPLY) {
 
 const shapeBefore = DDL ? one(await mgmtRead(PROD_REF, SHAPE)) : null;
 
-await dbPost(sql);
+// THE APPLY SIGNS ITS WRITE. public.routine_change_log records application_name for every routine
+// change. Three times on 14 Sep 2026 a reviewed routine was rewritten seconds later by an older copy
+// of its file from an unknown caller, logged only as 'mgmt-api'. Every apply from this tool now names
+// its commit, working directory and file, so an untagged routine change is, by construction, not from
+// a current checkout of this tool.
+const { execSync } = await import('node:child_process');
+let rev = 'unknown';
+try { rev = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { /* not a git checkout */ }
+// application_name holds 63 bytes, so keep the parts that identify a caller: commit, the last
+// folder of the working directory (the worktree name), and the start of the file name.
+const base = (p) => String(p).split(/[\\/]/).filter(Boolean).pop() || '';
+// Reduced to plain ASCII letters, digits, space, dot, dash and underscore, so the literal can never
+// close its quotes and one character is one byte under the 63-byte limit.
+const tag = `qd-apply ${rev} ${base(process.cwd())} ${base(file)}`.replace(/[^A-Za-z0-9 ._-]/g, '_').slice(0, 63);
+// Same line as the file's first line, so reported line numbers still match the file. A file that
+// must run outside a transaction (CREATE INDEX CONCURRENTLY) is sent alone: a second statement in
+// the same query would wrap it in an implicit transaction and Postgres would refuse it.
+// Statements only: a comment that mentions the word used to send a routine file unsigned.
+const mustRunAlone = (await import('./lib/sql_text.mjs')).runsOutsideTransaction(sql);
+await dbPost(mustRunAlone ? sql : `set application_name = '${tag}'; ` + sql);
 console.log(`applied ${file} to ${PROD_REF}`);
 
 // READ THE DEFINITIONS BACK OUT. This is the founder's rule, and it is the only reason the exit

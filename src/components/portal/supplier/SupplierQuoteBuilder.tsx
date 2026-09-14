@@ -21,6 +21,7 @@
 // cannot reach a quote the platform would otherwise refuse by coming through this door instead.
 import React, { useEffect, useMemo, useState } from 'react';
 import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { Button } from '@/components/ui/button';
 
 type Lang = 'en' | 'ar';
 // The field names are fn_supplier_opportunities', read off the live payload rather than guessed:
@@ -71,7 +72,7 @@ const T = {
     created: 'Quote created from these terms.', pickOne: 'Choose a project above to get a recommendation.',
     whyThis: 'Why this figure', signalsTitle: 'What could go wrong',
     lowRisk: 'low', medRisk: 'medium', highRisk: 'high',
-    demoBanner: 'Demonstration data. This recommendation is computed from QuotesDone demo fixtures, not from live trading.',
+    demoBanner: 'Sample data. This recommendation is an illustration, not based on live market trading.',
   },
   ar: {
     title: 'منشئ عروض الأسعار',
@@ -96,19 +97,19 @@ const aed = (n?: number | null, cur = 'AED') =>
   n === null || n === undefined ? '—' : cur + ' ' + Math.round(n).toLocaleString('en-US');
 
 const RISK_TONE: Record<string, string> = {
-  low: 'text-emerald-300 border-emerald-300/25 bg-emerald-300/[0.06]',
-  medium: 'text-amber-300 border-amber-300/25 bg-amber-300/[0.06]',
-  high: 'text-rose-300 border-rose-300/25 bg-rose-300/[0.06]',
+  low: 'text-ok-fg border-ok/25 bg-ok/[0.06]',
+  medium: 'text-warn-fg border-warn/25 bg-warn/[0.06]',
+  high: 'text-danger-fg border-danger/25 bg-danger/[0.06]',
 };
 
 // One proposed term. Every card on this screen is a thing the AI SUGGESTS, so they share a shell
 // and the word appears once rather than six times in six slightly different ways.
 function Suggested({ label, children, foot }: { label: string; children: React.ReactNode; foot?: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
-      <div className="text-[11px] opacity-60 mb-1">{label}</div>
+    <div className="rounded-chip border border-border bg-background/40 px-3.5 py-3">
+      <div className="mb-1.5 font-mono text-label uppercase tracking-caps text-muted-foreground">{label}</div>
       {children}
-      {foot && <p className="text-[10px] opacity-40 mt-1.5 leading-snug">{foot}</p>}
+      {foot && <p className="mt-2 border-t border-border pt-2 text-[11px] leading-snug text-muted-foreground">{foot}</p>}
     </div>
   );
 }
@@ -187,19 +188,19 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
   return (
     <div className="space-y-4">
       {demo && (
-        <p className="rounded-xl border border-amber-300/25 bg-amber-300/[0.06] px-3 py-2 text-[11px] leading-snug text-amber-200/80">
+        <p className="rounded-xl border border-warn/25 bg-warn/[0.06] px-3 py-2 text-[11px] leading-snug text-warn-fg/80">
           {t(lang, 'demoBanner')}
         </p>
       )}
 
       {/* ── THE NATURAL-LANGUAGE ENTRY ────────────────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
-        <h3 className="text-xs uppercase tracking-wide opacity-60 mb-3">{t(lang, 'title')}</h3>
-        <label className="block text-sm font-medium mb-1" htmlFor="qd-qb-intent">{t(lang, 'intentLabel')}</label>
-        <p className="text-[11px] opacity-50 mb-2">{t(lang, 'intentHelp')}</p>
+      <section className="qd-panel p-5">
+        <h3 className="qd-kicker mb-4">{t(lang, 'title')}</h3>
+        <label className="mb-1 block font-head text-[15px] font-semibold text-foreground" htmlFor="qd-qb-intent">{t(lang, 'intentLabel')}</label>
+        <p className="mb-2.5 text-[12px] text-muted-foreground">{t(lang, 'intentHelp')}</p>
         <input
           id="qd-qb-intent"
-          className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm outline-none focus:border-white/25"
+          className="h-10 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
           placeholder={t(lang, 'placeholder')}
           value={intent}
           onChange={(e) => setIntent(e.target.value)}
@@ -211,11 +212,11 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
               key={oid(o)}
               type="button"
               onClick={() => build(oid(o))}
-              className={'w-full text-start rounded-lg border px-3 py-2 text-[13px] transition-colors '
-                + (chosen === oid(o) ? 'border-white/30 bg-white/[0.07]' : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]')}
+              className={'w-full text-start rounded-chip border px-3 py-2.5 text-[13px] transition-colors '
+                + (chosen === oid(o) ? 'border-primary/60 bg-primary/10 text-foreground' : 'border-border text-foreground hover:border-primary/40')}
             >
-              <span className="block truncate">{otitle(o)}</span>
-              <span className="block text-[11px] opacity-45 mt-0.5">
+              <span className="block truncate font-medium">{otitle(o)}</span>
+              <span className="mt-0.5 block font-mono text-[11px] text-muted-foreground">
                 {[o.category, o.emirate].filter(Boolean).join(' · ')}
                 {typeof o.match_pct === 'number' ? ' · ' + o.match_pct + '% match' : ''}
               </span>
@@ -225,26 +226,26 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
       </section>
 
       {busy && <p className="text-xs opacity-60 px-1">{t(lang, 'building')}</p>}
-      {err && <p className="text-xs text-rose-300/90 px-1">{err}</p>}
-      {sent && <p className="text-xs text-emerald-300/90 px-1">{sent}</p>}
+      {err && <p className="text-xs text-danger-fg/90 px-1">{err}</p>}
+      {sent && <p className="text-xs text-ok-fg/90 px-1">{sent}</p>}
       {!chosen && !busy && <p className="text-xs opacity-50 px-1">{t(lang, 'pickOne')}</p>}
 
       {/* A recommendation the routine refused to make, shown with the reason it gave. */}
       {rec && !rec.available && (
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
-          <div className="text-[11px] opacity-60 mb-1">{t(lang, 'recPrice')}</div>
-          <p className="text-[12px] opacity-55 leading-snug">{rec.note}</p>
+        <section className="qd-panel p-5">
+          <div className="mb-1.5 font-mono text-label uppercase tracking-caps text-muted-foreground">{t(lang, 'recPrice')}</div>
+          <p className="text-[13px] leading-snug text-muted-foreground">{rec.note}</p>
         </section>
       )}
 
       {/* ── THE PROPOSED TERMS ────────────────────────────────────────────────────────────────── */}
       {rec?.available && (
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 space-y-2.5">
+        <section className="qd-panel space-y-2.5 p-5">
           {/* The suggested price. The spread comes with it: a supplier deciding whether to sit
               under the middle needs to see how much room there is. */}
           <Suggested label={t(lang, 'recPrice')} foot={<>{t(lang, 'whyThis')}: {price?.basis}</>}>
-            <div className="text-3xl font-semibold tabular-nums">{aed(price?.value, price?.currency)}</div>
-            <div className="text-[11px] opacity-55 mt-1 leading-relaxed">
+            <div className="qd-figure font-head text-[clamp(30px,6vw,40px)] font-semibold">{aed(price?.value, price?.currency)}</div>
+            <div className="mt-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
               <div>{t(lang, 'middleHalf')}: <span className="tabular-nums">{aed(price?.p25, price?.currency)} – {aed(price?.p75, price?.currency)}</span></div>
               <div className="opacity-75">{t(lang, 'range')}: <span className="tabular-nums">{aed(price?.low, price?.currency)} – {aed(price?.high, price?.currency)}</span></div>
             </div>
@@ -307,14 +308,9 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={accept}
-            disabled={busy}
-            className="w-full rounded-lg bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-white disabled:opacity-50"
-          >
+          <Button type="button" onClick={accept} disabled={busy} className="w-full">
             {busy ? t(lang, 'sending') : t(lang, 'useTerms')}
-          </button>
+          </Button>
         </section>
       )}
     </div>

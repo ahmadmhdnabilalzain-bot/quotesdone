@@ -25,15 +25,17 @@
 //      CustomerPortal exists because this exact class of control was once a bare <div onClick>.
 import { useEffect, useRef, useState } from 'react';
 import {
-  LayoutDashboard, FileText, Files, MessagesSquare, FolderKanban, CheckSquare,
+  LayoutDashboard, FileText, Files, MessagesSquare, FolderKanban,
   Sparkles, Building2, UserCircle, Boxes, Compass, Search, Bell, Menu, X,
-  Sun, Moon, LogOut, ChevronRight, Send, PanelLeftClose, PanelLeftOpen,
+  Sun, Moon, LogOut, ChevronRight, Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { BrandMark } from '@/components/BrandMark';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
 //
@@ -59,7 +61,6 @@ export const NAV_GROUPS = [
   { caption: 'nav_collaborate', items: [
     { id: 'messages',  icon: MessagesSquare,  label: 'messages', badge: 'unread' },
     { id: 'projects',  icon: FolderKanban,    label: 'projects' },
-    { id: 'approvals', icon: CheckSquare,     label: 'mod_approvals' },
     { id: 'spatial',   icon: Compass,         label: 'mod_spatial' },
   ] },
   { caption: 'nav_intelligence', items: [
@@ -70,6 +71,14 @@ export const NAV_GROUPS = [
     { id: 'account',   icon: UserCircle,      label: 'mod_account' },
   ] },
 ];
+// EVERY DESTINATION IS A WORD, IN EVERY STATE (founder, 14 Sep 2026: "the side bar for all those
+// tabs is not clear enough. i mean from the logo no one will understand, so maybe replacing the
+// logo with text is better"). "Logo" there meant the icons. Measured before this change: the
+// "Collapse menu" state painted all eleven destinations as a bare 18px icon with the name only in a
+// hover tooltip, and the group captions were monospace capitals. The collapsed mode is gone rather
+// than relabelled, every item carries its name, and an icon is decoration beside the name, never
+// instead of it.
+//
 // The phone gets the four a thumb reaches for; everything else lives behind More. Chosen by what a
 // customer opens, not by group order: the dashboard, their requests, the inbox, the paperwork.
 const MOBILE_PRIMARY = ['home', 'requests', 'messages', 'documents'];
@@ -144,7 +153,7 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
       role="complementary"
       aria-label={t('asst_title')}
       className={cn(
-        'fixed inset-y-0 z-40 flex w-full flex-col border-border bg-card/95 backdrop-blur-xl',
+        'fixed inset-y-0 z-40 flex w-full flex-col border-border bg-card shadow-e3',
         // max-w, not w: a fixed 420px panel is 45px wider than a 375px viewport and cannot shrink.
         'end-0 sm:w-full sm:max-w-[420px] sm:border-s',
         'motion-safe:animate-in motion-safe:slide-in-from-bottom-4 sm:motion-safe:slide-in-from-right-4 motion-safe:duration-300',
@@ -223,20 +232,21 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
 export function StatTile({ icon: Icon, label, value, hint, tone = 'default' }) {
   return (
     <Card className={cn(
-      'group relative overflow-hidden p-4 transition-[transform,border-color] duration-300 motion-safe:hover:-translate-y-0.5',
-      tone === 'accent' && 'border-primary/35',
+      'group relative overflow-hidden p-4 shadow-e1 transition-[transform,border-color,box-shadow] duration-300 hover:shadow-e2 motion-safe:hover:-translate-y-0.5 sm:p-5',
+      tone === 'accent' && 'border-primary/40',
     )}>
+      {/* The kit's lit top edge, on the tile that is asking for a decision. */}
+      {tone === 'accent' ? <span aria-hidden className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" /> : null}
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className={cn('font-head text-[26px] font-extrabold leading-none tracking-tight tabular-nums',
-            tone === 'accent' ? 'text-primary' : 'text-foreground')}>{value}</div>
-          <div className="mt-1.5 text-[12px] font-medium text-muted-foreground">{label}</div>
-        </div>
-        <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-xl',
-          tone === 'accent' ? 'bg-primary/15 text-primary' : 'bg-secondary/60 text-muted-foreground')}>
+        {/* Wraps, never truncates: "AWAITING YOUR DECISI…" cut the tile's one word that mattered. */}
+        <div className="min-w-0 break-words font-mono text-label uppercase tracking-caps text-muted-foreground">{label}</div>
+        <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-panel border',
+          tone === 'accent' ? 'border-primary/35 bg-primary/12 text-primary' : 'border-border bg-secondary/40 text-muted-foreground')}>
           <Icon className="h-4 w-4" aria-hidden />
         </span>
       </div>
+      <div className={cn('tabular mt-3 font-head text-[30px] font-semibold leading-none tracking-snug',
+        tone === 'accent' ? 'text-primary' : 'text-foreground')}>{value}</div>
       {hint ? <div className="mt-2 text-[11.5px] leading-snug text-muted-foreground/85">{hint}</div> : null}
     </Card>
   );
@@ -247,11 +257,11 @@ export function StatTile({ icon: Icon, label, value, hint, tone = 'default' }) {
 // request that is being matched, then quoted, then decided, then revealed, then closed. Colour
 // carries meaning and is never the ONLY carrier — the word is always present.
 export const RFQ_STATE = {
-  matching:  { key: 'st_matching',  cls: 'bg-sky-500/12 text-sky-300 border-sky-500/25' },
-  quoting:   { key: 'st_quoting',   cls: 'bg-amber-500/12 text-amber-300 border-amber-500/25' },
-  quotes_in: { key: 'st_quotes_in', cls: 'bg-primary/12 text-primary border-primary/30' },
-  revealed:  { key: 'st_revealed',  cls: 'bg-emerald-500/12 text-emerald-300 border-emerald-500/25' },
-  closed:    { key: 'st_closed',    cls: 'bg-secondary/60 text-muted-foreground border-border' },
+  matching:  { key: 'st_matching',  cls: 'bg-info/12 text-info-fg border-info/25',           variant: 'info' },
+  quoting:   { key: 'st_quoting',   cls: 'bg-warn/12 text-warn-fg border-warn/25',           variant: 'warn' },
+  quotes_in: { key: 'st_quotes_in', cls: 'bg-primary/12 text-primary border-primary/30',     variant: 'default' },
+  revealed:  { key: 'st_revealed',  cls: 'bg-ok/12 text-ok-fg border-ok/25',                 variant: 'ok' },
+  closed:    { key: 'st_closed',    cls: 'bg-secondary/60 text-muted-foreground border-border', variant: 'outline' },
 };
 // Derived from facts the row already carries, never from the clock.
 export function rfqState(inq, quotes) {
@@ -265,10 +275,10 @@ export function rfqState(inq, quotes) {
 export function StatusPill({ state, t }) {
   const s = RFQ_STATE[state] || RFQ_STATE.matching;
   return (
-    <span className={cn('inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold', s.cls)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" aria-hidden />
+    // The kit Badge with its status light; `closed` keeps the muted token so it reads in both themes.
+    <Badge variant={s.variant} dot className={cn('shrink-0 font-semibold', state === 'closed' && 'text-muted-foreground')}>
       {t(s.key)}
-    </span>
+    </Badge>
   );
 }
 
@@ -295,10 +305,9 @@ const rankOf = (id, order) => {
 
 export function PortalShell({
   lang, t, theme, onSwapTheme, onSetLang, onSignOut,
-  view, onView, customerName, unread = 0, alerts = 0, alertList = [], token, order, suggestions, children,
+  view, onView, customerName, unread = 0, alerts = 0, alertList = [], onAlert, token, order, suggestions, children,
 }) {
   const rtl = lang === 'ar';
-  const [collapsed, setCollapsed] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [asstOpen, setAsstOpen] = useState(false);
@@ -311,15 +320,13 @@ export function PortalShell({
   // nothing and looks broken. A placeholder cannot be set per breakpoint in CSS, so it is set here.
   const [narrow, setNarrow] = useState(false);
   useEffect(() => {
-    try { const c = localStorage.getItem('qd-nav-collapsed'); if (c === '1') setCollapsed(true); } catch (_e) {}
+    // The retired collapse preference is cleared so a stale '1' left in a browser means nothing.
+    try { localStorage.removeItem('qd-nav-collapsed'); } catch (_e) {}
     const mq = window.matchMedia('(max-width: 639px)');
     const sync = () => setNarrow(mq.matches);
     sync(); mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
   }, []);
-  const swapCollapsed = () => {
-    setCollapsed((v) => { const n = !v; try { localStorage.setItem('qd-nav-collapsed', n ? '1' : '0'); } catch (_e) {} return n; });
-  };
   // Cmd/Ctrl+K puts the cursor in the assistant field. The shortcut exists because the field is the
   // primary way to use the portal, not a search box bolted onto one.
   useEffect(() => {
@@ -338,32 +345,31 @@ export function PortalShell({
     setSeed(text); setQ(''); setAsstOpen(true);
   };
 
-  const NavButton = ({ item, compact }) => {
+  const isActive = (id) => view === id || (id === 'home' && (view === '' || view === 'home'));
+  // The name wraps rather than truncates: "What you may need next" cut to "What you may ne…" is
+  // the same unreadable navigation this change exists to remove, just shorter.
+  const NavButton = ({ item }) => {
     const Icon = item.icon;
-    const active = view === item.id || (item.id === 'home' && (view === '' || view === 'home'));
+    const active = isActive(item.id);
     return (
       <button
         type="button"
         onClick={() => go(item.id)}
         aria-current={active ? 'page' : undefined}
-        title={compact ? t(item.label) : undefined}
         style={{ order: rankOf(item.id, order) }}
         className={cn(
-          'group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors duration-200',
+          'group relative flex min-h-11 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[14px] font-medium transition-colors duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          active ? 'bg-primary/14 text-primary' : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
-          compact && 'justify-center px-0',
+          active ? 'bg-primary/14 font-semibold text-primary' : 'text-foreground/80 hover:bg-secondary/50 hover:text-foreground',
         )}
       >
         {/* The active marker is on the INLINE START edge so it lands on the correct side in Arabic. */}
         {active ? <span className="absolute inset-y-1.5 start-0 w-[3px] rounded-full bg-primary" aria-hidden /> : null}
-        <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
-        {!compact && <span className="min-w-0 flex-1 truncate text-start">{t(item.label)}</span>}
-        {!compact && item.badge === 'unread' && unread > 0
+        <Icon className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+        <span className="min-w-0 flex-1 break-words text-start leading-snug">{t(item.label)}</span>
+        {item.badge === 'unread' && unread > 0
           ? <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span>
           : null}
-        {compact && item.badge === 'unread' && unread > 0
-          ? <span className="absolute end-2 top-1.5 h-2 w-2 rounded-full bg-primary" aria-hidden /> : null}
       </button>
     );
   };
@@ -376,54 +382,38 @@ export function PortalShell({
   return (
     <div className="flex min-h-screen w-full">
       {/* ── SIDEBAR (desktop) ─────────────────────────────────────────────────────────────── */}
+      {/* One width, always labelled. 240px at tablet leaves the 768px main column 528px; 264px
+          from 1024 up. There is no icon-only state to fall into. */}
       <nav
         aria-label={t('nav_main')}
-        className={cn(
-          'sticky top-0 hidden h-screen shrink-0 flex-col border-e border-border bg-card/55 backdrop-blur-xl md:flex',
-          'transition-[width] duration-300 ease-out',
-          collapsed ? 'w-[76px]' : 'w-[264px]',
-        )}
+        className="sticky top-0 hidden h-screen w-[240px] shrink-0 flex-col border-e border-border bg-card/80 md:flex lg:w-[264px]"
       >
-        <div className={cn('flex items-center gap-2 px-4 py-4', collapsed && 'justify-center px-2')}>
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary font-head text-[15px] font-extrabold">Q</span>
-          {!collapsed && (
-            <div className="min-w-0">
-              <div className="truncate font-head text-[15px] font-extrabold leading-tight text-foreground">QuotesDone</div>
-              <div className="truncate text-[11px] text-muted-foreground">{t('brand_sub')}</div>
-            </div>
-          )}
+        <div className="flex items-center gap-2 px-4 py-4">
+          <BrandMark className="h-9 w-9 shrink-0" />
+          <div className="min-w-0">
+            <div className="truncate font-head text-[15px] font-extrabold leading-tight text-foreground">QuotesDone</div>
+            <div className="truncate text-[11px] text-muted-foreground">{t('brand_sub')}</div>
+          </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-2">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
           {NAV_GROUPS.map((g) => (
-            <div key={g.caption} className="mb-4">
-              {!collapsed && (
-                <div className="px-3 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/65">{t(g.caption)}</div>
-              )}
+            <div key={g.caption} role="group" aria-labelledby={'qd-nav-' + g.caption} className="mb-4">
+              {/* A heading in plain words and sentence case — not monospace capitals. */}
+              <div id={'qd-nav-' + g.caption} className="px-3 pb-1 text-[12.5px] font-semibold text-muted-foreground">{t(g.caption)}</div>
               <div className="flex flex-col gap-0.5">
-                {g.items.map((item) => <NavButton key={item.id} item={item} compact={collapsed} />)}
+                {g.items.map((item) => <NavButton key={item.id} item={item} />)}
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="border-t border-border p-3">
-          <button type="button" onClick={swapCollapsed}
-            aria-expanded={!collapsed}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            {collapsed
-              ? <PanelLeftOpen className={cn('h-4 w-4 shrink-0', rtl && 'rotate-180')} aria-hidden />
-              : <PanelLeftClose className={cn('h-4 w-4 shrink-0', rtl && 'rotate-180')} aria-hidden />}
-            {!collapsed && <span className="truncate">{t('nav_collapse')}</span>}
-          </button>
         </div>
       </nav>
 
       {/* ── MAIN COLUMN ───────────────────────────────────────────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/95 shadow-e1">
           <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/15 font-head text-[15px] font-extrabold text-primary md:hidden">Q</span>
+            <BrandMark className="h-9 w-9 shrink-0 md:hidden" />
 
             {/* THE ASSISTANT FIELD — the widest element on the page, by design. In the reference
                 the founder supplied, AI search is the primary surface; ours was a bubble in a
@@ -436,7 +426,7 @@ export function PortalShell({
                   id="qd-ask" ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)}
                   placeholder={narrow ? t('ask_ph_short') : t('ask_ph')} autoComplete="off"
                   className={cn(
-                    'h-11 w-full rounded-2xl border border-input bg-card/70 ps-11 pe-16 text-[13.5px] text-foreground',
+                    'h-11 w-full rounded-btn border border-input bg-card ps-11 pe-3 sm:pe-16 text-[13.5px] text-foreground shadow-e1',
                     'placeholder:text-muted-foreground focus-visible:outline-none',
                     'focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/25',
                     'transition-[border-color,box-shadow] duration-200',
@@ -466,14 +456,20 @@ export function PortalShell({
                       <p className="px-4 py-4 text-[13px] text-muted-foreground">{t('attention_none')}</p>
                     ) : (
                       <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto">
+                        {/* Each notification opens what it is about — the request it names —
+                            through the same onAlert the Overview's alert cards use. */}
                         {alertList.map((a, i) => (
-                          <li key={i} className="flex items-start gap-3 px-4 py-3">
-                            <span className={cn('mt-0.5 h-2 w-2 shrink-0 rounded-full',
-                              a.severity === 'high' ? 'bg-red-400' : a.severity === 'medium' ? 'bg-amber-300' : 'bg-primary')} aria-hidden />
-                            <div className="min-w-0">
-                              <div className="text-[13px] font-semibold text-foreground">{a.title}</div>
-                              {a.detail ? <div className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{a.detail}</div> : null}
-                            </div>
+                          <li key={i}>
+                            <button type="button" onClick={() => { setBellOpen(false); if (onAlert) onAlert(a); }}
+                              className="flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                              <span className={cn('mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                                a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} aria-hidden />
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-[13px] font-semibold text-foreground">{a.title}</span>
+                                {a.detail ? <span className="mt-0.5 block text-[12px] leading-relaxed text-muted-foreground">{a.detail}</span> : null}
+                              </span>
+                              <ChevronRight className={cn('mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground', rtl && 'rotate-180')} aria-hidden />
+                            </button>
                           </li>
                         ))}
                       </ul>
@@ -488,11 +484,11 @@ export function PortalShell({
               <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-[12px] font-bold text-primary">
                 {String(customerName || '?').trim().charAt(0).toUpperCase()}
               </span>
-              <span className="hidden max-w-[140px] truncate text-[13px] font-semibold text-foreground lg:block">{customerName || ''}</span>
+              <span dir="auto" className="hidden max-w-[140px] truncate text-start text-[13px] font-semibold text-foreground lg:block">{customerName || ''}</span>
             </button>
 
             <div className="hidden shrink-0 items-center gap-1 sm:flex">
-              <Button variant="ghost" size="sm" onClick={() => onSetLang(rtl ? 'en' : 'ar')} aria-label={rtl ? 'English' : 'العربية'}>{rtl ? 'EN' : 'ع'}</Button>
+              <Button variant="ghost" size="sm" onClick={() => onSetLang(rtl ? 'en' : 'ar')} aria-label={rtl ? 'English' : 'العربية'} title={t('lang_note')}>{rtl ? 'EN' : 'ع'}</Button>
               <Button variant="ghost" size="sm" onClick={onSwapTheme}
                 aria-label={theme === 'dark' ? t('theme_light') : t('theme_dark')}>
                 {theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
@@ -507,25 +503,28 @@ export function PortalShell({
 
       {/* ── MOBILE TAB BAR ────────────────────────────────────────────────────────────────── */}
       <nav aria-label={t('nav_main')}
-        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card/95 backdrop-blur-xl md:hidden">
+        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card shadow-e2 md:hidden">
         {mobileItems.map((item) => {
           const Icon = item.icon;
-          const active = view === item.id || (item.id === 'home' && (view === '' || view === 'home'));
+          const active = isActive(item.id);
           return (
             <button key={item.id} type="button" onClick={() => go(item.id)} aria-current={active ? 'page' : undefined}
-              className={cn('relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[10.5px] font-semibold transition-colors',
-                active ? 'text-primary' : 'text-muted-foreground')}>
-              <Icon className="h-[19px] w-[19px]" aria-hidden />
-              <span className="max-w-full truncate px-1">{t(item.label)}</span>
+              className={cn('relative flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[11.5px] font-semibold leading-tight transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                active ? 'text-primary' : 'text-foreground/75')}>
+              <Icon className="h-[18px] w-[18px]" aria-hidden />
+              {/* Wraps to a second line before it would ever be cut. */}
+              <span className="max-w-full break-words text-center">{t(item.label)}</span>
               {item.badge === 'unread' && unread > 0
                 ? <span className="absolute end-[22%] top-1.5 h-2 w-2 rounded-full bg-primary" aria-hidden /> : null}
               {active ? <span className="absolute inset-x-5 top-0 h-[2px] rounded-full bg-primary" aria-hidden /> : null}
             </button>
           );
         })}
-        <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen}
-          className={cn('flex flex-1 flex-col items-center gap-1 py-2.5 text-[10.5px] font-semibold transition-colors',
-            moreOpen ? 'text-primary' : 'text-muted-foreground')}>
+        <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-controls="qd-nav-more"
+          className={cn('flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[11.5px] font-semibold leading-tight transition-colors',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+            moreOpen ? 'text-primary' : 'text-foreground/75')}>
           {moreOpen ? <X className="h-[19px] w-[19px]" aria-hidden /> : <Menu className="h-[19px] w-[19px]" aria-hidden />}
           <span>{t('nav_more')}</span>
         </button>
@@ -534,19 +533,25 @@ export function PortalShell({
       {moreOpen && (
         <>
           <button type="button" aria-label={t('close')} onClick={() => setMoreOpen(false)}
-            className="fixed inset-0 z-30 bg-background/70 backdrop-blur-sm md:hidden" />
-          <div className="fixed inset-x-0 bottom-[60px] z-40 max-h-[62vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
+            className="fixed inset-0 z-30 bg-background/80 md:hidden" />
+          {/* THE SHEET GIVES FULL NAMES, one per row: a two-column grid cut "What you may need
+              next" at 375px. */}
+          <nav id="qd-nav-more" aria-label={t('nav_more_title')}
+            className="fixed inset-x-0 bottom-[56px] z-40 max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
             {overflowGroups.map((g) => (
-              <div key={g.caption} className="mb-3">
-                <div className="px-1 pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted-foreground/65">{t(g.caption)}</div>
-                <div className="grid grid-cols-2 gap-1.5">
+              <div key={g.caption} role="group" aria-labelledby={'qd-more-' + g.caption} className="mb-3">
+                <div id={'qd-more-' + g.caption} className="px-1 pb-1 text-[12.5px] font-semibold text-muted-foreground">{t(g.caption)}</div>
+                <div className="flex flex-col gap-1">
                   {g.items.map((item) => {
                     const Icon = item.icon;
+                    const active = isActive(item.id);
                     return (
-                      <button key={item.id} type="button" onClick={() => go(item.id)}
-                        className="flex items-center gap-2.5 rounded-xl border border-border bg-secondary/25 px-3 py-2.5 text-start text-[12.5px] font-medium text-foreground">
-                        <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                        <span className="min-w-0 flex-1 truncate">{t(item.label)}</span>
+                      <button key={item.id} type="button" onClick={() => go(item.id)} aria-current={active ? 'page' : undefined}
+                        className={cn('flex min-h-11 items-center gap-2.5 rounded-xl border px-3 py-2 text-start text-[14px] font-medium',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          active ? 'border-primary/40 bg-primary/12 text-primary' : 'border-border bg-secondary/25 text-foreground')}>
+                        <Icon className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                        <span className="min-w-0 flex-1 break-words leading-snug">{t(item.label)}</span>
                       </button>
                     );
                   })}
@@ -554,11 +559,12 @@ export function PortalShell({
               </div>
             ))}
             <div className="mt-1 flex items-center gap-2 border-t border-border pt-3">
-              <Button variant="outline" size="sm" className="flex-1" onClick={() => onSetLang(rtl ? 'en' : 'ar')}>{rtl ? 'English' : 'العربية'}</Button>
-              <Button variant="outline" size="sm" className="flex-1" onClick={onSwapTheme}>{theme === 'dark' ? t('theme_light') : t('theme_dark')}</Button>
-              <Button variant="outline" size="sm" className="flex-1" onClick={onSignOut}>{t('signout')}</Button>
+              <Button variant="outline" size="sm" className="h-11 flex-1" onClick={() => onSetLang(rtl ? 'en' : 'ar')}>{rtl ? 'English' : 'العربية'}</Button>
+              <Button variant="outline" size="sm" className="h-11 flex-1" onClick={onSwapTheme}>{theme === 'dark' ? t('theme_light') : t('theme_dark')}</Button>
+              <Button variant="outline" size="sm" className="h-11 flex-1" onClick={onSignOut}>{t('signout')}</Button>
             </div>
-          </div>
+            <p className="pt-1 text-[11.5px] leading-snug text-muted-foreground">{t('lang_note')}</p>
+          </nav>
         </>
       )}
 

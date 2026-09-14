@@ -1,0 +1,397 @@
+// interview — the deterministic intake interview (14 Sep 2026). No model, no network, no env.
+//
+// WHY THIS EXISTS. Every model route in llm_route_health is held under the founder's OpenRouter
+// hold, so inquiry_intake's keyword fallback is the path every real customer takes. That fallback
+// derived its "missing" list from category_specs required fields and NEVER READ THE ANSWERS: the
+// customer answered, the next turn asked the same three trade-language questions again, status
+// stayed needs_info, brief stayed null, and create_inquiry (which needs a 'ready' intake row) was
+// unreachable for every category with a required field — 47 of 56 categories, 252 of 396 fields
+// (measured on production category_specs, 14 Sep 2026). Posting a job has to work with no model.
+//
+// WHAT IT DOES. One question at a time, in the category's own order. The answer to the question
+// last asked is parsed into that field's canonical key (category_specs.fields[].key — the same
+// keys fn_rfq_required_check scores and the model path is told to use), and the first message is
+// read opportunistically for anything it already states (an emirate, "120 sqm", an option named
+// outright). When every required field is filled the brief is built in the exact shape the model
+// path returns, so create_inquiry and customer_api take it unchanged.
+//
+// WHAT IT DOES NOT DO. It does not judge whether an answer is sensible for the trade. A vague or
+// unparseable answer to the question just asked is KEPT IN THE CUSTOMER'S OWN WORDS rather than
+// re-asked — the intake prompt's own rule is that an approximate answer beats an abandoned inquiry,
+// and a supplier can quote against a stated assumption. Structured parsing (numbers + units,
+// emirates, dates, yes/no, options, AED) normalises what it can recognise; nothing is invented.
+
+export type SpecField = {
+  key?: string; question?: string; required?: boolean; type?: string; options?: string[];
+  question_plain_en?: string; question_plain_ar?: string;
+};
+export type Lang = 'en' | 'ar';
+export type NextQuestion = { key: string; text: string; options: string[] | null };
+
+// 38 of the 396 fields (every field of 9 categories: epoxy-flooring, interior-design, it-networking,
+// kitchens, marble-granite, roofing, smart-home, solar, swimming-pools) carry NO key. The canonical
+// ready gate in index.ts skips keyless fields (it filters on f.key), so a derived key is only this
+// interview's own handle — it lands in brief.details and never collides with a canonical one.
+export const fieldKey = (f: SpecField, i: number) => (f.key && String(f.key)) || `field_${i + 1}`;
+
+const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+export function normDigits(s: string): string {
+  return String(s || '').replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d))).replace(/[٫]/g, '.').replace(/[٬،](?=\d{3}\b)/g, ',');
+}
+
+// ── EMIRATES, English and Arabic ────────────────────────────────────────────────────────────────
+const EMIRATE_PATTERNS: [string, RegExp][] = [
+  ['Abu Dhabi', /abu\s*dhabi|أبو\s*ظبي|ابو\s*ظبي|أبوظبي|ابوظبي/i],
+  ['Al Ain', /\bal\s*ain\b|العين/i],
+  ['Dubai', /dubai|دبي/i],
+  ['Sharjah', /sharjah|الشارقة|شارقة/i],
+  ['Ajman', /ajman|عجمان/i],
+  ['Ras Al Khaimah', /ras\s*al\s*khaimah|\brak\b|رأس\s*الخيمة|راس\s*الخيمة/i],
+  ['Fujairah', /fujairah|الفجيرة|فجيرة/i],
+  ['Umm Al Quwain', /umm\s*al\s*quwain|\buaq\b|أم\s*القيوين|ام\s*القيوين/i],
+];
+export function parseEmirate(text: string): string | null {
+  for (const [name, re] of EMIRATE_PATTERNS) if (re.test(text)) return name;
+  return null;
+}
+
+// ── NUMBERS WITH UNITS ──────────────────────────────────────────────────────────────────────────
+// Order matters: square units before linear metres, or "120 m2" would read as 120 m.
+const UNITS: [string, RegExp][] = [
+  ['sqm', /^(?:sqm|sq\.?\s*m(?:tr|eters?|etres?)?|m2|m²|square\s*met(?:er|re)s?|متر\s*مربع|م2|م²|مترمربع)/i],
+  ['sqft', /^(?:sq\.?\s*ft|sqft|square\s*f(?:ee|oo)t|ft2|ft²|قدم\s*مربع)/i],
+  ['lm', /^(?:lm|l\.m\.?|rm|linear\s*met(?:er|re)s?|running\s*met(?:er|re)s?|متر\s*طولي)/i],
+  ['m3', /^(?:m3|m³|cu\.?\s*m|cubic\s*met(?:er|re)s?|متر\s*مكعب)/i],
+  ['mm', /^(?:mm|millimet(?:er|re)s?|مم|ملم)/i],
+  ['m', /^(?:m|met(?:er|re)s?|mtrs?|متر|أمتار|م)(?![a-z])/i],
+  ['kva', /^kva/i], ['kw', /^kw(?!h)/i], ['tr', /^(?:tr|tons?\s*of\s*refrigeration)\b/i],
+  ['kg', /^(?:kg|kgs|kilos?|كغ|كيلو)/i], ['ton', /^(?:tons?|tonnes?|طن)/i],
+  ['litre', /^(?:l|ltrs?|lit(?:er|re)s?|لتر)(?![a-z])/i], ['gallon', /^(?:gal|gallons?|جالون|غالون)/i],
+  ['pcs', /^(?:pcs|pieces?|units?|nos\.?|no\.|numbers?|items?|sets?|قطع|قطعة|وحدات|وحدة|حبة|حبات)/i],
+  ['rooms', /^(?:rooms?|bedrooms?|br\b|bhk|غرف|غرفة)/i],
+  ['floors', /^(?:floors?|storeys?|stories|levels?|طوابق|طابق|أدوار|دور)/i],
+  ['windows', /^(?:windows?|نوافذ|نافذة|شبابيك|شباك)/i],
+  ['doors', /^(?:doors?|أبواب|باب)/i],
+  ['cameras', /^(?:cameras?|كاميرات|كاميرا)/i],
+];
+export type Measure = { value: number; unit: string | null; text: string };
+export function parseMeasures(text: string): Measure[] {
+  const t = normDigits(text);
+  const out: Measure[] = [];
+  const re = /(\d+(?:[.,]\d+)*)\s*(k\b|thousand|ألف|الف)?\s*/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(t)) !== null) {
+    const rawNum = m[1].replace(/,(?=\d{3}(?:\D|$))/g, '').replace(',', '.');
+    let value = Number(rawNum);
+    if (!Number.isFinite(value)) continue;
+    if (m[2]) value *= 1000;
+    const rest = t.slice(m.index + m[0].length);
+    let unit: string | null = null;
+    for (const [u, ure] of UNITS) if (ure.test(rest)) { unit = u; break; }
+    // "1200 x 1500" is a dimension pair: keep it whole rather than two bare numbers.
+    const dim = t.slice(m.index).match(/^(\d+(?:\.\d+)?)\s*[x×\*]\s*(\d+(?:\.\d+)?)(?:\s*[x×\*]\s*(\d+(?:\.\d+)?))?\s*(mm|cm|m)?/i);
+    if (dim && dim[2]) {
+      out.push({ value, unit: dim[4] ? dim[4].toLowerCase() : null, text: dim[0].trim() });
+      re.lastIndex = m.index + dim[0].length;
+      continue;
+    }
+    out.push({ value, unit, text: unit ? `${value} ${unit}` : String(value) });
+  }
+  return out;
+}
+
+// ── DATES, DURATIONS, "ASAP" ────────────────────────────────────────────────────────────────────
+export type When = { days: number | null; text: string; flexible?: boolean };
+const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+export function parseWhen(text: string, now = new Date()): When | null {
+  const t = normDigits(text).toLowerCase();
+  if (/\b(asap|urgent(?:ly)?|immediately|right away|today|now|emergency)\b|فور[اًا]?|عاجل|بأسرع وقت|في أسرع وقت|اليوم|حالا|حالاً/.test(t)) return { days: 0, text: 'ASAP' };
+  if (/\b(flexible|any ?time|no rush|not urgent|whenever)\b|مرن|غير مستعجل|أي وقت|اي وقت/.test(t)) return { days: null, text: 'Flexible', flexible: true };
+  if (/\btomorrow\b|غد[اًا]?|بكرة|بكره/.test(t)) return { days: 1, text: 'Tomorrow' };
+  if (/\bnext week\b|الأسبوع القادم|الاسبوع القادم|الأسبوع الجاي/.test(t)) return { days: 7, text: 'Next week' };
+  if (/\bnext month\b|الشهر القادم|الشهر الجاي/.test(t)) return { days: 30, text: 'Next month' };
+  const dur = t.match(/(\d+(?:\.\d+)?)\s*(?:-|to|–)?\s*(\d+)?\s*(days?|weeks?|months?|يوم|أيام|ايام|أسبوع|اسبوع|أسابيع|اسابيع|شهر|أشهر|اشهر|شهور)/);
+  if (dur) {
+    const n = Number(dur[2] || dur[1]);
+    const u = dur[3];
+    const mult = /week|أسبوع|اسبوع|أسابيع|اسابيع/.test(u) ? 7 : (/month|شهر|أشهر|اشهر|شهور/.test(u) ? 30 : 1);
+    return { days: Math.round(n * mult), text: dur[0].trim() };
+  }
+  const arDur = t.match(/(أسبوعين|اسبوعين|شهرين|يومين)/);
+  if (arDur) return { days: /شهرين/.test(arDur[1]) ? 60 : (/يومين/.test(arDur[1]) ? 2 : 14), text: arDur[1] };
+  const dmy = t.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/);
+  if (dmy) {
+    const y = Number(dmy[3].length === 2 ? '20' + dmy[3] : dmy[3]);
+    const d = new Date(Date.UTC(y, Number(dmy[2]) - 1, Number(dmy[1])));
+    if (!isNaN(d.getTime())) return { days: Math.max(0, Math.round((d.getTime() - now.getTime()) / 86400000)), text: d.toISOString().slice(0, 10) };
+  }
+  for (let i = 0; i < 12; i++) {
+    const re = new RegExp(`(?:(\\d{1,2})\\s*)?\\b${MONTHS[i]}|\\b${MONTHS[i].slice(0, 3)}\\b`);
+    const mm = t.match(re);
+    if (mm) {
+      let y = now.getUTCFullYear();
+      const day = mm[1] ? Number(mm[1]) : 1;
+      let d = new Date(Date.UTC(y, i, day));
+      if (d.getTime() < now.getTime() - 86400000) { y++; d = new Date(Date.UTC(y, i, day)); }
+      return { days: Math.round((d.getTime() - now.getTime()) / 86400000), text: mm[1] ? d.toISOString().slice(0, 10) : `${MONTHS[i][0].toUpperCase()}${MONTHS[i].slice(1)} ${y}` };
+    }
+  }
+  return null;
+}
+
+// ── MONEY ───────────────────────────────────────────────────────────────────────────────────────
+export function parseBudget(text: string): string | null {
+  const t = normDigits(text);
+  if (!/aed|dhs?\b|dirhams?|درهم|دراهم|budget|ميزانية|\d\s*k\b/i.test(t)) return null;
+  const m = t.match(/(\d+(?:[.,]\d+)*)\s*(k\b|thousand|ألف|الف|m\b|million|مليون)?/i);
+  if (!m) return null;
+  let v = Number(m[1].replace(/,/g, ''));
+  if (!Number.isFinite(v) || v <= 0) return null;
+  if (m[2]) v *= /m\b|million|مليون/i.test(m[2]) ? 1_000_000 : 1000;
+  return `AED ${Math.round(v)}`;
+}
+
+// ── YES / NO / DON'T KNOW ───────────────────────────────────────────────────────────────────────
+export function parseYesNo(text: string): 'Yes' | 'No' | null {
+  // "Not sure" is not a yes. The yes pattern below contains `sure`, so without this line "not sure,
+  // advise" read as Yes (found 14 Sep 2026 replaying the founder's generators request: his "Not sure"
+  // about the power rating answered "should it switch on by itself?" with Yes, unasked).
+  if (isUnknown(text)) return null;
+  const t = ' ' + String(text || '').toLowerCase().trim() + ' ';
+  if (/\b(no|nope|not needed|none|don't need|do not need)\b|^\s*لا\s|لا نحتاج|لا أحتاج|غير مطلوب/.test(t)) return 'No';
+  if (/\b(yes|yeah|yep|yup|sure|please|of course|definitely|needed|required)\b|نعم|أيوه|ايوه|اي نعم|أكيد|اكيد|طبعا|طبعاً|مطلوب/.test(t)) return 'Yes';
+  return null;
+}
+export const isUnknown = (text: string) =>
+  /\b(not sure|don'?t know|do not know|no idea|unsure|you (?:tell|advise|recommend)|recommend|advise)\b|لا أعرف|لا اعرف|مش عارف|ما أعرف|ما اعرف|غير متأكد|غير متاكد|انصحني|اقترح/i.test(String(text || ''));
+
+// ── OPTIONS ─────────────────────────────────────────────────────────────────────────────────────
+const tokens = (s: string) => String(s || '').toLowerCase().replace(/\(.*?\)/g, ' ').split(/[^a-z0-9؀-ۿ+]+/).filter((w) => w.length > 2);
+function optionForDays(options: string[], w: When): string | null {
+  if (w.flexible) return options.find((o) => /flexib/i.test(o)) || null;
+  if (w.days === null) return null;
+  let best: string | null = null;
+  for (const o of options) {
+    const lo = o.toLowerCase();
+    if (/urgent|asap|immediate/.test(lo) && w.days <= 14) return o;
+    const nums = (lo.match(/\d+/g) || []).map(Number);
+    if (!nums.length) continue;
+    const mult = /month/.test(lo) ? 30 : (/week/.test(lo) ? 7 : 1);
+    const max = Math.max(...nums) * mult;
+    if (w.days <= max) { best = o; break; }
+  }
+  return best;
+}
+// Every option in category_specs is written in English (all 396 fields, measured 14 Sep 2026), so
+// an Arabic answer can never name one. Common Arabic trade words are glossed to the English an
+// option uses before matching.
+// ponytail: a fixed glossary of ~40 terms; the upgrade is an options_ar sibling on category_specs.
+const AR_GLOSS: [RegExp, string][] = [
+  [/نوافذ|نافذة|شبابيك|شباك/, 'windows'], [/أبواب|ابواب|باب/, 'doors'], [/درابزين/, 'railing handrails'],
+  [/تكسية|كلادينج/, 'cladding'], [/برجولة|مظلة|مظلات/, 'pergola shade'], [/قواطع|فواصل|بارتشن/, 'partitions'],
+  [/منزلق|سحاب/, 'sliding'], [/توريد\s*و\s*تركيب|توريد\s*وتركيب/, 'supply and install supply + installation'],
+  [/توريد\s*فقط/, 'supply only'], [/تركيب\s*فقط/, 'install only installation only'],
+  [/فيلا|فلة|فيلّا/, 'villa'], [/شقة/, 'apartment'], [/مكتب/, 'office'], [/محل|متجر/, 'retail shop'],
+  [/مستودع|مخزن/, 'warehouse'], [/مطعم|مقهى/, 'restaurant cafe'], [/عيادة/, 'clinic'], [/مبنى|بناية|عمارة/, 'building'],
+  [/داخلي/, 'indoor interior'], [/خارجي/, 'outdoor exterior'], [/كلاهما|الاثنين|الإثنين/, 'both'],
+  [/زجاج\s*مزدوج|دبل/, 'double glazed'], [/زجاج\s*مفرد|سنجل/, 'single glazed'], [/مصنفر/, 'frosted'],
+  [/مرة\s*واحدة/, 'one-time'], [/أسبوعي|اسبوعي/, 'weekly'], [/شهري/, 'monthly'], [/سنوي|عقد\s*سنوي/, 'annual contract'],
+  [/إيجار|ايجار|استئجار/, 'rental'], [/شراء/, 'buy'], [/جديد/, 'new installation new build'], [/استبدال/, 'replacement'],
+  [/صيانة/, 'maintenance'], [/إصلاح|اصلاح|تصليح/, 'repair'], [/سيراميك/, 'ceramic'], [/بورسلان/, 'porcelain'],
+  [/رخام/, 'marble'], [/جرانيت|غرانيت/, 'granite'], [/باركيه/, 'parquet'], [/فينيل/, 'vinyl'], [/إيبوكسي|ايبوكسي/, 'epoxy'],
+  [/سجاد|موكيت/, 'carpet'], [/أسقف\s*معلقة|سقف\s*معلق|جبس/, 'false ceiling'], [/كاميرات|كاميرا|مراقبة/, 'cctv cameras'],
+  [/سطح/, 'roof'], [/حمام/, 'bathroom'], [/مطبخ/, 'kitchen'], [/حديقة/, 'garden softscape'],
+];
+function glossArabic(text: string): string {
+  let add = '';
+  for (const [re, en] of AR_GLOSS) if (re.test(text)) add += ' ' + en;
+  return add;
+}
+
+/** Every option named in the text. A select field takes the first; a multiselect takes all. */
+// English says the same option several ways. Measured on harness journey a (14 Sep 2026): "supplied
+// and installed" never matched the option "Supply and install", so scope was asked again and the next
+// sentence the customer typed was stored as the answer.
+function glossEnglish(text: string): string {
+  const t = String(text || '').toLowerCase();
+  let add = '';
+  if (/\bsuppl(?:y|ied)\s+(?:and|&|\+)\s+install(?:ed|ation)?\b|\bsupply[\s-]+(?:and|&)[\s-]+fix\b|\binstalled\b/.test(t)) add += ' supply and install';
+  if (/\b(?:supply|deliver(?:y)?)\s+only\b|\bno installation\b|\bwithout installation\b/.test(t)) add += ' supply only';
+  return add;
+}
+
+export function matchOptions(options: string[], text: string): string[] {
+  const t = ' ' + String(text || '').toLowerCase() + glossArabic(String(text || '')) + glossEnglish(String(text || '')) + ' ';
+  const hits: string[] = [];
+  for (const o of options) {
+    const lo = o.toLowerCase();
+    if (/^(yes|no)\b/.test(lo) && lo.length < 5) continue; // yes/no handled by parseYesNo
+    const whole = lo.replace(/\s*\(.*?\)\s*/g, ' ').trim();
+    if (whole.length > 2 && t.includes(whole)) { hits.push(o); continue; }
+    const alts = lo.split(/\s*[\/+]\s*|\s+or\s+/).map((s) => s.replace(/\(.*?\)/g, '').trim()).filter((s) => s.length > 2);
+    if (alts.some((a) => new RegExp(`(^|[^a-z])${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(t))) { hits.push(o); continue; }
+    const tk = tokens(o).filter((w) => !['not', 'sure', 'other', 'only', 'and', 'the', 'with'].includes(w));
+    if (tk.length && tk.length <= 3 && tk.every((w) => t.includes(w))) hits.push(o);
+  }
+  return hits;
+}
+
+// ── WHAT KIND OF ANSWER A FIELD WANTS ───────────────────────────────────────────────────────────
+type Kind = 'emirate' | 'when' | 'budget' | 'measure' | 'text';
+export function kindOf(f: SpecField): Kind {
+  const s = `${f.key || ''} ${f.question || ''}`.toLowerCase();
+  if (/budget/.test(s)) return 'budget';
+  if (/timeline|timing|deadline|\bdate\b|start|when |completion|duration/.test(s)) return 'when';
+  if (/emirate|location/.test(s)) return 'emirate';
+  if (f.type === 'number' || /area|sqm|size|quantity|how many|dimensions|capacity|qty|stops|count|m²|length|height/.test(s)) return 'measure';
+  return 'text';
+}
+
+/**
+ * Parse `text` as the answer to field `f`.
+ * `targeted` = this was the question just asked, so an answer that cannot be normalised is still
+ * the customer's answer and is kept verbatim. Untargeted (reading the first message for facts it
+ * already states) only fills a field on a clear structured hit, never on free text.
+ */
+export function parseAnswer(f: SpecField, text: string, targeted: boolean): string | null {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  const opts = Array.isArray(f.options) ? f.options.filter((o) => typeof o === 'string' && o) : [];
+  const kind = kindOf(f);
+  if (opts.length) {
+    // Only the question just asked can be answered by a bare yes or no. Reading the whole
+    // conversation for one let any "yes" or "no" the customer said about something else fill every
+    // unanswered yes/no field at once.
+    if (targeted && opts.length <= 3 && opts.some((o) => /^yes\b/i.test(o)) && opts.some((o) => /^no\b/i.test(o))) {
+      const yn = parseYesNo(raw);
+      if (yn) return opts.find((o) => o.toLowerCase().startsWith(yn.toLowerCase())) || yn;
+    }
+    if (kind === 'when') { const w = parseWhen(raw); const o = w ? optionForDays(opts, w) : null; if (o) return o; }
+    if (kind === 'emirate') {
+      const e = parseEmirate(raw);
+      if (e) return opts.find((o) => o.toLowerCase().includes(e.toLowerCase()))
+        || (['Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'].includes(e) ? opts.find((o) => /northern/i.test(o)) : undefined)
+        || (targeted ? e : null);
+    }
+    // A "not sure" is only ever the answer to the question it was said to. Read untargeted, one "not
+    // sure" anywhere in the conversation filled every field that offers a Not sure / Recommend option
+    // (the generators replay, 14 Sep 2026: "Not sure - advise" about power also answered the
+    // automatic-switch question, which was then never asked).
+    const hits = matchOptions(opts, raw).filter((o) => targeted || !/not sure|recommend|advise|unknown|unsure/i.test(o));
+    if (hits.length) return f.type === 'multiselect' ? hits.join(', ') : hits[0];
+    if (targeted && isUnknown(raw)) return opts.find((o) => /not sure|recommend|advise|unknown|unsure/i.test(o)) || 'Not sure';
+    // A tap question answered with a paragraph that names none of its options is a STATEMENT about
+    // something else, not this answer (measured, journey a: "Materials: thermal break aluminium
+    // frames, ..." was stored as the answer to "install or deliver only?"). Its facts are still read
+    // for the fields they fit; this question stays open.
+    return targeted && raw.length <= 80 && !/[.!?؟]\s+\S/.test(raw) ? raw.slice(0, 300) : null;
+  }
+  if (targeted && isUnknown(raw)) return 'Not sure';
+  if (kind === 'emirate') {
+    const e = parseEmirate(raw);
+    if (!targeted) return e;
+    // Keep the customer's area words ("Dubai Marina, 12th floor") — the emirate is also lifted
+    // onto brief.emirate separately, so nothing is lost by not reducing this to one word.
+    return raw.slice(0, 300);
+  }
+  if (kind === 'budget') return parseBudget(raw) || (targeted ? raw.slice(0, 120) : null);
+  if (kind === 'when') { const w = parseWhen(raw); return w ? w.text : (targeted ? raw.slice(0, 120) : null); }
+  if (kind === 'measure') {
+    const ms = parseMeasures(raw);
+    const q0 = `${f.key || ''} ${f.question || ''}`.toLowerCase();
+    // "40 aluminium windows ... Sizes 1200 x 1500 mm": a count of things and a size, however far
+    // apart, answer a "how many and how big" field outright (measured: journey a stated both in its
+    // first message and was asked for them anyway).
+    // Read from what was already said only (untargeted): a direct answer keeps the customer's own
+    // words, and a unit they did not write is never added.
+    if (!targeted && /quantity|how many|pieces|qty|dimensions/.test(q0)) {
+      const t = normDigits(raw);
+      const cnt = t.match(/\b(\d{1,4})\s+(?:[a-z\-]+\s+){0,2}?(windows?|doors?|units?|pieces?|pcs|panels?|shutters?|railings?|sets?|nos)\b/i);
+      const dim = t.match(/\b(\d{2,5})\s*[x×*]\s*(\d{2,5})(?:\s*[x×*]\s*\d{2,5})?\s*(mm|cm|m)?\b/i);
+      if (cnt) return `${cnt[1]} ${cnt[2].toLowerCase()}${dim ? `, ${dim[1]} x ${dim[2]}${dim[3] ? ' ' + dim[3].toLowerCase() : ''}` : ''}`;
+    }
+    // A "how many / how big" question answered with no number at all did not answer it.
+    if (targeted && !/\d/.test(normDigits(raw))) return null;
+    if (targeted) {
+      // A targeted multi-part answer ("3 windows, 1200x1500 each") is kept whole; a single bare
+      // measure is normalised to "<n> <unit>".
+      if (ms.length === 1 && raw.replace(/[\d.,\s]/g, '').length <= 20) return ms[0].text;
+      return raw.slice(0, 300);
+    }
+    // Opportunistic read: only a measure whose unit this field is plainly about.
+    const q = `${f.key || ''} ${f.question || ''}`.toLowerCase();
+    const want = /sq\.?\s*ft|sqft/.test(q) ? ['sqft', 'sqm'] : (/area|sqm|m²|m2/.test(q) ? ['sqm', 'sqft'] : (/room|bedroom/.test(q) ? ['rooms'] : (/floor|stops/.test(q) ? ['floors'] : (/camera/.test(q) ? ['cameras'] : (/window/.test(q) ? ['windows'] : [])))));
+    const hit = ms.find((m) => m.unit && want.includes(m.unit));
+    return hit ? hit.text : null;
+  }
+  return targeted ? raw.slice(0, 300) : null;
+}
+
+/** Required first, then fn_category_questions' ask_order where the key matches, then spec order. */
+export function orderFields(fields: SpecField[], askOrder: Record<string, number> = {}) {
+  return fields
+    .map((f, i) => ({ f, i, key: fieldKey(f, i) }))
+    .filter(({ f }) => f && (f.question || f.key))
+    .sort((a, b) => (Number(!!b.f.required) - Number(!!a.f.required))
+      || ((askOrder[a.key] ?? 999) - (askOrder[b.key] ?? 999))
+      || (a.i - b.i));
+}
+
+export function questionText(f: SpecField, lang: Lang): string {
+  if (lang === 'ar') return String(f.question_plain_ar || f.question_plain_en || f.question || f.key || '').trim();
+  return String(f.question_plain_en || f.question || f.key || '').trim();
+}
+
+export type InterviewState = { details: Record<string, string>; asked_key: string | null };
+export type InterviewStep = {
+  details: Record<string, string>;
+  filled_now: string[];
+  next: NextQuestion | null;
+  readiness: { filled: number; required: number };
+  complete: boolean;
+};
+
+/**
+ * One turn. `answer` is this turn's message; `firstText` is everything the customer has said so
+ * far (read only for clear structured facts). The field last asked receives `answer`.
+ */
+export function interviewStep(fields: SpecField[], state: InterviewState, answer: string, allText: string, lang: Lang, askOrder: Record<string, number> = {}): InterviewStep {
+  const details: Record<string, string> = { ...(state.details || {}) };
+  const ordered = orderFields(fields, askOrder);
+  const filledNow: string[] = [];
+  const has = (k: string) => details[k] !== undefined && String(details[k]).trim() !== '';
+  if (state.asked_key && answer && !has(state.asked_key)) {
+    const hit = ordered.find((o) => o.key === state.asked_key);
+    if (hit) { const v = parseAnswer(hit.f, answer, true); if (v) { details[hit.key] = v; filledNow.push(hit.key); } }
+  }
+  for (const o of ordered) {
+    if (has(o.key)) continue;
+    const v = parseAnswer(o.f, allText, false);
+    if (v) { details[o.key] = v; filledNow.push(o.key); }
+  }
+  const req = ordered.filter((o) => o.f.required);
+  const filled = req.filter((o) => has(o.key)).length;
+  const nextField = req.find((o) => !has(o.key));
+  const next = nextField
+    ? { key: nextField.key, text: questionText(nextField.f, lang), options: Array.isArray(nextField.f.options) && nextField.f.options.length ? nextField.f.options : null }
+    : null;
+  return { details, filled_now: filledNow, next, readiness: { filled, required: req.length }, complete: !nextField };
+}
+
+/** The brief, in the shape the model path returns (inquiry_intake sys prompt, "brief"). */
+export function buildBrief(category: string, details: Record<string, string>, allText: string, emirate: string | null, firstUserText: string) {
+  const pick = (re: RegExp) => { const k = Object.keys(details).find((x) => re.test(x)); return k ? String(details[k]) : ''; };
+  const location = pick(/location|emirate/);
+  const em = emirate || parseEmirate(location) || '';
+  return {
+    summary: String(firstUserText || allText).replace(/\s+/g, ' ').trim().slice(0, 160),
+    category,
+    scope: pick(/^scope|supply_install|scope_mode|installation|engagement|work_type|service/),
+    quantity: pick(/area|qty|quantity|size|dimensions|count|stops|capacity|windows|rooms|coverage|scale|building/),
+    location: location || em,
+    emirate: em,
+    timeline: pick(/timeline|timing|date|deadline|duration/),
+    budget: pick(/budget/) || parseBudget(allText) || '',
+    details,
+  };
+}

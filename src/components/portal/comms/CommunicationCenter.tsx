@@ -94,11 +94,11 @@ const EN = {
   unlinked_h: 'Also in your vault',
   unlinked_b: 'quotation file(s) we cannot attach to a conversation — a quotation is filed against the quote, and the quote does not name the request it answers in what this page can read. They are all in your document vault.',
   ask_h: 'Ask this supplier a question',
-  ask_b: 'Our category assistant answers most questions instantly. If yours genuinely needs the supplier, it opens a direct chat for review.',
+  ask_b: 'Your QuotesDone sales engineer answers most questions instantly. If yours genuinely needs the supplier, it opens a direct chat for review.',
   ask_ph: 'What would you like to ask?',
   ask_send: 'Ask',
   asking: 'Asking…',
-  answered_h: 'Answered by your category assistant',
+  answered_h: 'Answered by your QuotesDone sales engineer',
   requested_h: 'Sent for review',
   pending: 'Your chat request is pending review. You will be notified if it is opened.',
   closed: 'This chat is closed following a policy violation.',
@@ -153,11 +153,11 @@ const AR: typeof EN = {
   unlinked_h: 'أيضًا في خزانتك',
   unlinked_b: 'ملف عرض سعر لا يمكننا ربطه بمحادثة — يُؤرشف عرض السعر على العرض نفسه، والعرض لا يذكر الطلب الذي يجيب عنه ضمن ما تقرؤه هذه الصفحة. جميعها في خزانة مستنداتك.',
   ask_h: 'اسأل هذا المورّد',
-  ask_b: 'يجيب مساعد الفئة عن معظم الأسئلة فورًا. وإن كان سؤالك يحتاج المورّد فعلًا، يفتح محادثة مباشرة للمراجعة.',
+  ask_b: 'يجيب مهندس مبيعات QuotesDone عن معظم الأسئلة فورًا. وإن كان سؤالك يحتاج المورّد فعلًا، يفتح محادثة مباشرة للمراجعة.',
   ask_ph: 'ما الذي تودّ سؤاله؟',
   ask_send: 'اسأل',
   asking: 'جارٍ الإرسال…',
-  answered_h: 'أجاب مساعد الفئة',
+  answered_h: 'أجاب مهندس مبيعات QuotesDone',
   requested_h: 'أُرسل للمراجعة',
   pending: 'طلب المحادثة قيد المراجعة. سنُعلمك إذا فُتحت.',
   closed: 'أُغلقت هذه المحادثة إثر مخالفة للسياسة.',
@@ -318,15 +318,20 @@ function ConversationView({
     if (r.data.message) setData((d) => (d ? { ...d, messages: [...(d.messages || []), r.data.message as ChatMessage] } : d));
   };
 
+  // THE QUESTION WAS THROWN AWAY. messages_api request_chat opens the chat and never reads
+  // `question` (index.ts: it answers {ok, status:'open', note:'Chat is open.'}), so a customer's
+  // question was shown back under "Sent for review" and reached nobody. Open the chat, then deliver
+  // the question through `send` — the same path, and the same contact filter, as the composer.
   const doAsk = async () => {
     const q = question.trim();
     if (!q) return;
     setBusy(true); setNotice(null);
     const r = await requestChat(token, thread.inquiry_id, thread.supplier_id, q);
+    if (!r.ok) { setBusy(false); setNotice({ tone: 'error', body: r.error }); return; }
+    if (r.data.answered && r.data.answer) { setBusy(false); setNotice({ tone: 'info', head: w.answered_h, body: r.data.answer }); setQuestion(''); return; }
+    const s = await sendMessage(token, thread.inquiry_id, thread.supplier_id, q);
     setBusy(false);
-    if (!r.ok) { setNotice({ tone: 'error', body: r.error }); return; }
-    if (r.data.answered && r.data.answer) { setNotice({ tone: 'info', head: w.answered_h, body: r.data.answer }); setQuestion(''); return; }
-    setNotice({ tone: 'info', head: w.requested_h, body: r.data.note || w.pending });
+    if (!s.ok) { setNotice({ tone: 'error', head: w.requested_h, body: s.error }); load(); return; }
     setQuestion('');
     load();
   };

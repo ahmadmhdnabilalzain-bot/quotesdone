@@ -41,7 +41,7 @@ const EN = {
   sel_open_rfq: 'Open this request',
   quotes_n: 'quotes received',
   quotes_none: 'No quotes have arrived for this request yet.',
-  quotes_unknown: 'Quote counts are not loaded on this screen.',
+  quotes_unknown: 'Open this request to see its quotes.',
   sup_awarded: 'Awarded supplier',
   sup_hidden: 'Supplier names appear once a quote is revealed.',
   docs_none: 'No documents are filed against this request yet.',
@@ -58,8 +58,8 @@ const EN = {
 
   chain_title: 'Supply chain map',
   chain_sub: 'Every order you have placed, from the supplier to your site.',
-  // The precise, measured statement of what is missing. Do not soften this.
-  chain_caveat: 'No table in QuotesDone stores a shipping origin, a destination or a warehouse, so this is a stage map built from each order’s own status and received quantities — not a geographic route. The warehouse hop the specification draws has no data behind it and is not invented here.',
+  // Still says what the map is NOT (a route) — in the customer's words, not ours (founder walk, 14 Sep 2026).
+  chain_caveat: 'This map shows the stage each order has reached, based on its status and the quantities you have received. It is not a live shipping route.',
   chain_empty: 'You have no orders yet, so there is nothing in transit. An order appears here when a purchase order is raised against one of your requests.',
   chain_node_supplier: 'Supplier',
   chain_node_transit: 'In transit',
@@ -67,7 +67,7 @@ const EN = {
   chain_received: 'received',
   chain_expected: 'Expected',
   chain_lines: 'lines',
-  chain_no_qty: 'This order carries no quantities, so how much has arrived cannot be computed.',
+  chain_no_qty: 'This order has no quantities listed, so we cannot show how much has arrived.',
 };
 
 const AR: typeof EN = {
@@ -102,7 +102,7 @@ const AR: typeof EN = {
   sel_open_rfq: 'افتح هذا الطلب',
   quotes_n: 'عرض سعر مستلم',
   quotes_none: 'لم تصل أي عروض أسعار لهذا الطلب بعد.',
-  quotes_unknown: 'عدد عروض الأسعار غير محمّل في هذه الشاشة.',
+  quotes_unknown: 'افتح هذا الطلب لرؤية عروض الأسعار.',
   sup_awarded: 'المورّد المتعاقد معه',
   sup_hidden: 'تظهر أسماء المورّدين بعد كشف عرض السعر.',
   docs_none: 'لا توجد مستندات مرتبطة بهذا الطلب بعد.',
@@ -119,7 +119,7 @@ const AR: typeof EN = {
 
   chain_title: 'خريطة سلسلة التوريد',
   chain_sub: 'كل أمر شراء أصدرته، من المورّد إلى موقعك.',
-  chain_caveat: 'لا يوجد جدول في QuotesDone يخزّن نقطة شحن أو وجهة أو مستودعًا، لذا فهذه خريطة مراحل مبنية على حالة كل أمر شراء والكميات المستلمة فيه — وليست مسارًا جغرافيًا. مرحلة المستودع الواردة في المواصفات لا توجد بيانات تدعمها ولم تُختلق هنا.',
+  chain_caveat: 'تُظهر هذه الخريطة المرحلة التي بلغها كل أمر شراء، بناءً على حالته والكميات التي استلمتها. وهي ليست مسار شحن مباشرًا.',
   chain_empty: 'لا توجد لديك أوامر شراء بعد، لذا لا يوجد شيء قيد الشحن. يظهر أمر الشراء هنا عند إصداره مقابل أحد طلباتك.',
   chain_node_supplier: 'المورّد',
   chain_node_transit: 'قيد الشحن',

@@ -476,7 +476,22 @@ Deno.serve(observe('ai_gateway', async (req) => {
     const skipped: { route: string; reason: string }[] = [];
     for (const m of fullLadder) {
       const gate = await paidProviderGate(admin, m);
-      if (!gate.allowed) { skipped.push({ route: m, reason: `${gate.rule}: ${gate.reason}` }); continue; }
+      if (!gate.allowed) {
+        // THE ONE NAMED EXCEPTION TO THE HOLD (14 Sep 2026, founder_instruction 216: "in the case of
+        // the boq and drawing, i dont mind using LLM to confirm the result"). Consulted ONLY when the
+        // kernel refused for the founder's hold AND the caller's task_class names an excepted route;
+        // public.fn_paid_route_exception answers from a row that ships DISABLED, pins the model, and
+        // enforces a daily spend cap. Any error or odd shape stays a refusal.
+        let excepted = false;
+        if (gate.rule === 'founder_hold' && body.task_class === 'drawing_boq_confirm') {
+          try {
+            const { data: ex } = await admin.rpc('fn_paid_route_exception', { p_route: body.task_class, p_model: m });
+            excepted = !!ex && (ex as { allowed?: unknown }).allowed === true;
+            if (!excepted) skipped.push({ route: m, reason: `exception: ${(ex as { rule?: string })?.rule ?? 'no answer'}` });
+          } catch (_e) { excepted = false; }
+        }
+        if (!excepted) { skipped.push({ route: m, reason: `${gate.rule}: ${gate.reason}` }); continue; }
+      }
       ladder.push(m);
     }
     // Every route on the ladder is open-circuit: fail CLOSED and say so, rather than retrying into

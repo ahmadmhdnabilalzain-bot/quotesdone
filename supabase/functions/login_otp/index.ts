@@ -1,5 +1,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
+import { codeEmail } from '../_shared/code_email.ts';
+import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -64,7 +67,6 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
   try { await admin.from('agent_runs').insert({ agent: 'login_otp', status, counts, note: String(note || '').slice(0, 500), finished_at: new Date().toISOString() }); } catch (_e) { /* */ }
 }
 
-function wrapCode(code: string) { const logo = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/icon_192.png'; return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937"><div style="text-align:center;padding:18px 0"><img src="${logo}" width="44" height="44" alt="QuotesDone"></div><div style="background:#fff;border:1px solid #eef0f2;border-radius:14px;padding:26px;text-align:center"><h1 style="font-size:19px;color:#111827;margin:0 0 8px">Your sign-in code</h1><p style="font-size:14px;color:#6b7280;margin:0 0 16px">Enter this code to sign in to QuotesDone. It expires in 10 minutes.</p><div style="font-size:34px;font-weight:800;letter-spacing:8px;color:#0d9488;background:#f0fdfa;border-radius:12px;padding:14px 0">${code}</div><p style="font-size:12px;color:#9aa1ab;margin-top:16px">If you didn't request this, you can ignore this email.</p></div><p style="text-align:center;font-size:11px;color:#9aa1ab;margin-top:14px">QuotesDone Technologies · Dubai, UAE</p></div>`; }
 async function uidByEmail(email: string): Promise<string | null> { try { const { data } = await admin.rpc('auth_uid_by_email', { p_email: email }); return (data as string) || null; } catch { return null; } }
 async function ensureUser(email: string) { let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
 async function mintSession(email: string): Promise<{ access_token: string; refresh_token: string } | null> { try { await ensureUser(email); const { data } = await admin.auth.admin.generateLink({ type: 'magiclink', email }); const th = (data as any)?.properties?.hashed_token; if (!th) return null; const { data: v, error } = await admin.auth.verifyOtp({ type: 'email', token_hash: th } as any); if (error || !v?.session) return null; return { access_token: v.session.access_token, refresh_token: v.session.refresh_token }; } catch { return null; } }
@@ -140,7 +142,8 @@ Deno.serve(observe('login_otp', async (req) => {
         if ((count || 0) >= 8) return J({ error: 'Too many code requests. Please try again later.' }, 429);
         const c = code6();
         await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'login', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
-        await sendEmail(email, 'Your QuotesDone sign-in code', wrapCode(c));
+        const codeAr = (await registeredLocale(admin, { role: kind, email }, body.lang)) === 'ar';
+        const mail = codeEmail('signin', c, codeAr); await sendEmail(email, mail.subject, mail.html);
         return J({ ok: true, channel: 'email', identifier: email });
       }
       const e164 = toE164(idRaw);
@@ -192,14 +195,24 @@ Deno.serve(observe('login_otp', async (req) => {
       }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.' }, 503);
 
+      // A prefix the IT engineer blocked for pumping gets no code (public.otp_blocked_prefix, duty 11).
+      const pb = await prefixBlocked(admin, e164);
+      if (pb.blocked) {
+        await logRun('skipped', { prefix_blocked: 1 }, 'login_otp sent no SMS: the number is under a prefix the IT engineer blocked for OTP pumping. No Twilio charge was incurred.');
+        return J({ error: 'SMS codes are not available for this number. Please sign in with your email.' }, 403);
+      }
       // Caller-level and global ceilings. Checked BEFORE the Twilio call so a blocked attempt costs nothing.
-      const ipOk = await rl('login_otp_sms_ip:' + ip, SMS_PER_IP_HOUR, 3600);
-      const globalOk = (!acctEmail && allowSignup) ? await rl('login_otp_sms_signup_global', SMS_SIGNUP_GLOBAL_HOUR, 3600) : true;
+      // Read from public.it_threshold so the IT engineer's playbook can tighten them; the constants are
+      // the fallback when that read fails, never a reason to refuse sign-in.
+      const perIp = await otpCeiling(admin, 'otp_sms_per_ip_hour', SMS_PER_IP_HOUR);
+      const perHour = await otpCeiling(admin, 'otp_signup_global_hour', SMS_SIGNUP_GLOBAL_HOUR);
+      const ipOk = await rl('login_otp_sms_ip:' + ip, perIp, 3600);
+      const globalOk = (!acctEmail && allowSignup) ? await rl('login_otp_sms_signup_global', perHour, 3600) : true;
       if (!ipOk || !globalOk) {
-        await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'signup_global', signup_path: !acctEmail && allowSignup ? 1 : 0 },
+        await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'signup_global', signup_path: !acctEmail && allowSignup ? 1 : 0, guard_error: pb.error ?? null },
           !ipOk
-            ? ('login_otp blocked a caller that asked for more than ' + SMS_PER_IP_HOUR + ' SMS codes in an hour from one address. No SMS was sent and no Twilio charge was incurred. A real person signing in never reaches this - sustained hits mean someone is walking a list of numbers.')
-            : ('login_otp hit the global hourly ceiling of ' + SMS_SIGNUP_GLOBAL_HOUR + ' sign-up SMS messages. Further sign-up codes are refused this hour to cap Twilio spend. If genuine sign-ups are being turned away, raise SMS_SIGNUP_GLOBAL_HOUR - do not remove the ceiling.'));
+            ? ('login_otp blocked a caller that asked for more than ' + perIp + ' SMS codes in an hour from one address. No SMS was sent and no Twilio charge was incurred. A real person signing in never reaches this - sustained hits mean someone is walking a list of numbers.')
+            : ('login_otp hit the global hourly ceiling of ' + perHour + ' sign-up SMS messages. Further sign-up codes are refused this hour to cap Twilio spend. If genuine sign-ups are being turned away, raise it_threshold otp_signup_global_hour - do not remove the ceiling.'));
         return J({ error: 'Too many code requests. Please try again later.' }, 429);
       }
 
@@ -207,7 +220,9 @@ Deno.serve(observe('login_otp', async (req) => {
       const { count } = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('phone', e164).gte('created_at', since);
       if ((count || 0) >= 6) return J({ error: 'Too many code requests. Please try again later.' }, 429);
       try {
-        const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: 'sms' }) });
+        // Locale: Twilio Verify writes the SMS in the account holder's registered language.
+        const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail }, body.lang);
+        const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: 'sms', Locale: smsLocale }) });
         const jd = await r.json(); if (!r.ok || jd?.status === 'canceled') return J({ error: jd?.message || 'Could not send the SMS code.' }, 502);
         await admin.from('phone_verifications').insert({ email: acctEmail || '', phone: e164, code: 'twilio', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
         return J({ ok: true, channel: 'sms', identifier: e164, known: !!acctEmail });
@@ -267,7 +282,10 @@ Deno.serve(observe('login_otp', async (req) => {
         if (kind === 'customer') {
           const up = await admin.from('customers').update({ email_verified: true }).eq('email', email).select('id');
           if (!up.error && !(up.data || []).length) {
-            const ins = await admin.from('customers').insert({ email, email_verified: true });
+            // THIS IS THE REGISTRATION, so it records the language of the page they registered on
+            // (founder, 14 Sep 2026). Before this the row took the column default 'en', so every
+            // Arabic sign-up was registered as English and every later message followed that.
+            const ins = await admin.from('customers').insert({ email, email_verified: true, locale: asLocale(body.lang) });
             if (ins.error) await admin.from('customers').update({ email_verified: true }).eq('email', email);
           }
         } else if (kind === 'supplier') await admin.from('leads').update({ owner_email_verified: true }).eq('claimed_by', email);
@@ -275,7 +293,7 @@ Deno.serve(observe('login_otp', async (req) => {
         // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
         // into the else and ran an UPDATE on leads.claimed_by for the admin address.
         const s = await mintSession(email); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
-        return J({ ok: true, ...s, user_kind: kind, email });
+        return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.' }, 400);
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet.' }, 503);
@@ -295,7 +313,7 @@ Deno.serve(observe('login_otp', async (req) => {
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);
       const s = await mintSession(email); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
-      return J({ ok: true, ...s, user_kind: kind, email });
+      return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
     }
 
     return J({ error: 'Unknown action' }, 400);

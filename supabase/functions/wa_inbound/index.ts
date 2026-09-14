@@ -24,6 +24,8 @@ import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 // can reach the API line, which makes it the least-authenticated file entry in the estate.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { registeredLocale } from '../_shared/registered_locale.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
@@ -161,11 +163,11 @@ function bidiSafe(s: string): string {
     .replace(/\+?\d[\d\s\-()]{6,}\d/g, (m) => LRI + m + PDI);
 }
 
-const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers, who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- We cover ALL trades and product categories across the UAE - anything that can be quoted from specifications, drawings or photos. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- A job can be described by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Sun-Thu 9am-6pm GST), management@quotesdone.com, or https://quotesdone.com/contact/. This number is published on our contact page.\n- Operator: QuotesDone Technologies, Dubai DET E-Trader Licence No. 1633275.`;
+const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers, who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- We cover ALL trades and product categories across the UAE - anything that can be quoted from specifications, drawings or photos. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- A job can be described by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Sun-Thu 9am-6pm GST), management@quotesdone.com, or https://quotesdone.com/contact/. This number is published on our contact page.\n- Operator: QuotesDone Technologies, DET Dubai Trader License No. 1633275.`;
 
-const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. A 3% facilitation fee applies ONLY when the customer chooses to reveal a supplier's contact details.\n- Post a job: https://quotesdone.com/app`;
+const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. The 3% reveal fee plus the card processing fee (both shown in full before payment) applies ONLY when the customer chooses to reveal a supplier's contact details. No VAT is charged on the reveal fee. If the revealed supplier does not respond, everything the customer paid is refunded.\n- Post a job: https://quotesdone.com/app`;
 
-const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIENCE RULES before using):\n- No commission, ever - suppliers keep 100% of the value of jobs they win.\n- Registration pricing (the free count, the annual fee and whether any date applies) is stated in the COMPANY BLOCK, read from the live pricing tables on this message. Use those figures and no others; never quote a start date the COMPANY BLOCK does not give.\n- A non-response fine (equal to the customer's reveal fee) applies only if a supplier ignores a customer who has already paid to reveal them.\n- Suppliers register free at https://quotesdone.com/suppliers with a valid UAE trade licence; verification takes up to 3 working days and verified suppliers are prioritised. We are currently onboarding founding suppliers ahead of opening the platform to clients.`;
+const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIENCE RULES before using):\n- No commission, ever - suppliers keep 100% of the value of jobs they win.\n- Registration pricing (the free count, the annual fee and whether any date applies) is stated in the COMPANY BLOCK, read from the live pricing tables on this message. Use those figures and no others; never quote a start date the COMPANY BLOCK does not give.\n- A non-response charge (the exact amount refunded to the customer (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date) applies only if a supplier ignores a customer who has already paid to reveal them.\n- Suppliers register free at https://quotesdone.com/suppliers with a valid UAE trade licence; verification takes up to 3 working days and verified suppliers are prioritised. We are currently onboarding founding suppliers ahead of opening the platform to clients.`;
 
 async function retrieveFaq(q: string): Promise<{ ctx: string; ids: number[] }> {
   const { data } = await admin.from('company_faq').select('id,question,answer,tags').eq('status', 'approved').eq('public', true);
@@ -464,7 +466,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
       const sig = await verifyTwilioSignature(req, formParams);
       if (sig.checked && !sig.valid) {
         try {
-          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply: '', lang: 'en', escalated: false, sent: false, meta: { signature_checked: true, signature_valid: false, signature_reason: sig.reason, message_sid: MessageSid || null, no_autoreply_reason: 'failed X-Twilio-Signature' } });
+          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { signature_checked: true, signature_valid: false, signature_reason: sig.reason, message_sid: MessageSid || null, no_autoreply_reason: 'failed X-Twilio-Signature' } });
         } catch (_e) { /* */ }
         await alertThrottled('wa_bad_signature', 'warn', 'A WhatsApp webhook FAILED X-Twilio-Signature validation and was rejected (' + sig.reason + '). Unlike the provenance path this is cryptographic proof of forgery, not an inconclusive lookup. Throttled to one alert per 30 minutes.');
         await logRun('error', { authorised: 0, path: 'form', signature_checked: 1, signature_valid: 0 }, 'wa_inbound REJECTED a webhook that failed HMAC-SHA1 signature validation: ' + sig.reason + '. No LLM call and no outbound message were made. The payload was stored in wa_messages. A genuine Twilio webhook cannot fail this check, so this is a forgery or a misconfigured auth token.');
@@ -482,7 +484,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
         // Preserve the message either way - a real supplier reply must not be lost just because
         // Twilio's API was unreachable - but do NOT run the LLM and do NOT send anything.
         try {
-          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply: '', lang: 'en', escalated: false, sent: false, meta: { provenance_verified: false, provenance_reason: prov.reason, twilio_api_reachable: prov.apiReachable, message_sid: MessageSid || null, no_autoreply_reason: 'unverified webhook' } });
+          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { provenance_verified: false, provenance_reason: prov.reason, twilio_api_reachable: prov.apiReachable, message_sid: MessageSid || null, no_autoreply_reason: 'unverified webhook' } });
         } catch (_e) { /* */ }
 
         if (prov.apiReachable) {
@@ -496,12 +498,84 @@ Deno.serve(observe('wa_inbound', async (req) => {
       }
     }
 
+    // ---- AN ANSWER TO "NO SUPPLIER QUOTED YOUR EXACT SPEC" (14 Sep 2026, agent: customer_support) ----
+    // Founder, 14 Sep 2026 (founder_instruction #321): when no supplier could quote the customer's exact
+    // spec, customer_support asks on WhatsApp which of the numbered alternatives to proceed with. The
+    // customer answers here: "2", "٢", "option 2", "yes" (one option) or "no"/"لا".
+    // THE ROUTINE OWNS PARSING. fn_spec_offer_whatsapp_reply finds the customer by phone and their oldest
+    // open offer, reads the text and records the answer; this block only speaks the result. handled:false
+    // (or any rpc fault) means this message is not such an answer, and the normal route below runs
+    // exactly as before. Text only: a file is never an answer to a numbered question.
+    if (Body && !media.length) {
+      let so: Record<string, any> | null = null;
+      try {
+        const { data, error } = await admin.rpc('fn_spec_offer_whatsapp_reply', { p_phone: From.replace(/^whatsapp:/i, ''), p_text: Body.slice(0, 500) });
+        if (error) await logRun('error', { route: 'spec_offer_reply', rpc_error: 1 }, 'fn_spec_offer_whatsapp_reply failed, so this message took the normal route: ' + error.message);
+        else so = (data || null) as Record<string, any> | null;
+      } catch (e) {
+        await logRun('error', { route: 'spec_offer_reply', rpc_error: 1 }, 'fn_spec_offer_whatsapp_reply threw, so this message took the normal route: ' + String((e as Error)?.message || e));
+      }
+      if (so?.handled === true) {
+        let lang: 'en' | 'ar' = 'en';
+        if (so.customer_id) lang = await registeredLocale(admin, { role: 'customer', customerId: String(so.customer_id) });
+        let text = '';
+        if (so.ok === true) {
+          const { data: offer } = await admin.from('spec_alternative_offer')
+            .select('item,label_en,label_ar,requested,alternatives,accepted_value,inquiry_id').eq('id', so.offer_id).single();
+          const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', offer?.inquiry_id ?? so.inquiry_id).maybeSingle();
+          if (offer) {
+            const o = { ...offer, accepted_value: offer.accepted_value ?? so.accepted_value ?? null } as OfferForText;
+            text = (so.state === 'accepted' ? acceptedMessage(o, lang, { rfqNo: inq?.rfq_no }) : apologyMessage(o, lang, 'declined', { rfqNo: inq?.rfq_no })).body;
+          }
+        } else if (so.error === 'unknown_option') {
+          const n = Number(so.options || 0);
+          text = lang === 'ar'
+            ? `يرجى الرد برقم خيار من ١ إلى ${String(n).replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[Number(d)])}، أو «لا».`
+            : `Please reply with an option number from 1 to ${n}, or NO.`;
+        }
+        // The answer is already recorded by the routine; a missing offer row must not make it silent.
+        if (!text) text = lang === 'ar' ? 'شكرًا لك، وصلنا ردّك.' : 'Thank you, we have received your answer.';
+        const replyS = bidiSafe(text.slice(0, 1200));
+        const enabledS = (await sec('wa_autoreply_enabled')) === 'true';
+        let sentS = false; let sendErrS: string | undefined;
+        if (enabledS) { const r = await sendWa(From, replyS); sentS = r.ok; sendErrS = r.err; }
+        if (so.ok === true && so.offer_id) {
+          try { await admin.rpc('fn_spec_offer_mark', { p_offer: so.offer_id, p_action: 'answered', p_notification_ids: [] }); }
+          catch (_e) { /* best effort: the answer itself is recorded */ }
+        }
+        try {
+          await admin.from('wa_messages').insert({
+            wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
+            inbound: Body, reply: replyS, lang, escalated: false, sent: sentS,
+            meta: { enabled: enabledS, audience: 'customer', route: 'spec_offer_reply', result: so,
+                    send_error: sendErrS || null, provenance_verified: true, message_sid: MessageSid || null },
+          });
+        } catch (_e) { /* the reply already went out */ }
+        await logRun('ok', { route: 'spec_offer_reply', state: so.state || so.error || null, sent: sentS },
+          'customer answered a no-exact-spec offer by WhatsApp: ' + String(so.state || so.error || 'unknown'));
+        return TW(200);
+      }
+    }
+
     // ---- AUDIENCE: who is this number? -------------------------------------
     let audience = 'unknown', known: any = null;
     try {
       const { data: idres } = await admin.rpc('fn_identify_contact', { p_phone: From });
       if (idres && idres.audience) { audience = String(idres.audience); known = idres; }
     } catch (_e) { /* fall back to inference */ }
+
+    // ---- THE CONTACT'S TIMELINE, read before anything is composed (14 Sep 2026) ----------------
+    // Founder: "the only agent who uses the whatsapp and email is the customer support agent. so he
+    // should be always up to date with that is going on." fn_contact_timeline assembles, in SQL and
+    // with no model, everything the company has done with this person on every channel and every
+    // seat: requests, quotes (held/released), reveals, invoices, refunds and the CEO's decisions on
+    // them, and every message sent or received. Scoped to the sender's own number.
+    let timeline: Record<string, unknown> | null = null;
+    try {
+      const { data: tl } = await admin.rpc('fn_contact_timeline', { p_contact: From, p_limit: 40 });
+      timeline = (tl || null) as Record<string, unknown> | null;
+    } catch (_e) { timeline = null; /* a missing timeline must never lose their message */ }
+    const timelineEvents = Number((timeline as any)?.event_count ?? 0);
 
     // ---- THE FOUNDER'S COMMAND CHANNEL, v13 ---------------------------------
     // He asked to run the company by texting his registered number. Until now he could ASK it
@@ -793,7 +867,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
             try {
               await admin.from('wa_messages').insert({
                 wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
-                inbound: Body.slice(0, 2000), reply: replyD, lang: 'en', escalated: false, sent: sentD,
+                inbound: Body, reply: replyD, lang: 'en', escalated: false, sent: sentD,
                 meta: { enabled: enabledD, audience: 'supplier', route: 'supplier_directive',
                         applied: applied?.ok === true, directive: applied, send_error: sendErrD || null,
                         provenance_verified: true, message_sid: MessageSid || null },
@@ -862,10 +936,10 @@ Deno.serve(observe('wa_inbound', async (req) => {
       try {
         await admin.from('wa_messages').insert({
           wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
-          inbound: Body.slice(0, 2000), reply: replyR, lang: 'en',
+          inbound: Body, reply: replyR, lang: 'en',
           escalated: route.needs_a_person === true, sent: sentR,
           meta: { enabled: enabledR, audience, route: 'deterministic',
-                  intent: route.deterministic_intent, cost_aed: 0,
+                  intent: route.deterministic_intent, cost_aed: 0, timeline_events: timelineEvents,
                   shared_founder_number: route.founder_number !== null,
                   send_error: sendErrR || null, provenance_verified: true,
                   message_sid: MessageSid || null },
@@ -921,6 +995,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
       if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
       else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
     } catch (_e) { /* fall through with no record rather than dropping the message */ }
+    if (timeline && timelineEvents > 0) ownRecord += '\n\nTHIS SENDER\'S CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never repeat something it shows was already sent unless they ask:\n' + JSON.stringify((timeline as any).events) + '\n';
 
     // THE MODEL GETS THE SAME PACK THE DATABASE ANSWERED FROM. fn_wa_route was reached above and
     // said a model is needed; its fact_pack and model_brief carry the sender's own rows, the
@@ -986,7 +1061,7 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
 
     let rowSaved = true;
-    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body.slice(0, 2000), reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
     const owner = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
 

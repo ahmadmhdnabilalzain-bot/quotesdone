@@ -30,6 +30,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis 
 import { Card } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
+import { categoryLabel } from '@/lib/categoryLabel';
 import {
   countByCategory,
   num,
@@ -76,11 +77,13 @@ const T = {
     cat_title: 'Requests by category',
     cat_note: 'How your requests split across trades.',
     cat_empty: 'You have no requests yet, so there is nothing to break down by category.',
+    cat_missing: 'Your category breakdown has not loaded yet.',
     cat_alt: (pairs: string) => `Requests by category: ${pairs}.`,
     gap_title: 'Quote spread by category',
     gap_note:
       'On each request with two or more quotes, the gap between the highest and the lowest quote, added up per category. This is what comparing quotes was worth to you — not a discount any supplier offered.',
     gap_empty_none: 'You have no requests yet, so there are no quotes to compare.',
+    gap_missing: 'Your requests are still loading, so the quote spread is not shown yet.',
     gap_empty_thin:
       'None of your requests has two or more quotes yet. A spread needs at least two quotes on the same request to measure, so there is nothing to show.',
     gap_alt: (pairs: string, total: string, n: number) =>
@@ -107,11 +110,13 @@ const T = {
     cat_title: 'الطلبات حسب الفئة',
     cat_note: 'كيف تتوزع طلباتك على التخصصات.',
     cat_empty: 'لا توجد لديك طلبات بعد، لذلك لا يوجد ما يمكن تصنيفه حسب الفئة.',
+    cat_missing: 'لم يُحمَّل توزيع الفئات بعد.',
     cat_alt: (pairs: string) => `الطلبات حسب الفئة: ${pairs}.`,
     gap_title: 'فارق الأسعار حسب الفئة',
     gap_note:
       'في كل طلب استلم عرضين أو أكثر، الفارق بين أعلى وأدنى عرض، مجموعًا لكل فئة. هذا ما تساويه مقارنة العروض بالنسبة لك — وليس خصمًا قدّمه أي مورّد.',
     gap_empty_none: 'لا توجد لديك طلبات بعد، لذلك لا توجد عروض للمقارنة.',
+    gap_missing: 'ما زالت طلباتك قيد التحميل، لذلك لا يظهر فارق الأسعار بعد.',
     gap_empty_thin:
       'لا يوجد أي من طلباتك استلم عرضين أو أكثر بعد. قياس الفارق يحتاج إلى عرضين على الأقل للطلب نفسه، لذلك لا يوجد ما يُعرض.',
     gap_alt: (pairs: string, total: string, n: number) =>
@@ -257,8 +262,13 @@ export function CategoryMixChart({
   const t = tr(lang);
   const capId = `${React.useId()}cap`;
 
-  const all = countByCategory(inquiries, t.uncategorised);
-  if (!all.length) return <Panel title={t.cat_title} note={t.cat_note} empty={t.cat_empty} className={className} />;
+  // Same two absences as the trend: no array means the overview call has not landed (or failed),
+  // which is not the same fact as "you have no requests".
+  const all = countByCategory(inquiries, t.uncategorised).map((r) => ({ ...r, category: categoryLabel(r.category, lang) }));
+  if (!all.length) {
+    const empty = Array.isArray(inquiries) ? t.cat_empty : t.cat_missing;
+    return <Panel title={t.cat_title} note={t.cat_note} empty={empty} className={className} />;
+  }
 
   const shown = all.slice(0, MAX_BARS);
   const hidden = all.length - shown.length;
@@ -280,12 +290,15 @@ export function CategoryMixChart({
         role="img"
         aria-labelledby={capId}
       >
-        <BarChart data={shown} layout="vertical" margin={{ left: 4, right: 40, top: 4, bottom: 4 }}>
-          <XAxis type="number" dataKey="requests" hide allowDecimals={false} />
-          <YAxis type="category" dataKey="category" width={120} tickLine={false} axisLine={false} tickMargin={6} />
+        {/* RTL: mirrored by the axes, not by CSS direction — inherited `direction: rtl` flips every
+            SVG text anchor, which clipped the category ticks ("hv", "el") and pushed value labels
+            onto their bars. The SVG stays LTR; the category axis moves right, bars grow leftward. */}
+        <BarChart data={shown} layout="vertical" style={{ direction: 'ltr' }} margin={lang === 'ar' ? { left: 40, right: 4, top: 4, bottom: 4 } : { left: 4, right: 40, top: 4, bottom: 4 }}>
+          <XAxis type="number" dataKey="requests" hide allowDecimals={false} reversed={lang === 'ar'} />
+          <YAxis type="category" dataKey="category" width={140} tickLine={false} axisLine={false} tickMargin={6} orientation={lang === 'ar' ? 'right' : 'left'} />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Bar dataKey="requests" fill="var(--color-requests)" radius={4} barSize={18}>
-            <LabelList dataKey="requests" position="right" className="fill-foreground" fontSize={12} />
+            <LabelList dataKey="requests" position={lang === 'ar' ? 'left' : 'right'} className="fill-foreground" fontSize={12} />
           </Bar>
         </BarChart>
       </ChartContainer>
@@ -308,7 +321,8 @@ export function QuoteSpreadChart({
   const capId = `${React.useId()}cap`;
 
   const hasRequests = Array.isArray(inquiries) && inquiries.length > 0;
-  const { rows: all, total, counted } = spreadByCategory(inquiries, t.uncategorised);
+  const { rows, total, counted } = spreadByCategory(inquiries, t.uncategorised);
+  const all = rows.map((r) => ({ ...r, category: categoryLabel(r.category, lang) }));
 
   // "You have requests but none of them has two quotes" is a different fact from "you have no
   // requests", and the customer needs to be told which one is true.
@@ -317,7 +331,7 @@ export function QuoteSpreadChart({
       <Panel
         title={t.gap_title}
         note={t.gap_note}
-        empty={hasRequests ? t.gap_empty_thin : t.gap_empty_none}
+        empty={hasRequests ? t.gap_empty_thin : Array.isArray(inquiries) ? t.gap_empty_none : t.gap_missing}
         className={className}
       />
     );
@@ -344,14 +358,15 @@ export function QuoteSpreadChart({
         role="img"
         aria-labelledby={capId}
       >
-        <BarChart data={shown} layout="vertical" margin={{ left: 4, right: 96, top: 4, bottom: 4 }}>
-          <XAxis type="number" dataKey="spread" hide />
-          <YAxis type="category" dataKey="category" width={120} tickLine={false} axisLine={false} tickMargin={6} />
+        {/* RTL mirrored by the axes with the SVG kept LTR — see CategoryMixChart. */}
+        <BarChart data={shown} layout="vertical" style={{ direction: 'ltr' }} margin={lang === 'ar' ? { left: 96, right: 4, top: 4, bottom: 4 } : { left: 4, right: 96, top: 4, bottom: 4 }}>
+          <XAxis type="number" dataKey="spread" hide reversed={lang === 'ar'} />
+          <YAxis type="category" dataKey="category" width={140} tickLine={false} axisLine={false} tickMargin={6} orientation={lang === 'ar' ? 'right' : 'left'} />
           <ChartTooltip content={<ChartTooltipContent formatter={(v) => aed(num(v), lang)} />} />
           <Bar dataKey="spread" fill="var(--color-spread)" radius={4} barSize={18}>
             <LabelList
               dataKey="spread"
-              position="right"
+              position={lang === 'ar' ? 'left' : 'right'}
               className="fill-foreground"
               fontSize={12}
               formatter={(v: number) => aed(num(v), lang)}

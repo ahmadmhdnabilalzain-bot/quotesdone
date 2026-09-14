@@ -20,6 +20,7 @@
 // signature-verified event, so a supplier cannot clear their own debt by calling the API.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { siteReturnBase } from '../_shared/site_origins.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -52,6 +53,55 @@ Deno.serve(observe('supplier_pay', async (req) => {
 
     const body = await req.json().catch(() => ({} as any));
     const action = String(body.action || 'list');
+
+    // ── THE YEARLY REGISTRATION FEE (moved here from supplier_api.pay_registration, 14 Sep 2026) ──
+    // Founder: "anything related to payment is under the accountant agent." This was the one Stripe
+    // checkout living in a sales-engineer portal function. Same rules as before: read the single source
+    // of truth (fn_supplier_registration_state), create a session only when a fee is actually due, and
+    // never mark anything paid -- stripe_webhook alone writes subscription_paid_until.
+    if (action === 'registration') {
+      const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: lead.id });
+      // deno-lint-ignore no-explicit-any
+      const reg = regSt as any;
+      if (regErr || !reg?.ok) return J({ error: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found' }, 503);
+      if (reg.status === 'paid') return J({ ok: true, already_paid: true, paid_until: reg.paid_until, code: 'reg_paid', params: { until: reg.paid_until || null } });
+      if (reg.status === 'exempt') return J({ ok: true, exempt: true, founding_rank: reg.founding_rank, code: 'reg_exempt', params: { rank: reg.founding_rank }, message: 'Your registration is permanently free - you are supplier number ' + reg.founding_rank + ', inside the founding cohort. There is no fee to pay, now or in future.' });
+      if (reg.status === 'not_due') return J({ ok: true, nothing_to_pay: true, charging_starts: reg.charging_starts, code: reg.charging_starts ? null : 'reg_not_due', message: 'There is nothing to pay yet. ' + (reg.charging_starts ? 'The yearly registration fee starts on ' + reg.charging_starts + '.' : (reg.reason ? reg.reason.charAt(0).toUpperCase() + reg.reason.slice(1) + '.' : 'The yearly registration fee applies from the registration after the free count; there is no calendar start date.')) });
+      const fee = Number(reg.fee_due || 0);
+      if (!(fee > 0)) return J({ ok: true, nothing_to_pay: true, code: 'reg_not_due' });
+      const { data: pausedReg } = await admin.rpc('fn_refunds_paused');
+      if (pausedReg === true) return J({ error: 'charges_paused', code: 'payment_unavailable' }, 503);
+      const skReg = await secret('stripe_secret_key');
+      if (!skReg) return J({ error: 'stripe_not_configured', code: 'payment_unavailable' }, 503);
+      const baseReg = siteReturnBase(req, body.return_url);
+      const f = new URLSearchParams();
+      f.set('mode', 'payment');
+      f.set('success_url', baseReg + '/portal?registration_paid={CHECKOUT_SESSION_ID}');
+      f.set('cancel_url', baseReg + '/portal');
+      f.set('client_reference_id', 'registration:' + lead.id);
+      if (lead.email && /@/.test(String(lead.email))) f.set('customer_email', String(lead.email));
+      f.set('line_items[0][quantity]', '1');
+      f.set('line_items[0][price_data][currency]', 'aed');
+      f.set('line_items[0][price_data][unit_amount]', String(Math.round(fee * 100)));
+      f.set('line_items[0][price_data][product_data][name]', 'QuotesDone supplier registration');
+      f.set('line_items[0][price_data][product_data][description]', 'One year of supplier registration on QuotesDone');
+      f.set('invoice_creation[enabled]', 'true');
+      f.set('invoice_creation[invoice_data][description]', 'QuotesDone supplier registration — annual listing fee');
+      f.set('invoice_creation[invoice_data][footer]', 'QuotesDone Technologies · DET Dubai Trader License No. 1633275 · not registered for VAT');
+      f.set('metadata[kind]', 'supplier_registration');
+      f.set('metadata[supplier_id]', String(lead.id));
+      f.set('payment_intent_data[metadata][kind]', 'supplier_registration');
+      f.set('payment_intent_data[metadata][supplier_id]', String(lead.id));
+      const rr = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + skReg, 'Content-Type': 'application/x-www-form-urlencoded' }, body: f.toString() });
+      const rj = await rr.json();
+      if (!rr.ok) { await logRun('error', { supplier_id: lead.id, fee, http: rr.status }, 'registration session create failed: ' + String(rj?.error?.message || '').slice(0, 200)); return J({ error: 'stripe_error', detail: String(rj?.error?.message || '').slice(0, 300) }, 502); }
+      await logRun('ok', { supplier_id: lead.id, registration_fee: fee, session: String(rj?.id || '') }, '');
+      return J({ ok: true, url: rj.url, amount: fee, currency: 'AED' });
+    }
+
+    // Interest on an outstanding charge is recomputed from the refund record before it is shown or
+    // billed (fn_supplier_dues_accrue_interest is absolute, so this changes nothing twice).
+    try { await admin.rpc('fn_supplier_dues_accrue_interest', { p_as_of: null }); } catch (_e) { /* the stored figure stands */ }
 
     const { data: dues, error: dErr } = await admin.from('supplier_dues')
       .select('id,amount_due,admin_fee,interest_amount,fine_amount,currency,status,due_date,paid_at,quote_id,reveal_date,legal_stage')
@@ -90,12 +140,16 @@ Deno.serve(observe('supplier_pay', async (req) => {
     const amount = Math.round(selected.reduce((s, d) => s + owed(d), 0) * 100) / 100;
     if (!(amount > 0)) return J({ ok: true, nothing_to_pay: true, total_owed: 0 });
 
+    // THE CEO'S CIRCUIT BREAKER (14 Sep 2026): no supplier charge moves while a mismatch is open.
+    const { data: paused } = await admin.rpc('fn_refunds_paused');
+    if (paused === true) { await logRun('ok', { supplier_id: lead.id, amount, held: true }, 'checkout held: refunds and supplier charges are paused while the CEO resolves a mismatch'); return J({ error: 'charges_paused', code: 'payment_unavailable' }, 503); }
     const sk = await secret('stripe_secret_key');
     if (!sk) { await logRun('error', { supplier_id: lead.id, amount }, 'SUPPLIER PAYMENT BLOCKED - stripe_secret_key missing from app_secrets, so no supplier can settle. Balances will keep accruing interest and ageing toward the 90-day ban for a configuration reason, not because the supplier refused to pay.'); return J({ error: 'stripe_not_configured' }, 503); }
 
     const ids = selected.map((d) => Number(d.id));
     const fils = Math.round(amount * 100);
-    const base = String(body.return_url || 'https://quotesdone.com').replace(/\/+$/, '');
+    // Allowlisted (was taken verbatim): back to the site origin the supplier paid from, .ae included.
+    const base = siteReturnBase(req, body.return_url);
     const form = new URLSearchParams();
     form.set('mode', 'payment');
     form.set('success_url', base + '/portal?dues_paid={CHECKOUT_SESSION_ID}');
@@ -120,7 +174,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
     form.set('invoice_creation[invoice_data][metadata][due_ids]', ids.join(','));
     form.set('invoice_creation[invoice_data][metadata][supplier_id]', String(lead.id));
     form.set('invoice_creation[invoice_data][footer]',
-      'QuotesDone Technologies · Dubai DET E-Trader Licence 1633275 · not registered for VAT');
+      'QuotesDone Technologies · DET Dubai Trader License No. 1633275 · not registered for VAT');
 
     form.set('metadata[due_ids]', ids.join(','));
     form.set('metadata[supplier_id]', String(lead.id));

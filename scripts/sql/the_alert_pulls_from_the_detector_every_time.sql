@@ -20,6 +20,11 @@
 --
 -- Everything else in this definition is byte-identical to what was live; only the ingest block and
 -- its two variables were added.
+--
+-- 14 SEP 2026: sections C and D (email every finding to the founder, email him again when it
+-- clears) are replaced by one call to fn_it_loop_tick. Apply the_it_engineer_closes_every_loop_it_opens.sql
+-- first. The founder_mail_policy kind it_engineer_handover is left in place; nothing in this tick
+-- writes it any more.
 
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_alert_tick()
  RETURNS jsonb
@@ -28,20 +33,9 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_alert_tick()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  v_admin text; v_gap_min numeric; v_last_beat timestamptz;
-  r record; v_sev text; v_reason text; v_body text; v_subject text; v_id bigint;
-  v_sent int := 0; v_silent int := 0; v_resolved int := 0; v_refused int := 0;
-  v_monitor int := 0; v_errors jsonb := '[]'::jsonb; v_ingest jsonb := '{}'::jsonb;
+  v_gap_min numeric; v_last_beat timestamptz; r record;
+  v_monitor int := 0; v_errors jsonb := '[]'::jsonb; v_ingest jsonb := '{}'::jsonb; v_loop jsonb := '{}'::jsonb;
 begin
-  select lower(nullif(split_part(coalesce(value,''), ',', 1), '')) into v_admin
-    from public.app_secrets where key = 'admin_emails';
-  if v_admin is null then
-    insert into public.founder_alerts (level, event, detail, channel)
-    values ('high','it_engineer:no_admin_address',
-            'fn_it_engineer_alert_tick cannot address the founder: app_secrets.admin_emails is empty.','os');
-    return jsonb_build_object('ok', false, 'reason', 'no admin address');
-  end if;
-
   ---------------------------------------------------------------------------------------------
   -- 0. PULL FROM THE DETECTORS FIRST. The detection engine writes to it_watch_finding; this ledger
   --    holds only what the founder has been told. Without this call the tick reports
@@ -60,6 +54,35 @@ begin
               'fn_it_engineer_ingest_watch_findings raised (' || sqlerrm || '), so this tick decided '
               || 'what to send you from a ledger that may be missing newly detected faults.','os');
     exception when others then null; end;
+  end;
+
+  ---------------------------------------------------------------------------------------------
+  -- A0. THE DETECTOR PERSISTED A TICK RECENTLY, OR THAT IS ITSELF THE FINDING. Measured 14 Sep 2026:
+  --    fn_it_detect ran past PostgREST's 8 s statement timeout from 14:35 to 15:55 UTC. resilience_ping
+  --    swallowed the error and kept reporting ok, and no detector finding could say so, because the
+  --    detector was the thing failing. This reads only public.it_watch_tick, which fn_it_detect writes
+  --    on every persisted tick, and it runs here because resilience_ping calls this tick separately,
+  --    after the detect call, whether or not that call succeeded.
+  ---------------------------------------------------------------------------------------------
+  begin
+    select extract(epoch from (now() - max(ran_at))) / 60.0 into v_gap_min from public.it_watch_tick;
+    if v_gap_min is null or v_gap_min > 40 then
+      insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+      values ('it_engineer', 'error', now(), now(), jsonb_build_object('job', 'detect_tick', 'gap_minutes', round(coalesce(v_gap_min, -1))),
+              'fn_it_detect has persisted no tick for ' || coalesce(round(v_gap_min)::text, 'ever') || ' minutes');
+      perform public.fn_it_engineer_finding_upsert(
+        'monitor:detect_tick_blind',
+        'The IT engineer''s detector has persisted no tick for ' || coalesce(round(v_gap_min)::text, 'any') || ' minutes',
+        'public.fn_it_detect, called from supabase/functions/resilience_ping (itDetectTick)',
+        'monitor', 1,
+        jsonb_build_object('gap_minutes', round(coalesce(v_gap_min, -1)), 'expected_every', '15 minutes', 'owner_seat', 'ceo',
+                           'look_at', 'the itdetect field of resilience_ping''s response: a timeout or an error from fn_it_detect'),
+        '{}'::text[], array['why fn_it_detect fails or runs past the 8 s statement timeout'], 'fn_it_engineer_alert_tick');
+    else
+      perform public.fn_it_engineer_finding_close('monitor:detect_tick_blind', 'fn_it_detect persisted a tick ' || round(v_gap_min) || ' minutes ago');
+    end if;
+  exception when others then
+    v_errors := v_errors || jsonb_build_object('section','detect_watch','error', sqlerrm);
   end;
 
   ---------------------------------------------------------------------------------------------
@@ -130,80 +153,19 @@ begin
   end;
 
   ---------------------------------------------------------------------------------------------
-  -- C. OPEN FINDINGS -> the dedupe/escalation rule of section 3.
+  -- C. EVERY ACTIONABLE FINDING GOES ROUND THE LOOP. Until 14 Sep 2026 this section emailed each
+  --    high/critical finding straight to the founder and emailed him again when it cleared, with no
+  --    seat asked to act and no reply awaited. The owning seat now answers, the IT engineer
+  --    re-verifies and closes, and the founder hears only of a new bug nobody could fix
+  --    (the_it_engineer_closes_every_loop_it_opens.sql). fn_it_loop_tick reports its own failures.
   ---------------------------------------------------------------------------------------------
   begin
-    for r in select * from public.it_engineer_finding where closed_at is null order by started_at loop
-      v_sev := public.fn_it_engineer_severity(r.blast, r.affected, r.started_at);
-      v_reason := null;
-      if v_sev = 'warn' then
-        null;                                                        -- never emails. Recorded only.
-      elsif r.alerted_at is null then
-        v_reason := case when r.alert_count > 0 then 'recurred' else 'first' end;
-      elsif array_position(array['warn','high','critical'], v_sev)
-          > array_position(array['warn','high','critical'], coalesce(r.alerted_severity,'warn')) then
-        v_reason := 'severity_rose';                                  -- no floor: this is new information
-      elsif r.affected > coalesce(r.alerted_affected, 0)
-        and r.affected >= 2 * greatest(coalesce(r.alerted_affected,0), 1)
-        and now() - r.alerted_at >= interval '30 minutes' then
-        v_reason := 'blast_grew';
-      end if;
-
-      if v_reason is null then v_silent := v_silent + 1; continue; end if;
-
-      v_body    := public.fn_it_engineer_handover_body(r.issue_key, v_reason);
-      v_subject := '[' || upper(v_sev) || '] QuotesDone IT: ' || r.title
-                   || case when v_reason = 'severity_rose' then ' (escalated)'
-                           when v_reason = 'blast_grew'    then ' (now ' || r.affected || ' affected)'
-                           when v_reason = 'recurred'      then ' (recurred)' else '' end;
-
-      v_id := null;
-      insert into public.notifications (type, kind, to_email, to_role, channel, subject, body)
-      values ('it_engineer_handover', 'it_engineer_handover', v_admin, 'admin', 'email',
-              left(v_subject, 200), v_body)
-      returning id into v_id;
-
-      if v_id is null then
-        -- the a10 gate refused the row. It does NOT raise, so without this the alert would vanish.
-        v_refused := v_refused + 1;
-        insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
-        values ('critical', 'it_engineer:handover_refused_by_gate',
-                'a10_notifications_founder_mail_policy dropped an it_engineer_handover for issue '
-                || r.issue_key || ' (severity ' || v_sev || '). Check founder_mail_policy.it_engineer_handover.',
-                'os', 'it_handover_refused');
-      else
-        update public.it_engineer_finding
-           set alerted_at = now(), alerted_severity = v_sev, alerted_affected = r.affected,
-               alert_count = alert_count + 1, notification_id = v_id
-         where issue_key = r.issue_key;
-        v_sent := v_sent + 1;
-      end if;
-    end loop;
+    v_loop := public.fn_it_loop_tick();
+    if not coalesce((v_loop->>'ok')::boolean, false) then
+      v_errors := v_errors || jsonb_build_object('section','loop','errors', v_loop->'errors');
+    end if;
   exception when others then
-    v_errors := v_errors || jsonb_build_object('section','open_findings','error', sqlerrm);
-  end;
-
-  ---------------------------------------------------------------------------------------------
-  -- D. CLOSED FINDINGS HE WAS TOLD ABOUT -> one RESOLVED note, so silence is not ambiguous.
-  ---------------------------------------------------------------------------------------------
-  begin
-    for r in select * from public.it_engineer_finding
-              where closed_at is not null and alert_count > 0 and close_notified_at is null loop
-      v_body := public.fn_it_engineer_handover_body(r.issue_key, 'resolved');
-      v_id := null;
-      insert into public.notifications (type, kind, to_email, to_role, channel, subject, body)
-      values ('it_engineer_handover', 'it_engineer_handover', v_admin, 'admin', 'email',
-              left('[RESOLVED] QuotesDone IT: ' || r.title, 200), v_body)
-      returning id into v_id;
-      if v_id is null then
-        v_refused := v_refused + 1;
-      else
-        update public.it_engineer_finding set close_notified_at = now() where issue_key = r.issue_key;
-        v_resolved := v_resolved + 1;
-      end if;
-    end loop;
-  exception when others then
-    v_errors := v_errors || jsonb_build_object('section','resolved','error', sqlerrm);
+    v_errors := v_errors || jsonb_build_object('section','loop','error', sqlerrm);
   end;
 
   -- A tick that half-failed must SAY so rather than returning a clean-looking zero.
@@ -213,8 +175,8 @@ begin
   end if;
 
   return jsonb_build_object('ok', jsonb_array_length(v_errors) = 0,
-                            'sent', v_sent, 'resolved', v_resolved, 'silent', v_silent,
-                            'monitor_findings', v_monitor, 'ingested_from_detectors', v_ingest, 'refused_by_gate', v_refused,
+                            'loop', v_loop,
+                            'monitor_findings', v_monitor, 'ingested_from_detectors', v_ingest,
                             'errors', v_errors);
 end $function$
 ;

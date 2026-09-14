@@ -2,7 +2,11 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import { Link } from '@/i18n/routing';
 
+// A compact bottom bar, not a card over the hero: one line at desktop width (≤72px tall), a slim
+// sheet on a phone. "Essential only" is the same size and weight as "Accept all" — declining is
+// never the harder click. Storage keys and values are unchanged (qd-cookie-consent: all|essential).
 export function CookieConsent() {
   const t = useTranslations('cookie');
   const locale = useLocale();
@@ -21,26 +25,23 @@ export function CookieConsent() {
   // Never show the public cookie banner inside the internal OS console.
   if (/(^|\/)os(\/|$)/.test(pathname)) return null;
   if (!show) return null;
-  const rtl = locale === 'ar';
+  const btn = 'inline-flex h-10 flex-1 items-center justify-center whitespace-nowrap rounded-btn px-5 text-small font-semibold transition-colors duration-base sm:flex-none';
   return (
-    <div dir={rtl ? 'rtl' : 'ltr'} role="dialog" aria-live="polite" aria-label={t('title')}
-      style={{ position: 'fixed', left: 12, right: 12, bottom: 12, zIndex: 60, margin: '0 auto', maxWidth: 720,
-        background: 'rgba(6,18,27,.965)', border: '1px solid rgba(110,231,212,.19)', borderRadius: 18,
-        boxShadow: '0 24px 60px -28px rgba(3,12,18,.9), inset 0 1px 0 rgba(110,231,212,.10)', padding: '18px 20px', color: '#EAF4F2',
-        fontFamily: rtl ? 'var(--font-ar), system-ui, sans-serif' : 'var(--font-body), system-ui, sans-serif' }}>
-      <div style={{ fontFamily: 'var(--font-head), system-ui, sans-serif', fontWeight: 600, fontSize: 15.5, letterSpacing: '-.015em', marginBottom: 7 }}>{t('title')}</div>
-      <div style={{ fontSize: 13, color: '#9DB2B2', lineHeight: 1.6 }}>
-        {t('text')} <a href="/cookie-policy" style={{ color: '#6EE7D4', textDecoration: 'underline' }}>{t('policy')}</a>
-      </div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-        <button onClick={() => choose('all')}
-          style={{ background: '#14B8A6', color: '#04231F', border: 0, borderRadius: 999, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', boxShadow: '0 10px 26px -14px rgba(20,184,166,.7)' }}>
-          {t('accept')}
-        </button>
-        <button onClick={() => choose('essential')}
-          style={{ background: 'rgba(110,231,212,.03)', color: '#EAF4F2', border: '1px solid rgba(110,231,212,.19)', borderRadius: 999, padding: '10px 20px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-          {t('decline')}
-        </button>
+    <div dir={locale === 'ar' ? 'rtl' : 'ltr'} role="dialog" aria-live="polite" aria-label={t('title')}
+      className="fixed inset-x-0 bottom-0 z-[60] border-t border-line2 bg-navy-deep/[.97] shadow-e3">
+      <div className="container-x flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:gap-6 sm:py-2.5">
+        <p className="min-w-0 flex-1 text-small leading-snug text-muted">
+          <span className="font-semibold text-white">{t('title')}.</span>{' '}{t('text')}{' '}
+          <Link href="/cookie-policy" className="text-teal-light underline underline-offset-2 hover:text-white">{t('policy')}</Link>
+        </p>
+        <div className="flex shrink-0 gap-2">
+          <button type="button" onClick={() => choose('essential')} className={`${btn} border border-line3 bg-surf text-paper hover:border-teal hover:text-white`}>
+            {t('decline')}
+          </button>
+          <button type="button" onClick={() => choose('all')} className={`${btn} bg-teal text-on-teal hover:bg-[#1ED0BC]`}>
+            {t('accept')}
+          </button>
+        </div>
       </div>
     </div>
   );

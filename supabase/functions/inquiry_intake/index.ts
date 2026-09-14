@@ -6,6 +6,11 @@
 // COST: prompt caching (cache_control ephemeral) on the system prompt — multi-turn chats bill it at ~10% on repeat turns.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { asLocale } from '../_shared/registered_locale.ts';
+import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
+import { detectCat, detectTrades, detectEmirate, detectUrgency } from './classify.ts';
+import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
+import { ACTOR, requirementsStep, requirementQuestions, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -19,48 +24,7 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 
-const KW: Record<string, string[]> = {
-  flooring: ['floor', 'flooring', 'spc', 'vinyl', 'lvt', 'epoxy', 'parquet', 'laminate', 'tiles floor', 'marble floor', 'carpet'],
-  glass: ['glass', 'glazing', 'shower enclosure', 'mirror', 'partition glass', 'facade', 'curtain wall', 'railing glass'],
-  aluminium: ['aluminium', 'aluminum', 'window frame', 'sliding window', 'thermal break'],
-  steel: ['steel', 'metal fabric', 'stainless', 'gate steel', 'staircase steel', 'canopy'],
-  gypsum: ['gypsum', 'ceiling', 'false ceiling', 'partition wall', 'drywall', 'plasterboard'],
-  painting: ['paint', 'painting', 'painters', 'repaint', 'wall paint', 'texture paint'],
-  carpentry: ['carpentry', 'joinery', 'wardrobe', 'kitchen cabinet', 'mdf', 'woodwork', 'wooden door'],
-  fitout: ['fit out', 'fit-out', 'fitout', 'interior', 'renovation', 'refurbish', 'office fitout', 'shop fitout'],
-  landscaping: ['landscap', 'garden', 'gardening', 'turf', 'grass', 'irrigation', 'plants', 'softscape', 'hardscape'],
-  electrical: ['electric', 'wiring', 'db board', 'lighting install', 'electrician', 'power point', 'dewa connection'],
-  plumbing: ['plumb', 'plumbing', 'water leak', 'drainage', 'sanitary', 'pipe', 'water tank', 'geyser'],
-  hvac: ['air condition', 'hvac', 'chiller', 'ducting', 'split unit', 'fahu', 'ahu', 'cooling'],
-  cleaning: ['clean', 'cleaning', 'deep clean', 'housekeeping', 'facade cleaning', 'sofa cleaning'],
-  waterproofing: ['waterproof', 'water proofing', 'membrane', 'roof leak', 'bathroom leak'],
-  tiling: ['tiling', 'tiler', 'wall tiles', 'ceramic tiles', 'grouting'],
-  masonry: ['masonry', 'block work', 'blockwork', 'plaster', 'concrete', 'screed'],
-  mep: ['mep', 'mechanical electrical plumbing'],
-  signage: ['signage', 'sign board', '3d letters', 'acrylic sign', 'led sign', 'billboard'],
-  security: ['cctv', 'access control', 'security system', 'alarm', 'intercom', 'gate barrier'],
-  scaffolding: ['scaffold', 'scaffolding', 'access platform'],
-  upholstery: ['upholstery', 'curtain', 'curtains', 'sofa reupholster', 'blinds'],
-  wallpaper: ['wallpaper', 'wall covering', 'wall mural'],
-  pest: ['pest', 'pest control', 'termite', 'cockroach', 'fumigation'],
-  movers: ['moving', 'movers', 'relocation', 'shifting', 'packing'],
-  'custom-furniture': ['custom furniture', 'bespoke furniture', 'reception desk', 'display counter'],
-  acrylic: ['acrylic', 'perspex', 'plexiglass'],
-  tents: ['tent', 'shade', 'car park shade', 'pergola', 'gazebo'],
-  safety: ['fire fighting', 'fire alarm', 'sprinkler', 'fire extinguisher', 'civil defence'],
-  roofing: ['roof', 'roofing', 'gi sheet', 'roof tiles', 'roof leak'],
-  solar: ['solar', 'pv panel', 'photovoltaic', 'solar panel'],
-  'smart-home': ['smart home', 'home automation', 'automation', 'smart lighting', 'knx'],
-  'swimming-pools': ['swimming pool', 'pool', 'jacuzzi'],
-  'interior-design': ['interior design', 'designer', 'mood board', '3d design'],
-  elevators: ['elevator', 'lift', 'escalator'],
-};
-const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'];
-function detectCat(text: string): string | null { const t = ' ' + String(text || '').toLowerCase() + ' '; let best: string | null = null; let bestN = 0; for (const [cat, ks] of Object.entries(KW)) { let n = 0; for (const k of ks) if (t.includes(k)) n++; if (n > bestN) { bestN = n; best = cat; } } return best; }
-function detectTrades(text: string): string[] { const t = ' ' + String(text || '').toLowerCase() + ' '; const hits: string[] = []; for (const [cat, ks] of Object.entries(KW)) { if (ks.some((k) => t.includes(k))) hits.push(cat); } return hits; }
-function detectEmirate(text: string): string | null { const t = String(text || '').toLowerCase(); for (const e of EMIRATES) if (t.includes(e.toLowerCase())) return e; if (t.includes('rak')) return 'Ras Al Khaimah'; return null; }
-function detectUrgency(text: string): string { const t = ' ' + String(text || '').toLowerCase() + ' '; if (/(emergency|urgent|asap|immediately|today|right now|flooding|burst|no power|sparking|gas leak|leaking badly)/.test(t)) return 'urgent'; return 'normal'; }
-function isArabic(text: string): boolean { return /[؀-ۿ]/.test(String(text || '')); }
+// KW, detectCat, detectTrades, detectEmirate, detectUrgency and isArabic live in ./classify.ts (tested there).
 function sanitizeInput(text: string): string { return String(text || '').replace(/\bignore (all |any |previous )?(above|prior|earlier)?\s*(instructions|prompts?|rules?)\b/gi, '[removed]').replace(/\b(system|assistant|developer)\s*:/gi, '$1 -').slice(0, 4000); }
 
 async function llm(messages: any[]): Promise<string | null> {
@@ -92,14 +56,21 @@ Deno.serve(observe('inquiry_intake', async (req) => {
     // no customer row ever appeared. Production shows the result: 7 inquiries, every one with a
     // null customer_id, and public.customers empty. The person is already AUTHENTICATED at this
     // point, so this materialises a customer that genuinely exists rather than inventing one.
-    let cust = (await admin.from('customers').select('id').eq('email', email).maybeSingle()).data;
+    const b = await req.json().catch(() => ({} as any));
+    // 14 Sep 2026. A FOLLOW-UP ON A POSTED RFQ IS NOT AN INTAKE. The portal's "Ask the assistant
+    // about this request" posted {text, inquiry_id} here with no intake_id; this function never read
+    // inquiry_id, so every follow-up inserted a fresh orphan inquiry_intake draft and got a first-turn
+    // intake prompt back — nothing reached the RFQ or a supplier (website audit 14 Sep, finding 9).
+    // Follow-ups belong to customer_api rfq_note. Refused before any customer or draft row is written.
+    if (b && b.inquiry_id && !b.intake_id) return J({ ok: false, error: 'use_rfq_note', message: 'Questions about a request you have already sent go on that request, not into a new one.' }, 200);
+    let cust = (await admin.from('customers').select('id,locale').eq('email', email).maybeSingle()).data;
     if (!cust) {
+      // Created here, so this IS the registration: the page language they are using is what registers.
       const { data: made } = await admin.from('customers')
-        .insert({ email, full_name: (user.user_metadata as any)?.full_name || email.split('@')[0] })
-        .select('id').maybeSingle();
+        .insert({ email, full_name: (user.user_metadata as any)?.full_name || email.split('@')[0], locale: asLocale(b.lang) })
+        .select('id,locale').maybeSingle();
       cust = made || null;
     }
-    const b = await req.json().catch(() => ({} as any));
     const text = sanitizeInput(String(b.text || '').trim()).slice(0, 4000);
     const drawingBoq = b.drawing_boq || null;
 
@@ -125,7 +96,11 @@ Deno.serve(observe('inquiry_intake', async (req) => {
     const turns: any[] = Array.isArray(draft.turns) ? draft.turns : [];
     if (text) turns.push({ role: 'user', text });
     const allText = turns.filter((t) => t.role === 'user').map((t) => t.text).join(' \n ') + ' ' + (draft.raw_input || '');
-    const ar = isArabic(allText);
+    // THE SALES ENGINEER ANSWERS IN THE REGISTERED LANGUAGE (founder, 14 Sep 2026). This read the
+    // script of what the customer typed, so an Arabic-registered customer who typed one line in
+    // English was interviewed in English from then on. customers.locale decides; what they type in
+    // either language is still understood.
+    const ar = asLocale((cust as any)?.locale) === 'ar';
 
     let category = draft.category || detectCat(allText) || (drawingBoq && drawingBoq.category) || null;
     if (category && !validSlugs.includes(category)) { category = detectCat(allText) || null; }
@@ -191,11 +166,18 @@ Deno.serve(observe('inquiry_intake', async (req) => {
     // that contacts nobody. So the checklist still decides completeness; this only decides what gets
     // asked, and in what order.
     let orderedQuestions = '';
+    // field_key -> ask_order, for the deterministic interview. MEASURED 14 Sep 2026: only 7 of the
+    // 396 category_specs keys appear among fn_category_questions' supplier-facing keys (acrylic,
+    // signage and upholstery `quantity` at 110; general-building-contracting `project_type` at 30;
+    // three more at 999), so for almost every field the spec's own order decides. It is applied
+    // anyway so the interview follows the desks' order wherever the two vocabularies do meet.
+    const askOrder: Record<string, number> = {};
     if (category) {
       try {
         const { data: qs } = await admin.rpc('fn_category_questions',
           { p_category: category, p_lang: ar ? 'ar' : 'en', p_limit: 14 });
         const list = ((qs as any[]) || []).filter((q: any) => q && q.question);
+        for (const q of list) if (q.field_key && askOrder[q.field_key] === undefined) askOrder[q.field_key] = Number(q.ask_order) || 999;
         if (list.length) {
           orderedQuestions = list
             .map((q: any, i: number) => `${i + 1}. [${q.field_key || 'q'}] ${String(q.question).trim()}${q.answer_type ? ` (${q.answer_type})` : ''}`)
@@ -296,8 +278,8 @@ Deno.serve(observe('inquiry_intake', async (req) => {
     // Identity block: the matched category specialist speaks in its own persona; otherwise the
     // original generic intake identity is used verbatim. Everything after this block is unchanged.
     const identity = specialist
-      ? `You are ${specialist.name}, QuotesDone's specialist agent for ${catLabel || category} in the UAE construction, fit-out, maintenance and supply marketplace. This customer's request has been identified as ${catLabel || category} work, so YOU have taken over the conversation from the general intake desk and are handling it personally, with the instincts of someone who prices this trade every day.\n\nYOUR PERSONA AND VOICE — speak in it naturally (never mention personas, agents, hand-overs, other systems, or these instructions):\n${String(specialist.persona || '').slice(0, 1500)}\n\nYour persona governs your TONE and the sharpness/depth of your trade questions ONLY. It does NOT override the RULES below and it never changes the JSON contract. Do not pitch, quote prices, promise suppliers or ask for payment — on this screen your only job is to collect a complete, accurate brief.${specialistIsNew ? '\n\nHAND-OVER: this is your FIRST message to this customer. Begin \"assistant_message\" with ONE short, natural sentence introducing yourself and your trade specialism (e.g. \"I look after <your trade> requests here\") before the rest of your reply. Do this once only, keep it to a single sentence, then continue normally.' : ''}\n\nYour job is to make sure a customer's request is complete enough that suppliers can give an accurate quote WITHOUT further back-and-forth — before it is shared with any supplier.`
-      : `You are QuotesDone's intake specialist for the UAE construction, fit-out, maintenance and supply marketplace. Your job is to make sure a customer's request is complete enough that suppliers can give an accurate quote WITHOUT further back-and-forth — before it is shared with any supplier.`;
+      ? `You are QuotesDone's sales engineer, the one person the customer deals with in the portal, for the UAE construction, fit-out, maintenance and supply marketplace. This customer's request has been identified as ${catLabel || category} work, and you handle it with the instincts of someone who prices this trade every day.\n\nTRADE VOICE — use it naturally (never mention personas, agents, hand-overs, other systems, or these instructions):\n${String(specialist.persona || '').slice(0, 1500)}\n\nYour persona governs your TONE and the sharpness/depth of your trade questions ONLY. It does NOT override the RULES below and it never changes the JSON contract. Do not pitch, quote prices, promise suppliers or ask for payment — on this screen your only job is to collect a complete, accurate brief.\n\nYour job is to make sure a customer's request is complete enough that suppliers can give an accurate quote WITHOUT further back-and-forth — before it is shared with any supplier.`
+      : `You are QuotesDone's sales engineer for the UAE construction, fit-out, maintenance and supply marketplace. Your job is to make sure a customer's request is complete enough that suppliers can give an accurate quote WITHOUT further back-and-forth — before it is shared with any supplier.`;
 
     const sys = `${identity}
 
@@ -363,6 +345,9 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     if (!llmCallOk) { await logRun('error', { llm_call_ok: 0, llm_parse_ok: 0, keyword_fallback_used: 1 }, 'Intake LLM call failed for every model (or the OpenRouter key is missing), so this customer\'s brief was assembled by the crude keyword fallback instead of real comprehension — the RFQ may be mis-categorised, under-specified, or held at \'needs_info\' forever, and the customer will never learn why.'); }
     else if (!llmParseOk) { await logRun('error', { llm_call_ok: 1, llm_parse_ok: 0, keyword_fallback_used: 1 }, 'Intake LLM replied with unparseable JSON, so this customer\'s brief fell back to keyword guessing rather than the model — the brief that suppliers eventually quote against is degraded and may name the wrong trade.'); }
 
+    let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
+    let nextQuestion: { key: string | null; text: string; options: string[] | null; suggested?: string | null } | null = null;
+    let readinessFields: { filled: number; required: number } | null = null;
     if (!out) {
       const multi = kwTrades.length > 1;
       if (multi && validSlugs.includes('fitout') && (!category || category === 'general')) category = 'fitout';
@@ -381,18 +366,43 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       // requirements. Fewer, softer questions that get answered beat a complete list that gets
       // abandoned, and an attached drawing answers most of them anyway.
       //
-      // THE REAL FIX IS DATA, NOT CODE, and it is deliberately not attempted here: category_specs
-      // needs a plain-language sibling for each of its 396 fields, written once, so both the model
-      // path and this one ask the same human question. Recorded rather than bodged.
-      const missingReq = checklist.filter((f: any) => f.required).map((f: any) => f.question).slice(0, 3);
+      // 14 Sep 2026: the data fix landed — scripts/sql/the_intake_asks_every_question_in_plain_words.sql
+      // writes question_plain_en / question_plain_ar beside all 396 fields — and this path now runs
+      // an actual interview (./interview.ts): one plain question at a time, each answer parsed into
+      // its canonical key, state kept in brief.details, 'ready' when every required key is filled.
+      const lang = ar ? 'ar' : 'en';
+      const prevState = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object')
+        ? { details: draft.brief.details as Record<string, string>, asked_key: (draft.brief.asked_key as string) || null }
+        : { details: {}, asked_key: null };
+      const step = category && checklist.length ? interviewStep(checklist, prevState, text, allText, lang, askOrder) : null;
+      interview = step ? { details: step.details, asked_key: step.next ? step.next.key : null } : null;
+      nextQuestion = step?.next ? { key: step.next.key, text: step.next.text, options: step.next.options } : null;
+      readinessFields = step ? step.readiness : null;
+      const remaining = step ? orderFields(checklist, askOrder).filter((o) => o.f.required && !(o.key in step.details)).map((o) => questionText(o.f, lang)) : [];
+      const missingReq = remaining.slice(0, 3);
       const plainAsk = ar
         ? 'صف لنا العمل بكلماتك أنت — ماذا تريد أن تنجز، وفي أي نوع من الأماكن، وما الحجم تقريباً. وإذا كان لديك صورة أو مخطط، أرفقه وسنقرأ منه التفاصيل بدلاً عنك.'
         : 'Tell me in your own words what you need done — what the job is, what kind of space it is in, and roughly how big. If you have a photo or a drawing, attach it and I will read the details off it for you instead of asking.';
       const multiMsg = ar ? 'يبدو أن طلبك يشمل أكثر من تخصص. أخبرنا بمزيد من التفاصيل لكل جزء لنرسل طلبك للموردين المناسبين.' : 'It looks like your request covers more than one trade. Tell me a bit more about each part (scope, area/quantity and timeline for each) so I can send it to the right suppliers.';
-      if (!allText.trim() || allText.trim().length < 8) out = { category, status: 'needs_info', assistant_message: plainAsk, questions: missingReq, readiness: 10, missing: missingReq, brief: null };
-      else if (multi) out = { category, status: 'needs_info', assistant_message: multiMsg, questions: missingReq.slice(0, 4), readiness: 40, missing: missingReq, brief: null };
-      else if (missingReq.length) out = { category, status: 'needs_info', assistant_message: ar ? 'نحتاج بعض التفاصيل لإرسال طلبك للموردين.' : 'A few details will help suppliers quote accurately.', questions: missingReq.slice(0, 4), readiness: 40, missing: missingReq, brief: null };
-      else out = { category, status: 'ready', assistant_message: ar ? 'تم — سنرسل طلبك للموردين.' : "Great — we'll send this to matching suppliers.", questions: [], readiness: 75, missing: [], brief: { summary: allText.slice(0, 160), category, scope: '', quantity: '', location: emirate || '', emirate: emirate || '', timeline: '', budget: '', details: {} } };
+      const firstUser = String(turns.find((t: any) => t.role === 'user')?.text || allText);
+      const score = step && step.readiness.required ? Math.round(100 * step.readiness.filled / step.readiness.required) : 10;
+      const provenanceStated = step ? Object.fromEntries(Object.keys(step.details).map((k) => [k, 'stated'])) : {};
+      if (!allText.trim() || allText.trim().length < 8 || !category) {
+        // No trade recognised yet: the router's own disambiguation question if it had one, else ask
+        // for the job in their own words. Nothing to interview against until a category exists.
+        out = { category, status: 'needs_info', assistant_message: routeClarification || plainAsk, questions: [routeClarification || plainAsk], readiness: 10, missing: [], brief: null };
+      } else if (step && !step.complete && step.next) {
+        const firstTurn = !prevState.asked_key && turns.filter((t: any) => t.role === 'user').length <= 1;
+        const ack = firstTurn
+          ? (multi ? multiMsg + ' ' : (ar ? 'فهمت. ' : `Got it — ${catLabel || category} work. `))
+          : (step.filled_now.length ? (ar ? 'تم، شكراً. ' : 'Thanks, noted. ') : '');
+        out = { category, status: 'needs_info', assistant_message: ack + step.next.text, questions: [step.next.text], readiness: Math.min(score, 95), missing: remaining, brief: null, provenance: provenanceStated };
+      } else if (step && step.complete) {
+        out = { category, status: 'ready', assistant_message: ar ? 'شكراً — لدينا الآن كل ما يحتاجه الموردون. راجع الملخص أدناه ثم اضغط «إرسال إلى الموردين».' : 'Thank you — that is everything suppliers need. Check the summary below and press Send to suppliers.', questions: [], readiness: 100, missing: [], provenance: provenanceStated, brief: buildBrief(String(category), step.details, allText, emirate, firstUser) };
+      } else {
+        // A category with no checklist rows at all: nothing to ask, so the description is the brief.
+        out = { category, status: 'ready', assistant_message: ar ? 'تم — راجع الملخص أدناه ثم أرسله للموردين.' : "Great — check the summary below and send it to matching suppliers.", questions: [], readiness: 75, missing: [], brief: buildBrief(String(category), {}, allText, emirate, firstUser) };
+      }
     }
 
     // Guard against the multi-trade re-ask pathology: suppress any question/missing item that merely
@@ -433,7 +443,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     category = cat;
     let status = ['rejected', 'needs_info', 'ready'].includes(out.status) ? out.status : 'needs_info';
     // Stamp the answering agent on the turn so the next turn knows the specialist has already introduced itself.
-    turns.push({ role: 'assistant', text: out.assistant_message || '', agent: specialist ? specialist.slug : null });
+    turns.push({ role: 'assistant', text: out.assistant_message || '', agent: ACTOR });
 
     let trades = Array.isArray(out.trades) ? out.trades.map((s: any) => String(s)).filter((s: string) => validSlugs.includes(s)) : [];
     // Same rule for the trade list. A hallucinated extra trade is not harmless: every trade adds
@@ -490,14 +500,91 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       }
     }
 
+    // ── THE SALES ENGINEER'S FOUR QUESTIONS (founder, 14 Sep 2026) ─────────────────────────────────
+    // "do you require a warranty? do you require installation? do you have specific material in mind
+    // ... maybe he doesnt even care, but our job is to ask." A request that has every field its
+    // category needs is still not ready until these are answered too: the material of each main
+    // component, installation where the trade installs, a warranty where one is sold, and the date it
+    // is needed by. Asked here, AFTER the category's own checklist, one at a time with options to tap,
+    // on the model path and the deterministic one alike. The answers are recorded under the sales
+    // engineer and become the baseline the technical comparison judges quotes against
+    // (_shared/intake_requirements.ts, docs/contracts/intake_answers.md).
+    const reqLang = ar ? 'ar' : 'en';
+    const prevBrief: any = (draft.brief && typeof draft.brief === 'object') ? draft.brief : {};
+    let reqAnswers: Answers = (prevBrief.req_answers && typeof prevBrief.req_answers === 'object') ? prevBrief.req_answers : {};
+    let reqAsked: string | null = null;
+    let reqRemaining: string[] = category ? requirementQuestions(category).filter((q) => !reqAnswers[q.key]).map((q) => questionIn(q, reqLang)) : [];
+    let reqProgress: { filled: number; total: number } | null = null;
+    if (status === 'ready' && category) {
+      const known = { ...((interview && interview.details) || prevBrief.details || {}), ...((out.brief && out.brief.details) || {}) };
+      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText);
+      reqAnswers = rs.answers; reqRemaining = rs.remaining; reqProgress = { filled: rs.filled, total: rs.total };
+      if (!rs.complete && rs.next) {
+        const lead = rs.retry
+          ? (ar ? 'لم أتمكن من مطابقة إجابتك مع أحد الخيارات. اختر خياراً من الأسفل، أو «لست متأكداً». ' : "I couldn't match that to one of the answers. Tap an option below, or Not sure. ")
+          : !prevBrief.req_asked
+            ? (ar ? 'تم، شكراً. بقيت أسئلة سريعة عن المواد والتركيب والضمان والموعد، حتى يطابق كل عرض ما تريده تماماً. ' : 'Thanks, noted. A few quick questions about materials, installation, warranty and timing, so every quote matches exactly what you want. ')
+            : (ar ? 'تم، شكراً. ' : 'Thanks, noted. ');
+        status = 'needs_info'; out.status = 'needs_info';
+        out.assistant_message = lead + rs.next.text;
+        out.questions = [rs.next.text];
+        out.missing = rs.remaining;
+        // suggested: what the trade or the checklist points to. The composer highlights it; only the
+        // customer tapping it records it (founder, 14 Sep 2026: "we don't assume stuff").
+        nextQuestion = { key: rs.next.key, text: rs.next.text, options: rs.next.options, suggested: rs.next.suggested };
+        reqAsked = rs.next.key;
+      }
+    }
+
+    // ── THE DRAWING'S OPEN LINES (14 Sep 2026) ─────────────────────────────────────────────────────
+    // A drawing's BOQ line we did not READ (a device count, a loop size, a cable length) is shown to
+    // the customer as OUR count — numbered on the marked-up copy the portal draws — and ONE question
+    // is asked: Yes / Adjust / Not sure (_shared/boq_open_lines.ts). The customer is never asked to
+    // count (founder, relayed: "what if the customer didnt count or too lazy to count"). The question
+    // does not hold the request: it is offered beside Send, and whatever is true when the customer
+    // presses Send — confirmed, adjusted, not sure, or unanswered — is what create_inquiry records on
+    // the inquiry and applies to the lines. "We don't assume stuff": an unanswered line goes out
+    // marked "estimated from drawing, supplier to verify take-off", never as a settled quantity.
+    const nowIso = new Date().toISOString();
+    const openBoq = openLines(drawingBoq && Array.isArray(drawingBoq.boq) ? drawingBoq.boq : []);
+    let boqCheck: BoqCheck | null = (prevBrief.boq_check && typeof prevBrief.boq_check === 'object') ? prevBrief.boq_check : null;
+    let boqAsked = prevBrief.boq_asked === true;
+    if (openBoq.length) {
+      if (boqCheck && boqCheck.status === 'asked' && boqAsked && text) {
+        const r = readConfirmAnswer(boqCheck.lines, text);
+        boqCheck = { ...boqCheck, status: r.status, answered_at: nowIso, answer: text.slice(0, 300), adjustments: r.adjustments };
+      }
+      if (!boqCheck) boqCheck = { status: 'asked', asked_at: nowIso, answered_at: null, lines: openBoq };
+      if (boqCheck.status === 'asked' && status === 'ready') {
+        const q = confirmQuestion(boqCheck.lines, ar ? 'ar' : 'en');
+        nextQuestion = { key: q.key, text: q.text, options: q.options };
+        out.assistant_message = `${out.assistant_message || ''} ${q.text}`.trim();
+        boqAsked = true;
+      }
+    }
+    // A photo or scan of a drawing: the CAD or PDF it came from counts every device exactly (a CAD
+    // block count), so ask for it once — never as a condition.
+    const imageOnly = !!drawingBoq && Array.isArray(drawingBoq.kinds) && drawingBoq.kinds.every((k: unknown) => k === 'image') && openBoq.length > 0;
+    let cadAsked = prevBrief.cad_asked === true;
+    if (imageOnly && !cadAsked) {
+      out.assistant_message = `${out.assistant_message || ''} ${ar ? 'إن كان لديك ملف CAD (DWG أو DXF) أو ملف PDF الأصلي لهذا المخطط فأرفقه، وسنعدّ منه كل جهاز بدقة.' : 'If you have the CAD file (DWG or DXF) or the original PDF of this drawing, attach it and we will count every device from it exactly.'}`.trim();
+      cadAsked = true;
+    }
+
     const brief = status === 'ready' ? (out.brief || null) : null;
     if (brief) {
+      if (boqCheck) brief.boq_check = boqCheck;
       brief.category = category;
       if (!brief.emirate && emirate) { brief.emirate = emirate; if (!brief.location) brief.location = emirate; }
       brief.trades = trades;
       brief.urgency = urgency;
       if (plausibility) brief.plausibility = plausibility;
       if (provenance) brief.provenance = provenance;
+      // The four answers, in the stored contract shape create_inquiry copies onto the RFQ, and the
+      // same answers as the summary card shows them for editing before Send.
+      brief.requirements = toStored(category, reqAnswers, new Date());
+      brief.requirement_questions = forCard(category, reqAnswers, reqLang);
+      brief.recorded_by = ACTOR;
 
       // ── §3 THE TWO THINGS THE SPEC'S ASSISTANT SAYS BEFORE THE CUSTOMER PRESSES SEND ───────────
       // The spec's §3 panel is: "Required Documents: ✓ Technical specs ✓ Delivery timeline
@@ -538,14 +625,40 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       } catch (_e) { brief.supplier_count = null; brief.supplier_count_basis = 'matcher unavailable at intake time'; }
     }
 
-    const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
+    // While the deterministic interview is running, `brief` carries its state — the answers so far
+    // under their canonical keys, and which key was just asked, so the next message is parsed as the
+    // answer to THAT question. create_inquiry only reads brief from a row whose status is 'ready'.
+    // req_answers / req_asked carry the sales engineer's questions across turns exactly as details /
+    // asked_key carry the category interview's.
+    const drawingState = { ...(boqCheck ? { boq_check: boqCheck } : {}), boq_asked: boqAsked, cad_asked: cadAsked };
+    const briefToSave = brief
+      ? { ...brief, req_answers: reqAnswers, ...drawingState }
+      : { details: interview ? interview.details : (prevBrief.details || {}), asked_key: interview ? interview.asked_key : null, state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
+    // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
+    // what the model and the canonical gate returned; on the interview path they are exact.
+    const reqCount = checklist.filter((f: any) => f && f.required).length;
+    if (!readinessFields) readinessFields = { filled: status === 'ready' ? reqCount : Math.max(0, reqCount - (requiredGate ? requiredGate.missing_keys.length : (Array.isArray(out.missing) ? out.missing.length : reqCount))), required: reqCount };
+    // The drawing's confirm question is the one question allowed beside a ready request (above).
+    if (status === 'ready') { if (!nextQuestion || nextQuestion.key !== 'boq_check') nextQuestion = null; readinessFields = { filled: readinessFields.required, required: readinessFields.required }; }
+    else if (!nextQuestion && Array.isArray(out.questions) && out.questions.length) nextQuestion = { key: requiredGate ? requiredGate.missing_keys[0] || null : null, text: String(out.questions[0]), options: null };
+    // The readiness bar counts the sales engineer's questions from the first turn, so it never reads
+    // 100% while something is still going to be asked, and remaining_questions lists every open
+    // question in the customer's language, so the composer can show exactly what is left.
+    if (category) {
+      const reqTotal = reqProgress ? reqProgress.total : requirementQuestions(category).length;
+      if (status === 'ready') readinessFields = { filled: readinessFields.required + reqTotal, required: readinessFields.required + reqTotal };
+      else if (reqProgress) { readinessFields = { filled: readinessFields.required + reqProgress.filled, required: readinessFields.required + reqTotal }; out.readiness = Math.min(95, Math.round(100 * readinessFields.filled / Math.max(1, readinessFields.required))); }
+      else readinessFields = { filled: readinessFields.filled, required: readinessFields.required + reqTotal };
+    }
+    const remainingQuestions: string[] = status === 'ready' ? [] : Array.from(new Set([...(Array.isArray(out.missing) ? out.missing.map((m: any) => String(m)) : []), ...reqRemaining])).slice(0, 12);
+    const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
     if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0 }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the customer was told their request was accepted but the brief was never persisted, so the RFQ cannot be dispatched and this looks like the customer simply never finished intake.'); }
 
-    try { await admin.from('ai_qa_log').insert({ email, kind: 'intake', model: 'anthropic/claude-sonnet-5', input: { text: allText.slice(0, 1500), category }, output: { status, category, trades, urgency, readiness: Number(out.readiness) || 0, agent: specialist ? specialist.slug : null }, flags: { plausibility, multi_trade: trades.length > 1, specialist: specialist ? specialist.slug : null } }); } catch (_e) { /* */ }
+    try { await admin.from('ai_qa_log').insert({ email, kind: 'intake', model: 'anthropic/claude-sonnet-5', input: { text: allText.slice(0, 1500), category }, output: { status, category, trades, urgency, readiness: Number(out.readiness) || 0, agent: ACTOR, knowledge: specialist ? specialist.slug : null }, flags: { plausibility, multi_trade: trades.length > 1, specialist: specialist ? specialist.slug : null } }); } catch (_e) { /* */ }
 
     if (!saveErr) { await logRun(llmCallOk && llmParseOk ? 'ok' : 'error', { intake_saved: 1, status_computed: status, readiness: Number(out.readiness) || 0, trades: trades.length, questions: Array.isArray(out.questions) ? out.questions.length : 0, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, llm_parse_ok: llmParseOk ? 1 : 0, category_specs_loaded: validSlugs.length, specialist: specialist ? specialist.slug : null }, (llmCallOk && llmParseOk) ? ('Intake turn completed normally: status=' + status + ', category=' + String(category) + ', trades=' + trades.length + ', agent=' + String(specialist ? specialist.slug : 'generic') + '. ' + (status === 'ready' ? 'Brief is supplier-ready and can be dispatched.' : 'RFQ is NOT yet dispatchable — it stays parked until the customer replies.')) : ('Intake turn completed but only via the keyword fallback (LLM unavailable/unparseable): status=' + status + ', category=' + String(category) + ' — this brief was not written by the model, so a request that is actually complete may be wrongly held at needs_info and never reach a supplier.'));
     }
 
-    return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], readiness: Number(out.readiness) || 0, missing: out.missing || [], brief, agent: specialist ? specialist.slug : null, agent_name: specialist ? specialist.name : null });
+    return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], next_question: nextQuestion, readiness: { filled: readinessFields.filled, required: readinessFields.required, score: Number(out.readiness) || 0 }, readiness_score: Number(out.readiness) || 0, missing: out.missing || [], brief, remaining_questions: remainingQuestions, agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 }));

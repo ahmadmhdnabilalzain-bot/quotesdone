@@ -96,7 +96,7 @@ Deno.serve(observe('inbound_email', async (req) => {
 
     if (!lead && candidates.length > 1) {
       const { data: m } = await admin.from('inbound_messages').insert({
-        lead_id: null, from_email: fromEmail, to_email: String(body.to || ''), subject, body: text.slice(0, 20000),
+        lead_id: null, from_email: fromEmail, to_email: String(body.to || ''), subject, body: text,
         attachments_count: atts.length, attachments_refused: attachmentsRefused, matched_existing: true, created_new_lead: false, ai_ok: false,
         needs_review: true, ai_notes: `ambiguous: ${candidates.length} companies share this email`, raw: { candidates },
       }).select('id').maybeSingle();
@@ -161,7 +161,7 @@ Deno.serve(observe('inbound_email', async (req) => {
     if (Object.keys(upd).length) await admin.from('leads').update(upd).eq('id', lead.id);
 
     await admin.from('inbound_messages').insert({
-      lead_id: lead.id, from_email: fromEmail, to_email: String(body.to || ''), subject, body: text.slice(0, 20000),
+      lead_id: lead.id, from_email: fromEmail, to_email: String(body.to || ''), subject, body: text,
       attachments_count: atts.length, attachments_refused: attachmentsRefused, matched_existing: !createdNew, created_new_lead: createdNew,
       ai_ok: aiOk, needs_review: false, ai_notes: aiNotes || null, raw: { fields_updated: Object.keys(upd) },
     });

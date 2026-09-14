@@ -17,9 +17,16 @@
 // confused-deputy defect, fixed the same day. This file never reads a seat name off the payload.
 //
 // WHAT IS DELIBERATELY ABSENT, so nobody mistakes silence for capability: this function does not
-// execute a refund (refunds_api does, and only after a CEO decision) and does not render the weekly
-// report. Naming an absence here is cheaper than discovering later that a zero meant "nothing was
-// collected" when it meant "nothing collects".
+// render the weekly report. Naming an absence here is cheaper than discovering later that a zero meant
+// "nothing was collected" when it meant "nothing collects".
+//
+// 14 SEP 2026 — THE SEAT PAYS WHAT THE CEO APPROVED. The founder: "approval from CEO, execution from
+// the accountant always whenever it's related to money", and "anything related to payment is under
+// the accountant agent". execute_refunds sends to Stripe exactly the refunds whose CEO approval passed
+// the process checklist (refunds.refund_decision_id; the z05 guard refuses anything else), stated at
+// the amount the customer paid, and the Stripe fixes the CEO's mismatch playbook hands this seat. It
+// holds every ordinary refund while the CEO's circuit breaker is on. resilience_ping calls it under
+// this seat's own credential.
 //
 // 9 SEP 2026 — THE SEAT NOW READS ITS OWN MAILBOX. The founder: "once he access the email, let him
 // send me a report of all what we spent since day 1 by trailing the whole inbox and that would be a
@@ -55,6 +62,15 @@ import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
+import { confirmRefundOutcome, refundIdempotencyKey, refundKey, stripeRefund } from '../_shared/stripe_refund.ts';
+import { isDemoEmail } from '../_shared/demo_identity.ts';
+// 14 Sep 2026 — the duties (founder: "yea add them all", "yea add them"). Nothing is re-implemented:
+// the charge audit uses the #616 formula itself, the statement reader and the dispute form are pure
+// modules with their own tests.
+import { revealChargeFor, shortfallAfterPayment } from '../_shared/reveal_fee.ts';
+import { isBankStatement, readStatement } from '../_shared/bank_statement_parse.ts';
+import { pdfTextByRows } from '../_shared/pdf_text_positions.ts';
+import { disputeEvidenceForm } from '../_shared/dispute_evidence.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -135,6 +151,10 @@ async function run(action: string, status: string, counts: Record<string, unknow
     });
   } catch { /* an unwritten log must not turn a good answer into a 500 */ }
 }
+
+// A refund sent to Stripe at a STATED amount, idempotent on a key this seat chooses, against the exact
+// payment it reverses (a checkout-session reference is resolved to its payment intent first).
+// deno-lint-ignore no-explicit-any
 
 // THREE DIFFERENT FACTS PRINT AS THE CHARACTER 0 ON THIS DATABASE, and the accountant grant says so
 // in its own words: "An unmeasurable figure is reported as unknown, never estimated and never
@@ -581,6 +601,157 @@ Deno.serve(observe('accountant', async (req) => {
       });
     }
 
+    // ── EXECUTE_REFUNDS ────────────────────────────────────────────────────────────────────────
+    // (1) Every refund the CEO approved and nobody has sent: to Stripe at refunds.amount_fils (which
+    //     a00 holds equal to what the customer paid), then recorded through fn_refund_settle -- the
+    //     webhook's own settler -- so the charge, the two messages and the CEO's re-verification follow
+    //     from the one door. Held entirely while the CEO's breaker is on.
+    // (2) The Stripe fixes the mismatch playbook handed this seat (refund the difference, retry once,
+    //     cancel a duplicate). These run while paused: they ARE the fix.
+    if (action === 'execute_refunds') {
+      const { data: paused } = await admin.rpc('fn_refunds_paused');
+      // THE KEY FOLLOWS THE PAYER (14 Sep 2026). Until today one stripe_secret_key (LIVE) was read here
+      // and used for every refund and every fix, test payments included. Each payment is now refunded
+      // with the key of the mode it was made in, and a payer this seat cannot identify is refused
+      // rather than guessed (_shared/stripe_refund.ts reads the payment back and checks livemode).
+      const deps = { secret: sec };
+      const payerIsDemo = async (customerId: unknown, paymentRef?: unknown, stripeRefundId?: unknown): Promise<boolean | null> => {
+        let cid = customerId ? String(customerId) : '';
+        if (!cid && paymentRef) cid = String((await admin.from('transactions').select('customer_id').eq('payment_ref', String(paymentRef)).maybeSingle()).data?.customer_id || '');
+        if (!cid && stripeRefundId) cid = String((await admin.from('refunds').select('customer_id').eq('stripe_refund_id', String(stripeRefundId)).maybeSingle()).data?.customer_id || '');
+        if (!cid) return null;
+        const { data: c } = await admin.from('customers').select('email').eq('id', cid).maybeSingle();
+        return c ? isDemoEmail(c.email) : null;
+      };
+      // One refund only, when named (the e2e harness drives a single ZZ DEMO case this way and must
+      // never sweep anyone else's approved refund along with it).
+      const onlyRefund = body.refund_id != null ? Number(body.refund_id) : null;
+      const results: Array<Record<string, unknown>> = [];
+      const settle = (refund: Record<string, unknown>, pi: string) => admin.rpc('fn_refund_settle', {
+        p_stripe_refund_id: String(refund.id), p_status: String(refund.status || 'processing'),
+        p_amount_fils: Number(refund.amount || 0) || null, p_payment_intent: pi, p_amount_source: 'stripe_api',
+      });
+
+      if (paused !== true) {
+        let aq = admin.from('refunds')
+          .select('id,transaction_id,customer_id,amount_fils,stripe_payment_intent,refund_decision_id,status')
+          .not('refund_decision_id', 'is', null).in('status', ['requested', 'approved']).is('stripe_refund_id', null);
+        if (onlyRefund != null) aq = aq.eq('id', onlyRefund);
+        const { data: approved } = await aq.limit(20);
+        for (const r of approved || []) {
+          // Before Stripe, because afterwards the money is gone: the refunds guard refuses 'processing'
+          // before the transaction's refund_deadline, and a refund paid but unrecordable is the worst case.
+          const { data: tr } = await admin.from('transactions').select('refund_deadline').eq('id', r.transaction_id).maybeSingle();
+          if (tr?.refund_deadline && Date.now() < new Date(tr.refund_deadline).getTime()) {
+            results.push({ refund_id: r.id, error: 'refund_window_not_yet_open', decision_after: tr.refund_deadline }); continue;
+          }
+          const demo = await payerIsDemo(r.customer_id, r.stripe_payment_intent);
+          if (demo === null) { results.push({ refund_id: r.id, error: 'payer_unknown: the Stripe mode of this payment cannot be known, nothing sent' }); continue; }
+          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(r.stripe_payment_intent || ''), amountFils: Number(r.amount_fils), idem: refundIdempotencyKey(String(r.transaction_id)),
+            metadata: { refund_id: String(r.id), transaction_id: String(r.transaction_id || ''), approved_by: 'ceo' } });
+          if (!res.ok) { results.push({ refund_id: r.id, error: res.error }); continue; }
+          await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(res.refund.id) }).eq('id', r.id).is('stripe_refund_id', null);
+          await settle(res.refund, res.pi);
+          results.push({ refund_id: r.id, stripe_refund_id: res.refund.id, status: res.refund.status, mode: res.mode });
+        }
+      }
+
+      // A single named refund (the harness) never picks up anyone's incident fixes.
+      const { data: fixes } = onlyRefund != null ? { data: [] } : await admin.from('agent_actions').select('id,detail')
+        .eq('kind', 'handoff').eq('agent', 'accountant').eq('status', 'pending').filter('detail->>type', 'eq', 'incident.fix').limit(20);
+      for (const f of fixes || []) {
+        const d = (f.detail || {}) as Record<string, unknown>;
+        const firstRefundId = Array.isArray(d.refund_ids) ? (d.refund_ids as string[])[0] : undefined;
+        const demo = await payerIsDemo(null, d.payment_ref, firstRefundId);
+        if (demo === null) {
+          await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: 'the paying customer is not on record, so the Stripe mode of the payment cannot be known; nothing was sent' });
+          results.push({ fix: f.id, error: 'payer_unknown' }); continue;
+        }
+        if (d.fix === 'refund_difference' || d.fix === 'retry_refund') {
+          // ONE RAIL FOR THE PLAYBOOK TOO (PR #640 re-review, 14 Sep 2026). Until today these sent a
+          // refund to Stripe under 'qd_incident_<fix>' and only recorded it afterwards; fn_refund_settle
+          // then filed the top-up as an external row with no transaction, outside every per-payment
+          // guard. Now the money is RESERVED on public.refunds first, through every guard on the table
+          // (the window, the CEO decision, and a01's cap: never more than the customer paid), and only
+          // then sent, under a key rooted in the transaction. A refusal releases the reservation.
+          const txId = String(d.transaction_id || '');
+          const failFix = async (why: string) => { await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: why.slice(0, 500) }); results.push({ fix: f.id, error: why }); };
+          let rowId = 0, amount = 0, idem = '';
+          if (d.fix === 'refund_difference') {
+            const { data: rv, error: rvErr } = await admin.rpc('fn_accountant_reserves_topup',
+              { p_transaction_id: txId, p_amount_fils: Number(d.amount_fils || 0), p_fix_id: f.id });
+            if (rvErr || !rv?.ok) { await failFix(rvErr?.message || String(rv?.reason || 'the top-up could not be reserved')); continue; }
+            rowId = Number(rv.refund_id); amount = Number(rv.amount_fils); idem = refundIdempotencyKey(txId, 'topup' + rowId);
+          } else {
+            rowId = Number(d.refund_id);
+            const { data: rr, error: rrErr } = await admin.from('refunds').update({ status: 'processing' })
+              .eq('id', rowId).eq('status', 'failed').select('amount_fils').maybeSingle();
+            if (rrErr || !rr) { await failFix(rrErr?.message || 'refund #' + rowId + ' is not a failed refund that can be retried'); continue; }
+            amount = Number(rr.amount_fils); idem = refundIdempotencyKey(txId, 'retry' + f.id);
+          }
+          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(d.payment_ref || ''), amountFils: amount, idem,
+            metadata: { incident_id: String(d.incident_id || ''), fix: String(d.fix), refund_id: String(rowId) } });
+          // deno-lint-ignore no-explicit-any
+          let sent: { refund: any; pi: string };
+          if (res.ok) sent = { refund: res.refund, pi: res.pi };
+          else {
+            // NEVER RELEASE BLIND (re-review): a timeout or a 5xx may have moved the money. Stripe is
+            // asked what exists under our key first; only a confirmed refusal releases the reservation.
+            const out = await confirmRefundOutcome(deps, { demoPayer: demo, ref: String(d.payment_ref || ''), idem }, res);
+            if (out.outcome === 'hold') {
+              // Reservation kept and the fix left pending: the next run resends under the SAME key, so
+              // Stripe returns the original refund if it exists and creates it once if it does not.
+              results.push({ fix: f.id, refund_id: rowId, held: true, error: out.error }); continue;
+            }
+            if (out.outcome === 'release') {
+              await admin.from('refunds').update({ status: d.fix === 'retry_refund' ? 'failed' : 'cancelled', failure_reason: out.error.slice(0, 500) })
+                .eq('id', rowId).eq('status', d.fix === 'retry_refund' ? 'processing' : 'requested');
+              await failFix(out.error); continue;
+            }
+            sent = { refund: out.refund, pi: out.pi };
+          }
+          await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(sent.refund.id) }).eq('id', rowId);
+          // Recorded first, so the re-verification the completion triggers already sees this money.
+          await settle(sent.refund, sent.pi);
+          await admin.rpc('fn_seat_handoff_complete', { p_id: f.id, p_evidence: { stripe_refund_id: sent.refund.id, amount_fils: sent.refund.amount, status: sent.refund.status } });
+          results.push({ fix: f.id, stripe_refund_id: sent.refund.id });
+        } else if (d.fix === 'cancel_duplicate') {
+          const ids = Array.isArray(d.refund_ids) ? (d.refund_ids as string[]).slice(1) : [];
+          const k = await refundKey(deps, demo);
+          if (!k.ok) { await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: k.error }); results.push({ fix: f.id, error: k.error }); continue; }
+          let cancelled = 0; let lastErr = '';
+          for (const rid of ids) {
+            const cr = await fetch('https://api.stripe.com/v1/refunds/' + encodeURIComponent(rid) + '/cancel',
+              { method: 'POST', headers: { Authorization: 'Bearer ' + k.sk } });
+            const cj = await cr.json().catch(() => ({}));
+            if (cr.ok) cancelled++; else lastErr = String(cj?.error?.message || cr.status);
+          }
+          if (ids.length && cancelled === ids.length) await admin.rpc('fn_seat_handoff_complete', { p_id: f.id, p_evidence: { cancelled: ids } });
+          else await admin.rpc('fn_accountant_incident_fix_failed', { p_id: f.id, p_reason: 'Stripe would not cancel the duplicate: ' + (lastErr || 'nothing to cancel') });
+          results.push({ fix: f.id, cancelled, of: ids.length });
+        }
+      }
+      await run('execute_refunds', 'ok', { executed: results.length, paused: paused === true });
+      return J({ ok: true, seat: 'accountant', paused: paused === true, results });
+    }
+
+    // ── HANDOFFS ───────────────────────────────────────────────────────────────────────────────
+    // What the sales engineer and the CEO handed this seat and it has not closed, and the door to
+    // close one with evidence (a remediation that needed a person, a Stripe fix done by hand).
+    if (action === 'handoffs') {
+      const { data } = await admin.from('agent_actions').select('id,status,title,detail,evidence,created_at')
+        .eq('kind', 'handoff').eq('agent', 'accountant').neq('status', 'done').order('id').limit(100);
+      return J({ ok: true, seat: 'accountant', open: data || [] });
+    }
+    if (action === 'complete_handoff') {
+      const { data: h } = await admin.from('agent_actions').select('id,agent').eq('id', Number(body.id)).eq('kind', 'handoff').maybeSingle();
+      if (!h || h.agent !== 'accountant') return J({ error: 'not_this_seats_handoff' }, 404);
+      const { data, error } = await admin.rpc('fn_seat_handoff_complete', { p_id: Number(body.id), p_evidence: body.evidence ?? {} });
+      if (error) return J({ ok: false, error: error.message }, 400);
+      await run('complete_handoff', 'ok', { handoff_id: Number(body.id) });
+      return J(data);
+    }
+
     // ── EXPENSE_SWEEP ──────────────────────────────────────────────────────────────────────────
     // THE HISTORICAL SWEEP. Deterministic end to end: not one model call on this path.
     //
@@ -702,9 +873,24 @@ Deno.serve(observe('accountant', async (req) => {
         const atts: Record<string, unknown>[] = Array.isArray(d.attachments) ? d.attachments : (Array.isArray(h.attachments) ? h.attachments as Record<string, unknown>[] : []);
         let att: { bytes: Uint8Array; name: string; mime: string; ext: string } | null = null;
         const fileNotes: string[] = [];
+        // A BANK STATEMENT IS NOT A RECEIPT (14 Sep 2026, duty 1). It is read into bank_statement_line
+        // for the payout reconciliation and never booked as an expense. A CSV export is read as text
+        // only (it is parsed, not stored); the PDF goes through the same sanitiser as any receipt.
+        const stmt = isBankStatement(from, subject, atts.map((a) => String(a.filename || a.name || '')));
+        let csvText = '';
         for (const a of atts.slice(0, 8)) {
           const fn = String(a.filename || a.name || '');
           const mm = String(a.content_type || a.contentType || '');
+          if (stmt && /\.csv$/i.test(fn)) {
+            const car = await R('https://api.resend.com/emails/inbound/' + emailId + '/attachments/' + a.id);
+            // deno-lint-ignore no-explicit-any
+            const caj: any = car.ok ? await car.json().catch(() => ({})) : {};
+            const curl = String((caj.data || caj).download_url || (caj.data || caj).url || '');
+            const cgot = curl ? await safeFetch(curl, { timeoutMs: 15_000, maxBytes: 5 * 1024 * 1024 }) : null;
+            if (cgot && cgot.ok) csvText = new TextDecoder().decode(cgot.bytes);
+            else fileNotes.push(fn + ': statement CSV could not be fetched');
+            continue;
+          }
           if (!(/pdf|^image\//i.test(mm) || /\.(pdf|jpe?g|png|webp)$/i.test(fn))) continue;
           const ar = await R('https://api.resend.com/emails/inbound/' + emailId + '/attachments/' + a.id);
           if (!ar.ok) { fileNotes.push(fn + ': attachment endpoint returned HTTP ' + ar.status); continue; }
@@ -730,6 +916,42 @@ Deno.serve(observe('accountant', async (req) => {
           if (!docText) readNote = 'The attached PDF carries no text layer we can trust — scanned, or a font we cannot map — so nothing was read from the file. ';
         } else if (att) {
           readNote = 'The receipt is an image, which has no text layer; reading it needs a vision model and every paid route is held. ';
+        }
+        // THE STATEMENT'S TABLE NEEDS ITS ROWS (14 Sep 2026). Measured on the founder's real Mashreq
+        // e-statement: pdf_text returns '' for it (its Arabic captions are glyph noise, correctly refused by
+        // looksLikeText), and its filename and forwarder name no bank. The positioned reader rebuilds the rows;
+        // that text is used ONLY to recognise and read a statement — a receipt keeps pdf_text's guard.
+        let rowText = '';
+        if (att && att.mime === 'application/pdf' && (stmt || !docText)) rowText = await pdfTextByRows(att.bytes).catch(() => '');
+        const isStmt = stmt || (!!rowText && isBankStatement(from, subject, atts.map((a) => String(a.filename || a.name || '')), rowText));
+        if (isStmt) {
+          const st = readStatement(csvText || rowText || docText);
+          const lines = st.lines;
+          if (dryRun) { say('bank_statement', { lines: lines.length, adds_up: !st.problem, files: fileNotes }); continue; }
+          let stPath: string | null = null;
+          if (att) {
+            const sp = 'bank/' + seenAt.slice(0, 10) + '/' + emailId + '.' + att.ext;
+            const up = await admin.storage.from('receipt-files').upload(sp, att.bytes, { contentType: att.mime, upsert: true });
+            if (!up.error) stPath = sp;
+          }
+          // A statement that does not add up is ingested with NO lines: it is recorded unreadable, which
+          // fn_accountant_bank_reconcile reports as an open accountant finding carrying this note.
+          const { data: ing, error: ingErr } = await admin.rpc('fn_accountant_bank_statement_ingest', {
+            p_account: 'mashreq', p_source_ref: msgKey, p_statement_month: st.period_from ? st.period_from.slice(0, 8) + '01' : null, p_lines: lines,
+            p_doc_path: stPath ? 'receipt-files/' + stPath : null,
+            p_note: st.problem ? 'The statement does not add up, so none of it was booked: ' + st.problem
+                  : lines.length ? null : 'No line could be read without guessing a sign: ' + (readNote || 'no CSV export and no CR/DR markers in the text layer') });
+          // The closing balance as printed (#659's fn_accountant_bank_balance_record), only for a statement
+          // whose every row was proved against it. Before #659 is applied the routine is absent and this says so.
+          let balance: unknown = null;
+          if (!ingErr && !st.problem && st.closing_balance_aed !== null && st.period_to) {
+            const { data: b, error: bErr } = await admin.rpc('fn_accountant_bank_balance_record', {
+              p_source_ref: msgKey, p_balance_aed: st.closing_balance_aed, p_on: st.period_to });
+            balance = bErr ? { error: bErr.message } : b;
+          }
+          say(ingErr ? 'bank_statement_failed' : 'bank_statement', { lines: lines.length, adds_up: !st.problem, problem: st.problem,
+            result: ing ?? null, closing_balance: balance, error: ingErr?.message ?? null });
+          continue;
         }
         // The PDF text is APPENDED, so the forwarded "From:" header still names the original vendor
         // and a figure in the covering note still wins over one in the file.
@@ -1069,9 +1291,259 @@ Deno.serve(observe('accountant', async (req) => {
         note: body.deliver === true ? null : 'The document was rendered and stored. No mail was inserted: pass deliver:true to send it from this seat.',
       });
     }
+    // ── DUTIES (14 Sep 2026) ───────────────────────────────────────────────────────────────────
+    // The founder: "yea add them all" and "yea add them". resilience_ping calls this every tick under
+    // the seat's credential; fn_accountant_duties_due lets it run at most once in 55 minutes. This
+    // action takes only the readings the database cannot take — Stripe's payouts and the balance
+    // transactions behind each new one, Stripe's own fee and tax transactions, disputes, and the charge
+    // audit computed with the #616 formula — and hands them to fn_accountant_duties, which decides.
+    // Then it answers every dispute that is waiting and renders any closed month's PDF and CSV.
+    // A reading that could not be taken is passed as 'unreadable' with its reason, never as empty.
+    if (action === 'duties') {
+      const { data: due } = await admin.rpc('fn_accountant_duties_due');
+      if (due !== true && body.force !== true) return J({ ok: true, seat: 'accountant', skipped: 'the duties ran within the last 55 minutes' });
+      const since = Math.floor(Date.now() / 1000) - 45 * 86400;
+      // deno-lint-ignore no-explicit-any
+      const S = async (key: string, path: string): Promise<{ ok: boolean; status: number; j: any }> => {
+        const r = await fetch('https://api.stripe.com/v1/' + path, { headers: { Authorization: 'Bearer ' + key } });
+        return { ok: r.ok, status: r.status, j: await r.json().catch(() => ({})) };
+      };
+      const keys = { live: await sec('stripe_secret_key'), test: await sec('stripe_secret_key_test') };
+      const stripe: Record<string, unknown> = {};
+      for (const mode of ['live', 'test'] as const) {
+        const key = keys[mode];
+        if (!key) { stripe[mode] = { basis: 'not_configured', reason: 'app_secrets holds no Stripe ' + mode + ' key' }; continue; }
+        try {
+          const po = await S(key, 'payouts?limit=100&created[gte]=' + since);
+          if (!po.ok) throw new Error('GET /v1/payouts returned HTTP ' + po.status);
+          const { data: known } = await admin.from('stripe_payout').select('id').not('txn_count', 'is', null);
+          const have = new Set((known || []).map((r: { id: string }) => r.id));
+          const payouts: Record<string, unknown>[] = [];
+          for (const p of (po.j.data || []) as Record<string, unknown>[]) {
+            const row: Record<string, unknown> = { ...p };
+            // Stripe lists a payout's balance transactions only for automatic payouts.
+            if (!have.has(String(p.id)) && p.automatic === true && p.status === 'paid') {
+              let n = 0, net = 0, after = '';
+              for (let page = 0; page < 20; page++) {
+                const bt = await S(key, 'balance_transactions?payout=' + p.id + '&limit=100' + (after ? '&starting_after=' + after : ''));
+                if (!bt.ok) break;
+                const items = (bt.j.data || []) as Record<string, unknown>[];
+                for (const t of items) if (t.type !== 'payout') { n++; net += Number(t.net || 0); }
+                if (!bt.j.has_more || !items.length) { row.txn_count = n; row.txn_net = net; break; }
+                after = String(items[items.length - 1].id);
+              }
+            }
+            payouts.push(row);
+          }
+          const feeBts: unknown[] = [];
+          for (const type of ['stripe_fee', 'tax']) {
+            const f = await S(key, 'balance_transactions?type=' + type + '&limit=100&created[gte]=' + since);
+            if (!f.ok) throw new Error('GET /v1/balance_transactions?type=' + type + ' returned HTTP ' + f.status);
+            feeBts.push(...(f.j.data || []));
+          }
+          const dp = await S(key, 'disputes?limit=100&created[gte]=' + since);
+          if (!dp.ok) throw new Error('GET /v1/disputes returned HTTP ' + dp.status);
+          stripe[mode] = { basis: 'measured', payouts, fee_bts: feeBts, disputes: dp.j.data || [] };
+        } catch (e) { stripe[mode] = { basis: 'unreadable', reason: String((e as Error)?.message || e) }; }
+      }
+
+      // THE CHARGE AUDIT (duty 10): expected from revealChargeFor, actual from the balance transaction.
+      let chargeAudit: Record<string, unknown>[] | null = [];
+      const { data: cands, error: cErr } = await admin.rpc('fn_accountant_charge_audit_candidates', { p_limit: 200 });
+      if (cErr) chargeAudit = null;
+      for (const c of (cands || []) as Record<string, unknown>[]) {
+        let got: { ok: boolean; status: number; j: Record<string, any> } | null = null;
+        for (const k of [keys.live, keys.test]) {
+          if (!k) continue;
+          const r = await S(k, 'payment_intents/' + encodeURIComponent(String(c.payment_ref)) + '?expand[]=latest_charge.balance_transaction');
+          if (r.ok) { got = r; break; }
+        }
+        const pi = got?.j; const bt = pi?.latest_charge?.balance_transaction;
+        if (!pi || !bt || typeof bt.amount !== 'number') continue;   // not auditable yet; re-tried next run
+        const basis = pi.metadata?.fee_basis === 'domestic' ? 'domestic' : 'international';
+        const exp = revealChargeFor(Number(c.quote_amount), Number(c.rate), basis);
+        const actualTotal = bt.amount / 100;
+        chargeAudit!.push({
+          transaction_id: c.transaction_id, livemode: pi.livemode === true, basis,
+          quote_amount: Number(c.quote_amount), rate: Number(c.rate),
+          expected_total: exp.total_charged, expected_processing: exp.processing_fee,
+          actual_total: actualTotal, actual_fee_fils: bt.fee,
+          shortfall_aed: shortfallAfterPayment({ processing_fee: Math.round((actualTotal - exp.base_fee) * 100) / 100, total_charged: actualTotal, actual_card_fee_fils: Number(bt.fee) }),
+          evidence: { payment_intent: pi.id, balance_transaction: bt.id, currency: bt.currency, fee_details: bt.fee_details,
+                      basis_source: pi.metadata?.fee_basis ? 'payment metadata' : 'no fee_basis on the payment: the Checkout Session flow prices at the international basis' },
+        });
+      }
+
+      const { data: out, error: dErr } = await admin.rpc('fn_accountant_duties', { p_r: { stripe, charge_audit: chargeAudit } });
+      if (dErr) { await run('duties', 'error', {}, 'fn_accountant_duties raised: ' + dErr.message); return J({ ok: false, error: dErr.message }, 500); }
+
+      // DISPUTES (duty 7). SUBMITTING IS FINAL — Stripe takes one submission — so it happens in two steps
+      // (review of #645): (1) the evidence is SAVED at Stripe as a draft (submit=false) the moment it is
+      // assembled, and the CEO gets a review item; (2) it is submitted only when
+      // fn_accountant_disputes_to_submit names a trigger: the CEO's approval, or his silence at T-24h.
+      const answered: Record<string, unknown>[] = [];
+      const { data: toDraft } = await admin.rpc('fn_accountant_disputes_to_draft');
+      for (const ev of (toDraft || []) as Record<string, any>[]) {
+        if (ev?.ok !== true) continue;
+        const key = ev.livemode ? keys.live : keys.test;
+        if (!key) { await admin.rpc('fn_accountant_dispute_drafted', { p_id: ev.dispute, p_ok: false, p_response: null, p_error: 'no Stripe key for this mode' }); continue; }
+        let fileId: string | undefined;
+        if (ev.receipt?.path) {
+          const { data: blob } = await admin.storage.from(String(ev.receipt.bucket)).download(String(ev.receipt.path));
+          if (blob) {
+            const fd = new FormData();
+            fd.set('purpose', 'dispute_evidence');
+            fd.set('file', blob, String(ev.receipt.name || 'invoice.pdf'));
+            const fr = await fetch('https://files.stripe.com/v1/files', { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd });
+            const fj = await fr.json().catch(() => ({}));
+            if (fr.ok && fj?.id) fileId = String(fj.id);
+          }
+        }
+        const r = await fetch('https://api.stripe.com/v1/disputes/' + encodeURIComponent(String(ev.dispute)), {
+          method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: disputeEvidenceForm(ev.fields || {}, { receipt: fileId }, false).toString(),   // a DRAFT: submit=false
+        });
+        const j = await r.json().catch(() => ({}));
+        await admin.rpc('fn_accountant_dispute_drafted', { p_id: ev.dispute, p_ok: r.ok,
+          p_response: r.ok ? { id: j.id, status: j.status, receipt_file: fileId ?? null, draft: true } : null,
+          p_error: r.ok ? null : 'HTTP ' + r.status + ': ' + String(j?.error?.message || '').slice(0, 300) });
+        answered.push({ dispute: ev.dispute, drafted: r.ok, receipt_file: fileId ?? null });
+      }
+      const { data: toSubmit } = await admin.rpc('fn_accountant_disputes_to_submit');
+      for (const s of (toSubmit || []) as Record<string, any>[]) {
+        const key = s.livemode ? keys.live : keys.test;
+        if (!key || !s.trigger) continue;
+        // The evidence is already saved on the dispute; this call only submits it.
+        const r = await fetch('https://api.stripe.com/v1/disputes/' + encodeURIComponent(String(s.dispute)), {
+          method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ submit: 'true', 'metadata[submit_trigger]': String(s.trigger) }).toString(),
+        });
+        const j = await r.json().catch(() => ({}));
+        await admin.rpc('fn_accountant_dispute_submitted', { p_id: s.dispute, p_ok: r.ok,
+          p_response: r.ok ? { id: j.id, status: j.status } : null,
+          p_error: r.ok ? null : 'HTTP ' + r.status + ': ' + String(j?.error?.message || '').slice(0, 300),
+          p_trigger: String(s.trigger) });
+        answered.push({ dispute: s.dispute, submitted: r.ok, trigger: s.trigger });
+      }
+
+      // RENDER EVERY CLOSED MONTH THAT HAS NO DOCUMENT YET (duty 8): PDF and CSV, English.
+      const rendered: Record<string, unknown>[] = [];
+      const { data: pend } = await admin.from('accountant_month_close').select('month').is('rendered_at', null).order('month').limit(3);
+      const cred = await sec('cred_fn_accountant');
+      for (const p of (pend || []) as { month: string }[]) {
+        const { data: doc, error: docErr } = await admin.rpc('fn_accountant_month_close_document', { p_month: p.month });
+        if (docErr || !doc) { rendered.push({ month: p.month, error: docErr?.message || 'no document' }); continue; }
+        const dd = doc as Record<string, any>;
+        const folder = 'accountant/close/' + dd.month;
+        const csvPath = folder + '/' + dd.name + '.csv';
+        const cu = await admin.storage.from('finance-reports').upload(csvPath, new Blob([String(dd.csv)], { type: 'text/csv' }), { upsert: true });
+        let pdfPath: string | null = null; let perr = '';
+        if (cred) {
+          try {
+            const r = await fetch(SUPA_URL + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ __secret: cred, title: dd.title, blocks: dd.blocks, bucket: 'finance-reports', folder, name: dd.name,
+                                     options: { letterhead: true, strict_glyphs: true } }), signal: AbortSignal.timeout(55000) });
+            const j = await r.json().catch(() => null);
+            if (r.ok && j?.ok && j?.path) pdfPath = String(j.path); else perr = 'pdf_native ' + r.status;
+          } catch (e) { perr = String((e as Error)?.message || e); }
+        } else perr = 'cred_fn_accountant unreadable';
+        if (pdfPath && !cu.error) {
+          await admin.rpc('fn_accountant_month_close_attach', { p_month: p.month, p_bucket: 'finance-reports', p_pdf_path: pdfPath, p_csv_path: csvPath });
+          rendered.push({ month: dd.month, pdf: pdfPath, csv: csvPath });
+        } else rendered.push({ month: dd.month, error: perr || cu.error?.message });
+      }
+
+      // FILE THE YEAR-END PACK WHEN IT FALLS DUE (duty 4 of the five further duties, 14 Sep 2026): seven CSVs
+      // from the books into the private backups bucket; the attach queues them for Dropbox, and the
+      // it_engineer's backup loop verifies each one arrived.
+      const yearEnd: Record<string, unknown>[] = [];
+      const { data: yDue } = await admin.rpc('fn_accountant_year_end_pack_due');
+      if (yDue) {
+        const { data: ydoc, error: yErr } = await admin.rpc('fn_accountant_year_end_pack_document', { p_year: yDue });
+        if (yErr || !ydoc) yearEnd.push({ year: yDue, error: yErr?.message || 'no document' });
+        else {
+          const yd = ydoc as { year: number; folder: string; files: { name: string; csv: string }[] };
+          const files: { name: string; bucket: string; path: string }[] = [];
+          let yFail = '';
+          for (const f of yd.files) {
+            const p = yd.folder + '/' + f.name;
+            const up = await admin.storage.from('backups').upload(p, new Blob([f.csv], { type: 'text/csv' }), { upsert: true });
+            if (up.error) { yFail = f.name + ': ' + up.error.message; break; }
+            files.push({ name: f.name, bucket: 'backups', path: p });
+          }
+          if (!yFail) {
+            const { error: aErr } = await admin.rpc('fn_accountant_year_end_pack_attach', { p_year: yd.year, p_files: files });
+            if (aErr) yFail = aErr.message;
+          }
+          yearEnd.push(yFail ? { year: yd.year, error: yFail } : { year: yd.year, files: files.length });
+        }
+      }
+
+      await run('duties', 'ok', { disputes_answered: answered.length, months_rendered: rendered.length, year_end: yearEnd.length,
+        stripe_live: (stripe.live as Record<string, unknown>)?.basis, stripe_test: (stripe.test as Record<string, unknown>)?.basis });
+      return J({ ok: true, seat: 'accountant', result: out, disputes_answered: answered, months_rendered: rendered, year_end: yearEnd });
+    }
+
+    // ── BANK_STATEMENT: a statement handed in directly (CSV export or text) ───────────────────────
+    if (action === 'bank_statement') {
+      const src = String(body.source_ref || '').trim();
+      if (!src) return J({ ok: false, error: 'source_ref is required' }, 400);
+      const st = readStatement(String(body.csv || body.text || ''));
+      const lines = st.lines;
+      // A statement that prints its closing balance and adds up supplies closing_balance_aed / balance_on
+      // itself (#659's field names) unless the caller gave them. One that does not add up supplies none.
+      if (!st.problem && st.closing_balance_aed !== null && (body.closing_balance_aed === undefined || body.closing_balance_aed === null)) {
+        body.closing_balance_aed = st.closing_balance_aed;
+        body.balance_on = body.balance_on ?? st.period_to;
+      }
+      const { data, error } = await admin.rpc('fn_accountant_bank_statement_ingest', {
+        p_account: String(body.account || 'mashreq'), p_source_ref: src,
+        p_statement_month: body.month ?? (st.period_from ? st.period_from.slice(0, 8) + '01' : null),
+        p_lines: lines, p_doc_path: null,
+        p_note: st.problem ? 'handed in, and it does not add up, so none of it was booked: ' + st.problem
+              : lines.length ? null : 'handed in, and no line could be read without guessing a sign' });
+      if (error) return J({ ok: false, error: error.message }, 400);
+      // The closing balance the statement prints (duty 1 of the five further duties): the CEO's cash and
+      // runway read it. Only as printed, never worked out from the lines.
+      let balance: unknown = null;
+      if (body.closing_balance_aed !== undefined && body.closing_balance_aed !== null) {
+        const { data: b, error: bErr } = await admin.rpc('fn_accountant_bank_balance_record', {
+          p_source_ref: src, p_balance_aed: Number(body.closing_balance_aed), p_on: body.balance_on ?? null });
+        if (bErr) return J({ ok: false, error: bErr.message, lines: lines.length }, 400);
+        balance = b;
+      }
+      await run('bank_statement', 'ok', { lines: lines.length, closing_balance: balance !== null });
+      return J({ ok: true, ...(data as Record<string, unknown>), closing_balance: balance });
+    }
+
+    // ── The two outcomes only a person can record ─────────────────────────────────────────────────
+    if (action === 'filing_outcome') {
+      const { data, error } = await admin.rpc('fn_accountant_record_filing_outcome', {
+        p_due_id: Number(body.due_id), p_outcome: String(body.outcome || ''), p_reference: body.reference ?? null });
+      if (error) return J({ ok: false, error: error.message }, 400);
+      await run('filing_outcome', 'ok', { due_id: Number(body.due_id) });
+      return J(data);
+    }
+    // What happened in court on a supplier charge (duty 3 of the five further duties): filed, order_issued,
+    // order_served, grievance_filed, recovered or withdrawn, on the day it happened.
+    if (action === 'court_step') {
+      const { data, error } = await admin.rpc('fn_accountant_record_court_step', {
+        p_due_id: Number(body.due_id), p_step: String(body.step || ''), p_on: body.on ?? null, p_reference: body.reference ?? null });
+      if (error) return J({ ok: false, error: error.message }, 400);
+      await run('court_step', 'ok', { due_id: Number(body.due_id), step: String(body.step || '') });
+      return J(data);
+    }
+    if (action === 'charge_resolve') {
+      const { data, error } = await admin.rpc('fn_accountant_charge_audit_resolve', {
+        p_transaction_id: String(body.transaction_id || ''), p_resolution: String(body.resolution || '') });
+      if (error) return J({ ok: false, error: error.message }, 400);
+      await run('charge_resolve', 'ok', { transaction_id: String(body.transaction_id || '') });
+      return J(data);
+    }
+
     // The document doors were missing from this list until 9 Sep 2026, which made them unreachable
     // to anyone who asked the function what it could do rather than reading its source.
-    return J({ error: 'unknown_action', action, actions: ['health', 'grants', 'ledger', 'refund_request', 'expense_sweep', 'spend_report', 'assist', 'document', 'documents', 'refund_document', 'refund_documents', 'revenue_document', 'revenue_documents'] }, 400);
+    return J({ error: 'unknown_action', action, actions: ['health', 'grants', 'ledger', 'refund_request', 'expense_sweep', 'spend_report', 'assist', 'document', 'documents', 'refund_document', 'refund_documents', 'revenue_document', 'revenue_documents', 'execute_refunds', 'handoffs', 'complete_handoff', 'duties', 'bank_statement', 'filing_outcome', 'court_step', 'charge_resolve'] }, 400);
   } catch (e) {
     await run('error', 'error', {}, String((e as Error).message || e));
     return J({ error: String((e as Error).message || e) }, 500);

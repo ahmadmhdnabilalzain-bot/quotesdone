@@ -1,47 +1,40 @@
-import { Reveal } from '@/components/motion/primitives';
+import s from '@/components/home/sealed.module.css';
 
 /**
- * Shared, centered section intro for the reworked homepage. Presentational
- * only — it renders the content passed to it and adds no data or logic.
- * `index` is the mono section number shown inside the kicker chip.
+ * The homepage section intro: a mono index + eyebrow, one large h2, an optional sub. Start-aligned
+ * by default (editorial), centred for the closing sections. Presentational only.
  */
 export function SectionHeader({
   eyebrow,
   index,
   title,
   sub,
-  align = 'center',
+  align = 'start',
+  aside,
 }: {
   eyebrow: string;
   index: string;
   title: React.ReactNode;
   sub?: string;
   align?: 'center' | 'start';
+  aside?: React.ReactNode;
 }) {
   const centered = align === 'center';
   return (
-    <Reveal
-      className={
-        centered ? 'mx-auto flex max-w-[62ch] flex-col items-center text-center' : 'flex flex-col items-start text-start'
-      }
+    <div
+      className={`reveal flex flex-col gap-6 ${
+        centered ? 'mx-auto max-w-[68ch] items-center text-center' : 'md:flex-row md:items-end md:justify-between'
+      }`}
     >
-      <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line2)] bg-teal-light/[0.04] px-3.5 py-1.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-teal-light backdrop-blur-sm">
-        <span className="node-dot" aria-hidden />
-        {eyebrow}
-        <span className="tabular text-faint/60">/ {index}</span>
-      </span>
-      <h2 className="crisp mt-6 text-balance font-head text-[clamp(30px,4.4vw,54px)] font-semibold leading-[1.02] tracking-[-0.045em] text-white">
-        {title}
-      </h2>
-      {sub ? (
-        <p
-          className={`mt-5 text-pretty text-[clamp(15.5px,1.7vw,18px)] leading-relaxed text-muted ${
-            centered ? 'max-w-[58ch]' : 'max-w-[56ch]'
-          }`}
-        >
-          {sub}
-        </p>
-      ) : null}
-    </Reveal>
+      <div className={centered ? 'flex flex-col items-center' : 'max-w-[760px]'}>
+        <span className="qd-kicker">
+          <span className="font-mono tabular text-faint">{index}</span>
+          {eyebrow}
+        </span>
+        <h2 className={`text-h2 mt-6 text-balance font-head font-semibold text-white`}>{title}</h2>
+        {sub ? <p className="mt-5 max-w-[58ch] text-pretty text-[clamp(15.5px,1.6vw,18px)] leading-relaxed text-muted">{sub}</p> : null}
+      </div>
+      {aside ? <div className="shrink-0">{aside}</div> : null}
+    </div>
   );
 }

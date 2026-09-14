@@ -35,6 +35,7 @@ import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
+import { requestDelivery } from '../_shared/deliver.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -164,10 +165,15 @@ Deno.serve(observe('resend_inbound', async (req) => {
     let atts: any[] = Array.isArray(d.attachments) ? d.attachments : [];
     if ((!text || text.length < 20 || !atts.length) && emailId && rkey) {
       const full = await fetchInboundEmail(emailId, rkey);
-      if (full) { const fd = full.data || full; const fb = pickBody(fd); if (fb && fb.length > text.length) text = fb; if (Array.isArray(fd.attachments) && fd.attachments.length) atts = fd.attachments; if (!d.subject && fd.subject) d = { ...d, subject: fd.subject }; if (!d.from && fd.from) d = { ...d, from: fd.from }; if (!d.to && fd.to) d = { ...d, to: fd.to }; }
+      if (full) { const fd = full.data || full; const fb = pickBody(fd); if (fb && fb.length > text.length) text = fb; if (Array.isArray(fd.attachments) && fd.attachments.length) atts = fd.attachments; if (!d.subject && fd.subject) d = { ...d, subject: fd.subject }; if (!d.from && fd.from) d = { ...d, from: fd.from }; if (!d.to && fd.to) d = { ...d, to: fd.to }; if (!d.html && fd.html) d = { ...d, html: fd.html }; }
       else if (emailId) await logRun('error', { email_id: emailId }, 'could not fetch full inbound email from Resend - body and attachments may be incomplete');
     }
-    text = String(text||'').slice(0,8000);
+    // 14 SEP 2026 (founder: "all conversations need to be saved"). The 8,000-character cut below is
+    // for the model prompts only. What is STORED is the whole email, its HTML and Resend's own id,
+    // because Resend keeps inbound mail about a month and after that the row is the only copy.
+    const fullText = String(text||''); const fullHtml: string | null = String(d.html || d['body-html'] || '') || null;
+    const providerEmailId: string | null = emailId || null;
+    text = fullText.slice(0,8000);
     const from = addr(d.from); const to = addr(d.to); const subject = String(d.subject||'').slice(0,300);
     const toLocal = to.split('@')[0] || '';
     const adminList = String(await sec('admin_emails')||'management@quotesdone.com').toLowerCase().split(',').map((x)=>x.trim()).filter(Boolean);
@@ -469,8 +475,8 @@ Deno.serve(observe('resend_inbound', async (req) => {
             else await admin.from('expenses').insert(erow);
             bookedSub = true;
           }
-          await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[expense ${recurring?'subscription':'one-off'}] ${vendor} ${amount} ${currency} on ${charged}${docPath?' +'+ext:''}`, attachments_count: docPath?1:0, matched_existing: false, needs_review: false });
-          try{ await admin.from('notifications').insert({ type:'expense_logged', to_email: owner, to_role:'admin', channel:'email', subject:`Expense logged: ${vendor} ${amount} ${currency}`, body:`Logged from your forwarded email.\n\nVendor: ${vendor}\nAmount: ${amount} ${currency}\nDate: ${charged}\nType: ${recurring?(cad+' subscription'):'one-off'}` }); }catch(_e){}
+          await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[expense ${recurring?'subscription':'one-off'}] ${vendor} ${amount} ${currency} on ${charged}${docPath?' +'+ext:''}` + '\n\n' + fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: docPath?1:0, matched_existing: false, needs_review: false });
+          try{ await requestDelivery(admin, { type:'expense_logged', to_email: owner, to_role:'admin', channel:'email', subject:`Expense logged: ${vendor} ${amount} ${currency}`, body:`Logged from your forwarded email.\n\nVendor: ${vendor}\nAmount: ${amount} ${currency}\nDate: ${charged}\nType: ${recurring?(cad+' subscription'):'one-off'}` }); }catch(_e){}
           // v15: keyed on docPath, not upErr. upErr now holds the LAST error of up to three
           // attempts, so a retry that eventually succeeded would otherwise be reported as failed -
           // and fn_watch_failed_runs pages on any error row.
@@ -496,8 +502,8 @@ Deno.serve(observe('resend_inbound', async (req) => {
         if (!up.error) heldPath = hp;
       }
       const { data: heldRow } = await admin.from('inbound_messages').insert({
-        from_email: from, to_email: to, subject,
-        body: `[HELD — no amount could be read, nothing booked]${heldPath ? ' document: receipt-files/' + heldPath : ' (no readable attachment)'}\n\n` + (text || '').slice(0, 8000),
+        from_email: from, to_email: to, subject, html: fullHtml, provider_email_id: providerEmailId,
+        body: `[HELD — no amount could be read, nothing booked]${heldPath ? ' document: receipt-files/' + heldPath : ' (no readable attachment)'}\n\n` + fullText,
         attachments_count: heldPath ? 1 : 0, matched_existing: false, needs_review: true,
       }).select('id').maybeSingle();
       await handToBookkeeper(heldRow?.id, [], (receiptReason || 'No amount could be read from this email.') + (heldPath ? ' The document is archived at receipt-files/' + heldPath + '. Read it, then book the expense in expense_entries (source \'receipt\') and post it with fn_expense_post_to_gl.' : ' No attachment could be read, so ask for a re-forward.'));
@@ -595,14 +601,14 @@ Deno.serve(observe('resend_inbound', async (req) => {
       const { data: rev } = await admin.from('doc_reviews').insert({ lead_id: lead?.id||null, from_email: from, subject, file_name: fname, file_path: path, mime, ai_relevant: ai.relevant, ai_category: ai.category, ai_summary: String(ai.summary||'').slice(0,1000), ai_suggested_field: ai.suggested_field, ai_confidence: ai.confidence, status: 'pending', auto_applied: fields.length>0, extracted: extracted }).select('id').maybeSingle();
       if (rev?.id) reviews.push(rev.id);
     }
-    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: (text||'').slice(0,20000), attachments_count: stored, matched_existing: !!lead, needs_review: stored>0 && appliedSummary.length===0 }).select('id').maybeSingle();
+    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: stored>0 && appliedSummary.length===0 }).select('id').maybeSingle();
     // 6 Sep 2026: a receipt-ish email that reached this path was NOT booked. It is finance's work from here —
     // one org_task for the bookkeeper, and the rows carry that owner so neither OS surface shows them to the founder.
     if (receiptish && !lead) await handToBookkeeper(inbRow?.id, reviews, receiptReason || 'The receipt path did not book this email.');
     if (lead && appliedSummary.length) {
-      try{ await admin.from('notifications').insert({ type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
+      try{ await requestDelivery(admin, { type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }
-    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await admin.from('notifications').insert({ type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body:`Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and updated your records.`, status:'queued' });
+    if (from && from !== 'onboarding@resend.dev' && stored>0 && lead) await requestDelivery(admin, { type:'doc_received', to_email: from, to_role:'supplier', lead_id: lead?.id||null, subject:'We received your document', body:`Thank you${lead?.company_name?' '+lead.company_name:''} — we received ${stored} document(s) and updated your records.`, status:'queued' });
     const counts = { from, matched_lead: lead?.id||null, attachments: atts.length, stored, refused_attachments: refusedAttachments, lost_attachments: lostAttachments, upload_failures: uploadFailures, classify_failures: classifyFailures, classify_skipped_zero_cost: classifySkipped, applied: appliedSummary.length, signature_verified: 1 };
     if (lostAttachments || uploadFailures) await logRun('error', counts, 'INBOUND DOCUMENTS LOST - ' + lostAttachments + ' attachment(s) could not be downloaded from Resend and ' + uploadFailures + ' failed to upload to storage. Sender: ' + from + ', subject: ' + subject.slice(0, 120));
     else if (atts.length || stored) await logRun('ok', counts, appliedSummary.length ? ('applied: ' + appliedSummary.join('; ').slice(0, 300)) : (lead ? '' : 'no matching lead for sender'));

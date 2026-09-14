@@ -78,8 +78,10 @@ const EN = {
   kinds: {
     quotation: 'Quotations', quote: 'Quotations', contract: 'Contracts', invoice: 'Invoices',
     certificate: 'Certificates', drawing: 'Drawings', purchase_order: 'Purchase orders',
-    licence: 'Licences', license: 'Licences', boq: 'Bills of quantities',
+    licence: 'Licences', license: 'Licences', boq: 'Bills of quantities', warranty: 'Warranties',
   } as Record<string, string>,
+  // Extraction keys an expiry/coverage came out of, shown as "from <source>".
+  sources: { document: 'the document', filename: 'the file name', summary: 'the summary' } as Record<string, string>,
 };
 
 const AR: typeof EN = {
@@ -125,8 +127,9 @@ const AR: typeof EN = {
   kinds: {
     quotation: 'عروض الأسعار', quote: 'عروض الأسعار', contract: 'العقود', invoice: 'الفواتير',
     certificate: 'الشهادات', drawing: 'الرسومات', purchase_order: 'أوامر الشراء',
-    licence: 'الرخص', license: 'الرخص', boq: 'جداول الكميات',
+    licence: 'الرخص', license: 'الرخص', boq: 'جداول الكميات', warranty: 'الضمانات',
   },
+  sources: { document: 'المستند', filename: 'اسم الملف', summary: 'الملخص' },
 };
 
 const W = (lang: Lang) => (lang === 'ar' ? AR : EN);
@@ -155,8 +158,8 @@ const fmtDate = (iso: string | null, lang: Lang) => {
 /** Label + value, where a MISSING value is a sentence saying it is missing, not a blank or a guess.
  *  `source` is the extraction key the value came out of, shown only when there IS a value — it is
  *  provenance for a real figure, and printing it under "not stated" would suggest one exists. */
-function Field({ label, value, missing, source, fromWord }: {
-  label: string; value: string | null; missing: string; source?: string | null; fromWord?: string;
+function Field({ label, value, missing, source, fromWord, sourceWords }: {
+  label: string; value: string | null; missing: string; source?: string | null; fromWord?: string; sourceWords?: Record<string, string>;
 }) {
   const has = !!value;
   return (
@@ -165,7 +168,7 @@ function Field({ label, value, missing, source, fromWord }: {
       <div className={cn('mt-0.5 text-[13px] font-semibold leading-snug break-words', has ? 'text-foreground' : 'text-muted-foreground font-normal italic')}>
         {has ? value : missing}
       </div>
-      {has && source ? <div className="text-[10.5px] text-muted-foreground">{fromWord} {source}</div> : null}
+      {has && source ? <div className="text-[10.5px] text-muted-foreground">{fromWord} {sourceWords?.[source] || source.replace(/_/g, ' ')}</div> : null}
     </div>
   );
 }
@@ -203,12 +206,18 @@ export function DocumentRow({ doc, token, lang = 'en', showMatch = false, classN
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState('');
 
+  // The tab is opened INSIDE the click, then pointed at the signed URL when it arrives. Opened after
+  // the await, Safari and Firefox treat it as an unrequested popup and block it, so "Open file"
+  // did nothing visible on those browsers.
   const openFile = async () => {
     setBusy(true); setErr('');
+    const win = window.open('', '_blank');
+    if (win) win.opener = null;
     const res = await getDocument(token, doc.id);
     setBusy(false);
-    if (!res.ok || !res.data.document?.file_url) { setErr(w.err_open); return; }
-    window.open(res.data.document.file_url, '_blank', 'noopener,noreferrer');
+    const url = res.ok ? res.data.document?.file_url : null;
+    if (!url) { if (win) win.close(); setErr(w.err_open); return; }
+    if (win) win.location.href = url; else window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   // THREE DIFFERENT ABSENCES, THREE DIFFERENT SENTENCES. "not revealed yet" is not the same fact as
@@ -247,11 +256,13 @@ export function DocumentRow({ doc, token, lang = 'en', showMatch = false, classN
         </Button>
       </div>
 
-      <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-3">
+      {/* An invoice has no supplier, expiry or coverage to report; three "not stated" lines under it
+          would read as missing data. It is the accountant's filed Stripe invoice (14 Sep 2026). */}
+      {doc.kind === 'invoice' ? null : <div className="mt-3 grid gap-3 border-t border-border pt-3 sm:grid-cols-3">
         <Field label={w.f_supplier} value={supplierValue} missing={supplierMissing} />
-        <Field label={w.f_expiry} value={fmtDate(doc.expiry_date, lang)} missing={w.no_expiry} source={doc.expiry_source} fromWord={w.from_field} />
-        <Field label={w.f_coverage} value={doc.covers} missing={w.no_coverage} source={doc.covers_source} fromWord={w.from_field} />
-      </div>
+        <Field label={w.f_expiry} value={fmtDate(doc.expiry_date, lang)} missing={w.no_expiry} source={doc.expiry_source} fromWord={w.from_field} sourceWords={w.sources} />
+        <Field label={w.f_coverage} value={doc.covers} missing={w.no_coverage} source={doc.covers_source} fromWord={w.from_field} sourceWords={w.sources} />
+      </div>}
 
       {doc.summary ? <p className="mt-3 text-[12.5px] leading-relaxed text-muted-foreground">{doc.summary}</p> : null}
 
@@ -308,12 +319,12 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
     return () => { live = false; };
   }, [token, lang, kind, refreshKey, reloads, asked]);
 
-  const ask = async (e?: React.FormEvent) => {
+  const ask = async (e?: React.FormEvent, k: string | null = kind) => {
     e?.preventDefault();
     const text = q.trim();
     if (!text) return;
     setBusy(true); setErr(''); setRes(null);
-    const r = await askDocuments(token, text, kind);
+    const r = await askDocuments(token, text, k);
     setBusy(false);
     if (!r.ok) { setErr(errText(lang, r.error)); setAsked(text); return; }
     setAsked(text);
@@ -321,6 +332,9 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
   };
 
   const clear = () => { setAsked(''); setQ(''); setRes(null); setReloads((n) => n + 1); };
+  // A kind chip filters whichever view is on screen. While a question was active the list effect
+  // exits early, so a chip lit up and the answers did not change; it now re-asks under that kind.
+  const pickKind = (k: string | null) => { setKind(k); if (asked) void ask(undefined, k); };
 
   const docs = res?.documents || [];
   const answer = (res as VaultSearchResponse | null)?.answer || null;
@@ -351,13 +365,13 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
       {/* Kind filters, from what the vault actually holds. */}
       {kinds.length > 1 ? (
         <div className="flex flex-wrap gap-1.5">
-          <button type="button" onClick={() => setKind(null)}
+          <button type="button" onClick={() => pickKind(null)}
             className={cn('rounded-full border px-3 py-1 text-[12px] transition-colors',
               kind === null ? 'border-primary bg-primary/15 font-semibold text-primary' : 'border-border text-muted-foreground hover:text-foreground')}>
             {w.all_kinds}
           </button>
           {kinds.map((k) => (
-            <button key={k} type="button" onClick={() => setKind(k)}
+            <button key={k} type="button" onClick={() => pickKind(k)}
               className={cn('rounded-full border px-3 py-1 text-[12px] transition-colors',
                 kind === k ? 'border-primary bg-primary/15 font-semibold text-primary' : 'border-border text-muted-foreground hover:text-foreground')}>
               {kindLabel(k, lang)}
@@ -369,7 +383,9 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
       {err ? (
         <Card className="p-4">
           <div role="alert" className="text-[13px] font-semibold text-destructive">{err}</div>
-          <Button type="button" variant="outline" size="sm" className="mt-2.5" onClick={() => { setErr(''); setReloads((n) => n + 1); }}>
+          {/* Retry repeats what failed: after a failed question the list effect is parked (asked is
+              set), so bumping reloads alone did nothing and the error stayed. */}
+          <Button type="button" variant="outline" size="sm" className="mt-2.5" onClick={() => { setErr(''); if (asked) void ask(); else setReloads((n) => n + 1); }}>
             {w.retry}
           </Button>
         </Card>

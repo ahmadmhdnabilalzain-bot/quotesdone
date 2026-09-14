@@ -19,12 +19,14 @@ export interface ProjectsModuleProps {
   /** Fired after a link/unlink, so the caller can refresh its own RFQ list. */
   onChanged?: () => void;
   className?: string;
+  /** project_summary.project_id to open straight into its workspace (the Overview's project cards). */
+  initialProjectId?: string;
 }
 
 type View = { t: 'list' } | { t: 'detail'; id: string } | { t: 'form'; project: Project | null };
 
-export function ProjectsModule({ token, lang = 'en', onOpenRfq, linkableRfqs, onChanged, className }: ProjectsModuleProps) {
-  const [view, setView] = React.useState<View>({ t: 'list' });
+export function ProjectsModule({ token, lang = 'en', onOpenRfq, linkableRfqs, onChanged, className, initialProjectId }: ProjectsModuleProps) {
+  const [view, setView] = React.useState<View>(initialProjectId ? { t: 'detail', id: initialProjectId } : { t: 'list' });
   // Bumped whenever a project is written, so returning to the list refetches instead of showing a
   // name or budget the customer has just changed.
   const [version, setVersion] = React.useState(0);

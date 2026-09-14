@@ -98,9 +98,9 @@ export default function SupplierDocumentImpact({ token, lang = 'en', goTo }:
             <div className="flex justify-between items-start gap-3">
               <span className="text-[13px]">{x.label}</span>
               <span className={'shrink-0 rounded-full border px-2 py-0.5 text-[10px] '
-                + (x.expired ? 'text-rose-300 border-rose-300/25 bg-rose-300/[0.06]'
-                  : x.on_file ? 'text-emerald-300 border-emerald-300/25 bg-emerald-300/[0.06]'
-                  : 'text-amber-300 border-amber-300/25 bg-amber-300/[0.06]')}>
+                + (x.expired ? 'text-danger-fg border-danger/25 bg-danger/[0.06]'
+                  : x.on_file ? 'text-ok-fg border-ok/25 bg-ok/[0.06]'
+                  : 'text-warn-fg border-warn/25 bg-warn/[0.06]')}>
                 {x.expired ? t(lang, 'expired') : x.on_file ? t(lang, 'onFile') : t(lang, 'missing')}
               </span>
             </div>
@@ -114,7 +114,7 @@ export default function SupplierDocumentImpact({ token, lang = 'en', goTo }:
 
             {/* The cost: how many open opportunities its absence is blocking, right now. */}
             {x.would_unlock > 0 && (
-              <div className="text-[11px] text-amber-200/90 mt-1">
+              <div className="text-[11px] text-warn-fg/90 mt-1">
                 {t(lang, 'costing')} <span className="tabular-nums font-semibold">{x.would_unlock}</span> {t(lang, 'moreOpportunities')}
               </div>
             )}

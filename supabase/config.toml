@@ -26,7 +26,6 @@
 #   supplier_catalog_ingest
 #   supplier_onboard
 #   supplier_portal
-#   wa_optin_set
 #   wa_templates_watch
 
 project_id = "htdblwldjkcgjvmqkbeh"
@@ -46,11 +45,20 @@ verify_jwt = true
 [functions.claim_lookup]
 verify_jwt = false
 
+[functions.complaint_status]
+verify_jwt = false
+
+[functions.public_site]
+verify_jwt = false
+
 [functions.compliance_archive]
 verify_jwt = false
 
 [functions.contact_submit]
 verify_jwt = true
+
+[functions.conversation_archive]
+verify_jwt = false
 
 [functions.customer_api]
 verify_jwt = true
@@ -68,6 +76,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.drawing_boq]
+verify_jwt = false
+
+[functions.backup]
 verify_jwt = false
 
 [functions.drawing_redact]
@@ -213,9 +224,6 @@ verify_jwt = false
 
 [functions.wa_inbound]
 verify_jwt = false
-
-[functions.wa_optin_set]
-verify_jwt = true
 
 [functions.wa_template_setup]
 verify_jwt = false

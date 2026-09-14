@@ -32,6 +32,7 @@
 //  * 0 of 20,464 leads pass fn_is_matchable (approval_status null and verified false on every row),
 //    so every discovery query on production returns zero suppliers today. That is the supplier
 //    estate, which production has in full — not the zero-customer constraint — so it is scored.
+//  * (14 Sep 2026: §12 was retired by the founder and its tables dropped; the note below is history.)
 //  * procurement_approval_policy / procurement_approval_request exist with the columns the spec
 //    names, hold zero rows, and have ZERO readers of any kind — no routine, no view, no cron, no
 //    edge function. v_approval_trace does not project them; it is a view over review_chain, the
@@ -39,7 +40,7 @@
 //    it cannot have their approval requests); zero READERS is, because that is measurable today.
 //  * fn_customer_stats builds history_12m on every customer_portal overview and the customer portal
 //    never mentions it. The supplier portal charts the same field.
-export const EXPECTED = 30;
+export const EXPECTED = 24;   // 30 until 14 Sep 2026; §12 (6 requirements) retired
 
 const S9 = '9. AI Supplier Discovery';
 const S10 = '10. Quote Comparison Intelligence';
@@ -507,99 +508,13 @@ export default async function ({ req }) {
     `select ${EV(`the customer_portal overview payload returns [${[...new Set(overviewNames)].join(',') || 'unparsed'}] and carries no savings total; the only customer-reachable savings figure anywhere is project_api dashboard.avg_savings_pct (present: ${/avg_savings_pct/.test(papi)}), reachable from ${projUi.length} customer-surface file(s); customer-surface files rendering a savings total: ${savingsUi.length}; database routines computing a savings benchmark: `)}
        || ${SAVINGS_BY_CAT} || ${EV(NOTE)}`);
 
-  // ═══ 12. PURCHASE APPROVAL SYSTEM ══════════════════════════════════════════════════════════════
-  // Every check here is a READER question, because both tables exist with exactly the columns the
-  // spec names and hold zero rows. Zero rows is not scored — production has no customers, so it
-  // cannot have their approval requests. Zero readers is, because it is measurable today and no
-  // amount of traffic would change it.
-
-  const apprEdge = edgeHits(/procurement_approval_(request|policy)/);
-  const apprCustEdge = apprEdge.filter(n => CUST_FNS.includes(n));
-  const POLICY_COLS = ['organization_id', 'conditions', 'steps', 'active'];
-  await req(S12, 'appr-policy-object', 'An approval policy object defines the chain per organization',
-    `select coalesce(${NCOLS('procurement_approval_policy', POLICY_COLS)} = ${POLICY_COLS.length}
-       and (${CONSUMERS('procurement_approval_policy')} + ${apprCustEdge.length}) > 0, false)`,
-    `select ${NCOLS('procurement_approval_policy', POLICY_COLS)} || ${EV(` of ${POLICY_COLS.length} required column(s) present; the table's full column list is (`)}
-       || coalesce((select string_agg(column_name,',' order by ordinal_position) from information_schema.columns
-             where table_schema='public' and table_name='procurement_approval_policy'),'no such table')
-       || ${EV('); ')} || (select count(*) from public.procurement_approval_policy)
-       || ${EV(' polic(ies) stored, ')} || ${CONSUMERS('procurement_approval_policy')}
-       || ${EV(' database reader(s) other than a writer (')} || ${CONSUMER_NAMES('procurement_approval_policy')}
-       || ${EV(`) and ${apprEdge.length} edge function(s); organization_id points at `)}
-       || coalesce((select tt.relname from pg_constraint c join pg_class t on t.oid=c.conrelid
-             join pg_class tt on tt.oid=c.confrelid
-            where t.relname='procurement_approval_policy' and c.contype='f' limit 1),'nothing')
-       || ${EV(' which holds ')}
-       || coalesce((select case when to_regclass('public.customer_organization') is null then '0' else
-             (xpath('/row/c/text()', query_to_xml('select count(*) c from public.customer_organization', false, true, '')))[1]::text end),'0')
-       || ${EV(' row(s)')}`);
-
-  const REQ_COLS = ['entity_type', 'entity_id', 'policy_id', 'status', 'current_step', 'decisions'];
-  await req(S12, 'appr-request-object', 'An approval request tracks a specific purchase through the chain',
-    `select coalesce(${NCOLS('procurement_approval_request', REQ_COLS)} = ${REQ_COLS.length}
-       and (${CONSUMERS('procurement_approval_request')} + ${apprCustEdge.length}) > 0, false)`,
-    `select ${NCOLS('procurement_approval_request', REQ_COLS)} || ${EV(` of ${REQ_COLS.length} required column(s) present, `)}
-       || (select count(*) from public.procurement_approval_request) || ${EV(' request(s) stored, ')}
-       || ${CONSUMERS('procurement_approval_request')}
-       || ${EV(` database reader(s) other than a writer, ${apprEdge.length} edge function(s); v_approval_trace projects it: `)}
-       || coalesce((pg_get_viewdef('public.v_approval_trace'::regclass, true) ~* 'procurement_approval_request')::text,'no such view')
-       || ${EV(' — that view reads ')}
-       || coalesce((select string_agg(distinct t.relname,',') from pg_depend d
-             join pg_rewrite rw on rw.oid=d.objid join pg_class t on t.oid=d.refobjid
-             join pg_class v on v.oid=rw.ev_class join pg_namespace nv on nv.oid=v.relnamespace
-            where nv.nspname='public' and v.relname='v_approval_trace' and t.relkind in ('r','v')
-              and t.relname <> 'v_approval_trace'),'nothing')`);
-
-  // A chain "supports multiple sequential approvers" only if something ADVANCES it. current_step is
-  // an integer that no routine in the database and no edge function ever moves.
-  const ADVANCERS = `(select count(distinct p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-       where n.nspname='public' and p.prokind in ('f','p')
-         and pg_get_functiondef(p.oid) ~* '\\yprocurement_approval_request\\y'
-         and pg_get_functiondef(p.oid) ~* '\\ycurrent_step\\y')`;
-  const advEdge = apprEdge.filter(n => /current_step/.test(fnSrc(n)));
-  await req(S12, 'appr-multi-step-chain', 'The chain supports multiple sequential approvers',
-    `select coalesce(${NCOLS('procurement_approval_request', ['current_step', 'decisions'])} = 2
-       and (${ADVANCERS} + ${advEdge.length}) > 0, false)`,
-    `select ${NCOLS('procurement_approval_request', ['current_step', 'decisions'])}
-       || ${EV(' of 2 chain columns (current_step, decisions) present; ')} || ${ADVANCERS}
-       || ${EV(` database routine(s) and ${advEdge.length} edge function(s) advance current_step, so the step counter has neither a writer nor a reader; `)}
-       || (select count(*) from public.procurement_approval_policy where active
-             and jsonb_typeof(steps)='array' and jsonb_array_length(steps) > 1)
-       || ${EV(' active polic(ies) declare more than one step')}`);
-
-  // Per-step status is a PROJECTION question: does anything turn decisions[] into Approved / Pending
-  // / Waiting for a step, and does that projection reach the customer.
-  const PERSTEP = `((select count(distinct p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-       where n.nspname='public' and p.prokind in ('f','p')
-         and pg_get_functiondef(p.oid) ~* '\\yprocurement_approval_request\\y'
-         and pg_get_functiondef(p.oid) ~* '\\ydecisions\\y')
-    + (select count(*) from pg_views v where v.schemaname='public'
-         and v.definition ~* '\\yprocurement_approval_request\\y' and v.definition ~* '\\ydecisions\\y'))`;
-  const stepUi = surf(/approval|approver/i);
-  await req(S12, 'appr-per-step-status', 'Each step shows Approved / Pending / Waiting',
-    `select coalesce(${PERSTEP} > 0 and ${B(apprCustEdge.length > 0 && stepUi.length > 0)}, false)`,
-    `select ${PERSTEP} || ${EV(' routine(s)/view(s) project a per-step state out of procurement_approval_request.decisions; ')}
-       || ${EV(`customer-reachable endpoints serving an approval chain: ${apprCustEdge.length}; customer-surface files rendering a step status: ${stepUi.length}${NOTE}`)}`);
-
-  // The award path is customer_api action=complete_inquiry. It marks the RFQ hired and notifies the
-  // losing suppliers; it raises nothing, and no trigger does either.
-  const awardBlock = actionBlock(capi, 'complete_inquiry');
-  const awardRaises = /procurement_approval_request/.test(awardBlock);
-  const TRIG_RAISES = `(select count(*) from pg_trigger t join pg_proc f on f.oid=t.tgfoid
-       join pg_class c on c.oid=t.tgrelid join pg_namespace cn on cn.oid=c.relnamespace
-      where not t.tgisinternal and t.tgenabled <> 'D' and cn.nspname='public'
-        and pg_get_functiondef(f.oid) ~* ('inse'||'rt\\s+into\\s+(public\\.)?procurement_approval_request'))`;
-  await req(S12, 'appr-triggered-by-award', 'Awarding a quote raises an approval request when policy conditions match',
-    `select coalesce(${B(awardBlock.length > 0 && awardRaises)} or ${TRIG_RAISES} > 0, false)`,
-    `select ${EV(`customer_api action=complete_inquiry is the award path (${awardBlock.length} bytes) and it references procurement_approval_request: ${awardRaises} — it sets the RFQ to completed with hired_supplier_id and notifies the losing suppliers; database triggers that raise an approval request: `)}
-       || ${TRIG_RAISES} || ${EV('; policies whose conditions could match: ')}
-       || (select count(*) from public.procurement_approval_policy where active)`);
-
-  const apprUi = surf(/procurement_approval|approvals/i);
-  await req(S12, 'appr-customer-ui', 'The customer can see and act on approvals in the portal',
-    `select ${B(apprCustEdge.length > 0 && apprUi.length > 0)}`,
-    `select ${EV(`edge functions of any kind touching the approval tables: ${apprEdge.length}, of which customer-reachable: ${apprCustEdge.length}; customer-surface files rendering an approvals view: ${apprUi.length}; database readers: `)}
-       || ${CONSUMERS('procurement_approval_request')} || ${EV(NOTE)}`);
+  // ═══ 12. PURCHASE APPROVAL SYSTEM — RETIRED 14 SEP 2026 ═══════════════════════════════════════
+  // The founder removed it: "i think its better just to remove the approvals tab. cause even if a company signed up, we don't wanna interfere in their approvals process and they are treated like normal individuals".
+  // Its six requirements (appr-policy-object, appr-request-object, appr-multi-step-chain,
+  // appr-per-step-status, appr-triggered-by-award, appr-customer-ui) retired WITH their subject: the
+  // tables, view, routines and award trigger were dropped in
+  // scripts/sql/a_company_buys_like_an_individual_so_the_approval_chain_is_dropped.sql. They are not
+  // scored as missing, because building them again would contradict the ruling.
 
   // ═══ 13. CUSTOMER-SUPPLIER RELATIONSHIP MANAGEMENT ═════════════════════════════════════════════
   // customer_api action=supplier_history is the only per-supplier relationship surface. It is

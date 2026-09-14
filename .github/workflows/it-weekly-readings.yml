@@ -1,0 +1,59 @@
+name: IT engineer weekly readings
+
+# Duties 9 (database backups / PITR), 12 (dependency advisories), 13 (Supabase members) and 14 (disk
+# size): the readings that need a Supabase management token or the repository itself. Each report
+# goes to a database function that decides; nothing here changes code or configuration.
+#
+# Uses the repository secret SUPABASE_ACCESS_TOKEN (present since 7 Sep 2026). If it were ever missing
+# the job skips with a notice, and the IT engineer raises the missing readings itself after eight days
+# (fn_it_workflow_heartbeats).
+
+on:
+  schedule:
+    - cron: '30 4 * * 1'   # Mondays 08:30 Dubai
+  workflow_dispatch: {}
+
+# Duty 23 (14 Sep 2026): the last step may open ONE pull request, lockfile only, for an independent review.
+# It never merges; these two permissions let it push that branch and open that PR, nothing else.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  readings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - id: gate
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::notice::SUPABASE_ACCESS_TOKEN is not set; the IT engineer reports the missing readings itself"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.skip != '1'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - if: steps.gate.outputs.skip != '1'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - if: steps.gate.outputs.skip != '1'
+        run: npm ci
+      - if: steps.gate.outputs.skip != '1'
+        run: node scripts/it/report_dependency_audit.mjs
+      - if: steps.gate.outputs.skip != '1'
+        run: node scripts/it/report_platform_readings.mjs
+      # Duty 23: the safe patch, after the audit has reported. A patch it cannot make is recorded, not failed.
+      - if: steps.gate.outputs.skip != '1'
+        run: |
+          git config user.name "it_engineer"
+          git config user.email "it-engineer@users.noreply.github.com"
+          node scripts/it/open_dependency_patch_pr.mjs
+      # Duty 23: the safe patch, after the audit has reported. A patch it cannot make is recorded, not failed.
+      - if: steps.gate.outputs.skip != '1'
+        run: |
+          git config user.name "it_engineer"
+          git config user.email "it-engineer@users.noreply.github.com"
+          node scripts/it/open_dependency_patch_pr.mjs

@@ -53,7 +53,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const EXPECTED = 35;
+export const EXPECTED = 34;   // 35 until 14 Sep 2026; mod-approvals retired
 
 export default async function (H) {
   const { req, one } = H;
@@ -556,7 +556,7 @@ export default async function (H) {
     FN('fn_customer_stats'), `select 'fn_customer_stats ' || ${FNTXT('fn_customer_stats')}`);
 
   await MODULE('mod-digital-twin', 'Module: Company Digital Twin',
-    /(fn_twin|customer_360|digital_twin|\btwin\b)/i, /(industry|annual|preferred_supplier|buying_pattern|approval_chain|understanding|twin)/i,
+    /(fn_twin|customer_360|digital_twin|\btwin\b)/i, /(industry|annual|preferred_supplier|buying_pattern|understanding|twin)/i,
     `(${FN('fn_twin')} or ${FN('fn_ws_customer_360')})`,
     `select 'fn_twin ' || ${FNTXT('fn_twin')} || ', fn_ws_customer_360 ' || ${FNTXT('fn_ws_customer_360')} || ', v_digital_twin ' || ${RELTXT('v_digital_twin')}
        || ', customer-reachable readers of fn_ws_customer_360: ' || ${closureErr ? `'unmeasured'`
@@ -605,11 +605,7 @@ export default async function (H) {
     `select 'public.po_orders ' || ${RELTXT('po_orders')} || ' with ' || ${ALL_READS('po_orders')} || ' reader(s) anywhere, of which '
        || ${closureErr ? `'unmeasured'` : CUST_READS('po_orders')} || ' customer-reachable'`);
 
-  await MODULE('mod-approvals', 'Module: Approvals',
-    /(procurement_approval|action:\s*'approv|v_approval_trace)/i, /(approv|current_step|decision|policy)/i,
-    `(${REL('procurement_approval_policy')} and ${REL('procurement_approval_request')})`,
-    `select 'procurement_approval_policy ' || ${RELTXT('procurement_approval_policy')} || ', procurement_approval_request '
-       || ${RELTXT('procurement_approval_request')} || ' with ' || ${ALL_READS('procurement_approval_request')} || ' reader(s) anywhere'`);
+  // mod-approvals retired 14 Sep 2026 with the Approvals tab. Founder: "i think its better just to remove the approvals tab. cause even if a company signed up, we don't wanna interfere in their approvals process and they are treated like normal individuals".
 
   await MODULE('mod-documents', 'Module: Documents',
     /(action:\s*'(documents|my_documents|vault|list_documents)'|fn_ws_documents|document_inventory)/i,
