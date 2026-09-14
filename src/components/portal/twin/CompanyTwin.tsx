@@ -69,7 +69,8 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
     );
   }
 
-  const pct = Number.isFinite(Number(twin.understanding_pct)) ? Number(twin.understanding_pct) : null;
+  // Number(null) is 0, so an unmeasured figure rendered as "0%" (seen live 14 Sep 2026). Null stays null.
+  const pct = twin.understanding_pct == null || !Number.isFinite(Number(twin.understanding_pct)) ? null : Number(twin.understanding_pct);
   const cats = Array.isArray(twin.preferred_categories) ? twin.preferred_categories : [];
   const chain = Array.isArray(twin.approval_chain) ? twin.approval_chain : [];
 
