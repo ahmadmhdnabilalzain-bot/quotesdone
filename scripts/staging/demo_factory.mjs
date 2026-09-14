@@ -1102,9 +1102,18 @@ export async function teardown(run) {
     ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-${tag}-%@example.%'`],
     ['email_verifications', `delete from public.email_verifications where email like 'qd-${tag}-%@example.%'`],
   ];
+  // A TABLE THAT WAS DROPPED MUST NOT STRAND EVERYTHING AFTER IT (14 Sep 2026). The first e2e harness
+  // run died at 'comparison_candidate_v2' (42P01, the table no longer exists) and every later step -
+  // quotes, inquiries, leads, customers, auth users - never ran, so the run's rows survived its own
+  // teardown. A missing relation is skipped and named; any other error still stops the teardown.
   for (const [label, sql] of steps) {
-    const n = await delCount(`teardown ${label}`, sql);
-    if (n) counts[label] = n;
+    try {
+      const n = await delCount(`teardown ${label}`, sql);
+      if (n) counts[label] = n;
+    } catch (e) {
+      if (!/42P01|does not exist/.test(String(e.message))) throw e;
+      counts[`${label} (table no longer exists)`] = 0;
+    }
   }
 
   // 3. auth users last: the email pattern is the only handle on them once the rows are gone

@@ -163,17 +163,19 @@ create trigger zzzz_notifications_demo_capture
   for each row execute function public.fn_notifications_demo_capture();
 
 -- 7. business figures never count a demo row ------------------------------------------------------
--- Measured 14 Sep 2026: fn_health_index, fn_os_dashboard_viz, fn_os_health and fn_company_snapshot
--- (and fn_ops_dashboard / fn_wa_context, see below) counted customers, suppliers, requests,
+-- Measured 14 Sep 2026: fn_health_index, fn_os_health and fn_company_snapshot (and fn_ops_dashboard,
+-- fn_wa_context and fn_os_dashboard_viz, see below) counted customers, suppliers, requests,
 -- quotes and revenue with no demo filter, so one e2e run would have shown the founder a customer who
 -- does not exist. Each body below is the LIVE definition verbatim (matched against its canonical file
 -- whitespace-insensitively) with the demo exclusion added to every business count and sum; the
 -- comment above each names every line changed. Signatures, security and search_path are unchanged.
 -- LEFT OUT ON PURPOSE: fn_ops_dashboard calls fn_founder_refund_approvals_open() and fn_wa_context's
 -- founder branch calls fn_founder_queue(12); NEITHER EXISTS, so both throw on every call today, and
--- apply_sql.mjs rightly refuses to redefine a routine around a missing callee. Their demo exclusion
--- goes in with the fix for those callees (a separate change). Also found, not fixed: fn_os_dashboard_viz reads quotes.revealed, which does not exist, and its
--- handler returns an empty pipeline. v_supply_gap (read by fn_company_snapshot) still counts demo leads.
+-- apply_sql.mjs rightly refuses to redefine a routine around a missing callee. fn_os_dashboard_viz is
+-- ALSO left out: it read quotes.revealed, which does not exist, and its repair (the Revealed stage counts
+-- transactions) is owned by the_dashboards_read_the_ceo_refund_loop_and_the_reveal_that_exists.sql, so
+-- a re-apply of THIS file must never bring that body back. Their demo exclusion goes in with those fixes.
+-- Also found, not fixed: v_supply_gap (read by fn_company_snapshot) still counts demo leads.
 -- figures_exclude_demo.sql - live bodies (pg_get_functiondef, 2026-09-14) with demo exclusion added.
 -- Requires customers.is_demo and leads.is_demo to exist first. Line numbers refer to the live pg_get_functiondef output.
 -- Inquiry demo = provenance->>'qd_run' set OR brief_source='qd_demo_fixture' OR its customer is_demo.
@@ -270,93 +272,6 @@ begin
        'inquiries_eligible_90d', inq_total, 'completed_90d', inq_done,
        'blocked_msgs_30d', blocked_30d, 'uptime_ok', up_ok, 'uptime_checks', up_tot),
     'computed_at', now());
-end $function$;
-
--- fn_os_dashboard_viz: changed L14 v_total; L15 v_contacted; L16 v_invited; L17 v_claimed; L18 v_registered; L19 v_verified; L20 v_approved; L37 j_sector; L42 j_emirate; L48 j_invites; L63 pipeline New; L64 pipeline Matched; L65 pipeline Quoted; L66 pipeline Revealed; L67 pipeline Won
-CREATE OR REPLACE FUNCTION public.fn_os_dashboard_viz()
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
-AS $function$
-declare
-  out jsonb := '{}'::jsonb;
-  v_total bigint; v_contacted bigint; v_invited bigint; v_claimed bigint;
-  v_registered bigint; v_verified bigint; v_approved bigint;
-  v_runs24 bigint; v_agents24 bigint; v_failed24 bigint;
-  j_sector jsonb; j_emirate jsonb; j_invites jsonb; j_agents jsonb; j_funnel jsonb; j_pipeline jsonb;
-begin
-  select count(*) into v_total from leads where not is_demo;
-  select count(*) into v_contacted from leads where contacted is true and not is_demo;
-  select count(*) into v_invited from leads where invited_at is not null and not is_demo;
-  select count(*) into v_claimed from leads where claimed is true and not is_demo;
-  select count(*) into v_registered from leads where registration_submitted_at is not null and not is_demo;
-  select count(*) into v_verified from leads where verified is true and not is_demo;
-  select count(*) into v_approved from leads where approved_at is not null and not is_demo;
-
-  -- agent activity from agent_runs (the same source the header/Smart Engine use)
-  begin
-    select count(*) filter (where started_at > now() - interval '24 hours'),
-           count(distinct agent) filter (where started_at > now() - interval '24 hours'),
-           count(*) filter (where started_at > now() - interval '24 hours' and status in ('error','failed'))
-      into v_runs24, v_agents24, v_failed24 from agent_runs;
-    select coalesce(jsonb_agg(x), '[]'::jsonb) into j_agents from (
-      select agent as label, count(*)::int as n
-      from agent_runs where started_at > now() - interval '24 hours'
-      group by agent order by count(*) desc limit 8
-    ) x;
-  exception when others then v_runs24 := 0; v_agents24 := 0; v_failed24 := 0; j_agents := '[]'::jsonb; end;
-
-  select coalesce(jsonb_agg(x), '[]'::jsonb) into j_sector from (
-    select coalesce(nullif(trim(sector),''),'unspecified') as label, count(*)::int as n
-    from leads where not is_demo group by 1 order by count(*) desc limit 12
-  ) x;
-
-  select coalesce(jsonb_agg(x), '[]'::jsonb) into j_emirate from (
-    select coalesce(nullif(trim(emirate),''),'unknown') as label, count(*)::int as n
-    from leads where not is_demo group by 1 order by count(*) desc limit 9
-  ) x;
-
-  select coalesce(jsonb_agg(jsonb_build_object('d', to_char(d.day,'Mon DD'), 'n', coalesce(c.n,0)) order by d.day), '[]'::jsonb)
-    into j_invites
-  from (select generate_series((current_date - interval '13 days')::date, current_date, interval '1 day')::date as day) d
-  left join (select invited_at::date as day, count(*)::int as n from leads where invited_at > now() - interval '14 days' and not is_demo group by 1) c
-    on c.day = d.day;
-
-  j_funnel := jsonb_build_array(
-    jsonb_build_object('stage','Sourced', 'n', v_total),
-    jsonb_build_object('stage','Contacted', 'n', v_contacted),
-    jsonb_build_object('stage','Invited', 'n', v_invited),
-    jsonb_build_object('stage','Claimed', 'n', v_claimed),
-    jsonb_build_object('stage','Registered', 'n', v_registered),
-    jsonb_build_object('stage','Verified', 'n', v_verified),
-    jsonb_build_object('stage','Approved', 'n', v_approved)
-  );
-
-  begin
-    j_pipeline := jsonb_build_array(
-      jsonb_build_object('stage','New', 'n', (select count(*) from inquiries where not (inquiries.provenance->>'qd_run' is not null or inquiries.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = inquiries.customer_id and dc.is_demo)))),
-      jsonb_build_object('stage','Matched', 'n', (select count(distinct inquiry_id) from quotes where not exists (select 1 from public.leads dl where dl.id = quotes.supplier_id and dl.is_demo) and not exists (select 1 from public.inquiries di where di.id = quotes.inquiry_id and (di.provenance->>'qd_run' is not null or di.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = di.customer_id and dc.is_demo))))),
-      jsonb_build_object('stage','Quoted', 'n', (select count(*) from quotes where not exists (select 1 from public.leads dl where dl.id = quotes.supplier_id and dl.is_demo) and not exists (select 1 from public.inquiries di where di.id = quotes.inquiry_id and (di.provenance->>'qd_run' is not null or di.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = di.customer_id and dc.is_demo))))),
-      jsonb_build_object('stage','Revealed', 'n', (select count(*) from quotes where coalesce(revealed,false) is true and not exists (select 1 from public.leads dl where dl.id = quotes.supplier_id and dl.is_demo) and not exists (select 1 from public.inquiries di where di.id = quotes.inquiry_id and (di.provenance->>'qd_run' is not null or di.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = di.customer_id and dc.is_demo))))),
-      jsonb_build_object('stage','Won', 'n', (select count(*) from inquiries where status = 'won' and not (inquiries.provenance->>'qd_run' is not null or inquiries.brief_source = 'qd_demo_fixture' or exists (select 1 from public.customers dc where dc.id = inquiries.customer_id and dc.is_demo))))
-    );
-  exception when others then j_pipeline := jsonb_build_array(); end;
-
-  out := jsonb_build_object(
-    'headline', jsonb_build_object(
-      'suppliers_total', v_total, 'invited_total', v_invited, 'verified_total', v_verified,
-      'approved_total', v_approved, 'registered_total', v_registered,
-      'agents_active_24h', v_agents24, 'runs_24h', v_runs24, 'runs_failed_24h', v_failed24),
-    'funnel', j_funnel,
-    'pipeline', j_pipeline,
-    'by_sector', j_sector,
-    'by_emirate', j_emirate,
-    'invites_14d', j_invites,
-    'agents_24h', j_agents,
-    'generated_at', to_char(now(),'YYYY-MM-DD"T"HH24:MI:SSOF')
-  );
-  return out;
 end $function$;
 
 -- fn_os_health: changed L26 payments_7d_count; L27 payments_7d_revenue_aed; L31 supplier_reach.leads; L32 with_capability; L33 confirmed; L38 matchable_now
