@@ -24,8 +24,8 @@
 -- fees and ZZ DEMO statements are only ever drafts.
 -- 14 Sep 2026 (section 3b): fn_accountant_book_bank_credits books a transfer from the licence holder's own
 -- account as Dr 1000 / Cr 3000 Owner Capital (founder_instruction 357) and the bank's month-end interest as
--- Dr 1000 / Cr 7000 Bank Interest Income, under the same hold, and makes every other unmatched credit an
--- accountant finding. Probe: scripts/checks/owner_capital_fixtures.sql.
+-- Dr 1000 / Cr 7000 Bank Interest Income (type other_income: no revenue total counts it), under the same hold,
+-- and makes every other unmatched credit an accountant finding. Probe: scripts/checks/owner_capital_fixtures.sql.
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_companys_own_bank_and_stripe_costs_book_themselves.sql --apply --ddl
 
@@ -50,8 +50,14 @@ begin
   end if;
   select id into jid from public.gl_journal where source = p_source and source_ref = p_ref and status in ('draft', 'posted') limit 1;
   if jid is not null then return jid; end if;
-  insert into public.gl_journal (entry_date, memo, source, source_ref, created_by, status)
-  values (p_date, p_memo, p_source, p_ref, 'accountant', 'draft') returning id into jid;
+  begin
+    insert into public.gl_journal (entry_date, memo, source, source_ref, created_by, status)
+    values (p_date, p_memo, p_source, p_ref, 'accountant', 'draft') returning id into jid;
+  exception when unique_violation then
+    -- a concurrent run wrote it between the check and the insert (gl_journal_one_live_entry_per_bank_or_fee_line)
+    select id into jid from public.gl_journal where source = p_source and source_ref = p_ref and status in ('draft', 'posted') limit 1;
+    return jid;
+  end;
   for ln in select e from jsonb_array_elements(p_lines) e loop
     i := i + 1;
     insert into public.gl_journal_lines (journal_id, line_no, account_code, debit, credit, memo)
@@ -136,40 +142,67 @@ begin
 end $fn$;
 revoke execute on function public.fn_accountant_book_bank_charges() from public, anon, authenticated;
 
--- ── 3b. MONEY THE FOUNDER PUTS IN FROM HIS OWN ACCOUNT IS CAPITAL (14 Sep 2026) ─────────────────
--- Founder, 14 Sep 2026 (founder_instruction 357), on the August 2026 statement's one credit, a
+-- ── 3b. MONEY THAT COMES INTO THE BANK: OWNER CAPITAL, BANK INTEREST, OR A FINDING (14 Sep 2026) ──
+-- Founder, 14 Sep 2026 (founder_instruction 357), on the August 2026 statement's one transfer in, a
 -- person-to-person transfer from his own account: "yea capital from my other account". It is not revenue
 -- and not a loan, and it is the standing default: a transfer from his own account is capital unless he
 -- says loan.
 -- MEASURED BEFORE THIS: nothing classified a bank CREDIT at all. fn_accountant_bank_reconcile only matches
 -- credits to Stripe payouts; any other credit sat in bank_statement_line with no journal and no finding.
--- WHAT THIS DOES, deterministically:
---   * an owner transfer is a credit, not matched to a Stripe payout, whose description carries a transfer
---     marker (gl_settings.owner_transfer_pattern) AND every word of the licence holder's name as whole
---     words — the name is read from company_registration.owner_name, never written in code. The bank prints
---     the sender's name inside the description of a person-to-person transfer.
---   * it is booked Dr 1000 Cash & Bank / Cr 3000 Owner Capital (the chart's existing equity account). The
---     VAT watch counts only posted 4xxx lines, so capital can never count toward the AED 375,000 threshold.
---   * the founder's bank-booking hold (gl_settings.bank_booking_on_hold) is respected exactly as for bank
---     charges: while it is 1 the entry is a DRAFT, prepared and reported, not posted.
---   * bank_line_owner_ruling records his word on one line: 'loan' overrides the default. The chart has no
---     owner-loan account, so a loan is an accountant finding, never booked as capital.
---   * any other credit still unmatched once the payout window has passed is an accountant finding. Nothing
---     is guessed.
+-- WHAT THIS DOES, deterministically, for a credit not matched to a Stripe payout:
+--   * OWNER TRANSFER: the description carries a transfer marker (gl_settings.owner_transfer_pattern) AND one
+--     of its " - " separated segments (the bank prints the sender as its own segment) IS the licence holder's
+--     name from company_registration.owner_name, word for word and nothing else in that segment — a relative
+--     who shares his names is a different, longer segment and is refused. Booked Dr 1000 Cash & Bank /
+--     Cr 3000 Owner Capital (the chart's existing equity account).
+--   * BANK INTEREST: Mashreq's month-end interest row — the description says interest
+--     (gl_settings.bank_interest_pattern) AND carries the bank's interest reference type
+--     (gl_settings.bank_interest_reference_pattern, CID...AED nnnnn). Booked Dr 1000 / Cr 7000 Bank Interest
+--     Income.
+--   * bank_line_owner_ruling records his word on one line; 'loan' overrides the default and is a finding
+--     (the chart has no owner-loan account), never capital.
+--   * anything else still unmatched once the payout window has passed is an accountant finding. Nothing is
+--     guessed. Every entry respects the founder's bank-booking hold exactly as bank charges do: while
+--     gl_settings.bank_booking_on_hold is 1 it is a DRAFT, prepared and reported, not posted.
+-- REVIEW OF b06d251 (four defects, all fixed here):
+--   1. 7000 was typed 'revenue', and fn_accountant_month_close_figures sums type='revenue' into the CEO's
+--      revenue_aed. MEASURED 14 Sep 2026, every production reader that totals revenue: month close,
+--      fn_company_self_knowledge_sync, fn_finance_forecast, fn_ws_finance, and the views gl_pnl and
+--      finance_kpis select type = 'revenue'; fn_accountant_vat_threshold_check and fn_ceo_weekly_figures
+--      select account_code like '4%'. So 7000 gets its own type, 'other_income', which the type check now
+--      allows; 3000 is 'equity' in the 3xxx range. Neither can be counted as revenue by any of them.
+--      CEILING, stated: those readers also leave 'other_income' out of net income, so bank interest (fils a
+--      month) is in the ledger and the balances but not in their P&L totals until a reader shows other income.
+--   2. A pattern read from gl_settings was used unvalidated, and an invalid one raised out of the whole
+--      'costs' step of the hourly duty, undoing the business sync and the bank charges. Each pattern is now
+--      validated once per run in its own block: a bad one is one accountant finding naming the setting and
+--      its rule books nothing; and the tick runs this rule in its own block, so nothing else is undone.
+--   3. Idempotency was check-then-insert. MEASURED: 0 duplicate (source, source_ref) pairs among the 58
+--      journals. A unique index now holds one live journal per source_ref for the sources booked from the bank
+--      and from Stripe's fee lines, whose writers all key one entry per ref. It is NOT table-wide: not every
+--      source fn_gl_sync_business writes was proven single-entry-per-ref, and a table-wide index would turn
+--      that unproven assumption into a failed posting of real revenue. The bookings tolerate the violation.
+--   4. The name match accepted a superset (every owner word plus others). It now needs the whole segment to
+--      be the name. unaccent is AVAILABLE on the project but NOT installed (measured 14 Sep 2026); the
+--      normaliser uses it the moment it is, and until then compares A-Z/0-9 only (Mashreq prints the sender
+--      in ASCII capitals).
 insert into public.gl_settings (key, num_value, txt_value) values
   ('owner_transfer_pattern', null, 'transfer|p_?2_?p'),
   ('bank_interest_pattern', null, '(^|[^a-z])interest([^a-z]|$)'),
   ('bank_interest_reference_pattern', null, 'CID[A-Z]*AED [0-9]{5}')
 on conflict (key) do nothing;
 
--- BANK INTEREST (14 Sep 2026). Mashreq credits interest at month end as its own row: the description reads
--- "Interest" and the reference is the bank's interest type (CID...AED nnnnn), where a transfer carries a
--- transfer reference. Both markers are settings above. It is income but NOT a taxable supply, so it is booked
--- outside the 4xxx range the VAT watch counts. The chart's only interest account is 4400 Late Payment Fines &
--- Interest (4xxx, and a different thing), so 7000 is added: the first account of an "other income" range.
-insert into public.gl_accounts (code, name, type, subtype, normal_balance) values
-  ('7000', 'Bank Interest Income', 'revenue', 'other', 'C')
+alter table public.gl_accounts drop constraint if exists gl_accounts_type_check;
+alter table public.gl_accounts add constraint gl_accounts_type_check
+  check (type in ('asset', 'liability', 'equity', 'revenue', 'expense', 'other_income'));
+insert into public.gl_accounts (code, name, type, subtype, normal_balance, description) values
+  ('7000', 'Bank Interest Income', 'other_income', 'interest', 'C',
+   'Interest the bank credits. Not a taxable supply and not revenue: outside 4xxx and outside type revenue, so no revenue total or the VAT watch counts it.')
 on conflict (code) do nothing;
+
+create unique index if not exists gl_journal_one_live_entry_per_bank_or_fee_line on public.gl_journal (source, source_ref)
+  where source in ('owner_capital', 'bank_interest', 'bank_charge', 'stripe_fee_bt', 'stripe_fee_bt_test')
+    and source_ref is not null and status in ('draft', 'posted');
 
 create table if not exists public.bank_line_owner_ruling (
   line_id                bigint primary key references public.bank_statement_line(id),
@@ -185,16 +218,32 @@ create policy bank_line_owner_ruling_service_role_only on public.bank_line_owner
   as permissive for all to public using (false) with check (false);
 revoke all on public.bank_line_owner_ruling from anon, authenticated;
 
--- Whether a bank line's description is a transfer from the licence holder's own account.
-create or replace function public.fn_bank_line_is_owner_transfer(p_description text)
-returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  with o as (select regexp_split_to_array(btrim(regexp_replace(upper(owner_name), '[^A-Z0-9]+', ' ', 'g')), ' ') toks
-               from public.company_registration order by recorded_at desc limit 1),
-       d as (select regexp_split_to_array(btrim(regexp_replace(upper(coalesce(p_description, '')), '[^A-Z0-9]+', ' ', 'g')), ' ') words)
-  select coalesce((select array_length(o.toks, 1) >= 2 and o.toks <@ d.words from o, d), false)
-     and coalesce(p_description, '') ~* coalesce((select txt_value from public.gl_settings where key = 'owner_transfer_pattern'), 'transfer')
-$fn$;
-revoke execute on function public.fn_bank_line_is_owner_transfer(text) from public, anon, authenticated;
+-- A name as comparable words: accents removed when unaccent is installed, then A-Z and 0-9 only.
+create or replace function public.fn_name_norm(p text)
+returns text language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v text := coalesce(p, '');
+begin
+  if to_regprocedure('public.unaccent(text)') is not null then execute 'select public.unaccent($1)' into v using v;
+  elsif to_regprocedure('extensions.unaccent(text)') is not null then execute 'select extensions.unaccent($1)' into v using v;
+  end if;
+  return btrim(regexp_replace(upper(v), '[^A-Z0-9]+', ' ', 'g'));
+end $fn$;
+revoke execute on function public.fn_name_norm(text) from public, anon, authenticated;
+
+drop function if exists public.fn_bank_line_is_owner_transfer(text);
+-- Whether a bank line is a transfer from the licence holder's own account. p_pattern is the validated
+-- owner_transfer_pattern; the caller validates it (a bad pattern never reaches here).
+create or replace function public.fn_bank_line_is_owner_transfer(p_description text, p_pattern text)
+returns boolean language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_owner text;
+begin
+  if p_pattern is null or coalesce(p_description, '') !~* p_pattern then return false; end if;
+  select public.fn_name_norm(owner_name) into v_owner from public.company_registration order by recorded_at desc limit 1;
+  if v_owner is null or position(' ' in v_owner) = 0 then return false; end if;      -- two words at least
+  return exists (select 1 from regexp_split_to_table(p_description, '(^|[[:space:]])-([[:space:]]|$)') seg
+                  where public.fn_name_norm(seg) = v_owner);
+end $fn$;
+revoke execute on function public.fn_bank_line_is_owner_transfer(text, text) from public, anon, authenticated;
 
 create or replace function public.fn_accountant_book_bank_credits()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -202,56 +251,76 @@ declare
   v_hold boolean := coalesce((select num_value from public.gl_settings where key = 'bank_booking_on_hold'), 1) <> 0;
   v_after int := coalesce((select num_value::int from public.gl_settings where key = 'bank_match_days_after'), 5);
   v_today date := (now() at time zone 'Asia/Dubai')::date;
-  l record; v_lines jsonb; v_memo text; v_booked boolean; n_posted int := 0; n_draft int := 0; v_items jsonb := '[]'::jsonb;
+  v_pat jsonb := '{}'::jsonb; k text; v text;
+  l record; v_lines jsonb; v_memo text; v_src text; v_booked boolean;
+  n_posted int := 0; n_draft int := 0; n_raced int := 0; v_items jsonb := '[]'::jsonb;
 begin
+  -- Each pattern validated once, in its own block: a bad one is a finding and its rule books nothing.
+  foreach k in array array['owner_transfer_pattern', 'bank_interest_pattern', 'bank_interest_reference_pattern'] loop
+    v := (select txt_value from public.gl_settings where key = k);
+    begin
+      if coalesce(btrim(v), '') = '' then raise exception 'the setting is missing or empty'; end if;
+      perform ('' ~ v);
+      v_pat := v_pat || jsonb_build_object(k, v);
+    exception when others then
+      v_items := v_items || jsonb_build_object('item', 'setting:' || k, 'owner_seat', 'accountant', 'subject', 'gl_settings',
+        'title', 'gl_settings.' || k || ' is not a usable pattern (' || sqlerrm || '), so the rule it drives books nothing until it is corrected',
+        'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('key', k, 'value', v));
+    end;
+  end loop;
+
   for l in select b.*, r.ruling, r.founder_instruction_id
              from public.bank_statement_line b left join public.bank_line_owner_ruling r on r.line_id = b.id
             where b.amount_aed > 0
               and not exists (select 1 from public.stripe_payout p where p.bank_line_id = b.id)
             order by b.value_date, b.id loop
-    v_booked := exists (select 1 from public.gl_journal g where g.source in ('owner_capital', 'bank_interest') and g.source_ref = l.id::text and g.status in ('draft', 'posted'));
+    v_booked := exists (select 1 from public.gl_journal g where g.source in ('owner_capital', 'bank_interest')
+                          and g.source_ref = l.id::text and g.status in ('draft', 'posted'));
     if l.ruling = 'loan' then
       v_items := v_items || jsonb_build_object('item', 'loan:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
         'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' was ruled a loan from the founder, and the chart has no owner-loan account'
-                 || case when v_booked then '; the capital entry already made for it must be reversed' else '' end,
+                 || case when v_booked then '; the entry already made for it must be reversed' else '' end,
         'blast', 'agent_facing', 'affected', 1, 'demo', l.account = 'zz_demo',
         'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'founder_instruction_id', l.founder_instruction_id));
       continue;
     end if;
     continue when v_booked;
-    if l.ruling = 'capital' or public.fn_bank_line_is_owner_transfer(l.description) then
+    v_src := null;
+    if l.ruling = 'capital' or (v_pat ? 'owner_transfer_pattern'
+                                and public.fn_bank_line_is_owner_transfer(l.description, v_pat->>'owner_transfer_pattern')) then
+      v_src := 'owner_capital';
       v_lines := jsonb_build_array(jsonb_build_object('account', '1000', 'debit', l.amount_aed),
                                    jsonb_build_object('account', '3000', 'credit', l.amount_aed));
-      v_memo := case when l.account = 'zz_demo' then 'ZZ DEMO ' else '' end || 'Owner capital contribution (' || l.account || ', ' || l.value_date
+      v_memo := 'Owner capital contribution (' || l.account || ', ' || l.value_date
                 || '), a transfer from the licence holder''s own account: capital unless he says loan (founder_instruction 357): ' || left(l.description, 120);
-      if v_hold or l.account = 'zz_demo' then
-        perform public.fn_accountant_draft_entry(l.value_date, v_memo, 'owner_capital', l.id::text, v_lines);
-        n_draft := n_draft + 1;
-      else
-        perform public.fn_gl_entry(l.value_date, v_memo, 'owner_capital', l.id::text, v_lines, 'accountant');
-        n_posted := n_posted + 1;
-      end if;
-    elsif l.description ~* coalesce((select txt_value from public.gl_settings where key = 'bank_interest_pattern'), '(^|[^a-z])interest([^a-z]|$)')
-      and l.description ~ coalesce((select txt_value from public.gl_settings where key = 'bank_interest_reference_pattern'), 'CID[A-Z]*AED [0-9]{5}') then
+    elsif v_pat ? 'bank_interest_pattern' and v_pat ? 'bank_interest_reference_pattern'
+          and l.description ~* (v_pat->>'bank_interest_pattern') and l.description ~ (v_pat->>'bank_interest_reference_pattern') then
+      v_src := 'bank_interest';
       v_lines := jsonb_build_array(jsonb_build_object('account', '1000', 'debit', l.amount_aed),
                                    jsonb_build_object('account', '7000', 'credit', l.amount_aed));
-      v_memo := case when l.account = 'zz_demo' then 'ZZ DEMO ' else '' end || 'Bank interest credited (' || l.account || ', ' || l.value_date || '): ' || left(l.description, 120);
-      if v_hold or l.account = 'zz_demo' then
-        perform public.fn_accountant_draft_entry(l.value_date, v_memo, 'bank_interest', l.id::text, v_lines);
-        n_draft := n_draft + 1;
-      else
-        perform public.fn_gl_entry(l.value_date, v_memo, 'bank_interest', l.id::text, v_lines, 'accountant');
-        n_posted := n_posted + 1;
-      end if;
+      v_memo := 'Bank interest credited (' || l.account || ', ' || l.value_date || '): ' || left(l.description, 120);
     elsif l.value_date + v_after < v_today then
       v_items := v_items || jsonb_build_object('item', 'unrecognised:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
-        'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' is neither a Stripe payout nor a transfer from the licence holder''s own account, so it is not booked',
+        'title', 'A credit of AED ' || l.amount_aed || ' on ' || l.value_date || ' is neither a Stripe payout, a transfer from the licence holder''s own account nor the bank''s interest, so it is not booked',
         'blast', 'agent_facing', 'affected', 1, 'demo', l.account = 'zz_demo',
         'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'description', left(l.description, 200),
                                        'remedy', 'the founder names what it is; an owner transfer is recorded in bank_line_owner_ruling'));
     end if;
+    continue when v_src is null;
+    if l.account = 'zz_demo' then v_memo := 'ZZ DEMO ' || v_memo; end if;
+    begin
+      if v_hold or l.account = 'zz_demo' then
+        perform public.fn_accountant_draft_entry(l.value_date, v_memo, v_src, l.id::text, v_lines);
+        n_draft := n_draft + 1;
+      else
+        perform public.fn_gl_entry(l.value_date, v_memo, v_src, l.id::text, v_lines, 'accountant');
+        n_posted := n_posted + 1;
+      end if;
+    exception when unique_violation then
+      n_raced := n_raced + 1;        -- a concurrent run booked this line first: gl_journal_one_live_entry_per_bank_or_fee_line
+    end;
   end loop;
-  return jsonb_build_object('posted', n_posted, 'drafted', n_draft, 'hold', v_hold,
+  return jsonb_build_object('posted', n_posted, 'drafted', n_draft, 'booked_by_a_concurrent_run', n_raced, 'hold', v_hold,
     'findings', public.fn_accountant_duty_settle('bank_credits', v_items));
 end $fn$;
 revoke execute on function public.fn_accountant_book_bank_credits() from public, anon, authenticated;
@@ -263,7 +332,18 @@ declare v_sync int; v_bank jsonb; v_cap jsonb;
 begin
   v_sync := public.fn_gl_sync_business();
   v_bank := public.fn_accountant_book_bank_charges();
-  v_cap := public.fn_accountant_book_bank_credits();
+  -- The bank-credit rule runs in its own block (review of b06d251): whatever fails in it can never undo the
+  -- business sync or the bank charges above; the failure is an accountant finding instead.
+  begin
+    v_cap := public.fn_accountant_book_bank_credits();
+    perform public.fn_accountant_duty_settle('bank_credits_run', '[]'::jsonb);
+  exception when others then
+    v_cap := jsonb_build_object('error', sqlerrm);
+    perform public.fn_accountant_duty_settle('bank_credits_run', jsonb_build_array(jsonb_build_object(
+      'item', 'run', 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
+      'title', 'Booking the bank''s credits failed, so nothing was booked from them this run: ' || sqlerrm,
+      'blast', 'agent_facing', 'affected', 1)));
+  end;
   return jsonb_build_object('gl_sync_business_entries', v_sync, 'bank_charges', v_bank, 'bank_credits', v_cap);
 end $fn$;
 revoke execute on function public.fn_accountant_cost_booking_tick() from public, anon, authenticated;
