@@ -1,64 +1,54 @@
-// "WHAT SUPPLIERS WILL NEED FOR THIS JOB" on /services/[slug] (website audit SM2). The same answer the
-// homepage BriefBox gives a visitor — the trade's required plain-language questions
-// (category_specs.fields question_plain_en/ar) and its compliance documents — asked once per trade
-// on the server through public_site route_brief and cached for a day. Anything but a recognised
-// trade renders nothing: a failed call, a rate limit, or a trade the router does not place.
+// "WHAT SUPPLIERS WILL NEED FOR THIS JOB" on /services/[slug] (website audit SM2): the trade's required
+// plain-language questions (category_specs.fields question_plain_en/ar) and its compliance documents,
+// read once per trade on the server through public_site trade_needs and cached for a day.
 //
-// BRIEF_TOPIC is the wording route_brief places on the right trade. It is not PriceGuide's
-// SERVICE_TOPIC: the two actions route differently. Measured on production 14 Sep 2026 (route_brief,
-// lang en): the 14 wordings below resolve to the category in the trailing comment. These did not
-// resolve to any trade and are left out, so their pages show no section: pest-control, movers,
-// interior-design, solar, plumbing, painting, signage, landscaping, handyman, facilities-management.
+// The page already knows its trade, so it names the category instead of asking the router. Measured
+// 14 Sep 2026: routing a trade NAME through route_brief placed only 14 of the 24 services, and one call
+// per page per locale spent most of the visitor rate limit during a build. SERVICE_CATEGORY is the
+// direct map; a failed call renders nothing.
 import { getTranslations } from 'next-intl/server';
 import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
 
-const BRIEF_TOPIC: Record<string, string> = {
-  flooring: 'flooring', // flooring
-  'tiling-marble': 'tiling marble', // flooring
-  'false-ceiling': 'gypsum false ceiling installation', // gypsum
-  'ac-maintenance': 'HVAC maintenance', // hvac
-  'ac-duct-cleaning': 'AC duct cleaning', // cleaning
-  cleaning: 'cleaning services', // cleaning
-  'cctv-security': 'cctv security', // security
-  waterproofing: 'waterproofing', // waterproofing
-  electrical: 'electrical work', // electrical
-  'smart-home': 'smart home automation', // smart-home
-  'aluminium-glass': 'aluminium glass', // aluminium
-  'curtains-blinds': 'curtains blinds', // fitout
-  'swimming-pools': 'swimming pool construction', // swimming-pools
-  'joinery-kitchens': 'kitchen cabinets joinery', // kitchens
+export const SERVICE_CATEGORY: Record<string, string> = {
+  'false-ceiling': 'gypsum', 'pest-control': 'pest', movers: 'movers', flooring: 'flooring',
+  'interior-design': 'interior-design', 'ac-maintenance': 'hvac', 'ac-duct-cleaning': 'hvac',
+  'swimming-pools': 'swimming-pools', solar: 'solar', 'cctv-security': 'security',
+  'joinery-kitchens': 'kitchens', waterproofing: 'waterproofing', electrical: 'electrical',
+  plumbing: 'plumbing', 'smart-home': 'smart-home', 'aluminium-glass': 'aluminium',
+  'curtains-blinds': 'blinds-curtains', 'tiling-marble': 'tiling', painting: 'painting',
+  signage: 'signage', landscaping: 'landscaping', cleaning: 'cleaning',
+  handyman: 'general-services-other', 'facilities-management': 'general-services-other',
 };
 
-type Brief = {
+type Needs = {
   ok?: boolean;
-  recognised?: boolean;
   questions?: { key: string; question: string }[];
   documents?: { item: string; authority: string | null }[];
 };
 
-async function routeBrief(text: string, lang: 'en' | 'ar'): Promise<Brief | null> {
+async function tradeNeeds(category: string, lang: 'en' | 'ar'): Promise<Needs | null> {
   if (!SUPA_FN.startsWith('http')) return null;
   try {
     const r = await fetch(`${SUPA_FN}/public_site`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: SUPA_ANON, Authorization: `Bearer ${SUPA_ANON}` },
-      body: JSON.stringify({ action: 'route_brief', text, lang }),
+      body: JSON.stringify({ action: 'trade_needs', category, lang }),
       next: { revalidate: 86400 },
       signal: AbortSignal.timeout(8000),
     });
     if (r.status !== 200) return null;
-    const j = (await r.json()) as Brief;
-    return j && j.ok && j.recognised ? j : null;
+    const j = (await r.json()) as Needs;
+    return j && j.ok ? j : null;
   } catch {
     return null;
   }
 }
 
 export async function SupplierNeeds({ service, locale }: { service: string; locale: string }) {
-  const topic = BRIEF_TOPIC[service];
-  if (!topic) return null;
+  const category = SERVICE_CATEGORY[service];
+  if (!category) return null;
   const lang = locale === 'ar' ? 'ar' : 'en';
-  const b = await routeBrief(topic, lang);
+  const b = await tradeNeeds(category, lang);
   const questions = b?.questions ?? [];
   const documents = b?.documents ?? [];
   if (!questions.length && !documents.length) return null;

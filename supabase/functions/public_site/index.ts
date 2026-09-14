@@ -157,6 +157,31 @@ Deno.serve(async (req) => {
   const action = String(b.action || '');
   const lang: 'en' | 'ar' = String(b.lang || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
 
+  // trade_needs {category, lang}: the published requirements of ONE trade, for /services/[slug].
+  // Measured 14 Sep: service pages asked route_brief with a trade name and 10 of 24 trades did not
+  // route, and a site build (one call per page per locale) spent most of the 60/hour IP budget. The
+  // service page already knows its trade, so it names the category and skips the router; the answer
+  // is static published data, cached by the CDN for a day, and is served before the visitor limiter.
+  if (action === 'trade_needs') {
+    const category = String(b.category || '');
+    if (!/^[a-z][a-z-]{1,59}$/.test(category)) return J({ ok: false, error: 'bad_category' }, 400);
+    const { data: spec } = await admin.from('category_specs').select('label, compliance_checklist, fields').eq('category', category).maybeSingle();
+    if (!spec) return J({ ok: false, error: 'unknown_category' }, 404);
+    const s: any = spec;
+    const questions = (Array.isArray(s.fields) ? s.fields : [])
+      .filter((f: any) => f && f.required && f[`question_plain_${lang}`])
+      .slice(0, 6)
+      .map((f: any) => ({ key: String(f.key || f[`question_plain_${lang}`]), question: String(f[`question_plain_${lang}`]) }));
+    const cl = s.compliance_checklist;
+    const list = Array.isArray(cl?.list) ? cl.list : (Array.isArray(cl) ? cl : []);
+    const documents = list.slice(0, 6).map((x: any) => ({
+      item: String((lang === 'ar' && x?.item_ar) || x?.item || x || '').slice(0, 160),
+      authority: x?.authority ? String(x.authority).slice(0, 80) : null,
+    })).filter((x: any) => x.item);
+    return J({ ok: true, category, label: String(s.label || category), questions, documents }, 200,
+      { 'Cache-Control': 'public, max-age=3600, s-maxage=86400' });
+  }
+
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
   const [ipLimit, dayLimit] = await Promise.all([
     secNum('public_site_ip_hour', 60), secNum('public_site_global_day', 5000),
