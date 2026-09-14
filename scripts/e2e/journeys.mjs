@@ -69,7 +69,8 @@ export async function journeyCustomerRequest(ctx) {
     const s = await signedInPage(browser, fx.customer, m);
     try {
       const t = await openPortal(s.page, portalUrl('customer', m.lang), s.calls);
-      const signedIn = await s.page.locator('nav').first().isVisible().catch(() => false);
+      // Desktop shows the sidebar <nav>; a phone shows a bottom bar whose More button controls #qd-nav-more.
+      const signedIn = await s.page.locator('nav:visible, button[aria-controls="qd-nav-more"]:visible').first().isVisible().catch(() => false);
       const rtl = await s.page.evaluate(() => document.documentElement.dir).catch(() => '');
       rep.step(J, `signed in without an OTP (${tag(m)})`, signedIn ? 'PASS' : 'FAIL', `nav visible=${signedIn}, dir=${rtl || 'ltr'}`, { shot: await shot(s.page, dir, `a_overview_${tag(m)}`) });
       rep.step(J, `overview data under 2.5 s (${tag(m)})`, t.dataMs < 2500 ? 'PASS' : 'FAIL', `data settled in ${t.dataMs} ms (shell ${t.shellMs} ms, ${t.calls} function call(s))`, { ms: t.dataMs });
@@ -102,8 +103,20 @@ export async function journeyCustomerRequest(ctx) {
       ]);
       turns++;
       const j = res ? await res.json().catch(() => ({})) : {};
-      status = j.status ?? status; readiness = Number(j.readiness ?? readiness);
+      status = j.status ?? status; readiness = Number(j.readiness ?? readiness) || 0;
       if (status === 'ready') break;
+      // When the sales engineer offers answer chips, tap the first one, as a customer would.
+      const chip = s.page.locator('[role="group"] button').first();
+      if (await chip.isVisible().catch(() => false)) {
+        const [r2] = await Promise.all([
+          s.page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake'), { timeout: 90000 }).catch(() => null),
+          chip.click().catch(() => {}),
+        ]);
+        turns++;
+        const j2 = r2 ? await r2.json().catch(() => ({})) : {};
+        status = j2.status ?? status; readiness = Number(j2.readiness ?? readiness) || 0;
+        if (status === 'ready') break;
+      }
     }
     rep.step(J, 'the sales engineer interview reaches ready', status === 'ready' ? 'PASS' : 'FAIL', `${turns} turn(s), status=${status}, readiness=${readiness}`, { shot: await shot(s.page, dir, 'a_intake') });
     if (status === 'ready') {
@@ -129,7 +142,9 @@ export async function journeyCustomerRequest(ctx) {
     // the report says so. This is a fallback, never a pass for step a.
     via = 'fallback';
     const inq = await makeInquiry(ctx.run, { customer: { customerId: fx.customer.customerId, locale: 'en' }, trade: 'aluminium', status: 'sent',
-      spec: { products: ['aluminium windows'], quantity: 40, requirements: { installation: 'required', warranty: { required: true, min_months: 24 }, delivery_by: '2026-11-30', materials: [{ component: 'glass', value: 'double glazed' }] } } });
+      // No materials requirement on purpose: the live hold desk turns each one into a quote-level
+      // "component:<name>" detail, and the fallback must not manufacture holds the customer never asked for.
+      spec: { products: ['aluminium windows'], quantity: 40, requirements: { installation: 'required', warranty: { required: true, min_months: 24 }, delivery_by: '2026-11-30' } } });
     inquiryId = inq.id;
     rep.step(J, 'fallback request written for the rest of the funnel', 'SKIP', `inquiry ${inquiryId} written by demo_factory.makeInquiry because the portal did not post one`);
   }
@@ -223,7 +238,9 @@ export async function journeySuppliers(ctx) {
     const lines = {};
     for (const l of h.json?.schema?.lines || []) for (const f of l.fields) if (f.missing || !f.value) (lines[l.line_no] ||= {})[f.attr] = FILL[f.attr] ?? (f.type === 'number' ? '10' : (f.options?.[0] ?? `ZZ DEMO ${f.attr} 10 mm`));
     const terms = {};
-    for (const t of h.json?.schema?.terms || []) terms[t.attr] = TERM_FILL(131000)[t.attr];
+    // A detail the harness does not know by name (e.g. a customer's "component:<name>" material
+    // requirement) still gets a concrete, exact value - never a vague one the desk would refuse.
+    for (const t of h.json?.schema?.terms || []) terms[t.attr] = TERM_FILL(131000)[t.attr] ?? (t.type === 'number' ? '10' : (t.options?.[0] ?? 'Double glazed 6mm + 12mm air + 6mm, Schuco AWS 70, RAL 9016'));
     const f1 = await call('supplier_api', A.jwt, { action: 'spec_fill', quote_id: aQid, values: { lines, terms } });
     rep.step(J, 'filling in the details regenerates the quotation', f1.json?.complete === true ? 'PASS' : 'FAIL',
       `HTTP ${f1.status} complete=${f1.json?.complete} pdf=${f1.json?.pdf_url ? 'yes' : 'no'} still missing=${(f1.json?.missing || []).map((x) => x.attr).join(',') || 'none'} errors=${JSON.stringify(f1.json?.errors || []).slice(0, 120)}`);
@@ -377,7 +394,9 @@ export async function journeyCrawl(ctx) {
         await openPortal(s.page, portalUrl(who.kind, m.lang), s.calls);
         for (const label of NAV[who.kind][m.lang]) {
           const btn = s.page.getByRole('button', { name: new RegExp('^' + esc(label)) }).first();
-          if (!(await btn.isVisible().catch(() => false))) await s.page.locator('#qd-nav-more').click({ timeout: 3000 }).catch(() => {});
+          // On a phone the item may sit in the More sheet; its button is aria-controls="qd-nav-more"
+          // (the sheet itself, #qd-nav-more, only exists while open).
+          if (!(await btn.isVisible().catch(() => false))) await s.page.locator('button[aria-controls="qd-nav-more"]').first().click({ timeout: 3000 }).catch(() => {});
           const t0 = Date.now();
           try {
             await btn.click({ timeout: 8000 });
