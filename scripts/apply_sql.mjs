@@ -221,7 +221,11 @@ const base = (p) => String(p).split(/[\\/]/).filter(Boolean).pop() || '';
 // Reduced to plain ASCII letters, digits, space, dot, dash and underscore, so the literal can never
 // close its quotes and one character is one byte under the 63-byte limit.
 const tag = `qd-apply ${rev} ${base(process.cwd())} ${base(file)}`.replace(/[^A-Za-z0-9 ._-]/g, '_').slice(0, 63);
-await dbPost(`set application_name = '${tag}';\n` + sql);
+// Same line as the file's first line, so reported line numbers still match the file. A file that
+// must run outside a transaction (CREATE INDEX CONCURRENTLY) is sent alone: a second statement in
+// the same query would wrap it in an implicit transaction and Postgres would refuse it.
+const mustRunAlone = /\bconcurrently\b/i.test(sql);
+await dbPost(mustRunAlone ? sql : `set application_name = '${tag}'; ` + sql);
 console.log(`applied ${file} to ${PROD_REF}`);
 
 // READ THE DEFINITIONS BACK OUT. This is the founder's rule, and it is the only reason the exit
