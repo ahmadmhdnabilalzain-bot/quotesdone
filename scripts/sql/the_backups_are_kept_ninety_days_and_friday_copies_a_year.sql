@@ -59,6 +59,12 @@
 --              uploader never retries a file whose source is gone), dropbox_backup op 'prune' deletes
 --              each dropbox_path through its existing DropboxClient and reports to
 --              fn_doc_backups_prune_done; a path already gone is an answer, not a failure.
+--     BOTH halves are re-decided first (fn_backup_prune_recheck, called by the tick and by both pickers):
+--     a logged day the rules now keep - say the latest full copy failed since - is cancelled by
+--     fn_backup_prune_cancel, which in the same statement returns the day's prune_pending/pruning rows to
+--     the status they had (status_before_prune). Found by the independent review of #672: before this,
+--     the Dropbox picker never re-decided, so storage could keep a day that Dropbox still deleted.
+--     Proved by scripts/checks/backup_retention_cancels_both_halves.probe.sql (ZZ DEMO days, rolled back).
 --
 -- NOTHING IS ONE-WAY:
 --   * a pruned export day gets table_export_run.pruned_at, and fn_it_backup_expected (in
@@ -80,6 +86,8 @@ comment on column public.table_export_run.pruned_at is
   'When the day''s files were removed from the backups bucket under the retention rules (the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql). The row itself is kept.';
 
 alter table public.doc_backups add column if not exists prune_attempts integer not null default 0;
+-- the status a row had before the retention pass took it, restored exactly if the deletion is cancelled
+alter table public.doc_backups add column if not exists status_before_prune text;
 
 create table if not exists public.backup_prune_log (
   id                 bigserial primary key,
@@ -207,6 +215,61 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
 $fn$;
 revoke execute on function public.fn_backup_prune_plan(date) from public, anon, authenticated;
 
+-- ── 4b. A LOGGED DELETION IS RE-DECIDED BEFORE ANY HALF OF IT RUNS, AND CANCELLED WHOLE ───────────
+-- Review of #672 (15 Sep 2026): the Dropbox picker never re-ran the rules, and a cancelled day's Dropbox
+-- rows stayed claimable, so after a fresh full-copy failure storage kept the day while Dropbox still
+-- deleted it. Now ONE routine cancels, and it reverts the day's prune_pending/pruning rows to the status
+-- they had before (status_before_prune) in the same statement as the cancel. ONE routine re-decides,
+-- and the tick and both pickers call it before they hand over anything.
+create or replace function public.fn_backup_prune_cancel(p_log_id bigint, p_why text)
+returns integer
+language plpgsql volatile security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_reverted integer;
+begin
+  with cl as (
+    update public.backup_prune_log bl
+       set cancelled_at = now(),
+           storage_error = left('cancelled: the day is no longer due for deletion (' || coalesce(p_why, 'no reason given') || ')', 1000)
+     where bl.id = p_log_id and bl.mode = 'delete' and bl.cancelled_at is null
+    returning bl.day)
+  update public.doc_backups b
+     set status = coalesce(b.status_before_prune, 'pending'), status_before_prune = null,
+         claimed_at = null, claimed_by = null, error = null
+    from cl
+   where b.dedupe_key like 'EXPORT:' || to_char(cl.day, 'YYYY-MM-DD') || '/%'
+     and b.status in ('prune_pending', 'pruning');
+  get diagnostics v_reverted = row_count;
+  return v_reverted;
+end $fn$;
+revoke execute on function public.fn_backup_prune_cancel(bigint, text) from public, anon, authenticated;
+
+-- Every open deletion (either half still to run) is decided again against today's sources. A day whose
+-- storage half already ran is no longer listed by fn_backup_prune_days, so it is decided with its
+-- logged description added back: if the rules now keep it (the latest full failed since), its Dropbox
+-- copy is kept too, and it may be the only copy left.
+create or replace function public.fn_backup_prune_recheck()
+returns integer
+language plpgsql volatile security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_days jsonb := public.fn_backup_prune_days(); v_n integer := 0; x record;
+begin
+  v_days := v_days || coalesce((
+    select jsonb_agg(jsonb_build_object('day', bl.day, 'origin', bl.origin, 'kind', bl.kind, 'status', bl.day_status))
+      from public.backup_prune_log bl
+     where bl.mode = 'delete' and bl.cancelled_at is null and bl.dropbox_done_at is null
+       and not exists (select 1 from jsonb_array_elements(v_days) e where (e->>'day')::date = bl.day)), '[]'::jsonb);
+  for x in select bl.id, pd.decision, pd.reason
+             from public.backup_prune_log bl
+             left join public.fn_backup_prune_decide(v_days, (now() at time zone 'Asia/Dubai')::date) pd on pd.day = bl.day
+            where bl.mode = 'delete' and bl.cancelled_at is null
+              and (bl.storage_deleted_at is null or bl.dropbox_done_at is null)
+              and pd.decision is distinct from 'delete' loop
+    perform public.fn_backup_prune_cancel(x.id, coalesce(x.reason, 'the day is no longer listed'));
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end $fn$;
+revoke execute on function public.fn_backup_prune_recheck() from public, anon, authenticated;
+
 -- ── 5. THE TICK (resilience_ping, every 15 minutes) ────────────────────────────────────────────────
 create or replace function public.fn_backup_prune_tick()
 returns jsonb
@@ -240,8 +303,9 @@ begin
   end if;
 
   if v_mode = 'delete' then
-    -- the day's Dropbox copies leave the upload queue and join the delete queue
-    update public.doc_backups b set status = 'prune_pending', claimed_at = null, claimed_by = null
+    perform public.fn_backup_prune_recheck();
+    -- the day's Dropbox copies leave the upload queue and join the delete queue; the status they had is kept
+    update public.doc_backups b set status = 'prune_pending', status_before_prune = b.status, claimed_at = null, claimed_by = null
       from public.backup_prune_log l
      where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
        and b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%'
@@ -288,22 +352,14 @@ revoke execute on function public.fn_backup_prune_tick() from public, anon, auth
 create or replace function public.fn_backup_prune_storage_next()
 returns jsonb
 language plpgsql volatile security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v_log public.backup_prune_log; v_still text; v_names text[];
+declare v_log public.backup_prune_log; v_cancelled integer; v_names text[];
 begin
   if public.fn_backup_prune_mode() <> 'delete' then return jsonb_build_object('log_id', null, 'reason', 'dry run'); end if;
+  v_cancelled := public.fn_backup_prune_recheck();
   select * into v_log from public.backup_prune_log l
    where l.mode = 'delete' and l.storage_deleted_at is null and l.cancelled_at is null and l.storage_attempts < 3
    order by l.day limit 1 for update skip locked;
-  if not found then return jsonb_build_object('log_id', null); end if;
-  select p.decision into v_still
-    from public.fn_backup_prune_decide(public.fn_backup_prune_days(), (now() at time zone 'Asia/Dubai')::date) p
-   where p.day = v_log.day;
-  if v_still is distinct from 'delete' then
-    update public.backup_prune_log l set cancelled_at = now(),
-           storage_error = 'cancelled: the day is no longer due for deletion (' || coalesce(v_still, 'no longer listed') || ')'
-     where l.id = v_log.id;
-    return jsonb_build_object('log_id', null, 'cancelled', v_log.day);
-  end if;
+  if not found then return jsonb_build_object('log_id', null, 'cancelled', v_cancelled); end if;
   select coalesce(array_agg(o.name order by o.name), '{}') into v_names
     from (select o2.name from storage.objects o2
            where o2.bucket_id = 'backups' and o2.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
@@ -341,12 +397,17 @@ language plpgsql volatile security definer set search_path to 'public', 'pg_temp
 begin
   if coalesce(btrim(p_run), '') = '' then raise exception 'fn_doc_backups_prune_next: p_run (the claiming run id) is required'; end if;
   if public.fn_backup_prune_mode() <> 'delete' then return; end if;
+  -- the rules again, before a single Dropbox path is handed over; a cancelled day's rows revert here
+  perform public.fn_backup_prune_recheck();
   update public.doc_backups d set status = 'prune_pending', claimed_at = null, claimed_by = null
    where d.status = 'pruning' and d.claimed_at < now() - interval '10 minutes';
   return query
     with c as (
       select d.id from public.doc_backups d
        where d.status = 'prune_pending' and d.prune_attempts < 5
+         and exists (select 1 from public.backup_prune_log bl
+                      where bl.mode = 'delete' and bl.cancelled_at is null
+                        and d.dedupe_key like 'EXPORT:' || to_char(bl.day, 'YYYY-MM-DD') || '/%')
          and (d.last_attempt_at is null or d.prune_attempts = 0
               or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.prune_attempts, 8)))
        order by d.id limit greatest(1, least(coalesce(p_limit, 25), 25))
@@ -365,8 +426,17 @@ declare r jsonb; n_ok int := 0; n_fail int := 0;
 begin
   for r in select * from jsonb_array_elements(coalesce(p_results, '[]'::jsonb)) loop
     if (r->>'ok')::boolean then
-      update public.doc_backups d set status = 'pruned', claimed_at = null, claimed_by = null, error = null, last_attempt_at = now()
+      update public.doc_backups d set status = 'pruned', status_before_prune = null, claimed_at = null, claimed_by = null,
+             error = null, last_attempt_at = now()
        where d.id = (r->>'id')::bigint and d.status = 'pruning';
+      if not found then
+        -- the day was cancelled while this delete was in flight: the Dropbox copy is gone but the rules keep
+        -- it, so the row goes back to the upload queue and says why (the uploader re-files it from storage)
+        update public.doc_backups d set status = 'pending', status_before_prune = null, backed_up_at = null, verified_at = null,
+               dropbox_content_hash = null, dropbox_size = null,
+               error = 'deleted from Dropbox after its retention deletion was cancelled; re-filed'
+         where d.id = (r->>'id')::bigint and d.status not in ('pruned', 'prune_pending', 'pruning');
+      end if;
       n_ok := n_ok + 1;
     else
       update public.doc_backups d set status = 'prune_pending', claimed_at = null, claimed_by = null,
