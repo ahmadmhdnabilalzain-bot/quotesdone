@@ -25,7 +25,7 @@ import { SupplierRelationshipCard, DiscoveryReachPanel } from '@/components/port
 import { SpatialModule } from '@/components/portal/spatial';
 import { DocumentVault } from '@/components/portal/documents';
 import { CommunicationCenter } from '@/components/portal/comms';
-import { ApprovalChain, OrdersList } from '@/components/portal/approvals';
+import { OrdersList } from '@/components/portal/approvals';
 import { PredictiveIntelligence, NegotiationAssistant } from '@/components/portal/predict';
 // §2 the Company Digital Twin, §9 Supplier Discovery and §17 Customer AI Memory. fn_twin,
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
@@ -453,7 +453,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     .then((j) => setUnread(((j && j.threads) || []).reduce((n, th) => n + (Number(th.unread) || 0), 0)))
     .catch(() => {});
   const refresh = () => { loadInq(); loadOv(); loadPd(); loadUnread(); };
-  // OPEN THIS REQUEST. Projects, the Project room, the supply-chain map, Messages, Approvals, Orders,
+  // OPEN THIS REQUEST. Projects, the Project room, the supply-chain map, Messages, Orders,
   // the alerts and "Help me decide" all hand the portal an inquiry id and asked it to open that
   // request — and every one of them was wired to onClose, which threw the id away and landed the
   // customer on the Overview. This is the one target they all call: My requests, filters cleared so
@@ -479,12 +479,12 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   }, [deepLink, data]);
   const openProject = (id) => { setFocusProject(id ? String(id) : ''); setView('projects'); };
   const openNew = (withFile) => { setPickFile(!!withFile); setShowNew(true); setView('home'); };
-  // Where an alert goes is decided by what it is about: a request it names, the approvals it counts,
-  // the need it forecasts. Kinds without a subject of their own (price moves, lead times) are about
-  // the requests list as a whole.
+  // Where an alert goes is decided by what it is about: a request it names, the need it forecasts.
+  // Kinds without a subject of their own (price moves, lead times) are about the requests list as a
+  // whole. (There is no approvals alert: the Approvals tab was removed on 14 Sep 2026 — a company
+  // buys exactly like an individual, and nothing routes a purchase through anyone's sign-off.)
   const onAlert = (a) => {
     if (a && a.inquiry_id) return openRfq(a.inquiry_id);
-    if (a && a.kind === 'approval_due') return setView('approvals');
     if (a && a.kind === 'forecast_need') return openNew(false);
     return openRfq('');
   };
@@ -593,7 +593,6 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     documents: () => setView('documents'),
     messages:  () => setView('messages'),
     orders:    () => setView('orders'),
-    approvals: () => setView('approvals'),
     spatial:   () => setView('spatial'),
     predict:   () => setView('predict'),
     profile:   () => setView('profile'),
@@ -700,7 +699,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     {!onlyRequests && <div className="mb-5"><DecisionSupport token={token} lang={lang === 'ar' ? 'ar' : 'en'} onOpenRfq={openRfq} /></div>}
     {/* §2 THE PROFILE, ON THE ENTRY SCREEN. Six KPI tiles say what the customer has DONE; the twin
         says who they ARE — industry, live projects, the suppliers they keep coming back to, the
-        categories they actually buy, their approval chain, and how much of that profile we hold.
+        categories they actually buy, and how much of that profile we hold.
         It is the same object the Company profile window opens, rendered from the overview payload
         the dashboard already has, so opening the portal costs no extra call. */}
     {/* ABOVE the twin, and above the request list, because it is the only thing on this screen
@@ -1407,7 +1406,7 @@ function ReceiptNote({ receipt, inqs, lang, onClose }) {
 // inbox does and does not carry, so keeping both would have been two inboxes disagreeing.
 const MODULES = [
   ['projects', 'projects'], ['spatial', 'mod_spatial'], ['documents', 'mod_documents'],
-  ['messages', 'messages'], ['approvals', 'mod_approvals'], ['orders', 'mod_orders'],
+  ['messages', 'messages'], ['orders', 'mod_orders'],
   ['predict', 'mod_predict'], ['profile', 'mod_profile'], ['account', 'mod_account'],
 ];
 // A MODULE IS A PAGE NOW, NOT A POP-UP.
@@ -1444,7 +1443,6 @@ function ModuleWindow({ id, onClose, onOpenRfq, projectId, token, lang, inqs, on
       {id === 'spatial' && <SpatialModule token={token} lang={l2} inquiries={inqs} onOpenRfq={onOpenRfq} />}
       {id === 'documents' && <DocumentVault token={token} lang={l2} />}
       {id === 'messages' && <CommunicationCenter token={token} lang={l2} onOpenRfq={onOpenRfq} />}
-      {id === 'approvals' && <ApprovalChain token={token} lang={l2} onOpenRfq={onOpenRfq} />}
       {id === 'orders' && <OrdersList token={token} lang={l2} onOpenRfq={onOpenRfq} />}
       {id === 'predict' && <PredictiveIntelligence token={token} lang={l2} />}
       {/* §2 the twin, §9 discovery and §17 the memory — three surfaces whose backends were complete
@@ -1462,7 +1460,7 @@ function ModuleWindow({ id, onClose, onOpenRfq, projectId, token, lang, inqs, on
           customer, every field on this window is measured:
 
             CompanyTwin        read-only. industry, live projects, suppliers this customer has PAID
-                               to reveal, the categories they actually buy, their approval chain.
+                               to reveal, the categories they actually buy.
                                No input of any kind. Nothing writes customers.industry from any
                                customer surface - grepped customer_api and kyc, no writer exists.
             SupplierDiscovery  a text box for trades + an emirate, running the same matcher a real

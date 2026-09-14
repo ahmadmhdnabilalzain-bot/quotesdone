@@ -1,31 +1,27 @@
-// Customer portal §12 (Purchase Approval System) and the §22 Orders module, over
-// supabase/functions/procurement_api.
-//
-// Mount either, independently — neither owns navigation and neither needs the other:
-//
-//   <ApprovalChain token={token} lang={lang} onOpenRfq={openRfq} />
-//     token      string   customer Supabase JWT (required)
-//     lang       'en'|'ar'          default 'en'
-//     onOpenRfq  (inquiryId) => void   optional; shows "Open the awarded RFQ" on a request
-//     className  string             optional
+// Customer portal §22 Orders module, over supabase/functions/procurement_api (action 'orders').
 //
 //   <OrdersList token={token} lang={lang} onOpenRfq={openRfq} />
-//     same four props; onOpenRfq fires with po_orders.inquiry_id
+//     token      string   customer Supabase JWT (required)
+//     lang       'en'|'ar'          default 'en'
+//     onOpenRfq  (inquiryId) => void   optional; fires with po_orders.inquiry_id
+//     className  string             optional
 //
-// Both fetch on mount, both render their own loading, error and empty states, and both refetch when
-// `token` or `lang` changes. Production has zero organizations, zero policies, zero approval
-// requests and zero orders, so both render an empty state today — three different ones for
-// approvals, because "no organisation", "no policy" and "nothing has needed approval yet" are three
-// different facts.
-export { ApprovalChain, type ApprovalChainProps } from './ApprovalChain';
+// It fetches on mount, renders its own loading, error and empty states, and refetches when `token`
+// or `lang` changes.
+//
+// 14 SEP 2026 — THE APPROVALS HALF OF THIS FOLDER WAS REMOVED. Founder: "i think its better just to
+// remove the approvals tab. cause even if a company signed up, we don't wanna interfere in their
+// approvals process and they are treated like normal individuals". ApprovalChain.tsx, its types and
+// its copy are gone, and so are the database objects behind them
+// (scripts/sql/a_company_buys_like_an_individual_so_the_approval_chain_is_dropped.sql). The folder
+// keeps its name only because Orders lives here and Orders was explicitly not part of that decision;
+// renaming it would have touched every in-flight branch that edits OrdersList.
 export { OrdersList, type OrdersListProps } from './OrdersList';
 
-// The typed procurement_api client and the derivations the two surfaces share, exported so the
-// portal can reuse them rather than re-deriving an order's value a second way and disagreeing.
+// The typed procurement_api client and the order derivations, exported so the portal can reuse them
+// rather than re-deriving an order's value a second way and disagreeing.
 export { call, type ApiResult } from './api';
 export {
-  canDecide, chainProgress, fmtDate, money, numOrNull, orderValue, receivedPct, STEP_STATUSES,
-  type ApprovalPolicy, type ApprovalRequest, type ApprovalStep, type ApprovalsPayload,
-  type ChainProgress, type CustomerOrder, type Lang, type OrderLine, type Organization,
-  type StepStatus,
+  fmtDate, money, numOrNull, orderValue, receivedPct,
+  type CustomerOrder, type Lang, type OrderLine,
 } from './model';

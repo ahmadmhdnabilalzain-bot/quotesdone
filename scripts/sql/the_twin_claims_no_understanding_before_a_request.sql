@@ -39,16 +39,9 @@ begin
       -- preference the customer demonstrated, not one they were asked to declare.
       'preferred_suppliers',(select count(distinct supplier_id) from transactions
          where customer_id=c.id and coalesce(fee_status,'')='paid' and supplier_id is not null),
-      -- The chain the spec's §2 profile draws (Engineer -> Manager -> Finance). Resolved through
-      -- the same two relations fn_approval_policy_match uses — owned organizations and memberships
-      -- — so the twin and the approval engine can never disagree about whose chain this is.
-      'approval_chain',(select coalesce(p.steps,'[]'::jsonb) from procurement_approval_policy p
-         where p.active and p.organization_id in (
-           select o.id from customer_organization o where o.owner_customer_id=c.id
-           union
-           select m.organization_id from customer_organization_member m
-            where m.user_id=c.id and coalesce(m.active,true))
-         limit 1),
+      -- (No approval_chain key since 14 Sep 2026: the Approvals tab and the organisation/policy
+      -- tables it read were removed — a company buys exactly like an individual. See
+      -- a_company_buys_like_an_individual_so_the_approval_chain_is_dropped.sql.)
       'last_active',(select max(created_at) from inquiries where customer_id=c.id),
       -- AI UNDERSTANDING (§2) — the share of eight profile facts held, and ONLY once the customer
       -- has raised a request. Before that there is no buying behaviour to understand, and a tally of

@@ -25,7 +25,7 @@
 //      CustomerPortal exists because this exact class of control was once a bare <div onClick>.
 import { useEffect, useRef, useState } from 'react';
 import {
-  LayoutDashboard, FileText, Files, MessagesSquare, FolderKanban, CheckSquare,
+  LayoutDashboard, FileText, Files, MessagesSquare, FolderKanban,
   Sparkles, Building2, UserCircle, Boxes, Compass, Search, Bell, Menu, X,
   Sun, Moon, LogOut, ChevronRight, Send, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
@@ -61,7 +61,6 @@ export const NAV_GROUPS = [
   { caption: 'nav_collaborate', items: [
     { id: 'messages',  icon: MessagesSquare,  label: 'messages', badge: 'unread' },
     { id: 'projects',  icon: FolderKanban,    label: 'projects' },
-    { id: 'approvals', icon: CheckSquare,     label: 'mod_approvals' },
     { id: 'spatial',   icon: Compass,         label: 'mod_spatial' },
   ] },
   { caption: 'nav_intelligence', items: [
@@ -469,8 +468,8 @@ export function PortalShell({
                       <p className="px-4 py-4 text-[13px] text-muted-foreground">{t('attention_none')}</p>
                     ) : (
                       <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto">
-                        {/* Each notification opens what it is about — the request it names, or
-                            Approvals — through the same onAlert the Overview's alert cards use. */}
+                        {/* Each notification opens what it is about — the request it names —
+                            through the same onAlert the Overview's alert cards use. */}
                         {alertList.map((a, i) => (
                           <li key={i}>
                             <button type="button" onClick={() => { setBellOpen(false); if (onAlert) onAlert(a); }}

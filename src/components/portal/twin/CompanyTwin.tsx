@@ -11,7 +11,6 @@
 //   preferred_suppliers  distinct suppliers this customer has PAID to reveal — a preference they
 //                        demonstrated, not one they were asked to declare
 //   preferred_categories their categories ordered by how often they actually buy them, with counts
-//   approval_chain       procurement_approval_policy.steps for their organization
 //   understanding_pct    the share of eight profile facts the system actually holds
 //
 // WHY THIS EXISTED AND NOBODY COULD SEE IT. fn_twin, fn_ws_customer_360, v_digital_twin and
@@ -32,7 +31,6 @@ export type Twin = {
   projects_active?: number; projects_total?: number;
   preferred_suppliers?: number;
   preferred_categories?: Array<{ category: string; rfqs: number }> | null;
-  approval_chain?: Array<{ key?: string; label?: string; role?: string }> | null;
   understanding_pct?: number | null;
   last_active?: string | null;
 };
@@ -72,7 +70,6 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
   // Number(null) is 0, so an unmeasured figure rendered as "0%" (seen live 14 Sep 2026). Null stays null.
   const pct = twin.understanding_pct == null || !Number.isFinite(Number(twin.understanding_pct)) ? null : Number(twin.understanding_pct);
   const cats = Array.isArray(twin.preferred_categories) ? twin.preferred_categories : [];
-  const chain = Array.isArray(twin.approval_chain) ? twin.approval_chain : [];
 
   return (
     <Card className="p-3.5">
@@ -108,21 +105,6 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
         </div>
       ) : null}
 
-      {chain.length ? (
-        <div className="mt-3">
-          <div className={S.label}>{L(lang, 'Approval chain', 'سلسلة الموافقات')}</div>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12.5px]">
-            {chain.map((s, i) => (
-              <span key={(s.key || String(i))} className="flex items-center gap-1.5">
-                <span className="rounded-md border border-border bg-secondary/20 px-2 py-0.5 text-foreground">
-                  {s.label || s.key || s.role}
-                </span>
-                {i < chain.length - 1 ? <span className="text-muted-foreground">→</span> : null}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       {pct !== null && pct < 100 ? (
         <div className={cn(S.sub, 'mt-2.5')}>
