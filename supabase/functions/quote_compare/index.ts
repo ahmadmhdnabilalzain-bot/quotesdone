@@ -5,7 +5,7 @@
 // prices against the market and ranks technical quality authoritatively for any trade.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { deterministicCompare } from './deterministic.ts';
+import { deterministicCompare, rosterOf } from './deterministic.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -153,8 +153,12 @@ Deno.serve(observe('quote_compare', async (req) => {
         track_record: tr || undefined };
     });
     const lang = (langReq === 'ar' || langReq === 'en') ? langReq : (/[؀-ۿ]/.test(String(inq.summary||'') + ' ' + String(inq.raw_input||'')) ? 'ar' : 'en');
+    // Every live quote with its place (see rosterOf). Recomputed on every answer, cached or not,
+    // so it always reflects the quotes as they are now; it is never part of the model's input.
+    // deno-lint-ignore no-explicit-any
+    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
     const qhash = await sha256hex(JSON.stringify(labelled));
-    try { const { data: cached } = await admin.from('qd_compare_cache').select('analysis').eq('inquiry_id', inquiry_id).eq('quotes_hash', qhash).eq('lang', lang).maybeSingle(); if (cached?.analysis) { await logRun('ok', { compared: 1, quotes_seen: qs.length, cached: 1, lang }, 'Quote comparison for ' + qs.length + ' quotes served from cache; the customer got their recommendation with no model call.'); return J({ ok: true, analysis: cached.analysis, cached: true }); } } catch (_e) { /* */ }
+    try { const { data: cached } = await admin.from('qd_compare_cache').select('analysis').eq('inquiry_id', inquiry_id).eq('quotes_hash', qhash).eq('lang', lang).maybeSingle(); if (cached?.analysis) { await logRun('ok', { compared: 1, quotes_seen: qs.length, cached: 1, lang }, 'Quote comparison for ' + qs.length + ' quotes served from cache; the customer got their recommendation with no model call.'); return J({ ok: true, analysis: withRoster(cached.analysis), cached: true }); } } catch (_e) { /* */ }
     const boqItems = (inq.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq.map((b: any) => `${b.description || ''}${b.qty ? ' ('+b.qty+' '+(b.unit||'')+')' : ''}`).slice(0, 40) : [];
     const cref = await sec('compliance_ref');
     // NEW v21: QuotesDone's own curated expertise for this trade (market prices, red flags, spec hierarchy, must-state specs).
@@ -214,7 +218,7 @@ Deno.serve(observe('quote_compare', async (req) => {
       const t3 = analysis.top3.length;
       await logRun(t3 > 0 ? 'ok' : 'error', { compared: 1, degraded: 1, quotes_seen: qs.length, ai_attempts: attempts, ai_ok: 0, top3: t3, lang },
         'Every model attempt for quote_compare failed (' + String(lastDetail).slice(0, 120) + '), so the customer was served the DETERMINISTIC comparison instead of nothing: ' + qs.length + ' quotes ranked on stated price, completeness, lead time, warranty and payment terms, ' + t3 + ' ranked recommendation(s). It is labelled degraded to the customer and is not cached, so the full analysis returns the moment the model does.');
-      return J({ ok: true, analysis, degraded: true, detail: lastDetail });
+      return J({ ok: true, analysis: withRoster(analysis), degraded: true, detail: lastDetail });
     }
     if (Array.isArray(parsed.quotes) && parsed.quotes.length > 3) parsed.quotes = parsed.quotes.slice(0, 3);
     if (Array.isArray(parsed.top3) && parsed.top3.length > 3) parsed.top3 = parsed.top3.slice(0, 3);
@@ -235,11 +239,11 @@ Deno.serve(observe('quote_compare', async (req) => {
       const t3 = analysis.top3.length;
       await logRun(t3 > 0 ? 'ok' : 'error', { compared: 1, degraded: 1, quotes_seen: qs.length, ai_attempts: attempts, ai_ok: 1, empty_shortlist: 1, top3: t3, lang },
         'The model returned a comparison object with an EMPTY shortlist for ' + qs.length + ' real quotes, which reaches the customer as a blank decision step. Served the DETERMINISTIC comparison instead: ' + t3 + ' ranked recommendation(s) from stated figures. The empty model result was not cached.');
-      return J({ ok: true, analysis, degraded: true, detail: 'empty_shortlist' });
+      return J({ ok: true, analysis: withRoster(analysis), degraded: true, detail: 'empty_shortlist' });
     }
     let cacheSaved = 1;
     try { const { error: cacheErr } = await admin.from('qd_compare_cache').upsert({ inquiry_id, quotes_hash: qhash, lang, analysis: parsed, created_at: new Date().toISOString() }); if (cacheErr) cacheSaved = 0; } catch (_e) { cacheSaved = 0; }
     await logRun((_top3 > 0 && _shown > 0) ? 'ok' : 'error', { compared: 1, quotes_seen: qs.length, quotes_live: live.length, itemised: parsed.itemised_quotes, line_items_sent: itemsTotal, track_records: Object.keys(trackBySupplier).length, expert_ref: expertRef ? 1 : 0, must_specs: mustSpecs.length, line_findings: _lines, shortlisted: _shown, top3: _top3, ai_attempts: attempts, ai_ok: 1, cached: 0, cache_saved: cacheSaved, lang }, (_top3 > 0 && _shown > 0) ? ('Quote comparison delivered: ' + qs.length + ' quotes evaluated (' + parsed.itemised_quotes + ' itemised, ' + itemsTotal + ' line items, ' + Object.keys(trackBySupplier).length + ' track records, expert_ref=' + (expertRef ? 'yes' : 'no') + '), ' + _shown + ' shortlisted, ' + _top3 + ' ranked recommendation(s), ' + _lines + ' line-level finding(s).' + (cacheSaved ? '' : ' NOTE: the result could not be written to qd_compare_cache, so every re-open re-runs the model at full cost.')) : ('quote_compare returned a comparison object with an EMPTY shortlist/top3 for ' + qs.length + ' real quotes — the model responded but produced no ranked recommendation, so the customer sees a blank comparison and cannot choose a supplier, while the call reports HTTP 200 success.'));
-    return J({ ok: true, analysis: parsed });
+    return J({ ok: true, analysis: withRoster(parsed) });
   } catch (e) { await logRun('error', { compared: 0, unhandled_exception: 1 }, 'quote_compare threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e).slice(0, 200) + ' — the customer could not compare the quotes they received and the RFQ stalls at the decision step.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 }));

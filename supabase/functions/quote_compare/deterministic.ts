@@ -72,6 +72,34 @@ function qualityScore(q: Labelled): { score: number; why: string } {
   return { score: clamp15(1 + n * 0.8 + (q.itemised ? 1 : 0)), why: `${n} of 5 commercial terms stated${q.itemised ? ', itemised' : ', lump sum'}` };
 }
 
+// EVERY QUOTE, NOT ONLY THE SHORTLIST (14 Sep 2026, agent: ceo). The analysis — model or rules —
+// details three quotes. The customer received seven, and the report said nothing about the other
+// four, which reads as "only three quotes came in". The roster lists every live quote with its
+// place: shortlisted (with its rank), received (not shortlisted, open to reveal like any other),
+// or held (not shortlisted AND incomplete: no stated price, or our completeness check failed).
+// "Held" is a description of the quote, not a claim that anyone was told: this module sends
+// nothing. It never re-ranks — the shortlist is whatever the analysis chose.
+export type RosterRow = {
+  quote_id: string | null; label: string; price: number | null; lead_time: string | null;
+  warranty: string | null; status: 'shortlisted' | 'received' | 'held'; rank: number | null;
+  missing_mandatory: number | null; expired: boolean;
+};
+export function rosterOf(labelled: Array<Labelled & { quote_id?: string | null }>, top3: Array<{ label: string; rank?: number }>): RosterRow[] {
+  const rankOf = new Map<string, number>();
+  (top3 || []).forEach((t, i) => { if (t && t.label) rankOf.set(t.label, Number(t.rank) || i + 1); });
+  return labelled.map((q) => {
+    const price = typeof q.price === 'number' && q.price > 0 ? q.price : null;
+    const rank = rankOf.get(q.label) ?? null;
+    const incomplete = price === null || q.completeness?.passed === false;
+    return {
+      quote_id: q.quote_id ?? null, label: q.label, price, lead_time: q.lead_time ?? null, warranty: q.warranty ?? null,
+      status: rank !== null ? 'shortlisted' : incomplete ? 'held' : 'received', rank,
+      missing_mandatory: typeof q.completeness?.missing_mandatory === 'number' ? q.completeness.missing_mandatory : null,
+      expired: !!q.expired,
+    };
+  });
+}
+
 export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = 'en') {
   const ar = lang === 'ar';
   const prices = labelled.map(q => (typeof q.price === 'number' && q.price > 0 ? q.price : null));

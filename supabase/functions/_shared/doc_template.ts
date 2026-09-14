@@ -39,6 +39,10 @@ export type DocIdentity = {
   web: string;
   signer: string;
   title: string;
+  /** The TDRA No-Objection Letter the company trades under. Stated by the founder in the 14 Sep
+   * 2026 brief ("legal footer: QuotesDone Technologies, DET licence 1633275, TDRA
+   * NOL-26-100000665"); no table carries it, so it is not read — it lives here, once. */
+  permit: string;
   /** company_brand logo.height_document, in points. */
   logoPt: number;
   /** Where each value came from, so a reader of a response can check rather than trust. */
@@ -55,6 +59,7 @@ export const FALLBACK: DocIdentity = {
   web: 'quotesdone.com',
   signer: 'Ahmad Alzain',
   title: 'Founder & Managing Director',
+  permit: 'TDRA NOL-26-100000665',
   logoPt: 20,
   source: 'fallback',
 };
@@ -109,9 +114,10 @@ export async function docIdentity(admin: SupabaseClient<any, any, any>): Promise
   return out;
 }
 
-/** The two footer lines, in the order the brand's imagery.documents row describes them. */
+/** The two footer lines: the legal line (who issues the document and under which licence and
+ * permit), then where to reach us. */
 export function footerLines(id: DocIdentity): [string, string] {
-  return [`${id.name} · ${id.licence} · ${id.city}`, `${id.email} · ${id.phone} · ${id.web}`];
+  return [`${id.name} · ${id.licence} · ${id.permit}`, `${id.city} · ${id.email} · ${id.phone} · ${id.web}`];
 }
 
 /**
