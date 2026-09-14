@@ -105,6 +105,22 @@ test('the alert tick never writes to the outbox itself', { skip: SKIP }, async (
   assert.match(f.prosrc, /fn_it_loop_tick\(\)/);
 });
 
+test('a conversation with no row in seat_handoff_kind is a failed handoff and an it.finding, not only an exception', { skip: SKIP }, async () => {
+  const r = await probe(`
+    declare v_id bigint;
+    begin
+      v_id := public.fn_seat_handoff('it_engineer', 'ceo', 'zz.unregistered_probe', 'agent_actions', 'zz-demo-probe');
+      raise exception 'CHK<<%>>', json_build_object(
+        'row', (select json_build_object('status', status, 'error', detail->>'error') from public.agent_actions where id = v_id),
+        'finding', (select json_build_object('open', closed_at is null, 'owner', evidence->>'owner_seat')
+                      from public.it_engineer_finding
+                     where issue_key = 'monitor:unregistered_handoff_kind:zz.unregistered_probe:it_engineer:ceo'));
+    end`);
+  assert.equal(r.row?.status, 'failed', 'the unregistered handoff must be recorded as a failed row');
+  assert.match(r.row.error, /unregistered handoff kind/);
+  assert.deepEqual(r.finding, { open: true, owner: 'ceo' }, 'the unregistered kind must be an open it.finding owned by the ceo');
+});
+
 test('a run the founder\'s hold refused is held; a real failure still raises a finding', { skip: SKIP }, async () => {
   const r = await probe(`
     declare v jsonb; v_hold boolean;

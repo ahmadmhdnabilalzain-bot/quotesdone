@@ -132,6 +132,65 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
 $fn$;
 
 
+-- ── 2b. STARTING A CONVERSATION ─────────────────────────────────────────────────────────────────
+-- Live definition (payments_are_the_accountant_and_the_seats_close_every_refund_together.sql) with one
+-- change, from the review of #648: a (type, from, to) with no row in seat_handoff_kind used to raise,
+-- and a caller that caught the exception lost the conversation with no trace. It is now recorded as a
+-- FAILED handoff and as an it.finding 'unregistered handoff kind' (monitor:unregistered_handoff_kind:…),
+-- which goes round the IT loop to the ceo like any other finding; the caller gets the failed row's id,
+-- the same shape it gets when a receiving seat's handler fails.
+create or replace function public.fn_seat_handoff(p_from text, p_to text, p_type text, p_subject_table text, p_subject_id text, p_payload jsonb default '{}'::jsonb)
+returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_id bigint; v_key text := p_type || ':' || p_subject_id; v_known boolean;
+begin
+  if coalesce(btrim(p_subject_id), '') = '' then raise exception 'a handoff must name its subject'; end if;
+  v_known := exists (select 1 from public.seat_handoff_kind k
+                      where k.type = p_type and k.from_seat = p_from and k.to_seat = p_to);
+
+  select id into v_id from public.agent_actions
+   where kind = 'handoff' and agent = p_to and target_id = v_key and status <> 'failed'
+   order by id limit 1;
+  if v_id is not null then return v_id; end if;
+
+  insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+  values (p_to, 'handoff', case when v_known then 'pending' else 'failed' end, 'low',
+          left(p_type || ' from ' || p_from || ' about ' || p_subject_table || ' ' || p_subject_id, 200),
+          coalesce(p_payload, '{}'::jsonb) || jsonb_build_object(
+            'type', p_type, 'from', p_from, 'from_name', p_from, 'to', p_to,
+            'subject_table', p_subject_table, 'subject_id', p_subject_id)
+          || case when v_known then '{}'::jsonb
+                  else jsonb_build_object('error', 'unregistered handoff kind: no row in public.seat_handoff_kind') end,
+          p_subject_table, v_key)
+  returning id into v_id;
+
+  if not v_known then
+    perform public.fn_seat_handoff_event(v_id, 'failed');
+    perform public.fn_it_engineer_finding_upsert(
+      'monitor:unregistered_handoff_kind:' || p_type || ':' || p_from || ':' || p_to,
+      'Unregistered handoff kind: ' || p_from || ' tried to start "' || p_type || '" with ' || p_to,
+      'public.fn_seat_handoff (caller: ' || p_from || ')', 'agent_facing', 1,
+      jsonb_build_object('type', p_type, 'from', p_from, 'to', p_to, 'handoff_id', v_id, 'owner_seat', 'ceo',
+                         'fix', 'insert the conversation into public.seat_handoff_kind with its handler, in the file of the build that starts it'),
+      '{}'::text[], array['which build starts this conversation and which handler answers it'], 'fn_seat_handoff');
+    return v_id;
+  end if;
+  perform public.fn_seat_handoff_event(v_id, 'sent');
+
+  -- THE RECEIVING SEAT ACTS NOW. A failure is recorded on the row and in the stream and never
+  -- rolls back the money event that raised it: a refund that settled stays settled.
+  begin
+    perform public.fn_seat_handoff_act(v_id);
+  exception when others then
+    update public.agent_actions
+       set status = 'failed', decided_at = now(),
+           detail = detail || jsonb_build_object('error', left(sqlerrm, 500))
+     where id = v_id;
+    perform public.fn_seat_handoff_event(v_id, 'failed');
+  end;
+  return v_id;
+end $fn$;
+revoke execute on function public.fn_seat_handoff(text, text, text, text, text, jsonb) from public, anon, authenticated;
+
 -- ── 3. ONLY THE ORIGINATOR CLOSES ────────────────────────────────────────────────────────────────
 -- The closer names itself in qd.handoff_closer inside its own transaction. qd.backup_closer is the
 -- backup build's name for the same thing and is honoured so its re-check keeps working unchanged.
