@@ -7,6 +7,7 @@
 // so any external monitor can wire it with just the URL.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -395,6 +396,21 @@ async function openrouterMeterTick(): Promise<unknown> {
 // its result is carried in this function's response either way, so the failure is visible in the
 // watchdog's own output instead of vanishing into a catch. The watchdog still cannot be taken down
 // by it: an unreachable RPC returns ok:false here rather than throwing.
+// THE IT ENGINEER'S DUTIES, HOURLY (founder, 14 Sep 2026: "fine add them"). The readings Postgres
+// cannot take are taken here and handed to fn_it_duties, which decides; fn_it_duties_due keeps the
+// HTTP calls to once an hour. Only a count is returned: this endpoint is public and the findings
+// name internals. Runs before the alert tick so a new finding goes round the loop on this pass.
+async function itDutiesTick(): Promise<unknown> {
+  try {
+    const { data: due, error: dueErr } = await admin.rpc('fn_it_duties_due');
+    if (dueErr) return { ok: false, error: dueErr.message };
+    if (due !== true) return { due: false };
+    const { data, error } = await admin.rpc('fn_it_duties', { p_r: await takeDutyReadings(sec) });
+    if (error) return { ok: false, error: error.message };
+    return { due: true, duties: Object.keys((data ?? {}) as Record<string, unknown>).length };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function itEngineerAlertTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_it_engineer_alert_tick');
@@ -517,6 +533,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // DETECT BEFORE ALERTING, always. itEngineerAlertTick reads the finding ledger; running it
     // first would deliver the previous tick's picture of the estate.
     const itdetect = await itDetectTick();
+    const itduties = await itDutiesTick();
     const it = await itEngineerAlertTick();
     // One RPC. The HTTP work runs in pg_net's background worker, not in this invocation, so this
     // adds no meaningful wall clock to the heartbeat.
@@ -532,7 +549,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, it, outbox, archive, vat, ceoWeekly, ladder, refunds });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, archive, vat, ceoWeekly, ladder, refunds });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -556,6 +573,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, it, outbox, vat, ceoWeekly, ladder, refunds });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, vat, ceoWeekly, ladder, refunds });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));
