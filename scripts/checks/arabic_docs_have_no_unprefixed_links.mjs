@@ -6,7 +6,8 @@
 // Fails when:
 //   1. the shared helper src/lib/arabicDoc.ts stops prefixing links or isolating a phone (self-test);
 //   2. any Arabic html in src/content/legal.json or marketing.json has an internal href without /ar
-//      (/blog is exempt: posts are English-only — the same rule arLinks() applies);
+//      (blog links included — every post has Arabic since 14 Sep 2026), or uses the glossary-banned
+//      job/function word (طلب/مشروع for a job, مهمة/دور for a function);
 //   3. any html, either language, links a retired path (/app, /suppliers) or the old query-string
 //      legal route;
 //   4. after the render-time pass, a +971 number in an Arabic document is not bidi-isolated.
@@ -27,7 +28,8 @@ if (!once.includes('<bdi dir="ltr">1633275</bdi>') || !once.includes('<bdi dir="
 if (arDoc(once, 'ar') !== once) fails.push('helper: not idempotent');
 if (arDoc(sample, 'en') !== sample) fails.push('helper: touched English html');
 
-const UNPREFIXED = /href="\/(?!ar[\/"]|_next|blog)[^"]*"/g;
+const UNPREFIXED = /href="\/(?!ar[\/"]|_next)[^"]*"/g;
+const BANNED_AR = /وظي?ف/g; // the job/function word and its employee sibling: طلب/مشروع/مهمة/دور instead
 const RETIRED = new RegExp('href="(?:/ar)?/(?:ap' + 'p|supplier' + 's)(?:[/"?])|/legal\\?' + 'doc=', 'g');
 const ISOLATED_PHONE = /(?<!<bdi dir="ltr">|tel:)\+971/g;
 for (const f of ['legal', 'marketing']) {
@@ -39,6 +41,7 @@ for (const f of ['legal', 'marketing']) {
     }
     const ar = d.ar?.html || '';
     for (const m of ar.matchAll(UNPREFIXED)) fails.push(`${f}/${slug}/ar: unprefixed internal link ${m[0]}`);
+    for (const m of ar.matchAll(BANNED_AR)) fails.push(`${f}/${slug}/ar: banned glossary term at …${ar.slice(Math.max(0, m.index - 30), m.index + 20)}…`);
     const out = arDoc(ar, 'ar').replace(/<[^>]*>/g, (t) => t.replace(/\+971/g, '')); // attributes do not count
     if (ISOLATED_PHONE.test(out)) fails.push(`${f}/${slug}/ar: a +971 number is not bidi-isolated after arDoc()`);
     ISOLATED_PHONE.lastIndex = 0;

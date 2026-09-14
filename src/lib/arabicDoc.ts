@@ -10,10 +10,10 @@
 //
 // scripts/checks/arabic_docs_have_no_unprefixed_links.mjs runs both against every Arabic document.
 
-// /blog is left unprefixed on purpose: blog posts are English-only, so /ar/blog/<slug> is the same
-// English article under an Arabic notice.
+// /blog is prefixed too: all 32 blog posts now carry Arabic (14 Sep 2026), so the English-only
+// exception ServiceDoc used to make is gone.
 export function arLinks(html: string): string {
-  return html.replace(/href="\/(?!ar[\/"]|_next|blog)/g, 'href="/ar/');
+  return html.replace(/href="\/(?!ar[\/"]|_next)/g, 'href="/ar/');
 }
 
 const PHONE = String.raw`\+\d[\d\s-]{6,}\d`;
