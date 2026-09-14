@@ -24,6 +24,9 @@
 --      public.fn_mask_bank_text(old memo). Date, source, status and the lines stay immutable.
 --   4. A one-off signed redaction of the rows already written, memo only, proved to leave every other
 --      column untouched.
+--   5. fn_accountant_bank_reconcile, the same leak in finding evidence: the nearest Stripe credits of a
+--      missing payout and an unexplained Stripe credit carried the raw bank description and reference.
+--      Both now go through fn_mask_bank_text. Measured 15 Sep 2026: 0 findings carried one yet.
 -- bank_statement_line.description stays raw on purpose: it is the private source record, and the PDF
 -- is archived anyway. The classifiers keep reading it.
 -- These two routines were canonical in the_companys_own_bank_and_stripe_costs_book_themselves.sql;
@@ -196,6 +199,151 @@ begin
     'findings', public.fn_accountant_duty_settle('bank_credits', v_items));
 end $fn$;
 revoke execute on function public.fn_accountant_book_bank_credits() from public, anon, authenticated;
+
+-- ── 4b. THE RECONCILIATION'S FINDING EVIDENCE IS MASKED TOO ───────────────────────────────────────
+-- Body as in the_accountant_matches_every_stripe_payout_to_the_bank.sql except the two evidence spots.
+create or replace function public.fn_accountant_bank_reconcile(p_as_of date default null)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare
+  v_as_of date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
+  v_before int; v_after int; v_grace int; v_due_day int; v_demo_on boolean;
+  p public.stripe_payout; l public.bank_statement_line; x record;
+  v_items jsonb := '[]'::jsonb; n_matched int := 0; v_settle jsonb;
+begin
+  select num_value::int into v_before  from public.gl_settings where key = 'bank_match_days_before';
+  select num_value::int into v_after   from public.gl_settings where key = 'bank_match_days_after';
+  select num_value::int into v_grace   from public.gl_settings where key = 'payout_transit_grace_days';
+  select num_value::int into v_due_day from public.gl_settings where key = 'bank_statement_due_day';
+  if v_before is null or v_after is null or v_grace is null or v_due_day is null then
+    raise exception 'fn_accountant_bank_reconcile: a bank_* or payout_* window is missing from gl_settings';
+  end if;
+  -- Test-mode payouts are reconciled only while a ZZ DEMO statement exists (a probe or a rehearsal).
+  v_demo_on := exists (select 1 from public.bank_statement_intake where account = 'zz_demo');
+
+  -- MATCH: a paid payout to the nearest unmatched bank credit of exactly its amount inside the window,
+  -- a line that names Stripe preferred.
+  for p in select * from public.stripe_payout s
+            where s.bank_line_id is null and s.status = 'paid' and s.currency = 'aed' and (s.livemode or v_demo_on)
+            order by s.arrival_date loop
+    select bl.* into l from public.bank_statement_line bl
+     where ((p.livemode and bl.account <> 'zz_demo') or (not p.livemode and bl.account = 'zz_demo'))
+       and bl.amount_aed = round(p.amount_fils / 100.0, 2)
+       and bl.value_date between p.arrival_date - v_before and p.arrival_date + v_after
+       and not exists (select 1 from public.stripe_payout q where q.bank_line_id = bl.id)
+     order by (bl.description ilike '%stripe%') desc, abs(bl.value_date - p.arrival_date), bl.id
+     limit 1;
+    if found then
+      update public.stripe_payout set bank_line_id = l.id, matched_at = now() where id = p.id;
+      n_matched := n_matched + 1;
+    end if;
+  end loop;
+
+  for p in select * from public.stripe_payout s where (s.livemode or v_demo_on) loop
+    -- Stripe says the money did not go.
+    if p.status in ('failed', 'canceled') then
+      v_items := v_items || jsonb_build_object('item', 'failed:' || p.id, 'owner_seat', 'accountant', 'subject', 'stripe_payout',
+        'title', 'Stripe payout ' || p.id || ' of AED ' || round(p.amount_fils / 100.0, 2) || ' ' || p.status
+                 || coalesce(' (' || p.failure_code || ')', '') || ': the money did not reach the bank',
+        'blast', 'agent_facing', 'affected', 1, 'demo', not p.livemode, 'evidence', to_jsonb(p));
+    -- Still travelling well after the date Stripe gave.
+    elsif p.status in ('pending', 'in_transit') and p.arrival_date + v_grace < v_as_of then
+      v_items := v_items || jsonb_build_object('item', 'transit:' || p.id, 'owner_seat', 'accountant', 'subject', 'stripe_payout',
+        'title', 'Stripe payout ' || p.id || ' of AED ' || round(p.amount_fils / 100.0, 2) || ' was due in the bank on '
+                 || p.arrival_date || ' and still reads ' || p.status,
+        'blast', 'agent_facing', 'affected', 1, 'demo', not p.livemode, 'evidence', to_jsonb(p));
+    end if;
+    -- The payout does not add up to the balance transactions it carries.
+    if p.txn_net_fils is not null and p.txn_net_fils <> p.amount_fils then
+      v_items := v_items || jsonb_build_object('item', 'breakdown:' || p.id, 'owner_seat', 'accountant', 'subject', 'stripe_payout',
+        'title', 'Stripe payout ' || p.id || ' is AED ' || round(p.amount_fils / 100.0, 2) || ' but its ' || coalesce(p.txn_count, 0)
+                 || ' balance transaction(s) net to AED ' || round(p.txn_net_fils / 100.0, 2),
+        'blast', 'agent_facing', 'affected', 1, 'demo', not p.livemode, 'evidence', to_jsonb(p));
+    end if;
+    if p.currency <> 'aed' then
+      v_items := v_items || jsonb_build_object('item', 'currency:' || p.id, 'owner_seat', 'accountant', 'subject', 'stripe_payout',
+        'title', 'Stripe payout ' || p.id || ' is in ' || upper(p.currency) || ', and the Mashreq account is reconciled in AED',
+        'blast', 'agent_facing', 'affected', 1, 'demo', not p.livemode, 'evidence', to_jsonb(p));
+    end if;
+    -- Paid, unmatched, and a statement already runs past the end of its window: missing from the bank.
+    if p.status = 'paid' and p.bank_line_id is null and p.currency = 'aed'
+       and exists (select 1 from public.bank_statement_line bl
+                    where ((p.livemode and bl.account <> 'zz_demo') or (not p.livemode and bl.account = 'zz_demo'))
+                      and bl.value_date >= p.arrival_date + v_after) then
+      v_items := v_items || jsonb_build_object('item', 'missing:' || p.id, 'owner_seat', 'accountant', 'subject', 'stripe_payout',
+        'title', 'Stripe paid out AED ' || round(p.amount_fils / 100.0, 2) || ' (' || p.id || ') for ' || p.arrival_date
+                 || ' and the bank statement shows no credit of that amount between ' || (p.arrival_date - v_before)
+                 || ' and ' || (p.arrival_date + v_after),
+        'blast', 'agent_facing', 'affected', 1, 'demo', not p.livemode,
+        'evidence', to_jsonb(p) || jsonb_build_object('nearest_stripe_credits', (
+          select coalesce(jsonb_agg(jsonb_build_object('line', bl.id, 'value_date', bl.value_date, 'amount_aed', bl.amount_aed,
+                                                       'description', public.fn_mask_bank_text(bl.description)) order by abs(bl.value_date - p.arrival_date)), '[]'::jsonb)
+            from (select * from public.bank_statement_line b2
+                   where ((p.livemode and b2.account <> 'zz_demo') or (not p.livemode and b2.account = 'zz_demo'))
+                     and b2.amount_aed > 0 and b2.value_date between p.arrival_date - v_before and p.arrival_date + v_after
+                   limit 5) bl)));
+    end if;
+  end loop;
+
+  -- A month with live payouts whose statement has not arrived by the due day of the next month.
+  for x in select date_trunc('month', s.arrival_date)::date mo, count(*) n, sum(s.amount_fils) fils
+             from public.stripe_payout s where s.livemode and s.status = 'paid'
+            group by 1 loop
+    if v_as_of > (x.mo + interval '1 month')::date + (v_due_day - 1)
+       and not exists (select 1 from public.bank_statement_line bl
+                        where bl.account <> 'zz_demo' and bl.value_date >= (x.mo + interval '1 month' - interval '1 day')::date) then
+      v_items := v_items || jsonb_build_object('item', 'statement:' || to_char(x.mo, 'YYYY-MM'), 'owner_seat', 'accountant',
+        'subject', 'bank_statement',
+        'title', 'The Mashreq statement for ' || to_char(x.mo, 'Mon YYYY') || ' has not reached the accountant, so '
+                 || x.n || ' Stripe payout(s) totalling AED ' || round(x.fils / 100.0, 2) || ' cannot be confirmed in the bank',
+        'blast', 'agent_facing', 'affected', 0,
+        'evidence', jsonb_build_object('month', x.mo, 'payouts', x.n, 'amount_aed', round(x.fils / 100.0, 2),
+                                       'remedy', 'forward the statement (PDF or CSV export) to expenses@mail.quotesdone.com'));
+    end if;
+  end loop;
+
+  -- A statement that arrived and could not be read.
+  for x in select * from public.bank_statement_intake i where i.state = 'unreadable' and (i.account <> 'zz_demo' or v_demo_on) loop
+    v_items := v_items || jsonb_build_object('item', 'unreadable:' || x.source_ref, 'owner_seat', 'accountant', 'subject', 'bank_statement',
+      'title', 'A ' || x.account || ' statement' || coalesce(' for ' || to_char(x.statement_month, 'Mon YYYY'), '')
+               || ' arrived and no line could be read from it',
+      'blast', 'agent_facing', 'affected', 0, 'demo', x.account = 'zz_demo',
+      'evidence', jsonb_build_object('source_ref', x.source_ref, 'doc_path', x.doc_path, 'note', x.note,
+                                     'remedy', 'forward the CSV export of the same statement, or ingest its lines through the accountant runtime''s bank_statement action'));
+  end loop;
+
+  -- Money from Stripe in the bank that no payout explains.
+  for x in select bl.* from public.bank_statement_line bl
+            where bl.amount_aed > 0 and bl.description ilike '%stripe%' and bl.value_date + v_after < v_as_of
+              and (bl.account <> 'zz_demo' or v_demo_on)
+              and not exists (select 1 from public.stripe_payout s where s.bank_line_id = bl.id) loop
+    v_items := v_items || jsonb_build_object('item', 'unexplained:' || x.id, 'owner_seat', 'accountant', 'subject', 'bank_statement',
+      'title', 'The bank shows a Stripe credit of AED ' || x.amount_aed || ' on ' || x.value_date || ' that no recorded payout explains',
+      'blast', 'agent_facing', 'affected', 1, 'demo', x.account = 'zz_demo',
+      'evidence', to_jsonb(x) || jsonb_build_object('description', public.fn_mask_bank_text(x.description),
+                                                    'reference', public.fn_mask_bank_text(x.reference)));
+  end loop;
+
+  v_settle := public.fn_accountant_duty_settle('bank', v_items);
+  return jsonb_build_object('as_of', v_as_of, 'matched_now', n_matched, 'findings', v_settle,
+    'payouts', (select count(*) from public.stripe_payout where livemode),
+    'payouts_matched', (select count(*) from public.stripe_payout where livemode and bank_line_id is not null),
+    'statements', (select count(*) from public.bank_statement_intake where account <> 'zz_demo'),
+    'basis', 'Stripe payouts (read from GET /v1/payouts) against Mashreq statement lines, amount exact, date within the gl_settings window. Nothing was posted to the ledger.');
+end $fn$;
+revoke execute on function public.fn_accountant_bank_reconcile(date) from public, anon, authenticated;
+
+-- Probe for 4b. Running the reconciliation would settle real findings and can page, so this reads the
+-- definition that is now live: both evidence spots call the mask, and no raw description is emitted.
+do $probe_reconcile$
+declare d text := pg_get_functiondef('public.fn_accountant_bank_reconcile(date)'::regprocedure);
+begin
+  if d !~ 'fn_mask_bank_text\(bl\.description\)' or d !~ 'fn_mask_bank_text\(x\.description\)'
+     or d !~ 'fn_mask_bank_text\(x\.reference\)' then
+    raise exception 'CHK<<fn_accountant_bank_reconcile does not mask the bank description and reference in its evidence>>'; end if;
+  if d ~ '''description'', bl\.description' or d ~ '''evidence'', to_jsonb\(x\)\)' then
+    raise exception 'CHK<<fn_accountant_bank_reconcile still emits a raw bank description>>'; end if;
+  raise notice 'reconcile evidence probe passed';
+end $probe_reconcile$;
 
 -- ── 5. PROBE: an invented Mashreq-shaped line is masked; a posted memo still cannot be rewritten ───
 -- DDL lives in this file, so the probe cleans up after itself: the journal part runs in a
