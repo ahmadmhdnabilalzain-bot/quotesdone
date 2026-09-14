@@ -38,19 +38,17 @@
 -- ── 1. THE ONE MASKING FUNCTION ───────────────────────────────────────────────────────────────────
 create or replace function public.fn_mask_bank_text(p text)
 returns text language plpgsql immutable security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v text := p; m text;
+declare v text := p;
 begin
   if v is null then return null; end if;
   -- An IBAN printed in groups of four, then a compact one.
   v := regexp_replace(v, '\m[A-Z]{2}[0-9]{2} [A-Z0-9]{4}( [0-9]{4}){2,6}( [0-9]{1,4})?\M', '[IBAN]', 'g');
   v := regexp_replace(v, '\m[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}\M', '[IBAN]', 'g');
-  -- Any alphanumeric token holding 8+ digits. A date splits into short tokens and survives.
-  for m in select distinct t[1] from regexp_matches(v, '[A-Za-z0-9]+', 'g') t
-            where length(regexp_replace(t[1], '[^0-9]', '', 'g')) >= 8
-            order by 1 desc loop
-    v := replace(v, m, '[ref]');
-  end loop;
-  return v;
+  -- Any alphanumeric token holding 8+ digits, in ONE positional pass. The lookahead holds at a token's
+  -- first character exactly when the token has 8+ digits, and the match then runs to the token's end.
+  -- (Review of #684: a per-token text replace let one overlapping token rewrite another first and
+  -- leaked 9 digits.) A date splits into short tokens and survives; output holds no digit run to re-mask.
+  return regexp_replace(v, '(?=(?:[A-Za-z]*[0-9]){8})[A-Za-z0-9]+', '[ref]', 'g');
 end $fn$;
 revoke execute on function public.fn_mask_bank_text(text) from public, anon, authenticated;
 
@@ -67,20 +65,25 @@ drop trigger if exists trg_gl_journal_memo_masked on public.gl_journal;
 create trigger trg_gl_journal_memo_masked before insert or update of memo on public.gl_journal
   for each row execute function public.fn_gl_journal_memo_masked();
 
--- ── 3. IMMUTABILITY, WITH ONE ALLOWANCE: A POSTED MEMO MAY BE MASKED, NOTHING ELSE ─────────────────
--- Body as live (measured 15 Sep 2026) except the memo clause.
+-- ── 3. A POSTED JOURNAL IS IMMUTABLE: TWO NAMED EXITS, NOTHING ELSE ───────────────────────────────
+-- Measured before (live since the migrations): the guard only fired when the UPDATE kept status
+-- 'posted', so an UPDATE moving a posted journal to any other status (draft, or void without the
+-- reversal link) made its date, source and memo rewritable (review of #684). A posted journal may now
+-- only (a) stay posted with every column unchanged except its memo, replaced by exactly its own masked
+-- form, or (b) become 'void' through fn_gl_reverse's own statement: status 'void' and the reversal link
+-- set, every other column unchanged. Anything else, and every DELETE, is refused.
 create or replace function public.fn_gl_journal_immutable()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_catalog' as $fn$
 begin
-  if tg_op in ('UPDATE','DELETE') and old.status = 'posted'
-     and not (tg_op='UPDATE' and new.status='void' and old.status='posted' and new.reverses is not null) then
-    -- allow only the controlled void marking done by fn_gl_reverse (new.status='void'), and a memo
-    -- replaced by its own masked form (a journal memo never carries a bank or IBAN number)
-    if tg_op='DELETE' or (tg_op='UPDATE' and old.status='posted' and new.status='posted'
-         and (new.entry_date<>old.entry_date or new.source<>old.source
-              or (new.memo is distinct from old.memo and new.memo is distinct from public.fn_mask_bank_text(old.memo)))) then
-      raise exception 'Posted journal % is immutable (reverse it instead)', old.id;
+  if old.status = 'posted' then
+    if tg_op = 'UPDATE' and (
+         (new.status = 'posted' and (to_jsonb(new) - 'memo') = (to_jsonb(old) - 'memo')
+          and (new.memo is not distinct from old.memo or new.memo = public.fn_mask_bank_text(old.memo)))
+      or (new.status = 'void' and new.reverses is not null
+          and (to_jsonb(new) - 'status' - 'reverses') = (to_jsonb(old) - 'status' - 'reverses'))) then
+      return new;
     end if;
+    raise exception 'Posted journal % is immutable (reverse it instead)', old.id;
   end if;
   return case when tg_op='DELETE' then old else new end;
 end $fn$;
@@ -352,7 +355,7 @@ do $probe$
 declare
   v_line text := 'ZZ DEMO IPP TRANSFER - ZZ DEMO SENDER NAME - AE000000000000000000042 FT0000000042ZZ REF 000000000042 CIDZZAED 00042';
   v_spaced text := 'ZZ DEMO Monthly Maintenance Fee AE00 0000 0000 0000 0000 042 value 2026-08-31 GB00ZZZZ00000000000042';
-  m text; s text; v_id bigint;
+  m text; s text; v_id bigint; v_draft bigint; v_stmt text;
 begin
   m := public.fn_mask_bank_text(v_line);
   s := public.fn_mask_bank_text(v_spaced);
@@ -364,20 +367,53 @@ begin
     raise exception 'CHK<<fn_mask_bank_text removed words it must keep: % | %>>', m, s; end if;
   if public.fn_mask_bank_text(m) <> m or public.fn_mask_bank_text(s) <> s then
     raise exception 'CHK<<fn_mask_bank_text is not idempotent>>'; end if;
+  -- Overlap shapes (review of #684): the reviewer's exact input, duplicates, a ref inside a longer
+  -- token, adjacent tokens, letters between digits. No digit run of 8+ may survive, and masking twice
+  -- changes nothing.
+  if public.fn_mask_bank_text('90000000 090000000X99999999') <> '[ref] [ref]' then
+    raise exception 'CHK<<the reviewer''s overlap input is not fully masked>>'; end if;
+  if exists (select 1 from unnest(array[
+        '90000000 090000000X99999999', '12345678 12345678 123456789', '00000042 ZZ00000042 00000042ZZ',
+        'FT0000000042ZZ/00000000,00000000', '00000000000000000042X00000000', 'A1B2C3D4E5F6G7H8 a1b2c3d4e5f6g7h8',
+        'AE000000000000000000042AE000000000000000000042', 'AE00 0000 0000 0000 0000 042 00000000',
+        'REF:000000000042-000000000043', 'ZZ DEMO 2026-08-31 CIDZZAED 00042 1234567']) x
+        where public.fn_mask_bank_text(x) ~ '[0-9]{8,}'
+           or public.fn_mask_bank_text(x) ~ '[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}'
+           or public.fn_mask_bank_text(public.fn_mask_bank_text(x)) <> public.fn_mask_bank_text(x)) then
+    raise exception 'CHK<<fn_mask_bank_text leaves a digit run or is not idempotent on an overlap shape>>'; end if;
+  if public.fn_mask_bank_text('ZZ DEMO 2026-08-31 CIDZZAED 00042 1234567') <> 'ZZ DEMO 2026-08-31 CIDZZAED 00042 1234567' then
+    raise exception 'CHK<<fn_mask_bank_text masked a date or a short number>>'; end if;
 
   begin
     v_id := public.fn_accountant_draft_entry(current_date, v_line, 'bank_charge', 'zz-demo-memo-mask-probe',
               '[{"account":"6300","debit":1},{"account":"1000","credit":1}]'::jsonb);
     if (select memo from public.gl_journal where id = v_id) is distinct from m then
       raise exception 'CHK<<a journal memo was stored unmasked>>'; end if;
+    v_draft := v_id;
     insert into public.gl_journal (entry_date, memo, source, source_ref, created_by, status)
     values (current_date, 'ZZ DEMO posted', 'zz_demo', 'zz-demo-memo-mask-probe-posted', 'probe', 'posted') returning id into v_id;
-    begin
-      update public.gl_journal set memo = 'ZZ DEMO rewritten' where id = v_id;
-      raise exception 'CHK<<a posted memo was rewritten to something other than its masked form>>';
-    exception when raise_exception then
-      if sqlerrm like 'CHK<<%' then raise; end if;
-    end;
+    -- Every way out of 'posted' except the two named exits is refused (review of #684).
+    foreach v_stmt in array array[
+        'update public.gl_journal set memo = ''ZZ DEMO rewritten'' where id = $1',
+        'update public.gl_journal set status = ''draft'' where id = $1',
+        'update public.gl_journal set status = ''draft'', memo = ''ZZ DEMO rewritten'' where id = $1',
+        'update public.gl_journal set status = ''void'' where id = $1',
+        'update public.gl_journal set status = ''void'', reverses = $2, memo = ''ZZ DEMO rewritten'' where id = $1',
+        'update public.gl_journal set entry_date = entry_date - 1 where id = $1',
+        'update public.gl_journal set source_ref = ''zz-demo-memo-mask-probe-moved'' where id = $1',
+        'delete from public.gl_journal where id = $1'] loop
+      begin
+        execute v_stmt using v_id, v_draft;
+        raise exception 'CHK<<a posted journal accepted: %>>', v_stmt;
+      exception when raise_exception then
+        if sqlerrm like 'CHK<<%' then raise; end if;
+      end;
+    end loop;
+    -- The reversal exit, as fn_gl_reverse writes it (status void and the link, nothing else), still works,
+    -- so #682's reversal path is untouched.
+    update public.gl_journal set status = 'void', reverses = v_draft where id = v_id;
+    if (select status from public.gl_journal where id = v_id) <> 'void' then
+      raise exception 'CHK<<the fn_gl_reverse void exit was refused>>'; end if;
     raise exception 'zz_probe_rollback';
   exception when others then
     if sqlerrm <> 'zz_probe_rollback' then raise; end if;
