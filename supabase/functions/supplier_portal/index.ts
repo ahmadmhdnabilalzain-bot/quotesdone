@@ -611,7 +611,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       if (!has(r.sector)) improving.push({ code:'no_sector', title:'Set your sector', detail:'A matching sector adds 2 points to your score on every request in that category, which decides who makes the shortlist.', fix:'profile' });
       for (const c of kwCols) if (!has(r[c])) improving.push({ code:'empty_' + c, title:'Add your ' + c.replace('_', ' '), detail:'Each keyword found here raises your match score. Empty fields cannot match anything.', fix:'profile' });
       if (!has(r.emirate) && !(Array.isArray(r.service_emirates) && r.service_emirates.length)) {
-        improving.push({ code:'no_emirate', title:'Set the emirates you serve', detail:'Suppliers in the customer’s emirate are ranked above everyone else, so this is the single strongest ranking signal.', fix:'profile' });
+        improving.push({ code:'no_emirate', title:'Set your home emirate', detail:'You receive requests from the whole UAE either way. Your emirate is used only to break a tie between equally good matches.', fix:'profile' });
       }
       if (!has(r.license_doc_path)) improving.push({ code:'no_licence', title:'Upload your trade licence', detail:'Required before your account can be approved.', fix:'documents' });
       // #86: surface the capability agent's scope questions so the supplier can confirm or correct what
@@ -652,7 +652,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
         // "Get matched" journey renders this list first, then the blocking items above.
         required_to_register: registrationChecklist(r),
         note_code: 'elig_note',
-        note: 'Each request goes to a shortlist of up to 8 suppliers, ranked first by whether you serve the customer’s emirate, then by how well your listing matches what they asked for.' });
+        note: 'Each request goes to a shortlist of up to 8 suppliers, ranked by how well your listing matches what the customer asked for. Suppliers anywhere in the UAE are eligible; being in the customer’s emirate only breaks a tie.' });
     }
 
     return J({ error: 'unknown_action', action }, 400);

@@ -84,7 +84,9 @@ export function BriefBox() {
             className="block w-full resize-none bg-transparent px-5 pb-2 pt-3 text-[16px] leading-relaxed text-paper outline-none placeholder:text-faint/90 focus-visible:placeholder:text-faint/60"
           />
           <div className="flex flex-col gap-3 border-t border-[var(--line)] px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-1.5 px-2 sm:px-0 sm:ps-2">
+            <div className="flex flex-wrap items-center gap-1.5 px-2 sm:px-0 sm:ps-2">
+              {/* Labelled as examples so three chips never read as the list of what we do. */}
+              <span className="text-[12px] text-faint">{t('eg')}</span>
               {examples.map((ex) => (
                 <button
                   key={ex}

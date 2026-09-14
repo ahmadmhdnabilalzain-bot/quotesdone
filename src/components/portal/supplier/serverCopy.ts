@@ -93,8 +93,8 @@ const COPY: Record<string, Entry> = {
   draft_quote_detail: s('Add the missing details so we can send them to customers.', 'أضف التفاصيل الناقصة لنرسلها إلى العملاء.'),
 
   // ── Eligibility (supplier_portal eligibility) ───────────────────────────────────────────────────
-  elig_note: s('Each request goes to a shortlist of up to 8 suppliers, ranked first by whether you serve the customer’s emirate, then by how well your listing matches what they asked for.',
-    'يُرسل كل طلب إلى قائمة مختصرة تضم حتى 8 مورّدين، تُرتَّب أولًا حسب خدمتك لإمارة العميل، ثم حسب مدى تطابق ملفك مع ما طلبه.'),
+  elig_note: s('Each request goes to a shortlist of up to 8 suppliers, ranked by how well your listing matches what the customer asked for. Suppliers anywhere in the UAE are eligible; being in the customer’s emirate only breaks a tie.',
+    'يُرسل كل طلب إلى قائمة مختصرة تضم حتى 8 مورّدين، تُرتَّب حسب مدى تطابق ملفك مع ما طلبه العميل. والمورّدون في أي مكان في الإمارات مؤهّلون، ولا يُرجِّح وجودك في إمارة العميل إلا عند التساوي.'),
   permanently_closed_title: s('Your listing is marked permanently closed', 'ملفك مسجّل على أنه مغلق نهائيًا'),
   permanently_closed_detail: s('We will not send you requests while this is set. Contact us if this is wrong.', 'لن نرسل إليك طلبات ما دام هذا الإعداد قائمًا. تواصل معنا إن كان ذلك خطأ.'),
   banned_title: s('Your account is suspended', 'حسابك موقوف'),
@@ -121,8 +121,8 @@ const COPY: Record<string, Entry> = {
   empty_categories_title: s('Add your categories', 'أضف فئاتك'),
   empty_capability_summary_title: s('Add your capability summary', 'أضف ملخص قدراتك'),
   empty_detail: s('Each keyword found here raises your match score. Empty fields cannot match anything.', 'كل كلمة مفتاحية هنا ترفع تقييم مطابقتك، والحقول الفارغة لا تطابق أي شيء.'),
-  no_emirate_title: s('Set the emirates you serve', 'حدّد الإمارات التي تخدمها'),
-  no_emirate_detail: s('Suppliers in the customer’s emirate are ranked above everyone else, so this is the single strongest ranking signal.', 'يُقدَّم المورّدون في إمارة العميل على غيرهم، لذا هذا أقوى عامل في الترتيب.'),
+  no_emirate_title: s('Set your home emirate', 'حدّد إمارة مقرّك'),
+  no_emirate_detail: s('You receive requests from the whole UAE either way. Your emirate is used only to break a tie between equally good matches.', 'تصلك الطلبات من الإمارات كلها في جميع الأحوال، ولا تُستخدم إمارتك إلا لترجيح مطابقة على أخرى مساوية لها.'),
   no_licence_title: s('Upload your trade licence', 'ارفع رخصتك التجارية'),
   no_licence_detail: s('Required before your account can be approved.', 'مطلوبة قبل اعتماد حسابك.'),
   confirm_scope_title: s('Confirm what your company does', 'أكّد ما تقوم به شركتك'),

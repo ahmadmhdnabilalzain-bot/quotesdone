@@ -63,8 +63,8 @@ type Chase = {
 // situation; "0 inquiry_matches rows" is ours.
 const CHASE_COPY: Record<string, [string, string]> = {
   not_yet_sent: [
-    'This has not reached any supplier yet. Open it and check the trade and emirate are right — that is what we match on.',
-    'لم يصل هذا إلى أي مورّد بعد. افتحه وتأكد من صحة المهنة والإمارة، فهما أساس المطابقة.',
+    'This has not reached any supplier yet. Open it and check the trade is right — that is what we match on.',
+    'لم يصل هذا إلى أي مورّد بعد. افتحه وتأكد من صحة النشاط، فهو أساس المطابقة.',
   ],
   no_replies: [
     'Suppliers have it and none has quoted yet. Adding a drawing or a target date is what usually unblocks this.',

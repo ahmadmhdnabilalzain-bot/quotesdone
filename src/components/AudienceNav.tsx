@@ -25,6 +25,7 @@ export type AudienceLabels = {
   how: string; why: string; blog: string; suppliers: string; services: string; categories: string;
   login: string; getQuotes: string; menu: string; closeMenu: string;
   myPortal: string; supplierPortal: string; servicesLead: string;
+  about: string; allTrades: string; guides: string;
 };
 export type Audience = 'customer' | 'supplier' | 'visitor';
 
@@ -88,12 +89,13 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
     { href: '/#cats', label: labels.categories },
     { href: '/#why', label: labels.why },
     { href: '/blog/', label: labels.blog },
+    { href: '/about', label: labels.about },
   ];
   const own: Item =
     !mounted || audience === 'visitor' ? { href: '/supplier', label: labels.suppliers }
     : audience === 'customer' ? { href: '/me', label: labels.myPortal }
     : { href: '/portal', label: labels.supplierPortal };
-  const items: Item[] = (!mounted || audience === 'visitor') ? [...shared.slice(0, 3), own, shared[3]] : [own, ...shared];
+  const items: Item[] = (!mounted || audience === 'visitor') ? [...shared.slice(0, 3), own, ...shared.slice(3)] : [own, ...shared];
   const mobileItems: Item[] = [items[0], { href: '/services', label: labels.services }, ...items.slice(1)];
   const cta = audience === 'supplier' ? { href: '/portal', label: labels.supplierPortal }
     : audience === 'customer' ? { href: '/me', label: labels.myPortal }
@@ -125,9 +127,9 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
               <div className="qd-panel qd-grain grid overflow-hidden !rounded-frame border-line2 !bg-navy/95 !shadow-e3 lg:grid-cols-[1fr_300px]">
                 <div className="p-6">
                   <div className="flex items-baseline justify-between gap-6">
-                    <span className="qd-kicker">{labels.services}</span>
-                    <Link href="/services" className="group inline-flex items-center gap-1.5 text-small font-medium text-teal-light hover:text-white">
-                      {labels.services}
+                    <span className="qd-kicker">{labels.guides}</span>
+                    <Link href="/services#all-trades" className="group inline-flex items-center gap-1.5 text-small font-medium text-teal-light hover:text-white">
+                      {labels.allTrades}
                       <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden />
                     </Link>
                   </div>
