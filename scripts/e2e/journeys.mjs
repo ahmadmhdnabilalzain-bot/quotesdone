@@ -313,7 +313,7 @@ export async function journeyComparison(ctx) {
     for (const lang of ['en', 'ar']) {
       const r = await call('customer_api', fx.customer.jwt, { action: 'quote_pdf', quote_id: live[0].id, lang }, 120000);
       const url = r.json?.url || r.json?.pdf_url || r.json?.file_url;
-      const ok = await isPdf(url);
+      const ok = !!(await pdfBytes(url));
       rep.step(J, `quotation PDF opens (${lang})`, ok ? 'PASS' : 'FAIL', `HTTP ${r.status} ${ok ? 'valid %PDF' : 'no PDF: ' + r.text.slice(0, 140)}`);
     }
   } else rep.step(J, 'quotation PDF opens', 'FAIL', 'no live quote to open');
