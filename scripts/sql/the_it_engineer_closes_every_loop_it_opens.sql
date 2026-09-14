@@ -267,6 +267,13 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'report ' || p_report_id || ' names no handoff');
   end if;
   v_demo := coalesce((h.detail->>'demo')::boolean, false);
+  -- A finding its duty marks no_founder_email (a moderate or low dependency advisory) stays with its
+  -- owning seat: the founder is emailed for a new bug only when it is high or critical.
+  if coalesce((h.detail->'finding_evidence'->>'no_founder_email')::boolean, false) then
+    return jsonb_build_object('ok', true, 'report_id', r.id, 'handoff_id', h.id, 'founder_delivery_handoff', null,
+      'accepted', public.fn_ceo_accept_support_report(r.id,
+        'ceo: below high severity, so the ' || h.agent || ' keeps it and the founder is not emailed'));
+  end if;
   v_detail := 'What is wrong: ' || coalesce(h.detail->>'title', h.detail->>'issue_key') || E'.\n'
     || 'Where: ' || coalesce(h.detail->>'where_it_is', h.detail->>'subject', 'not recorded') || E'.\n'
     || 'Since: ' || to_char((h.detail->>'occurrence_started_at')::timestamptz at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || E' (Dubai).\n'
@@ -286,6 +293,8 @@ begin
   v_acc := public.fn_ceo_accept_support_report(r.id,
     'ceo: new bug, no seat could fix it — ' || case when v_demo then 'ZZ DEMO case, the founder is not emailed'
                                                    else 'founder told through customer_support handoff ' || v_d end);
+  -- Duty 18: every new bug gets its incident record now; duty 17 completes it before the loop closes.
+  perform public.fn_it_incident_open(h.id);
   return jsonb_build_object('ok', true, 'report_id', r.id, 'handoff_id', h.id, 'demo', v_demo,
                             'founder_delivery_handoff', v_d, 'accepted', v_acc);
 end $fn$;
@@ -328,7 +337,17 @@ begin
     -- closed and reopened (a later started_at is a different occurrence with its own loop).
     v_cleared := f.issue_key is null or f.closed_at is not null
                  or f.started_at > (h.detail->>'occurrence_started_at')::timestamptz;
-    if v_cleared then
+    -- A new bug that has cleared waits for what was learned (trigger z62, fn_it_attach_learning).
+    if v_cleared and exists (select 1 from public.it_incident i where i.handoff_id = h.id
+                              and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = ''
+                                   or (i.playbook_class is null and coalesce(btrim(i.not_automatable_reason), '') = ''))) then
+      if not (h.detail ? 'awaiting_learning') then
+        update public.agent_actions set detail = detail || jsonb_build_object('awaiting_learning', now()) where id = h.id;
+        update public.it_incident set ended_at = coalesce(f.closed_at, now()), updated_at = now() where handoff_id = h.id and ended_at is null;
+      end if;
+      n_wait := n_wait + 1;
+    elsif v_cleared then
+      update public.it_incident set ended_at = coalesce(ended_at, f.closed_at, now()), updated_at = now() where handoff_id = h.id;
       perform set_config('qd.handoff_closer', 'it_engineer', true);
       perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
         'verified_by', 'it_engineer', 'verified_at', now(),
@@ -433,7 +452,16 @@ begin
     'founder_emails_today', (select count(*) from public.founder_alerts
                               where dedupe_key like 'it\_%' and channel = 'email' and created_at >= v_since),
     'repeats_folded_today', (select count(*) from public.founder_alerts
-                              where dedupe_key like 'it\_%' and channel = 'deduped' and created_at >= v_since))
+                              where dedupe_key like 'it\_%' and channel = 'deduped' and created_at >= v_since),
+    -- Duty 17: failure classes the company fixed on its own versus new ones.
+    'auto_fixed_today', (select count(*) from public.agent_actions a
+                          where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done' and a.decided_at >= v_since
+                            and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)),
+    'playbook_runs_today', (select count(*) from public.agent_runs
+                             where agent = 'it_engineer' and counts->>'job' = 'playbook' and started_at >= v_since),
+    'new_bugs_today', (select count(*) from public.it_incident where created_at >= v_since),
+    'awaiting_learning', (select count(*) from public.agent_actions
+                           where kind = 'handoff' and detail->>'type' = 'it.finding' and status <> 'done' and detail ? 'awaiting_learning'))
   into v_ev;
 
   v_rep := public.fn_support_report_to_ceo('it_daily:' || v_day, 'routine',
@@ -490,6 +518,9 @@ begin
                                  and (a.detail->>'occurrence_started_at')::timestamptz = x.started_at)
             order by x.started_at loop
     begin
+      -- The playbook first: a known remedy runs once per occurrence, and the finding is handed on
+      -- only if it is still open on the next tick.
+      continue when public.fn_it_playbook_first(f.issue_key, f.started_at);
       perform public.fn_it_loop_open(f.issue_key);
       n_open := n_open + 1;
     exception when others then

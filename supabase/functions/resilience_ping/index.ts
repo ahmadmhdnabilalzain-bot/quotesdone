@@ -8,6 +8,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
+import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -411,6 +412,21 @@ async function itDutiesTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// DUTIES 9-15 ON THEIR OWN CADENCES (founder, 14 Sep 2026: "fine build those tasks for IT agent").
+// fn_it_scheduled_due names what is due; only those readings are taken; fn_it_duties_scheduled decides.
+async function itScheduledTick(): Promise<unknown> {
+  try {
+    const { data: due, error: dueErr } = await admin.rpc('fn_it_scheduled_due');
+    if (dueErr) return { ok: false, error: dueErr.message };
+    const list = (due ?? []) as string[];
+    const { data: n } = await admin.rpc('fn_it_threshold', { p_key: 'restore_sample_files' });
+    const readings = await takeScheduledReadings(admin as never, sec, list, Number(n) || 5);
+    const { data, error } = await admin.rpc('fn_it_duties_scheduled', { p_r: readings });
+    if (error) return { ok: false, error: error.message };
+    return { due: list, settled: Object.keys((data ?? {}) as Record<string, unknown>) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function itEngineerAlertTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_it_engineer_alert_tick');
@@ -534,6 +550,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // first would deliver the previous tick's picture of the estate.
     const itdetect = await itDetectTick();
     const itduties = await itDutiesTick();
+    const itscheduled = await itScheduledTick();
     const it = await itEngineerAlertTick();
     // One RPC. The HTTP work runs in pg_net's background worker, not in this invocation, so this
     // adds no meaningful wall clock to the heartbeat.
@@ -549,7 +566,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     if (error) return J({ ok: false, error: error.message }, 200);
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, archive, vat, ceoWeekly, ladder, refunds });
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, it, outbox, archive, vat, ceoWeekly, ladder, refunds });
 
     // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
     const nowMs = Date.now();
@@ -573,6 +590,6 @@ Deno.serve(observe('resilience_ping', async (req) => {
         flushed = true;
       } catch (_e) { /* best effort */ }
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, it, outbox, vat, ceoWeekly, ladder, refunds });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, it, outbox, vat, ceoWeekly, ladder, refunds });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));
