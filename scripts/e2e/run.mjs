@@ -122,6 +122,17 @@ const md = [
 ];
 writeFileSync(join(DIR, 'report.md'), md.join('\n'));
 writeFileSync(join(DIR, 'steps.json'), JSON.stringify(steps, null, 1));
+// A STABLE RESULT FOR WHOEVER RUNS THIS UNATTENDED (14 Sep 2026): the nightly it_engineer duty reads
+// this file, hands each FAIL to the seat that owns it, and re-runs to verify. The shape is a contract:
+// add fields, never rename or remove one.
+const result = {
+  version: 1, ok: count('FAIL') === 0 && !fatal, tag: run.tag, site: SITE, project: REF, started: stamp, seconds: secs,
+  journeys: only, kept: KEEP, pass: count('PASS'), fail: count('FAIL'), skip: count('SKIP'),
+  report: join(DIR, 'report.md'), purge: KEEP ? `node scripts/e2e/run.mjs --purge-tag ${run.tag}` : null,
+  steps: steps.map((s) => ({ journey: s.journey, name: s.name, status: s.status, detail: s.detail, ms: s.ms ?? null })),
+};
+writeFileSync(join(DIR, 'result.json'), JSON.stringify(result, null, 1));
+if (argv.includes('--json')) console.log(JSON.stringify({ ...result, steps: undefined, result: join(DIR, 'result.json') }));
 // Read by scripts/e2e/report_to_it_engineer.mjs, which hands this run to the IT engineer.
 writeFileSync(join(DIR, 'run.json'), JSON.stringify({ tag: run.tag, kept: KEEP, leftovers: closed?.leftovers ?? null }));
 console.log(`\nE2E ${count('PASS')} passed, ${count('FAIL')} failed, ${count('SKIP')} skipped - report ${join(DIR, 'report.md')}`);
