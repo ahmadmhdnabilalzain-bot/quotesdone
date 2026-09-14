@@ -1,0 +1,28 @@
+{
+"legal_name": "QuotesDone Technologies",
+"form": { "en": "Sole Establishment", "ar": "مؤسسة فردية" },
+"licence": { "en": "Dubai DET E-Trader (Professional) Licence No.", "ar": "رخصة تاجر إلكتروني (مهني) من دائرة الاقتصاد والسياحة في دبي رقم" },
+"licence_no": "1633275",
+"register": { "en": "Commercial Register No.", "ar": "السجل التجاري رقم" },
+"register_no": "2883503",
+"licence_class": {
+"en": "A Dubai E-Trader portal licence — an online business with no shop front. Our licence, its owner and our social stores are on public record with DET.",
+"ar": "رخصة بوابة إلكترونية (تاجر إلكتروني) في دبي — نشاط تجاري عبر الإنترنت بلا واجهة محل. رخصتنا ومالكها ومتاجرنا على وسائل التواصل مسجّلة لدى دائرة الاقتصاد والسياحة."
+},
+"city": { "en": "Dubai, United Arab Emirates", "ar": "دبي، الإمارات العربية المتحدة" },
+"phone": { "number": "+971 50 931 9355", "tel": "+971509319355", "label": { "en": "Phone", "ar": "الهاتف" } },
+"licence_phone": { "number": "+971 56 791 8605", "tel": "+971567918605", "label": { "en": "Licence record", "ar": "سجل الرخصة" } },
+"email": "management@quotesdone.com",
+"email_label": { "en": "Email", "ar": "البريد الإلكتروني" },
+"hours": {
+"en": "Monday to Friday, 9am to 6pm (GST), excluding UAE public holidays",
+"ar": "من الاثنين إلى الجمعة، من 9 صباحًا إلى 6 مساءً (بتوقيت الخليج)، باستثناء العطلات الرسمية في الإمارات"
+},
+"hours_label": { "en": "Hours", "ar": "ساعات العمل" },
+"working_days": {
+"en": "Working days are Monday to Friday, excluding UAE public holidays.",
+"ar": "أيام العمل من الاثنين إلى الجمعة، باستثناء العطلات الرسمية في الإمارات."
+},
+"heading": { "en": "Who you are dealing with", "ar": "الجهة التي تتعامل معها" },
+"address_label": { "en": "Address", "ar": "العنوان" }
+}
