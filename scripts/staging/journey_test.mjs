@@ -142,13 +142,14 @@ if (otpKey) {
 r = await call('customer_api', cust.jwt, { action: 'me' });
 step('customer profile (me)', r.status === 200, `HTTP ${r.status} ${r.text}`);
 
-// Journey steps 3 and 4. create_inquiry refuses with 428 registration_incomplete until the
-// customer has a name, a mobile number and an accepted T&C version - and none of that lives in
-// customer_api. kyc owns it: save_customer writes the profile, accept_terms records the version
-// from app_secrets so the acceptance says which document was actually signed.
+// Journey steps 3 and 4. create_inquiry refuses with 403 account_incomplete until the customer has
+// a name, an 18+ date of birth, an OTP-verified mobile or email and an accepted T&C version (the
+// founder's account rule, 14 Sep 2026, _shared/account_rule.ts) - and none of that lives in
+// customer_api. kyc owns it: save_customer writes the profile (refusing a missing or under-18 DOB),
+// accept_terms records the version from app_secrets so the acceptance says which document was signed.
 r = await call('kyc', cust.jwt, {
   action: 'save_customer', user_kind: 'customer',
-  email: cust.email, full_name: 'Journey Test Customer', phone: '+971501234567',
+  email: cust.email, full_name: 'Journey Test Customer', phone: '+971501234567', dob: '1990-01-01',
 });
 step('customer profile (kyc save)', r.status === 200, `HTTP ${r.status} ${r.text}`);
 

@@ -327,9 +327,17 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
         would arrive as `retried` and skip the one refresh attempt this retry exists to make. */}
     <Button className="w-full mt-3" onClick={() => load()}>{t(lang, 'retry')}</Button></Card></div></>;
   if (!k) return <>{strip}<div className={S.center}>{t(lang, 'loading')}</div></>;
-  const complete = k.full_name && k.phone_verified && k.email_verified && k.terms_signed;
+  const complete = k.full_name && k.dob && k.phone_verified && k.email_verified && k.terms_signed;
   if (!complete) return <>{strip}<main><ProfileGate token={token} lang={lang} theme={theme} onDone={() => load()} /></main></>;
   return <Dashboard token={token} lang={lang} theme={theme} onSwapTheme={onSwapTheme} onSetLang={onSetLang} onSignOut={onSignOut} onServedLocale={onServedLocale} />;
+}
+// Under 18 on today's UTC date, from the YYYY-MM-DD a date input produces. Mirrors
+// supabase/functions/_shared/account_rule.ts, which is the authority; this only shows the message early.
+function isUnder18(d) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(d || '')); if (!m) return false;
+  const t = new Date(); let a = t.getUTCFullYear() - +m[1]; const mo = t.getUTCMonth() + 1, dd = t.getUTCDate();
+  if (mo < +m[2] || (mo === +m[2] && dd < +m[3])) a--;
+  return a >= 0 && a < 18;
 }
 function ProfileGate({ token, lang, theme, onDone }) {
   const [st, setSt] = useState(null);
@@ -339,7 +347,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
-  const saveProfile = async () => { setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
+  const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
   // landline, and telling someone to check their junk folder for a code that is being read down the
   // phone is the wrong instruction.
@@ -348,13 +356,12 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg(errText(j, lang, 'err_code_send')); };
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
   const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms' }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
-  // DOB MUST NOT GATE THE CRITICAL PATH (6 Sep 2026). This required st.dob, so a customer who did not
-  // supply a date of birth never saw the Verify-mobile / Verify-email / accept-Terms sections and was
-  // silently stuck — measured on the first real registrant (07:38Z): 8 save_customer calls, ZERO
-  // send_sms, phone unverified, terms never accepted, dob null. DOB is in neither `complete` (below)
-  // nor the create_inquiry gate, so requiring it here blocked verification for a field the rest of the
-  // system treats as optional. The gate now needs only the two facts a code can be sent to.
-  const profileDone = st.full_name && st.phone;
+  // DOB IS REQUIRED AGAIN (founder's account rule, 14 Sep 2026: name, date of birth with under-18
+  // rejected, OTP-verified mobile/email, Terms). The 6 Sep change made it optional because a customer
+  // without one was silently stuck; the fix for silence is a message, not dropping the field. kyc now
+  // answers dob_required / under_18 / dob_invalid in words (errText), the under-18 line shows the moment
+  // the date is entered, and `complete`, kyc accept_terms and create_inquiry all require it.
+  const profileDone = st.full_name && st.phone && st.dob;
   return (<AuthShell lang={lang}><Card className="w-full p-6 sm:p-7">
     <h1 className="font-head text-[20px] font-extrabold tracking-tight text-foreground">{t(lang, 'gate_title')}</h1>
     <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'gate_sub')}</div>
@@ -362,7 +369,8 @@ function ProfileGate({ token, lang, theme, onDone }) {
     <Input className="mt-3" aria-label={t(lang, 'acct_phone')} inputMode="tel" autoComplete="tel" placeholder={t(lang, 'mobile_ph')} value={phone} onChange={(e) => setPhone(e.target.value)} />
     <label htmlFor="qd-dob" className={cn(S.sub, 'mt-3 mb-1 block')}>{t(lang, 'dob_label')}</label>
     {/* The native date picker follows the customer's chosen theme; it was pinned dark (audit 14 Sep). */}
-    <Input id="qd-dob" type="date" className="mt-0" style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }} value={dob} onChange={(e) => setDob(e.target.value)} />
+    <Input id="qd-dob" type="date" className="mt-0" style={{ colorScheme: theme === 'light' ? 'light' : 'dark' }} value={dob} required aria-invalid={isUnder18(dob) || undefined} onChange={(e) => setDob(e.target.value)} />
+    {isUnder18(dob) && <div className={S.err} role="alert">{t(lang, 'err_under_18')}</div>}
     {/* Always available, not only while the profile is incomplete: the number typed at signup is the
         one the code is sent to, and once all three fields were filled the only way to correct a wrong
         number was to verify it first - which is impossible if it is the wrong number. */}
