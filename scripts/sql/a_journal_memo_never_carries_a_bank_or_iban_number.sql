@@ -85,6 +85,12 @@ begin
     end if;
     raise exception 'Posted journal % is immutable (reverse it instead)', old.id;
   end if;
+  -- A void journal is terminal: fn_gl_reverse already set it void with its reversal link. Measured
+  -- 15 Sep 2026: no routine or code path updates or deletes a void journal (the only writers are
+  -- fn_gl_reverse's posted-to-void statement and fn_gl_post, which is only ever called on drafts).
+  if old.status = 'void' then
+    raise exception 'Void journal % is terminal: it was reversed and can never change again', old.id;
+  end if;
   return case when tg_op='DELETE' then old else new end;
 end $fn$;
 revoke execute on function public.fn_gl_journal_immutable() from public, anon, authenticated;
@@ -414,6 +420,24 @@ begin
     update public.gl_journal set status = 'void', reverses = v_draft where id = v_id;
     if (select status from public.gl_journal where id = v_id) <> 'void' then
       raise exception 'CHK<<the fn_gl_reverse void exit was refused>>'; end if;
+    -- A void journal is terminal: nothing about it may change again.
+    foreach v_stmt in array array[
+        'update public.gl_journal set memo = ''ZZ DEMO rewritten'' where id = $1',
+        'update public.gl_journal set status = ''posted'' where id = $1',
+        'update public.gl_journal set status = ''draft'' where id = $1',
+        'update public.gl_journal set reverses = null where id = $1',
+        'update public.gl_journal set reverses = $1 where id = $1',
+        'update public.gl_journal set entry_date = entry_date - 1 where id = $1',
+        'update public.gl_journal set source = ''zz_demo_moved'' where id = $1',
+        'update public.gl_journal set source_ref = ''zz-demo-memo-mask-probe-moved'' where id = $1',
+        'delete from public.gl_journal where id = $1'] loop
+      begin
+        execute v_stmt using v_id;
+        raise exception 'CHK<<a void journal accepted: %>>', v_stmt;
+      exception when raise_exception then
+        if sqlerrm like 'CHK<<%' then raise; end if;
+      end;
+    end loop;
     raise exception 'zz_probe_rollback';
   exception when others then
     if sqlerrm <> 'zz_probe_rollback' then raise; end if;
