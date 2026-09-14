@@ -488,7 +488,7 @@ export function PortalShell({
             </button>
 
             <div className="hidden shrink-0 items-center gap-1 sm:flex">
-              <Button variant="ghost" size="sm" onClick={() => onSetLang(rtl ? 'en' : 'ar')} aria-label={rtl ? 'English' : 'العربية'}>{rtl ? 'EN' : 'ع'}</Button>
+              <Button variant="ghost" size="sm" onClick={() => onSetLang(rtl ? 'en' : 'ar')} aria-label={rtl ? 'English' : 'العربية'} title={t('lang_note')}>{rtl ? 'EN' : 'ع'}</Button>
               <Button variant="ghost" size="sm" onClick={onSwapTheme}
                 aria-label={theme === 'dark' ? t('theme_light') : t('theme_dark')}>
                 {theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
@@ -563,6 +563,7 @@ export function PortalShell({
               <Button variant="outline" size="sm" className="h-11 flex-1" onClick={onSwapTheme}>{theme === 'dark' ? t('theme_light') : t('theme_dark')}</Button>
               <Button variant="outline" size="sm" className="h-11 flex-1" onClick={onSignOut}>{t('signout')}</Button>
             </div>
+            <p className="pt-1 text-[11.5px] leading-snug text-muted-foreground">{t('lang_note')}</p>
           </nav>
         </>
       )}

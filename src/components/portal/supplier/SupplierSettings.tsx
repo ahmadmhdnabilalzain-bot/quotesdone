@@ -28,7 +28,7 @@ type Settings = {
 const T = {
   en: {
     title: 'Settings', loading: 'Loading your settings…', loadErr: 'We could not load your settings. Please reload the page.',
-    prefs: 'Preferences', language: 'Interface language', english: 'English', arabic: 'العربية',
+    prefs: 'Preferences', language: 'Interface language', langNote: 'The portal follows your account language. Changing it here updates your account (EN/AR).', english: 'English', arabic: 'العربية',
     notifications: 'Notifications',
     wa: 'Send me RFQ alerts on WhatsApp',
     waHelp: 'We message the number on your account when a matching request arrives.',
@@ -42,7 +42,7 @@ const T = {
   },
   ar: {
     title: 'الإعدادات', loading: 'جارٍ تحميل إعداداتك…', loadErr: 'تعذّر تحميل إعداداتك. يُرجى إعادة تحميل الصفحة.',
-    prefs: 'التفضيلات', language: 'لغة الواجهة', english: 'English', arabic: 'العربية',
+    prefs: 'التفضيلات', language: 'لغة الواجهة', langNote: 'تتبع البوابة لغة حسابك، وتغييرها هنا يحدّث لغة الحساب.', english: 'English', arabic: 'العربية',
     notifications: 'الإشعارات',
     wa: 'أرسل لي تنبيهات الطلبات على واتساب',
     waHelp: 'نراسل الرقم المسجَّل في حسابك عند وصول طلب مطابق.',
@@ -144,6 +144,7 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
             <option value="en">{t(lang, 'english')}</option>
             <option value="ar">{t(lang, 'arabic')}</option>
           </select>
+          <p className="mt-1.5 text-[11.5px] text-muted-foreground">{t(lang, 'langNote')}</p>
         </div>
 
         <div className="pt-2 border-t border-border">
