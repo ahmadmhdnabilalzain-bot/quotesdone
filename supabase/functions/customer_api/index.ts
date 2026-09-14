@@ -469,6 +469,25 @@ const refundRef = (id: number | string) => 'QD-RF-' + String(id);
 // The comparison report: the analysis quote_compare returned, laid out by compareDocument (see
 // _shared/quote_documents.ts — the side-by-side table, the roster of every quote, the anonymity
 // mask). compare_csv exports the same compareTable rows, so the two can never disagree.
+// ONE server-to-server call to quote_compare, shared by compare_pdf and compare_csv.
+// Measured 14 Sep 2026 (e2e run 5): the same customer got a deterministic analysis from
+// quote_compare with their own JWT and {"error":"comparison_unavailable"} from compare_pdf in both
+// languages. quote_compare is deployed with verify_jwt = true and both call sites POSTed with no
+// Authorization header, so the gateway refused them with a 401 BEFORE the function ran; the
+// gateway's body carries neither `error` nor `note`, which is exactly what fell through to the
+// generic label. Same defect sales_engineer's `match` call had (see the routing block above).
+// The service key gets past the gateway; __secret (cred_fn_customer_api, scope includes
+// quote_compare) is what decides the caller inside.
+async function fetchCompareAnalysis(iid: string, lang: 'en' | 'ar'): Promise<{ analysis?: any; error?: string }> {
+  const secret = await getSecret('cred_fn_customer_api');
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/quote_compare`, { method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SERVICE}`, apikey: SERVICE },
+    body: JSON.stringify({ __secret: secret, inquiry_id: iid, lang }) });
+  const jd = await r.json().catch(() => null);
+  if (jd?.ok && jd.analysis) return { analysis: jd.analysis };
+  return { error: jd?.note || jd?.error || (r.ok ? 'comparison_unavailable' : 'comparison_unavailable_http_' + r.status) };
+}
+
 async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
   const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
   const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
@@ -1136,10 +1155,8 @@ Deno.serve(observe('customer_api', async (req) => {
       // Reuse the cached analysis when the quote set is unchanged; otherwise ask for a fresh one.
       let analysis: any = null;
       try {
-        const secret = await getSecret('cred_fn_customer_api');
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/quote_compare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, inquiry_id: iid, lang }) });
-        const jd = await r.json();
-        if (jd?.ok && jd.analysis) analysis = jd.analysis; else return J({ error: jd?.note || jd?.error || 'comparison_unavailable' }, 200);
+        const got = await fetchCompareAnalysis(iid, lang);
+        if (got.analysis) analysis = got.analysis; else return J({ error: got.error }, 200);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       try {
         const { j, ref } = await buildComparePdf(analysis, inq, lang);
@@ -1161,10 +1178,8 @@ Deno.serve(observe('customer_api', async (req) => {
       if ((gens || 0) >= PDF_LIMIT_PER_HOUR) return J({ error: 'You have generated many PDFs recently. Please try again shortly.' }, 429);
       let analysis: any = null;
       try {
-        const secret = await getSecret('cred_fn_customer_api');
-        const r = await fetch(`${SUPABASE_URL}/functions/v1/quote_compare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, inquiry_id: iid, lang }) });
-        const jd = await r.json();
-        if (jd?.ok && jd.analysis) analysis = jd.analysis; else return J({ error: jd?.note || jd?.error || 'comparison_unavailable' }, 200);
+        const got = await fetchCompareAnalysis(iid, lang);
+        if (got.analysis) analysis = got.analysis; else return J({ error: got.error }, 200);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       const side = compareTable(analysis, lang === 'ar');
       if (!side) return J({ error: 'comparison_unavailable' }, 200);
