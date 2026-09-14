@@ -108,7 +108,7 @@ export default function SupplierInventory({ token, lang = 'en', goTo }:
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'stated')}</div>
           </div>
           <div>
-            <div className={'text-2xl font-semibold tabular-nums ' + (missing ? 'text-amber-300' : '')}>{missing}</div>
+            <div className={'text-2xl font-semibold tabular-nums ' + (missing ? 'text-warn-fg' : '')}>{missing}</div>
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'gap')}</div>
           </div>
         </div>
@@ -138,8 +138,8 @@ export default function SupplierInventory({ token, lang = 'en', goTo }:
             const wk = attr(p, 'restock_weeks');
             const label = av === 'in_stock' ? t(lang, 'inStock')
               : av === 'made_to_order' ? t(lang, 'madeToOrder') : t(lang, 'notStated');
-            const tone = av === 'in_stock' ? 'text-emerald-300 border-emerald-300/25 bg-emerald-300/[0.06]'
-              : av === 'made_to_order' ? 'text-sky-300 border-sky-300/25 bg-sky-300/[0.06]'
+            const tone = av === 'in_stock' ? 'text-ok-fg border-ok/25 bg-ok/[0.06]'
+              : av === 'made_to_order' ? 'text-info-fg border-info/25 bg-info/[0.06]'
               : 'text-white/45 border-white/10 bg-white/[0.02]';
             return (
               <div key={p.id || p.external_key} className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2">

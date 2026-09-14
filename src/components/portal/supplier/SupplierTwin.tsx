@@ -172,7 +172,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
       {/* A fixture must never be presentable as a live account. is_demo comes from the fence itself
           (matching_blocked AND a 'demo' tag), so this banner cannot drift from what it describes. */}
       {twin.is_demo && (
-        <div className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-[11px] text-amber-200">
+        <div className="rounded-lg border border-warn/40 bg-warn/10 px-3 py-2 text-[11px] text-warn-fg">
           {t(lang, 'demo')}
         </div>
       )}
@@ -238,7 +238,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
           <div className="flex flex-wrap gap-1.5">
             {caps.length
               ? caps.map((c) => (
-                  <span key={c.name} className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[11px]">
+                  <span key={c.name} className="rounded-full border border-ok/30 bg-ok/10 px-2 py-0.5 text-[11px]">
                     ✓ {c.name}
                   </span>
                 ))
@@ -281,8 +281,8 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
                 <div key={d.kind} className="flex justify-between text-[11px]">
                   <span className="opacity-70">{d.kind}</span>
                   <span className={
-                    d.doc_status === 'VALID' ? 'text-emerald-300'
-                      : d.doc_status === 'EXPIRED' ? 'text-rose-300' : 'opacity-50'
+                    d.doc_status === 'VALID' ? 'text-ok-fg'
+                      : d.doc_status === 'EXPIRED' ? 'text-danger-fg' : 'opacity-50'
                   }>
                     {d.doc_status}{d.expiry ? ' · ' + String(d.expiry).slice(0, 10) : ''}
                   </span>

@@ -189,7 +189,7 @@ export default function CollaborationWorkspace({
                 </div>
               </div>
               {(w.unread ?? 0) > 0 && (
-                <span className="shrink-0 rounded-full bg-sky-400/20 border border-sky-400/40 px-2 py-0.5 text-[10px] text-sky-200">
+                <span className="shrink-0 rounded-full bg-info/20 border border-info/40 px-2 py-0.5 text-[10px] text-info-fg">
                   {w.unread} {t(lang, 'unread')}
                 </span>
               )}
@@ -210,7 +210,7 @@ export default function CollaborationWorkspace({
               <div className="flex gap-1.5 mt-1.5 flex-wrap">
                 {STAGES.map((s) => (
                   <span key={s} className={`rounded-full border px-2 py-0.5 text-[10px] ${
-                    stages[s] ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200' : 'border-white/12 opacity-40'
+                    stages[s] ? 'border-ok/40 bg-ok/10 text-ok-fg' : 'border-white/12 opacity-40'
                   }`}>
                     {stages[s] ? '✓ ' : ''}{t(lang, s)}
                   </span>

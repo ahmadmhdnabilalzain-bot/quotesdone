@@ -176,6 +176,18 @@ Deno.serve(async (req) => {
       if (error) return J({ ok: false, error: 'unavailable' });
       return J({ ok: true, case: data ?? null }, 200, { 'Cache-Control': 'public, max-age=600' });
     }
+    // The Reveal Guarantee ladder for the refund policy page (website audit W4, 14 Sep 2026), from the
+    // same pricing_config row the refund sweep and the customer portal read. Days only; no money.
+    if (action === 'guarantee_terms') {
+      const { data, error } = await admin.from('pricing_config')
+        .select('refund_window_working_days,chase_after_working_days,bank_settlement_working_days_min,bank_settlement_working_days_max')
+        .eq('id', 1).maybeSingle();
+      if (error || !data) return J({ ok: false, error: 'unavailable' });
+      const d = data as Record<string, number | null>;
+      return J({ ok: true, terms: { window_days: d.refund_window_working_days ?? null, chase_after_days: d.chase_after_working_days ?? null,
+        bank_min_days: d.bank_settlement_working_days_min ?? null, bank_max_days: d.bank_settlement_working_days_max ?? null } },
+        200, { 'Cache-Control': 'public, max-age=600' });
+    }
     if (action === 'route_brief') {
       const text = String(b.text || '').trim();
       if (text.length < 3) return J({ ok: false, error: 'empty' }, 400);

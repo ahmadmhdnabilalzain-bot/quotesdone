@@ -123,7 +123,7 @@ export function ProductCard({ p, lang }: { p: Product; lang: Lang }) {
 
       <div className="flex flex-wrap gap-1.5 mt-3">
         {(p.certifications || []).map((c) => (
-          <span key={c} className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px]">
+          <span key={c} className="rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px]">
             ✓ {c}
           </span>
         ))}
@@ -191,7 +191,7 @@ export default function ProductIntelligence({ token, lang = 'en' }: { token?: st
           <Count label={t(lang, 'categories')} value={data.category_count} />
           <Count label={t(lang, 'specs')} value={data.attribute_count} />
           <div>
-            <div className="text-2xl font-semibold text-emerald-300">
+            <div className="text-2xl font-semibold text-ok-fg">
               {data.searchable ? t(lang, 'yes') : t(lang, 'no')}
             </div>
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'searchable')}</div>

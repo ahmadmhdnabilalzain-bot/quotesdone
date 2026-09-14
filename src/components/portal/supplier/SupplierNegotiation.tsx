@@ -110,7 +110,7 @@ export default function SupplierNegotiation({ token, lang = 'en', quoteId }:
         className="qd-panel p-4"
       >
         <p className={'text-[13.5px] font-semibold '
-          + (detected === true ? 'text-amber-300' : detected === false ? 'text-white/85' : 'text-muted-foreground italic')}>
+          + (detected === true ? 'text-warn-fg' : detected === false ? 'text-white/85' : 'text-muted-foreground italic')}>
           {detected === true ? t(lang, 'pressure') : detected === false ? t(lang, 'noPressure') : t(lang, 'unknown')}
         </p>
         {a.detection && <p className="mt-1 text-xs leading-[1.7] text-muted-foreground">{a.detection}</p>}
@@ -157,7 +157,7 @@ export default function SupplierNegotiation({ token, lang = 'en', quoteId }:
                     <td className="py-1.5">−{s.reduction_pct}%</td>
                     <td className="py-1.5 text-end">{s.you_receive}</td>
                     <td className="py-1.5 text-end">{s.customer_pays}</td>
-                    <td className="py-1.5 text-end text-amber-300/90">{s.you_give_up}</td>
+                    <td className="py-1.5 text-end text-warn-fg/90">{s.you_give_up}</td>
                   </tr>
                 ))}
               </tbody>

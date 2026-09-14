@@ -220,10 +220,10 @@ export function faqLd(pairs: { q: string; a: string }[], locale: string) {
   };
 }
 
-// `locale` defaults to 'en' so a caller written before every post had an Arabic branch keeps
-// emitting the English URL; pass the page locale to get the /ar URL and ar-AE.
-export function blogPostingLd(p: { slug: string; title: string; description: string; published: string | null; author: string | null; category: string | null }, locale: string = 'en') {
-  const ar = locale === 'ar';
+// /ar pages carried the English headline, English URL and inLanguage 'en' (website audit W22).
+// The locale is accepted either as p.locale or as the second argument; both callers exist.
+export function blogPostingLd(p: { slug: string; title: string; description: string; published: string | null; author: string | null; category: string | null; locale?: string }, locale: string = 'en') {
+  const ar = (p.locale ?? locale) === 'ar';
   const url = `${SITE}${ar ? '/ar' : ''}/blog/${p.slug}`;
   return {
     '@context': 'https://schema.org',

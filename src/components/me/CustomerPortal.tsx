@@ -42,6 +42,7 @@ import { expiryOf } from './quoteExpiry';
 import { NewRequest } from './NewRequest';
 import { Clarifications } from './Clarifications';
 import { RevealGuarantee } from './RevealGuarantee';
+import { QuoteBadges } from '@/components/QuoteBadges';
 import { useConfirm } from './ConfirmDialog';
 import { motion, useReducedMotion } from 'motion/react';
 
@@ -123,7 +124,7 @@ const S = {
   h2: 'text-[15px] font-bold text-foreground',
   sub: 'text-[13px] leading-relaxed text-muted-foreground',
   hint: 'text-xs text-muted-foreground my-2 leading-relaxed',
-  err: 'text-[13px] text-red-300 mt-2',
+  err: 'text-[13px] text-danger-fg mt-2',
   note: 'rounded-lg border border-primary/35 bg-primary/10 text-primary px-3.5 py-2.5 mb-3.5 text-[13px] font-semibold',
   wrap: 'max-w-[1040px] mx-auto p-[22px]',
   frow: 'flex gap-2.5 flex-wrap mt-2.5',
@@ -402,7 +403,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     setData(j);
     if (j && j.locale && onServedLocale) onServedLocale(j.locale);
   });
-  const loadOv = () => call('customer_portal', { action: 'overview', lang }, token).then((j) => { if (j && j.ok) setOv(j); else setErr((j && (j.error || j.hint)) || ''); });
+  const loadOv = () => call('customer_portal', { action: 'overview', lang }, token).then((j) => { if (j && j.ok) setOv(j); else setErr(j ? errText(j, lang, 'load_failed') : ''); });
   // THE ROLLUP THAT WAS COMPUTED AND THROWN AWAY. project_api action='dashboard' recomputes, on
   // every call, this customer's project_summary rows (each carrying rfq_count, rfq_open,
   // budget_total, timeline_pct and supplier_count) plus an avg_savings_pct measured across the
@@ -591,7 +592,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     {ov && !!(ov.alerts || []).length && <div className="mb-5 flex flex-col gap-2">{ov.alerts.map((a, i) => (
       <div key={i} className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3">
         <span className={cn('mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg',
-          a.severity === 'high' ? 'bg-red-500/15 text-red-400' : a.severity === 'medium' ? 'bg-amber-400/15 text-amber-300' : 'bg-primary/15 text-primary')}>
+          a.severity === 'high' ? 'bg-danger/15 text-danger' : a.severity === 'medium' ? 'bg-warn/15 text-warn-fg' : 'bg-primary/15 text-primary')}>
           <BellRing className="h-3.5 w-3.5" aria-hidden />
         </span>
         <div className="min-w-0"><b className="text-[13.5px] text-foreground">{a.title}</b>
@@ -909,7 +910,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote }) {
     </div>}
     {!concluded && !anyRevealed && !editing && <div className="flex gap-2.5 flex-wrap items-center mt-2">
       {inq.editable && <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setESummary(inq.summary || ''); setEBudget(inq.budget || ''); setEEmirate(inq.emirate || ''); setEditing(true); }}>{t(lang, 'rc_edit')}</Button>}
-      <Button variant="link" className="px-0 h-auto text-red-400" disabled={canceling} onClick={doCancel}>{canceling ? t(lang, 'rc_cancelling') : t(lang, 'rc_cancel')}</Button>
+      <Button variant="link" className="px-0 h-auto text-danger" disabled={canceling} onClick={doCancel}>{canceling ? t(lang, 'rc_cancelling') : t(lang, 'rc_cancel')}</Button>
     </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
     <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} />
@@ -933,8 +934,8 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote }) {
 
 function QuotePdfLink({ q, token, lang }) {
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const open = async (e) => { e.stopPropagation(); setBusy(true); setMsg(''); const j = await call('customer_api', { action: 'quote_pdf', quote_id: q.id, lang }, token); setBusy(false); if (j && j.ok && j.url) { window.open(j.url, '_blank', 'noopener'); } else setMsg((j && (j.detail || j.error)) || (lang === 'ar' ? 'تعذّر فتح الملف' : 'Could not open the PDF')); };
-  return (<><button className="text-primary font-semibold text-[12.5px]" disabled={busy} onClick={open}>{busy ? (lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…') : (lang === 'ar' ? '📄 عرض السعر (PDF)' : '📄 View quote (PDF)')}</button>{msg ? <span className={cn(S.sub, 'ml-2 text-red-400')}>{msg}</span> : null}</>);
+  const open = async (e) => { e.stopPropagation(); setBusy(true); setMsg(''); const j = await call('customer_api', { action: 'quote_pdf', quote_id: q.id, lang }, token); setBusy(false); if (j && j.ok && j.url) { window.open(j.url, '_blank', 'noopener'); } else setMsg(errText(j, lang, 'q_pdf_fail')); };
+  return (<><button className="text-primary font-semibold text-[12.5px]" disabled={busy} onClick={open}>{busy ? (lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…') : (lang === 'ar' ? '📄 عرض السعر (PDF)' : '📄 View quote (PDF)')}</button>{msg ? <span className={cn(S.sub, 'ml-2 text-danger')}>{msg}</span> : null}</>);
 }
 function Timeline({ inq, quotes, anyRevealed, lang }) {
   const steps = lang === 'ar' ? RFQ_STAGES.ar : RFQ_STAGES.en;
@@ -994,7 +995,7 @@ function Comparison({ inqId, token, lang }) {
   return (<motion.div initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3 }} className="qd-panel p-3.5">
     <div className="mb-1 flex flex-wrap items-center gap-2">
       <div className={cn(S.sub, 'font-bold text-primary')}>{t(lang, degraded ? 'cmp_title_rules' : 'cmp_title') + (a.trade ? ' · ' + a.trade : '')}</div>
-      {degraded ? <span className="rounded-full border border-amber-400/40 bg-amber-400/10 px-2 py-0.5 text-[10.5px] font-semibold text-amber-300">{t(lang, 'cmp_badge_rules')}</span> : null}
+      {degraded ? <span className="rounded-full border border-warn/40 bg-warn/10 px-2 py-0.5 text-[10.5px] font-semibold text-warn-fg">{t(lang, 'cmp_badge_rules')}</span> : null}
     </div>
     {degraded && a.disclaimer ? <div className={cn(S.sub, 'mb-1.5')}>{a.disclaimer}</div> : null}
     {a.bottom_line ? <div className={cn(S.sub, 'text-foreground font-semibold mb-1.5')}>{a.bottom_line}</div> : null}
@@ -1015,8 +1016,8 @@ function Comparison({ inqId, token, lang }) {
         </div>
       ) : null}
       {q.score_reason ? <div className={cn(S.sub, 'text-muted-foreground')}>{q.score_reason}</div> : null}
-      {q.getting ? <div className={S.sub}>{q.getting}</div> : null}{arr(q.missing_from_request).length ? <div className={cn(S.sub, 'text-amber-300')}>{t(lang, 'cmp_missing') + arr(q.missing_from_request).join('; ')}</div> : null}{arr(q.spec_deviation).length ? <div className={cn(S.sub, 'text-amber-300')}>{t(lang, 'cmp_dev') + arr(q.spec_deviation).join('; ')}</div> : null}{arr(q.flags).length ? <div className={cn(S.sub, 'text-red-400')}>{arr(q.flags).join('; ')}</div> : null}</div>))}
-    {arr(a.watch_outs).length ? <div className={cn(S.sub, 'text-red-400 mt-2')}>{t(lang, 'cmp_watch') + arr(a.watch_outs).join(' · ')}</div> : null}
+      {q.getting ? <div className={S.sub}>{q.getting}</div> : null}{arr(q.missing_from_request).length ? <div className={cn(S.sub, 'text-warn-fg')}>{t(lang, 'cmp_missing') + arr(q.missing_from_request).join('; ')}</div> : null}{arr(q.spec_deviation).length ? <div className={cn(S.sub, 'text-warn-fg')}>{t(lang, 'cmp_dev') + arr(q.spec_deviation).join('; ')}</div> : null}{arr(q.flags).length ? <div className={cn(S.sub, 'text-danger')}>{arr(q.flags).join('; ')}</div> : null}</div>))}
+    {arr(a.watch_outs).length ? <div className={cn(S.sub, 'text-danger mt-2')}>{t(lang, 'cmp_watch') + arr(a.watch_outs).join(' · ')}</div> : null}
     {a.advice ? <div className={cn(S.sub, 'mt-2 text-foreground')}>{a.advice}</div> : null}
     {/* §10 EXPORT: customer_api compare_pdf, ownership-checked; the document goes to the meeting. */}
     <ExportComparison inqId={inqId} token={token} lang={lang} />
@@ -1038,8 +1039,28 @@ function ExportComparison({ inqId, token, lang }) {
       setErr(t(lang, 'cmp_save_fail'));
     } finally { setBusy(false); }
   };
+  // W10: the same side-by-side rows as the PDF, as a spreadsheet. The server sends the text with a
+  // UTF-8 BOM so Excel opens Arabic headers correctly; the browser only wraps it in a file.
+  const csv = async () => {
+    setBusy(true); setErr('');
+    try {
+      const j = await call('customer_api', { action: 'compare_csv', inquiry_id: inqId, lang }, token);
+      if (j && j.ok && typeof j.csv === 'string') {
+        const a = document.createElement('a');
+        // window.URL: this module imports SUPA_URL under the name URL.
+        a.href = window.URL.createObjectURL(new Blob([j.csv], { type: 'text/csv;charset=utf-8' }));
+        a.download = j.filename || 'comparison.csv'; a.click();
+        setTimeout(() => window.URL.revokeObjectURL(a.href), 4000);
+      } else setErr(errText(j, lang, 'cmp_csv_fail'));
+    } catch (_e) {
+      setErr(t(lang, 'cmp_csv_fail'));
+    } finally { setBusy(false); }
+  };
   return (<div className="mt-2">
-    <Button size="sm" variant="secondary" disabled={busy} onClick={go}>{busy ? t(lang, 'cmp_saving') : t(lang, 'cmp_save')}</Button>
+    <div className="flex flex-wrap gap-2">
+      <Button size="sm" variant="secondary" disabled={busy} onClick={go}>{busy ? t(lang, 'cmp_saving') : t(lang, 'cmp_save')}</Button>
+      <Button size="sm" variant="outline" disabled={busy} onClick={csv}>{t(lang, 'cmp_csv')}</Button>
+    </div>
     {err ? <div className={cn(S.err, 'mt-1')} role="alert">{err}</div> : null}
   </div>);
 }
@@ -1082,14 +1103,16 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
       <div className="shrink-0 text-end"><div className="text-[17px] font-extrabold tabular-nums text-foreground">{aed(q.price)}</div>{vscore != null ? <div className="text-[10px] text-muted-foreground" title={t(lang, 'q_value_tip')}>{t(lang, 'q_value')} {vscore}/100</div> : null}</div>
     </div>
     <div className="mt-0.5 text-[11.5px] text-muted-foreground">{[q.lead_time ? t(lang, 'q_lead') + ': ' + q.lead_time : '', q.warranty ? t(lang, 'q_warranty') + ': ' + q.warranty : '', q.payment_terms ? t(lang, 'q_terms') + ': ' + q.payment_terms : '', q.win_rate != null ? t(lang, 'q_win') + ' ' + Math.round(q.win_rate) + '%' : ''].filter(Boolean).join(' · ')}</div>
+    {/* W9: anonymous facts about the supplier, served per quote; each badge hides when its value is absent. */}
+    {q.badges ? <div className="mt-1.5"><QuoteBadges f={q.badges} /></div> : null}
     {q.scope && <div className={cn(S.sub, 'mt-1')}>{q.scope}</div>}
-    {q.notes && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_note') + q.notes}</div>}
+    {q.notes &&<div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_note') + q.notes}</div>}
     {/* What the price does NOT cover is the part that turns a cheap quote into an expensive job. */}
-    {q.exclusions && <div className={cn(S.sub, 'mt-1 text-amber-300')}>{t(lang, 'q_excl') + q.exclusions}</div>}
+    {q.exclusions && <div className={cn(S.sub, 'mt-1 text-warn-fg')}>{t(lang, 'q_excl') + q.exclusions}</div>}
     {q.conditions && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_cond') + q.conditions}</div>}
     {exp && (exp.tone === 'ok'
       ? <div className={cn(S.sub, 'mt-1')}>{exp.text}{q.validity ? (' · ' + t(lang, 'q_validity') + q.validity) : ''}</div>
-      : <div className={cn('mt-1.5 rounded-md border px-3 py-2 text-[11.5px]', exp.tone === 'expired' ? 'border-red-400/30 bg-red-400/10 text-red-300' : 'border-amber-400/30 bg-amber-400/10 text-amber-300')} role={exp.tone === 'expired' ? 'alert' : undefined}>{exp.text}</div>)}
+      : <div className={cn('mt-1.5 rounded-md border px-3 py-2 text-[11.5px]', exp.tone === 'expired' ? 'border-danger/30 bg-danger/10 text-danger-fg' : 'border-warn/30 bg-warn/10 text-warn-fg')} role={exp.tone === 'expired' ? 'alert' : undefined}>{exp.text}</div>)}
     {!exp && q.validity && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_validity') + q.validity}</div>}
     {/* match_reason is omitted by the API until reveal, because it can name the company. */}
     {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_why') + q.match_reason}</div>}
@@ -1122,7 +1145,9 @@ function Contact({ c, q, token, onChange, lang, won, terms }) {
   const [dialog, ask] = useConfirm(lang);
   const g = terms || {};
   const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token).catch(() => null); if (j && j.ok) { setRated(true); setDone(t(lang, 'c_thanks')); } else setDone(errText(j, lang, 'c_rate_fail')); };
-  const refund = async () => { if (!(await ask(tf(lang, 'c_refund_confirm', { c: g.chase_after_days, w: g.window_days, bmin: g.bank_min_days, bmax: g.bank_max_days }), { title: t(lang, 'c_refund'), confirm: t(lang, 'c_refund') }))) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token).catch(() => null); setDone(j && j.ok ? t(lang, 'c_refund_ok') : errText(j, lang, 'c_refund_fail')); };
+  const refund = async () => { if (!(await ask(tf(lang, 'c_refund_confirm', { c: g.chase_after_days, w: g.window_days, bmin: g.bank_min_days, bmax: g.bank_max_days }), { title: t(lang, 'c_refund'), confirm: t(lang, 'c_refund') }))) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token).catch(() => null); setDone(j && j.ok ? t(lang, 'c_refund_ok') + (j.refund_ref ? ' ' + tf(lang, 'c_refund_ref', { r: j.refund_ref }) : '') : errText(j, lang, 'c_refund_fail')); };
+  // D4: the refund case and the chief executive's decision reference, from the refunds row itself.
+  const gq = q.guarantee || {};
   const hire = async () => { if (!(await ask(t(lang, 'c_hire_confirm'), { title: t(lang, 'c_hire'), confirm: t(lang, 'c_hire') }))) return; const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token).catch(() => null); if (j && j.ok) { setDone(t(lang, 'c_hired')); onChange && onChange(); } else setDone(errText(j, lang, 'c_update_fail')); };
   const date = (d) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   return (<div className="mt-2.5 flex flex-col gap-2.5">{dialog}
@@ -1145,6 +1170,7 @@ function Contact({ c, q, token, onChange, lang, won, terms }) {
         <Button variant="link" className="h-auto px-0" onClick={refund}>{t(lang, 'c_refund')}</Button>
       </div>
       {done && <div className={cn(S.sub, 'mt-1.5 text-primary')} role="status">{done}</div>}
+      {gq.refund_ref ? <div className={cn(S.sub, 'mt-1.5')}>{tf(lang, 'c_refund_ref', { r: gq.refund_ref })}{' · '}{gq.decision_ref ? tf(lang, 'c_decision_ref', { d: gq.decision_ref }) : t(lang, 'c_decision_wait')}</div> : null}
     </div>
     {/* The clock on the customer's own reveal. Hidden once the fee can no longer be refunded
         (hired or rated), because a running clock on a promise that no longer applies misleads. */}
@@ -1318,7 +1344,7 @@ function AccountSettings({ token, lang, onChanged }) {
       <Row label={t(lang, 'acct_name')}><Input aria-label={t(lang, 'acct_name')} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} /></Row>
       <Row label={t(lang, 'acct_phone')}>
         <Input aria-label={t(lang, 'acct_phone')} autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
-        <div className={cn('mt-1 text-[11.5px]', phoneChanged ? 'text-amber-300' : 'text-muted-foreground')}>
+        <div className={cn('mt-1 text-[11.5px]', phoneChanged ? 'text-warn-fg' : 'text-muted-foreground')}>
           {phoneChanged ? t(lang, 'acct_phone_warn') : (me.phone_verified ? t(lang, 'verified') : t(lang, 'acct_unverified'))}
         </div>
       </Row>

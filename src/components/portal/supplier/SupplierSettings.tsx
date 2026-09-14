@@ -129,7 +129,7 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
   if (!s) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
 
   const yn = (v?: boolean | null) => (v ? t(lang, 'verified') : t(lang, 'unverified'));
-  const tone = (v?: boolean | null) => (v ? 'text-emerald-300/90' : 'text-amber-300/90');
+  const tone = (v?: boolean | null) => (v ? 'text-ok-fg/90' : 'text-warn-fg/90');
 
   return (
     <div className="space-y-4 max-w-[560px]">
@@ -164,8 +164,8 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
         >
           {busy ? t(lang, 'saving') : t(lang, 'save')}
         </button>
-        {msg && <p className="text-[12px] text-emerald-300/90 mt-2">{msg}</p>}
-        {err && <p className="text-[12px] text-rose-300/90 mt-2">{err}</p>}
+        {msg && <p className="text-[12px] text-ok-fg/90 mt-2">{msg}</p>}
+        {err && <p className="text-[12px] text-danger-fg/90 mt-2">{err}</p>}
       </section>
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
