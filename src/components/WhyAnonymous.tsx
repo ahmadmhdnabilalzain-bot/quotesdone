@@ -12,7 +12,7 @@ export function WhyAnonymous() {
   const items = t.raw('items') as Item[];
   return (
     <section id="why" className="container-x py-beat-s md:py-beat">
-      <SectionHeader eyebrow={t('eyebrow')} index="03" title={t('title')} sub={t('sub')} />
+      <SectionHeader eyebrow={t('eyebrow')} index="05" title={t('title')} sub={t('sub')} />
 
       <Stagger className="mt-14 grid gap-4 md:grid-cols-3 md:gap-5">
         {items.map((it, i) => {

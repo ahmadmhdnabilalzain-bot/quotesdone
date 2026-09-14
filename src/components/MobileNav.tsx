@@ -13,8 +13,10 @@ type Item = { href: string; label: string };
  * routes and no new labels; both come from the same translation keys the
  * desktop nav uses, so the two can never drift apart.
  */
-export function MobileNav({ items, login, loginLabel, menuLabel, closeLabel }: {
+export function MobileNav({ items, cta, login, loginLabel, menuLabel, closeLabel }: {
   items: Item[];
+  /** The customer "Get quotes" door, for a reader whose header CTA points elsewhere (a supplier). */
+  cta?: Item;
   login: string;
   loginLabel: string;
   menuLabel: string;
@@ -51,7 +53,7 @@ export function MobileNav({ items, login, loginLabel, menuLabel, closeLabel }: {
   }, [open]);
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button
         ref={btnRef}
         type="button"
@@ -83,6 +85,14 @@ export function MobileNav({ items, login, loginLabel, menuLabel, closeLabel }: {
           >
             <nav aria-label={menuLabel}>
               <ul className="flex flex-col">
+                {cta && (
+                  <li className="py-3">
+                    <Link href={cta.href} onClick={() => setOpen(false)}
+                      className="flex min-h-[48px] items-center justify-center rounded-full bg-teal text-[15px] font-bold text-[#04231F]">
+                      {cta.label}
+                    </Link>
+                  </li>
+                )}
                 {items.map((it) => (
                   <li key={it.href}>
                     <Link
