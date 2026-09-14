@@ -141,7 +141,9 @@ async function flagCoverageGap(inqId: string, category: string, emirate: string 
   let flagged = true;
   try {
     await admin.from('agent_actions').insert({
-      agent: 'operations_ai', kind: 'coverage_gap', status: 'pending', risk: 'medium',
+      // sales_engineer: the founder, 14 Sep 2026 — "its always the sales agent. no other agent is
+      // involved in customer or supplier portal." operations_ai is no seat; the resolver filed it as 'brief'.
+      agent: 'sales_engineer', kind: 'coverage_gap', status: 'pending', risk: 'medium',
       title: 'RFQ had no matchable supplier' + (category ? (': ' + category) : ''),
       recommendation: 'A customer request (' + label + ') matched ZERO suppliers, so it reached nobody and cannot receive quotes. This is a supply-coverage gap: consider acquiring or onboarding suppliers in this trade and emirate. No supplier was contacted.',
       detail: { signal: 'coverage_gap:' + inqId, inquiry_id: inqId, category, emirate, summary: String(summary || '').slice(0, 300), path: 'create_inquiry' },
