@@ -216,14 +216,19 @@ async function dropboxVerifyTick(): Promise<unknown> {
     const { data, error } = await admin.rpc('fn_it_backup_tick');
     if (error) return { ok: false, error: error.message };
     // deno-lint-ignore no-explicit-any
-    if (!(data as any)?.reconcile?.due) return data;
-    const secret = await sec('cred_fn_resilience_ping');
-    const r = await fetch(FN + '/dropbox_backup', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: secret, mode: 'reconcile', limit: 20 }), signal: AbortSignal.timeout(55000),
-    });
-    // deno-lint-ignore no-explicit-any
-    return { ...(data as any), reconcile_run: { status: r.status, result: await r.json().catch(() => null) } };
+    const d = data as any; const out: Record<string, unknown> = { ...d };
+    const call = async (body: Record<string, unknown>) => {
+      const r = await fetch(FN + '/dropbox_backup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), ...body }), signal: AbortSignal.timeout(55000),
+      });
+      return { status: r.status, result: await r.json().catch(() => null) };
+    };
+    if (d?.reconcile?.due) out.reconcile_run = await call({ mode: 'reconcile', limit: 20 });
+    // The IT engineer's daily auth probe and space reading (14 Sep 2026). This endpoint is public,
+    // so only the verdict comes back; the reading is in agent_runs (job dropbox_health).
+    if (d?.health_due) { const h = await call({ op: 'health' }); out.health_run = { status: h.status, recorded: h.result?.recorded?.status ?? null }; }
+    return out;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
