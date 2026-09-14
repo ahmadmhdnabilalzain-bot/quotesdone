@@ -323,12 +323,24 @@ begin
            union all
            select 'leads', count(*) from public.leads l
             where (l.is_demo or l.email like 'qd-%@example.invalid') and l.created_at < now() - interval '6 hours' loop
-    if x.n > 0 and not exists (select 1 from public.rehearsal_window w where w.ended_at is null) then
+    -- Only a run still in progress excuses leftovers. Measured on the proof: four e2e windows and one
+    -- from 5 Sep were never closed, and "any open window" silenced this check for good.
+    if x.n > 0 and not exists (select 1 from public.rehearsal_window w
+                                where w.ended_at is null and w.started_at > now() - interval '6 hours') then
       v_items := v_items || jsonb_build_object('item', x.t, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
         'title', x.n || ' demo ' || x.t || ' row(s) outlived their run by more than six hours',
         'blast', 'internal', 'affected', 1, 'demo', true,
         'evidence', jsonb_build_object('table', x.t, 'rows', x.n, 'purge', 'node scripts/e2e/run.mjs --purge-tag <tag>'));
     end if;
+  end loop;
+  -- A rehearsal window left open is a run that never tore down.
+  for x in select w.id, w.run_tag, w.opened_by, w.started_at from public.rehearsal_window w
+            where w.ended_at is null and w.started_at < now() - interval '6 hours' loop
+    v_items := v_items || jsonb_build_object('item', 'window:' || x.id, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
+      'title', 'Rehearsal window ' || x.run_tag || ' (' || x.opened_by || ') has been open since '
+               || to_char(x.started_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
+      'blast', 'internal', 'affected', 1, 'demo', true,
+      'evidence', jsonb_build_object('rehearsal_window_id', x.id, 'close', 'update public.rehearsal_window set ended_at = now() where id = ' || x.id));
   end loop;
   v_out := v_out || jsonb_build_object('demo', public.fn_it_duty_settle('demo', v_items));
 

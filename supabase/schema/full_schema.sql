@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T14:52:34.662Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-14T14:54:54.862Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -29662,12 +29662,24 @@ begin
            union all
            select 'leads', count(*) from public.leads l
             where (l.is_demo or l.email like 'qd-%@example.invalid') and l.created_at < now() - interval '6 hours' loop
-    if x.n > 0 and not exists (select 1 from public.rehearsal_window w where w.ended_at is null) then
+    -- Only a run still in progress excuses leftovers. Measured on the proof: four e2e windows and one
+    -- from 5 Sep were never closed, and "any open window" silenced this check for good.
+    if x.n > 0 and not exists (select 1 from public.rehearsal_window w
+                                where w.ended_at is null and w.started_at > now() - interval '6 hours') then
       v_items := v_items || jsonb_build_object('item', x.t, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
         'title', x.n || ' demo ' || x.t || ' row(s) outlived their run by more than six hours',
         'blast', 'internal', 'affected', 1, 'demo', true,
         'evidence', jsonb_build_object('table', x.t, 'rows', x.n, 'purge', 'node scripts/e2e/run.mjs --purge-tag <tag>'));
     end if;
+  end loop;
+  -- A rehearsal window left open is a run that never tore down.
+  for x in select w.id, w.run_tag, w.opened_by, w.started_at from public.rehearsal_window w
+            where w.ended_at is null and w.started_at < now() - interval '6 hours' loop
+    v_items := v_items || jsonb_build_object('item', 'window:' || x.id, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
+      'title', 'Rehearsal window ' || x.run_tag || ' (' || x.opened_by || ') has been open since '
+               || to_char(x.started_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
+      'blast', 'internal', 'affected', 1, 'demo', true,
+      'evidence', jsonb_build_object('rehearsal_window_id', x.id, 'close', 'update public.rehearsal_window set ended_at = now() where id = ' || x.id));
   end loop;
   v_out := v_out || jsonb_build_object('demo', public.fn_it_duty_settle('demo', v_items));
 
@@ -41076,6 +41088,16 @@ begin
     raise exception 'fn_seat_answers_it_finding: % is not an it.finding handoff', p_id;
   end if;
   d := a.detail;
+  -- THE CEO OWNS THE HARNESS, AND CAN CLOSE A REHEARSAL WINDOW A RUN LEFT OPEN. An open window keeps
+  -- the failed-run watcher from paging for anything it covers, so closing it is the remedy, not a risk.
+  if d->>'duty' = 'demo' and (d->'finding_evidence'->>'rehearsal_window_id') is not null then
+    update public.rehearsal_window set ended_at = now()
+     where id = (d->'finding_evidence'->>'rehearsal_window_id')::bigint and ended_at is null;
+    return jsonb_build_object('waiting', 'it_engineer re-verification', 'seat', a.agent, 'duty', 'demo',
+      'remedy', 'closed rehearsal_window ' || (d->'finding_evidence'->>'rehearsal_window_id'),
+      'reply', a.agent || ' closed rehearsal window ' || (d->'finding_evidence'->>'rehearsal_window_id')
+               || ', which its run had left open.');
+  end if;
   return jsonb_build_object(
     'waiting', 'it_engineer re-verification',
     'seat', a.agent,
