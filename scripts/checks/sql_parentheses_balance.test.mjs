@@ -12,6 +12,9 @@
 // statement. A $tag$ marker is TRANSPARENT — function and DO bodies are code and are scanned too,
 // which is where both defects lived — except that the text between the markers of a dollar quote
 // that is NOT a routine body (a $q$...$q$ literal handed to format() or execute) is a string.
+// A body is a dollar quote whose previous real token is DO, or AS in a statement that named
+// FUNCTION or PROCEDURE (comments between the keyword and the tag do not count). A tag equal to the
+// innermost open body always closes it.
 // `;` ends a statement; depth must be 0 there, and must never go negative.
 //
 // What it does not do: parse SQL. Balanced parentheses is a necessary property, not a sufficient
@@ -47,12 +50,18 @@ const SQL_DIR = path.join(REPO, 'scripts', 'sql');
 const IDENT = /[A-Za-z0-9_$]/;
 // A dollar-quote tag: $$ or $name$ where name does not start with a digit. `$1` is a parameter.
 const DOLLAR = /^\$(?:[A-Za-z_\u0080-\uFFFF][A-Za-z0-9_\u0080-\uFFFF]*)?\$/;
+const WORD_START = /[A-Za-z_\u0080-\uFFFF]/;
+const WORD = /[A-Za-z_\u0080-\uFFFF][A-Za-z0-9_$\u0080-\uFFFF]*/y;
 
 /** Findings for one SQL text: [{ line, kind, from }]. Empty means balanced. */
 export function scan(src) {
   const out = [];
   let depth = 0, line = 1, i = 0, opened = [];
   const bodies = [];   // tags of the routine/DO bodies currently open, innermost last
+  // The previous real token, if it was a word (comments and whitespace never reset it), and whether
+  // the current statement has named FUNCTION or PROCEDURE. Tracked forward, because looking back
+  // with a regex let `as /* c */ $$` and `as -- c` past as a literal (review of #660).
+  let lastWord = null, routine = false;
   const n = src.length;
   const skipTo = (end) => { for (; i < end; i++) if (src[i] === '\n') line++; };
   while (i < n) {
@@ -79,9 +88,9 @@ export function scan(src) {
         if (src[i] === "'") break;
         i++;
       }
-      i++; continue;
+      i++; lastWord = null; continue;
     }
-    if (c === '"') { i++; while (i < n) { if (src[i] === '\n') line++; if (src[i] === '"' && src[i + 1] === '"') { i += 2; continue; } if (src[i] === '"') break; i++; } i++; continue; }
+    if (c === '"') { i++; while (i < n) { if (src[i] === '\n') line++; if (src[i] === '"' && src[i + 1] === '"') { i += 2; continue; } if (src[i] === '"') break; i++; } i++; lastWord = null; continue; }
     if (c === '$' && !IDENT.test(src[i - 1] ?? '')) {
       const m = DOLLAR.exec(src.slice(i, i + 64));
       if (m) {
@@ -91,16 +100,24 @@ export function scan(src) {
         // afresh: doing that read a routine's closing $$ as a literal's opener and skipped the next
         // routine's signature (review of #660, HIGH).
         if (bodies.length && bodies[bodies.length - 1] === tag) { bodies.pop(); i += tag.length; continue; }
-        const before = src.slice(Math.max(0, i - 40), i).toLowerCase();
-        if (/\b(as|do)\s*$/.test(before)) { bodies.push(tag); i += tag.length; continue; }   // a body: scanned
+        // A body follows DO, or AS in a statement that named FUNCTION/PROCEDURE. Anything else,
+        // including a column alias `select 1 as $$x$$`, is a literal.
+        if (lastWord === 'do' || (lastWord === 'as' && routine)) { bodies.push(tag); lastWord = null; i += tag.length; continue; }
         const close = src.indexOf(tag, i + tag.length);                                       // a literal: skipped
-        if (close > 0) { skipTo(close + tag.length); continue; }
+        if (close > 0) { skipTo(close + tag.length); lastWord = null; continue; }
         i += tag.length; continue;
       }
     }
+    if (WORD_START.test(c) && !IDENT.test(src[i - 1] ?? '')) {
+      WORD.lastIndex = i;
+      const w = WORD.exec(src)[0], lw = w.toLowerCase();
+      if (lw === 'function' || lw === 'procedure') routine = true;
+      lastWord = lw; i += w.length; continue;
+    }
     if (c === '(') { depth++; opened.push(line); }
     else if (c === ')') { depth--; opened.pop(); if (depth < 0) { out.push({ line, kind: 'extra )', from: line }); depth = 0; } }
-    else if (c === ';') { if (depth !== 0) out.push({ line, kind: `${depth} unclosed (`, from: opened[0] }); depth = 0; opened = []; }
+    else if (c === ';') { if (depth !== 0) out.push({ line, kind: `${depth} unclosed (`, from: opened[0] }); depth = 0; opened = []; routine = false; }
+    if (!/\s/.test(c)) lastWord = null;
     i++;
   }
   if (depth !== 0) out.push({ line, kind: `${depth} unclosed ( at end of file`, from: opened[0] });
@@ -157,6 +174,14 @@ test('a closing dollar tag never re-opens: the next routine with the same tag is
   assert.equal(kinds(twoRoutines('$fn$').replace(' ) returns', ' returns')), '', 'the balanced version is clean');
   assert.equal(kinds("create function a() returns text as $fn$ begin return format($q$(%s$q$, 1); end $fn$;\n"
     + "create function b() returns int as $fn$ begin return g(2)); end $fn$;"), 'extra )', 'nested literal, then a reused body tag');
+});
+
+// Re-review of #660: a comment between AS and the tag hid the body, a false negative.
+test('a comment between AS/DO and the tag still opens a body; a column alias does not', () => {
+  assert.equal(kinds('create function f() returns int language plpgsql as /* c */ $$ begin return f(1)); end $$;'), 'extra )', 'as /* c */ $$');
+  assert.equal(kinds('CREATE FUNCTION f() RETURNS int LANGUAGE plpgsql AS -- c\n $$ begin return f(1)); end $$;'), 'extra )', 'AS -- c then $$');
+  assert.equal(kinds('do /* c */ $$ begin perform f(1)); end $$;'), 'extra )', 'do /* c */ $$');
+  assert.equal(kinds('select 1 as $$x($$;'), '', 'a column alias written as a dollar literal is a literal');
 });
 
 test('every scripts/sql file and MANIFEST entry has balanced parentheses', () => {
