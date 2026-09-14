@@ -346,16 +346,20 @@ begin
   v_out := v_out || jsonb_build_object('demo', public.fn_it_duty_settle('demo', v_items));
 
   -- ── 1. THE NIGHTLY JOURNEY'S HEARTBEAT ──
-  -- The run itself reports through fn_it_journey_ingest. Silence for 26 hours is its own finding: the
-  -- workflow needs the SUPABASE_ACCESS_TOKEN repository secret, which only the founder can add.
+  -- The run itself reports through fn_it_journey_ingest. Silence for 26 hours is its own finding —
+  -- but only once this tick has itself been running for 26 hours. Measured 14 Sep 2026: the first cut
+  -- raised "no run" the hour it was deployed, before nightly-journey.yml's first 22:00 UTC schedule
+  -- had come round (the repository secret it uses has existed since 7 Sep).
   v_items := '[]'::jsonb;
-  if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'journey'
+  if exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duties'
+              and started_at < now() - interval '26 hours')
+     and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'journey'
                   and started_at > now() - interval '26 hours') then
     v_items := jsonb_build_array(jsonb_build_object('item', 'no_run', 'owner_seat', 'ceo', 'subject', 'e2e_harness',
       'title', 'The nightly full-journey test has not reported for 26 hours',
       'blast', 'agent_facing', 'affected', 1,
       'evidence', jsonb_build_object('workflow', '.github/workflows/nightly-journey.yml',
-        'needs', 'repository secret SUPABASE_ACCESS_TOKEN (GitHub > Settings > Secrets > Actions); only the founder can add it')));
+        'look_at', 'the workflow''s runs in GitHub Actions: not triggered, failed, or failed to report')));
   end if;
   v_out := v_out || jsonb_build_object('journey_heartbeat', public.fn_it_duty_settle('journey_heartbeat', v_items));
 
