@@ -11,7 +11,7 @@
 //
 // Presented as a command bar (Sealed homepage): the field, its examples and the submit sit in one
 // machined surface; Enter submits, Shift+Enter breaks a line.
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { publicSite, saveDraft } from '@/lib/publicSite';
@@ -28,6 +28,7 @@ export function BriefBox() {
   const locale = useLocale();
   const router = useRouter();
   const id = useId();
+  const field = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<Result | null>(null);
@@ -36,7 +37,10 @@ export function BriefBox() {
 
   async function check(v = text) {
     const q = v.trim();
-    if (q.length < 3 || busy) return;
+    if (busy) return;
+    // The button always looks and works like the primary action; with nothing typed yet it takes
+    // the visitor to the field instead of doing nothing.
+    if (q.length < 3) { field.current?.focus(); return; }
     setBusy(true); setErr(''); setRes(null);
     try {
       const j = await publicSite<Result>('route_brief', { text: q, lang: /[؀-ۿ]/.test(q) ? 'ar' : locale });
@@ -67,6 +71,7 @@ export function BriefBox() {
           <label htmlFor={id} className="sr-only">{t('label')}</label>
           <textarea
             id={id}
+            ref={field}
             dir="auto"
             rows={2}
             value={text}
@@ -88,14 +93,18 @@ export function BriefBox() {
                   onClick={() => { setText(ex); check(ex); }}
                   className="rounded-full px-3 py-1.5 text-[12px] text-muted shadow-[inset_0_0_0_1px_rgba(110,231,212,.14)] transition-[color,box-shadow] duration-300 hover:text-white hover:shadow-[inset_0_0_0_1px_rgba(110,231,212,.4)]"
                 >
+                  {/* an example in the other language is tagged, so it reads as the bilingual router it demonstrates */}
+                  {/[؀-ۿ]/.test(ex) !== (locale === 'ar') && (
+                    <span className="me-1.5 font-semibold text-teal-light" dir={locale === 'ar' ? 'rtl' : 'ltr'}>{t('otherLang')}</span>
+                  )}
                   {ex}
                 </button>
               ))}
             </div>
             <button
               type="submit"
-              disabled={busy || text.trim().length < 3}
-              className="press shrink-0 rounded-full bg-teal px-5 py-2.5 text-[14px] font-bold text-[#04231F] transition-colors hover:bg-[#1ED0BC] disabled:bg-teal/40 disabled:text-[#04231F]/70"
+              disabled={busy}
+              className="press shrink-0 rounded-full bg-teal px-5 py-2.5 text-[14px] font-bold text-[#04231F] shadow-[0_14px_36px_-16px_rgba(20,184,166,.85)] transition-colors hover:bg-[#1ED0BC] disabled:cursor-progress"
             >
               {busy ? t('busy') : t('submit')}
             </button>

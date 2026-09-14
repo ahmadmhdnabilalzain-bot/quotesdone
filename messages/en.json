@@ -15,11 +15,8 @@
   },
   "hero": {
     "ctaPrimary": "Get quotes",
-    "ctaSupplier": "Join as a supplier",
     "myPortal": "My portal",
     "supplierPortal": "Open the supplier portal",
-    "supplierTitle": "You are signed in as a supplier",
-    "supplierBody": "Invites reach you only for jobs your licence and scope cover. No commission — the customer pays the reveal fee.",
     "supplierHow": "How it works for suppliers",
     "kicker": "Construction · Fit-out · MEP · UAE",
     "title": "Anonymous quotes from licence-checked UAE contractors.",
@@ -49,7 +46,8 @@
         "t": "Reveal the one you choose",
         "b": "Pay 3% of that quote to see the supplier’s name and contact. The rest stay sealed."
       }
-    ]
+    ],
+    "supplierAsk": "Are you a supplier?"
   },
   "cats": {
     "eyebrow": "Categories",
@@ -185,7 +183,8 @@
     "unknown": "I could not place that in a trade yet. Add what is being supplied or installed, and where.",
     "clarify": "To place it:",
     "error": "Something went wrong. Please try again.",
-    "limited": "Too many checks from this connection — please try again in a little while."
+    "limited": "Too many checks from this connection — please try again in a little while.",
+    "otherLang": "In Arabic"
   },
   "engine": {
     "eyebrow": "The rules",

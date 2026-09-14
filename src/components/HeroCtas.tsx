@@ -1,20 +1,23 @@
 'use client';
 
-// THE HERO AND THE CLOSING BAND KNOW WHO IS READING, THE WAY THE HEADER ALREADY DID.
+// THE HOMEPAGE'S CALLS TO ACTION KNOW WHO IS READING, THE WAY THE HEADER ALREADY DID.
 //
-// Hero and CtaBand were static: a signed-in supplier was still offered "Get quotes" into the
-// customer portal and "Join as a supplier" (website audit, IA section). This reuses the header's
-// token read (readAudience) and swaps the buttons. SSR and the first client frame render the
-// visitor set, so there is no hydration mismatch and the text is on screen before hydration.
+// A signed-in supplier used to be offered "Get quotes" into the customer portal and "Join as a
+// supplier" (website audit, IA section). Both components reuse the header's token read
+// (readAudience). SSR and the first client frame render the visitor set, so there is no hydration
+// mismatch and the text is on screen before hydration.
 import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/routing';
 import { readAudience, type Audience } from '@/components/AudienceNav';
 import s from '@/components/home/sealed.module.css';
 
-export type HeroCtaLabels = {
-  getQuotes: string; joinSupplier: string; myPortal: string; supplierPortal: string;
-  supplierTitle?: string; supplierBody?: string; supplierHow?: string;
-};
+function useAudience() {
+  const [who, setWho] = useState<Audience>('visitor');
+  useEffect(() => { setWho(readAudience()); }, []);
+  return who;
+}
+
+export type HeroCtaLabels = { getQuotes: string; joinSupplier: string; myPortal: string; supplierPortal: string };
 
 // The primary is an island pill with its arrow nested in its own disc; hover moves the disc, not
 // the pill. Transform/colour transitions only.
@@ -29,40 +32,50 @@ export function Arrow() {
   );
 }
 
-// `quiet`: every link takes the secondary style — used in the hero, where the job box is the one
-// primary action and a second filled button would compete with it.
-export function HeroCtas({ labels, align = 'start', note = false, quiet = false }: { labels: HeroCtaLabels; align?: 'start' | 'center'; note?: boolean; quiet?: boolean }) {
-  const [who, setWho] = useState<Audience>('visitor');
-  useEffect(() => { setWho(readAudience()); }, []);
-
+/** The closing band's buttons: one primary for the reader's side, one secondary. */
+export function HeroCtas({ labels, align = 'start' }: { labels: HeroCtaLabels; align?: 'start' | 'center' }) {
+  const who = useAudience();
   const buttons =
     who === 'supplier' ? [{ href: '/portal', label: labels.supplierPortal, main: true }]
     : who === 'customer' ? [{ href: '/me', label: labels.myPortal, main: true }, { href: '/supplier', label: labels.joinSupplier, main: false }]
     : [{ href: '/me', label: labels.getQuotes, main: true }, { href: '/supplier', label: labels.joinSupplier, main: false }];
 
   return (
-    <div className={align === 'center' ? 'flex flex-col items-center' : 'flex flex-col items-start'}>
-      <div className={`flex flex-wrap items-center gap-3 ${align === 'center' ? 'justify-center' : ''}`}>
-        {buttons.map((b) =>
-          b.main && !quiet ? (
-            <Link key={b.href} href={b.href} className={primary}>
-              {b.label}
-              <span className={s.arrowDot}><Arrow /></span>
-            </Link>
-          ) : (
-            <Link key={b.href} href={b.href} className={secondary}>{b.label}</Link>
-          ),
-        )}
-      </div>
-      {note && who === 'supplier' && labels.supplierTitle && (
-        <div className="mt-5 max-w-[46ch] rounded-[14px] px-4 py-3 text-start shadow-[inset_0_0_0_1px_rgba(110,231,212,.2)]">
-          <p className="text-[13.5px] font-semibold text-teal-light">{labels.supplierTitle}</p>
-          <p className="mt-1 text-[13px] leading-relaxed text-muted">{labels.supplierBody}</p>
-          <Link href="/supplier" className="mt-2 inline-block text-[13px] font-semibold text-teal-light underline-offset-4 hover:underline">
-            {labels.supplierHow}
+    <div className={`flex flex-wrap items-center gap-3 ${align === 'center' ? 'justify-center' : ''}`}>
+      {buttons.map((b) =>
+        b.main ? (
+          <Link key={b.href} href={b.href} className={primary}>
+            {b.label}
+            <span className={s.arrowDot}><Arrow /></span>
           </Link>
-        </div>
+        ) : (
+          <Link key={b.href} href={b.href} className={secondary}>{b.label}</Link>
+        ),
       )}
     </div>
+  );
+}
+
+/**
+ * The hero's only other action: a quiet text link, so nothing competes with the job box.
+ * A visitor or customer is asked "Are you a supplier?"; a signed-in supplier gets their portal.
+ */
+export function SupplierLink({ ask, how, portal }: { ask: string; how: string; portal: string }) {
+  const who = useAudience();
+  const link = 'font-semibold text-teal-light underline-offset-4 hover:underline';
+  if (who === 'supplier') {
+    return (
+      <Link href="/portal" className={`text-[14px] ${link}`}>
+        {portal} <span aria-hidden className="inline-block rtl:rotate-180">&rarr;</span>
+      </Link>
+    );
+  }
+  return (
+    <p className="text-[14px] text-muted">
+      {ask}{' '}
+      <Link href="/supplier" className={link}>
+        {how} <span aria-hidden className="inline-block rtl:rotate-180">&rarr;</span>
+      </Link>
+    </p>
   );
 }
