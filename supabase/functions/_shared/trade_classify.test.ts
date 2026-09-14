@@ -69,6 +69,27 @@ Deno.test('a place on the drawing is not a trade', () => {
   assertEquals(detectTrades('3 floors building, fire alarm'), ['safety']);
 });
 
+Deno.test('a component of a trade\'s product is not a second trade (EN/AR)', () => {
+  // Harness journey a, 14 Sep 2026: split into aluminium + glass.
+  assertEquals(detectTrades('We need 40 aluminium windows supplied and installed. Sizes 1200 x 1500 mm, double glazed, powder coated white. Materials: thermal break aluminium frames, double glazed 6-12-6 glass'), ['aluminium']);
+  assertEquals(detectTrades('نوافذ ألمنيوم مع زجاج مزدوج لفيلا'), ['aluminium']);
+  assertEquals(detectTrades('wooden door with glass panel, joinery'), ['carpentry']);
+  assertEquals(detectTrades('SPC flooring with tiling of the skirting'), ['flooring']);
+  assertEquals(detectTrades('steel gate, painted'), ['steel']);
+});
+
+Deno.test('genuine multi-trade requests still split', () => {
+  // A component named as its own job is its own trade.
+  assertEquals(detectTrades('aluminium windows and a frameless glass shower enclosure'), ['glass', 'aluminium']);
+  assertEquals(detectTrades('aluminium sliding windows plus a glass railing for the balcony'), ['glass', 'aluminium']);
+  assertEquals(detectTrades('نوافذ ألمنيوم ومرآة زجاج للحمام'), ['glass', 'aluminium']);
+  // Different trades, no component relation.
+  assertEquals(detectTrades('AC not cooling, blocked drainage, and we want CCTV'), ['plumbing', 'hvac', 'security']);
+  assertEquals(detectTrades('repaint the villa and replace the wooden doors'), ['painting', 'carpentry']);
+  // Glass alone is glass.
+  assertEquals(detectTrades('replace a broken glass pane'), ['glass']);
+});
+
 Deno.test('stems and word boundaries', () => {
   assertEquals(detectCat('the content of the tender'), null);   // 'tent' is not inside 'content'
   assertEquals(detectCat('waterproofing'), 'waterproofing');     // not roofing
