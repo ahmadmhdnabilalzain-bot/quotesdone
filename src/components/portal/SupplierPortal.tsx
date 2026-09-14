@@ -289,6 +289,7 @@ function CapabilityConfirmPanel({ token, lang }) {
   const ar = lang === 'ar';
   const [st, setSt] = useState({ loading: true, err: '', confirmed: false, cap: null, vocab: { trades: [], roles: [] } });
   const [trades, setTrades] = useState([]);
+  const [otherTrade, setOtherTrade] = useState('');
   const [roles, setRoles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -369,7 +370,26 @@ function CapabilityConfirmPanel({ token, lang }) {
                     aria-pressed={trades.includes(tr.code)}
                     onClick={() => toggle(trades, setTrades, tr.code)}>{vocabLabel(lang, 'trade', tr.code, tr.label)}</button>
           ))}
+          {/* THE LIST IS OPEN (founder, 14 Sep 2026: "if a supplier comes tomorrow and register for
+              packaging services he is welcomed"). A trade the supplier named that is not in the
+              list above shows here as its own chip; the server stores it normalised. */}
+          {trades.filter((c) => !st.vocab.trades.some((tr) => tr.code === c)).map((c) => (
+            <button key={'own:' + c} type="button" className={chip(true)} aria-pressed="true"
+                    onClick={() => toggle(trades, setTrades, c)}>{String(c).replace(/_/g, ' ')}</button>
+          ))}
         </div>
+        <form className="mt-2 flex gap-2" onSubmit={(e) => {
+          e.preventDefault();
+          const v = otherTrade.trim();
+          if (v && !trades.includes(v)) setTrades(trades.concat(v));
+          setOtherTrade('');
+        }}>
+          <input className="flex-1 rounded-md border border-white/20 bg-transparent px-3 py-1.5 text-sm"
+                 value={otherTrade} maxLength={60} onChange={(e) => setOtherTrade(e.target.value)}
+                 aria-label={ar ? 'تخصص غير موجود في القائمة' : 'A trade not in the list'}
+                 placeholder={ar ? 'تخصص آخر، مثل: خدمات التغليف' : 'Another trade, e.g. packaging services'} />
+          <Button type="submit" variant="outline" disabled={!otherTrade.trim()}>{ar ? 'إضافة' : 'Add'}</Button>
+        </form>
       </div>
 
       <div className="mt-4">

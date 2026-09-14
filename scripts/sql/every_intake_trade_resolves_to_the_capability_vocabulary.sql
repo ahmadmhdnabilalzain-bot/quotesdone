@@ -5,27 +5,51 @@
 --   * the capability matcher's codes (taxonomy_trade.code; supplier_capabilities.trades): 40
 -- sales_engineer's `match` passed an inquiry's stored intake slugs STRAIGHT to fn_match_capability,
 -- whose gate is `sc.trades && p_trades`. 39 of the 56 slugs are not taxonomy codes (glass vs
--- glazing, fitout vs interior_fitout, carpentry vs joinery, safety vs fire_fighting ...), so every
--- request in those 39 categories matched ZERO suppliers; the router's "no fit" answer is respected,
--- so the keyword fallback was suppressed and the request reached nobody. Measured directly:
--- fn_match_capability(['aluminium']) returned both demo aluminium suppliers; (['glass']) returned
--- none, while the same suppliers' neighbour code 'glazing' is what "glass" means in taxonomy_trade.
--- fn_norm_trades resolves some slugs but maps 13 to nothing and a few by keyword accident.
+-- glazing, fitout vs interior_fitout, carpentry vs joinery ...), so every request in those 39
+-- categories matched ZERO suppliers even when a supplier of that very trade was registered.
+-- Measured: fn_match_capability(['aluminium']) returned both demo aluminium suppliers; (['glass'])
+-- returned none, though "glass" is listed in taxonomy_trade.aliases of 'glazing'.
+--
+-- THE FOUNDER'S RULINGS, 14 Sep 2026, verbatim — they decide everything below:
+--   "there is nothing called nearest match. either exact match or no match"
+--   "and btw our categories are not finalized. if a supplier comes tomorrow and register for
+--    packaging services he is welcomed"
 --
 -- WHAT THIS CHANGES.
---   1. public.intake_trade_taxonomy — the explicit slug -> codes mapping, one row per intake slug
---      that is not itself a code. Reviewed by hand, not derived by keyword.
---   2. public.fn_taxonomy_trades_for(text[]) — THE resolver: a slug that is an active taxonomy code
---      passes through; a mapped slug resolves to its codes; anything else resolves to nothing. Only
---      active codes are ever returned. sales_engineer resolves stored trades through it.
---   3. A probe: every category_specs slug resolves to at least one active code, except the named
---      slugs that deliberately have none (general, general-services-other, pest — taxonomy_trade
---      has no pest-control trade; that is a taxonomy gap, stated here, not papered over).
+--   1. public.fn_trade_code(text) — the ONE normaliser of a trade name: lower case, every run of
+--      non-letters/digits becomes '_'. 'Packaging services', 'packaging-services' and
+--      'packaging_services' are the same code. supplier_capability.ts (tradeCode) is its TS twin.
+--   2. public.intake_trade_taxonomy — intake slug -> the SAME trade under its taxonomy name. A row is
+--      admitted only when taxonomy_trade itself names the slug's trade in that code's label or
+--      aliases (measured 14 Sep 2026 and quoted in `note`). A neighbouring trade is not the same
+--      trade, so it is not a row. Removed on the ruling above (they were nearest, not exact):
+--        acrylic -> signage            (signage lists "acrylic letters", not acrylic fabrication)
+--        custom-furniture -> joinery   (joinery lists wardrobes and kitchens, not furniture)
+--        job-shop-manufacturing -> steel
+--        roofing -> waterproofing, civil_works   (neither names roofing)
+--        tents-and-shade-structures -> steel
+--        safety -> safety_equipment    (that code is PPE; fire safety is fire_fighting, which stays)
+--   3. public.fn_taxonomy_trades_for(text[]) — THE resolver. Each name resolves to ITSELF (normalised)
+--      plus the taxonomy code(s) of the same trade. Nothing else. So a supplier who registers a trade
+--      nobody listed yet ("packaging services") is matched by a request whose category has that same
+--      name, and by nothing else. A retired taxonomy code never gates a match.
+--   A category with no supplier of its exact trade routes to no one. That is the correct answer:
+--   sales_engineer's no-match path tells the customer so. There is no fallback to a neighbour.
 --
 -- WHAT IT DOES NOT CHANGE. taxonomy_trade, category_specs, fn_match_capability, or any supplier's
--- registered capability. It also does not create suppliers: on 14 Sep 2026 0 of 22,264 real leads
--- are verified, so a real request reaches nobody until real suppliers finish verification — a
--- registration fact this file cannot and does not change.
+-- registered capability. It does not create suppliers: on 14 Sep 2026 0 of 22,264 real leads are
+-- verified, so a real request reaches nobody until real suppliers finish verification.
+
+create or replace function public.fn_trade_code(p_name text)
+returns text
+language sql
+immutable
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select nullif(btrim(regexp_replace(lower(btrim(coalesce(p_name, ''))), '[^[:alnum:]]+', '_', 'g'), '_'), '');
+$fn$;
+
+revoke execute on function public.fn_trade_code(text) from public, anon, authenticated;
 
 create table if not exists public.intake_trade_taxonomy (
   intake_slug text primary key,
@@ -40,44 +64,41 @@ do $pol$ begin
 end $pol$;
 revoke all on public.intake_trade_taxonomy from anon, authenticated;
 
+-- This file owns every row of the table, so it reloads it whole: a mapping removed here is removed
+-- from production on the next apply, not left behind by an upsert.
+delete from public.intake_trade_taxonomy;
 insert into public.intake_trade_taxonomy (intake_slug, trade_codes, note) values
-  ('acrylic',                   '{signage}',                      'acrylic fabrication is sold as signage and displays'),
-  ('av-systems',                '{av_it}',                        null),
-  ('blinds-curtains',           '{upholstery}',                   null),
-  ('carpentry',                 '{joinery}',                      null),
-  ('carpentry-joinery',         '{joinery}',                      null),
-  ('carpets',                   '{flooring}',                     null),
-  ('combined-mep',              '{mep_general}',                  null),
-  ('commercial-retail-fitout',  '{interior_fitout}',              null),
-  ('custom-furniture',          '{joinery}',                      null),
-  ('demolition',                '{civil_works}',                  null),
-  ('engineering-and-architectural-consultancies', '{engineering_consultancy}', null),
-  ('epoxy-flooring',            '{flooring}',                     null),
-  ('facade-cleaning',           '{cleaning}',                     'fn_norm_trades also returned aluminium, by the word facade'),
-  ('fitout',                    '{interior_fitout}',              null),
-  ('garage-doors',              '{doors}',                        null),
-  ('general-building-contracting', '{civil_works}',               null),
-  ('generators',                '{power_generators}',             null),
-  ('glass',                     '{glazing}',                      null),
-  ('insulation',                '{waterproofing}',                'taxonomy_trade has no insulation trade; waterproofing contractors carry it'),
-  ('interior-design',           '{interior_fitout}',              null),
-  ('it-networking',             '{av_it,it_services}',            null),
-  ('job-shop-manufacturing',    '{steel}',                        'fabrication shops are registered under steel'),
-  ('kitchens',                  '{joinery}',                      null),
-  ('marble-granite',            '{flooring}',                     null),
-  ('masonry',                   '{civil_works}',                  null),
-  ('mep',                       '{mep_general}',                  null),
-  ('movers',                    '{logistics_moving}',             null),
-  ('roofing',                   '{waterproofing,civil_works}',    null),
-  ('safety',                    '{fire_fighting,safety_equipment}', 'fire alarm, detection and fire fighting (checklist "Fire Safety & Fire Fighting")'),
-  ('security',                  '{security_systems}',             null),
-  ('smart-home',                '{home_automation}',              null),
-  ('structural-steel-fabrication', '{steel}',                     null),
-  ('swimming-pools',            '{landscaping}',                  'taxonomy_trade has no pool trade; pool builders register as landscaping'),
-  ('tents-and-shade-structures','{steel}',                        null),
-  ('tiling',                    '{flooring}',                     null),
-  ('water-tank-cleaning',       '{cleaning}',                     null)
-on conflict (intake_slug) do update set trade_codes = excluded.trade_codes, note = excluded.note;
+  ('av-systems',                '{av_it}',                        'av_it aliases: audio visual'),
+  ('blinds-curtains',           '{upholstery}',                   'upholstery = "Upholstery & soft furnishing"; aliases: curtains, blinds'),
+  ('carpentry',                 '{joinery}',                      'joinery = "Joinery & carpentry"'),
+  ('carpentry-joinery',         '{joinery}',                      'joinery = "Joinery & carpentry"'),
+  ('carpets',                   '{flooring}',                     'flooring aliases: carpet'),
+  ('combined-mep',              '{mep_general}',                  'mep_general = "MEP (combined)"'),
+  ('commercial-retail-fitout',  '{interior_fitout}',              'interior_fitout aliases: fitout'),
+  ('demolition',                '{civil_works}',                  'civil_works aliases: demolition'),
+  ('engineering-and-architectural-consultancies', '{engineering_consultancy}', 'engineering_consultancy = "Engineering Consultancy & Architecture"'),
+  ('epoxy-flooring',            '{flooring}',                     'flooring aliases: epoxy floor'),
+  ('facade-cleaning',           '{cleaning}',                     'cleaning aliases: cleaning'),
+  ('fitout',                    '{interior_fitout}',              'interior_fitout aliases: fitout'),
+  ('garage-doors',              '{doors}',                        'doors aliases: door, shutter'),
+  ('general-building-contracting', '{civil_works}',               'civil_works aliases: general contracting, building contractor'),
+  ('generators',                '{power_generators}',             'power_generators aliases: generators'),
+  ('glass',                     '{glazing}',                      'glazing = "Glass & glazing"'),
+  ('insulation',                '{waterproofing}',                'waterproofing = "Waterproofing & insulation"'),
+  ('interior-design',           '{interior_fitout}',              'interior_fitout aliases: interior design'),
+  ('it-networking',             '{av_it,it_services}',            'it_services = "IT & Network Services"; av_it aliases: networking'),
+  ('kitchens',                  '{joinery}',                      'joinery aliases: kitchens'),
+  ('marble-granite',            '{flooring}',                     'flooring aliases: marble'),
+  ('masonry',                   '{civil_works}',                  'civil_works aliases: masonry'),
+  ('mep',                       '{mep_general}',                  'mep_general aliases: mep'),
+  ('movers',                    '{logistics_moving}',             'logistics_moving aliases: movers and packers'),
+  ('safety',                    '{fire_fighting}',                'checklist "Fire Safety & Fire Fighting"; fire_fighting aliases: fire alarm, life safety'),
+  ('security',                  '{security_systems}',             'security_systems = "Security systems"'),
+  ('smart-home',                '{home_automation}',              'home_automation aliases: smart home'),
+  ('structural-steel-fabrication', '{steel}',                     'steel aliases: structural steel, metal fabrication'),
+  ('swimming-pools',            '{landscaping}',                  'landscaping = "Landscaping & pools"; aliases: swimming pool'),
+  ('tiling',                    '{flooring}',                     'flooring aliases: tiling'),
+  ('water-tank-cleaning',       '{cleaning}',                     'cleaning aliases: cleaning');
 
 create or replace function public.fn_taxonomy_trades_for(p_slugs text[])
 returns text[]
@@ -86,40 +107,50 @@ stable
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-  -- A taxonomy code passes through; an intake slug resolves through intake_trade_taxonomy; anything
-  -- else resolves to nothing. Only ACTIVE codes are returned, so a retired code never gates a match.
+  -- Each name resolves to itself (normalised) and to the taxonomy code(s) of the same trade. Never to a
+  -- neighbour. A retired taxonomy code is dropped, so it never gates a match.
   select coalesce(array_agg(distinct x.code order by x.code), '{}'::text[])
     from (
-      select t.code
+      select public.fn_trade_code(s) as code
         from unnest(coalesce(p_slugs, '{}'::text[])) s
-        join public.taxonomy_trade t on t.code = lower(btrim(s))
       union
       select unnest(m.trade_codes)
         from unnest(coalesce(p_slugs, '{}'::text[])) s
-        join public.intake_trade_taxonomy m on m.intake_slug = lower(btrim(s))
+        join public.intake_trade_taxonomy m on public.fn_trade_code(m.intake_slug) = public.fn_trade_code(s)
     ) x
-    join public.taxonomy_trade t on t.code = x.code and t.active;
+   where x.code is not null
+     and not exists (select 1 from public.taxonomy_trade t where t.code = x.code and not t.active);
 $fn$;
 
 revoke execute on function public.fn_taxonomy_trades_for(text[]) from public, anon, authenticated;
 
+-- Probe. This file defines routines, so a pass ends in `raise notice`; a failure raises and rolls the
+-- whole file back, which is what a wrong resolver deserves.
 do $chk$
 declare
-  unresolved text[];
   bad_codes text[];
-  a text[]; g text[];
+  r jsonb;
 begin
-  select array_agg(cs.category order by cs.category) into unresolved
-    from (select distinct category from public.category_specs) cs
-   where cardinality(public.fn_taxonomy_trades_for(array[cs.category])) = 0
-     and cs.category not in ('general', 'general-services-other', 'pest');
   select array_agg(distinct c) into bad_codes
     from public.intake_trade_taxonomy m, unnest(m.trade_codes) c
    where not exists (select 1 from public.taxonomy_trade t where t.code = c and t.active);
-  a := public.fn_taxonomy_trades_for(array['aluminium']);
-  g := public.fn_taxonomy_trades_for(array['glass']);
-  if unresolved is not null or bad_codes is not null or a <> array['aluminium'] or g <> array['glazing'] then
-    raise exception 'resolver wrong: unresolved slugs %, unknown codes %, aluminium -> %, glass -> %', unresolved, bad_codes, a, g;
+  r := jsonb_build_object(
+    'aluminium', public.fn_taxonomy_trades_for(array['aluminium']),
+    'glass',     public.fn_taxonomy_trades_for(array['glass']),
+    'safety',    public.fn_taxonomy_trades_for(array['safety']),
+    'roofing',   public.fn_taxonomy_trades_for(array['roofing']),
+    'acrylic',   public.fn_taxonomy_trades_for(array['acrylic']),
+    'new_cat',   public.fn_taxonomy_trades_for(array['packaging-services']),
+    'new_reg',   public.fn_taxonomy_trades_for(array['Packaging Services']));
+  if bad_codes is not null
+     or r->'aluminium' <> '["aluminium"]'::jsonb
+     or r->'glass'     <> '["glass", "glazing"]'::jsonb
+     or r->'safety'    <> '["fire_fighting", "safety"]'::jsonb
+     or r->'roofing'   <> '["roofing"]'::jsonb
+     or r->'acrylic'   <> '["acrylic"]'::jsonb
+     or r->'new_cat'   <> '["packaging_services"]'::jsonb
+     or r->'new_reg'   <> '["packaging_services"]'::jsonb then
+    raise exception 'resolver wrong: unknown codes %, results %', bad_codes, r;
   end if;
-  raise notice 'CHK<<every intake slug resolves; aluminium -> %, glass -> %>>', a, g;
+  raise notice 'CHK<<exact-only resolver: %>>', r;
 end $chk$;
