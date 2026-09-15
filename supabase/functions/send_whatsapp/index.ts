@@ -80,6 +80,7 @@ function tmplKey(type:string):string|null{
   if(t==='founder_alert') return 'founder_alert';
   return null;
 }
+const AWAITING_TEMPLATE_NOTE = 'awaiting template: supplier_account_notice has no WhatsApp template yet; registering one needs the founder\'s Meta submission. The email twin carried this notice.';
 function shortSummary(s:string){ let x=String(s||'').replace(/\s+/g,' ').trim(); x=x.replace(/^(QuotesDone[:\-\s]*)/i,''); return x.slice(0,90)||'your request'; }
 // A template variable may not carry a newline, a tab or a run of spaces (Meta refuses the send), so
 // every value is flattened and capped before it reaches Twilio.
@@ -275,6 +276,12 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         // Mapped type whose template SID is not registered yet (or is awaiting Meta approval).
         // Left queued on purpose so it delivers the moment the SID lands - marking it 'skipped'
         // here would silently discard a compliance notice.
+        // 15 SEP 2026: supplier_account_notice has NO template registered and no approved UTILITY
+        // template fits it (the approved ones are about a new inquiry, a quote, a reveal or document
+        // expiry). Registering one needs the founder's own Meta submission, so it is not done from
+        // here. fn_supplier_notice queues the email twin first, so the notice goes by email; this row
+        // says why it is waiting instead of sitting silently in the queue. Stamped once.
+        if (key === 'supplier_account_notice') await admin.from('notifications').update({ last_error: AWAITING_TEMPLATE_NOTE }).eq('id', n.id).is('last_error', null);
         skipped++; requeued++; continue;
       } else {
         // Genuinely unmapped message type: no template will ever match it, so keeping it queued

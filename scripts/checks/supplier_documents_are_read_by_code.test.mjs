@@ -28,11 +28,11 @@ test('a model refusal on a catalogue is unread_llm_hold, not a false zero', () =
   assert.match(src, /products = productsFromText\(docRead\.text\)/, 'a PDF text layer is not tried by code first');
 });
 
-test('the keyword matcher runs only on the path that never asks the sales engineer', () => {
+test('every customer_api path asks the sales engineer, and a matcher failure raises a finding', () => {
+  // The turnkey path was the last keyword caller; it now shares the sales engineer route. The full
+  // no-fuzzy-matcher guard is scripts/checks/supplier_matching_is_exact_or_none.test.mjs.
   const src = read('supabase/functions/customer_api/index.ts');
-  const calls = src.match(/admin\.rpc\('match_suppliers_kw'/g) || [];
-  assert.equal(calls.length, 1, 'match_suppliers_kw is called from more than one place');
-  assert.match(src, /if \(!useRouter\) \{\s*const \{ data: sups \} = await admin\.rpc\('match_suppliers_kw'/);
+  assert.doesNotMatch(src, /useRouter/, 'a path that skips the sales engineer is back');
   assert.match(src, /p_issue_key: 'sales_engineer_match_unavailable'/, 'a matcher failure raises no finding');
 });
 

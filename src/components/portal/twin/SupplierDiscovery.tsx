@@ -1,8 +1,8 @@
 'use client';
 // SPEC §9 — SUPPLIER DISCOVERY AS ITS OWN ACT. "Customer does not search. They ask."
 //
-// WHAT WAS MEASURED (production, 7 Aug 2026): fn_match_capability and match_suppliers_kw both
-// existed, both ranked, and both sat on the DISPATCH path only — discovery happened as a side
+// WHAT WAS MEASURED (production, 7 Aug 2026): fn_match_capability and a keyword matcher (dropped
+// 15 Sep 2026) both existed, both ranked, and both sat on the DISPATCH path only — discovery happened as a side
 // effect of sending an RFQ. No customer action invoked it, so the spec's "Found: 47 suppliers /
 // Filtered: UAE, capacity, certification / Top recommendations" screen had nothing behind it.
 //
