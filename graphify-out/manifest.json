@@ -11925,8 +11925,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/MANIFEST.txt": {
-    "mtime": 1789458906.9046702,
-    "ast_hash": "44366ca2c13fa1ca5effdaa8de323b7f",
+    "mtime": 1789463150.747653,
+    "ast_hash": "d512e2c33cacae3eae7c497d4f641bc3",
     "semantic_hash": ""
   },
   "scripts/sql/SUPERSEDED.txt": {
@@ -18360,8 +18360,8 @@
     "semantic_hash": ""
   },
   "scripts/sql/every_stored_document_source_is_registered_for_backup.sql": {
-    "mtime": 1789461137.922681,
-    "ast_hash": "62497fcc99968fc902748f4e458bd9dd",
+    "mtime": 1789461717.3266492,
+    "ast_hash": "6f348c7432ea5f29f7e0ca353f025bf7",
     "semantic_hash": ""
   },
   "scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql": {
@@ -19357,6 +19357,16 @@
   "supabase/functions/supplier_catalog_ingest/rows_from_text.ts": {
     "mtime": 1789457867.3916268,
     "ast_hash": "1f157e29e0ac7eee5fac10768bb1d1c9",
+    "semantic_hash": ""
+  },
+  "scripts/checks/no_export_is_pruned_without_a_verified_copy.probe.sql": {
+    "mtime": 1789463084.176014,
+    "ast_hash": "57f28ebf74eb63457271428753ab5ae8",
+    "semantic_hash": ""
+  },
+  "scripts/sql/every_old_export_reaches_dropbox_and_no_export_is_pruned_without_a_verified_copy.sql": {
+    "mtime": 1789463178.1270607,
+    "ast_hash": "d9bec22bc7a74743b18f5ea4d9726eac",
     "semantic_hash": ""
   }
 }
