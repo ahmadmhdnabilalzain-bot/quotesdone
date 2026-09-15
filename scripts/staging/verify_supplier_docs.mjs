@@ -160,7 +160,7 @@ await withRun(async (run) => {
   const s = await lead(sup.leadId);
   if (s.signed_terms_path) signedPaths.push(s.signed_terms_path);
   step('the signed terms land and the six are complete',
-    sg.json?.ok === true && !!s.signed_terms_path && Array.isArray(s.missing) && s.missing.length === 0,
+    sg.status === 200 && sg.json?.ok === true && !!s.signed_terms_path && Array.isArray(s.missing) && s.missing.length === 0,
     `sign HTTP ${sg.status} ok=${sg.json?.ok} signed_terms_path=${s.signed_terms_path ? 'set' : 'null'} missing=${miss(s)}`);
 
   const decisions = await mgmtRead(REF,
