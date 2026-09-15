@@ -9,6 +9,8 @@ import { observe } from '../_shared/observe.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
+import { buildInsightsSummary } from './insights_summary.ts';
+import { deleteSupporting, listSupporting, saveSupporting, urlSupporting } from './supporting_documents.ts';
 // SUPPLIER-FACING TEXT CARRIES A CODE (14 Sep 2026). Every sentence below that reaches a supplier
 // (document hints, alerts, eligibility titles/details) now travels with a stable `code` and `params`;
 // the portal renders the EN/AR wording from src/components/portal/supplier/serverCopy.ts and falls
@@ -521,6 +523,36 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
 
     // Why am I not being matched? The builder and the reasoning behind every item: ./overview.ts.
     if (action === 'eligibility') return J(await buildEligibility(admin, supId));
+
+    // THE INSIGHTS TAB AS DATA (15 Sep 2026): totals, price position, funnel, 12-month series and
+    // coded hints. ./insights_summary.ts; the contract is docs/api/supplier_portal_messages_documents_insights.md.
+    if (action === 'insights_summary') {
+      const r = await buildInsightsSummary(admin, supId, buildEligibility(admin, supId).then((e) => !!e.eligible));
+      return J(r.body, r.status);
+    }
+
+    // SUPPORTING COMPANY DOCUMENTS (15 Sep 2026): any document besides the fixed kinds above.
+    // ./supporting_documents.ts says where each file goes and why it reaches Dropbox.
+    if (action === 'supporting_documents' || action === 'supporting_document_save' || action === 'supporting_document_delete' || action === 'supporting_document_url') {
+      const signOne = (p: string) => sign('supplier-docs', p);
+      let r;
+      if (action === 'supporting_documents') r = await listSupporting(admin, supId, signOne);
+      else if (action === 'supporting_document_delete') r = await deleteSupporting(admin, supId, b.id);
+      else if (action === 'supporting_document_url') r = await urlSupporting(admin, supId, b.id, signOne);
+      else r = await saveSupporting(admin, supId, b, {
+        sign: signOne, safeFilename,
+        scan: async ({ b64, mime, filename }) => {
+          const sc = await sanitizeAndScan({ input: b64, declaredMime: mime, filename, allow: SAFE_UPLOAD,
+                                             scan: { source: 'supplier_portal.supporting', subject: String(supId), filename, bucket: 'supplier-docs' } });
+          return sc.ok ? { ok: true, bytes: sc.result.bytes, mime: sc.result.mime } : { ok: false, reason: String(sc.body.detail || sc.body.error) };
+        },
+        upload: async (path, bytes, mime) => {
+          const { error } = await admin.storage.from('supplier-docs').upload(path, bytes, { contentType: mime, upsert: false });
+          return { error: error ? error.message : null };
+        },
+      });
+      return J(r.body, r.status);
+    }
 
     return J({ error: 'unknown_action', action }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
