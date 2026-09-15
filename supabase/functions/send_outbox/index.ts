@@ -9,7 +9,7 @@ import { encodeBase64 } from 'jsr:@std/encoding/base64';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { BRAND, lockupImg } from '../_shared/brand.ts';
 import { arabicFrame } from './arabic_frame.ts';
-import { OWNED_CHANNEL_FILTER, ownsChannel } from './channels.ts';
+import { ownsChannel, selectQueue } from './channels.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
@@ -190,7 +190,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     const since = new Date(); since.setUTCHours(0, 0, 0, 0);
     const { count: sentToday } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('status', 'sent').gte('sent_at', since.toISOString());
     const remaining = Math.max(0, cap - (sentToday || 0));
-    const { data: q } = await admin.from('notifications').select('*').or('status.eq.queued,status.eq.pending,status.is.null').or(OWNED_CHANNEL_FILTER).order('created_at', { ascending: true }).limit(Number(body.limit) || 40);
+    const { data: q } = await selectQueue(admin, Number(body.limit) || 40);
     const rows = q || [];
     // Previously a silent ok:true - mail just accumulated with no signal anywhere.
     if (!enabled || !key) { await logThrottled('email_disabled', 60, 'error', { pending: rows.length, email_enabled: enabled, has_resend_key: !!key }, 'EMAIL NOT SENDING - ' + (!enabled ? 'email_enabled is not true' : 'resend_api_key missing') + '; ' + rows.length + ' notification(s) waiting'); return J({ ok: true, pending: rows.length, sent: 0, note: 'email disabled or resend_api_key missing - queued and will flush once enabled' }); }
