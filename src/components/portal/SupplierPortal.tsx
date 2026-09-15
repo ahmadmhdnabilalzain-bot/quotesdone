@@ -4,9 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { urlLocale, applyDocumentLocale, adoptLocale } from '@/lib/documentLocale';
 import { supaClient } from '@/lib/supaClient';
 // 14 Sep 2026: the row-#5 intelligence panels are no longer top-level tabs; ./supplier/Insights loads
-// the ones whose routine has something to show, each on demand. The AI onboarding chat
-// (SupplierOnboarding) is not reachable while the OpenRouter hold stands — it has no model to call,
-// and the registration it duplicated is the deterministic ProfileForm below.
+// the ones whose routine has something to show, each on demand.
 import SupplierSettings from './supplier/SupplierSettings';
 import SupplierDocumentImpact from './supplier/SupplierDocumentImpact';
 import SupplierEntryHero from './supplier/SupplierEntryHero';
@@ -16,8 +14,9 @@ import Insights, { INSIGHT_PANELS } from './supplier/Insights';
 import { DrawingGallery, BoqTable, ClarifyThread, WithheldCustomer, RequestedTerms } from './supplier/RfqParts';
 import { SpecHoldPanel } from './supplier/SpecHold';
 import { Kicker } from '@/components/ui/sealed';
-import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, CATEGORY_AR } from './supplier/serverCopy';
+import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_CODES, tradeLabel } from './supplier/serverCopy';
 import { call } from './supplier/api';
+import { uaeMobile } from './supplier/uaeMobile';
 import { WhatsAppChoice } from './WhatsAppChoice';
 import { waSignupSettled, waNeedsPrompt } from './whatsappChoiceText';
 import { categoryLabel } from '@/lib/categoryLabel';
@@ -36,8 +35,13 @@ const SB = () => supaClient('qd-portal-auth');
 // call() lives in ./supplier/api.ts, shared with the journey, RFQ and insights components.
 // Every field carries a <label> (audit 2026-09-14: three unlabeled fields, the Emirate <select> with
 // no accessible name at all). Visually hidden where a placeholder already shows the same words.
-function Lbl({ text, children, className = '', visible = false }) {
-  return <label className={cn('block min-w-0', className)}><span className={visible ? 'mb-1 block text-[12px] font-semibold text-muted-foreground' : 'sr-only'}>{text}</span>{children}</label>;
+// `need` ('req' | 'opt') marks a registration field Required or Optional in the page's language and makes
+// the label visible (audit 15 Sep 2026: no field said which of the mandatory six it was).
+function Need({ lang, req = false }) {
+  return <span className={cn('ms-1.5 align-middle text-[11px] font-semibold', req ? 'text-danger-fg' : 'text-muted-foreground')}>{t(lang, req ? 'required' : 'optional')}</span>;
+}
+function Lbl({ text, children, className = '', visible = false, need = null, lang = 'en' }) {
+  return <label className={cn('block min-w-0', className)}><span className={visible || need ? 'mb-1 block text-[12px] font-semibold text-muted-foreground' : 'sr-only'}>{text}{need ? <Need lang={lang} req={need === 'req'} /> : null}</span>{children}</label>;
 }
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 // Amounts, phone numbers, e-mails, dates and reference codes are left-to-right runs. Inside the Arabic
@@ -198,19 +202,28 @@ const T = {
     signup_email_only:"Please sign up with your work email — you'll register your company and verify your mobile next.",
     conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
     setup_title:'Set up your supplier account', setup_sub_company:'Register your company, then complete your profile.', setup_sub_profile:'Complete your profile to start receiving RFQs and submitting quotes.',
-    onboard_title:'Register your company', onboard_sub:'Enter your company name and main emirate. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', company_name:'Company name', emirate:'Emirate', create_company:'Create company', enter_company:'Enter your company name.', err_generic:'Something went wrong.', something_wrong:'Something went wrong',
+    onboard_title:'Register your company', onboard_sub:'Enter your company name and your main trade.Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', company_name:'Company name', emirate:'Emirate', create_company:'Create company', enter_company:'Enter your company name.', err_generic:'Something went wrong.', something_wrong:'Something went wrong',
     t_overview:'Overview', t_billing:'Billing', bill_title:'Amounts due', bill_none:'Nothing to pay. You are not charged commission on the work you win.', bill_total:'Total outstanding', bill_pay:'Pay now', bill_paying:'Opening secure checkout…', bill_err:'We could not load your balance. Please try again.', bill_commission:'Refunded amount recovered', bill_fine:'Late fee', bill_due:'Due', bill_retry:'Try again', bill_secure:'You will be redirected to Stripe to pay securely. QuotesDone never sees your card details. These charges arise only when a customer is refunded because we could not reach you \u2014 there is no commission on won work.', t_rfqs:'RFQs', t_documents:'Documents', t_projects:'Projects', t_messages:'Messages', approved:'Approved', pending:'Pending',
     k_quotes_sent:'Quotes sent', k_reveals:'Reveals', k_hired:'Hired', k_win:'Win ratio', k_rating:'Rating', k_deal_value:'Deal value won',
     price_pos:'Price positioning', anon_note:'anonymous — never shows competitor prices', not_enough:'not enough data', last12:'Last 12 months', quotes_reveals:'quotes / reveals',
     pp_fallback:'Once you quote on a few competitive RFQs, you will see how your pricing compares to the market here — without ever revealing anyone else pricing.',
-    pf_company:'Company', pf_emirates:'Emirates you serve', pf_contact:'Contact & owner', contact_name:'Contact name *', mobile:'Mobile *',
+    pf_company:'Company', pf_emirates:'Emirates you serve', pf_contact:'Contact & owner', contact_name:'Contact name', mobile:'Mobile',
     mobile_verified:'✓ Mobile verified', verify_my_mobile:'Verify my mobile →', sms_code:'6-digit SMS code', verify:'Verify',
     email_verified:'✓ E-mail verified', email_unverified:'e-mail not yet verified',
     reg_rest_optional:'Attach these two and you are done. Everything else is optional and can wait until you are inside.', verify_first:'Please verify your mobile number first.',
     accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation — PDF, photo, Excel, Word, e-mail, CAD or ZIP — and we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', loading_msgs:'Loading messages…', no_convos_h:'No conversations yet', no_convos_sub:'Once a customer reveals your quote on a project, you can request a direct chat with them here. Our assistant handles most questions instantly.', no_messages:'No messages yet', no_chat:'no chat', back:'← Back', type_message:'Type a message…', send:'Send', no_chat_open:'No chat open yet.', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', could_not_send:'Could not send.', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', no_history:'No history yet.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no. *', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', h_bank:'Bank / payout', bank_name_ph:'Bank name', account_holder:'Account holder name', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
     lic_uploaded_type:'Licence uploaded. If the number did not fill in, type it below — automatic reading is optional.', lic_upload_failed:'We could not store your licence file. Please try again with a PDF or a clear photo.',
     verify_my_email:'Verify my e-mail →', email_code:'6-digit e-mail code', email_sent:'We emailed you a 6-digit code.', could_not_email:'Could not send the e-mail code.',
-    cat_label:'Your trade or category', cat_ph:'e.g. Electrical, AC, Cleaning — type your own if not listed', cat_help:'Every trade is welcome — if yours isn’t listed, just type it in.', emirate_ph:'Choose your main emirate',
+    trade_label:'Your main trade', trade_ph:'Choose your trade', trade_not_listed:'My trade isn’t listed', trade_other_ph:'Type your trade', trade_help:'Every trade is welcome. If yours isn’t listed, choose “My trade isn’t listed” and type it — we review it and add it.',
+    required:'Required', optional:'Optional', mobile_format:'Enter a UAE mobile number, e.g. 050 123 4567 or +971 50 123 4567.',
+    terms_cert_failed:'Your details were saved, but we could not issue your signed acceptance certificate. Please press the button again to retry.',
+    catalogs_limit:'Up to 5 catalogues here; add more later from Documents.', catalogs_cut:'Only the first 5 catalogues were kept. Add the rest from Documents after you register.',
+    doc_insurance:'Insurance', doc_manufacturer:'Manufacturer authorisation letter', doc_egr:'EGR (Emirates Green Building) certificate',
+    band_below:'below market average', band_around:'around market average', band_above:'above market average',
+    le_too_many:'Too many code requests. Please try again later.', le_bad_id:'Enter a valid email address or UAE mobile number.', le_suppressed:'We cannot email this address — mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.',
+    le_ambiguous:'More than one account uses this mobile number. Please sign in with your email address instead.', le_signup_email:'Please sign up with your email address; you can add your mobile straight afterwards.',
+    le_no_account:'This mobile number isn’t linked to a QuotesDone account yet. Sign in with your email, or create your account first.', le_sms_off:'SMS codes are not available for this number. Please sign in with your email.',
+    le_enter_code:'Enter the code you received.', le_attempts:'Too many attempts. Please request a new code.', le_expired:'That code has expired. Please request a new one.', le_session:'Could not start your session. Please try again.', le_generic:'Something went wrong. Please try again.',
     t_quotes:'Quotes', t_insights:'Insights', t_profile:'Profile', t_scope:'My scope', t_settings:'Settings', main_nav:'Supplier portal sections', account:'Account' },
   ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', register_title:'سجّل كمورّد',
@@ -222,19 +235,28 @@ const T = {
     signup_email_only:'يُرجى التسجيل ببريدك الإلكتروني للعمل — ستسجّل شركتك وتتحقق من جوالك لاحقًا.',
     conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
     setup_title:'أنشئ حساب المورّد', setup_sub_company:'سجّل شركتك ثم أكمل ملفك.', setup_sub_profile:'أكمل ملفك لبدء استقبال طلبات التسعير وتقديم العروض.',
-    onboard_title:'سجّل شركتك', onboard_sub:'أدخل اسم شركتك وإمارتك الرئيسية. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'أدخل اسم شركتك.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
+    onboard_title:'سجّل شركتك', onboard_sub:'أدخل اسم شركتك وتخصصك الرئيسي.التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'أدخل اسم شركتك.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
     t_overview:'نظرة عامة', t_billing:'الفواتير', bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة. لا نأخذ أي عمولة على الأعمال التي تفوز بها.', bill_total:'إجمالي المستحق', bill_pay:'ادفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدك. يرجى المحاولة مرة أخرى.', bill_commission:'استرداد المبلغ المردود للعميل', bill_fine:'رسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'حاول مرة أخرى', bill_secure:'سيتم تحويلك إلى Stripe للدفع بأمان. لا تطّلع QuotesDone على بيانات بطاقتك. تنشأ هذه المبالغ فقط عند استرداد مبلغ للعميل لتعذّر الوصول إليك \u2014 ولا توجد عمولة على الأعمال المنجزة.', t_rfqs:'طلبات التسعير', t_documents:'المستندات', t_projects:'المشاريع', t_messages:'الرسائل', approved:'معتمد', pending:'قيد المراجعة',
     k_quotes_sent:'العروض المُرسلة', k_reveals:'مرات الكشف', k_hired:'المُتعاقد معه', k_win:'نسبة الفوز', k_rating:'التقييم', k_deal_value:'قيمة الصفقات',
     price_pos:'الموقع السعري', anon_note:'مجهول — لا يعرض أسعار المنافسين أبدًا', not_enough:'بيانات غير كافية', last12:'آخر 12 شهرًا', quotes_reveals:'عروض / كشوفات',
     pp_fallback:'بمجرد تقديمك عروضًا على بعض طلبات التسعير التنافسية، سترى هنا كيف تقارن أسعارك بالسوق — دون الكشف عن أسعار أي طرف آخر.',
-    pf_company:'الشركة', pf_emirates:'الإمارات التي تخدمها', pf_contact:'جهة الاتصال والمالك', contact_name:'اسم جهة الاتصال *', mobile:'الجوال *',
+    pf_company:'الشركة', pf_emirates:'الإمارات التي تخدمها', pf_contact:'جهة الاتصال والمالك', contact_name:'اسم جهة الاتصال', mobile:'الجوال',
     mobile_verified:'✓ تم التحقق من الجوال', verify_my_mobile:'تحقّق من جوالي ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تحقّق',
     email_verified:'✓ تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
     reg_rest_optional:'أرفق هذين الملفين وانتهيت. كل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.', verify_first:'يُرجى التحقق من رقم جوالك أولًا.',
     accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر — PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP — وسنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', loading_msgs:'جارٍ تحميل الرسائل…', no_convos_h:'لا توجد محادثات بعد', no_convos_sub:'بمجرد أن يكشف العميل عن عرضك في مشروع، يمكنك طلب محادثة مباشرة معه هنا. مساعدنا يجيب عن معظم الأسئلة فورًا.', no_messages:'لا رسائل بعد', no_chat:'لا محادثة', back:'→ رجوع', type_message:'اكتب رسالة…', send:'إرسال', no_chat_open:'لا توجد محادثة مفتوحة بعد.', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', could_not_send:'تعذّر الإرسال.', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', no_history:'لا يوجد سجل بعد.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية *', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', h_bank:'البنك / التحويل', bank_name_ph:'اسم البنك', account_holder:'اسم صاحب الحساب', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
     lic_uploaded_type:'تم رفع الرخصة. إن لم يظهر الرقم تلقائيًا فاكتبه أدناه — القراءة التلقائية اختيارية.', lic_upload_failed:'تعذّر حفظ ملف الرخصة. يُرجى المحاولة مرة أخرى بملف PDF أو صورة واضحة.',
     verify_my_email:'تحقّق من بريدي ←', email_code:'رمز البريد (6 أرقام)', email_sent:'أرسلنا إليك رمزًا من 6 أرقام بالبريد الإلكتروني.', could_not_email:'تعذّر إرسال رمز البريد.',
-    cat_label:'تخصصك أو فئتك', cat_ph:'مثال: كهرباء، تكييف، تنظيف — اكتب تخصصك إن لم يكن مدرجًا', cat_help:'كل التخصصات مرحّب بها — إن لم يكن تخصصك مدرجًا فاكتبه.', emirate_ph:'اختر إمارتك الرئيسية',
+    trade_label:'تخصصك الرئيسي', trade_ph:'اختر تخصصك', trade_not_listed:'تخصصي غير مدرج', trade_other_ph:'اكتب تخصصك', trade_help:'كل التخصصات مرحّب بها. إن لم يكن تخصصك مدرجًا فاختر «تخصصي غير مدرج» واكتبه — نراجعه ونضيفه.',
+    required:'مطلوب', optional:'اختياري', mobile_format:'أدخل رقم جوال إماراتي، مثل 050 123 4567 أو ‎+971 50 123 4567.',
+    terms_cert_failed:'حُفظت بياناتك، لكن تعذّر إصدار شهادة قبولك الموقّعة. يُرجى الضغط على الزر مرة أخرى لإعادة المحاولة.',
+    catalogs_limit:'حتى 5 كتالوجات هنا؛ ويمكنك إضافة المزيد لاحقًا من تبويب المستندات.', catalogs_cut:'احتفظنا بأول 5 كتالوجات فقط. أضف الباقي من تبويب المستندات بعد التسجيل.',
+    doc_insurance:'التأمين', doc_manufacturer:'خطاب تفويض الشركة المصنّعة', doc_egr:'شهادة المباني الخضراء (EGR)',
+    band_below:'أقل من متوسط السوق', band_around:'قريب من متوسط السوق', band_above:'أعلى من متوسط السوق',
+    le_too_many:'طلبات رموز كثيرة. يُرجى المحاولة لاحقًا.', le_bad_id:'أدخل بريدًا إلكترونيًا صحيحًا أو رقم جوال إماراتي.', le_suppressed:'لا يمكننا مراسلة هذا البريد — ارتدّت إليه الرسائل أو أُلغي الاشتراك. يُرجى التواصل مع info@quotesdone.com وسنعيد تفعيله.',
+    le_ambiguous:'أكثر من حساب يستخدم رقم الجوال هذا. يُرجى تسجيل الدخول ببريدك الإلكتروني.', le_signup_email:'يُرجى التسجيل ببريدك الإلكتروني؛ ويمكنك إضافة جوالك مباشرة بعد ذلك.',
+    le_no_account:'رقم الجوال هذا غير مرتبط بحساب في QuotesDone بعد. سجّل الدخول ببريدك الإلكتروني أو أنشئ حسابك أولًا.', le_sms_off:'رموز الرسائل النصية غير متاحة لهذا الرقم. يُرجى تسجيل الدخول ببريدك الإلكتروني.',
+    le_enter_code:'أدخل الرمز الذي وصلك.', le_attempts:'محاولات كثيرة. يُرجى طلب رمز جديد.', le_expired:'انتهت صلاحية الرمز. يُرجى طلب رمز جديد.', le_session:'تعذّر بدء جلستك. يُرجى المحاولة مرة أخرى.', le_generic:'حدث خطأ. يُرجى المحاولة مرة أخرى.',
     t_quotes:'العروض', t_insights:'الرؤى', t_profile:'الملف', t_scope:'نطاق عملي', t_settings:'الإعدادات', main_nav:'أقسام بوابة المورّدين', account:'الحساب' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
@@ -603,6 +625,23 @@ function InviteBanner({ invite, lang, onStart }) {
     </section>
   );
 }
+// login_otp answers with English sentences and no code (read 15 Sep 2026), and the form printed them
+// raw on /ar/portal. The known sentences map to EN/AR keys; anything unknown is a generic message plus
+// the HTTP status, never untranslated English on an Arabic page.
+const LOGIN_ERR = [
+  [/too many code requests/i, 'le_too_many'], [/valid (email address or uae )?mobile|valid email address/i, 'le_bad_id'],
+  [/do-not-send list/i, 'le_suppressed'], [/more than one quotesdone account/i, 'le_ambiguous'],
+  [/cannot create an account from a mobile/i, 'le_signup_email'], [/isn't linked|no account is registered/i, 'le_no_account'],
+  [/sms (sign-in is not enabled|codes are not available)/i, 'le_sms_off'], [/could not send the sms/i, 'err_code_send'],
+  [/enter the code/i, 'le_enter_code'], [/too many (incorrect )?attempts/i, 'le_attempts'], [/has expired/i, 'le_expired'],
+  [/incorrect or expired/i, 'err_incorrect'], [/could not start your session/i, 'le_session'],
+];
+export const loginErr = (lang, j, fallbackKey) => {
+  const e = String((j && j.error) || '');
+  if (!e) return t(lang, fallbackKey);
+  const hit = LOGIN_ERR.find(([re]) => re.test(e));
+  return hit ? t(lang, hit[1]) : t(lang, 'le_generic') + (j && j._http ? ' (' + j._http + ')' : '');
+};
 function Login({ onAuth, lang, startMode }) {
   const [mode, setMode] = useState(startMode === 'signup' ? 'signup' : 'signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const isSignup = mode === 'signup';
@@ -615,8 +654,8 @@ function Login({ onAuth, lang, startMode }) {
   const looksEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v || '').trim());
   const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
     try { const g = await call('role_guard', { user_kind: 'supplier', identifier: v }); if (g && g.conflict === 'customer') { setBusy(false); setMsg(t(lang, 'conflict_customer')); return; } } catch (_e) {}
-    let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg((j && j.error) || t(lang, 'err_code_send')); };
-  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg((j && j.error) || t(lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token, j.locale); };
+    let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(loginErr(lang, j, 'err_code_send')); };
+  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(loginErr(lang, j, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token, j.locale); };
   const swap = (m) => { swapped.current = true; setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (
     <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
@@ -822,7 +861,7 @@ function Dashboard({ token, lang, onExpired }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           <Card className="qd-panel p-5">
             <div className={S.h2}>{t(lang, 'price_pos')} <span className={S.anon}>{t(lang, 'anon_note')}</span></div>
-            <div className="mt-2.5"><Badge variant={/below/.test(pp.band || '') ? 'ok' : /above/.test(pp.band || '') ? 'warn' : 'secondary'} className="capitalize text-sm px-3.5 py-1.5">{pp.band || t(lang, 'not_enough')}</Badge></div>
+            <div className="mt-2.5"><Badge variant={/below/.test(pp.band || '') ? 'ok' : /above/.test(pp.band || '') ? 'warn' : 'secondary'} className="capitalize text-sm px-3.5 py-1.5">{pp.band ? (({ 'below market average': t(lang, 'band_below'), 'around market average': t(lang, 'band_around'), 'above market average': t(lang, 'band_above'), 'not enough data': t(lang, 'not_enough') })[pp.band] || pp.band) : t(lang, 'not_enough')}</Badge></div>
             {/* The redaction bar makes "we never show competitor prices" visible: they exist, we hold them. */}
             {pp.competitive_rfqs ? (
               <div className="mt-3.5 flex items-center gap-2 flex-wrap">
@@ -1235,7 +1274,9 @@ function Documents({ token, lang }) {
     setBusy('');
     const failed = (j && j.failed) || [];
     // The server's per-file reasons are English sentences; an Arabic page says the same thing in Arabic.
-    if (failed.length) setErr(lang === 'ar' ? 'تعذّر حفظ الملف. يُرجى رفع نسخة PDF أو صورة واضحة للمستند كاملًا، ثم المحاولة مرة أخرى.' : 'Upload failed: ' + failed.map((f) => f.reason).join('; '));
+    // The Arabic sentence used to REPLACE the reason, so an Arabic supplier never learned why (audit 15 Sep
+    // 2026). The server's specific reason is kept after it, isolated left-to-right.
+    if (failed.length) { const why = failed.map((f) => f.reason).filter(Boolean).join('; '); setErr(lang === 'ar' ? <>تعذّر حفظ الملف. يُرجى رفع نسخة PDF أو صورة واضحة للمستند كاملًا، ثم المحاولة مرة أخرى.{why ? <> السبب: <Ltr>{why}</Ltr></> : null}</> : 'Upload failed: ' + why); }
     else if (j && (j.error || j._http)) setErr(srvMsg(lang, j, lang === 'ar' ? 'تعذّر حفظ الملف. يُرجى المحاولة مرة أخرى.' : 'We could not save that file. Please try again.'));
     load();
   };
@@ -1328,7 +1369,7 @@ const cleanName = (n) => String(n || '').replace(/^\d{10,}_/, '');
 function DocRow({ d, busy, onUpload, lang }) {
   const [exp, setExp] = useState(d.expiry || ''); const [file, setFile] = useState(null);
   const ar = lang === 'ar';
-  const label = ({ license: t(lang, 'h_trade'), profile: t(lang, 'doc_profile'), catalogs: t(lang, 'catalogues'), iso: t(lang, 'doc_iso') })[d.key] || d.label;
+  const label = ({ license: t(lang, 'h_trade'), profile: t(lang, 'doc_profile'), catalogs: t(lang, 'catalogues'), iso: t(lang, 'doc_iso'), insurance: t(lang, 'doc_insurance'), manufacturer: t(lang, 'doc_manufacturer'), egr: t(lang, 'doc_egr') })[d.key] || d.label;
   // Status is computed server-side so the badge, the alerts and the suspension job cannot disagree.
   const ST = {
     expired:  { t: ar ? 'منتهية' : 'Expired',      v: 'destructive' },
@@ -1468,28 +1509,32 @@ function Onboarding({ token, onDone, lang }) {
     {!me ? <NewCompany token={token} onReady={load} lang={lang} /> : <ProfileForm token={token} me={me} onSaved={onDone} lang={lang} />}
   </div>);
 }
-// Visible labels on all three fields (the audit found none, and the Emirate <select> had no accessible
-// name). The emirate VALUE stays English — it is what leads.emirate and matching hold — while the
-// option text is Arabic on /ar. The category is free text; the datalist offers Arabic labels over the
-// same English values.
-const CATEGORIES = ['Electrical','AC / HVAC','AC Duct Cleaning','Plumbing','Cleaning','Painting','Fit-out / Interior Design','Joinery & Kitchens','Flooring','Tiling & Marble','False Ceiling','Aluminium & Glass','Facilities Management','CCTV & Security','Smart Home','Solar','Signage','Movers','Pest Control','Handyman','Landscaping & Gardening','Curtains & Blinds','Waterproofing','Swimming Pools','Fire & Safety','MEP','Steel & Fabrication','Carpentry','Other'];
+// ONE QUESTION PER FACT, AND THE TRADE IS A CODE (15 Sep 2026, agent: customer_support).
+// The emirate was asked twice: one emirate here, then the service-emirate chips in ProfileForm. The
+// chips are the answer that is kept (save_profile stores service_emirates and capability coverage
+// defaults to them), so this screen no longer asks. The trade was free text over 29 suggestions that
+// no taxonomy_trade code carried; it is now one of the 40 codes, which create_company writes to
+// leads.sector unchanged. "My trade isn't listed" keeps the founder's open list (14 Sep 2026: a new
+// trade is welcome): the typed words are stored in the same column and read by a person.
+const TRADE_OTHER = '__other';
 function NewCompany({ token, onReady, lang }) {
-  const ar = lang === 'ar';
-  const [cname, setCname] = useState(''); const [em, setEm] = useState(''); const [cat, setCat] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), emirate: em || null, category: cat.trim() || null, role: 'supplier', lang }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); };
+  const [cname, setCname] = useState(''); const [trade, setTrade] = useState(''); const [other, setOther] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const category = trade === TRADE_OTHER ? (other.trim().slice(0, 60) || null) : (trade || null);
+  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), category, role: 'supplier', lang }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); };
+  const codes = [...TRADE_CODES].sort((a, b) => tradeLabel(lang, a).localeCompare(tradeLabel(lang, b), lang));
   return (<Card className="qd-panel p-5">
     <h2 className={S.h2}>{t(lang, 'onboard_title')}</h2>
     <div className={cn(S.sub, 'mb-2')}>{t(lang, 'onboard_sub')}</div>
-    <Lbl visible className="mt-3" text={t(lang, 'company_name')}><Input dir="auto" autoComplete="organization" placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => setCname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>
-    <Lbl visible className="mt-3" text={t(lang, 'emirate')}>
-      <select className={cn(S.field, 'mt-0 bg-card')} value={em} onChange={(e) => setEm(e.target.value)}>
-        <option value="">{t(lang, 'emirate_ph')}</option>
-        {EMIRATES.map((x) => <option key={x} value={x}>{emirateLabel(lang, x)}</option>)}
+    <Lbl need="req" lang={lang} className="mt-3" text={t(lang, 'company_name')}><Input dir="auto" autoComplete="organization" aria-required="true" placeholder={t(lang, 'company_name')} value={cname} onChange={(e) => setCname(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>
+    <Lbl need="opt" lang={lang} className="mt-3" text={t(lang, 'trade_label')}>
+      <select className={cn(S.field, 'mt-0 bg-card')} value={trade} onChange={(e) => setTrade(e.target.value)} aria-describedby="qd-trade-help">
+        <option value="">{t(lang, 'trade_ph')}</option>
+        {codes.map((c) => <option key={c} value={c}>{tradeLabel(lang, c)}</option>)}
+        <option value={TRADE_OTHER}>{t(lang, 'trade_not_listed')}</option>
       </select>
     </Lbl>
-    <Lbl visible className="mt-3" text={t(lang, 'cat_label')}><Input list="qd-sup-cats" dir="auto" placeholder={t(lang, 'cat_ph')} value={cat} onChange={(e) => setCat(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} aria-describedby="qd-cat-help" /></Lbl>
-    <datalist id="qd-sup-cats">{CATEGORIES.map((x) => <option key={x} value={x} label={ar ? CATEGORY_AR[x] || x : undefined} />)}</datalist>
-    <div id="qd-cat-help" className={cn(S.sub, 'mt-1 mb-2 text-[12px]')}>{t(lang, 'cat_help')}</div>
+    {trade === TRADE_OTHER && <Lbl className="mt-2" text={t(lang, 'trade_other_ph')}><Input dir="auto" maxLength={60} placeholder={t(lang, 'trade_other_ph')} value={other} onChange={(e) => setOther(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()} /></Lbl>}
+    <div id="qd-trade-help" className={cn(S.sub, 'mt-1 mb-2 text-[12px]')}>{t(lang, 'trade_help')}</div>
     <Button className="w-full mt-3" disabled={busy} onClick={create}>{busy ? t(lang, 'sending') : t(lang, 'create_company')}</Button>
     {msg && <div role="alert" className={S.err}>{msg}</div>}
   </Card>);
@@ -1513,7 +1558,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     bank_name: me.bank_name || '', bank_account_name: me.bank_account_name || '',
   });
   const [emirates, setEmirates] = useState(me.service_emirates || []); const [terms, setTerms] = useState(!!me.accepted_terms_at);
-  const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]);
+  const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]); const [catCut, setCatCut] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState(false); const [smsCode, setSmsCode] = useState(''); const [vbusy, setVbusy] = useState(false);
   const [emailVerified, setEmailVerified] = useState(!!me.owner_email_verified); const [mailSent, setMailSent] = useState(false); const [mailCode, setMailCode] = useState('');
   // wa: kyc's `whatsapp` answer. Registration waits for it (founder, 15 Sep 2026: "It's in the sign
@@ -1521,7 +1566,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   const [wa, setWa] = useState(undefined);
   const loadKyc = () => call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); if (k && k.email_verified) setEmailVerified(true); setWa(k ? k.whatsapp : undefined); });
   useEffect(() => { loadKyc(); }, []);
-  const sendSms = async () => { if (!f.phone) { setMsg(t(lang, 'verify_first')); return; } setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: f.phone }, token); setVbusy(false); if (j && j.ok) setSmsSent(true); else setMsg(srvMsg(lang, j, t(lang, 'could_not_sms'))); };
+  const sendSms = async () => { const e164 = uaeMobile(f.phone); if (!e164) { setMsg(t(lang, 'mobile_format')); return; } if (e164 !== f.phone) set('phone', e164); setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: e164 }, token); setVbusy(false); if (j && j.ok) setSmsSent(true); else setMsg(srvMsg(lang, j, t(lang, 'could_not_sms'))); };
   const verifySms = async () => { setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone: f.phone, code: smsCode }, token); setVbusy(false); if (j && j.ok) setPhoneVerified(true); else setMsg(srvMsg(lang, j, t(lang, 'wrong_code'))); };
   // E-MAIL, THE ONE ITEM OF THE SIX WITH NO BUTTON (14 Sep 2026). The form showed "e-mail not yet
   // verified" with nothing to press, and save_profile now requires it. kyc send_email / verify_email
@@ -1579,13 +1624,20 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         const pj = await call('supplier_api', { action: 'process_docs', company_profile: prof, catalogs: cats }, token);
         if (!(pj && pj.ok)) { setBusy(false); setMsg(srvMsg(lang, pj, t(lang, 'save_error'))); return; }
       }
-      const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: true };
+      // The checkbox's own value (audit 15 Sep 2026: a constant "yes" was sent whatever it said).
+      const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: terms };
       const strk = ['contact_name', 'signatory_name', 'phone', 'products', 'services', 'description', 'trade_license_no', 'license_authority', 'license_expiry', 'trn', 'egr_number', 'company_type', 'company_size', 'bank_name', 'bank_account_name'];
       for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
+      if (uaeMobile(f.phone)) payload.phone = uaeMobile(f.phone);
       if (String(f.founded_year || '').trim()) payload.founded_year = Number(f.founded_year);
       const j = await call('supplier_api', payload, token);
       if (!(j && j.ok)) { setBusy(false); setMsg(srvMsg(lang, j, t(lang, 'could_not_save'))); return; }
-      try { await call('kyc', { action: 'accept_terms' }, token); } catch (_e) {}
+      // The signed acceptance certificate. Its failure used to be swallowed, so a supplier could finish
+      // registration with no certificate on file. The save above stands; pressing again retries both.
+      if (terms) {
+        const k = await call('kyc', { action: 'accept_terms' }, token).catch(() => null);
+        if (!(k && k.ok)) { setBusy(false); setMsg(t(lang, 'terms_cert_failed')); return; }
+      }
       setBusy(false); onSaved();
     } catch (_e) { setBusy(false); setMsg(t(lang, 'save_error')); }
   };
@@ -1600,7 +1652,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         : <>{t(lang, 'registering_pre')}<b dir="auto">{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</>}
     </div>
     <fieldset className="mt-1.5">
-      <legend className={cn(S.sub, 'font-semibold')}>{t(lang, 'pf_emirates')}</legend>
+      <legend className={cn(S.sub, 'font-semibold')}>{t(lang, 'pf_emirates')}{!isEdit && <Need lang={lang} />}</legend>
       <div className="flex gap-2 flex-wrap mt-2">{EMIRATES.map((e) => <button key={e} type="button" aria-pressed={emirates.includes(e)} className={cn(S.chip, emirates.includes(e) && S.chipOn)} onClick={() => toggleEm(e)}>{emirateLabel(lang, e)}</button>)}</div>
     </fieldset>
 
@@ -1609,18 +1661,18 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         terms; everything else optional (memory: supplier-verification-mandatory-six). The 8 Aug
         "five things" note (licence, profile, catalogue, mobile, e-mail) is superseded: the catalogue is
         optional. Contact name, products and services stay on the Profile tab, asked once inside. */}
-    <h3 className={cn(S.h2, 'mt-4')}>{ok(licOnFile || !!String(f.trade_license_no || '').trim())} {t(lang, 'h_trade')}</h3>
+    <h3 className={cn(S.h2, 'mt-4')}>{ok(licOnFile || !!String(f.trade_license_no || '').trim())} {t(lang, 'h_trade')}{!isEdit && <Need lang={lang} req />}</h3>
     {!isEdit && <>
       <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'trade_sub')}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && upLicense(fl)} />{uploading && <span className={S.sub} role="status">{t(lang, 'reading_lic')}</span>}</div>
       {licNote && <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>}
     </>}
     <div className={S.frow}>
-      <Lbl className="flex-1 min-w-[180px]" text={t(lang, 'lic_no')}><Input dir="ltr" placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /></Lbl>
-      <Lbl className="flex-1 min-w-[180px]" text={t(lang, 'authority')}><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></Lbl>
+      <Lbl className="flex-1 min-w-[180px]" need={isEdit ? null : 'opt'} lang={lang} text={t(lang, 'lic_no')}><Input dir="ltr" placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /></Lbl>
+      <Lbl className="flex-1 min-w-[180px]" need={isEdit ? null : 'opt'} lang={lang} text={t(lang, 'authority')}><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></Lbl>
     </div>
 
-    <h3 className={cn(S.h2, 'mt-4')}>{ok(phoneVerified && emailVerified)} {t(lang, 'pf_contact')}</h3>
+    <h3 className={cn(S.h2, 'mt-4')}>{ok(phoneVerified && emailVerified)} {t(lang, 'pf_contact')}{!isEdit && <Need lang={lang} req />}</h3>
     {/* E-mail is shown with its state, never asked for again: the supplier signed in with it. */}
     <div className={cn(S.sub, 'mb-1.5')}>
       <span dir="ltr">{me.claimed_by || ''}</span>
@@ -1631,26 +1683,30 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {!emailVerified && (!mailSent
       ? <Button variant="link" className="px-0 h-auto" disabled={vbusy} onClick={sendMail}>{t(lang, 'verify_my_email')}</Button>
       : <div className={S.frow}><Lbl text={t(lang, 'email_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'email_code')} value={mailCode} onChange={(e) => setMailCode(e.target.value)} /></Lbl><Button size="sm" disabled={vbusy} onClick={verifyMail}>{t(lang, 'verify')}</Button></div>)}
-    <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" placeholder={t(lang, 'mobile')} value={f.phone} onChange={(e) => set('phone', e.target.value)} /></Lbl></div>
+    <div className={S.frow}><Lbl className="flex-1" need={isEdit ? null : 'req'} lang={lang} text={t(lang, 'mobile')}><Input type="tel" autoComplete="tel" dir="ltr" inputMode="tel" aria-describedby="qd-mobile-fmt" aria-invalid={!!f.phone && !uaeMobile(f.phone)} placeholder="05X XXX XXXX" value={f.phone} onChange={(e) => set('phone', e.target.value)} /></Lbl></div>
+    <div id="qd-mobile-fmt" className={cn(S.sub, 'mt-1 text-[12px]', f.phone && !uaeMobile(f.phone) && !phoneVerified && 'text-danger-fg')}>{t(lang, 'mobile_format')}</div>
     {phoneVerified ? <div className={cn(S.sub, 'font-semibold text-primary')}>{t(lang, 'mobile_verified')}</div> : (!smsSent ? <Button variant="link" className="px-0 h-auto mt-1.5" disabled={vbusy} onClick={sendSms}>{vbusy ? t(lang, 'sending') : t(lang, 'verify_my_mobile')}</Button> : <><div className={S.hint}>{t(lang, 'junk_note')}</div><div className={S.frow}><Lbl text={t(lang, 'sms_code')}><Input inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'sms_code')} value={smsCode} onChange={(e) => setSmsCode(e.target.value)} /></Lbl><Button size="sm" disabled={vbusy} onClick={verifySms}>{t(lang, 'verify')}</Button></div></>)}
     {!isEdit && phoneVerified && !waSignupSettled(wa) && <div className="mt-3"><WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => loadKyc()} /></div>}
 
+    {/* The contact person is asked at sign-up too (Optional), not only once inside. */}
+    <div className={S.frow}><Lbl className="flex-1" need={isEdit ? null : 'opt'} lang={lang} text={t(lang, 'contact_name')}><Input autoComplete="name" dir="auto" placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl>{isEdit && <Lbl className="flex-1" text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl>}</div>
     {isEdit && <>
-      <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'contact_name')}><Input placeholder={t(lang, 'contact_name')} value={f.contact_name} onChange={(e) => set('contact_name', e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'signatory')}><Input placeholder={t(lang, 'signatory')} value={f.signatory_name} onChange={(e) => set('signatory_name', e.target.value)} /></Lbl></div>
       <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_offer')}</h3>
       <Lbl text={t(lang, 'products_ph')}><Input className="mt-3" placeholder={t(lang, 'products_ph')} value={f.products} onChange={(e) => set('products', e.target.value)} /></Lbl>
       <Lbl text={t(lang, 'services_ph')}><Input className="mt-3" placeholder={t(lang, 'services_ph')} value={f.services} onChange={(e) => set('services', e.target.value)} /></Lbl>
       <Lbl text={t(lang, 'desc_ph')}><textarea className={S.area} rows={3} placeholder={t(lang, 'desc_ph')} value={f.description} onChange={(e) => set('description', e.target.value)} /></Lbl>
     </>}
     {!isEdit && <>
-      <h3 className={cn(S.h2, 'mt-4')}>{ok(!!profileFile || !!me.company_profile_doc_path)} {t(lang, 'doc_profile')}</h3>
+      <h3 className={cn(S.h2, 'mt-4')}>{ok(!!profileFile || !!me.company_profile_doc_path)} {t(lang, 'doc_profile')}<Need lang={lang} req /></h3>
       <div className={cn(S.sub, 'mb-1')}>{ar ? 'الملف التعريفي مطلوب؛ الكتالوجات اختيارية ويمكن إضافتها لاحقًا من تبويب المستندات.' : 'The company profile is required; catalogues are optional and can be added later from Documents.'}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'company_profile_pdf')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" onPick={setProfileFile} />{profileFile && <span className={S.sub}>{profileFile.name}</span>}</div>
-      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" multiple onPick={(a) => setCatalogFiles((a || []).slice(0, 5))} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
+      <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}<Need lang={lang} /></span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" multiple onPick={(a) => { const all = a || []; setCatalogFiles(all.slice(0, 5)); setCatCut(all.length > 5); }} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
+      {/* Catalogues were cut to 5 silently (audit 15 Sep 2026). The limit is stated, and a cut is announced. */}
+      <div role={catCut ? 'status' : undefined} className={cn(S.sub, 'mt-1 text-[12px]', catCut && 'font-semibold text-warn-fg')}>{t(lang, catCut ? 'catalogs_cut' : 'catalogs_limit')}</div>
     </>}
     {isEdit && <div className={cn(S.sub, 'mt-3 rounded-md border border-border bg-secondary/30 px-3 py-2.5')}>{ar ? 'رخصتك التجارية وملفك التعريفي وكتالوجاتك تُدار من تبويب المستندات — حتى لا يُطلب الملف نفسه في مكانين.' : 'Your trade licence, company profile and catalogues are managed in the Documents tab — so the same file is never asked for in two places.'}</div>}
 
-    <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href={(ar ? '/ar' : '') + '/supplier-agreement'} target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}</label>
+    <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href={(ar ? '/ar' : '') + '/supplier-agreement'} target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}{!isEdit && <Need lang={lang} req />}</label>
     <Button className="w-full mt-3" disabled={busy || uploading} onClick={save}>
       {busy ? (isEdit ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : t(lang, 'submitting'))
             : isEdit ? (ar ? 'حفظ التغييرات' : 'Save changes') : t(lang, 'submit_approval')}
