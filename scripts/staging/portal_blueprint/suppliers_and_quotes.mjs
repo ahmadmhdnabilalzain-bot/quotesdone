@@ -234,11 +234,13 @@ export default async function ({ req }) {
   // is measured here for the evidence only — one measured fact must not score two requirements.
   const askUi = surfInvokes('inquiry_intake', null);
   const intakeReachable = CUST_FNS.includes('inquiry_intake');
-  const dispatchDrivesMatch = /route_inquiry/.test(capi) && /match_suppliers_kw/.test(capi) && /from\('inquiry_matches'\)/.test(capi);
+  // 15 Sep 2026: route_inquiry is deleted and the keyword matcher is dropped; customer_api asks the
+  // sales engineer's match route (fn_match_capability) on every path.
+  const dispatchDrivesMatch = /functions\/v1\/sales_engineer/.test(capi) && /action: 'match'/.test(capi) && /from\('inquiry_matches'\)/.test(capi);
   const standalone = surfInvokes('match', null).concat(surfInvokes('customer_api', 'find_suppliers'));
   await req(S9, 'disc-ask-not-search', 'Customer asks in natural language, not a directory search',
     `select ${B(askUi.length > 0 && intakeReachable && dispatchDrivesMatch)}`,
-    `select ${EV(`${askUi.length} customer-surface file(s) open the free-text intake (${list(askUi)}); inquiry_intake is reachable from the customer page: ${intakeReachable}; customer_api routes that text through route_inquiry and match_suppliers_kw and persists the outcome to inquiry_matches: ${dispatchDrivesMatch}; standalone (non-RFQ) discovery entry points on the customer surface: ${standalone.length}${NOTE}`)}`);
+    `select ${EV(`${askUi.length} customer-surface file(s) open the free-text intake (${list(askUi)}); inquiry_intake is reachable from the customer page: ${intakeReachable}; customer_api routes that text through the sales engineer's match route and persists the outcome to inquiry_matches: ${dispatchDrivesMatch}; standalone (non-RFQ) discovery entry points on the customer surface: ${standalone.length}${NOTE}`)}`);
 
   // "How many were found" must be a count the mechanism can produce NON-ZERO. Both matchers exist and
   // both return one — and on production every query answers 0, because the gate they all sit behind
@@ -251,18 +253,18 @@ export default async function ({ req }) {
   const MATCHABLE = `(select count(*) from public.leads l where public.fn_is_matchable(l.verified,l.banned,
       l.matching_blocked,l.approval_status,l.permanently_closed,l.chat_strikes))`;
   await req(S9, 'disc-found-count', 'Discovery returns how many suppliers were found',
-    `select coalesce(${FNRET('match_suppliers_kw')} is not null and ${FNRET('fn_match_capability')} is not null
+    `select coalesce(${FNRET('fn_match_capability')} is not null
        and ${B(returnsCount)} and ${MATCHABLE} > 0, false)`,
-    `select ${EV('both matchers return a set: ')}
-       || (${FNRET('match_suppliers_kw')} is not null and ${FNRET('fn_match_capability')} is not null)::text
-       || ${EV(`; customer_api returns the fan-out count to the caller: ${returnsCount}; but `)}
+    `select ${EV('the matcher returns a set: ')}
+       || (${FNRET('fn_match_capability')} is not null)::text
+       || ${EV(`; customer_api returns the fan-out count to the caller: ${returnsCount}; `)}
        || ${MATCHABLE} || ' of ' || (select count(*) from public.leads)
        || ${EV(' leads pass fn_is_matchable (approval_status is null on ')}
        || (select count(*) from public.leads where approval_status is null)
        || ${EV(', verified is true on ')} || (select count(*) from public.leads where verified)
-       || ${EV('), so a probe of match_suppliers_kw for keywords {steel,fabrication} returns ')}
-       || (select count(*) from public.match_suppliers_kw(p_keywords=>array['steel','fabrication'], p_limit=>8))
-       || ${EV(' supplier(s) and every discovery query answers zero')}`);
+       || ${EV('), and a probe of fn_match_capability for trade {aluminium} returns ')}
+       || (select count(*) from public.fn_match_capability(p_trades=>array['aluminium'], p_limit=>8))
+       || ${EV(' supplier(s)')}`);
 
   // The filters that were APPLIED are recorded — customer_api persists job_type, primary_trade,
   // reasoning and evaluated into inquiries.routing — and then never leave the database: my_inquiries
@@ -287,12 +289,10 @@ export default async function ({ req }) {
   // fact scoring two requirements is how a scorecard doubles its own errors.
   const ranksPreserved = /fits\.filter\(/.test(capi) && /\.map\(\(f\)/.test(capi) && /insert\(matchRows\)/.test(capi);
   await req(S9, 'disc-top-recommendations', 'Top recommendations are returned ranked',
-    `select coalesce(${FNDEF('match_suppliers_kw')} ~* 'order\\s+by' and ${FNDEF('fn_match_capability')} ~* 'order\\s+by'
-       and ${FNRET('match_suppliers_kw')} ~* '\\ymatch_score\\y' and ${FNRET('fn_match_capability')} ~* '\\yscore\\y'
+    `select coalesce(${FNDEF('fn_match_capability')} ~* 'order\\s+by'
+       and ${FNRET('fn_match_capability')} ~* '\\yscore\\y'
        and ${B(ranksPreserved)}, false)`,
-    `select ${EV('match_suppliers_kw orders its rows: ')} || (${FNDEF('match_suppliers_kw')} ~* 'order\\s+by')::text
-       || ${EV(' and returns match_score: ')} || (${FNRET('match_suppliers_kw')} ~* '\\ymatch_score\\y')::text
-       || ${EV('; fn_match_capability orders: ')} || (${FNDEF('fn_match_capability')} ~* 'order\\s+by')::text
+    `select ${EV('fn_match_capability orders: ')} || (${FNDEF('fn_match_capability')} ~* 'order\\s+by')::text
        || ${EV(' and returns score: ')} || (${FNRET('fn_match_capability')} ~* '\\yscore\\y')::text
        || ${EV(`; customer_api preserves the ranked order into one inquiry_matches write: ${ranksPreserved}`)}`);
 
@@ -313,7 +313,7 @@ export default async function ({ req }) {
            where table_schema='public' and table_name='inquiry_matches' and column_name='similarity'))::text
        || ${EV(', non-null on ')} || (select count(*) from public.inquiry_matches where similarity is not null)
        || ' of ' || (select count(*) from public.inquiry_matches)
-       || ${EV(' rows; the matchers themselves compute a rank score (')} || ${FNRET('match_suppliers_kw')}
+       || ${EV(' rows; the matcher itself computes a rank score (')} || ${FNRET('fn_match_capability')}
        || ${EV(`); but ${simWritersNull.length} of ${simWritersAll.length} writer(s) pass the literal null (${list(simWritersAll)}); customer-reachable endpoints selecting similarity back: ${simReaders.length}; customer-surface files rendering a match percentage: ${simUi.length}; files elsewhere in src/ that render one: ${simStaff.length} (${list(simStaff)})${NOTE}`)}`);
 
   // match_reason IS written, by both writers, with a real string. Nothing the customer can reach
