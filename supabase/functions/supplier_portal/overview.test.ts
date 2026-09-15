@@ -10,7 +10,8 @@ import { buildAlerts, buildDashboard, buildEligibility, type Supplier } from './
 const DELAY = 40;
 type Answer = { data?: unknown; count?: number | null; error?: unknown };
 
-function fakeAdmin(answers: Record<string, Answer> = {}) {
+// `rejects`: table names whose single-row read throws, the way a dropped connection does.
+function fakeAdmin(answers: Record<string, Answer> = {}, rejects: string[] = []) {
   const reads: string[] = [];
   // An answer keyed by the exact read wins; one keyed by the table or routine name is the fallback.
   const settle = (key: string): Promise<Answer> => new Promise((res) => setTimeout(() => res(answers[key] ?? answers[key.split('?')[0]] ?? { data: null, count: 0 }), DELAY));
@@ -19,7 +20,7 @@ function fakeAdmin(answers: Record<string, Answer> = {}) {
     const q: Record<string, unknown> = {};
     for (const m of ['select', 'eq', 'in', 'neq', 'not', 'is', 'order', 'limit', 'gte']) q[m] = (...a: unknown[]) => { if (m === 'eq' || m === 'in') filters.push(String(a[0]) + '=' + JSON.stringify(a[1])); return q; };
     const key = () => name + (filters.length ? '?' + filters.join('&') : '');
-    q.maybeSingle = () => { reads.push(key()); return settle(name); };
+    q.maybeSingle = () => { reads.push(key()); return rejects.includes(name) ? new Promise((_, rej) => setTimeout(() => rej(new Error('read failed')), DELAY)) : settle(name); };
     q.then = (ok: (v: Answer) => unknown, bad?: (e: unknown) => unknown) => { reads.push(key()); return settle(key()).then(ok, bad); };
     return q;
   };
@@ -52,6 +53,13 @@ Deno.test('eligibility: every read in one wave, and an unconfirmed scope blocks'
   assertEquals(e.eligible, false);
   assert(e.blocking.some((b: { code: string }) => b.code === 'scope_unconfirmed'));
   assertEquals(e.reach.shortlist_size, 8);
+});
+
+Deno.test('eligibility: a scope read that throws fails closed — the scope gate still blocks', async () => {
+  const admin = fakeAdmin({ leads: { data: { id: 7, sector: 'hvac', registration_submitted_at: '2026-09-01' } }, supplier_capabilities: { data: { confirmed_at: '2026-09-01' } } }, ['supplier_capabilities']);
+  const e = await buildEligibility(admin, 7);
+  assertEquals(e.eligible, false);
+  assert(e.blocking.some((b: { code: string }) => b.code === 'scope_unconfirmed'), 'a failed read must never read as a confirmed scope');
 });
 
 Deno.test('dashboard: one payload carries stats, alerts, eligibility, impact and the bell counts', async () => {

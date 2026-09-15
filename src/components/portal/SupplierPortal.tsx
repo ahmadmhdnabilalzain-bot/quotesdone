@@ -906,7 +906,7 @@ function NotificationBell({ ov, lang, go }) {
       </summary>
       <div className="qd-panel absolute end-0 z-20 mt-2 w-[min(320px,calc(100vw-32px))] p-1.5">
         {items.length ? <ul>{items.map((it) => (
-          <li key={it.k}><button type="button" className="block w-full rounded-md px-3 py-2.5 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <li key={it.k}><button type="button" className="flex min-h-11 w-full items-center rounded-md px-3 py-2.5 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(it.tab); }}>{it.text}</button></li>))}</ul>
           : <div className="px-3 py-2.5 text-[13px] text-muted-foreground">{ar ? 'لا شيء جديد.' : 'Nothing new.'}</div>}
       </div>
@@ -929,11 +929,20 @@ function Dashboard({ token, lang, onExpired }) {
   // ONE call (supplier_portal `dashboard`): stats, alerts, eligibility, document impact and the bell's
   // counts. It was three, the second wave starting only after the first rendered. `first` takes the
   // request warmSupplier started with the token; every later load asks fresh.
-  const load = async (first = false) => { const j = await (first ? take(token, DASH_KEY, () => fetchDashboard(token)) : fetchDashboard(token)); if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
+  // Only the latest request may write: an older answer arriving late must not overwrite a newer one.
+  const seq = useRef(0);
+  const load = async (first = false) => { const n = ++seq.current; const j = await (first ? take(token, DASH_KEY, () => fetchDashboard(token)) : fetchDashboard(token)); if (n !== seq.current) return; if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
   useEffect(() => { load(true); }, [token]);
-  // The unread count is read again on leaving Messages, so the badge drops once the thread was read.
+  // On leaving Messages only the bell's counts are read again (two reads, not the whole dashboard), so
+  // the badge drops once the thread was read.
   const prevTab = useRef(tab);
-  useEffect(() => { if (prevTab.current === 'messages' && tab !== 'messages') load(); prevTab.current = tab; }, [tab]);
+  useEffect(() => {
+    if (prevTab.current === 'messages' && tab !== 'messages') {
+      const n = seq.current;
+      call('supplier_portal', { action: 'notifications' }, token).then((j) => { if (j && j.ok && n === seq.current) setOv((o) => (o ? { ...o, notifications: j.notifications } : o)); }).catch(() => {});
+    }
+    prevTab.current = tab;
+  }, [tab, token]);
   useEffect(() => {
     // Stripe's return (see ReceiptBanner). Read once, then removed so a reload does not re-announce it.
     try {

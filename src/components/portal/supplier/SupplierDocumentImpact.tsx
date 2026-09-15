@@ -74,7 +74,7 @@ export default function SupplierDocumentImpact({ token, lang = 'en', goTo, initi
       if (j && j.ok) setD(j); else setErr((j && (j.error || j.hint)) || 'load_err');
     });
     return () => { live = false; };
-  }, [token]);
+  }, [token, initial]);
 
   if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
   if (!d) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;

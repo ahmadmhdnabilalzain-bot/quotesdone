@@ -65,7 +65,7 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
       .then((j) => { if (!live) return; if (j && j.ok) setE(j); else setErr(true); })
       .catch(() => live && setErr(true));
     return () => { live = false; };
-  }, [token]);
+  }, [token, initial]);
   if (err) return null;
   if (!e) return <div className="qd-panel mb-4 h-[180px] animate-pulse motion-reduce:animate-none" aria-busy="true" />;
 

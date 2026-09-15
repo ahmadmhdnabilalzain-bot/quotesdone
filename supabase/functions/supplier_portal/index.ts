@@ -7,7 +7,7 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
-import { buildAlerts, buildDashboard, buildEligibility, supplierCard, type Supplier } from './overview.ts';
+import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
 // SUPPLIER-FACING TEXT CARRIES A CODE (14 Sep 2026). Every sentence below that reaches a supplier
 // (document hints, alerts, eligibility titles/details) now travels with a stable `code` and `params`;
@@ -60,6 +60,8 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // THE OVERVIEW IN ONE CALL (15 Sep 2026): stats, alerts, eligibility, document impact and the
     // notification counts, every independent read started together. See ./overview.ts for the measurement.
     if (action === 'dashboard') { const r = await buildDashboard(admin, sup as Supplier); return J(r.body, r.status); }
+    // The bell's two counts alone: what the portal re-reads after the supplier leaves Messages.
+    if (action === 'notifications') return J({ ok: true, notifications: await buildNotifications(admin, supId) });
 
     if (action === 'overview') {
       const [{ data: stats, error }, { count: activeMatches }, alerts] = await Promise.all([

@@ -581,8 +581,11 @@ Deno.serve(observe('supplier_api', async (req) => {
       // could set it; eligibility, the tie-break and the founder's registration mail all read it. The
       // first chosen emirate becomes the home emirate when none is on file, or when the one on file is
       // no longer among the emirates the supplier says it serves.
-      const firstEmirate = Array.isArray(body.service_emirates) ? body.service_emirates.find((e: unknown) => typeof e === 'string' && e.trim()) : null;
-      if (firstEmirate && (!sup.emirate || !(body.service_emirates as unknown[]).includes(sup.emirate))) upd.emirate = String(firstEmirate).trim().slice(0, 40);
+      // Only one of the seven emirates, as the chips send them (the same list supplier_onboard and
+      // license_extract use): an arbitrary string in the body must not become the home emirate.
+      const UAE = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
+      const firstEmirate = Array.isArray(body.service_emirates) ? body.service_emirates.find((e: unknown) => typeof e === 'string' && UAE.includes(e)) : null;
+      if (firstEmirate && (!sup.emirate || !(body.service_emirates as unknown[]).includes(sup.emirate))) upd.emirate = firstEmirate;
       // THE SUPPLIER'S OWN WORDS STAND (15 Sep 2026, sales_engineer). Since 29 Jul this replaced the
       // typed services with the last extraction whenever one existed, so a supplier correcting what their
       // documents were read as could never make the correction stick. The typed text is written as typed;
