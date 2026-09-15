@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T10:37:18.664Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T10:57:02.265Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17917,6 +17917,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17942,16 +17952,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -20863,6 +20863,105 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_backup_enqueue_outcome(p_stage text, p_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if p_stage is null or p_stage not in ('new_documents', 'backfill') then
+    raise exception 'fn_backup_enqueue_outcome: stage is new_documents or backfill (got %)', p_stage;
+  end if;
+  -- One duty per stage, so a clean backfill never closes a failing new-document enqueue or the reverse.
+  return public.fn_it_duty_settle('backup_enqueue_' || p_stage,
+    case when p_error is null then '[]'::jsonb else jsonb_build_array(jsonb_build_object(
+      'item', 'failing', 'owner_seat', 'it_engineer', 'subject', 'dropbox_backup', 'blast', 'agent_facing', 'affected', 1,
+      'title', case p_stage
+                 when 'new_documents' then 'New documents are not being queued for Dropbox: fn_enqueue_doc_backups failed'
+                 else 'The Dropbox backfill (storage sweep, pre-7-Sep exports) failed; new documents are still queued' end,
+      'evidence', jsonb_build_object('error', left(p_error, 500), 'at', now(),
+                    'routine', case p_stage when 'new_documents' then 'fn_enqueue_doc_backups' else 'fn_enqueue_doc_backups_backfill' end,
+                    'caller', 'dropbox_backup')))
+    end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_enqueue_watch()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_n integer; v_oldest timestamptz; v_sample jsonb; v_items jsonb := '[]'::jsonb;
+begin
+  with reg as (
+    select l.* from public.leads l
+     where not coalesce(l.is_demo, false)
+       and (l.approved_at is not null or l.registration_submitted_at is not null
+         or l.signed_terms_path is not null or l.company_profile_doc_path is not null
+         or l.license_doc_path is not null or coalesce(l.claimed, false))
+  ),
+  files(bucket, path, owner) as (
+    select v.bucket, v.path, 'supplier:' || l.id
+      from reg l cross join lateral (values
+        ('supplier-docs', l.license_doc_path), ('supplier-docs', l.iban_doc_path), ('supplier-docs', l.egr_doc_path),
+        ('supplier-docs', l.insurance_doc_path), ('supplier-docs', l.vat_doc_path), ('supplier-docs', l.iso_doc_path),
+        ('supplier-docs', l.manufacturer_auth_doc_path), ('supplier-docs', l.company_profile_doc_path),
+        ('signed-terms', l.signed_terms_path)) v(bucket, path)
+    union all
+    select 'supplier-docs', cat, 'supplier:' || l.id from reg l cross join lateral unnest(coalesce(l.catalog_doc_paths, '{}')) cat
+    union all
+    select 'signed-terms', c.signed_terms_path, 'customer:' || c.id from public.customers c where not coalesce(c.is_demo, false)
+    union all
+    select 'drawing-files', i.drawing_file_path, 'inquiry:' || i.id
+      from public.inquiries i join public.customers c on c.id = i.customer_id where not coalesce(c.is_demo, false)
+    union all
+    select 'finance-docs', t.doc_path, 'transaction:' || t.id from public.transactions t
+  ),
+  missing as (
+    select f.owner, f.bucket || '/' || f.path as item, o.created_at as since
+      from files f join storage.objects o on o.bucket_id = f.bucket and o.name = f.path
+     where length(coalesce(f.path, '')) > 0 and f.path !~* 'zz[_ -]?demo'
+       and o.created_at < now() - interval '1 hour'
+       and not exists (select 1 from public.doc_backups d where d.bucket = f.bucket and d.path = f.path)
+    union all
+    -- dated from when the lead became a registrant where leads records it (review, 15 Sep 2026: a lead
+    -- created weeks ago and approved a minute ago is not yet late); claimed and the document paths carry no
+    -- date of their own, so those fall back to created_at
+    select 'supplier:' || l.id, 'Company Details.pdf',
+           greatest(l.created_at, coalesce(l.approved_at, l.registration_submitted_at, l.created_at)) from reg l
+     where greatest(l.created_at, coalesce(l.approved_at, l.registration_submitted_at, l.created_at)) < now() - interval '1 hour'
+       and not exists (select 1 from public.doc_backups d where d.dedupe_key = 'S:' || l.id || ':details')
+    union all
+    select 'customer:' || c.id, 'Customer Details.pdf', c.created_at from public.customers c
+     where not coalesce(c.is_demo, false) and c.created_at < now() - interval '1 hour'
+       and not exists (select 1 from public.doc_backups d where d.dedupe_key = 'C:' || c.id || ':details')
+    union all
+    select 'inquiry:' || i.id, 'Inquiry Summary.pdf', i.created_at
+      from public.inquiries i join public.customers c on c.id = i.customer_id
+     where not coalesce(c.is_demo, false) and i.created_at < now() - interval '1 hour'
+       and not exists (select 1 from public.doc_backups d where d.dedupe_key = 'I:' || i.id || ':summary')
+  )
+  select count(*), min(since),
+         coalesce(jsonb_agg(jsonb_build_object('owner', owner, 'item', item, 'since', since) order by since)
+                    filter (where rn <= 10), '[]'::jsonb)
+    into v_n, v_oldest, v_sample
+    from (select m.*, row_number() over (order by m.since) rn from missing m) z;
+
+  if v_n > 0 then
+    v_items := jsonb_build_array(jsonb_build_object(
+      'item', 'unqueued_documents', 'owner_seat', 'it_engineer', 'subject', 'dropbox_backup', 'blast', 'agent_facing',
+      'affected', v_n,
+      'title', left(format('%s customer/supplier document(s) over an hour old have no Dropbox backup row (oldest %s)',
+                           v_n, to_char(v_oldest at time zone 'UTC', 'YYYY-MM-DD HH24:MI "UTC"')), 300),
+      'evidence', jsonb_build_object('count', v_n, 'oldest', v_oldest, 'first', v_sample,
+        'why', 'fn_enqueue_doc_backups is not filing new documents: see duty:backup_enqueue_new_documents:failing and dropbox_backup agent_runs signal enqueue_failed')));
+  end if;
+  return public.fn_it_duty_settle('backup_enqueue_watch', v_items) || jsonb_build_object('unqueued', v_n, 'oldest', v_oldest);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_backup_kick(p_reason text, p_mode text DEFAULT 'process_only'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -21342,11 +21441,24 @@ CREATE OR REPLACE FUNCTION public.fn_backup_sweep_objects()
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+  -- The cheap filters first, once: without the fence the planner evaluated the owner lookups below for
+  -- every object of every swept bucket, 8,369 export pages included (47.8 s measured; 125 ms with it).
+  with o as materialized (
+    select o.bucket_id, o.name, o.metadata, o.created_at
+      from storage.objects o
+     where o.bucket_id in (select r.bucket from public.fn_backup_source_registry() r
+                            where r.kind = 'bucket' and r.backed_up and r.enqueue_rule like '%STORAGE SWEEP%')
+       and right(o.name, 1) <> '/' and o.name !~ '(^|/)\.emptyFolderPlaceholder$'
+       and o.name !~* 'zz[ _-]?demo'
+       and not (o.bucket_id = 'backups' and o.name ~ '^(\d{4}-\d{2}-\d{2}|conversations)/')
+       and not (o.bucket_id = 'signed-terms' and o.name like 'registers/%')
+       and not exists (select 1 from public.pdpl_erase_files e where e.bucket = o.bucket_id and e.storage_path = o.name))
   select o.bucket_id, o.name, coalesce((o.metadata->>'size')::bigint, 0), o.created_at, x.entity, x.id
-    from storage.objects o
+    from o
     cross join lateral (select
         (regexp_match(o.name, '^generated/\d+_(customer_details|inquiry_summary|comparison|supplier_details)_([0-9a-f_]{36}|\d{1,18})\.pdf$', 'i')) as gen,
         split_part(o.name, '/', 2) as seg2, split_part(o.name, '/', 3) as seg3) p
+    -- OFFSET 0 keeps this a subquery computed once per row; flattened, it was copied into every reference.
     cross join lateral (select coalesce(
         (select case d.ref_table when 'customers' then 'customer' when 'inquiries' then 'inquiry'
                                  when 'quotes' then 'quote' when 'leads' then 'supplier' end || ':' || d.ref_id
@@ -21364,7 +21476,8 @@ AS $function$
         case when o.bucket_id = 'supplier-docs' and p.seg2 ~ '^\d{1,18}$' then 'supplier:' || p.seg2 end,
         case when o.bucket_id = 'drawing-files' and p.seg2 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg2) end,
         case when o.bucket_id = 'quote-files' and p.seg3 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg3) end,
-        'company:storage/' || o.bucket_id) as owner) y
+        'company:storage/' || o.bucket_id) as owner
+      offset 0) y
     cross join lateral (select split_part(y.owner, ':', 1) as entity, substr(y.owner, strpos(y.owner, ':') + 1) as id) x
     -- the owner row behind it: is it demo (null when the row is gone), and which customer email, for PDPL.
     -- Each cast is inside CASE behind the shape test that makes it safe.
@@ -21389,17 +21502,11 @@ AS $function$
           when 'quote'    then (select c.email from public.quotes q join public.inquiries i on i.id = q.inquiry_id
                                   join public.customers c on c.id = i.customer_id
                                  where q.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
-        end as email) w on true
-   where o.bucket_id in (select r.bucket from public.fn_backup_source_registry() r
-                          where r.kind = 'bucket' and r.backed_up and r.enqueue_rule like '%STORAGE SWEEP%')
-     and right(o.name, 1) <> '/' and o.name !~ '(^|/)\.emptyFolderPlaceholder$'
-     and o.name !~* 'zz[ _-]?demo'
-     and not (o.bucket_id = 'backups' and o.name ~ '^(\d{4}-\d{2}-\d{2}|conversations)/')
-     and not (o.bucket_id = 'signed-terms' and o.name like 'registers/%')
-     and not coalesce(w.demo, false)
+        end as email
+      offset 0) w on true
+   where not coalesce(w.demo, false)
      and not (x.entity <> 'company' and w.demo is null
               and exists (select 1 from public.doc_backups z where z.entity = 'zz_demo' and z.entity_id = x.id))
-     and not exists (select 1 from public.pdpl_erase_files e where e.bucket = o.bucket_id and e.storage_path = o.name)
      and not (w.email is not null and (w.email ~* '@removed\.invalid$'
               or exists (select 1 from public.pdpl_requests r
                           where r.kind = 'delete' and coalesce(r.status, '') not in ('rejected', 'withdrawn', 'cancelled')
@@ -29554,13 +29661,31 @@ begin
   on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
+  -- LEGACY EXPORTS and the STORAGE SWEEP are fn_enqueue_doc_backups_backfill (15 Sep 2026): together they
+  -- took this call from milliseconds to 50 s, past PostgREST's 8 s, and every new document stopped.
+  return n;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_enqueue_doc_backups_backfill(p_limit integer DEFAULT 200)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+declare n integer := 0; m integer;
+begin
+  if p_limit is null or p_limit < 1 or p_limit > 1000 then
+    raise exception 'fn_enqueue_doc_backups_backfill: p_limit is 1..1000 (got %)', p_limit;
+  end if;
+
   -- ============ LEGACY EXPORTS (15 SEP 2026, it_engineer) ============
   -- The founder: "that data should never get lost no matter what". backup v1's dated folders (on or
   -- before 2026-09-07, no table_export_run row: the legacy-day definition fn_backup_prune_days uses) are
-  -- filed exactly like a TABLE EXPORTS day, so retention recognises the copies. At most 200 legacy rows
-  -- wait at a time, oldest day first: the uploader claims lowest id first, so a new customer or supplier
-  -- document waits behind at most 200 export pages (measured median 2.6 MB). Refilled on every
-  -- non-chained dropbox_backup run. One enqueue at a time tops the queue up (review: a second scheduler
+  -- filed exactly like a TABLE EXPORTS day, so retention recognises the copies. At most p_limit (200)
+  -- legacy rows wait at a time, oldest day first: the uploader claims lowest id first, so a new customer
+  -- or supplier document waits behind at most 200 export pages (measured median 2.6 MB). Refilled on
+  -- every non-chained dropbox_backup run. One call at a time tops the queue up (review: a second scheduler
   -- and a kick can overlap, and each would read the same waiting count); a run that loses the lock skips
   -- only this section.
   if pg_try_advisory_xact_lock(hashtext('fn_enqueue_doc_backups:legacy_exports')) then
@@ -29574,22 +29699,22 @@ begin
     and not exists (select 1 from public.table_export_run r where r.stamp::text = split_part(o.name,'/',1))
     and not exists (select 1 from public.doc_backups d where d.bucket = 'backups' and d.path = o.name)
   order by o.name
-  limit greatest(0, 200 - (select count(*) from public.doc_backups w
-                             where w.dedupe_key like 'EXPORT:%' and w.status in ('pending', 'processing', 'error', 'waiting_source')
-                               and w.bucket = 'backups' and split_part(w.path,'/',1) <= '2026-09-07'
-                               and not exists (select 1 from public.table_export_run r2 where r2.stamp::text = split_part(w.path,'/',1))))
+  limit greatest(0, p_limit - (select count(*) from public.doc_backups w
+                                 where w.dedupe_key like 'EXPORT:%' and w.status in ('pending', 'processing', 'error', 'waiting_source')
+                                   and w.bucket = 'backups' and split_part(w.path,'/',1) <= '2026-09-07'
+                                   and not exists (select 1 from public.table_export_run r2 where r2.stamp::text = split_part(w.path,'/',1))))
   on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
   end if;
 
   -- ============ STORAGE SWEEP (15 SEP 2026, it_engineer) ============
-  -- The founder: "of course that data should never get lost no matter what". Every stored file no rule
-  -- above filed: fn_backup_sweep_objects() is the one list of what may be swept (the registry's swept
+  -- The founder: "of course that data should never get lost no matter what". Every stored file no owner
+  -- rule filed: fn_backup_sweep_objects() is the one list of what may be swept (the registry's swept
   -- buckets, without ZZ DEMO, demo owners, the export and conversation folders of backups, or any file
   -- of a customer PDPL is erasing; each row carries its real owner). Filed under Storage/<bucket>/<path> so the
   -- original path, which carries the supplier, inquiry or quote id, is kept. Only files over an hour
-  -- old, so an owner rule that runs on the same upload files it first under its owner. At most 200 per
-  -- call, oldest first: the backfill of existing files drains over successive dropbox_backup runs.
+  -- old, so an owner rule that runs on the same upload files it first under its owner. At most p_limit
+  -- (200) per call, oldest first: the backfill of existing files drains over successive runs.
   insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
   select s.entity, s.entity_id, 'Stored file', s.bucket, s.path, regexp_replace(s.path,'^.*/',''),
          '/QuotesDone Backup/Storage/' || s.bucket || '/' || s.path,
@@ -29598,7 +29723,7 @@ begin
   where s.created_at < now() - interval '1 hour'
     and not exists (select 1 from public.doc_backups d where d.bucket = s.bucket and d.path = s.path)
   order by s.created_at, s.bucket, s.path
-  limit 200
+  limit p_limit
   on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
@@ -32975,6 +33100,8 @@ CREATE OR REPLACE FUNCTION public.fn_it_backup_tick()
 AS $function$
 declare o jsonb := '{}'::jsonb;
 begin
+  begin o := o || jsonb_build_object('enqueue', public.fn_backup_enqueue_watch());
+  exception when others then o := o || jsonb_build_object('enqueue', public.fn_it_backup_stage_failed('enqueue', sqlerrm)); end;
   begin o := o || jsonb_build_object('recheck', public.fn_it_backup_recheck());
   exception when others then o := o || jsonb_build_object('recheck', public.fn_it_backup_stage_failed('recheck', sqlerrm)); end;
   begin o := o || jsonb_build_object('ceo', public.fn_ceo_backup_escalation_sweep());
