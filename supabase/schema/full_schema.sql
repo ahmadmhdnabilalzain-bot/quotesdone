@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T00:07:26.190Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T00:54:06.723Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -51596,14 +51596,35 @@ begin
   if v_run.attempts >= 6 then
     return jsonb_build_object('due', false, 'stamp', v_stamp, 'status', v_run.status, 'attempts', v_run.attempts, 'reason', 'gave up after 6 attempts');
   end if;
-  -- Resumable: a running chain that died between hops, or a failed day whose failing table is still at
-  -- the head of the saved queue (backup v3). A v2 failure shifted that table away: restart the day.
   v_resume := case
     when v_run.status = 'running' then v_run.state
     when v_run.status = 'failed' and jsonb_typeof(v_run.state->'queue') = 'array'
          and jsonb_array_length(v_run.state->'queue') > 0
          and (v_run.state->'errors') ? (v_run.state->'queue'->0->>'t') then v_run.state
   end;
+
+  -- A 'running' day past the heartbeat window is a chain that died without saving. Say so, loudly.
+  if v_run.status = 'running' then
+    begin
+      perform public.fn_it_engineer_finding_upsert(
+        'duty:table_export:chain_stalled',
+        left(format('The daily table export %s stalled on %s at page %s: no heartbeat for %s min, resumed as attempt %s',
+                    v_stamp, coalesce(v_run.state->'queue'->0->>'t', '(no table saved)'),
+                    coalesce(v_run.state->'queue'->0->>'page', '?'),
+                    floor(extract(epoch from now() - v_run.heartbeat_at) / 60), v_run.attempts), 300),
+        'IT engineer duty: table_export', 'agent_facing', 1,
+        jsonb_build_object('duty', 'table_export', 'owner_seat', 'it_engineer', 'subject', 'table_backup', 'demo', false,
+                           'stamp', v_stamp, 'cause', 'internal',
+                           'table', v_run.state->'queue'->0->>'t', 'page', v_run.state->'queue'->0->'page',
+                           'after', v_run.state->'queue'->0->'after', 'hop', v_run.state->'hop',
+                           'heartbeat_at', v_run.heartbeat_at, 'attempt', v_run.attempts,
+                           'why', 'a hop died without saving (CPU or memory kill, crash, or a deploy killing the worker); no code in the hop could report it'),
+        '{}'::text[], '{}'::text[], 'it_engineer.table_export');
+    exception when others then
+      raise warning 'fn_table_export_due: could not raise duty:table_export:chain_stalled: %', sqlerrm;
+    end;
+  end if;
+
   update public.table_export_run r
      set attempts = r.attempts + case when r.status = 'failed' then 1 else 0 end,
          status = 'running', heartbeat_at = now(),
@@ -51611,7 +51632,7 @@ begin
    where r.stamp = v_stamp;
   return jsonb_build_object('due', true, 'stamp', v_stamp,
     'attempt', v_run.attempts + case when v_run.status = 'failed' then 1 else 0 end,
-    'resume', v_resume,
+    'resume', v_resume, 'stalled', v_run.status = 'running',
     'kind', v_run.kind, 'since', v_run.since);
 end $function$
 
