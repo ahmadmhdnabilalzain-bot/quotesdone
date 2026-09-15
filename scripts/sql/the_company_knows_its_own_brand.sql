@@ -218,7 +218,6 @@ update public.agent_knowledge
      || 'COMPANY' || E'\n'
      || '  Legal name : QuotesDone Technologies' || E'\n'
      || '  Licence    : DET Trader Licence No. 1633275 (expires 24 Jun 2027; company_registration is the record)' || E'\n'
-     || '  Register   : Commercial Register No. 2883503' || E'\n'
      || '  Activity   : B2B anonymous quotation marketplace' || E'\n'
      || '  Address    : Dubai, United Arab Emirates' || E'\n'
      || '  Signatory  : Ahmad Alzain — Founder & Managing Director' || E'\n'
