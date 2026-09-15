@@ -215,7 +215,9 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   let fits: { id: number; company_name?: string; reason?: string; sim?: number | null }[] = [];
   let routing: Record<string, any> = {};
   let routerAnswered = false;
-  if (useRouter) {
+  // Two attempts, 1.5 s apart: a cold start or one dropped request must not leave an inquiry unmatched.
+  for (let attempt = 1; useRouter && !routerAnswered && attempt <= 2; attempt++) {
+    if (attempt > 1) await new Promise((r) => setTimeout(r, 1500));
     try {
       // 9 Sep 2026 — MATCHING IS THE SALES ENGINEER'S (founder: "match capability is the sales
       // engineer task"). This called functions/v1/route_inquiry, which was DELETED in 182308b and
@@ -246,10 +248,30 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   // cannot do the job, and made every negative verdict invisible. We now fall back ONLY when the
   // router genuinely did not answer: it was not used, it errored, or the response was missing.
   // A successful zero-fit answer is respected — coverage gap path, router's reason persisted.
-  if (!useRouter || routing.error || !routerAnswered) {
+  //
+  // EXACT OR NONE (15 Sep 2026, founder rule). The fallback above still fired when the sales
+  // engineer errored, and it fanned the RFQ out by fuzzy keyword plus sector equality — the nearest
+  // mapping the founder ruled out. On a matcher error the inquiry now waits unmatched, the routing
+  // record on it says why, and the sales engineer's failure is raised as a finding with the inquiry
+  // id. Only the turnkey path, which never asks the sales engineer (useRouter false), still uses the
+  // keyword matcher; that path is not changed here.
+  if (!useRouter) {
     const { data: sups } = await admin.rpc('match_suppliers_kw', { p_keywords: keywords, p_category: category, p_emirate: emirate, p_limit: 8, p_multi: multi });
-    fits = (sups || []).map((s: { id: number; company_name?: string; match_score?: number }) => ({ id: s.id, company_name: s.company_name, reason: useRouter ? 'keyword fallback (router unavailable)' : (multi ? 'turnkey / combined match' : 'trade specialist match'), sim: sim01(s.match_score, 23) }));
-    if (useRouter) routing.fallback = true; else routing = { mode: multi ? 'turnkey' : 'trade', at: new Date().toISOString() };
+    fits = (sups || []).map((s: { id: number; company_name?: string; match_score?: number }) => ({ id: s.id, company_name: s.company_name, reason: multi ? 'turnkey / combined match' : 'trade specialist match', sim: sim01(s.match_score, 23) }));
+    routing = { mode: multi ? 'turnkey' : 'trade', at: new Date().toISOString() };
+  } else if (!routerAnswered) {
+    fits = [];
+    routing.matcher_unavailable = true;
+    routing.waiting_for = 'sales_engineer.match';
+    try {
+      await admin.rpc('fn_it_engineer_finding_upsert', {
+        p_issue_key: 'sales_engineer_match_unavailable',
+        p_title: 'The sales engineer matcher did not answer; an inquiry is waiting unmatched instead of being keyword-matched',
+        p_where: 'customer_api.matchAndNotify -> sales_engineer {action:match}', p_blast: 'customer_facing', p_affected: 1,
+        p_evidence: { inquiry_id: inqId, error: String(routing.error ?? 'no answer'), attempts: 2, at: new Date().toISOString() },
+        p_raised_by: 'sales_engineer',
+      });
+    } catch (_e) { /* the routing record on the inquiry still carries the error */ }
   }
   if (routerAnswered && fits.length === 0) { routing.router_verdict = String(routing.note || (routing.needs_detail ? 'needs_detail' : 'adjudicated_no_fit')); routing.keyword_fallback_suppressed = true; }
   const fitIds = fits.map((f) => Number(f.id)).filter(Boolean);
@@ -283,7 +305,9 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   routing.attempted = matchRows.length;
   if (refused.length) routing.refused_at_assignment = refused;
   try { await admin.from('inquiries').update({ routing }).eq('id', inqId); } catch (_e) { /* */ }
-  if (!landedIds.length) { routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary); return { matches: 0, routing }; }
+  // A matcher that did not answer is not a coverage gap: it is already a finding (above), and flagging
+  // it here would record "no supplier covers this" for a trade we never actually searched.
+  if (!landedIds.length) { if (!routing.matcher_unavailable) routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary); return { matches: 0, routing }; }
   // AUDIT 1.5. This is the first supplier-facing surface an inquiry ever reaches and it is entirely
   // pre-reveal. summary, budget and extra are customer free text; category and emirate are platform
   // values from a fixed list. If the owner could not be read, the free-text fields are dropped and

@@ -56,12 +56,12 @@ const READERS: Record<string, Reader> = {
 export type DocumentRead = ReadResult & { mime?: string };
 
 /** Bytes (or base64) from anyone -> what the document says, or a refusal with the reason. */
-export async function readDocument(input: Uint8Array | string, filename: string, declaredMime = '', depth = 0): Promise<DocumentRead> {
+export async function readDocument(input: Uint8Array | string, filename: string, declaredMime = '', depth = 0, opts: { textOnly?: boolean } = {}): Promise<DocumentRead> {
   const s = sanitizeUpload({ input, declaredMime, filename, allow: SAFE_DOCS, maxBytes: LIMITS.maxBytes });
   if (!s.ok) return refuse(s.error, s.detail);
   const reader = READERS[s.mime];
   if (!reader) return refuse('file_type_not_allowed', `no reader for ${s.mime}`);
-  const ctx: ReadContext = { filename, depth, readChild: (b, name, d) => readDocument(b, name, '', d) };
+  const ctx: ReadContext = { filename, depth, textOnly: !!opts.textOnly, readChild: (b, name, d) => readDocument(b, name, '', d, opts) };
   try {
     const r = await reader(s.bytes, ctx);
     return r.ok ? { ...r, mime: s.mime } : r;

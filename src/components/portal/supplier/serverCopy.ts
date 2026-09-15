@@ -51,17 +51,32 @@ const ROLE_AR: Record<string, string> = {
 export const vocabLabel = (lang: string, kind: 'trade' | 'role', code: string, fallback?: string) =>
   lang === 'ar' ? ((kind === 'trade' ? TRADE_AR : ROLE_AR)[code] || fallback || code) : (fallback || code);
 
-// The registration category is free text the supplier may type, so the datalist keeps the English
-// VALUE (what matching and the old rows hold) and shows the Arabic as the option's label.
-export const CATEGORY_AR: Record<string, string> = {
-  'Electrical': 'كهرباء', 'AC / HVAC': 'تكييف وتهوية', 'AC Duct Cleaning': 'تنظيف مجاري التكييف', 'Plumbing': 'سباكة',
-  'Cleaning': 'تنظيف', 'Painting': 'دهانات', 'Fit-out / Interior Design': 'تجهيزات وتصميم داخلي', 'Joinery & Kitchens': 'نجارة ومطابخ',
-  'Flooring': 'أرضيات', 'Tiling & Marble': 'بلاط ورخام', 'False Ceiling': 'أسقف مستعارة', 'Aluminium & Glass': 'ألمنيوم وزجاج',
-  'Facilities Management': 'إدارة المرافق', 'CCTV & Security': 'كاميرات وأنظمة أمنية', 'Smart Home': 'منزل ذكي', 'Solar': 'طاقة شمسية',
-  'Signage': 'لافتات', 'Movers': 'نقل أثاث', 'Pest Control': 'مكافحة الحشرات', 'Handyman': 'صيانة عامة',
-  'Landscaping & Gardening': 'تنسيق حدائق', 'Curtains & Blinds': 'ستائر', 'Waterproofing': 'عزل مائي', 'Swimming Pools': 'مسابح',
-  'Fire & Safety': 'حريق وسلامة', 'MEP': 'أعمال كهروميكانيكية', 'Steel & Fabrication': 'حديد وتشكيل', 'Carpentry': 'نجارة', 'Other': 'أخرى',
+// THE SIGN-UP TRADE IS A taxonomy_trade CODE (15 Sep 2026, agent: customer_support). The sign-up form
+// offered 29 free-text suggestions ("Pest Control", "Handyman", "AC Duct Cleaning", "Other") and 25 of
+// them had no code, so leads.sector held words fn_match_capability's exact-code overlap never meets.
+// A supplier with no company yet cannot read taxonomy_trade (RLS on, no policy; supplier_api
+// capability_state answers no_company), so the English labels are mirrored here, in taxonomy_trade
+// `sort` order, read from production on 15 Sep 2026 (40 active codes). TRADE_AR above carries the same
+// 40 keys; scripts/checks/signup_trade_codes_are_the_taxonomy.test.mjs fails if the two drift apart.
+// When supplier_api serves the vocabulary before create_company, this mirror should go.
+export const TRADE_EN: Record<string, string> = {
+  hvac: 'HVAC & air conditioning', electrical: 'Electrical', building_materials: 'Building & Construction Materials',
+  engineering_consultancy: 'Engineering Consultancy & Architecture', power_generators: 'Generators & Power Equipment',
+  heavy_equipment: 'Heavy Equipment & Plant', labour_supply: 'Manpower & Labour Supply', plumbing: 'Plumbing & sanitary',
+  safety_equipment: 'Safety Equipment & PPE', solar: 'Solar & Renewable Energy', chemicals: 'Industrial & Construction Chemicals',
+  plastics_pipes: 'Plastics, Pipes & Fittings', oilfield: 'Oilfield & Industrial Supplies', home_automation: 'Home & Building Automation',
+  logistics_moving: 'Logistics, Movers & Storage', packaging: 'Packaging & Printing Supplies', marine: 'Marine & Offshore Supplies',
+  fire_fighting: 'Fire fighting & life safety', it_services: 'IT & Network Services', joinery: 'Joinery & carpentry',
+  glazing: 'Glass & glazing', aluminium: 'Aluminium & cladding', steel: 'Steel & metal fabrication', flooring: 'Flooring',
+  painting: 'Painting & finishes', gypsum: 'Gypsum, partitions & ceilings', signage: 'Signage & printing',
+  landscaping: 'Landscaping & pools', security_systems: 'Security systems', elevators: 'Elevators & escalators',
+  doors: 'Doors & windows', waterproofing: 'Waterproofing & insulation', upholstery: 'Upholstery & soft furnishing',
+  wallpaper: 'Wallpaper & wall finishes', scaffolding: 'Scaffolding & access', cleaning: 'Cleaning & facility services',
+  av_it: 'AV, IT & low current', interior_fitout: 'Interior fit-out', civil_works: 'Civil & construction works',
+  mep_general: 'MEP (combined)',
 };
+export const TRADE_CODES = Object.keys(TRADE_EN);
+export const tradeLabel = (lang: string, code: string) => vocabLabel(lang, 'trade', code, TRADE_EN[code]);
 
 const DOC_AR: Record<string, string> = {
   'Trade licence': 'الرخصة التجارية', 'Insurance': 'التأمين', 'ISO certification': 'شهادة ISO',
@@ -126,6 +141,9 @@ const COPY: Record<string, Entry> = {
   no_licence_title: s('Upload your trade licence', 'ارفع رخصتك التجارية'),
   no_licence_detail: s('Required before your account can be approved.', 'مطلوبة قبل اعتماد حسابك.'),
   confirm_scope_title: s('Confirm what your company does', 'أكّد ما تقوم به شركتك'),
+  confirm_scope_detail: s(
+    (p) => `Your documents mention trades you have not confirmed: ${(p.trades || []).map((c: string) => vocabLabel('en', 'trade', c, String(c).replace(/_/g, ' '))).join(', ')}. Tick them in "What you can quote for" if your company does this work.`,
+    (p) => `تذكر مستنداتك تخصصات لم تؤكّدها بعد: ${(p.trades || []).map((c: string) => vocabLabel('ar', 'trade', c, String(c).replace(/_/g, ' '))).join('، ')}. اخترها في «ما الذي يمكن لشركتك تسعيره» إن كانت شركتك تقوم بهذا العمل.`),
   expiring_title: s((p) => `Your ${p.doc === 'insurance' ? 'insurance certificate' : 'trade licence'} expires in ${p.days} day${p.days === 1 ? '' : 's'}`,
     (p) => `${p.doc === 'insurance' ? 'شهادة التأمين' : 'رخصتك التجارية'} تنتهي خلال ${p.days} ${plural(p.days, 'يوم', 'أيام')}`),
   expiring_detail: s('Once it expires your account is paused automatically and you stop receiving requests. Upload a renewed copy now to avoid that.', 'عند انتهائها يتوقف حسابك تلقائيًا وتتوقف الطلبات. ارفع نسخة مجدّدة الآن لتجنّب ذلك.'),

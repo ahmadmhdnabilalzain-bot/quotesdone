@@ -247,8 +247,9 @@ begin
   select name into v_prof from storage.objects where bucket_id = 'supplier-docs' and name <> v_lic order by name limit 1;
   if v_prof is null then raise exception 'six probe: supplier-docs holds fewer than two objects to point at'; end if;
   begin
-    insert into public.leads (company_name, email, is_demo, source, phone, owner_phone_verified)
-    values ('ZZ DEMO six probe', 'qd-six-probe@example.invalid', true, 'probe', '+971500000099', true)
+    -- is_demo is a generated column: the ZZ DEMO name, the example.invalid email and the fixture phone set it.
+    insert into public.leads (company_name, email, source, phone, owner_phone_verified)
+    values ('ZZ DEMO six probe', 'qd-six-probe@example.invalid', 'probe', '+971500000099', true)
     returning id into v_id;
     update public.leads set owner_email_verified = true, registration_submitted_at = now() where id = v_id;
     r_six := public.fn_supplier_mandatory_six_for(v_id);

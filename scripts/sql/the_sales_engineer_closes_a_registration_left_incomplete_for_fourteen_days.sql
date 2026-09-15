@@ -125,8 +125,9 @@ declare v_id bigint; v_before bigint; r_out jsonb; r_status text; r_outcome text
 begin
   select count(*) into v_before from public.leads;
   begin
-    insert into public.leads (company_name, email, is_demo, source, locale)
-    values ('ZZ DEMO fourteen-day probe', 'qd-fourteen-probe@example.invalid', true, 'probe', 'ar')
+    -- is_demo is a generated column: the ZZ DEMO name and the example.invalid email set it.
+    insert into public.leads (company_name, email, source, locale)
+    values ('ZZ DEMO fourteen-day probe', 'qd-fourteen-probe@example.invalid', 'probe', 'ar')
     returning id into v_id;
     update public.leads set approval_status = 'action_required', licence_gate_reason = 'reg_licence' where id = v_id;
     update public.leads set exception_opened_at = now() - interval '15 days', exception_due_at = now() - interval '1 day' where id = v_id;
