@@ -1429,3 +1429,4 @@ scripts/sql/test_money_never_reaches_the_books_probe.sql
 scripts/sql/a_rehearsal_never_queues_a_backup.sql
 scripts/sql/dropbox_is_checked_every_day_login_and_space.sql
 scripts/sql/a_failed_export_day_resumes_from_its_failed_page.sql
+scripts/sql/a_stalled_export_day_is_never_silent.sql

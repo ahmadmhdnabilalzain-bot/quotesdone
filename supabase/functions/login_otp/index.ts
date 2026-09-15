@@ -4,7 +4,9 @@ import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
-const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
+const admin = createClient(SB_URL, SB_SERVICE);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
@@ -70,7 +72,27 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 
 async function uidByEmail(email: string): Promise<string | null> { try { const { data } = await admin.rpc('auth_uid_by_email', { p_email: email }); return (data as string) || null; } catch { return null; } }
 async function ensureUser(email: string) { let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
-async function mintSession(email: string): Promise<{ access_token: string; refresh_token: string } | null> { try { await ensureUser(email); const { data } = await admin.auth.admin.generateLink({ type: 'magiclink', email }); const th = (data as any)?.properties?.hashed_token; if (!th) return null; const { data: v, error } = await admin.auth.verifyOtp({ type: 'email', token_hash: th } as any); if (error || !v?.session) return null; return { access_token: v.session.access_token, refresh_token: v.session.refresh_token }; } catch { return null; } }
+// SIGN-IN NEVER BORROWS THE SYSTEM'S DATABASE CLIENT (15 Sep 2026). verifyOtp stores the session
+// it gets back on the client it ran on, and supabase-js then sends that session's token on every
+// later database call from that client. This ran on `admin`, so from the first verify onwards the
+// service-role client spoke as the user who had just signed in: fn_registered_locale, the agent_runs
+// insert and fn_it_engineer_finding_upsert answered 403 72 times each between 17:15Z and 23:49Z on
+// 14 Sep (the `authenticated` role has no grant on any table or routine this function touches), so
+// the registered language was never read and the failure reports were lost. `admin` is
+// module-level, so in a warm isolate the next person's request inherited it too. The verify now runs
+// on a client made for this one call and dropped with it. generateLink stays on admin.auth.admin,
+// whose calls are always sent with the service key.
+async function mintSession(email: string): Promise<{ access_token: string; refresh_token: string } | null> {
+  try {
+    await ensureUser(email);
+    const { data } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
+    const th = (data as any)?.properties?.hashed_token; if (!th) return null;
+    const once = createClient(SB_URL, SB_SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: v, error } = await once.auth.verifyOtp({ type: 'email', token_hash: th } as any);
+    if (error || !v?.session) return null;
+    return { access_token: v.session.access_token, refresh_token: v.session.refresh_token };
+  } catch { return null; }
+}
 // THE FOUNDER IS NEITHER A SUPPLIER NOR A CUSTOMER, which is why mobile sign-in could not reach
 // him. This resolver knew two kinds — 'supplier' (leads.claimed_by) and 'customer'
 // (customers.email) — and his number lives in app_secrets.admin_mfa_phone while `customers` holds
