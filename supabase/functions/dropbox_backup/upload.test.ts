@@ -44,7 +44,7 @@ const noSleep = () => Promise.resolve();
 
 Deno.test('a large file survives a failed chunk, a lost answer and a stopped run', async () => {
   const fake = fakeDropbox();
-  const dbx = new DropboxClient(() => Promise.resolve('T'), fake.f);
+  const dbx = new DropboxClient({ token: () => Promise.resolve('T'), refreshes: 0, reused: 0 }, fake.f);
   const first = await uploadFile(dbx, '/QuotesDone Backup/_selftest/big.bin', SIZE, read, { maxChunks: 2, sleep: noSleep });
   assert(!first.done, 'the first run must stop mid-file');
   if (first.done) return;
@@ -58,13 +58,13 @@ Deno.test('a large file survives a failed chunk, a lost answer and a stopped run
 });
 
 Deno.test('a small file is one upload with the right hash', async () => {
-  const fake = fakeDropbox(); const dbx = new DropboxClient(() => Promise.resolve('T'), fake.f);
+  const fake = fakeDropbox(); const dbx = new DropboxClient({ token: () => Promise.resolve('T'), refreshes: 0, reused: 0 }, fake.f);
   const r = await uploadFile(dbx, '/x/مستند 🏗️.pdf', 1000, read);
   assert(r.done);
   if (r.done) assertEquals(r.hash, await dropboxContentHash(src.slice(0, 1000)));
 });
 
 Deno.test('resume state for a different size is refused', async () => {
-  const fake = fakeDropbox(); const dbx = new DropboxClient(() => Promise.resolve('T'), fake.f);
+  const fake = fakeDropbox(); const dbx = new DropboxClient({ token: () => Promise.resolve('T'), refreshes: 0, reused: 0 }, fake.f);
   await assertRejects(() => uploadFile(dbx, '/x', SIZE, read, { state: { session_id: 'S0', offset: CHUNK, size: SIZE + 1, blocks: [] } }));
 });

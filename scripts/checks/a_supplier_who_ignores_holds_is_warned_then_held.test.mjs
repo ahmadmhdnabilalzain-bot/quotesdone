@@ -138,7 +138,9 @@ test('production: the run, the warning through support, the hold, and the founde
 test('production: matching and dispatch read the matching gate', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const rows = await sql(`select p.proname, p.prosrc ilike '%fn_is_matchable%' or p.prosrc ilike '%matching_blocked%' as gated
-    from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('fn_match_capability', 'match_suppliers_kw')`);
-  assert.equal(rows.length, 2);
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'fn_match_capability'`);
+  // One matcher since 15 Sep 2026: the keyword matcher was dropped
+  // (scripts/sql/the_turnkey_path_asks_the_sales_engineer_and_the_keyword_matcher_is_dropped.sql).
+  assert.equal(rows.length, 1);
   for (const r of rows) assert.equal(r.gated, true, `${r.proname} does not respect matching_blocked`);
 });
