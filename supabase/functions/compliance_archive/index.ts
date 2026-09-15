@@ -159,6 +159,22 @@ Deno.serve(observe('compliance_archive', async (req) => {
         });
         return J({ error: 'no_acceptance_on_record', kind, email: keyEmail || null }, 409);
       }
+      // ONE CERTIFICATE PER ACCEPTANCE (15 Sep 2026, sales_engineer). Several callers ask for the same
+      // certificate at once: kyc accept_terms signs synchronously, and the acceptance it (or supplier_api)
+      // wrote fires z21_sign_supplier_on_acceptance, which posts here too. Each render is a new object in
+      // the bucket, and only the last one to write signed_terms_path is named by the row; the rest never
+      // reach the Dropbox tree and no teardown removes them. So: a certificate already issued at or after
+      // this acceptance is returned as it is, and a new one is written only if the row still names what
+      // it named when this call read it (compare-and-set). The caller that loses the race deletes its own
+      // render and returns the winner's. Every acceptance still gets exactly one certificate, whichever
+      // caller arrives first. body.force re-issues deliberately.
+      const table = kind === 'customer' ? 'customers' : 'leads';
+      const priorPath: string | null = rec.signed_terms_path ?? null;
+      const signedUrlOf = async (p: string | null) => { if (!p) return null; const { data } = await admin.storage.from(BUCKET).createSignedUrl(p, TENYRS); return data?.signedUrl || null; };
+      if (body.force !== true && priorPath && rec.signed_terms_at && Date.parse(rec.signed_terms_at) >= Date.parse(acceptedIso)) {
+        const existing = await signedUrlOf(priorPath);
+        if (existing) return J({ ok: true, kind, signed_url: existing, filed_by: 'fn_enqueue_doc_backups', register: null, reused: true });
+      }
       const ip = (kind === 'supplier' ? rec.accepted_terms_ip : rec.tos_ip) || '';
       const fields: Record<string, string> = { full_name: rec.full_name || rec.contact_name || rec.signatory_name || '', company: rec.company_name || '', dob: (kind === 'supplier' ? rec.owner_dob : rec.date_of_birth) || '', phone: rec.phone || '', email: rec.email || rec.claimed_by || keyEmail, terms_label: termsLabel, accepted_utc: acceptedIso.slice(0, 19).replace('T', ' ') + ' UTC', accepted_iso: acceptedIso, ip };
       const nm = safeName((kind === 'supplier' ? fields.company : fields.full_name) || fields.email).replace(/\s+/g, '_') + '_TnC-Acceptance';
@@ -170,8 +186,15 @@ Deno.serve(observe('compliance_archive', async (req) => {
       // signed_terms_path is what puts this certificate into the organized Dropbox tree:
       // fn_enqueue_doc_backups reads it for customers AND suppliers and files it under
       // '<entity folder>/Signed Terms & Conditions - <file>'. See the header note.
-      if (kind === 'customer') await admin.from('customers').update({ signed_terms_url: certUrl, signed_terms_path: cert.path, signed_terms_at: nowIso }).eq('id', rec.id);
-      else await admin.from('leads').update({ signed_terms_url: certUrl, signed_terms_path: cert.path, signed_terms_at: nowIso }).eq('id', rec.id);
+      const cas = admin.from(table).update({ signed_terms_url: certUrl, signed_terms_path: cert.path, signed_terms_at: nowIso }).eq('id', rec.id);
+      const { data: won, error: casErr } = await (priorPath === null ? cas.is('signed_terms_path', null) : cas.eq('signed_terms_path', priorPath)).select('id');
+      if (casErr || !won?.length) {
+        // Lost the race (or the write failed): this render is named by no row, so it must not stay.
+        await admin.storage.from(BUCKET).remove([cert.path]);
+        if (casErr) return J({ error: 'cert_record_failed', detail: casErr.message }, 502);
+        const { data: w } = await admin.from(table).select('signed_terms_path').eq('id', rec.id).maybeSingle();
+        return J({ ok: true, kind, signed_url: await signedUrlOf((w?.signed_terms_path as string) || null), filed_by: 'fn_enqueue_doc_backups', register: null, reused: true });
+      }
 
       // The register is a whole-of-register document, not an entity document, so it has no row in
       // doc_backups and no place in the per-entity tree. It sits at the head of Customers/ and is
