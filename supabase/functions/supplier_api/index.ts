@@ -602,7 +602,8 @@ Deno.serve(observe('supplier_api', async (req) => {
           let six: string[];
           try { six = (await mandatorySixMissing(admin, sup.id)).filter((c) => !(accepting && c === 'reg_terms')); }
           catch (e) { console.error('save_profile:', (e as Error).message); return J({ error: 'check_failed', code: 'check_failed', message: 'We could not check your registration. Please try again.' }, 502); }
-          const missing = [...six, 'reg_whatsapp'];
+          const missing = [...six];
+          missing.push('reg_whatsapp');
           return J({ error: 'missing_required', code: 'missing_required', params: { missing }, message: 'Still needed to register: ' + missing.join(', ') + '.' }, 400);
         }
       }
