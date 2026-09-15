@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T09:13:47.244Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T09:16:38.629Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -17881,6 +17881,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17906,16 +17916,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -18627,135 +18627,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19271,6 +19142,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -21953,6 +21953,80 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_accountant_notice_report_decide(p_report_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r public.support_ceo_report; h public.agent_actions; v_fixture boolean; v_key text; v_owner text;
+  v_decision text; v_receipt text; v_acc jsonb;
+begin
+  select * into r from public.support_ceo_report where id = p_report_id and source_agent = 'accountant' for update;
+  if not found or r.status <> 'sent'
+     or not (r.idempotency_key like 'notice\_undelivered:%' or r.idempotency_key like 'notice\_unverified:%') then
+    return jsonb_build_object('ok', false, 'reason', 'no open accountant notice report ' || p_report_id);
+  end if;
+  select * into h from public.agent_actions where id = (r.verified_evidence->>'handoff_id')::bigint;
+  v_fixture := h.detail::text ilike '%ZZ DEMO%'
+    or coalesce((public.fn_delivery_request_outcome((h.evidence->>'delivery_request')::bigint)->>'fixture')::boolean, false)
+    or exists (select 1 from public.customers c where c.id::text = h.detail->>'customer_id' and c.email ilike '%@example.invalid')
+    or exists (select 1 from public.leads l where l.id::text = h.detail->>'supplier_id'
+                                            and (l.company_name ilike '%ZZ DEMO%' or coalesce(l.claimed_by, l.email, '') ilike '%@example.invalid'));
+
+  if v_fixture then
+    v_decision := 'need_not_go_fixture';
+    v_receipt := 'ceo: decided it need not go. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
+      || ') is about a ZZ DEMO fixture: no real person was meant to receive it.';
+  elsif r.idempotency_key like 'notice\_unverified:%'
+        and jsonb_array_length(coalesce(r.verified_evidence->'sends', '[]'::jsonb)) > 0
+        and not exists (select 1 from jsonb_array_elements(r.verified_evidence->'sends') o
+                         where public.fn_delivery_request_outcome((o->>'request_id')::bigint)->>'state' not in ('reached', 'ended', 'failed')) then
+    -- Every send (both on a reveal) reached an outcome between the report and this decision: nothing is
+    -- broken. A send that failed is carried by the sales engineer's delivery_undelivered report.
+    v_decision := 'arrived_late';
+    v_receipt := 'ceo: read. Every send of the ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
+      || ') reached an outcome after it was reported, so there is no defect to raise'
+      || case when exists (select 1 from jsonb_array_elements(r.verified_evidence->'sends') o
+                            where public.fn_delivery_request_outcome((o->>'request_id')::bigint)->>'state' = 'failed')
+              then '; a send that did not arrive is decided on its delivery_undelivered report.' else '.' end;
+  elsif r.idempotency_key like 'notice\_undelivered:%' and h.status is distinct from 'failed' then
+    v_decision := 'unreachable_recorded';
+    v_receipt := 'ceo: decided. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
+      || ') could not be written because no address is on file for the ' || case when h.evidence->>'customer_reachable' = 'false' then 'customer'
+                                                                    when h.evidence->>'supplier_reachable' = 'false' or h.detail ? 'supplier_id' then 'supplier'
+                                                                    else 'customer' end
+      || '. Recorded that it cannot go until one exists; the portal shows the same facts when they sign in.';
+  else
+    -- The sales engineer's handler raised, or the send never reached an outcome: a defect.
+    v_owner := case when r.idempotency_key like 'notice\_undelivered:%' then 'sales_engineer' else 'customer_support' end;
+    v_key := 'monitor:' || split_part(r.idempotency_key, ':', 1) || ':' || coalesce(h.detail->>'type', 'unknown');
+    perform public.fn_it_engineer_finding_upsert(v_key,
+      case when v_owner = 'sales_engineer'
+           then 'The sales engineer could not write a ' || coalesce(h.detail->>'type', '?') || ' notice the accountant asked for'
+           else 'A ' || coalesce(h.detail->>'type', '?') || ' notice has no delivery outcome after its window' end,
+      case when v_owner = 'sales_engineer' then 'public.' || coalesce((select k.handler from public.seat_handoff_kind k
+                                                    where k.type = h.detail->>'type' and k.from_seat = 'accountant' and k.to_seat = 'sales_engineer'), 'fn_seat_handoff_act')
+           else 'public.fn_customer_support_delivery_watch' end,
+      'agent_facing', 1,
+      jsonb_build_object('owner_seat', v_owner, 'handoff_id', h.id, 'report_id', r.id, 'handoff_status', h.status,
+                         'error', h.detail->>'error', 'delivery_loop', r.verified_evidence->>'delivery_loop'),
+      '{}'::text[], array['why handoff ' || coalesce(h.id::text, '?') || ' produced no delivered notice'], 'fn_ceo_accountant_notice_report_decide');
+    v_decision := 'defect_raised';
+    v_receipt := 'ceo: decided. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?') || ') '
+      || case when v_owner = 'sales_engineer' then 'was never written' else 'has no delivery outcome' end
+      || ', which is a defect: raised as IT finding ' || v_key || ', which the IT loop hands to ' || v_owner || ' and re-verifies; it clears when the next conversation of this kind works.';
+  end if;
+
+  v_acc := public.fn_ceo_accept_support_report(r.id, v_receipt, v_decision);
+  if not coalesce((v_acc->>'ok')::boolean, false) then
+    raise exception 'fn_ceo_accountant_notice_report_decide: report % was not accepted: %', r.id, v_acc->>'reason';
+  end if;
+  return jsonb_build_object('ok', true, 'report_id', r.id, 'decision', v_decision);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_accountant_reports_sweep()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -21963,8 +22037,11 @@ declare r public.support_ceo_report; n int := 0;
 begin
   -- A dispute review is NOT acknowledged here: reading it is not approving it. It stays open until the
   -- CEO approves the submission (fn_ceo_approve_dispute_submission) or the accountant submits at T-24h.
+  -- A notice escalation is decided by fn_ceo_accountant_notice_report_decide, not acknowledged here.
   for r in select * from public.support_ceo_report where source_agent = 'accountant' and status = 'sent'
-              and idempotency_key not like 'dispute\_review:%' order by id loop
+              and idempotency_key not like 'dispute\_review:%'
+              and idempotency_key not like 'notice\_undelivered:%' and idempotency_key not like 'notice\_unverified:%'
+            order by id loop
     perform public.fn_ceo_accept_support_report(r.id,
       'ceo: read the accountant''s ' || r.severity || ' report "' || left(r.subject, 140) || '" with its evidence ('
         || (select count(*) from jsonb_object_keys(r.verified_evidence)) || ' field(s))');
@@ -23299,6 +23376,148 @@ begin
     'case_id', p_case_id,
     -- The case does NOT move to a resolved state here. That is the explicit v1.2 rule.
     'note', 'Routed to the CEO with evidence and a recommendation. The case stays open: it is not resolved by the CEO receiving it.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_sales_engineer_report_decide(p_report_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r public.support_ceo_report; req public.agent_actions; h public.agent_actions;
+  v_addr text; v_h bigint; v_receipt text; v_decision text; v_key text; v_what text; v_acc jsonb;
+begin
+  select * into r from public.support_ceo_report where id = p_report_id and source_agent = 'sales_engineer' for update;
+  if not found or r.status <> 'sent' then
+    return jsonb_build_object('ok', false, 'reason', 'no open sales engineer report ' || p_report_id);
+  end if;
+
+  if r.idempotency_key like 'handoff\_unanswered:%' then
+    select * into h from public.agent_actions where id = (r.verified_evidence->>'handoff_id')::bigint;
+    v_key := 'monitor:handoff_unanswered:' || coalesce(h.detail->>'type', 'unknown') || ':' || coalesce(h.agent, 'unknown');
+    perform public.fn_it_engineer_finding_upsert(v_key,
+      'The ' || coalesce(h.agent, 'receiving seat') || ' did not answer "' || coalesce(h.detail->>'type', '?') || '" from the sales engineer within its window',
+      'public.' || coalesce((select k.handler from public.seat_handoff_kind k
+                              where k.type = h.detail->>'type' and k.from_seat = h.detail->>'from' and k.to_seat = h.agent), 'fn_seat_handoff_act'),
+      'agent_facing', 1,
+      jsonb_build_object('owner_seat', h.agent, 'handoff_id', h.id, 'report_id', r.id, 'handoff_status', h.status, 'error', h.detail->>'error'),
+      '{}'::text[], array['why the handler did not answer handoff ' || coalesce(h.id::text, '?')], 'fn_ceo_sales_engineer_report_decide');
+    v_decision := 'defect_raised';
+    v_receipt := 'ceo: decided. "' || coalesce(h.detail->>'type', '?') || '" (handoff ' || coalesce(h.id::text, '?') || ') went unanswered past its window, '
+      || 'so the handler is at fault: raised as IT finding ' || v_key || ', which the IT loop hands to the ' || coalesce(h.agent, 'owning seat')
+      || ' and re-verifies; it clears when the next conversation of this kind works.';
+
+  elsif r.idempotency_key not like 'delivery\_undelivered:%' then
+    v_decision := 'read';
+    v_receipt := 'ceo: read the sales engineer''s ' || r.severity || ' report "' || left(r.subject, 140) || '" with its evidence.';
+
+  else
+    select * into req from public.agent_actions where id = (r.verified_evidence->>'request_id')::bigint;
+    v_addr := coalesce(req.detail->'prepared'->>'to_email', req.detail->>'to_email', '');
+    v_what := coalesce(req.detail->>'msg_type', substring(r.subject from '^A (\S+)'), 'notice');
+    if req.id is null then
+      v_decision := 'need_not_go_request_gone';
+      v_receipt := 'ceo: decided it need not go. Request ' || coalesce(r.verified_evidence->>'request_id', '?') || ' (a ' || v_what
+        || ') no longer exists: its words and its address are gone, so nothing can be resent.';
+    elsif req.detail ? 'remediate_handoff_id' then
+      v_decision := 'part_of_remediation';
+      v_receipt := 'ceo: read. This is the resend for remediation handoff ' || (req.detail->>'remediate_handoff_id')
+        || ', and it is decided there.';
+    elsif req.detail::text ilike '%ZZ DEMO%' or v_addr ilike '%@example.invalid' then
+      v_decision := 'need_not_go_fixture';
+      v_receipt := 'ceo: decided it need not go. A ZZ DEMO fixture ' || v_what || ' addressed to ' || coalesce(nullif(v_addr, ''), 'a fixture')
+        || ': example.invalid is never delivered, and no real person was meant to receive it.';
+    elsif coalesce(req.detail->>'recipient_role', '') not in ('customer', 'supplier') then
+      v_decision := 'need_not_go_internal';
+      v_receipt := 'ceo: decided it need not go. A ' || v_what || ' addressed to ''' || coalesce(req.detail->>'recipient_role', 'nobody')
+        || ''', which is no seat and not a kind the founder is emailed; the CEO has read it here, which is the delivery it needed.';
+    else
+      v_h := public.fn_seat_handoff('ceo', 'sales_engineer', 'delivery.remediate', 'support_ceo_report', r.id::text,
+        jsonb_build_object('report_id', r.id, 'request_id', req.id, 'msg_type', v_what,
+                           'recipient_role', req.detail->>'recipient_role', 'result', r.verified_evidence->>'result'));
+      v_decision := 'remediate';
+      v_receipt := 'ceo: decided. The ' || v_what || ' did not reach the ' || (req.detail->>'recipient_role') || ' ('
+        || coalesce(r.verified_evidence->>'result', '?') || '): the sales engineer reaches them on another channel on file (handoff '
+        || v_h || '), and the CEO closes it when the resend is confirmed or no channel exists.';
+    end if;
+  end if;
+
+  v_acc := public.fn_ceo_accept_support_report(r.id, v_receipt, v_decision);
+  if not coalesce((v_acc->>'ok')::boolean, false) then
+    raise exception 'fn_ceo_sales_engineer_report_decide: report % was not accepted: %', r.id, v_acc->>'reason';
+  end if;
+  return jsonb_build_object('ok', true, 'report_id', r.id, 'decision', v_decision, 'remediation_handoff', v_h);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_sales_engineer_reports_sweep(p_limit integer DEFAULT 100)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; h public.agent_actions; rs public.agent_actions; v jsonb; k text; v_verdict text; v_window interval;
+        n jsonb := '{}'::jsonb; n_closed int := 0; n_wait int := 0; v_err jsonb := '[]'::jsonb;
+begin
+  for r in select s.id, s.source_agent from public.support_ceo_report s
+            where s.status = 'sent'
+              and (s.source_agent = 'sales_engineer'
+                   or (s.source_agent = 'accountant'
+                       and (s.idempotency_key like 'notice\_undelivered:%' or s.idempotency_key like 'notice\_unverified:%')))
+              -- a report whose decision raised waits an hour, so it cannot hold the head of the queue
+              and (s.last_delivery_error is null or s.next_review_at <= now())
+            order by s.id limit greatest(coalesce(p_limit, 100), 1) loop
+    begin
+      v := case when r.source_agent = 'accountant' then public.fn_ceo_accountant_notice_report_decide(r.id)
+                else public.fn_ceo_sales_engineer_report_decide(r.id) end;
+      k := coalesce(v->>'decision', 'not_decided');
+      n := n || jsonb_build_object(k, coalesce((n->>k)::int, 0) + 1);
+    exception when others then
+      v_err := v_err || jsonb_build_object('report_id', r.id, 'error', left(sqlerrm, 300));
+      update public.support_ceo_report
+         set last_delivery_error = left('ceo decision failed: ' || sqlerrm, 300), next_review_at = now() + interval '1 hour'
+       where id = r.id;
+    end;
+  end loop;
+
+  select reply_within into v_window from public.seat_handoff_kind
+   where type = 'delivery.remediate' and from_seat = 'ceo' and to_seat = 'sales_engineer';
+  v_window := coalesce(v_window, interval '24 hours');
+  for h in select * from public.agent_actions
+            where kind = 'handoff' and detail->>'type' = 'delivery.remediate' and detail->>'from' = 'ceo'
+              and status in ('pending', 'failed') order by id loop
+    begin
+      rs := null;
+      if (h.evidence->>'resend_request_id') is not null then
+        select * into rs from public.agent_actions where id = (h.evidence->>'resend_request_id')::bigint;
+      end if;
+      v_verdict := case
+        when h.status = 'failed' then
+          'unreachable: the sales engineer could not act (' || coalesce(h.detail->>'error', 'no error recorded') || ')'
+        when rs.id is not null and rs.detail->>'loop' in ('confirmed', 'handled_by_the_ladder') then
+          'reached: the resend by ' || coalesce(h.evidence->>'channel', '?') || ' was confirmed (request ' || rs.id || ')'
+        when rs.id is not null and rs.detail ? 'loop' then
+          'unreachable: the resend by ' || coalesce(h.evidence->>'channel', '?') || ' ended ' || (rs.detail->>'loop') || ' (request ' || rs.id || ')'
+        when rs.id is null and h.detail ? 'replied_at' then
+          'unreachable: ' || coalesce(h.evidence->>'reply', 'no other channel on file')
+        when now() > h.created_at + v_window then
+          'unreachable: no outcome within ' || v_window
+      end;
+      if v_verdict is null then n_wait := n_wait + 1; continue; end if;
+      perform set_config('qd.handoff_closer', 'ceo', true);
+      perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+        'verified_by', 'ceo', 'verified_at', now(), 'verdict', v_verdict));
+      perform set_config('qd.handoff_closer', '', true);
+      n_closed := n_closed + 1;
+    exception when others then
+      v_err := v_err || jsonb_build_object('remediation_handoff', h.id, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+
+  return jsonb_build_object('decided', n, 'remediations_closed', n_closed, 'remediations_waiting', n_wait, 'errors', v_err,
+    'still_unread', (select count(*) from public.support_ceo_report where source_agent = 'sales_engineer' and status = 'sent'));
 end $function$
 
 
@@ -27652,6 +27871,30 @@ begin
     end if;
   end if;
   return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_delivery_request_outcome(p_request_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare q public.agent_actions; v_loop text;
+begin
+  select * into q from public.agent_actions where id = p_request_id and kind = 'handoff';
+  if not found then return jsonb_build_object('state', 'missing', 'request_id', p_request_id); end if;
+  v_loop := q.detail->>'loop';
+  return jsonb_build_object('request_id', q.id, 'loop', v_loop,
+    'state', case
+      when v_loop in ('confirmed', 'retry_confirmed', 'handled_by_the_ladder', 'retry_handled_by_the_ladder') then 'reached'
+      -- escalation_refused filed no report, so it reads as waiting and the 24-hour escalation takes over.
+      when v_loop in ('escalated', 'retry_escalated') then 'failed'
+      when v_loop in ('routed', 'stubbed', 'digested', 'cancelled', 'retry_routed', 'retry_stubbed', 'retry_digested', 'retry_cancelled') then 'ended'
+      else 'waiting' end,
+    'report_key', 'delivery_undelivered:' || coalesce(q.detail->>'retry_request_id', q.id::text),
+    'fixture', q.detail::text ilike '%ZZ DEMO%'
+               or coalesce(q.detail->'prepared'->>'to_email', q.detail->>'to_email', '') ilike '%@example.invalid');
 end $function$
 
 
@@ -35241,18 +35484,16 @@ CREATE OR REPLACE FUNCTION public.fn_it_loop_tick()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text;
+declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text; x jsonb;
 begin
-  for f in select x.issue_key, x.started_at from public.it_engineer_finding x
-            where x.closed_at is null and public.fn_it_engineer_severity(x.blast, x.affected, x.started_at) <> 'warn'
+  for f in select q.issue_key, q.started_at from public.it_engineer_finding q
+            where q.closed_at is null and public.fn_it_engineer_severity(q.blast, q.affected, q.started_at) <> 'warn'
               and not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
-                                 and a.detail->>'issue_key' = x.issue_key
-                                 and (a.detail->>'occurrence_started_at')::timestamptz = x.started_at)
-            order by x.started_at loop
+                                 and a.detail->>'issue_key' = q.issue_key
+                                 and (a.detail->>'occurrence_started_at')::timestamptz = q.started_at)
+            order by q.started_at loop
     begin
-      -- The playbook first: a known remedy runs once per occurrence, and the finding is handed on
-      -- only if it is still open on the next tick.
       continue when public.fn_it_playbook_first(f.issue_key, f.started_at);
       perform public.fn_it_loop_open(f.issue_key);
       n_open := n_open + 1;
@@ -35264,8 +35505,25 @@ begin
 
   begin o := o || jsonb_build_object('reverify', public.fn_it_loop_reverify());
   exception when others then v_err := v_err || jsonb_build_object('step', 'reverify', 'error', sqlerrm); end;
+  begin
+    x := public.fn_originators_reverify_handoffs();
+    o := o || jsonb_build_object('originators', x);
+    if jsonb_array_length(coalesce(x->'errors', '[]'::jsonb)) > 0 then
+      v_err := v_err || jsonb_build_object('step', 'originators', 'error', left((x->'errors')::text, 600));
+    end if;
+  exception when others then v_err := v_err || jsonb_build_object('step', 'originators', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('ceo', public.fn_ceo_it_reports_sweep());
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
+  begin
+    x := public.fn_ceo_sales_engineer_reports_sweep();
+    o := o || jsonb_build_object('ceo_sales', x, 'sales_engineer_completed', public.fn_sales_engineer_reports_complete());
+    if jsonb_array_length(coalesce(x->'errors', '[]'::jsonb)) > 0 then
+      v_err := v_err || jsonb_build_object('step', 'ceo_sales', 'error', left((x->'errors')::text, 600));
+    end if;
+  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_sales', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('ceo_accountant', public.fn_ceo_accountant_reports_sweep(),
+                                     'accountant_completed', public.fn_accountant_reports_complete());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_accountant', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
@@ -35274,7 +35532,7 @@ begin
   begin o := o || jsonb_build_object('digest', public.fn_customer_support_sends_the_it_digest());
   exception when others then v_err := v_err || jsonb_build_object('step', 'digest', 'error', sqlerrm); end;
 
-  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily', 'digest'] loop
+  foreach v_step in array array['open', 'reverify', 'originators', 'ceo', 'ceo_sales', 'ceo_accountant', 'ceo_silence', 'daily', 'digest'] loop
     perform public.fn_it_loop_stage(v_step,
       (select string_agg(coalesce(e->>'issue_key' || ': ', '') || (e->>'error'), '; ')
          from jsonb_array_elements(v_err) e where e->>'step' = v_step));
@@ -40179,6 +40437,245 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_originators_reverify_handoffs(p_limit integer DEFAULT 200)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c_questions constant text[] := array['refund.requested', 'billing.question', 'charge.disputed'];
+  c_notices constant text[] := array['reveal.paid', 'payment.failed', 'payment.received', 'refund.request_checked', 'refund.paid',
+    'refund.declined', 'refund.in_progress', 'nonresponse.charge_raised', 'charge.corrected', 'subscription.due', 'billing.answer',
+    'charge.dispute_answer', 'nonresponse.charge_reminder', 'nonresponse.final_demand', 'subscription.dunning',
+    'subscription.payment_failed', 'subscription.renewal_reminder'];
+  h public.agent_actions; k public.seat_handoff_kind; rep public.support_ceo_report; v_rep jsonb; v_answer bigint;
+  v_reqs bigint[]; v_outs jsonb; v_verdict text; v_waiting boolean; v_failed jsonb; v_undecided int;
+  n_answered int := 0; n_q_closed_by_ceo int := 0; n_q_reported int := 0; n_q_wait int := 0;
+  n_closed int := 0; n_recorded int := 0; n_reported int := 0; n_wait int := 0; v_err jsonb := '[]'::jsonb;
+  f record; v_type text; v_ok boolean; n_cleared int := 0;
+begin
+  -- 1. THE SALES ENGINEER: did the accountant answer the question it was asked?
+  for h in select * from public.agent_actions a
+            where a.kind = 'handoff' and a.detail->>'from' = 'sales_engineer' and a.agent = 'accountant'
+              and a.detail->>'type' = any (c_questions) and a.status in ('pending', 'failed')
+            order by (a.detail ? 'escalated_report_id'), a.id limit greatest(coalesce(p_limit, 200), 1) loop
+    begin
+      select * into k from public.seat_handoff_kind where type = h.detail->>'type' and from_seat = 'sales_engineer' and to_seat = 'accountant';
+      -- An answer counts whatever became of it afterwards: relaying it is the accountant's notice loop.
+      v_answer := null;
+      select a.id into v_answer from public.agent_actions a
+       where a.kind = 'handoff' and a.agent = 'sales_engineer' and a.detail->>'from' = 'accountant'
+         and a.target_id = case h.detail->>'type'
+                             when 'refund.requested' then 'refund.request_checked:' || (h.detail->>'subject_id')
+                             when 'billing.question' then 'billing.answer:' || h.id end
+       limit 1;
+      if v_answer is null and h.detail->>'type' = 'charge.disputed' then
+        select a.id into v_answer from public.agent_actions a
+         where a.kind = 'handoff' and a.agent = 'sales_engineer' and a.detail->>'type' = 'charge.dispute_answer'
+           and a.target_id like 'charge.dispute\_answer:%:' || h.id
+         limit 1;
+      end if;
+      rep := null;
+      if h.detail ? 'escalated_report_id' then
+        select * into rep from public.support_ceo_report where id = (h.detail->>'escalated_report_id')::bigint;
+      end if;
+      v_verdict := case
+        when v_answer is not null then 'answered by the accountant (handoff ' || v_answer || ')'
+        when rep.status in ('accepted', 'completed') then 'unanswered; the CEO decided: ' || left(rep.acceptance_receipt, 400)
+      end;
+
+      if v_verdict is not null then
+        perform set_config('qd.handoff_closer', 'sales_engineer', true);
+        perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+          'verified_by', 'sales_engineer', 'verified_at', now(), 'verdict', v_verdict));
+        perform set_config('qd.handoff_closer', '', true);
+        if v_answer is not null then n_answered := n_answered + 1; else n_q_closed_by_ceo := n_q_closed_by_ceo + 1; end if;
+      elsif rep.id is null and (h.status = 'failed' or now() > h.created_at + coalesce(k.reply_within, interval '1 hour')) then
+        v_rep := public.fn_support_report_to_ceo('handoff_unanswered:' || h.id, 'serious',
+          'The accountant did not answer "' || (h.detail->>'type') || '" from the sales engineer (handoff ' || h.id || ')',
+          jsonb_build_object('handoff_id', h.id, 'type', h.detail->>'type', 'handoff_status', h.status,
+                             'error', h.detail->>'error', 'asked_at', h.created_at, 'reply', h.evidence),
+          jsonb_build_array('sales_engineer asked the accountant at ' || to_char(h.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (Dubai)'),
+          'Decide what fixes the accountant''s answer. The sales engineer closes the question with your decision.',
+          'agent_actions#' || h.id, p_review_in => interval '4 hours', p_source_agent => 'sales_engineer');
+        if not coalesce((v_rep->>'ok')::boolean, false) then
+          raise exception 'the CEO report for handoff % was refused: %', h.id, v_rep->>'reason';
+        end if;
+        update public.agent_actions set detail = detail || jsonb_build_object('escalated_report_id', (v_rep->>'report_id')::bigint, 'escalated_at', now())
+         where id = h.id;
+        n_q_reported := n_q_reported + 1;
+      else
+        n_q_wait := n_q_wait + 1;
+      end if;
+    exception when others then
+      v_err := v_err || jsonb_build_object('handoff', h.id, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+
+  -- 2. THE ACCOUNTANT: did the money notice it asked for reach the customer or supplier?
+  for h in select * from public.agent_actions a
+            where a.kind = 'handoff' and a.detail->>'from' = 'accountant' and a.agent = 'sales_engineer'
+              and a.detail->>'type' = any (c_notices) and not (a.detail ? 'originator_verdict')
+              and (a.status in ('done', 'failed') or (a.status = 'pending' and a.detail ? 'replied_at'))
+            order by (a.detail ? 'escalated_report_id'), a.id limit greatest(coalesce(p_limit, 200), 1) loop
+    begin
+      select * into k from public.seat_handoff_kind where type = h.detail->>'type' and from_seat = 'accountant' and to_seat = 'sales_engineer';
+      v_verdict := null; rep := null;
+      -- Every send the notice made: the one the handler names, and on a reveal the supplier's as well.
+      v_reqs := array_remove(array[(h.evidence->>'delivery_request')::bigint,
+                  case when h.detail->>'type' = 'reveal.paid' then
+                    (select a.id from public.agent_actions a where a.agent = 'customer_support' and a.kind = 'handoff'
+                      and a.target_id = 'delivery.request:quote_accepted:' || (h.detail->>'subject_id') order by a.id desc limit 1) end], null);
+      if h.detail ? 'escalated_report_id' then
+        select * into rep from public.support_ceo_report where id = (h.detail->>'escalated_report_id')::bigint;
+      end if;
+
+      if h.detail ? 'superseded_by_incident' then
+        v_verdict := 'superseded by refund incident ' || (h.detail->>'superseded_by_incident');
+      elsif rep.id is not null then
+        -- Reported already: it ends with the CEO's decision.
+        -- A send recorded on the report that has since failed is decided on its own delivery_undelivered
+        -- report; the notice waits for that decision too, and carries it in the verdict.
+        if rep.status = 'completed'
+           and not exists (select 1 from jsonb_array_elements(coalesce(rep.verified_evidence->'sends', '[]'::jsonb)) o
+                            cross join lateral public.fn_delivery_request_outcome((o->>'request_id')::bigint) oc
+                            where oc->>'state' = 'failed'
+                              and not exists (select 1 from public.support_ceo_report s
+                                               where s.idempotency_key = oc->>'report_key' and s.status = 'completed')) then
+          v_verdict := 'the CEO decided: ' || left(coalesce(rep.completion_note, rep.acceptance_receipt), 400)
+            || coalesce(' | ' || (select string_agg(left(coalesce(s.completion_note, s.acceptance_receipt), 300), ' | ')
+                                    from jsonb_array_elements(coalesce(rep.verified_evidence->'sends', '[]'::jsonb)) o
+                                    cross join lateral public.fn_delivery_request_outcome((o->>'request_id')::bigint) oc
+                                    join public.support_ceo_report s on s.idempotency_key = oc->>'report_key'
+                                   where oc->>'state' = 'failed'), '');
+        end if;
+      elsif h.status = 'failed' or cardinality(v_reqs) = 0
+            or (h.detail->>'type' = 'reveal.paid'
+                and (h.evidence->>'customer_reachable' = 'false' or h.evidence->>'supplier_reachable' = 'false')) then
+        -- The notice never left: no address on file, or the sales engineer could not write it.
+        v_rep := public.fn_support_report_to_ceo('notice_undelivered:' || h.id, 'elevated',
+          'A ' || (h.detail->>'type') || ' notice the accountant asked for was not sent (handoff ' || h.id || ')',
+          jsonb_build_object('handoff_id', h.id, 'type', h.detail->>'type', 'handoff_status', h.status,
+                             'reply', h.evidence, 'error', h.detail->>'error'),
+          jsonb_build_array('accountant asked the sales engineer at ' || to_char(h.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (Dubai)'),
+          'Decide how this customer or supplier learns of it: an address to use, another channel, or record that it cannot go.',
+          'agent_actions#' || h.id, p_review_in => interval '1 day', p_source_agent => 'accountant');
+        if not coalesce((v_rep->>'ok')::boolean, false) then
+          raise exception 'the CEO report for handoff % was refused: %', h.id, v_rep->>'reason';
+        end if;
+        update public.agent_actions set detail = detail || jsonb_build_object('escalated_report_id', (v_rep->>'report_id')::bigint, 'escalated_at', now())
+         where id = h.id;
+        n_reported := n_reported + 1;
+      else
+        select coalesce(jsonb_agg(public.fn_delivery_request_outcome(x)), '[]'::jsonb) into v_outs from unnest(v_reqs) x;
+        v_waiting := exists (select 1 from jsonb_array_elements(v_outs) o where o->>'state' in ('waiting', 'missing'));
+        v_failed := (select coalesce(jsonb_agg(o), '[]'::jsonb) from jsonb_array_elements(v_outs) o where o->>'state' = 'failed');
+        if v_waiting then
+          if now() > h.created_at + coalesce(k.reply_within, interval '24 hours') then
+            v_rep := public.fn_support_report_to_ceo('notice_unverified:' || h.id, 'elevated',
+              'A ' || (h.detail->>'type') || ' notice has no delivery outcome after ' || coalesce(k.reply_within, interval '24 hours') || ' (handoff ' || h.id || ')',
+              jsonb_build_object('handoff_id', h.id, 'type', h.detail->>'type', 'sends', v_outs,
+                                 'delivery_loop', (select string_agg(o->>'loop', ', ') from jsonb_array_elements(v_outs) o)),
+              jsonb_build_array('accountant asked the sales engineer at ' || to_char(h.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (Dubai)'),
+              'Find out what became of this send. The accountant closes the notice with your decision.',
+              'agent_actions#' || h.id, p_review_in => interval '1 day', p_source_agent => 'accountant');
+            if not coalesce((v_rep->>'ok')::boolean, false) then
+              raise exception 'the CEO report for handoff % was refused: %', h.id, v_rep->>'reason';
+            end if;
+            update public.agent_actions set detail = detail || jsonb_build_object('escalated_report_id', (v_rep->>'report_id')::bigint, 'escalated_at', now())
+             where id = h.id;
+            n_reported := n_reported + 1;
+          end if;
+        elsif jsonb_array_length(v_failed) > 0 then
+          -- It did not arrive: the sales engineer's delivery_undelivered report carries it to the CEO.
+          -- The notice closes with the CEO's decision on that report once it is decided and completed.
+          select count(*) into v_undecided from jsonb_array_elements(v_failed) o
+           where not exists (select 1 from public.support_ceo_report s where s.idempotency_key = o->>'report_key' and s.status = 'completed');
+          if v_undecided = 0 then
+            v_verdict := 'did not arrive; the CEO decided: ' || (select string_agg(left(coalesce(s.completion_note, s.acceptance_receipt), 300), ' | ')
+              from jsonb_array_elements(v_failed) o join public.support_ceo_report s on s.idempotency_key = o->>'report_key');
+          end if;
+        else
+          -- Only a send that arrived is 'reached'; a stubbed, routed or cancelled one ended without arriving.
+          v_verdict := case when exists (select 1 from jsonb_array_elements(v_outs) o where o->>'state' <> 'reached')
+                            then 'ended: ' else 'reached: ' end || (select string_agg((o->>'loop') || ' (request ' || (o->>'request_id') || ')', ', ') from jsonb_array_elements(v_outs) o);
+        end if;
+      end if;
+
+      if v_verdict is null then
+        n_wait := n_wait + 1;
+      else
+        -- Only a pending row is closed; a done or failed row is already terminal and gets the verdict recorded.
+        if h.status = 'pending' and k.originator_closes then
+          perform set_config('qd.handoff_closer', 'accountant', true);
+          perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+            'verified_by', 'accountant', 'verified_at', now(), 'verdict', v_verdict));
+          perform set_config('qd.handoff_closer', '', true);
+          n_closed := n_closed + 1;
+        else
+          n_recorded := n_recorded + 1;
+        end if;
+        update public.agent_actions
+           set detail = detail || jsonb_build_object('originator_verdict', v_verdict, 'originator_verified_by', 'accountant', 'originator_verified_at', now())
+         where id = h.id;
+      end if;
+    exception when others then
+      v_err := v_err || jsonb_build_object('handoff', h.id, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+
+  -- 3. A DEFECT THE CEO RAISED CLEARS WHEN THE SAME CONVERSATION WORKS AGAIN. The finding's key names
+  -- the conversation; it closes when the latest one of that kind was answered (a question), written
+  -- (a notice the sales engineer could not write) or delivered (a notice with no outcome). Closing it
+  -- lets the IT loop close its own handoff. What was missed while broken is not re-sent automatically:
+  -- the CEO's decision on each is on its report.
+  for f in select q.issue_key from public.it_engineer_finding q
+            where q.closed_at is null
+              and (q.issue_key like 'monitor:handoff\_unanswered:%' or q.issue_key like 'monitor:notice\_undelivered:%'
+                   or q.issue_key like 'monitor:notice\_unverified:%') loop
+    begin
+      v_type := split_part(f.issue_key, ':', 3);
+      h := null;
+      if f.issue_key like 'monitor:handoff\_unanswered:%' then
+        select * into h from public.agent_actions a
+         where a.kind = 'handoff' and a.detail->>'type' = v_type and a.detail->>'from' = 'sales_engineer'
+           and a.agent = split_part(f.issue_key, ':', 4) and a.status = 'done'
+         order by a.id desc limit 1;
+        v_ok := h.evidence->>'verdict' like 'answered%';
+      elsif f.issue_key like 'monitor:notice\_undelivered:%' then
+        select * into h from public.agent_actions a
+         where a.kind = 'handoff' and a.detail->>'type' = v_type and a.detail->>'from' = 'accountant'
+           and (a.status <> 'pending' or a.detail ? 'replied_at')
+         order by a.id desc limit 1;
+        v_ok := h.status <> 'failed' and (h.evidence->>'delivery_request') is not null;
+      else
+        select * into h from public.agent_actions a
+         where a.kind = 'handoff' and a.detail->>'type' = v_type and a.detail->>'from' = 'accountant'
+           and a.detail ? 'originator_verdict'
+         order by a.id desc limit 1;
+        -- 'ended' (routed, stubbed, digested, cancelled) is an outcome too: the finding was "no outcome".
+        v_ok := h.detail->>'originator_verdict' ~ '^(reached|ended): ';
+      end if;
+      if coalesce(v_ok, false) then
+        perform public.fn_it_engineer_finding_close(f.issue_key,
+          'handoff ' || h.id || ' of the same kind worked again, re-checked by fn_originators_reverify_handoffs');
+        n_cleared := n_cleared + 1;
+      end if;
+    exception when others then
+      v_err := v_err || jsonb_build_object('finding', f.issue_key, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+
+  return jsonb_build_object(
+    'defects_cleared', n_cleared,
+    'sales_engineer', jsonb_build_object('answered', n_answered, 'closed_with_ceo_decision', n_q_closed_by_ceo,
+                                         'reported', n_q_reported, 'waiting', n_q_wait),
+    'accountant', jsonb_build_object('closed', n_closed, 'recorded', n_recorded, 'reported', n_reported, 'waiting', n_wait),
+    'errors', v_err);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_os_ai_quality()
  RETURNS jsonb
  LANGUAGE sql
@@ -41868,16 +42365,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -42048,6 +42535,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -46272,6 +46769,81 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_answers_delivery_remediate(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a public.agent_actions; req public.agent_actions; n public.notifications;
+  v_role text; v_failed_email text; v_failed_ch text; v_cust uuid; v_lead bigint; v_subject text; v_body text;
+  v_ch text; v_phone text; v_email text; v_rs bigint; v_type text;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff' and detail->>'type' = 'delivery.remediate';
+  if not found then raise exception 'fn_sales_engineer_answers_delivery_remediate: % is not a delivery.remediate handoff', p_id; end if;
+  select * into req from public.agent_actions where id = (a.detail->>'request_id')::bigint;
+  if req.id is null then
+    return jsonb_build_object('waiting', 'ceo re-verification', 'resend_request_id', null,
+      'reply', 'sales_engineer: request ' || coalesce(a.detail->>'request_id', '?') || ' no longer exists, so there is nothing to resend.');
+  end if;
+  select * into n from public.notifications
+   where id = coalesce((req.detail->>'retry_notification_id')::bigint, (req.evidence->>'notification_id')::bigint);
+  v_role := coalesce(req.detail->>'recipient_role', n.to_role);
+  v_failed_email := coalesce(n.to_email, req.detail->'prepared'->>'to_email', req.detail->>'to_email');
+  if req.detail::text ilike '%ZZ DEMO%' or coalesce(v_failed_email, '') ilike '%@example.invalid' then
+    return jsonb_build_object('waiting', 'ceo re-verification', 'resend_request_id', null,
+      'reply', 'sales_engineer: a ZZ DEMO fixture; nothing is resent to a fixture address.');
+  end if;
+  v_failed_ch := coalesce(n.channel, req.detail->'prepared'->>'channel', 'email');
+  v_cust := (req.detail->>'customer_id')::uuid;
+  v_lead := coalesce((req.detail->>'supplier_id')::bigint, n.lead_id);
+  v_type := coalesce(n.type, req.detail->>'msg_type');
+  v_subject := coalesce(n.subject, req.detail->'prepared'->>'subject', req.detail->>'subject_en');
+  v_body := coalesce(n.body, req.detail->'prepared'->>'body', req.detail->>'body_en');
+  if coalesce(btrim(v_body), '') = '' then
+    return jsonb_build_object('waiting', 'ceo re-verification', 'resend_request_id', null,
+      'reply', 'sales_engineer: the words of the ' || coalesce(v_type, 'notice') || ' are gone, so it cannot be resent.');
+  end if;
+
+  if v_failed_ch <> 'whatsapp' then
+    v_phone := public.fn_whatsapp_destination(v_role, v_cust, v_lead, v_failed_email);
+    if v_phone is not null then v_ch := 'whatsapp'; end if;
+  end if;
+  if v_ch is null and v_failed_ch <> 'sms' then
+    v_phone := public.fn_verified_mobile(v_role, v_cust, v_lead, v_failed_email);
+    if v_phone is not null then v_ch := 'sms'; end if;
+  end if;
+  if v_ch is null then
+    v_email := case v_role when 'customer' then (select c.email from public.customers c where c.id = v_cust)
+                           when 'supplier' then (select coalesce(l.claimed_by, l.email) from public.leads l where l.id = v_lead) end;
+    if coalesce(v_email, '') ~ '@' and v_email !~* '@example\.invalid$'
+       and lower(btrim(v_email)) is distinct from lower(btrim(coalesce(v_failed_email, ''))) then
+      v_ch := 'email';
+    end if;
+  end if;
+  if v_ch is null then
+    return jsonb_build_object('waiting', 'ceo re-verification', 'resend_request_id', null,
+      'reply', 'sales_engineer: no other channel is on file for this ' || coalesce(v_role, 'recipient')
+               || ' (the ' || v_failed_ch || ' send failed; no confirmed WhatsApp, verified mobile or other email).');
+  end if;
+
+  -- retry_of makes fn_originator_checks_delivery escalate rather than retry again if this one fails too.
+  v_rs := public.fn_seat_handoff('sales_engineer', 'customer_support', 'delivery.request', 'notifications', 'remediate:' || a.id,
+    jsonb_build_object('retry_of', req.id, 'remediate_handoff_id', a.id, 'msg_type', v_type, 'recipient_role', v_role,
+      'to_email', coalesce(v_email, v_failed_email), 'supplier_id', v_lead, 'customer_id', v_cust,
+      'inquiry_id', coalesce(n.inquiry_id::text, req.detail->>'inquiry_id'), 'quote_id', coalesce(n.quote_id::text, req.detail->>'quote_id'),
+      'prepared', jsonb_build_object('type', v_type, 'kind', n.kind, 'to_role', v_role, 'lead_id', v_lead,
+        'inquiry_id', coalesce(n.inquiry_id::text, req.detail->>'inquiry_id'), 'quote_id', coalesce(n.quote_id::text, req.detail->>'quote_id'),
+        'subject', v_subject, 'body', v_body, 'lang', coalesce(n.lang, req.detail->>'locale', 'en'), 'channel', v_ch,
+        'to_email', case when v_ch = 'email' then v_email else v_failed_email end,
+        'to_phone', case when v_ch in ('whatsapp', 'sms') then v_phone end)));
+  return jsonb_build_object('waiting', 'ceo re-verification', 'resend_request_id', v_rs, 'channel', v_ch,
+    'reply', 'sales_engineer resent the ' || coalesce(v_type, 'notice') || ' to the ' || coalesce(v_role, 'recipient')
+             || ' by ' || v_ch || ' (request ' || v_rs || ').');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_attaches_delivery_result(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -46456,6 +47028,31 @@ begin
   return jsonb_build_object('delivery_request', v_req,
     'waiting', case v_step when 'customer_proof' then 'the customer: the proof is requested and this closes when it arrives'
                            else 'the supplier: support is delivering the ' || replace(v_step, '_', ' ') || ' and watching every channel for a reply' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_reports_complete(p_report_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n int;
+begin
+  update public.support_ceo_report r
+     set status = 'completed', completed_at = now(),
+         completion_note = 'sales_engineer saw the CEO''s receipt: ' || r.acceptance_receipt
+           || coalesce(' Outcome: ' || (select a.evidence->>'verdict' from public.agent_actions a
+                                         where a.kind = 'handoff' and a.agent = 'sales_engineer'
+                                           and a.target_id = 'delivery.remediate:' || r.id and a.status = 'done'
+                                         order by a.id desc limit 1), '')
+   where r.source_agent = 'sales_engineer' and r.status = 'accepted' and r.acceptance_receipt is not null
+     and (p_report_id is null or r.id = p_report_id)
+     and not exists (select 1 from public.agent_actions a
+                      where a.kind = 'handoff' and a.agent = 'sales_engineer'
+                        and a.target_id = 'delivery.remediate:' || r.id and a.status <> 'done');
+  get diagnostics n = row_count;
+  return jsonb_build_object('completed_after_receipt', n);
 end $function$
 
 
