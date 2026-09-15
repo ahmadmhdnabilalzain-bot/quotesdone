@@ -4,7 +4,7 @@
 // The dashboard used to open on 24 equal tabs; the one thing each supplier must do next sat in a
 // panel under the alerts. supplier_portal's eligibility action already evaluates every real clause
 // (the mandatory six from _shared/supplier_registration.ts, the scope gate fn_match_capability opens
-// with, and the pauses match_suppliers_kw honours), so this screen is that payload drawn as a
+// with, and the pauses fn_is_matchable honours), so this screen is that payload drawn as a
 // progress ring and an ordered checklist, with the next step as the one primary button.
 // Every step and its count come from the server; nothing here is estimated.
 import { useEffect, useState } from 'react';

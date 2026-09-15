@@ -339,7 +339,7 @@ if (cmd === 'run') {
   // -- STEP 4: suppliers matched ---------------------------------------------------------------
   const m = await call('match', { keywords: ['hvac', 'ahu', 'chiller', 'ductwork'], category: 'hvac', emirate: 'Dubai', role: 'supplier', limit: 12, multi: true });
   const matched = Array.isArray(m.json?.suppliers) ? m.json.suppliers : (Array.isArray(m.json?.results) ? m.json.results : []);
-  assert('4. suppliers matched (match -> match_suppliers_kw)',
+  assert('4. suppliers matched (match action; the keyword matcher was dropped 15 Sep 2026)',
     matched.length > 0, `${matched.length} (HTTP ${m.status})`, '> 0');
   if (matched.length) {
     const ids = matched.map(s => Number(s.id)).filter(Boolean);
