@@ -24,3 +24,12 @@ export function classifyDropboxFailure(error: string | null | undefined): Failur
   if (/^[\w/]+ network |fetch failed|ECONNRESET|connection (reset|refused|closed)|error sending request|dns error|TimeoutError|timed out|signal has been aborted/i.test(e)) return 'network';
   return 'internal';
 }
+
+// Our own database waited and gave up: a statement or lock timeout, or a deadlock. Measured 15 Sep 2026
+// 06:39:53-06:41:14Z: while two migrations were applied, backends queued for locks on doc_backups,
+// storage.objects and auth.users, and fn_doc_backups_next (4.2 ms on its own) hit the 8 s PostgREST
+// statement_timeout. The same call a few seconds later succeeds, so index.ts hands such a run on to the
+// next chain link (still capped at 20) and retries a mark-done write, instead of ending the drain.
+export function isTransientDbError(error: string | null | undefined): boolean {
+  return /canceling statement due to (statement|lock) timeout|deadlock detected|could not obtain lock/i.test(String(error ?? ''));
+}

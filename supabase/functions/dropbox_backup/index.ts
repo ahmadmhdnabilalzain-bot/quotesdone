@@ -18,6 +18,11 @@
 //     rules expired (the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql). Rows come only from
 //     fn_doc_backups_prune_next, which returns nothing in dry run. This is retention of the table
 //     exports only; op pdpl_erase stays refused.
+//   * v10 (15 Sep 2026, it_engineer): a queue run that dies on a database wait (statement/lock timeout,
+//     deadlock; measured 06:39-06:41Z during two migration applies, picker 4.2 ms on its own) hands on to
+//     the next link, still capped at 20; a mark-done write that times out is retried twice, and if it
+//     still fails is logged 'warn' (the copy is verified in Dropbox), so fn_backup_watch does not read
+//     it as a failed backup.
 // SQL: scripts/sql/a_document_reaches_dropbox_when_it_lands_and_only_once_it_exists.sql and
 // scripts/sql/dropbox_is_checked_every_day_login_and_space.sql.
 //
@@ -33,7 +38,7 @@ import { dropboxContentHash } from './content_hash.ts';
 import { DropboxClient, refreshAccessToken } from './dropbox.ts';
 import { CHUNK, uploadFile, type ReadChunk, type UploadState } from './upload.ts';
 import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
-import { classifyDropboxFailure } from './health.ts';
+import { classifyDropboxFailure, isTransientDbError } from './health.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -253,11 +258,14 @@ async function prune() {
 }
 
 Deno.serve(observe('dropbox_backup', async (req) => {
+  // deno-lint-ignore no-explicit-any
+  let body: Record<string, any> = {}; let authed = false;
   try {
-    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    body = await req.json().catch(() => ({} as Record<string, unknown>));
     const auth = await requireInternal(admin, body?.__secret, 'dropbox_backup');
     if (!auth.ok) { await logThrottled('forbidden', 60, 'error', { stage: 'auth' }, 'dropbox_backup rejected a caller presenting a bad or missing inbound secret. If this is the scheduled caller, no Dropbox backup is running at all and every backup is stale.'); return J({ error: 'forbidden' }, 403); }
 
+    authed = true;
     if (body.op === 'health') return J({ ok: true, op: 'health', ...(await health()) });
     if (body.op === 'prune') return J({ ok: true, op: 'prune', ...(await prune()) });
     if (body.op === 'selftest_large') return J({ ok: true, op: 'selftest_large', ...(await selftestLarge(Number(body.mb) || 20)) });
@@ -311,9 +319,23 @@ Deno.serve(observe('dropbox_backup', async (req) => {
           resumed++; results.push({ id: row.id, resuming: up.state.offset }); continue;
         }
         await verifyUploaded(dbx, row.dropbox_path, up.hash, src.size);
-        const { error: markErr } = await admin.from('doc_backups').update({ status: 'done', ...release, bytes: src.size, backed_up_at: now(), error: null, attempts: row.attempts + 1,
-          last_attempt_at: now(), upload_state: null, dropbox_content_hash: up.hash, dropbox_size: src.size, verified_at: now() }).eq('id', row.id);
-        if (markErr) await logRun('error', { stage: 'mark_done', doc_backup_id: row.id }, 'Document ' + row.id + ' was uploaded and verified but could not be marked done: ' + markErr.message.slice(0, 160));
+        const mark = { status: 'done', ...release, bytes: src.size, backed_up_at: now(), error: null, attempts: row.attempts + 1,
+          last_attempt_at: now(), upload_state: null, dropbox_content_hash: up.hash, dropbox_size: src.size, verified_at: now() };
+        let markErr = (await admin.from('doc_backups').update(mark).eq('id', row.id)).error;
+        // a lock wait that timed out (measured 15 Sep 06:40Z, during a migration apply) clears in seconds
+        for (let i = 1; markErr && i <= 2 && isTransientDbError(markErr.message) && Date.now() < DEADLINE; i++) {
+          await new Promise((r) => setTimeout(r, 2000 * i));
+          markErr = (await admin.from('doc_backups').update(mark).eq('id', row.id)).error;
+        }
+        // Only the bookkeeping failed: the copy is uploaded and verified in Dropbox. The row stays
+        // 'processing', fn_doc_backups_next requeues it after 10 minutes, and it is uploaded again
+        // (overwrite, same bytes). 'warn', not 'error': fn_backup_watch reads a latest 'error' run as a
+        // failed backup and raises a high backup_alert. Only a transient wait is downgraded: any other
+        // mark-done failure (schema, permission, constraint) repeats on every file and stays 'error'.
+        if (markErr) {
+          await logRun(isTransientDbError(markErr.message) ? 'warn' : 'error', { stage: 'mark_done', doc_backup_id: row.id }, 'Document ' + row.id + ' was uploaded and verified in Dropbox but could not be marked done; it is re-uploaded (overwrite) when its claim expires in 10 minutes: ' + markErr.message.slice(0, 160));
+          results.push({ id: row.id, uploaded_not_marked: src.size }); continue;
+        }
         done++; results.push({ id: row.id, done: src.size, chunks: up.chunks, retries: up.retries });
       } catch (e) {
         const msg = errText(e).slice(0, 300);
@@ -339,7 +361,20 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     }
     return J({ ok: true, ...counts, results });
   } catch (e) {
-    await logRun('error', { stage: 'fatal' }, 'dropbox_backup crashed before completing; this run backed nothing up. ' + errText(e).slice(0, 200));
-    return J({ error: errText(e) }, 500);
+    const msg = errText(e);
+    // A queue run that died waiting on our own database hands on to the next link instead of ending
+    // the drain: the same call succeeds seconds later. Bounded like the drain itself (chain < 20), and
+    // only for a transient wait - any other fatal error would fail the same way twenty times.
+    const chain = Math.max(0, Math.min(Number(body.chain) || 0, 20));
+    const handOff = authed && body.op === undefined && body.mode !== 'reconcile' && chain < 20 && isTransientDbError(msg);
+    await logRun('error', { stage: 'fatal', chain, handed_off: handOff }, 'dropbox_backup crashed before completing; this run backed nothing up' + (handOff ? ' (a database wait timed out; the next link retries)' : '') + '. ' + msg.slice(0, 200));
+    if (handOff) {
+      const next = fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: body.__secret, mode: 'process_only', limit: Math.min(Number(body.limit) || 8, 25), chain: chain + 1, reason: 'drain_after_db_timeout' }) })
+        .then((r) => r.body?.cancel()).catch((err) => console.error('drain link failed:', errText(err)));
+      // deno-lint-ignore no-explicit-any
+      (globalThis as any).EdgeRuntime?.waitUntil?.(next);
+    }
+    return J({ error: msg }, 500);
   }
 }));
