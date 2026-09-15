@@ -1,7 +1,15 @@
 // Run: deno test --node-modules-dir=none supabase/functions/reveal_invoice/resolve.test.ts
 // ZZ DEMO fixtures only; the Stripe dependency is a recorder, so the test also proves WHEN it is asked.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { resolveInvoice, type Sale } from './resolve.ts';
+import { receiptCitation, resolveInvoice, type Sale } from './resolve.ts';
+
+Deno.test('the receipt cites the Stripe invoice number and has no invoice number of its own', () => {
+  const c = receiptCitation({ id: 'aaaabbbb-cccc-dddd-eeee-ffff00001111', stripe_invoice_number: 'ZZDEMO-0001' });
+  assertEquals(c, { invoiceNo: 'ZZDEMO-0001', fileName: 'receipt-AAAABBBB' });
+  const none = receiptCitation({ id: 'aaaabbbb-cccc', stripe_invoice_number: null });
+  assertEquals(none.invoiceNo, null);
+  assertEquals(/INV/.test(none.fileName + c.fileName), false);
+});
 
 const SALES: Record<string, Sale> = {
   'q-mine': { id: 'tx-1', customer_id: 'c-mine', stripe_invoice_id: 'in_zzdemo_mine', stripe_invoice_number: 'ZZDEMO-0001', doc_path: 'invoices/stripe/x.pdf' },
