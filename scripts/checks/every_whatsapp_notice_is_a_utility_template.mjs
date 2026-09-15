@@ -53,7 +53,7 @@ const replacements = await sql(`select sid, template_key, lang, note from public
 let faults = 0;
 for (const kind of KINDS) {
   const langs = sids[kind] || {};
-  if (!Object.keys(langs).length) { console.log(`--   ${kind}: no SID registered (rows stay queued; email carries the notice)`); continue; }
+  if (!Object.keys(langs).length) { console.log(`--   ${kind}: no SID registered (rows stay queued; email carries the notice; registering one needs the founder's Meta submission)`); continue; }
   for (const [lang, sid] of Object.entries(langs)) {
     const t = twilio.get(sid);
     if (isVerifys(t)) { console.log(`skip ${kind}/${lang} ${sid}: Verify's own authentication template`); continue; }

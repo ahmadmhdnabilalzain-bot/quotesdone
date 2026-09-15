@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { resolveInvoice } from './resolve.ts';
+import { receiptCitation, resolveInvoice } from './resolve.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
@@ -78,7 +78,9 @@ Deno.serve(observe('reveal_invoice', async (req) => {
     const fee = Number(tx.reveal_fee || 0);
     const processing = Number(tx.processing_fee || 0);
     const total = tx.total_charged != null ? Number(tx.total_charged) : fee + processing;
-    const invNo = 'QD-INV-' + String(tx.id).replace(/-/g, '').slice(0, 8).toUpperCase();
+    // A receipt, not a second invoice: it cites Stripe's invoice number and makes none of its own.
+    const cite = receiptCitation(res.sale);
+    const invNo = cite.invoiceNo;
     const inqRef = 'QD-' + String(tx.inquiry_id || '').replace(/-/g, '').slice(0, 8).toUpperCase();
     // ONE LANGUAGE PER RECEIPT: the customer's registered one (founder, 14 Sep 2026).
     const T = (en: string, arText: string) => ar ? arText : en;
@@ -88,7 +90,7 @@ Deno.serve(observe('reveal_invoice', async (req) => {
     const title = T('Payment Receipt', 'إيصال دفع');
     const end = ar ? 'left' : 'right';
     const rows = [
-      '<tr><th>' + T('Invoice No.', 'رقم الإيصال') + '</th><td>' + invNo + '</td><th>' + T('Date', 'التاريخ') + '</th><td>' + dateStr + '</td></tr>',
+      '<tr><th>' + T('Stripe invoice No.', 'رقم فاتورة Stripe') + '</th><td>' + esc(invNo || '—') + '</td><th>' + T('Date', 'التاريخ') + '</th><td>' + dateStr + '</td></tr>',
       '<tr><th>' + T('Billed to', 'صادر إلى') + '</th><td>' + billTo + '</td><th>' + T('Payment method', 'طريقة الدفع') + '</th><td>' + T('Card (Stripe)', 'بطاقة (Stripe)') + '</td></tr>',
       '<tr><th>' + T('Payment reference', 'مرجع الدفع') + '</th><td>' + esc(String(tx.payment_ref || '')) + '</td><th>' + T('Status', 'الحالة') + '</th><td>' + T('Paid', 'مدفوع') + '</td></tr>'
     ].join('');
@@ -99,10 +101,11 @@ Deno.serve(observe('reveal_invoice', async (req) => {
       '<h2>' + T('Details', 'التفاصيل') + '</h2>' +
       '<table><thead><tr><th>' + T('Description', 'الوصف') + '</th><th style="text-align:' + end + '">' + T('Amount', 'المبلغ') + '</th></tr></thead><tbody>' + lines + '</tbody></table>' +
       '<table style="width:55%;margin-' + (ar ? 'right' : 'left') + ':auto"><tbody><tr><th>' + T('Total paid', 'إجمالي المدفوع') + '</th><td><b>' + money(total) + '</b></td></tr></tbody></table>' +
+      (invNo ? '<p>' + T('This receipt confirms payment of the Stripe invoice numbered above. It is not a second invoice.', 'يؤكد هذا الإيصال سداد فاتورة Stripe المذكور رقمها أعلاه، وهو ليس فاتورة ثانية.') + '</p>' : '') +
       '<p>' + T('QuotesDone Technologies is not registered for VAT; no VAT has been charged on this amount.', 'QuotesDone غير مسجّلة لضريبة القيمة المضافة، ولم تُحتسب أي ضريبة على هذا المبلغ.') + '</p>' +
       '<p>' + T('This is the QuotesDone facilitation fee for revealing the selected supplier’s contact details. The amount payable to the supplier for the works is agreed separately and directly between the customer and the supplier.', 'هذه رسوم تسهيل من QuotesDone للكشف عن بيانات التواصل مع المورّد المختار. أمّا المبلغ المستحق للمورّد عن الأعمال فيُتفق عليه مباشرة وبشكل منفصل بين العميل والمورّد.') + '</p>';
     const inbound = await secret('cred_fn_reveal_invoice');
-    const pr = await fetch(URL_ + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: inbound, title, body_html, name: invNo + (ar ? '-AR' : ''), lang: ar ? 'ar' : 'en', options: { letterhead: true, sign: true, stamp: true } }) });
+    const pr = await fetch(URL_ + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: inbound, title, body_html, name: cite.fileName + (ar ? '-AR' : ''), lang: ar ? 'ar' : 'en', options: { letterhead: true, sign: true, stamp: true } }) });
     const pj = await pr.json();
     if (!pj?.ok || !pj.path) { await logRun('error', { quote_id: qid, invoice_no: invNo }, 'pdf_native failed: ' + String(pj?.error || pj?.detail || '').slice(0, 200)); return J({ error: 'pdf_failed', detail: pj?.error || pj?.detail || '' }, 502); }
     const bucket = pj.bucket || 'agent-docs';

@@ -6,7 +6,6 @@
     "fn_control_mode_open",
     "fn_control_mode_require",
     "fn_control_mode_status",
-    "match_suppliers",
-    "match_suppliers_kw"
+    "match_suppliers"
   ]
 }

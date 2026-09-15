@@ -55,7 +55,11 @@ test('the sales engineer seat reads the whole record, and the heartbeat archives
   assert.match(se, /rpc\('fn_conversation_record'/, 'the conversations action no longer reads fn_conversation_record');
   assert.match(se, /from\('assistant_logs'\)\.insert/, 'the portal chat with the sales engineer is no longer saved');
   const rp = readFileSync(join(FN, 'resilience_ping', 'index.ts'), 'utf8');
-  const call = rp.indexOf('await archiveTick()'), early = rp.indexOf('if (healthy) return J(');
+  // 15 Sep 2026 (PR #714): ticks run from the STEPS list via runSteps, so "called before the healthy early
+  // return" is: archiveTick is a STEPS entry, and runSteps(STEPS runs before the healthy return.
+  const steps = rp.slice(rp.indexOf('const STEPS'), rp.indexOf('Deno.serve('));
+  assert.match(steps, /run: archiveTick\b/, 'archiveTick is not one of the heartbeat steps');
+  const call = rp.indexOf('await runSteps(STEPS'), early = rp.indexOf('if (healthy) return J(');
   assert.ok(call > 0 && early > 0 && call < early, 'resilience_ping must call the archiver before the healthy early return');
   assert.match(rp, /\/conversation_archive'/, 'archiveTick no longer calls conversation_archive');
 });

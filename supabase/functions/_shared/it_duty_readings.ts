@@ -7,6 +7,7 @@
 // and the deciding routine then leaves that duty's findings as they were: "could not look" never
 // reads as "all clear".
 import { HANDLED_STRIPE_EVENTS } from './stripe_events.ts';
+import { isDemoEmail } from './demo_identity.ts';
 
 type Sec = (key: string) => Promise<string>;
 type Got = { status: number; ok: boolean; json: unknown; text: string; error?: string };
@@ -128,33 +129,71 @@ async function providers(sec: Sec) {
   };
 }
 
+// A REHEARSAL'S STRIPE OBJECT IS NOT A GAP IN THE BOOKS (15 Sep 2026, accountant).
+// The e2e harness pays demo reveals with Stripe's TEST key, then its teardown deletes the demo
+// transaction; the Stripe object stays, so every rehearsal left a permanent "Stripe took it, our books
+// do not record it" finding. An object is a rehearsal only when BOTH hold:
+//   - it lives in TEST mode — a LIVE object is never a rehearsal, whatever it carries; and
+//   - its payer email is a reserved demo address (isDemoEmail, the same rule stripe_checkout uses
+//     on the server to serve a demo account the test key and never the live one).
+// Metadata is deliberately not consulted: the email comes from the signed-in account, not the browser.
+// A test object with any other payer, or no email at all, is still reconciled and still raises.
+export function isRehearsal(mode: 'live' | 'test', payerEmail: unknown): boolean {
+  return mode === 'test' && isDemoEmail(payerEmail);
+}
+// deno-lint-ignore no-explicit-any
+export const sessionPayer = (x: any) => x?.customer_details?.email ?? x?.customer_email ?? null;
+// deno-lint-ignore no-explicit-any
+export const refundPayer = (x: any) =>
+  x?.charge?.billing_details?.email ?? x?.charge?.receipt_email ?? x?.charge?.customer?.email ?? null;
+
+// Splits one mode's settled sessions and refunds into what the books must record and the rehearsals.
+// `key` is the secret the objects were read with: the 'test' bucket is treated as test only when that
+// key really is a Stripe test key, so a live key mis-stored under stripe_secret_key_test drops nothing.
+// deno-lint-ignore no-explicit-any
+export function splitRehearsals(name: 'live' | 'test', key: string, sessions: any[], refunds: any[]) {
+  const m = name === 'test' && /^[sr]k_test_/.test(key) ? 'test' : 'live';
+  // deno-lint-ignore no-explicit-any
+  const rs = (x: any) => isRehearsal(m, sessionPayer(x)), rr = (x: any) => isRehearsal(m, refundPayer(x));
+  return {
+    sessions: sessions.filter((x) => !rs(x)), refunds: refunds.filter((x) => !rr(x)),
+    rehearsal: { sessions: sessions.filter(rs).map((x) => x.id), refunds: refunds.filter(rr).map((x) => x.id) },
+  };
+}
+
 async function stripe(sec: Sec) {
   const since = Math.floor(Date.now() / 1000) - 72 * 3600;
   // A session younger than 15 minutes may still be on its way through the webhook.
   const settled = Math.floor(Date.now() / 1000) - 15 * 60;
-  const mode = async (key: string) => {
+  const mode = async (name: 'live' | 'test', key: string) => {
     if (!key) return unavailable('no key in app_secrets');
     const h = { headers: { Authorization: `Bearer ${key}` } };
     const [s, r, w] = await Promise.all([
       get(`https://api.stripe.com/v1/checkout/sessions?status=complete&limit=100&created[gte]=${since}`, h),
-      get(`https://api.stripe.com/v1/refunds?limit=100&created[gte]=${since}`, h),
+      // The charge (and its customer) carries the payer's email a refund itself does not.
+      get(`https://api.stripe.com/v1/refunds?limit=100&created[gte]=${since}&expand[]=data.charge.customer`, h),
       get('https://api.stripe.com/v1/webhook_endpoints?limit=100', h)]);
     if (!s.ok || !r.ok || !w.ok) return unavailable(`Stripe answered sessions ${s.status}, refunds ${r.status}, webhooks ${w.status}`);
+    const split = splitRehearsals(name, key,
+      // deno-lint-ignore no-explicit-any
+      (J(s).data ?? []).filter((x: any) => x.payment_status === 'paid' && x.created <= settled),
+      // deno-lint-ignore no-explicit-any
+      (J(r).data ?? []).filter((x: any) => x.created <= settled));
     return {
       basis: 'measured',
-      // deno-lint-ignore no-explicit-any
-      paid_sessions: (J(s).data ?? []).filter((x: any) => x.payment_status === 'paid' && x.created <= settled)
+      paid_sessions: split.sessions
         // deno-lint-ignore no-explicit-any
         .map((x: any) => ({ id: x.id, payment_intent: x.payment_intent, amount_total: x.amount_total, created: x.created })),
-      // deno-lint-ignore no-explicit-any
-      refunds: (J(r).data ?? []).filter((x: any) => x.created <= settled)
+      refunds: split.refunds
         // deno-lint-ignore no-explicit-any
         .map((x: any) => ({ id: x.id, payment_intent: x.payment_intent, amount: x.amount, status: x.status })),
+      // Kept in the reading as the record: rehearsal, no books expected.
+      rehearsal: split.rehearsal,
       // deno-lint-ignore no-explicit-any
       webhooks: (J(w).data ?? []).map((x: any) => ({ url: x.url, status: x.status, enabled_events: x.enabled_events })),
     };
   };
-  const [live, test] = await Promise.all([mode(await sec('stripe_secret_key')), mode(await sec('stripe_secret_key_test'))]);
+  const [live, test] = await Promise.all([mode('live', await sec('stripe_secret_key')), mode('test', await sec('stripe_secret_key_test'))]);
   return { live, test, handled: [...HANDLED_STRIPE_EVENTS] };
 }
 
