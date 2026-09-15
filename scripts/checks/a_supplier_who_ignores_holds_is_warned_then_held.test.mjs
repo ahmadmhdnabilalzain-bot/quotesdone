@@ -110,18 +110,25 @@ end $probe$;`;
 
 test('production: the run, the warning through support, the hold, and the founder-only lift', { skip: SKIP }, async (t) => {
   const { sql } = await import('../lib/db.mjs');
-  // The demo factory's write door (qd_guard mgmtFixture) opens only for a declared fixture run.
-  if (process.env.QD_FIXTURES !== '1') process.env.QD_FIXTURES = '1';
   const { withRun, makeSupplier } = await import('../staging/demo_factory.mjs');
   let out = null;
   // The Management API hands the exception message back inside its own JSON, so the report arrives
   // with its quotes escaped; unescape once before parsing. The greedy match takes the whole report.
   const parse = (s) => { try { return JSON.parse(s); } catch { return JSON.parse(s.replace(/\\\\/g, '\\').replace(/\\"/g, '"')); } };
-  // withRun tears the supplier (row, documents, signed terms) down even if the probe or an assert throws.
-  await withRun(async (run) => {
-    const sup = await makeSupplier(run, { trade: 'aluminium', withAuth: false, capability: false, company_name: `ZZ DEMO holds probe ${run.tag}` });
-    try { await sql(PROBE.replace('__LEAD__', String(Number(sup.leadId)))); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
-  }, { quiet: true, tag: process.env.QD_RUN_TAG });   // an explicit tag lets the caller count its own leftovers
+  // The demo factory's write door (qd_guard mgmtFixture) opens only for a declared fixture run. It is
+  // opened for this run alone and restored afterwards: scripts/checks/run.mjs loads every check into one
+  // process, and a door left open would disarm that guard for every check after this one.
+  const hadFixtures = process.env.QD_FIXTURES;
+  process.env.QD_FIXTURES = '1';
+  try {
+    // withRun tears the supplier (row, documents, signed terms) down even if the probe or an assert throws.
+    await withRun(async (run) => {
+      const sup = await makeSupplier(run, { trade: 'aluminium', withAuth: false, capability: false, company_name: `ZZ DEMO holds probe ${run.tag}` });
+      try { await sql(PROBE.replace('__LEAD__', String(Number(sup.leadId)))); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
+    }, { quiet: true, tag: process.env.QD_RUN_TAG });   // an explicit tag lets the caller count its own leftovers
+  } finally {
+    if (hadFixtures === undefined) delete process.env.QD_FIXTURES; else process.env.QD_FIXTURES = hadFixtures;
+  }
   assert.ok(out, 'the probe did not report');
   // A probe that could not run reports a SKIP, never a pass: a check that proves nothing must not read green.
   if (out.skipped) { t.skip(out.skipped); return; }
