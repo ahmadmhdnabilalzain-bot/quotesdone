@@ -342,15 +342,23 @@ begin
     v_receipt := 'ceo: decided it need not go. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
       || ') is about a ZZ DEMO fixture: no real person was meant to receive it.';
   elsif r.idempotency_key like 'notice\_unverified:%'
-        and public.fn_delivery_request_outcome((h.evidence->>'delivery_request')::bigint)->>'state' in ('reached', 'ended') then
-    -- It reached an outcome between the report and this decision: nothing is broken.
+        and jsonb_array_length(coalesce(r.verified_evidence->'sends', '[]'::jsonb)) > 0
+        and not exists (select 1 from jsonb_array_elements(r.verified_evidence->'sends') o
+                         where public.fn_delivery_request_outcome((o->>'request_id')::bigint)->>'state' not in ('reached', 'ended', 'failed')) then
+    -- Every send (both on a reveal) reached an outcome between the report and this decision: nothing is
+    -- broken. A send that failed is carried by the sales engineer's delivery_undelivered report.
     v_decision := 'arrived_late';
-    v_receipt := 'ceo: read. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
-      || ') reached an outcome after it was reported, so there is no defect to raise.';
+    v_receipt := 'ceo: read. Every send of the ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
+      || ') reached an outcome after it was reported, so there is no defect to raise'
+      || case when exists (select 1 from jsonb_array_elements(r.verified_evidence->'sends') o
+                            where public.fn_delivery_request_outcome((o->>'request_id')::bigint)->>'state' = 'failed')
+              then '; a send that did not arrive is decided on its delivery_undelivered report.' else '.' end;
   elsif r.idempotency_key like 'notice\_undelivered:%' and h.status is distinct from 'failed' then
     v_decision := 'unreachable_recorded';
     v_receipt := 'ceo: decided. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
-      || ') could not be written because no address is on file for the ' || case when h.detail ? 'supplier_id' then 'supplier' else 'customer' end
+      || ') could not be written because no address is on file for the ' || case when h.evidence->>'customer_reachable' = 'false' then 'customer'
+                                                                    when h.evidence->>'supplier_reachable' = 'false' or h.detail ? 'supplier_id' then 'supplier'
+                                                                    else 'customer' end
       || '. Recorded that it cannot go until one exists; the portal shows the same facts when they sign in.';
   else
     -- The sales engineer's handler raised, or the send never reached an outcome: a defect.
@@ -700,7 +708,8 @@ begin
          where a.kind = 'handoff' and a.detail->>'type' = v_type and a.detail->>'from' = 'accountant'
            and a.detail ? 'originator_verdict'
          order by a.id desc limit 1;
-        v_ok := h.detail->>'originator_verdict' like 'reached%';
+        -- 'ended' (routed, stubbed, digested, cancelled) is an outcome too: the finding was "no outcome".
+        v_ok := h.detail->>'originator_verdict' ~ '^(reached|ended): ';
       end if;
       if coalesce(v_ok, false) then
         perform public.fn_it_engineer_finding_close(f.issue_key,
