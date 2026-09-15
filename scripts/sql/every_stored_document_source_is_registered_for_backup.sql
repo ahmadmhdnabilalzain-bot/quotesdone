@@ -57,9 +57,11 @@
 --       whichever bucket its writer uses, every bucket must be registered (the CI check), and a swept
 --       bucket's unqueued files are raised by the duty.
 --   (b) EXEMPT (not a file or not ours) -- a destination, a ledger, a path label, a fixture.
---   (c) EXEMPT (derived) -- a copy made from a file that is itself backed up. None is left: the anonymised
---       drawings looked like one, but 2 of the 3 files in drawing-files/redacted/ have no original left
---       (measured in review, 15 Sep 2026), so "the original is kept" was not safe and they are swept too.
+--   (c) EXEMPT (derived) -- a copy made from something that is itself backed up. One: the customer
+--       register, signed-terms/registers/, which compliance_archive rebuilds whole and uploads to Dropbox
+--       itself; the sweep leaves that folder out (fn_backup_sweep_objects). The anonymised drawings looked
+--       like (c), but 2 of the 3 files in drawing-files/redacted/ have no original left (measured in
+--       review, 15 Sep 2026), so "the original is kept" was not safe and they are swept too.
 -- The backup_gap duty raises a source that is not backed up and not EXEMPT; the exemptions close.
 -- PDPL (review of this change): a swept file carries its REAL owner -- the documents row or the
 -- customer's quotation cache that names it, the quote that names it, or the lead / inquiry id in its
@@ -158,8 +160,10 @@ language sql immutable set search_path to 'public', 'pg_temp' as $fn$
     ('ceo_knowledge.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
     ('demo-assets',                          'bucket', null, false, null, 'EXEMPT (not a file or not ours): a rehearsal fixture (one sample recording), never a record'),
 
-    -- ── (c) EXEMPT (derived): none. The anonymised drawings are derived, but 2 of the 3 redacted files
-    -- have no original left (review, 15 Sep 2026), so they are kept like any other stored file. ──
+    -- ── (c) EXEMPT (derived): no registry source. The one derived thing left out is a folder, not a
+    -- source: signed-terms/registers/ (the customer register compliance_archive uploads to Dropbox
+    -- itself), excluded in fn_backup_sweep_objects. The anonymised drawings are derived, but 2 of the 3
+    -- redacted files have no original left (review, 15 Sep 2026), so they are kept like any other file. ──
     ('inquiries.drawing_redacted_paths',     'column', 'drawing-files', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (drawing-files/redacted/; derived, but not every original survives)', null),
     ('drawing_redaction_runs.output_paths',  'column', 'drawing-files', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (drawing-files/redacted/; derived, but not every original survives)', null)
 $fn$;
@@ -168,33 +172,42 @@ revoke execute on function public.fn_backup_source_registry() from public, anon,
 -- ── fn_backup_sweep_objects: what the STORAGE SWEEP offers, written ONCE (15 Sep 2026) ──────────────
 -- Every object in a bucket whose registry rule says STORAGE SWEEP, with its REAL owner, most specific
 -- first: the documents row that names it (ref_table customers / inquiries / quotes / leads), the
--- customer's quotation cache (quote_pdf_cache), the quote whose original_file_path it is, then the path
--- conventions -- '<prefix>/<lead id>/' in supplier-docs, '<prefix>/<inquiry id>/' in drawing-files,
--- 'quotes/<n>/<inquiry id>/' in quote-files -- and otherwise the company. fn_pdpl_redact collects
--- doc_backups rows by customer, inquiry and quote id, so a copy the sweep made is found by an erasure.
+-- customer's quotation cache (quote_pdf_cache), the reveal invoice (reveal_invoices -> the transaction's
+-- customer), the quote whose original_file_path it is, the owner a generated document names in its file
+-- name (backups/generated/<ts>_customer_details_<uuid>.pdf, _inquiry_summary_<uuid>, _comparison_<inquiry
+-- uuid> -- 8 of those in production, found in the final review -- and _supplier_details_<id>),
+-- then the path conventions -- '<prefix>/<lead id>/' in supplier-docs, '<prefix>/<inquiry id>/' in
+-- drawing-files, 'quotes/<n>/<inquiry id>/' in quote-files -- and otherwise the company. The owner is
+-- recorded even when its row is gone. fn_pdpl_redact collects doc_backups rows by customer, inquiry and
+-- quote id, so a copy the sweep made is found by an erasure.
 -- Left out:
---   * a ZZ DEMO file (the pattern trg_doc_backups_admit refuses), and a file whose owner is a demo
---     supplier or belongs to a demo customer -- so the expected list never expects what admission refuses;
+--   * a ZZ DEMO file (the pattern trg_doc_backups_admit refuses); a file whose owner row is demo; and a
+--     file whose owner row is GONE but whose id carries a zz_demo label in doc_backups -- measured 15 Sep
+--     2026 (review): all 41 customers in quote_pdf_cache and all 40 inquiries in quote-files paths are
+--     purged, 27 and 23 of them with that label. An owner that is gone with NO demo evidence is kept:
+--     "never get lost no matter what" outweighs a stray rehearsal copy. This is the only read of
+--     doc_backups here; the enqueue and the duty subtract what is queued themselves;
 --   * the backups bucket's dated export folders and conversations/ -- each has its own rule (retention
 --     for the exports; demo conversations are never archived) and its own branch in fn_it_backup_expected;
+--   * (c) derived: signed-terms/registers/ -- the customer register, rebuilt whole by compliance_archive,
+--     which uploads it to Dropbox itself (Customers/customers-register.xlsx); a frozen swept copy would
+--     outlive an erasure;
 --   * PDPL: any file named in pdpl_erase_files, and any file whose owning customer is erased
---     ('@removed.invalid') or has a delete request that was not rejected -- never copied again.
--- The casts sit inside CASE, which Postgres evaluates in order: a path segment that is not a number or a
--- uuid never reaches ::bigint / ::uuid (review of this change: 13 supplier-docs paths have a word there).
--- It does not read doc_backups: the enqueue and the duty subtract what is already queued, and the
--- expected list stays independent of the queue it checks.
+--     ('@removed.invalid') or has a delete request not rejected, withdrawn or cancelled -- never copied.
+-- The casts sit inside CASE, which Postgres evaluates in order: a segment that is not a number or a uuid
+-- never reaches ::bigint / ::uuid (review of this change: 13 supplier-docs paths have a word there).
+create index if not exists quote_pdf_cache_bucket_path_idx on public.quote_pdf_cache (bucket, path);
+create index if not exists reveal_invoices_bucket_path_idx on public.reveal_invoices (bucket, path);
+create index if not exists quotes_original_file_path_idx on public.quotes (original_file_path) where original_file_path is not null;
+
 create or replace function public.fn_backup_sweep_objects()
 returns table(bucket text, path text, bytes bigint, created_at timestamptz, entity text, entity_id text)
 language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  select o.bucket_id, o.name, coalesce((o.metadata->>'size')::bigint, 0), o.created_at,
-         split_part(x.owner, ':', 1), substr(x.owner, strpos(x.owner, ':') + 1)
+  select o.bucket_id, o.name, coalesce((o.metadata->>'size')::bigint, 0), o.created_at, x.entity, x.id
     from storage.objects o
     cross join lateral (select
-        case when split_part(o.name, '/', 2) ~ '^\d{1,18}$' then split_part(o.name, '/', 2)::bigint end as seg2_int,
-        case when split_part(o.name, '/', 2) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-             then split_part(o.name, '/', 2)::uuid end as seg2_uuid,
-        case when split_part(o.name, '/', 3) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-             then split_part(o.name, '/', 3)::uuid end as seg3_uuid) p
+        (regexp_match(o.name, '^generated/\d+_(customer_details|inquiry_summary|comparison|supplier_details)_([0-9a-f_]{36}|\d{1,18})\.pdf$', 'i')) as gen,
+        split_part(o.name, '/', 2) as seg2, split_part(o.name, '/', 3) as seg3) p
     cross join lateral (select coalesce(
         (select case d.ref_table when 'customers' then 'customer' when 'inquiries' then 'inquiry'
                                  when 'quotes' then 'quote' when 'leads' then 'supplier' end || ':' || d.ref_id
@@ -203,34 +216,55 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
             and d.ref_table in ('customers', 'inquiries', 'quotes', 'leads') and coalesce(d.ref_id, '') <> '' limit 1),
         (select 'customer:' || c.customer_id from public.quote_pdf_cache c
           where c.bucket = o.bucket_id and c.path = o.name and c.customer_id is not null limit 1),
+        (select 'customer:' || t.customer_id from public.reveal_invoices ri join public.transactions t on t.id = ri.transaction_id
+          where ri.bucket = o.bucket_id and ri.path = o.name and t.customer_id is not null limit 1),
         (select 'quote:' || q.id from public.quotes q where o.bucket_id = 'quote-files' and q.original_file_path = o.name limit 1),
-        (select 'supplier:' || l.id from public.leads l where o.bucket_id = 'supplier-docs' and l.id = p.seg2_int),
-        (select 'inquiry:' || i.id from public.inquiries i where o.bucket_id = 'drawing-files' and i.id = p.seg2_uuid),
-        (select 'inquiry:' || i.id from public.inquiries i where o.bucket_id = 'quote-files' and i.id = p.seg3_uuid),
-        'company:storage/' || o.bucket_id) as owner) x
-    -- the supplier and the customer behind that owner, for the demo and PDPL tests
+        case when o.bucket_id = 'backups' and p.gen is not null then
+               case lower(p.gen[1]) when 'customer_details' then 'customer' when 'supplier_details' then 'supplier' else 'inquiry' end
+               || ':' || replace(lower(p.gen[2]), '_', '-') end,
+        case when o.bucket_id = 'supplier-docs' and p.seg2 ~ '^\d{1,18}$' then 'supplier:' || p.seg2 end,
+        case when o.bucket_id = 'drawing-files' and p.seg2 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg2) end,
+        case when o.bucket_id = 'quote-files' and p.seg3 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg3) end,
+        'company:storage/' || o.bucket_id) as owner) y
+    cross join lateral (select split_part(y.owner, ':', 1) as entity, substr(y.owner, strpos(y.owner, ':') + 1) as id) x
+    -- the owner row behind it: is it demo (null when the row is gone), and which customer email, for PDPL.
+    -- Each cast is inside CASE behind the shape test that makes it safe.
     left join lateral (select
-        case split_part(x.owner, ':', 1)
-          when 'supplier' then (select l.id from public.leads l where l.id::text = substr(x.owner, 10))
-          when 'quote'    then (select q.supplier_id from public.quotes q where q.id::text = substr(x.owner, 7)) end as supplier_id,
-        case split_part(x.owner, ':', 1)
-          when 'customer' then (select c.id from public.customers c where c.id::text = substr(x.owner, 10))
-          when 'inquiry'  then (select i.customer_id from public.inquiries i where i.id::text = substr(x.owner, 9))
-          when 'quote'    then (select i.customer_id from public.quotes q join public.inquiries i on i.id = q.inquiry_id
-                                 where q.id::text = substr(x.owner, 7)) end as customer_id) w on true
-    left join public.leads ol on ol.id = w.supplier_id
-    left join public.customers oc on oc.id = w.customer_id
+        case x.entity
+          when 'supplier' then (select coalesce(l.is_demo, false) from public.leads l
+                                 where l.id = case when x.id ~ '^\d{1,18}$' then x.id::bigint end)
+          when 'customer' then (select coalesce(c.is_demo, false) from public.customers c
+                                 where c.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'inquiry'  then (select coalesce(c.is_demo, false) from public.inquiries i left join public.customers c on c.id = i.customer_id
+                                 where i.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'quote'    then (select coalesce(l.is_demo, false) or coalesce(c.is_demo, false)
+                                  from public.quotes q left join public.leads l on l.id = q.supplier_id
+                                  left join public.inquiries i on i.id = q.inquiry_id left join public.customers c on c.id = i.customer_id
+                                 where q.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+        end as demo,
+        case x.entity
+          when 'customer' then (select c.email from public.customers c
+                                 where c.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'inquiry'  then (select c.email from public.inquiries i join public.customers c on c.id = i.customer_id
+                                 where i.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'quote'    then (select c.email from public.quotes q join public.inquiries i on i.id = q.inquiry_id
+                                  join public.customers c on c.id = i.customer_id
+                                 where q.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+        end as email) w on true
    where o.bucket_id in (select r.bucket from public.fn_backup_source_registry() r
                           where r.kind = 'bucket' and r.backed_up and r.enqueue_rule like '%STORAGE SWEEP%')
      and right(o.name, 1) <> '/' and o.name !~ '(^|/)\.emptyFolderPlaceholder$'
      and o.name !~* 'zz[ _-]?demo'
      and not (o.bucket_id = 'backups' and o.name ~ '^(\d{4}-\d{2}-\d{2}|conversations)/')
-     and not coalesce(ol.is_demo, false)
-     and not coalesce(oc.is_demo, false)
+     and not (o.bucket_id = 'signed-terms' and o.name like 'registers/%')
+     and not coalesce(w.demo, false)
+     and not (x.entity <> 'company' and w.demo is null
+              and exists (select 1 from public.doc_backups z where z.entity = 'zz_demo' and z.entity_id = x.id))
      and not exists (select 1 from public.pdpl_erase_files e where e.bucket = o.bucket_id and e.storage_path = o.name)
-     and not (oc.id is not null and (coalesce(oc.email, '') ~* '@removed\.invalid$'
-              or exists (select 1 from public.pdpl_requests r where r.kind = 'delete' and r.status is distinct from 'rejected'
-                           and lower(r.email) = lower(oc.email))));
+     and not (w.email is not null and (w.email ~* '@removed\.invalid$'
+              or exists (select 1 from public.pdpl_requests r
+                          where r.kind = 'delete' and coalesce(r.status, '') not in ('rejected', 'withdrawn', 'cancelled')
+                            and lower(r.email) = lower(w.email))));
 $fn$;
 revoke execute on function public.fn_backup_sweep_objects() from public, anon, authenticated;
 

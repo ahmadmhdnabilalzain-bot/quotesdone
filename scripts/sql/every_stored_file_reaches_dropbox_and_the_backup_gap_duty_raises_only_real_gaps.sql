@@ -19,9 +19,11 @@
 --     (402 files) are NOT in the repository (git ls-files), so "the repository is its backup" was false.
 --     board_reports and exec_reports are NOT in fn_table_export_list(), so their rendered PDFs are not
 --     "regenerable from rows that are off-site" either.
---   * Storage outside the per-owner rules: 943 files in the buckets swept below, 905 of them (52.88 MB)
---     with no doc_backups row; with the reports bucket 927 files, about 53.8 MB. The uploader
---     (dropbox_backup) ran 436 times in the last 24 hours, each call running fn_enqueue_doc_backups.
+--   * Storage outside the per-owner rules: the sweep as written below offers 893 files, 50.92 MB, with
+--     no doc_backups row (read-only run of its body, 15 Sep 2026, after the review fixes: owners
+--     resolved, demo-labelled orphans and the register snapshot left out). The uploader (dropbox_backup)
+--     ran 436 times in the last 24 hours, each call running fn_enqueue_doc_backups: 200 per call drains
+--     the backfill in 5 runs.
 --
 -- WHAT CHANGES:
 --   1. fn_enqueue_doc_backups gains a STORAGE SWEEP, the last section: every file
