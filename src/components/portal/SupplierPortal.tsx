@@ -14,6 +14,9 @@ import Insights, { INSIGHT_PANELS } from './supplier/Insights';
 // Inquiries received and Quotations submitted (founder, 15 Sep 2026) — the conversation with the sales engineer.
 import { InquiriesTab } from './supplier/InquiriesTab';
 import { QuotationsTab } from './supplier/QuotationsTab';
+import SupplierMailbox from './supplier/SupplierMailbox';
+import SupplierSupportingDocuments from './supplier/SupplierSupportingDocuments';
+import { ws } from './supplier/workspaceCopy';
 import ServicesTab from './supplier/ServicesTab';
 import EmirateCheckboxes from './supplier/EmirateCheckboxes';
 import { Kicker } from '@/components/ui/sealed';
@@ -249,15 +252,15 @@ const T = {
     conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
     setup_title:'Set up your supplier account', setup_sub_company:'Register your company, then complete your profile.', setup_sub_profile:'Complete your profile to start receiving RFQs and submitting quotes.',
     onboard_title:'Register your company', onboard_sub:'Enter your company name and your main trade. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', company_name:'Company name', emirate:'Emirate', create_company:'Create company', enter_company:'Enter your company name.', err_generic:'Something went wrong.', something_wrong:'Something went wrong',
-    t_overview:'Overview', t_billing:'Billing', bill_title:'Amounts due', bill_none:'Nothing to pay. You are not charged commission on the work you win.', bill_total:'Total outstanding', bill_pay:'Pay now', bill_paying:'Opening secure checkout…', bill_err:'We could not load your balance. Please try again.', bill_commission:'Refunded amount recovered', bill_fine:'Late fee', bill_due:'Due', bill_retry:'Try again', bill_secure:'You will be redirected to Stripe to pay securely. QuotesDone never sees your card details. These charges arise only when a customer is refunded because we could not reach you \u2014 there is no commission on won work.', t_rfqs:'RFQs', t_documents:'Documents', t_projects:'Projects', t_messages:'Messages', approved:'Approved', pending:'Pending',
-    k_quotes_sent:'Quotes sent', k_reveals:'Reveals', k_hired:'Hired', k_win:'Win ratio', k_rating:'Rating', k_deal_value:'Deal value won',
-    price_pos:'Price positioning', anon_note:'anonymous — never shows competitor prices', not_enough:'not enough data', last12:'Last 12 months', quotes_reveals:'quotes / reveals',
-    pp_fallback:'Once you quote on a few competitive RFQs, you will see how your pricing compares to the market here — without ever revealing anyone else pricing.',
+    bill_title:'Amounts due', bill_none:'Nothing to pay. You are not charged commission on the work you win.', bill_total:'Total outstanding', bill_pay:'Pay now', bill_paying:'Opening secure checkout…', bill_err:'We could not load your balance. Please try again.', bill_commission:'Refunded amount recovered', bill_fine:'Late fee', bill_due:'Due', bill_retry:'Try again', bill_secure:'You will be redirected to Stripe to pay securely. QuotesDone never sees your card details. These charges arise only when a customer is refunded because we could not reach you \u2014 there is no commission on won work.', t_rfqs:'RFQs', approved:'Approved', pending:'Pending',
+    
+    
+    
     pf_company:'Company', pf_emirates:'Emirates you serve', pf_contact:'Contact & owner', contact_name:'Contact name', mobile:'Mobile',
     mobile_verified:'✓ Mobile verified', verify_my_mobile:'Verify my mobile →', sms_code:'6-digit SMS code', verify:'Verify',
     email_verified:'✓ E-mail verified', email_unverified:'e-mail not yet verified',
     reg_rest_optional:'Attach these two and you are done. Everything else is optional and can wait until you are inside.', verify_first:'Please verify your mobile number first.',
-    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation — PDF, photo, Excel, Word, e-mail, CAD or ZIP — and we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', loading_msgs:'Loading messages…', no_convos_h:'No conversations yet', no_convos_sub:'Once a customer reveals your quote on a project, you can request a direct chat with them here. Our assistant handles most questions instantly.', no_messages:'No messages yet', no_chat:'no chat', back:'← Back', type_message:'Type a message…', send:'Send', no_chat_open:'No chat open yet.', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', could_not_send:'Could not send.', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', no_history:'No history yet.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no.', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', h_bank:'Bank / payout', bank_name_ph:'Bank name', account_holder:'Account holder name', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
+    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation — PDF, photo, Excel, Word, e-mail, CAD or ZIP — and we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', back:'← Back', send:'Send', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no.', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', h_bank:'Bank / payout', bank_name_ph:'Bank name', account_holder:'Account holder name', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
     lic_uploaded_type:'Licence uploaded. If the number did not fill in, type it below — automatic reading is optional.', lic_upload_failed:'We could not store your licence file. Please try again with a PDF or a clear photo.',
     verify_my_email:'Verify my e-mail →', email_code:'6-digit e-mail code', email_sent:'We emailed you a 6-digit code.', could_not_email:'Could not send the e-mail code.',
     trade_label:'Your main trade', trade_ph:'Choose your trade', trade_not_listed:'My trade isn’t listed', trade_other_ph:'Type your trade', trade_help:'Every trade is welcome. If yours isn’t listed, choose “My trade isn’t listed” and type it — we review it and add it.',
@@ -265,12 +268,12 @@ const T = {
     terms_cert_failed:'Your details were saved, but we could not issue your signed acceptance certificate. Please press the button again to retry.',
     catalogs_limit:'Up to 5 catalogues here; add more later from Documents.', catalogs_cut:'Only the first 5 catalogues were kept. Add the rest from Documents after you register.',
     doc_insurance:'Insurance', doc_manufacturer:'Manufacturer authorisation letter', doc_egr:'EGR (Emirates Green Building) certificate',
-    band_below:'below market average', band_around:'around market average', band_above:'above market average',
+    
     le_too_many:'Too many code requests. Please try again later.', le_bad_id:'Enter a valid email address or UAE mobile number.', le_suppressed:'We cannot email this address — mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.',
     le_ambiguous:'More than one account uses this mobile number. Please sign in with your email address instead.', le_signup_email:'Please sign up with your email address; you can add your mobile straight afterwards.',
     le_no_account:'This mobile number isn’t linked to a QuotesDone account yet. Sign in with your email, or create your account first.', le_sms_off:'SMS codes are not available for this number. Please sign in with your email.',
     le_enter_code:'Enter the code you received.', le_attempts:'Too many attempts. Please request a new code.', le_expired:'That code has expired. Please request a new one.', le_session:'Could not start your session. Please try again.', le_generic:'Something went wrong. Please try again.',
-    t_quotes:'Quotes', t_insights:'Insights', t_profile:'Profile', t_scope:'My scope', t_settings:'Settings', main_nav:'Supplier portal sections', account:'Account' },
+    main_nav:'Supplier portal sections', account:'Account' },
   ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', register_title:'سجّل كمورّد',
     signup_sub:'أدخل بريدك الإلكتروني للعمل وسننشئ حسابك — ثم تسجّل شركتك وتتحقق من رقم جوالك.',
@@ -282,15 +285,15 @@ const T = {
     conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
     setup_title:'أنشئ حساب المورّد', setup_sub_company:'سجّل شركتك ثم أكمل ملفك.', setup_sub_profile:'أكمل ملفك لبدء استقبال طلبات التسعير وتقديم العروض.',
     onboard_title:'سجّل شركتك', onboard_sub:'أدخل اسم شركتك وتخصصك الرئيسي. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'أدخل اسم شركتك.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
-    t_overview:'نظرة عامة', t_billing:'الفواتير', bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة. لا نأخذ أي عمولة على الأعمال التي تفوز بها.', bill_total:'إجمالي المستحق', bill_pay:'ادفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدك. يرجى المحاولة مرة أخرى.', bill_commission:'استرداد المبلغ المردود للعميل', bill_fine:'رسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'حاول مرة أخرى', bill_secure:'سيتم تحويلك إلى Stripe للدفع بأمان. لا تطّلع QuotesDone على بيانات بطاقتك. تنشأ هذه المبالغ فقط عند استرداد مبلغ للعميل لتعذّر الوصول إليك \u2014 ولا توجد عمولة على الأعمال المنجزة.', t_rfqs:'طلبات التسعير', t_documents:'المستندات', t_projects:'المشاريع', t_messages:'الرسائل', approved:'معتمد', pending:'قيد المراجعة',
-    k_quotes_sent:'العروض المُرسلة', k_reveals:'مرات الكشف', k_hired:'المُتعاقد معه', k_win:'نسبة الفوز', k_rating:'التقييم', k_deal_value:'قيمة الصفقات',
-    price_pos:'الموقع السعري', anon_note:'مجهول — لا يعرض أسعار المنافسين أبدًا', not_enough:'بيانات غير كافية', last12:'آخر 12 شهرًا', quotes_reveals:'عروض / كشوفات',
-    pp_fallback:'بمجرد تقديمك عروضًا على بعض طلبات التسعير التنافسية، سترى هنا كيف تقارن أسعارك بالسوق — دون الكشف عن أسعار أي طرف آخر.',
+    bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة. لا نأخذ أي عمولة على الأعمال التي تفوز بها.', bill_total:'إجمالي المستحق', bill_pay:'ادفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدك. يرجى المحاولة مرة أخرى.', bill_commission:'استرداد المبلغ المردود للعميل', bill_fine:'رسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'حاول مرة أخرى', bill_secure:'سيتم تحويلك إلى Stripe للدفع بأمان. لا تطّلع QuotesDone على بيانات بطاقتك. تنشأ هذه المبالغ فقط عند استرداد مبلغ للعميل لتعذّر الوصول إليك \u2014 ولا توجد عمولة على الأعمال المنجزة.', t_rfqs:'طلبات التسعير', approved:'معتمد', pending:'قيد المراجعة',
+    
+    
+    
     pf_company:'الشركة', pf_emirates:'الإمارات التي تخدمها', pf_contact:'جهة الاتصال والمالك', contact_name:'اسم جهة الاتصال', mobile:'الجوال',
     mobile_verified:'✓ تم التحقق من الجوال', verify_my_mobile:'تحقّق من جوالي ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تحقّق',
     email_verified:'✓ تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
     reg_rest_optional:'أرفق هذين الملفين وانتهيت. كل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.', verify_first:'يُرجى التحقق من رقم جوالك أولًا.',
-    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر — PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP — وسنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', loading_msgs:'جارٍ تحميل الرسائل…', no_convos_h:'لا توجد محادثات بعد', no_convos_sub:'بمجرد أن يكشف العميل عن عرضك في مشروع، يمكنك طلب محادثة مباشرة معه هنا. مساعدنا يجيب عن معظم الأسئلة فورًا.', no_messages:'لا رسائل بعد', no_chat:'لا محادثة', back:'→ رجوع', type_message:'اكتب رسالة…', send:'إرسال', no_chat_open:'لا توجد محادثة مفتوحة بعد.', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', could_not_send:'تعذّر الإرسال.', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', no_history:'لا يوجد سجل بعد.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', h_bank:'البنك / التحويل', bank_name_ph:'اسم البنك', account_holder:'اسم صاحب الحساب', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
+    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر — PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP — وسنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', back:'→ رجوع', send:'إرسال', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', h_bank:'البنك / التحويل', bank_name_ph:'اسم البنك', account_holder:'اسم صاحب الحساب', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
     lic_uploaded_type:'تم رفع الرخصة. إن لم يظهر الرقم تلقائيًا فاكتبه أدناه — القراءة التلقائية اختيارية.', lic_upload_failed:'تعذّر حفظ ملف الرخصة. يُرجى المحاولة مرة أخرى بملف PDF أو صورة واضحة.',
     verify_my_email:'تحقّق من بريدي ←', email_code:'رمز البريد (6 أرقام)', email_sent:'أرسلنا إليك رمزًا من 6 أرقام بالبريد الإلكتروني.', could_not_email:'تعذّر إرسال رمز البريد.',
     trade_label:'تخصصك الرئيسي', trade_ph:'اختر تخصصك', trade_not_listed:'تخصصي غير مدرج', trade_other_ph:'اكتب تخصصك', trade_help:'كل التخصصات مرحّب بها. إن لم يكن تخصصك مدرجًا فاختر «تخصصي غير مدرج» واكتبه — نراجعه ونضيفه.',
@@ -298,12 +301,12 @@ const T = {
     terms_cert_failed:'حُفظت بياناتك، لكن تعذّر إصدار شهادة قبولك الموقّعة. يُرجى الضغط على الزر مرة أخرى لإعادة المحاولة.',
     catalogs_limit:'حتى 5 كتالوجات هنا؛ ويمكنك إضافة المزيد لاحقًا من تبويب المستندات.', catalogs_cut:'احتفظنا بأول 5 كتالوجات فقط. أضف الباقي من تبويب المستندات بعد التسجيل.',
     doc_insurance:'التأمين', doc_manufacturer:'خطاب تفويض الشركة المصنّعة', doc_egr:'شهادة المباني الخضراء (EGR)',
-    band_below:'أقل من متوسط السوق', band_around:'قريب من متوسط السوق', band_above:'أعلى من متوسط السوق',
+    
     le_too_many:'طلبات رموز كثيرة. يُرجى المحاولة لاحقًا.', le_bad_id:'أدخل بريدًا إلكترونيًا صحيحًا أو رقم جوال إماراتي.', le_suppressed:'لا يمكننا مراسلة هذا البريد — ارتدّت إليه الرسائل أو أُلغي الاشتراك. يُرجى التواصل مع info@quotesdone.com وسنعيد تفعيله.',
     le_ambiguous:'أكثر من حساب يستخدم رقم الجوال هذا. يُرجى تسجيل الدخول ببريدك الإلكتروني.', le_signup_email:'يُرجى التسجيل ببريدك الإلكتروني؛ ويمكنك إضافة جوالك مباشرة بعد ذلك.',
     le_no_account:'رقم الجوال هذا غير مرتبط بحساب في QuotesDone بعد. سجّل الدخول ببريدك الإلكتروني أو أنشئ حسابك أولًا.', le_sms_off:'رموز الرسائل النصية غير متاحة لهذا الرقم. يُرجى تسجيل الدخول ببريدك الإلكتروني.',
     le_enter_code:'أدخل الرمز الذي وصلك.', le_attempts:'محاولات كثيرة. يُرجى طلب رمز جديد.', le_expired:'انتهت صلاحية الرمز. يُرجى طلب رمز جديد.', le_session:'تعذّر بدء جلستك. يُرجى المحاولة مرة أخرى.', le_generic:'حدث خطأ. يُرجى المحاولة مرة أخرى.',
-    t_quotes:'العروض', t_insights:'الرؤى', t_profile:'الملف', t_scope:'نطاق عملي', t_settings:'الإعدادات', main_nav:'أقسام بوابة المورّدين', account:'الحساب' }
+    main_nav:'أقسام بوابة المورّدين', account:'الحساب' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 // The URL decides the language (14 Sep 2026). /ar/portal must render Arabic and /portal English, the
@@ -567,8 +570,16 @@ function Login({ onAuth, lang, startMode }) {
 // the intelligence panels whose routine has something to show. Profile, scope and settings are account
 // links; the checklist sends the supplier to whichever one is next. The strip scrolls sideways rather
 // than wrapping, so on a phone it is one row.
-const MAIN_TABS = ['overview', 'rfqs', 'quotes', 'projects', 'messages', 'documents', 'billing', 'insights'];
-const ACCOUNT_TABS = ['profile', 'scope', 'settings'];
+//
+// 15 SEP 2026, THE FOUNDER'S ORDER: Services, Inquiries received, Quotations submitted, Messages,
+// Documents, Insights; Profile, Billing and Settings in an account menu. The "Get matched" overview was
+// dropped ("drop it"): its alerts are the bell, its registration checklist heads the Documents tab, and its
+// tiles, funnel and price position are the Insights tab. Projects (revealed jobs) fold into Messages.
+// Services is ./supplier/ServicesTab (#722: the services checklist inside the confirmed trades) and is the landing tab.
+// Old keys still resolve through go(): overview/scope -> services, projects -> messages, inbox -> rfqs.
+const MAIN_TABS = ['services', 'rfqs', 'quotes', 'messages', 'documents', 'insights'];
+const ACCOUNT_TABS = ['profile', 'billing', 'settings'];
+const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages', inbox: 'rfqs' };
 // A NEW AGREEMENT VERSION IS ACCEPTED AGAIN ON THE NEXT SIGN-IN (14 Sep 2026, agent: sales_engineer).
 // The founder approved Supplier Agreement v11. Clause 23 says a material change is re-confirmed, and until
 // now nothing compared a supplier's accepted_terms_version with the live one, so a supplier who accepted v10
@@ -668,12 +679,31 @@ function NotificationBell({ ov, lang, go }) {
     </details>
   );
 }
+// THE ACCOUNT MENU (15 Sep 2026): Profile, Billing and Settings, out of the main tabs. A native
+// <details>, like the bell: keyboard-operable and closed by a second press with no script.
+function AccountMenu({ tab, labels, lang, go }) {
+  const on = ACCOUNT_TABS.includes(tab);
+  return (
+    <details className="relative">
+      <summary className={cn('inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden', on ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
+        {ws(lang, 'account_menu')}{on ? <span className="font-normal"> · {labels[tab]}</span> : null}<span aria-hidden>▾</span>
+      </summary>
+      <ul className="qd-panel absolute end-0 z-20 mt-2 w-48 p-1.5">
+        {ACCOUNT_TABS.map((k) => (
+          <li key={k}><button type="button" aria-current={tab === k ? 'page' : undefined}
+            className={cn('flex min-h-11 w-full items-center rounded-md px-3 text-start text-[13px] hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k ? 'font-semibold text-primary' : 'text-foreground')}
+            onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(k); }}>{labels[k]}</button></li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 function Dashboard({ token, lang, onExpired }) {
   const ar = lang === 'ar';
-  const [ov, setOv] = useState(null); const [tab, setTab] = useState('overview'); const [err, setErr] = useState('');
+  const [ov, setOv] = useState(null); const [tab, setTab] = useState('services'); const [err, setErr] = useState('');
   const [panel, setPanel] = useState(null); const [receipt, setReceipt] = useState(null);
   // Which record a card opened: an RFQ by inquiry id (from Quotes), a chat by inquiry id (from Projects).
-  const [focusRfq, setFocusRfq] = useState(null); const [openChat, setOpenChat] = useState(null);
+  const [focusRfq, setFocusRfq] = useState(null);
   // The one-time WhatsApp question for suppliers registered before it existed (founder, 14 Sep 2026).
   // Holds the kyc state while the card is due, null otherwise. It never blocks a tab.
   const [waPrompt, setWaPrompt] = useState(null);
@@ -714,17 +744,16 @@ function Dashboard({ token, lang, onExpired }) {
   // intelligence keys open their panel inside Insights.
   const go = (k) => {
     if (MAIN_TABS.includes(k) || ACCOUNT_TABS.includes(k)) { setTab(k); return; }
-    if (k === 'inbox') { setTab('rfqs'); return; }
+    if (TAB_ALIAS[k]) { setTab(TAB_ALIAS[k]); return; }
     if (INSIGHT_PANELS.includes(k)) { setPanel(k); setTab('insights'); return; }
-    setTab('overview');
+    setTab('services');
   };
   if (err === 'no_company') return <Onboarding token={token} lang={lang} onDone={() => { setErr(''); load(); }} />;
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div><Button className="mt-3" onClick={() => { setErr(''); load(); }}>{t(lang, 'bill_retry')}</Button></Card></div>;
   if (needsReaccept(me)) return <ReacceptTerms token={token} lang={lang} me={me} onDone={() => setMe({ ...me, accepted_terms_version: me.terms_current })} />;
   if (!ov) return <div className={S.center} aria-busy="true">{t(lang, 'loading_dash')}</div>;
-  const s = ov.stats || {}; const pp = s.price_positioning || {};
   const unread = (ov.notifications && ov.notifications.unread_messages) || 0;
-  const TAB = { overview: ar ? 'احصل على المطابقة' : 'Get matched', rfqs: ar ? 'الطلبات الواردة' : 'Inquiries received', quotes: ar ? 'العروض المقدّمة' : 'Quotations submitted', projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), documents: t(lang, 't_documents'), billing: t(lang, 't_billing'), insights: t(lang, 't_insights'), profile: t(lang, 't_profile'), scope: t(lang, 't_scope'), settings: t(lang, 't_settings') };
+  const TAB = { services: ws(lang, 'tab_services'), rfqs: ws(lang, 'tab_rfqs'), quotes: ws(lang, 'tab_quotes'), messages: ws(lang, 'tab_messages'), documents: ws(lang, 'tab_documents'), insights: ws(lang, 'tab_insights'), profile: ws(lang, 'acct_profile'), billing: ws(lang, 'acct_billing'), settings: ws(lang, 'acct_settings') };
   const stBadge = (() => {
     // AUDIT 6.5(d): action_required is NOT pending — a clock is running that ends in rejection.
     const st = ov.supplier.approval_status;
@@ -741,7 +770,7 @@ function Dashboard({ token, lang, onExpired }) {
       {waPrompt && <div className="mb-5"><WhatsAppChoice token={token} lang={lang} mode="prompt" current={waPrompt.whatsapp} mobile={waPrompt.phone} onDone={() => setWaPrompt(null)} /></div>}
       <div className="mb-5 flex flex-col gap-3">
         <div>
-          <div className="flex items-center justify-between gap-3"><Kicker>{t(lang, 'brand_sub')}</Kicker><NotificationBell ov={ov} lang={lang} go={go} /></div>
+          <div className="flex items-center justify-between gap-3"><Kicker>{t(lang, 'brand_sub')}</Kicker><div className="flex items-center gap-2"><NotificationBell ov={ov} lang={lang} go={go} /><AccountMenu tab={tab} labels={TAB} lang={lang} go={go} /></div></div>
           <h1 dir="auto" className="mt-2.5 font-head text-[24px] sm:text-[30px] font-semibold tracking-snug text-foreground">{ov.supplier.company_name}</h1>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {stBadge}
@@ -759,146 +788,32 @@ function Dashboard({ token, lang, onExpired }) {
             {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
           </div>
         </nav>
-        <nav aria-label={t(lang, 'account')} className="flex flex-wrap items-center gap-x-4 text-[13px]">
-          <span className="text-muted-foreground">{t(lang, 'account')}:</span>
-          {ACCOUNT_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn('inline-flex min-h-11 items-center rounded-md px-1 font-semibold underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k ? 'text-primary' : 'text-muted-foreground')} onClick={() => setTab(k)}>{TAB[k]}</button>)}
-        </nav>
       </div>
       <SupplierCommandPalette tabs={[...MAIN_TABS, ...ACCOUNT_TABS]} labels={TAB} onGo={go} lang={lang} />
-      {tab === 'overview' && <>
-        {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => { const c = itemCopy(lang, a); return <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-foreground">{c.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{c.detail}</span></span></button>; })}</div>}
-        <GetMatched token={token} lang={lang} go={go} initial={ov.eligibility || null} />
-        {/* Counts come from fn_supplier_document_impact: open enquiries in this trade, not an estimate. */}
-        <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={go} initial={ov.document_impact || null} /></div>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 mb-4">
-          <Kpi label={t(lang, 'k_quotes_sent')} v={s.quotes_total ?? 0} />
-          <Kpi label={t(lang, 'k_reveals')} v={s.reveals ?? 0} />
-          <Kpi label={t(lang, 'k_hired')} v={s.hired ?? 0} />
-          <Kpi label={t(lang, 'k_win')} v={s.win_ratio != null ? s.win_ratio + '%' : '—'} />
-          <Kpi label={t(lang, 'k_rating')} v={s.rating != null ? s.rating : '—'} sub={s.rating_percentile != null ? (ar ? ('ضمن أفضل ' + Math.max(1, 100 - s.rating_percentile) + '% بالقطاع') : ('Top ' + Math.max(1, 100 - s.rating_percentile) + '% in sector')) : ''} />
-          <Kpi label={t(lang, 'k_deal_value')} v={aed(s.deal_value_awarded)} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-3.5">
-          <Funnel s={s} matched={ov.active_matches} lang={lang} />
-          <Earnings s={s} lang={lang} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-          <Card className="qd-panel p-5">
-            <div className={S.h2}>{t(lang, 'price_pos')} <span className={S.anon}>{t(lang, 'anon_note')}</span></div>
-            <div className="mt-2.5"><Badge variant={/below/.test(pp.band || '') ? 'ok' : /above/.test(pp.band || '') ? 'warn' : 'secondary'} className="capitalize text-sm px-3.5 py-1.5">{pp.band ? (({ 'below market average': t(lang, 'band_below'), 'around market average': t(lang, 'band_around'), 'above market average': t(lang, 'band_above'), 'not enough data': t(lang, 'not_enough') })[pp.band] || pp.band) : t(lang, 'not_enough')}</Badge></div>
-            {/* The redaction bar makes "we never show competitor prices" visible: they exist, we hold them. */}
-            {pp.competitive_rfqs ? (
-              <div className="mt-3.5 flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] font-semibold text-muted-foreground/80">{ar ? 'أسعار المنافسين' : 'Competitor quotes'}</span>
-                <span aria-hidden className="redact redact-bar" style={{ width: 52 }} />
-                <span aria-hidden className="redact redact-bar" style={{ width: 36 }} />
-                <span aria-hidden className="redact redact-bar" style={{ width: 44 }} />
-                <span className="sr-only">{ar ? 'أسعار المنافسين محجوبة دائمًا' : 'Competitor prices are always withheld'}</span>
-              </div>
-            ) : null}
-            <div className={cn(S.sub, 'mt-2.5')}>{pp.competitive_rfqs ? ((ar ? ('كنت الأقل سعرًا في ' + (pp.times_lowest || 0) + ' من ' + pp.competitive_rfqs + ' طلب تنافسي (' + (pp.lowest_rate || 0) + '%). في المتوسط عرضك ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% مقابل متوسط السوق و' + (pp.avg_pct_above_lowest ?? 0) + '% فوق أدنى عرض.') : ('You were the lowest bid on ' + (pp.times_lowest || 0) + ' of ' + pp.competitive_rfqs + ' competitive RFQs (' + (pp.lowest_rate || 0) + '%). On average your quote is ' + (pp.avg_pct_vs_average >= 0 ? '+' : '') + (pp.avg_pct_vs_average ?? 0) + '% vs the market average and ' + (pp.avg_pct_above_lowest ?? 0) + '% above the lowest quote.'))) : t(lang, 'pp_fallback')}</div>
-          </Card>
-          <Card className="qd-panel p-5">
-            <div className={S.h2}>{t(lang, 'last12')} <span className={S.anon}>{t(lang, 'quotes_reveals')}</span></div>
-            <Spark hist={s.history_12m} lang={lang} />
-          </Card>
-        </div>
-      </>}
+      {tab === 'services' && <ServicesTab token={token} lang={lang} goTo={go} />}
       {tab === 'rfqs' && <InquiriesTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} onQuote={(id) => { setFocusRfq(id); setTab('quotes'); }}
         renderQuoteForm={(inq, done) => <QuoteForm inquiry={inq} token={token} lang={lang} onDone={done} />} />}
       {tab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
-      {tab === 'projects' && <Projects token={token} lang={lang} openChat={(id) => { setOpenChat(id); setTab('messages'); }} />}
-      {tab === 'messages' && <Messages token={token} lang={lang} openInquiry={openChat} onOpened={() => setOpenChat(null)} />}
-      {tab === 'documents' && <Documents token={token} lang={lang} />}
-      {tab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} />}
+      {/* Messages holds the revealed jobs (Projects) above the conversations, behind the reveal gate. */}
+      {tab === 'messages' && <SupplierMailbox token={token} lang={lang} goTo={go}
+        jobs={(open) => <Projects token={token} lang={lang} openChat={open} />} />}
+      {/* The registration checklist heads Documents, next to the uploads it asks for; after an upload the
+          dashboard is read again so the checklist and document impact reflect the new file. */}
+      {tab === 'documents' && <>
+        <GetMatched token={token} lang={lang} go={go} initial={ov.eligibility || null} />
+        <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={go} initial={ov.document_impact || null} /></div>
+        <Documents token={token} lang={lang} onSaved={load} />
+        <div className="mt-4"><SupplierSupportingDocuments token={token} lang={lang} /></div>
+      </>}
       {tab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
       {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
-      {(tab === 'scope' || tab === 'services') && <ServicesTab token={token} lang={lang} goTo={go} />}
+      {tab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} />}
       {tab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={(l) => adoptLocale(l, setLang)} />}
     </div>
   );
 }
 // Label above figure, not below: the eye lands on the number, and the label is
 // already read by then. Figures are tabular so a row of KPIs aligns on the digit.
-function Kpi({ label, v, sub }) { return <Card className="qd-panel qd-panel-hover qd-ticks p-3.5 pt-5"><div className="font-mono text-[10.5px] uppercase tracking-caps text-muted-foreground">{label}</div><div className={cn(S.figure, 'font-head text-[26px] font-semibold mt-2')}>{v}</div>{sub ? <div className="text-[10.5px] text-primary mt-1.5 font-semibold">{sub}</div> : null}</Card>; }
-// Conversion funnel: matched -> quoted -> revealed -> won.
-//
-// fn_supplier_stats has always returned every number here — quotes_total, reveals, hired,
-// lost_to_others, reveal_ratio, win_ratio, response_rate, avg_lead_time_days, active_rfqs — and
-// the portal rendered none of them beyond four flat counters. Counters tell a supplier what
-// happened; the funnel tells them WHERE they lose, which is the only version they can act on.
-// Bars are drawn relative to the widest stage so a low-volume account still reads clearly.
-function Funnel({ s, matched, lang }) {
-  const ar = lang === 'ar';
-  const stages = [
-    { k: 'matched',  label: ar ? 'طلبات وصلتك'  : 'Requests matched', v: matched || 0 },
-    { k: 'quoted',   label: ar ? 'قدّمت عرضًا'   : 'You quoted',       v: s.quotes_total || 0 },
-    { k: 'revealed', label: ar ? 'كشف العميل'    : 'Customer revealed', v: s.reveals || 0 },
-    { k: 'won',      label: ar ? 'فزت بالمشروع'  : 'You won',          v: s.hired || 0 },
-  ];
-  const max = Math.max(1, ...stages.map((x) => x.v));
-  // Step conversion, so a supplier can see which single transition is costing them.
-  const conv = (i) => { if (i === 0) return null; const prev = stages[i - 1].v; if (!prev) return null; return Math.round(100 * stages[i].v / prev); };
-  const anyData = stages.some((x) => x.v > 0);
-  return (
-    <Card className="qd-panel p-5">
-      <div className={S.h2}>{ar ? 'مسار التحويل' : 'Your funnel'}</div>
-      {!anyData
-        ? <div className={cn(S.sub, 'mt-2.5')}>{ar
-            ? 'لا توجد بيانات بعد. سيظهر هذا المسار بمجرد وصول أول طلب مطابق إليك.'
-            : 'Nothing to show yet. This fills in as soon as the first matching request reaches you.'}</div>
-        : <div className="mt-3 flex flex-col gap-2.5">
-            {stages.map((st, i) => { const c = conv(i); return (
-              <div key={st.k}>
-                <div className="flex justify-between items-baseline gap-2">
-                  <span className="text-[13px] text-foreground">{st.label}</span>
-                  <span className="text-[13px] font-bold text-foreground tabular-nums">{st.v}{c != null && <span className="text-muted-foreground font-semibold ms-1.5 text-[11.5px]">{c}%</span>}</span>
-                </div>
-                <div className="qd-meter mt-1.5">
-                  <span className="transition-[width] duration-700 motion-reduce:transition-none"
-                       style={{ width: Math.max(2, Math.round(100 * st.v / max)) + '%', opacity: 1 - i * 0.18 }} />
-                </div>
-              </div>
-            ); })}
-          </div>}
-      {/* Numbers the platform already had and never showed. Only rendered when real. */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 pt-3.5 border-t border-border">
-        {s.response_rate != null && <Stat label={ar ? 'معدل الاستجابة' : 'Response rate'} v={s.response_rate + '%'} />}
-        {s.reveal_ratio != null && <Stat label={ar ? 'نسبة الكشف' : 'Reveal rate'} v={s.reveal_ratio + '%'} />}
-        {s.avg_lead_time_days != null && <Stat label={ar ? 'متوسط مدة التنفيذ' : 'Avg lead time'} v={s.avg_lead_time_days + (ar ? ' يوم' : ' days')} />}
-        {!!s.lost_to_others && <Stat label={ar ? 'خسرتها لمنافس' : 'Lost to others'} v={s.lost_to_others} />}
-        {!!s.active_rfqs && <Stat label={ar ? 'طلبات مفتوحة' : 'Still open'} v={s.active_rfqs} />}
-        {!!s.pending_reviews && <Stat label={ar ? 'تقييمات معلّقة' : 'Reviews pending'} v={s.pending_reviews} />}
-      </div>
-    </Card>
-  );
-}
-function Stat({ label, v }) { return <div className="flex justify-between items-baseline gap-2"><span className={S.sub}>{label}</span><span className="text-[13px] font-bold text-foreground tabular-nums">{v}</span></div>; }
-// Value won over time. deal_value_awarded and history_12m were both already computed.
-function Earnings({ s, lang }) {
-  const ar = lang === 'ar';
-  const hist = Array.isArray(s.history_12m) ? s.history_12m : [];
-  const active = hist.filter((h) => (h.quotes || 0) + (h.reveals || 0) > 0).length;
-  return (
-    <Card className="qd-panel p-5">
-      <div className={S.h2}>{ar ? 'قيمة الأعمال' : 'Business value'}</div>
-      <div className="flex gap-6 mt-3 flex-wrap">
-        <div>
-          <div className="text-[22px] font-extrabold text-foreground leading-none">{aed(s.deal_value_awarded)}</div>
-          <div className={S.sub}>{ar ? 'إجمالي قيمة ما فزت به' : 'total value awarded to you'}</div>
-        </div>
-        <div>
-          <div className="text-[22px] font-extrabold text-foreground leading-none">{active}<span className="text-muted-foreground text-[15px]">/12</span></div>
-          <div className={S.sub}>{ar ? 'أشهر بها نشاط' : 'months with activity'}</div>
-        </div>
-      </div>
-      <div className={cn(S.sub, 'mt-3')}>{ar
-        ? 'تُحتسب هذه القيمة من العروض التي كشفها العملاء فعليًا، لا من العروض المُرسلة.'
-        : 'Counted from quotes customers actually revealed, not from quotes sent.'}</div>
-    </Card>
-  );
-}
-function Spark({ hist, lang }) { if (!hist || !hist.length) return <div className={S.sub}>{t(lang, 'no_history')}</div>; const max = Math.max(1, ...hist.map((h) => Math.max(h.quotes || 0, h.reveals || 0))); return <div className="flex gap-1.5 items-end mt-3.5 h-[70px]">{hist.map((h, i) => <div key={i} className="flex-1 flex flex-col items-center" title={h.month + ': ' + h.quotes + (lang === 'ar' ? ' عروض / ' : ' quotes / ') + h.reveals + (lang === 'ar' ? ' كشوفات' : ' reveals')}><div className="flex gap-0.5 items-end h-[50px]"><div className="w-[7px] rounded-t-sm bg-primary" style={{ height: Math.max(2, Math.round((h.quotes / max) * 46)) }} /><div className="w-[7px] rounded-t-sm bg-primary/40" style={{ height: Math.max(2, Math.round((h.reveals / max) * 46)) }} /></div><div className="text-[9px] text-muted-foreground mt-1">{String(h.month).split(' ')[0]}</div></div>)}</div>; }
 function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = null, newOption = false }) {
   // An existing quote (a held draft, or one already sent) reopens with what was sent, lines included.
   // `quote` names one option to edit; `newOption` starts another option, which is its own quotation.
@@ -1057,9 +972,9 @@ function QuoteCheck({ chk, lang }) {
     </Card>
   );
 }
-function Documents({ token, lang }) {
+function Documents({ token, lang, onSaved = null }) {
   const [data, setData] = useState(null); const [busy, setBusy] = useState('');
-  const load = () => call('supplier_portal', { action: 'documents' }, token).then((j) => setData(j));
+  const load = () => call('supplier_portal', { action: 'documents' }, token).then((j) => { setData(j); return j; });
   useEffect(() => { load(); }, [token]);
   // `err` is a string or, for an Arabic per-file failure, a small JSX fragment; it is only rendered.
   const [err, setErr] = useState('');
@@ -1078,6 +993,7 @@ function Documents({ token, lang }) {
     if (failed.length) { const why = failed.map((f) => f.reason).filter(Boolean).join('; '); setErr(lang === 'ar' ? <>تعذّر حفظ الملف. يُرجى رفع نسخة PDF أو صورة واضحة للمستند كاملًا، ثم المحاولة مرة أخرى.{why ? <> السبب: <Ltr>{why}</Ltr></> : null}</> : 'Upload failed: ' + why); }
     else if (j && (j.error || j._http)) setErr(srvMsg(lang, j, lang === 'ar' ? 'تعذّر حفظ الملف. يُرجى المحاولة مرة أخرى.' : 'We could not save that file. Please try again.'));
     load();
+    if (j && j.ok && onSaved) onSaved();
   };
   if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading_docs')}</Card>;
   // Order comes from the server (DOC_ORDER) so adding a document type needs no change here.
@@ -1517,48 +1433,4 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     </Button>
     {msg && <div role="alert" className={S.err}>{msg}</div>}
   </Card>);
-}
-
-// messages_api opens a post-reveal chat on first touch (the request queue it used to wait on was
-// removed 7-8 Sep), so a thread is either open or closed for a policy breach. The "Ask / request a
-// chat" box that sat under a closed thread called request_chat, which now only ever answers "open" —
-// a control with no remaining function — and it is gone. The server's English status words, notes
-// and warning are rendered in the supplier's language here.
-const CHAT_ST = { open: ['Open', 'مفتوحة'], none: ['Not started', 'لم تبدأ'], requested: ['Pending', 'قيد المراجعة'], banned: ['Closed — policy', 'مغلقة — مخالفة'], closed: ['Closed', 'مغلقة'] };
-const chatSt = (lang, s) => (CHAT_ST[s] ? CHAT_ST[s][lang === 'ar' ? 1 : 0] : (lang === 'ar' ? 'مغلقة' : String(s || '')));
-const CHAT_WARNING_AR = 'تُحفظ الرسائل هنا في السجل لكلا الطرفين. يُرجى أن تبقى متعلقة بهذا العمل.';
-function Messages({ token, lang, openInquiry = null, onOpened = null }) {
-  const [threads, setThreads] = useState(null); const [open, setOpen] = useState(null);
-  const loadThreads = () => call('messages_api', { action: 'threads' }, token).then((j) => setThreads((j && j.threads) || []));
-  useEffect(() => { loadThreads(); }, [token]);
-  // Opened from a Projects card: go straight to that job's chat.
-  useEffect(() => { if (!openInquiry || !threads) return; const th = threads.find((x) => x.inquiry_id === openInquiry); if (th) setOpen(th); if (onOpened) onOpened(); }, [openInquiry, threads]);
-  if (!threads) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading_msgs')}</Card>;
-  if (open) return <Thread token={token} th={open} lang={lang} onBack={() => { setOpen(null); loadThreads(); }} />;
-  if (!threads.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_convos_h')}</div><div className={S.sub}>{t(lang, 'no_convos_sub')}</div></Card>;
-  return <ul className={S.list}>{threads.map((it) => <li key={it.inquiry_id + ':' + it.supplier_id}><button type="button" className="qd-panel qd-panel-hover w-full p-5 flex justify-between items-center gap-3 text-start" onClick={() => setOpen(it)}>
-    <span className="min-w-0"><b className="text-foreground">{it.counterpart === 'Customer' ? (lang === 'ar' ? 'العميل' : 'Customer') : <bdi>{it.counterpart}</bdi>}</b> · <bdi>{it.subject || ''}</bdi><span className={cn(S.sub, 'block')}>{it.last || t(lang, 'no_messages')}</span></span>
-    <span className="text-end shrink-0">{it.unread ? <span className="inline-block rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-[11px] font-bold">{it.unread}</span> : null}<span className={cn(S.sub, 'block')}>{it.chat_status === 'none' ? t(lang, 'no_chat') : chatSt(lang, it.chat_status)}</span></span>
-  </button></li>)}</ul>;
-}
-function Thread({ token, th, onBack, lang }) {
-  const ar = lang === 'ar';
-  const [data, setData] = useState(null); const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const load = () => call('messages_api', { action: 'thread', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id }, token).then(setData);
-  useEffect(() => { load(); }, []);
-  const send = async () => { if (!text.trim()) return; setBusy(true); setMsg(''); const j = await call('messages_api', { action: 'send', inquiry_id: th.inquiry_id, supplier_id: th.supplier_id, body: text.trim() }, token); setBusy(false); if (j && j.ok) { setText(''); load(); } else setMsg(ar ? t(lang, 'could_not_send') : ((j && (j.warning || j.error)) || t(lang, 'could_not_send'))); };
-  if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
-  const who = !data.counterpart || data.counterpart === 'Customer' ? (ar ? 'العميل' : 'Customer') : data.counterpart;
-  const closedNote = data.chat_status === 'banned' ? (ar ? 'أُغلقت هذه المحادثة بسبب مخالفة للسياسة.' : 'This chat is closed due to a policy violation.')
-    : data.locked && !data.chat_status ? (ar ? 'تُفتح الرسائل بعد أن يكشف العميل عن عرضك.' : 'Messaging unlocks after the quote is revealed.')
-    : (ar ? 'لا توجد محادثة مفتوحة بعد.' : (data.note || t(lang, 'no_chat_open')));
-  return <Card className="qd-panel p-5">
-    <div className="flex justify-between items-center gap-2.5"><div className={S.h2}><bdi>{who}</bdi></div><Button variant="link" className="px-0 h-auto" onClick={onBack}>{t(lang, 'back')}</Button></div>
-    {data.warning && <div className="rounded-md border border-warn/30 bg-warn/10 text-warn-fg px-3 py-2 text-[11.5px] mb-2.5">{ar ? CHAT_WARNING_AR : data.warning}</div>}
-    {data.chat_status === 'open' ? (<>
-      <div className="flex flex-col gap-2 my-2.5 max-h-[420px] overflow-y-auto" aria-live="polite">{(data.messages || []).map((m) => <div key={m.id} dir="auto" className={cn('max-w-[76%] px-3 py-2 rounded-xl text-[13.5px] leading-snug', m.sender === data.role ? 'self-end bg-primary/80 text-primary-foreground' : 'self-start bg-secondary text-foreground')}>{m.body}</div>)}</div>
-      <div className={S.frow}><Lbl className="flex-1" text={t(lang, 'type_message')}><Input dir="auto" placeholder={t(lang, 'type_message')} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl><Button size="sm" disabled={busy || !text.trim()} onClick={send}>{t(lang, 'send')}</Button></div>
-    </>) : <div className={cn(S.sub, 'mb-2')}>{closedNote}</div>}
-    {msg && <div role="alert" className={cn(S.err, 'mt-2')}>{msg}</div>}
-  </Card>;
 }

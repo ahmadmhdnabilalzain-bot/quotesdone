@@ -89,7 +89,7 @@ async function drive(browser, run, supplier, inquiryId, lang) {
   const name = (s) => `${lang}: ${s}`;
   try {
     await openPortal(page, portalUrl('supplier', lang), calls);
-    await page.getByRole('button', { name: new RegExp(L('Inquiries received', 'الطلبات الواردة')) }).first().click();
+    await page.getByRole('button', { name: new RegExp(L('Inquiries received', 'الاستفسارات الواردة')) }).first().click();
     const row = page.locator(`#qd-inq-${inquiryId} > button`);
     await row.waitFor({ timeout: 30000 });
     step(name(`inquiry listed by job number ${job}`), (await row.innerText()).includes(job));

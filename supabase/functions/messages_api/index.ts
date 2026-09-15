@@ -13,6 +13,7 @@ import { observe } from '../_shared/observe.ts';
 import { isCustomerCorrespondence } from '../_shared/customer_mail.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
+import { buildSupplierMailbox } from './mailbox.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -244,6 +245,12 @@ Deno.serve(observe('messages_api', async (req) => {
     // phone_verified is read here because waPhoneOf gates the WhatsApp channel on it — see the note
     // above otherChannels. Selecting `phone` without it is what made an unverified number usable.
     const { data: cust } = await admin.from('customers').select('id,banned,phone,email,phone_verified').eq('email', email).maybeSingle();
+
+    // The supplier's Messages tab: the reveal gate and the revealed jobs' threads (./mailbox.ts).
+    if (action === 'mailbox') {
+      if (!supLead) return J({ error: 'forbidden', code: 'not_a_supplier' }, 403);
+      return J(await buildSupplierMailbox(admin, Number(supLead.id)));
+    }
 
     if (action === 'threads') {
       const out: any[] = [];

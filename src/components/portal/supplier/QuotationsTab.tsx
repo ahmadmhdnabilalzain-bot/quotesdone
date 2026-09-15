@@ -23,7 +23,7 @@ const COPY = {
     qst: { draft: 'Held — not sent yet', submitted: 'Sent to the customer', accepted: 'Customer revealed you', withdrawn: 'Withdrawn', expired: 'Expired' } as Record<string, string>,
   },
   ar: {
-    title: 'العروض المقدّمة', sub: 'افتح طلبًا لإرسال عرض سعرك إلى مهندس المبيعات، والرد على مراجعته، وتقديمه.',
+    title: 'عروض الأسعار المقدَّمة', sub: 'افتح طلبًا لإرسال عرض سعرك إلى مهندس المبيعات، والرد على مراجعته، وتقديمه.',
     empty: 'لا توجد طلبات للتسعير بعد', emptySub: 'يظهر هنا كل طلب يصلك برقمه، جاهزًا لعرض سعرك.',
     job: 'رقم الطلب', notStarted: 'لا يوجد عرض بعد', open: 'افتح المحادثة', close: 'أغلق', inquiry: 'اقرأ الطلب',
     option: (n: number) => `الخيار ${n}`, loading: 'جارٍ التحميل…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
