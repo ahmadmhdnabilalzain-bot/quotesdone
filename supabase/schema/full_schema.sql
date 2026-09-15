@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T07:52:46.883Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T08:13:01.360Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -60642,6 +60642,7 @@ $CRON$);
 --   default_post_image
 --   deploy_secret
 --   dispatch_force_key
+--   dropbox_access_token
 --   dropbox_app_key
 --   dropbox_app_secret
 --   dropbox_oauth_key
