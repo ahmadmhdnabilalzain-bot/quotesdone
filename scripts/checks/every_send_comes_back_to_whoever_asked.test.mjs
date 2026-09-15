@@ -89,21 +89,25 @@ test('the watch answers every request, and the routine file is in the index', ()
 // trigger loops every such row. The one way past it is the transaction-local tracked mark, so the
 // mark may be written only inside the two routines that track the row themselves.
 const SQL_DIR = join(REPO, 'scripts', 'sql');
-const LOOP_FILE = 'every_send_comes_back_to_whoever_asked.sql';
+// the_founder_gets_one_it_digest_per_tick.sql (15 Sep 2026) is the second: it now defines
+// fn_customer_support_acts_on_handoff, and its digest routine closes every held request with the
+// digest's notification ids, so the rows it marks are tracked by those requests.
+const TRACKING_FILES = new Set(['every_send_comes_back_to_whoever_asked.sql', 'the_founder_gets_one_it_digest_per_tick.sql']);
 const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
 test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
   const bypass = []; let writers = 0;
   for (const f of readdirSync(SQL_DIR).filter((x) => x.endsWith('.sql'))) {
     const src = readFileSync(join(SQL_DIR, f), 'utf8');
-    if (f !== LOOP_FILE && MARK.test(src)) bypass.push(f);
+    if (!TRACKING_FILES.has(f) && MARK.test(src)) bypass.push(f);
     if (RAW_SQL_WRITE.test(src)) writers++;
   }
   assert.deepEqual(bypass, [], 'these files mark rows as tracked without tracking them');
   assert.ok(writers >= 10, `only ${writers} SQL files write the table: the scan is not reading the routines`);
-  const file = readFileSync(join(SQL_DIR, LOOP_FILE), 'utf8');
-  const chunks = file.split('create or replace function public.').slice(1);
-  const marking = chunks.filter((c) => MARK.test(c)).map((c) => c.slice(0, c.indexOf('(')));
-  assert.deepEqual([...new Set(marking)].sort(), ['fn_customer_support_acts_on_handoff', 'fn_customer_support_delivery_watch']);
+  const marking = (f) => [...new Set(readFileSync(join(SQL_DIR, f), 'utf8').split('create or replace function public.').slice(1)
+    .filter((c) => MARK.test(c)).map((c) => c.slice(0, c.indexOf('('))))].sort();
+  assert.deepEqual(marking('every_send_comes_back_to_whoever_asked.sql'), ['fn_customer_support_acts_on_handoff', 'fn_customer_support_delivery_watch']);
+  assert.deepEqual(marking('the_founder_gets_one_it_digest_per_tick.sql'), ['fn_customer_support_acts_on_handoff', 'fn_customer_support_sends_the_it_digest']);
+  const file = readFileSync(join(SQL_DIR, 'every_send_comes_back_to_whoever_asked.sql'), 'utf8');
   assert.match(file, /create trigger z90_every_send_is_tracked after insert on public\.notifications\s+for each row execute function public\.fn_customer_support_adopts_untracked_send\(\)/);
 });
 

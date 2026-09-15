@@ -9,6 +9,7 @@ import { encodeBase64 } from 'jsr:@std/encoding/base64';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { BRAND, lockupImg } from '../_shared/brand.ts';
 import { arabicFrame } from './arabic_frame.ts';
+import { ownsChannel, selectQueue } from './channels.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
@@ -189,7 +190,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     const since = new Date(); since.setUTCHours(0, 0, 0, 0);
     const { count: sentToday } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('status', 'sent').gte('sent_at', since.toISOString());
     const remaining = Math.max(0, cap - (sentToday || 0));
-    const { data: q } = await admin.from('notifications').select('*').or('status.eq.queued,status.eq.pending,status.is.null').order('created_at', { ascending: true }).limit(Number(body.limit) || 40);
+    const { data: q } = await selectQueue(admin, Number(body.limit) || 40);
     const rows = q || [];
     // Previously a silent ok:true - mail just accumulated with no signal anywhere.
     if (!enabled || !key) { await logThrottled('email_disabled', 60, 'error', { pending: rows.length, email_enabled: enabled, has_resend_key: !!key }, 'EMAIL NOT SENDING - ' + (!enabled ? 'email_enabled is not true' : 'resend_api_key missing') + '; ' + rows.length + ' notification(s) waiting'); return J({ ok: true, pending: rows.length, sent: 0, note: 'email disabled or resend_api_key missing - queued and will flush once enabled' }); }
@@ -213,7 +214,9 @@ Deno.serve(observe('send_outbox', async (req) => {
       // could see it. Running every 2 minutes, this poller almost always won the race - the WhatsApp
       // message was destroyed, not delayed. Exclude 'whatsapp' exactly as 'sms' is excluded: leave the
       // row untouched at 'queued' so its own sender can drain it.
-      if (n.channel === 'sms' || n.channel === 'whatsapp') { skipped++; continue; }
+      // 15 Sep 2026: the query now excludes these channels (see channels.ts), so this guard should never
+      // fire; it stays as defence in depth, still leaving the row untouched for its own sender.
+      if (!ownsChannel(n.channel)) { skipped++; continue; }
       if (!n.to_email) { await admin.from('notifications').update({ status: 'skipped' }).eq('id', n.id); continue; }
       // 3 SEP 2026: RFC 2606 reserved domains (example.com/net/org, .test, .example, .invalid,
       // localhost) are never deliverable — Resend answers 422 "Invalid to field" and this loop used

@@ -35,6 +35,7 @@
 //     /QuotesDone Backup/Company/Database Exports/<YYYY-MM>/<YYYY-MM-DD>/.
 // The layout in the bucket is unchanged, so the monthly restore drill (PR #661) reads these files.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { pageRows } from '../_shared/table_export_core.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { exportPathAllowed } from '../_shared/backup_prune_allow.ts';
 import { type Deps, ExportError, HOP_BYTES, type HopState, leftoverFailure, retry, runHop } from '../_shared/table_export_core.ts';
@@ -60,11 +61,9 @@ const SLICE_MS = 30_000;   // hand off well inside the worker's compute budget (
 // copy is ~2,616 / ~2.8 ≈ 935 hops + ~25 for the rest + whatever an earlier attempt carried (24 tonight):
 // ~985. 2000 still stops a runaway chain.
 const MAX_HOPS = 2000;
-const PAGE = 1000;         // rows per page file (the RPC's cap); kb_chunks ~2.8 MB, ops_knowledge ~8.3 MB
-// LIMIT (known, 15 Sep 2026): PAGE bounds ROWS, not bytes. One page whose rows carry an outsized text
-// field is read, stringified and escaped whole before the 12 MB hop budget is checked, so a single such
-// page can still cost more CPU than a hop should. Upgrade path: a byte-bounded page read
-// (fn_table_export_page taking a byte cap and stopping at the row that crosses it).
+// Rows per page follow the bytes written (pageRows / nextRows in table_export_core.ts, at most 1,000,
+// the RPC's cap), and a page that killed the worker is retried at half the rows: a fixed 1,000 wide
+// ops_knowledge rows ended every hop with 546 on 15 Sep 2026.
 
 type State = HopState & { kind: string; since: string | null; hop: number };
 
@@ -110,7 +109,7 @@ const DEPS: Deps = {
   upload,
   readPage: (s) => retry(`${s.t} page ${s.page}`, async () => {
     const { data, error } = await admin.rpc('fn_table_export_page',
-      { p_table: s.t, p_after: s.after ?? null, p_limit: PAGE, p_since: s.since });
+      { p_table: s.t, p_after: s.after ?? null, p_limit: pageRows(s), p_since: s.since });
     if (error) throw new Error(error.message);
     return data;
   }),
@@ -198,10 +197,16 @@ Deno.serve(async (req) => {
     // every table on the retry, re-uploading ~400 MB to meet the same page again).
     // The CPU bound is the byte budget; the deadline is the wall-clock one. runHop also fails the day after
     // IDLE_HOPS hops that stored nothing, and that failure takes the same settle() path below.
-    const failure = await runHop(st, DEPS, deadline, { spent: 0, max: HOP_BYTES });
+    // The checkpoint saves the state before every page read, so a worker killed mid-page (546) leaves
+    // that page and its row count behind for the stale-heartbeat resume to retry at half the rows.
+    const cur = st;
+    const save = () => retry('fn_table_export_save', async () => {
+      const { error: se } = await admin.rpc('fn_table_export_save', { p_stamp: stamp, p_state: cur });
+      if (se) throw new Error(se.message);
+    });
+    const failure = await runHop(cur, { ...DEPS, checkpoint: save }, deadline, { spent: 0, max: HOP_BYTES });
     st.hop++;
-    const { error: se } = await admin.rpc('fn_table_export_save', { p_stamp: stamp, p_state: st });
-    if (se) throw new Error('fn_table_export_save: ' + se.message);
+    await save();
 
     if (failure) {
       await settle(stamp, failure);
