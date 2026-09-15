@@ -581,11 +581,11 @@ export default async function (H) {
     REL('inquiries'), `select 'public.inquiries ' || ${RELTXT('inquiries')} || ', ' || ${ROWS('inquiries')} || ' row(s)'`);
 
   await MODULE('mod-supplier-discovery', 'Module: Supplier Discovery',
-    /(match_suppliers_kw|fn_match_capability|action:\s*'(discover|find_suppliers|search_suppliers|match)')/i,
+    /(fn_match_capability|action:\s*'(discover|find_suppliers|search_suppliers|match)')/i,
     /(similarity|match_reason|matched_suppliers|found|supplier)/i,
-    `(${FN('fn_match_capability')} or ${FN('match_suppliers_kw')})`,
-    `select 'fn_match_capability ' || ${FNTXT('fn_match_capability')} || ', match_suppliers_kw ' || ${FNTXT('match_suppliers_kw')}
-       || ' — both sit on the dispatch path; no customer action invokes discovery on its own'`);
+    `${FN('fn_match_capability')}`,
+    `select 'fn_match_capability ' || ${FNTXT('fn_match_capability')}
+       || ' — the one matcher on the dispatch path (the keyword matcher was dropped 15 Sep 2026); no customer action invokes discovery on its own'`);
 
   await MODULE('mod-quote-comparison', 'Module: Quote Comparison',
     /'quote_compare'/, /(top3|bottom_line|advice|watch_outs|analysis|tradeoff|why|rank)/i,

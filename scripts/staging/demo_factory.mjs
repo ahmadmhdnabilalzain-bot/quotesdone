@@ -43,6 +43,7 @@
 //     node scripts/staging/demo_factory.mjs --purge --dry-run
 //     node scripts/staging/demo_factory.mjs --corpus 100  build a matching corpus (add --keep)
 import { assertNotProduction, mgmtRead, mgmtFixture, PROD_REF } from './qd_guard.mjs';
+import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 import { readFileSync } from 'node:fs';
 import { randomBytes, createHmac } from 'node:crypto';
 
@@ -211,6 +212,14 @@ export function newRun(opts = {}) {
 }
 
 export const runEmail = (run, kind) => `qd-${run.tag}-${kind}${run.seq++}@example.com`;
+// The reserved fixture mobile block, +971 50 000 00xx. 00-89 only: 90-99 are held for checks that need
+// a number NO run can hold at the same time (a_phone_cannot_select_an_account uses 98 and 97). A UAE
+// mobile (+9715) is one of the mandatory six, and fn_is_demo_phone marks the row demo on its own.
+let mobileSeq = Math.floor(Math.random() * 90);
+export const demoMobile = () => '+9715000000' + String((mobileSeq++) % 90).padStart(2, '0');
+// The agreement version a fixture's acceptance records: the key compliance_archive and kyc read.
+const TERMS_VERSION_SQL = `coalesce((select value from public.app_secrets where key='supplier_terms_version'),
+  (select value from public.app_secrets where key='terms_version'))`;
 export const RUN_TAG_COL = (tag) => `'qd_run:${tag}'`;
 
 /**
@@ -422,11 +431,12 @@ const capabilityInsert = (leadId, p) => `insert into public.supplier_capabilitie
  *                       refusal into severity='clean', so every demo supplier - and every real one -
  *                       was certified clean by a model that never ran.
  *
- * license_doc_path is left NULL on the SQL path ON PURPOSE. trg_leads_a_licence_gate fires BEFORE
- * INSERT, and a row inserted as approved/verified carrying a license_doc_path with a null
- * trade_license_no is rewritten to approval_status='action_required', which fails fn_is_matchable,
- * which drops the supplier out of fn_match_capability's cand CTE. A bulk corpus built that way is
- * invisible and looks like a matching bug. Use makeLicenceGatedSupplier() when you WANT that state.
+ * Both modes end approved WITH the founder's mandatory six (completeMandatorySix): since #698 the
+ * database refuses an approval with anything missing, so the supplier is inserted undecided and the
+ * sales engineer's verification approves it. The one exception is a caller that brings its own
+ * documents (scripts/e2e/fixtures.mjs): it passes opts.approval ('pending'), the row is inserted with
+ * that status and no documents, and completing it is the caller's job. Use makeLicenceGatedSupplier()
+ * when you want a supplier the six refuse.
  */
 export async function makeSupplier(run, opts = {}) {
   const trade = opts.trade || 'aluminium';
@@ -439,6 +449,11 @@ export async function makeSupplier(run, opts = {}) {
   const companyName = opts.company_name || `QD Demo ${t.name} ${run.tag.slice(0, 4)}-${run.seq}`;
   const emirate = opts.emirate || profile.coverage_emirates[0] || 'Dubai';
   const withAuth = opts.withAuth !== false;
+  // Since #698 trg_leads_e0_mandatory_six_gate REFUSES an approval unless the six are complete (the
+  // licence and company profile must exist in supplier-docs). By default the factory completes them
+  // and the sales engineer approves; a caller passing approval ('pending') brings its own documents.
+  const bringsOwnDocs = opts.approval !== undefined;
+  const phone = demoMobile();
 
   const u = withAuth ? await mkAuthUser(run, email) : { id: null, email, jwt: null, password: null };
 
@@ -454,20 +469,20 @@ export async function makeSupplier(run, opts = {}) {
       products: profile.products_norm.join(', '),
       services: `Supply and installation of ${t.name.toLowerCase()}.`,
       description: `${t.name} specialist serving ${profile.coverage_emirates.join(', ')}.`,
-      company_type: 'LLC', contact_name: 'Demo Contact', phone: '+971505550000',
+      company_type: 'LLC', contact_name: 'Demo Contact', phone,
       service_emirates: profile.coverage_emirates,
     });
     await call('kyc', u.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
-    // The approval UPDATE deliberately excludes license_doc_path / trade_license_no /
-    // license_expiry: trg_leads_a_licence_gate is UPDATE OF those three columns, so an UPDATE that
-    // does not name them short-circuits the gate. Match case-insensitively - the API lowercases
-    // claimed_by before storing it.
+    // No approval is written here any more: completeMandatorySix below brings the documents and the
+    // sales engineer decides. The mobile is recorded as verified directly - Twilio Verify cannot be
+    // driven without sending an SMS, and the number is the fixture block by design. The e-mail was
+    // confirmed by the auth admin API. Match case-insensitively - the API lowercases claimed_by.
     await mgmtFixture(REF,
       `update public.leads
-          set approval_status='approved', verified=true,
+          set phone = ${q(phone)}, owner_phone_verified = true, owner_email_verified = true,
               tags = (select array(select distinct unnest(coalesce(tags,'{}'::text[])
                        || ARRAY['qd_demo', ${RUN_TAG_COL(run.tag)}]::text[])))
-        where lower(claimed_by)=lower(${q(email)})`, 'approve demo supplier');
+        where lower(claimed_by)=lower(${q(email)})`, 'demo supplier mobile and e-mail verified');
     if (opts.enrich !== false) {
       const cred = await internalCred();
       if (cred) await call('enrich_capability', null, { __secret: cred, lead_id: leadId });
@@ -477,15 +492,16 @@ export async function makeSupplier(run, opts = {}) {
       `insert into public.leads
          (company_name, emirate, city, claimed, claimed_by, email, contact_name, phone,
           company_type, products, services, description, service_emirates, source,
-          verified, approval_status, owner_email_verified, accepted_terms_at, locale, tags)
+          verified, approval_status, owner_email_verified, owner_phone_verified, accepted_terms_at,
+          accepted_terms_version, locale, tags)
        values (${q(companyName)}, ${q(emirate)}, ${q(emirate)}, ${bool(withAuth)},
-               ${withAuth ? q(email) : 'null'}, ${q(email)}, 'Demo Contact',
-               ${q('+9714' + String(1000000 + Math.floor(Math.random() * 8999999)))},
+               ${withAuth ? q(email) : 'null'}, ${q(email)}, 'Demo Contact', ${q(phone)},
                'LLC', ${q(profile.products_norm.join(', '))},
                ${q(`Supply and installation of ${t.name.toLowerCase()}.`)},
                ${q(`${t.name} specialist serving ${profile.coverage_emirates.join(', ')}.`)},
                ${arr(profile.coverage_emirates)}, 'demo_factory',
-               true, 'approved', true, now(), ${q(opts.locale || 'en')},
+               false, ${bringsOwnDocs ? q(opts.approval) : 'null'}, true, true, now(), ${TERMS_VERSION_SQL},
+               ${q(opts.locale || 'en')},
                ARRAY['qd_demo', ${RUN_TAG_COL(run.tag)}]::text[])
        returning id`, 'demo supplier');
     leadId = ins?.[0]?.id ?? null;
@@ -494,11 +510,12 @@ export async function makeSupplier(run, opts = {}) {
 
   if (opts.capability === 'agent') await confirmCapability(leadId, profile);
   else if (opts.capability !== false) await mgmtFixture(REF, capabilityInsert(leadId, profile), 'demo capability');
-  // The API path stamps the tag in its approval UPDATE; the SQL path stamps it in the INSERT.
+  // The API path stamps the tag in its verification UPDATE; the SQL path stamps it in the INSERT.
   // Belt and braces for the api path where create_company may have raced the update.
   await mgmtFixture(REF,
     `update public.leads set tags = (select array(select distinct unnest(coalesce(tags,'{}'::text[])
        || ARRAY['qd_demo', ${RUN_TAG_COL(run.tag)}]::text[]))) where id=${num(leadId)}`, 'tag demo supplier');
+  if (!bringsOwnDocs) await completeMandatorySix(run, [{ leadId, companyName }]);
 
   return {
     leadId, id: leadId, email, jwt: u.jwt, password: u.password, authUserId: u.id,
@@ -506,11 +523,89 @@ export async function makeSupplier(run, opts = {}) {
   };
 }
 
+// Run fn over items with at most n in flight; results keep the input order.
+async function eachLimit(items, n, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+    while (next < items.length) { const k = next++; out[k] = await fn(items[k]); }
+  }));
+  return out;
+}
+
 /**
- * A supplier that the licence gate REFUSES: evidence exists (license_doc_path) but the licence
- * number is missing, so fn_supplier_licence_gate fails and fn_leads_licence_gate_rerun rewrites
- * approval_status to 'action_required' on the way in. This is the exception-window fixture, and it
- * works with pricing_config still empty because the gate runs in the trigger, not in supplier_api.
+ * The founder's mandatory six for demo suppliers, produced the way a real registration produces them,
+ * and then DECIDED by the sales engineer (fn_sales_engineer_verifies_supplier), never by writing
+ * approval_status. Since #698 trg_leads_e0_mandatory_six_gate refuses an approval while anything is
+ * missing, so an approved fixture with no documents is no longer a thing that can exist.
+ *
+ *   1-3  company name, the fixture +9715 mobile (verified) and the verified e-mail: the INSERT.
+ *   4-5  a licence PDF and a company-profile PDF as real objects in supplier-docs: the six counts a
+ *        document only if storage holds it. The row names them BEFORE the bytes go up, so a failed
+ *        upload leaves a path to nothing (harmless) rather than an object no row names (litter).
+ *   6    the signed Supplier Agreement: compliance_archive 'sign', the same call qd_sign_supplier
+ *        makes on acceptance. It refuses without accepted_terms_at on record and writes
+ *        signed_terms_path itself. Keyed by lead id, which compliance_archive supports, so an
+ *        unclaimed (withAuth:false) supplier is signed too - the trigger keys on claimed_by and
+ *        would skip it. A row already signed (the api path's kyc accept_terms) is not signed twice.
+ *
+ * Teardown reaches all three files through BUCKET_SOURCES (license_doc_path and
+ * company_profile_doc_path in supplier-docs, signed_terms_path in signed-terms), and reg_lead_docs
+ * registers the two documents rows, which teardown also sweeps.
+ */
+async function completeMandatorySix(run, sups) {
+  if (!sups.length) return;
+  const docs = sups.map((s) => ({
+    ...s,
+    lic: `licenses/${s.leadId}/${run.tag}_trade_licence.pdf`,
+    prof: `profiles/${s.leadId}/${run.tag}_company_profile.pdf`,
+    no: `ZZDEMO-${run.tag}-${s.leadId}`.toUpperCase(),
+  }));
+  const ids = docs.map((d) => num(d.leadId)).join(',');
+  await mgmtFixture(REF,
+    `update public.leads l
+        set license_doc_path = v.lic, license_doc_name = 'trade_licence.pdf', trade_license_no = v.no,
+            license_authority = 'Dubai DET (fixture)', license_expiry = current_date + 365,
+            license_city = 'Dubai', company_profile_doc_path = v.prof
+       from (values ${docs.map((d) => `(${num(d.leadId)}::bigint, ${q(d.lic)}, ${q(d.no)}, ${q(d.prof)})`).join(', ')})
+            as v(id, lic, no, prof)
+      where l.id = v.id`, 'demo supplier documents');
+  await eachLimit(docs, 8, async (d) => {
+    await uploadObject('supplier-docs', d.lic,
+      demoTradeLicence({ company: d.companyName, licenceNo: d.no }), 'application/pdf');
+    await uploadObject('supplier-docs', d.prof, demoPdf([
+      ['COMPANY PROFILE (ZZ DEMO FIXTURE - NOT A REAL COMPANY)', 14], [d.companyName, 12],
+      ['Supply and installation, United Arab Emirates.', 11], [`Run ${run.tag}`, 9],
+    ]), 'application/pdf');
+  });
+
+  const cred = await internalCred();
+  const unsigned = await mgmtRead(REF,
+    `select id from public.leads where id in (${ids}) and coalesce(btrim(signed_terms_path), '') = ''`);
+  await eachLimit(unsigned, 6, async (r) => {
+    const s = await call('compliance_archive', null,
+      { __secret: cred, action: 'sign', kind: 'supplier', id: Number(r.id) });
+    if (s.json?.ok !== true) throw new Error(`compliance_archive refused to sign lead ${r.id}: HTTP ${s.status} ${s.text}`);
+  });
+
+  const out = await mgmtFixture(REF,
+    `select l.id, public.fn_sales_engineer_verifies_supplier(l.id, 'demo_factory') v
+       from public.leads l where l.id in (${ids})`, 'sales engineer verifies demo suppliers');
+  const refused = (out || []).filter((r) => r.v?.decision !== 'approved' || (r.v?.missing || []).length);
+  if (refused.length || (out || []).length !== docs.length) {
+    throw new Error(`the sales engineer approved ${(out || []).length - refused.length}/${docs.length} demo ` +
+      `supplier(s); first refusals: ${JSON.stringify(refused.slice(0, 3).map((r) => ({ id: r.id, ...r.v })))} ` +
+      `(decision 'pending' with nothing missing means pricing_config.auto_approve_suppliers is off)`);
+  }
+}
+
+/**
+ * A supplier that is deliberately NOT complete: approved with the six, then its licence path is
+ * pointed at an object that does not exist and the licence number cleared. trg_leads_e0_mandatory_six_gate
+ * demotes it to 'action_required' with licence_gate_reason 'reg_licence', and trg_leads_exception_invariant
+ * opens the 14-day window in the same statement. This is the exception-window fixture. (Until 7 Sep the
+ * refusal came from fn_supplier_licence_gate, dropped that day; the six gate is what refuses now.)
+ * The real licence object it replaced is still named by its documents row, so teardown removes it.
  */
 export async function makeLicenceGatedSupplier(run, opts = {}) {
   const s = await makeSupplier(run, { ...opts, capability: opts.capability !== false });
@@ -783,7 +878,7 @@ export async function makeQuote(run, opts = {}) {
              ${q(opts.conditions || 'Access to site during working hours.')},
              ${q(opts.exclusions || 'Civil works, painting, scaffolding.')},
              ${bool(opts.anonymized ?? true)})
-     on conflict (inquiry_id, supplier_id) do update
+     on conflict (inquiry_id, supplier_id, option_no) do update
        set quote_amount=excluded.quote_amount, status=excluded.status, notes=excluded.notes
      returning id, status, quote_amount`, 'demo quote');
   const row = ins?.[0] || {};
@@ -852,19 +947,21 @@ export async function makeBulkCorpus(run, opts = {}) {
   if (!specs.length) return { suppliers: [], customers: [], trades };
 
   const values = specs.map((s) => `(${q(s.companyName)}, ${q(s.emirate)}, ${q(s.emirate)},
-      false, null, ${q(s.email)}, 'Demo Contact', '+97140000000',
+      false, null, ${q(s.email)}, 'Demo Contact', ${q(demoMobile())},
       'LLC', ${q(s.profile.products_norm.join(', '))},
       ${q(`Supply and installation of ${TRADES[s.trade].name.toLowerCase()}.`)},
       ${q(`${TRADES[s.trade].name} specialist serving ${s.profile.coverage_emirates.join(', ')}.`)},
-      ${arr(s.profile.coverage_emirates)}, 'demo_factory', true, 'approved', true, now(), 'en',
+      ${arr(s.profile.coverage_emirates)}, 'demo_factory', false, null, true, true, now(), ${TERMS_VERSION_SQL}, 'en',
       ARRAY['qd_demo', ${RUN_TAG_COL(run.tag)}]::text[])`).join(',\n');
 
-  // license_doc_path is absent from the column list ON PURPOSE - see makeSupplier's note.
+  // Inserted undecided (approval_status null) and approved by the sales engineer once the six are in:
+  // see completeMandatorySix below, which every corpus supplier goes through.
   const ins = await mgmtFixture(REF,
     `insert into public.leads
        (company_name, emirate, city, claimed, claimed_by, email, contact_name, phone,
         company_type, products, services, description, service_emirates, source,
-        verified, approval_status, owner_email_verified, accepted_terms_at, locale, tags)
+        verified, approval_status, owner_email_verified, owner_phone_verified, accepted_terms_at,
+        accepted_terms_version, locale, tags)
      values ${values}
      returning id, email`, 'demo corpus suppliers');
 
@@ -900,6 +997,7 @@ export async function makeBulkCorpus(run, opts = {}) {
       `update public.leads set claimed=true, claimed_by=${q(s.email)} where id=${num(s.leadId)}`,
       'claim corpus supplier');
   }
+  await completeMandatorySix(run, suppliers);
 
   const customers = [];
   for (let i = 0; i < nCustomers; i++) {
@@ -1318,7 +1416,12 @@ export const EXACT_TABLES = ['customers', 'leads', 'inquiries', 'quotes', 'suppl
   'agent_actions'];
 
 export async function snapshot() {
-  const exact = await mgmtRead(REF, EXACT_TABLES.map((t) =>
+  // Only tables that exist. comparison_candidate_v2 is gone from production (to_regclass null on
+  // 15 Sep 2026) and one missing name failed the whole snapshot with 42P01, so the selftest could not
+  // run at all. A dropped table has nothing left to leak; every table that exists is still counted.
+  const present = (await mgmtRead(REF,
+    `select t from unnest(${arr(EXACT_TABLES)}) t where to_regclass('public.' || t) is not null`)).map((r) => r.t);
+  const exact = await mgmtRead(REF, present.map((t) =>
     `select ${q(t)} as t, count(*)::bigint n from public.${t}`).join(' union all '));
   const rest = await mgmtRead(REF,
     `select 'storage:'||bucket_id as t, count(*)::bigint n from storage.objects group by bucket_id
@@ -1433,6 +1536,27 @@ export async function selftest() {
         corpus.suppliers.length === 8,
         `${corpus.suppliers.length} supplier(s) across ${corpus.trades.length} trade(s), 2 round trips`);
 
+      // Since #698 an approval is the database's decision. Both a claimed supplier (signed through its
+      // e-mail's row) and an unclaimed corpus supplier (signed by lead id) must come out approved by the
+      // sales engineer with nothing missing and all three files in storage.
+      const six = await mgmtRead(REF, `
+        select l.id, l.approval_status, l.approval_decided_by, l.claimed_by is null as unclaimed,
+               to_jsonb(public.fn_supplier_mandatory_six(l)) as missing,
+               exists (select 1 from storage.objects o where o.bucket_id = 'signed-terms' and o.name = l.signed_terms_path) as signed
+          from public.leads l where l.id in (${num(supA.leadId)}, ${num(corpus.suppliers[0].leadId)})`);
+      ok('made suppliers carry the six and the sales engineer approved them',
+        six.length === 2 && six.some((r) => r.unclaimed) && six.every((r) => r.approval_status === 'approved'
+          && r.approval_decided_by === 'sales_engineer' && Array.isArray(r.missing) && r.missing.length === 0 && r.signed),
+        six.map((r) => `lead ${r.id}${r.unclaimed ? ' (unclaimed)' : ''}: ${r.approval_status} by ` +
+          `${r.approval_decided_by} missing=${JSON.stringify(r.missing)} signed=${r.signed}`).join('; '));
+
+      // Ahead of the capability_agent block on purpose: that function was deleted (182308b) and is not
+      // deployed, so its checks fail and end the body; this fixture does not depend on it.
+      const gated = await makeLicenceGatedSupplier(run, { trade: 'steel' });
+      ok('the licence gate fixture actually opens the gate',
+        gated.approval_status === 'action_required' && gated.licence_gate_reason === 'reg_licence',
+        `approval_status=${gated.approval_status} reason=${gated.licence_gate_reason ?? 'none'}`);
+
       // The capability flow through the PRODUCT rather than a raw INSERT. Zero model calls: the
       // only model call in capability_agent is on the `analyze` path, which is separately blocked
       // by fn_ai_route routing supplier_matching to tier=none.
@@ -1484,11 +1608,6 @@ export async function selftest() {
       ok('confirm refuses codes outside the controlled vocabulary',
         junk.status === 400 && junk.json?.error === 'need_at_least_one_trade_and_role',
         `HTTP ${junk.status} ${junk.json?.error ?? junk.text}`);
-
-      const gated = await makeLicenceGatedSupplier(run, { trade: 'steel' });
-      ok('the licence gate fixture actually opens the gate',
-        gated.approval_status === 'action_required' && !!gated.licence_gate_reason,
-        `approval_status=${gated.approval_status} reason=${gated.licence_gate_reason ?? 'none'}`);
 
       // agent_actions is counted by the baseline check but nothing here ever GENERATED one, so the
       // teardown rule for it went two sessions without being exercised - and two of its three

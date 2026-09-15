@@ -24,21 +24,19 @@
 //   exactly as login_otp stores it; only delivery is skipped). The MOBILE verification is recorded
 //   directly: Twilio Verify cannot be driven without sending an SMS, and the number is fake by design.
 import { readFileSync } from 'node:fs';
-import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE } from '../staging/demo_factory.mjs';
+import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile } from '../staging/demo_factory.mjs';
 import { mgmtRead, mgmtFixture } from '../staging/qd_guard.mjs';
-import { demoTradeLicence } from '../lib/demo_pdf.mjs';
+import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 
 export { REF, BASE, call };
 export const read = (sql) => mgmtRead(REF, sql);
 export const write = (sql, where = 'e2e fixture') => mgmtFixture(REF, sql, where);
 
 export const demoEmail = (run, kind) => `qd-${run.tag}-${kind}${run.seq++}@example.invalid`;
-// 00-89 only. 90-99 are reserved for checks that need a fixture number NO run can hold at the same
-// time (a_phone_cannot_select_an_account uses 98 as "unknown" and 97 as "shared"). On 14 Sep a run
-// handed out 42 while that check still used 42 as its unknown number, and production answered it
-// as a known supplier.
-let mobileSeq = Math.floor(Math.random() * 60);
-export const demoMobile = () => '+9715000000' + String((mobileSeq++) % 90).padStart(2, '0');
+// The fixture mobile block lives in demo_factory (00-89 only; 90-99 are reserved for checks that need
+// a number NO run can hold - on 14 Sep a run handed out 42 while a check still used 42 as its unknown
+// number, and production answered it as a known supplier). One definition, re-exported here.
+export { demoMobile };
 
 /** Open a run: a tag for every row, and a rehearsal window so the failed-run watcher never pages the founder. */
 export async function openRun(opts = {}) {
@@ -160,21 +158,31 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
   const email = demoEmail(run, 'sup');
   const phone = demoMobile();
   const company = `ZZ DEMO ${label} ${trade} ${run.tag}`;
-  const s = await makeSupplier(run, { trade, email, company_name: company, locale });
+  // Inserted 'pending', not approved: since #698 the database refuses an approval while any of the six
+  // is missing, and approves by itself (fn_sales_engineer_verifies_supplier) once the last one lands.
+  const s = await makeSupplier(run, { trade, email, company_name: company, locale, approval: 'pending' });
   run.ids.leads.add(String(s.leadId));
-  // 1-3: name, mobile, email.   4: the trade licence, a real PDF in the real bucket.
+  // 1-3: name, mobile, email.   4: the trade licence and 5: the company profile, real PDFs in the real
+  // bucket - fn_supplier_mandatory_six counts a document only if its path exists in supplier-docs.
   const licenceNo = `ZZDEMO-${run.tag}-${label}`.toUpperCase();
   const path = `licenses/${s.leadId}/${run.tag}_trade_licence.pdf`;
   await uploadObject('supplier-docs', path, demoTradeLicence({ company, licenceNo, activity: 'Aluminium and Glass Works' }), 'application/pdf');
   run.ids.storage.push(`supplier-docs/${path}`);
+  const profilePath = `profiles/${s.leadId}/${run.tag}_company_profile.pdf`;
+  await uploadObject('supplier-docs', profilePath, demoPdf([
+    ['COMPANY PROFILE (ZZ DEMO FIXTURE - NOT A REAL COMPANY)', 14], [company, 12],
+    ['Aluminium and glass supply and installation, Dubai.', 11], [`Run ${run.tag}`, 9],
+  ]), 'application/pdf');
+  run.ids.storage.push(`supplier-docs/${profilePath}`);
   await write(`update public.leads set
       phone = ${q(phone)}, contact_name = ${q('ZZ DEMO Contact ' + label)}, owner_dob = '1985-06-01',
       owner_email_verified = true, owner_phone_verified = true,
       license_doc_path = ${q(path)}, license_doc_name = 'trade_licence.pdf', trade_license_no = ${q(licenceNo)},
-      license_authority = 'Dubai DET (fixture)', license_expiry = (current_date + 365), license_city = 'Dubai'
+      license_authority = 'Dubai DET (fixture)', license_expiry = (current_date + 365), license_city = 'Dubai',
+      company_profile_doc_path = ${q(profilePath)}
     where id = ${num(s.leadId)}`, 'demo supplier documents');
-  // 5: the profile was written by makeSupplier (products, services, description, emirates).
-  // 6: the Supplier Agreement, accepted and signed through the real endpoint.
+  // 6: the Supplier Agreement, accepted and signed through the real endpoint. The signed PDF lands
+  // asynchronously (z21 -> compliance_archive), and its arrival re-runs the verification (z20).
   const terms = await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
   // WhatsApp is confirmed at sign-up (#657): a supplier's WhatsApp notice goes only to a number they
   // confirmed, and trigger a03 records every other one as 'skipped'. A real supplier answers that
@@ -184,12 +192,20 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
   // read 'skipped' because the fixture never answered, not because a notice was wrongly withheld.
   const wa = await call('kyc', s.jwt, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
   if (wa.json?.ok !== true) throw new Error(`whatsapp_choose failed for ${email}: HTTP ${wa.status} ${wa.text}`);
-  const row = (await read(`select l.id, l.company_name, l.phone, l.is_demo, l.approval_status, l.license_doc_path,
-      l.trade_license_no, l.products, l.accepted_terms_version,
+  const readRow = async () => (await read(`select l.id, l.company_name, l.phone, l.is_demo, l.approval_status, l.license_doc_path,
+      l.company_profile_doc_path, l.trade_license_no, l.products, l.accepted_terms_version,
       coalesce((select value from public.app_secrets where key='supplier_terms_version'),
                (select value from public.app_secrets where key='terms_version')) as current_terms,
-      (l.signed_terms_path is not null or l.signed_terms_url is not null) as signed
+      (l.signed_terms_path is not null or l.signed_terms_url is not null) as signed,
+      to_jsonb(public.fn_supplier_mandatory_six(l)) as missing
       from public.leads l where l.id = ${num(s.leadId)}`))[0];
+  const complete = (r) => r && Array.isArray(r.missing) && r.missing.length === 0 && r.approval_status === 'approved';
+  const row = (await waitFor(async () => { const r = await readRow(); return complete(r) ? r : null; }, { timeoutMs: 60000 })) || await readRow();
+  if (!complete(row)) {
+    throw new Error(`demo supplier ${label} (lead ${s.leadId}) is not approved with the mandatory six: ` +
+      `approval_status=${row?.approval_status} missing=${JSON.stringify(row?.missing)} ` +
+      `(accept_terms HTTP ${terms.status}, signed=${row?.signed})`);
+  }
   const session = await passwordSession(email, s.password);
   return { kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token };
 }

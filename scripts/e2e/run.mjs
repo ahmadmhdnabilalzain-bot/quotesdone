@@ -77,8 +77,8 @@ try {
     ctx.fx.suppliers.push(s);
     const r = s.row;
     rep.step('fixtures', `demo supplier ${label} has the mandatory six`,
-      r.company_name && r.phone && r.license_doc_path && r.trade_license_no && r.products && r.accepted_terms_version === r.current_terms && r.is_demo && r.approval_status === 'approved' ? 'PASS' : 'FAIL',
-      `is_demo=${r.is_demo} approval=${r.approval_status} licence=${r.license_doc_path ? 'uploaded' : 'none'} agreement=${r.accepted_terms_version}/${r.current_terms} signed=${r.signed}`);
+      r.company_name && r.phone && r.license_doc_path && r.company_profile_doc_path && r.trade_license_no && r.products && r.accepted_terms_version === r.current_terms && r.is_demo && r.approval_status === 'approved' && r.missing?.length === 0 ? 'PASS' : 'FAIL',
+      `is_demo=${r.is_demo} approval=${r.approval_status} missing=${JSON.stringify(r.missing)} licence=${r.license_doc_path ? 'uploaded' : 'none'} profile=${r.company_profile_doc_path ? 'uploaded' : 'none'} agreement=${r.accepted_terms_version}/${r.current_terms} signed=${r.signed}`);
   }
   browser = await launch();
   ctx.browser = browser;

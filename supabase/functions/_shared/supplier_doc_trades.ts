@@ -25,18 +25,20 @@
 // nearest-trade guess, no similarity floor, no model. A scan or photo with no text layer is recorded
 // 'needs_ocr' — never as "no trades found", which would be a false zero.
 //
-// WHAT IT DOES NOT DO. taxonomy_trade.aliases are English, so an Arabic-only document proposes
-// nothing and says so ('read', no trades); the supplier adds trades by hand on the same screen.
+// ARABIC (15 Sep 2026). taxonomy_trade.aliases were English only, so an Arabic-only document proposed
+// nothing. Every active code now carries Arabic aliases and the matcher (trade_words.ts, the twin of
+// fn_norm_trades) folds Arabic spelling and reads the definite article; READER is @2 from then on.
 import { readDocument, type DocumentRead } from './doc_read/index.ts';
 import type { Extracted } from './doc_read/types.ts';
+import { tradesFromText, type TradeHit, type TradeTerm } from './trade_words.ts';
+
+export { tradesFromText, type TradeHit, type TradeTerm };
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export const READER = 'supplier_doc_trades@1';
+export const READER = 'supplier_doc_trades@2';
 const MAX_DOCS = 40;
 
-export type TradeTerm = { code: string; aliases?: string[] | null };
-export type TradeHit = { code: string; phrases: string[]; snippet: string };
 export type DocKind = 'licence' | 'profile' | 'catalogue';
 export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead };
 export type DocEvidence = {
@@ -44,39 +46,6 @@ export type DocEvidence = {
   status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable';
   reason?: string; format?: string; trades: TradeHit[]; read_at: string;
 };
-
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/**
- * The TS twin of public.fn_norm_trades, with evidence. Same three rules, so a supplier's document and
- * a customer's brief resolve a trade word the same way:
- *   1. the INPUT's '-', '_', '/', '.' runs become one space (the alias is not rewritten);
- *   2. a term is an alias or the code itself, at least 3 characters;
- *   3. it matches at the START of a word (Postgres '\m'), case-insensitive; the end is open.
- */
-export function tradesFromText(text: string, vocab: TradeTerm[]): TradeHit[] {
-  const norm = String(text ?? '').replace(/[-_/.]+/g, ' ');
-  const hits: TradeHit[] = [];
-  for (const t of vocab) {
-    const terms = [...(t.aliases || []), t.code].filter((a) => typeof a === 'string' && a.length >= 3);
-    const phrases: string[] = [];
-    let snippet = '';
-    for (const a of terms) {
-      const m = new RegExp('(?<![\\p{L}\\p{N}_])' + esc(a), 'iu').exec(norm);
-      if (!m) continue;
-      if (!phrases.includes(a.toLowerCase())) phrases.push(a.toLowerCase());
-      if (!snippet) {
-        const start = norm.lastIndexOf('\n', m.index) + 1;
-        const endNl = norm.indexOf('\n', m.index);
-        const line = norm.slice(start, endNl < 0 ? norm.length : endNl);
-        const at = m.index - start;
-        snippet = line.slice(Math.max(0, at - 70), at + a.length + 70).replace(/\s+/g, ' ').trim();
-      }
-    }
-    if (phrases.length) hits.push({ code: t.code, phrases: phrases.slice(0, 5), snippet: snippet.slice(0, 180) });
-  }
-  return hits;
-}
 
 /** Every word a read document holds: its text, its table cells, and its zip / email children. */
 export function allText(e: Extracted, depth = 0): string {
