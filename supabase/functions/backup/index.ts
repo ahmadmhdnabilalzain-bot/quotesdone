@@ -37,6 +37,15 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { exportPathAllowed } from '../_shared/backup_prune_allow.ts';
+import { exportSlot as exportSlotCore, ExportError, retry, type Slot } from '../_shared/table_export_core.ts';
+// v3 (15 Sep 2026, it_engineer): the first full copy failed twice on kb_chunks/page_0103.json with
+// "Forbidden" — the edge firewall refused a body holding OWASP injection examples; the request never
+// reached storage (see _shared/table_export_core.ts). Now: every page is written with its risky
+// characters as JSON \u escapes (same value on parse); an internal refusal is not retried three times;
+// a failing table stops the day with its resume point saved, and fn_table_export_due (v2,
+// a_failed_export_day_resumes_from_its_failed_page.sql) resumes from that page instead of from the
+// first table; every failed day is a loud it_engineer finding through fn_it_duty_settle, classed
+// internal (ours) or provider (their outage), and a finished day closes it.
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/backup';
@@ -44,30 +53,37 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 const errText = (e: unknown) => String((e as Error)?.message || e).slice(0, 300);
 
 const SLICE_MS = 30_000;   // hand off well inside the worker's compute budget (v1 measured a 546 at 102 s)
-const MAX_HOPS = 300;      // a full day is ~110 slices for kb_chunks + ~10 for the rest; a runaway chain must stop
+// Measured 15 Sep 2026 (attempt 2 of 2026-09-15): ~10 kb_chunks pages per hop, so a full day is ~262
+// hops for kb_chunks + ~25 for the rest — v2's 300 left no room, and the hop count carries across a
+// resumed attempt. 900 still stops a runaway chain (~9 h of 36 s hops).
+const MAX_HOPS = 900;
 const PAGE = 1000;         // rows per page file (the RPC's cap); kb_chunks ~2.8 MB, ops_knowledge ~8.3 MB
 
-type Slot = { t: string; after: unknown; page: number; rows: number; since: string | null };
 type State = {
   stamp: string; kind: string; since: string | null; hop: number; bytes: number; queue: Slot[];
   tables: Record<string, { rows: number; pages: number; mode: string }>; errors: Record<string, string>;
 };
 
-async function retry<T>(what: string, f: () => Promise<T>): Promise<T> {
-  let last: unknown;
-  for (const wait of [0, 1000, 3000]) {
-    if (wait) await new Promise((r) => setTimeout(r, wait));
-    try { return await f(); } catch (e) { last = e; }
-  }
-  throw new Error(what + ': ' + errText(last));
-}
-
 async function upload(path: string, body: string) {
   await retry('upload ' + path, async () => {
     const { error } = await admin.storage.from('backups')
       .upload(path, new Blob([body], { type: 'application/json' }), { contentType: 'application/json', upsert: true });
-    if (error) throw new Error(error.message);
+    // deno-lint-ignore no-explicit-any
+    if (error) throw Object.assign(new Error(error.message), { status: Number((error as any).statusCode ?? (error as any).status) || undefined });
   });
+}
+
+// Every failed day is an it_engineer finding at once (duty 'table_export'); a finished day closes it.
+async function settle(stamp: string, failure: { table: string; error: string; cause: string } | null) {
+  const items = failure ? [{
+    item: 'day_failed', owner_seat: 'it_engineer', subject: 'table_backup', blast: 'agent_facing', affected: 1,
+    title: failure.cause === 'internal'
+      ? `The daily table export ${stamp} failed for an internal cause on ${failure.table}: ${failure.error}`.slice(0, 300)
+      : `The daily table export ${stamp} failed on ${failure.table} because the provider was unavailable: ${failure.error}`.slice(0, 300),
+    evidence: { stamp, table: failure.table, error: failure.error, cause: failure.cause },
+  }] : [];
+  const { error } = await admin.rpc('fn_it_duty_settle', { p_duty: 'table_export', p_items: items });
+  if (error) console.error('fn_it_duty_settle(table_export): ' + error.message);
 }
 
 // A table restarted on the same day must not keep an earlier attempt's pages beyond its new last page:
@@ -84,29 +100,19 @@ async function clearTable(stamp: string, t: string) {
 }
 
 // Returns true when the table is finished, false when the slice ran out mid-table (slot keeps the
-// exact resume point: the last key read and the next page number).
-async function exportSlot(st: State, slot: Slot, deadline: number): Promise<boolean> {
-  if (slot.page === 0 && slot.after == null) await clearTable(st.stamp, slot.t);
-  for (;;) {
-    if (Date.now() > deadline) return false;
-    // deno-lint-ignore no-explicit-any
-    const r: any = await retry(`${slot.t} page ${slot.page}`, async () => {
+// exact resume point: the last key read and the next page number). The loop is table_export_core.ts.
+function exportSlot(st: State, slot: Slot, deadline: number): Promise<boolean> {
+  return exportSlotCore(st.stamp, slot, deadline, {
+    now: Date.now,
+    clear: clearTable,
+    upload,
+    readPage: (s) => retry(`${s.t} page ${s.page}`, async () => {
       const { data, error } = await admin.rpc('fn_table_export_page',
-        { p_table: slot.t, p_after: slot.after ?? null, p_limit: PAGE, p_since: slot.since });
+        { p_table: s.t, p_after: s.after ?? null, p_limit: PAGE, p_since: s.since });
       if (error) throw new Error(error.message);
       return data;
-    });
-    const rows = Array.isArray(r?.rows) ? r.rows : [];
-    // An empty table (or an incremental day with no changes) still writes page_0000 containing [] —
-    // no page at all is indistinguishable from a missing backup.
-    if (rows.length || slot.page === 0) {
-      const json = JSON.stringify(rows);
-      await upload(`${st.stamp}/${slot.t}/page_${String(slot.page).padStart(4, '0')}.json`, json);
-      slot.page++; slot.rows += rows.length; st.bytes += json.length;
-    }
-    if (r?.done) return true;
-    slot.after = r.last;
-  }
+    }),
+  }, (n) => { st.bytes += n; });
 }
 
 async function finish(stamp: string, manifest: unknown, error: string | null) {
@@ -186,17 +192,32 @@ Deno.serve(async (req) => {
       return J({ ok: false, stamp, result: await finish(stamp, null, `chain exceeded ${MAX_HOPS} hops with ${st.queue.length} table(s) left`) });
     }
 
+    // A failing table stops the day where it stands: the slot stays at the head of the queue holding the
+    // refused page, is saved, and the next attempt resumes there (v2 used to shift it away and restart
+    // every table on the retry, re-uploading ~400 MB to meet the same page again).
+    let failure: { table: string; error: string; cause: string } | null = null;
     while (st.queue.length && Date.now() < deadline) {
       const slot = st.queue[0];
       try {
         if (!(await exportSlot(st, slot, deadline))) break;
         st.tables[slot.t] = { rows: slot.rows, pages: slot.page, mode: slot.since ? 'changes_since ' + slot.since : 'full' };
-      } catch (e) { st.errors[slot.t] = errText(e); }
+        delete st.errors[slot.t];
+      } catch (e) {
+        failure = { table: slot.t, error: errText(e), cause: e instanceof ExportError ? e.cause_ : 'internal' };
+        st.errors[slot.t] = `${failure.cause}: ${failure.error}`;
+        break;
+      }
       st.queue.shift();
     }
     st.hop++;
     const { error: se } = await admin.rpc('fn_table_export_save', { p_stamp: stamp, p_state: st });
     if (se) throw new Error('fn_table_export_save: ' + se.message);
+
+    if (failure) {
+      await settle(stamp, failure);
+      return J({ ok: false, stamp, failed: [failure.table], cause: failure.cause,
+        result: await finish(stamp, null, `${failure.table}: ${failure.cause}: ${failure.error}`) });
+    }
 
     if (st.queue.length) {
       const next = fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -218,8 +239,13 @@ Deno.serve(async (req) => {
       demo_excluded: 'rows marked ZZ DEMO, @example.invalid or is_demo, and rows of a demo customer, supplier, inquiry or quote',
       writer: 'supabase/functions/backup v2; rows read by public.fn_table_export_page' };
     await upload(`${stamp}/_manifest.json`, JSON.stringify(manifest, null, 2));
-    return J({ ok: true, stamp, kind: st.kind, tables: Object.keys(st.tables).length, result: await finish(stamp, manifest, null) });
+    const result = await finish(stamp, manifest, null);
+    // deno-lint-ignore no-explicit-any
+    if ((result as any)?.ok) await settle(stamp, null);
+    return J({ ok: true, stamp, kind: st.kind, tables: Object.keys(st.tables).length, result });
   } catch (e) {
+    const cause = e instanceof ExportError ? e.cause_ : 'internal';
+    await settle(stamp, { table: '(the chain)', error: errText(e), cause }).catch(() => {});
     try { await finish(stamp, null, errText(e)); } catch (_) { /* the stale heartbeat restarts the day */ }
     return J({ ok: false, stamp, error: errText(e) });
   }
