@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-14T23:10:24.866Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T00:07:26.190Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -51569,6 +51569,7 @@ declare
   v_stamp date := (now() at time zone 'Asia/Dubai')::date;
   v_run public.table_export_run;
   v_kind text; v_since timestamptz;
+  v_resume jsonb;
 begin
   if v_local::time < time '03:00' then
     return jsonb_build_object('due', false, 'stamp', v_stamp, 'reason', 'before 03:00 Asia/Dubai');
@@ -51595,14 +51596,22 @@ begin
   if v_run.attempts >= 6 then
     return jsonb_build_object('due', false, 'stamp', v_stamp, 'status', v_run.status, 'attempts', v_run.attempts, 'reason', 'gave up after 6 attempts');
   end if;
+  -- Resumable: a running chain that died between hops, or a failed day whose failing table is still at
+  -- the head of the saved queue (backup v3). A v2 failure shifted that table away: restart the day.
+  v_resume := case
+    when v_run.status = 'running' then v_run.state
+    when v_run.status = 'failed' and jsonb_typeof(v_run.state->'queue') = 'array'
+         and jsonb_array_length(v_run.state->'queue') > 0
+         and (v_run.state->'errors') ? (v_run.state->'queue'->0->>'t') then v_run.state
+  end;
   update public.table_export_run r
      set attempts = r.attempts + case when r.status = 'failed' then 1 else 0 end,
          status = 'running', heartbeat_at = now(),
-         state = case when r.status = 'failed' then null else r.state end
+         state = v_resume
    where r.stamp = v_stamp;
   return jsonb_build_object('due', true, 'stamp', v_stamp,
     'attempt', v_run.attempts + case when v_run.status = 'failed' then 1 else 0 end,
-    'resume', case when v_run.status = 'running' then v_run.state end,
+    'resume', v_resume,
     'kind', v_run.kind, 'since', v_run.since);
 end $function$
 
