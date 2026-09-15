@@ -59,12 +59,15 @@ const T = {
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
 
-export default function SupplierDocumentImpact({ token, lang = 'en', goTo }:
-  { token?: string | null; lang?: Lang; goTo?: (tab: string) => void }) {
-  const [d, setD] = useState<Impact | null>(null);
+// `initial` is the document_impact payload the dashboard call already carries (15 Sep 2026).
+export default function SupplierDocumentImpact({ token, lang = 'en', goTo, initial = null }:
+  { token?: string | null; lang?: Lang; goTo?: (tab: string) => void; initial?: Impact | null }) {
+  const [d, setD] = useState<Impact | null>(initial);
   const [err, setErr] = useState('');
 
+  useEffect(() => { if (initial) setD(initial); }, [initial]);
   useEffect(() => {
+    if (initial) return;
     let live = true;
     call('supplier_portal', { action: 'document_impact' }, token).then((j) => {
       if (!live) return;

@@ -1161,24 +1161,8 @@ function OpenSeal({ play, children }) {
   return <Seal open={open} className="qd-revealed !text-accent max-w-full">{children}</Seal>;
 }
 
-// A WINDOW OPENED AFTER AN AWAIT IS A POPUP. These buttons used to `await` the signed URL and only
-// then call window.open — by which time the click's user activation can have lapsed, and Safari and
-// strict popup settings drop the window silently: the customer presses the quotation and nothing
-// opens. The tab is now opened INSIDE the click, shows a one-line holding message, and is pointed
-// at the document when the URL arrives (or closed again if it does not). 14 Sep 2026, agent: ceo.
-async function openDocument(lang, fetchUrl) {
-  let w = null;
-  try { w = window.open('', '_blank'); } catch (_e) { w = null; }
-  if (w) { try { w.document.title = 'QuotesDone'; w.document.body.style.cssText = 'font:14px system-ui,sans-serif;padding:24px;color:#0c2330'; w.document.body.textContent = lang === 'ar' ? 'جارٍ تجهيز المستند…' : 'Preparing your document…'; } catch (_e) { /* cross-origin already */ } }
-  let url = null;
-  try { url = await fetchUrl(); } catch (_e) { url = null; }
-  if (url) {
-    if (w && !w.closed) { try { w.opener = null; } catch (_e) { /* */ } w.location.replace(url); } else window.open(url, '_blank', 'noopener');
-    return true;
-  }
-  if (w && !w.closed) w.close();
-  return false;
-}
+// A window opened after an await is a popup: see src/lib/openDocument.ts (shared with the supplier portal).
+import { openDocument } from '@/lib/openDocument';
 // THIS quote's own PDF, by id, in the customer's language — and the other language one click away:
 // the English document always exists and the Arabic one is always offered (founder, 14 Sep 2026).
 function QuotePdfLink({ q, token, lang }) {

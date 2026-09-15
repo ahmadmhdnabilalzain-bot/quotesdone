@@ -16,6 +16,15 @@ import { SpecHoldPanel } from './supplier/SpecHold';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_CODES, tradeLabel } from './supplier/serverCopy';
 import { call } from './supplier/api';
+import { openDocument } from '@/lib/openDocument';
+import { Bell } from 'lucide-react';
+// THE DASHBOARD'S FIRST READ STARTS WITH THE TOKEN (15 Sep 2026), the way the customer portal's does
+// (me/prefetch.ts): the moment a token is known the combined `dashboard` call is started, and Dashboard's
+// first load takes that promise instead of asking again. Every later load asks the server fresh.
+import { warm, take } from '@/components/me/prefetch';
+const DASH_KEY = 'sup_dash';
+const fetchDashboard = (tk) => call('supplier_portal', { action: 'dashboard' }, tk);
+const warmSupplier = (tk) => warm(tk, DASH_KEY, () => fetchDashboard(tk));
 import { uaeMobile } from './supplier/uaeMobile';
 import { WhatsAppChoice } from './WhatsAppChoice';
 import { waSignupSettled, waNeedsPrompt } from './whatsappChoiceText';
@@ -174,7 +183,42 @@ function BillingPanel({ token, lang, receipt }) {
       <div className={cn(S.sub, 'mt-3')}>{t(lang, 'bill_secure')}</div>
     </Card>
   );
-  return <div className={S.list}>{receipt ? <ReceiptBanner receipt={receipt} lang={lang} /> : null}{dues}<RegistrationFeeCard token={token} lang={lang} base={base} /></div>;
+  return <div className={S.list}>{receipt ? <ReceiptBanner receipt={receipt} lang={lang} /> : null}{dues}<Receipts token={token} lang={lang} /><RegistrationFeeCard token={token} lang={lang} base={base} /></div>;
+}
+// A supplier's own document as PDF (supplier_api quote_pdf / receipt_pdf, 15 Sep 2026): the portal's
+// language first and the other language one click away, through the same popup-safe door the customer's
+// quotation uses (src/lib/openDocument.ts).
+function PdfLinks({ lang, fetchPdf }) {
+  const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  const mine = lang === 'ar' ? 'ar' : 'en'; const other = mine === 'ar' ? 'en' : 'ar';
+  const open = (docLang) => async (e) => {
+    e.stopPropagation(); setBusy(docLang); setMsg('');
+    const ok = await openDocument(lang, async () => { const j = await fetchPdf(docLang); return j && j.ok && j.url ? j.url : null; });
+    setBusy(''); if (!ok) setMsg(lang === 'ar' ? 'تعذّر تجهيز المستند. حاول مرة أخرى.' : 'The document could not be prepared. Please try again.');
+  };
+  const prep = lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…';
+  return (<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+    <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(mine)}>{busy === mine ? prep : (mine === 'ar' ? 'تنزيل PDF' : 'Download PDF')}</button>
+    <button type="button" lang={other} className="inline-flex min-h-11 items-center text-muted-foreground underline underline-offset-2 text-[11.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(other)}>{busy === other ? prep : (other === 'ar' ? 'النسخة العربية' : 'English version')}</button>
+    {msg ? <span role="alert" className="text-[12px] text-danger-fg">{msg}</span> : null}
+  </span>);
+}
+// Receipts for the dues this supplier has paid (supplier_api receipts). Nothing paid, nothing shown.
+function Receipts({ token, lang }) {
+  const ar = lang === 'ar';
+  const [list, setList] = useState([]);
+  useEffect(() => { let live = true; call('supplier_api', { action: 'receipts' }, token).then((j) => { if (live) setList((j && j.ok && j.receipts) || []); }).catch(() => {}); return () => { live = false; }; }, [token]);
+  if (!list.length) return null;
+  return (
+    <Card className="qd-panel p-5">
+      <div className={S.h2}>{ar ? 'إيصالات الدفع' : 'Payment receipts'}</div>
+      <ul className="mt-3 flex flex-col gap-2">{list.map((r) => (
+        <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-[13.5px]">
+          <span><Ltr className="font-semibold tabular-nums">{aed(r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
+          <PdfLinks lang={lang} fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', due_id: r.id, lang: l }, token)} />
+        </li>))}</ul>
+    </Card>
+  );
 }
 
 // pdf.js is the bundled pdfjs-dist the customer portal uses (me/pdfRaster.ts), not a runtime script
@@ -617,8 +661,8 @@ export function SupplierPortal() {
       }
     } catch (_e) {}
     try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
-    try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
-    try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {}); } catch (_e) {}
+    try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { warmSupplier(tk); setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
+    try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} warmSupplier(ss.access_token); setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {}); } catch (_e) {}
     // THE HOUR MARK (14 Sep 2026). supabase-js refreshes the access token on schedule, and nothing here
     // listened — the customer portal learned this on 13 Aug; the supplier portal still sent the token
     // captured at mount, so after 60 minutes every tab answered "Something went wrong". One listener,
@@ -633,7 +677,7 @@ export function SupplierPortal() {
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
-  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
+  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401 from the dashboard: try the stored refresh token once, and only if that fails send the
   // supplier back to sign-in — never leave them on a retry button that cannot succeed.
@@ -841,6 +885,34 @@ function ReacceptTerms({ token, lang, me, onDone }) {
     </div>
   );
 }
+// THE BELL (15 Sep 2026). One list of what is waiting for this supplier, fed by what the dashboard call
+// already carries: unread customer messages, quotes held for exact details, and the overview alerts
+// (new RFQs, draft quotes, expiring documents). Each item opens the tab where it is dealt with. A native
+// <details> is the popover: it opens with the keyboard and closes on a second press with no script.
+function NotificationBell({ ov, lang, go }) {
+  const ar = lang === 'ar'; const n = ov.notifications || {};
+  const msgs = n.unread_messages || 0; const holds = n.spec_holds || 0; const alerts = ov.alerts || [];
+  const items = [
+    msgs ? { k: 'm', tab: 'messages', text: ar ? `${msgs} ${msgs === 1 ? 'رسالة غير مقروءة' : 'رسائل غير مقروءة'} من العملاء` : `${msgs} unread customer message${msgs > 1 ? 's' : ''}` } : null,
+    holds ? { k: 'h', tab: 'quotes', text: ar ? `${holds} ${holds === 1 ? 'عرض محجوز' : 'عروض محجوزة'} بانتظار تفاصيل دقيقة` : `${holds} quote${holds > 1 ? 's' : ''} held for exact details` } : null,
+    ...alerts.map((a, i) => ({ k: 'a' + i, tab: a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs', text: itemCopy(lang, a).title })),
+  ].filter(Boolean);
+  const label = ar ? `الإشعارات (${items.length})` : `Notifications (${items.length})`;
+  return (
+    <details className="relative">
+      <summary aria-label={label} title={label} className="relative inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <Bell aria-hidden className="h-[18px] w-[18px]" />
+        {items.length ? <span aria-hidden className="absolute -top-1 -end-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{items.length}</span> : null}
+      </summary>
+      <div className="qd-panel absolute end-0 z-20 mt-2 w-[min(320px,calc(100vw-32px))] p-1.5">
+        {items.length ? <ul>{items.map((it) => (
+          <li key={it.k}><button type="button" className="block w-full rounded-md px-3 py-2.5 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(it.tab); }}>{it.text}</button></li>))}</ul>
+          : <div className="px-3 py-2.5 text-[13px] text-muted-foreground">{ar ? 'لا شيء جديد.' : 'Nothing new.'}</div>}
+      </div>
+    </details>
+  );
+}
 function Dashboard({ token, lang, onExpired }) {
   const ar = lang === 'ar';
   const [ov, setOv] = useState(null); const [tab, setTab] = useState('overview'); const [err, setErr] = useState('');
@@ -854,8 +926,14 @@ function Dashboard({ token, lang, onExpired }) {
   // Which agreement version this supplier accepted, against the live one (supplier_api me).
   const [me, setMe] = useState(null);
   useEffect(() => { call('supplier_api', { action: 'me' }, token).then((j) => setMe((j && j.supplier) || null)).catch(() => {}); }, [token]);
-  const load = async () => { const j = await call('supplier_portal', { action: 'overview' }, token); if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
-  useEffect(() => { load(); }, [token]);
+  // ONE call (supplier_portal `dashboard`): stats, alerts, eligibility, document impact and the bell's
+  // counts. It was three, the second wave starting only after the first rendered. `first` takes the
+  // request warmSupplier started with the token; every later load asks fresh.
+  const load = async (first = false) => { const j = await (first ? take(token, DASH_KEY, () => fetchDashboard(token)) : fetchDashboard(token)); if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
+  useEffect(() => { load(true); }, [token]);
+  // The unread count is read again on leaving Messages, so the badge drops once the thread was read.
+  const prevTab = useRef(tab);
+  useEffect(() => { if (prevTab.current === 'messages' && tab !== 'messages') load(); prevTab.current = tab; }, [tab]);
   useEffect(() => {
     // Stripe's return (see ReceiptBanner). Read once, then removed so a reload does not re-announce it.
     try {
@@ -881,6 +959,7 @@ function Dashboard({ token, lang, onExpired }) {
   if (needsReaccept(me)) return <ReacceptTerms token={token} lang={lang} me={me} onDone={() => setMe({ ...me, accepted_terms_version: me.terms_current })} />;
   if (!ov) return <div className={S.center} aria-busy="true">{t(lang, 'loading_dash')}</div>;
   const s = ov.stats || {}; const pp = s.price_positioning || {};
+  const unread = (ov.notifications && ov.notifications.unread_messages) || 0;
   const TAB = { overview: ar ? 'احصل على المطابقة' : 'Get matched', rfqs: t(lang, 't_rfqs'), quotes: t(lang, 't_quotes'), projects: t(lang, 't_projects'), messages: t(lang, 't_messages'), documents: t(lang, 't_documents'), billing: t(lang, 't_billing'), insights: t(lang, 't_insights'), profile: t(lang, 't_profile'), scope: t(lang, 't_scope'), settings: t(lang, 't_settings') };
   const stBadge = (() => {
     // AUDIT 6.5(d): action_required is NOT pending — a clock is running that ends in rejection.
@@ -898,7 +977,7 @@ function Dashboard({ token, lang, onExpired }) {
       {waPrompt && <div className="mb-5"><WhatsAppChoice token={token} lang={lang} mode="prompt" current={waPrompt.whatsapp} mobile={waPrompt.phone} onDone={() => setWaPrompt(null)} /></div>}
       <div className="mb-5 flex flex-col gap-3">
         <div>
-          <Kicker>{t(lang, 'brand_sub')}</Kicker>
+          <div className="flex items-center justify-between gap-3"><Kicker>{t(lang, 'brand_sub')}</Kicker><NotificationBell ov={ov} lang={lang} go={go} /></div>
           <h1 dir="auto" className="mt-2.5 font-head text-[24px] sm:text-[30px] font-semibold tracking-snug text-foreground">{ov.supplier.company_name}</h1>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {stBadge}
@@ -913,7 +992,7 @@ function Dashboard({ token, lang, onExpired }) {
             It wraps now, and every control is at least 44px tall for a thumb. */}
         <nav aria-label={t(lang, 'main_nav')}>
           <div className={cn(S.tabsWrap, 'flex')}>
-            {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : TAB[k]}</button>)}
+            {MAIN_TABS.map((k) => <button key={k} type="button" aria-current={tab === k ? 'page' : undefined} className={cn(S.tab, 'min-h-11 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', tab === k && S.tabOn)} onClick={() => setTab(k)}>{k === 'rfqs' ? TAB.rfqs + (ov.active_matches ? ' (' + ov.active_matches + ')' : '') : k === 'messages' && unread ? <>{TAB[k]} <span className="ms-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground tabular-nums">{unread}</span><span className="sr-only">{ar ? ' رسائل غير مقروءة' : ' unread'}</span></> : TAB[k]}</button>)}
           </div>
         </nav>
         <nav aria-label={t(lang, 'account')} className="flex flex-wrap items-center gap-x-4 text-[13px]">
@@ -924,9 +1003,9 @@ function Dashboard({ token, lang, onExpired }) {
       <SupplierCommandPalette tabs={[...MAIN_TABS, ...ACCOUNT_TABS]} labels={TAB} onGo={go} lang={lang} />
       {tab === 'overview' && <>
         {!!(ov.alerts || []).length && <div className="flex flex-col gap-2 mb-4">{ov.alerts.map((a, i) => { const c = itemCopy(lang, a); return <button key={i} type="button" className="qd-panel qd-panel-hover w-full text-start px-4 py-3.5 cursor-pointer flex items-start gap-3" onClick={() => setTab(a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs')}><span aria-hidden className={cn('mt-[7px] h-2 w-2 rounded-full shrink-0', a.severity === 'high' ? 'bg-danger' : a.severity === 'medium' ? 'bg-warn' : 'bg-primary')} /><span className="flex flex-col gap-0.5 min-w-0"><b className="text-[13.5px] text-foreground">{c.title}</b><span className="text-muted-foreground text-xs leading-[1.6]">{c.detail}</span></span></button>; })}</div>}
-        <GetMatched token={token} lang={lang} go={go} />
+        <GetMatched token={token} lang={lang} go={go} initial={ov.eligibility || null} />
         {/* Counts come from fn_supplier_document_impact: open enquiries in this trade, not an estimate. */}
-        <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={go} /></div>
+        <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={go} initial={ov.document_impact || null} /></div>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2.5 mb-4">
           <Kpi label={t(lang, 'k_quotes_sent')} v={s.quotes_total ?? 0} />
           <Kpi label={t(lang, 'k_reveals')} v={s.reveals ?? 0} />
@@ -1023,7 +1102,8 @@ function MyQuotes({ token, lang, goRfqs, openRfq }) {
           <div className="mt-1 flex flex-wrap gap-2 items-center"><Badge variant={st.v}>{ar ? st.ar : st.en}</Badge>{i.you_won ? <Badge variant="ok">{t(lang, 'you_won').replace(' · ', '')}</Badge> : i.concluded ? <Badge variant="secondary">{t(lang, 'concluded').replace(' · ', '')}</Badge> : null}{q.lead_time ? <span className={S.sub}>{(ar ? 'مدة التنفيذ: ' : 'Lead time: ') + q.lead_time}</span> : null}</div>
         </button>
         <div className="text-end"><div className="font-[family-name:var(--font-head)] text-[18px] font-extrabold tabular-nums text-foreground"><Ltr>{aed(q.quote_amount)}</Ltr></div>
-          {editable && q.status !== 'draft' ? <Button size="sm" variant="outline" className="mt-1" onClick={() => openRfq(i.id)}>{ar ? 'عدّل العرض' : 'Edit quote'}</Button> : null}</div>
+          {editable && q.status !== 'draft' ? <Button size="sm" variant="outline" className="mt-1" onClick={() => openRfq(i.id)}>{ar ? 'عدّل العرض' : 'Edit quote'}</Button> : null}
+          {q.id ? <div className="mt-1"><PdfLinks lang={lang} fetchPdf={(l) => call('supplier_api', { action: 'quote_pdf', quote_id: q.id, lang: l }, token)} /></div> : null}</div>
       </div>
       {q.status === 'draft' && editable ? <HeldNotes q={q} lang={lang} token={token} onChanged={load} onFix={() => openRfq(i.id)} /> : null}
     </Card></li>); })}</ul>;
