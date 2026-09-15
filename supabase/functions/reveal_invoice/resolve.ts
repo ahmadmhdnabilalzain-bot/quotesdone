@@ -45,3 +45,13 @@ export async function resolveInvoice(deps: ResolveDeps, email: string, quoteId: 
   // No Stripe invoice for this sale (paid before invoice_creation was on): the QuotesDone receipt.
   return { status: 200, fallback: true, sale };
 }
+
+// ONE INVOICE PER SALE (15 Sep 2026, agent: accountant). Stripe's invoice is the only invoice; the
+// QuotesDone document is a RECEIPT with no number series of its own. It cites the Stripe invoice
+// number when the sale has one, and otherwise (a sale paid before invoicing was on) only the payment
+// reference printed on it. Until this date the receipt carried a second, QuotesDone-made invoice
+// number derived from the transaction id, so one payment could hold two invoice numbers.
+export function receiptCitation(sale: Pick<Sale, 'id' | 'stripe_invoice_number'>): { invoiceNo: string | null; fileName: string } {
+  const n = String(sale.stripe_invoice_number || '').trim();
+  return { invoiceNo: n || null, fileName: 'receipt-' + String(sale.id).replace(/-/g, '').slice(0, 8).toUpperCase() };
+}
