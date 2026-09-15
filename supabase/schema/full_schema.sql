@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T07:52:46.883Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T09:13:47.244Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3533,7 +3533,9 @@ CREATE TABLE IF NOT EXISTS public.it_expiry (
   route text NOT NULL,
   source text NOT NULL,
   checked_at timestamp with time zone DEFAULT now() NOT NULL,
-  warn_days integer[] DEFAULT '{60,30}'::integer[] NOT NULL
+  warn_days integer[] DEFAULT '{60,30}'::integer[] NOT NULL,
+  secret_fingerprint text,
+  secret_seen_since timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.it_hold_signature (
@@ -9301,8 +9303,8 @@ CREATE OR REPLACE VIEW public.finance_kpis AS  WITH rr AS (
              JOIN gl_accounts ga ON ((ga.code = l.account_code)))
           WHERE (j.entry_date >= (CURRENT_DATE - 30))
         ), ar AS (
-         SELECT COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE (supplier_dues.status <> ALL (ARRAY['paid'::text, 'waived'::text]))), (0)::numeric) AS ar_outstanding,
-            COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE ((supplier_dues.status <> ALL (ARRAY['paid'::text, 'waived'::text])) AND (supplier_dues.due_date_30 < CURRENT_DATE))), (0)::numeric) AS ar_overdue,
+         SELECT COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE fn_supplier_due_is_owed(supplier_dues.status, supplier_dues.paid_at)), (0)::numeric) AS ar_outstanding,
+            COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE (fn_supplier_due_is_owed(supplier_dues.status, supplier_dues.paid_at) AND (supplier_dues.due_date_30 < CURRENT_DATE))), (0)::numeric) AS ar_overdue,
             COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE (supplier_dues.status = 'paid'::text)), (0)::numeric) AS ar_collected
            FROM supplier_dues
         ), ap AS (
@@ -10465,7 +10467,7 @@ CREATE OR REPLACE VIEW public.v_accountant_recovery_ledger AS  WITH p AS (
     d.due_date,
         CASE
             WHEN ((d.paid_at IS NOT NULL) OR (COALESCE(d.status, ''::text) = 'paid'::text)) THEN 'paid'::text
-            WHEN (COALESCE(d.status, ''::text) = ANY (ARRAY['settled'::text, 'waived'::text, 'cancelled'::text])) THEN d.status
+            WHEN (NOT fn_supplier_due_is_owed(d.status, d.paid_at)) THEN d.status
             WHEN (d.grievance_filed_on IS NOT NULL) THEN 'grievance_filed'::text
             WHEN (d.payment_order_served_on IS NOT NULL) THEN 'order_served'::text
             WHEN (d.payment_order_issued_on IS NOT NULL) THEN 'order_issued'::text
@@ -10496,7 +10498,8 @@ CREATE OR REPLACE VIEW public.v_accountant_recovery_ledger AS  WITH p AS (
     d.case_file_path,
     d.paid_at,
     'docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md; the documents are rendered by supabase/functions/_shared/supplier_charge_documents.ts'::text AS legal_pack,
-    '9% a year simple interest on the refund plus the AED 250 fee, from the due date, never compounded (CTL Arts 73, 86, 88; Supplier Agreement clauses 31 and 33)'::text AS interest_rule
+    '9% a year simple interest on the refund plus the AED 250 fee, from the due date, never compounded (CTL Arts 73, 86, 88; Supplier Agreement clauses 31 and 33)'::text AS interest_rule,
+    fn_supplier_due_is_owed(d.status, d.paid_at) AS owed
    FROM ((supplier_dues d
      LEFT JOIN leads l ON ((l.id = d.supplier_id)))
      CROSS JOIN p);
@@ -13498,7 +13501,7 @@ begin
 
   for d in select s.*, l.company_name, coalesce(l.is_demo, false) demo, l.accepted_terms_version agreement_version
              from public.supplier_dues s join public.leads l on l.id = s.supplier_id
-            where s.paid_at is null and coalesce(s.status, '') not in ('paid', 'settled', 'waived', 'cancelled')
+            where public.fn_supplier_due_is_owed(s.status, s.paid_at)
               and coalesce(s.legal_stage, '') not like 'outcome:%'
             order by s.id loop
     v_days := v_as_of - d.due_date;
@@ -13929,7 +13932,7 @@ AS $function$
     select coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date) - due_date days,
            coalesce(total_claim, amount_due + coalesce(admin_fee, 0) + coalesce(interest_amount, 0)) owed, legal_stage
       from public.supplier_dues
-     where paid_at is null and coalesce(status, '') not in ('paid', 'settled', 'waived', 'cancelled'))
+     where public.fn_supplier_due_is_owed(status, paid_at))
   select jsonb_build_object(
     'not_yet_due', jsonb_build_object('n', count(*) filter (where days < 0), 'aed', coalesce(sum(owed) filter (where days < 0), 0)),
     'd0_30',  jsonb_build_object('n', count(*) filter (where days between 0 and 30),  'aed', coalesce(sum(owed) filter (where days between 0 and 30), 0)),
@@ -14463,7 +14466,7 @@ begin
     into v_aging
     from (select v_e - due_date d, coalesce(total_claim, amount_due + coalesce(admin_fee, 0) + coalesce(interest_amount, 0)) owed
             from public.supplier_dues
-           where paid_at is null and coalesce(status, '') not in ('paid', 'settled', 'waived', 'cancelled')) z;
+           where public.fn_supplier_due_is_owed(status, paid_at)) z;
 
   v_out := jsonb_build_object(
     'month', to_char(v_m, 'YYYY-MM'), 'from', v_m, 'to', v_e, 'timezone', 'Asia/Dubai',
@@ -15058,7 +15061,7 @@ begin
   if p_on is null or p_on > v_today then raise exception 'a court step is recorded on the day it happened, not before it (got %)', p_on; end if;
   select * into d from public.supplier_dues where id = p_due_id for update;
   if not found then raise exception 'no supplier due %', p_due_id; end if;
-  if d.paid_at is not null or coalesce(d.status, '') in ('paid', 'settled', 'waived', 'cancelled') then
+  if not public.fn_supplier_due_is_owed(d.status, d.paid_at) then
     raise exception 'due % is closed (%); nothing more is recorded against it', p_due_id, coalesce(d.status, 'paid');
   end if;
   select * into r from public.v_accountant_recovery_ledger where due_id = p_due_id;
@@ -15134,8 +15137,8 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_recovery_position()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select jsonb_build_object(
-    'open_claims', count(*) filter (where stage not in ('paid', 'settled', 'waived', 'cancelled')),
-    'open_aed', coalesce(sum(claim_aed) filter (where stage not in ('paid', 'settled', 'waived', 'cancelled')), 0),
+    'open_claims', count(*) filter (where owed),
+    'open_aed', coalesce(sum(claim_aed) filter (where owed), 0),
     'in_court', count(*) filter (where stage in ('filed', 'order_issued', 'order_served', 'grievance_filed')),
     'by_stage', coalesce((select jsonb_object_agg(stage, n) from (select stage, count(*) n from public.v_accountant_recovery_ledger
                                                                    where not demo group by stage) s), '{}'::jsonb),
@@ -17878,16 +17881,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17913,6 +17906,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -18624,6 +18627,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19139,135 +19271,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -21408,8 +21411,7 @@ begin
            l.accepted_terms_at, l.accepted_terms_version, l.signed_terms_path, l.banned
     from public.supplier_dues d
     join public.leads l on l.id = d.supplier_id
-    where d.paid_at is null
-      and coalesce(d.status,'') not in ('paid','settled','waived','cancelled')
+    where public.fn_supplier_due_is_owed(d.status, d.paid_at)
       and coalesce(d.amount_due,0) > 0
       and d.due_date is not null
       and current_date >= (d.due_date::date + v_days)
@@ -25412,82 +25414,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_control_mode_require(p_actor_email text, p_action text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-declare v_class text; v_s record;
-begin
-  -- AUDIT 8.3 TIER 0. Phase 1 rolled back to observe-only. Still audited, deliberately: during an
-  -- incident, the record of what was done under the relaxed control is the most valuable thing here.
-  if public.fn_phase1_disarmed() then
-    insert into public.control_mode_audit (actor_email, event, action, allowed, reason)
-    values (p_actor_email, 'action_allowed_phase1_disarmed', p_action, true,
-            'Phase 1 Control Mode is disarmed - see public.phase1_rollback_log for who disarmed it and why');
-    return jsonb_build_object('allowed', true, 'mode', 'disarmed',
-      'reason', 'Phase 1 Control Mode is disarmed (rollback tier 0)');
-  end if;
-
-  select classification into v_class from public.control_mode_action where action = p_action;
-
-  -- FAIL CLOSED. An action nobody classified is an action nobody thought about, and the cost of
-  -- being wrong is asymmetric: refusing a read is an inconvenience, allowing an unreviewed mutation
-  -- is the incident. The refusal is audited so the missing classification is discoverable.
-  if v_class is null then
-    insert into public.control_mode_audit (actor_email, event, action, allowed, reason)
-    values (p_actor_email, 'action_unclassified', p_action, false, 'action is not in control_mode_action');
-    return jsonb_build_object(
-      'allowed', false, 'mode', 'observe', 'error', 'action_classification_required',
-      'message', 'This action has not been classified as read-only or mutating, so it is refused. '
-              || 'Classify it in control_mode_action (and in os_api ACTION_CLASS) before using it.');
-  end if;
-
-  if v_class = 'read_only' then
-    return jsonb_build_object('allowed', true, 'mode', 'observe', 'reason', 'action is registered read-only');
-  end if;
-
-  if v_class = 'mode_control' then
-    return jsonb_build_object('allowed', true, 'mode', 'observe', 'reason', 'Control Mode plumbing; handled before the gate');
-  end if;
-
-  -- FOUNDER-GATED (15 Aug 2026, reworded 9 Sep 2026). The founder's own command channel. It
-  -- writes, so it is audited exactly like a Control Mode action; it is not gated by Control Mode,
-  -- because the identity check inside fn_founder_command_submit is the control, and it is a
-  -- stronger one than a fifteen-minute session -- a stolen admin session is not the founder.
-  --
-  -- NOTHING EXECUTABLE CHANGED HERE on 9 Sep 2026. This branch never read a phase table; only this
-  -- comment and the audit reason below named the founder-identity register, which is deleted in
-  -- this sweep. Both now name the routine that actually enforces the identity.
-  if v_class = 'founder_gated' then
-    insert into public.control_mode_audit (actor_email, event, action, allowed, reason)
-    values (p_actor_email, 'action_allowed_founder_gated', p_action, true,
-            'founder-identity gated: writes a work plan only, and fn_founder_command_submit refuses a caller it does not recognise');
-    return jsonb_build_object('allowed', true, 'mode', 'founder',
-      'reason', 'founder-identity gated; Control Mode does not apply to the founder''s own command channel');
-  end if;
-
-  select * into v_s from public.control_mode_session
-   where actor_email = p_actor_email and closed_at is null and expires_at > now()
-   order by opened_at desc limit 1;
-
-  if not found then
-    insert into public.control_mode_audit (actor_email, event, action, allowed, reason)
-    values (p_actor_email, 'action_denied', p_action, false, 'no active Control Mode session');
-    return jsonb_build_object('allowed', false, 'mode', 'observe', 'error', 'control_mode_required',
-      'message', 'This changes something, so it needs Control Mode. Open it with a code sent to your phone, and say why.');
-  end if;
-
-  update public.control_mode_session set actions_used = actions_used + 1 where id = v_s.id;
-  insert into public.control_mode_audit (actor_email, event, action, session_id, allowed, reason)
-  values (p_actor_email, 'action_allowed', p_action, v_s.id, true, v_s.reason);
-
-  return jsonb_build_object('allowed', true, 'mode', 'control', 'session_id', v_s.id, 'reason', v_s.reason,
-                            'seconds_remaining', greatest(0, extract(epoch from (v_s.expires_at - now()))::int));
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_control_mode_session_mfa_is_real()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -28512,6 +28438,40 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_e text; v_pat record; v_dom text;
+begin
+  v_e := lower(btrim(coalesce(p_email,'')));
+  if v_e = '' then
+    return jsonb_build_object('ok', false, 'reason', 'no address');
+  end if;
+  if v_e !~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$' then
+    return jsonb_build_object('ok', false, 'reason', 'not a valid address shape');
+  end if;
+  if exists (select 1 from email_suppressions s where lower(s.email) = v_e) then
+    return jsonb_build_object('ok', false, 'reason', 'suppressed');
+  end if;
+  v_dom := split_part(v_e, '@', 2);
+  if exists (select 1 from email_domain_mx m
+              where m.domain = v_dom and m.has_mx = false
+                and m.kind in ('nxdomain','no_records')) then
+    return jsonb_build_object('ok', false, 'reason', 'domain does not accept mail');
+  end if;
+  for v_pat in select pattern, reason from email_block_pattern where active loop
+    if v_e ~ v_pat.pattern then
+      return jsonb_build_object('ok', false, 'reason', v_pat.reason);
+    end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'reason', 'sendable');
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_emit(p_event_type text, p_entity_type text, p_entity_id text, p_actor text DEFAULT 'system'::text, p_payload jsonb DEFAULT '{}'::jsonb)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -30398,7 +30358,7 @@ AS $function$
   ),
   hz as (
     select h,
-      (select coalesce(sum(amount_due),0) from supplier_dues where status not in ('paid','waived') and coalesce(due_date_30,reveal_date+30) <= current_date + h) as ar_in,
+      (select coalesce(sum(amount_due),0) from supplier_dues where public.fn_supplier_due_is_owed(status, paid_at) and coalesce(due_date_30,reveal_date+30) <= current_date + h) as ar_in,
       (select coalesce(sum(balance_due),0) from ap_open_bills where coalesce(due_date, bill_date) <= current_date + h) as ap_out
     from (values (30),(60),(90)) v(h)
   )
@@ -31171,7 +31131,9 @@ declare d numeric(18,2); c numeric(18,2); n int; st text;
 begin
   select status into st from public.gl_journal where id=p_journal;
   if st is null then raise exception 'journal % not found', p_journal; end if;
-  if st='posted' then return p_journal; end if;
+  if st is distinct from 'draft' then
+    raise exception 'journal % is %; only a draft can be posted (a posted journal is corrected with fn_gl_reverse, and a void one is terminal)', p_journal, st;
+  end if;
   select coalesce(sum(debit),0), coalesce(sum(credit),0), count(*) into d,c,n from public.gl_journal_lines where journal_id=p_journal;
   if n < 2 then raise exception 'journal % needs at least 2 lines', p_journal; end if;
   if d <> c then raise exception 'journal % out of balance: debits % <> credits %', p_journal, to_char(d,'FM999999990.00'), to_char(c,'FM999999990.00'); end if;
@@ -31345,7 +31307,7 @@ begin
            coalesce(reveal_date, created_at::date, current_date) as d
     from public.supplier_dues
     where coalesce(amount_due,0) > 0
-      and coalesce(status,'') not in ('waived','cancelled','reversed')
+      and coalesce(status,'') not in ('waived','cancelled','reversed','void')
       and not exists (select 1 from public.gl_journal g where g.source='commission_accrue' and g.source_ref=supplier_dues.id::text)
       and public.fn_gl_fixture_or_orphan(supplier_dues.transaction_id, coalesce(supplier_dues.supplier_id, -1), null) is null
   loop
@@ -31480,7 +31442,7 @@ begin
                  round(coalesce(d.total_claim, d.amount_due), 2) as amount,
                  public.fn_gl_fixture_or_orphan(d.transaction_id, coalesce(d.supplier_id, -1), null) as why
             from public.supplier_dues d
-           where coalesce(d.amount_due, 0) > 0 and coalesce(d.status, '') not in ('waived', 'cancelled', 'reversed')
+           where coalesce(d.amount_due, 0) > 0 and coalesce(d.status, '') not in ('waived', 'cancelled', 'reversed', 'void')
           union all
           select 'transactions:' || t.id, 'transactions', t.id::text,
                  round(coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0), 2),
@@ -32771,10 +32733,13 @@ CREATE OR REPLACE FUNCTION public.fn_it_credential_reverify()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r public.it_credential_rotation; o public.internal_credential; n public.internal_credential;
-        v_items jsonb := '[]'::jsonb; n_ret int := 0; n_held int := 0;
+        v_items jsonb := '[]'::jsonb; n_ret int := 0; n_held int := 0; v_overlap interval; v_cadence interval;
 begin
-  for r in select * from public.it_credential_rotation where status in ('overlap', 'held') order by id loop
-    select * into o from public.internal_credential where id = r.old_id;
+  v_overlap := make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int);
+  v_cadence := coalesce((select every from public.it_duty_schedule where duty = 'rotation'), interval '1 day');
+  for r in select * from public.it_credential_rotation where status in ('overlap', 'held') order by id for update loop
+    -- Locked, so a use of the old credential between this read and the retire cannot be missed.
+    select * into o from public.internal_credential where id = r.old_id for update;
     select * into n from public.internal_credential where id = r.new_id;
     if o.last_used_at is null or o.last_used_at < r.rotated_at then
       if now() >= r.overlap_until then
@@ -32784,8 +32749,9 @@ begin
         n_ret := n_ret + 1;
       end if;
     elsif now() >= r.overlap_until then
-      update public.internal_credential set expires_at = now() + (r.overlap_until - r.rotated_at) where id = r.old_id;
-      update public.it_credential_rotation set status = 'held', overlap_until = now() + (r.overlap_until - r.rotated_at),
+      -- Still presented after the rotation: keep it valid past the NEXT run, which decides again.
+      update public.internal_credential set expires_at = now() + v_overlap + 2 * v_cadence where id = r.old_id;
+      update public.it_credential_rotation set status = 'held', overlap_until = now() + v_overlap,
              note = 'old credential still used by ' || coalesce(o.last_function, '?') || ' at ' || o.last_used_at where id = r.id;
       v_items := v_items || jsonb_build_object('item', r.context, 'subject', o.last_function,
         'title', 'After rotating ' || r.context || ', ' || coalesce(o.last_function, 'a caller') || ' still presents the old credential',
@@ -32796,7 +32762,8 @@ begin
     end if;
   end loop;
   return jsonb_build_object('retired', n_ret, 'held', n_held,
-                            'settle', public.fn_it_duty_settle('rotation', v_items));
+                            'settle', public.fn_it_duty_settle('rotation', v_items),
+                            'key_age', public.fn_it_key_age_refresh());
 end $function$
 
 
@@ -32806,7 +32773,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_credential_rotate(p_id bigint)
  SECURITY DEFINER
  SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
-declare c public.internal_credential; v_key text; v_secret text; v_new bigint; v_overlap interval;
+declare c public.internal_credential; v_key text; v_secret text; v_new bigint; v_overlap interval; v_cadence interval;
 begin
   select * into c from public.internal_credential where id = p_id and active and retired_at is null for update;
   if not found then raise exception 'fn_it_credential_rotate: no active credential %', p_id; end if;
@@ -32816,16 +32783,22 @@ begin
     raise exception 'fn_it_credential_rotate: % has no app_secrets key %, so no caller would receive a new secret', c.context, v_key;
   end if;
   v_overlap := make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int);
+  v_cadence := coalesce((select every from public.it_duty_schedule where duty = 'rotation'), interval '1 day');
   v_secret := encode(extensions.gen_random_bytes(32), 'hex');
   insert into public.internal_credential (context, label, secret_hash, scope, is_legacy, active, rotated_at, expires_at)
   values (c.context, c.label, public.fn_internal_credential_hash(v_secret), c.scope, false, true, now(),
           now() + make_interval(days => (coalesce(public.fn_it_threshold('credential_rotate_days'), 90) + 30)::int))
   returning id into v_new;
+  -- Every caller reads this key at call time, so this one write moves them all to the new secret.
   update public.app_secrets set value = v_secret, updated_at = now() where key = v_key;
-  update public.internal_credential set expires_at = now() + v_overlap where id = c.id;
+  -- overlap_until is when reverify may first decide; the old credential is still accepted for TWO
+  -- more cadences of the duty after that, so the run that decides comes before it is refused even
+  -- when that run is late or one run is missed (review of #709: one cadence left no margin at all).
+  update public.internal_credential set expires_at = now() + v_overlap + 2 * v_cadence where id = c.id;
   insert into public.it_credential_rotation (context, old_id, new_id, secret_key, overlap_until)
   values (c.context, c.id, v_new, v_key, now() + v_overlap);
-  return jsonb_build_object('context', c.context, 'old_id', c.id, 'new_id', v_new, 'overlap_until', now() + v_overlap);
+  return jsonb_build_object('context', c.context, 'old_id', c.id, 'new_id', v_new, 'overlap_until', now() + v_overlap,
+                            'old_valid_until', now() + v_overlap + 2 * v_cadence);
 end $function$
 
 
@@ -35102,6 +35075,40 @@ begin
           jsonb_build_object('job', 'journey', 'tag', p_report->>'tag', 'failed', jsonb_array_length(v_items),
                              'steps', jsonb_array_length(p_report->'steps'), 'leftovers', p_report->'leftovers'), null);
   return v_res;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_key_age_refresh()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e public.it_expiry; v_val text; v_upd timestamptz; v_fp text; v_seen timestamptz;
+        n_new int := 0; n_missing int := 0; n_same int := 0;
+begin
+  for e in select * from public.it_expiry where kind = 'token' and item like 'key:%' order by item for update loop
+    v_val := null; v_upd := null;
+    select s.value, s.updated_at into v_val, v_upd from public.app_secrets s where s.key = substr(e.item, 5);
+    if coalesce(btrim(v_val), '') = '' then
+      -- No value to age: the renewal watch reports the unknown date to the accountant.
+      update public.it_expiry set expires_on = null, secret_fingerprint = null, secret_seen_since = null,
+             checked_at = now() where item = e.item;
+      n_missing := n_missing + 1;
+      continue;
+    end if;
+    v_fp := public.fn_internal_credential_hash(v_val);
+    if e.secret_fingerprint is distinct from v_fp then
+      v_seen := case when e.secret_fingerprint is null then coalesce(v_upd, now()) else now() end;
+      update public.it_expiry set secret_fingerprint = v_fp, secret_seen_since = v_seen,
+             expires_on = (v_seen + interval '1 year')::date, checked_at = now() where item = e.item;
+      n_new := n_new + 1;
+    else
+      update public.it_expiry set checked_at = now() where item = e.item;
+      n_same := n_same + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('changed_or_first_seen', n_new, 'unchanged', n_same, 'missing', n_missing);
 end $function$
 
 
@@ -37925,6 +37932,45 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_notifications_release_held(p_limit integer DEFAULT 1000)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_on boolean; v_queued int := 0; v_suppressed int := 0; v_other int := 0;
+begin
+  select coalesce((d.value #>> '{}')::boolean, false) into v_on
+    from public.decision_policy d where d.key = 'demo_rehearsal_active';
+  if coalesce(v_on, false) then
+    raise exception 'fn_notifications_release_held refuses while decision_policy.demo_rehearsal_active is true: tear the rehearsal down and set it false first';
+  end if;
+
+  with picked as (
+    select n.id from public.notifications n
+     where n.status = 'held'
+       and starts_with(coalesce(n.last_error, ''), 'HELD by zzz_notifications_demo_guard')
+     order by n.id
+     limit greatest(coalesce(p_limit, 0), 0)
+     for update skip locked
+  ), released as (
+    update public.notifications n
+       set status = 'queued',
+           last_error = left('released by fn_notifications_release_held at ' || now()::text
+                             || '; was: ' || coalesce(n.last_error, ''), 500)
+      from picked where n.id = picked.id
+    returning n.status   -- the stored status, after zzzz_notifications_demo_capture has judged it
+  )
+  select count(*) filter (where status = 'queued'),
+         count(*) filter (where status = 'suppressed'),
+         count(*) filter (where status not in ('queued', 'suppressed'))
+    into v_queued, v_suppressed, v_other
+    from released;
+
+  return jsonb_build_object('released_to_queue', v_queued, 'captured_as_demo', v_suppressed, 'other', v_other);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_notifications_sender_of_record()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -38260,7 +38306,7 @@ begin
      and (customer_id = any (v_dc)) is not true and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true;
   select coalesce(sum(reveal_fee),0) into rev_month from transactions where date_trunc('month',revealed_at)=date_trunc('month',now()) and coalesce(refund_status,'')<>'approved'
      and (customer_id = any (v_dc)) is not true and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true;
-  begin select coalesce(sum(amount_due),0) into pending_fees from supplier_dues where coalesce(status,'')<>'paid' and (supplier_id = any (v_dl)) is not true; exception when others then pending_fees:=0; end;
+  begin select coalesce(sum(amount_due),0) into pending_fees from supplier_dues where public.fn_supplier_due_is_owed(status, paid_at) and (supplier_id = any (v_dl)) is not true; exception when others then pending_fees:=0; end;
   begin select count(*) into outstanding_inv from reveal_invoices ri left join transactions t on t.id=ri.transaction_id where coalesce(t.fee_status,'')<>'paid'
      and (t.customer_id = any (v_dc)) is not true and (t.supplier_id = any (v_dl)) is not true and (t.inquiry_id = any (v_di)) is not true; exception when others then outstanding_inv:=0; end;
   select coalesce(sum(reveal_fee),0) into cash_recv from transactions where coalesce(fee_status,'')='paid'
@@ -40844,27 +40890,34 @@ CREATE OR REPLACE FUNCTION public.fn_os_incident_open(p_title text, p_kind text,
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
-DECLARE nid bigint;
-BEGIN
-  IF coalesce(p_title,'')='' THEN RETURN jsonb_build_object('ok',false,'error','title_required'); END IF;
-  INSERT INTO public.os_incidents(title, kind, severity, detail, opened_by)
-  VALUES (p_title, coalesce(nullif(p_kind,''),'other'), coalesce(nullif(p_severity,''),'medium'), coalesce(p_detail,'{}'::jsonb), coalesce(p_actor,'os'))
-  RETURNING id INTO nid;
-  INSERT INTO public.os_audit_log(actor,action,entity,entity_id,detail,ok)
-  VALUES (coalesce(p_actor,'os'),'incident_open','incident',nid::text,jsonb_build_object('title',p_title,'severity',p_severity),true);
-  BEGIN
-    PERFORM net.http_post(
-      url := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/alert_founder',
-      headers := jsonb_build_object('Content-Type','application/json'),
-      body := jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_db_internal'),
-                                 'event','OS incident #'||nid||' ('||coalesce(p_severity,'medium')||'): '||p_title,
-                                 'detail',left(coalesce(p_detail->>'description',''),300),'level','action')
-    );
-  EXCEPTION WHEN others THEN /* notification is best-effort */ END;
-  RETURN jsonb_build_object('ok',true,'id',nid);
-END $function$
+declare nid bigint;
+begin
+  if coalesce(p_title, '') = '' then return jsonb_build_object('ok', false, 'error', 'title_required'); end if;
+  insert into public.os_incidents (title, kind, severity, detail, opened_by)
+  values (p_title, coalesce(nullif(p_kind, ''), 'other'), coalesce(nullif(p_severity, ''), 'medium'),
+          coalesce(p_detail, '{}'::jsonb), coalesce(p_actor, 'os'))
+  returning id into nid;
+  insert into public.os_audit_log (actor, action, entity, entity_id, detail, ok)
+  values (coalesce(p_actor, 'os'), 'incident_open', 'incident', nid::text,
+          jsonb_build_object('title', p_title, 'severity', p_severity), true);
+  -- Best effort, as before: an incident is recorded even when telling someone about it fails.
+  begin
+    perform public.fn_notify_founder(
+      p_event       => 'OS incident #' || nid || ' (' || coalesce(nullif(p_severity, ''), 'medium') || '): ' || p_title,
+      p_detail      => left(coalesce(p_detail->>'description', ''), 300),
+      p_level       => coalesce(nullif(p_severity, ''), 'medium'),
+      p_kind        => 'os_incident',
+      p_dedupe_key  => 'os_incident:' || nid,
+      p_owner_agent => 'it_engineer');
+  exception when others then
+    insert into public.os_audit_log (actor, action, entity, entity_id, detail, ok)
+    values (coalesce(p_actor, 'os'), 'incident_notify', 'incident', nid::text,
+            jsonb_build_object('error', left(sqlerrm, 500)), false);
+  end;
+  return jsonb_build_object('ok', true, 'id', nid);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_os_incident_open_task()
@@ -41633,19 +41686,6 @@ exception when others then
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_phase1_disarmed()
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
-  select coalesce((
-    select tier = 'disarm' from public.phase1_rollback_log
-     where tier in ('disarm','rearm') order by id desc limit 1
-  ), false)
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_phase1_rollback_log_immutable()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -41828,6 +41868,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -41998,16 +42048,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -48818,6 +48858,17 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_due_is_owed(p_status text, p_paid_at timestamp with time zone)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE PARALLEL SAFE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p_paid_at is null
+     and coalesce(p_status, '') not in ('paid', 'settled', 'waived', 'cancelled', 'reversed', 'void')
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_dues_accrue_interest(p_as_of date DEFAULT NULL::date)
  RETURNS integer
  LANGUAGE plpgsql
@@ -48827,8 +48878,7 @@ AS $function$
 declare x record; v jsonb; n int := 0;
 begin
   for x in select id, transaction_id from public.supplier_dues
-            where paid_at is null and transaction_id is not null
-              and coalesce(status, '') not in ('paid', 'settled', 'waived', 'cancelled') loop
+            where public.fn_supplier_due_is_owed(status, paid_at) and transaction_id is not null loop
     v := public.fn_accountant_nonresponse_charge(x.transaction_id, p_as_of);
     continue when not coalesce((v->>'ok')::boolean, false);
     update public.supplier_dues
@@ -57026,7 +57076,7 @@ begin
       'commission_receivable', (select coalesce(balance,0) from public.gl_account_balances where code='1110'),
       'trade_receivable', (select coalesce(balance,0) from public.gl_account_balances where code='1100'),
       'overdue_commissions', (select coalesce(sum(amount_due),0) from public.supplier_dues
-                              where status not in ('paid','settled') and coalesce(due_date,reveal_date) < current_date)
+                              where public.fn_supplier_due_is_owed(status, paid_at) and coalesce(due_date,reveal_date) < current_date)
     ),
     'payables', jsonb_build_object(
       'ap_open', (select coalesce(sum(total-amount_paid),0) from public.ap_bills where status in ('open','partial')),
@@ -57806,7 +57856,7 @@ begin
       select jsonb_build_object(
         'commission_total', coalesce(sum(amount_due),0),
         'commission_paid', coalesce(sum(amount_due) filter (where status in ('paid','settled')),0),
-        'commission_owed', coalesce(sum(amount_due) filter (where status not in ('paid','settled')),0)
+        'commission_owed', coalesce(sum(amount_due) filter (where public.fn_supplier_due_is_owed(status, paid_at)),0)
       ) from public.supplier_dues where supplier_id=p_id
     ),
     'documents', docs,
@@ -59689,20 +59739,28 @@ begin
     from public.decision_policy d where d.key = 'demo_rehearsal_active';
   if not coalesce(v_on, false) then return NEW; end if;
 
+  -- On UPDATE only a move INTO a status a dispatcher drains is judged. A dispatcher marking a row
+  -- sent, failed or suppressed is not a send and must not be turned back into held.
+  if TG_OP = 'UPDATE' and coalesce(NEW.status, '') not in ('queued', 'pending', 'digest') then return NEW; end if;
+
   -- RFC 2606 reserves .invalid as permanently undeliverable. Anything else, including NULL, is
   -- treated as possibly real and held. Failing closed is the whole point of this trigger.
   if coalesce(NEW.to_email, '') ~* '@example[.]invalid$' then return NEW; end if;
 
   NEW.status := 'held';
-  -- Deliberately does NOT contain the marker pattern: fn_demo_marker_scan reads every text column,
-  -- and a guard that stamps the pattern on its own rows can never let the teardown proof reach zero.
+  -- Deliberately does NOT contain the marker pattern: a scan of every text column for it must be
+  -- able to reach zero after a teardown.
   NEW.last_error := 'HELD by zzz_notifications_demo_guard: decision_policy.demo_rehearsal_active is '
                  || 'true and the recipient is not a reserved .invalid address. Release with '
                  || 'fn_notifications_release_held() once the rehearsal is torn down.';
   return NEW;
 exception when others then
+  -- A DIFFERENT PREFIX ON PURPOSE (database review, 15 Sep). The release below picks rows by the
+  -- deliberate stamp's prefix. When this fallback shared it, a row held because the guard itself
+  -- failed, where nothing was ever judged, would have been released with the rest. A row the guard
+  -- could not judge is left for a person to look at.
   NEW.status := 'held';
-  NEW.last_error := 'HELD by zzz_notifications_demo_guard (guard itself errored: ' || sqlerrm || ')';
+  NEW.last_error := 'GUARD ERROR, held by zzz_notifications_demo_guard (guard itself errored: ' || sqlerrm || ')';
   return NEW;
 end $function$
 
@@ -59822,7 +59880,7 @@ CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
+CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER a03_notifications_whatsapp_goes_to_a_confirmed_number BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_whatsapp_goes_to_a_confirmed_number();
 CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
@@ -60545,7 +60603,6 @@ $CRON$);
 --   compliance_ref
 --   containment_maintenance
 --   content_secret
---   control_mode_minutes
 --   cos_frozen
 --   cred_action_invoker
 --   cred_cron_ads_autopilot
@@ -60642,6 +60699,7 @@ $CRON$);
 --   default_post_image
 --   deploy_secret
 --   dispatch_force_key
+--   dropbox_access_token
 --   dropbox_app_key
 --   dropbox_app_secret
 --   dropbox_oauth_key
