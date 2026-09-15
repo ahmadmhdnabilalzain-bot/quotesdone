@@ -38,7 +38,11 @@ export const DUES_ROUTINES = [
 // fn_accountant_recovery_position reads v_accountant_recovery_ledger, whose `owed` column IS the predicate;
 // it asks by filtering on that column. Every other routine names the predicate itself.
 const VIA_LEDGER = 'fn_accountant_recovery_position';
-const asks = (name, body) => (name === VIA_LEDGER ? /filter \(where owed\)/.test(body) : body.includes(PREDICATE));
+// Comments are stripped first, so a routine that only MENTIONS the predicate in prose does not pass.
+const code = (body) => body.replace(/--[^\n]*/g, '');
+const asks = (name, body) => (name === VIA_LEDGER
+  ? /filter \(where owed\)/.test(code(body))
+  : /public\.fn_supplier_due_is_owed\s*\(/.test(code(body)));
 const manifest = () => read('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((s) => s.trim()).filter((s) => s && !s.startsWith('#'));
 
 // The body of the LAST definition of public.<name> across the files, in MANIFEST order.
@@ -80,6 +84,12 @@ test('every dues routine, as canonically defined, asks the predicate', () => {
   const s = read('scripts/sql/a_reversed_supplier_charge_is_never_owed.sql');
   assert.match(s, /when not public\.fn_supplier_due_is_owed\(d\.status, d\.paid_at\) then d\.status/);
   assert.match(s, /public\.fn_supplier_due_is_owed\(d\.status, d\.paid_at\) as owed/);
+  // fn_gl_sync_business books clawbacks regardless of payment, so it keeps its own list; it must skip both.
+  const gl = canonicalBody('fn_gl_sync_business');
+  assert.ok(gl, 'fn_gl_sync_business has no scripts/sql definition');
+  const lists = [...code(gl.body).matchAll(/not in \(([^)]*'cancelled'[^)]*)\)/g)].map((m) => m[1]);
+  assert.ok(lists.length >= 2, `fn_gl_sync_business (${gl.file}): expected its two dues lists, found ${lists.length}`);
+  for (const l of lists) assert.match(l, /'reversed'[\s\S]*'void'/, `fn_gl_sync_business (${gl.file}) list (${l}) must skip reversed and void`);
 });
 
 test('production: every dues routine and both views ask the predicate, and it answers correctly', async (t) => {
