@@ -36,11 +36,13 @@ comment on table public.mandatory_field_policy is
 
 insert into public.mandatory_field_policy (party_kind, field_key, label, sort, how_checked, authority) values
   ('supplier','company_name','Company name',            10,'leads.company_name is non-empty','Founder ruling 7 Sep 2026'),
-  ('supplier','mobile',      'UAE mobile number',       20,'leads.phone_e164 is a +9715 number','Founder ruling 7 Sep 2026: "we need UAE mobile number"'),
-  ('supplier','email',       'Email address',           30,'leads.email is non-empty and verified','Founder ruling 7 Sep 2026'),
-  ('supplier','trade_licence','Trade licence',          40,'leads.license_doc_path is non-empty','Founder ruling 7 Sep 2026'),
-  ('supplier','company_profile','Company profile',      50,'leads.company_profile_doc_path is non-empty','Founder ruling 7 Sep 2026'),
-  ('supplier','signed_terms','Signed terms and conditions',60,'leads.signed_terms_path is non-empty','Founder ruling 7 Sep 2026'),
+  -- how_checked for the six follows public.fn_supplier_mandatory_six (15 Sep 2026); the same text is
+  -- written by the_mandatory_six_have_one_definition_and_the_sales_engineer_verifies.sql.
+  ('supplier','mobile',      'UAE mobile number',       20,'leads.owner_phone_verified is true and leads.phone is a +9715 number','Founder ruling 7 Sep 2026: "we need UAE mobile number"'),
+  ('supplier','email',       'Email address',           30,'leads.owner_email_verified is true (the account e-mail, proven by OTP)','Founder ruling 7 Sep 2026'),
+  ('supplier','trade_licence','Trade licence',          40,'leads.license_doc_path names an object storage holds in supplier-docs','Founder ruling 7 Sep 2026'),
+  ('supplier','company_profile','Company profile',      50,'leads.company_profile_doc_path names an object storage holds in supplier-docs','Founder ruling 7 Sep 2026'),
+  ('supplier','signed_terms','Signed terms and conditions',60,'leads.signed_terms_path is non-empty (the signed acceptance certificate)','Founder ruling 7 Sep 2026'),
 
   ('customer','full_name',   'Name',                    10,'customers.full_name is non-empty','Founder ruling 7 Sep 2026'),
   ('customer','mobile',      'Mobile number',           20,'customers.phone is non-empty and phone_verified','Founder ruling 7 Sep 2026'),
@@ -56,53 +58,10 @@ commit;
 -- THE CHECKS. One per party kind. Both return the same shape so a caller can treat them alike.
 -- ---------------------------------------------------------------------------------------------
 
-create or replace function public.fn_supplier_mandatory_check(p_lead_id bigint)
-returns jsonb
-language plpgsql
-stable
-security definer
-set search_path = public
-as $$
-declare l record; miss text[] := '{}'; have text[] := '{}';
-begin
-  select * into l from public.leads where id = p_lead_id;
-  if not found then
-    return jsonb_build_object('ok', false, 'reason', 'No such lead.');
-  end if;
-
-  if coalesce(btrim(l.company_name),'') = '' then miss := array_append(miss,'Company name');
-  else have := array_append(have,'Company name'); end if;
-
-  -- A UAE mobile is +9715x. A Dubai landline is +9714 and does not satisfy this, which is the exact
-  -- case that put a landline on the company's only "approved" supplier.
-  if coalesce(regexp_replace(coalesce(l.phone_e164, l.phone, ''), '[^0-9]', '', 'g'), '') !~ '^9715[0-9]{8}$'
-  then miss := array_append(miss,'UAE mobile number');
-  else have := array_append(have,'UAE mobile number'); end if;
-
-  if coalesce(btrim(l.email),'') = '' then miss := array_append(miss,'Email address');
-  elsif coalesce(l.email_verified,'') not in ('verified','true') then miss := array_append(miss,'Email address (not yet verified)');
-  else have := array_append(have,'Email address'); end if;
-
-  if coalesce(btrim(l.license_doc_path),'') = '' then miss := array_append(miss,'Trade licence');
-  else have := array_append(have,'Trade licence'); end if;
-
-  if coalesce(btrim(l.company_profile_doc_path),'') = '' then miss := array_append(miss,'Company profile');
-  else have := array_append(have,'Company profile'); end if;
-
-  if coalesce(btrim(l.signed_terms_path),'') = '' then miss := array_append(miss,'Signed terms and conditions');
-  else have := array_append(have,'Signed terms and conditions'); end if;
-
-  return jsonb_build_object(
-    'ok', true, 'party_kind','supplier', 'id', p_lead_id, 'name', l.company_name,
-    'complete', coalesce(array_length(miss,1),0) = 0,
-    'have', to_jsonb(have), 'missing', to_jsonb(miss),
-    'missing_count', coalesce(array_length(miss,1),0),
-    'mandatory_total', 6
-  );
-end;
-$$;
-
-revoke execute on function public.fn_supplier_mandatory_check(bigint) from public;
+-- fn_supplier_mandatory_check (the supplier six) moved on 15 Sep 2026 to
+-- the_mandatory_six_have_one_definition_and_the_sales_engineer_verifies.sql, where it reads the one
+-- definition, public.fn_supplier_mandatory_six. Two files defining one routine means the MANIFEST decides
+-- which is real; this file keeps the customer four.
 
 create or replace function public.fn_customer_mandatory_check(p_customer_id uuid)
 returns jsonb
@@ -148,8 +107,6 @@ $$;
 
 revoke execute on function public.fn_customer_mandatory_check(uuid) from public;
 
-comment on function public.fn_supplier_mandatory_check(bigint) is
-  'The founder six for a supplier. A Dubai landline does not satisfy the UAE mobile requirement.';
 comment on function public.fn_customer_mandatory_check(uuid) is
   'The founder four for a customer: name, mobile, email, signed terms. No licence, no profile.';
 
