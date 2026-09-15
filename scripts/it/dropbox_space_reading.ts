@@ -5,7 +5,7 @@
 // Uses dropbox_backup's own DropboxClient and refresh. Calls only users/get_space_usage and
 // users/get_current_account, which change nothing. Prints numbers and the plan name only: no token,
 // no secret and no response body is ever written out, including on failure.
-import { DropboxClient, refreshAccessToken } from '../../supabase/functions/dropbox_backup/dropbox.ts';
+import { DropboxClient, memoryStore, refreshAccessToken, TokenCache } from '../../supabase/functions/dropbox_backup/dropbox.ts';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const fail = (stage: string, status?: number) => { console.log(JSON.stringify({ ok: false, stage, status })); Deno.exit(1); };
@@ -20,7 +20,8 @@ if (!q.ok) { await q.body?.cancel(); fail('read app_secrets', q.status); }
 const s: Record<string, string> = Object.fromEntries(((await q.json()) as { key: string; value: string }[]).map((r) => [r.key, r.value]));
 
 try {
-  const dbx = new DropboxClient(() => refreshAccessToken(s.dropbox_refresh_token, s.dropbox_app_key, s.dropbox_app_secret));
+  // an in-memory store: this read-only script never writes the shared token back to app_secrets
+  const dbx = new DropboxClient(new TokenCache(memoryStore(), () => refreshAccessToken(s.dropbox_refresh_token, s.dropbox_app_key, s.dropbox_app_secret)));
   const u = await dbx.call('api', 'users/get_space_usage', null);
   if (!u.ok) { await u.body?.cancel(); fail('get_space_usage', u.status); }
   const j = await u.json();
