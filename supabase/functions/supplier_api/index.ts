@@ -666,8 +666,9 @@ Deno.serve(observe('supplier_api', async (req) => {
       // licence-validity, document-presence or banned test - none has ever existed on this path,
       // before or after the change, so nothing automated is being bypassed; what is removed is the
       // human licence check that 'pending' used to force. The checks that DO survive live
-      // elsewhere and are untouched: match_suppliers_kw still excludes banned, matching_blocked,
-      // permanently_closed and 'rejected' suppliers, submit_quote still requires accepted terms
+      // elsewhere and are untouched: fn_is_matchable (applied by fn_match_capability; the keyword
+      // matcher was dropped 15 Sep 2026) excludes banned, matching_blocked, permanently_closed and
+      // 'rejected' suppliers, submit_quote still requires accepted terms
       // and a settled registration fee, and aiReview below still writes its findings to
       // ai_review_notes / ai_review_flags and still emails management on first submission -
       // advisory only, it has never gated anything. An automated licence-expiry gate belongs HERE.

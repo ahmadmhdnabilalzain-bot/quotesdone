@@ -549,8 +549,8 @@ export default async function ({ req }) {
     await req(S3, 'assistant-recommends-supplier-count',
       'Assistant states how many suppliers it recommends before dispatch',
       `select ${countPreSend} > 0 and ${countInCard} > 0`,
-      `select 'routines that could supply the number: fn_match_capability=' || ${FNN('fn_match_capability')}
-        || ', match_suppliers_kw=' || ${FNN('match_suppliers_kw')} || ', leads on this target=' || ${ROWS('leads')}
+      `select 'routine that could supply the number: fn_match_capability=' || ${FNN('fn_match_capability')}
+        || ', leads on this target=' || ${ROWS('leads')}
         || '; a supplier count on the pre-dispatch intake payload=' || ${countPreSend}
         || '; a supplier count rendered in the ready-brief card before Send=' || ${countInCard}`);
 

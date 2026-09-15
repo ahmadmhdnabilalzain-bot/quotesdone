@@ -653,3 +653,5 @@ fn_refund_founder_decision_only :: bound to no trigger and called by nothing; th
 fn_it_engineer_handover_body :: dropped 14 Sep 2026; its only caller emailed every finding to the founder and was replaced by fn_it_loop_tick :: none
 # 14 Sep 2026 — the_whatsapp_number_is_confirmed_and_only_a_confirmed_one_is_used.sql. One inbound-number helper remains.
 fn_customer_by_whatsapp_sender :: dropped 14 Sep 2026; its only caller, fn_spec_offer_whatsapp_reply (PR #652), now reads fn_whatsapp_owner; no other routine body, trigger, view or repository file called it (pg_depend empty) :: none
+# 15 Sep 2026 — the_turnkey_path_asks_the_sales_engineer_and_the_keyword_matcher_is_dropped.sql. Founder rule: exact trade match or none.
+match_suppliers_kw :: dropped 15 Sep 2026; the keyword supplier matcher. Its last caller, customer_api's turnkey path, now asks sales_engineer {action:'match'} (fn_match_capability). Measured before the drop: pg_depend 0 rows, 0 other routine bodies, 0 views, 0 cron commands; no other edge function, src file or script calls it :: none

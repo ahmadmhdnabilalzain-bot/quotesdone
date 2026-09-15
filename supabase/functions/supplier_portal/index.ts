@@ -543,15 +543,17 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
 
     // Why am I not being matched?
     //
-    // Every check below mirrors a real clause in match_suppliers_kw. Nothing here is
-    // advisory dressed up as a rule, and nothing that genuinely gates matching is omitted,
-    // because a supplier acting on this will conclude they have done everything needed.
+    // Every check below mirrors a real gate on the matching path (fn_match_capability and the
+    // fn_is_matchable predicate it applies; the keyword matcher these were first written against was
+    // dropped on 15 Sep 2026). Nothing here is advisory dressed up as a rule, and nothing that
+    // genuinely gates matching is omitted, because a supplier acting on this will conclude they have
+    // done everything needed.
     //
-    // On document expiry: match_suppliers_kw itself has no expiry clause, so reading only that
-    // function suggests expiry is irrelevant. It is not. fn_reconcile_doc_blocks runs daily and
-    // sets matching_blocked with matching_block_reason when a trade licence or insurance lapses,
-    // and match_suppliers_kw does exclude matching_blocked. Expiry therefore genuinely stops
-    // matching - one indirection away - which is why it is reported as blocking below.
+    // On document expiry: the matcher has no expiry clause of its own, so reading only the matcher
+    // suggests expiry is irrelevant. It is not. fn_reconcile_doc_blocks runs daily and sets
+    // matching_blocked with matching_block_reason when a trade licence or insurance lapses, and
+    // fn_is_matchable excludes matching_blocked. Expiry therefore genuinely stops matching - one
+    // indirection away - which is why it is reported as blocking below.
     if (action === 'eligibility') {
       const { data: l } = await admin.from('leads')
         .select('id,company_name,sector,categories,products,services,capability_summary,emirate,service_emirates,permanently_closed,banned,matching_blocked,matching_block_reason,license_expiry,insurance_expiry,registration_submitted_at,source,approval_status,license_doc_path,phone,email,owner_phone_verified,owner_email_verified,trade_license_no,company_profile_doc_path,accepted_terms_at')
@@ -586,7 +588,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
 
       // THE GATE THIS PANEL WAS MISSING (13 Aug 2026).
       //
-      // Everything above evaluates match_suppliers_kw. The path that actually builds a shortlist is
+      // Everything above evaluates the keyword matcher's clauses. The path that actually builds a shortlist is
       // fn_match_capability, and its candidate CTE opens with `where sc.confirmed_at is not null`.
       // So a supplier who had registered but not confirmed their scope was shown a green "Eligible
       // for matching" badge and an EMPTY "Stopping requests reaching you" list, while being excluded
