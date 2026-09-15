@@ -6,7 +6,7 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment
 // the scanner refused it.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
-import { REQUIRED_DOC_KEYS, registrationChecklist } from '../_shared/supplier_registration.ts';
+import { REQUIRED_DOC_KEYS, mandatorySixMissing, registrationChecklist } from '../_shared/supplier_registration.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
 // SUPPLIER-FACING TEXT CARRIES A CODE (14 Sep 2026). Every sentence below that reaches a supplier
 // (document hints, alerts, eligibility titles/details) now travels with a stable `code` and `params`;
@@ -663,7 +663,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
         reach: { matched_requests: matched || 0, quotes_sent: quoted || 0, shortlist_size: 8 },
         // The mandatory six, from the one definition save_profile also enforces. The portal's
         // "Get matched" journey renders this list first, then the blocking items above.
-        required_to_register: registrationChecklist(r),
+        required_to_register: registrationChecklist(await mandatorySixMissing(admin, sup.id)),
         note_code: 'elig_note',
         note: 'Each request goes to a shortlist of up to 8 suppliers, ranked by how well your listing matches what the customer asked for. Suppliers anywhere in the UAE are eligible; being in the customer’s emirate only breaks a tie.' });
     }

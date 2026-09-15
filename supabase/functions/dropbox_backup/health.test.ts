@@ -2,7 +2,20 @@
 // Every error shape the Dropbox path throws lands in the class the founder's rule needs: only a
 // provider answer (5xx, 429) or no answer at all is outside our control; anything unrecognised is ours.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { classifyDropboxFailure as c } from './health.ts';
+import { classifyDropboxFailure as c, isTransientDbError as t } from './health.ts';
+
+Deno.test('transient db: the wait-and-give-up errors measured on 15 Sep, and nothing else', () => {
+  assertEquals(t('fn_doc_backups_next: canceling statement due to statement timeout'), true);
+  assertEquals(t('canceling statement due to statement timeout'), true);
+  assertEquals(t('canceling statement due to lock timeout'), true);
+  assertEquals(t('deadlock detected'), true);
+  assertEquals(t('could not obtain lock on row in relation "doc_backups"'), true);
+  assertEquals(t('fn_doc_backups_next: permission denied for function fn_doc_backups_next'), false);
+  assertEquals(t('no_dropbox_auth'), false);
+  assertEquals(t('files/upload 503 busy after 3 tries'), false);
+  assertEquals(t(''), false);
+  assertEquals(t(null), false);
+});
 
 Deno.test('auth: a refused token, a failed refresh, a missing scope', () => {
   assertEquals(c('no_dropbox_auth'), 'auth');

@@ -588,6 +588,14 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     await rpc('fn_it_restore_table_record', { p: await runRestoreTable(admin, pick) });
     return { due: true };
   });
+  // The sales engineer's daily document duty, on this heartbeat because pg_cron is not coming back:
+  // expiry reconcile and final notice, approved suppliers re-verified, 14-day incomplete registrations
+  // closed (the_sales_engineer_closes_a_registration_left_incomplete_for_fourteen_days.sql). Counts only.
+  await step('supplier_docs', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
+    const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;
+    return { due: true, approved_rechecked: r?.approved_rechecked, registrations_closed: r?.registrations_closed };
+  });
   return out;
 }
 
