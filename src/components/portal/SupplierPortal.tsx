@@ -1775,7 +1775,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       <Button variant="link" className="px-0 h-auto" onClick={() => { setSmsSent(false); setSmsCode(''); setMsg(''); }}>{t(lang, 'change_mobile')}</Button></>)}
     {!isEdit && phoneVerified && !waSignupSettled(wa) && <div className="mt-3">
       {/* Enforced by save() like the six, so it carries the same Required marker (review of #695). */}
-      <div className="mb-1 text-[12px] font-semibold text-muted-foreground">{srvText(lang, 'reg_whatsapp')}<Need lang={lang} req /></div>
+      {/* S.h2 like the other required headers, but not a heading: WhatsAppChoice's own h2 follows. */}
+      <div className={cn(S.h2, 'mb-1')}>{srvText(lang, 'reg_whatsapp')}<Need lang={lang} req /></div>
       <WhatsAppChoice token={token} lang={lang} mode="signup" current={wa} mobile={f.phone} onDone={() => loadKyc()} /></div>}
 
     {/* The contact person is asked at sign-up too (Optional), not only once inside. */}
