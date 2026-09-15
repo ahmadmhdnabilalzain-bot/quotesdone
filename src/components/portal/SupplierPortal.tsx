@@ -288,12 +288,27 @@ const S = {
 // tradeCode, so it matches only a request in that exact same trade.
 function CapabilityConfirmPanel({ token, lang }) {
   const ar = lang === 'ar';
-  const [st, setSt] = useState({ loading: true, err: '', confirmed: false, cap: null, vocab: { trades: [], roles: [] } });
+  const [st, setSt] = useState({ loading: true, err: '', confirmed: false, cap: null, vocab: { trades: [], roles: [] }, proposals: [] });
   const [trades, setTrades] = useState([]);
   const [otherTrade, setOtherTrade] = useState('');
+  const [otherNote, setOtherNote] = useState(false);
+  const [review, setReview] = useState(false);
   const [roles, setRoles] = useState([]);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  // One label for a code everywhere on this screen: the Arabic the server holds (taxonomy_trade.label_ar),
+  // else the portal's own map, else the code made readable. A trade the supplier added is its own words.
+  const labelOf = (code) => {
+    const tr = st.vocab.trades.find((x) => x.code === code);
+    return vocabLabel(lang, 'trade', code, tr ? (ar ? tr.label_ar || tr.label : tr.label) : String(code).replace(/_/g, ' '));
+  };
+  // FOUND IN YOUR DOCUMENTS (15 Sep 2026). What the supplier's licence, profile and catalogues say,
+  // read by code on upload (supabase/functions/_shared/supplier_doc_trades.ts), with the line each
+  // trade was found on. Shown so the supplier confirms what their own documents say, not only what a
+  // directory listing implied.
+  const docs = (st.cap && st.cap.source_docs && Array.isArray(st.cap.source_docs.docs)) ? st.cap.source_docs.docs : [];
+  // The client twin of tradeCode in supabase/functions/_shared/supplier_capability.ts.
+  const tradeKey = (v) => String(v ?? '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
   // WHAT WE ALREADY BELIEVE, FIRST. Measured on a 375x812 phone: the vocabulary renders 40 trade
   // chips and 8 role chips in taxonomy sort order, so the four this company actually holds were
   // scattered through the list and the confirm button sat 2,547px down — 3.1 screens of scrolling.
@@ -311,10 +326,15 @@ function CapabilityConfirmPanel({ token, lang }) {
     const j = await call('supplier_api', { action: 'capability_state' }, token);
     if (j && j.ok) {
       const cap = j.capability || null;
-      setTrades((cap && cap.trades) || []);
+      // Before the first confirm, what the documents found is ticked beside what the directory implied;
+      // the supplier unticks what is wrong. After a confirm, only what they confirmed is ticked.
+      const held = (cap && cap.trades) || [];
+      const fromDocs = (cap && Array.isArray(cap.proposed_trades)) ? cap.proposed_trades : [];
+      const start = j.confirmed ? held : [...new Set([...held, ...fromDocs])];
+      setTrades(start);
       setRoles((cap && cap.roles) || []);
-      setPinned({ trades: (cap && cap.trades) || [], roles: (cap && cap.roles) || [] });
-      setSt({ loading: false, err: '', confirmed: !!j.confirmed, cap, vocab: j.vocabulary || { trades: [], roles: [] } });
+      setPinned({ trades: start, roles: (cap && cap.roles) || [] });
+      setSt({ loading: false, err: '', confirmed: !!j.confirmed, cap, vocab: j.vocabulary || { trades: [], roles: [] }, proposals: j.trade_proposals || [] });
     } else {
       setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, ar ? 'تعذّر تحميل نطاق عملك.' : 'Could not load your scope.') }));
     }
@@ -336,7 +356,7 @@ function CapabilityConfirmPanel({ token, lang }) {
       brands: cap.brands || [], project_types: cap.project_types || [], exclusions: cap.exclusions || [],
     }, token);
     setBusy(false);
-    if (j && j.ok) { setSaved(true); load(); }
+    if (j && j.ok) { setSaved(true); setOtherNote(false); setReview(Array.isArray(j.new_trades_under_review) && j.new_trades_under_review.length > 0); load(); }
     else setSt((s) => ({ ...s, err: srvMsg(lang, j, ar ? 'تعذّر حفظ نطاق عملك.' : 'Could not save your scope.') }));
   };
 
@@ -363,13 +383,37 @@ function CapabilityConfirmPanel({ token, lang }) {
                 : 'This is what we have on file for your company. Correct it, then confirm — you will not receive any requests until you do.')}
       </div>
 
+      {docs.length > 0 && (
+        <div className="mt-4">
+          <div className="text-sm opacity-70 mb-2">{ar ? 'وجدناه في مستنداتك' : 'Found in your documents'}</div>
+          <ul className="space-y-3">
+            {docs.map((d) => (
+              <li key={d.path} className="rounded-md border border-white/10 p-3">
+                <div className="text-sm font-medium break-all" dir="auto">{d.name}</div>
+                {d.status === 'needs_ocr' && <div className="mt-1 text-xs text-warn">{ar ? 'هذا الملف صورة أو مسح ضوئي بلا نص قابل للقراءة، لذلك لم نستخرج منه تخصصات. اختر تخصصاتك أدناه.' : 'This file is a photo or scan with no readable text, so no trades were taken from it. Choose your trades below.'}</div>}
+                {d.status === 'needs_cad_conversion' && <div className="mt-1 text-xs text-warn">{ar ? 'هذا مخطط CAD لا يُقرأ نصه مباشرة. اختر تخصصاتك أدناه.' : 'This is a CAD drawing whose text cannot be read directly. Choose your trades below.'}</div>}
+                {d.status === 'unreadable' && <div className="mt-1 text-xs text-warn">{ar ? 'تعذّرت قراءة هذا الملف. اختر تخصصاتك أدناه.' : 'This file could not be read. Choose your trades below.'}</div>}
+                {d.status === 'read' && !(d.trades || []).length && <div className="mt-1 text-xs opacity-70">{ar ? 'قرأنا الملف ولم نجد فيه اسم تخصص من قائمتنا.' : 'We read this file and found none of the trades we list in it.'}</div>}
+                {(d.trades || []).map((h) => (
+                  <div key={h.code} className="mt-2 flex flex-wrap items-start gap-2">
+                    <button type="button" className={chip(trades.includes(h.code))} aria-pressed={trades.includes(h.code)}
+                            onClick={() => toggle(trades, setTrades, h.code)}>{labelOf(h.code)}</button>
+                    {h.snippet ? <q className="min-w-[12rem] flex-1 text-xs opacity-70" dir="auto">{h.snippet}</q> : null}
+                  </div>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="mt-4">
         <div className="text-sm opacity-70 mb-2">{ar ? 'التخصصات' : 'Trades'}</div>
         <div className="flex flex-wrap gap-2">
           {order(st.vocab.trades, pinned.trades).map((tr) => (
             <button key={tr.code} type="button" className={chip(trades.includes(tr.code))}
                     aria-pressed={trades.includes(tr.code)}
-                    onClick={() => toggle(trades, setTrades, tr.code)}>{vocabLabel(lang, 'trade', tr.code, tr.label)}</button>
+                    onClick={() => toggle(trades, setTrades, tr.code)}>{labelOf(tr.code)}</button>
           ))}
           {/* THE LIST IS OPEN (founder, 14 Sep 2026: "if a supplier comes tomorrow and register for
               packaging services he is welcomed"). A trade the supplier named that is not in the
@@ -382,7 +426,11 @@ function CapabilityConfirmPanel({ token, lang }) {
         <form className="mt-2 flex gap-2" onSubmit={(e) => {
           e.preventDefault();
           const v = otherTrade.trim();
-          if (v && !trades.includes(v)) setTrades(trades.concat(v));
+          // A typed name that IS a listed trade ticks that trade; anything else is a new trade, sent to
+          // the sales engineer for review when the scope is confirmed.
+          const listed = st.vocab.trades.find((tr) => tr.code === tradeKey(v));
+          if (listed) { if (!trades.includes(listed.code)) setTrades(trades.concat(listed.code)); }
+          else if (v && !trades.includes(v)) { setTrades(trades.concat(v)); setOtherNote(true); }
           setOtherTrade('');
         }}>
           <input className="flex-1 rounded-md border border-white/20 bg-transparent px-3 py-1.5 text-sm"
@@ -391,6 +439,34 @@ function CapabilityConfirmPanel({ token, lang }) {
                  placeholder={ar ? 'تخصص آخر، مثل: خدمات التغليف' : 'Another trade, e.g. packaging services'} />
           <Button type="submit" variant="outline" disabled={!otherTrade.trim()}>{ar ? 'إضافة' : 'Add'}</Button>
         </form>
+        {otherNote && (
+          <div className="mt-2 text-xs opacity-80">
+            {ar ? 'هذا التخصص غير موجود في قائمتنا بعد. عند التأكيد يُرسل إلى مهندس المبيعات لمراجعته، وفي هذه الأثناء تصلك الطلبات الخاصة بهذا التخصص نفسه.'
+                : 'This trade is not in our list yet. When you confirm, it goes to our sales engineer for review; meanwhile you receive requests for exactly this trade.'}
+          </div>
+        )}
+        {st.proposals.length > 0 && (
+          <ul className="mt-3 space-y-1 text-xs">
+            {st.proposals.map((p) => (
+              <li key={p.code}>
+                <span className="font-medium" dir="auto">{p.label_en || p.label_ar || String(p.code).replace(/_/g, ' ')}</span>{' — '}
+                {p.status === 'pending' && (ar ? 'قيد المراجعة لدى مهندس المبيعات' : 'under review by our sales engineer')}
+                {p.status === 'added' && (ar ? 'أُضيف إلى قائمة التخصصات' : 'added to our trade list')}
+                {p.status === 'rejected' && (ar ? 'لم يُضف إلى القائمة' : 'not added to our list')}
+                {p.status === 'mapped' && (ar ? 'استُبدل بتخصص من القائمة بموافقتك' : 'replaced by a listed trade, with your agreement')}
+                {p.status === 'map_offered' && (
+                  <>
+                    {ar ? 'نقترح التخصص المدرج: ' : 'we suggest the listed trade: '}<b>{labelOf(p.mapped_to)}</b>{' '}
+                    <Button type="button" variant="outline" className="ms-2 h-7 px-2 text-xs"
+                            onClick={() => setTrades(trades.filter((c) => c !== p.code && tradeKey(c) !== p.code).concat(trades.includes(p.mapped_to) ? [] : [p.mapped_to]))}>
+                      {ar ? 'استخدم هذا التخصص' : 'Use this trade'}
+                    </Button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="mt-4">
@@ -413,6 +489,11 @@ function CapabilityConfirmPanel({ token, lang }) {
       )}
       {st.err && st.cap ? <div className="mt-3 text-sm text-danger">{String(st.err)}</div> : null}
       {saved ? <div className="mt-3 text-sm text-ok">{ar ? 'تم التأكيد.' : 'Confirmed.'}</div> : null}
+      {saved && review ? (
+        <div className="mt-1 text-sm opacity-80">
+          {ar ? 'أُرسل تخصصك الجديد إلى مهندس المبيعات لمراجعته. سنخبرك هنا بالنتيجة.' : 'Your new trade was sent to our sales engineer for review. The outcome will show here.'}
+        </div>
+      ) : null}
 
       {/* STICKY, BECAUSE OF WHERE IT WAS. On a 375x812 phone this button rendered at y=2547 —
           3.1 screens below the fold, past 48 chips, after a 366px tab strip. The ask that unlocks

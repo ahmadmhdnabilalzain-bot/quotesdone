@@ -11,7 +11,10 @@
 //
 //   csv / tsv / txt      parsed here — a price list is a table and needs no model
 //   xlsx / xls           parsed here via SheetJS, the same way
-//   pdf / png / jpg      read by ai_gateway's vision path, like license_extract
+//   pdf with text layer  priced lines read here by code (rows_from_text.ts, 15 Sep 2026)
+//   pdf / png / jpg      otherwise read by ai_gateway's vision path; while every model route is on
+//                        hold that answer is 'unread_llm_hold' — never 'no_products_found', which
+//                        would tell the supplier a file nobody read lists nothing
 //   dwg / dxf / ifc / rvt  converted to PDF by cad_convert (CloudConvert) first, then read
 //
 // A drawing is geometry. Converting it and reading the title block and schedule tables is honest;
@@ -42,6 +45,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, zipExpansionWithinLimits, SAFE_SHEET, SAFE_DOCUMENT, SAFE_IMAGE, SAFE_CAD } from '../_shared/attachment.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { readDocument, type DocumentRead } from '../_shared/doc_read/index.ts';
+import { proposeTradesFromDocs } from '../_shared/supplier_doc_trades.ts';
+import { productsFromText } from './rows_from_text.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -178,9 +184,14 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
       .select('id').maybeSingle();
     const catalogId = cat?.id ?? null;
 
+    // The same file is also read for the TRADES it names, into the supplier's proposal on "What your
+    // company can quote for" (_shared/supplier_doc_trades.ts). A PDF already read below is reused.
+    let docRead: DocumentRead | undefined;
+    const readTrades = () => proposeTradesFromDocs(admin, supId, [{ path, name: fileName, kind: 'catalogue', bytes, mime: san.mime, read: docRead }]);
+
     const fail = async (status: string, why: string) => {
       if (catalogId) await admin.from('supplier_catalog').update({ status }).eq('id', catalogId);
-      return J({ ok: true, catalog_id: catalogId, products_created: 0, status, why });
+      return J({ ok: true, catalog_id: catalogId, products_created: 0, status, why, documents_read: await readTrades() });
     };
 
     let products: Record<string, unknown>[] = [];
@@ -222,23 +233,41 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
         readableMime = 'application/pdf';
         note = `${kind} converted to a PDF sheet, then read`;
       }
-      const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
-      if (!keyRow?.value) return await fail('extraction_unavailable', 'the smart engine is not configured on this project');
-      let s = ''; const CH = 0x8000;
-      for (let i = 0; i < readable.length; i += CH) s += String.fromCharCode.apply(null, Array.from(readable.subarray(i, i + CH)));
-      const r = await fetch(SUPA_URL + '/functions/v1/ai_gateway', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          __secret: keyRow.value, fn: 'supplier_catalog_ingest', max: 3000, temperature: 0.1,
-          sys: EXTRACTION_PROMPT, response_format: 'json',
-          input: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: `data:${readableMime};base64,${btoa(s)}` } }] }],
-        }),
-      }).then((x) => x.json()).catch(() => null);
-      try {
-        const parsed = JSON.parse(String(r?.content || '{}').match(/\{[\s\S]*\}/)?.[0] || '{}');
-        products = Array.isArray(parsed.products) ? parsed.products : [];
-        note = [note, parsed.note].filter(Boolean).join('; ');
-      } catch { return await fail('extraction_failed', 'the extractor did not return readable structure'); }
+      // CODE FIRST. A PDF with a text layer is read here; a line that prints a price is a product.
+      if (readableMime === 'application/pdf') {
+        docRead = await readDocument(readable, fileName, 'application/pdf', 0, { textOnly: true });
+        if (docRead.ok && docRead.text.trim()) {
+          products = productsFromText(docRead.text);
+          if (products.length) note = [note, `read the PDF text layer by code: ${products.length} priced line(s), no model`].filter(Boolean).join('; ');
+        }
+      }
+      if (!products.length) {
+        const textRead = !!(docRead?.ok && docRead.text.trim());
+        const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
+        if (!keyRow?.value) return await fail('extraction_unavailable', 'the smart engine is not configured on this project');
+        let s = ''; const CH = 0x8000;
+        for (let i = 0; i < readable.length; i += CH) s += String.fromCharCode.apply(null, Array.from(readable.subarray(i, i + CH)));
+        const r = await fetch(SUPA_URL + '/functions/v1/ai_gateway', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            __secret: keyRow.value, fn: 'supplier_catalog_ingest', max: 3000, temperature: 0.1,
+            sys: EXTRACTION_PROMPT, response_format: 'json',
+            input: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: `data:${readableMime};base64,${btoa(s)}` } }] }],
+          }),
+        }).then((x) => x.json()).catch(() => null);
+        // A REFUSAL IS NOT AN EMPTY CATALOGUE (15 Sep 2026). Under the hold ai_gateway answers
+        // {ok:false, outcome:'circuit_open'} or {used_llm:false}; `r.content` is then absent, the parse
+        // below saw '{}', and the catalogue was recorded 'no_products_found' — "we read it and it lists
+        // nothing" about a file nobody read.
+        if (!r || r.ok === false || r.used_llm === false || typeof r.content !== 'string' || !r.content.trim()) {
+          return await fail('unread_llm_hold', `${textRead ? 'the text layer was read by code and prints no priced product lines; ' : ''}reading this file needs the model, which did not answer (${String(r?.outcome || r?.error || 'no response').slice(0, 80)}). The file is stored and has not been read.`);
+        }
+        try {
+          const parsed = JSON.parse(String(r.content).match(/\{[\s\S]*\}/)?.[0] || '{}');
+          products = Array.isArray(parsed.products) ? parsed.products : [];
+          note = [note, parsed.note].filter(Boolean).join('; ');
+        } catch { return await fail('extraction_failed', 'the extractor did not return readable structure'); }
+      }
     } else {
       // Defensive, and no longer the way an unreadable file is rejected: sanitizeUpload refuses an
       // unaccepted type above, before anything is stored. This fires only if ACCEPT and the four
@@ -276,6 +305,7 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
       products_found: products.length, note,
       // 0 found is a real answer and is reported as one, distinct from a format we cannot read.
       status: created ? 'extracted' : 'no_products_found',
+      documents_read: await readTrades(),
     });
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e) }, 500);

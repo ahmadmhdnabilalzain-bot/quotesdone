@@ -61,6 +61,7 @@ const T = {
     none: 'We read the document and it lists no products. Nothing was added.',
     unsupported: 'We stored the file but could not read products from it.',
     failed: 'The extraction did not complete.', route: 'How it was read',
+    held: 'We stored your file, but reading its products needs our reading engine, which is paused. It has not been read yet — this is not "no products". It will be read when the engine is back, or upload a CSV or Excel price list to be read now.',
   },
   ar: {
     title: 'كتالوج بالذكاء الاصطناعي', lead: 'ارفع كتالوج منتجاتك أو قائمة الأسعار أو الجدول أو المخطط. نقرأه وننشئ سجلات منتجاتك.',
@@ -70,6 +71,7 @@ const T = {
     none: 'قرأنا المستند ولا يحتوي على منتجات. لم يُضف شيء.',
     unsupported: 'حفظنا الملف لكن تعذّرت قراءة المنتجات منه.',
     failed: 'لم يكتمل الاستخراج.', route: 'كيف تمت القراءة',
+    held: 'حفظنا ملفك، لكن قراءة منتجاته تحتاج إلى محرك القراءة لدينا، وهو متوقف مؤقتًا. لم يُقرأ الملف بعد — وهذا لا يعني «لا توجد منتجات». سيُقرأ عند عودة المحرك، أو ارفع قائمة أسعار بصيغة CSV أو Excel لتُقرأ الآن.',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
@@ -122,6 +124,7 @@ export default function SupplierCatalogUpload({ token, lang = 'en', onDone }:
             </p>
           )}
           {status === 'no_products_found' && <p className="text-muted-foreground">{t(lang, 'none')}</p>}
+          {status === 'unread_llm_hold' && <p className="text-warn-fg/90">{t(lang, 'held')}</p>}
           {(status === 'unsupported_format' || status === 'conversion_unavailable' || status === 'conversion_failed') && (
             <p className="text-warn-fg/90">{t(lang, 'unsupported')} <span className="text-muted-foreground">{res.why}</span></p>
           )}
