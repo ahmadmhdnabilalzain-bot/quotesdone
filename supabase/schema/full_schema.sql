@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T07:12:31.396Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T07:39:21.819Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -37732,19 +37732,29 @@ CREATE OR REPLACE FUNCTION public.fn_norm_trades(p_text text)
  STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  -- SLUG SEPARATORS ARE WORD SEPARATORS (12 Aug 2026). The scraper writes sector as
-  -- 'building-materials'; every multi-word alias in taxonomy_trade is written with spaces. \m is a
-  -- word boundary, '-' is not a word character, so a two-word alias can never span the hyphen and
-  -- 514 leads sat outside the vocabulary over one character. Normalising the INPUT rather than
-  -- rewriting 40 trades' aliases into every punctuation variant they might arrive in.
+  -- SLUG SEPARATORS ARE WORD SEPARATORS (12 Aug 2026): the INPUT's '-', '_', '/', '.' runs become one
+  -- space, so 'building-materials' reaches the alias 'building materials'.
+  -- ARABIC (15 Sep 2026): the input and every alias are folded by fn_ar_norm first, and an Arabic
+  -- alias may carry ال / و ف ب ل ك / لل before its first word and ال before each later word. '\m'
+  -- treats Arabic letters as word characters on this database, so the word-start rule is unchanged.
+  -- The TS twin is supabase/functions/_shared/trade_words.ts; the two patterns are kept identical.
   select coalesce(array_agg(distinct t.code order by t.code), '{}')
   from public.taxonomy_trade t
+  cross join (select regexp_replace(public.fn_ar_norm(coalesce(p_text, '')), '[-_/.]+', ' ', 'g') as s) x
   where t.active
     and exists (
-      select 1 from unnest(t.aliases || t.code) a
-      where length(a) >= 3
-        and regexp_replace(coalesce(p_text,''), '[-_/.]+', ' ', 'g')
-            ~* ('\m' || regexp_replace(a, '([.*+?^${}()|\[\]\\])', '\\\1', 'g'))
+      select 1
+      from unnest(t.aliases || t.code) a
+      cross join lateral (select public.fn_ar_norm(a) as na) n
+      where length(n.na) >= 3
+        and x.s ~* ('\m' || case
+              when n.na ~ '^[ء-ي]'
+                then '(?:[وفبلك]?ال|[وف]?لل|[وفبلك])?'
+                     || replace(replace(regexp_replace(n.na, '([.*+?^${}()|\[\]\\])', '\\\1', 'g'),
+                                        ' ', ' (?:ال)?'),
+                                ' (?:ال)?و', ' و(?:ال)?')
+              else regexp_replace(n.na, '([.*+?^${}()|\[\]\\])', '\\\1', 'g')
+            end)
     );
 $function$
 
