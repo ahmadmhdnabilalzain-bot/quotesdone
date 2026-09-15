@@ -1434,3 +1434,4 @@ scripts/sql/a_blocklist_refusal_is_never_a_listing.sql
 scripts/sql/the_founder_gets_one_it_digest_per_tick.sql
 scripts/sql/a_suppliers_documents_propose_trades_and_a_new_trade_is_reviewed_not_dropped.sql
 scripts/sql/an_export_day_reaches_dropbox_when_it_finishes.sql
+scripts/sql/an_arabic_document_names_its_trades_in_arabic.sql
