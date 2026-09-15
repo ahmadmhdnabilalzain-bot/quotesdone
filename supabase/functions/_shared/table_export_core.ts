@@ -105,6 +105,50 @@ export async function exportSlot(stamp: string, slot: Slot, deadline: number, de
       slot.page++; slot.rows += rows.length; onBytes(body.length); budget.spent += body.length;
     }
     if (r?.done) return true;
+    // No rows and not done: the source made no progress. End the hop now rather than re-reading the same
+    // key for the rest of the 30 s; runHop's idle guard turns repeated idle hops into a failure.
+    if (!rows.length) return false;
     slot.after = r.last;
   }
+}
+
+// NO-PROGRESS GUARD (15 Sep 2026, review of #689). A hop that stores nothing still counts a hop, so a
+// page source that kept answering "no rows, not done" would burn every hop to MAX_HOPS (2000, ~16.7 h)
+// before anything said so. After IDLE_HOPS hops in a row with no page stored and no table finished, the
+// day fails with cause 'internal', naming the table and page, through the caller's settle() path. The
+// count lives in the saved state (st.idle), so it survives hops and resumes; any progress resets it.
+export const IDLE_HOPS = 3;
+export type Failure = { table: string; error: string; cause: Cause };
+export type HopState = {
+  stamp: string; bytes: number; queue: Slot[]; idle?: number;
+  tables: Record<string, { rows: number; pages: number; mode: string }>; errors: Record<string, string>;
+};
+
+// One hop: export tables from the head of the queue until the wall clock or the byte budget ends it.
+// A failing table stays at the head of the queue with its resume point, named in st.errors.
+export async function runHop(st: HopState, deps: Deps, deadline: number, budget: HopBudget): Promise<Failure | null> {
+  const before = st.queue.length;
+  while (st.queue.length && deps.now() < deadline && budget.spent < budget.max) {
+    const slot = st.queue[0];
+    try {
+      if (!(await exportSlot(st.stamp, slot, deadline, deps, (n) => { st.bytes += n; }, budget))) break;
+      st.tables[slot.t] = { rows: slot.rows, pages: slot.page, mode: slot.since ? 'changes_since ' + slot.since : 'full' };
+      delete st.errors[slot.t];
+    } catch (e) {
+      const error = String((e as Error)?.message || e).slice(0, 300);
+      const failure: Failure = { table: slot.t, error, cause: e instanceof ExportError ? e.cause_ : 'internal' };
+      st.errors[slot.t] = `${failure.cause}: ${failure.error}`;
+      return failure;
+    }
+    st.queue.shift();
+  }
+  st.idle = budget.spent > 0 || st.queue.length < before ? 0 : (st.idle ?? 0) + 1;
+  if (st.queue.length && st.idle >= IDLE_HOPS) {
+    const s = st.queue[0];
+    const failure: Failure = { table: s.t, cause: 'internal',
+      error: `no page stored for ${st.idle} hops in a row at page ${s.page} (after ${JSON.stringify(s.after)}): the page source returned no rows and not done` };
+    st.errors[s.t] = `internal: ${failure.error}`;
+    return failure;
+  }
+  return null;
 }

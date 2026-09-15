@@ -2,7 +2,51 @@
 // round-trip exactly, leave no firewall-trigger character, and a hop must end at the byte budget with a
 // clean resume point. Pure, no network. No production data: every fixture below is invented.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { exportSlot, HOP_BYTES, type Deps, type Slot, wafSafeJson } from './table_export_core.ts';
+import { exportSlot, HOP_BYTES, type Deps, type HopState, IDLE_HOPS, runHop, type Slot, wafSafeJson } from './table_export_core.ts';
+
+Deno.test('(f) a page source answering "no rows, not done" fails the day after 3 idle hops, internal, never to MAX_HOPS', async () => {
+  let reads = 0, uploads = 0;
+  const deps: Deps = {
+    now: () => 0,
+    clear: async () => {},
+    upload: async () => { uploads++; },
+    readPage: async () => { reads++; return { rows: [], done: false, last: null }; },
+  };
+  // tonight's shape, resumed mid-table: kb_chunks at page 69
+  let st: HopState = { stamp: '2026-09-15', bytes: 0, tables: {}, errors: {},
+    queue: [{ t: 'kb_chunks', after: [138308], page: 69, rows: 69000, since: null }] };
+  let failure = null, hops = 0;
+  for (; hops < 2000 && !failure; hops++) {
+    failure = await runHop(st, deps, 1, { spent: 0, max: HOP_BYTES });
+    st = JSON.parse(JSON.stringify(st));                  // saved and handed to the next hop, as fn_table_export_save does
+  }
+  assertEquals(hops, IDLE_HOPS);
+  assert(failure);
+  assertEquals(failure.cause, 'internal');                // the caller passes this to settle(): an internal finding
+  assertEquals(failure.table, 'kb_chunks');
+  assert(failure.error.includes('page 69'), failure.error);
+  assertEquals(reads, IDLE_HOPS);                         // one read per hop, not 30 s of re-reading
+  assertEquals(uploads, 0);
+  assertEquals(st.queue[0].t, 'kb_chunks');               // still at the head: fn_table_export_due v2 resumes it
+  assertEquals(st.queue[0].page, 69);
+  assert(st.errors.kb_chunks.startsWith('internal: no page stored for 3 hops'));
+});
+
+Deno.test('(f2) any progress resets the idle count, and it survives being saved between hops', async () => {
+  let empty = true;
+  const deps: Deps = {
+    now: () => 0, clear: async () => {}, upload: async () => {},
+    readPage: async (slot) => empty ? { rows: [], done: false, last: null }
+      : { rows: [{ id: Number(slot.after ?? 0) + 1 }], done: false, last: Number(slot.after ?? 0) + 1 },
+  };
+  let st: HopState = { stamp: 'd', bytes: 0, tables: {}, errors: {}, queue: [{ t: 'x', after: 5, page: 5, rows: 5, since: null }] };
+  for (let i = 0; i < IDLE_HOPS - 1; i++) { assertEquals(await runHop(st, deps, 1, { spent: 0, max: HOP_BYTES }), null); st = JSON.parse(JSON.stringify(st)); }
+  assertEquals(st.idle, IDLE_HOPS - 1);
+  empty = false;
+  assertEquals(await runHop(st, deps, 1, { spent: 0, max: 1 }), null);   // one page stored, then the budget ends the hop
+  assertEquals(st.idle, 0);
+  assertEquals(st.queue[0].page, 6);
+});
 
 // v1 of wafSafeJson, verbatim (backup v9, #686). The reference the new one must match.
 const RISKY_V1 = /[<>&'"\/\\.;|`$(){}%=*+\-#:!?@\[\],~^]/;
@@ -116,4 +160,16 @@ Deno.test('(e) escaping a realistic 4 MB page stays well inside the CPU budget',
   // loose ceiling so a slow CI runner does not flake, and still fails if escaping regresses to v1-like
   // cost on a slow machine or to anything quadratic.
   assert(ms < 1000, `escaping a 4 MB page took ${ms.toFixed(0)} ms`);
+
+  // The worst case: a string that is almost all risky characters, so nearly every one is rewritten
+  // (~2.9 M characters, 5.6 MB once JSON.stringify has expanded its control characters).
+  const dense = { long: ('<a href="/x?y=1&z=2">' + arabic + '\\"' + controls).repeat(20_000) };
+  wafSafeJson(dense);
+  const t2 = performance.now();
+  const dout = wafSafeJson(dense);
+  const dms = performance.now() - t2;
+  console.log(`dense ${JSON.stringify(dense).length} bytes: native-regex ${dms.toFixed(0)} ms, ${dout.length} bytes out`);
+  // Measured locally: 170 ms. 2,000 ms leaves CI headroom and still fails on a regression to
+  // per-character or super-linear cost for this input.
+  assert(dms < 2000, `escaping the dense 5.6 MB string took ${dms.toFixed(0)} ms`);
 });

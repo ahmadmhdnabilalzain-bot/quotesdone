@@ -37,7 +37,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { exportPathAllowed } from '../_shared/backup_prune_allow.ts';
-import { exportSlot as exportSlotCore, ExportError, HOP_BYTES, type HopBudget, retry, type Slot } from '../_shared/table_export_core.ts';
+import { type Deps, ExportError, HOP_BYTES, type HopState, retry, runHop } from '../_shared/table_export_core.ts';
 // v3 (15 Sep 2026, it_engineer): the first full copy failed twice on kb_chunks/page_0103.json with
 // "Forbidden" — the edge firewall refused a body holding OWASP injection examples; the request never
 // reached storage (see _shared/table_export_core.ts). Now: every page is written with its risky
@@ -61,11 +61,12 @@ const SLICE_MS = 30_000;   // hand off well inside the worker's compute budget (
 // ~985. 2000 still stops a runaway chain.
 const MAX_HOPS = 2000;
 const PAGE = 1000;         // rows per page file (the RPC's cap); kb_chunks ~2.8 MB, ops_knowledge ~8.3 MB
+// LIMIT (known, 15 Sep 2026): PAGE bounds ROWS, not bytes. One page whose rows carry an outsized text
+// field is read, stringified and escaped whole before the 12 MB hop budget is checked, so a single such
+// page can still cost more CPU than a hop should. Upgrade path: a byte-bounded page read
+// (fn_table_export_page taking a byte cap and stopping at the row that crosses it).
 
-type State = {
-  stamp: string; kind: string; since: string | null; hop: number; bytes: number; queue: Slot[];
-  tables: Record<string, { rows: number; pages: number; mode: string }>; errors: Record<string, string>;
-};
+type State = HopState & { kind: string; since: string | null; hop: number };
 
 async function upload(path: string, body: string) {
   await retry('upload ' + path, async () => {
@@ -102,21 +103,18 @@ async function clearTable(stamp: string, t: string) {
   }
 }
 
-// Returns true when the table is finished, false when the slice ran out mid-table (slot keeps the
-// exact resume point: the last key read and the next page number). The loop is table_export_core.ts.
-function exportSlot(st: State, slot: Slot, deadline: number, budget: HopBudget): Promise<boolean> {
-  return exportSlotCore(st.stamp, slot, deadline, {
-    now: Date.now,
-    clear: clearTable,
-    upload,
-    readPage: (s) => retry(`${s.t} page ${s.page}`, async () => {
-      const { data, error } = await admin.rpc('fn_table_export_page',
-        { p_table: s.t, p_after: s.after ?? null, p_limit: PAGE, p_since: s.since });
-      if (error) throw new Error(error.message);
-      return data;
-    }),
-  }, (n) => { st.bytes += n; }, budget);
-}
+// The live storage and database behind the hop loop in table_export_core.ts (runHop / exportSlot).
+const DEPS: Deps = {
+  now: Date.now,
+  clear: clearTable,
+  upload,
+  readPage: (s) => retry(`${s.t} page ${s.page}`, async () => {
+    const { data, error } = await admin.rpc('fn_table_export_page',
+      { p_table: s.t, p_after: s.after ?? null, p_limit: PAGE, p_since: s.since });
+    if (error) throw new Error(error.message);
+    return data;
+  }),
+};
 
 async function finish(stamp: string, manifest: unknown, error: string | null) {
   const { data, error: fe } = await admin.rpc('fn_table_export_finish', { p_stamp: stamp, p_manifest: manifest, p_error: error });
@@ -198,21 +196,9 @@ Deno.serve(async (req) => {
     // A failing table stops the day where it stands: the slot stays at the head of the queue holding the
     // refused page, is saved, and the next attempt resumes there (v2 used to shift it away and restart
     // every table on the retry, re-uploading ~400 MB to meet the same page again).
-    let failure: { table: string; error: string; cause: string } | null = null;
-    const hopBudget: HopBudget = { spent: 0, max: HOP_BYTES };   // the CPU bound; the deadline is the wall-clock one
-    while (st.queue.length && Date.now() < deadline && hopBudget.spent < hopBudget.max) {
-      const slot = st.queue[0];
-      try {
-        if (!(await exportSlot(st, slot, deadline, hopBudget))) break;
-        st.tables[slot.t] = { rows: slot.rows, pages: slot.page, mode: slot.since ? 'changes_since ' + slot.since : 'full' };
-        delete st.errors[slot.t];
-      } catch (e) {
-        failure = { table: slot.t, error: errText(e), cause: e instanceof ExportError ? e.cause_ : 'internal' };
-        st.errors[slot.t] = `${failure.cause}: ${failure.error}`;
-        break;
-      }
-      st.queue.shift();
-    }
+    // The CPU bound is the byte budget; the deadline is the wall-clock one. runHop also fails the day after
+    // IDLE_HOPS hops that stored nothing, and that failure takes the same settle() path below.
+    const failure = await runHop(st, DEPS, deadline, { spent: 0, max: HOP_BYTES });
     st.hop++;
     const { error: se } = await admin.rpc('fn_table_export_save', { p_stamp: stamp, p_state: st });
     if (se) throw new Error('fn_table_export_save: ' + se.message);
