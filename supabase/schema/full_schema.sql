@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T08:21:14.978Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T08:54:01.829Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3533,7 +3533,9 @@ CREATE TABLE IF NOT EXISTS public.it_expiry (
   route text NOT NULL,
   source text NOT NULL,
   checked_at timestamp with time zone DEFAULT now() NOT NULL,
-  warn_days integer[] DEFAULT '{60,30}'::integer[] NOT NULL
+  warn_days integer[] DEFAULT '{60,30}'::integer[] NOT NULL,
+  secret_fingerprint text,
+  secret_seen_since timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.it_hold_signature (
@@ -17878,16 +17880,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17913,6 +17905,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -28436,6 +28438,40 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_e text; v_pat record; v_dom text;
+begin
+  v_e := lower(btrim(coalesce(p_email,'')));
+  if v_e = '' then
+    return jsonb_build_object('ok', false, 'reason', 'no address');
+  end if;
+  if v_e !~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$' then
+    return jsonb_build_object('ok', false, 'reason', 'not a valid address shape');
+  end if;
+  if exists (select 1 from email_suppressions s where lower(s.email) = v_e) then
+    return jsonb_build_object('ok', false, 'reason', 'suppressed');
+  end if;
+  v_dom := split_part(v_e, '@', 2);
+  if exists (select 1 from email_domain_mx m
+              where m.domain = v_dom and m.has_mx = false
+                and m.kind in ('nxdomain','no_records')) then
+    return jsonb_build_object('ok', false, 'reason', 'domain does not accept mail');
+  end if;
+  for v_pat in select pattern, reason from email_block_pattern where active loop
+    if v_e ~ v_pat.pattern then
+      return jsonb_build_object('ok', false, 'reason', v_pat.reason);
+    end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'reason', 'sendable');
+end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_emit(p_event_type text, p_entity_type text, p_entity_id text, p_actor text DEFAULT 'system'::text, p_payload jsonb DEFAULT '{}'::jsonb)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -32697,10 +32733,13 @@ CREATE OR REPLACE FUNCTION public.fn_it_credential_reverify()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r public.it_credential_rotation; o public.internal_credential; n public.internal_credential;
-        v_items jsonb := '[]'::jsonb; n_ret int := 0; n_held int := 0;
+        v_items jsonb := '[]'::jsonb; n_ret int := 0; n_held int := 0; v_overlap interval; v_cadence interval;
 begin
-  for r in select * from public.it_credential_rotation where status in ('overlap', 'held') order by id loop
-    select * into o from public.internal_credential where id = r.old_id;
+  v_overlap := make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int);
+  v_cadence := coalesce((select every from public.it_duty_schedule where duty = 'rotation'), interval '1 day');
+  for r in select * from public.it_credential_rotation where status in ('overlap', 'held') order by id for update loop
+    -- Locked, so a use of the old credential between this read and the retire cannot be missed.
+    select * into o from public.internal_credential where id = r.old_id for update;
     select * into n from public.internal_credential where id = r.new_id;
     if o.last_used_at is null or o.last_used_at < r.rotated_at then
       if now() >= r.overlap_until then
@@ -32710,8 +32749,9 @@ begin
         n_ret := n_ret + 1;
       end if;
     elsif now() >= r.overlap_until then
-      update public.internal_credential set expires_at = now() + (r.overlap_until - r.rotated_at) where id = r.old_id;
-      update public.it_credential_rotation set status = 'held', overlap_until = now() + (r.overlap_until - r.rotated_at),
+      -- Still presented after the rotation: keep it valid past the NEXT run, which decides again.
+      update public.internal_credential set expires_at = now() + v_overlap + 2 * v_cadence where id = r.old_id;
+      update public.it_credential_rotation set status = 'held', overlap_until = now() + v_overlap,
              note = 'old credential still used by ' || coalesce(o.last_function, '?') || ' at ' || o.last_used_at where id = r.id;
       v_items := v_items || jsonb_build_object('item', r.context, 'subject', o.last_function,
         'title', 'After rotating ' || r.context || ', ' || coalesce(o.last_function, 'a caller') || ' still presents the old credential',
@@ -32722,7 +32762,8 @@ begin
     end if;
   end loop;
   return jsonb_build_object('retired', n_ret, 'held', n_held,
-                            'settle', public.fn_it_duty_settle('rotation', v_items));
+                            'settle', public.fn_it_duty_settle('rotation', v_items),
+                            'key_age', public.fn_it_key_age_refresh());
 end $function$
 
 
@@ -32732,7 +32773,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_credential_rotate(p_id bigint)
  SECURITY DEFINER
  SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
-declare c public.internal_credential; v_key text; v_secret text; v_new bigint; v_overlap interval;
+declare c public.internal_credential; v_key text; v_secret text; v_new bigint; v_overlap interval; v_cadence interval;
 begin
   select * into c from public.internal_credential where id = p_id and active and retired_at is null for update;
   if not found then raise exception 'fn_it_credential_rotate: no active credential %', p_id; end if;
@@ -32742,16 +32783,22 @@ begin
     raise exception 'fn_it_credential_rotate: % has no app_secrets key %, so no caller would receive a new secret', c.context, v_key;
   end if;
   v_overlap := make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int);
+  v_cadence := coalesce((select every from public.it_duty_schedule where duty = 'rotation'), interval '1 day');
   v_secret := encode(extensions.gen_random_bytes(32), 'hex');
   insert into public.internal_credential (context, label, secret_hash, scope, is_legacy, active, rotated_at, expires_at)
   values (c.context, c.label, public.fn_internal_credential_hash(v_secret), c.scope, false, true, now(),
           now() + make_interval(days => (coalesce(public.fn_it_threshold('credential_rotate_days'), 90) + 30)::int))
   returning id into v_new;
+  -- Every caller reads this key at call time, so this one write moves them all to the new secret.
   update public.app_secrets set value = v_secret, updated_at = now() where key = v_key;
-  update public.internal_credential set expires_at = now() + v_overlap where id = c.id;
+  -- overlap_until is when reverify may first decide; the old credential is still accepted for TWO
+  -- more cadences of the duty after that, so the run that decides comes before it is refused even
+  -- when that run is late or one run is missed (review of #709: one cadence left no margin at all).
+  update public.internal_credential set expires_at = now() + v_overlap + 2 * v_cadence where id = c.id;
   insert into public.it_credential_rotation (context, old_id, new_id, secret_key, overlap_until)
   values (c.context, c.id, v_new, v_key, now() + v_overlap);
-  return jsonb_build_object('context', c.context, 'old_id', c.id, 'new_id', v_new, 'overlap_until', now() + v_overlap);
+  return jsonb_build_object('context', c.context, 'old_id', c.id, 'new_id', v_new, 'overlap_until', now() + v_overlap,
+                            'old_valid_until', now() + v_overlap + 2 * v_cadence);
 end $function$
 
 
@@ -35028,6 +35075,40 @@ begin
           jsonb_build_object('job', 'journey', 'tag', p_report->>'tag', 'failed', jsonb_array_length(v_items),
                              'steps', jsonb_array_length(p_report->'steps'), 'leftovers', p_report->'leftovers'), null);
   return v_res;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_key_age_refresh()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e public.it_expiry; v_val text; v_upd timestamptz; v_fp text; v_seen timestamptz;
+        n_new int := 0; n_missing int := 0; n_same int := 0;
+begin
+  for e in select * from public.it_expiry where kind = 'token' and item like 'key:%' order by item for update loop
+    v_val := null; v_upd := null;
+    select s.value, s.updated_at into v_val, v_upd from public.app_secrets s where s.key = substr(e.item, 5);
+    if coalesce(btrim(v_val), '') = '' then
+      -- No value to age: the renewal watch reports the unknown date to the accountant.
+      update public.it_expiry set expires_on = null, secret_fingerprint = null, secret_seen_since = null,
+             checked_at = now() where item = e.item;
+      n_missing := n_missing + 1;
+      continue;
+    end if;
+    v_fp := public.fn_internal_credential_hash(v_val);
+    if e.secret_fingerprint is distinct from v_fp then
+      v_seen := case when e.secret_fingerprint is null then coalesce(v_upd, now()) else now() end;
+      update public.it_expiry set secret_fingerprint = v_fp, secret_seen_since = v_seen,
+             expires_on = (v_seen + interval '1 year')::date, checked_at = now() where item = e.item;
+      n_new := n_new + 1;
+    else
+      update public.it_expiry set checked_at = now() where item = e.item;
+      n_same := n_same + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('changed_or_first_seen', n_new, 'unchanged', n_same, 'missing', n_missing);
 end $function$
 
 
@@ -37848,6 +37929,45 @@ begin
     values ('high', 'founder_mail:route_failed', left('kind ' || v_kind || ' / ' || coalesce(NEW.subject, '') || ' — ' || sqlerrm, 1000), 'os');
   end;
   return null;   -- a refusal that is not an error: nothing is queued; the task is the record
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_notifications_release_held(p_limit integer DEFAULT 1000)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_on boolean; v_queued int := 0; v_suppressed int := 0; v_other int := 0;
+begin
+  select coalesce((d.value #>> '{}')::boolean, false) into v_on
+    from public.decision_policy d where d.key = 'demo_rehearsal_active';
+  if coalesce(v_on, false) then
+    raise exception 'fn_notifications_release_held refuses while decision_policy.demo_rehearsal_active is true: tear the rehearsal down and set it false first';
+  end if;
+
+  with picked as (
+    select n.id from public.notifications n
+     where n.status = 'held'
+       and starts_with(coalesce(n.last_error, ''), 'HELD by zzz_notifications_demo_guard')
+     order by n.id
+     limit greatest(coalesce(p_limit, 0), 0)
+     for update skip locked
+  ), released as (
+    update public.notifications n
+       set status = 'queued',
+           last_error = left('released by fn_notifications_release_held at ' || now()::text
+                             || '; was: ' || coalesce(n.last_error, ''), 500)
+      from picked where n.id = picked.id
+    returning n.status   -- the stored status, after zzzz_notifications_demo_capture has judged it
+  )
+  select count(*) filter (where status = 'queued'),
+         count(*) filter (where status = 'suppressed'),
+         count(*) filter (where status not in ('queued', 'suppressed'))
+    into v_queued, v_suppressed, v_other
+    from released;
+
+  return jsonb_build_object('released_to_queue', v_queued, 'captured_as_demo', v_suppressed, 'other', v_other);
 end $function$
 
 
@@ -40770,27 +40890,34 @@ CREATE OR REPLACE FUNCTION public.fn_os_incident_open(p_title text, p_kind text,
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
-DECLARE nid bigint;
-BEGIN
-  IF coalesce(p_title,'')='' THEN RETURN jsonb_build_object('ok',false,'error','title_required'); END IF;
-  INSERT INTO public.os_incidents(title, kind, severity, detail, opened_by)
-  VALUES (p_title, coalesce(nullif(p_kind,''),'other'), coalesce(nullif(p_severity,''),'medium'), coalesce(p_detail,'{}'::jsonb), coalesce(p_actor,'os'))
-  RETURNING id INTO nid;
-  INSERT INTO public.os_audit_log(actor,action,entity,entity_id,detail,ok)
-  VALUES (coalesce(p_actor,'os'),'incident_open','incident',nid::text,jsonb_build_object('title',p_title,'severity',p_severity),true);
-  BEGIN
-    PERFORM net.http_post(
-      url := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/alert_founder',
-      headers := jsonb_build_object('Content-Type','application/json'),
-      body := jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_db_internal'),
-                                 'event','OS incident #'||nid||' ('||coalesce(p_severity,'medium')||'): '||p_title,
-                                 'detail',left(coalesce(p_detail->>'description',''),300),'level','action')
-    );
-  EXCEPTION WHEN others THEN /* notification is best-effort */ END;
-  RETURN jsonb_build_object('ok',true,'id',nid);
-END $function$
+declare nid bigint;
+begin
+  if coalesce(p_title, '') = '' then return jsonb_build_object('ok', false, 'error', 'title_required'); end if;
+  insert into public.os_incidents (title, kind, severity, detail, opened_by)
+  values (p_title, coalesce(nullif(p_kind, ''), 'other'), coalesce(nullif(p_severity, ''), 'medium'),
+          coalesce(p_detail, '{}'::jsonb), coalesce(p_actor, 'os'))
+  returning id into nid;
+  insert into public.os_audit_log (actor, action, entity, entity_id, detail, ok)
+  values (coalesce(p_actor, 'os'), 'incident_open', 'incident', nid::text,
+          jsonb_build_object('title', p_title, 'severity', p_severity), true);
+  -- Best effort, as before: an incident is recorded even when telling someone about it fails.
+  begin
+    perform public.fn_notify_founder(
+      p_event       => 'OS incident #' || nid || ' (' || coalesce(nullif(p_severity, ''), 'medium') || '): ' || p_title,
+      p_detail      => left(coalesce(p_detail->>'description', ''), 300),
+      p_level       => coalesce(nullif(p_severity, ''), 'medium'),
+      p_kind        => 'os_incident',
+      p_dedupe_key  => 'os_incident:' || nid,
+      p_owner_agent => 'it_engineer');
+  exception when others then
+    insert into public.os_audit_log (actor, action, entity, entity_id, detail, ok)
+    values (coalesce(p_actor, 'os'), 'incident_notify', 'incident', nid::text,
+            jsonb_build_object('error', left(sqlerrm, 500)), false);
+  end;
+  return jsonb_build_object('ok', true, 'id', nid);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_os_incident_open_task()
@@ -59602,20 +59729,28 @@ begin
     from public.decision_policy d where d.key = 'demo_rehearsal_active';
   if not coalesce(v_on, false) then return NEW; end if;
 
+  -- On UPDATE only a move INTO a status a dispatcher drains is judged. A dispatcher marking a row
+  -- sent, failed or suppressed is not a send and must not be turned back into held.
+  if TG_OP = 'UPDATE' and coalesce(NEW.status, '') not in ('queued', 'pending', 'digest') then return NEW; end if;
+
   -- RFC 2606 reserves .invalid as permanently undeliverable. Anything else, including NULL, is
   -- treated as possibly real and held. Failing closed is the whole point of this trigger.
   if coalesce(NEW.to_email, '') ~* '@example[.]invalid$' then return NEW; end if;
 
   NEW.status := 'held';
-  -- Deliberately does NOT contain the marker pattern: fn_demo_marker_scan reads every text column,
-  -- and a guard that stamps the pattern on its own rows can never let the teardown proof reach zero.
+  -- Deliberately does NOT contain the marker pattern: a scan of every text column for it must be
+  -- able to reach zero after a teardown.
   NEW.last_error := 'HELD by zzz_notifications_demo_guard: decision_policy.demo_rehearsal_active is '
                  || 'true and the recipient is not a reserved .invalid address. Release with '
                  || 'fn_notifications_release_held() once the rehearsal is torn down.';
   return NEW;
 exception when others then
+  -- A DIFFERENT PREFIX ON PURPOSE (database review, 15 Sep). The release below picks rows by the
+  -- deliberate stamp's prefix. When this fallback shared it, a row held because the guard itself
+  -- failed, where nothing was ever judged, would have been released with the rest. A row the guard
+  -- could not judge is left for a person to look at.
   NEW.status := 'held';
-  NEW.last_error := 'HELD by zzz_notifications_demo_guard (guard itself errored: ' || sqlerrm || ')';
+  NEW.last_error := 'GUARD ERROR, held by zzz_notifications_demo_guard (guard itself errored: ' || sqlerrm || ')';
   return NEW;
 end $function$
 
@@ -59735,7 +59870,7 @@ CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
+CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER a03_notifications_whatsapp_goes_to_a_confirmed_number BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_whatsapp_goes_to_a_confirmed_number();
 CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();

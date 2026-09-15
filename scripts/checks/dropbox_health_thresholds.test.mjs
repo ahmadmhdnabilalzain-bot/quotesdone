@@ -40,9 +40,13 @@ test('every routine is revoked and pins its search_path; findings go only throug
 test('resilience_ping calls op health as its own step, and both responses carry it', () => {
   const ts = read('supabase/functions/resilience_ping/index.ts');
   assert.match(ts, /async function dropboxHealthTick\(\)[\s\S]*?fn_it_dropbox_health_due[\s\S]*?op: 'health'/);
-  assert.match(ts, /const dropboxHealth = await dropboxHealthTick\(\);/);
-  assert.equal((ts.match(/healthy: true,[^\n]*\bdropboxHealth\b/g) || []).length, 1);
-  assert.equal((ts.match(/healthy: false,[^\n]*\bdropboxHealth\b/g) || []).length, 1);
+  // 15 Sep 2026 (PR #714): the handler runs its ticks from ONE ordered STEPS list and every return
+  // spreads the step results by name, so "its own step" is its own STEPS entry and "both responses carry
+  // it" is both returns spreading ...results. Same two properties, asserted on the new shape.
+  const steps = ts.slice(ts.indexOf('const STEPS'), ts.indexOf('Deno.serve('));
+  assert.match(steps, /\{ name: 'dropboxHealth', run: dropboxHealthTick \}/, 'dropboxHealthTick is not its own step');
+  assert.equal((ts.match(/healthy: true,[^\n]*\.\.\.results/g) || []).length, 1);
+  assert.equal((ts.match(/healthy: false,[^\n]*\.\.\.results/g) || []).length, 1);
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
