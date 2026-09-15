@@ -9,13 +9,13 @@ import { measurePdf } from '../pdf_measure.ts';
 import { linesOf } from '../../drawing_boq/boq_from_text.ts';
 import { type Qty, type ReadContext, type ReadResult, LIMITS, empty, ok } from './types.ts';
 
-export async function readPdf(bytes: Uint8Array, _ctx: ReadContext): Promise<ReadResult> {
+export async function readPdf(bytes: Uint8Array, ctx: ReadContext): Promise<ReadResult> {
   const pages = await pdfPages(bytes);
   if (!pages.length) return ok(empty('pdf', ['The PDF could not be opened (encrypted, damaged or not a PDF).']));
   const lines = linesOf(pages);
   const notes: string[] = [];
   let quantities: Qty[] = [];
-  try {
+  if (!ctx.textOnly) try {
     const m = await measurePdf(bytes);
     quantities = m.pages.flatMap((p) => p.quantities).slice(0, LIMITS.maxQuantities);
     notes.push(...m.notes);

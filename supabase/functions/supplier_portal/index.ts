@@ -7,6 +7,7 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { REQUIRED_DOC_KEYS, registrationChecklist } from '../_shared/supplier_registration.ts';
+import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
 // SUPPLIER-FACING TEXT CARRIES A CODE (14 Sep 2026). Every sentence below that reaches a supplier
 // (document hints, alerts, eligibility titles/details) now travels with a stable `code` and `params`;
 // the portal renders the EN/AR wording from src/components/portal/supplier/serverCopy.ts and falls
@@ -421,13 +422,19 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
     }
 
     if (action === 'save_documents') {
-      const items = Array.isArray(b.items) ? b.items : [];
+      // Capped (15 Sep 2026): every item is malware-scanned and licence/profile/catalogues are now
+      // also read by code, one after another, inside an edge function's CPU budget. Nine document
+      // kinds plus a handful of catalogues fits; supplier_api.process_docs is bounded to 7 the same way.
+      const items = Array.isArray(b.items) ? b.items.slice(0, 15) : [];
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
       const failed: { kind: string; reason: string }[] = [];
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';
       let catAppend: string[] = [];
+      // Licence, profile and catalogues are also read by code into a trade proposal (15 Sep 2026,
+      // _shared/supplier_doc_trades.ts) — the same reading supplier_api.process_docs does.
+      const readQueue: DocIn[] = [];
       for (const it of items) {
         const kindStr = String(it.kind || '');
         if (kindStr === 'catalogs') {
@@ -445,6 +452,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
               const { error: upErr } = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
               if (upErr) { failed.push({ kind: 'catalogs', reason: upErr.message }); continue; }
               catAppend.push(p); saved.push('catalogs');
+              readQueue.push({ path: p, name: String(it.filename || 'catalogue'), kind: 'catalogue', bytes: s.bytes, mime: s.mime });
             } catch (e) { failed.push({ kind: 'catalogs', reason: String((e as Error)?.message || e).slice(0, 200) }); }
           }
           continue;
@@ -470,6 +478,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
             if (upErr) { failed.push({ kind: kindStr, reason: upErr.message }); continue; }
             upd[kind.pathCol] = p;
             if (kind.nameCol) upd[kind.nameCol] = clean.slice(0, 200);
+            if (kindStr === 'license' || kindStr === 'profile') readQueue.push({ path: p, name: clean, kind: kindStr === 'license' ? 'licence' : 'profile', bytes: s.bytes, mime: s.mime });
           } catch (e) { failed.push({ kind: kindStr, reason: String((e as Error)?.message || e).slice(0, 200) }); continue; }
         }
         // #86: read the trade-licence expiry (and licence no / authority) SERVER-SIDE from the
@@ -528,7 +537,8 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
           return J({ error:'save_failed', detail: updErr.message, saved, failed, message:'Your files were uploaded but could not be attached to your profile. Please try again.' }, 502);
         }
       }
-      return J({ ok:true, saved, failed });
+      const documents_read = readQueue.length ? await proposeTradesFromDocs(admin, Number(sup.id), readQueue.slice(0, 7)) : undefined;
+      return J({ ok:true, saved, failed, ...(documents_read ? { documents_read } : {}) });
     }
 
     // Why am I not being matched?
@@ -614,19 +624,20 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
         improving.push({ code:'no_emirate', title:'Set your home emirate', detail:'You receive requests from the whole UAE either way. Your emirate is used only to break a tie between equally good matches.', fix:'profile' });
       }
       if (!has(r.license_doc_path)) improving.push({ code:'no_licence', title:'Upload your trade licence', detail:'Required before your account can be approved.', fix:'documents' });
-      // #86: surface the capability agent's scope questions so the supplier can confirm or correct what
-      // we understood they do. Precise scope = only relevant inquiries, which is what keeps suppliers here.
+      // TRADES THE SUPPLIER'S OWN DOCUMENTS NAME THAT THEY HAVE NOT CONFIRMED (15 Sep 2026). This used
+      // to read the pending proposal the capability agent left in supplier_capability_confirmation;
+      // that agent was deleted on 7 Sep, the table holds 0 rows, and the item could never appear. It
+      // now reads supplier_capabilities.proposed_trades (_shared/supplier_doc_trades.ts). Only after
+      // the scope is confirmed — before that, the blocking scope item above already sends them there.
       try {
-        const { data: cc } = await admin.from('supplier_capability_confirmation')
-          .select('proposed').eq('supplier_id', sup.id).is('confirmed_at', null)
-          .order('created_at', { ascending: false }).limit(1).maybeSingle();
-        const pr = (cc?.proposed || {}) as Record<string, any>;
-        const qs = Array.isArray(pr.confirm_questions) ? pr.confirm_questions.filter(Boolean).map((q: unknown) => String(q)) : [];
-        if (pr.confirm_summary || qs.length) {
-          improving.push({ code:'confirm_scope', title:'Confirm what your company does',
-            detail: (pr.confirm_summary ? String(pr.confirm_summary) + ' ' : '') +
-                    (qs.length ? 'Please confirm or correct this, and it helps us to know: ' + qs.join('  ') : 'Please confirm or correct this so we only send you relevant requests.'),
-            fix:'profile', questions: qs });
+        const { data: sc } = await admin.from('supplier_capabilities')
+          .select('trades,proposed_trades,confirmed_at').eq('supplier_id', sup.id).maybeSingle();
+        const held: string[] = Array.isArray(sc?.trades) ? sc!.trades : [];
+        const unconfirmed = sc?.confirmed_at && Array.isArray(sc.proposed_trades) ? (sc.proposed_trades as string[]).filter((c) => !held.includes(c)) : [];
+        if (unconfirmed.length) {
+          improving.push({ code:'confirm_scope', params: { trades: unconfirmed }, title:'Confirm what your company does',
+            detail:`Your documents mention ${unconfirmed.length === 1 ? 'a trade' : unconfirmed.length + ' trades'} you have not confirmed: ${unconfirmed.join(', ')}. Tick ${unconfirmed.length === 1 ? 'it' : 'them'} in "What you can quote for" if your company does this work.`,
+            fix:'scope' });
         }
       } catch (_e) { /* non-blocking */ }
       // Warn while it is still fixable, not after the account has already been paused.
