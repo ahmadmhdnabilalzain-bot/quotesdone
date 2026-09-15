@@ -2,7 +2,88 @@
 // round-trip exactly, leave no firewall-trigger character, and a hop must end at the byte budget with a
 // clean resume point. Pure, no network. No production data: every fixture below is invented.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { exportSlot, HOP_BYTES, type Deps, type HopState, IDLE_HOPS, runHop, type Slot, wafSafeJson } from './table_export_core.ts';
+import { exportSlot, FIRST_ROWS, HOP_BYTES, type Deps, type HopState, IDLE_HOPS, nextRows, PAGE_ROWS, PAGE_TARGET,
+  runHop, type Slot, wafSafeJson } from './table_export_core.ts';
+
+// A wide table in keyset order: row i (1-based) carries sizes[i-1] bytes of text. readPage honours the
+// requested row count like fn_table_export_page (limit capped at 1,000, done when fewer rows came back).
+function wideTable(sizes: number[], onRead: (limit: number, slot: Slot) => 'kill' | void = () => {}) {
+  const stored = new Map<string, number[]>();
+  const deps: Deps = {
+    now: () => 0, clear: async () => {},
+    upload: async (path, body) => { stored.set(path, (JSON.parse(body) as { id: number }[]).map((r) => r.id)); },
+    readPage: (slot) => {
+      const limit = Math.min(PAGE_ROWS, (slot as { limit?: number }).limit ?? FIRST_ROWS);
+      if (onRead(limit, slot) === 'kill') return new Promise(() => {});   // the worker is gone: nothing more runs
+      const start = Number(slot.after ?? 0);
+      const rows = sizes.slice(start, start + limit).map((n, k) => ({ id: start + k + 1, t: 'x'.repeat(n) }));
+      return Promise.resolve({ rows, done: rows.length < limit, last: rows.length ? start + rows.length : slot.after });
+    },
+  };
+  return { deps, stored };
+}
+const allIds = (stored: Map<string, number[]>) => [...stored.keys()].sort().flatMap((k) => stored.get(k)!);
+
+Deno.test('(g) wide rows: pages follow the bytes, never a fixed 1,000 rows, and keyset paging keeps every row once', async () => {
+  // ops_knowledge-like (measured: 14 kB average, 50 of 9,140 rows over 100 kB, widest 601 kB): 14 kB rows
+  // with a 600 kB row every 150th. A long unbroken run of wide rows is test (h)'s job: no row-count page
+  // can see it coming, so the kill-and-halve path takes it.
+  const sizes = Array.from({ length: 3000 }, (_, i) => (i % 150 === 149 ? 600_000 : 14_000));
+  const { deps, stored } = wideTable(sizes);
+  const slot: Slot = { t: 'ops_knowledge', after: null, page: 0, rows: 0, since: null };
+  const bodies: number[] = [];
+  const d2: Deps = { ...deps, upload: async (p, b) => { bodies.push(b.length); await deps.upload(p, b); } };
+  for (let hop = 0; hop < 200 && !(await exportSlot('d', slot, 1, d2, () => {}, { spent: 0, max: HOP_BYTES })); hop++);
+  assertEquals(allIds(stored), Array.from({ length: 3000 }, (_, i) => i + 1));
+  assertEquals(slot.rows, 3000);
+  // a page overshoots the target only by the wide rows it happens to hold (at most two here)
+  for (const b of bodies) assert(b <= PAGE_TARGET + 2 * 600_100, `a page of ${b} bytes`);
+  assert(bodies.length > 3000 / PAGE_ROWS * 4, 'pages were not smaller than the fixed 1,000 rows');
+});
+
+Deno.test('(h) a page that kills the worker (546) is retried at half the rows after the stale resume, until it fits', async () => {
+  const sizes = Array.from({ length: 400 }, () => 50_000);
+  let kills = 0;
+  const { deps, stored } = wideTable(sizes, (limit, slot) => (slot.t === 'ops_knowledge' && limit > 12 ? (kills++, 'kill') : undefined));
+  // resumed exactly like tonight: ops_knowledge mid-table, a saved slot with no row count yet
+  let saved = JSON.stringify({ stamp: 'd', bytes: 0, tables: {}, errors: {},
+    queue: [{ t: 'ops_knowledge', after: 100, page: 7, rows: 7000, since: null }, { t: 'next', after: null, page: 0, rows: 0, since: null }] } as HopState);
+  let finished = false;
+  for (let resume = 0; resume < 50 && !finished; resume++) {
+    const st = JSON.parse(saved) as HopState;                            // what fn_table_export_due hands back
+    const killed = kills;
+    const dd: Deps = { ...deps, checkpoint: async () => { saved = JSON.stringify(st); } };
+    const hopDone = runHop(st, dd, 1, { spent: 0, max: HOP_BYTES }).then((f) => { assertEquals(f, null); saved = JSON.stringify(st); return true; });
+    await Promise.race([hopDone, new Promise((r) => setTimeout(r, 20))]);
+    if (kills === killed) { await hopDone; if (!st.queue.length || st.queue[0].t === 'next') finished = true; }
+  }
+  assert(finished, 'never got past the killing page');
+  assertEquals(kills, 3);                  // 100 -> 50 -> 25 -> 12 rows, and growth never passes 12 again
+  const st = JSON.parse(saved) as HopState;
+  assertEquals(st.tables.ops_knowledge?.rows, 7000 + 300);
+  assertEquals([...stored.keys()][0], 'd/ops_knowledge/page_0007.json');  // resumed at the saved page, no gap
+  assertEquals(allIds(new Map([...stored].filter(([k]) => k.includes('ops_knowledge')))), Array.from({ length: 300 }, (_, i) => 101 + i));
+  assert(st.queue.every((s) => !('tried' in s)), 'a clean hop leaves no tried marker');
+});
+
+Deno.test('(i) a thrown failure or an idle hop is not a kill: no halving on the next hop', async () => {
+  const { deps } = wideTable([10, 10, 10]);
+  const st: HopState = { stamp: 'd', bytes: 0, tables: {}, errors: {}, queue: [{ t: 'x', after: null, page: 0, rows: 0, since: null, limit: 40 }] };
+  const f = await runHop(st, { ...deps, upload: async () => { throw new Error('Forbidden'); } }, 1, { spent: 0, max: HOP_BYTES });
+  assertEquals(f?.cause, 'internal');
+  assertEquals(st.queue[0].tried, undefined);
+  assertEquals(st.queue[0].limit, 40);
+  await runHop(st, deps, 1, { spent: 0, max: HOP_BYTES });
+  assertEquals(st.tables.x?.rows, 3);
+});
+
+Deno.test('(j) nextRows aims at the byte target, grows at most x2, stays within 1..1,000', () => {
+  assertEquals(nextRows(100, 1_400_000, 100), 200);          // narrow: capped at double
+  assertEquals(nextRows(1000, 2_800_000, 1000), PAGE_ROWS);  // kb_chunks-like: stays at the RPC cap
+  assertEquals(nextRows(100, 20_000_000, 100), 20);          // wide: shrinks to the target at once
+  assertEquals(nextRows(1, 600_000_000, 1), 1);              // never below one row
+  assertEquals(nextRows(0, 0, 37), 37);                      // an empty page teaches nothing
+});
 
 Deno.test('(f) a page source answering "no rows, not done" fails the day after 3 idle hops, internal, never to MAX_HOPS', async () => {
   let reads = 0, uploads = 0;

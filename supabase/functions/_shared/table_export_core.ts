@@ -83,12 +83,42 @@ export type Deps = {
   upload: (path: string, body: string) => Promise<void>;
   clear: (stamp: string, table: string) => Promise<void>;
   now: () => number;
+  // Saves the whole hop state (fn_table_export_save) before each page is read; see PAGE SIZE below.
+  checkpoint?: () => Promise<void>;
 };
+
+// PAGE SIZE (15 Sep 2026, it_engineer). A page used to be a fixed 1,000 rows. The first full copy then
+// died with 546 "CPU Time exceeded" on every resume at ops_knowledge page 7 (hop 865). ops_knowledge holds
+// 9,140 rows; measured read-only the same day as to_jsonb text (vector columns included, which the export
+// strips): the 1,000 rows from page 7 on are 21 MB, the widest row 601 kB, the widest 100 rows in a row
+// 3.4 MB. A page is read, parsed, stringified and escaped whole before the 12 MB hop budget is checked. A 546 kills the worker before any catch, so
+// the day never moved. Now the page's row count follows the bytes actually written:
+//   * a table starts at FIRST_ROWS rows; after each stored page the next count aims at PAGE_TARGET bytes
+//     of escaped output (at most double the last count, at most PAGE_ROWS, the RPC's cap);
+//   * before each read the slot records `tried` = the page it is about to read and the state is saved
+//     (deps.checkpoint). Every clean end of a hop clears `tried`, so a saved slot still holding
+//     tried === page means the worker was killed reading or writing that page: the resume halves the
+//     count (down to 1 row) and tries again. A CPU kill heals itself, one stalled heartbeat per halving.
+// Paging is keyset on the primary key (slot.after), so page files may hold different row counts and the
+// resume point stays exact: page P is always the P-th file written, starting after the saved key.
+export const PAGE_ROWS = 1000;
+export const FIRST_ROWS = 100;
+export const PAGE_TARGET = 4_000_000;
+// `max` is the row count that last survived a kill: growth never passes it again for this table, or the
+// doubling would walk straight back into the page that killed the worker.
+// ponytail: `max` holds for the rest of the table even past its wide rows; a byte-capped
+// fn_table_export_page would lift that if a table ever needs it.
+export type SizedSlot = Slot & { limit?: number; tried?: number; max?: number };
+export const pageRows = (slot: Slot) => (slot as SizedSlot).limit ?? FIRST_ROWS;
+export function nextRows(rows: number, bytes: number, current: number, max = PAGE_ROWS): number {
+  if (rows <= 0 || bytes <= 0) return current;
+  return Math.max(1, Math.min(PAGE_ROWS, max, current * 2, Math.floor(rows * PAGE_TARGET / bytes)));
+}
 
 // Exports one table from its saved point. Returns true when the table is finished, false when the slice
 // ran out. The slot moves only after a page is safely stored, so on any throw it still names the page
 // that failed and the key before it: a resumed chain starts at that page and clears nothing.
-export async function exportSlot(stamp: string, slot: Slot, deadline: number, deps: Deps,
+export async function exportSlot(stamp: string, slot: SizedSlot, deadline: number, deps: Deps,
                                  onBytes: (n: number) => void = () => {},
                                  budget: HopBudget = { spent: 0, max: Infinity }): Promise<boolean> {
   if (slot.page === 0 && slot.after == null) await deps.clear(stamp, slot.t);
@@ -96,6 +126,9 @@ export async function exportSlot(stamp: string, slot: Slot, deadline: number, de
     // Checked before reading the next page, after the last one is stored: the slot then names exactly
     // the next page and the key before it, so the next hop continues with no gap and no duplicate.
     if (deps.now() > deadline || budget.spent >= budget.max) return false;
+    if (slot.tried === slot.page) slot.max = slot.limit = Math.max(1, Math.floor(pageRows(slot) / 2));
+    slot.tried = slot.page;
+    await deps.checkpoint?.();
     const r = await deps.readPage(slot);
     const rows = Array.isArray(r?.rows) ? r.rows : [];
     // An empty table (or an incremental day with no changes) still writes page_0000 containing [].
@@ -103,6 +136,7 @@ export async function exportSlot(stamp: string, slot: Slot, deadline: number, de
       const body = wafSafeJson(rows);
       await deps.upload(`${stamp}/${slot.t}/page_${String(slot.page).padStart(4, '0')}.json`, body);
       slot.page++; slot.rows += rows.length; onBytes(body.length); budget.spent += body.length;
+      slot.limit = nextRows(rows.length, body.length, pageRows(slot), slot.max);
     }
     if (r?.done) return true;
     // No rows and not done: the source made no progress. End the hop now rather than re-reading the same
@@ -120,13 +154,18 @@ export async function exportSlot(stamp: string, slot: Slot, deadline: number, de
 export const IDLE_HOPS = 3;
 export type Failure = { table: string; error: string; cause: Cause };
 export type HopState = {
-  stamp: string; bytes: number; queue: Slot[]; idle?: number;
+  stamp: string; bytes: number; queue: SizedSlot[]; idle?: number;
   tables: Record<string, { rows: number; pages: number; mode: string }>; errors: Record<string, string>;
 };
 
 // One hop: export tables from the head of the queue until the wall clock or the byte budget ends it.
 // A failing table stays at the head of the queue with its resume point, named in st.errors.
+// Every way out of a hop that is not a killed worker clears `tried`, so only a kill leaves it saved.
 export async function runHop(st: HopState, deps: Deps, deadline: number, budget: HopBudget): Promise<Failure | null> {
+  try { return await hop(st, deps, deadline, budget); } finally { for (const s of st.queue) delete s.tried; }
+}
+
+async function hop(st: HopState, deps: Deps, deadline: number, budget: HopBudget): Promise<Failure | null> {
   const before = st.queue.length;
   while (st.queue.length && deps.now() < deadline && budget.spent < budget.max) {
     const slot = st.queue[0];
