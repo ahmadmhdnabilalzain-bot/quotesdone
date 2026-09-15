@@ -439,6 +439,10 @@ export async function makeSupplier(run, opts = {}) {
   const companyName = opts.company_name || `QD Demo ${t.name} ${run.tag.slice(0, 4)}-${run.seq}`;
   const emirate = opts.emirate || profile.coverage_emirates[0] || 'Dubai';
   const withAuth = opts.withAuth !== false;
+  // Since #698 trg_leads_e0_mandatory_six_gate REFUSES an insert as approved unless the six are complete
+  // (the licence and company profile must exist in supplier-docs). A caller that brings the documents
+  // passes approval:'pending' and lets fn_sales_engineer_verifies_supplier approve once they land.
+  const approval = opts.approval || 'approved';
 
   const u = withAuth ? await mkAuthUser(run, email) : { id: null, email, jwt: null, password: null };
 
@@ -485,7 +489,7 @@ export async function makeSupplier(run, opts = {}) {
                ${q(`Supply and installation of ${t.name.toLowerCase()}.`)},
                ${q(`${t.name} specialist serving ${profile.coverage_emirates.join(', ')}.`)},
                ${arr(profile.coverage_emirates)}, 'demo_factory',
-               true, 'approved', true, now(), ${q(opts.locale || 'en')},
+               ${bool(approval === 'approved')}, ${q(approval)}, true, now(), ${q(opts.locale || 'en')},
                ARRAY['qd_demo', ${RUN_TAG_COL(run.tag)}]::text[])
        returning id`, 'demo supplier');
     leadId = ins?.[0]?.id ?? null;

@@ -10,9 +10,9 @@ import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
+import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
+import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { registrationMissing } from '../_shared/supplier_registration.ts';
-import { SUPPLIER_AGREEMENT_VERSION, SUPPLIER_AGREEMENT_EN, SUPPLIER_AGREEMENT_AR } from '../_shared/supplier_agreement.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -21,12 +21,14 @@ import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
-const agreementSha256 = async () => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SUPPLIER_AGREEMENT_EN + '\n' + SUPPLIER_AGREEMENT_AR)))).map((b) => b.toString(16).padStart(2, '0')).join('');
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
-const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','trade_license_no','license_authority','license_expiry','trn','bank_name','bank_account_name','bank_iban','license_doc_path','iban_doc_path','egr_doc_path','egr_doc_name','egr_number'];
+// 15 Sep 2026 (sales_engineer): trade_license_no, license_expiry and license_doc_path are NOT here. They
+// are written only by the upload paths, from the stored file and what license_extract read off it; from
+// this list a supplier could type their own expiry or point at a path that is not their licence.
+const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','license_authority','trn','bank_name','bank_account_name','bank_iban','iban_doc_path','egr_doc_path','egr_doc_name','egr_number'];
 const YEAR_MS = 365 * 864e5;
 const CONCLUDED = ['completed','closed','cancelled'];
 // EVIDENCE FIX 19 Jul 2026 -----------------------------------------------------------------
@@ -295,36 +297,6 @@ async function recordServicesCrossCheck(supplierId: number, companyName: unknown
   } catch (_e) { /* the cross-check is evidence, not a gate - it must never break registration */ }
   return cc;
 }
-// LICENCE GATE 29 Jul 2026. Unlike the services cross-check above, this one IS a gate: the
-// supplier was NOT approved. The row exists so a human can see every held registration and why,
-// on the same agent_actions surface, with the same shape (agent / kind / status / risk / title /
-// recommendation / jsonb detail / target_table+target_id).
-async function recordLicenceGate(supplierId: number, companyName: unknown, reason: string, evidence: Record<string, unknown>) {
-  const missing = reason === 'no_licence';
-  try {
-    await admin.from('agent_actions').insert({
-      agent: 'sales_engineer',
-      kind: 'supplier_licence_gate',
-      // TELEMETRY, NOT A TASK (2 Aug 2026, founder decision: no manual approval path). This row
-      // used to be written as 'needs_review', which is precisely the human queue the founder asked
-      // us to remove — and a queue nobody reads is worse than no queue, because it looks like a
-      // safety net that is not there. It is now a counted refusal. Nobody is asked to do anything;
-      // the supplier self-serves by re-uploading. Its only job is to make the cost of the decision
-      // measurable: select detail->>'reason', count(*) from agent_actions
-      // where kind='supplier_licence_gate' group by 1;
-      status: 'logged',
-      risk: missing ? 'high' : 'medium',
-      title: 'Supplier refused automatically (' + (missing ? 'no trade licence on file' : 'trade licence expired') + ') — ' + String(companyName || ('supplier #' + supplierId)).slice(0, 120),
-      recommendation: missing
-        ? 'No action required. This supplier has no trade licence document or licence number on file, so registration was refused automatically and they were emailed and asked to upload one. Uploading a valid licence approves them with no human involvement. Recorded so the auto-refusal rate stays measurable.'
-        : 'No action required. The trade licence expiry read from the uploaded document is in the past, so registration was refused automatically and they were emailed and asked to upload the renewal. Uploading an in-date licence approves them with no human involvement. Recorded so the auto-refusal rate stays measurable.',
-      detail: { supplier_id: supplierId, reason, gate: 'licence_expiry', approved: false, approval_status: 'action_required', ...evidence, checked_at: new Date().toISOString(), source: 'supplier_api' },
-      target_table: 'leads',
-      target_id: String(supplierId),
-    });
-  } catch (_e) { /* the review row must never break the save - the gate itself already held approval */ }
-}
-
 Deno.serve(observe('supplier_api', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
@@ -582,12 +554,11 @@ Deno.serve(observe('supplier_api', async (req) => {
     if (action === 'accept_terms') {
       const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      const tv = String((await secretVal('terms_version')) || '').trim().slice(0, 20);
-      if (!tv) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
-      const sha = tv === SUPPLIER_AGREEMENT_VERSION ? await agreementSha256() : null;
-      const { error } = await admin.from('leads').update({ accepted_terms_at: new Date().toISOString(), accepted_terms_version: tv, accepted_terms_ip: clientIp(req) || null, accepted_terms_sha256: sha }).eq('id', sup.id);
+      const rec = await supplierTermsRecord(secretVal, clientIp(req));
+      if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
+      const { error } = await admin.from('leads').update(rec).eq('id', sup.id);
       if (error) return J({ error: error.message }, 500);
-      return J({ ok: true, accepted_terms_version: tv, text_hash_stored: !!sha });
+      return J({ ok: true, accepted_terms_version: rec.accepted_terms_version, text_hash_stored: !!rec.accepted_terms_sha256 });
     }
 
     if (action === 'settings') {
@@ -599,158 +570,124 @@ Deno.serve(observe('supplier_api', async (req) => {
     }
 
     if (action === 'save_profile') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,verified,license_doc_path,license_expiry,trade_license_no,owner_phone_verified,owner_email_verified,company_profile_doc_path,accepted_terms_at').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,locale,accepted_terms_at,accepted_terms_version').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      const { data: pc } = await admin.from('pricing_config').select('auto_approve_suppliers').eq('id', 1).maybeSingle(); const autoApprove = !!pc?.auto_approve_suppliers;
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
       if (Array.isArray(body.service_emirates)) upd.service_emirates = body.service_emirates;
-      // DOCUMENTS LEAD + DOUBLE CONFIRMATION (spec, 29 Jul 2026). PROFILE_COLS contains
-      // 'services', so the typed box wrote straight over whatever the documents produced -
-      // extraction would win at upload time and then be silently reverted by the next save. The
-      // typed text is for CONFIRMATION, not authorship: once an extraction exists it keeps the
-      // canonical field and the typed text is stored as the declared value and cross-checked
-      // instead. With no extraction on file the supplier's text is still the only source we have,
-      // so it is written through unchanged.
+      // THE SUPPLIER'S OWN WORDS STAND (15 Sep 2026, sales_engineer). Since 29 Jul this replaced the
+      // typed services with the last extraction whenever one existed, so a supplier correcting what their
+      // documents were read as could never make the correction stick. The typed text is written as typed;
+      // the extraction is still compared with it and the comparison recorded, which is what the double
+      // confirmation asked for.
       let servicesCheck: Record<string, unknown> | null = null;
       if (upd.services !== undefined) {
         const prior = await priorCrossCheck(sup.id);
         if (prior.extracted.length) {
           const declared = clip(upd.services, 2000);
-          upd.services = prior.extracted.join(', ');
           const cc = await recordServicesCrossCheck(sup.id, sup.company_name, prior.extracted, declared);
           servicesCheck = { verdict: cc.verdict, overlap: Math.round(cc.overlap * 100) / 100, note: cc.note, extracted_services: prior.extracted, declared_services: declared };
         }
       }
-      // EVIDENCE FIX 27 Jul 2026. The version recorded as legally accepted was whatever the
-      // browser posted in body.terms_version. The record this writes is the platform's dispute
-      // evidence for the 3% non-response fine (see the file header) - letting the accepting party
-      // choose which version of the agreement is on file makes it evidence of nothing, and a
-      // supplier could pin themselves to an old or invented version by editing one JSON field.
-      // The current version is now read server-side from app_secrets('terms_version'); the key is
-      // not set today, so the existing 'v2' default still applies until it is.
-      // SPF5 (14 Sep 2026): a version label does not prove which words were on screen, so the SHA-256
-      // of the exact agreement text is stored beside it. It is recomputed here from the text itself
-      // (not trusted from the generated constant) and written only while the live terms_version is the
-      // version that text was exported for; otherwise null, never a hash of the wrong agreement.
-      if (body.accept_terms) { const tv = String((await secretVal('terms_version')) || 'v2').trim().slice(0, 20) || 'v2'; upd.accepted_terms_at = new Date().toISOString(); upd.accepted_terms_version = tv; upd.accepted_terms_ip = clientIp(req) || null; upd.accepted_terms_sha256 = tv === SUPPLIER_AGREEMENT_VERSION ? await agreementSha256() : null; if (tv !== SUPPLIER_AGREEMENT_VERSION) console.error(`supplier_api: terms_version ${tv} has no exported agreement text (module is ${SUPPLIER_AGREEMENT_VERSION}); hash not stored`); }
-      // THE MANDATORY SIX, ENFORCED WHERE REGISTRATION IS SUBMITTED (14 Sep 2026). Until now this
-      // action checked the licence alone while the portal demanded a company profile and the
-      // Documents tab said only the licence was required. The one definition lives in
-      // _shared/supplier_registration.ts; the row as it will be after this save is what is tested, so
-      // a supplier who accepts the terms and saves in one go is not refused for the terms.
-      // An ALREADY-APPROVED company editing its profile is not refused: the approval fix above says
-      // this path may never take an approval away, and refusing the save would do exactly that to
-      // their ability to correct a typo. (0 suppliers are claimed on production, 14 Sep, so no live
-      // account sits in that branch today.)
-      if (String(sup.approval_status || '') !== 'approved') {
-        const missing = registrationMissing({ ...sup, ...upd } as Record<string, unknown>);
-        // The WhatsApp question is answered in sign-up (founder, 15 Sep 2026). Checked beside the six,
-        // not added to them: the six are his registration list and also drive the Documents checklist.
-        // Read on its own so a read error cannot null `sup` above (kyc's rule for these columns).
-        const { data: wa } = await admin.from('leads').select('whatsapp_opt').eq('id', sup.id).maybeSingle();
-        if (!wa?.whatsapp_opt) missing.push('reg_whatsapp');
-        if (missing.length) return J({ error: 'missing_required', code: 'missing_required', params: { missing }, message: 'Still needed to register: ' + missing.join(', ') + '.' }, 400);
+      // TERMS ARE ACCEPTED ONLY WHEN THE FLAG IS EXACTLY TRUE (15 Sep 2026). A bare truthiness test on the
+      // flag took any truthy value — "false" as a string, 1, {} — as a legal acceptance. The record (version read
+      // server-side, IP, SHA-256 of the exact text) is built in _shared/supplier_terms.ts, the same row
+      // accept_terms below and kyc write. Accepting asks compliance_archive for the signed certificate
+      // (z21_sign_supplier_on_acceptance); the certificate is the signed-terms item of the six.
+      // A save repeating an acceptance already on file for the current version records nothing new: a second
+      // record would move the acceptance time and ask for a second certificate (kyc's rule too).
+      const accepting = body.accept_terms === true
+        && !(sup.accepted_terms_at && sup.accepted_terms_version === await currentSupplierTermsVersion(secretVal));
+      if (accepting) {
+        const rec = await supplierTermsRecord(secretVal, clientIp(req));
+        if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
+        Object.assign(upd, rec);
       }
-      // APPROVAL FIX 27 Jul 2026. `else if (!sup.verified)` demoted an ALREADY-APPROVED supplier
-      // back to 'pending' every time they saved their profile, because os_ops approves by setting
-      // approval_status only and never touches leads.verified. The supplier silently lost the
-      // ability to submit quotes (submit_quote requires approval_status === 'approved') and an
-      // admin's decision was reverted by an unrelated edit. Approval is only ever revoked
-      // deliberately by an admin now - this path can put a supplier INTO pending, never back.
-      //
-      // AUTOMATION 29 Jul 2026 (spec: "everything is fully automated... no manual approval
-      // steps"): pricing_config.auto_approve_suppliers is now TRUE, so the first branch is the
-      // live one and every registration is approved and verified on save instead of halting at
-      // 'pending'. Be honest about what that does and does not check: this branch applies NO
-      // licence-validity, document-presence or banned test - none has ever existed on this path,
-      // before or after the change, so nothing automated is being bypassed; what is removed is the
-      // human licence check that 'pending' used to force. The checks that DO survive live
-      // elsewhere and are untouched: match_suppliers_kw still excludes banned, matching_blocked,
-      // permanently_closed and 'rejected' suppliers, submit_quote still requires accepted terms
-      // and a settled registration fee, and aiReview below still writes its findings to
-      // ai_review_notes / ai_review_flags and still emails management on first submission -
-      // advisory only, it has never gated anything. An automated licence-expiry gate belongs HERE.
-      //
-      // LICENCE-EXPIRY GATE 29 Jul 2026 — this is the "belongs HERE" above, now implemented.
-      // Auto-approval is fully automated, so the licence check the human 'pending' queue used to
-      // force is made automatically from what license_extract has ALREADY written to leads:
-      //   leads.license_doc_path  - the stored trade licence document (set on upload)
-      //   leads.trade_license_no  - the licence number read off it
-      //   leads.license_expiry    - the expiry date read off it (date, YYYY-MM-DD), left NULL
-      //                             when the document printed none (license_extract never guesses)
-      // Values being saved in THIS request win over what is on the row, so a supplier who uploads
-      // a valid licence and saves in one go is approved on that licence, not on the stale row.
-      //
-      // An extracted-but-absent expiry is deliberately NOT a failure: license_extract returns null
-      // rather than inventing a date, and blocking on that would suspend suppliers whose licence
-      // genuinely prints no expiry. The gate is "present, and not known to be expired".
-      const licPath = String((upd.license_doc_path ?? sup.license_doc_path) || '').trim();
-      const licNo = String((upd.trade_license_no ?? sup.trade_license_no) || '').trim();
-      const licExpiryVal = (upd.license_expiry ?? sup.license_expiry) ?? null;
-      const licExpiry = licExpiryVal ? String(licExpiryVal).slice(0, 10) : '';
-      const todayIso = new Date().toISOString().slice(0, 10);
-      const licencePresent = !!licPath || !!licNo;
-      const licenceExpired = !!licExpiry && licExpiry < todayIso;
-      const licenceOk = licencePresent && !licenceExpired;
-      const licenceReason = !licencePresent ? 'no_licence' : (licenceExpired ? 'licence_expired' : 'ok');
-      // NO MANUAL APPROVAL PATH (2 Aug 2026, founder decision on the external review's §1).
-      // The code used to contain two contradictory ideas: auto-approve when the licence reads, and
-      // an implicit human queue ('pending') when it does not. The founder chose fully automatic,
-      // no human path. So a failed licence gate is now a REFUSAL WITH A REASON the supplier can
-      // act on immediately, not a ticket parked on someone's desk:
-      //   * approval_status goes to 'action_required', not 'pending' — 'pending' reads as "we are
-      //     looking at it", which is a promise nobody is going to keep.
-      //   * licence_gate_reason is stored so the portal and the email can name the exact problem.
-      //   * re-saving the profile re-runs this gate, so the supplier self-serves an approval the
-      //     moment they upload a readable, in-date licence. No queue, no waiting, no human.
-      // THE RISK THE FOUNDER ACCEPTED, stated plainly: a genuine supplier with a bad scan or an
-      // unusual licence layout is now refused with no exception route, and would never be seen.
-      // That is invisible unless it is counted, so every refusal is still recorded (as telemetry,
-      // status 'logged' — NOT 'needs_review', which would recreate the queue we just removed).
-      // Watch it: select count(*) from agent_actions where kind='supplier_licence_gate'.
-      // If that number climbs against real registrations, the decision needs revisiting.
-      const autoApproved = autoApprove && licenceOk;
+      const wasApproved = String(sup.approval_status || '') === 'approved';
+      // The WhatsApp question is answered in sign-up (founder, 15 Sep 2026). Checked beside the six, not
+      // added to them, and before anything is written, as it was. Read on its own so a read error cannot
+      // null `sup` above (kyc's rule for these columns).
+      if (!wasApproved) {
+        const { data: wa } = await admin.from('leads').select('whatsapp_opt').eq('id', sup.id).maybeSingle();
+        if (!wa?.whatsapp_opt) {
+          let six: string[];
+          try { six = (await mandatorySixMissing(admin, sup.id)).filter((c) => !(accepting && c === 'reg_terms')); }
+          catch (e) { console.error('save_profile:', (e as Error).message); return J({ error: 'check_failed', code: 'check_failed', message: 'We could not check your registration. Please try again.' }, 502); }
+          const missing = [...six];
+          missing.push('reg_whatsapp');
+          return J({ error: 'missing_required', code: 'missing_required', params: { missing }, message: 'Still needed to register: ' + missing.join(', ') + '.' }, 400);
+        }
+      }
       const firstSubmit = !sup.registration_submitted_at;
-      if (autoApproved) { upd.approval_status = 'approved'; upd.verified = true; upd.licence_gate_reason = null; }
-      else if (String(sup.approval_status || '') !== 'approved' && !sup.verified) { upd.approval_status = autoApprove ? 'action_required' : 'pending'; upd.licence_gate_reason = autoApprove ? licenceReason : null; }
       if (firstSubmit) upd.registration_submitted_at = new Date().toISOString();
-      // 5 Aug 2026. Same discarded-result defect as process_docs, and worse here: the three lines
-      // above put approval_status, verified and licence_gate_reason into `upd`, so this write IS
-      // the approval decision. Discarding its result meant a supplier who should have been approved
-      // could be left unapproved with the failure recorded nowhere — and the exception window below
-      // would then open a 14-day clock against a state that was never persisted.
+      // 5 Aug 2026: this write's result was once discarded and a failed save reported success.
       const { error: updErr } = await admin.from('leads').update(upd).eq('id', sup.id);
       if (updErr) {
         console.error('save_profile: leads update failed —', updErr.message);
         return J({ error: 'save_failed', code: 'save_failed', detail: updErr.message, message: 'We could not save your profile. Please try again.' }, 502);
       }
-      // EXCEPTION WINDOW (2 Aug 2026, Phase 1.3). 'action_required' with no deadline is not
-      // automation, it is a queue with the label removed: the account sits there forever, holding a
-      // company name and an email, and neither the supplier nor the founder can tell whether it is
-      // alive. Opening the exception starts a 14-day clock with reminders at day 3, 7 and 12 and an
-      // automatic, reasoned rejection at the end. Re-opening does NOT restart the clock - otherwise
-      // a supplier could extend their own deadline forever by re-saving the same bad scan.
-      // Approval closes it; nothing here approves anybody.
-      if (autoApprove && !licenceOk) {
-        await recordLicenceGate(sup.id, sup.company_name, licenceReason, { license_doc_path: licPath || null, trade_license_no: licNo || null, license_expiry: licExpiry || null, checked_on: todayIso });
-        try { await admin.rpc('fn_supplier_exception_open', { p_lead_id: sup.id, p_reason: licenceReason }); } catch (_e) { /* the gate already held approval; the window is bookkeeping */ }
-      } else if (autoApproved) {
-        try { await admin.rpc('fn_supplier_exception_close', { p_lead_id: sup.id, p_outcome: 'resolved' }); } catch (_e) { /* */ }
+      // The certificate is rendered by compliance_archive after the trigger above posts to it. Give it a
+      // few seconds so a supplier who accepts and submits in one go is verified on the signed copy; if it
+      // is slower, z20_leads_mandatory_item_landed_reverifies verifies them the moment it lands.
+      let certificatePending = false;
+      if (accepting) {
+        certificatePending = true;
+        for (let i = 0; i < 6 && certificatePending; i++) {
+          await new Promise((r) => setTimeout(r, 750));
+          const { data: s } = await admin.from('leads').select('signed_terms_at').eq('id', sup.id).maybeSingle();
+          certificatePending = !(s?.signed_terms_at && String(s.signed_terms_at) >= String(upd.accepted_terms_at));
+        }
       }
+      // THE SALES ENGINEER VERIFIES (15 Sep 2026). The approval used to be decided here, from the licence
+      // alone; public.fn_sales_engineer_verifies_supplier now decides from the six plus the licence expiry,
+      // records the decision, and a trigger refuses any approval the six do not support. pricing_config.
+      // auto_approve_suppliers keeps its meaning: off leaves a complete supplier pending for the sales engineer.
+      const { data: vd, error: vErr } = await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: sup.id, p_source: 'save_profile' });
+      if (vErr || !(vd as { ok?: boolean })?.ok) {
+        console.error('save_profile: verification failed —', vErr?.message || JSON.stringify(vd));
+        return J({ error: 'verification_failed', code: 'verification_failed', detail: vErr?.message || null, message: 'Your profile was saved, but we could not check your registration. Please try again.' }, 502);
+      }
+      const v = vd as { approval_status: string; missing: string[]; reason: string | null; licence_expired: boolean };
+      const decision = String(v.approval_status || 'pending');
+      // A certificate on its way is not something the supplier still has to do.
+      const stillNeeded = (v.missing || []).filter((c) => !(certificatePending && c === 'reg_terms'));
+      if (v.licence_expired && !stillNeeded.length && decision === 'action_required') stillNeeded.push('licence_expired');
       await aiSummarize(sup.id);
       const { data: full } = await admin.from('leads').select('*').eq('id', sup.id).maybeSingle();
       const review = await aiReview(full || {});
       if (review) { const notes = (review.summary || '') + (Array.isArray(review.issues) && review.issues.length ? '  Issues: ' + review.issues.map((i: { field: string; note: string }) => `${i.field} — ${i.note}`).join('; ') : ''); await admin.from('leads').update({ ai_review_notes: notes.slice(0, 2000), ai_review_flags: review.issues || [], ai_reviewed_at: new Date().toISOString() }).eq('id', sup.id); }
-      if (firstSubmit) { const mgmt = (await secretVal('admin_emails') || 'management@quotesdone.com').split(',')[0].trim(); const revLine = review ? ` AI check: ${review.severity || 'clean'} — ${review.summary || ''}` : ''; const lic = full?.name_corrected_from ? ` Licence name corrected from \"${full.name_corrected_from}\" to \"${full.company_name}\".` : ''; const licInfo = full?.trade_license_no ? ` Licence ${full.trade_license_no}${full.license_city ? ', ' + full.license_city : ''}${full.license_expiry ? ', expires ' + full.license_expiry : ''}.` : ''; // NOTIFICATION HONESTY 2 Aug 2026 (external code review). This email was hardcoded to
-      // 'review needed / pending your approval' even on the path that had just AUTO-APPROVED the
-      // supplier a few lines above. Two costs: the founder is trained to ignore an inbox of
-      // 'action required' mails that need no action, and the one case that DOES need a human —
-      // the licence gate failing — is indistinguishable from the all-clear case. The subject and
-      // body now state what actually happened, and only the blocked case asks for anything.
-      await notify([ { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id, subject: autoApproved ? 'New supplier auto-approved' : `Supplier refused automatically — ${licenceReason || 'licence check failed'}`, body: `New supplier \"${full?.company_name || sup.company_name}\"${full?.emirate ? ' (' + full.emirate + ')' : ''} has registered and was ${autoApproved ? 'APPROVED AUTOMATICALLY (licence present and in date). No action needed — this is a record.' : `REFUSED AUTOMATICALLY: ${licenceReason || 'the trade licence could not be verified'}. No action needed — there is no approval queue. They have been emailed the exact problem and are approved the moment they upload a readable, in-date licence. This mail exists so the auto-refusal rate stays visible; if you start seeing genuine businesses here, the fully-automatic policy needs revisiting.`}${licInfo}${lic}${revLine}` }, { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, subject: autoApproved ? 'Your QuotesDone supplier account is active' : 'Thanks for registering with QuotesDone', body: autoApproved ? `Your account for ${sup.company_name} is active — you can now receive inquiries and submit quotes.` : `Thank you for registering ${full?.company_name || sup.company_name} with QuotesDone.\n\nYour account is not active yet for one reason: ${licenceReason || 'we could not read a valid, in-date trade licence from what you uploaded'}.\n\nPlease sign in to your supplier portal and upload a clear copy of your current trade licence (all pages, in date). Your account activates automatically as soon as we can read it — there is no waiting list and no manual approval queue, so nobody has to get to you.\n\nPlease do this within 14 days. If we have not received a readable licence by then this registration closes automatically, and you are welcome to start again at any time.\n\nTips if it keeps failing: photograph or scan the whole page (not a crop), make sure the text is sharp enough to read on screen, and check the expiry date has not passed. If you have tried this and still see the same message, reply to this email.` } ]); }
-      const { data: me } = await admin.from('leads').select('approval_status').eq('id', sup.id).maybeSingle();
-      return J({ ok: true, approval_status: me?.approval_status || 'pending', services_crosscheck: servicesCheck, review: review ? { severity: review.severity, summary: review.summary, issues: review.issues } : null });
+      if (firstSubmit) {
+        const name = full?.company_name || sup.company_name;
+        const ar = (full?.locale || sup.locale) === 'ar';
+        const mgmt = (await secretVal('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
+        const licInfo = full?.trade_license_no ? ` Licence ${full.trade_license_no}${full.license_city ? ', ' + full.license_city : ''}${full.license_expiry ? ', expires ' + full.license_expiry : ''}.` : '';
+        const revLine = review ? ` AI check: ${review.severity || 'clean'} — ${review.summary || ''}` : '';
+        const needEn = sixInWords(stillNeeded.filter((c) => c !== 'licence_expired'), 'en') + (stillNeeded.includes('licence_expired') ? (stillNeeded.length > 1 ? ', ' : '') + 'a trade licence that is in date' : '');
+        const needAr = sixInWords(stillNeeded.filter((c) => c !== 'licence_expired'), 'ar') + (stillNeeded.includes('licence_expired') ? (stillNeeded.length > 1 ? '، ' : '') + 'رخصة تجارية سارية المفعول' : '');
+        const days = 14;
+        const supplierMail = decision === 'approved'
+          ? (ar ? { subject: 'تم تفعيل حساب المورّد الخاص بكم في QuotesDone', body: `تم تفعيل حساب ${name}، ويمكنكم الآن استلام الطلبات وتقديم عروض الأسعار.` }
+                : { subject: 'Your QuotesDone supplier account is active', body: `Your account for ${name} is active — you can now receive inquiries and submit quotes.` })
+          : decision === 'pending'
+          ? (ar ? { subject: 'استلمنا تسجيلكم في QuotesDone', body: `شكرًا لتسجيل ${name}. اكتملت البنود الستة المطلوبة، ويراجع مهندس المبيعات تسجيلكم الآن. سنرسل إليكم رسالة فور اعتماده.` }
+                : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. All six required items are in, and our sales engineer is reviewing your registration now. We will e-mail you as soon as it is approved.` })
+          : !stillNeeded.length
+          // Only the certificate is outstanding and it is on its way: nothing is asked of the supplier.
+          ? (ar ? { subject: 'استلمنا تسجيلكم في QuotesDone', body: `شكرًا لتسجيل ${name}. نُصدر الآن شهادة موافقتكم الموقّعة على شروط المورّد، وسيُفعَّل حسابكم تلقائيًا فور صدورها. لا يلزمكم أي إجراء.` }
+                : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. We are issuing the signed certificate of your acceptance of the supplier terms; your account activates automatically as soon as it is ready. Nothing is needed from you.` })
+          : (ar ? { subject: 'استلمنا تسجيلكم في QuotesDone', body: `شكرًا لتسجيل ${name} في QuotesDone.\n\nلم يُفعَّل حسابكم بعد لأنه ما زال ينقصه: ${needAr}.\n\nيُرجى تسجيل الدخول إلى بوابة المورّد وإكمال ذلك. يُفعَّل حسابكم تلقائيًا فور اكتمال البنود الستة، دون قائمة انتظار ودون مراجعة يدوية.\n\nيُرجى إكمال ذلك خلال ${days} يومًا؛ بعدها يُغلق طلب التسجيل تلقائيًا، ويمكنكم التسجيل من جديد في أي وقت.` }
+                : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name} with QuotesDone.\n\nYour account is not active yet because it still needs: ${needEn}.\n\nPlease sign in to your supplier portal and complete it. Your account activates automatically as soon as all six required items are in — there is no waiting list and no manual queue.\n\nPlease do this within ${days} days. After that this registration closes automatically, and you are welcome to start again at any time.` });
+        await notify([
+          { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
+            subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? 'New supplier waiting for approval (auto-approve is off)' : 'Supplier registration incomplete',
+            body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}${revLine}` },
+          { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
+        ]);
+      }
+      if (!wasApproved && decision !== 'approved' && stillNeeded.length) {
+        return J({ error: 'missing_required', code: 'missing_required', saved: true, approval_status: decision, params: { missing: stillNeeded }, message: 'Saved. Still needed to register: ' + stillNeeded.join(', ') + '.', services_crosscheck: servicesCheck }, 400);
+      }
+      return J({ ok: true, approval_status: decision, terms_certificate: certificatePending ? 'pending' : undefined, services_crosscheck: servicesCheck, review: review ? { severity: review.severity, summary: review.summary, issues: review.issues } : null });
     }
     // Registration fee - creates a Stripe Checkout Session and nothing else.
     //
