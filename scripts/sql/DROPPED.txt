@@ -655,3 +655,7 @@ fn_it_engineer_handover_body :: dropped 14 Sep 2026; its only caller emailed eve
 fn_customer_by_whatsapp_sender :: dropped 14 Sep 2026; its only caller, fn_spec_offer_whatsapp_reply (PR #652), now reads fn_whatsapp_owner; no other routine body, trigger, view or repository file called it (pg_depend empty) :: none
 # 15 Sep 2026 — the_turnkey_path_asks_the_sales_engineer_and_the_keyword_matcher_is_dropped.sql. Founder rule: exact trade match or none.
 match_suppliers_kw :: dropped 15 Sep 2026; the keyword supplier matcher. Its last caller, customer_api's turnkey path, now asks sales_engineer {action:'match'} (fn_match_capability). Measured before the drop: pg_depend 0 rows, 0 other routine bodies, 0 views, 0 cron commands; no other edge function, src file or script calls it :: none
+# 15 Sep 2026 — control_mode_is_retired_with_its_template_and_its_minutes.sql. The last caller, refunds_api 'resolve', answers 410
+# since the one refund rail (14 Sep). Canonical file for fn_control_mode_require kept as history.
+fn_control_mode_require :: dropped 15 Sep 2026; 0 routine bodies, triggers, pg_depend rows, views, policies, defaults or cron jobs name it, and 0 references in supabase/functions, src or .github :: none
+fn_phase1_disarmed :: dropped 15 Sep 2026 with fn_control_mode_require, its only caller (same measurements) :: none
