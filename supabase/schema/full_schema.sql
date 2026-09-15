@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T05:51:54.956Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T06:02:57.166Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -26649,6 +26649,13 @@ begin
   end if;
 
   if d->>'recipient_role' = 'founder' then
+    -- A NEW BUG WAITS FOR THE DIGEST (the_founder_gets_one_it_digest_per_tick.sql). 55 requests in one
+    -- minute were 55 emails and 55 WhatsApp messages; fn_customer_support_sends_the_it_digest sends them
+    -- as one. 'waiting' keeps the request pending, so the watch does not read it until it is sent.
+    if d->>'kind' = 'it_new_bug' then
+      return jsonb_build_object('channel', 'founder', 'digest', 'pending', 'event', d->>'event',
+                                'waiting', 'the next IT digest (fn_customer_support_sends_the_it_digest)');
+    end if;
     -- A TEST NEVER REACHES HIM. The fixture ladder sets app.qd_stub_founder_notify; the probe also
     -- aborts its transaction, so even the queued rows are never committed.
     if coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on' then
@@ -26906,6 +26913,124 @@ begin
   end loop;
   return jsonb_build_object('results_returned', v_done, 'still_watching', v_waiting, 'retried', v_retried,
                             'overdue_raised', v_overdue, 'results_failed', v_failed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_sends_the_it_digest(p_floor interval DEFAULT '01:00:00'::interval)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_stub boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
+  v_ids bigint[]; v_dup bigint[]; v_send bigint[]; v_last timestamptz; v_n int; v_lines int := 0;
+  v_event text; v_detail text; v_key text; v_res jsonb; v_fan jsonb := '[]'::jsonb; v_before bigint; x record;
+begin
+  -- Two ticks at once must not both send: the second waits, then finds nothing pending.
+  perform pg_advisory_xact_lock(hashtext('fn_customer_support_sends_the_it_digest'));
+
+  select coalesce(array_agg(a.id order by a.id), '{}') into v_ids
+    from public.agent_actions a
+   where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'pending'
+     and a.detail->>'type' = 'delivery.request' and a.detail->>'recipient_role' = 'founder'
+     and a.detail->>'kind' = 'it_new_bug' and a.evidence->>'digest' = 'pending';
+  if cardinality(v_ids) = 0 then return jsonb_build_object('sent', false, 'held', 0); end if;
+
+  select max(f.created_at) into v_last from public.founder_alerts f
+   where f.dedupe_key like 'it_new_bug_digest:%' and f.channel = 'email';  -- fn_notify_founder logs the send as 'email'
+  if v_last > now() - p_floor then
+    return jsonb_build_object('sent', false, 'held', cardinality(v_ids), 'next_after', v_last + p_floor);
+  end if;
+
+  -- The per-issue promise fn_notify_founder kept: one message per problem per 24 hours.
+  select coalesce(array_agg(a.id order by a.id) filter (where exists (
+           select 1 from public.founder_alerts f
+            where f.dedupe_key = a.detail->>'dedupe_key' and f.channel in ('email', 'whatsapp', 'digested')
+              and f.created_at > now() - interval '24 hours')), '{}'),
+         coalesce(array_agg(a.id order by a.id) filter (where not exists (
+           select 1 from public.founder_alerts f
+            where f.dedupe_key = a.detail->>'dedupe_key' and f.channel in ('email', 'whatsapp', 'digested')
+              and f.created_at > now() - interval '24 hours')), '{}')
+    into v_dup, v_send
+    from public.agent_actions a where a.id = any(v_ids);
+  v_n := cardinality(v_send);
+
+  if v_n = 1 then
+    -- One problem reads as it always did.
+    select a.detail->>'event', a.detail->>'detail' into v_event, v_detail from public.agent_actions a where a.id = v_send[1];
+  elsif v_n > 1 then
+    with items as (
+      select a.id,
+             regexp_replace(coalesce(a.detail->>'dedupe_key', 'handoff:' || a.id), '^it_new_bug:', '') as ref,
+             regexp_replace(coalesce(a.detail->>'event', ''), '^New problem the IT engineer could not fix: ', '') as title
+        from public.agent_actions a where a.id = any(v_send)),
+    fam as (
+      select i.*, case when regexp_replace(i.ref, ':[^:]*$', '') ~ ':' then regexp_replace(i.ref, ':[^:]*$', '') else i.ref end as family
+        from items i),
+    g as (
+      select family, count(distinct ref) as n, min(title) as title, min(ref) as ref, min(id) as first_id,
+             row_number() over (order by min(id)) as rn
+        from fam group by family)
+    select count(*)::int,
+           string_agg(case when n = 1 then '- ' || left(title, 140) || ' (reference ' || ref || ')'
+                           else '- ' || n || ' problems of one kind, ' || family || ', e.g. ' || left(title, 110)
+                                || ' (references ' || family || ':...)' end,
+                      E'\n' order by rn) filter (where rn <= 15)
+      into v_lines, v_detail
+      from g;
+    -- ponytail: 15 lines keep the WhatsApp twin readable; the rest is on each handoff in the OS.
+    v_event := v_n || ' new problems the IT engineer could not fix';
+    v_detail := 'Raised since the last message, one line each; problems of one kind raised together are one line with their count.'
+             || E'\n\n' || v_detail
+             || case when v_lines > 15 then E'\n- and ' || (v_lines - 15) || ' more lines, each on its handoff in the OS' else '' end
+             || E'\n\nNothing inside the company fixed these, so each needs a code or configuration change. '
+             || 'Each stays tracked until the IT engineer confirms it is gone.';
+  end if;
+
+  if v_n > 0 then
+    v_key := 'it_new_bug_digest:' || v_send[1] || '-' || v_send[v_n];
+    if v_stub then
+      -- A TEST NEVER REACHES HIM: nothing is queued and nothing is logged as told.
+      v_res := jsonb_build_object('stubbed', true);
+    else
+      select coalesce(max(id), 0) into v_before from public.notifications;
+      perform set_config('app.qd_delivery_tracked', 'on', true);
+      v_res := public.fn_notify_founder(p_event => v_event, p_detail => v_detail, p_level => 'high',
+                                        p_kind => 'it_new_bug', p_dedupe_key => v_key, p_owner_agent => 'customer_support');
+      select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
+       where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
+      perform set_config('app.qd_delivery_tracked', 'off', true);
+      -- Each problem is recorded as told, under its own key, so the 24-hour promise holds next tick --
+      -- only when he WAS told: a digest the policy routed elsewhere must not count as telling him.
+      if coalesce((v_res->>'emailed')::boolean, false) then
+        insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+        select 'high', a.detail->>'event', 'told in ' || v_key, 'digested', a.detail->>'dedupe_key'
+          from public.agent_actions a where a.id = any(v_send);
+      end if;
+    end if;
+  end if;
+  if not v_stub and cardinality(v_dup) > 0 then
+    insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+    select 'high', a.detail->>'event', a.detail->>'detail', 'deduped', a.detail->>'dedupe_key'
+      from public.agent_actions a where a.id = any(v_dup);
+  end if;
+
+  -- Every held request is completed with what became of it; the delivery watch takes it from there.
+  for x in select a.id, a.evidence from public.agent_actions a where a.id = any(v_ids) order by a.id loop
+    if x.id = any(v_dup) then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'deduped',
+        'notify', jsonb_build_object('emailed', false, 'deduped', true, 'kind', 'it_new_bug')));
+    else
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'sent',
+        'digest_key', v_key, 'digest_size', v_n, 'notify', v_res, 'notification_ids', v_fan, 'notification_id', v_fan->0)
+        || case when v_stub then jsonb_build_object('stubbed', true) else '{}'::jsonb end);
+    end if;
+  end loop;
+
+  return jsonb_build_object('sent', v_n > 0, 'items', cardinality(v_ids), 'problems', v_n, 'lines', v_lines,
+                            'deduped', cardinality(v_dup), 'digest_key', v_key, 'event', v_event, 'detail', v_detail,
+                            'notify', v_res, 'notification_ids', v_fan, 'stubbed', v_stub);
 end $function$
 
 
@@ -35076,8 +35201,11 @@ begin
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
   exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
+  -- Last, so everything this tick escalated leaves in the one message.
+  begin o := o || jsonb_build_object('digest', public.fn_customer_support_sends_the_it_digest());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'digest', 'error', sqlerrm); end;
 
-  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily'] loop
+  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily', 'digest'] loop
     perform public.fn_it_loop_stage(v_step,
       (select string_agg(coalesce(e->>'issue_key' || ': ', '') || (e->>'error'), '; ')
          from jsonb_array_elements(v_err) e where e->>'step' = v_step));
@@ -41589,16 +41717,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -41769,6 +41887,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
