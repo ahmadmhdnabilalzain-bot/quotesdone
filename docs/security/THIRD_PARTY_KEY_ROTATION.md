@@ -9,7 +9,7 @@ This file holds no values.
 **Internal credentials rotate themselves.** These are the `internal_credential` rows whose secrets live
 in `app_secrets.cred_*`. IT duty 15 (`fn_it_credential_rotate`, which runs inside the daily 'rotation'
 duty of `fn_it_duties_scheduled`) rotates any credential older than 90 days, up to 3 a day. The old
-secret stays valid for the 24-hour overlap plus one cadence of the duty. It is retired only after it
+secret stays valid for the 24-hour overlap plus two cadences of the duty. It is retired only after it
 has gone quiet. See `scripts/sql/a_rotated_credential_stays_valid_until_the_run_that_retires_it.sql`.
 Measured 15 Sep 2026: the oldest active credential was created 3 Aug 2026, so the first rotations fall
 due around 1 Nov 2026.

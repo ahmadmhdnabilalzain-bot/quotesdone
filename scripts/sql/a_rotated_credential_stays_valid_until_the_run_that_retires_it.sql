@@ -26,8 +26,8 @@
 --      slack), before overlap_until, so it does nothing; the run after that comes ~48 h later. For the
 --      day in between, a caller still presenting the old secret was refused by fn_internal_auth
 --      (credential_expired) and the "hold" only arrived after the outage it existed to prevent. The old
---      credential now stays valid for the overlap PLUS one cadence of the duty, so the deciding run
---      always comes first.
+--      credential now stays valid for the overlap PLUS two cadences of the duty, so the deciding run
+--      comes first even when it is late or one run is missed.
 --   2. A HOLD GREW WITHOUT BOUND. The held branch extended by (overlap_until - rotated_at). After the
 --      first hold overlap_until had moved, so each later hold extended by the whole time since rotation
 --      (1 day, then 3, then 7...). It now extends by the configured overlap every time.
@@ -93,13 +93,14 @@ begin
   returning id into v_new;
   -- Every caller reads this key at call time, so this one write moves them all to the new secret.
   update public.app_secrets set value = v_secret, updated_at = now() where key = v_key;
-  -- overlap_until is when reverify may first decide; the old credential is still accepted for one
-  -- more cadence of the duty after that, so the run that decides always comes before it is refused.
-  update public.internal_credential set expires_at = now() + v_overlap + v_cadence where id = c.id;
+  -- overlap_until is when reverify may first decide; the old credential is still accepted for TWO
+  -- more cadences of the duty after that, so the run that decides comes before it is refused even
+  -- when that run is late or one run is missed (review of #709: one cadence left no margin at all).
+  update public.internal_credential set expires_at = now() + v_overlap + 2 * v_cadence where id = c.id;
   insert into public.it_credential_rotation (context, old_id, new_id, secret_key, overlap_until)
   values (c.context, c.id, v_new, v_key, now() + v_overlap);
   return jsonb_build_object('context', c.context, 'old_id', c.id, 'new_id', v_new, 'overlap_until', now() + v_overlap,
-                            'old_valid_until', now() + v_overlap + v_cadence);
+                            'old_valid_until', now() + v_overlap + 2 * v_cadence);
 end $fn$;
 
 -- ── THIRD-PARTY KEY AGE ──────────────────────────────────────────────────────────────────────────
@@ -166,7 +167,8 @@ begin
   v_overlap := make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int);
   v_cadence := coalesce((select every from public.it_duty_schedule where duty = 'rotation'), interval '1 day');
   for r in select * from public.it_credential_rotation where status in ('overlap', 'held') order by id for update loop
-    select * into o from public.internal_credential where id = r.old_id;
+    -- Locked, so a use of the old credential between this read and the retire cannot be missed.
+    select * into o from public.internal_credential where id = r.old_id for update;
     select * into n from public.internal_credential where id = r.new_id;
     if o.last_used_at is null or o.last_used_at < r.rotated_at then
       if now() >= r.overlap_until then
@@ -177,7 +179,7 @@ begin
       end if;
     elsif now() >= r.overlap_until then
       -- Still presented after the rotation: keep it valid past the NEXT run, which decides again.
-      update public.internal_credential set expires_at = now() + v_overlap + v_cadence where id = r.old_id;
+      update public.internal_credential set expires_at = now() + v_overlap + 2 * v_cadence where id = r.old_id;
       update public.it_credential_rotation set status = 'held', overlap_until = now() + v_overlap,
              note = 'old credential still used by ' || coalesce(o.last_function, '?') || ' at ' || o.last_used_at where id = r.id;
       v_items := v_items || jsonb_build_object('item', r.context, 'subject', o.last_function,
