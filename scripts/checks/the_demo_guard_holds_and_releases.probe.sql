@@ -15,8 +15,10 @@ declare
 begin
   update public.decision_policy set value = 'true'::jsonb where key = 'demo_rehearsal_active';
 
+  -- to_role 'customer', not 'admin': a10 (fn_notifications_founder_mail_policy) turns any founder/admin/owner row
+  -- of a kind outside founder_mail_policy into a task and inserts nothing, so the guard would never see it.
   insert into public.notifications (type, kind, to_email, to_role, channel, subject, body, status, requested_by, sender)
-  values ('probe', 'probe', v_addr, 'admin', 'email', 'ZZ DEMO guard probe', 'ZZ DEMO guard probe', 'queued', 'customer_support', 'customer_support')
+  values ('probe', 'probe', v_addr, 'customer', 'email', 'ZZ DEMO guard probe', 'ZZ DEMO guard probe', 'queued', 'customer_support', 'customer_support')
   returning id, status into v_id, s1;
 
   update public.notifications set status = 'queued' where id = v_id;          -- the path the guard used to miss
@@ -28,8 +30,13 @@ begin
   r := public.fn_notifications_release_held();
   select status into s3 from public.notifications where id = v_id;
 
+  -- Measured 15 Sep 2026: every .invalid address is demo to fn_is_demo_email, so on INSERT the guard
+  -- holds the row and zzzz_notifications_demo_capture (which runs after it) then marks it 'suppressed':
+  -- a demo recipient is never sent, which is the stricter outcome. The re-queue is the path #713 closes:
+  -- the guard must hold it ('held'), and capture leaves a held row alone on UPDATE.
   raise exception 'CHK<<insert=% requeue=% refused_while_on=% after_release=% release=% PASS=%>>',
     s1, s2, v_refused, s3, r,
-    (s1 = 'held' and s2 = 'held' and v_refused and s3 in ('queued', 'suppressed')
+    ((s1 = 'held' or (public.fn_is_demo_email(v_addr) and s1 = 'suppressed'))
+     and s2 = 'held' and v_refused and s3 in ('queued', 'suppressed')
      and (not public.fn_is_demo_email(v_addr) or s3 = 'suppressed'));
 end $$;
