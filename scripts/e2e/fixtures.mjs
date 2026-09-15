@@ -24,7 +24,7 @@
 //   exactly as login_otp stores it; only delivery is skipped). The MOBILE verification is recorded
 //   directly: Twilio Verify cannot be driven without sending an SMS, and the number is fake by design.
 import { readFileSync } from 'node:fs';
-import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE } from '../staging/demo_factory.mjs';
+import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile } from '../staging/demo_factory.mjs';
 import { mgmtRead, mgmtFixture } from '../staging/qd_guard.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 
@@ -33,12 +33,10 @@ export const read = (sql) => mgmtRead(REF, sql);
 export const write = (sql, where = 'e2e fixture') => mgmtFixture(REF, sql, where);
 
 export const demoEmail = (run, kind) => `qd-${run.tag}-${kind}${run.seq++}@example.invalid`;
-// 00-89 only. 90-99 are reserved for checks that need a fixture number NO run can hold at the same
-// time (a_phone_cannot_select_an_account uses 98 as "unknown" and 97 as "shared"). On 14 Sep a run
-// handed out 42 while that check still used 42 as its unknown number, and production answered it
-// as a known supplier.
-let mobileSeq = Math.floor(Math.random() * 60);
-export const demoMobile = () => '+9715000000' + String((mobileSeq++) % 90).padStart(2, '0');
+// The fixture mobile block lives in demo_factory (00-89 only; 90-99 are reserved for checks that need
+// a number NO run can hold - on 14 Sep a run handed out 42 while a check still used 42 as its unknown
+// number, and production answered it as a known supplier). One definition, re-exported here.
+export { demoMobile };
 
 /** Open a run: a tag for every row, and a rehearsal window so the failed-run watcher never pages the founder. */
 export async function openRun(opts = {}) {
