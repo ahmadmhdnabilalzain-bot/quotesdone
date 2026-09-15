@@ -54,23 +54,8 @@ async function fileToImages(file) {
   }
   return { images: [], b64, mime: file.type || 'application/octet-stream' };
 }
-function encodeWav(samples, rate) {
-  const buffer = new ArrayBuffer(44 + samples.length * 2); const view = new DataView(buffer);
-  const ws = (o, str) => { for (let i = 0; i < str.length; i++) view.setUint8(o + i, str.charCodeAt(i)); };
-  ws(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); ws(8, 'WAVE'); ws(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); ws(36, 'data'); view.setUint32(40, samples.length * 2, true);
-  let o = 44; for (let i = 0; i < samples.length; i++) { const x = Math.max(-1, Math.min(1, samples[i])); view.setInt16(o, x < 0 ? x * 0x8000 : x * 0x7FFF, true); o += 2; }
-  return buffer;
-}
-async function blobToWavB64(blob) {
-  const AC = window.AudioContext || window.webkitAudioContext; const ac = new AC();
-  const buf = await ac.decodeAudioData(await blob.arrayBuffer());
-  const rate = 16000; const off = new OfflineAudioContext(1, Math.ceil(buf.duration * rate), rate);
-  const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
-  const pcm = (await off.startRendering()).getChannelData(0);
-  const bytes = new Uint8Array(encodeWav(pcm, rate)); let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin);
-}
+// The recorder's WAV encoder is shared with the supplier Services tab (15 Sep 2026).
+import { blobToWavB64 } from '@/lib/wavEncode';
 
 // ATTACH A BOQ (founder, 14 Sep 2026). A spreadsheet goes to analyze_boq (cells read with no model);
 // a PDF BOQ is read like a drawing, from its text layer. BOQ_ERR maps the server's refusal to words.

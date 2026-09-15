@@ -10,6 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
+import { servicesState, servicesResolve, servicesSave, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
@@ -401,6 +402,47 @@ const handle = async (req: Request): Promise<Response> => {
       }
       const [status, out] = await capabilityConfirm(admin, Number(mine.id), fwd);
       return J(out, status);
+    }
+
+    // THE SERVICES CHECKLIST (15 Sep 2026, sales_engineer) — docs/api/supplier_portal_services.md.
+    // Same rule as the capability pair above: the supplier id comes from the caller's own JWT, never
+    // from the body. The confirm underneath is capabilityConfirm, so the ledger row is unchanged.
+    if (action === 'services_state' || action === 'services_resolve' || action === 'services_save' || action === 'transcribe_service_note') {
+      const { data: mine } = await admin.from('leads').select('id,service_emirates').eq('claimed_by', email).maybeSingle();
+      if (!mine) return J({ error: 'claim_your_company_first', code: 'no_company' }, 400);
+      const sid = Number(mine.id);
+      if (action === 'services_state') return J(await servicesState(admin, sid));
+      if (action === 'services_resolve') { const [s, o] = await servicesResolve(admin, body); return J(o, s); }
+      if (action === 'services_save') {
+        const declared = Array.isArray(mine.service_emirates) ? mine.service_emirates as string[] : [];
+        const [s, o] = await servicesSave(admin, sid, body, declared);
+        return J(o, s);
+      }
+      // Voice goes to the existing transcribe function with the caller's own token, so it keeps its
+      // own sign-in check, byte sniffing and malware scan. Nothing reaches it while the flag is off.
+      const [s, o] = await transcribeServiceNote(sid, body, {
+        enabled: () => voiceEnabled(admin),
+        recentCount: async (id) => {
+          const { count } = await admin.from('supplier_voice_note').select('id', { count: 'exact', head: true })
+            .eq('supplier_id', id).gte('created_at', new Date(Date.now() - 3600e3).toISOString())
+            .not('outcome', 'in', '(flag_off,rate_limited)');
+          return count || 0;
+        },
+        audit: async (row) => { const { error } = await admin.from('supplier_voice_note').insert(row); if (error) console.error('supplier_voice_note insert failed', error.message); },
+        start: async (row) => {
+          const { data, error } = await admin.from('supplier_voice_note').insert(row).select('id').single();
+          if (error) console.error('supplier_voice_note insert failed', error.message);
+          return async (patch) => { if (data?.id) await admin.from('supplier_voice_note').update(patch).eq('id', data.id); };
+        },
+        transcribe: async (b64, mime) => {
+          try {
+            const r = await fetch(`${SUPA_URL}/functions/v1/transcribe`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: req.headers.get('Authorization') || '' }, body: JSON.stringify({ audio_b64: b64, mime }) });
+            const j = await r.json().catch(() => ({}));
+            return r.ok && j && j.ok && typeof j.text === 'string' ? { ok: true, text: j.text } : { ok: false, error: String(j?.error || r.status) };
+          } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+        },
+      });
+      return J(o, s);
     }
 
     if (action === 'process_docs') {
