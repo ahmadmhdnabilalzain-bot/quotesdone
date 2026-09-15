@@ -12,6 +12,8 @@ export type Stub = {
   rpc?: Record<string, unknown>;          // POST /rest/v1/rpc/<fn>; anything unlisted answers null
   secrets?: Record<string, string>;       // app_secrets by key; anything unlisted gets a long stub value
   user?: { id: string; email: string };   // GET /auth/v1/user
+  // Seen first for every db.invalid request; return a Response to answer it, undefined to fall through.
+  handle?: (req: Request, u: URL) => Response | Promise<Response | undefined> | undefined;
 };
 export type Call = { method: string; url: string; body: string };
 
@@ -33,6 +35,7 @@ function install() {
     calls.push({ method: req.method, url: req.url, body: req.method === 'GET' || req.method === 'HEAD' ? '' : await req.clone().text() });
     if (u.hostname === 'twilio.com' || u.hostname.endsWith('.twilio.com')) return J({ sid: 'SMstub', status: 'pending' }, 201);
     if (u.hostname !== 'db.invalid') return J({});
+    const own = await current.handle?.(req, u); if (own) return own;
     if (u.pathname === '/auth/v1/user') return J({ aud: 'authenticated', role: 'authenticated', ...(current.user ?? { id: 'u-stub', email: 'qd-stub@example.invalid' }) });
     const rpc = u.pathname.match(/^\/rest\/v1\/rpc\/(.+)$/);
     if (rpc) return J(current.rpc?.[rpc[1]] ?? null);
