@@ -167,7 +167,8 @@ Deno.serve(observe('compliance_archive', async (req) => {
       // this acceptance is returned as it is, and a new one is written only if the row still names what
       // it named when this call read it (compare-and-set). The caller that loses the race deletes its own
       // render and returns the winner's. Every acceptance still gets exactly one certificate, whichever
-      // caller arrives first. body.force re-issues deliberately.
+      // caller arrives first. body.force re-issues deliberately. A certificate replaced by a genuinely NEW
+      // acceptance (a later version) is kept in the bucket on purpose: it is the evidence of the earlier one.
       const table = kind === 'customer' ? 'customers' : 'leads';
       const priorPath: string | null = rec.signed_terms_path ?? null;
       const signedUrlOf = async (p: string | null) => { if (!p) return null; const { data } = await admin.storage.from(BUCKET).createSignedUrl(p, TENYRS); return data?.signedUrl || null; };
@@ -189,8 +190,11 @@ Deno.serve(observe('compliance_archive', async (req) => {
       const cas = admin.from(table).update({ signed_terms_url: certUrl, signed_terms_path: cert.path, signed_terms_at: nowIso }).eq('id', rec.id);
       const { data: won, error: casErr } = await (priorPath === null ? cas.is('signed_terms_path', null) : cas.eq('signed_terms_path', priorPath)).select('id');
       if (casErr || !won?.length) {
-        // Lost the race (or the write failed): this render is named by no row, so it must not stay.
-        await admin.storage.from(BUCKET).remove([cert.path]);
+        // Lost the race (or the write failed): this render is named by no row, so it must not stay. The
+        // winner already rebuilt the customer register after its own write, so nothing is left to refresh.
+        const { error: rmErr } = await admin.storage.from(BUCKET).remove([cert.path]);
+        if (rmErr) await admin.from('agent_runs').insert({ agent: 'compliance_archive', status: 'error', started_at: nowIso, finished_at: new Date().toISOString(),
+          counts: { stage: 'sign', kind, orphan_left: 1 }, note: ('a duplicate certificate render could not be removed and is named by no row: ' + cert.path + ' (' + rmErr.message + ')').slice(0, 500) });
         if (casErr) return J({ error: 'cert_record_failed', detail: casErr.message }, 502);
         const { data: w } = await admin.from(table).select('signed_terms_path').eq('id', rec.id).maybeSingle();
         return J({ ok: true, kind, signed_url: await signedUrlOf((w?.signed_terms_path as string) || null), filed_by: 'fn_enqueue_doc_backups', register: null, reused: true });
