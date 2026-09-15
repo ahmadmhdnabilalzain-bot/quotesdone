@@ -80,11 +80,22 @@ begin
         'detail', 'ZZ DEMO probe row',
         'dedupe_key', case when i < 5 then 'it_new_bug:duty:zz_demo_backup_gap:zz_demo.col' || i else 'it_new_bug:watch:zz_demo_detector' end));
   end loop;
+  -- A problem he was already told about within 24 hours is folded, never told twice.
+  insert into public.founder_alerts (level, event, detail, channel, dedupe_key, created_at)
+  values ('high', 'ZZ DEMO already told', 'ZZ DEMO', 'digested', 'it_new_bug:zz_demo_told:x', now() - interval '1 hour');
+  perform public.fn_seat_handoff('ceo', 'customer_support', 'delivery.request', 'support_ceo_report', 'zz-demo-digest-probe-d',
+    jsonb_build_object('recipient_role', 'founder', 'kind', 'it_new_bug', 'level', 'high',
+      'event', 'New problem the IT engineer could not fix: ZZ DEMO told', 'detail', 'ZZ DEMO', 'dedupe_key', 'it_new_bug:zz_demo_told:x'));
   select count(*) into k from public.agent_actions
    where kind = 'handoff' and target_id like 'delivery.request:zz-demo-digest-probe-%' and status = 'pending' and evidence->>'digest' = 'pending';
-  if k <> 5 then raise exception 'ZZFAIL: % of 5 requests were held for the digest', k; end if;
+  if k <> 6 then raise exception 'ZZFAIL: % of 6 requests were held for the digest', k; end if;
 
   v := public.fn_customer_support_sends_the_it_digest(interval '0');
+  if not exists (select 1 from public.agent_actions where target_id = 'delivery.request:zz-demo-digest-probe-d'
+                  and status = 'done' and evidence->>'digest' = 'deduped')
+     or (v->>'deduped')::int < 1 or v->>'detail' ~ 'zz_demo_told' then
+    raise exception 'ZZFAIL: a problem told within 24 hours was not folded: %', v;
+  end if;
   select count(*), count(distinct evidence->>'digest_key') into k, j from public.agent_actions
    where kind = 'handoff' and target_id like 'delivery.request:zz-demo-digest-probe-%' and status = 'done'
      and evidence->>'digest' = 'sent' and coalesce((evidence->>'stubbed')::boolean, false);

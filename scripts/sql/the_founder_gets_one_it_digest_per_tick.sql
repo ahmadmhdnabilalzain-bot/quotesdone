@@ -155,7 +155,7 @@ begin
   if cardinality(v_ids) = 0 then return jsonb_build_object('sent', false, 'held', 0); end if;
 
   select max(f.created_at) into v_last from public.founder_alerts f
-   where f.dedupe_key like 'it_new_bug_digest:%' and f.channel in ('email', 'whatsapp');
+   where f.dedupe_key like 'it_new_bug_digest:%' and f.channel = 'email';  -- fn_notify_founder logs the send as 'email'
   if v_last > now() - p_floor then
     return jsonb_build_object('sent', false, 'held', cardinality(v_ids), 'next_after', v_last + p_floor);
   end if;
@@ -218,10 +218,13 @@ begin
       select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
        where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
       perform set_config('app.qd_delivery_tracked', 'off', true);
-      -- Each problem is recorded as told, under its own key, so the 24-hour promise holds next tick.
-      insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
-      select 'high', a.detail->>'event', 'told in ' || v_key, 'digested', a.detail->>'dedupe_key'
-        from public.agent_actions a where a.id = any(v_send);
+      -- Each problem is recorded as told, under its own key, so the 24-hour promise holds next tick --
+      -- only when he WAS told: a digest the policy routed elsewhere must not count as telling him.
+      if coalesce((v_res->>'emailed')::boolean, false) then
+        insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+        select 'high', a.detail->>'event', 'told in ' || v_key, 'digested', a.detail->>'dedupe_key'
+          from public.agent_actions a where a.id = any(v_send);
+      end if;
     end if;
   end if;
   if not v_stub and cardinality(v_dup) > 0 then
