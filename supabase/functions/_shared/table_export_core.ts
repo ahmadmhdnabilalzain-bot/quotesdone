@@ -14,30 +14,31 @@
 // Every character a firewall signature needs (angle brackets, quotes, slashes, dots, shell and SQL
 // punctuation) is written as a JSON \u escape. JSON.parse and Postgres jsonb read the result as exactly
 // the same value, so the restore drill (jsonb_populate_recordset) and any later reader are unchanged.
-const RISKY = /[<>&'"\/\\.;|`$(){}%=*+\-#:!?@\[\],~^]/;
+//
+// CPU (15 Sep 2026, v2 of this function). v1 walked the JSON one character at a time in JavaScript:
+// 99-331 ms per real kb_chunks page against 2-10 ms for JSON.stringify, ~10 pages a hop, and the second
+// hop of backup v9 died at 00:14:39Z with "CPU Time exceeded" (546), leaving the day 'running' with no
+// finding. v2 does the same rewrite with native regular expressions: each JSON string literal is found by
+// an unrolled pattern (no per-character backtracking on multi-MB strings), and inside it every risky
+// character becomes \uXXXX, \" \\ \/ become \u0022 \u005c \u002f, and other escapes stay as written.
+// The output is byte-for-byte v1's (table_export_cpu.test.ts keeps v1 as the reference); measured on the
+// same pages: 60-126 ms.
+const STRING_LITERAL = /"[^"\\]*(?:\\.[^"\\]*)*"/g;
+const INSIDE = /\\u[0-9a-fA-F]{4}|\\.|[<>&'\/.;|`$(){}%=*+\-#:!?@\[\],~^]/g;
+const REWRITE: Record<string, string> = { '\\"': '\\u0022', '\\\\': '\\u005c', '\\/': '\\u002f' };
+const escapeOne = (t: string) =>
+  t[0] === '\\' ? (t[1] === 'u' ? t : REWRITE[t] ?? t) : '\\u' + t.charCodeAt(0).toString(16).padStart(4, '0');
 
-// Serialise, then escape the risky characters that stand OUTSIDE existing escapes. JSON.stringify
-// already writes a backslash as \\ and a quote as \", so we rewrite those two sequences first and then
-// every remaining risky character; the structure characters ({ } [ ] , : ") are escaped only inside
-// strings, because escaping them outside would not be JSON.
+// Only inside strings: the structure characters ({ } [ ] , : - . +) must stay raw outside them.
 export function wafSafeJson(value: unknown): string {
-  const s = JSON.stringify(value);
-  let out = '';
-  let inStr = false;
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (!inStr) { out += c; if (c === '"') inStr = true; continue; }
-    if (c === '\\') {                         // an escape JSON.stringify wrote: \" \\ \n \uXXXX ...
-      const n = s[i + 1];
-      if (n === 'u') { out += s.slice(i, i + 6); i += 5; continue; }
-      out += n === '"' ? '\\u0022' : n === '\\' ? '\\u005c' : n === '/' ? '\\u002f' : '\\' + n;
-      i++; continue;
-    }
-    if (c === '"') { out += c; inStr = false; continue; }
-    out += RISKY.test(c) ? '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0') : c;
-  }
-  return out;
+  return JSON.stringify(value).replace(STRING_LITERAL, (m) => '"' + m.slice(1, -1).replace(INSIDE, escapeOne) + '"');
 }
+
+// A hop ends after this many bytes of escaped output as well as after the 30 s wall clock: the edge
+// runtime caps CPU per request, and serialising + escaping is the CPU. ~3 kb_chunks pages (~4.3 MB each
+// escaped) per hop, ~0.4 s of escaping.
+export const HOP_BYTES = 12_000_000;
+export type HopBudget = { spent: number; max: number };
 
 // WHO CAUSED A FAILURE. The founder's rule (founder_instruction 208): a backup may fail only when the
 // provider itself is down. A refusal that repeats for the same request (403 from a firewall, an expired
@@ -88,17 +89,20 @@ export type Deps = {
 // ran out. The slot moves only after a page is safely stored, so on any throw it still names the page
 // that failed and the key before it: a resumed chain starts at that page and clears nothing.
 export async function exportSlot(stamp: string, slot: Slot, deadline: number, deps: Deps,
-                                 onBytes: (n: number) => void = () => {}): Promise<boolean> {
+                                 onBytes: (n: number) => void = () => {},
+                                 budget: HopBudget = { spent: 0, max: Infinity }): Promise<boolean> {
   if (slot.page === 0 && slot.after == null) await deps.clear(stamp, slot.t);
   for (;;) {
-    if (deps.now() > deadline) return false;
+    // Checked before reading the next page, after the last one is stored: the slot then names exactly
+    // the next page and the key before it, so the next hop continues with no gap and no duplicate.
+    if (deps.now() > deadline || budget.spent >= budget.max) return false;
     const r = await deps.readPage(slot);
     const rows = Array.isArray(r?.rows) ? r.rows : [];
     // An empty table (or an incremental day with no changes) still writes page_0000 containing [].
     if (rows.length || slot.page === 0) {
       const body = wafSafeJson(rows);
       await deps.upload(`${stamp}/${slot.t}/page_${String(slot.page).padStart(4, '0')}.json`, body);
-      slot.page++; slot.rows += rows.length; onBytes(body.length);
+      slot.page++; slot.rows += rows.length; onBytes(body.length); budget.spent += body.length;
     }
     if (r?.done) return true;
     slot.after = r.last;

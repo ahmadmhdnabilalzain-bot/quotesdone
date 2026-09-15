@@ -37,7 +37,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { exportPathAllowed } from '../_shared/backup_prune_allow.ts';
-import { exportSlot as exportSlotCore, ExportError, retry, type Slot } from '../_shared/table_export_core.ts';
+import { exportSlot as exportSlotCore, ExportError, HOP_BYTES, type HopBudget, retry, type Slot } from '../_shared/table_export_core.ts';
 // v3 (15 Sep 2026, it_engineer): the first full copy failed twice on kb_chunks/page_0103.json with
 // "Forbidden" — the edge firewall refused a body holding OWASP injection examples; the request never
 // reached storage (see _shared/table_export_core.ts). Now: every page is written with its risky
@@ -56,7 +56,10 @@ const SLICE_MS = 30_000;   // hand off well inside the worker's compute budget (
 // Measured 15 Sep 2026 (attempt 2 of 2026-09-15): ~10 kb_chunks pages per hop, so a full day is ~262
 // hops for kb_chunks + ~25 for the rest — v2's 300 left no room, and the hop count carries across a
 // resumed attempt. 900 still stops a runaway chain (~9 h of 36 s hops).
-const MAX_HOPS = 900;
+// 15 Sep 2026: with the 12 MB per-hop budget (HOP_BYTES) a hop carries ~3 kb_chunks pages, so a full
+// copy is ~2,616 / ~2.8 ≈ 935 hops + ~25 for the rest + whatever an earlier attempt carried (24 tonight):
+// ~985. 2000 still stops a runaway chain.
+const MAX_HOPS = 2000;
 const PAGE = 1000;         // rows per page file (the RPC's cap); kb_chunks ~2.8 MB, ops_knowledge ~8.3 MB
 
 type State = {
@@ -101,7 +104,7 @@ async function clearTable(stamp: string, t: string) {
 
 // Returns true when the table is finished, false when the slice ran out mid-table (slot keeps the
 // exact resume point: the last key read and the next page number). The loop is table_export_core.ts.
-function exportSlot(st: State, slot: Slot, deadline: number): Promise<boolean> {
+function exportSlot(st: State, slot: Slot, deadline: number, budget: HopBudget): Promise<boolean> {
   return exportSlotCore(st.stamp, slot, deadline, {
     now: Date.now,
     clear: clearTable,
@@ -112,7 +115,7 @@ function exportSlot(st: State, slot: Slot, deadline: number): Promise<boolean> {
       if (error) throw new Error(error.message);
       return data;
     }),
-  }, (n) => { st.bytes += n; });
+  }, (n) => { st.bytes += n; }, budget);
 }
 
 async function finish(stamp: string, manifest: unknown, error: string | null) {
@@ -196,10 +199,11 @@ Deno.serve(async (req) => {
     // refused page, is saved, and the next attempt resumes there (v2 used to shift it away and restart
     // every table on the retry, re-uploading ~400 MB to meet the same page again).
     let failure: { table: string; error: string; cause: string } | null = null;
-    while (st.queue.length && Date.now() < deadline) {
+    const hopBudget: HopBudget = { spent: 0, max: HOP_BYTES };   // the CPU bound; the deadline is the wall-clock one
+    while (st.queue.length && Date.now() < deadline && hopBudget.spent < hopBudget.max) {
       const slot = st.queue[0];
       try {
-        if (!(await exportSlot(st, slot, deadline))) break;
+        if (!(await exportSlot(st, slot, deadline, hopBudget))) break;
         st.tables[slot.t] = { rows: slot.rows, pages: slot.page, mode: slot.since ? 'changes_since ' + slot.since : 'full' };
         delete st.errors[slot.t];
       } catch (e) {
