@@ -44,7 +44,9 @@ const KW: Record<string, string[]> = {
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
 // 14 Sep 2026: the category comes from _shared/trade_classify (the intake's own reading). This map
 // scored raw substrings one point each, so "ground floor fire alarm" tied flooring, security and
-// safety and went to flooring; KW below now only supplies supplier-matching keywords.
+// safety and went to flooring. KW below now only fills inquiries.keywords, which the sales engineer
+// reads as brief text when an inquiry carries no trades (fn_norm_trades, exact aliases); since
+// 15 Sep 2026 no keyword matcher consumes it.
 function detect(text: string) {
   const t = ' ' + String(text || '').toLowerCase() + ' ';
   const best = detectCat(text);

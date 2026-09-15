@@ -23,8 +23,10 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const walk = (d) => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : /\.(tsx?|mjs|js)$/.test(f) && !/\.test\./.test(f) ? [p] : []; });
 const DROP = 'scripts/sql/the_turnkey_path_asks_the_sales_engineer_and_the_keyword_matcher_is_dropped.sql';
-// A name that says fuzzy, keyword or nearest. fn_match_capability is the exact matcher and passes.
-const FUZZY_NAME = /^match_suppliers|_kw$|similar|fuzzy|trgm|trigram|nearest/;
+// A supplier matcher whose name says fuzzy, keyword or nearest. The fuzzy words must sit beside a
+// matching word so an unrelated routine (a nearest-branch lookup) does not trip it.
+// fn_match_capability is the exact matcher and passes.
+const FUZZY_NAME = /^match_suppliers|_kw$|(supplier|lead|match).*(similar|fuzzy|trgm|trigram|nearest)|(similar|fuzzy|trgm|trigram|nearest).*(supplier|lead|match)/;
 // Trigram similarity in SQL: the function forms and the operators pg_trgm adds.
 const TRIGRAM = /\b(word_|strict_word_)?similarity\s*\(|\s(<<?%|%>>?|<->>?|<<<->)\s|gin_trgm_ops|gist_trgm_ops/i;
 const stripSqlComments = (s) => s.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
