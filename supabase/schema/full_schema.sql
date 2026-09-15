@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T06:02:57.166Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T06:58:38.504Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -182,6 +182,7 @@ CREATE SEQUENCE IF NOT EXISTS public.support_notification_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.target_contract_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.target_driver_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.target_verdict_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.taxonomy_trade_proposal_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_answer_log_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_conversation_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_document_intake_id_seq;
@@ -189,7 +190,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (516) =====
+-- ===== TABLES (517) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -6382,7 +6383,8 @@ CREATE TABLE IF NOT EXISTS public.supplier_capabilities (
   missing_fields text[] DEFAULT '{}'::text[] NOT NULL,
   confirmed_at timestamp with time zone,
   confirmed_version integer,
-  excluded_trades text[] DEFAULT '{}'::text[] NOT NULL
+  excluded_trades text[] DEFAULT '{}'::text[] NOT NULL,
+  proposed_trades text[] DEFAULT '{}'::text[] NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_capability_confirmation (
@@ -6870,7 +6872,23 @@ CREATE TABLE IF NOT EXISTS public.taxonomy_trade (
   aliases text[] DEFAULT '{}'::text[] NOT NULL,
   authority_required text[] DEFAULT '{}'::text[] NOT NULL,
   sort integer DEFAULT 100 NOT NULL,
-  active boolean DEFAULT true NOT NULL
+  active boolean DEFAULT true NOT NULL,
+  label_ar text
+);
+
+CREATE TABLE IF NOT EXISTS public.taxonomy_trade_proposal (
+  id bigint DEFAULT nextval('taxonomy_trade_proposal_id_seq'::regclass) NOT NULL,
+  supplier_id bigint NOT NULL,
+  code text NOT NULL,
+  label_en text,
+  label_ar text,
+  status text DEFAULT 'pending'::text NOT NULL,
+  mapped_to text,
+  owner_seat text DEFAULT 'sales_engineer'::text NOT NULL,
+  note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  decided_at timestamp with time zone,
+  decided_by text
 );
 
 CREATE TABLE IF NOT EXISTS public.templates (
@@ -7663,6 +7681,7 @@ ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_pkey PRIMARY KEY (
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_pkey PRIMARY KEY (id);
 ALTER TABLE public.taxonomy_role ADD CONSTRAINT taxonomy_role_pkey PRIMARY KEY (code);
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_pkey PRIMARY KEY (code);
+ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_pkey PRIMARY KEY (id);
 ALTER TABLE public.templates ADD CONSTRAINT templates_pkey PRIMARY KEY (name);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_pkey PRIMARY KEY (domain, key);
@@ -7767,6 +7786,7 @@ ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_case_ref_key UNIQUE (case_ref);
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_dedupe_key_key UNIQUE (dedupe_key);
+ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_supplier_id_code_key UNIQUE (supplier_id, code);
 ALTER TABLE public.vt_results ADD CONSTRAINT vt_results_path_key UNIQUE (path);
 ALTER TABLE public.wa_conversation ADD CONSTRAINT wa_conversation_phone_e164_key UNIQUE (phone_e164);
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_idempotency_key_key UNIQUE (idempotency_key);
@@ -8162,6 +8182,11 @@ ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_status_check C
 ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_rate_check CHECK (((rate >= (0)::numeric) AND (rate <= (1)::numeric)));
 ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_rate_source_check CHECK ((rate_source = ANY (ARRAY['measured'::text, 'assumed'::text, 'industry_prior'::text, 'not_instrumented'::text])));
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_verdict_check CHECK ((verdict = ANY (ARRAY['ACHIEVABLE'::text, 'AT_RISK'::text, 'NOT_ACHIEVABLE'::text, 'CANNOT_ASSESS'::text])));
+ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_check CHECK (((label_en IS NOT NULL) OR (label_ar IS NOT NULL)));
+ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_check1 CHECK (((status = ANY (ARRAY['map_offered'::text, 'mapped'::text])) = (mapped_to IS NOT NULL)));
+ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_code_check CHECK ((btrim(code) <> ''::text));
+ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_owner_seat_check CHECK ((owner_seat = 'sales_engineer'::text));
+ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'added'::text, 'map_offered'::text, 'mapped'::text, 'rejected'::text])));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_domain_check CHECK ((domain = ANY (ARRAY['action_kind'::text, 'notification_type'::text, 'customer_signal'::text])));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_label_check CHECK ((btrim(label) <> ''::text));
 ALTER TABLE public.vendor_billing_ended ADD CONSTRAINT vendor_billing_ended_kind_ck CHECK ((kind = ANY (ARRAY['ended'::text, 'annual'::text, 'one_off'::text, 'portal_only'::text])));
@@ -8416,6 +8441,8 @@ ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_superseded_by_
 ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_channel_key_fkey FOREIGN KEY (channel_key) REFERENCES outreach_channel_policy(channel_key);
 ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES target_contract(id) ON DELETE CASCADE;
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES target_contract(id) ON DELETE CASCADE;
+ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_mapped_to_fkey FOREIGN KEY (mapped_to) REFERENCES taxonomy_trade(code);
+ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
@@ -8833,6 +8860,7 @@ CREATE UNIQUE INDEX target_contract_one_active_per_key ON public.target_contract
 CREATE INDEX target_contract_owner ON public.target_contract USING btree (accountable_owner);
 CREATE UNIQUE INDEX target_driver_stage ON public.target_driver USING btree (contract_id, stage_order);
 CREATE INDEX target_verdict_contract ON public.target_verdict USING btree (contract_id, run_at DESC);
+CREATE INDEX taxonomy_trade_proposal_pending ON public.taxonomy_trade_proposal USING btree (created_at) WHERE (status = 'pending'::text);
 CREATE UNIQUE INDEX transactions_quote_id_uidx ON public.transactions USING btree (quote_id) WHERE (quote_id IS NOT NULL);
 CREATE UNIQUE INDEX transactions_refund_stripe_uidx ON public.transactions USING btree (refund_stripe_id) WHERE (refund_stripe_id IS NOT NULL);
 CREATE INDEX undo_log_created_idx ON public.undo_log USING btree (created_at DESC);
@@ -52754,6 +52782,58 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_trade_proposal_decide(p_id bigint, p_decision text, p_code text DEFAULT NULL::text, p_label_en text DEFAULT NULL::text, p_label_ar text DEFAULT NULL::text, p_note text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.taxonomy_trade_proposal; v_label text;
+begin
+  select * into r from public.taxonomy_trade_proposal where id = p_id for update;
+  if r.id is null then raise exception 'fn_trade_proposal_decide: no proposal %', p_id; end if;
+  if r.status not in ('pending', 'map_offered') then
+    raise exception 'fn_trade_proposal_decide: proposal % is already %', p_id, r.status;
+  end if;
+
+  if p_decision = 'add' then
+    -- Under the SUPPLIER'S code, never another: suppliers who confirmed this trade already hold it
+    -- in supplier_capabilities.trades, and a different code would silently unmatch them.
+    -- Siblings (other suppliers' PENDING proposals of the same code) are locked in id order first, so
+    -- two concurrent 'add' decisions on one code queue instead of deadlocking.
+    perform 1 from public.taxonomy_trade_proposal where code = r.code and status = 'pending' order by id for update;
+    v_label := coalesce(nullif(btrim(p_label_en), ''), nullif(r.label_en, ''), r.label_ar);
+    insert into public.taxonomy_trade (code, label, label_ar, aliases, sort, active)
+    values (r.code, v_label, coalesce(nullif(btrim(p_label_ar), ''), r.label_ar),
+            array_remove(array[lower(nullif(btrim(coalesce(p_label_en, r.label_en)), ''))], null), 900, true)
+    on conflict (code) do nothing;
+    update public.taxonomy_trade_proposal
+       set status = 'added', mapped_to = null, decided_at = now(), decided_by = 'sales_engineer', note = coalesce(p_note, note)
+     where id = r.id;
+    -- Other suppliers' PENDING rows of the same code are now in the list too; they are marked as a
+    -- consequence, with a system note naming the decision, never with this decision's note. A
+    -- map_offered row is a separate decision for that supplier and is left alone.
+    update public.taxonomy_trade_proposal
+       set status = 'added', decided_at = now(), decided_by = 'sales_engineer',
+           note = 'auto: code added to taxonomy_trade by proposal #' || r.id
+     where code = r.code and status = 'pending' and id <> r.id;
+  elsif p_decision = 'offer_map' then
+    if not exists (select 1 from public.taxonomy_trade where code = p_code and active) then
+      raise exception 'fn_trade_proposal_decide: % is not an active trade', p_code;
+    end if;
+    update public.taxonomy_trade_proposal
+       set status = 'map_offered', mapped_to = p_code, decided_at = now(), decided_by = 'sales_engineer', note = coalesce(p_note, note)
+     where id = r.id;
+  elsif p_decision = 'reject' then
+    update public.taxonomy_trade_proposal
+       set status = 'rejected', mapped_to = null, decided_at = now(), decided_by = 'sales_engineer', note = coalesce(p_note, note)
+     where id = r.id;
+  else
+    raise exception 'fn_trade_proposal_decide: decision must be add, offer_map or reject, not %', p_decision;
+  end if;
+  return (select to_jsonb(x) from public.taxonomy_trade_proposal x where x.id = r.id);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_transaction_attach_invoice(p_transaction_id uuid, p_invoice jsonb, p_doc_path text DEFAULT NULL::text, p_doc_name text DEFAULT NULL::text, p_doc_content_type text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -60115,6 +60195,7 @@ ALTER TABLE public.target_driver ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_verdict ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxonomy_role ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxonomy_trade ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.taxonomy_trade_proposal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ui_label ENABLE ROW LEVEL SECURITY;
@@ -60212,6 +60293,7 @@ CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collab
 CREATE POLICY supplier_collaboration_event_service_role_only ON public.supplier_collaboration_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_run_service_role_only ON public.table_export_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY taxonomy_trade_proposal_service_role_only ON public.taxonomy_trade_proposal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.transactions AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.vision_horizon AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));

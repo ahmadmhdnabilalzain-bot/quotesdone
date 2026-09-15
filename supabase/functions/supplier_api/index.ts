@@ -10,6 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
+import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { registrationMissing } from '../_shared/supplier_registration.ts';
 import { SUPPLIER_AGREEMENT_VERSION, SUPPLIER_AGREEMENT_EN, SUPPLIER_AGREEMENT_AR } from '../_shared/supplier_agreement.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
@@ -408,13 +409,17 @@ Deno.serve(observe('supplier_api', async (req) => {
       const secret = await secretVal('cred_fn_supplier_api');
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const out: Record<string, unknown> = {};
+      // Every stored licence, profile and catalogue is also READ BY CODE into a trade proposal the
+      // supplier confirms (15 Sep 2026, _shared/supplier_doc_trades.ts). The model calls below still
+      // run and still refuse under the OpenRouter hold; nothing here waits on them.
+      const readQueue: DocIn[] = [];
       const lic = body.license || {};
       // 14 Sep 2026 (sales_engineer): a path is recorded only when it is this supplier's own and
       // storage holds the object - otherwise the supplier sees success for a file that is not there
       // and the backup queues a document it can never copy.
       const own = async (p: unknown, folder: string) => { const s = String(p); return s.startsWith(`${folder}/${sup.id}/`) && !s.includes('..') && await storedAt(admin, 'supplier-docs', s); };
       const notStored = (what: string) => J({ error: 'document_not_found', message: `We could not find your ${what} in our records. Please upload it again.` }, 400);
-      if (lic.path) { if (!(await own(lic.path, 'licenses'))) return notStored('trade licence'); upd.license_doc_path = String(lic.path); }
+      if (lic.path) { if (!(await own(lic.path, 'licenses'))) return notStored('trade licence'); upd.license_doc_path = String(lic.path); readQueue.push({ path: String(lic.path), name: String(lic.path).split('/').pop() || 'licence', kind: 'licence' }); }
       // AUDIT 9.1 (3 Aug 2026). The trade licence upload. Three defects in one line:
       //   * no type check at all - the bytes went to storage as whatever the caller declared,
       //     defaulting to application/octet-stream, so an HTML document or an executable stored
@@ -433,6 +438,7 @@ Deno.serve(observe('supplier_api', async (req) => {
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
         if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your trade licence. Please try again.' }, 502);
         upd.license_doc_path = p;
+        readQueue.push({ path: p, name: String(lic.filename || 'licence'), kind: 'licence', bytes: s.bytes, mime: s.mime });
       }
       const licImgs = Array.isArray(lic.images) ? lic.images : [];
       if (licImgs.length || lic.file_b64) {
@@ -456,7 +462,7 @@ Deno.serve(observe('supplier_api', async (req) => {
       // supplier's own typed text once the row has been written (see the 29 Jul 2026 header).
       let xServices: string[] = [];
       const prof = body.company_profile || {};
-      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); }
+      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); readQueue.push({ path: String(prof.path), name: String(prof.path).split('/').pop() || 'profile', kind: 'profile' }); }
       // AUDIT 9.1. Company profile document - same treatment as the trade licence above.
       else if (prof.original_b64) {
         const sc = await sanitizeAndScan({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_UPLOAD,
@@ -467,13 +473,14 @@ Deno.serve(observe('supplier_api', async (req) => {
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
         if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
+        readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime });
       }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
       const cats = Array.isArray(body.catalogs) ? body.catalogs.slice(0, 5) : []; const catPaths: string[] = [];
       // AUDIT 9.1. Catalogues. A rejected catalogue is refused outright rather than skipped,
       // because silently dropping one is how a supplier ends up believing a document is on file.
       for (const c of cats) {
-        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); }
+        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); readQueue.push({ path: String(c.path), name: String(c.path).split('/').pop() || 'catalogue', kind: 'catalogue' }); }
         else if (c?.original_b64) {
           const sc = await sanitizeAndScan({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_UPLOAD,
                                              scan: { source: 'supplier_api.catalog', subject: String(sup.id), filename: c.filename, bucket: 'supplier-docs' } });
@@ -483,6 +490,7 @@ Deno.serve(observe('supplier_api', async (req) => {
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
           if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store one of your catalogue files. Please try again.' }, 502);
           catPaths.push(p);
+          readQueue.push({ path: p, name: String(c.filename || 'catalogue'), kind: 'catalogue', bytes: s.bytes, mime: s.mime });
         }
         if (Array.isArray(c?.images)) profImgs.push(...c.images);
       }
@@ -525,6 +533,9 @@ Deno.serve(observe('supplier_api', async (req) => {
         console.error('process_docs: leads update failed —', updErr.message);
         return J({ error: 'save_failed', detail: updErr.message, message: 'We read your documents but could not save them to your profile. Please try again.' }, 502);
       }
+      // After the row write, so only documents now on the supplier's row are read. A reading failure
+      // is reported beside the result and never fails the upload the supplier just made.
+      if (readQueue.length) out.documents_read = await proposeTradesFromDocs(admin, Number(sup.id), readQueue);
       // DOUBLE CONFIRMATION (spec, 29 Jul 2026). The typed services box exists so the supplier's
       // own description can be checked AGAINST the documents; until now the two were never
       // compared, so no mismatch could ever be flagged. Compare them, record the outcome in

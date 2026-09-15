@@ -50,6 +50,9 @@ export type ReadContext = {
   depth: number;
   /** The dispatcher, for containers (zip, eml, msg) whose children are documents in their own right. */
   readChild?: (bytes: Uint8Array, filename: string, depth: number) => Promise<ReadResult>;
+  /** Words only: skip the drawing measurement. A supplier's profile or catalogue is read for what it
+   *  says, and measuring 40 pages of vector art spends CPU an edge function does not have. */
+  textOnly?: boolean;
 };
 
 export const empty = (kind: string, notes: string[] = [], needs: Extracted['needs'] = null): Extracted =>

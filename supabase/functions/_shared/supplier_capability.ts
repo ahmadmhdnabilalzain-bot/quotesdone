@@ -28,9 +28,19 @@ const strArr = (v: unknown, n: number, len = 120): string[] =>
 const obj = (v: unknown) => (v && typeof v === 'object' ? v : {});
 
 export async function capabilityVocabulary(admin: Admin) {
-  const { data: tr } = await admin.from('taxonomy_trade').select('code,label,authority_required').eq('active', true).order('sort');
+  // label_ar arrives with a_suppliers_documents_propose_trades_and_a_new_trade_is_reviewed_not_dropped.sql.
+  // Read without it if that column is not there yet, so a deploy that lands first never empties the list.
+  let { data: tr, error } = await admin.from('taxonomy_trade').select('code,label,label_ar,authority_required').eq('active', true).order('sort');
+  if (error) ({ data: tr } = await admin.from('taxonomy_trade').select('code,label,authority_required').eq('active', true).order('sort'));
   const { data: ro } = await admin.from('taxonomy_role').select('code,label,supplies,executes,whole_scope').eq('active', true).order('sort');
   return { trades: tr || [], roles: ro || [] };
+}
+
+/** This supplier's own new-trade proposals (taxonomy_trade_proposal), newest first; [] before that table exists. */
+async function tradeProposals(admin: Admin, supplierId: number) {
+  const { data, error } = await admin.from('taxonomy_trade_proposal')
+    .select('code,label_en,label_ar,status,mapped_to,created_at').eq('supplier_id', supplierId).order('created_at', { ascending: false }).limit(25);
+  return error ? [] : (data || []);
 }
 
 export async function capabilityState(admin: Admin, supplierId: number) {
@@ -38,7 +48,8 @@ export async function capabilityState(admin: Admin, supplierId: number) {
   const { data: hist } = await admin.from('supplier_capability_confirmation')
     .select('version,confirmed_at,confirmed_via').eq('supplier_id', supplierId).order('version', { ascending: false }).limit(5);
   const vocabulary = await capabilityVocabulary(admin);
-  return { ok: true, capability: cap || null, confirmed: !!cap?.confirmed_at, history: hist || [], vocabulary };
+  return { ok: true, capability: cap || null, confirmed: !!cap?.confirmed_at, history: hist || [], vocabulary,
+           trade_proposals: await tradeProposals(admin, supplierId) };
 }
 
 /** A trade name as a code: lower case, every run of non-letters/digits becomes '_'. The TS twin of
@@ -67,7 +78,8 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   const vocab = await capabilityVocabulary(admin);
   const okTrade = new Set(vocab.trades.map((t: { code: string }) => t.code));
   const okRole = new Set(vocab.roles.map((r: { code: string }) => r.code));
-  const trades = [...new Set(strArr(body.trades, 25, 60).map(tradeCode).filter(Boolean))];
+  const rawTrades = strArr(body.trades, 25, 60);
+  const trades = [...new Set(rawTrades.map(tradeCode).filter(Boolean))];
   const roles = strArr(body.roles, 8, 40).filter((c) => okRole.has(c));
   if (!trades.length || !roles.length) {
     return [400, { error: 'need_at_least_one_trade_and_role', code: 'capability_need_trade_role', valid_trades: [...okTrade], valid_roles: [...okRole] }];
@@ -86,6 +98,12 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   }
   const { data: prev } = await admin.from('supplier_capability_confirmation')
     .select('version').eq('supplier_id', supplierId).order('version', { ascending: false }).limit(1).maybeSingle();
+  // What we held BEFORE this confirm, read server-side: the ledger is the dispute record, so what the
+  // documents said comes from our own stored reading, never from the browser's copy of it.
+  const { data: before } = await admin.from('supplier_capabilities')
+    .select('trades,proposed_trades,source_docs').eq('supplier_id', supplierId).maybeSingle();
+  const onFile: string[] = Array.isArray(before?.trades) ? before.trades : [];
+  const fromDocs: string[] = Array.isArray(before?.proposed_trades) ? before.proposed_trades : [];
   const version = Number(prev?.version || 0) + 1;
   const now = new Date().toISOString();
   const capRow: Record<string, unknown> = {
@@ -101,10 +119,33 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   if (upErr) return [500, { error: 'capability_write_failed', code: 'capability_write_failed', detail: upErr.message }];
   // The ledger row is the dispute record: what this supplier agreed to receive, and when.
   await admin.from('supplier_capability_confirmation').insert({
-    supplier_id: supplierId, version, proposed: obj(body.proposed),
+    supplier_id: supplierId, version,
+    proposed: { on_file_trades: onFile, document_trades: fromDocs },
     confirmed: { trades, roles, products, brands, project_types: projectTypes, min_project_value: minVal, max_project_value: maxVal },
-    supplier_added: obj(body.supplier_added), exclusions, source_docs: obj(body.source_docs),
+    supplier_added: { trades: trades.filter((c) => !onFile.includes(c) && !fromDocs.includes(c)) },
+    exclusions, source_docs: obj(before?.source_docs),
     confirmed_at: now, confirmed_via: 'portal', agent_version: VERSION,
   });
-  return [200, { ok: true, confirmed: true, version, trades, roles, products_count: products.length, exclusions_count: exclusions.length }];
+  // A TRADE WE DO NOT LIST IS A PROPOSAL FOR THE SALES ENGINEER, NOT A SILENT STRING. It is still
+  // stored and matched exactly as typed (above); this row is how the seat learns it exists and decides
+  // to add it, offer an existing trade, or decline (fn_trade_proposal_decide).
+  const newCodes = trades.filter((c) => !okTrade.has(c));
+  if (newCodes.length) {
+    await admin.from('taxonomy_trade_proposal').upsert(newCodes.map((code) => {
+      const raw = rawTrades.find((r) => tradeCode(r) === code) || code;
+      const ar = /[؀-ۿ]/.test(raw);
+      return { supplier_id: supplierId, code, label_en: ar ? null : raw, label_ar: ar ? raw : null };
+    }), { onConflict: 'supplier_id,code', ignoreDuplicates: true });
+  }
+  // An existing trade the seat offered in place of the supplier's own is applied only when the
+  // supplier ticked it (and dropped their own): the supplier's agreement is the confirm itself.
+  const { data: offers } = await admin.from('taxonomy_trade_proposal')
+    .select('id,code,mapped_to').eq('supplier_id', supplierId).eq('status', 'map_offered');
+  for (const o of offers || []) {
+    if (trades.includes(o.mapped_to) && !trades.includes(o.code)) {
+      await admin.from('taxonomy_trade_proposal').update({ status: 'mapped', decided_at: now }).eq('id', o.id);
+    }
+  }
+  return [200, { ok: true, confirmed: true, version, trades, roles, products_count: products.length, exclusions_count: exclusions.length,
+                 new_trades_under_review: newCodes }];
 }

@@ -141,6 +141,9 @@ const COPY: Record<string, Entry> = {
   no_licence_title: s('Upload your trade licence', 'ارفع رخصتك التجارية'),
   no_licence_detail: s('Required before your account can be approved.', 'مطلوبة قبل اعتماد حسابك.'),
   confirm_scope_title: s('Confirm what your company does', 'أكّد ما تقوم به شركتك'),
+  confirm_scope_detail: s(
+    (p) => `Your documents mention trades you have not confirmed: ${(p.trades || []).map((c: string) => vocabLabel('en', 'trade', c, String(c).replace(/_/g, ' '))).join(', ')}. Tick them in "What you can quote for" if your company does this work.`,
+    (p) => `تذكر مستنداتك تخصصات لم تؤكّدها بعد: ${(p.trades || []).map((c: string) => vocabLabel('ar', 'trade', c, String(c).replace(/_/g, ' '))).join('، ')}. اخترها في «ما الذي يمكن لشركتك تسعيره» إن كانت شركتك تقوم بهذا العمل.`),
   expiring_title: s((p) => `Your ${p.doc === 'insurance' ? 'insurance certificate' : 'trade licence'} expires in ${p.days} day${p.days === 1 ? '' : 's'}`,
     (p) => `${p.doc === 'insurance' ? 'شهادة التأمين' : 'رخصتك التجارية'} تنتهي خلال ${p.days} ${plural(p.days, 'يوم', 'أيام')}`),
   expiring_detail: s('Once it expires your account is paused automatically and you stop receiving requests. Upload a renewed copy now to avoid that.', 'عند انتهائها يتوقف حسابك تلقائيًا وتتوقف الطلبات. ارفع نسخة مجدّدة الآن لتجنّب ذلك.'),
