@@ -7,6 +7,14 @@ import { requestDelivery } from '../_shared/deliver.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
+// RATE LIMIT (15 Sep 2026). The form had only a honeypot, which a script that leaves the hidden field
+// empty walks straight past, and every accepted post writes a row and queues a mail to the inbox. It now
+// uses the estate's rl_check, as complaint_status does: 10 posts an hour per IP and 5 per address.
+const IP_LIMIT = 10, EMAIL_LIMIT = 5, WINDOW_S = 3600;
+async function rl(key: string, limit: number): Promise<boolean> {
+  try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: WINDOW_S }); if (error) return true; return data !== false; }
+  catch (_e) { return true; } // the limiter being down must not lose a customer's message
+}
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 function esc(s: string){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 Deno.serve(observe('contact_submit', async (req) => {
@@ -21,6 +29,10 @@ Deno.serve(observe('contact_submit', async (req) => {
     const message = String(b.message||'').trim().slice(0,4000);
     if (message.length < 4) return J({ error: 'Please write a short message.' }, 400);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return J({ error: 'Please enter a valid email so we can reply.' }, 400);
+    const ip = String(req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+    if (!(await rl('contact_submit_ip:' + ip, IP_LIMIT)) || !(await rl('contact_submit_email:' + email.toLowerCase(), EMAIL_LIMIT))) {
+      return J({ error: 'Too many messages. Please try again in an hour, or email us directly.' }, 429);
+    }
     const ua = String(req.headers.get('user-agent')||'').slice(0,300);
     const isComplaint = String(b.kind || '') === 'complaint';
     const { data: row, error } = await admin.from('contact_messages').insert({ name, email, phone, message, user_agent: ua, ...(isComplaint ? { source: 'complaint' } : {}) }).select('id').maybeSingle();

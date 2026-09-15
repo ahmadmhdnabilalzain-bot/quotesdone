@@ -75,4 +75,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'backup.refile', from: 'it_engineer', to: 'sales_engineer' },
   // the CEO sends instructions back on an escalated backup case (the refund rejection-loop pattern)
   { type: 'backup.remediate', from: 'ceo', to: 'sales_engineer' },
+  // the CEO decided a notice that missed a real customer or supplier: the sales engineer tries another
+  // channel on file and the CEO closes it once the resend is confirmed or none exists
+  // (scripts/sql/the_ceo_decides_every_sales_engineer_report_and_every_sender_closes_its_handoff.sql)
+  { type: 'delivery.remediate', from: 'ceo', to: 'sales_engineer' },
 ] as const;

@@ -1,12 +1,13 @@
 // resilience_ping — the EXTERNAL watchdog target that survives a total pg_cron outage.
 // An external scheduler (GitHub Action / uptime service) hits this every ~15min. Because it is an
 // HTTP-invoked edge function, it keeps working even if the Supabase pg_cron scheduler has stopped.
-// If no cron job has run in >20min (scheduler dead), it pages the founder DIRECTLY over HTTP
-// (alert_founder -> WhatsApp) and force-flushes the outbox, so the alert escapes even with pg_cron down.
-// Public + secretless by design (returns only liveness; pages only when genuinely down, deduped 30min)
-// so any external monitor can wire it with just the URL.
+// If the previous heartbeat is over 45 minutes old (fn_cron_liveness), it pages the founder through
+// fn_notify_founder (kind platform_down, one delivery a day) and drains the outbox so the page leaves now.
+// Public + secretless by design (returns only liveness, counts and the names of failing steps) so any
+// external monitor can wire it with just the URL.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { type Failure, failureOf, runSteps, type Step } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
@@ -15,6 +16,13 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 async function sec(k: string): Promise<string> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
+// A SEAT DEPLOYED WITH verify_jwt ON IS REFUSED AT THE PLATFORM GATEWAY BEFORE ITS OWN CODE RUNS, unless a
+// signed JWT travels with the call. Measured 15 Sep 2026: accountant is verify_jwt=true, and in 24 hours the
+// gateway answered 151 calls to it with HTTP 401 — the refund and duties ticks, which sent no Authorization.
+// So no accountant duty run had ever been recorded. The service key only opens the gateway; inside, the
+// seat still decides the caller from __secret (whoami in accountant/index.ts), as sales_engineer does.
+const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const GATEWAY = { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY };
 
 // THE CEO END-OF-DAY DIGEST HANGS HERE, AND NOT ON pg_cron.
 // cron.job holds ONE row (wa_flush, active=false). 234 jobs were deleted on the founder's 7 Sep
@@ -212,7 +220,7 @@ async function accountantRefundTick(): Promise<unknown> {
     const secret = await sec('cred_fn_accountant');
     if (!secret) return { ok: false, error: 'cred_fn_accountant is not in app_secrets' };
     const r = await fetch(FN + '/accountant', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, action: 'execute_refunds' }), signal: AbortSignal.timeout(55000),
     });
     // deno-lint-ignore no-explicit-any
@@ -229,7 +237,7 @@ async function accountantDutiesTick(): Promise<unknown> {
     const secret = await sec('cred_fn_accountant');
     if (!secret) return { ok: false, error: 'cred_fn_accountant is not in app_secrets' };
     const r = await fetch(FN + '/accountant', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, action: 'duties' }), signal: AbortSignal.timeout(55000),
     });
     // deno-lint-ignore no-explicit-any
@@ -262,8 +270,9 @@ async function dropboxVerifyTick(): Promise<unknown> {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: secret, mode: 'reconcile', limit: 20 }), signal: AbortSignal.timeout(55000),
     });
+    const reconcile_run = { status: r.status, result: await r.json().catch(() => null) };
     // deno-lint-ignore no-explicit-any
-    return { ...(data as any), reconcile_run: { status: r.status, result: await r.json().catch(() => null) } };
+    return { ...(data as any), reconcile_run, ...(r.ok ? {} : { ok: false, error: 'dropbox_backup reconcile answered HTTP ' + r.status }) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -361,6 +370,9 @@ async function backupPruneTick(): Promise<unknown> {
     };
     if (d.storage_pending) out.storage_run = await call('backup').catch((e) => String((e as Error)?.message || e));
     if (d.dropbox_pending) out.dropbox_run = await call('dropbox_backup').catch((e) => String((e as Error)?.message || e));
+    // A prune worker that answered 4xx/5xx or threw is a failed step, not a number in a field.
+    const bad = [out.storage_run, out.dropbox_run].find((v) => typeof v === 'string' || (typeof v === 'number' && v >= 400));
+    if (bad !== undefined) { out.ok = false; out.error = 'a prune worker answered ' + bad; }
     return out;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
@@ -430,8 +442,9 @@ async function accountantWeeklyTick(): Promise<unknown> {
     const { data: att, error: aerr } = await admin.rpc('fn_accountant_weekly_report_attach_pdf', {
       p_id: t.id, p_bucket: 'agent-docs', p_path: path, p_url: url, p_bytes: bytes, p_error: err,
     });
-    if (aerr) return { ...t, pdf_error: err, attach_error: aerr.message };
-    return { ...t, pdf_blocks: undefined, delivery: att };
+    // A render or attach failure keeps the report for the next tick AND is a failed step until it heals.
+    if (aerr) return { ...t, pdf_blocks: undefined, pdf_error: err, ok: false, error: 'attach: ' + aerr.message };
+    return { ...t, pdf_blocks: undefined, delivery: att, ...(err ? { ok: false, error: err } : {}) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -722,7 +735,7 @@ async function itDetectTick(): Promise<unknown> {
 // Piggybacks on this file's existing ~15min external trigger (.github/workflows/resilience-ping.yml)
 // so no new schedule or SQL is needed. Every call is best-effort and swallowed; a warm-ping failure
 // must never affect the watchdog's own health verdict.
-async function warmPortalTick(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
+async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
   const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api'];
   return Promise.all(targets.map(async (fn) => {
     const t0 = Date.now();
@@ -736,76 +749,107 @@ async function warmPortalTick(): Promise<{ fn: string; ms: number; ok: boolean }
   }));
 }
 
+// THE ORDER THE TICKS RUN IN, ONE LIST (15 Sep 2026). Each name is the key its result has in the
+// response. The order carries three rules: the ladder runs before the outbox and WhatsApp drains, so a
+// chase written now leaves on this pass; DETECT BEFORE ALERTING, because itEngineerAlertTick reads the
+// finding ledger and running it first would deliver the previous tick's picture; and the outbox drains
+// AFTER everything that writes mail. `always` marks the two that deliver: they run even past the deadline.
+// itlater is a map of the IT engineer's duties 19-24, each judged on its own (`nested`).
+const STEPS: Step[] = [
+  { name: 'digest', run: digestTick },
+  { name: 'ratings', run: ratingTick },
+  { name: 'backup', run: backupTick },
+  { name: 'backupVerify', run: dropboxVerifyTick },
+  { name: 'dropboxHealth', run: dropboxHealthTick },
+  { name: 'tableExport', run: tableExportTick },
+  { name: 'backupPrune', run: backupPruneTick },
+  { name: 'weekly', run: accountantWeeklyTick },
+  { name: 'vat', run: vatThresholdTick },
+  { name: 'ceoWeekly', run: ceoWeeklyTick },
+  { name: 'openrouter', run: openrouterMeterTick },
+  { name: 'ladder', run: refundLadderTick },
+  { name: 'refunds', run: accountantRefundTick },
+  { name: 'accountantDuties', run: accountantDutiesTick },
+  { name: 'whatsapp', run: whatsappTick },
+  { name: 'itdetect', run: itDetectTick },
+  { name: 'itduties', run: itDutiesTick },
+  { name: 'itscheduled', run: itScheduledTick },
+  { name: 'itlater', run: itLaterDutiesTick, nested: true },
+  { name: 'specoffer', run: specOfferTick },
+  { name: 'it', run: itEngineerAlertTick, always: true },
+  { name: 'outbox', run: outboxTick, always: true },
+  // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
+  // printed to PDF and kept in "supabase and dropbox"). Called every tick, work or none, for the
+  // same reason as the outbox: a heartbeat that beats only under load is not a heartbeat.
+  { name: 'archive', run: archiveTick },
+];
+
+// THE DEADLINE. Measured 15 Sep 2026: the whole tick took 42-100 s (observe's 'slow run' notes, last
+// two hours). Supabase documents an edge function's wall-clock limit as 150 s on the free plan and 400 s
+// on paid; the tighter one is assumed. A step not started 110 s in is skipped and raised, leaving room
+// for the drains (up to 20 s for the outbox) and the liveness read before the platform kills the tick.
+const DEADLINE_MS = 110_000;
+
+// A FAILING STEP IS THE IT ENGINEER'S FINDING, NOT A LINE IN A RESPONSE NOBODY READS (15 Sep 2026).
+// fn_it_duty_settle raises one finding per failing step (issue key duty:heartbeat:<step>, so a step
+// failing every tick is ONE finding, seen_count rising) and closes it on the first tick the step passes.
+// From there it goes round the IT engineer's loop like any other finding.
+async function settleFailures(failing: Failure[]): Promise<unknown> {
+  const items = failing.map((f) => ({
+    item: f.name, title: 'resilience_ping step ' + f.name + ' failed: ' + f.error,
+    owner_seat: 'it_engineer', subject: 'resilience_ping', blast: 'agent_facing', affected: 1,
+    evidence: { step: f.name, error: f.error },
+  }));
+  try {
+    const { data, error } = await admin.rpc('fn_it_duty_settle', { p_duty: 'heartbeat', p_items: items });
+    return error ? { ok: false, error: error.message } : data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE SCHEDULER-DOWN PAGE GOES THROUGH THE FOUNDER-MAIL PATH (15 Sep 2026). It used to be posted to an
+// alert_founder edge function that is not deployed: the 9 cron_down pages on record, the last on 14 Sep
+// 15:49, were each a 404 that reached nobody. fn_notify_founder is the one path: founder_mail_policy
+// allows kind platform_down to email, the dedupe key holds it to one delivery a day, and the send is
+// adopted into customer_support's delivery loop. The outbox is drained again so the page leaves on this
+// pass, since the drain above ran before the page existed.
+async function pageSchedulerDown(ageMin: unknown): Promise<unknown> {
+  const detail = 'SCHEDULER DOWN: the previous heartbeat was ' + (ageMin ?? 'an unknown number of') + ' minutes ago, over the '
+    + '45-minute threshold. Everything that runs on the heartbeat (email, the seats\' duties, backups, the daily brief) stalls '
+    + 'while it is down. This notice was sent by the heartbeat that did arrive.';
+  try {
+    const { data, error } = await admin.rpc('fn_notify_founder', {
+      p_event: 'SCHEDULER DOWN — automation stalled', p_detail: detail, p_level: 'critical',
+      p_kind: 'platform_down', p_dedupe_key: 'cron_down', p_owner_agent: 'customer_support',
+    });
+    if (error) return { ok: false, error: error.message };
+    return { notice: data, flush: await outboxTick() };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 Deno.serve(observe('resilience_ping', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   try {
+    const t0 = Date.now();
     // Fired now, awaited last: nothing below depends on the portal being warm, so the five pings
     // run alongside the ticks instead of lengthening this already-sequential chain.
-    const warmP = warmPortalTick();
-    // 0. The CEO's end-of-day digest, before any early return below.
-    const digest = await digestTick();
-    const ratings = await ratingTick();
-    const backup = await backupTick();
-    const backupVerify = await dropboxVerifyTick();
-    const dropboxHealth = await dropboxHealthTick();
-    const tableExport = await tableExportTick();
-    const backupPrune = await backupPruneTick();
-    const weekly = await accountantWeeklyTick();
-    const vat = await vatThresholdTick();
-    const ceoWeekly = await ceoWeeklyTick();
-    const openrouter = await openrouterMeterTick();
-    // The ladder before the outbox and WhatsApp drains, so a chase written now leaves on this pass.
-    const ladder = await refundLadderTick();
-    const refunds = await accountantRefundTick();
-    const accountantDuties = await accountantDutiesTick();
-    const whatsapp = await whatsappTick();
-    // DETECT BEFORE ALERTING, always. itEngineerAlertTick reads the finding ledger; running it
-    // first would deliver the previous tick's picture of the estate.
-    const itdetect = await itDetectTick();
-    const itduties = await itDutiesTick();
-    const itscheduled = await itScheduledTick();
-    const itlater = await itLaterDutiesTick();
-    const specoffer = await specOfferTick();
-    const it = await itEngineerAlertTick();
-    // One RPC. The HTTP work runs in pg_net's background worker, not in this invocation, so this
-    // adds no meaningful wall clock to the heartbeat.
-    // The queue is drained AFTER the ticks above, so anything they just wrote leaves on this same
-    // pass rather than waiting fifteen minutes for the next one.
-    const outbox = await outboxTick();
+    const warmP = warmPortal();
+    const { results, failing } = await runSteps(STEPS, t0, DEADLINE_MS);
     const warm = await warmP.catch(() => []);
-    // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
-    // printed to PDF and kept in "supabase and dropbox"). Called every tick, work or none, for the
-    // same reason as the outbox: a heartbeat that beats only under load is not a heartbeat.
-    const archive = await archiveTick();
-    // 1. Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
+    // Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
-    if (error) return J({ ok: false, error: error.message }, 200);
+    if (error) failing.push({ name: 'liveness', error: error.message });
     const healthy = live?.healthy === true;
     const ageMin = live?.newest_run_age_min ?? null;
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, digest, ratings, backup, backupVerify, dropboxHealth, tableExport, backupPrune, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
-
-    // 2. Scheduler appears DOWN. Dedupe to once per 30min via an app_secrets timestamp.
-    const nowMs = Date.now();
-    const lastRaw = await sec('cron_down_last_alert');
-    const lastMs = lastRaw ? Date.parse(lastRaw) : 0;
-    const deduped = lastMs && (nowMs - lastMs) < 30 * 60 * 1000;
-    let paged = false, flushed = false;
-    if (!deduped) {
-      const iso = new Date(nowMs).toISOString();
-      await admin.from('app_secrets').upsert({ key: 'cron_down_last_alert', value: iso }, { onConflict: 'key' });
-      const secret = await sec('cred_fn_resilience_ping');
-      const detail = 'SCHEDULER DOWN: no pg_cron job has run in ' + (ageMin ?? 'an unknown number of') + ' minutes. All scheduled automation (email, invites, matching follow-ups, autonomy sweep, daily brief) is stalled until the scheduler is restored. This alert reached you via the external watchdog.';
-      // Page directly over HTTP (independent of pg_cron/pg_net). WhatsApp sends immediately inside alert_founder.
-      try {
-        const r = await fetch(FN + '/alert_founder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, event: 'SCHEDULER DOWN — automation stalled', level: 'critical', kind: 'platform_down', dedupe_key: 'cron_down', detail }), signal: AbortSignal.timeout(20000) });
-        paged = r.ok;
-      } catch (_e) { /* fall through */ }
-      // Force-flush the outbox so the alert email escapes even though pg_cron can't drain it.
-      try {
-        await fetch(FN + '/send_outbox', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, limit: 20 }), signal: AbortSignal.timeout(20000) });
-        flushed = true;
-      } catch (_e) { /* best effort */ }
+    let page: unknown = null;
+    if (!error && !healthy) {
+      page = await pageSchedulerDown(ageMin);
+      const f = failureOf(page);
+      if (f) failing.push({ name: 'page', error: f });
     }
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, paged, flushed, deduped, digest, ratings, backup, backupVerify, dropboxHealth, tableExport, backupPrune, weekly, openrouter, whatsapp, itdetect, itduties, itscheduled, itlater, specoffer, it, outbox, archive, vat, ceoWeekly, ladder, refunds, warm, accountantDuties });
+    const heartbeat = await settleFailures(failing);
+    const failed = failing.map((f) => f.name);
+    if (error) return J({ ok: false, error: error.message, failing: failed, heartbeat, ...results, warm }, 200);
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, failing: failed, heartbeat, ...results, warm });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, page, failing: failed, heartbeat, ...results, warm });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

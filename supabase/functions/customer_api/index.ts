@@ -44,7 +44,9 @@ const KW: Record<string, string[]> = {
 const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
 // 14 Sep 2026: the category comes from _shared/trade_classify (the intake's own reading). This map
 // scored raw substrings one point each, so "ground floor fire alarm" tied flooring, security and
-// safety and went to flooring; KW below now only supplies supplier-matching keywords.
+// safety and went to flooring. KW below now only fills inquiries.keywords, which the sales engineer
+// reads as brief text when an inquiry carries no trades (fn_norm_trades, exact aliases); since
+// 15 Sep 2026 no keyword matcher consumes it.
 function detect(text: string) {
   const t = ' ' + String(text || '').toLowerCase() + ' ';
   const best = detectCat(text);
@@ -190,20 +192,15 @@ async function flagCoverageGap(inqId: string, category: string, emirate: string 
   } catch (_e) { /* */ }
   return flagged;
 }
-async function matchAndNotify(inqId: string, opts: { category: string; emirate: string | null; keywords: string[]; summary: string; budget: string | null; extra: string; useRouter: boolean; multi: boolean }): Promise<{ matches: number; routing: Record<string, any> }> {
-  const { category, emirate, keywords, summary, budget, extra, useRouter, multi } = opts;
-  // THE MATCH PERCENTAGE, PERSISTED. Both matchers behind this function return a rank score and
+async function matchAndNotify(inqId: string, opts: { category: string; emirate: string | null; summary: string; budget: string | null; extra: string }): Promise<{ matches: number; routing: Record<string, any> }> {
+  const { category, emirate, summary, budget, extra } = opts;
+  // THE MATCH PERCENTAGE, PERSISTED. The matcher behind this function returns a rank score and
   // this writer used to throw it away with the literal null, so inquiry_matches.similarity was null
-  // on every row in every environment and the portal had no stored number to show. Each source is
-  // normalised against the maximum ITS OWN scorer can award, so the stored value is a 0..1 fraction
-  // and not a raw score on an undeclared scale:
-  //   * route_inquiry fit.score  — fn_match_capability's weighted score. Its weights come from
-  //     decision_policy (product 40 + brand 20 + project_type 15 + track_record 15 + size_fit 10)
-  //     and sum to 100 by construction, so the denominator is 100.
-  //   * match_suppliers_kw match_score — least(strong_hits,6)*2 + least(name_hits,2) + 3 category
-  //     + 5 turnkey + 1 app-reviews, maximum 23. Frozen in migration
-  //     20260803181845_matching_paths_delegate_to_predicate.sql; change the formula there and this
-  //     denominator moves with it.
+  // on every row in every environment and the portal had no stored number to show. The score is
+  // normalised against the maximum its scorer can award, so the stored value is a 0..1 fraction
+  // and not a raw score on an undeclared scale: fn_match_capability's weights come from
+  // decision_policy (product 40 + brand 20 + project_type 15 + track_record 15 + size_fit 10) and
+  // sum to 100 by construction, so the denominator is 100.
   // NOT MEASURED STAYS NULL. route_inquiry only scores on the structured capability path; on the
   // legacy AI-adjudicator path the verdict is a binary fit/no with a free-text reason and no number
   // exists at all. Deriving a percentage from rank position or fanout size would be inventing one.
@@ -216,7 +213,7 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   let routing: Record<string, any> = {};
   let routerAnswered = false;
   // Two attempts, 1.5 s apart: a cold start or one dropped request must not leave an inquiry unmatched.
-  for (let attempt = 1; useRouter && !routerAnswered && attempt <= 2; attempt++) {
+  for (let attempt = 1; !routerAnswered && attempt <= 2; attempt++) {
     if (attempt > 1) await new Promise((r) => setTimeout(r, 1500));
     try {
       // 9 Sep 2026 — MATCHING IS THE SALES ENGINEER'S (founder: "match capability is the sales
@@ -253,13 +250,14 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   // engineer errored, and it fanned the RFQ out by fuzzy keyword plus sector equality — the nearest
   // mapping the founder ruled out. On a matcher error the inquiry now waits unmatched, the routing
   // record on it says why, and the sales engineer's failure is raised as a finding with the inquiry
-  // id. Only the turnkey path, which never asks the sales engineer (useRouter false), still uses the
-  // keyword matcher; that path is not changed here.
-  if (!useRouter) {
-    const { data: sups } = await admin.rpc('match_suppliers_kw', { p_keywords: keywords, p_category: category, p_emirate: emirate, p_limit: 8, p_multi: multi });
-    fits = (sups || []).map((s: { id: number; company_name?: string; match_score?: number }) => ({ id: s.id, company_name: s.company_name, reason: multi ? 'turnkey / combined match' : 'trade specialist match', sim: sim01(s.match_score, 23) }));
-    routing = { mode: multi ? 'turnkey' : 'trade', at: new Date().toISOString() };
-  } else if (!routerAnswered) {
+  // id.
+  //
+  // THE TURNKEY PATH TOO (15 Sep 2026). It skipped the sales engineer and shortlisted by keyword
+  // plus a hard-coded fit-out word list, the last caller of the keyword matcher. It now asks the same
+  // sales engineer route as every other request: that route reads scope_type 'turnkey' as the
+  // whole_scope need and resolves the stored trades exactly. The keyword routine was then dropped
+  // (scripts/sql/the_turnkey_path_asks_the_sales_engineer_and_the_keyword_matcher_is_dropped.sql).
+  if (!routerAnswered) {
     fits = [];
     routing.matcher_unavailable = true;
     routing.waiting_for = 'sales_engineer.match';
@@ -1044,7 +1042,7 @@ Deno.serve(observe('customer_api', async (req) => {
             // matcher (sales_engineer.match), not keyword matching. Measured 14 Sep 2026: split children
             // went to match_suppliers_kw, which matched a registered aluminium supplier and no one for
             // the glass child, while the capability router knows glass as glazing.
-            const { matches } = await matchAndNotify(id, { category: tr, emirate, keywords: childKw(tr), summary: childSummary(tr), budget, extra: extra + supplierLine(reqStored), useRouter: true, multi: false });
+            const { matches } = await matchAndNotify(id, { category: tr, emirate, summary: childSummary(tr), budget, extra: extra + supplierLine(reqStored) });
             return matches;
           },
           finding: async (detail) => {
@@ -1069,7 +1067,7 @@ Deno.serve(observe('customer_api', async (req) => {
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
         const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
-        const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, keywords: tkKeywords, summary, budget, extra: extra + supplierLine(reqStored), useRouter: false, multi: true });
+        const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, summary, budget, extra: extra + supplierLine(reqStored) });
         return J(postedSingle(String(inq!.id), 'turnkey', matches));
       }
 
@@ -1077,7 +1075,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (e1) return J({ error: e1.message }, 500);
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
-      const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, keywords, summary, budget, extra: extra + supplierLine(reqStored), useRouter: true, multi: false });
+      const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, summary, budget, extra: extra + supplierLine(reqStored) });
       return J(postedSingle(String(inq!.id), 'single', matches, routing));
     }
 
