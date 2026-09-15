@@ -23,6 +23,11 @@
 //     the next link, still capped at 20; a mark-done write that times out is retried twice, and if it
 //     still fails is logged 'warn' (the copy is verified in Dropbox), so fn_backup_watch does not read
 //     it as a failed backup.
+//   * v11 (15 Sep 2026, it_engineer): the access token is shared across runs in app_secrets and
+//     refreshed by one run at a time (dropbox.ts v2); a throttled or failed token call is retried and
+//     never marks a document failed as no_dropbox_auth; rows a run claimed and never reached are
+//     released at once (drain.ts). Measured 07:20-07:24Z: every run refreshed, two runs got a refused
+//     refresh and left 24 + 7 rows 'processing' for 10 minutes.
 // SQL: scripts/sql/a_document_reaches_dropbox_when_it_lands_and_only_once_it_exists.sql and
 // scripts/sql/dropbox_is_checked_every_day_login_and_space.sql.
 //
@@ -35,7 +40,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { dropboxContentHash } from './content_hash.ts';
-import { DropboxClient, refreshAccessToken } from './dropbox.ts';
+import { AuthUnavailable, DropboxClient, isAuthStop, refreshAccessToken, TokenCache, type TokenStore } from './dropbox.ts';
+import { drainClaim } from './drain.ts';
 import { CHUNK, uploadFile, type ReadChunk, type UploadState } from './upload.ts';
 import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
 import { classifyDropboxFailure, isTransientDbError } from './health.ts';
@@ -63,9 +69,34 @@ async function sec(k: string) { const { data } = await admin.from('app_secrets')
 const esc = (s: unknown) => String(s ?? '—').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as Record<string, string>)[c]);
 const fmtD = (s: unknown) => { if (!s) return '—'; try { return new Date(String(s)).toISOString().slice(0, 10); } catch { return String(s); } };
 
-async function client(): Promise<DropboxClient> {
-  const [rt, key, secret] = await Promise.all([sec('dropbox_refresh_token'), sec('dropbox_app_key'), sec('dropbox_app_secret')]);
-  return new DropboxClient(() => refreshAccessToken(rt, key, secret));
+// v11: the access token is shared by every run through app_secrets (dropbox.ts TokenCache). The
+// compare-and-set on the stored text is the single-flight guard: an update that names the old value
+// changes one row or none. fn_security_audit redacts app_secrets values in security_audit_log.
+const TOKEN_KEY = 'dropbox_access_token';
+const tokenStore: TokenStore = {
+  async get() {
+    const { data, error } = await admin.from('app_secrets').select('value').eq('key', TOKEN_KEY).maybeSingle();
+    if (error) throw new Error('app_secrets read ' + error.message.slice(0, 120));
+    return (data?.value as string | undefined) ?? null;
+  },
+  async cas(prev, next) {
+    if (prev === null) {
+      const { error } = await admin.from('app_secrets').insert({ key: TOKEN_KEY, value: next });
+      if (error?.code === '23505') return false;
+      if (error) throw new Error('app_secrets insert ' + error.message.slice(0, 120));
+      return true;
+    }
+    const { data, error } = await admin.from('app_secrets').update({ value: next, updated_at: new Date().toISOString() })
+      .eq('key', TOKEN_KEY).eq('value', prev).select('key');
+    if (error) throw new Error('app_secrets update ' + error.message.slice(0, 120));
+    return (data?.length ?? 0) === 1;
+  },
+};
+function client(): DropboxClient {
+  return new DropboxClient(new TokenCache(tokenStore, async () => {
+    const [rt, key, secret] = await Promise.all([sec('dropbox_refresh_token'), sec('dropbox_app_key'), sec('dropbox_app_secret')]);
+    return refreshAccessToken(rt, key, secret);
+  }, { deadline: DEADLINE }));
 }
 
 // files/get_metadata. A 409 path/not_found is an ANSWER ("missing"); any other non-200 throws so a
@@ -297,17 +328,47 @@ Deno.serve(observe('dropbox_backup', async (req) => {
       if (error) await logThrottled('enqueue_failed', 60, 'error', { stage: 'enqueue' }, 'fn_enqueue_doc_backups failed, so no new documents are being queued for Dropbox backup. ' + error.message.slice(0, 160));
     }
     const dbx = await client();
+    // Take the token BEFORE claiming rows: when the token endpoint is throttled or down, nothing is
+    // claimed, nothing is marked failed and no link is chained. A refusal ('no_dropbox_auth') is not
+    // caught here: the first row then fails loudly exactly as before.
+    try { await dbx.tokens.token(); } catch (e) {
+      if (e instanceof AuthUnavailable) {
+        await logRun('warn', { stage: 'token', enqueued, chain, refreshes: dbx.refreshes, reason: body.reason ?? null, class: classifyDropboxFailure(errText(e)) },
+          'The Dropbox token endpoint did not answer usefully (' + errText(e).slice(0, 160) + '); no document was claimed or marked failed. The next scheduled run retries.');
+        return J({ ok: false, error: 'dropbox_token_unavailable', enqueued }, 503);
+      }
+      if (!isAuthStop(e)) throw e;     // 'no_dropbox_auth' falls through: the first row fails loudly as before
+    }
     const run = `dropbox_backup:${T0}:${crypto.randomUUID().slice(0, 8)}`;
     const { data: rows, error: qerr } = await admin.rpc('fn_doc_backups_next', { p_limit: limit, p_run: run });
     if (qerr) throw new Error('fn_doc_backups_next: ' + qerr.message);
 
-    let done = 0, failed = 0, resumed = 0; const results: Record<string, unknown>[] = []; const errNotes: string[] = [];
+    let done = 0, resumed = 0; const results: Record<string, unknown>[] = [];
+    const now = () => new Date().toISOString();
+    const release = { claimed_at: null, claimed_by: null };
     // deno-lint-ignore no-explicit-any
-    for (const row of (rows || []) as any[]) {
-      const now = () => new Date().toISOString();
-      const release = { claimed_at: null, claimed_by: null };
-      try {
-        if (Date.now() >= DEADLINE) { await admin.from('doc_backups').update({ status: 'pending', ...release }).eq('id', row.id); continue; }
+    const claimed = (rows || []) as any[];
+    // drain.ts: a run that stops early (deadline, token endpoint unavailable, no_dropbox_auth) hands the
+    // rows it never reached back to pending at once, instead of after the 10-minute claim expiry.
+    const d = await drainClaim(claimed, { deadline: DEADLINE,
+      fail: async (row, msg) => {
+        await admin.from('doc_backups').update({ status: 'error', ...release, error: msg, attempts: row.attempts + 1, last_attempt_at: now(), upload_state: null }).eq('id', row.id);
+        results.push({ id: row.id, error: msg.slice(0, 160) });
+      },
+      // provider-side and passing: attempts unchanged; upload_state cleared because chunks may have been
+      // appended since the stored offset
+      requeue: async (row, msg) => {
+        await admin.from('doc_backups').update({ status: 'pending', ...release, upload_state: null, error: 'requeued: ' + msg.slice(0, 200) })
+          .eq('id', row.id).eq('claimed_by', run);
+        results.push({ id: row.id, requeued: 'token_unavailable' });
+      },
+      release: async (ids) => {
+        const { data: rel, error: rerr } = await admin.from('doc_backups').update({ status: 'pending', ...release })
+          .in('id', ids).eq('status', 'processing').eq('claimed_by', run).select('id');
+        if (rerr) console.error('release of unreached claims failed (they requeue after 10 minutes):', rerr.message);
+        return rel?.length ?? 0;
+      },
+      process: async (row) => {
         let bucket = row.bucket, path = row.path;
         if (row.source === 'generated' && !path) { const g = await renderGenerated(row); bucket = g.bucket; path = g.path; await admin.from('doc_backups').update({ bucket, path }).eq('id', row.id); }
         if (!bucket || !path) throw new Error('no_source');
@@ -316,7 +377,7 @@ Deno.serve(observe('dropbox_backup', async (req) => {
         if (!up.done) {
           await admin.from('doc_backups').update({ status: 'pending', ...release, upload_state: up.state, bytes: src.size, last_attempt_at: now(),
             error: `resuming: ${up.state.offset} of ${src.size} bytes sent` }).eq('id', row.id);
-          resumed++; results.push({ id: row.id, resuming: up.state.offset }); continue;
+          resumed++; results.push({ id: row.id, resuming: up.state.offset }); return;
         }
         await verifyUploaded(dbx, row.dropbox_path, up.hash, src.size);
         const mark = { status: 'done', ...release, bytes: src.size, backed_up_at: now(), error: null, attempts: row.attempts + 1,
@@ -334,25 +395,23 @@ Deno.serve(observe('dropbox_backup', async (req) => {
         // mark-done failure (schema, permission, constraint) repeats on every file and stays 'error'.
         if (markErr) {
           await logRun(isTransientDbError(markErr.message) ? 'warn' : 'error', { stage: 'mark_done', doc_backup_id: row.id }, 'Document ' + row.id + ' was uploaded and verified in Dropbox but could not be marked done; it is re-uploaded (overwrite) when its claim expires in 10 minutes: ' + markErr.message.slice(0, 160));
-          results.push({ id: row.id, uploaded_not_marked: src.size }); continue;
+          results.push({ id: row.id, uploaded_not_marked: src.size }); return;
         }
         done++; results.push({ id: row.id, done: src.size, chunks: up.chunks, retries: up.retries });
-      } catch (e) {
-        const msg = errText(e).slice(0, 300);
-        await admin.from('doc_backups').update({ status: 'error', ...release, error: msg, attempts: row.attempts + 1, last_attempt_at: now(), upload_state: null }).eq('id', row.id);
-        failed++; results.push({ id: row.id, error: msg.slice(0, 160) });
-        if (errNotes.length < 3) errNotes.push('#' + row.id + ': ' + msg.slice(0, 120));
-        if (msg === 'no_dropbox_auth') break;   // every further row would fail the same way
-      }
-    }
-    const processed = (rows || []).length;
-    const counts = { enqueued, processed, done, failed, resumed, chain, refreshes: dbx.refreshes, reason: body.reason ?? null };
+      },
+    });
+    const { failed, released, authUnavailable, notes: errNotes } = d;
+    const processed = claimed.length;
+    const counts = { enqueued, processed, done, failed, resumed, released, chain, refreshes: dbx.refreshes, token_reused: dbx.tokens.reused,
+      ...(authUnavailable ? { token_unavailable: classifyDropboxFailure(authUnavailable) } : {}), reason: body.reason ?? null };
     if (processed || enqueued || failed) {
       if (failed) await logRun('error', counts, 'Dropbox backup finished with ' + failed + ' failed document(s) out of ' + processed + '; the IT engineer classifies and fixes them. ' + errNotes.join(' | '));
+      else if (authUnavailable) await logRun('warn', counts, 'Dropbox backup uploaded ' + done + ' document(s), then the Dropbox token endpoint did not answer usefully (' + authUnavailable.slice(0, 160) + '); ' + released + ' document(s) returned to the queue unchanged, none marked failed.');
       else await logRun('ok', counts, 'Dropbox backup uploaded ' + done + ' document(s)' + (resumed ? ', ' + resumed + ' large file(s) resume next run' : '') + '.');
     }
-    // The batch was full: there is probably more. Drain it now instead of at the next tick.
-    if ((processed === limit || resumed > 0) && chain < 20 && failed < processed) {
+    // The batch was full: there is probably more. Drain it now instead of at the next tick. Not while
+    // the token endpoint is refusing to answer: the next scheduled run retries.
+    if ((processed === limit || resumed > 0) && chain < 20 && failed < processed && !authUnavailable) {
       const next = fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ __secret: body.__secret, mode: 'process_only', limit, chain: chain + 1, reason: 'drain' }) })
         .then((r) => r.body?.cancel()).catch((e) => console.error('drain link failed:', errText(e)));

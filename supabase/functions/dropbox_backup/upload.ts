@@ -9,7 +9,7 @@
 // (Dropbox keeps a session open for 7 days). CHUNK is a multiple of 4 MiB so the content hash can be
 // carried between runs block by block.
 import { DropboxHasher, dropboxContentHash } from './content_hash.ts';
-import type { DropboxClient } from './dropbox.ts';
+import { type DropboxClient, isAuthStop } from './dropbox.ts';
 
 export const CHUNK = 8 * 1024 * 1024;
 export type UploadState = { session_id: string; offset: number; size: number; blocks: string[] };
@@ -25,7 +25,8 @@ async function send(dbx: DropboxClient, endpoint: string, arg: unknown, bytes: U
                     sleep: (ms: number) => Promise<void>, tries = 3): Promise<Response> {
   for (let i = 1; ; i++) {
     let r: Response | null = null; let err = '';
-    try { r = await dbx.call('content', endpoint, arg, bytes); } catch (e) { err = String((e as Error)?.message || e); if (err === 'no_dropbox_auth') throw e; }
+    // an auth stop (refused, or the token endpoint unavailable) is not this chunk's failure: no retry here
+    try { r = await dbx.call('content', endpoint, arg, bytes); } catch (e) { if (isAuthStop(e)) throw e; err = String((e as Error)?.message || e); }
     if (r && !retryable(r.status)) return r;
     if (i >= tries) throw new Error(`${endpoint} ${r ? r.status + ' ' + (await r.text()).slice(0, 160) : 'network ' + err.slice(0, 160)} after ${tries} tries`);
     if (r) await r.body?.cancel();
