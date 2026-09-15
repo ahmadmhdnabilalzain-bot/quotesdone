@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T08:54:01.829Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T09:01:44.487Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -9303,8 +9303,8 @@ CREATE OR REPLACE VIEW public.finance_kpis AS  WITH rr AS (
              JOIN gl_accounts ga ON ((ga.code = l.account_code)))
           WHERE (j.entry_date >= (CURRENT_DATE - 30))
         ), ar AS (
-         SELECT COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE (supplier_dues.status <> ALL (ARRAY['paid'::text, 'waived'::text]))), (0)::numeric) AS ar_outstanding,
-            COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE ((supplier_dues.status <> ALL (ARRAY['paid'::text, 'waived'::text])) AND (supplier_dues.due_date_30 < CURRENT_DATE))), (0)::numeric) AS ar_overdue,
+         SELECT COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE fn_supplier_due_is_owed(supplier_dues.status, supplier_dues.paid_at)), (0)::numeric) AS ar_outstanding,
+            COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE (fn_supplier_due_is_owed(supplier_dues.status, supplier_dues.paid_at) AND (supplier_dues.due_date_30 < CURRENT_DATE))), (0)::numeric) AS ar_overdue,
             COALESCE(sum(supplier_dues.amount_due) FILTER (WHERE (supplier_dues.status = 'paid'::text)), (0)::numeric) AS ar_collected
            FROM supplier_dues
         ), ap AS (
@@ -10467,7 +10467,7 @@ CREATE OR REPLACE VIEW public.v_accountant_recovery_ledger AS  WITH p AS (
     d.due_date,
         CASE
             WHEN ((d.paid_at IS NOT NULL) OR (COALESCE(d.status, ''::text) = 'paid'::text)) THEN 'paid'::text
-            WHEN (COALESCE(d.status, ''::text) = ANY (ARRAY['settled'::text, 'waived'::text, 'cancelled'::text])) THEN d.status
+            WHEN (NOT fn_supplier_due_is_owed(d.status, d.paid_at)) THEN d.status
             WHEN (d.grievance_filed_on IS NOT NULL) THEN 'grievance_filed'::text
             WHEN (d.payment_order_served_on IS NOT NULL) THEN 'order_served'::text
             WHEN (d.payment_order_issued_on IS NOT NULL) THEN 'order_issued'::text
@@ -10498,7 +10498,8 @@ CREATE OR REPLACE VIEW public.v_accountant_recovery_ledger AS  WITH p AS (
     d.case_file_path,
     d.paid_at,
     'docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md; the documents are rendered by supabase/functions/_shared/supplier_charge_documents.ts'::text AS legal_pack,
-    '9% a year simple interest on the refund plus the AED 250 fee, from the due date, never compounded (CTL Arts 73, 86, 88; Supplier Agreement clauses 31 and 33)'::text AS interest_rule
+    '9% a year simple interest on the refund plus the AED 250 fee, from the due date, never compounded (CTL Arts 73, 86, 88; Supplier Agreement clauses 31 and 33)'::text AS interest_rule,
+    fn_supplier_due_is_owed(d.status, d.paid_at) AS owed
    FROM ((supplier_dues d
      LEFT JOIN leads l ON ((l.id = d.supplier_id)))
      CROSS JOIN p);
@@ -13500,7 +13501,7 @@ begin
 
   for d in select s.*, l.company_name, coalesce(l.is_demo, false) demo, l.accepted_terms_version agreement_version
              from public.supplier_dues s join public.leads l on l.id = s.supplier_id
-            where s.paid_at is null and coalesce(s.status, '') not in ('paid', 'settled', 'waived', 'cancelled')
+            where public.fn_supplier_due_is_owed(s.status, s.paid_at)
               and coalesce(s.legal_stage, '') not like 'outcome:%'
             order by s.id loop
     v_days := v_as_of - d.due_date;
@@ -13931,7 +13932,7 @@ AS $function$
     select coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date) - due_date days,
            coalesce(total_claim, amount_due + coalesce(admin_fee, 0) + coalesce(interest_amount, 0)) owed, legal_stage
       from public.supplier_dues
-     where paid_at is null and coalesce(status, '') not in ('paid', 'settled', 'waived', 'cancelled'))
+     where public.fn_supplier_due_is_owed(status, paid_at))
   select jsonb_build_object(
     'not_yet_due', jsonb_build_object('n', count(*) filter (where days < 0), 'aed', coalesce(sum(owed) filter (where days < 0), 0)),
     'd0_30',  jsonb_build_object('n', count(*) filter (where days between 0 and 30),  'aed', coalesce(sum(owed) filter (where days between 0 and 30), 0)),
@@ -14465,7 +14466,7 @@ begin
     into v_aging
     from (select v_e - due_date d, coalesce(total_claim, amount_due + coalesce(admin_fee, 0) + coalesce(interest_amount, 0)) owed
             from public.supplier_dues
-           where paid_at is null and coalesce(status, '') not in ('paid', 'settled', 'waived', 'cancelled')) z;
+           where public.fn_supplier_due_is_owed(status, paid_at)) z;
 
   v_out := jsonb_build_object(
     'month', to_char(v_m, 'YYYY-MM'), 'from', v_m, 'to', v_e, 'timezone', 'Asia/Dubai',
@@ -15060,7 +15061,7 @@ begin
   if p_on is null or p_on > v_today then raise exception 'a court step is recorded on the day it happened, not before it (got %)', p_on; end if;
   select * into d from public.supplier_dues where id = p_due_id for update;
   if not found then raise exception 'no supplier due %', p_due_id; end if;
-  if d.paid_at is not null or coalesce(d.status, '') in ('paid', 'settled', 'waived', 'cancelled') then
+  if not public.fn_supplier_due_is_owed(d.status, d.paid_at) then
     raise exception 'due % is closed (%); nothing more is recorded against it', p_due_id, coalesce(d.status, 'paid');
   end if;
   select * into r from public.v_accountant_recovery_ledger where due_id = p_due_id;
@@ -15136,8 +15137,8 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_recovery_position()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select jsonb_build_object(
-    'open_claims', count(*) filter (where stage not in ('paid', 'settled', 'waived', 'cancelled')),
-    'open_aed', coalesce(sum(claim_aed) filter (where stage not in ('paid', 'settled', 'waived', 'cancelled')), 0),
+    'open_claims', count(*) filter (where owed),
+    'open_aed', coalesce(sum(claim_aed) filter (where owed), 0),
     'in_court', count(*) filter (where stage in ('filed', 'order_issued', 'order_served', 'grievance_filed')),
     'by_stage', coalesce((select jsonb_object_agg(stage, n) from (select stage, count(*) n from public.v_accountant_recovery_ledger
                                                                    where not demo group by stage) s), '{}'::jsonb),
@@ -21410,8 +21411,7 @@ begin
            l.accepted_terms_at, l.accepted_terms_version, l.signed_terms_path, l.banned
     from public.supplier_dues d
     join public.leads l on l.id = d.supplier_id
-    where d.paid_at is null
-      and coalesce(d.status,'') not in ('paid','settled','waived','cancelled')
+    where public.fn_supplier_due_is_owed(d.status, d.paid_at)
       and coalesce(d.amount_due,0) > 0
       and d.due_date is not null
       and current_date >= (d.due_date::date + v_days)
@@ -30358,7 +30358,7 @@ AS $function$
   ),
   hz as (
     select h,
-      (select coalesce(sum(amount_due),0) from supplier_dues where status not in ('paid','waived') and coalesce(due_date_30,reveal_date+30) <= current_date + h) as ar_in,
+      (select coalesce(sum(amount_due),0) from supplier_dues where public.fn_supplier_due_is_owed(status, paid_at) and coalesce(due_date_30,reveal_date+30) <= current_date + h) as ar_in,
       (select coalesce(sum(balance_due),0) from ap_open_bills where coalesce(due_date, bill_date) <= current_date + h) as ap_out
     from (values (30),(60),(90)) v(h)
   )
@@ -31307,7 +31307,7 @@ begin
            coalesce(reveal_date, created_at::date, current_date) as d
     from public.supplier_dues
     where coalesce(amount_due,0) > 0
-      and coalesce(status,'') not in ('waived','cancelled','reversed')
+      and coalesce(status,'') not in ('waived','cancelled','reversed','void')
       and not exists (select 1 from public.gl_journal g where g.source='commission_accrue' and g.source_ref=supplier_dues.id::text)
       and public.fn_gl_fixture_or_orphan(supplier_dues.transaction_id, coalesce(supplier_dues.supplier_id, -1), null) is null
   loop
@@ -31442,7 +31442,7 @@ begin
                  round(coalesce(d.total_claim, d.amount_due), 2) as amount,
                  public.fn_gl_fixture_or_orphan(d.transaction_id, coalesce(d.supplier_id, -1), null) as why
             from public.supplier_dues d
-           where coalesce(d.amount_due, 0) > 0 and coalesce(d.status, '') not in ('waived', 'cancelled', 'reversed')
+           where coalesce(d.amount_due, 0) > 0 and coalesce(d.status, '') not in ('waived', 'cancelled', 'reversed', 'void')
           union all
           select 'transactions:' || t.id, 'transactions', t.id::text,
                  round(coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0), 2),
@@ -38306,7 +38306,7 @@ begin
      and (customer_id = any (v_dc)) is not true and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true;
   select coalesce(sum(reveal_fee),0) into rev_month from transactions where date_trunc('month',revealed_at)=date_trunc('month',now()) and coalesce(refund_status,'')<>'approved'
      and (customer_id = any (v_dc)) is not true and (supplier_id = any (v_dl)) is not true and (inquiry_id = any (v_di)) is not true;
-  begin select coalesce(sum(amount_due),0) into pending_fees from supplier_dues where coalesce(status,'')<>'paid' and (supplier_id = any (v_dl)) is not true; exception when others then pending_fees:=0; end;
+  begin select coalesce(sum(amount_due),0) into pending_fees from supplier_dues where public.fn_supplier_due_is_owed(status, paid_at) and (supplier_id = any (v_dl)) is not true; exception when others then pending_fees:=0; end;
   begin select count(*) into outstanding_inv from reveal_invoices ri left join transactions t on t.id=ri.transaction_id where coalesce(t.fee_status,'')<>'paid'
      and (t.customer_id = any (v_dc)) is not true and (t.supplier_id = any (v_dl)) is not true and (t.inquiry_id = any (v_di)) is not true; exception when others then outstanding_inv:=0; end;
   select coalesce(sum(reveal_fee),0) into cash_recv from transactions where coalesce(fee_status,'')='paid'
@@ -41868,6 +41868,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -42038,16 +42048,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -48858,6 +48858,17 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_due_is_owed(p_status text, p_paid_at timestamp with time zone)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE PARALLEL SAFE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p_paid_at is null
+     and coalesce(p_status, '') not in ('paid', 'settled', 'waived', 'cancelled', 'reversed', 'void')
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_dues_accrue_interest(p_as_of date DEFAULT NULL::date)
  RETURNS integer
  LANGUAGE plpgsql
@@ -48867,8 +48878,7 @@ AS $function$
 declare x record; v jsonb; n int := 0;
 begin
   for x in select id, transaction_id from public.supplier_dues
-            where paid_at is null and transaction_id is not null
-              and coalesce(status, '') not in ('paid', 'settled', 'waived', 'cancelled') loop
+            where public.fn_supplier_due_is_owed(status, paid_at) and transaction_id is not null loop
     v := public.fn_accountant_nonresponse_charge(x.transaction_id, p_as_of);
     continue when not coalesce((v->>'ok')::boolean, false);
     update public.supplier_dues
@@ -57066,7 +57076,7 @@ begin
       'commission_receivable', (select coalesce(balance,0) from public.gl_account_balances where code='1110'),
       'trade_receivable', (select coalesce(balance,0) from public.gl_account_balances where code='1100'),
       'overdue_commissions', (select coalesce(sum(amount_due),0) from public.supplier_dues
-                              where status not in ('paid','settled') and coalesce(due_date,reveal_date) < current_date)
+                              where public.fn_supplier_due_is_owed(status, paid_at) and coalesce(due_date,reveal_date) < current_date)
     ),
     'payables', jsonb_build_object(
       'ap_open', (select coalesce(sum(total-amount_paid),0) from public.ap_bills where status in ('open','partial')),
@@ -57846,7 +57856,7 @@ begin
       select jsonb_build_object(
         'commission_total', coalesce(sum(amount_due),0),
         'commission_paid', coalesce(sum(amount_due) filter (where status in ('paid','settled')),0),
-        'commission_owed', coalesce(sum(amount_due) filter (where status not in ('paid','settled')),0)
+        'commission_owed', coalesce(sum(amount_due) filter (where public.fn_supplier_due_is_owed(status, paid_at)),0)
       ) from public.supplier_dues where supplier_id=p_id
     ),
     'documents', docs,
