@@ -36,13 +36,11 @@ comment on table public.mandatory_field_policy is
 
 insert into public.mandatory_field_policy (party_kind, field_key, label, sort, how_checked, authority) values
   ('supplier','company_name','Company name',            10,'leads.company_name is non-empty','Founder ruling 7 Sep 2026'),
-  -- how_checked for the six follows public.fn_supplier_mandatory_six (15 Sep 2026); the same text is
-  -- written by the_mandatory_six_have_one_definition_and_the_sales_engineer_verifies.sql.
-  ('supplier','mobile',      'UAE mobile number',       20,'leads.owner_phone_verified is true and leads.phone is a +9715 number','Founder ruling 7 Sep 2026: "we need UAE mobile number"'),
-  ('supplier','email',       'Email address',           30,'leads.owner_email_verified is true (the account e-mail, proven by OTP)','Founder ruling 7 Sep 2026'),
-  ('supplier','trade_licence','Trade licence',          40,'leads.license_doc_path names an object storage holds in supplier-docs','Founder ruling 7 Sep 2026'),
-  ('supplier','company_profile','Company profile',      50,'leads.company_profile_doc_path names an object storage holds in supplier-docs','Founder ruling 7 Sep 2026'),
-  ('supplier','signed_terms','Signed terms and conditions',60,'leads.signed_terms_path is non-empty (the signed acceptance certificate)','Founder ruling 7 Sep 2026'),
+  ('supplier','mobile',      'UAE mobile number',       20,'leads.phone_e164 is a +9715 number','Founder ruling 7 Sep 2026: "we need UAE mobile number"'),
+  ('supplier','email',       'Email address',           30,'leads.email is non-empty and verified','Founder ruling 7 Sep 2026'),
+  ('supplier','trade_licence','Trade licence',          40,'leads.license_doc_path is non-empty','Founder ruling 7 Sep 2026'),
+  ('supplier','company_profile','Company profile',      50,'leads.company_profile_doc_path is non-empty','Founder ruling 7 Sep 2026'),
+  ('supplier','signed_terms','Signed terms and conditions',60,'leads.signed_terms_path is non-empty','Founder ruling 7 Sep 2026'),
 
   ('customer','full_name',   'Name',                    10,'customers.full_name is non-empty','Founder ruling 7 Sep 2026'),
   ('customer','mobile',      'Mobile number',           20,'customers.phone is non-empty and phone_verified','Founder ruling 7 Sep 2026'),

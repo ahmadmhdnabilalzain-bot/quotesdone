@@ -72,7 +72,7 @@ test('the browser cannot write the licence fields', () => {
 });
 
 test('terms are accepted only when the flag is exactly true, and recorded once, with the hash', () => {
-  assert.match(API, /const accepting = body\.accept_terms === true;/);
+  assert.match(API, /const accepting = body\.accept_terms === true\b/);
   assert.doesNotMatch(API, /if \(body\.accept_terms\)/);
   assert.match(API, /supplierTermsRecord\(/);
   assert.match(KYC, /supplierTermsRecord\(/);

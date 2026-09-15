@@ -101,13 +101,9 @@ end $fn$;
 -- fresh database built from this file is closed too.
 revoke execute on function public.fn_supplier_mandatory_check(bigint) from public, anon, authenticated;
 
-update public.mandatory_field_policy set how_checked = v.how from (values
-  ('mobile',       'leads.owner_phone_verified is true and leads.phone is a +9715 number'),
-  ('email',        'leads.owner_email_verified is true (the account e-mail, proven by OTP)'),
-  ('trade_licence','leads.license_doc_path names an object storage holds in supplier-docs'),
-  ('company_profile','leads.company_profile_doc_path names an object storage holds in supplier-docs'),
-  ('signed_terms', 'leads.signed_terms_path is non-empty (the signed acceptance certificate)')
-) v(k, how) where party_kind = 'supplier' and field_key = v.k;
+-- public.mandatory_field_policy (the prose register created by the file this routine moved from) is not
+-- on production: to_regclass returned null on 15 Sep 2026. The routine above is the rule; nothing
+-- here recreates the table.
 
 -- ── 3. THE GATE ──────────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_leads_mandatory_six_gate()
@@ -144,7 +140,7 @@ create trigger trg_leads_e0_mandatory_six_gate
 -- ── 4. THE SALES ENGINEER VERIFIES ───────────────────────────────────────────────────────────────
 create or replace function public.fn_sales_engineer_verifies_supplier(p_lead_id bigint, p_source text default 'save_profile')
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare l public.leads; v_missing text[]; v_expired boolean; v_auto boolean; v_reason text; v_decision text;
+declare l public.leads; v_missing text[]; v_expired boolean; v_auto boolean; v_reason text; v_decision text; v_changed int;
 begin
   select * into l from public.leads where id = p_lead_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'lead_not_found'); end if;
@@ -181,7 +177,10 @@ begin
    where id = p_lead_id
      and (approval_status is distinct from v_decision or verified is distinct from (v_decision = 'approved')
           or licence_gate_reason is distinct from v_reason);
+  get diagnostics v_changed = row_count;
 
+  -- Every decision is recorded; a re-run by the trigger that changed nothing is not a decision.
+  if v_changed > 0 or p_source <> 'mandatory_item_changed' then
   insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
   values ('sales_engineer', 'supplier_verification', 'auto_done',
           case when v_decision = 'action_required' then 'medium' else 'low' end,
@@ -194,6 +193,7 @@ begin
                              'missing', v_missing, 'licence_expired', v_expired, 'license_expiry', l.license_expiry,
                              'auto_approve', v_auto, 'source', p_source),
           'leads', l.id::text);
+  end if;
 
   return jsonb_build_object('ok', true, 'decision', v_decision, 'approval_status', v_decision, 'missing', to_jsonb(v_missing),
                             'licence_expired', v_expired, 'reason', v_reason, 'auto_approve', v_auto);
@@ -226,7 +226,10 @@ drop trigger if exists z21_sign_supplier_on_acceptance on public.leads;
 create trigger z21_sign_supplier_on_acceptance
   after update of accepted_terms_at on public.leads
   for each row when (new.accepted_terms_at is not null and new.accepted_terms_at is distinct from old.accepted_terms_at
-                     and new.claimed_by is not null)
+                     and new.claimed_by is not null
+                     -- trg_sign_supplier already posts for this row when the same statement verifies the e-mail
+                     and not (new.owner_email_verified is true and old.owner_email_verified is distinct from new.owner_email_verified
+                              and new.signed_terms_url is null))
   execute function public.qd_sign_supplier();
 
 -- ── PROBE ────────────────────────────────────────────────────────────────────────────────────────

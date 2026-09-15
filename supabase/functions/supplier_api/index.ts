@@ -11,7 +11,7 @@ import { storedAt } from '../_shared/stored_at.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
-import { supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -559,7 +559,7 @@ Deno.serve(observe('supplier_api', async (req) => {
     }
 
     if (action === 'save_profile') {
-      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,locale').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,emirate,approval_status,registration_submitted_at,locale,accepted_terms_at,accepted_terms_version').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
@@ -583,7 +583,10 @@ Deno.serve(observe('supplier_api', async (req) => {
       // server-side, IP, SHA-256 of the exact text) is built in _shared/supplier_terms.ts, the same row
       // accept_terms below and kyc write. Accepting asks compliance_archive for the signed certificate
       // (z21_sign_supplier_on_acceptance); the certificate is the signed-terms item of the six.
-      const accepting = body.accept_terms === true;
+      // A save repeating an acceptance already on file for the current version records nothing new: a second
+      // record would move the acceptance time and ask for a second certificate (kyc's rule too).
+      const accepting = body.accept_terms === true
+        && !(sup.accepted_terms_at && sup.accepted_terms_version === await currentSupplierTermsVersion(secretVal));
       if (accepting) {
         const rec = await supplierTermsRecord(secretVal, clientIp(req));
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
@@ -596,7 +599,9 @@ Deno.serve(observe('supplier_api', async (req) => {
       if (!wasApproved) {
         const { data: wa } = await admin.from('leads').select('whatsapp_opt').eq('id', sup.id).maybeSingle();
         if (!wa?.whatsapp_opt) {
-          const six = (await mandatorySixMissing(admin, sup.id)).filter((c) => !(accepting && c === 'reg_terms'));
+          let six: string[];
+          try { six = (await mandatorySixMissing(admin, sup.id)).filter((c) => !(accepting && c === 'reg_terms')); }
+          catch (e) { console.error('save_profile:', (e as Error).message); return J({ error: 'check_failed', code: 'check_failed', message: 'We could not check your registration. Please try again.' }, 502); }
           const missing = [...six, 'reg_whatsapp'];
           return J({ error: 'missing_required', code: 'missing_required', params: { missing }, message: 'Still needed to register: ' + missing.join(', ') + '.' }, 400);
         }
@@ -615,8 +620,8 @@ Deno.serve(observe('supplier_api', async (req) => {
       let certificatePending = false;
       if (accepting) {
         certificatePending = true;
-        for (let i = 0; i < 10 && certificatePending; i++) {
-          await new Promise((r) => setTimeout(r, 1000));
+        for (let i = 0; i < 6 && certificatePending; i++) {
+          await new Promise((r) => setTimeout(r, 750));
           const { data: s } = await admin.from('leads').select('signed_terms_at').eq('id', sup.id).maybeSingle();
           certificatePending = !(s?.signed_terms_at && String(s.signed_terms_at) >= String(upd.accepted_terms_at));
         }
@@ -654,12 +659,16 @@ Deno.serve(observe('supplier_api', async (req) => {
           : decision === 'pending'
           ? (ar ? { subject: 'استلمنا تسجيلكم في QuotesDone', body: `شكرًا لتسجيل ${name}. اكتملت البنود الستة المطلوبة، ويراجع مهندس المبيعات تسجيلكم الآن. سنرسل إليكم رسالة فور اعتماده.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. All six required items are in, and our sales engineer is reviewing your registration now. We will e-mail you as soon as it is approved.` })
+          : !stillNeeded.length
+          // Only the certificate is outstanding and it is on its way: nothing is asked of the supplier.
+          ? (ar ? { subject: 'استلمنا تسجيلكم في QuotesDone', body: `شكرًا لتسجيل ${name}. نُصدر الآن شهادة موافقتكم الموقّعة على شروط المورّد، وسيُفعَّل حسابكم تلقائيًا فور صدورها. لا يلزمكم أي إجراء.` }
+                : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. We are issuing the signed certificate of your acceptance of the supplier terms; your account activates automatically as soon as it is ready. Nothing is needed from you.` })
           : (ar ? { subject: 'استلمنا تسجيلكم في QuotesDone', body: `شكرًا لتسجيل ${name} في QuotesDone.\n\nلم يُفعَّل حسابكم بعد لأنه ما زال ينقصه: ${needAr}.\n\nيُرجى تسجيل الدخول إلى بوابة المورّد وإكمال ذلك. يُفعَّل حسابكم تلقائيًا فور اكتمال البنود الستة، دون قائمة انتظار ودون مراجعة يدوية.\n\nيُرجى إكمال ذلك خلال ${days} يومًا؛ بعدها يُغلق طلب التسجيل تلقائيًا، ويمكنكم التسجيل من جديد في أي وقت.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name} with QuotesDone.\n\nYour account is not active yet because it still needs: ${needEn}.\n\nPlease sign in to your supplier portal and complete it. Your account activates automatically as soon as all six required items are in — there is no waiting list and no manual queue.\n\nPlease do this within ${days} days. After that this registration closes automatically, and you are welcome to start again at any time.` });
         await notify([
           { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
             subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? 'New supplier waiting for approval (auto-approve is off)' : 'Supplier registration incomplete',
-            body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : ''}. No action needed; this is a record.${licInfo}${revLine}` },
+            body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}${revLine}` },
           { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
         ]);
       }
