@@ -32,6 +32,7 @@ const C: Record<string, any> = {
   SupplierAdvisor: lazy(() => import('./SupplierAdvisor')),
   SupplierNegotiation: lazy(() => import('./SupplierNegotiation')),
 };
+const Summary: any = lazy(() => import('./SupplierInsightsSummary'));
 const PANELS: Record<string, { en: string; ar: string; parts: string[] }> = {
   recommended:    { en: 'Recommended for you', ar: 'موصى به لك',        parts: ['SupplierOpportunities', 'SupplierQuoteBuilder'] },
   twin:           { en: 'Company health',      ar: 'صحة الشركة',        parts: ['SupplierTwin', 'SupplierInsightBoard', 'SupplierEnvironment'] },
@@ -63,20 +64,26 @@ export default function Insights({ token, lang, goTo, initial }: { token: string
     return () => { live = false; };
   }, [token]);
 
-  if (st.loading) return <div className="qd-panel h-32 animate-pulse motion-reduce:animate-none" aria-busy="true" />;
+  // 15 Sep 2026: the tab opens on the supplier's own performance (totals, price position, funnel, trend,
+  // hints — ./SupplierInsightsSummary.tsx), which always renders, zeros included. The intelligence panels
+  // follow, and only those with real data behind them.
+  const summary = <Summary token={token} lang={lang} goTo={goTo} />;
+  if (st.loading) return <>{summary}<div className="qd-panel h-32 animate-pulse motion-reduce:animate-none" aria-busy="true" /></>;
   if (!st.avail.length) return (
+    <>{summary}
     <section className="qd-panel p-5">
-      <h2 className="text-[15.5px] font-bold text-foreground">{ar ? 'الرؤى' : 'Insights'}</h2>
+      <h2 className="text-[15.5px] font-bold text-foreground">{ar ? 'تحليلات إضافية' : 'More analysis'}</h2>
       <p className="mt-1 max-w-[62ch] text-[13px] leading-[1.65] text-muted-foreground">{ar
-        ? 'لا توجد رؤى بعد. تظهر كل لوحة فور وجود بيانات حقيقية خلفها — لا نعرض رقمًا لم نقِسه.'
-        : 'No insights yet. Each panel appears as soon as there is real data behind it — we never show a number we have not measured.'}</p>
-    </section>
+        ? 'تظهر كل لوحة تحليل إضافية فور وجود بيانات حقيقية خلفها — لا نعرض رقمًا لم نقِسه.'
+        : 'Each further analysis panel appears as soon as there is real data behind it — we never show a number we have not measured.'}</p>
+    </section></>
   );
   const panel = sel ? PANELS[sel] : null;
   return (
+    <>{summary}
     <section aria-labelledby="qd-insights-h">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="qd-insights-h" className="font-head text-h3 tracking-snug text-foreground">{ar ? 'الرؤى' : 'Insights'}</h2>
+        <h2 id="qd-insights-h" className="font-head text-h3 tracking-snug text-foreground">{ar ? 'تحليلات إضافية' : 'More analysis'}</h2>
         {st.hidden > 0 && <span className="font-mono text-[11.5px] text-muted-foreground">{ar ? `${st.hidden} لوحات مخفية حتى تتوفر بيانات` : `${st.hidden} panel${st.hidden === 1 ? '' : 's'} hidden until there is data`}</span>}
       </div>
       <nav aria-label={ar ? 'لوحات الرؤى' : 'Insight panels'} className="mb-4 flex flex-wrap gap-1.5">
@@ -93,6 +100,6 @@ export default function Insights({ token, lang, goTo, initial }: { token: string
           {panel.parts.map((p) => { const Comp = C[p]; return <Comp key={p} token={token} lang={lang} goTo={goTo} />; })}
         </motion.div>
       )}
-    </section>
+    </section></>
   );
 }

@@ -91,7 +91,7 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
         <div className="min-w-0 flex-1">
           <Kicker>{ar ? 'رحلة المورّد' : 'Supplier journey'}</Kicker>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <h2 id="qd-getmatched-h" className="font-head text-h3 tracking-snug text-foreground">{ar ? 'احصل على المطابقة' : 'Get matched'}</h2>
+            <h2 id="qd-getmatched-h" className="font-head text-h3 tracking-snug text-foreground">{ar ? 'قائمة التسجيل والمطابقة' : 'Registration checklist'}</h2>
             <Badge dot variant={e.eligible ? 'ok' : 'danger'}>{e.eligible ? (ar ? 'مؤهّل للمطابقة' : 'Eligible for matching') : (ar ? 'غير مؤهّل بعد' : 'Not eligible yet')}</Badge>
           </div>
           <p className="mt-1 max-w-[62ch] text-copy text-muted-foreground">
@@ -99,9 +99,11 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
           </p>
           {next && next.fix !== 'contact' && <Button className="mt-3" onClick={() => go(next.fix)}>{fixLabel(next.fix)} {ar ? '←' : '→'}</Button>}
         </div>
-        <dl className="grid grid-cols-3 gap-4 sm:w-[240px]">
-          {[[e.reach?.matched_requests ?? 0, ar ? 'طلبات مطابقة' : 'matched'], [e.reach?.quotes_sent ?? 0, ar ? 'عروض مُرسلة' : 'quoted'], [e.reach?.shortlist_size ?? 8, ar ? 'حجم القائمة' : 'shortlist']].map(([v, l], i) => (
-            <div key={i} className="border-s border-border ps-3"><dd className="font-head text-[22px] font-semibold leading-none text-foreground tabular-nums">{v}</dd><dt className="mt-1.5 font-mono text-label uppercase tracking-caps text-muted-foreground">{l}</dt></div>
+        {/* 15 Sep 2026: at a fixed 240px the uppercase, letter-spaced "SHORTLIST" was clipped. The column
+            now sizes to its content, and the labels are sentence case, not tracked capitals. */}
+        <dl className="grid grid-cols-3 gap-4 sm:w-auto sm:min-w-[260px]">
+          {[[e.reach?.matched_requests ?? 0, ar ? 'طلبات مطابقة' : 'Matched'], [e.reach?.quotes_sent ?? 0, ar ? 'عروض مُرسلة' : 'Quoted'], [e.reach?.shortlist_size ?? 8, ar ? 'حجم القائمة المختصرة' : 'Shortlist size']].map(([v, l], i) => (
+            <div key={i} className="flex min-w-0 flex-col-reverse border-s border-border ps-3"><dt className="mt-1.5 text-[11.5px] leading-snug text-muted-foreground">{l}</dt><dd className="font-head text-[22px] font-semibold leading-none text-foreground tabular-nums"><bdi dir="ltr">{v}</bdi></dd></div>
           ))}
         </dl>
       </div>
