@@ -94,7 +94,11 @@ test('a supplier on an older version is asked again, and the record is read serv
   assert.match(api, /terms_current: await secretVal\('terms_version'\)/);
   const acc = api.slice(api.indexOf("if (action === 'accept_terms')"), api.indexOf("if (action === 'settings')"));
   assert.ok(acc.length > 100, 'no accept_terms action');
-  for (const s of ["secretVal('terms_version')", 'accepted_terms_at:', 'accepted_terms_version: tv', 'accepted_terms_ip: clientIp(req)', 'accepted_terms_sha256: sha']) assert.ok(acc.includes(s), 'accept_terms does not record ' + s);
+  // 15 Sep 2026: the record is built in one place for every writer (supplier_api twice, kyc), so the
+  // action is checked for calling it and the helper for what it records.
+  assert.ok(acc.includes('supplierTermsRecord(secretVal, clientIp(req))'), 'accept_terms does not build the record server-side');
+  const helper = read('supabase/functions/_shared/supplier_terms.ts');
+  for (const s of ["sec('terms_version')", 'accepted_terms_at:', 'accepted_terms_version: v', 'accepted_terms_ip: ip', 'accepted_terms_sha256:']) assert.ok(helper.includes(s), 'the terms record does not carry ' + s);
   assert.doesNotMatch(acc, /body\.terms_version/, 'the browser must not choose the version');
   const portal = read('src/components/portal/SupplierPortal.tsx');
   const src = /export function needsReaccept\(me\) \{([\s\S]*?)\n\}/.exec(portal)?.[1];

@@ -3,6 +3,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
+import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
@@ -98,7 +99,7 @@ Deno.serve(observe('kyc', async (req) => {
       return J(FIXTURE_REFUSAL);
     }
 
-    const { data: lead } = await admin.from('leads').select('id,contact_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,signed_terms_url,company_name').eq('claimed_by', email).maybeSingle();
+    const { data: lead } = await admin.from('leads').select('id,contact_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,signed_terms_url,company_name').eq('claimed_by', email).maybeSingle();
     const { data: cust } = await admin.from('customers').select('id,full_name,phone,date_of_birth,email_verified,phone_verified,tos_accepted_at,signed_terms_url').eq('email', email).maybeSingle();
     const kind = lead ? 'supplier' : 'customer';
 
@@ -362,9 +363,19 @@ Deno.serve(observe('kyc', async (req) => {
       // so it recorded 'v2'), and compliance_archive printed "Version 4" on the certificate. Three
       // independent answers to "which document did this business actually sign?", which is the one
       // question an acceptance record exists to answer. All three now read the same secrets.
-      const supV = (await sec('supplier_terms_version')) || (await sec('terms_version')) || 'v5';
       const custV = (await sec('customer_terms_version')) || 'v3';
-      if (kind === 'supplier') await admin.from('leads').update({ accepted_terms_at: nowIso, accepted_terms_version: supV, accepted_terms_ip: ip }).eq('claimed_by', email);
+      // ONE ACCEPTANCE RECORD (15 Sep 2026). The portal records the supplier's acceptance through supplier_api
+      // (version, IP, SHA-256 of the text) and then calls this to issue the certificate. Rewriting it here
+      // replaced that record with one carrying no hash. It is written here only when the current version
+      // is not already on file, and then through the same helper (_shared/supplier_terms.ts).
+      if (kind === 'supplier') {
+        const curV = await currentSupplierTermsVersion(sec);
+        if (!(lead as any)?.accepted_terms_at || (lead as any)?.accepted_terms_version !== curV) {
+          const rec = await supplierTermsRecord(sec, ip);
+          if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
+          await admin.from('leads').update(rec).eq('claimed_by', email);
+        }
+      }
       else await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
       let signed_url = null; let signErr = '';
       try { const secret = await sec('cred_fn_kyc'); const r = await fetch(`${FN}/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, action: 'sign', kind, email }) }); const jd = await r.json(); signed_url = jd?.signed_url || null; if (!signed_url) signErr = String(jd?.error || jd?.detail || 'no signed_url returned').slice(0, 200); } catch (e) { signErr = String((e as Error)?.message || e).slice(0, 200); }
