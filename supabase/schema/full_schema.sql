@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T08:30:25.243Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T08:47:13.607Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -40817,27 +40817,34 @@ CREATE OR REPLACE FUNCTION public.fn_os_incident_open(p_title text, p_kind text,
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
-DECLARE nid bigint;
-BEGIN
-  IF coalesce(p_title,'')='' THEN RETURN jsonb_build_object('ok',false,'error','title_required'); END IF;
-  INSERT INTO public.os_incidents(title, kind, severity, detail, opened_by)
-  VALUES (p_title, coalesce(nullif(p_kind,''),'other'), coalesce(nullif(p_severity,''),'medium'), coalesce(p_detail,'{}'::jsonb), coalesce(p_actor,'os'))
-  RETURNING id INTO nid;
-  INSERT INTO public.os_audit_log(actor,action,entity,entity_id,detail,ok)
-  VALUES (coalesce(p_actor,'os'),'incident_open','incident',nid::text,jsonb_build_object('title',p_title,'severity',p_severity),true);
-  BEGIN
-    PERFORM net.http_post(
-      url := 'https://' || public.qd_project_ref() || '.supabase.co/functions/v1/alert_founder',
-      headers := jsonb_build_object('Content-Type','application/json'),
-      body := jsonb_build_object('__secret',(select value from public.app_secrets where key='cred_db_internal'),
-                                 'event','OS incident #'||nid||' ('||coalesce(p_severity,'medium')||'): '||p_title,
-                                 'detail',left(coalesce(p_detail->>'description',''),300),'level','action')
-    );
-  EXCEPTION WHEN others THEN /* notification is best-effort */ END;
-  RETURN jsonb_build_object('ok',true,'id',nid);
-END $function$
+declare nid bigint;
+begin
+  if coalesce(p_title, '') = '' then return jsonb_build_object('ok', false, 'error', 'title_required'); end if;
+  insert into public.os_incidents (title, kind, severity, detail, opened_by)
+  values (p_title, coalesce(nullif(p_kind, ''), 'other'), coalesce(nullif(p_severity, ''), 'medium'),
+          coalesce(p_detail, '{}'::jsonb), coalesce(p_actor, 'os'))
+  returning id into nid;
+  insert into public.os_audit_log (actor, action, entity, entity_id, detail, ok)
+  values (coalesce(p_actor, 'os'), 'incident_open', 'incident', nid::text,
+          jsonb_build_object('title', p_title, 'severity', p_severity), true);
+  -- Best effort, as before: an incident is recorded even when telling someone about it fails.
+  begin
+    perform public.fn_notify_founder(
+      p_event       => 'OS incident #' || nid || ' (' || coalesce(nullif(p_severity, ''), 'medium') || '): ' || p_title,
+      p_detail      => left(coalesce(p_detail->>'description', ''), 300),
+      p_level       => coalesce(nullif(p_severity, ''), 'medium'),
+      p_kind        => 'os_incident',
+      p_dedupe_key  => 'os_incident:' || nid,
+      p_owner_agent => 'it_engineer');
+  exception when others then
+    insert into public.os_audit_log (actor, action, entity, entity_id, detail, ok)
+    values (coalesce(p_actor, 'os'), 'incident_notify', 'incident', nid::text,
+            jsonb_build_object('error', left(sqlerrm, 500)), false);
+  end;
+  return jsonb_build_object('ok', true, 'id', nid);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_os_incident_open_task()
