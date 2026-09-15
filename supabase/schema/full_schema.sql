@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T09:34:40.629Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T10:37:18.664Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -190,7 +190,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (517) =====
+-- ===== TABLES (519) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -6596,6 +6596,18 @@ CREATE TABLE IF NOT EXISTS public.supplier_screening_hit (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_voice_note (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  supplier_id bigint NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  bytes integer DEFAULT 0 NOT NULL,
+  duration_ms integer,
+  mime text,
+  outcome text NOT NULL,
+  lang text,
+  chars integer
+);
+
 CREATE TABLE IF NOT EXISTS public.supply_health_snapshots (
   id bigint DEFAULT nextval('supply_health_snapshots_id_seq'::regclass) NOT NULL,
   period_end date,
@@ -6891,6 +6903,15 @@ CREATE TABLE IF NOT EXISTS public.taxonomy_trade_proposal (
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   decided_at timestamp with time zone,
   decided_by text
+);
+
+CREATE TABLE IF NOT EXISTS public.taxonomy_trade_service (
+  trade_code text NOT NULL,
+  code text NOT NULL,
+  label_en text NOT NULL,
+  label_ar text NOT NULL,
+  sort integer DEFAULT 100 NOT NULL,
+  active boolean DEFAULT true NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.templates (
@@ -7668,6 +7689,7 @@ ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_vari
 ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watch_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_score ADD CONSTRAINT supplier_score_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_pkey PRIMARY KEY (id);
+ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_pkey PRIMARY KEY (id);
 ALTER TABLE public.supply_health_snapshots ADD CONSTRAINT supply_health_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_pkey PRIMARY KEY (artifact_id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_pkey PRIMARY KEY (case_id);
@@ -7684,6 +7706,7 @@ ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_pkey PRIMARY KEY
 ALTER TABLE public.taxonomy_role ADD CONSTRAINT taxonomy_role_pkey PRIMARY KEY (code);
 ALTER TABLE public.taxonomy_trade ADD CONSTRAINT taxonomy_trade_pkey PRIMARY KEY (code);
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_pkey PRIMARY KEY (id);
+ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_pkey PRIMARY KEY (trade_code, code);
 ALTER TABLE public.templates ADD CONSTRAINT templates_pkey PRIMARY KEY (name);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_pkey PRIMARY KEY (domain, key);
@@ -8148,6 +8171,11 @@ ALTER TABLE public.supplier_collaboration_event ADD CONSTRAINT supplier_collabor
 ALTER TABLE public.supplier_lead_intake ADD CONSTRAINT supplier_lead_intake_intent_check CHECK ((intent = ANY (ARRAY['register'::text, 'question'::text, 'document'::text, 'decline'::text, 'bounce'::text, 'other'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_match_kind_check CHECK ((match_kind = ANY (ARRAY['exact'::text, 'token_overlap'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_status_check CHECK ((status = ANY (ARRAY['open'::text, 'confirmed'::text, 'false_positive'::text])));
+ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_bytes_check CHECK ((bytes >= 0));
+ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_chars_check CHECK (((chars IS NULL) OR (chars >= 0)));
+ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_duration_ms_check CHECK (((duration_ms IS NULL) OR (duration_ms >= 0)));
+ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_lang_check CHECK (((lang IS NULL) OR (lang = ANY (ARRAY['en'::text, 'ar'::text]))));
+ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_outcome_check CHECK ((outcome = ANY (ARRAY['pending'::text, 'flag_off'::text, 'rate_limited'::text, 'refused'::text, 'transcribed'::text, 'empty'::text, 'failed'::text])));
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_approved_ck CHECK (((privacy_state <> 'approved'::text) OR ((approved_at IS NOT NULL) AND (privacy_result IS NOT NULL) AND (checksum IS NOT NULL))));
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_kind_ck CHECK ((artifact_kind = ANY (ARRAY['comparison_report'::text, 'reveal_invoice'::text])));
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_privacy_ck CHECK ((privacy_state = ANY (ARRAY['unchecked'::text, 'approved'::text, 'refused'::text])));
@@ -8189,6 +8217,9 @@ ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposa
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_code_check CHECK ((btrim(code) <> ''::text));
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_owner_seat_check CHECK ((owner_seat = 'sales_engineer'::text));
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'added'::text, 'map_offered'::text, 'mapped'::text, 'rejected'::text])));
+ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_code_check CHECK ((code ~ '^[a-z][a-z0-9_]*$'::text));
+ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_label_ar_check CHECK ((label_ar ~ '[ء-ي]'::text));
+ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_label_en_check CHECK ((btrim(label_en) <> ''::text));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_domain_check CHECK ((domain = ANY (ARRAY['action_kind'::text, 'notification_type'::text, 'customer_signal'::text])));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_label_check CHECK ((btrim(label) <> ''::text));
 ALTER TABLE public.vendor_billing_ended ADD CONSTRAINT vendor_billing_ended_kind_ck CHECK ((kind = ANY (ARRAY['ended'::text, 'annual'::text, 'one_off'::text, 'portal_only'::text])));
@@ -8445,6 +8476,7 @@ ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_contract_id_fkey F
 ALTER TABLE public.target_verdict ADD CONSTRAINT target_verdict_contract_id_fkey FOREIGN KEY (contract_id) REFERENCES target_contract(id) ON DELETE CASCADE;
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_mapped_to_fkey FOREIGN KEY (mapped_to) REFERENCES taxonomy_trade(code);
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
+ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_trade_code_fkey FOREIGN KEY (trade_code) REFERENCES taxonomy_trade(code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id);
@@ -8852,6 +8884,7 @@ CREATE UNIQUE INDEX supplier_dues_stripe_session_key ON public.supplier_dues USI
 CREATE UNIQUE INDEX supplier_kpi_snap_day ON public.supplier_kpi_snapshots USING btree (snapshot_date);
 CREATE UNIQUE INDEX supplier_negotiation_policy_supplier_key ON public.supplier_negotiation_policy USING btree (supplier_id) WHERE (supplier_id IS NOT NULL);
 CREATE INDEX supplier_response_watch_open_idx ON public.supplier_response_watch USING btree (opened_at) WHERE ((first_response_at IS NULL) AND (closed_at IS NULL));
+CREATE INDEX supplier_voice_note_supplier_recent ON public.supplier_voice_note USING btree (supplier_id, created_at DESC);
 CREATE INDEX support_ceo_report_open_idx ON public.support_ceo_report USING btree (status, next_review_at) WHERE (status = ANY (ARRAY['sent'::text, 'failed'::text, 'blocked'::text]));
 CREATE INDEX support_document_intake_lead_idx ON public.support_document_intake USING btree (lead_id, received_at DESC);
 CREATE INDEX support_document_intake_unattached_idx ON public.support_document_intake USING btree (received_at DESC) WHERE (NOT attached);
@@ -61216,6 +61249,7 @@ ALTER TABLE public.supplier_product_variant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_response_watch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_score ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_screening_hit ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_voice_note ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supply_health_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_artifact ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_case ENABLE ROW LEVEL SECURITY;
@@ -61232,6 +61266,7 @@ ALTER TABLE public.target_verdict ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxonomy_role ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxonomy_trade ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxonomy_trade_proposal ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.taxonomy_trade_service ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ui_label ENABLE ROW LEVEL SECURITY;
@@ -61328,8 +61363,10 @@ CREATE POLICY stripe_payout_service_role_only ON public.stripe_payout AS PERMISS
 CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collaboration AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_event_service_role_only ON public.supplier_collaboration_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_voice_note_service_role_only ON public.supplier_voice_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_run_service_role_only ON public.table_export_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY taxonomy_trade_proposal_service_role_only ON public.taxonomy_trade_proposal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY taxonomy_trade_service_service_role_only ON public.taxonomy_trade_service AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.transactions AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.vision_horizon AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
