@@ -13,6 +13,8 @@ import GetMatched from './supplier/GetMatched';
 import Insights, { INSIGHT_PANELS } from './supplier/Insights';
 import { DrawingGallery, BoqTable, ClarifyThread, WithheldCustomer, RequestedTerms } from './supplier/RfqParts';
 import { SpecHoldPanel } from './supplier/SpecHold';
+import ServicesTab from './supplier/ServicesTab';
+import EmirateCheckboxes from './supplier/EmirateCheckboxes';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_CODES, tradeLabel } from './supplier/serverCopy';
 import { call } from './supplier/api';
@@ -72,7 +74,6 @@ const missingLabel = (lang, m) => (MISSING[m] ? MISSING[m][lang === 'ar' ? 1 : 0
 // list the customer's composer accepts. A DWG is accepted and stored; it is read once converted.
 const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.ifc,.xml,.x83,.x84,.x86,.zip';
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
-const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
 // STRIPE CAME BACK AND THE PAGE SAID NOTHING (audit 2026-09-14). supplier_pay and pay_registration
 // return the supplier to /portal?dues_paid=… or ?registration_paid=…, and nothing read either query
 // string — the only confirmation was an email. Dashboard now reads them once, strips them from the URL,
@@ -335,256 +336,9 @@ const S = {
   fileInput: 'text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
 };
 
-// WHAT THIS COMPANY CAN ACTUALLY QUOTE FOR — the last gate on the revenue path (12 Aug 2026).
-//
-// fn_match_capability's candidate CTE opens with `where sc.confirmed_at is not null` and the comment
-// beside it reads "GATE: supplier confirmed their own scope". capability_agent's `confirm` action is
-// the only writer of that column. It is complete, it validates against the controlled vocabulary,
-// it versions every confirmation into supplier_capability_confirmation — and it had NO CALLER
-// ANYWHERE IN src/. Neither did claim_lookup. So no supplier could ever be matched to anything: not
-// because matching was broken, but because the one screen that unlocks it was never built.
-//
-// It is a CONFIRMATION screen, not a form, and that distinction is the whole point. The company has
-// already derived this supplier's trades from its own directory entry and its role from
-// leads.business_role, so the supplier is asked to correct a proposal rather than fill in a blank.
-// On a cold B2B onboarding those are very different asks.
-//
-// The listed codes come from the vocabulary the server returns. "Another trade" lets a supplier add
-// one we don't list yet (the trade list is open, founder 14 Sep); the server normalises it with
-// tradeCode, so it matches only a request in that exact same trade.
-function CapabilityConfirmPanel({ token, lang }) {
-  const ar = lang === 'ar';
-  const [st, setSt] = useState({ loading: true, err: '', confirmed: false, cap: null, vocab: { trades: [], roles: [] }, proposals: [] });
-  const [trades, setTrades] = useState([]);
-  const [otherTrade, setOtherTrade] = useState('');
-  const [otherNote, setOtherNote] = useState(false);
-  const [review, setReview] = useState(false);
-  const [roles, setRoles] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
-  // One label for a code everywhere on this screen: the Arabic the server holds (taxonomy_trade.label_ar),
-  // else the portal's own map, else the code made readable. A trade the supplier added is its own words.
-  const labelOf = (code) => {
-    const tr = st.vocab.trades.find((x) => x.code === code);
-    return vocabLabel(lang, 'trade', code, tr ? (ar ? tr.label_ar || tr.label : tr.label) : String(code).replace(/_/g, ' '));
-  };
-  // FOUND IN YOUR DOCUMENTS (15 Sep 2026). What the supplier's licence, profile and catalogues say,
-  // read by code on upload (supabase/functions/_shared/supplier_doc_trades.ts), with the line each
-  // trade was found on. Shown so the supplier confirms what their own documents say, not only what a
-  // directory listing implied.
-  const docs = (st.cap && st.cap.source_docs && Array.isArray(st.cap.source_docs.docs)) ? st.cap.source_docs.docs : [];
-  // The client twin of tradeCode in supabase/functions/_shared/supplier_capability.ts.
-  const tradeKey = (v) => String(v ?? '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '');
-  // WHAT WE ALREADY BELIEVE, FIRST. Measured on a 375x812 phone: the vocabulary renders 40 trade
-  // chips and 8 role chips in taxonomy sort order, so the four this company actually holds were
-  // scattered through the list and the confirm button sat 2,547px down — 3.1 screens of scrolling.
-  // The header above says this is a CONFIRMATION screen and not a form; a supplier cannot correct a
-  // proposal they have to hunt for. Pinned once, from the row as loaded, and never re-sorted on a
-  // toggle: chips that jump under a thumb are worse than chips in the wrong order.
-  const [pinned, setPinned] = useState({ trades: [], roles: [] });
-  const order = (vocab, pin) => {
-    const p = new Set(pin);
-    return [...(vocab || [])].sort((a, b) => (p.has(b.code) ? 1 : 0) - (p.has(a.code) ? 1 : 0));
-  };
-
-  const load = async () => {
-    setSt((s) => ({ ...s, loading: true, err: '' }));
-    const j = await call('supplier_api', { action: 'capability_state' }, token);
-    if (j && j.ok) {
-      const cap = j.capability || null;
-      // Before the first confirm, what the documents found is ticked beside what the directory implied;
-      // the supplier unticks what is wrong. After a confirm, only what they confirmed is ticked.
-      const held = (cap && cap.trades) || [];
-      const fromDocs = (cap && Array.isArray(cap.proposed_trades)) ? cap.proposed_trades : [];
-      const start = j.confirmed ? held : [...new Set([...held, ...fromDocs])];
-      setTrades(start);
-      setRoles((cap && cap.roles) || []);
-      setPinned({ trades: start, roles: (cap && cap.roles) || [] });
-      setSt({ loading: false, err: '', confirmed: !!j.confirmed, cap, vocab: j.vocabulary || { trades: [], roles: [] }, proposals: j.trade_proposals || [] });
-    } else {
-      setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, ar ? 'تعذّر تحميل نطاق عملك.' : 'Could not load your scope.') }));
-    }
-  };
-  useEffect(() => { load(); }, [token]);
-
-  const toggle = (arr, setArr, code) => setArr(arr.includes(code) ? arr.filter((c) => c !== code) : arr.concat(code));
-
-  const confirm = async () => {
-    setBusy(true); setSaved(false);
-    const cap = st.cap || {};
-    // Everything the derivation already holds is sent back unchanged. Omitting a key on a
-    // merge-duplicates upsert leaves the stored value alone, but sending what is on screen keeps
-    // the confirmed row and the screen the supplier saw identical.
-    const j = await call('supplier_api', {
-      action: 'capability_confirm', trades, roles,
-      services: cap.services || [], products: cap.products_norm || [],
-      coverage_emirates: cap.coverage_emirates || [],
-      brands: cap.brands || [], project_types: cap.project_types || [], exclusions: cap.exclusions || [],
-    }, token);
-    setBusy(false);
-    if (j && j.ok) { setSaved(true); setOtherNote(false); setReview(Array.isArray(j.new_trades_under_review) && j.new_trades_under_review.length > 0); load(); }
-    else setSt((s) => ({ ...s, err: srvMsg(lang, j, ar ? 'تعذّر حفظ نطاق عملك.' : 'Could not save your scope.') }));
-  };
-
-  if (st.loading) return <Card className="qd-panel p-5">{ar ? 'جارٍ التحميل…' : 'Loading…'}</Card>;
-  if (st.err && !st.cap) return (
-    <Card className="qd-panel p-5">
-      <div className={S.h2}>{ar ? 'تعذّر تحميل نطاق عملك' : 'Could not load your scope'}</div>
-      <div className={S.sub}>{String(st.err)}</div>
-      <Button className="mt-3" onClick={load}>{ar ? 'إعادة المحاولة' : 'Retry'}</Button>
-    </Card>
-  );
-
-  const chip = (on) => cn('px-3 py-1.5 rounded-full text-sm border transition',
-    on ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-transparent border-white/20 hover:border-white/40');
-
-  return (
-    <Card className="qd-panel p-5">
-      <div className={S.h2}>{ar ? 'ما الذي يمكن لشركتك تسعيره' : 'What your company can quote for'}</div>
-      <div className={S.sub}>
-        {st.confirmed
-          ? (ar ? 'نطاقك مؤكَّد. تظهر طلبات التسعير المطابقة في تبويب طلبات التسعير.'
-                : 'Your scope is confirmed. Matching requests appear in the RFQs tab.')
-          : (ar ? 'هذا ما سجّلناه عن شركتك. صحّحه ثم أكّده — لن تصلك طلبات تسعير قبل التأكيد.'
-                : 'This is what we have on file for your company. Correct it, then confirm — you will not receive any requests until you do.')}
-      </div>
-
-      {docs.length > 0 && (
-        <div className="mt-4">
-          <div className="text-sm opacity-70 mb-2">{ar ? 'وجدناه في مستنداتك' : 'Found in your documents'}</div>
-          <ul className="space-y-3">
-            {docs.map((d) => (
-              <li key={d.path} className="rounded-md border border-white/10 p-3">
-                <div className="text-sm font-medium break-all" dir="auto">{d.name}</div>
-                {d.status === 'needs_ocr' && <div className="mt-1 text-xs text-warn">{ar ? 'هذا الملف صورة أو مسح ضوئي بلا نص قابل للقراءة، لذلك لم نستخرج منه تخصصات. اختر تخصصاتك أدناه.' : 'This file is a photo or scan with no readable text, so no trades were taken from it. Choose your trades below.'}</div>}
-                {d.status === 'needs_cad_conversion' && <div className="mt-1 text-xs text-warn">{ar ? 'هذا مخطط CAD لا يُقرأ نصه مباشرة. اختر تخصصاتك أدناه.' : 'This is a CAD drawing whose text cannot be read directly. Choose your trades below.'}</div>}
-                {d.status === 'unreadable' && <div className="mt-1 text-xs text-warn">{ar ? 'تعذّرت قراءة هذا الملف. اختر تخصصاتك أدناه.' : 'This file could not be read. Choose your trades below.'}</div>}
-                {d.status === 'read' && !(d.trades || []).length && <div className="mt-1 text-xs opacity-70">{ar ? 'قرأنا الملف ولم نجد فيه اسم تخصص من قائمتنا.' : 'We read this file and found none of the trades we list in it.'}</div>}
-                {(d.trades || []).map((h) => (
-                  <div key={h.code} className="mt-2 flex flex-wrap items-start gap-2">
-                    <button type="button" className={chip(trades.includes(h.code))} aria-pressed={trades.includes(h.code)}
-                            onClick={() => toggle(trades, setTrades, h.code)}>{labelOf(h.code)}</button>
-                    {h.snippet ? <q className="min-w-[12rem] flex-1 text-xs opacity-70" dir="auto">{h.snippet}</q> : null}
-                  </div>
-                ))}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="mt-4">
-        <div className="text-sm opacity-70 mb-2">{ar ? 'التخصصات' : 'Trades'}</div>
-        <div className="flex flex-wrap gap-2">
-          {order(st.vocab.trades, pinned.trades).map((tr) => (
-            <button key={tr.code} type="button" className={chip(trades.includes(tr.code))}
-                    aria-pressed={trades.includes(tr.code)}
-                    onClick={() => toggle(trades, setTrades, tr.code)}>{labelOf(tr.code)}</button>
-          ))}
-          {/* THE LIST IS OPEN (founder, 14 Sep 2026: "if a supplier comes tomorrow and register for
-              packaging services he is welcomed"). A trade the supplier named that is not in the
-              list above shows here as its own chip; the server stores it normalised. */}
-          {trades.filter((c) => !st.vocab.trades.some((tr) => tr.code === c)).map((c) => (
-            <button key={'own:' + c} type="button" className={chip(true)} aria-pressed="true"
-                    onClick={() => toggle(trades, setTrades, c)}>{String(c).replace(/_/g, ' ')}</button>
-          ))}
-        </div>
-        <form className="mt-2 flex gap-2" onSubmit={(e) => {
-          e.preventDefault();
-          const v = otherTrade.trim();
-          // A typed name that IS a listed trade ticks that trade; anything else is a new trade, sent to
-          // the sales engineer for review when the scope is confirmed.
-          const listed = st.vocab.trades.find((tr) => tr.code === tradeKey(v));
-          if (listed) { if (!trades.includes(listed.code)) setTrades(trades.concat(listed.code)); }
-          else if (v && !trades.includes(v)) { setTrades(trades.concat(v)); setOtherNote(true); }
-          setOtherTrade('');
-        }}>
-          <input className="flex-1 rounded-md border border-white/20 bg-transparent px-3 py-1.5 text-sm"
-                 value={otherTrade} maxLength={60} onChange={(e) => setOtherTrade(e.target.value)}
-                 aria-label={ar ? 'تخصص غير موجود في القائمة' : 'A trade not in the list'}
-                 placeholder={ar ? 'تخصص آخر، مثل: خدمات التغليف' : 'Another trade, e.g. packaging services'} />
-          <Button type="submit" variant="outline" disabled={!otherTrade.trim()}>{ar ? 'إضافة' : 'Add'}</Button>
-        </form>
-        {otherNote && (
-          <div className="mt-2 text-xs opacity-80">
-            {ar ? 'هذا التخصص غير موجود في قائمتنا بعد. عند التأكيد يُرسل إلى مهندس المبيعات لمراجعته، وفي هذه الأثناء تصلك الطلبات الخاصة بهذا التخصص نفسه.'
-                : 'This trade is not in our list yet. When you confirm, it goes to our sales engineer for review; meanwhile you receive requests for exactly this trade.'}
-          </div>
-        )}
-        {st.proposals.length > 0 && (
-          <ul className="mt-3 space-y-1 text-xs">
-            {st.proposals.map((p) => (
-              <li key={p.code}>
-                <span className="font-medium" dir="auto">{p.label_en || p.label_ar || String(p.code).replace(/_/g, ' ')}</span>{' — '}
-                {p.status === 'pending' && (ar ? 'قيد المراجعة لدى مهندس المبيعات' : 'under review by our sales engineer')}
-                {p.status === 'added' && (ar ? 'أُضيف إلى قائمة التخصصات' : 'added to our trade list')}
-                {p.status === 'rejected' && (ar ? 'لم يُضف إلى القائمة' : 'not added to our list')}
-                {p.status === 'mapped' && (ar ? 'استُبدل بتخصص من القائمة بموافقتك' : 'replaced by a listed trade, with your agreement')}
-                {p.status === 'map_offered' && (
-                  <>
-                    {ar ? 'نقترح التخصص المدرج: ' : 'we suggest the listed trade: '}<b>{labelOf(p.mapped_to)}</b>{' '}
-                    <Button type="button" variant="outline" className="ms-2 h-7 px-2 text-xs"
-                            onClick={() => setTrades(trades.filter((c) => c !== p.code && tradeKey(c) !== p.code).concat(trades.includes(p.mapped_to) ? [] : [p.mapped_to]))}>
-                      {ar ? 'استخدم هذا التخصص' : 'Use this trade'}
-                    </Button>
-                  </>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-4">
-        <div className="text-sm opacity-70 mb-2">{ar ? 'دورك' : 'Your role'}</div>
-        <div className="flex flex-wrap gap-2">
-          {order(st.vocab.roles, pinned.roles).map((r) => (
-            <button key={r.code} type="button" className={chip(roles.includes(r.code))}
-                    aria-pressed={roles.includes(r.code)}
-                    onClick={() => toggle(roles, setRoles, r.code)}>{vocabLabel(lang, 'role', r.code, r.label)}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* The server refuses a confirm with no trade or no role. Say so here rather than letting the
-          supplier press a button that returns 400. */}
-      {(!trades.length || !roles.length) && (
-        <div className="mt-4 text-sm text-warn">
-          {ar ? 'اختر تخصصًا واحدًا ودورًا واحدًا على الأقل.' : 'Choose at least one trade and one role.'}
-        </div>
-      )}
-      {st.err && st.cap ? <div className="mt-3 text-sm text-danger">{String(st.err)}</div> : null}
-      {saved ? <div className="mt-3 text-sm text-ok">{ar ? 'تم التأكيد.' : 'Confirmed.'}</div> : null}
-      {saved && review ? (
-        <div className="mt-1 text-sm opacity-80">
-          {ar ? 'أُرسل تخصصك الجديد إلى مهندس المبيعات لمراجعته. سنخبرك هنا بالنتيجة.' : 'Your new trade was sent to our sales engineer for review. The outcome will show here.'}
-        </div>
-      ) : null}
-
-      {/* STICKY, BECAUSE OF WHERE IT WAS. On a 375x812 phone this button rendered at y=2547 —
-          3.1 screens below the fold, past 48 chips, after a 366px tab strip. The ask that unlocks
-          every RFQ was the last thing on the longest screen in the portal. It now travels with the
-          thumb, and carries the count so a supplier can see what they are confirming without
-          scrolling back up. Unconfirmed only: once the scope is confirmed this is an edit screen
-          and a permanently docked bar would be noise. */}
-      {/* pe-16 on mobile: the docked assistant bubble is position:fixed at the bottom-end corner and
-          sits above this bar, and it was covering 29px of the button. A chat launcher must not eat
-          the edge of the one control that unlocks every RFQ. */}
-      <div className={cn('mt-4', !st.confirmed && 'sticky bottom-0 -mx-5 -mb-5 px-5 pe-16 sm:pe-5 pb-5 pt-3 bg-card/85 backdrop-blur-md border-t border-border')}>
-        {!st.confirmed && (
-          <div className={cn(S.sub, 'mb-2')}>
-            {ar ? `${trades.length} تخصص · ${roles.length} دور` : `${trades.length} trade${trades.length === 1 ? '' : 's'} · ${roles.length} role${roles.length === 1 ? '' : 's'} selected`}
-          </div>
-        )}
-        <Button className="w-full sm:w-auto" disabled={busy || !trades.length || !roles.length} onClick={confirm}>
-          {busy ? (ar ? 'جارٍ الحفظ…' : 'Saving…')
-                : st.confirmed ? (ar ? 'تحديث النطاق' : 'Update my scope')
-                               : (ar ? 'تأكيد نطاق عملي' : 'Confirm my scope')}
-        </Button>
-      </div>
-    </Card>
-  );
-}
+// WHAT THIS COMPANY CAN QUOTE FOR is the Services tab now (15 Sep 2026, sales_engineer):
+// ./supplier/ServicesTab.tsx, over supplier_api services_* (docs/api/supplier_portal_services.md). It
+// supersedes CapabilityConfirmPanel, which lived here: same confirm, same ledger, services inside trades.
 
 const LANG_NOTE = { en: 'The portal follows your account language. Switching here updates it (EN/AR).', ar: 'تتبع البوابة لغة حسابك، والتبديل هنا يحدّث لغة الحساب.' };
 export function SupplierPortal() {
@@ -1057,7 +811,7 @@ function Dashboard({ token, lang, onExpired }) {
       {tab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} />}
       {tab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
       {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
-      {tab === 'scope' && <CapabilityConfirmPanel token={token} lang={lang} />}
+      {(tab === 'scope' || tab === 'services') && <ServicesTab token={token} lang={lang} goTo={go} />}
       {tab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={(l) => adoptLocale(l, setLang)} />}
     </div>
   );
@@ -1771,7 +1525,6 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     } catch (_e) { setMsg(t(lang, 'lic_upload_failed')); }
     setUploading(false);
   };
-  const toggleEm = (e) => setEmirates((a) => a.includes(e) ? a.filter((x) => x !== e) : [...a, e]);
   const save = async () => {
     // The mandatory six, checked here in the same order and with the same codes save_profile enforces
     // (supabase/functions/_shared/supplier_registration.ts), so the refusal a supplier sees on screen
@@ -1824,10 +1577,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
               : <>Editing the profile for <b dir="auto">{me.company_name}</b>. What you write here decides which requests reach you; save your changes at the bottom.</>)
         : <>{t(lang, 'registering_pre')}<b dir="auto">{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</>}
     </div>
-    <fieldset className="mt-1.5">
-      <legend className={cn(S.sub, 'font-semibold')}>{t(lang, 'pf_emirates')}{!isEdit && <Need lang={lang} />}</legend>
-      <div className="flex gap-2 flex-wrap mt-2">{EMIRATES.map((e) => <button key={e} type="button" aria-pressed={emirates.includes(e)} className={cn(S.chip, emirates.includes(e) && S.chipOn)} onClick={() => toggleEm(e)}>{emirateLabel(lang, e)}</button>)}</div>
-    </fieldset>
+    <EmirateCheckboxes lang={lang} value={emirates} onChange={setEmirates} legend={<>{t(lang, 'pf_emirates')}{!isEdit && <Need lang={lang} />}</>} />
 
     {/* ── REGISTRATION = THE MANDATORY SIX ───────────────────────────────────────────────────────
         Founder decision: name, mobile, e-mail (both verified), trade licence, company profile, signed
