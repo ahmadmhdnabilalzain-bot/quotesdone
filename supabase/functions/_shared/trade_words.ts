@@ -18,8 +18,11 @@
 //      letters as word characters (measured: 'بنجارة' ~ '\mنجارة' is false, 'اعمال نجارة' is true).
 //   4. An ARABIC term may carry, before its first word, the definite article and the one-letter
 //      proclitics that attach to it — ال, و ف ب ل ك, والـ بالـ فالـ كالـ, لل ولل فلل — and each later
-//      word may carry ال. So the alias "مكافحة حريق" matches "مكافحة الحريق", "لمكافحة الحريق" and
-//      "ومكافحة حريق". Aliases are therefore stored WITHOUT ال; the SQL file refuses one that has it.
+//      word may carry ال — after its conjunction و when it starts with one (نفط وغاز → النفط والغاز).
+//      So the alias "مكافحة حريق" matches "مكافحة الحريق", "لمكافحة الحريق" and "ومكافحة حريق".
+//      Aliases are therefore stored WITHOUT ال; the SQL file refuses one that has it. The one-letter
+//      proclitics are deliberate: بنجارة is "with carpentry". The shared fixture holds a sentence of
+//      common words that begin with those letters and must resolve to nothing.
 //   An English term is matched exactly as before this file: rule 4 never applies to it.
 //
 // EXACT OR NONE. Every alias names exactly one code. There is no similarity, no stemmer, no model:
@@ -34,7 +37,9 @@ const SEP = /[-_/.]/;
 const ARABIC_START = /^[ء-ي]/;
 // Kept character-for-character equal to the SQL pattern; the parity check compares their results.
 const PROCLITIC = '(?:[وفبلك]?ال|[وف]?لل|[وفبلك])?';
-const INNER_ARTICLE = ' (?:ال)?';
+// A later word takes ال, after its conjunction و if it has one. The SQL builds the same string with
+// replace(replace(x, ' ', ' (?:ال)?'), ' (?:ال)?و', ' و(?:ال)?').
+const laterWord = (w: string) => (w.startsWith('و') ? 'و(?:ال)?' + w.slice(1) : '(?:ال)?' + w);
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -69,7 +74,9 @@ function foldForMatch(text: string): { norm: string; at: number[] } {
 export function termPattern(term: string): RegExp | null {
   const a = arNorm(term);
   if (a.length < 3) return null;
-  const body = ARABIC_START.test(a) ? PROCLITIC + esc(a).split(' ').join(INNER_ARTICLE) : esc(a);
+  const body = ARABIC_START.test(a)
+    ? PROCLITIC + esc(a).split(' ').map((w, i) => (i ? laterWord(w) : w)).join(' ')
+    : esc(a);
   return new RegExp('(?<![\\p{L}\\p{N}_])' + body, 'iu');
 }
 
