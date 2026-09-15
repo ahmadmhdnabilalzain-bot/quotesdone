@@ -38,7 +38,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { pageRows } from '../_shared/table_export_core.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { exportPathAllowed } from '../_shared/backup_prune_allow.ts';
-import { type Deps, ExportError, HOP_BYTES, type HopState, retry, runHop } from '../_shared/table_export_core.ts';
+import { type Deps, ExportError, HOP_BYTES, type HopState, leftoverFailure, retry, runHop } from '../_shared/table_export_core.ts';
 // v3 (15 Sep 2026, it_engineer): the first full copy failed twice on kb_chunks/page_0103.json with
 // "Forbidden" — the edge firewall refused a body holding OWASP injection examples; the request never
 // reached storage (see _shared/table_export_core.ts). Now: every page is written with its risky
@@ -223,10 +223,12 @@ Deno.serve(async (req) => {
       return J({ ok: true, stamp, hop: st.hop, done: Object.keys(st.tables).length, remaining: st.queue.length });
     }
 
-    const failed = Object.keys(st.errors);
-    if (failed.length) {
-      const msg = failed.map((t) => `${t}: ${st!.errors[t]}`).join(' | ').slice(0, 1000);
-      return J({ ok: false, stamp, failed, result: await finish(stamp, null, msg) });
+    // Reached on the version-skew path only: errors a v2 hop recorded before v3 was deployed.
+    const leftover = leftoverFailure(st.errors);
+    if (leftover) {
+      await settle(stamp, leftover);
+      return J({ ok: false, stamp, failed: Object.keys(st.errors), cause: leftover.cause,
+        result: await finish(stamp, null, leftover.error) });
     }
     const manifest = { created_at: new Date().toISOString(), layout: 'paged', stamp, kind: st.kind, since: st.since,
       tables: st.tables, total_bytes: st.bytes,

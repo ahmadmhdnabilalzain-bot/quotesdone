@@ -76,6 +76,15 @@ export async function retry<T>(what: string, f: () => Promise<T>, waits = [0, 10
   throw last!;
 }
 
+// A day that ends with errors recorded in its state but no failure in this invocation: a chain started by
+// backup v2 (which moved a failing table off the queue) and finished by v3 after a deploy. Such a failure
+// is still ours, so it raises the same finding (the founder: an internal cause is never silent).
+export function leftoverFailure(errors: Record<string, string>): { table: string; error: string; cause: 'internal' } | null {
+  const failed = Object.keys(errors);
+  if (!failed.length) return null;
+  return { table: failed.join(','), error: failed.map((t) => `${t}: ${errors[t]}`).join(' | ').slice(0, 1000), cause: 'internal' };
+}
+
 export type Slot = { t: string; after: unknown; page: number; rows: number; since: string | null };
 export type PageRead = { rows: unknown[]; done: boolean; last: unknown };
 export type Deps = {
