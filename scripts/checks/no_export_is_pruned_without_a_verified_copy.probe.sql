@@ -56,8 +56,10 @@ begin
   end if;
 
   -- 4. The legacy enqueue files the unqueued legacy page once, in the shape retention recognises.
-  perform public.fn_enqueue_doc_backups();
-  perform public.fn_enqueue_doc_backups();
+  -- 15 Sep 2026: LEGACY EXPORTS is fn_enqueue_doc_backups_backfill. 1000 leaves room above the 200 real
+  -- legacy rows that may already wait (the fixture day sorts first, so it is inside the bound).
+  perform public.fn_enqueue_doc_backups_backfill(1000);
+  perform public.fn_enqueue_doc_backups_backfill(1000);
   select count(*) into v_q from public.doc_backups
    where bucket = 'backups' and path = p_new and dedupe_key = 'EXPORT:' || p_new and doc_type = 'Database export'
      and public.fn_backup_prune_dropbox_allowed(bucket, path, dedupe_key, doc_type, dropbox_path);

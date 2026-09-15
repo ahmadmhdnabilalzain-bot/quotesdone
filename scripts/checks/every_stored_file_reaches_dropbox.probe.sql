@@ -23,7 +23,8 @@ begin
     ('backups',         'conversations/qd-sweep-probe.pdf', '{"size": 1}', v_old),          -- own rule
     ('backups',         '2000-01-01/qd_sweep_probe/page_0000.json', '{"size": 1}', v_old);  -- export page: own rule
 
-  n1 := public.fn_enqueue_doc_backups();
+  -- 15 Sep 2026: the sweep is fn_enqueue_doc_backups_backfill (a_new_document_is_queued_at_once_and_the_backfill_runs_on_its_own.sql)
+  n1 := public.fn_enqueue_doc_backups_backfill();
   select count(*) into v_rows from public.doc_backups
    where bucket = 'compliance-docs' and path = 'probe/qd-storage-sweep-probe.txt'
      and dedupe_key = 'SWEEP:compliance-docs:probe/qd-storage-sweep-probe.txt'
@@ -35,7 +36,7 @@ begin
                             ('backups', '2000-01-01/qd_sweep_probe/page_0000.json'));
   select count(*) into v_sweep from public.doc_backups where dedupe_key like 'SWEEP:%' and created_at = now();
 
-  n2 := public.fn_enqueue_doc_backups();
+  n2 := public.fn_enqueue_doc_backups_backfill();
 
   if v_rows <> 1 then raise exception 'CHK<<fail: the unclaimed fixture was queued % time(s), expected 1>>', v_rows; end if;
   if v_demo <> 0 then raise exception 'CHK<<fail: % excluded fixture(s) were queued>>', v_demo; end if;

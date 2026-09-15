@@ -326,10 +326,20 @@ Deno.serve(observe('dropbox_backup', async (req) => {
 
     const limit = Math.min(Number(body.limit) || 8, 25);
     const chain = Math.max(0, Math.min(Number(body.chain) || 0, 20));
-    let enqueued = 0;
+    let enqueued = 0, backfilled = 0;
     if (body.mode !== 'process_only') {
+      // New documents first, on a statement of their own (owner rules only). The backfill (storage sweep,
+      // pre-7-Sep exports) is a SECOND statement with its own 8 s: on 15 Sep 2026 the two ran as one call,
+      // took 50 s and every new document stopped being queued. Each outcome raises or closes an
+      // it_engineer finding (duty:backup_enqueue_<stage>:failing), so a failure is not only a throttled log.
       const { data, error } = await admin.rpc('fn_enqueue_doc_backups'); enqueued = Number(data) || 0;
       if (error) await logThrottled('enqueue_failed', 60, 'error', { stage: 'enqueue' }, 'fn_enqueue_doc_backups failed, so no new documents are being queued for Dropbox backup. ' + error.message.slice(0, 160));
+      const bf = await admin.rpc('fn_enqueue_doc_backups_backfill'); backfilled = Number(bf.data) || 0;
+      if (bf.error) await logThrottled('backfill_failed', 60, 'error', { stage: 'backfill' }, 'fn_enqueue_doc_backups_backfill failed; new documents are still queued, the storage sweep and pre-7-Sep exports are not. ' + bf.error.message.slice(0, 160));
+      for (const [stage, e] of [['new_documents', error], ['backfill', bf.error]] as const) {
+        const { error: oe } = await admin.rpc('fn_backup_enqueue_outcome', { p_stage: stage, p_error: e ? e.message.slice(0, 500) : null });
+        if (oe) console.error('fn_backup_enqueue_outcome(' + stage + ') failed:', oe.message);
+      }
     }
     const dbx = await client();
     // Take the token BEFORE claiming rows: when the token endpoint is throttled or down, nothing is
@@ -406,9 +416,9 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     });
     const { failed, released, authUnavailable, notes: errNotes } = d;
     const processed = claimed.length;
-    const counts = { enqueued, processed, done, failed, resumed, released, chain, refreshes: dbx.refreshes, token_reused: dbx.tokens.reused,
+    const counts = { enqueued, backfilled, processed, done, failed, resumed, released, chain, refreshes: dbx.refreshes, token_reused: dbx.tokens.reused,
       ...(authUnavailable ? { token_unavailable: classifyDropboxFailure(authUnavailable) } : {}), reason: body.reason ?? null };
-    if (processed || enqueued || failed) {
+    if (processed || enqueued || backfilled || failed) {
       if (failed) await logRun('error', counts, 'Dropbox backup finished with ' + failed + ' failed document(s) out of ' + processed + '; the IT engineer classifies and fixes them. ' + errNotes.join(' | '));
       else if (authUnavailable) await logRun('warn', counts, 'Dropbox backup uploaded ' + done + ' document(s), then the Dropbox token endpoint did not answer usefully (' + authUnavailable.slice(0, 160) + '); ' + released + ' document(s) returned to the queue unchanged, none marked failed.');
       else await logRun('ok', counts, 'Dropbox backup uploaded ' + done + ' document(s)' + (resumed ? ', ' + resumed + ' large file(s) resume next run' : '') + '.');

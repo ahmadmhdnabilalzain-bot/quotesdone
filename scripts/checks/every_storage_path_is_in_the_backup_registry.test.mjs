@@ -82,14 +82,19 @@ test('every bucket the code names is registered', () => {
 // not because the enqueue names its column. So: the enqueue must call the sweep, and a swept column that
 // names its bucket must name a bucket the registry sweeps. A source that is not backed up is either an
 // OPEN GAP (the backup_gap duty raises it) or a reasoned EXEMPT (the duty leaves it); nothing else.
+// 15 Sep 2026 (a_new_document_is_queued_at_once_and_the_backfill_runs_on_its_own.sql): the STORAGE SWEEP
+// and LEGACY EXPORTS moved out of fn_enqueue_doc_backups into fn_enqueue_doc_backups_backfill, so the
+// "enqueue" here is both bodies. Before that file is applied the mirror has only the first, which then
+// still holds the sweep; either way one of them must call it.
 test('every backed-up source has an enqueue rule the enqueue actually implements; every other source has a reason', () => {
-  const enqueue = fnBody('fn_enqueue_doc_backups');
+  const enqueue = fnBody('fn_enqueue_doc_backups')
+    + (SCHEMA.includes('FUNCTION public.fn_enqueue_doc_backups_backfill(') ? fnBody('fn_enqueue_doc_backups_backfill') : '');
   const swept = new Set(REG.filter((r) => r.kind === 'bucket' && r.backed_up && /STORAGE SWEEP/.test(r.rule || '')).map((r) => r.source));
   for (const r of REG) {
     if (r.backed_up) {
       assert.ok(r.rule, `${r.source} is backed up but names no enqueue rule`);
       if (/STORAGE SWEEP/.test(r.rule)) {
-        assert.ok(enqueue.includes('fn_backup_sweep_objects'), `${r.source} is backed up by the STORAGE SWEEP but fn_enqueue_doc_backups never calls fn_backup_sweep_objects`);
+        assert.ok(enqueue.includes('fn_backup_sweep_objects'), `${r.source} is backed up by the STORAGE SWEEP but neither fn_enqueue_doc_backups nor fn_enqueue_doc_backups_backfill calls fn_backup_sweep_objects`);
         if (r.kind === 'column' && r.bucket) assert.ok(swept.has(r.bucket), `${r.source} is backed up by the STORAGE SWEEP of ${r.bucket}, which the registry does not sweep`);
       } else if (r.kind === 'column') {
         assert.ok(enqueue.includes(r.source.split('.')[1]), `${r.source} is registered as backed up but fn_enqueue_doc_backups never reads ${r.source.split('.')[1]}`);
