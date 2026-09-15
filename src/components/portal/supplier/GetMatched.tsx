@@ -51,17 +51,21 @@ function Ring({ done, total, lang }: { done: number; total: number; lang: Lang }
   );
 }
 
-export default function GetMatched({ token, lang, go }: { token: string; lang: Lang; go: (where: string) => void }) {
+// `initial` is the eligibility payload the dashboard call already carries (supplier_portal `dashboard`,
+// 15 Sep 2026); with it the panel renders at once and asks nothing. Without it, it asks for itself.
+export default function GetMatched({ token, lang, go, initial = null }: { token: string; lang: Lang; go: (where: string) => void; initial?: any }) {
   const ar = lang === 'ar';
-  const [e, setE] = useState<any>(null);
+  const [e, setE] = useState<any>(initial);
   const [err, setErr] = useState(false);
+  useEffect(() => { if (initial) setE(initial); }, [initial]);
   useEffect(() => {
+    if (initial) return;
     let live = true;
     call('supplier_portal', { action: 'eligibility' }, token)
       .then((j) => { if (!live) return; if (j && j.ok) setE(j); else setErr(true); })
       .catch(() => live && setErr(true));
     return () => { live = false; };
-  }, [token]);
+  }, [token, initial]);
   if (err) return null;
   if (!e) return <div className="qd-panel mb-4 h-[180px] animate-pulse motion-reduce:animate-none" aria-busy="true" />;
 

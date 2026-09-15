@@ -21,6 +21,7 @@ import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
+import { quoteDocument, type Item } from '../_shared/quote_documents.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -575,6 +576,16 @@ Deno.serve(observe('supplier_api', async (req) => {
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       for (const c of PROFILE_COLS) if (body[c] !== undefined) upd[c] = body[c];
       if (Array.isArray(body.service_emirates)) upd.service_emirates = body.service_emirates;
+      // THE HOME EMIRATE COMES FROM THE CHIPS (15 Sep 2026, sales_engineer). Since #695 sign-up asks the
+      // emirate once, as service-emirate chips, so leads.emirate stopped being filled and nothing here
+      // could set it; eligibility, the tie-break and the founder's registration mail all read it. The
+      // first chosen emirate becomes the home emirate when none is on file, or when the one on file is
+      // no longer among the emirates the supplier says it serves.
+      // Only one of the seven emirates, as the chips send them (the same list supplier_onboard and
+      // license_extract use): an arbitrary string in the body must not become the home emirate.
+      const UAE = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
+      const firstEmirate = Array.isArray(body.service_emirates) ? body.service_emirates.find((e: unknown) => typeof e === 'string' && UAE.includes(e)) : null;
+      if (firstEmirate && (!sup.emirate || !(body.service_emirates as unknown[]).includes(sup.emirate))) upd.emirate = firstEmirate;
       // THE SUPPLIER'S OWN WORDS STAND (15 Sep 2026, sales_engineer). Since 29 Jul this replaced the
       // typed services with the last extraction whenever one existed, so a supplier correcting what their
       // documents were read as could never make the correction stick. The typed text is written as typed;
@@ -872,6 +883,80 @@ Deno.serve(observe('supplier_api', async (req) => {
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
+    // A SUPPLIER'S OWN DOCUMENTS AS PDF (15 Sep 2026, sales_engineer). The customer could download every
+    // quotation (customer_api quote_pdf); the supplier who wrote it could not, and had no receipt for a
+    // charge it had paid. quote_pdf prints the SAME standardised quotation the customer receives
+    // (_shared/quote_documents.ts quoteDocument), for this supplier's own quote only; receipts and
+    // receipt_pdf list and print the dues this supplier has paid. pdf_native is reached with this
+    // function's own scoped credential — fn.supplier_api's scope already holds pdf_native (measured
+    // 15 Sep 2026 in internal_credential), so no credential or database change is needed.
+    if (action === 'quote_pdf' || action === 'receipts' || action === 'receipt_pdf') {
+      const { data: sup } = await admin.from('leads').select('id,company_name').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const lang: 'en' | 'ar' = body.lang === 'ar' ? 'ar' : 'en';
+      const T = (en: string, arx: string) => (lang === 'ar' ? arx : en);
+      const print = async (doc: Record<string, unknown>) => {
+        const secret = await secretVal('cred_fn_supplier_api');
+        if (!secret) return null;
+        const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...doc, folder: 'supplier/' + sup.id, __secret: secret }) });
+        const j = await r.json().catch(() => null);
+        return j?.ok && j.url ? String(j.url) : null;
+      };
+      const money = (n: unknown) => Number(n || 0).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const day = (d: unknown) => (d ? String(d).slice(0, 10) : '—');
+
+      if (action === 'quote_pdf') {
+        const { data: q } = await admin.from('quotes').select('*').eq('id', String(body.quote_id || '')).eq('supplier_id', sup.id).maybeSingle();
+        if (!q) return J({ error: 'Quote not found' }, 404);
+        const [{ data: inq }, { data: qi }] = await Promise.all([
+          admin.from('inquiries_supplier_safe').select('id,category,emirate').eq('id', q.inquiry_id).maybeSingle(),
+          admin.from('quote_items').select('*').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60),
+        ]);
+        const items: Item[] = (qi || []).map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || ''),
+          unit_price: b.unit_price == null ? null : Number(b.unit_price), amount: b.amount == null ? null : Number(b.amount),
+          brand: b.brand ?? null, model: b.model ?? null, specification: b.specification ?? null,
+          specs: (b.specs && typeof b.specs === 'object' && !Array.isArray(b.specs)) ? b.specs : null })).filter((x: Item) => x.desc);
+        // The customer's request text is NOT printed (summary: null): pre-reveal it reaches a supplier only
+        // through the inbox's scrubbers, and this document must not become a second, unscrubbed door. The
+        // letter is 'S', not the customer's letter — that one is the price rank among competing quotes,
+        // which a supplier must never learn.
+        const { body: doc, ref } = quoteDocument({ quote: q as any, inquiry: { id: String(q.inquiry_id), category: inq?.category ?? null, emirate: inq?.emirate ?? null, summary: null }, items, letter: 'S', lang });
+        const url = await print(doc as Record<string, unknown>);
+        return url ? J({ ok: true, url, ref, lang }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
+      }
+
+      // A paid due: stripe_webhook is the one writer of paid_at, so a row with it is a payment we recorded.
+      const PAID = ['paid', 'settled'];
+      const total = (d: any) => Math.round((Number(d.amount_due || 0) + Number(d.admin_fee || 0) + Number(d.interest_amount || 0) + Number(d.fine_amount || 0)) * 100) / 100;
+      if (action === 'receipts') {
+        const { data, error } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,currency,paid_at')
+          .eq('supplier_id', sup.id).in('status', PAID).not('paid_at', 'is', null).order('paid_at', { ascending: false }).limit(50);
+        if (error) return J({ error: 'temporarily_unavailable' }, 503);
+        return J({ ok: true, receipts: (data || []).map((d: any) => ({ id: d.id, paid_at: d.paid_at, total: total(d), currency: d.currency || 'AED' })) });
+      }
+
+      const { data: d } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,currency,paid_at,reveal_date,payment_ref')
+        .eq('id', Number(body.due_id) || 0).eq('supplier_id', sup.id).in('status', PAID).not('paid_at', 'is', null).maybeSingle();
+      if (!d) return J({ error: 'Receipt not found' }, 404);
+      const ref = 'QD-RC-' + String(d.id);
+      const cur = String(d.currency || 'AED');
+      const rows = [
+        [T('Reveal fee refunded to the customer', 'رسوم الكشف المستردّة للعميل'), money(d.amount_due)],
+        [T('Administrative fee', 'الرسوم الإدارية'), money(d.admin_fee)],
+        [T('Interest and fines', 'الفوائد والغرامات'), money(Number(d.interest_amount || 0) + Number(d.fine_amount || 0))],
+        [T('Total paid', 'إجمالي المدفوع'), money(total(d))],
+      ];
+      const url = await print({ title: T('Payment receipt', 'إيصال دفع'), ref, name: ref, lang, options: { letterhead: true }, blocks: [
+        { t: 'kv', pairs: [[T('Receipt', 'رقم الإيصال'), ref], [T('Company', 'الشركة'), String(sup.company_name || '—')], [T('Paid on', 'تاريخ الدفع'), day(d.paid_at)],
+          [T('Payment reference', 'مرجع الدفع'), String(d.payment_ref || '—')], [T('Reveal date', 'تاريخ الكشف'), day(d.reveal_date)]] },
+        { t: 'table', head: [T('Item', 'البند'), T(`Amount (${cur})`, `المبلغ (${cur === 'AED' ? 'درهم' : cur})`)], rows, widths: [0.7, 0.3] },
+        { t: 'note', text: T('QuotesDone recorded this payment when Stripe confirmed it. Stripe emails the invoice for the same payment separately.',
+          'سجّلت QuotesDone هذه الدفعة عند تأكيد Stripe لها. وترسل Stripe فاتورة الدفعة نفسها بالبريد الإلكتروني بشكل منفصل.') },
+      ] });
+      return url ? J({ ok: true, url, ref, lang }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
+    }
+
     if (action === 'projects') {
       const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       // A REVEALED JOB WITH NO WAY TO REACH THE CUSTOMER (14 Sep 2026). A transactions row is the
