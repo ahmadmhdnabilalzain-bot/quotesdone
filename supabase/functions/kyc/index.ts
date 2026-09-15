@@ -5,7 +5,7 @@ import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/d
 import { dobProblem } from '../_shared/account_rule.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
-import { askedPatch, choosePatch, parseChoiceOpt, verifiedPatch, whatsappState, whatsappUnavailable, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
+import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -295,28 +295,36 @@ Deno.serve(observe('kyc', async (req) => {
       await logRun('ok', { action, kind, opt }, '');
       return J({ ok: true, whatsapp: whatsappState(patch as WhatsAppRow) });
     }
+    // WHATSAPP FIRST, SMS ON REFUSAL (founder, 15 Sep 2026: "live on the portal now, not after Meta").
+    // Every attempt asks Verify for Channel=whatsapp; only Verify's template / sender refusal
+    // (_shared/whatsapp_choice.ts REFUSED_CODES) sends the same code by SMS to the SAME number. The code
+    // is checked by the same Verify service whichever channel carried it, so whatsapp_verify is unchanged.
+    // The delivered channel is recorded in phone_verifications.code as 'twilio:<channel>' (the column only
+    // ever held the marker 'twilio'; no reader compares it), so the day WhatsApp starts delivering shows
+    // up in the table with no code change.
     if (action === 'whatsapp_send_code') {
       const phone = toE164(String(b.phone || ''));
       if (!phone) return J({ ok: false, error: 'bad_phone', code: 'bad_phone' }, 400);
+      // A reserved fixture number never reaches this line: the shared guard above (isDemoPhone, #681)
+      // refuses it first, reading the phone exactly as `phone` is read here, so the number it checks is
+      // the number sent to Twilio below.
       const tw = await twilioAuth();
       if (!tw) { await logRun('error', { action, kind }, 'WhatsApp code not sent: missing twilio_api_key_sid / secret / verify_service_sid'); return J({ ok: false, error: 'whatsapp_unavailable', code: 'whatsapp_unavailable' }, 200); }
       if (await phoneRateLimited(phone)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour (SMS, call and WhatsApp share it)'); return J({ ok: false, error: 'rate_limited', code: 'rate_limited' }, 429); }
       if (!(await writeWa(askedPatch(new Date().toISOString())))) return saveFailed();
-      const { r, jd } = await verifySend(tw, phone, 'whatsapp', await registeredLocale(admin, { role: kind, email }, b.lang));
-      if (whatsappUnavailable(r.status, jd)) {
-        await logRun('error', { action, kind, http: r.status, twilio_code: jd?.code ?? null }, 'WhatsApp channel unavailable on the Verify service - no code was sent: ' + String(jd?.message || '').slice(0, 200));
-        return J({ ok: false, error: 'whatsapp_unavailable', code: 'whatsapp_unavailable', twilio_code: jd?.code ?? null }, 200);
-      }
-      if (!r.ok || jd?.status === 'canceled') {
-        await logRun('error', { action, kind, http: r.status, twilio_code: jd?.code ?? null }, 'twilio verify send failed on channel whatsapp: ' + String(jd?.message || jd?.status || '').slice(0, 200));
-        return J({ ok: false, error: 'send_failed', code: 'send_failed', twilio_code: jd?.code ?? null }, 502);
+      const vLocale = await registeredLocale(admin, { role: kind, email }, b.lang);
+      const res = await sendWhatsAppFirst((ch) => verifySend(tw, phone, ch, vLocale));
+      if (!res.ok) {
+        await logRun('error', { action, kind, http: res.r.status, twilio_code: res.jd?.code ?? null, whatsapp_refused: res.refused }, 'twilio verify send failed' + (res.refused ? ' on SMS after WhatsApp was refused (' + res.refused + ')' : ' on channel whatsapp') + ': ' + String(res.jd?.message || res.jd?.status || '').slice(0, 200));
+        return J({ ok: false, error: 'send_failed', code: 'send_failed', twilio_code: res.jd?.code ?? null }, 502);
       }
       // The row is the rate-limit ledger shared with send_sms, not a record of the number as the
       // account's WhatsApp - that is written only by whatsapp_verify.
-      const pv = await admin.from('phone_verifications').insert({ email, phone, code: 'twilio', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+      const marker = 'twilio:' + res.channel;
+      const pv = await admin.from('phone_verifications').insert({ email, phone, code: marker, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       if (pv.error) await logRun('error', { action, kind, stage: 'phone_verifications' }, 'WhatsApp code sent but the rate-limit row was not written: ' + pv.error.message);
-      else await logRun('ok', { action, kind, channel: 'whatsapp' }, '');
-      return J({ ok: true, channel: 'whatsapp' });
+      else await logRun('ok', { action, kind, channel: res.channel, whatsapp_refused: res.refused }, res.channel === 'whatsapp' ? '' : 'The WhatsApp-number code went by SMS: ' + (res.refused ? 'Verify refused the WhatsApp channel (' + res.refused + ')' : 'Verify accepted Channel=whatsapp and delivered by SMS itself') + '. Expected until Meta approves the Authentication template.');
+      return J({ ok: true, channel: res.channel });
     }
     if (action === 'whatsapp_verify') {
       const phone = toE164(String(b.phone || '')); const code = String(b.code || '').replace(/\D/g, '');
@@ -341,6 +349,12 @@ Deno.serve(observe('kyc', async (req) => {
     if (action === 'accept_terms') {
       // A customer cannot finish the account without an 18+ date of birth on file (account rule).
       if (kind === 'customer') { const dp = dobProblem((cust as any)?.date_of_birth); if (dp) return J({ error: dp, code: dp }, 400); }
+      // THE WHATSAPP QUESTION IS PART OF SIGN-UP (founder, 15 Sep 2026: "It's in the sign up"). A
+      // customer's FIRST acceptance is the end of sign-up, so it waits for the answer. A customer who
+      // accepted before the question existed is not refused here (re-acceptance of a new version); the
+      // dashboard asks them once instead. Suppliers are held at supplier_api save_profile, which is
+      // where their sign-up completes.
+      if (kind === 'customer' && !(cust as any)?.tos_accepted_at && !whatsappState(await readWa()).opt) return J({ error: 'whatsapp_unanswered', code: 'whatsapp_unanswered', message: 'Tell us whether your mobile is also your WhatsApp number first.' }, 400);
       const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
       const nowIso = new Date().toISOString();
       // ONE SOURCE OF TRUTH FOR THE VERSION (2 Aug 2026, external code review). 'v4' and 'v3' were

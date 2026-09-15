@@ -34,15 +34,41 @@ export function whatsappState(r: WhatsAppRow | null | undefined) {
   return { opt, phone: verified ? row.whatsapp_phone! : null, verified, asked: !!row.whatsapp_asked_at || opt !== null };
 }
 
-// Twilio answers that mean "the WhatsApp channel is not set up on this Verify service", as opposed to
-// a bad number or a transient fault. The brief names 68008, 63008 and 60410; a 4xx whose message
-// mentions WhatsApp is included because Twilio's wording for an unconfigured channel varies by
-// account state and a false "sent" is the one outcome this must never produce.
-const UNAVAILABLE_CODES = new Set([68008, 63008, 60410]);
-export function whatsappUnavailable(httpStatus: number, body: { code?: unknown; message?: unknown } | null | undefined): boolean {
-  const code = Number(body?.code);
-  if (UNAVAILABLE_CODES.has(code)) return true;
-  return httpStatus >= 400 && httpStatus < 500 && /whats\s*app/i.test(String(body?.message || ''));
+// Twilio refusals that mean "Verify cannot use its WhatsApp sender or Authentication template" — and
+// ONLY those (founder, 15 Sep 2026: fall back only on the specific template or sender refusal):
+//   68008  Verify WhatsApp channel not configured (missing sender / Authentication template, WABA policy)
+//   63118  the WhatsApp sender configuration behind the Verify service was not found
+//   63008  the WhatsApp channel module is misconfigured
+// 60410 (Fraud Guard blocked the attempt) is deliberately NOT here: retrying a fraud block on SMS would
+// hand the attacker the second channel. Any other refusal is a send failure, never a false "sent".
+const REFUSED_CODES = new Set([68008, 63118, 63008]);
+export function whatsappUnavailable(_httpStatus: number, body: { code?: unknown; message?: unknown } | null | undefined): boolean {
+  return REFUSED_CODES.has(Number(body?.code));
+}
+
+// Which channel actually carried the code. Verify's top-level `channel` echoes what was ASKED for:
+// measured 15 Sep 2026 on this service, a Channel=whatsapp send answered 201 with channel:'whatsapp'
+// while its only delivery attempt, send_code_attempts[0].channel, was 'sms' — Verify fell back by itself
+// because Meta has not approved the Authentication template. The last attempt is the truth.
+// deno-lint-ignore no-explicit-any
+export function deliveredChannel(jd: any, asked: string): string {
+  const a = Array.isArray(jd?.send_code_attempts) ? jd.send_code_attempts : [];
+  const last = a.length ? a[a.length - 1] : null;
+  return String(last?.channel || jd?.channel || asked);
+}
+
+// WhatsApp first on EVERY attempt, SMS to the same number only when Verify refuses the WhatsApp channel
+// itself. The day Meta approves the template, the first send starts delivering on WhatsApp and nothing
+// here changes. `send` is kyc's Twilio call (or the fixture stand-in); injected so the fallback is
+// unit-tested without Twilio.
+// deno-lint-ignore no-explicit-any
+export type VerifySendResult = { r: { ok: boolean; status: number }; jd: any };
+export async function sendWhatsAppFirst(send: (channel: 'whatsapp' | 'sms') => Promise<VerifySendResult>) {
+  let res = await send('whatsapp');
+  let refused: number | null = null;
+  if (whatsappUnavailable(res.r.status, res.jd)) { refused = Number(res.jd?.code); res = await send('sms'); }
+  const ok = res.r.ok && res.jd?.status !== 'canceled';
+  return { ...res, ok, refused, channel: ok ? deliveredChannel(res.jd, refused ? 'sms' : 'whatsapp') : null };
 }
 
 export type Patch = Record<string, string | boolean | null>;

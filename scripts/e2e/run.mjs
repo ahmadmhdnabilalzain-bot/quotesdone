@@ -25,7 +25,7 @@ import { newRun, teardown } from '../staging/demo_factory.mjs';
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const KEEP = argv.includes('--keep');
-const only = (val('--journey') || 'a,b,c,d,e,f').split(',').map((s) => s.trim()).filter(Boolean);
+const only = (val('--journey') || 'a,b,c,d,e,f,g').split(',').map((s) => s.trim()).filter(Boolean);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
@@ -82,7 +82,7 @@ try {
   }
   browser = await launch();
   ctx.browser = browser;
-  for (const k of ['a', 'b', 'c', 'd', 'e', 'f']) {
+  for (const k of ['a', 'b', 'c', 'd', 'e', 'f', 'g']) {
     if (!only.includes(k)) continue;
     try { await JOURNEYS[k](ctx); }
     catch (e) { rep.step(`${k}`, 'journey crashed', 'FAIL', String(e.stack || e.message).split('\n').slice(0, 3).join(' | ')); }

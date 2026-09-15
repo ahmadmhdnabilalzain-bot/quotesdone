@@ -1,5 +1,5 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { askedPatch, choosePatch, parseChoiceOpt, verifiedPatch, whatsappState, whatsappUnavailable } from './whatsapp_choice.ts';
+import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, whatsappUnavailable } from './whatsapp_choice.ts';
 
 const NOW = '2026-09-14T10:00:00.000Z';
 
@@ -53,15 +53,55 @@ Deno.test('every patch that sets a phone also sets verified_at', () => {
   assertEquals(askedPatch(NOW), { whatsapp_asked_at: NOW });
 });
 
-Deno.test('unavailable: named codes, and a 4xx that mentions WhatsApp', () => {
+Deno.test('refused: only the template / sender refusals, never fraud, throttle or a bad number', () => {
   assert(whatsappUnavailable(400, { code: 68008 }));
+  assert(whatsappUnavailable(400, { code: '63118' }));
   assert(whatsappUnavailable(400, { code: '63008' }));
-  assert(whatsappUnavailable(403, { code: 60410 }));
-  assert(whatsappUnavailable(400, { code: 60200, message: 'WhatsApp channel is not configured for this service' }));
+  assert(!whatsappUnavailable(403, { code: 60410 }), 'a Fraud Guard block must not be retried on SMS');
+  assert(!whatsappUnavailable(400, { code: 60200, message: 'WhatsApp channel is not configured for this service' }));
   assert(!whatsappUnavailable(400, { code: 60200, message: 'Invalid parameter: To' }));
-  assert(!whatsappUnavailable(500, { message: 'whatsapp upstream error' }));
   assert(!whatsappUnavailable(429, { code: 60203, message: 'Max send attempts reached' }));
   assert(!whatsappUnavailable(400, null));
+});
+
+// ---- the channel fallback (founder, 15 Sep 2026: WhatsApp first on every attempt, SMS only on refusal)
+const fake = (answers: Record<string, { status: number; jd: unknown }>) => {
+  const calls: string[] = [];
+  const send = (ch: 'whatsapp' | 'sms') => { calls.push(ch); const a = answers[ch]; return Promise.resolve({ r: { ok: a.status < 300, status: a.status }, jd: a.jd }); };
+  return { calls, send };
+};
+
+Deno.test('fallback: WhatsApp delivers -> one send, channel whatsapp', async () => {
+  const f = fake({ whatsapp: { status: 201, jd: { status: 'pending', channel: 'whatsapp', send_code_attempts: [{ channel: 'whatsapp' }] } }, sms: { status: 201, jd: {} } });
+  const res = await sendWhatsAppFirst(f.send);
+  assertEquals(f.calls, ['whatsapp']);
+  assertEquals([res.ok, res.channel, res.refused], [true, 'whatsapp', null]);
+});
+
+Deno.test('fallback: template refusal 68008 -> SMS to the same number, channel sms, refusal recorded', async () => {
+  const f = fake({ whatsapp: { status: 400, jd: { code: 68008, message: 'Verify WhatsApp channel not configured' } }, sms: { status: 201, jd: { status: 'pending', channel: 'sms' } } });
+  const res = await sendWhatsAppFirst(f.send);
+  assertEquals(f.calls, ['whatsapp', 'sms']);
+  assertEquals([res.ok, res.channel, res.refused], [true, 'sms', 68008]);
+});
+
+Deno.test('fallback: Verify accepts WhatsApp but delivers by SMS (measured 15 Sep 2026) -> channel sms, no second send', async () => {
+  const f = fake({ whatsapp: { status: 201, jd: { status: 'pending', channel: 'whatsapp', send_code_attempts: [{ channel: 'sms' }] } }, sms: { status: 201, jd: {} } });
+  const res = await sendWhatsAppFirst(f.send);
+  assertEquals(f.calls, ['whatsapp']);
+  assertEquals([res.ok, res.channel, res.refused], [true, 'sms', null]);
+});
+
+Deno.test('fallback: any other refusal is a failure and never falls back', async () => {
+  for (const jd of [{ code: 60410 }, { code: 60200 }, { code: 60203 }]) {
+    const f = fake({ whatsapp: { status: 400, jd }, sms: { status: 201, jd: {} } });
+    const res = await sendWhatsAppFirst(f.send);
+    assertEquals(f.calls, ['whatsapp'], JSON.stringify(jd));
+    assertEquals([res.ok, res.channel], [false, null]);
+  }
+  const both = fake({ whatsapp: { status: 400, jd: { code: 68008 } }, sms: { status: 400, jd: { code: 21211 } } });
+  const r2 = await sendWhatsAppFirst(both.send);
+  assertEquals([both.calls, r2.ok, r2.channel], [['whatsapp', 'sms'], false, null]);
 });
 
 Deno.test('state: an unverified phone is reported as no phone; asked covers opt or timestamp', () => {
