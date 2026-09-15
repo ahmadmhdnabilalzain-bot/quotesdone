@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T00:54:06.723Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T06:02:57.166Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -18596,135 +18596,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19240,6 +19111,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -26649,6 +26649,13 @@ begin
   end if;
 
   if d->>'recipient_role' = 'founder' then
+    -- A NEW BUG WAITS FOR THE DIGEST (the_founder_gets_one_it_digest_per_tick.sql). 55 requests in one
+    -- minute were 55 emails and 55 WhatsApp messages; fn_customer_support_sends_the_it_digest sends them
+    -- as one. 'waiting' keeps the request pending, so the watch does not read it until it is sent.
+    if d->>'kind' = 'it_new_bug' then
+      return jsonb_build_object('channel', 'founder', 'digest', 'pending', 'event', d->>'event',
+                                'waiting', 'the next IT digest (fn_customer_support_sends_the_it_digest)');
+    end if;
     -- A TEST NEVER REACHES HIM. The fixture ladder sets app.qd_stub_founder_notify; the probe also
     -- aborts its transaction, so even the queued rows are never committed.
     if coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on' then
@@ -26906,6 +26913,124 @@ begin
   end loop;
   return jsonb_build_object('results_returned', v_done, 'still_watching', v_waiting, 'retried', v_retried,
                             'overdue_raised', v_overdue, 'results_failed', v_failed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_sends_the_it_digest(p_floor interval DEFAULT '01:00:00'::interval)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_stub boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
+  v_ids bigint[]; v_dup bigint[]; v_send bigint[]; v_last timestamptz; v_n int; v_lines int := 0;
+  v_event text; v_detail text; v_key text; v_res jsonb; v_fan jsonb := '[]'::jsonb; v_before bigint; x record;
+begin
+  -- Two ticks at once must not both send: the second waits, then finds nothing pending.
+  perform pg_advisory_xact_lock(hashtext('fn_customer_support_sends_the_it_digest'));
+
+  select coalesce(array_agg(a.id order by a.id), '{}') into v_ids
+    from public.agent_actions a
+   where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'pending'
+     and a.detail->>'type' = 'delivery.request' and a.detail->>'recipient_role' = 'founder'
+     and a.detail->>'kind' = 'it_new_bug' and a.evidence->>'digest' = 'pending';
+  if cardinality(v_ids) = 0 then return jsonb_build_object('sent', false, 'held', 0); end if;
+
+  select max(f.created_at) into v_last from public.founder_alerts f
+   where f.dedupe_key like 'it_new_bug_digest:%' and f.channel = 'email';  -- fn_notify_founder logs the send as 'email'
+  if v_last > now() - p_floor then
+    return jsonb_build_object('sent', false, 'held', cardinality(v_ids), 'next_after', v_last + p_floor);
+  end if;
+
+  -- The per-issue promise fn_notify_founder kept: one message per problem per 24 hours.
+  select coalesce(array_agg(a.id order by a.id) filter (where exists (
+           select 1 from public.founder_alerts f
+            where f.dedupe_key = a.detail->>'dedupe_key' and f.channel in ('email', 'whatsapp', 'digested')
+              and f.created_at > now() - interval '24 hours')), '{}'),
+         coalesce(array_agg(a.id order by a.id) filter (where not exists (
+           select 1 from public.founder_alerts f
+            where f.dedupe_key = a.detail->>'dedupe_key' and f.channel in ('email', 'whatsapp', 'digested')
+              and f.created_at > now() - interval '24 hours')), '{}')
+    into v_dup, v_send
+    from public.agent_actions a where a.id = any(v_ids);
+  v_n := cardinality(v_send);
+
+  if v_n = 1 then
+    -- One problem reads as it always did.
+    select a.detail->>'event', a.detail->>'detail' into v_event, v_detail from public.agent_actions a where a.id = v_send[1];
+  elsif v_n > 1 then
+    with items as (
+      select a.id,
+             regexp_replace(coalesce(a.detail->>'dedupe_key', 'handoff:' || a.id), '^it_new_bug:', '') as ref,
+             regexp_replace(coalesce(a.detail->>'event', ''), '^New problem the IT engineer could not fix: ', '') as title
+        from public.agent_actions a where a.id = any(v_send)),
+    fam as (
+      select i.*, case when regexp_replace(i.ref, ':[^:]*$', '') ~ ':' then regexp_replace(i.ref, ':[^:]*$', '') else i.ref end as family
+        from items i),
+    g as (
+      select family, count(distinct ref) as n, min(title) as title, min(ref) as ref, min(id) as first_id,
+             row_number() over (order by min(id)) as rn
+        from fam group by family)
+    select count(*)::int,
+           string_agg(case when n = 1 then '- ' || left(title, 140) || ' (reference ' || ref || ')'
+                           else '- ' || n || ' problems of one kind, ' || family || ', e.g. ' || left(title, 110)
+                                || ' (references ' || family || ':...)' end,
+                      E'\n' order by rn) filter (where rn <= 15)
+      into v_lines, v_detail
+      from g;
+    -- ponytail: 15 lines keep the WhatsApp twin readable; the rest is on each handoff in the OS.
+    v_event := v_n || ' new problems the IT engineer could not fix';
+    v_detail := 'Raised since the last message, one line each; problems of one kind raised together are one line with their count.'
+             || E'\n\n' || v_detail
+             || case when v_lines > 15 then E'\n- and ' || (v_lines - 15) || ' more lines, each on its handoff in the OS' else '' end
+             || E'\n\nNothing inside the company fixed these, so each needs a code or configuration change. '
+             || 'Each stays tracked until the IT engineer confirms it is gone.';
+  end if;
+
+  if v_n > 0 then
+    v_key := 'it_new_bug_digest:' || v_send[1] || '-' || v_send[v_n];
+    if v_stub then
+      -- A TEST NEVER REACHES HIM: nothing is queued and nothing is logged as told.
+      v_res := jsonb_build_object('stubbed', true);
+    else
+      select coalesce(max(id), 0) into v_before from public.notifications;
+      perform set_config('app.qd_delivery_tracked', 'on', true);
+      v_res := public.fn_notify_founder(p_event => v_event, p_detail => v_detail, p_level => 'high',
+                                        p_kind => 'it_new_bug', p_dedupe_key => v_key, p_owner_agent => 'customer_support');
+      select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
+       where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
+      perform set_config('app.qd_delivery_tracked', 'off', true);
+      -- Each problem is recorded as told, under its own key, so the 24-hour promise holds next tick --
+      -- only when he WAS told: a digest the policy routed elsewhere must not count as telling him.
+      if coalesce((v_res->>'emailed')::boolean, false) then
+        insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+        select 'high', a.detail->>'event', 'told in ' || v_key, 'digested', a.detail->>'dedupe_key'
+          from public.agent_actions a where a.id = any(v_send);
+      end if;
+    end if;
+  end if;
+  if not v_stub and cardinality(v_dup) > 0 then
+    insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+    select 'high', a.detail->>'event', a.detail->>'detail', 'deduped', a.detail->>'dedupe_key'
+      from public.agent_actions a where a.id = any(v_dup);
+  end if;
+
+  -- Every held request is completed with what became of it; the delivery watch takes it from there.
+  for x in select a.id, a.evidence from public.agent_actions a where a.id = any(v_ids) order by a.id loop
+    if x.id = any(v_dup) then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'deduped',
+        'notify', jsonb_build_object('emailed', false, 'deduped', true, 'kind', 'it_new_bug')));
+    else
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'sent',
+        'digest_key', v_key, 'digest_size', v_n, 'notify', v_res, 'notification_ids', v_fan, 'notification_id', v_fan->0)
+        || case when v_stub then jsonb_build_object('stubbed', true) else '{}'::jsonb end);
+    end if;
+  end loop;
+
+  return jsonb_build_object('sent', v_n > 0, 'items', cardinality(v_ids), 'problems', v_n, 'lines', v_lines,
+                            'deduped', cardinality(v_dup), 'digest_key', v_key, 'event', v_event, 'detail', v_detail,
+                            'notify', v_res, 'notification_ids', v_fan, 'stubbed', v_stub);
 end $function$
 
 
@@ -33569,6 +33694,20 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_dnsbl_listed(p_list text, p_answers jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(bool_or(
+           case when p_list = 'dbl.spamhaus.org' then m[1]::int = 1 and m[2]::int between 2 and 254
+                else m[1]::int = 0 and m[2]::int between 2 and 254 end), false)
+    from jsonb_array_elements_text(case when jsonb_typeof(p_answers) = 'array' then p_answers else '[]'::jsonb end) a,
+         regexp_match(a, '^127\.0\.(\d{1,3})\.(\d{1,3})$') m
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_dropbox_health_due()
  RETURNS boolean
  LANGUAGE sql
@@ -34016,7 +34155,7 @@ begin
       end if;
     end loop;
     for e in select b from jsonb_array_elements(coalesce(p_r->'sender'->'blocklists', '[]'::jsonb)) b loop
-      if e->>'basis' = 'measured' and coalesce((e->>'listed')::boolean, false) then
+      if e->>'basis' = 'measured' and public.fn_it_dnsbl_listed(e->>'list', e->'answers') then
         v_items := v_items || jsonb_build_object('item', 'blocklist:' || (e->>'list') || ':' || (e->>'target'), 'owner_seat', 'customer_support',
           'subject', 'send_outbox', 'title', (e->>'target') || ' is listed on ' || (e->>'list'),
           'blast', 'customer_facing', 'affected', 1, 'evidence', e);
@@ -35062,8 +35201,11 @@ begin
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
   exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
+  -- Last, so everything this tick escalated leaves in the one message.
+  begin o := o || jsonb_build_object('digest', public.fn_customer_support_sends_the_it_digest());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'digest', 'error', sqlerrm); end;
 
-  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily'] loop
+  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily', 'digest'] loop
     perform public.fn_it_loop_stage(v_step,
       (select string_agg(coalesce(e->>'issue_key' || ': ', '') || (e->>'error'), '; ')
          from jsonb_array_elements(v_err) e where e->>'step' = v_step));
