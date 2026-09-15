@@ -1,7 +1,19 @@
 // The daily table export: a firewall refusal, an expired token and a provider outage mid-run.
 // Pure tests, no network: the storage upload and the page reader are stand-ins.
 import { assert, assertEquals, assertRejects } from 'jsr:@std/assert@1';
-import { classifyFailure, exportSlot, ExportError, retry, wafSafeJson, type Deps, type Slot } from './table_export_core.ts';
+import { classifyFailure, exportSlot, ExportError, leftoverFailure, retry, wafSafeJson, type Deps, type Slot } from './table_export_core.ts';
+
+Deno.test('a v2-shaped state (failing table already off the queue) still yields an internal finding', () => {
+  // the 2026-09-15 shape: kb_chunks errored under v2 and was shifted away; the queue moved on
+  const st = { queue: [] as Slot[], errors: { kb_chunks: 'upload 2026-09-15/kb_chunks/page_0103.json: Forbidden' } };
+  const f = leftoverFailure(st.errors);
+  assert(f);
+  assertEquals(f.cause, 'internal');
+  assertEquals(f.table, 'kb_chunks');
+  assert(f.error.startsWith('kb_chunks: upload 2026-09-15/kb_chunks/page_0103.json: Forbidden'));
+  assertEquals(leftoverFailure({ a: 'x', b: 'y' })?.table, 'a,b');
+  assertEquals(leftoverFailure({}), null);   // a clean day settles nothing here and closes via the success path
+});
 
 // What an OWASP guide row looks like (the shape of kb_chunks 185295, which the edge firewall refused).
 const attacky = [
