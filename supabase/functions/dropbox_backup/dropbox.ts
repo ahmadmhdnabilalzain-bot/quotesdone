@@ -12,8 +12,8 @@
 //     the rest of its claim left 'processing' for 10 minutes. Now:
 //       - the token and its expiry are kept in app_secrets ('dropbox_access_token', fn_security_audit
 //         redacts the value) and reused until 10 minutes before expiry (Dropbox: expires_in 14400);
-//       - one link refreshes at a time: a lease written by compare-and-set on the stored value, the
-//         others wait for the new token instead of stampeding the token endpoint;
+//       - one link refreshes at a time: a lease written by compare-and-set on the row's version stamp
+//         (never on the token itself), the others wait for the new token instead of stampeding;
 //       - a 429, 5xx or network failure of the refresh is retried with backoff inside a budget and
 //         then thrown as AuthUnavailable ('oauth2/token <status>' - health.ts classes it rate_limit,
 //         provider_outage or network), never as 'no_dropbox_auth';
@@ -64,13 +64,21 @@ export async function refreshAccessToken(rt: string, key: string, secret: string
   return { token: String(j.access_token), expiresIn: Number(j.expires_in) || 14400 };
 }
 
-// Where the shared token lives. `get` answers the stored text (null: no row); `cas` writes `next`
-// only if the stored text is still `prev` (null: insert only if absent) and says whether it did.
-export interface TokenStore { get(): Promise<string | null>; cas(prev: string | null, next: string): Promise<boolean> }
+// Where the shared token lives. `get` answers the stored text and an opaque version stamp (both null:
+// no row). `cas` writes `next` only if the version is still `prev` (null: insert only if absent) and
+// answers the new stamp, or null when someone else moved first. The STAMP is compared, never the
+// text: the text holds the token, and a filter value travels in the request URL (security review of
+// #704), where the token must never be.
+export type Stored = { value: string | null; stamp: string | null };
+export interface TokenStore { get(): Promise<Stored>; cas(prev: string | null, next: string): Promise<string | null> }
 
 export function memoryStore(): TokenStore {
-  let v: string | null = null;
-  return { get: () => Promise.resolve(v), cas: (p, n) => { if (v !== p) return Promise.resolve(false); v = n; return Promise.resolve(true); } };
+  let v: string | null = null, n = 0;
+  const stamp = () => v === null ? null : String(n);
+  return {
+    get: () => Promise.resolve({ value: v, stamp: stamp() }),
+    cas: (p, next) => { if (stamp() !== p) return Promise.resolve(null); v = next; return Promise.resolve(String(++n)); },
+  };
 }
 
 // Stored as "<expires ms>|<lease-until ms>|<token>". A Dropbox token is [A-Za-z0-9._-], so '|' is safe.
@@ -104,16 +112,16 @@ export class TokenCache {
     let fails = 0; let last: unknown = null;
     for (;;) {
       if (now() >= until) throw new AuthUnavailable('oauth2/token no shared token settled within the wait budget' + (last ? ': ' + (last as Error).message : ''));
-      const raw = await this.store.get(); const e = parse(raw);
+      const { value: raw, stamp } = await this.store.get(); const e = parse(raw);
       if (usable(e)) { this.mine = e; this.reused++; return e.token; }
       if (e.lease > now()) {                        // another link is refreshing: wait for its token
         this.waits++; await sleep(250 + Math.floor(Math.random() * 500)); continue;
       }
-      const leased = fmt({ ...e, lease: now() + leaseMs });
-      if (!(await this.store.cas(raw, leased))) continue;   // someone moved first: read again
+      const leased = await this.store.cas(stamp, fmt({ ...e, lease: now() + leaseMs }));
+      if (leased === null) { await sleep(50 + Math.floor(Math.random() * 200)); continue; }   // someone moved first: read again
       let got: Refreshed;
       try { this.refreshes++; got = await this.refresh(); } catch (err) {
-        await this.store.cas(leased, fmt({ ...e, lease: 0 })).catch(() => false);   // give the lease back
+        await this.store.cas(leased, fmt({ ...e, lease: 0 })).catch(() => null);   // give the lease back
         if (!(err instanceof AuthUnavailable)) throw err;   // refused: 'no_dropbox_auth', loud, no retry
         last = err; fails++;
         const wait = Math.min(1000 * 2 ** (fails - 1), 8000) + Math.floor(Math.random() * 250);
@@ -121,7 +129,7 @@ export class TokenCache {
         await sleep(wait); continue;
       }
       const fresh: Entry = { exp: now() + got.expiresIn * 1000, lease: 0, token: got.token };
-      await this.store.cas(leased, fmt(fresh)).catch(() => false);   // lost lease: the token is still good
+      await this.store.cas(leased, fmt(fresh)).catch(() => null);   // lost lease: the token is still good
       this.mine = fresh; return fresh.token;
     }
   }

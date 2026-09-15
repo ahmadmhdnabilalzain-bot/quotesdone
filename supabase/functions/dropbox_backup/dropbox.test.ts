@@ -39,6 +39,16 @@ Deno.test('single flight: twenty concurrent runs cause one refresh and all get i
   assertEquals(n, 1);
 });
 
+Deno.test('the compare-and-set predicate is the version stamp, never the token (it would travel in a URL)', async () => {
+  const inner = memoryStore(); const prevs: (string | null)[] = []; const c = clock();
+  const spy = { get: () => inner.get(), cas: (p: string | null, n: string) => { prevs.push(p); return inner.cas(p, n); } };
+  await new TokenCache(spy, () => tok('sl.SECRET-TOKEN'), c).token();
+  await c.sleep(4 * HOUR);                                       // expired: the next run refreshes over it
+  await new TokenCache(spy, () => tok('sl.SECOND-TOKEN'), c).token();
+  assert(prevs.length >= 3);
+  for (const p of prevs) assert(!String(p).includes('TOKEN'), 'a token reached the predicate');
+});
+
 Deno.test('a run that died holding the lease does not block the others past the lease', async () => {
   const store = memoryStore(); const c = clock();
   await store.cas(null, `0|${c.now() + 20_000}|`);             // a lease nobody will ever finish

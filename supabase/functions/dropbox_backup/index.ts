@@ -70,26 +70,30 @@ const esc = (s: unknown) => String(s ?? '—').replace(/[&<>]/g, (c) => ({ '&': 
 const fmtD = (s: unknown) => { if (!s) return '—'; try { return new Date(String(s)).toISOString().slice(0, 10); } catch { return String(s); } };
 
 // v11: the access token is shared by every run through app_secrets (dropbox.ts TokenCache). The
-// compare-and-set on the stored text is the single-flight guard: an update that names the old value
-// changes one row or none. fn_security_audit redacts app_secrets values in security_audit_log.
+// compare-and-set on the row's updated_at is the single-flight guard: an update that names the old
+// stamp changes one row or none. The filter carries only the stamp - the token goes in the request
+// body, never in the URL. fn_security_audit redacts app_secrets values in security_audit_log.
 const TOKEN_KEY = 'dropbox_access_token';
 const tokenStore: TokenStore = {
   async get() {
-    const { data, error } = await admin.from('app_secrets').select('value').eq('key', TOKEN_KEY).maybeSingle();
+    const { data, error } = await admin.from('app_secrets').select('value,updated_at').eq('key', TOKEN_KEY).maybeSingle();
     if (error) throw new Error('app_secrets read ' + error.message.slice(0, 120));
-    return (data?.value as string | undefined) ?? null;
+    if (!data) return { value: null, stamp: null };
+    return { value: String(data.value ?? ''), stamp: String(data.updated_at ?? '') };
   },
   async cas(prev, next) {
     if (prev === null) {
-      const { error } = await admin.from('app_secrets').insert({ key: TOKEN_KEY, value: next });
-      if (error?.code === '23505') return false;
+      const { data, error } = await admin.from('app_secrets').insert({ key: TOKEN_KEY, value: next }).select('updated_at').single();
+      if (error?.code === '23505') return null;
       if (error) throw new Error('app_secrets insert ' + error.message.slice(0, 120));
-      return true;
+      return String(data.updated_at);
     }
-    const { data, error } = await admin.from('app_secrets').update({ value: next, updated_at: new Date().toISOString() })
-      .eq('key', TOKEN_KEY).eq('value', prev).select('key');
+    // the new stamp always differs from the old one, even inside one millisecond
+    const stamp = new Date(Math.max(Date.now(), (Date.parse(prev) || 0) + 1)).toISOString();
+    const { data, error } = await admin.from('app_secrets').update({ value: next, updated_at: stamp })
+      .eq('key', TOKEN_KEY).eq('updated_at', prev).select('updated_at');
     if (error) throw new Error('app_secrets update ' + error.message.slice(0, 120));
-    return (data?.length ?? 0) === 1;
+    return data?.length === 1 ? String(data[0].updated_at) : null;
   },
 };
 function client(): DropboxClient {
@@ -333,7 +337,7 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     // caught here: the first row then fails loudly exactly as before.
     try { await dbx.tokens.token(); } catch (e) {
       if (e instanceof AuthUnavailable) {
-        await logRun('warn', { stage: 'token', enqueued, chain, refreshes: dbx.refreshes, reason: body.reason ?? null, class: classifyDropboxFailure(errText(e)) },
+        await logRun('warn', { stage: 'token', enqueued, chain, refreshes: dbx.refreshes, token_reused: dbx.tokens.reused, reason: body.reason ?? null, class: classifyDropboxFailure(errText(e)) },
           'The Dropbox token endpoint did not answer usefully (' + errText(e).slice(0, 160) + '); no document was claimed or marked failed. The next scheduled run retries.');
         return J({ ok: false, error: 'dropbox_token_unavailable', enqueued }, 503);
       }
