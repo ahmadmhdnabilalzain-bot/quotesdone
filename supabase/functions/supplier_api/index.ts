@@ -1177,8 +1177,12 @@ const handle = async (req: Request): Promise<Response> => {
       // straight back out to the buyer pre-payment. The UPLOAD path is left as-is: quote_extract
       // already anonymised it and supplies its own masked_terms, so scrubbing twice would only
       // mangle text a model has already cleaned.
+      // 15 Sep 2026 (security review): the UPLOAD path is scrubbed too. submit_quote is callable
+      // directly, so "source: upload" was a way past scrubIdentity for text typed by hand, and under the
+      // model hold the quotation review sends every upload down this path. scrubIdentity leaves text
+      // that is already clean unchanged, so a quotation quote_extract anonymised is unaffected.
       const maskHits: string[] = [];
-      const scrub = (v: unknown, n: number) => isUpload ? clip(v, n) : scrubIdentity(clip(v, n), sup.company_name, maskHits);
+      const scrub = (v: unknown, n: number) => scrubIdentity(clip(v, n), sup.company_name, maskHits);
       const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions, 2000);
       const priorMasked: string[] = Array.isArray(body.masked_terms) ? body.masked_terms.map((x: unknown) => String(x)) : [];
       const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];

@@ -65,6 +65,8 @@ export interface ReviewRepo {
   reviewsOf(supplierId: number): Promise<{ inquiry_id: string; status: ReviewState; updated_at: string }[]>;
   createReview(r: { inquiry_id: string; supplier_id: number; owner_email: string }): Promise<ReviewRow>;
   updateReview(id: string, patch: Partial<ReviewRow>): Promise<void>;
+  /** Move the review to `to` only if it is in one of `from` — the guard against a double submission. */
+  claim(id: string, from: ReviewState[], to: ReviewState): Promise<boolean>;
   addMessage(m: Omit<MessageRow, 'id' | 'created_at'>): Promise<MessageRow>;
   messages(reviewId: string): Promise<MessageRow[]>;
   requests(reviewId: string, onlyOpen?: boolean): Promise<RequestRow[]>;
@@ -267,6 +269,8 @@ export async function upload(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
   const fm = await supplierSays(repo, r0.id, 'file', note, [{ kind: 'quotation_file', name: sc.name, bucket: 'quote-files', path }]);
   const prior = effectiveState(r0, deps.now());
   await repo.updateReview(r0.id, { status: 'reviewing', reviewing_since: deps.now().toISOString(), original_file_path: path, original_file_name: sc.name });
+  // A failed write below must not leave the thread "reviewing": it goes back to where it was.
+  try {
   let read: FileRead;
   try { read = await deps.read(sc.bytes, sc.name, sc.mime); } catch (_e) { read = { proposal: null, text: '', kind: 'error' }; }
   const r = (await repo.review(inquiryId, ctx.supplierId))!;
@@ -282,6 +286,10 @@ export async function upload(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
   if (note) w = applyCorrections(w, readReply(note, []).corrections);
   await repo.updateReview(r.id, { extracted: read.proposal });
   await runReview(repo, deps, l.inq, r, w, fm.id);
+  } catch (e) {
+    await repo.updateReview(r0.id, { status: prior, reviewing_since: null }).catch(() => {});
+    throw e;
+  }
   return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
 }
 
@@ -362,14 +370,36 @@ async function doSubmit(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: SafeI
   // The rules are read once more at the moment of submission: nothing unreviewed is submitted.
   const rv = reviewQuotation(inq, r.working);
   if (!rv.approved) { await runReview(repo, deps, inq, r, r.working, trigger); return again(); }
+  const prior = effectiveState(r, deps.now());
+  // One submission at a time: a double click or a retry finds the review already moved, and stops.
+  if (!(await repo.claim(r.id, ['awaiting_choice', 'ready_to_submit'], 'reviewing'))) return again({ code: 'already_submitting', message: 'This quotation is already being submitted.' });
+  try {
+    return await submitClaimed(repo, deps, ctx, inq, r, rv, prior, again);
+  } catch (e) {
+    await repo.updateReview(r.id, { status: prior, reviewing_since: null }).catch(() => {});
+    throw e;
+  }
+}
+async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: SafeInquiry, r: ReviewRow, rv: Review, prior: ReviewState, again: (notice?: ThreadView['notice']) => Promise<ThreadView>): Promise<ThreadView> {
   const generated = r.choice === 'generate';
-  const res = await deps.submit(submitPayload(inq, r, r.working, rv));
+  const res = await deps.submit(submitPayload(inq, r, r.working!, rv));
   const j = res.json || {};
-  if (j.ok && j.accepted) {
-    const ids: string[] = Array.isArray(j.options) ? j.options.filter((o: Json) => o.accepted).map((o: Json) => String(o.quote_id)) : [String(j.quote?.id)];
+  const opts: Json[] = Array.isArray(j.options) ? j.options : [];
+  const acceptedIds: string[] = opts.length ? opts.filter((o) => o.accepted).map((o) => String(o.quote_id)) : (j.ok && j.accepted && j.quote?.id ? [String(j.quote.id)] : []);
+  // A multi-option submission can come back with one option accepted and another held
+  // (TypeScript review, 15 Sep 2026): the accepted one is submitted, the held one is named.
+  const heldOpts = opts.filter((o) => o.held);
+  if (j.ok && acceptedIds.length) {
+    const ids = acceptedIds;
     const pdf = generated && ids[0] ? await deps.quotePdf(ids[0], ctx.lang).catch(() => ({ url: null, ref: null })) : { url: null, ref: null };
     const atts: Attachment[] = generated && ids[0] ? [{ kind: 'standard_quote', name: `${pdf.ref || 'QuotesDone quotation'}.pdf`, quote_id: ids[0] }] : [];
-    const sm = await say(repo, r.id, 'submitted', submittedSaid(inq.job_no, pdf.ref, generated), { attachments: atts });
+    const heldIssues = heldOpts.flatMap((o) => (Array.isArray(o.missing) ? o.missing : []) as MissingItem[]).map(fromMissing);
+    const base = submittedSaid(inq.job_no, pdf.ref, generated);
+    const said: Said = heldOpts.length ? {
+      en: `${base.en}\n\n${heldOpts.map((o) => `Option ${o.option_no}`).join(', ')} is still held by the hold desk for these exact details — complete them in the hold panel on this job, and it is released when you confirm:\n\n${heldIssues.map((x, i) => `${i + 1}. ${x.en}`).join('\n')}`,
+      ar: `${base.ar}\n\n${heldOpts.map((o) => `الخيار ${o.option_no}`).join('، ')} ما زال معلّقًا لدى مكتب التعليق لهذه التفاصيل الدقيقة — أكملها في لوحة التعليق لهذا الطلب، ويُطلق عند تأكيدك:\n\n${heldIssues.map((x, i) => `${i + 1}. ${x.ar}`).join('\n')}`,
+    } : base;
+    const sm = await say(repo, r.id, 'submitted', said, { attachments: atts, issues: heldIssues.length ? heldIssues : undefined });
     const left = (await repo.requests(r.id, true)).map((x) => x.id);
     if (left.length) await repo.closeRequests(left, 'answered', sm.id);
     await repo.updateReview(r.id, { status: 'submitted', submitted_quote_ids: ids, completed_at: deps.now().toISOString(), reviewing_since: null });
@@ -388,18 +418,19 @@ async function doSubmit(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: SafeI
     const have = new Set((await repo.requests(r.id, true)).map((x) => x.key));
     const fresh = issues.filter((i) => !have.has(issueKey(i)));
     if (fresh.length) await repo.addRequests(fresh.map((i) => ({ review_id: r.id, key: issueKey(i), code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, label_en: i.en, label_ar: i.ar, asked_message_id: hm.id })));
-    await repo.updateReview(r.id, { status: 'changes_requested', choice: null, last_review: { ...rv, approved: false, issues } });
+    await repo.updateReview(r.id, { status: 'changes_requested', choice: null, reviewing_since: null, last_review: { ...rv, approved: false, issues } });
     return again();
   }
   if (j.ok) {
     // Saved as a draft by the commercial accept rule — say what it said, and keep the conversation open.
     await say(repo, r.id, 'notice', { en: `Your quotation was saved but not yet accepted: ${String(j.message || 'some commercial terms are missing')}. Tell me the missing terms, or attach a revised file.`, ar: `حُفظ عرضك لكنه لم يُقبل بعد: بعض الشروط التجارية ناقصة. اكتب الشروط الناقصة، أو أرفق ملفًا معدّلًا.` });
-    await repo.updateReview(r.id, { status: 'changes_requested', choice: null });
+    await repo.updateReview(r.id, { status: 'changes_requested', choice: null, reviewing_since: null });
     return again();
   }
   // Refused before anything was written (terms, verification, registration due, a concluded job).
   const msg = String(j.error || 'The quotation could not be submitted.');
   await say(repo, r.id, 'notice', { en: `I could not submit the quotation yet: ${msg}`, ar: `تعذّر تقديم العرض بعد: ${msg}` });
+  await repo.updateReview(r.id, { status: prior, reviewing_since: null });
   return again({ code: String(j.code || 'submit_refused'), message: msg });
 }
 
@@ -424,6 +455,11 @@ export function supabaseReviewRepo(admin: any): ReviewRepo {
       return got;
     },
     async updateReview(id, patch) { must(await admin.from('quote_reviews').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)); },
+    async claim(id, from, to) {
+      const now = new Date().toISOString();
+      const rows = must<{ id: string }[]>(await admin.from('quote_reviews').update({ status: to, reviewing_since: now, updated_at: now }).eq('id', id).in('status', from).select('id'));
+      return Array.isArray(rows) && rows.length > 0;
+    },
     async addMessage(m) { return must(await admin.from('quote_review_messages').insert(m).select('id,review_id,role,kind,body,body_ar,attachments,issues,created_at').single()); },
     async messages(reviewId) { return must(await admin.from('quote_review_messages').select('id,review_id,role,kind,body,body_ar,attachments,issues,created_at').eq('review_id', reviewId).order('created_at', { ascending: true }).order('id', { ascending: true }).limit(500)) ?? []; },
     async requests(reviewId, onlyOpen) { let q = admin.from('quote_review_request').select('*').eq('review_id', reviewId); if (onlyOpen) q = q.eq('state', 'open'); return must(await q.order('id', { ascending: true })) ?? []; },

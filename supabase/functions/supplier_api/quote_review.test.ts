@@ -11,6 +11,7 @@ import {
   type IssueCode, type SafeInquiry, type Working,
 } from './quote_review.ts';
 import { choose, message, readQuotationFile, start, submit, submitPayload, thread, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
+import { boqCsv } from './quote_review_actions.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
 
 const INQ_ID = '3f2a9c1e-0000-4000-8000-00000000abcd';
@@ -224,6 +225,48 @@ Deno.test('a photo is answered, not guessed; a closed job refuses; another suppl
   const shut = harness(inquiry({ concluded: true }));
   assertEquals(((await start(shut.mem.repo, shut.deps, shut.ctx, INQ_ID)) as { code: string }).code, 'inquiry_closed');
   assertEquals(((await thread(mem.repo, deps, ctx, '11111111-1111-4111-8111-111111111111')) as { code: string }).code, 'not_found');
+});
+
+Deno.test('an explained quantity does not silence a unit that differs on the same line', () => {
+  const w = good({ lines: [{ description: 'Jotun Fenomastic emulsion, 2 coats, internal walls', qty: '400', unit: 'litre', unit_price: 22.5, amount: 9000 }], qty_explained: { '1': 'measured on site' } });
+  const r = reviewQuotation(inquiry(), w);
+  assert(r.issues.some((i) => i.code === 'unit_mismatch') && !r.issues.some((i) => i.code === 'qty_mismatch'), JSON.stringify(r.issues.map((i) => i.code)));
+  const open = r.issues.filter((i) => i.code === 'unit_mismatch');
+  const rr = readReply('BOQ line 1 unit: we measure paint by the litre, 1 litre covers 1 m2', open);
+  assertEquals(rr.corrections.map((c) => (c as { what?: string }).what), ['unit']);
+  assert(reviewQuotation(inquiry(), applyCorrections(w, rr.corrections)).approved);
+});
+
+Deno.test('the BOQ CSV never hands Excel a formula', () => {
+  const csv = boqCsv([{ description: '=HYPERLINK("http://x","go")', qty: 1, unit: 'nr' }, { description: '+SUM(A1)', qty: 2, unit: '@x' }]);
+  assert(csv.includes(`"'=HYPERLINK(""http://x"",""go"")"`), csv);
+  assert(csv.includes("'+SUM(A1)") && csv.includes("'@x"), csv);
+});
+
+Deno.test('one option accepted and one held: the accepted one is submitted, the held one is named', async () => {
+  const { mem, deps, ctx } = harness();
+  deps.submit = () => Promise.resolve({ status: 200, json: { ok: true, accepted: true, held: true, options: [
+    { quote_id: 'q-1', option_no: 1, accepted: true },
+    { quote_id: 'q-2', option_no: 2, held: true, missing: [{ scope: 'quote', line_no: null, description: null, attr: 'delivery', label_en: 'Delivery date or lead time', label_ar: 'تاريخ التسليم', type: 'text' }] },
+  ] } });
+  await start(mem.repo, deps, ctx, INQ_ID);
+  await upload(mem.repo, deps, ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' });
+  const t = ok(await choose(mem.repo, deps, ctx, INQ_ID, 'generate'));
+  assertEquals(t.state, 'submitted'); assertEquals(t.submitted_quote_ids, ['q-1']);
+  const last = t.messages.at(-1)!;
+  assertMatch(last.body_en || '', /Option 2 is still held/); assert(ARABIC.test(last.body_ar || ''));
+});
+
+Deno.test('a double submission submits once', async () => {
+  const { mem, deps, submitted, ctx } = harness();
+  await start(mem.repo, deps, ctx, INQ_ID);
+  await upload(mem.repo, deps, ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'q1.csv', mime: 'text/csv' });
+  await message(mem.repo, deps, ctx, INQ_ID, "I'll upload a new version");
+  await upload(mem.repo, deps, ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'q2.csv', mime: 'text/csv' });
+  const both = await Promise.all([submit(mem.repo, deps, ctx, INQ_ID), submit(mem.repo, deps, ctx, INQ_ID)]);
+  assertEquals(submitted.length, 1, 'submit_quote must be called once');
+  assert(both.some((x) => (x as ThreadView).notice?.code === 'already_submitting' || (x as { code?: string }).code), JSON.stringify(both.map((x) => (x as ThreadView).notice)));
+  assertEquals(ok((await thread(mem.repo, deps, ctx, INQ_ID))).state, 'submitted');
 });
 
 Deno.test('submitPayload carries the chat-confirmed details the hold gate reads', () => {

@@ -3,7 +3,7 @@
 // conversation with the sales engineer (./QuoteReviewChat) where the quotation is attached, reviewed,
 // adjusted and submitted. A quote the hold desk is holding for exact details shows its panel here too
 // (./SpecHold — the two ways out: fill in the details, or send a revised quotation in the chat).
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -38,8 +38,9 @@ export function QuotationsTab({ token, lang, focus = null, onFocused, openInquir
   const [list, setList] = useState<InquiryListItem[] | null>(null);
   const [err, setErr] = useState('');
   const [open, setOpen] = useState<string | null>(null);
-  const load = useCallback(() => qr.inquiries(token).then((j) => { if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setList(j.inquiries); }), [token, lang, t.err]);
-  useEffect(() => { load(); }, [load]);
+  const alive = useRef(true);
+  const load = useCallback(() => qr.inquiries(token).then((j) => { if (!alive.current) return; if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setList(j.inquiries); }), [token, lang, t.err]);
+  useEffect(() => { alive.current = true; load(); return () => { alive.current = false; }; }, [load]);
   useEffect(() => {
     if (!focus || !list) return;
     setOpen(focus);
@@ -47,7 +48,7 @@ export function QuotationsTab({ token, lang, focus = null, onFocused, openInquir
     onFocused?.();
   }, [focus, list, onFocused]);
 
-  if (err) return <Card className="qd-panel p-5 text-[13px]">{err}</Card>;
+  if (err) return <Card role="alert" className="qd-panel p-5 text-[13px]">{err}</Card>;
   if (!list) return <Card className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t.loading}</Card>;
   if (!list.length) return <Card className="qd-panel p-5"><h2 className="text-[15.5px] font-bold text-foreground">{t.empty}</h2><p className="mt-1 max-w-[68ch] text-[13px] leading-relaxed text-muted-foreground">{t.emptySub}</p></Card>;
   return (

@@ -31,9 +31,13 @@ export const safeInquiry = (i: Json): SafeInquiry => ({
   id: String(i.id), job_no: jobNo(String(i.id)), category: i.category ?? null, emirate: i.emirate ?? null, spec: i.spec ?? null,
   boq_rows: boqRows(i), boq_withheld: !!i.boq_withheld, concluded: !!i.concluded, revealed: !!i.revealed,
 });
-/** The BOQ as a CSV file (UTF-8 with a byte-order mark, so Excel opens the Arabic). */
+/**
+ * The BOQ as a CSV file (UTF-8 with a byte-order mark, so Excel opens the Arabic). A cell that starts
+ * with = + - @ tab or CR is prefixed with ' so Excel shows it as text and never runs it as a formula:
+ * BOQ text is customer-authored (security review, 15 Sep 2026: CSV injection, CWE-1236).
+ */
 export function boqCsv(rows: BoqRow[]): string {
-  const esc = (v: unknown) => { const s = v == null ? '' : String(v); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const esc = (v: unknown) => { let s = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
   return '﻿' + [['No', 'Section', 'Description', 'Qty', 'Unit'].join(','), ...rows.map((r, k) => [k + 1, r.section, r.description, r.qty, r.unit].map(esc).join(','))].join('\r\n') + '\r\n';
 }
 const extOf = (url: string) => { const m = String(url).split('?')[0].match(/\.([a-z0-9]{2,4})$/i); return m ? '.' + m[1].toLowerCase() : ''; };

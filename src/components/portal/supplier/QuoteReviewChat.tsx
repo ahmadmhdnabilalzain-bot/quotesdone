@@ -46,7 +46,9 @@ const COPY = {
   },
 };
 const Ltr = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr">{children}</bdi>;
-const time = (d: string, lang: Lang) => new Date(d).toLocaleTimeString(lang === 'ar' ? 'ar-AE' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+/** Only an https link is rendered or opened — never a javascript: or data: URL from a response. */
+const safeUrl = (u: string | null | undefined) => (u && /^https:\/\//i.test(u) ? u : null);
+const time =(d: string, lang: Lang) => new Date(d).toLocaleTimeString(lang === 'ar' ? 'ar-AE' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
 
 function Reviewing({ lang }: { lang: Lang }) {
   const t = COPY[lang]; const reduce = useReducedMotion();
@@ -73,7 +75,7 @@ function IssueList({ issues, lang }: { issues: Issue[]; lang: Lang }) {
   return (
     <ol className="mt-2 flex flex-col gap-1.5">
       {issues.map((x, i) => (
-        <li key={i} className="flex items-start gap-2.5 rounded-md border border-[var(--line)] bg-background/50 px-2.5 py-2 text-[13px] leading-relaxed">
+        <li key={`${x.code}:${x.line_no ?? ''}:${x.boq_line ?? ''}:${x.attr ?? ''}`} className="flex items-start gap-2.5 rounded-md border border-[var(--line)] bg-background/50 px-2.5 py-2 text-[13px] leading-relaxed">
           <span className="mt-px font-mono text-[11.5px] tabular-nums text-muted-foreground"><Ltr>{String(i + 1).padStart(2, '0')}</Ltr></span>
           <span className="min-w-0 flex-1">
             <span className="mb-1 flex flex-wrap gap-1.5">
@@ -99,7 +101,8 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
     setOpening(true);
     const j = await qr.quotePdf(token, quoteId, lang).catch(() => null);
     setOpening(false);
-    if (j && j.url) window.open(String(j.url), '_blank', 'noopener');
+    const u = safeUrl(j && j.url ? String(j.url) : null);
+    if (u) window.open(u, '_blank', 'noopener');
   };
   return (
     <li className={cn('flex flex-col gap-1', eng ? 'items-start' : 'items-end')}>
@@ -112,11 +115,11 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
           <IssueList issues={m.issues!} lang={lang} />
           {parts.length > 2 ? <p className="mt-2 whitespace-pre-line text-[12.5px] text-muted-foreground">{parts[parts.length - 1]}</p> : null}
         </> : body ? <p className="whitespace-pre-line">{body}</p> : null}
-        {m.attachments.map((a, i) => (
-          <div key={i} className={cn('flex flex-wrap items-center gap-2', body ? 'mt-2.5' : '')}>
+        {m.attachments.map((a) => (
+          <div key={`${a.kind}:${a.name}:${a.quote_id ?? ''}`} className={cn('flex flex-wrap items-center gap-2', body ? 'mt-2.5' : '')}>
             <span aria-hidden className="rounded-sm border border-[var(--line2)] px-1.5 py-0.5 font-mono text-[10.5px] uppercase text-muted-foreground">{(a.name.split('.').pop() || 'file').slice(0, 4)}</span>
             <span className="min-w-0 truncate text-[12.5px] text-foreground"><Ltr>{a.name}</Ltr></span>
-            {a.kind === 'quotation_file' && a.url ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={a.url} target="_blank" rel="noopener noreferrer">{t.download}</a> : null}
+            {a.kind === 'quotation_file' && safeUrl(a.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={safeUrl(a.url)!} target="_blank" rel="noopener noreferrer">{t.download}</a> : null}
             {a.kind === 'standard_quote' && a.quote_id ? <Button size="sm" variant="outline" disabled={opening} onClick={() => openPdf(a.quote_id!)}>{t.pdf}</Button> : null}
           </div>
         ))}
@@ -134,9 +137,12 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
   const fileRef = useRef<HTMLInputElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const alive = useRef(true);
+  // Every request takes a number; only the answer to the latest one is shown, so a poll that was
+  // already in flight can never overwrite what a newer action returned (React review, 15 Sep 2026).
+  const seq = useRef(0);
 
-  const adopt = useCallback((j: unknown) => {
-    if (!alive.current) return;
+  const adopt = useCallback((j: unknown, n: number) => {
+    if (!alive.current || n !== seq.current) return;
     if (failed(j as ThreadView)) { setErr(srvMsg(lang, j, t.err)); return; }
     const v = j as ThreadView; setTh(v); setErr(v.notice ? v.notice.message : '');
   }, [lang, t.err]);
@@ -144,8 +150,10 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
   useEffect(() => {
     alive.current = true;
     (async () => {
+      const n = ++seq.current;
       const j = await qr.thread(token, inquiryId, lang);
-      if (!failed(j) && j.state === 'none' && j.can_write) adopt(await qr.start(token, inquiryId, lang)); else adopt(j);
+      if (!failed(j) && j.state === 'none' && j.can_write && n === seq.current) { const m = ++seq.current; adopt(await qr.start(token, inquiryId, lang), m); }
+      else adopt(j, n);
     })();
     return () => { alive.current = false; };
   }, [token, inquiryId, lang, adopt]);
@@ -153,7 +161,7 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
   // The server says a review is running (e.g. started from another device): poll until it is not.
   useEffect(() => {
     if (!th || !th.reviewing || busy) return;
-    const h = setInterval(async () => adopt(await qr.thread(token, inquiryId, lang)), 2000);
+    const h = setInterval(async () => { const n = ++seq.current; adopt(await qr.thread(token, inquiryId, lang), n); }, 2000);
     return () => clearInterval(h);
   }, [th, busy, token, inquiryId, lang, adopt]);
 
@@ -162,11 +170,13 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
 
   const run = async (kind: NonNullable<typeof busy>, fn: () => Promise<unknown>) => {
     setBusy(kind); setErr('');
+    const n = ++seq.current;
     const started = Date.now();
     const j = await fn().catch(() => ({ error: 'network' }));
     // Long enough to read the status line, never longer than the review itself when it is slow.
     if (kind === 'upload') { const wait = 900 - (Date.now() - started); if (wait > 0) await new Promise((r) => setTimeout(r, wait)); }
-    setBusy(null); adopt(j);
+    if (!alive.current) return;
+    setBusy(null); adopt(j, n);
     if (onChanged && !failed(j as ThreadView)) onChanged();
   };
   const onFile = async (f: File | undefined) => {
@@ -235,7 +245,7 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
               className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60" />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <input ref={fileRef} type="file" accept={ACCEPT} className="sr-only" id={'qd-rv-file-' + inquiryId} onChange={(e) => onFile(e.target.files?.[0])} disabled={!th.can_upload || !!busy} />
+                <input ref={fileRef} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1} aria-label={th.file ? t.attachNew : t.attach} id={'qd-rv-file-' + inquiryId} onChange={(e) => onFile(e.target.files?.[0])} disabled={!th.can_upload || !!busy} />
                 <Button variant={th.file ? 'outline' : 'default'} disabled={!th.can_upload || !!busy || th.reviewing} onClick={() => fileRef.current?.click()}>{th.file ? t.attachNew : t.attach}</Button>
                 <span className="text-[11.5px] text-muted-foreground">{t.fileTip}</span>
               </div>

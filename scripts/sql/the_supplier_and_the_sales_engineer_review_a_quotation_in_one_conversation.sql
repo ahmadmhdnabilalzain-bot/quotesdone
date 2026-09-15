@@ -36,7 +36,8 @@
 --   3. public.quote_review_request — every point the engineer raises, open until answered (founder:
 --      "nothing is one-way").
 --   4. RLS: a signed-in supplier reads only their own reviews, messages and requests; nobody but the
---      service role writes. anon reads nothing.
+--      service role writes. anon reads nothing. The owner address the policies read follows
+--      leads.claimed_by by trigger (fn_quote_reviews_follow_owner), so a change of owner is immediate.
 --   5. v_conversation_message: copied VERBATIM from its MANIFEST-last definition (every_conversation_is_
 --      kept_backed_up_twice_and_readable_by_the_sales_engineer.sql) with ONE branch changed — the
 --      quote_review_messages branch now reads the supplier's message as 'in', resolves the party through
@@ -104,7 +105,7 @@ comment on table public.quote_review_messages is 'One message of a quotation con
 -- ── 3. EVERY POINT RAISED, OPEN UNTIL ANSWERED ─────────────────────────────────────────────────
 create table if not exists public.quote_review_request (
   id bigint generated always as identity primary key,
-  review_id uuid not null references public.quote_reviews(id),
+  review_id uuid not null references public.quote_reviews(id) on delete cascade,
   key text not null,
   code text not null,
   kind text not null check (kind in ('adjustment', 'clarification', 'choice')),
@@ -114,8 +115,8 @@ create table if not exists public.quote_review_request (
   label_en text not null,
   label_ar text not null,
   state text not null default 'open' check (state in ('open', 'answered', 'superseded')),
-  asked_message_id uuid references public.quote_review_messages(id),
-  answered_message_id uuid references public.quote_review_messages(id),
+  asked_message_id uuid references public.quote_review_messages(id) on delete set null,
+  answered_message_id uuid references public.quote_review_messages(id) on delete set null,
   opened_at timestamptz not null default now(),
   answered_at timestamptz,
   check ((state = 'open') = (answered_at is null))
@@ -124,6 +125,8 @@ comment on table public.quote_review_request is 'A point the sales engineer rais
 create unique index if not exists quote_review_request_one_open on public.quote_review_request (review_id, key) where state = 'open';
 create index if not exists quote_review_request_by_review on public.quote_review_request (review_id, state);
 create index if not exists quote_review_messages_by_review_kind on public.quote_review_messages (review_id, kind);
+create index if not exists quote_review_request_by_asked_message on public.quote_review_request (asked_message_id);
+create index if not exists quote_review_request_by_answered_message on public.quote_review_request (answered_message_id);
 
 -- ── 4. WHO READS WHAT ──────────────────────────────────────────────────────────────────────────
 -- The supplier reads their own conversation directly as well as through supplier_api, so a mobile app
@@ -133,17 +136,40 @@ alter table public.quote_review_request enable row level security;
 revoke all on public.quote_reviews, public.quote_review_messages, public.quote_review_request from anon, authenticated;
 grant select on public.quote_reviews, public.quote_review_messages, public.quote_review_request to authenticated;
 
+-- (select auth.jwt()) is evaluated once per statement, not once per row.
 drop policy if exists quote_reviews_supplier_reads_own on public.quote_reviews;
 create policy quote_reviews_supplier_reads_own on public.quote_reviews as permissive for select to authenticated
-  using (owner_email is not null and owner_email = lower(coalesce(auth.jwt() ->> 'email', '')));
+  using (owner_email is not null and owner_email = lower(coalesce((select auth.jwt()) ->> 'email', '')));
 drop policy if exists quote_review_messages_supplier_reads_own on public.quote_review_messages;
 create policy quote_review_messages_supplier_reads_own on public.quote_review_messages as permissive for select to authenticated
   using (exists (select 1 from public.quote_reviews r where r.id = quote_review_messages.review_id
-                   and r.owner_email is not null and r.owner_email = lower(coalesce(auth.jwt() ->> 'email', ''))));
+                   and r.owner_email is not null and r.owner_email = lower(coalesce((select auth.jwt()) ->> 'email', ''))));
 drop policy if exists quote_review_request_supplier_reads_own on public.quote_review_request;
 create policy quote_review_request_supplier_reads_own on public.quote_review_request as permissive for select to authenticated
   using (exists (select 1 from public.quote_reviews r where r.id = quote_review_request.review_id
-                   and r.owner_email is not null and r.owner_email = lower(coalesce(auth.jwt() ->> 'email', ''))));
+                   and r.owner_email is not null and r.owner_email = lower(coalesce((select auth.jwt()) ->> 'email', ''))));
+
+-- ── 4b. THE OWNER'S ADDRESS FOLLOWS THE COMPANY ────────────────────────────────────────────────
+-- Security review, 15 Sep 2026: owner_email is the key the own-row policies read. Refreshed only when
+-- the supplier acted, a company that changed hands (leads.claimed_by) would have left its previous
+-- owner able to read every conversation nobody had touched since. It now follows claimed_by at once.
+create or replace function public.fn_quote_reviews_follow_owner()
+returns trigger
+language plpgsql
+set search_path to 'public', 'pg_temp'
+as $fn$
+begin
+  update public.quote_reviews
+     set owner_email = nullif(lower(btrim(coalesce(new.claimed_by, ''))), ''), updated_at = now()
+   where supplier_id = new.id
+     and owner_email is distinct from nullif(lower(btrim(coalesce(new.claimed_by, ''))), '');
+  return null;
+end $fn$;
+revoke execute on function public.fn_quote_reviews_follow_owner() from public, anon, authenticated;
+drop trigger if exists quote_reviews_follow_owner on public.leads;
+create trigger quote_reviews_follow_owner after update of claimed_by on public.leads
+  for each row when (old.claimed_by is distinct from new.claimed_by)
+  execute function public.fn_quote_reviews_follow_owner();
 
 -- ── 5. THE CONVERSATION RECORD READS THE SUPPLIER'S SIDE THE RIGHT WAY ROUND ───────────────────
 -- Copied VERBATIM from every_conversation_is_kept_backed_up_twice_and_readable_by_the_sales_engineer.sql;
@@ -221,7 +247,9 @@ select 'quote_review_messages', q.id::text, 'chat', case when q.role = 'supplier
        p.party_kind, p.party_id, coalesce(p.inquiry_id, qr.inquiry_id::text), p.demo
   from public.quote_review_messages q
   join public.quote_reviews qr on qr.id = q.review_id
-  cross join lateral public.fn_conversation_party(qr.supplier_id, null, qr.inquiry_id, null, null) p;
+  -- The lead ONLY: fn_conversation_party prefers an inquiry's customer over the lead, so passing the
+  -- inquiry here filed every supplier's review under the customer (database review, 15 Sep 2026).
+  cross join lateral public.fn_conversation_party(qr.supplier_id, null, null, null, null) p;
 revoke all on public.v_conversation_message from public, anon, authenticated;
 
 -- ── 6. PROBE ───────────────────────────────────────────────────────────────────────────────────
@@ -231,7 +259,7 @@ revoke all on public.v_conversation_message from public, anon, authenticated;
 -- a real company, and nothing it writes can notify anyone (no trigger on these tables sends anything).
 do $$
 declare
-  v_lead bigint; v_inq uuid; v_rev uuid; v_msg uuid; v_dir text; v_demo boolean;
+  v_lead bigint; v_inq uuid; v_rev uuid; v_msg uuid; v_dir text; v_demo boolean; v_pk text; v_pid text;
   v_before bigint; v_after bigint; v_bad boolean := false;
 begin
   if (select count(*) from information_schema.columns where table_schema = 'public'
@@ -243,8 +271,13 @@ begin
      or (select count(*) from pg_policies where schemaname = 'public' and tablename in ('quote_reviews', 'quote_review_messages', 'quote_review_request')) < 3 then
     raise exception 'CHK<<a conversation table without RLS and its policy>>';
   end if;
-  if has_table_privilege('anon', 'public.quote_review_messages', 'select') or has_table_privilege('authenticated', 'public.quote_review_messages', 'insert') then
+  if exists (select 1 from unnest(array['public.quote_reviews', 'public.quote_review_messages', 'public.quote_review_request']) t
+              where has_table_privilege('anon', t, 'select') or has_table_privilege('authenticated', t, 'insert')
+                 or has_table_privilege('authenticated', t, 'update') or has_table_privilege('authenticated', t, 'delete')) then
     raise exception 'CHK<<anon can read, or a signed-in user can write, the conversation>>';
+  end if;
+  if not exists (select 1 from pg_trigger where tgrelid = 'public.leads'::regclass and tgname = 'quote_reviews_follow_owner') then
+    raise exception 'CHK<<the owner address does not follow leads.claimed_by>>';
   end if;
 
   select l.id into v_lead from public.leads l where l.company_name ~* '^ZZ DEMO' and coalesce(l.email, '') ~* 'example\.invalid$' order by l.id desc limit 1;
@@ -259,8 +292,8 @@ begin
     insert into public.quote_reviews (inquiry_id, supplier_id, owner_email, status) values (v_inq, v_lead, 'probe@example.invalid', 'open') returning id into v_rev;
     insert into public.quote_review_messages (review_id, role, kind, body) values (v_rev, 'supplier', 'file', 'ZZ DEMO probe') returning id into v_msg;
     insert into public.quote_review_request (review_id, key, code, kind, label_en, label_ar, asked_message_id) values (v_rev, 'validity|||validity', 'validity', 'adjustment', 'probe', 'probe', v_msg);
-    select direction, is_demo into v_dir, v_demo from public.v_conversation_message where source_table = 'quote_review_messages' and source_id = v_msg::text;
-    if v_dir is distinct from 'in' or v_demo is not true then v_bad := true; end if;
+    select direction, is_demo, party_kind, party_id into v_dir, v_demo, v_pk, v_pid from public.v_conversation_message where source_table = 'quote_review_messages' and source_id = v_msg::text;
+    if v_dir is distinct from 'in' or v_demo is not true or v_pk is distinct from 'supplier' or v_pid is distinct from v_lead::text then v_bad := true; end if;
     begin
       update public.quote_reviews set status = 'complete' where id = v_rev;
       v_bad := true;   -- the old free-text status must be refused
@@ -271,7 +304,7 @@ begin
     if sqlerrm <> 'probe_rollback' then raise exception 'CHK<<probe failed: %>>', sqlerrm; end if;
   end;
   select count(*) into v_after from public.quote_reviews;
-  if v_bad then raise exception 'CHK<<a supplier message read as "%" (demo %), or an unknown status was accepted>>', v_dir, v_demo; end if;
+  if v_bad then raise exception 'CHK<<a supplier message read as "%" (demo %, party %:%), or an unknown status was accepted>>', v_dir, v_demo, v_pk, v_pid; end if;
   if v_after <> v_before then raise exception 'CHK<<the probe left % review row(s) behind>>', v_after - v_before; end if;
   raise notice 'CHK<<quotation conversation ready: supplier messages read in, demo kept out of the archive, unknown status refused, probe left nothing>>';
 end $$;

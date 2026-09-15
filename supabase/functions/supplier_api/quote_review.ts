@@ -63,7 +63,7 @@ export type Working = {
   foreign_currency: string | null;
   /** BOQ line number → the supplier's reason it is excluded. */
   boq_excluded: Record<string, string>;
-  /** BOQ line number → the supplier's explanation of a quantity or unit that differs on purpose. */
+  /** BOQ line number → the supplier's explanation of a quantity that differs on purpose; "<n>:unit" → of a unit. */
   qty_explained: Record<string, string>;
   /** Every detail changed in the chat, in order — the audit trail of what the engineer was told. */
   corrections: { field: string; value: string; line?: number | null }[];
@@ -197,15 +197,16 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
         `البند ${n} من جدول الكميات (${d}) غير مسعّر في عرضك. أضف سعره، أو أخبرني أنه مستثنى وسبب ذلك (مثال: "البند ${n} مستثنى — من قبل الغير").`));
       return;
     }
-    if (w.qty_explained[String(n)]) return;
+    // A quantity and a unit are explained separately ("BOQ line 3 quantity — …" / "… unit — …"): an
+    // explained quantity must not silence a unit that differs (TypeScript review, 15 Sep 2026).
     const bq = num(b.qty); const lq = parseQty(l.qty).n;
-    if (bq != null && lq != null && Math.abs(bq - lq) > Math.max(0.01, Math.abs(bq) * 0.01)) {
+    if (!w.qty_explained[String(n)] && bq != null && lq != null && Math.abs(bq - lq) > Math.max(0.01, Math.abs(bq) * 0.01)) {
       issues.push(I('qty_mismatch', 'clarification', j! + 1, n, 'qty',
         `BOQ line ${n} (${d}): your line ${j! + 1} prices ${fmt(lq)} ${l.unit || ''}`.trimEnd() + ` but the BOQ asks for ${fmt(bq)} ${b.unit || ''}`.trimEnd() + `. Price the BOQ quantity, or tell me why yours differs (for example: "BOQ line ${n} quantity — measured on site").`,
         `البند ${n} من جدول الكميات (${d}): بندك ${j! + 1} يسعّر ${fmt(lq)} ${l.unit || ''}`.trimEnd() + ` بينما يطلب الجدول ${fmt(bq)} ${b.unit || ''}`.trimEnd() + `. سعّر كمية الجدول، أو اذكر سبب الاختلاف (مثال: "البند ${n} الكمية — حسب القياس في الموقع").`));
     }
     const bu = normUnit(b.unit), lu = normUnit(l.unit);
-    if (bu && lu && bu !== lu) {
+    if (!w.qty_explained[`${n}:unit`] && bu && lu && bu !== lu) {
       issues.push(I('unit_mismatch', 'clarification', j! + 1, n, 'unit',
         `BOQ line ${n} (${d}) is measured in ${b.unit}, your line ${j! + 1} in ${l.unit}. Re-state it in ${b.unit}, or explain the conversion.`,
         `البند ${n} من جدول الكميات (${d}) مقاس بوحدة ${b.unit}، وبندك ${j! + 1} بوحدة ${l.unit}. أعد ذكره بوحدة ${b.unit} أو وضّح التحويل.`));
@@ -352,7 +353,7 @@ export type Correction =
   | { field: 'installation'; included: 'yes' | 'no'; detail: string | null }
   | { field: 'warranty_terms'; period: string | null; coverage: string | null }
   | { field: 'aed' }
-  | { field: 'boq_excluded' | 'qty_explained'; boq_line: number; value: string }
+  | { field: 'boq_excluded' | 'qty_explained'; boq_line: number; value: string; what?: 'qty' | 'unit' }
   | { field: 'line_spec'; line_no: number; attr: string; value: string };
 export type Topic = 'vat' | 'validity' | 'currency' | 'boq' | 'customer' | 'delivery' | 'warranty' | 'installation' | 'missing' | 'general';
 export type ReplyRead = { corrections: Correction[]; choice: 'generate' | 'reupload' | null; submit: boolean; topic: Topic | null };
@@ -366,7 +367,7 @@ const RE_LEAD = new RegExp(String.raw`(?:lead\s*time|delivery(?:\s+(?:time|perio
 const RE_EXVAT = /(?:ex(?:cl(?:uding|usive|\.)?)?\.?\s*(?:of\s*)?vat|before\s*vat|غير\s*شامل\s*(?:ال)?ضريبة(?:\s*القيمة\s*المضافة)?|قبل\s*(?:ال)?ضريبة)[^\d\n]{0,25}([\d][\d,]*(?:\.\d+)?)|([\d][\d,]*(?:\.\d+)?)\s*(?:aed|درهم)?\s*(?:ex(?:cl(?:uding|\.)?)?\.?\s*vat|before\s*vat|غير\s*شامل\s*(?:ال)?ضريبة)/i;
 const LINE = String.raw`(?:line|item|بند|البند|بندي)\s*#?\s*(\d{1,3})`;
 const RE_EXCLUDED = new RegExp(String.raw`(boq\s*|جدول\s*الكميات\s*)?${LINE}[^.\n;]{0,40}?(excluded|not\s+included|by\s+others|not\s+in\s+(?:our|my)\s+scope|مستثنى|غير\s+مشمول|خارج\s+النطاق|من\s+قبل\s+الغير)([^.\n;]{0,100})`, 'gi');
-const RE_QTYWHY = new RegExp(String.raw`(boq\s*|جدول\s*الكميات\s*)?${LINE}[^.\n;]{0,30}?(?:quantity|qty|unit|الكمية|الوحدة)\s*[:\-–]?\s*([^\n;]{3,140})`, 'gi');
+const RE_QTYWHY = new RegExp(String.raw`(boq\s*|جدول\s*الكميات\s*)?${LINE}[^.\n;]{0,30}?(quantity|qty|unit|الكمية|الوحدة)\s*[:\-–]?\s*([^\n;]{3,140})`, 'gi');
 const RE_SPEC = new RegExp(String.raw`${LINE}\s*[,:\-–]?\s*([^\n:=;]{2,40}?)\s*[:=]\s*([^\n;]{1,120})`, 'gi');
 const RE_AED = /\b(?:all\s+)?(?:prices?\s+|amounts?\s+)?(?:are\s+)?in\s+aed\b|\ball\s+(?:prices?\s+)?(?:are\s+)?aed\b|\baed\s+only\b|بالدرهم/i;
 const RE_GENERATE = /\bgenerate\b|\b(?:prepare|create|make)\s+(?:it|the\s+quot\w*|a\s+quot\w*)?\s*for\s+me\b|\byou\s+(?:do|prepare|generate)\s+it\b|إعداد|أعدّه|اعده|أعدها|أنشئ|انشئ|ولّد|جهّز/i;
@@ -400,8 +401,9 @@ export function readReply(text: string, open: Issue[]): ReplyRead {
     if (m[1] || open.some((i) => i.boq_line === n)) { excluded.add(n); out.push({ field: 'boq_excluded', boq_line: n, value: clean(`${m[3]}${m[4] || ''}`, 120) }); }
   }
   for (const m of t.matchAll(RE_QTYWHY)) {
-    const n = Number(m[2]);
-    if (!excluded.has(n) && open.some((i) => i.boq_line === n && (i.code === 'qty_mismatch' || i.code === 'unit_mismatch'))) out.push({ field: 'qty_explained', boq_line: n, value: clean(m[3], 140) });
+    const n = Number(m[2]); const what: 'qty' | 'unit' = /unit|الوحدة/i.test(m[3]) ? 'unit' : 'qty';
+    const code = what === 'unit' ? 'unit_mismatch' : 'qty_mismatch';
+    if (!excluded.has(n) && open.some((i) => i.boq_line === n && i.code === code)) out.push({ field: 'qty_explained', boq_line: n, value: clean(m[4], 140), what });
   }
   for (const m of t.matchAll(RE_SPEC)) {
     const n = Number(m[1]); const key = normText(m[2]).toLowerCase(); const val = clean(m[3], 120);
@@ -458,8 +460,9 @@ export function applyCorrections(w0: Working, cs: Correction[]): Working {
         log('boq_excluded', c.value, c.boq_line); break;
       }
       case 'qty_explained': {
-        w.qty_explained = { ...w.qty_explained, [String(c.boq_line)]: c.value };
-        w.conditions = [w.conditions, `BOQ line ${c.boq_line} quantity: ${c.value}`].filter(Boolean).join('; ').slice(0, 2000);
+        const unit = c.what === 'unit';
+        w.qty_explained = { ...w.qty_explained, [unit ? `${c.boq_line}:unit` : String(c.boq_line)]: c.value };
+        w.conditions = [w.conditions, `BOQ line ${c.boq_line} ${unit ? 'unit' : 'quantity'}: ${c.value}`].filter(Boolean).join('; ').slice(0, 2000);
         log('qty_explained', c.value, c.boq_line); break;
       }
       case 'line_spec': {
@@ -521,7 +524,7 @@ export function tookSaid(cs: Correction[]): Said | null {
     else if (c.field === 'installation') { en.push(c.included === 'yes' ? `installation included${c.detail ? ` (${c.detail})` : ''}` : 'supply only, no installation'); ar.push(c.included === 'yes' ? `التركيب مشمول${c.detail ? ` (${c.detail})` : ''}` : 'توريد فقط دون تركيب'); }
     else if (c.field === 'aed') { en.push('all prices in AED'); ar.push('كل الأسعار بالدرهم'); }
     else if (c.field === 'boq_excluded') { en.push(`BOQ line ${c.boq_line} excluded${c.value ? ` (${c.value})` : ''}`); ar.push(`البند ${c.boq_line} مستثنى${c.value ? ` (${c.value})` : ''}`); }
-    else if (c.field === 'qty_explained') { en.push(`BOQ line ${c.boq_line} quantity explained`); ar.push(`وُضّحت كمية البند ${c.boq_line}`); }
+    else if (c.field === 'qty_explained') { const u = c.what === 'unit'; en.push(`BOQ line ${c.boq_line} ${u ? 'unit' : 'quantity'} explained`); ar.push(u ? `وُضّحت وحدة البند ${c.boq_line}` : `وُضّحت كمية البند ${c.boq_line}`); }
     else if (c.field === 'line_spec') { en.push(`line ${c.line_no}: ${c.value}`); ar.push(`البند ${c.line_no}: ${c.value}`); }
   }
   return { en: `Thank you — noted: ${en.join('; ')}.`, ar: `شكرًا — سجّلت: ${ar.join('؛ ')}.` };

@@ -20,6 +20,11 @@ export function memoryReviewRepo(now: () => Date = () => new Date()) {
         reviewing_since: null, total_amount: null, currency: 'AED', submitted_quote_ids: null, completed_at: null, created_at: iso(), updated_at: iso() };
       reviews.push(row); return Promise.resolve(structuredClone(row));
     },
+    claim(i, from, to) {
+      const r = reviews.find((x) => x.id === i);
+      if (!r || !from.includes(r.status)) return Promise.resolve(false);
+      Object.assign(r, { status: to, reviewing_since: iso(), updated_at: iso() }); return Promise.resolve(true);
+    },
     updateReview(i, p) { const r = reviews.find((x) => x.id === i); if (r) Object.assign(r, structuredClone(p), { updated_at: iso() }); return Promise.resolve(); },
     addMessage(m) { const row: MessageRow = { ...structuredClone(m), id: id(), created_at: iso() }; messages.push(row); return Promise.resolve(structuredClone(row)); },
     messages: (rid) => Promise.resolve(structuredClone(messages.filter((m) => m.review_id === rid))),

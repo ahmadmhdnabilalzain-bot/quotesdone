@@ -8,7 +8,7 @@
 // supplier_api's inquiries_list / inquiry_detail / inquiry_documents, which read the inbox and its
 // scrubbers: only redacted drawings and the scrubbed BOQ are ever offered, and nothing identifies the
 // customer before a reveal.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -62,7 +62,7 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
             <li key={k} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
               <span className="min-w-0 text-[13px] text-foreground">{doc.kind === 'boq_csv' ? t.boqFile(doc.lines) : t.page(k + 1)}<span className="ms-2 font-mono text-[11px] text-muted-foreground"><Ltr>{doc.name}</Ltr></span></span>
               {doc.kind === 'drawing_page'
-                ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={doc.url} target="_blank" rel="noopener noreferrer" download={doc.name}>{t.download}</a>
+                ? (/^https:\/\//i.test(doc.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={doc.url} target="_blank" rel="noopener noreferrer" download={doc.name}>{t.download}</a> : null)
                 : <Button size="sm" variant="outline" onClick={() => saveInline(doc.name, doc.content, doc.mime)}>{t.download}</Button>}
             </li>
           ))}
@@ -77,9 +77,10 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
   const [d, setD] = useState<InquiryDetail['inquiry'] | null>(null);
   const [err, setErr] = useState('');
   const [form, setForm] = useState(false);
-  const load = useCallback(() => qr.inquiry(token, id).then((j) => { if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setD(j.inquiry); }), [token, id, lang, t.err]);
-  useEffect(() => { load(); }, [load]);
-  if (err) return <p className="px-4 pb-4 text-[13px] text-danger-fg">{err}</p>;
+  const alive = useRef(true);
+  const load = useCallback(() => qr.inquiry(token, id).then((j) => { if (!alive.current) return; if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setD(j.inquiry); }), [token, id, lang, t.err]);
+  useEffect(() => { alive.current = true; load(); return () => { alive.current = false; }; }, [load]);
+  if (err) return <p role="alert" className="px-4 pb-4 text-[13px] text-danger-fg">{err}</p>;
   if (!d) return <div className="space-y-2 px-4 pb-4" aria-busy="true">{[70, 90, 55].map((w) => <div key={w} className="h-3 animate-pulse rounded bg-white/[.06] motion-reduce:animate-none" style={{ width: w + '%' }} />)}</div>;
   const canQuote = !d.concluded && !d.revealed;
   const q = d.quotes[0];
@@ -127,7 +128,7 @@ export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, re
     onFocused?.();
   }, [focus, list, onFocused]);
 
-  if (err) return <Card className="qd-panel p-5 text-[13px]">{err}</Card>;
+  if (err) return <Card role="alert" className="qd-panel p-5 text-[13px]">{err}</Card>;
   if (!list) return <Card className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t.loading}</Card>;
   if (!list.length) return <Card className="qd-panel p-5"><h2 className="text-[15.5px] font-bold text-foreground">{t.empty}</h2><p className="mt-1 max-w-[68ch] text-[13px] leading-relaxed text-muted-foreground">{t.emptySub}</p></Card>;
   return (
