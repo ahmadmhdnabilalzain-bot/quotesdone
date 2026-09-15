@@ -79,6 +79,6 @@ test('Control Mode is retired: no live code names it, and the retirement is reco
   const sql = read('scripts/sql/control_mode_is_retired_with_its_template_and_its_minutes.sql');
   assert.match(sql, /drop function if exists public\.fn_control_mode_require\(text, text\);/);
   assert.match(sql, /drop function if exists public\.fn_phase1_disarmed\(\);/);
-  assert.match(sql, /delete from public\.messaging_template where template_key = 'control_mode_code' and status = 'rejected';/);
+  assert.match(sql, /delete from public\.messaging_template\s+where template_key = 'control_mode_code' and lang = 'en' and channel = 'whatsapp' and status = 'rejected';/);
   assert.match(sql, /delete from public\.app_secrets where key = 'control_mode_minutes';/);
 });

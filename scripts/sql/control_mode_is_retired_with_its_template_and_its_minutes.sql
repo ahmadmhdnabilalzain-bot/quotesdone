@@ -31,9 +31,12 @@
 do $$
 declare v text;
 begin
-  select string_agg(p.proname, ', ') into v from pg_proc p
-   where p.pronamespace = 'public'::regnamespace
-     and p.proname not in ('fn_control_mode_require', 'fn_phase1_disarmed')
+  -- Every schema except the system ones (review of this file: a caller outside public, e.g. a
+  -- staging schema, would otherwise slip past; measured 15 Sep 2026 there is none).
+  select string_agg(n.nspname || '.' || p.proname, ', ') into v
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname not in ('pg_catalog', 'information_schema')
+     and p.oid not in ('public.fn_control_mode_require(text,text)'::regprocedure, 'public.fn_phase1_disarmed()'::regprocedure)
      and p.prosrc ~* 'fn_control_mode_require|fn_phase1_disarmed';
   if v is not null then raise exception 'a routine now calls Control Mode: %', v; end if;
   if exists (select 1 from pg_trigger t where t.tgfoid in ('public.fn_control_mode_require(text,text)'::regprocedure, 'public.fn_phase1_disarmed()'::regprocedure))
@@ -47,7 +50,8 @@ end $$;
 drop function if exists public.fn_control_mode_require(text, text);
 drop function if exists public.fn_phase1_disarmed();
 
-delete from public.messaging_template where template_key = 'control_mode_code' and status = 'rejected';
+delete from public.messaging_template
+ where template_key = 'control_mode_code' and lang = 'en' and channel = 'whatsapp' and status = 'rejected';
 delete from public.app_secrets where key = 'control_mode_minutes';
 
 do $$
