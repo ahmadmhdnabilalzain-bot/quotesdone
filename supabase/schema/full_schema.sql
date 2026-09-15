@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T09:16:38.629Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T09:28:31.466Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8800,9 +8800,11 @@ CREATE UNIQUE INDEX price_benchmark_natural_key ON public.price_benchmark USING 
 CREATE INDEX projects_customer ON public.projects USING btree (customer_id);
 CREATE INDEX q_inq_sup_idx ON public.questions USING btree (inquiry_id, supplier_id);
 CREATE INDEX q_sup_idx ON public.questions USING btree (supplier_id, answered_at);
+CREATE INDEX quote_pdf_cache_bucket_path_idx ON public.quote_pdf_cache USING btree (bucket, path);
 CREATE INDEX quote_spec_hold_by_inquiry ON public.quote_spec_hold USING btree (inquiry_id, state);
 CREATE UNIQUE INDEX quote_spec_hold_one_live ON public.quote_spec_hold USING btree (quote_id) WHERE (state = ANY (ARRAY['open'::text, 'awaiting_approval'::text]));
 CREATE UNIQUE INDEX quotes_inquiry_supplier_option_key ON public.quotes USING btree (inquiry_id, supplier_id, option_no);
+CREATE INDEX quotes_original_file_path_idx ON public.quotes USING btree (original_file_path) WHERE (original_file_path IS NOT NULL);
 CREATE INDEX quotes_stale_idx ON public.quotes USING btree (inquiry_id) WHERE (stale_at IS NOT NULL);
 CREATE UNIQUE INDEX red_episode_one_open_per_key ON public.red_episode USING btree (check_key) WHERE (resolved_at IS NULL);
 CREATE INDEX red_episode_open ON public.red_episode USING btree (resolved_at) WHERE (resolved_at IS NULL);
@@ -8820,6 +8822,7 @@ CREATE INDEX refunds_transaction_idx ON public.refunds USING btree (transaction_
 CREATE INDEX refunds_unreconciled_idx ON public.refunds USING btree (settled_at) WHERE ((reconciled_at IS NULL) AND (status = 'succeeded'::text));
 CREATE INDEX regulations_cats ON public.regulations USING gin (categories);
 CREATE INDEX rehearsal_window_open_idx ON public.rehearsal_window USING btree (started_at, ended_at);
+CREATE INDEX reveal_invoices_bucket_path_idx ON public.reveal_invoices USING btree (bucket, path);
 CREATE INDEX review_chain_subject_idx ON public.review_chain USING btree (subject_type, subject_id, id);
 CREATE UNIQUE INDEX reviews_one_per_job ON public.reviews USING btree (supplier_id, inquiry_id, customer_id);
 CREATE INDEX rfq_clarification_inquiry_idx ON public.rfq_clarification USING btree (inquiry_id, asked_at);
@@ -17881,16 +17884,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17916,6 +17909,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -18627,6 +18630,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19142,135 +19274,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -21196,7 +21199,7 @@ CREATE OR REPLACE FUNCTION public.fn_backup_source_registry()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   values
-    -- ── backed up: each names the fn_enqueue_doc_backups section that files it ──
+    -- ── (a) backed up by an owner rule: each names the fn_enqueue_doc_backups section that files it ──
     ('leads.license_doc_path',               'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
     ('leads.iban_doc_path',                  'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
     ('leads.egr_doc_path',                   'column', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
@@ -21211,11 +21214,6 @@ AS $function$
     ('inquiries.drawing_file_path',          'column', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
     ('transactions.doc_path',                'column', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
     ('conversation_archive.pdf_path',        'column', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE', null),
-    ('supplier-docs',                        'bucket', 'supplier-docs', true,  'fn_enqueue_doc_backups: SUPPLIERS', null),
-    ('signed-terms',                         'bucket', 'signed-terms',  true,  'fn_enqueue_doc_backups: SUPPLIERS, CUSTOMERS', null),
-    ('drawing-files',                        'bucket', 'drawing-files', true,  'fn_enqueue_doc_backups: INQUIRIES', null),
-    ('finance-docs',                         'bucket', 'finance-docs',  true,  'fn_enqueue_doc_backups: REVENUE INVOICES', null),
-    ('backups',                              'bucket', 'backups',       true,  'fn_enqueue_doc_backups: CORRESPONDENCE, ACCOUNTING (the year-end pack in backups/accountant/year-end/); dropbox_backup renders generated documents into backups/generated/', null),
     ('backups/<YYYY-MM-DD>/<table>/page_NNNN.json', 'export', 'backups', true, 'fn_enqueue_doc_backups: TABLE EXPORTS (written daily by supabase/functions/backup; the tables are fn_table_export_list()); kept 90 days, Friday full copies 12 months (fn_backup_prune_tick)', null),
     -- The accountant's four (open gaps until 14 Sep 2026, closed by
     -- the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql). A path stored as
@@ -21224,59 +21222,144 @@ AS $function$
     ('accountant_month_close.csv_path',      'column', 'finance-reports', true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
     ('accountant_issued_document.file_path', 'column', null,              true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
     ('bank_statement_intake.doc_path',       'column', null,              true, 'fn_enqueue_doc_backups: ACCOUNTING', null),
-    -- ── not a document to keep ──
-    ('doc_backups.dropbox_path',             'column', null, false, null, 'the Dropbox destination of a backup, not a source'),
-    ('pdpl_erase_files.storage_path',        'column', null, false, null, 'the PDPL erasure ledger: names files being removed, never a document to keep'),
-    ('pdpl_erase_files.dropbox_path',        'column', null, false, null, 'the PDPL erasure ledger: names files being removed, never a document to keep'),
-    ('inquiries.drawing_redacted_paths',     'column', null, false, null, 'anonymised copies made from the customer''s drawing; the original (inquiries.drawing_file_path) is backed up'),
-    ('drawing_redaction_runs.source_path',   'column', null, false, null, 'the customer''s drawing, backed up through inquiries.drawing_file_path'),
-    ('drawing_redaction_runs.output_paths',  'column', null, false, null, 'anonymised copies made from the customer''s drawing; the original is backed up'),
-    ('supplier_catalog.source_document_path','column', null, false, null, 'the supplier''s catalogue upload, backed up through leads.catalog_doc_paths'),
-    ('doc_reviews.file_path',                'column', null, false, null, 'a review of a supplier document that is backed up through leads.*_doc_path'),
-    ('support_knowledge.source_path',        'column', null, false, null, 'a repository path of a knowledge source, not a storage object; the repository is its backup'),
-    ('ops_knowledge.source_path',            'column', null, false, null, 'a repository path of a knowledge source, not a storage object; the repository is its backup'),
-    ('ceo_knowledge.source_path',            'column', null, false, null, 'a repository path of a knowledge source, not a storage object; the repository is its backup'),
-    ('board_reports.pdf_path',               'column', null, false, null, 'a report generated from the database, regenerated on demand'),
-    ('exec_reports.pdf_path',                'column', null, false, null, 'a report generated from the database, regenerated on demand'),
-    ('finance_reports.html_path',            'column', null, false, null, 'a report generated from the database, regenerated on demand'),
-    ('finance_reports.xlsx_path',            'column', null, false, null, 'a report generated from the database, regenerated on demand'),
-    ('finance_reports.pdf_path',             'column', null, false, null, 'a report generated from the database, regenerated on demand'),
-    ('accountant_weekly_report.pdf_path',    'column', null, false, null, 'a report generated from the database, regenerated on demand'),
-    ('accountant_spend_report.pdf_path',     'column', null, false, null, 'a report generated from the database, regenerated on demand'),
-    ('expense_entries.doc_path',             'column', null, false, null, 'an expense receipt; the source of truth is the expenses mailbox, whose folders are the durable record'),
-    ('site',                                 'bucket', null, false, null, 'public website assets; their source is the repository'),
-    ('brand',                                'bucket', null, false, null, 'public brand assets; their source is the repository'),
-    ('social-media',                         'bucket', null, false, null, 'published social posts; their source is the repository and the platforms'),
-    ('demo-assets',                          'bucket', null, false, null, 'rehearsal fixtures, never kept'),
-    ('agent-docs',                           'bucket', null, false, null, 'documents generated from the database, regenerated on demand'),
-    ('reports',                              'bucket', null, false, null, 'documents generated from the database, regenerated on demand'),
-    ('finance-reports',                      'bucket', null, false, null, 'documents generated from the database, regenerated on demand'),
-    ('kb-import-assets',                     'bucket', null, false, null, 'knowledge import assets; the source packs are in the repository'),
-    ('receipt-files',                        'bucket', null, false, null, 'expense receipts; the source of truth is the expenses mailbox'),
-    -- ── OPEN GAPS: documents that are kept in Supabase storage only (14 Sep 2026) ──
-    ('quotes.original_file_path',            'column', null, false, null, 'OPEN GAP: a supplier''s quotation file is not yet in the Dropbox tree'),
-    ('quote_reviews.original_file_path',     'column', null, false, null, 'OPEN GAP: a supplier''s quotation file is not yet in the Dropbox tree'),
-    ('quote_committed_items.sub_quote_path', 'column', null, false, null, 'OPEN GAP: a committed sub-quote file is not yet in the Dropbox tree'),
-    ('quote_items.datasheet_path',           'column', null, false, null, 'OPEN GAP: a quoted item''s datasheet is not yet in the Dropbox tree'),
-    ('quote_spec_hold.pdf_path',             'column', null, false, null, 'OPEN GAP: a spec-hold PDF is not yet in the Dropbox tree'),
-    ('rfq_archives.archive_path',            'column', null, false, null, 'OPEN GAP: an RFQ archive is not yet in the Dropbox tree'),
-    ('compliance_sources.doc_path',          'column', null, false, null, 'OPEN GAP: a compliance source document is not yet in the Dropbox tree'),
-    ('support_artifact.storage_path',        'column', null, false, null, 'OPEN GAP: a support artefact is not yet in the Dropbox tree'),
-    ('support_document_intake.storage_path', 'column', null, false, null, 'OPEN GAP: a document sent to support is not yet in the Dropbox tree'),
-    ('wa_document_intake.storage_path',      'column', null, false, null, 'OPEN GAP: a document sent on WhatsApp is not yet in the Dropbox tree'),
-    ('messages.attachment_path',             'column', null, false, null, 'OPEN GAP: a portal message attachment is not yet in the Dropbox tree (the message itself is, as correspondence)'),
-    ('customer_calls.recording_path',        'column', null, false, null, 'OPEN GAP: a call recording is not yet in the Dropbox tree'),
-    ('refunds.doc_path',                     'column', null, false, null, 'OPEN GAP: a refund document is not yet in the Dropbox tree'),
-    ('supplier_dues.demand_letter_path',     'column', null, false, null, 'OPEN GAP: a demand letter is not yet in the Dropbox tree'),
-    ('supplier_dues.case_file_path',         'column', null, false, null, 'OPEN GAP: a supplier dues case file is not yet in the Dropbox tree'),
-    ('supplier_dues.evidence_terms_path',    'column', null, false, null, 'OPEN GAP: signed-terms evidence for a due is not yet in the Dropbox tree'),
-    -- The accountant's own records (PR #645) are no longer open gaps: they are backed up above, filed by
-    -- fn_enqueue_doc_backups: ACCOUNTING (PR #659, the accountant's year-end-pack duty).
-    -- The IT engineer's incident PDF (PR #641, duty 18): rendered into agent-docs from the fixed template
-    -- fn_it_incident_pdf_blocks over the public.it_incident row, which is the record.
-    ('it_incident.pdf_path',                 'column', null, false, null, 'an incident record rendered on demand from public.it_incident by fn_it_incident_pdf_blocks; the row is the record'),
-    ('quote-files',                          'bucket', null, false, null, 'OPEN GAP: quotation files are not yet in the Dropbox tree'),
-    ('compliance-docs',                      'bucket', null, false, null, 'OPEN GAP: compliance documents are not yet in the Dropbox tree')
+
+    -- ── (a) the buckets: every file an owner rule did not file is filed by the STORAGE SWEEP ──
+    ('supplier-docs',    'bucket', 'supplier-docs',    true, 'fn_enqueue_doc_backups: SUPPLIERS; STORAGE SWEEP for every other file (inbound/, legal/, catalog/ ...)', null),
+    ('signed-terms',     'bucket', 'signed-terms',     true, 'fn_enqueue_doc_backups: SUPPLIERS, CUSTOMERS; STORAGE SWEEP for every other signed record', null),
+    ('drawing-files',    'bucket', 'drawing-files',    true, 'fn_enqueue_doc_backups: INQUIRIES; STORAGE SWEEP for every other file, the anonymised redacted/ copies included', null),
+    ('finance-docs',     'bucket', 'finance-docs',     true, 'fn_enqueue_doc_backups: REVENUE INVOICES; STORAGE SWEEP for every other file', null),
+    ('backups',          'bucket', 'backups',          true, 'fn_enqueue_doc_backups: CORRESPONDENCE, ACCOUNTING (the year-end pack in backups/accountant/year-end/), TABLE EXPORTS; dropbox_backup renders generated documents into backups/generated/; STORAGE SWEEP for everything outside the dated export folders, conversations/ and generated/ (archives/, engineering/, imports/ ...)', null),
+    ('quote-files',      'bucket', 'quote-files',      true, 'fn_enqueue_doc_backups: STORAGE SWEEP (suppliers'' quotation files and the regenerated quotations)', null),
+    ('compliance-docs',  'bucket', 'compliance-docs',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (compliance sources as downloaded, the UAE library)', null),
+    ('receipt-files',    'bucket', 'receipt-files',    true, 'fn_enqueue_doc_backups: ACCOUNTING (bank statements); STORAGE SWEEP for the expense receipts (the inbound mailbox keeps about a month)', null),
+    ('agent-docs',       'bucket', 'agent-docs',       true, 'fn_enqueue_doc_backups: STORAGE SWEEP (quotations and invoices as sent, weekly reports, incident PDFs)', null),
+    ('finance-reports',  'bucket', 'finance-reports',  true, 'fn_enqueue_doc_backups: ACCOUNTING (month close); STORAGE SWEEP for every other report and legal notice', null),
+    ('reports',          'bucket', 'reports',          true, 'fn_enqueue_doc_backups: STORAGE SWEEP (board and executive report PDFs; their rows are not in the daily table export)', null),
+    ('social-media',     'bucket', 'social-media',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (generated post cards and avatars; not in the repository)', null),
+    ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
+    ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
+    ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
+
+    -- ── (a) columns whose files are filed by the STORAGE SWEEP of the bucket they sit in ──
+    -- measured 15 Sep 2026 where rows exist; "no writer today" where no code writes the column yet
+    ('quotes.original_file_path',            'column', 'quote-files',      true, 'fn_enqueue_doc_backups: STORAGE SWEEP (written by supplier_api)', null),
+    ('quote_spec_hold.pdf_path',             'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (bucket in quote_spec_hold.pdf_bucket; the regenerated quotations sit in quote-files)', null),
+    ('quote_reviews.original_file_path',     'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (no writer today)', null),
+    ('quote_committed_items.sub_quote_path', 'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (no writer today)', null),
+    ('quote_items.datasheet_path',           'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (no writer today)', null),
+    ('rfq_archives.archive_path',            'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (bucket in rfq_archives.bucket; backups/archives/ is swept)', null),
+    ('compliance_sources.doc_path',          'column', 'compliance-docs',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (16 of 16 paths in compliance-docs)', null),
+    ('support_artifact.storage_path',        'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (no writer today)', null),
+    ('support_document_intake.storage_path', 'column', 'supplier-docs',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the path is the one written into leads.*_doc_path)', null),
+    ('wa_document_intake.storage_path',      'column', 'supplier-docs',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the path is the one written into leads.*_doc_path)', null),
+    ('messages.attachment_path',             'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (bucket chosen by the portal, recorded in public.documents)', null),
+    ('customer_calls.recording_path',        'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (no writer today)', null),
+    ('refunds.doc_path',                     'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (no writer today)', null),
+    ('supplier_dues.demand_letter_path',     'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (no writer today; the legal notices on file sit in supplier-docs/legal/ and finance-reports/legal/)', null),
+    ('supplier_dues.case_file_path',         'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (no writer today)', null),
+    ('supplier_dues.evidence_terms_path',    'column', null,               true, 'fn_enqueue_doc_backups: STORAGE SWEEP (no writer today)', null),
+    ('expense_entries.doc_path',             'column', 'receipt-files',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (52 of 52 paths in receipt-files; the inbound mailbox keeps about a month)', null),
+    ('doc_reviews.file_path',                'column', 'supplier-docs',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (7 of 7 paths in supplier-docs/inbound/, none filed by an owner rule)', null),
+    ('supplier_catalog.source_document_path','column', 'supplier-docs',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (written by supplier_catalog_ingest into supplier-docs/catalog/)', null),
+    ('drawing_redaction_runs.source_path',   'column', 'drawing-files',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the customer''s original drawing; also INQUIRIES)', null),
+    ('accountant_weekly_report.pdf_path',    'column', 'agent-docs',       true, 'fn_enqueue_doc_backups: STORAGE SWEEP (agent-docs/accountant/weekly/)', null),
+    ('accountant_spend_report.pdf_path',     'column', 'finance-reports',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (finance-reports/accountant/spend/)', null),
+    ('finance_reports.html_path',            'column', 'finance-reports',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP', null),
+    ('finance_reports.xlsx_path',            'column', 'finance-reports',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP', null),
+    ('finance_reports.pdf_path',             'column', 'finance-reports',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP', null),
+    ('board_reports.pdf_path',               'column', 'reports',          true, 'fn_enqueue_doc_backups: STORAGE SWEEP (20 of 20 paths in reports)', null),
+    ('exec_reports.pdf_path',                'column', 'reports',          true, 'fn_enqueue_doc_backups: STORAGE SWEEP (2 of 2 paths in reports)', null),
+    ('it_incident.pdf_path',                 'column', 'agent-docs',       true, 'fn_enqueue_doc_backups: STORAGE SWEEP (rendered into agent-docs/it_engineer/incidents/)', null),
+
+    -- ── (b) EXEMPT (not a file or not ours) ──
+    ('doc_backups.dropbox_path',             'column', null, false, null, 'EXEMPT (not a file or not ours): the Dropbox destination of a backup, not a source'),
+    ('pdpl_erase_files.storage_path',        'column', null, false, null, 'EXEMPT (not a file or not ours): the PDPL erasure ledger names files being REMOVED under a data subject''s request; fn_backup_sweep_objects never offers a file it names, so an erased file is never copied again'),
+    ('pdpl_erase_files.dropbox_path',        'column', null, false, null, 'EXEMPT (not a file or not ours): the PDPL erasure ledger names Dropbox copies being REMOVED; never a source'),
+    -- The knowledge source paths are LABELS: none of the sampled paths exists as a storage object or in
+    -- the repository (review, 15 Sep 2026). The knowledge is the table rows, which the daily table export
+    -- (fn_table_export_list) carries to Dropbox.
+    ('support_knowledge.source_path',        'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
+    ('ops_knowledge.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
+    ('ceo_knowledge.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
+    ('demo-assets',                          'bucket', null, false, null, 'EXEMPT (not a file or not ours): a rehearsal fixture (one sample recording), never a record'),
+
+    -- ── (c) EXEMPT (derived): no registry source. The one derived thing left out is a folder, not a
+    -- source: signed-terms/registers/ (the customer register compliance_archive uploads to Dropbox
+    -- itself), excluded in fn_backup_sweep_objects. The anonymised drawings are derived, but 2 of the 3
+    -- redacted files have no original left (review, 15 Sep 2026), so they are kept like any other file. ──
+    ('inquiries.drawing_redacted_paths',     'column', 'drawing-files', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (drawing-files/redacted/; derived, but not every original survives)', null),
+    ('drawing_redaction_runs.output_paths',  'column', 'drawing-files', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (drawing-files/redacted/; derived, but not every original survives)', null)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_backup_sweep_objects()
+ RETURNS TABLE(bucket text, path text, bytes bigint, created_at timestamp with time zone, entity text, entity_id text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select o.bucket_id, o.name, coalesce((o.metadata->>'size')::bigint, 0), o.created_at, x.entity, x.id
+    from storage.objects o
+    cross join lateral (select
+        (regexp_match(o.name, '^generated/\d+_(customer_details|inquiry_summary|comparison|supplier_details)_([0-9a-f_]{36}|\d{1,18})\.pdf$', 'i')) as gen,
+        split_part(o.name, '/', 2) as seg2, split_part(o.name, '/', 3) as seg3) p
+    cross join lateral (select coalesce(
+        (select case d.ref_table when 'customers' then 'customer' when 'inquiries' then 'inquiry'
+                                 when 'quotes' then 'quote' when 'leads' then 'supplier' end || ':' || d.ref_id
+           from public.documents d
+          where d.bucket = o.bucket_id and d.path = o.name
+            and d.ref_table in ('customers', 'inquiries', 'quotes', 'leads') and coalesce(d.ref_id, '') <> '' limit 1),
+        (select 'customer:' || c.customer_id from public.quote_pdf_cache c
+          where c.bucket = o.bucket_id and c.path = o.name and c.customer_id is not null limit 1),
+        (select 'customer:' || t.customer_id from public.reveal_invoices ri join public.transactions t on t.id = ri.transaction_id
+          where ri.bucket = o.bucket_id and ri.path = o.name and t.customer_id is not null limit 1),
+        (select 'quote:' || q.id from public.quotes q where o.bucket_id = 'quote-files' and q.original_file_path = o.name limit 1),
+        case when o.bucket_id = 'backups' and p.gen is not null then
+               case lower(p.gen[1]) when 'customer_details' then 'customer' when 'supplier_details' then 'supplier' else 'inquiry' end
+               || ':' || replace(lower(p.gen[2]), '_', '-') end,
+        case when o.bucket_id = 'supplier-docs' and p.seg2 ~ '^\d{1,18}$' then 'supplier:' || p.seg2 end,
+        case when o.bucket_id = 'drawing-files' and p.seg2 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg2) end,
+        case when o.bucket_id = 'quote-files' and p.seg3 ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then 'inquiry:' || lower(p.seg3) end,
+        'company:storage/' || o.bucket_id) as owner) y
+    cross join lateral (select split_part(y.owner, ':', 1) as entity, substr(y.owner, strpos(y.owner, ':') + 1) as id) x
+    -- the owner row behind it: is it demo (null when the row is gone), and which customer email, for PDPL.
+    -- Each cast is inside CASE behind the shape test that makes it safe.
+    left join lateral (select
+        case x.entity
+          when 'supplier' then (select coalesce(l.is_demo, false) from public.leads l
+                                 where l.id = case when x.id ~ '^\d{1,18}$' then x.id::bigint end)
+          when 'customer' then (select coalesce(c.is_demo, false) from public.customers c
+                                 where c.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'inquiry'  then (select coalesce(c.is_demo, false) from public.inquiries i left join public.customers c on c.id = i.customer_id
+                                 where i.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'quote'    then (select coalesce(l.is_demo, false) or coalesce(c.is_demo, false)
+                                  from public.quotes q left join public.leads l on l.id = q.supplier_id
+                                  left join public.inquiries i on i.id = q.inquiry_id left join public.customers c on c.id = i.customer_id
+                                 where q.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+        end as demo,
+        case x.entity
+          when 'customer' then (select c.email from public.customers c
+                                 where c.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'inquiry'  then (select c.email from public.inquiries i join public.customers c on c.id = i.customer_id
+                                 where i.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+          when 'quote'    then (select c.email from public.quotes q join public.inquiries i on i.id = q.inquiry_id
+                                  join public.customers c on c.id = i.customer_id
+                                 where q.id = case when x.id ~* '^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$' then x.id::uuid end)
+        end as email) w on true
+   where o.bucket_id in (select r.bucket from public.fn_backup_source_registry() r
+                          where r.kind = 'bucket' and r.backed_up and r.enqueue_rule like '%STORAGE SWEEP%')
+     and right(o.name, 1) <> '/' and o.name !~ '(^|/)\.emptyFolderPlaceholder$'
+     and o.name !~* 'zz[ _-]?demo'
+     and not (o.bucket_id = 'backups' and o.name ~ '^(\d{4}-\d{2}-\d{2}|conversations)/')
+     and not (o.bucket_id = 'signed-terms' and o.name like 'registers/%')
+     and not coalesce(w.demo, false)
+     and not (x.entity <> 'company' and w.demo is null
+              and exists (select 1 from public.doc_backups z where z.entity = 'zz_demo' and z.entity_id = x.id))
+     and not exists (select 1 from public.pdpl_erase_files e where e.bucket = o.bucket_id and e.storage_path = o.name)
+     and not (w.email is not null and (w.email ~* '@removed\.invalid$'
+              or exists (select 1 from public.pdpl_requests r
+                          where r.kind = 'delete' and coalesce(r.status, '') not in ('rejected', 'withdrawn', 'cancelled')
+                            and lower(r.email) = lower(w.email))));
 $function$
 
 
@@ -29218,7 +29301,7 @@ begin
          regexp_replace(sd.path,'^.*/',''),
          sd.base || sd.doc_type || ' - ' || regexp_replace(sd.path,'^.*/',''),
          'storage', 'S:'||sd.id||':'||sd.doc_type||':'||sd.path
-  from sd on conflict (dedupe_key) do nothing;
+  from sd on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
@@ -29234,7 +29317,7 @@ begin
        or l.signed_terms_path is not null or l.company_profile_doc_path is not null
        or l.license_doc_path is not null or coalesce(l.claimed,false)) and l.catalog_doc_paths is not null ) s,
     unnest(s.catalog_doc_paths) cat
-  where cat is not null and length(cat)>0 on conflict (dedupe_key) do nothing;
+  where cat is not null and length(cat)>0 on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   insert into public.doc_backups(entity,entity_id,doc_type,source,gen_kind,gen_ref,dropbox_path,dedupe_key)
@@ -29247,7 +29330,7 @@ begin
     where l.approved_at is not null or l.registration_submitted_at is not null
        or l.signed_terms_path is not null or l.company_profile_doc_path is not null
        or l.license_doc_path is not null or coalesce(l.claimed,false) ) s
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   -- ============ CUSTOMERS ============
@@ -29259,14 +29342,14 @@ begin
          '/QuotesDone Backup/Customers/'||public.fn_dbx_safe(coalesce(c.full_name,'Customer'))||' ('||left(c.id::text,8)||')/Signed Terms & Conditions - '||regexp_replace(c.signed_terms_path,'^.*/',''),
          'storage', 'C:'||c.id||':terms:'||c.signed_terms_path
   from public.customers c where c.signed_terms_path is not null and length(c.signed_terms_path)>0
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   insert into public.doc_backups(entity,entity_id,doc_type,source,gen_kind,gen_ref,dropbox_path,dedupe_key)
   select 'customer', c.id::text, 'Customer Details','generated','customer_details', c.id::text,
          '/QuotesDone Backup/Customers/'||public.fn_dbx_safe(coalesce(c.full_name,'Customer'))||' ('||left(c.id::text,8)||')/Customer Details.pdf',
          'C:'||c.id||':details'
-  from public.customers c on conflict (dedupe_key) do nothing;
+  from public.customers c on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   -- ============ INQUIRIES (under their customer) ============
@@ -29279,7 +29362,7 @@ begin
          'storage', 'I:'||i.id||':drawing:'||i.drawing_file_path
   from public.inquiries i join public.customers c on c.id=i.customer_id
   where i.drawing_file_path is not null and length(i.drawing_file_path)>0
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   insert into public.doc_backups(entity,entity_id,doc_type,source,gen_kind,gen_ref,dropbox_path,dedupe_key)
@@ -29288,7 +29371,7 @@ begin
            || to_char(i.created_at,'YYYY-MM-DD')||' '||left(i.id::text,8)||' - '||public.fn_dbx_safe(coalesce(i.status,'inquiry'))
            || '/Inquiry Summary.pdf', 'I:'||i.id||':summary'
   from public.inquiries i join public.customers c on c.id=i.customer_id
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   -- The gen_kind='comparison' block that stood here is deliberately absent. See the header.
@@ -29310,7 +29393,7 @@ begin
          'storage', 'T:'||t.id||':invoice:'||t.doc_path
   from public.transactions t
   where t.doc_path is not null and length(t.doc_path) > 0
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
 
@@ -29348,7 +29431,7 @@ begin
       to_char(v.occurred_at at time zone 'Asia/Dubai','YYYY-MM-DD HH24MI') || ' ' || v.direction || ' ' || v.channel || ' - '
         || public.fn_dbx_safe(left(coalesce(nullif(btrim(v.subject),''),'(no subject)'),80)) || ' #' || v.source_id || '.pdf' as fname) x
   where not v.is_demo
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   -- ============ ACCOUNTING (14 SEP 2026, accountant duty 4 of the five further duties) ============
@@ -29368,7 +29451,7 @@ begin
   from public.accountant_month_close c
   cross join lateral (values ('Month close (PDF)', c.pdf_path), ('Month close (CSV)', c.csv_path)) v(doc_type, path)
   where c.rendered_at is not null and c.pdf_bucket is not null and length(coalesce(v.path,'')) > 0
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
@@ -29381,7 +29464,7 @@ begin
          'storage', 'ACCT:bank:' || b.source_ref
   from public.bank_statement_intake b
   where b.doc_path ~ '^[a-z0-9-]+/.+' and b.account <> 'zz_demo'
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
@@ -29394,7 +29477,7 @@ begin
          'storage', 'ACCT:issued:' || d.id
   from public.accountant_issued_document d
   where d.file_path ~ '^[a-z0-9-]+/.+' and d.recipient !~* 'example\.invalid'
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
@@ -29403,7 +29486,7 @@ begin
          'storage', 'ACCT:year_end:' || p.year || ':' || (f->>'name')
   from public.accountant_year_end_pack p cross join lateral jsonb_array_elements(p.files) f
   where p.rendered_at is not null and (f->>'path') !~* 'zz[_ -]?demo'
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   -- ============ TABLE EXPORTS (14 SEP 2026, it_engineer) ============
@@ -29421,7 +29504,27 @@ begin
   join storage.objects o on o.bucket_id = 'backups' and o.name like to_char(r.stamp,'YYYY-MM-DD') || '/%'
   where r.status = 'done'
     and not exists (select 1 from public.doc_backups d where d.bucket = 'backups' and d.path = o.name)
-  on conflict (dedupe_key) do nothing;
+  on conflict do nothing;
+  get diagnostics m = row_count; n := n + m;
+
+  -- ============ STORAGE SWEEP (15 SEP 2026, it_engineer) ============
+  -- The founder: "of course that data should never get lost no matter what". Every stored file no rule
+  -- above filed: fn_backup_sweep_objects() is the one list of what may be swept (the registry's swept
+  -- buckets, without ZZ DEMO, demo owners, the export and conversation folders of backups, or any file
+  -- of a customer PDPL is erasing; each row carries its real owner). Filed under Storage/<bucket>/<path> so the
+  -- original path, which carries the supplier, inquiry or quote id, is kept. Only files over an hour
+  -- old, so an owner rule that runs on the same upload files it first under its owner. At most 200 per
+  -- call, oldest first: the backfill of existing files drains over successive dropbox_backup runs.
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select s.entity, s.entity_id, 'Stored file', s.bucket, s.path, regexp_replace(s.path,'^.*/',''),
+         '/QuotesDone Backup/Storage/' || s.bucket || '/' || s.path,
+         'storage', 'SWEEP:' || s.bucket || ':' || s.path
+  from public.fn_backup_sweep_objects() s
+  where s.created_at < now() - interval '1 hour'
+    and not exists (select 1 from public.doc_backups d where d.bucket = s.bucket and d.path = s.path)
+  order by s.created_at, s.bucket, s.path
+  limit 200
+  on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
   return n;
@@ -32582,8 +32685,10 @@ CREATE OR REPLACE FUNCTION public.fn_it_backup_expected()
 AS $function$
   with rl as (select * from public.leads where not coalesce(is_demo, false)),
        rc as (select * from public.customers where not coalesce(is_demo, false)),
-       ri as (select i.* from public.inquiries i join rc on rc.id = i.customer_id)
-  select 'obj:' || o.bucket_id || ':' || o.name, 'storage', o.bucket_id, o.name, null::text, null::text, x.owner, o.created_at
+       ri as (select i.* from public.inquiries i join rc on rc.id = i.customer_id),
+  base as (
+  select 'obj:' || o.bucket_id || ':' || o.name as item_key, 'storage' as kind, o.bucket_id as bucket, o.name as path,
+         null::text as gen_kind, null::text as gen_ref, x.owner, o.created_at as since
     from storage.objects o
     cross join lateral (select case
       when o.bucket_id = 'supplier-docs' then (select 'supplier:' || l.id from rl l
@@ -32663,7 +32768,14 @@ AS $function$
     cross join lateral (
       select to_char(d.day, 'YYYY-MM-DD') || '/_manifest.json' as path
       union select to_char(d.day, 'YYYY-MM-DD') || '/' || x.table_name || '/page_0000.json' from public.fn_table_export_list() x
-      union select o.name from storage.objects o where o.bucket_id = 'backups' and o.name like to_char(d.day, 'YYYY-MM-DD') || '/%') f;
+      union select o.name from storage.objects o where o.bucket_id = 'backups' and o.name like to_char(d.day, 'YYYY-MM-DD') || '/%') f
+  )
+  select * from base
+  union all
+  -- ── STORAGE SWEEP (15 Sep 2026): every other stored file the registry sweeps ──
+  select 'obj:' || s.bucket || ':' || s.path, 'storage', s.bucket, s.path, null, null, s.entity || ':' || s.entity_id, s.created_at
+    from public.fn_backup_sweep_objects() s
+   where not exists (select 1 from base b where b.item_key = 'obj:' || s.bucket || ':' || s.path);
 $function$
 
 
@@ -34399,12 +34511,28 @@ begin
   end if;
 
   -- ── 9b. OPEN GAPS IN THE BACKUP REGISTRY ──
+  -- 15 Sep 2026: a reasoned EXEMPT is not a gap (it raised all 51 before: the destination column, the
+  -- PDPL ledger, repository paths ...). A gap is (a) a registry source not backed up and not EXEMPT --
+  -- an OPEN GAP, or a row nobody classified -- and (b) per swept bucket, the stored files over a day old
+  -- that still have no doc_backups row. No item key carries ':', so every finding is
+  -- 'duty:backup_gap:<item>' and the founder's digest shows the family as one line with its count.
   if 'backup_gap' = any (v_due) then
     v_items := '[]'::jsonb;
-    for x in select * from public.fn_backup_source_registry() r where not r.backed_up loop
-      v_items := v_items || jsonb_build_object('item', x.source, 'owner_seat', 'sales_engineer', 'subject', 'dropbox_backup',
+    for x in select * from public.fn_backup_source_registry() r
+              where not r.backed_up and coalesce(r.reason, '') !~ '^EXEMPT' loop
+      v_items := v_items || jsonb_build_object('item', replace(x.source, ':', '/'), 'owner_seat', 'sales_engineer', 'subject', 'dropbox_backup',
         'title', 'Not backed up to Dropbox: ' || x.source || coalesce(' — ' || x.reason, ''),
         'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('source', x.source, 'kind', x.kind, 'bucket', x.bucket));
+    end loop;
+    for x in select s.bucket, count(*) as n, round(sum(s.bytes) / 1048576.0, 2) as mb, min(s.path) as sample
+               from public.fn_backup_sweep_objects() s
+              where s.created_at < now() - interval '24 hours'
+                and not exists (select 1 from public.doc_backups d where d.bucket = s.bucket and d.path = s.path)
+              group by s.bucket loop
+      v_items := v_items || jsonb_build_object('item', 'storage/' || x.bucket, 'owner_seat', 'sales_engineer', 'subject', 'dropbox_backup',
+        'title', 'Not backed up to Dropbox: ' || x.n || ' stored file(s) in ' || x.bucket || ' still have no backup row after 24 hours',
+        'blast', 'agent_facing', 'affected', x.n,
+        'evidence', jsonb_build_object('bucket', x.bucket, 'files', x.n, 'mb', x.mb, 'sample', x.sample));
     end loop;
     v_out := v_out || jsonb_build_object('backup_gap', public.fn_it_duty_settle('backup_gap', v_items));
     perform public.fn_it_duty_ran('backup_gap', v_out->'backup_gap');
