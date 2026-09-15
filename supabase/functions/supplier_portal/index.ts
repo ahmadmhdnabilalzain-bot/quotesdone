@@ -422,7 +422,10 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
     }
 
     if (action === 'save_documents') {
-      const items = Array.isArray(b.items) ? b.items : [];
+      // Capped (15 Sep 2026): every item is malware-scanned and licence/profile/catalogues are now
+      // also read by code, one after another, inside an edge function's CPU budget. Nine document
+      // kinds plus a handful of catalogues fits; supplier_api.process_docs is bounded to 7 the same way.
+      const items = Array.isArray(b.items) ? b.items.slice(0, 15) : [];
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
       const failed: { kind: string; reason: string }[] = [];
@@ -534,7 +537,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
           return J({ error:'save_failed', detail: updErr.message, saved, failed, message:'Your files were uploaded but could not be attached to your profile. Please try again.' }, 502);
         }
       }
-      const documents_read = readQueue.length ? await proposeTradesFromDocs(admin, Number(sup.id), readQueue) : undefined;
+      const documents_read = readQueue.length ? await proposeTradesFromDocs(admin, Number(sup.id), readQueue.slice(0, 7)) : undefined;
       return J({ ok:true, saved, failed, ...(documents_read ? { documents_read } : {}) });
     }
 

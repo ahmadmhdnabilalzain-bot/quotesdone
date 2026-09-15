@@ -305,7 +305,9 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   routing.attempted = matchRows.length;
   if (refused.length) routing.refused_at_assignment = refused;
   try { await admin.from('inquiries').update({ routing }).eq('id', inqId); } catch (_e) { /* */ }
-  if (!landedIds.length) { routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary); return { matches: 0, routing }; }
+  // A matcher that did not answer is not a coverage gap: it is already a finding (above), and flagging
+  // it here would record "no supplier covers this" for a trade we never actually searched.
+  if (!landedIds.length) { if (!routing.matcher_unavailable) routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary); return { matches: 0, routing }; }
   // AUDIT 1.5. This is the first supplier-facing surface an inquiry ever reaches and it is entirely
   // pre-reveal. summary, budget and extra are customer free text; category and emirate are platform
   // values from a fixed list. If the owner could not be read, the free-text fields are dropped and

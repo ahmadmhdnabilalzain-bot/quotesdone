@@ -106,14 +106,24 @@ begin
   if p_decision = 'add' then
     -- Under the SUPPLIER'S code, never another: suppliers who confirmed this trade already hold it
     -- in supplier_capabilities.trades, and a different code would silently unmatch them.
-    v_label := coalesce(nullif(btrim(p_label_en), ''), r.label_en, r.label_ar);
+    -- Siblings (other suppliers' PENDING proposals of the same code) are locked in id order first, so
+    -- two concurrent 'add' decisions on one code queue instead of deadlocking.
+    perform 1 from public.taxonomy_trade_proposal where code = r.code and status = 'pending' order by id for update;
+    v_label := coalesce(nullif(btrim(p_label_en), ''), nullif(r.label_en, ''), r.label_ar);
     insert into public.taxonomy_trade (code, label, label_ar, aliases, sort, active)
     values (r.code, v_label, coalesce(nullif(btrim(p_label_ar), ''), r.label_ar),
             array_remove(array[lower(nullif(btrim(coalesce(p_label_en, r.label_en)), ''))], null), 900, true)
     on conflict (code) do nothing;
     update public.taxonomy_trade_proposal
        set status = 'added', mapped_to = null, decided_at = now(), decided_by = 'sales_engineer', note = coalesce(p_note, note)
-     where code = r.code and status in ('pending', 'map_offered');
+     where id = r.id;
+    -- Other suppliers' PENDING rows of the same code are now in the list too; they are marked as a
+    -- consequence, with a system note naming the decision, never with this decision's note. A
+    -- map_offered row is a separate decision for that supplier and is left alone.
+    update public.taxonomy_trade_proposal
+       set status = 'added', decided_at = now(), decided_by = 'sales_engineer',
+           note = 'auto: code added to taxonomy_trade by proposal #' || r.id
+     where code = r.code and status = 'pending' and id <> r.id;
   elsif p_decision = 'offer_map' then
     if not exists (select 1 from public.taxonomy_trade where code = p_code and active) then
       raise exception 'fn_trade_proposal_decide: % is not an active trade', p_code;
