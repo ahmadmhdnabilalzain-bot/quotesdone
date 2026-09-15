@@ -88,6 +88,7 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   const exclusions = strArr(body.exclusions, 25);
   const brands = strArr(body.brands, 40, 60);
   const projectTypes = strArr(body.project_types, 12, 60);
+  const services = strArr(body.services, 120);
   // Supplier-declared only. These feed a HARD gate in fn_match_capability (a job outside the range
   // removes the supplier from the candidate set), so null stays null and stays permissive.
   const nv = (v: unknown) => (v === null || v === undefined || v === '') ? null : (Number.isFinite(Number(v)) ? Number(v) : null);
@@ -108,7 +109,9 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   const now = new Date().toISOString();
   const capRow: Record<string, unknown> = {
     supplier_id: supplierId, trades, roles, products_norm: products, brands, project_types: projectTypes, exclusions,
-    services: strArr(body.services, 25), coverage_emirates: strArr(body.coverage_emirates, 8, 40),
+    // 120, not 25 (15 Sep 2026): the Services checklist stores one '<trade>.<code>' per ticked service,
+    // five per trade, plus up to 25 of the supplier's own words; 25 would have cut a five-trade company.
+    services, coverage_emirates: strArr(body.coverage_emirates, 8, 40),
     missing_fields: [], review_status: 'confirmed', confirmed_at: now, confirmed_version: version, updated_at: now,
   };
   // Conditional: PostgREST's merge-duplicates only SETs columns present in the payload, so omitting a
@@ -121,7 +124,7 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   await admin.from('supplier_capability_confirmation').insert({
     supplier_id: supplierId, version,
     proposed: { on_file_trades: onFile, document_trades: fromDocs },
-    confirmed: { trades, roles, products, brands, project_types: projectTypes, min_project_value: minVal, max_project_value: maxVal },
+    confirmed: { trades, roles, services, products, brands, project_types: projectTypes, min_project_value: minVal, max_project_value: maxVal },
     supplier_added: { trades: trades.filter((c) => !onFile.includes(c) && !fromDocs.includes(c)) },
     exclusions, source_docs: obj(before?.source_docs),
     confirmed_at: now, confirmed_via: 'portal', agent_version: VERSION,
