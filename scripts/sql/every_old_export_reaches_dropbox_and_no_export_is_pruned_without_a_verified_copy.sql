@@ -48,6 +48,17 @@
 --   3. Every other line of the three retention routines is the MANIFEST-last body
 --      (the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql).
 --
+-- KNOWN LIMITS (review, 15 Sep 2026), written down so they are not read as bugs:
+--   * A day with a page that never gets a verified copy is never marked deleted, and storage_attempts
+--     does not climb (the worker reports no error), so it is re-picked each tick and surfaces as the
+--     'backup_prune' finding only through the 2-day rule in fn_backup_prune_tick. Nothing is lost; the day
+--     is held, loudly after 2 days.
+--   * PDPL: an export page is a whole-table dump filed as entity 'company', so fn_pdpl_redact (which
+--     collects doc_backups rows by customer, inquiry and quote) never lists it. This is already true of
+--     every daily TABLE EXPORTS page; this file adds the pre-7-Sep pages to it. An erased person's rows
+--     in an export page leave Dropbox when retention prunes that day, or by an owner of the erasure flow
+--     adding export pages to pdpl_erase_files -- that is a decision for the PDPL owner, not made here.
+--
 -- WHAT THIS DOES NOT CHANGE: dropbox_backup/index.ts, _shared/dropbox.ts and supabase/functions/backup.
 -- It does not switch deletion on.
 --
@@ -310,7 +321,10 @@ begin
   -- filed exactly like a TABLE EXPORTS day, so retention recognises the copies. At most 200 legacy rows
   -- wait at a time, oldest day first: the uploader claims lowest id first, so a new customer or supplier
   -- document waits behind at most 200 export pages (measured median 2.6 MB). Refilled on every
-  -- non-chained dropbox_backup run.
+  -- non-chained dropbox_backup run. One enqueue at a time tops the queue up (review: a second scheduler
+  -- and a kick can overlap, and each would read the same waiting count); a run that loses the lock skips
+  -- only this section.
+  if pg_try_advisory_xact_lock(hashtext('fn_enqueue_doc_backups:legacy_exports')) then
   insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
   select 'company', 'table_export:' || split_part(o.name,'/',1), 'Database export', 'backups', o.name,
          regexp_replace(o.name,'^.*/',''),
@@ -327,6 +341,7 @@ begin
                                and not exists (select 1 from public.table_export_run r2 where r2.stamp::text = split_part(w.path,'/',1))))
   on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
+  end if;
 
   -- ============ STORAGE SWEEP (15 SEP 2026, it_engineer) ============
   -- The founder: "of course that data should never get lost no matter what". Every stored file no rule
@@ -463,7 +478,8 @@ begin
 end $fn$;
 revoke execute on function public.fn_backup_prune_storage_next() from public, anon, authenticated;
 
--- fn_doc_backups_prune_next: the MANIFEST-last body with ONE change, what it may claim.
+-- fn_doc_backups_prune_next: the MANIFEST-last body with ONE change, what it may claim -- two added
+-- conditions (the copy was verified; its day's storage deletion finished), defence in depth behind the tick.
 create or replace function public.fn_doc_backups_prune_next(p_limit integer default 25, p_run text default null)
 returns setof public.doc_backups
 language plpgsql volatile security definer set search_path to 'public', 'pg_temp' as $fn$
