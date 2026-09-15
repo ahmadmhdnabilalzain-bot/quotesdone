@@ -147,6 +147,20 @@ export const sessionPayer = (x: any) => x?.customer_details?.email ?? x?.custome
 export const refundPayer = (x: any) =>
   x?.charge?.billing_details?.email ?? x?.charge?.receipt_email ?? x?.charge?.customer?.email ?? null;
 
+// Splits one mode's settled sessions and refunds into what the books must record and the rehearsals.
+// `key` is the secret the objects were read with: the 'test' bucket is treated as test only when that
+// key really is a Stripe test key, so a live key mis-stored under stripe_secret_key_test drops nothing.
+// deno-lint-ignore no-explicit-any
+export function splitRehearsals(name: 'live' | 'test', key: string, sessions: any[], refunds: any[]) {
+  const m = name === 'test' && /^[sr]k_test_/.test(key) ? 'test' : 'live';
+  // deno-lint-ignore no-explicit-any
+  const rs = (x: any) => isRehearsal(m, sessionPayer(x)), rr = (x: any) => isRehearsal(m, refundPayer(x));
+  return {
+    sessions: sessions.filter((x) => !rs(x)), refunds: refunds.filter((x) => !rr(x)),
+    rehearsal: { sessions: sessions.filter(rs).map((x) => x.id), refunds: refunds.filter(rr).map((x) => x.id) },
+  };
+}
+
 async function stripe(sec: Sec) {
   const since = Math.floor(Date.now() / 1000) - 72 * 3600;
   // A session younger than 15 minutes may still be on its way through the webhook.
@@ -160,27 +174,21 @@ async function stripe(sec: Sec) {
       get(`https://api.stripe.com/v1/refunds?limit=100&created[gte]=${since}&expand[]=data.charge.customer`, h),
       get('https://api.stripe.com/v1/webhook_endpoints?limit=100', h)]);
     if (!s.ok || !r.ok || !w.ok) return unavailable(`Stripe answered sessions ${s.status}, refunds ${r.status}, webhooks ${w.status}`);
-    // deno-lint-ignore no-explicit-any
-    const sessions = (J(s).data ?? []).filter((x: any) => x.payment_status === 'paid' && x.created <= settled);
-    // deno-lint-ignore no-explicit-any
-    const refunds = (J(r).data ?? []).filter((x: any) => x.created <= settled);
-    // deno-lint-ignore no-explicit-any
-    const rehearsalSession = (x: any) => isRehearsal(name, sessionPayer(x));
-    // deno-lint-ignore no-explicit-any
-    const rehearsalRefund = (x: any) => isRehearsal(name, refundPayer(x));
+    const split = splitRehearsals(name, key,
+      // deno-lint-ignore no-explicit-any
+      (J(s).data ?? []).filter((x: any) => x.payment_status === 'paid' && x.created <= settled),
+      // deno-lint-ignore no-explicit-any
+      (J(r).data ?? []).filter((x: any) => x.created <= settled));
     return {
       basis: 'measured',
-      // deno-lint-ignore no-explicit-any
-      paid_sessions: sessions.filter((x: any) => !rehearsalSession(x))
+      paid_sessions: split.sessions
         // deno-lint-ignore no-explicit-any
         .map((x: any) => ({ id: x.id, payment_intent: x.payment_intent, amount_total: x.amount_total, created: x.created })),
-      // deno-lint-ignore no-explicit-any
-      refunds: refunds.filter((x: any) => !rehearsalRefund(x))
+      refunds: split.refunds
         // deno-lint-ignore no-explicit-any
         .map((x: any) => ({ id: x.id, payment_intent: x.payment_intent, amount: x.amount, status: x.status })),
       // Kept in the reading as the record: rehearsal, no books expected.
-      // deno-lint-ignore no-explicit-any
-      rehearsal: { sessions: sessions.filter(rehearsalSession).map((x: any) => x.id), refunds: refunds.filter(rehearsalRefund).map((x: any) => x.id) },
+      rehearsal: split.rehearsal,
       // deno-lint-ignore no-explicit-any
       webhooks: (J(w).data ?? []).map((x: any) => ({ url: x.url, status: x.status, enabled_events: x.enabled_events })),
     };
