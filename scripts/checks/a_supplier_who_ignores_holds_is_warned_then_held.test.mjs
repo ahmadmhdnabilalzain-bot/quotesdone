@@ -2,10 +2,14 @@
 //
 // Founder, 14 Sep 2026 (founder_instruction #158, #160). Proved against production inside ONE
 // transaction that raises at the end, so it commits nothing: no notification, support case, counter
-// or event survives, and the dispatchers never see a row. It uses an existing ZZ DEMO supplier
-// (company 'ZZ DEMO …', address @example.invalid) and never inserts a lead, because a lead insert can
-// consume a founding-rank number that a rollback does not return. It asserts on every direction it
-// touched and that the counts are the same afterwards.
+// or event survives, and the dispatchers never see a row. The supplier it acts on is made for the run
+// by scripts/staging/demo_factory.mjs makeSupplier (ZZ DEMO, fixture mobile, withAuth:false) and torn
+// down afterwards. It used to repurpose an existing lead as 'approved' inside the transaction; since
+// #698 trg_leads_e0_mandatory_six_gate refuses that unless the founder's six are complete, so the lead
+// is now a complete one, approved by the sales engineer's verification (completeMandatorySix).
+// Founding rank: verification gives the demo supplier max(rank)+1 until teardown deletes it, which
+// frees the number again; 0 real suppliers held a rank on 15 Sep 2026. It asserts on every direction
+// it touched and that the counts are the same afterwards.
 //
 //   fix before the decision resets the run · two in a row → warning through customer_support (email +
 //   WhatsApp, requested_by sales_engineer) and a support case · three in a row → matching hold,
@@ -38,13 +42,10 @@ declare
   v_lead bigint; v_mail text; r jsonb := '{}'::jsonb; v_before jsonb; v_after jsonb; v_fi bigint; v_ok boolean;
   v_matchable_before boolean; v_matchable_held boolean; v_tl jsonb;
 begin
-  -- A ZZ DEMO supplier if one exists; otherwise any lead, whose every contact field is overwritten
-  -- with a fixture address and number as the FIRST statement below. Either way, inside this
-  -- transaction (which is rolled back) no notice can be addressed to a real person, and none survives.
-  select l.id into v_lead from public.leads l
-   where l.company_name ilike 'ZZ DEMO%' and coalesce(l.claimed_by, l.email) ilike '%@example.invalid' order by l.id limit 1;
-  if v_lead is null then select l.id into v_lead from public.leads l order by l.id limit 1; end if;
-  if v_lead is null then raise exception 'PROBE<<{"skipped":"no lead at all to stand in as the fixture"}>>'; end if;
+  -- The run's own ZZ DEMO supplier, complete with the six and approved (substituted by the test).
+  -- Its contact fields are still overwritten with a fixture address and number as the FIRST statement
+  -- below, so inside this rolled-back transaction no notice can be addressed to a real person.
+  v_lead := __LEAD__;
   v_mail := 'zz-demo-collab-probe@example.invalid';
   select jsonb_build_object('notifications', (select count(*) from public.notifications), 'cases', (select count(*) from public.support_case),
                             'events', (select count(*) from public.supplier_collaboration_event), 'collab', (select count(*) from public.supplier_collaboration))
@@ -109,11 +110,25 @@ end $probe$;`;
 
 test('production: the run, the warning through support, the hold, and the founder-only lift', { skip: SKIP }, async (t) => {
   const { sql } = await import('../lib/db.mjs');
+  const { withRun, makeSupplier } = await import('../staging/demo_factory.mjs');
   let out = null;
   // The Management API hands the exception message back inside its own JSON, so the report arrives
   // with its quotes escaped; unescape once before parsing. The greedy match takes the whole report.
   const parse = (s) => { try { return JSON.parse(s); } catch { return JSON.parse(s.replace(/\\\\/g, '\\').replace(/\\"/g, '"')); } };
-  try { await sql(PROBE); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
+  // The demo factory's write door (qd_guard mgmtFixture) opens only for a declared fixture run. It is
+  // opened for this run alone and restored afterwards: scripts/checks/run.mjs loads every check into one
+  // process, and a door left open would disarm that guard for every check after this one.
+  const hadFixtures = process.env.QD_FIXTURES;
+  process.env.QD_FIXTURES = '1';
+  try {
+    // withRun tears the supplier (row, documents, signed terms) down even if the probe or an assert throws.
+    await withRun(async (run) => {
+      const sup = await makeSupplier(run, { trade: 'aluminium', withAuth: false, capability: false, company_name: `ZZ DEMO holds probe ${run.tag}` });
+      try { await sql(PROBE.replace('__LEAD__', String(Number(sup.leadId)))); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
+    }, { quiet: true, tag: process.env.QD_RUN_TAG });   // an explicit tag lets the caller count its own leftovers
+  } finally {
+    if (hadFixtures === undefined) delete process.env.QD_FIXTURES; else process.env.QD_FIXTURES = hadFixtures;
+  }
   assert.ok(out, 'the probe did not report');
   // A probe that could not run reports a SKIP, never a pass: a check that proves nothing must not read green.
   if (out.skipped) { t.skip(out.skipped); return; }
