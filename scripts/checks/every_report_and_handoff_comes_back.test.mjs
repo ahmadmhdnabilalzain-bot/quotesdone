@@ -9,7 +9,7 @@
 //   2. (production) a kind marked originator_closes has no routine that closes it as its originator
 //      (one that names the kind and sets qd.handoff_closer or qd.backup_closer) -- such a kind would
 //      leave every handoff pending forever;
-//   3. (production) one of the 18 kinds decided in that file lost its reply window or its flag, which is
+//   3. (production) one of the 18 kinds (17 flipped, plus delivery.remediate) decided in that file lost its reply window or its flag, which is
 //      what re-applying an older file that inserts the rows would do;
 //   4. (production) an approval kind can email the founder, or an owner or authority names no seat.
 //

@@ -77,7 +77,8 @@ begin
   return jsonb_build_object('request_id', q.id, 'loop', v_loop,
     'state', case
       when v_loop in ('confirmed', 'retry_confirmed', 'handled_by_the_ladder', 'retry_handled_by_the_ladder') then 'reached'
-      when v_loop in ('escalated', 'retry_escalated', 'escalation_refused', 'retry_escalation_refused') then 'failed'
+      -- escalation_refused filed no report, so it reads as waiting and the 24-hour escalation takes over.
+      when v_loop in ('escalated', 'retry_escalated') then 'failed'
       when v_loop in ('routed', 'stubbed', 'digested', 'cancelled', 'retry_routed', 'retry_stubbed', 'retry_digested', 'retry_cancelled') then 'ended'
       else 'waiting' end,
     'report_key', 'delivery_undelivered:' || coalesce(q.detail->>'retry_request_id', q.id::text),
@@ -270,7 +271,7 @@ begin
     v_decision := 'defect_raised';
     v_receipt := 'ceo: decided. "' || coalesce(h.detail->>'type', '?') || '" (handoff ' || coalesce(h.id::text, '?') || ') went unanswered past its window, '
       || 'so the handler is at fault: raised as IT finding ' || v_key || ', which the IT loop hands to the ' || coalesce(h.agent, 'owning seat')
-      || ' and re-verifies.';
+      || ' and re-verifies; it clears when the next conversation of this kind works.';
 
   elsif r.idempotency_key not like 'delivery\_undelivered:%' then
     v_decision := 'read';
@@ -363,7 +364,7 @@ begin
     v_decision := 'defect_raised';
     v_receipt := 'ceo: decided. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?') || ') '
       || case when v_owner = 'sales_engineer' then 'was never written' else 'has no delivery outcome' end
-      || ', which is a defect: raised as IT finding ' || v_key || ', which the IT loop hands to ' || v_owner || ' and re-verifies.';
+      || ', which is a defect: raised as IT finding ' || v_key || ', which the IT loop hands to ' || v_owner || ' and re-verifies; it clears when the next conversation of this kind works.';
   end if;
 
   v_acc := public.fn_ceo_accept_support_report(r.id, v_receipt, v_decision);
@@ -501,6 +502,7 @@ declare
   v_reqs bigint[]; v_outs jsonb; v_verdict text; v_waiting boolean; v_failed jsonb; v_undecided int;
   n_answered int := 0; n_q_closed_by_ceo int := 0; n_q_reported int := 0; n_q_wait int := 0;
   n_closed int := 0; n_recorded int := 0; n_reported int := 0; n_wait int := 0; v_err jsonb := '[]'::jsonb;
+  f record; v_type text; v_ok boolean; n_cleared int := 0;
 begin
   -- 1. THE SALES ENGINEER: did the accountant answer the question it was asked?
   for h in select * from public.agent_actions a
@@ -582,7 +584,7 @@ begin
         v_verdict := 'superseded by refund incident ' || (h.detail->>'superseded_by_incident');
       elsif rep.id is not null then
         -- Reported already: it ends with the CEO's decision.
-        if rep.status = 'completed' then v_verdict := 'the CEO decided: ' || left(rep.acceptance_receipt, 400); end if;
+        if rep.status = 'completed' then v_verdict := 'the CEO decided: ' || left(coalesce(rep.completion_note, rep.acceptance_receipt), 400); end if;
       elsif h.status = 'failed' or cardinality(v_reqs) = 0 then
         -- The notice never left: no address on file, or the sales engineer could not write it.
         v_rep := public.fn_support_report_to_ceo('notice_undelivered:' || h.id, 'elevated',
@@ -624,7 +626,7 @@ begin
           select count(*) into v_undecided from jsonb_array_elements(v_failed) o
            where not exists (select 1 from public.support_ceo_report s where s.idempotency_key = o->>'report_key' and s.status = 'completed');
           if v_undecided = 0 then
-            v_verdict := 'did not arrive; the CEO decided: ' || (select string_agg(left(s.acceptance_receipt, 300), ' | ')
+            v_verdict := 'did not arrive; the CEO decided: ' || (select string_agg(left(coalesce(s.completion_note, s.acceptance_receipt), 300), ' | ')
               from jsonb_array_elements(v_failed) o join public.support_ceo_report s on s.idempotency_key = o->>'report_key');
           end if;
         else
@@ -654,7 +656,49 @@ begin
     end;
   end loop;
 
+  -- 3. A DEFECT THE CEO RAISED CLEARS WHEN THE SAME CONVERSATION WORKS AGAIN. The finding's key names
+  -- the conversation; it closes when the latest one of that kind was answered (a question), written
+  -- (a notice the sales engineer could not write) or delivered (a notice with no outcome). Closing it
+  -- lets the IT loop close its own handoff. What was missed while broken is not re-sent automatically:
+  -- the CEO's decision on each is on its report.
+  for f in select q.issue_key from public.it_engineer_finding q
+            where q.closed_at is null
+              and (q.issue_key like 'monitor:handoff\_unanswered:%' or q.issue_key like 'monitor:notice\_undelivered:%'
+                   or q.issue_key like 'monitor:notice\_unverified:%') loop
+    begin
+      v_type := split_part(f.issue_key, ':', 3);
+      h := null;
+      if f.issue_key like 'monitor:handoff\_unanswered:%' then
+        select * into h from public.agent_actions a
+         where a.kind = 'handoff' and a.detail->>'type' = v_type and a.detail->>'from' = 'sales_engineer'
+           and a.agent = split_part(f.issue_key, ':', 4) and a.status = 'done'
+         order by a.id desc limit 1;
+        v_ok := h.evidence->>'verdict' like 'answered%';
+      elsif f.issue_key like 'monitor:notice\_undelivered:%' then
+        select * into h from public.agent_actions a
+         where a.kind = 'handoff' and a.detail->>'type' = v_type and a.detail->>'from' = 'accountant'
+           and (a.status <> 'pending' or a.detail ? 'replied_at')
+         order by a.id desc limit 1;
+        v_ok := h.status <> 'failed' and (h.evidence->>'delivery_request') is not null;
+      else
+        select * into h from public.agent_actions a
+         where a.kind = 'handoff' and a.detail->>'type' = v_type and a.detail->>'from' = 'accountant'
+           and a.detail ? 'originator_verdict'
+         order by a.id desc limit 1;
+        v_ok := h.detail->>'originator_verdict' like 'reached%';
+      end if;
+      if coalesce(v_ok, false) then
+        perform public.fn_it_engineer_finding_close(f.issue_key,
+          'handoff ' || h.id || ' of the same kind worked again, re-checked by fn_originators_reverify_handoffs');
+        n_cleared := n_cleared + 1;
+      end if;
+    exception when others then
+      v_err := v_err || jsonb_build_object('finding', f.issue_key, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+
   return jsonb_build_object(
+    'defects_cleared', n_cleared,
     'sales_engineer', jsonb_build_object('answered', n_answered, 'closed_with_ceo_decision', n_q_closed_by_ceo,
                                          'reported', n_q_reported, 'waiting', n_q_wait),
     'accountant', jsonb_build_object('closed', n_closed, 'recorded', n_recorded, 'reported', n_reported, 'waiting', n_wait),
