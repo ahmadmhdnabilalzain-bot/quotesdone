@@ -99,6 +99,8 @@ export type Deps = {
 //     (deps.checkpoint). Every clean end of a hop clears `tried`, so a saved slot still holding
 //     tried === page means the worker was killed reading or writing that page: the resume halves the
 //     count (down to 1 row) and tries again. A CPU kill heals itself, one stalled heartbeat per halving.
+//     A single row too wide to escape even alone keeps dying at 1 row; that is not silent: every stale
+//     resume raises duty:table_export:chain_stalled (fn_table_export_due v3) naming the table and page.
 // Paging is keyset on the primary key (slot.after), so page files may hold different row counts and the
 // resume point stays exact: page P is always the P-th file written, starting after the saved key.
 export const PAGE_ROWS = 1000;
