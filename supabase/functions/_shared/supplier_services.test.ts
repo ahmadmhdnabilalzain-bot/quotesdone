@@ -6,9 +6,9 @@ import {
   VOICE, VOICE_PER_HOUR, type VoiceDeps,
 } from './supplier_services.ts';
 
-Deno.test('splitServices: known keys are ticks, words are extras, unknown keys are dropped', () => {
+Deno.test('splitServices: known keys are ticks, everything else is the supplier\'s own words', () => {
   const known = new Set(['hvac.ducting', 'hvac.vrf_chiller']);
-  const r = splitServices(['hvac.ducting', 'Chiller overhaul', 'hvac.gone_code', '', 'hvac.ducting', 'صيانة مكيفات'], known);
+  const r = splitServices(['hvac.ducting', 'Chiller overhaul', '', 'hvac.ducting', 'صيانة مكيفات'], known);
   assertEquals(r.selected, ['hvac.ducting']);
   assertEquals(r.extras, ['Chiller overhaul', 'صيانة مكيفات']);
 });
@@ -48,8 +48,9 @@ function deps(over: Partial<VoiceDeps> = {}) {
   const audits: Record<string, unknown>[] = []; let calls = 0;
   const d: VoiceDeps = {
     enabled: async () => true,
-    recentCount: async () => 0,
+    recentCount: async () => audits.filter((a) => a.outcome !== 'flag_off' && a.outcome !== 'rate_limited').length,
     audit: async (r) => { audits.push(r); },
+    start: async (r) => { const row = { ...r }; audits.push(row); return async (p) => { Object.assign(row, p); }; },
     transcribe: async () => { calls++; return { ok: true, text: 'تركيب مكيفات سبليت' }; },
     ...over,
   };
@@ -65,10 +66,23 @@ Deno.test('voice: flag off refuses before anything is sent, and is audited', asy
 });
 
 Deno.test('voice: the per-supplier hourly limit refuses without sending', async () => {
-  const x = deps({ recentCount: async () => VOICE_PER_HOUR });
+  const x = deps({ recentCount: async () => VOICE_PER_HOUR + 1 });
   const [s, o] = await transcribeServiceNote(7, { audio_b64: wav, mime: 'audio/wav' }, x.d);
   assertEquals([s, o.code], [429, 'voice_rate_limited']);
   assertEquals(x.calls(), 0);
+  assertEquals(x.audits.map((a) => a.outcome), ['rate_limited']);
+});
+
+Deno.test('voice: parallel requests count each other, so the cap is never overshot', async () => {
+  const x = deps();
+  for (let i = 0; i < VOICE_PER_HOUR - 1; i++) x.audits.push({ outcome: 'transcribed' });
+  const results = await Promise.all([1, 2, 3].map(() => transcribeServiceNote(7, { audio_b64: wav, mime: 'audio/wav' }, x.d)));
+  const admitted = results.filter(([s]) => s === 200).length;
+  assertEquals(admitted <= 1, true);
+});
+
+Deno.test('splitServices: a key-shaped word the list does not hold is kept, not dropped', () => {
+  assertEquals(splitServices(['hvac.retired_code'], new Set()).extras, ['hvac.retired_code']);
 });
 
 Deno.test('voice: a transcribed note returns text + language and the audit holds no text', async () => {

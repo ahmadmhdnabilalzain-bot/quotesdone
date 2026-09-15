@@ -398,10 +398,16 @@ Deno.serve(observe('supplier_api', async (req) => {
         enabled: () => voiceEnabled(admin),
         recentCount: async (id) => {
           const { count } = await admin.from('supplier_voice_note').select('id', { count: 'exact', head: true })
-            .eq('supplier_id', id).gte('created_at', new Date(Date.now() - 3600e3).toISOString());
+            .eq('supplier_id', id).gte('created_at', new Date(Date.now() - 3600e3).toISOString())
+            .not('outcome', 'in', '(flag_off,rate_limited)');
           return count || 0;
         },
         audit: async (row) => { const { error } = await admin.from('supplier_voice_note').insert(row); if (error) console.error('supplier_voice_note insert failed', error.message); },
+        start: async (row) => {
+          const { data, error } = await admin.from('supplier_voice_note').insert(row).select('id').single();
+          if (error) console.error('supplier_voice_note insert failed', error.message);
+          return async (patch) => { if (data?.id) await admin.from('supplier_voice_note').update(patch).eq('id', data.id); };
+        },
         transcribe: async (b64, mime) => {
           try {
             const r = await fetch(`${SUPA_URL}/functions/v1/transcribe`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: req.headers.get('Authorization') || '' }, body: JSON.stringify({ audio_b64: b64, mime }) });

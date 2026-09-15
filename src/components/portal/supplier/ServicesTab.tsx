@@ -39,7 +39,9 @@ type State = {
   capability: { roles?: string[]; source_docs?: { docs?: Doc[] } } | null;
   trade_proposals: Proposal[]; voice: Voice;
 };
-type Extra = { text: string; trades: string[] | null };
+type Extra = { id: number; text: string; trades: string[] | null };
+let extraSeq = 0;
+const newExtra = (text: string): Extra => ({ id: ++extraSeq, text, trades: null });
 
 const box = 'mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 const row = 'flex min-h-11 cursor-pointer items-start gap-2.5 rounded-md px-2 py-2.5 text-[13.5px] leading-snug text-foreground hover:bg-muted/40';
@@ -59,14 +61,19 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string; review?: boolean } | null>(null);
 
+  // Nothing async writes state after the tab is gone (review, 15 Sep 2026): a recording stopped by
+  // unmount fires onstop later, and a slow services_state can land after a tab switch.
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const load = async () => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
     const j = await call('supplier_api', { action: 'services_state' }, token).catch(() => null);
+    if (!mounted.current) return;
     if (j && j.ok) {
       const d = j as State;
       setTrades(d.checklist.map((c) => c.code));
       setTicked(new Set(d.selected_services));
-      setExtras(d.extra_services.map((text) => ({ text, trades: null })));
+      setExtras(d.extra_services.map(newExtra));
       setRoles((d.capability && d.capability.roles) || []);
       setSt({ loading: false, err: '', data: d });
     } else {
@@ -93,16 +100,19 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       rec.current = r;
       mr.ondataavailable = (e) => { if (e.data && e.data.size) r.chunks.push(e.data); };
       mr.onstop = async () => {
-        stopTracks(); setVoxBusy(true);
+        stopTracks();
+        if (!mounted.current) { rec.current = null; return; }
+        setVoxBusy(true);
         try {
           const blob = new Blob(r.chunks, { type: (r.chunks[0] && r.chunks[0].type) || 'audio/webm' });
           const wav = await blobToWav(blob);
           if (wav.bytes > voice.max_bytes) { setVoxMsg(sc(lang, 'mic_failed')); return; }
           const j = await call('supplier_api', { action: 'transcribe_service_note', audio_b64: wav.b64, mime: 'audio/wav', duration_ms: wav.durationMs }, token);
+          if (!mounted.current) return;
           if (j && j.ok) { if (j.text) setExtraInput((x) => (x ? x + ' ' : '') + String(j.text).trim()); }
           else setVoxMsg(sc(lang, j && j.code === 'voice_rate_limited' ? 'mic_limited' : j && j.code === 'voice_input_off' ? 'mic_soon' : 'mic_failed'));
-        } catch (_e) { setVoxMsg(sc(lang, 'mic_failed')); }
-        finally { setVoxBusy(false); rec.current = null; }
+        } catch (_e) { if (mounted.current) setVoxMsg(sc(lang, 'mic_failed')); }
+        finally { if (mounted.current) setVoxBusy(false); rec.current = null; }
       };
       mr.start();
       r.timer = window.setTimeout(() => stopRec(), voice.max_seconds * 1000);
@@ -141,9 +151,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     const text = extraInput.replace(/\s+/g, ' ').trim().slice(0, 120);
     if (text.length < 2 || extras.some((e) => e.text.toLowerCase() === text.toLowerCase())) { setExtraInput(''); return; }
     setExtraInput('');
-    setExtras((xs) => [...xs, { text, trades: null }]);
+    const item = newExtra(text);
+    setExtras((xs) => [...xs, item]);
     const j = await call('supplier_api', { action: 'services_resolve', text }, token).catch(() => null);
-    if (j && j.ok) setExtras((xs) => xs.map((e) => (e.text === text ? { text, trades: j.trades || [] } : e)));
+    if (mounted.current && j && j.ok) setExtras((xs) => xs.map((e) => (e.id === item.id ? { ...e, trades: j.trades || [] } : e)));
   };
 
   const save = async () => {
@@ -168,7 +179,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     .sort((a, b) => tradeName(a.code).localeCompare(tradeName(b.code), lang));
 
   return (
-    <Card className="qd-panel p-5">
+    // scroll-pb keeps a focused control clear of the sticky confirm bar (WCAG 2.4.11).
+    <Card className={cn('qd-panel p-5', !d.confirmed && '[&_input]:scroll-mb-32 [&_button]:scroll-mb-32 [&_select]:scroll-mb-32')}>
       <h2 className="font-head text-[19px] font-semibold tracking-snug text-foreground">{sc(lang, 'title')}</h2>
       <p className={cn(sub, 'mt-1')}>{d.confirmed ? sc(lang, 'confirmed') : sc(lang, 'first_run')}</p>
 
@@ -220,7 +232,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
               <div className="mt-1 flex flex-wrap gap-x-4">
                 {svcs.length > 0 && (
                   <Button type="button" variant="link" className="min-h-11 px-2" onClick={() => setAll(code, !allOn)}>
-                    {allOn ? sc(lang, 'clear_all') : sc(lang, 'select_all')}
+                    {allOn ? sc(lang, 'clear_all') : sc(lang, 'select_all')}<span className="sr-only">: {tradeName(code)}</span>
                   </Button>
                 )}
                 <Button type="button" variant="link" className="min-h-11 px-2 text-muted-foreground" onClick={() => removeTrade(code)}>
@@ -266,12 +278,12 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
         {extras.length > 0 && (
           <ul className="mt-2 flex flex-col gap-1.5">
             {extras.map((e) => (
-              <li key={e.text} className="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px]">
+              <li key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px]">
                 <span className="font-medium text-foreground" dir="auto">{e.text}</span>
                 {e.trades && (e.trades.length
                   ? <span className="text-muted-foreground">{sc(lang, 'resolves_to')}: {e.trades.map(tradeName).join(ar ? '، ' : ', ')}</span>
                   : <span className="text-muted-foreground">{sc(lang, 'new_for_review')}</span>)}
-                <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => setExtras((xs) => xs.filter((x) => x.text !== e.text))}>
+                <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => setExtras((xs) => xs.filter((x) => x.id !== e.id))}>
                   {sc(lang, 'remove')}<span className="sr-only">: {e.text}</span>
                 </Button>
               </li>

@@ -39,7 +39,6 @@ export const VOICE_PER_HOUR = 20;
 export const VOICE_FLAG = 'supplier_voice_input_enabled';
 
 export const serviceKey = (trade: string, code: string) => `${trade}.${code}`;
-const KEY_RE = /^[a-z0-9_]+\.[a-z][a-z0-9_]*$/;
 
 /** A stored services array split into checklist keys we know and the supplier's own words. */
 export function splitServices(stored: unknown, known: Set<string>): { selected: string[]; extras: string[] } {
@@ -47,7 +46,9 @@ export function splitServices(stored: unknown, known: Set<string>): { selected: 
   for (const raw of Array.isArray(stored) ? stored : []) {
     const s = String(raw ?? '').trim();
     if (!s) continue;
-    if (known.has(s)) selected.push(s); else if (!KEY_RE.test(s)) extras.push(s);
+    // A key-shaped string we do not list (a retired service, or words the supplier typed that look like
+    // 'a.b') is kept as the supplier's own words rather than dropped on the next load.
+    if (known.has(s)) selected.push(s); else extras.push(s);
   }
   return { selected: [...new Set(selected)], extras: [...new Set(extras)] };
 }
@@ -170,10 +171,15 @@ export async function servicesSave(admin: Admin, supplierId: number, body: Recor
 }
 
 // ── VOICE ─────────────────────────────────────────────────────────────────────────────────────────
+// THE LIMIT RESERVES BEFORE IT COUNTS (database review, 15 Sep 2026). Count-then-insert let parallel
+// requests all read 19 and all pass; each request now writes its 'pending' audit row first and then
+// counts the hour INCLUDING itself, so concurrent requests see one another and the cap cannot be
+// overshot (at worst a burst admits fewer than 20).
 export type VoiceDeps = {
   enabled: () => Promise<boolean>;
-  recentCount: (supplierId: number) => Promise<number>;          // requests in the last hour
-  audit: (row: Record<string, unknown>) => Promise<void>;
+  recentCount: (supplierId: number) => Promise<number>;          // admitted-or-pending requests in the last hour, own row included
+  audit: (row: Record<string, unknown>) => Promise<void>;        // a finished row (flag_off)
+  start: (row: Record<string, unknown>) => Promise<(patch: Record<string, unknown>) => Promise<void>>;  // pending row -> finisher
   transcribe: (b64: string, mime: string) => Promise<{ ok: true; text: string } | { ok: false; error: string }>;
 };
 
@@ -200,23 +206,23 @@ export async function transcribeServiceNote(supplierId: number, body: Record<str
     await deps.audit({ ...base, outcome: 'flag_off' });
     return [503, { ok: false, code: 'voice_input_off', error: 'voice_input_off' }];
   }
-  if ((await deps.recentCount(supplierId)) >= VOICE_PER_HOUR) {
-    await deps.audit({ ...base, outcome: 'rate_limited' });
+  const v = checkVoice(body);
+  const finish = await deps.start(v.ok ? { ...base, bytes: v.bytes, duration_ms: v.duration, mime: v.mime, outcome: 'pending' } : { ...base, outcome: 'pending' });
+  if ((await deps.recentCount(supplierId)) > VOICE_PER_HOUR) {
+    await finish({ outcome: 'rate_limited' });
     return [429, { ok: false, code: 'voice_rate_limited', error: 'voice_rate_limited', per_hour: VOICE_PER_HOUR }];
   }
-  const v = checkVoice(body);
   if (!v.ok) {
-    await deps.audit({ ...base, outcome: 'refused' });
+    await finish({ outcome: 'refused' });
     return [v.status, { ok: false, code: v.code, error: v.code }];
   }
-  const row = { ...base, bytes: v.bytes, duration_ms: v.duration, mime: v.mime };
   const r = await deps.transcribe(v.b64, v.mime);
   if (!r.ok) {
-    await deps.audit({ ...row, outcome: 'failed' });
+    await finish({ outcome: 'failed' });
     return [502, { ok: false, code: 'voice_failed', error: 'voice_failed' }];
   }
   const text = r.text.trim();
   const lang = langOf(text);
-  await deps.audit({ ...row, outcome: text ? 'transcribed' : 'empty', lang: lang || null, chars: text.length });
+  await finish({ outcome: text ? 'transcribed' : 'empty', lang: lang || null, chars: text.length });
   return [200, { ok: true, text, lang }];
 }

@@ -57,7 +57,8 @@ create table if not exists public.supplier_voice_note (
   bytes       integer not null default 0 check (bytes >= 0),
   duration_ms integer check (duration_ms is null or duration_ms >= 0),
   mime        text,
-  outcome     text not null check (outcome in ('flag_off','rate_limited','refused','transcribed','empty','failed')),
+  -- 'pending' is written first and counted by the rate limit, so parallel requests see each other.
+  outcome     text not null check (outcome in ('pending','flag_off','rate_limited','refused','transcribed','empty','failed')),
   lang        text check (lang is null or lang in ('en','ar')),
   chars       integer check (chars is null or chars >= 0)
 );

@@ -18,8 +18,9 @@ export async function blobToWav(blob: Blob): Promise<{ b64: string; bytes: numbe
   const rate = 16000; const off = new OfflineAudioContext(1, Math.max(1, Math.ceil(buf.duration * rate)), rate);
   const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
   const pcm = (await off.startRendering()).getChannelData(0);
+  // In 32 KB slices: one character at a time over ~2 MB stalled a phone's main thread (review, 15 Sep).
   const bytes = new Uint8Array(encodeWav(pcm, rate)); let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + 0x8000)));
   return { b64: btoa(bin), bytes: bytes.length, durationMs: Math.round(buf.duration * 1000) };
 }
 
