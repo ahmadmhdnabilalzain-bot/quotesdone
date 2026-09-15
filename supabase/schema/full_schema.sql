@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-15T09:28:31.466Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-15T09:34:40.629Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -21107,6 +21107,12 @@ begin
     from (select o2.name from storage.objects o2
            where o2.bucket_id = 'backups' and o2.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
              and public.fn_backup_prune_path_allowed(o2.bucket_id, o2.name)
+             -- 15 Sep 2026 (the guard): only a file whose Dropbox copy was uploaded AND verified. A file
+             -- without one stays, and fn_backup_prune_storage_done counts it as left, so the day is never
+             -- marked deleted and its Dropbox half never starts.
+             and exists (select 1 from public.doc_backups d
+                          where d.bucket = o2.bucket_id and d.path = o2.name
+                            and d.status = 'done' and d.verified_at is not null)
            order by o2.name limit 1000) o;
   return jsonb_build_object('log_id', v_log.id, 'day', v_log.day, 'names', to_jsonb(v_names));
 end $function$
@@ -21148,12 +21154,17 @@ begin
 
   if v_mode = 'delete' then
     perform public.fn_backup_prune_recheck();
-    -- the day's Dropbox copies leave the upload queue and join the delete queue; the status they had is kept
+    -- the day's Dropbox copies leave the upload queue and join the delete queue; the status they had is kept.
+    -- 15 Sep 2026 (the guard): only AFTER the day's storage deletion finished -- which itself happens only
+    -- under verified copies -- and only a copy that was uploaded and verified. Before, every row of the day
+    -- moved at once, uploaded or not, so a never-uploaded file was "deleted" from Dropbox (a missing path
+    -- is success), marked pruned, and never uploaded while storage still held the only copy.
     update public.doc_backups b set status = 'prune_pending', status_before_prune = b.status, claimed_at = null, claimed_by = null
       from public.backup_prune_log l
      where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
+       and l.storage_deleted_at is not null
        and b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%'
-       and b.status not in ('pruned', 'prune_pending', 'pruning', 'processing')
+       and b.status = 'done' and b.verified_at is not null
        and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path);
     update public.doc_backups b set status = 'pruned', error = null
      where b.status = 'prune_pending' and b.dropbox_path is null;
@@ -28298,8 +28309,11 @@ begin
       select d.id from public.doc_backups d
        where d.status = 'prune_pending' and d.prune_attempts < 5
          and public.fn_backup_prune_dropbox_allowed(d.bucket, d.path, d.dedupe_key, d.doc_type, d.dropbox_path)
+         -- 15 Sep 2026 (the guard): a Dropbox copy is claimed for deletion only once its day's storage
+         -- deletion finished, and only a copy that was verified when it was uploaded
+         and d.verified_at is not null
          and exists (select 1 from public.backup_prune_log bl
-                      where bl.mode = 'delete' and bl.cancelled_at is null
+                      where bl.mode = 'delete' and bl.cancelled_at is null and bl.storage_deleted_at is not null
                         and d.dedupe_key like 'EXPORT:' || to_char(bl.day, 'YYYY-MM-DD') || '/%')
          and (d.last_attempt_at is null or d.prune_attempts = 0
               or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.prune_attempts, 8)))
@@ -29506,6 +29520,34 @@ begin
     and not exists (select 1 from public.doc_backups d where d.bucket = 'backups' and d.path = o.name)
   on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
+
+  -- ============ LEGACY EXPORTS (15 SEP 2026, it_engineer) ============
+  -- The founder: "that data should never get lost no matter what". backup v1's dated folders (on or
+  -- before 2026-09-07, no table_export_run row: the legacy-day definition fn_backup_prune_days uses) are
+  -- filed exactly like a TABLE EXPORTS day, so retention recognises the copies. At most 200 legacy rows
+  -- wait at a time, oldest day first: the uploader claims lowest id first, so a new customer or supplier
+  -- document waits behind at most 200 export pages (measured median 2.6 MB). Refilled on every
+  -- non-chained dropbox_backup run. One enqueue at a time tops the queue up (review: a second scheduler
+  -- and a kick can overlap, and each would read the same waiting count); a run that loses the lock skips
+  -- only this section.
+  if pg_try_advisory_xact_lock(hashtext('fn_enqueue_doc_backups:legacy_exports')) then
+  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
+  select 'company', 'table_export:' || split_part(o.name,'/',1), 'Database export', 'backups', o.name,
+         regexp_replace(o.name,'^.*/',''),
+         '/QuotesDone Backup/Company/Database Exports/' || left(o.name, 7) || '/' || o.name,
+         'storage', 'EXPORT:' || o.name
+  from storage.objects o
+  where o.bucket_id = 'backups' and o.name ~ '^\d{4}-\d{2}-\d{2}/' and split_part(o.name,'/',1) <= '2026-09-07'
+    and not exists (select 1 from public.table_export_run r where r.stamp::text = split_part(o.name,'/',1))
+    and not exists (select 1 from public.doc_backups d where d.bucket = 'backups' and d.path = o.name)
+  order by o.name
+  limit greatest(0, 200 - (select count(*) from public.doc_backups w
+                             where w.dedupe_key like 'EXPORT:%' and w.status in ('pending', 'processing', 'error', 'waiting_source')
+                               and w.bucket = 'backups' and split_part(w.path,'/',1) <= '2026-09-07'
+                               and not exists (select 1 from public.table_export_run r2 where r2.stamp::text = split_part(w.path,'/',1))))
+  on conflict do nothing;
+  get diagnostics m = row_count; n := n + m;
+  end if;
 
   -- ============ STORAGE SWEEP (15 SEP 2026, it_engineer) ============
   -- The founder: "of course that data should never get lost no matter what". Every stored file no rule
