@@ -603,7 +603,21 @@ begin
         v_verdict := 'superseded by refund incident ' || (h.detail->>'superseded_by_incident');
       elsif rep.id is not null then
         -- Reported already: it ends with the CEO's decision.
-        if rep.status = 'completed' then v_verdict := 'the CEO decided: ' || left(coalesce(rep.completion_note, rep.acceptance_receipt), 400); end if;
+        -- A send recorded on the report that has since failed is decided on its own delivery_undelivered
+        -- report; the notice waits for that decision too, and carries it in the verdict.
+        if rep.status = 'completed'
+           and not exists (select 1 from jsonb_array_elements(coalesce(rep.verified_evidence->'sends', '[]'::jsonb)) o
+                            cross join lateral public.fn_delivery_request_outcome((o->>'request_id')::bigint) oc
+                            where oc->>'state' = 'failed'
+                              and not exists (select 1 from public.support_ceo_report s
+                                               where s.idempotency_key = oc->>'report_key' and s.status = 'completed')) then
+          v_verdict := 'the CEO decided: ' || left(coalesce(rep.completion_note, rep.acceptance_receipt), 400)
+            || coalesce(' | ' || (select string_agg(left(coalesce(s.completion_note, s.acceptance_receipt), 300), ' | ')
+                                    from jsonb_array_elements(coalesce(rep.verified_evidence->'sends', '[]'::jsonb)) o
+                                    cross join lateral public.fn_delivery_request_outcome((o->>'request_id')::bigint) oc
+                                    join public.support_ceo_report s on s.idempotency_key = oc->>'report_key'
+                                   where oc->>'state' = 'failed'), '');
+        end if;
       elsif h.status = 'failed' or cardinality(v_reqs) = 0
             or (h.detail->>'type' = 'reveal.paid'
                 and (h.evidence->>'customer_reachable' = 'false' or h.evidence->>'supplier_reachable' = 'false')) then
