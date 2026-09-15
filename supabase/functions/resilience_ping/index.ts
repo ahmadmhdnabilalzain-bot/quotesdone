@@ -270,8 +270,9 @@ async function dropboxVerifyTick(): Promise<unknown> {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: secret, mode: 'reconcile', limit: 20 }), signal: AbortSignal.timeout(55000),
     });
+    const reconcile_run = { status: r.status, result: await r.json().catch(() => null) };
     // deno-lint-ignore no-explicit-any
-    return { ...(data as any), reconcile_run: { status: r.status, result: await r.json().catch(() => null) } };
+    return { ...(data as any), reconcile_run, ...(r.ok ? {} : { ok: false, error: 'dropbox_backup reconcile answered HTTP ' + r.status }) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -369,6 +370,9 @@ async function backupPruneTick(): Promise<unknown> {
     };
     if (d.storage_pending) out.storage_run = await call('backup').catch((e) => String((e as Error)?.message || e));
     if (d.dropbox_pending) out.dropbox_run = await call('dropbox_backup').catch((e) => String((e as Error)?.message || e));
+    // A prune worker that answered 4xx/5xx or threw is a failed step, not a number in a field.
+    const bad = [out.storage_run, out.dropbox_run].find((v) => typeof v === 'string' || (typeof v === 'number' && v >= 400));
+    if (bad !== undefined) { out.ok = false; out.error = 'a prune worker answered ' + bad; }
     return out;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
@@ -438,8 +442,9 @@ async function accountantWeeklyTick(): Promise<unknown> {
     const { data: att, error: aerr } = await admin.rpc('fn_accountant_weekly_report_attach_pdf', {
       p_id: t.id, p_bucket: 'agent-docs', p_path: path, p_url: url, p_bytes: bytes, p_error: err,
     });
-    if (aerr) return { ...t, pdf_error: err, attach_error: aerr.message };
-    return { ...t, pdf_blocks: undefined, delivery: att };
+    // A render or attach failure keeps the report for the next tick AND is a failed step until it heals.
+    if (aerr) return { ...t, pdf_blocks: undefined, pdf_error: err, ok: false, error: 'attach: ' + aerr.message };
+    return { ...t, pdf_blocks: undefined, delivery: att, ...(err ? { ok: false, error: err } : {}) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 

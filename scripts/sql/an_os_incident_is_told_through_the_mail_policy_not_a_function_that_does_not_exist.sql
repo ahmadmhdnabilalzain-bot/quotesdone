@@ -11,9 +11,16 @@
 -- THE FIX. The notice goes through fn_notify_founder, the one founder-mail path. founder_mail_policy
 -- decides: kind 'os_incident' is registered with allowed_to_email = false today, so the notice is
 -- ROUTED (one open task per condition, fn_founder_mail_route) and not emailed. If the founder ever
--- allows the kind, the same call emails him, once per incident (dedupe key 'os_incident:<id>').
--- customer_support is the owner, so an allowed email is adopted into its delivery loop
--- (fn_customer_support_adopts_untracked_send).
+-- allows the kind, the same call emails him, once per incident (dedupe key 'os_incident:<id>'), and the
+-- send is adopted into customer_support's delivery loop (fn_customer_support_adopts_untracked_send).
+-- The routed task goes to it_engineer: the policy row says "an OS incident is engineering's to run"
+-- (owner_role it_operations_engineer), and it_engineer is the seat that runs engineering now.
+-- If telling fails, os_audit_log gets an ok=false 'incident_notify' row, so the failure is not silent.
+--
+-- TWO TASKS PER INCIDENT, DELIBERATELY. The table trigger t20_os_incident_open_task still opens its own
+-- task, filed to a department and left with no agent (probe: assigned_agent null) — the org chart it was
+-- written for was removed on 7 Sep. The routed task is the one a live seat owns. The trigger is not this
+-- file's subject; it is left as it is rather than half-fixed here.
 --
 -- WHAT THIS DOES NOT CHANGE. The row, the audit line, and the table triggers that give an incident an
 -- owner and a due time (incidents_get_an_owner_a_task_and_a_watchdog.sql) are as before. Nothing in the
@@ -46,8 +53,11 @@ begin
       p_level       => coalesce(nullif(p_severity, ''), 'medium'),
       p_kind        => 'os_incident',
       p_dedupe_key  => 'os_incident:' || nid,
-      p_owner_agent => 'customer_support');
-  exception when others then null;
+      p_owner_agent => 'it_engineer');
+  exception when others then
+    insert into public.os_audit_log (actor, action, entity, entity_id, detail, ok)
+    values (coalesce(p_actor, 'os'), 'incident_notify', 'incident', nid::text,
+            jsonb_build_object('error', left(sqlerrm, 500)), false);
   end;
   return jsonb_build_object('ok', true, 'id', nid);
 end $fn$;
