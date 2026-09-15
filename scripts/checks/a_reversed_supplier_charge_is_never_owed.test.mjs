@@ -103,11 +103,17 @@ test('production: every dues routine and both views ask the predicate, and it an
          and p.proname = any (array[${DUES_ROUTINES.map((n) => `'${n}'`).join(',')}]))::int as found,
       pg_get_viewdef('public.finance_kpis'::regclass) like '%${PREDICATE}%' as kpis,
       pg_get_viewdef('public.v_accountant_recovery_ledger'::regclass) like '%${PREDICATE}%' as ledger,
-      public.${PREDICATE}('reversed', null) as reversed, public.${PREDICATE}('void', null) as void,
-      public.${PREDICATE}('pending', null) as pending, public.${PREDICATE}('legal', null) as legal`);
+      -- The predicate is executable by service_role only (revoked from public), and this read_only session is
+      -- not service_role, so it cannot CALL it (42501, measured 15 Sep 2026). It reads the live definition
+      -- instead; the behaviour itself is proven by a_reversed_supplier_charge_is_never_owed_probe.sql.
+      (select prosrc from pg_proc where pronamespace = 'public'::regnamespace and proname = '${PREDICATE}') as predicate_src`);
   assert.equal(row.found, DUES_ROUTINES.length);
   assert.equal(row.not_asking, null, `not asking the predicate: ${JSON.stringify(row.not_asking)}`);
   assert.equal(row.kpis, true);
   assert.equal(row.ledger, true);
-  assert.deepEqual([row.reversed, row.void, row.pending, row.legal], [false, false, true, true]);
+  assert.ok(row.predicate_src, `${PREDICATE} is not live`);
+  assert.match(row.predicate_src, /p_paid_at is null/, 'the live predicate no longer requires an unpaid charge');
+  for (const st of ['paid', 'settled', 'waived', 'cancelled', 'reversed', 'void']) {
+    assert.match(row.predicate_src, new RegExp(`'${st}'`), `the live predicate no longer treats '${st}' as not owed`);
+  }
 });
