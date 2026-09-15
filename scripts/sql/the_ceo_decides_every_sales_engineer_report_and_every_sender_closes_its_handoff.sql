@@ -341,6 +341,12 @@ begin
     v_decision := 'need_not_go_fixture';
     v_receipt := 'ceo: decided it need not go. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
       || ') is about a ZZ DEMO fixture: no real person was meant to receive it.';
+  elsif r.idempotency_key like 'notice\_unverified:%'
+        and public.fn_delivery_request_outcome((h.evidence->>'delivery_request')::bigint)->>'state' in ('reached', 'ended') then
+    -- It reached an outcome between the report and this decision: nothing is broken.
+    v_decision := 'arrived_late';
+    v_receipt := 'ceo: read. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
+      || ') reached an outcome after it was reported, so there is no defect to raise.';
   elsif r.idempotency_key like 'notice\_undelivered:%' and h.status is distinct from 'failed' then
     v_decision := 'unreachable_recorded';
     v_receipt := 'ceo: decided. The ' || coalesce(h.detail->>'type', '?') || ' notice (handoff ' || coalesce(h.id::text, '?')
@@ -412,6 +418,8 @@ begin
               and (s.source_agent = 'sales_engineer'
                    or (s.source_agent = 'accountant'
                        and (s.idempotency_key like 'notice\_undelivered:%' or s.idempotency_key like 'notice\_unverified:%')))
+              -- a report whose decision raised waits an hour, so it cannot hold the head of the queue
+              and (s.last_delivery_error is null or s.next_review_at <= now())
             order by s.id limit greatest(coalesce(p_limit, 100), 1) loop
     begin
       v := case when r.source_agent = 'accountant' then public.fn_ceo_accountant_notice_report_decide(r.id)
@@ -420,6 +428,9 @@ begin
       n := n || jsonb_build_object(k, coalesce((n->>k)::int, 0) + 1);
     exception when others then
       v_err := v_err || jsonb_build_object('report_id', r.id, 'error', left(sqlerrm, 300));
+      update public.support_ceo_report
+         set last_delivery_error = left('ceo decision failed: ' || sqlerrm, 300), next_review_at = now() + interval '1 hour'
+       where id = r.id;
     end;
   end loop;
 
@@ -585,7 +596,9 @@ begin
       elsif rep.id is not null then
         -- Reported already: it ends with the CEO's decision.
         if rep.status = 'completed' then v_verdict := 'the CEO decided: ' || left(coalesce(rep.completion_note, rep.acceptance_receipt), 400); end if;
-      elsif h.status = 'failed' or cardinality(v_reqs) = 0 then
+      elsif h.status = 'failed' or cardinality(v_reqs) = 0
+            or (h.detail->>'type' = 'reveal.paid'
+                and (h.evidence->>'customer_reachable' = 'false' or h.evidence->>'supplier_reachable' = 'false')) then
         -- The notice never left: no address on file, or the sales engineer could not write it.
         v_rep := public.fn_support_report_to_ceo('notice_undelivered:' || h.id, 'elevated',
           'A ' || (h.detail->>'type') || ' notice the accountant asked for was not sent (handoff ' || h.id || ')',
@@ -630,7 +643,9 @@ begin
               from jsonb_array_elements(v_failed) o join public.support_ceo_report s on s.idempotency_key = o->>'report_key');
           end if;
         else
-          v_verdict := 'reached: ' || (select string_agg((o->>'loop') || ' (request ' || (o->>'request_id') || ')', ', ') from jsonb_array_elements(v_outs) o);
+          -- Only a send that arrived is 'reached'; a stubbed, routed or cancelled one ended without arriving.
+          v_verdict := case when exists (select 1 from jsonb_array_elements(v_outs) o where o->>'state' <> 'reached')
+                            then 'ended: ' else 'reached: ' end || (select string_agg((o->>'loop') || ' (request ' || (o->>'request_id') || ')', ', ') from jsonb_array_elements(v_outs) o);
         end if;
       end if;
 
