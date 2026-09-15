@@ -53,7 +53,10 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 const errText = (e: unknown) => String((e as Error)?.message || e).slice(0, 300);
 
 const SLICE_MS = 30_000;   // hand off well inside the worker's compute budget (v1 measured a 546 at 102 s)
-const MAX_HOPS = 300;      // a full day is ~110 slices for kb_chunks + ~10 for the rest; a runaway chain must stop
+// Measured 15 Sep 2026 (attempt 2 of 2026-09-15): ~10 kb_chunks pages per hop, so a full day is ~262
+// hops for kb_chunks + ~25 for the rest — v2's 300 left no room, and the hop count carries across a
+// resumed attempt. 900 still stops a runaway chain (~9 h of 36 s hops).
+const MAX_HOPS = 900;
 const PAGE = 1000;         // rows per page file (the RPC's cap); kb_chunks ~2.8 MB, ops_knowledge ~8.3 MB
 
 type State = {
