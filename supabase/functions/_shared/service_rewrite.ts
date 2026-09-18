@@ -37,6 +37,12 @@ export type Rewrite = { items: RewriteItem[]; service_keys: string[]; own_words:
 export const MAX_TEXT = 2000;
 export const MAX_PHRASES = 40;
 export const PHRASE_LEN = 120;
+// THE SCAN IS BOUNDED, not merely finite (TypeScript review, 18 Sep 2026). ~1,500 alias patterns are
+// re-scanned against every phrase, so the worst case is the whole 2,000 characters arriving as one
+// phrase that matches nothing. Capping a phrase at MATCH_LEN bounds the work at
+// MAX_PHRASES x MATCH_LEN x |aliases| regardless of what the supplier sends — an edge function has a
+// CPU cap that no deadline bounds, and this estate has already lost a job to one.
+export const MATCH_LEN = 300;
 
 type Compiled = { key: string; term: ServiceTerm; re: RegExp };
 type Hit = { c: Compiled; start: number; end: number; len: number };
@@ -70,7 +76,7 @@ const isStop = (w: string): boolean => {
 export function splitPhrases(text: string): string[] {
   return String(text ?? '').slice(0, MAX_TEXT)
     .split(/\r?\n|[,،;؛|]+|\.\s+/)
-    .map((s) => s.replace(/^\s*(?:[•·▪●◦*–—-]|\d{1,2}[.)])\s+/, '').replace(/\s+/g, ' ').trim())
+    .map((s) => s.replace(/^\s*(?:[•·▪●◦*–—-]|\d{1,2}[.)])\s+/, '').replace(/\s+/g, ' ').trim().slice(0, MATCH_LEN))
     .filter((s) => s.length >= 2)
     .slice(0, MAX_PHRASES);
 }

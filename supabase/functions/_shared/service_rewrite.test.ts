@@ -175,3 +175,14 @@ Deno.test('unused export guard: own_words never contains a service key', () => {
   assertEquals(words('Ducting, helicopter window polishing'), r.own_words);
   assert(!r.own_words.some((w) => r.service_keys.includes(w)));
 });
+
+// ── 7. the scan is bounded, and measured ──────────────────────────────────────────────────────────
+Deno.test('the worst case — 2000 characters matching nothing — stays well inside the CPU budget', () => {
+  const worst = Array.from({ length: 40 }, () => 'zzqq xxwv yyrr '.repeat(30)).join('\n').slice(0, 2000);
+  const t0 = performance.now();
+  const r = rewriteServices(worst, SERVICES, TRADES);
+  const ms = performance.now() - t0;
+  assertEquals(r.service_keys, []);
+  assert(ms < 4000, `the adversarial rewrite took ${Math.round(ms)}ms`);
+  console.log(`worst-case rewrite over ${SERVICES.length} services: ${Math.round(ms)}ms`);
+});

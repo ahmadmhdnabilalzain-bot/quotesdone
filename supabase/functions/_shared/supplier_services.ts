@@ -246,9 +246,14 @@ export async function implicationMap(admin: Admin): Promise<Implication[]> {
   const { data, error } = await admin.from('service_implication')
     .select('from_code,implies_trade,implies_code,reason_en,reason_ar').eq('active', true);
   if (error || !Array.isArray(data)) return [];
-  return (data as Record<string, string>[]).map((r) => ({
-    from: r.from_code, to: r.implies_trade + '.' + r.implies_code, en: r.reason_en, ar: r.reason_ar,
-  }));
+  // Every column is NOT NULL in the table; the guard is here because a null would concatenate into
+  // the string "null.tiling" and silently name a service that does not exist, rather than throwing.
+  return (data as Record<string, string | null>[])
+    .filter((r) => r.from_code && r.implies_trade && r.implies_code)
+    .map((r) => ({
+      from: String(r.from_code), to: `${r.implies_trade}.${r.implies_code}`,
+      en: String(r.reason_en ?? ''), ar: String(r.reason_ar ?? ''),
+    }));
 }
 
 export type ImpliedOut = {
@@ -305,7 +310,13 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   const arr = (v: unknown) => (Array.isArray(v) ? (v as unknown[]).map((s) => String(s ?? '')) : []);
   const stated = [...new Set(arr(body.services).filter((s) => known.has(s)))];
   const implied = [...new Set(arr(body.implied).filter((s) => known.has(s) && !stated.includes(s)))];
-  const removed = [...new Set(arr(body.removed).filter((s) => known.has(s) && !implied.includes(s) && !stated.includes(s)))];
+  // A REMOVAL THE CLIENT DID NOT RE-SEND IS STILL A REMOVAL (TypeScript review, 18 Sep 2026). The
+  // preview merges what is stored before it offers the implied list; the save has to merge it too, or
+  // a client that echoes only this screen's removals would quietly re-enable a service the supplier
+  // struck out weeks ago. Anything now stated or kept wins over a stale removal.
+  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed').eq('supplier_id', supplierId).maybeSingle();
+  const removed = [...new Set([...(Array.isArray(prevCap?.services_removed) ? prevCap!.services_removed as string[] : []), ...arr(body.removed)])]
+    .filter((s) => known.has(s) && !implied.includes(s) && !stated.includes(s));
   const own = cleanExtras(arr(body.own_words).map((w) => tidy(w)));
   const raw = String(body.raw_text ?? '').slice(0, RAW_TEXT_MAX);
 
@@ -314,16 +325,30 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   // The supplier's own words still resolve to a TRADE where an alias names one; where none does, the
   // words stay as the supplier wrote them and the sales engineer gets a proposal to map or add.
   const resolved: Record<string, string[]> = {}; const proposals: string[] = [];
-  for (const w of own) {
-    const codes = await resolveText(admin, w);
+  // Independent lookups, so one round trip rather than up to 25 in series.
+  const codesFor = await Promise.all(own.map((w) => resolveText(admin, w)));
+  own.forEach((w, i) => {
+    const codes = codesFor[i];
     resolved[w] = codes;
     if (codes.length) codes.forEach((c) => trades.add(c)); else proposals.push(w);
-  }
+  });
   if (!trades.size) return [400, { error: 'nothing_recognised', code: 'services_nothing_recognised' }];
 
   const { data: cap } = await admin.from('supplier_capabilities')
     .select('products_norm,coverage_emirates,brands,project_types,exclusions').eq('supplier_id', supplierId).maybeSingle();
   const coverage = Array.isArray(cap?.coverage_emirates) && cap.coverage_emirates.length ? cap.coverage_emirates : declaredEmirates;
+
+  // THIS SCREEN'S OWN COLUMNS GO IN FIRST, and the confirm second (TypeScript review, 18 Sep 2026).
+  // capabilityConfirm owns `services` and sets confirmed_at — the gate fn_match_capability opens on.
+  // Writing these after it meant a failure here left the supplier CONFIRMED and matchable while
+  // services_removed still said something else, and matching reads services_removed. In this order a
+  // failure leaves the supplier exactly as matchable as it was before, with nothing confirmed.
+  const { error: upErr } = await admin.from('supplier_capabilities').upsert({
+    supplier_id: supplierId, services_raw_text: raw || null,
+    services_implied: implied, services_removed: removed, services_rewritten_at: new Date().toISOString(),
+  }, { onConflict: 'supplier_id' });
+  if (upErr) return [500, { error: 'services_rewrite_write_failed', code: 'services_rewrite_write_failed', detail: upErr.message }];
+
   const [status, out] = await capabilityConfirm(admin, supplierId, {
     trades: [...trades], roles: body.roles,
     services: [...stated, ...own],
@@ -331,20 +356,17 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
     brands: cap?.brands || [], project_types: cap?.project_types || [], exclusions: cap?.exclusions || [],
   });
   if (status !== 200) return [status, out];
-  // capabilityConfirm owns `services`; these four columns are this screen's own record and are written
-  // after it, so the shared confirm keeps one definition of what a supplier said.
-  const { error: upErr } = await admin.from('supplier_capabilities').update({
-    services_raw_text: raw || null, services_implied: implied, services_removed: removed,
-    services_rewritten_at: new Date().toISOString(),
-  }).eq('supplier_id', supplierId);
-  if (upErr) return [500, { error: 'services_rewrite_write_failed', code: 'services_rewrite_write_failed', detail: upErr.message }];
 
   const fresh = proposals.map((p) => ({ words: p, code: tradeCode(p) })).filter((p) => p.code);
   if (fresh.length) {
-    await admin.from('taxonomy_trade_proposal').upsert(fresh.map(({ words, code }) => {
+    // A pending taxonomy item that never reaches the sales engineer is the supplier's words lost, so
+    // the failure is logged rather than swallowed (TypeScript review, 18 Sep 2026). It does not fail
+    // the confirm: the words are already stored in `services`, and this row is the review queue.
+    const { error: propErr } = await admin.from('taxonomy_trade_proposal').upsert(fresh.map(({ words, code }) => {
       const isAr = langOf(words) === 'ar';
       return { supplier_id: supplierId, code, label_en: isAr ? null : words, label_ar: isAr ? words : null, note: 'services free text: pending taxonomy item' };
     }), { onConflict: 'supplier_id,code', ignoreDuplicates: true });
+    if (propErr) console.error('taxonomy_trade_proposal upsert failed', supplierId, propErr.message);
   }
   return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: fresh.map((p) => p.code) }];
 }
