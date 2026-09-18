@@ -172,4 +172,7 @@ if (argv.includes('--json')) console.log(JSON.stringify({ ...result, steps: unde
 // Read by scripts/e2e/report_to_it_engineer.mjs, which hands this run to the IT engineer.
 writeFileSync(join(DIR, 'run.json'), JSON.stringify({ tag: run.tag, kept: KEEP, leftovers: closed?.leftovers ?? null, complete: COMPLETE }));
 console.log(`\nE2E ${count('PASS')} passed, ${count('FAIL')} failed, ${count('SKIP')} skipped - report ${join(DIR, 'report.md')}`);
-process.exitCode = count('FAIL') === 0 && !fatal ? 0 : 1;
+// The same verdict result.ok carries, so the two cannot drift apart: a truncated run is not a pass,
+// whoever is reading. (The nightly workflow runs this step with continue-on-error, because a failed
+// STEP is the finding and the report below it must still run — so this exit code is for a human.)
+process.exitCode = result.ok ? 0 : 1;
