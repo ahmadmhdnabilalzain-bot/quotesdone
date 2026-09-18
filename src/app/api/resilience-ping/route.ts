@@ -13,8 +13,18 @@
 //
 // The edge function does all the work — detect, then page the founder over HTTP. This route only
 // has to hit it, so it holds no secrets.
+//
+// THE CALLER MUST OUTWAIT THE FUNCTION IT CALLS (17 Sep 2026, it_engineer). This route waited 30 s
+// for a function that declares DEADLINE_MS = 110_000 and runs its ticks in sequence, several with
+// their own 55 s sub-timeouts. So the cron log here was permanently 502 and the GitHub cross-check
+// permanently red — 4/4 failures 14-17 Sep, all `curl: (28) ... 30002 ms` — while the function
+// itself ran 194 times in 48 h with 0 failures. A watchdog that cannot report success is a watchdog
+// that cannot report failure either: a real Supabase outage would have looked exactly the same.
+// 180 s is the function's 110 s deadline plus the drains that deliberately run past it.
+// scripts/checks/resilience_ping_reports_every_tick.test.mjs fails if either number drops below it.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 180;
 
 const PING = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/resilience_ping';
 
@@ -31,7 +41,7 @@ export async function GET(req: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(180_000),
     });
     const body = await r.json().catch(() => ({}));
     // A non-ok verdict is reported as a 502 so the platform's own failure log shows it, rather

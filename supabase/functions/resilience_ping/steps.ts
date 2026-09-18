@@ -33,14 +33,21 @@ export async function runSteps(steps: Step[], t0: number, deadlineMs: number, no
     let r: unknown;
     try { r = await s.run(); } catch (e) { r = { ok: false, error: String((e as Error)?.message || e) }; }
     results[s.name] = r;
-    if (s.nested && r && typeof r === 'object') {
+    // A NESTED STEP IS STILL JUDGED AT ITS OWN LEVEL FIRST (18 Sep 2026, it_engineer).
+    // Found in review: the nested branch only looked at the entries, so a nested step that THREW —
+    // wrapped as {ok:false, error} by the catch above — had that shape split into the entries
+    // ('ok', false) and ('error', '...'), neither of which failureOf can read, and the failure
+    // vanished. Same for a nested step that returns a bare {ok:false, error} because it never got
+    // as far as having sub-results, which is exactly what a gate RPC failing looks like. The top
+    // level is asked first; only a step that is itself fine is opened up and read per entry.
+    const top = failureOf(r);
+    if (top) {
+      failing.push({ name: s.name, error: top });
+    } else if (s.nested && r && typeof r === 'object') {
       for (const [k, v] of Object.entries(r as Record<string, unknown>)) {
         const f = failureOf(v);
         if (f) failing.push({ name: s.name + '.' + k, error: f });
       }
-    } else {
-      const f = failureOf(r);
-      if (f) failing.push({ name: s.name, error: f });
     }
   }
   return { results, failing };
