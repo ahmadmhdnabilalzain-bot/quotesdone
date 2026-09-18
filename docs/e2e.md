@@ -23,6 +23,7 @@ nothing was left behind.
 | `scripts/e2e/fixtures.mjs` | demo customers and suppliers, sign-in without an OTP, leftovers count |
 | `scripts/e2e/browser.mjs` | a signed-in Playwright page, timings, console capture, screenshots |
 | `scripts/e2e/journeys.mjs` | journeys a-g |
+| `scripts/e2e/founder_demo_tour.mjs` | the STANDING demo of both portals and the sign-in link that opens it (§6) |
 | `scripts/lib/demo_pdf.mjs` | the ZZ DEMO trade-licence PDF (shared with `scripts/staging/make_fixture_licence_pdf.mjs`) |
 | `scripts/sql/demo_identities_are_marked_and_never_reach_a_real_person.sql` | the database half: marker, pairing guard, capture, figures |
 | `supabase/functions/_shared/demo_identity.ts` | the TypeScript half of the same rule (`send_whatsapp`, `stripe_checkout`, `stripe_confirm`) |
@@ -122,3 +123,38 @@ The list of destinations journey f expects lives in `scripts/e2e/journeys.mjs` (
 moment a tab is renamed — written after the 15 September supplier rebuild (#722, #723) renamed six
 destinations and moved three into an Account menu without it, and the nightly run was cancelled at
 its 30-minute wall on 15, 16 and 17 September.
+
+## 6. The standing demo, and the link that opens it
+
+Founder, 18 Sep 2026: *"generate a link for me to access the supplier portal directly without signing
+up."* `scripts/e2e/founder_demo_tour.mjs` stands up ONE complete demo that stays alive — it is the
+only thing in `scripts/e2e/` that deliberately does not tear itself down — and mints a Supabase magic
+link into it. Owner: `sales_engineer` (the supplier portal is his surface).
+
+```
+node scripts/e2e/founder_demo_tour.mjs --seed       stand it up and print both links
+node scripts/e2e/founder_demo_tour.mjs --link       mint FRESH links (a used one is spent)
+node scripts/e2e/founder_demo_tour.mjs --verify     prove a link lands signed in; screenshot every tab
+node scripts/e2e/founder_demo_tour.mjs --teardown   remove every row, file and auth user it seeded
+```
+
+Run tag `founderdemo`, fixed on purpose: `--link` and `--teardown` must find the demo tomorrow without
+being handed a hex string from today. Identities, guards and teardown are §§1-4 unchanged — this file
+adds only the CONTENT (services in the supplier's own words put through the rewrite, three inquiries
+with a BOQ and a redacted drawing page, two quotations carried through the review conversation to
+submission, supporting documents), so there stays exactly one way to make a demo supplier.
+
+**The link.** `POST /auth/v1/admin/generate_link`, `type: magiclink`. Two things make it land signed
+OUT on the home page instead, and both answer HTTP 200 with an `action_link`, so `mintLink` reads the
+returned `redirect_to` back and refuses rather than hand over a link that does not work:
+
+1. **`redirect_to` nested under `options`.** That is the supabase-js admin CLIENT's shape; the REST
+   endpoint reads `redirect_to` at the TOP level and ignores anything else.
+2. **A `redirect_to` that is not on the project's redirect allow list.** Until 18 Sep 2026
+   `uri_allow_list` held only the Vercel preview hosts, so `https://quotesdone.ae/portal` fell back to
+   `SITE_URL`. The company's own domains (`quotesdone.ae`, `quotesdone.com`, both with `www.` and
+   `/**`) were added that day; nothing was removed. Measured: an unlisted host still falls back, so
+   the list is enforced and those entries are what the link depends on.
+
+The token is single-use and expires after `mailer_otp_exp` (3600 s on this project). The SESSION it
+creates is an ordinary one — the portal refreshes it, so a tab left open keeps working past the hour.
