@@ -17,12 +17,16 @@ import { Button } from '@/components/ui/button';
 import { Seal } from '@/components/ui/sealed';
 import { cn } from '@/lib/utils';
 import { call } from './api';
+import { ws } from './workspaceCopy';
 
 type Lang = 'en' | 'ar' | string;
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 // ── Drawing pages ────────────────────────────────────────────────────────────────────────────────
-export function DrawingGallery({ pages, lang }: { pages: string[]; lang: Lang }) {
+// `failed` is supplier_api inbox's drawing_pages_failed: pages that EXIST on the inquiry and could not
+// be signed. Showing the supplier fewer drawings than exist, saying nothing, is the defect this counts
+// (18 Sep 2026, sales_engineer) — a supplier priced a villa from the BOQ alone and never knew.
+export function DrawingGallery({ pages, lang, failed = 0 }: { pages: string[]; lang: Lang; failed?: number }) {
   const ar = lang === 'ar';
   const [open, setOpen] = useState<number | null>(null);
   const reduce = useReducedMotion();
@@ -43,7 +47,7 @@ export function DrawingGallery({ pages, lang }: { pages: string[]; lang: Lang })
     document.body.style.overflow = 'hidden';
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; opener.current?.focus(); };
   }, [open, go, ar]);
-  if (!n) return null;
+  if (!n && !failed) return null;
   return (
     <div className="qd-frame mt-4">
       <div className="qd-frame-bar">
@@ -51,6 +55,7 @@ export function DrawingGallery({ pages, lang }: { pages: string[]; lang: Lang })
         <span className="ms-1 min-w-0 truncate font-mono text-label uppercase tracking-caps text-muted-foreground">{ar ? 'المخططات (بعد إخفاء الهوية)' : 'Drawings (identity removed)'}</span>
         <span className="ms-auto shrink-0 font-mono text-label tabular-nums text-muted-foreground">{ar ? `${n} ${n === 1 ? 'صفحة' : 'صفحات'}` : `${n} page${n === 1 ? '' : 's'}`}</span>
       </div>
+      {failed > 0 ? <p role="status" className="px-3 pt-3 text-[13px] text-warn-fg">{ws(String(lang), n ? 'rfq_pages_unavailable' : 'rfq_pages_none', { n: failed, total: n + failed })}</p> : null}
       <ul className="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 md:grid-cols-6">
         {pages.map((u, k) => (
           <li key={k}>

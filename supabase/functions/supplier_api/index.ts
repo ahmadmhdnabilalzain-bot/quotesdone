@@ -24,6 +24,9 @@ import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { quoteDocument, type Item } from '../_shared/quote_documents.ts';
+// A DRAWING PAGE THAT FAILS TO SIGN IS COUNTED, LOGGED AND RAISED - never silently dropped from the
+// inbox (18 Sep 2026, sales_engineer). See _shared/drawing_pages.ts for the production measurement.
+import { signRedactedDrawings } from '../_shared/drawing_pages.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -122,7 +125,6 @@ function scrubDeep(v: unknown, ownName: unknown, hits: string[]): unknown {
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
 function b64ToBytes(b64:string){ const bin=atob(String(b64).replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
-async function signedRedacted(path: string){ try { const { data } = await admin.storage.from('drawing-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 // AUDIT 4.2 (3 Aug 2026) ------------------------------------------------------------------
 // This function used to decide the registration state itself, from registered_supplier_count()
 // against pricing_config.supplier_free_count, evaluated AFTER the insert - so the test was
@@ -887,10 +889,13 @@ Deno.serve(observe('supplier_api', async (req) => {
           });
         } catch (_e) { /* never let the trail block the response */ }
       }
+      // Sign every redacted drawing page for the whole inbox page at once. A page that cannot be signed
+      // is counted and raised rather than dropped in silence; the pages that did sign are still served.
+      const pagesOf = await signRedactedDrawings(admin, (inq || []).map((i) => ({ id: i.id, paths: i.drawing_redacted_paths })));
       const out: any[] = [];
       for (const i of (inq || [])) {
-        const pages: string[] = [];
-        for (const p of (Array.isArray(i.drawing_redacted_paths) ? i.drawing_redacted_paths : [])) { const u = await signedRedacted(String(p)); if (u) pages.push(u); }
+        const dp = pagesOf[String(i.id)] || { urls: [], expected: 0, served: 0, failed: 0 };
+        const pages: string[] = dp.urls;
         const concluded = CONCLUDED.includes(String(i.status));
         const youWon = i.hired_supplier_id != null && Number(i.hired_supplier_id) === Number(sup.id);
         // Pre-reveal, the buyer's own free text is scrubbed on the way out. Once this supplier
@@ -922,7 +927,7 @@ Deno.serve(observe('supplier_api', async (req) => {
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
         // through the same scrubIdentity as summary, behind the same reveal gate.
         const sBudget = revealed ? i.budget : (ownerResolved ? scrubIdentity(i.budget ?? null, buyerName, hits) : null);
-        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }

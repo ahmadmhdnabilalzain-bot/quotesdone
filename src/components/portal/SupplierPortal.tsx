@@ -932,7 +932,7 @@ function Rfqs({ token, lang, focus = null, onFocused = null }) {
       {canQuote && extra && extra.startsWith(i.id + '#') ? <div id={'qd-qf-' + extra}><QuoteForm key={extra} inquiry={i} token={token} lang={lang} newOption={extra.endsWith('#new')} quote={extra.endsWith('#new') ? null : (i.quotes || []).find((o) => i.id + '#' + (o.option_no || 1) === extra) || null} onDone={() => { setExtra(null); reload(); }} /></div> : null}
       {i.summary && <p className={cn(S.sub, 'mt-2')}>{i.summary}</p>}
       <RequestedTerms spec={i.spec} lang={lang} />
-      <DrawingGallery pages={i.drawing_pages || []} lang={lang} />
+      <DrawingGallery pages={i.drawing_pages || []} failed={Number(i.drawing_pages_failed || 0)} lang={lang} />
       <BoqTable boq={i.boq} confidence={i.boq_confidence} lang={lang} onQuote={canQuote && !q ? (rows) => quoteBoq(i.id, rows) : undefined} />
       {i.boq_withheld ? <div className={cn(S.sub, 'mt-3')}>{ar ? 'حُجب جدول الكميات لأننا لم نتمكّن من إثبات خلوّه من بيانات العميل. سعّر من المخططات والوصف.' : 'The bill of quantities is held back because we could not prove it free of the customer’s details. Price from the drawings and the description.'}</div> : null}
       <ClarifyThread inquiryId={i.id} token={token} lang={lang} canAsk={canQuote && !q} />
