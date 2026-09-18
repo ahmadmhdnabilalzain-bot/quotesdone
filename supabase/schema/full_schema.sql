@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T04:21:50.086Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T04:28:38.615Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -36730,18 +36730,69 @@ CREATE OR REPLACE FUNCTION public.fn_it_workflow_heartbeats()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_items jsonb := '[]'::jsonb; x record;
+declare v_items jsonb := '[]'::jsonb; x record; v_running interval;
 begin
-  for x in select * from (values ('dependency', interval '8 days', '.github/workflows/it-weekly-readings.yml'),
-                                 ('platform',   interval '8 days', '.github/workflows/it-weekly-readings.yml')) v(job, every, wf) loop
-    if exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' like 'duty:%'
-                and started_at < now() - x.every)
-       and not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:' || x.job
-                    and started_at > now() - x.every) then
+  -- How long the scheduled duties have been running at all. The original guard asked this as an
+  -- EXISTS per subject over the same set, so asking it once is the same test, and it now reads as
+  -- what it is. Note what it is NOT: it is global, not per subject. A subject added today borrows
+  -- its grace period from the oldest duty row of any kind — months — so it is judged from the first
+  -- tick rather than after its own interval. That is why every key above was read out of production
+  -- before it was added, and why kb_embed's "never beaten" is documented as expected rather than
+  -- discovered in the finding ledger.
+  select now() - min(started_at) into v_running
+    from public.agent_runs where agent = 'it_engineer' and counts->>'job' like 'duty:%';
+  if v_running is null then return public.fn_it_duty_settle('workflow_heartbeat', '[]'::jsonb); end if;
+
+  for x in
+    select 'dependency'::text job, interval '8 days' every,
+           '.github/workflows/it-weekly-readings.yml'::text wf,
+           (select max(started_at) from public.agent_runs
+             where agent = 'it_engineer' and counts->>'job' = 'duty:dependency') last
+    union all
+    select 'platform', interval '8 days', '.github/workflows/it-weekly-readings.yml',
+           (select max(started_at) from public.agent_runs
+             where agent = 'it_engineer' and counts->>'job' = 'duty:platform')
+    union all
+    select 'smoke', interval '7 days', '.github/workflows/it-post-deploy-smoke.yml',
+           (select max(started_at) from public.agent_runs
+             where agent = 'it_engineer' and counts->>'job' = 'duty:smoke')
+    union all
+    select 'kb_embed', interval '36 hours', '.github/workflows/kb-embed-backfill.yml',
+           (select max(started_at) from public.agent_runs
+             where agent = 'it_engineer' and counts->>'job' = 'duty:kb_embed')
+    union all
+    -- The second scheduler kicks every 6 hours; 12 h is two missed kicks, not one late one.
+    select 'dropbox_kick', interval '12 hours', '.github/workflows/dropbox-backup-second-scheduler.yml',
+           (select max(started_at) from public.agent_runs
+             where agent = 'backup_kick' and counts->>'reason' = 'github_actions')
+    union all
+    -- project-parity.yml runs daily AND on every pull request, and the advisor refresh step stamps
+    -- last_seen_at on each of the 563 baseline rows.
+    -- SAY WHAT THIS DOES NOT CATCH. The key cannot tell a scheduled run from a pull-request run, and
+    -- this repository merges most days, so a permanently broken `schedule:` trigger — a cron run has
+    -- no PR context and a different token scope, so it can fail on its own — would stay hidden behind
+    -- the PR runs indefinitely. What this subject DOES catch is the whole workflow going quiet: no
+    -- parity run of any kind for 36 hours, which is the weekend, the quiet day, and a deleted or
+    -- disabled workflow. It is deliberately not claimed as coverage of the schedule itself; closing
+    -- that would need the refresh step to record which trigger it ran under, and it does not.
+    select 'parity', interval '36 hours', '.github/workflows/project-parity.yml',
+           (select max(last_seen_at) from public.security_advisor_baseline)
+  loop
+    continue when v_running <= x.every;   -- the schedule has not had time to come round yet
+    if x.last is null then
+      -- NEVER BEAT. Zero cannot tell a dead guard from an idle system, so this is said in its own
+      -- words rather than reported as "late": nothing has ever written the row this reads.
+      v_items := v_items || jsonb_build_object('item', x.job, 'owner_seat', 'ceo', 'subject', 'github',
+        'title', 'Nothing has ever reported a ' || x.job || ' run, so its workflow cannot be seen to fail',
+        'blast', 'agent_facing', 'affected', 1,
+        'evidence', jsonb_build_object('workflow', x.wf, 'every', x.every::text, 'last', null,
+          'look_at', 'the workflow''s runs in GitHub Actions, then whether the step that reports back is present and reached'));
+    elsif x.last < now() - x.every then
       v_items := v_items || jsonb_build_object('item', x.job, 'owner_seat', 'ceo', 'subject', 'github',
         'title', 'The ' || x.job || ' readings from GitHub have not arrived for ' || x.every,
         'blast', 'agent_facing', 'affected', 1,
-        'evidence', jsonb_build_object('workflow', x.wf, 'look_at', 'the workflow''s runs in GitHub Actions: not triggered, failed, or failed to report'));
+        'evidence', jsonb_build_object('workflow', x.wf, 'every', x.every::text, 'last', x.last,
+          'look_at', 'the workflow''s runs in GitHub Actions: not triggered, failed, or failed to report'));
     end if;
   end loop;
   return public.fn_it_duty_settle('workflow_heartbeat', v_items);
@@ -45944,6 +45995,22 @@ begin
   return jsonb_build_object('ok', true, 'scored', n, 'gated', v_gated, 'restored', v_restored,
                             'unmeasured', v_unmeasured, 'provisional', v_provisional);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_resilience_orphan_steps_due()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    -- coalesce, not '<>': a missing row must read as "not enabled", which is the state that needs
+    -- reporting. A gate that opens only when a key is present and wrong is a gate that a deleted key
+    -- switches off silently.
+    'email_cron',   coalesce((select value from public.app_secrets where key = 'email_enabled'), '') is distinct from 'true',
+    'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true'
+  )
 $function$
 
 

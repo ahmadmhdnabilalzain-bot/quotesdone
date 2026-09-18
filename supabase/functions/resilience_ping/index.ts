@@ -323,6 +323,43 @@ async function backupTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// TWO FUNCTIONS THAT NOTHING CALLED (17 Sep 2026, it_engineer). email_cron and wa_templates_watch are
+// deployed, owned and instrumented, and pg_cron — which used to call them — has been empty since
+// 7 Sep. agent_runs held ONE row for each, both 9 Sep 07:10. email_cron reports the one thing
+// send_outbox structurally cannot (a disabled mail system: nothing would invoke send_outbox to tell
+// you it is off) and auto-detects Resend domain verification; wa_templates_watch flips
+// wa_templates_ready when Meta approves, and WhatsApp is the founder's command channel.
+//
+// GATED IN POSTGRES, like backupTick: one RPC answers for both, so a tick where neither is due costs
+// one round trip and no HTTP. email_cron is due only while email is NOT enabled (when it is, outboxTick
+// below already drains every tick and email_cron would add nothing but a second flush);
+// wa_templates_watch only while wa_templates_ready is not 'true', so it stops polling Twilio the moment
+// approval lands. Measured 18 Sep: both flags are 'true', so both gates are shut and this step is the
+// RPC alone. Each swallows its own error — a step that throws is a step the whole tick pays for.
+async function orphanTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_resilience_orphan_steps_due');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const due = data as any;
+    if (!due?.email_cron && !due?.wa_templates) return { due: false };
+    const secret = await sec('cred_fn_resilience_ping');
+    const call = async (slug: string) => {
+      try {
+        const r = await fetch(FN + '/' + slug, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ __secret: secret }), signal: AbortSignal.timeout(20000),
+        });
+        return { status: r.status, body: await r.json().catch(() => null) };
+      } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 200) }; }
+    };
+    const out: Record<string, unknown> = {};
+    if (due.email_cron) out.email_cron = await call('email_cron');
+    if (due.wa_templates) out.wa_templates_watch = await call('wa_templates_watch');
+    return out;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE DAILY TABLE EXPORT HANGS HERE, FOR THE SAME REASON AS THE DROPBOX BACKUP (14 Sep 2026).
 // Its pg_cron job (109) went on 7 Sep and its worker (supabase/functions/backup) on 8 Sep; the last
 // export in the backups bucket is 2026-09-07. fn_table_export_due claims the Asia/Dubai day once
@@ -776,6 +813,12 @@ const STEPS: Step[] = [
   { name: 'itscheduled', run: itScheduledTick },
   { name: 'itlater', run: itLaterDutiesTick, nested: true },
   { name: 'specoffer', run: specOfferTick },
+  // Before the outbox drain: email_cron queues nothing itself, but wa_templates_watch queues the
+  // founder's "templates approved" mail, and that should leave on this pass rather than the next.
+  // `nested` because it returns one entry per function it called: without it runSteps would ask
+  // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
+  // would be invisible — the exact defect this whole change exists to end.
+  { name: 'orphans', run: orphanTick, nested: true },
   { name: 'it', run: itEngineerAlertTick, always: true },
   { name: 'outbox', run: outboxTick, always: true },
   // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is

@@ -44,12 +44,12 @@ const deadline = t0 + MINUTES * 60_000;
 const start = await embedded();
 console.log(`start: ${start} embedded; batch=${BATCH} max_tier=${MAX_TIER} for ${MINUTES} min`);
 
-let cycles = 0, written = 0, failed = 0;
+let cycles = 0, written = 0, failed = 0, loopErrors = 0, refused = '', drained = false;
 while (Date.now() < deadline) {
   try {
     const d = (await q(`select public.fn_kb_embed_dispatch(${BATCH}, ${MAX_TIER}) r`))[0].r;
-    if (!d.ok) { console.log('dispatch refused:', d); break; }
-    if (d.queued === 0) { console.log('nothing left to claim at this tier'); break; }
+    if (!d.ok) { refused = JSON.stringify(d).slice(0, 200); console.log('dispatch refused:', d); break; }
+    if (d.queued === 0) { drained = true; console.log('nothing left to claim at this tier'); break; }
     // pg_net resolves roughly 200 requests per drain cycle; give the queue time before harvesting.
     await sleep(Math.max(4000, Math.ceil(d.queued / 200) * 6000));
     const h = (await q('select public.fn_kb_embed_harvest() r'))[0].r;
@@ -58,6 +58,7 @@ while (Date.now() < deadline) {
     console.log(`cycle ${cycles}: queued ${d.queued}, embedded ${h.embedded}, failed ${h.failed}, `
       + `inflight ${h.still_inflight} | total ${written} in ${mins.toFixed(1)} min = ${(written / mins).toFixed(1)}/min`);
   } catch (e) {
+    loopErrors++;
     console.log('cycle error, backing off 15s:', String(e).slice(0, 200));
     await sleep(15000);
   }
@@ -70,3 +71,27 @@ const end = await embedded();
 const mins = (Date.now() - t0) / 60_000;
 console.log(`done: ${end - start} newly embedded in ${mins.toFixed(1)} min = ${((end - start) / mins).toFixed(1)}/min `
   + `(${failed} failed). Total embedded now ${end}.`);
+
+// THE RUN LEAVES A ROW, SO ITS ABSENCE IS A FINDING (17 Sep 2026, it_engineer).
+// This backfill wrote nothing to agent_runs, so nothing could tell a night it ran from a night it did
+// not: kb-embed-backfill.yml failed six consecutive scheduled runs, 10-15 Sep, and the estate never
+// said a word — the script was merged to a branch and the workflow to main, so every scheduled run
+// died on MODULE_NOT_FOUND. fn_it_duty_ran is the row fn_it_workflow_heartbeats reads (the same key
+// shape as duty:dependency, duty:platform and duty:smoke), so a run that does not happen is now a
+// finding within 36 hours. It is written LAST on purpose: a run that fell over did not beat.
+// A RUN THAT DID NOTHING BECAUSE IT WAS BROKEN MUST NOT BEAT (found in review, 18 Sep 2026).
+// fn_it_duty_ran writes status='ok' unconditionally and the heartbeat reads only max(started_at), so
+// the row's existence IS the claim that this workflow ran. Doing no work is only honest in one case:
+// the queue was empty. A refused dispatch, or a run where every cycle threw, is a failure and leaves
+// NO row — so the heartbeat raises it within 36 h — and exits non-zero so the Action goes red too.
+const brokeWithoutWorking = cycles === 0 && !drained;
+const result = JSON.stringify({
+  newly_embedded: end - start, embedded_total: end, minutes: Number(mins.toFixed(1)),
+  cycles, failed, loop_errors: loopErrors, drained, refused: refused || null,
+}).replace(/'/g, "''");   // the only metacharacter a single-quoted SQL literal has
+if (brokeWithoutWorking) {
+  console.error(`no cycle completed: ${refused ? 'dispatch refused ' + refused : loopErrors + ' cycle error(s)'}. `
+    + 'Not writing a kb_embed heartbeat over a run that embedded nothing.');
+  process.exit(1);
+}
+await q(`select public.fn_it_duty_ran('kb_embed', '${result}'::jsonb)`);

@@ -26,7 +26,16 @@ jobs:
       - name: Ping resilience watchdog
         run: |
           set -euo pipefail
-          resp="$(curl -sS -m 30 -X POST \
+          # -m MUST EXCEED THE FUNCTION'S OWN DEADLINE. Measured 17 Sep 2026: this job failed 4/4 on
+          # 14, 15, 16 and 17 Sep, every one `curl: (28) ... 30002 ms`, last green 13 Sep — while
+          # resilience_ping itself ran 194 times in 48 h with 0 failures. The function declares
+          # DEADLINE_MS = 110_000 and runs its ticks in sequence, several with their own 55 s
+          # sub-timeouts, so a 30 s caller could never see the answer once one tick ran long. The one
+          # watchdog that exists BECAUSE an in-cluster check cannot detect a total outage was red over
+          # a healthy system for four days — indistinguishable from the outage it watches for.
+          # scripts/checks/resilience_ping_reports_every_tick.test.mjs now fails if this number, or
+          # the Vercel route's, is below the function's deadline.
+          resp="$(curl -sS -m 180 -X POST \
             https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/resilience_ping \
             -H 'Content-Type: application/json' -d '{}')"
           echo "resilience_ping -> $resp"
