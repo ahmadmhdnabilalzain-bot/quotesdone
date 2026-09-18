@@ -17,7 +17,8 @@ export type VatTreatment = 'exclusive' | 'inclusive' | 'not_registered' | 'not_s
 export type VatRead = { treatment: VatTreatment; price_ex_vat: number | null; vat_amount: number | null; vat_rate: number | null; trn: string | null };
 
 const NOT_REG = /not\s*(?:vat\s*)?registered(?:\s*for\s*vat)?|no\s*vat\s*(?:applicable|charged)?\b|vat\s*(?:is\s*)?not\s*applicable|غير مسجل(?:ة)?\s*(?:في|ب|لدى)?\s*(?:ضريبة|الضريبة)|بدون ضريبة|لا توجد ضريبة/i;
-const EXCL = /excl(?:uding|usive|\.)?\s*(?:of\s*)?(?:the\s*)?vat|vat\s*(?:is\s*)?(?:excluded|extra|additional|not\s*included)|\+\s*vat|plus\s*vat|before\s*vat|غير شامل\s*(?:ل)?(?:ال)?ضريبة|قبل (?:ال)?ضريبة|لا يشمل\s*(?:ال)?ضريبة|\+\s*(?:ال)?ضريبة/i;
+// 15 Sep 2026: "prices exclude VAT" read as not stated — INCL already took "include(s)", EXCL did not.
+const EXCL = /excl(?:uding|usive|udes?|\.)?\s*(?:of\s*)?(?:the\s*)?vat|vat\s*(?:is\s*)?(?:excluded|extra|additional|not\s*included)|\+\s*vat|plus\s*vat|before\s*vat|غير شامل\s*(?:ل)?(?:ال)?ضريبة|قبل (?:ال)?ضريبة|لا يشمل\s*(?:ال)?ضريبة|\+\s*(?:ال)?ضريبة/i;
 const INCL = /incl(?:uding|usive|udes?|\.)?\s*(?:of\s*)?(?:the\s*)?(?:\d+(?:\.\d+)?\s*%\s*)?vat|vat\s*(?:is\s*)?included|with\s*vat|شامل\s*(?:ل)?(?:ال)?ضريبة|يشمل\s*(?:ال)?ضريبة|متضمن\s*(?:ال)?ضريبة/i;
 const RATE = /(\d+(?:\.\d+)?)\s*%\s*(?:vat|ضريبة)|(?:vat|ضريبة(?: القيمة المضافة)?)\s*(?:@|at|بنسبة|of)?\s*(\d+(?:\.\d+)?)\s*%/i;
 const r2 = (n: number) => Math.round(n * 100) / 100;

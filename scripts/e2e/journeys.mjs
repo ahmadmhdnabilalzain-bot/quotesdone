@@ -602,13 +602,21 @@ const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export async function journeyCrawl(ctx) {
   const { rep, browser, fx, dir } = ctx;
   const J = 'f crawl';
+  // THE CRAWL IS WHAT RAN THE JOB OUT OF TIME (17 Sep 2026). Each nav item it cannot click costs
+  // 11.2 s (8 s click timeout, then the fallbacks), and there are 4 viewports x 2 portals of them,
+  // so once the ar-mobile and supplier nav defects appeared this loop alone outlasted the workflow's
+  // 30-minute wall and the job was cancelled mid-crawl — taking teardown and the heartbeat with it.
+  // ctx.outOfTime is run.mjs's shared deadline: stop starting views, record what was not reached.
+  const stop = ctx.outOfTime || (() => false);
   for (const who of [fx.customer, fx.suppliers[0]]) {
     for (const m of MATRIX) {
+      if (stop()) { rep.step(J, `${who.kind} ${tag(m)}: not crawled`, 'SKIP', 'the harness deadline passed before this viewport; the run still tears down and reports'); continue; }
       const s = await signedInPage(browser, who, m);
       const before = s.consoleErrors.length;
       try {
         await openPortal(s.page, portalUrl(who.kind, m.lang), s.calls);
         for (const label of NAV[who.kind][m.lang]) {
+          if (stop()) { rep.step(J, `${who.kind} ${tag(m)}: ${label}`, 'SKIP', 'the harness deadline passed mid-viewport'); continue; }
           const btn = s.page.getByRole('button', { name: new RegExp('^' + esc(label)) }).first();
           // On a phone the item may sit in the More sheet; its button is aria-controls="qd-nav-more"
           // (the sheet itself, #qd-nav-more, only exists while open).

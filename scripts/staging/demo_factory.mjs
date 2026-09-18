@@ -1049,8 +1049,17 @@ const BUCKET_SOURCES = (s) => [
        union select unnest(output_paths) from public.drawing_redaction_runs where ${s.redaction}`,
   },
   {
+    // 15 Sep 2026: the quotation conversation stores each file the supplier attaches under
+    // quote-files/review/..., named on quote_reviews and on its messages' attachments.
     bucket: 'quote-files', sql:
-      `select original_file_path p from public.quotes where ${s.quote} and original_file_path is not null`,
+      `select original_file_path p from public.quotes where ${s.quote} and original_file_path is not null
+       union select r.original_file_path from public.quote_reviews r
+        where (r.inquiry_id in (select id from public.inquiries where ${s.inq}) or r.supplier_id in (select id from public.leads where ${s.lead}))
+          and r.original_file_path is not null
+       union select a->>'path' from public.quote_review_messages m join public.quote_reviews r on r.id = m.review_id
+        cross join jsonb_array_elements(coalesce(m.attachments, '[]'::jsonb)) a
+        where (r.inquiry_id in (select id from public.inquiries where ${s.inq}) or r.supplier_id in (select id from public.leads where ${s.lead}))
+          and a->>'bucket' = 'quote-files' and a->>'path' is not null`,
   },
   {
     bucket: 'signed-terms', sql:
@@ -1222,6 +1231,12 @@ export async function teardown(run) {
     ['documents', `delete from public.documents where ${DOCS_W}`],
     ['company_event (quote)', `delete from public.company_event where entity_type='quote' and entity_id in ${QUO_T}`],
     ['quotes', `delete from public.quotes where id in ${QUO}`],
+    // The quotation conversation (15 Sep 2026) references its inquiry and its supplier with no cascade —
+    // a real conversation is never deleted with its parent — so a run's conversation goes first, children
+    // before the review.
+    ['quote_review_request', `delete from public.quote_review_request where review_id in (select id from public.quote_reviews where inquiry_id in ${INQ} or supplier_id in ${LEAD})`],
+    ['quote_review_messages', `delete from public.quote_review_messages where review_id in (select id from public.quote_reviews where inquiry_id in ${INQ} or supplier_id in ${LEAD})`],
+    ['quote_reviews', `delete from public.quote_reviews where inquiry_id in ${INQ} or supplier_id in ${LEAD}`],
     ['supplier_opportunity_score', `delete from public.supplier_opportunity_score where inquiry_id in ${INQ} or supplier_id in ${LEAD}`],
     ['reviews', `delete from public.reviews where inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
     ['inquiry_matches', `delete from public.inquiry_matches where inquiry_id in ${INQ} or supplier_id in ${LEAD}`],

@@ -24,6 +24,10 @@ import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { quoteDocument, type Item } from '../_shared/quote_documents.ts';
+// Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
+import { MAX_FILE, REVIEW_ACTIONS, reviewAction } from './quote_review_actions.ts';
+import { supabaseReviewRepo } from './quote_review_flow.ts';
+import { sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -300,7 +304,8 @@ async function recordServicesCrossCheck(supplierId: number, companyName: unknown
   } catch (_e) { /* the cross-check is evidence, not a gate - it must never break registration */ }
   return cc;
 }
-Deno.serve(observe('supplier_api', async (req) => {
+// Named so the quotation review can run this same function in-process with the caller's own session.
+const handle = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
@@ -308,6 +313,27 @@ Deno.serve(observe('supplier_api', async (req) => {
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
     const email = user.email.toLowerCase();
     const body = await req.json().catch(() => ({})); const action = body.action;
+
+    // INQUIRIES RECEIVED and QUOTATIONS SUBMITTED (founder, 15 Sep 2026) — quote_review_actions.ts.
+    // `self` runs this same function in-process with the caller's own session, so the conversation
+    // reads the job only through `inbox` and its scrubbers, and submits only through `submit_quote`.
+    if (REVIEW_ACTIONS.has(action)) {
+      const self = async (b: Record<string, unknown>) => {
+        const r = await handle(new Request(req.url, { method: 'POST', headers: { Authorization: 'Bearer ' + jwt, 'Content-Type': 'application/json' }, body: JSON.stringify(b) }));
+        return { status: r.status, json: await r.json().catch(() => ({})) };
+      };
+      const { data: sup } = await admin.from('leads').select('id,company_name,locale').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      // The upload gate every supplier file passes: type by bytes, size, then the malware lookup.
+      const scan = async (b64: string, filename: string, mime: string) => {
+        const sc = await sanitizeAndScan({ input: b64, declaredMime: mime, filename, allow: SAFE_DOCS, maxBytes: MAX_FILE,
+          scan: { source: 'supplier_api.quote_review', subject: String(sup.id), filename, bucket: 'quote-files' } });
+        if (!sc.ok) return { ok: false as const, status: sc.status, code: String(sc.body.error || 'file_refused'), message: String(sc.body.message || 'That file cannot be accepted.') };
+        return { ok: true as const, bytes: sc.result.bytes, mime: sc.result.mime, name: safeFilename(filename, sc.result.mime) };
+      };
+      const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: sup.locale ?? null }, email, self, body, repo: supabaseReviewRepo(admin), scan });
+      return J(out.json, out.status);
+    }
 
     // claimed_by is the account e-mail. Registration SHOWS it with its verification state rather
     // than asking for it — the supplier signed in with it, so a field here could only ever be
@@ -781,7 +807,10 @@ Deno.serve(observe('supplier_api', async (req) => {
     }
     if (action === 'inbox') {
       const { data: sup } = await admin.from('leads').select('id,approval_status').eq('claimed_by', email).maybeSingle(); if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      const { data: matches } = await admin.from('inquiry_matches').select('inquiry_id').eq('supplier_id', sup.id); const ids = (matches || []).map((m) => m.inquiry_id);
+      // `inquiry_id` narrows the inbox to one job (the inquiry detail and the review read one); it only
+      // ever narrows the caller's own matches, never widens them.
+      const only = typeof body.inquiry_id === 'string' && UUID_RE.test(body.inquiry_id) ? body.inquiry_id.toLowerCase() : null;
+      const { data: matches } = await admin.from('inquiry_matches').select('inquiry_id').eq('supplier_id', sup.id); const ids = (matches || []).map((m) => m.inquiry_id).filter((x) => !only || String(x).toLowerCase() === only);
       if (!ids.length) return J({ inquiries: [], approval_status: sup.approval_status });
       // SUPPLIER-SAFE PROJECTION (independent audit 9.3). The supplier inbox used to read the raw
       // inquiries row and redact on the way out, which meant every present and future
@@ -922,7 +951,7 @@ Deno.serve(observe('supplier_api', async (req) => {
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
         // through the same scrubIdentity as summary, behind the same reveal gate.
         const sBudget = revealed ? i.budget : (ownerResolved ? scrubIdentity(i.budget ?? null, buyerName, hits) : null);
-        out.push({ id: i.id, category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+        out.push({ id: i.id, job_no: String(i.id).slice(0, 8).toUpperCase(), category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
@@ -1148,8 +1177,12 @@ Deno.serve(observe('supplier_api', async (req) => {
       // straight back out to the buyer pre-payment. The UPLOAD path is left as-is: quote_extract
       // already anonymised it and supplies its own masked_terms, so scrubbing twice would only
       // mangle text a model has already cleaned.
+      // 15 Sep 2026 (security review): the UPLOAD path is scrubbed too. submit_quote is callable
+      // directly, so "source: upload" was a way past scrubIdentity for text typed by hand, and under the
+      // model hold the quotation review sends every upload down this path. scrubIdentity leaves text
+      // that is already clean unchanged, so a quotation quote_extract anonymised is unaffected.
       const maskHits: string[] = [];
-      const scrub = (v: unknown, n: number) => isUpload ? clip(v, n) : scrubIdentity(clip(v, n), sup.company_name, maskHits);
+      const scrub = (v: unknown, n: number) => scrubIdentity(clip(v, n), sup.company_name, maskHits);
       const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions, 2000);
       const priorMasked: string[] = Array.isArray(body.masked_terms) ? body.masked_terms.map((x: unknown) => String(x)) : [];
       const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
@@ -1191,6 +1224,10 @@ Deno.serve(observe('supplier_api', async (req) => {
           stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat) });
         const det = { inquiry_id: body.inquiry_id, supplier_id: sup.id, option_no: p.option_no, submission_id, quote_amount: vat.price_ex_vat ?? p.amount, price_ex_vat: vat.price_ex_vat, vat_treatment: vat.treatment, vat_amount: vat.vat_amount, supplier_trn: trn, amount_as_stated: p.amount,
           notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', anonymized: true, original_file_path: body.original_file_path || null, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
+        // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
+        // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
+        const confirmedTerms = sanitizeTermsSpec(body.terms_spec);
+        if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;
         // Capture the status BEFORE the write. A new row is created as a draft, never in the
         // 'submitted' column default: a dry_run preflight or a held quote must not be visible to the
         // customer even for a moment (caught by a demo walkthrough on 21 Jul 2026).
@@ -1200,7 +1237,7 @@ Deno.serve(observe('supplier_api', async (req) => {
         else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
         try {
           await admin.from('quote_items').delete().eq('quote_id', qid);
-          const rows = p.lines.slice(0, 80).map((it: any, i: number) => ({ quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand, 120), model: clip(it.model, 120), specification: clip(it.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300) }));
+          const rows = p.lines.slice(0, 80).map((it: any, i: number) => ({ quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand, 120), model: clip(it.model, 120), specification: clip(it.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }));
           // A line item with no description is dropped, not stored blank - a quote line the buyer
           // cannot read is worse than one that is absent.
           const clean = rows.filter((r: { description: string | null }) => r.description);
@@ -1238,4 +1275,5 @@ Deno.serve(observe('supplier_api', async (req) => {
   } catch (e) {
     return J({ error: String(e) }, 500);
   }
-}));
+};
+Deno.serve(observe('supplier_api', handle));
