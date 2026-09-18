@@ -229,9 +229,37 @@ begin
 
   -- ── 3. SUBSCRIPTIONS: the 1,001st supplier unpaid, dunned, escalated, then paid and reminded ───────
   -- leads_approved_implies_verified: an approved supplier is a verified one.
-  insert into public.leads (company_name, email, claimed_by, claimed, verified, approval_status, registration_submitted_at)
-  values ('ZZ DEMO Supplier 1001', 'zz-demo-sup-1001@example.invalid', 'zz-demo-sup-1001@example.invalid', true, true, 'approved', now() - interval '40 days')
+  --
+  -- AND THE MANDATORY SIX ARE EVIDENCE, NOT COLUMN VALUES (measured 18 Sep 2026: this insert was
+  -- refused by trg_leads_e0_mandatory_six_gate with "missing: reg_mobile, reg_email, reg_licence,
+  -- reg_profile, reg_terms" — on a row that did supply an email). fn_supplier_mandatory_six reads:
+  --   reg_mobile  -> owner_phone_verified AND the digits of phone/phone_e164 match ^9715[0-9]{8}$
+  --   reg_email   -> owner_email_verified, NOT leads.email
+  --   reg_licence -> storage.objects actually HOLDS license_doc_path in bucket supplier-docs
+  --   reg_profile -> the same for company_profile_doc_path (a path naming nothing is not a document)
+  --   reg_terms   -> signed_terms_path non-empty
+  -- The gate is the founder's rule and is never softened; the fixture is what changes. The two storage
+  -- rows belong to this batch and roll back with it, so no real supplier's document is touched. Every
+  -- committed demo supplier in the estate is built by scripts/staging/demo_factory.mjs instead; this
+  -- batch cannot call it, because it is one SQL transaction that must leave nothing behind and the
+  -- factory commits rows and uploads real PDFs through the storage API.
+  insert into storage.objects (bucket_id, name)
+  values ('supplier-docs', 'zz-demo/accountant-duties-1001-licence.pdf'),
+         ('supplier-docs', 'zz-demo/accountant-duties-1001-profile.pdf')
+  on conflict (bucket_id, name) do nothing;   -- two runs at once would otherwise serialize on (bucket_id, name)
+  insert into public.leads (company_name, email, claimed_by, claimed, phone, owner_phone_verified,
+                            owner_email_verified, license_doc_path, company_profile_doc_path,
+                            signed_terms_path, verified, approval_status, registration_submitted_at)
+  values ('ZZ DEMO Supplier 1001', 'zz-demo-sup-1001@example.invalid', 'zz-demo-sup-1001@example.invalid', true,
+          '+971500000091', true, true, 'zz-demo/accountant-duties-1001-licence.pdf',
+          'zz-demo/accountant-duties-1001-profile.pdf', 'suppliers/zz-demo-accountant-duties-1001.pdf',
+          true, 'approved', now() - interval '40 days')
   returning id into l;
+  -- The gate would already have refused the insert; this states the seed's own completeness, so a future
+  -- change to the definition of the six is named here rather than read as a subscription-duty failure.
+  perform pg_temp.zz_assert(cardinality(public.fn_supplier_mandatory_six_for(l)) = 0,
+    'subscriptions: the ZZ DEMO supplier is not complete, so nothing below measures the duty. Missing: '
+    || array_to_string(public.fn_supplier_mandatory_six_for(l), ', '));
   update public.leads set founding_rank = 100001, subscription_exempt = false, subscription_paid_until = null where id = l;
   perform public.fn_accountant_subscription_tick();
   perform pg_temp.zz_assert(pg_temp.zz_open('acct:subscriptions:unpaid:' || l), 'subscriptions: an unpaid 1,001st supplier raised no finding');

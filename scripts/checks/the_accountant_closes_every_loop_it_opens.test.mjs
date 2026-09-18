@@ -49,6 +49,12 @@ export const FILES = [
   'the_backups_are_kept_ninety_days_and_friday_copies_a_year.sql',
   'every_stored_document_source_is_registered_for_backup.sql',
   'an_expense_the_founder_vouches_for_is_documented_by_his_word.sql',
+  // MEASURED 18 Sep 2026: without this the batch died on "cannot drop columns from view" before a single
+  // fixture ran. a_reversed_supplier_charge_is_never_owed.sql redefined v_accountant_recovery_ledger with
+  // a 29th column, `owed`, and it sits LAST in MANIFEST (line 1448, after every file above). Replaying the
+  // older definition alone therefore tries to drop that column from the live view. The batch must replay
+  // the file that currently OWNS the view, in the order MANIFEST applies it: last.
+  'a_reversed_supplier_charge_is_never_owed.sql',
 ];
 
 // Every routine is defined in exactly ONE of the files: a second body is a second answer, and the file
