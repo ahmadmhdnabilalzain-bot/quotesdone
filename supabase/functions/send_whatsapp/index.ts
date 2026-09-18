@@ -19,6 +19,25 @@
 //     and customer rows stay queued, founder rows are marked skipped WITH the reason (the email already
 //     carried the alert), and a direct send answers with the reason instead of erroring. No Twilio call is
 //     made for a template Meta has not approved, so a pending template never pages anyone.
+// v7 (18 Sep 2026): a founder alert never stalls on this channel again, and the run log stops
+//     blaming Meta for what the reputation cap did. Three founder_alert rows sat queued from
+//     17 Sep 18:31Z under {"signal":"templates_not_ready"}, which read as a missing template —
+//     but Twilio's Content API says quotesdone_founder_alert_en (HXcb8792bf…) is APPROVED and
+//     wa_templates_ready='true'. The real cause was wa_per_recipient_24h=1: every founder alert
+//     goes to ONE number, so the 2nd and 3rd of any 24 hours were refused by the per-recipient
+//     cap, whose branch does `capped++; requeued++` — and `requeued` is what arms the
+//     templates_not_ready signal. Left alone, such a row is requeued until it passes the
+//     staleness bar and is silently 'held' (five founder alerts ended that way, 15-16 Sep).
+//     Three changes: (a) NEITHER reputation cap applies to the founder — not the per-recipient
+//     one and not the daily one, and the run no longer stops at the daily cap while a founder row
+//     is queued; the caps exist to stop strangers blocking-and-reporting a new sender, and he is
+//     not a stranger; (b) every path that still cannot deliver a FOUNDER row calls
+//     fn_wa_founder_alert_fallback, which confirms or queues the email (carrying the row's own
+//     kind so the a10 founder-mail trigger admits it) and then marks the row skipped WITH its
+//     reason, so it leaves the queue honestly instead of ageing into a silent 'held'; (c) `capped`
+//     is no longer counted into `requeued`, so templates_not_ready fires only for a real template.
+//     The one exception on purpose: an UNREADABLE template status ('twilio http NNN') requeues
+//     rather than retiring the row — not being able to ask Twilio is not Meta refusing.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
@@ -49,6 +68,44 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
     if (data && data.length) return;
   } catch (_e) { /* if the check fails, fall through and log */ }
   await logRun(status, { ...counts, signal }, note);
+}
+
+// THE FOUNDER IS NEVER LEFT IN THE QUEUE (18 Sep 2026). WhatsApp can stop delivering for reasons
+// that have nothing to do with this code — a template rejected or paused at Meta, a quality
+// throttle, a hard Twilio rejection — and a CRITICAL alert must not depend on one channel that can
+// stall silently. Every path below that cannot send a founder-addressed row calls this instead of
+// requeueing it. fn_wa_founder_alert_fallback confirms the email twin or queues one carrying the
+// row's own `kind` (so a10_notifications_founder_mail_policy admits it rather than dropping it),
+// then marks THIS row 'skipped' with the reason. It returns null for a row that is not the
+// founder's, so the caller falls through to the behaviour it always had.
+type WaRow = { id: number; type?: string|null; to_phone?: string|null; to_role?: string|null;
+               subject?: string|null; body?: string|null; created_at?: string|null; lang?: string|null };
+// isFounderRow decides the CAP EXEMPTIONS only. Who the founder is for the fallback is decided in
+// one place — fn_wa_founder_alert_fallback, which uses a10's own test (to_role, or to_phone equal
+// to admin_mfa_phone) — so this function does not pre-filter and the two cannot disagree about a
+// row. fn_notify_founder always stamps to_role='founder', so the two agree for every writer today.
+const isFounderRow = (n: WaRow) => ['founder','admin','owner'].includes(String(n.to_role || ''));
+async function founderFallback(n: WaRow, reason: string): Promise<string|null> {
+  try {
+    const { data, error } = await admin.rpc('fn_wa_founder_alert_fallback',
+      { p_notification_id: n.id, p_reason: String(reason).slice(0, 300) });
+    if (error) {
+      // The fallback itself failing is the one thing that must never be quiet: the row stays queued
+      // so the next tick retries it, and the failure is logged rather than swallowed.
+      await logThrottled('founder_fallback_broken', 30, 'error', { notification: n.id }, 'founder WhatsApp fallback FAILED (the alert is still queued): '
+        + String(error.message || error).slice(0, 250));
+      return null;
+    }
+    const out = (data as { ok?: boolean; outcome?: string } | null);
+    // 'already_handled' means an overlapping run claimed the row first: it is terminal and must NOT
+    // be written again by this caller, so it counts as handled even though ok is false.
+    if (out?.ok || out?.outcome === 'already_handled') return String(out.outcome);
+    return null;
+  } catch (e) {
+    await logThrottled('founder_fallback_broken', 30, 'error', { notification: n.id }, 'founder WhatsApp fallback threw (the alert is still queued): '
+      + String((e as Error)?.message || e).slice(0, 250));
+    return null;
+  }
 }
 
 function normPhone(p: string){ let s=String(p||'').trim().replace(/[^0-9+]/g,''); if(!s) return ''; if(s.startsWith('00')) s='+'+s.slice(2); if(!s.startsWith('+')){ if(s.startsWith('0')) s='+971'+s.slice(1); else s='+'+s; } return s; }
@@ -215,14 +272,30 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     const { count: sentLast24 } = await admin.from('notifications').select('id', { count: 'exact', head: true })
       .eq('channel','whatsapp').eq('status','sent').gte('sent_at', since24);
     let budget = Math.max(0, dayCap - Number(sentLast24 || 0));
-    if (budget <= 0) {
+    // THE CAPS ARE NOT FOR THE FOUNDER (18 Sep 2026). Both the daily cap and the per-recipient cap
+    // exist to stop a brand-new sender emitting business-initiated messages to people who never
+    // opted in, because their block-and-report is what costs the number. The founder asked for this
+    // channel himself and will not report his own company, and his alerts are the one traffic that
+    // must not wait for tomorrow's budget. So the run does not stop while a founder row is queued:
+    // it drains the founder's rows and leaves everyone else's for the budget to free up.
+    const { count: founderQueued } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+      .eq('channel','whatsapp').eq('status','queued').in('to_role', ['founder','admin','owner']);
+    const founderWaiting = Number(founderQueued || 0) > 0;
+    if (budget <= 0 && !founderWaiting) {
       await logThrottled('daily_cap', 180, 'ok', { cap: dayCap, sent_last_24h: Number(sentLast24 || 0) },
         'WhatsApp daily cap of ' + dayCap + ' reached. Queued messages are held, not dropped, and resume automatically. Raise app_secrets.wa_daily_cap only while Twilio reports sender quality High.');
       return J({ ok:true, sent:0, failed:0, skipped:0, requeued:0, unmapped:0, capped:true, cap:dayCap, sent_last_24h:Number(sentLast24||0) });
     }
-    const { data: rows } = await admin.from('notifications').select('id,type,to_phone,subject,body,created_at,lang').eq('channel','whatsapp').eq('status','queued').not('to_phone','is',null).order('created_at',{ascending:true}).limit(25);
+    const { data: rows } = await admin.from('notifications').select('id,type,to_phone,to_role,subject,body,created_at,lang').eq('channel','whatsapp').eq('status','queued').not('to_phone','is',null).order('created_at',{ascending:true}).limit(25);
     const staleH = Number(await sec('wa_stale_hours') || 24);
-    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0; let lastErr=''; const unmappedTypes = new Set<string>();
+    let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0, fellBack=0; let lastErr=''; const unmappedTypes = new Set<string>();
+    const fallbackOutcomes = new Set<string>();
+    // Every founder path funnels through here so the counter and the log agree on what happened.
+    const tryFallback = async (n: WaRow, reason: string) => {
+      const out = await founderFallback(n, reason);
+      if (out) { fellBack++; skipped++; fallbackOutcomes.add(out); return true; }
+      return false;
+    };
     for (const n of (rows||[])) {
       const to = normPhone(String(n.to_phone||'')); if(!to){ await admin.from('notifications').update({status:'failed'}).eq('id',n.id); failed++; continue; }
       // A DEMO MOBILE IS CAPTURED, NEVER SENT (14 Sep 2026). The e2e harness (scripts/e2e/) addresses
@@ -239,14 +312,25 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // send_outbox has held stale email on the same reasoning since July; this channel never did.
       const ageH = (Date.now() - Date.parse(String(n.created_at))) / 3.6e6;
       if (ageH > staleH) {
+        // A stale FOUNDER alert is still checked for its email twin before it is shelved: holding
+        // it is a judgement about WhatsApp timeliness, not a decision that he need not be told.
+        if (await tryFallback(n, 'stale: ' + Math.round(ageH) + 'h old, past the ' + staleH + 'h WhatsApp staleness bar')) { heldStale++; continue; }
         await admin.from('notifications').update({ status: 'held', last_error:
           ('held: this WhatsApp message was ' + Math.round(ageH) + 'h old when the queue was drained, past the ' + staleH + 'h staleness bar. An alert this old describes a situation that has probably changed, so it is retained and NOT delivered.').slice(0,500) }).eq('id', n.id);
         heldStale++; continue;
       }
-      if (budget <= 0) { capped++; requeued++; continue; }
-      const { count: toThisNumber } = await admin.from('notifications').select('id', { count: 'exact', head: true })
-        .eq('channel','whatsapp').eq('status','sent').eq('to_phone', n.to_phone).gte('sent_at', since24);
-      if (Number(toThisNumber || 0) >= perRecip) { capped++; requeued++; continue; }
+      // A capped row is NOT a requeue caused by a template. Counting it as one is what made three
+      // founder alerts read as "templates_not_ready" for a day while the template was approved.
+      if (budget <= 0 && !isFounderRow(n)) { capped++; continue; }
+      // THE PER-RECIPIENT CAP IS NOT FOR THE FOUNDER. It exists so a stranger who never opted in
+      // does not get three business-initiated messages in a day and report the sender; the founder
+      // asked for this channel himself and will not report his own company. Applying it to him
+      // meant only the FIRST alert of any 24 hours ever reached him, and the rest aged out.
+      if (!isFounderRow(n)) {
+        const { count: toThisNumber } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+          .eq('channel','whatsapp').eq('status','sent').eq('to_phone', n.to_phone).gte('sent_at', since24);
+        if (Number(toThisNumber || 0) >= perRecip) { capped++; continue; }
+      }
       const key = tmplKey(String(n.type||''));
       // THE RECIPIENT'S REGISTERED LANGUAGE (notifications.lang, stamped from fn_registered_locale).
       // This always took .en, although wa_template_sids holds an Arabic SID for every customer and
@@ -258,10 +342,21 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         // 6 SEP 2026: the ledger decides before Twilio is asked to send anything.
         const st = await templateStatus(auth, sid, key!, wlang);
         if (st.status !== 'approved') {
-          if (key === 'founder_alert') {
-            // The email already carried this alert. Skipped WITH the reason, so the row explains itself and
-            // the queue does not carry a founder row Meta has not yet made deliverable.
-            await admin.from('notifications').update({ status:'skipped', last_error: ('WhatsApp template founder_alert is ' + st.status + (st.reason ? ' (' + st.reason + ')' : '') + ' at Meta; the email carried this alert').slice(0, 500) }).eq('id', n.id);
+          // "We could not ASK Twilio" is not "Meta has not approved it". templateStatus returns the
+          // last cached status with reason 'twilio http NNN' when the Content API is unreachable,
+          // and a cached status can be any age. Retiring a founder row terminally on that would let
+          // a transient Twilio outage decide the alert is undeliverable, so it is requeued instead
+          // and resolved by the next run that can reach Twilio.
+          if (String(st.reason || '').startsWith('twilio http')) {
+            skipped++; requeued++; lastErr = 'could not read template status from Twilio: ' + st.reason; continue;
+          }
+          if (key === 'founder_alert' || isFounderRow(n)) {
+            // 18 Sep 2026: this used to ASSERT that "the email carried this alert" without ever
+            // checking. The fallback checks, queues the email if it did not, and only then marks
+            // the row skipped with its reason.
+            const why = 'WhatsApp template ' + key + ' is ' + st.status + (st.reason ? ' (' + String(st.reason).slice(0, 120) + ')' : '') + ' at Meta';
+            if (await tryFallback(n, why)) { heldFounder++; continue; }
+            await admin.from('notifications').update({ status:'skipped', last_error: (why + '; no founder fallback applied').slice(0, 500) }).eq('id', n.id);
             heldFounder++; skipped++; continue;
           }
           // supplier / customer notice: held, never dropped — it goes the moment the template is approved
@@ -271,6 +366,8 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       } else if (!ready) {
         // NOTE: the row is deliberately left 'queued' so it can go out once templates are approved.
         // That means it will be rescanned every run - tracked as 'requeued' so the backlog is visible.
+        // A founder row does not wait: it goes by email now.
+        if (await tryFallback(n, 'wa_templates_ready is false')) continue;
         skipped++; requeued++; continue;
       } else if (key && !tmpl[key]) {
         // Mapped type whose template SID is not registered yet (or is awaiting Meta approval).
@@ -282,28 +379,57 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         // here. fn_supplier_notice queues the email twin first, so the notice goes by email; this row
         // says why it is waiting instead of sitting silently in the queue. Stamped once.
         if (key === 'supplier_account_notice') await admin.from('notifications').update({ last_error: AWAITING_TEMPLATE_NOTE }).eq('id', n.id).is('last_error', null);
+        if (await tryFallback(n, 'no WhatsApp template SID registered for "' + key + '"')) continue;
         skipped++; requeued++; continue;
       } else {
         // Genuinely unmapped message type: no template will ever match it, so keeping it queued
         // would grow the backlog forever. Marked skipped, but surfaced rather than silent.
         unmapped++; unmappedTypes.add(String(n.type||'(blank)'));
-        await admin.from('notifications').update({ status:'skipped' }).eq('id', n.id); skipped++; continue;
+        if (await tryFallback(n, 'message type "' + String(n.type||'(blank)') + '" has no WhatsApp template mapping')) continue;
+        await admin.from('notifications').update({ status:'skipped', last_error: ('no WhatsApp template mapping for type "' + String(n.type||'(blank)') + '"').slice(0,500) }).eq('id', n.id); skipped++; continue;
       }
       // 3 SEP 2026: a template that Meta has not approved YET is not a failed message. Twilio rejects
       // the send while approval is pending; marking the row 'failed' dropped it for good (only
       // 'queued' rows are drained). Such rows stay queued and deliver the moment the template lands —
       // the same discipline as the mapped-but-unregistered branch above.
       const pendingTemplate = !res.ok && /approv|not (yet )?approved|template.*(pending|invalid|not found)|63016|63042/i.test(String(res.error || ''));
-      if (pendingTemplate) { skipped++; requeued++; lastErr = 'template awaiting approval: ' + String(res.error || '').slice(0, 160); continue; }
-      await admin.from('notifications').update({ status: res.ok?'sent':'failed', sent_at: res.ok?new Date().toISOString():null }).eq('id', n.id);
+      if (pendingTemplate) {
+        lastErr = 'template awaiting approval: ' + String(res.error || '').slice(0, 160);
+        if (await tryFallback(n, lastErr)) continue;
+        skipped++; requeued++; continue;
+      }
+      if (!res.ok) {
+        // Twilio rejected it outright. For anyone else that is a failed row; for the founder it is
+        // the exact case the fallback exists for — the alert still has to reach him.
+        lastErr = String(res.error || '').slice(0, 200);
+        // tryFallback already counted this row once (fellBack + skipped) and the database already
+        // moved it to 'skipped'. Counting it as `failed` as well would put one row in two buckets
+        // and raise "Twilio rejected N messages" for a row the email fallback resolved — the same
+        // class of lying counter this version exists to remove.
+        if (await tryFallback(n, 'Twilio rejected the WhatsApp send: ' + lastErr)) continue;
+      }
+      await admin.from('notifications').update({ status: res.ok?'sent':'failed', sent_at: res.ok?new Date().toISOString():null, last_error: res.ok?null:String(res.error||'').slice(0,500) }).eq('id', n.id);
       if (res.ok) { sent++; budget--; } else { failed++; lastErr = String(res.error || '').slice(0, 200); }
     }
     if (capped) await logThrottled('rate_capped', 180, 'ok', { capped, cap: dayCap, per_recipient: perRecip },
       capped + ' WhatsApp message(s) held this run by the sender-reputation cap (daily ' + dayCap + ', per recipient ' + perRecip + ' / 24h). They stay queued and go out as budget frees up.');
+    // A founder alert that WhatsApp could not carry is only acceptable because the email did. Say so
+    // with the outcome the fallback actually measured, never as an assumption.
+    // Logged at 'error', not 'ok'. The compensating control working is not the same as the channel
+    // working: once these rows are marked terminal they vanish from the queue, so if this line were
+    // 'ok' a sustained WhatsApp outage would leave nothing above the severity filter at all.
+    if (fellBack) await logThrottled('founder_fallback_to_email', 60, 'error', { fell_back: fellBack, outcomes: [...fallbackOutcomes] },
+      fellBack + ' founder WhatsApp alert(s) could not be sent and were taken off the queue with their reason. ' +
+      'Email outcome: ' + [...fallbackOutcomes].join(', ') + '. "emailed" means this run queued the email; ' +
+      '"email_twin_already_sent" means fn_notify_founder\'s email already carried it; ' +
+      '"blocked_by_founder_mail_policy" means founder_mail_policy routes that kind to its owning seat instead ' +
+      '(recorded in founder_alerts, NOT delivered to him).');
     // A founder alert held for a pending template is a state, not a failure: recorded once per 3h at 'ok'.
     if (heldFounder) await logThrottled('founder_template_pending', 180, 'ok', { held_founder: heldFounder },
       heldFounder + ' founder WhatsApp alert(s) skipped with the reason: the founder_alert template is not approved at Meta yet (messaging_template). The email carried the alert; nothing was sent to Twilio.');
-    // Templates not approved yet + a growing queue is the quiet failure worth surfacing.
+    // Templates not approved yet + a growing queue is the quiet failure worth surfacing. `requeued`
+    // now counts ONLY rows a template blocked: a row held by the daily or per-recipient cap is
+    // counted in `capped` alone, so this signal can no longer accuse Meta of the cap's work.
     if (requeued) await logThrottled('templates_not_ready', 60, 'error', { requeued, pending: (rows||[]).length },
       requeued + ' WhatsApp notification(s) cannot be sent yet because the matching template is missing or still awaiting Meta approval. They stay queued and are rescanned every run, so this backlog will keep growing until the template SIDs are live.');
     if (unmapped) await logThrottled('unmapped_type', 60, 'error', { unmapped, types: [...unmappedTypes] },
@@ -318,6 +444,8 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     else if (heldStale) await logRun('ok', { sent, failed, skipped, held_stale: heldStale, templates_ready: ready },
       heldStale + ' WhatsApp message(s) were held as stale: older than ' + staleH + 'h when the queue was drained. They are retained, not sent — an alert that old describes a situation that has probably changed.');
     else if (sent || (skipped && !requeued)) await logRun('ok', { sent, failed, skipped, templates_ready: ready }, '');
-    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, held_founder: heldFounder, held_stale: heldStale, cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
+    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, fell_back: fellBack,
+               fallback_outcomes: [...fallbackOutcomes], held_founder: heldFounder, held_stale: heldStale,
+               cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
 }));
