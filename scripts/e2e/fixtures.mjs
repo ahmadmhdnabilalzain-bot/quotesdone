@@ -91,6 +91,7 @@ export async function leftovers(run) {
       (select count(*) from public.inquiries where provenance->>'qd_run' = ${q(t)} or id::text in (${ids(run.ids.inquiries)}))::int inquiries,
       (select count(*) from public.quotes where id::text in (${ids(run.ids.quotes)}))::int quotes,
       (select count(*) from public.quote_spec_hold where quote_id::text in (${ids(run.ids.quotes)}))::int quote_spec_hold,
+      (select count(*) from public.quote_reviews where inquiry_id::text in (${ids(run.ids.inquiries)}) or supplier_id::text in (${ids(run.ids.leads)}))::int quote_reviews,
       (select count(*) from public.notifications where to_email like ${like} or inquiry_id::text in (${ids(run.ids.inquiries)}) or quote_id::text in (${ids(run.ids.quotes)}))::int notifications,
       (select count(*) from public.transactions where quote_id::text in (${ids(run.ids.quotes)}))::int transactions,
       (select count(*) from public.refunds where quote_id::text in (${ids(run.ids.quotes)}) or inquiry_id::text in (${ids(run.ids.inquiries)}))::int refunds,
