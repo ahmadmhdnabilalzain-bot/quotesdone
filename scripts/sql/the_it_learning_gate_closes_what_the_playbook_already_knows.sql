@@ -50,8 +50,11 @@
 --
 -- WHAT THIS DOES NOT DO. It adds seven playbook classes and one cause backfill, all evidenced below.
 -- It does NOT write a playbook for queue_stalled (3 parked handoffs), access (2), restore_table (2),
--- table_export (1), run_silent (1), credential (1) or delivery (1). Those eleven stay parked, which is
--- correct: nobody has yet decided what their cause is. restore_table is the clearest example -- it HAS
+-- journey_heartbeat (1), table_export (1), run_silent (1), credential (1) or delivery (1). Those twelve
+-- stay parked, which is correct: nobody has yet decided what their cause is. journey_heartbeat is the
+-- one to notice -- 'duty:journey_heartbeat:' is NOT covered by the 'duty:journey:' prefix, because a
+-- nightly run that never reported at all is a different fault from a step inside one that failed.
+-- restore_table is the clearest example of the other kind -- it HAS
 -- a playbook row, and that row's reason ("nothing in the repository has written a table export since
 -- 7 Sep 2026") has been overtaken by the export work of 15-18 Sep, so writing a cause from it today
 -- would record something no longer true. A class whose cause is unknown is exactly what the gate is
@@ -67,17 +70,21 @@
 --     leaves nothing watching. That is unchanged from the original and is the delivery loop's subject;
 --     this file only tightened WHEN the watch fires.
 --
--- MEASURED IN A ROLLED-BACK TRANSACTION AGAINST PRODUCTION, 18 Sep 2026, with this file applied:
---   parked at awaiting_learning   91 -> 11        incidents complete             0 -> 80
---   open it.finding handoffs     147 -> 57        incidents still incomplete   110 -> 30
+-- MEASURED IN A ROLLED-BACK TRANSACTION AGAINST PRODUCTION, 18 Sep 2026 06:20 UTC, on the tree merged
+-- with main at e8e0990 (so #741 and #742 are already applied), with this file applied on top:
+--   parked at awaiting_learning   92 -> 12        incidents complete             0 -> 80
+--   open it.finding handoffs     134 -> 53        incidents still incomplete   110 -> 30
 --   CEO reports accepted-and-incomplete         112 -> 32   (84 completed, 4 of them already were)
---   fn_it_loop_reverify returned closed 90, learned_from_playbook 80, waiting 57, escalated 0.
+--   fn_it_loop_reverify returned closed 81, learned_from_playbook 80, waiting 53, escalated 0.
 --   fn_it_ceo_silence_watch told the founder about 1 unanswered report -- not 12: the other eleven
 --   are either inside the 4 h window or already carry a delivery.request, so the tighter clock does
 --   not become an alert storm.
---   The 11 that stay parked are exactly the seven classes named above; 19 of the 30 incidents still
+--   Closed by class: backup_gap 51, payment_unreconciled 10, smoke_after_merge 9, heartbeat_step 4,
+--   demo_fixture_outlived_run 4, sender_blocklist 1, slow_statement 1.
+--   The 12 that stay parked are exactly the eight classes named below; 18 of the 30 incidents still
 --   incomplete belong to handoffs whose finding is still OPEN, so they are not waiting on learning at
---   all. Nothing was committed.
+--   all. Nothing was committed. (An earlier run of the same probe on 18 Sep 04:30, before that merge,
+--   read 91 -> 11 from 147 open handoffs: the backlog moves, the 80 does not.)
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_it_learning_gate_closes_what_the_playbook_already_knows.sql --apply --ddl
 
