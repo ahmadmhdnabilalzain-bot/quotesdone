@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T03:43:15.156Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T04:21:50.086Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -33556,6 +33556,8 @@ declare
   -- failure: a run that started and never recorded an outcome is not a success.
   c_ok        constant text[] := array['ok','success','completed','skipped','warn','held','noop'];
   v_now       timestamptz := now();
+  -- Whatever lock_timeout the caller arrived with, so D5 can put it back exactly (see D5).
+  v_lock_prev text;
   v_find      jsonb := '[]'::jsonb;
   v_notes     jsonb := '{}'::jsonb;
   v_keys      text[] := '{}';
@@ -33805,6 +33807,22 @@ end loop;
 -- so an empty estate produces nothing. The two queues that are genuinely stalled today
 -- (exec_reports at status='new' since 6 July, doc_backups at status='error' since 11 July) do
 -- fire, correctly — they are real, and neither is a business volume.
+-- 18 SEP 2026 — A LOCK HELD BY SOMEBODY ELSE MUST NOT TAKE THE DETECTOR DOWN. Each read below is
+-- a dynamic count over a watched table; measured 18 Sep, the doc_backups one costs 2–4 ms. Twice
+-- that day the SAME read sat for 118,425 ms and 45,497 ms and the whole of fn_it_detect with it,
+-- behind a writer on public.doc_backups (the Dropbox enqueue was split into a fast path and
+-- fn_enqueue_doc_backups_backfill that morning). PostgREST cancels at 8 s, so the detector persisted
+-- NOTHING — the 14 Sep outage this routine's own check names, arriving by a different road. The
+-- handler below already turns an unreadable queue into a note and carries on; it never got the
+-- chance, because waiting is not an error. 250 ms is the same bound fn_it_duties_scheduled's table
+-- drill took on 14 Sep for the same reason.
+--   RESTORED, NOT ZEROED (database review, 18 Sep): `set local lock_timeout = 0` would mean
+--   "wait forever", and PostgREST's `authenticator` role carries `lock_timeout=8s` as a role
+--   default (measured: rolconfig = statement_timeout=8s,lock_timeout=8s). Zeroing it would have
+--   left D6-D8, which have no handler of their own, LESS protected than before this change. So the
+--   caller's own value is captured and put back verbatim.
+v_lock_prev := current_setting('lock_timeout');
+perform set_config('lock_timeout', '250ms', true);
 for r in select * from public.it_watch_queue where enabled order by queue_key loop
   begin
     execute format('select count(*), min(%I) from public.%I where %s', r.ts_column, r.table_name, r.pending_predicate)
@@ -33832,6 +33850,7 @@ for r in select * from public.it_watch_queue where enabled order by queue_key lo
       'public_surface', r.surface = 'customer',
       'basis','measured from the age of the oldest row matching the predicate'));
 end loop;
+perform set_config('lock_timeout', v_lock_prev, true);
 
 -- ══ D6. LATENCY — THE FOUNDER'S OWN EXAMPLE ═════════════════════════════════════════════════
 -- Reads: public.agent_runs, finished_at - started_at.
