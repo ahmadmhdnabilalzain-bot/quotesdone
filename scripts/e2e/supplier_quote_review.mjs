@@ -93,6 +93,15 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
   const name = (s) => `${lang}/${viewport}: ${s}`;
   try {
     await openPortal(page, portalUrl('supplier', lang), calls);
+    // THE SUPPLIER'S REGISTERED LANGUAGE WINS ONCE SIGNED IN (founder, 14 Sep 2026), so /ar/portal
+    // does NOT put a supplier registered in English into Arabic — leads.locale does. The Arabic
+    // journey therefore switches the way a supplier switches: the header's own language button,
+    // which calls save_settings. It stays switched for the journeys that follow.
+    if (ar) {
+      const toggle = page.getByRole('button', { name: 'عربي', exact: true }).first();
+      if (await toggle.isVisible().catch(() => false)) await toggle.click();
+      await page.getByRole('button', { name: /الاستفسارات الواردة/ }).first().waitFor({ timeout: 30000 });
+    }
     await page.getByRole('button', { name: new RegExp(L('Inquiries received', 'الاستفسارات الواردة')) }).first().click();
     const row = page.locator(`#qd-inq-${inquiryId} > button`);
     await row.waitFor({ timeout: 30000 });
