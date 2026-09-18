@@ -1486,3 +1486,4 @@ scripts/sql/the_export_gate_was_red_because_another_session_held_a_lock.sql
 # transaction rolls back. It defines no routine, so it owns nothing in the canonical scan.
 scripts/sql/probe_a_sanctioned_party_is_unreachable.sql
 scripts/sql/a_sanctioned_party_is_banned_for_good_not_deleted.sql
+scripts/sql/the_scheduler_was_never_down_and_the_queue_nobody_counted_was_fine.sql

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T06:43:15.165Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T06:50:10.994Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3660,7 +3660,8 @@ CREATE TABLE IF NOT EXISTS public.it_watch_queue (
   stall_minutes integer NOT NULL,
   surface text DEFAULT 'internal'::text NOT NULL,
   enabled boolean DEFAULT true NOT NULL,
-  note text
+  note text,
+  drain_column text
 );
 
 CREATE TABLE IF NOT EXISTS public.it_watch_subject (
@@ -8814,6 +8815,7 @@ CREATE INDEX ix_decision_trace_correlation ON public.decision_trace USING btree 
 CREATE INDEX ix_decision_trace_dept ON public.decision_trace USING btree (department_id, created_at DESC);
 CREATE INDEX ix_decision_trace_role ON public.decision_trace USING btree (role_id, created_at DESC);
 CREATE INDEX ix_decision_trace_status ON public.decision_trace USING btree (outcome_status, created_at DESC);
+CREATE INDEX ix_doc_backups_backed_up_at ON public.doc_backups USING btree (backed_up_at) WHERE (backed_up_at IS NOT NULL);
 CREATE INDEX ix_doc_backups_live_status ON public.doc_backups USING btree (status, id) WHERE (status = ANY (ARRAY['processing'::text, 'waiting_source'::text, 'prune_pending'::text, 'pruning'::text]));
 CREATE INDEX ix_doc_backups_status ON public.doc_backups USING btree (status) WHERE (status = ANY (ARRAY['pending'::text, 'error'::text]));
 CREATE INDEX ix_event_assessment_event ON public.event_assessment USING btree (event_id);
@@ -33606,6 +33608,9 @@ declare
   v_prev      timestamptz;
   v_gap       numeric;
   v_cnt       bigint;
+  -- D5's drain arm: rows this queue completed in the last hour, and the depth divided by it.
+  v_drain     bigint;
+  v_hours     numeric;
   v_oldest    timestamptz;
   v_age       numeric;
   v_basis     jsonb;
@@ -33766,18 +33771,54 @@ v_notes := v_notes || jsonb_build_object('cadence', jsonb_build_object(
                 else 'measured' end));
 
 -- ══ D3. THE SCHEDULER ITSELF ════════════════════════════════════════════════════════════════
--- Reads: public.it_watch_tick — its own previous row.
+-- Reads: public.agent_runs, the scheduler's own rows.  (Was: public.it_watch_tick. See below.)
 -- The live scheduler is Vercel cron -> /api/resilience-ping -> resilience_ping, every 15 minutes.
 -- pg_cron is dead by founder instruction (one inactive job; 234 deleted on 7 Sep), so any check
--- that reads cron.job_run_details to judge scheduler health is now reading a table nothing writes
--- — a guard that cannot fire. The gap between two rows of this table cannot be fooled that way:
--- if the tick did not happen, there is no row, and the next tick reports the hole it fell into.
--- ON AN IDLE ESTATE: silent, because the tick still runs on an idle estate. On the very first
--- tick there is no previous row, and it reports basis 'first_tick' rather than a clean bill.
-select max(ran_at) into v_prev from public.it_watch_tick;
+-- that reads cron.job_run_details to judge scheduler health is reading a table nothing writes.
+--
+-- 18 SEP 2026 — THE SCHEDULER WAS NEVER DOWN. THIS DETECTOR WAS, AND IT PUT ITS OWN NAME ON THE
+-- FOUNDER'S 03:47Z "SCHEDULER DOWN — automation stalled" MAIL.
+--   it_watch_tick has exactly ONE writer, and it is this function. Measured:
+--     select proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+--      where n.nspname = 'public' and p.prokind = 'f'
+--        and pg_get_functiondef(p.oid) like '%insert into public.' || 'it_watch_tick%';
+--     -> fn_it_detect, and nothing else.
+--   So a hole in it_watch_tick never meant "the scheduler missed a tick". It meant "this function
+--   did not reach its own last line" — a statement timeout, or a wait behind somebody's lock.
+--   Measured over the exact hour the page covers, 18 Sep 2026:
+--     it_watch_tick   03:15:38 -> 04:15:48         ONE row, a 60.2-minute hole
+--     agent_runs      03:15:21, 03:30:21, 03:45:21, 04:00:22, 04:15:22  (fn:resilience_ping)
+--     worst gap between two consecutive scheduler runs in the six hours around it: 15.01 minutes
+--   Five consecutive ticks, none missed, none late by a second. Every one of them ran this
+--   function; three of them did not get to the end of it, because the same six hours hold
+--   resilience_ping wall times of 107 s, 141 s and 133 s against a 110 s deadline while the daily
+--   export copied a 9.1 GB table. The detector reported its own three failures as the death of the
+--   whole scheduler, at the top severity, to the founder.
+--   The subject of a measurement is the thing measured. The scheduler is now read from the
+--   scheduler's runs, and this function's own missed ticks keep a separate, lower-severity key, so
+--   a detector that cannot finish says THAT, and never again says the company's automation stopped.
+--
+-- ON AN IDLE ESTATE: silent, because the scheduler ticks on an idle estate. On an estate with no
+-- scheduler run recorded at all this does NOT go quiet: the scheduler demonstrably runs, so an
+-- empty read means this detector has lost its subject (a renamed agent), and it says so.
+select max(started_at) into v_prev from public.agent_runs
+ where agent = 'fn:resilience_ping' and started_at > v_now - c_base;
 if v_prev is null then
+  -- Not a clean bill. 691 runs landed under this name in the seven days to 18 Sep 2026, so zero
+  -- rows means the name moved, not that the scheduler is fine. Raised, not noted away.
+  v_sev := public.fn_it_severity('degraded', false);
+  v_key := 'scheduler_unreadable';
+  v_keys := v_keys || v_key;
+  v_find := v_find || jsonb_build_object(
+    'detector_key', v_key, 'detector', 'scheduler_gap', 'subject', 'scheduler',
+    'state', 'degraded', 'severity', v_sev,
+    'title', 'the scheduler cannot be read: no fn:resilience_ping run in 7 days, so its health is unknown',
+    'evidence', jsonb_build_object(
+      'agent_read', 'fn:resilience_ping', 'window_days', 7, 'rows_found', 0,
+      'path','Vercel cron -> /api/resilience-ping -> resilience_ping',
+      'basis','measured: agent_runs holds no row under the name this detector reads'));
   v_notes := v_notes || jsonb_build_object('scheduler', jsonb_build_object(
-    'basis','first_tick','detail','no previous tick recorded; the gap detector arms from the next tick onward'));
+    'basis','unreadable','detail','no fn:resilience_ping run in agent_runs in 7 days'));
 else
   v_gap := extract(epoch from (v_now - v_prev))/60;
   v_notes := v_notes || jsonb_build_object('scheduler', jsonb_build_object(
@@ -33793,7 +33834,31 @@ else
       'evidence', jsonb_build_object(
         'gap_minutes', round(v_gap,1), 'previous_tick', v_prev, 'expected_every_minutes', 15,
         'path','Vercel cron -> /api/resilience-ping -> resilience_ping',
-        'basis','measured from the interval between this tick and the previous one'));
+        'basis','measured from the last fn:resilience_ping run in agent_runs — the scheduler''s own record, not this detector''s'));
+  end if;
+end if;
+
+-- ── D3b. AND THIS DETECTOR'S OWN MISSED TICKS, UNDER THEIR OWN NAME ──────────────────────────
+-- The old reading was not worthless, it was mislabelled: a hole in it_watch_tick is a real fault,
+-- it is just this function's fault and not the scheduler's. It keeps its own key and 'degraded',
+-- because the estate is still ticking and every other duty still ran; what is lost is detection.
+select max(ran_at) into v_prev from public.it_watch_tick;
+if v_prev is not null then
+  v_gap := extract(epoch from (v_now - v_prev))/60;
+  v_notes := v_notes || jsonb_build_object('detector_self', jsonb_build_object(
+    'basis','measured','gap_minutes', round(v_gap,1), 'expected_minutes', 15, 'threshold_minutes', 45));
+  if v_gap > 45 then
+    v_sev := public.fn_it_severity('degraded', false);
+    v_key := 'it_detector_ticks_missed';
+    v_keys := v_keys || v_key;
+    v_find := v_find || jsonb_build_object(
+      'detector_key', v_key, 'detector', 'it_detector_ticks_missed', 'subject', 'fn_it_detect',
+      'state', 'degraded', 'severity', v_sev,
+      'title', 'the IT detector recorded no tick for ' || round(v_gap) || ' minutes: it ran and did not finish, so nothing was being detected',
+      'evidence', jsonb_build_object(
+        'gap_minutes', round(v_gap,1), 'previous_tick', v_prev, 'expected_every_minutes', 15,
+        'look_at','agent_runs for fn:resilience_ping over the same window: if the ticks are there, the scheduler is fine and this function timed out or waited on a lock',
+        'basis','measured from the interval between the last two it_watch_tick rows — this function''s own record'));
   end if;
 end if;
 
@@ -33869,6 +33934,67 @@ for r in select * from public.it_watch_queue where enabled order by queue_key lo
   end;
   continue when coalesce(v_cnt,0) = 0 or v_oldest is null;
   v_age := extract(epoch from (v_now - v_oldest))/60;
+
+  -- DEPTH, DIVIDED BY THE QUEUE'S OWN MEASURED DRAIN. (18 Sep 2026, it_engineer.)
+  -- The age arm below is deliberately not a depth test and that is right: on 18 Sep 2026 the
+  -- Dropbox queue held 4,273 rows whose oldest was under two hours old, and it was a busy queue,
+  -- not a broken one — 204 of them completed in the 17 minutes that were measured, 720 an hour,
+  -- clearing the whole backlog in under six. A fixed row count would have paged the founder about
+  -- a queue that was working, which is what an earlier depth rule did to notifications_whatsapp
+  -- 226 times on 17 Sep.
+  -- But age alone cannot see the one shape that matters: a queue filling faster than it empties.
+  -- Every row in such a queue is young, and it still never clears. So where a queue records WHEN a
+  -- row completed (it_watch_queue.drain_column), this arm divides the depth by the rows that
+  -- actually completed in the last hour and reports the HOURS TO CLEAR.
+  -- The threshold is not a row count somebody guessed. It is 24 hours, because every queue
+  -- registered here is refilled at least daily, so a queue that cannot clear inside a day is a
+  -- queue that never clears.
+  -- A drain of ZERO with rows pending is the same statement with the division removed, and it is
+  -- RAISED, not skipped: zero cannot tell a dead consumer from an idle one, so the pending rows
+  -- decide — there is work, and in a whole hour nothing did any of it.
+  -- drain_column NULL leaves this arm off for that queue, and the note says so rather than
+  -- reporting a clean bill it did not measure.
+  if r.drain_column is null then
+    v_notes := v_notes || jsonb_build_object('queue_' || r.queue_key || '_drain',
+      jsonb_build_object('basis','not_measured',
+        'detail','no drain_column registered for this queue, so its rate of clearing is unknown; only the age of its oldest row is checked'));
+  else
+    begin
+      execute format('select count(*) from public.%I where %I > $1', r.table_name, r.drain_column)
+        into v_drain using v_now - interval '1 hour';
+    exception when others then
+      v_drain := null;
+      v_notes := v_notes || jsonb_build_object('queue_' || r.queue_key || '_drain',
+        jsonb_build_object('basis','unreadable','error', sqlerrm));
+    end;
+    if v_drain is not null then
+      -- NULL hours means "never at this rate", and the test below treats it as past the threshold.
+      v_hours := case when v_drain > 0 then v_cnt::numeric / v_drain else null end;
+      v_notes := v_notes || jsonb_build_object('queue_' || r.queue_key || '_drain',
+        jsonb_build_object('basis','measured','pending', v_cnt, 'drained_last_hour', v_drain,
+          'hours_to_clear', round(v_hours,1), 'threshold_hours', 24, 'drain_column', r.drain_column));
+      if v_hours is null or v_hours > 24 then
+        v_state := case when v_drain = 0 then 'stopped' else 'degraded' end;
+        v_sev   := public.fn_it_severity(v_state, r.surface = 'customer');
+        v_key   := 'queue_not_draining:' || r.queue_key;
+        v_keys  := v_keys || v_key;
+        v_find  := v_find || jsonb_build_object(
+          'detector_key', v_key, 'detector', 'queue_not_draining', 'subject', r.queue_key,
+          'state', v_state, 'severity', v_sev,
+          'title', r.table_name || ': ' || v_cnt || ' row(s) waiting and ' || v_drain
+                   || ' cleared in the last hour — '
+                   || case when v_drain = 0 then 'nothing is draining this queue'
+                           else round(v_hours) || ' hours to clear, past the 24-hour threshold' end,
+          'evidence', jsonb_build_object(
+            'pending_rows', v_cnt, 'drained_last_hour', v_drain,
+            'hours_to_clear', round(v_hours,1), 'threshold_hours', 24,
+            'drain_column', r.drain_column, 'predicate', r.pending_predicate,
+            'oldest_pending', v_oldest, 'public_surface', r.surface = 'customer',
+            'basis','measured: the depth now, divided by the rows this queue completed in the last hour'));
+      end if;
+    end if;
+  end if;
+
   continue when v_age <= r.stall_minutes;
   v_state := case when v_age > r.stall_minutes * 4 then 'stopped' else 'degraded' end;
   v_sev   := public.fn_it_severity(v_state, r.surface = 'customer');
@@ -63006,6 +63132,7 @@ $CRON$);
 --   resend_inbound_token
 --   resend_webhook_key
 --   resend_webhook_signing_secret
+--   sanctions_screen_enabled
 --   site_assistant_global_day
 --   site_assistant_ip_hour
 --   sla_quote_hours
