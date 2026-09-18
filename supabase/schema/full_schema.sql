@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T06:50:10.994Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T06:59:15.523Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -18026,16 +18026,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18061,6 +18051,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -43781,16 +43781,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -43961,6 +43951,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -47692,6 +47692,36 @@ declare
                               'cat:food-processing-equipment-suppliers','cat:hospitality-supplies-companies',
                               'cat:cold-room-and-refrigeration-suppliers'];
   v_tq        tsquery;
+  -- The Arabic arm. company_faq is the only corpus this routine reads that is written in both
+  -- languages (22 of its 508 approved rows carry Arabic, measured 18 Sep 2026), and it is the
+  -- only corpus here with no precomputed tsvector, so both configurations are built on the fly
+  -- for it at no structural cost. fn_ar_norm is the same normaliser fn_support_corpus_search
+  -- uses, so an Arabic question reaches an Arabic FAQ by exactly one rule, not two.
+  --
+  -- AND IT NEEDS THE BEST-TERMS FALLBACK, because the estate has already paid for learning why.
+  -- scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql measured it on
+  -- production: the 'arabic' text-search configuration Postgres ships has NO STOPWORD LIST, so
+  -- ما / هي / عن / كم / في survive as ordinary content lexemes and websearch_to_tsquery ANDs every
+  -- one of them. A nine-word Arabic question then demands one FAQ containing all nine words and
+  -- ranks 0.0000 — and because a vector-bearing row here must ALSO corroborate lexically, a good
+  -- Arabic embedding hit would be thrown out for want of corroboration that could never arrive.
+  -- The Arabic arm would have been a column in a greatest() that contributes nothing.
+  --
+  -- So the same shape fn_support_corpus_search settled on is used here: the strict query first,
+  -- and the SAME lexemes OR'd as a fallback, scored at HALF so a loose match can never outrank a
+  -- strict one. Built from the question's own tsvector rather than from a second tokenisation, so
+  -- it cannot drift from what was actually searched.
+  --
+  -- MEASURED on the 508 approved FAQs, 18 Sep 2026, with the recovered Arabic question
+  -- "كم تكلفة السقف الجبسي المستعار للمتر المربع في دبي": strict returns 0 rows, the fallback
+  -- returns 11. And the floors still hold — the fallback's best row is "ما هو QuotesDone؟" at
+  -- ts_rank 0.0169, which halves to 0.0085 and is refused by both the 0.05 corroboration floor and
+  -- the 0.20 lexical-only bar. That is the intended shape and worth stating plainly: the fallback's
+  -- job is to give an Arabic VECTOR hit something it can corroborate against, not to admit rows on
+  -- its own strength. A nearest neighbour is always found; this does not make one citable.
+  v_tq_ar     tsquery;
+  v_or_ar     text;
+  v_tq_ar_or  tsquery;
   -- LEXEME OVERLAP — MEASURED, TRIED, AND REJECTED AS AN ADMISSION RULE. Recorded here because a
   -- rejected relaxation is worth more to the next reader than a silent one.
   --
@@ -47733,7 +47763,37 @@ begin
     'ok', false, 'answered', false, 'refusal', 'empty_query');
   end if;
 
+  -- THE QUESTION ARRIVED WITH ITS SCRIPT STRIPPED. See fn_text_lost_its_script for the measured
+  -- case. Nothing downstream can answer a question whose letters were replaced by question marks
+  -- before it reached us, and filing it as a knowledge gap manufactures a task nobody can work:
+  -- org_tasks 578945 sat in the queue for nine days under a title made entirely of them. Refuse
+  -- here, say so, and open nothing.
+  --
+  -- THE REPLY CARRIES BOTH LANGUAGES, AND THAT IS NOT BELT AND BRACES. Every surface in this
+  -- estate decides the asker's language from the SCRIPT they typed in — site_assistant tests
+  -- /[؀-ۿ]/ against the message, fn_support_corpus_search reads ask_lang the same way. The script
+  -- is precisely what was destroyed here: a stripped message is pure ASCII, so every one of those
+  -- detectors concludes "English" for the one visitor who most needs the Arabic sentence. The
+  -- language is unknowable by construction on this branch, so the choice is not made. 'handoff' is
+  -- what the sales_engineer edge function already reads, so putting both paragraphs there is what
+  -- makes the Arabic reach a person at all; 'handoff_ar' is kept for a caller that wants the
+  -- Arabic alone.
+  if public.fn_text_lost_its_script(p_text) then
+    return jsonb_build_object(
+      'company', public.fn_company_context(),
+      'ok', false, 'answered', false, 'refusal', 'text_lost_its_script',
+      'handoff', public.fn_text_did_not_survive_reply('en') || E'\n\n'
+                 || public.fn_text_did_not_survive_reply('ar'),
+      'handoff_en', public.fn_text_did_not_survive_reply('en'),
+      'handoff_ar', public.fn_text_did_not_survive_reply('ar'));
+  end if;
+
   v_tq := websearch_to_tsquery('english', p_text);
+  v_tq_ar := websearch_to_tsquery('arabic', public.fn_ar_norm(p_text));
+  select nullif(array_to_string(array(
+           select lexeme from unnest(to_tsvector('arabic', public.fn_ar_norm(p_text)))), ' | '), '')
+    into v_or_ar;
+  v_tq_ar_or := case when v_or_ar is null then null else to_tsquery('arabic', v_or_ar) end;
   select array_agg(distinct u.lexeme) into v_lex from unnest(to_tsvector('english', p_text)) u;
   v_need := least(coalesce(cardinality(v_lex), 0), greatest(2, ceil(0.4 * coalesce(cardinality(v_lex), 0))::int));
 
@@ -47886,6 +47946,82 @@ begin
          || coalesce(q.label,'') || ' ' || coalesce(q.note,'')) @@ v_tq
    limit v_wide;
 
+  -- company_faq — 508 approved rows, 466 embedded, 22 carrying Arabic (measured 18 Sep 2026).
+  -- THE CORPUS THIS ROUTINE COULD NOT SEE, AND THE ONE THE COMPANY WRITES ITS ANSWERS INTO.
+  --
+  -- Measured, 18 Sep 2026, against the 13 recorded rows of sales_knowledge_gap: two of them
+  -- ("does a Dubai supplier cover Abu Dhabi as well" and "what documents does a supplier need for
+  -- verification") are answered by an approved FAQ whose question is almost the asked sentence —
+  -- lexical rank 0.9888 and 0.9640. An aborted probe of the deployed routine on the same day
+  -- returned answered=false, refusal=no_candidates for the first of them while FAQ 624, titled
+  -- "Does a Dubai supplier cover Abu Dhabi as well?", sat approved and published.
+  --
+  -- The sharper half of that measurement: both FAQs were WRITTEN IN RESPONSE to those two gaps
+  -- (created 2026-09-09 21:14, after the questions were refused). So the remediation loop closes
+  -- into a table this routine cannot read — a gap answered for the support seat stays open for the
+  -- sales seat, and the same question asked by a signed-in customer refuses again. The task text
+  -- this routine writes says DONE MEANS "the knowledge exists in a searchable corpus"; company_faq
+  -- was not one of them.
+  --
+  -- WHY THE FAQ IS ADDED HERE RATHER THAN DELEGATED TO fn_support_corpus_search. That routine
+  -- already owns FAQ retrieval for the support seat, and delegating was the first instinct. It
+  -- reads v_support_corpus, which is company_faq UNION support_knowledge UNION ops_knowledge —
+  -- two corpora this routine already reads on its own terms — and it ranks on a different scale
+  -- (ts_rank plus a flat +1.0 bonus for the asker's language). Calling it would put two admission
+  -- rules behind one answer, double-count two corpora, and leave sales_decision_log unable to say
+  -- which rule admitted a row. The subject this routine was missing is not "FAQ retrieval", it is
+  -- "the FAQ table", so the table is what it reads — under the one admission rule it already has,
+  -- with the same status = 'approved' predicate v_support_corpus applies, so "published" means the
+  -- same thing to both readers and there is still exactly one definition of it.
+  --
+  -- NOT COVERED HERE, said plainly: ops_knowledge holds 173 Arabic-bearing rows whose tsv column
+  -- is built with the english configuration, so an Arabic question still cannot reach those
+  -- lexically. Rebuilding that column is a change to a different subject and is not in this file.
+  -- Both routes read the SAME haystack expression through one subquery, so each row's english and
+  -- arabic tsvectors are built once per statement instead of once per clause. `ar_rank` is the
+  -- strict Arabic rank, `ar_loose` the best-terms fallback at half weight; the lexical rank a row
+  -- carries into admission is the best of the three, so a strict hit in either language always
+  -- beats a loose one and English is scored exactly as it was before this change.
+  if p_embedding is not null then
+    insert into _sa_cand
+    select 'company_faq', h.id::text, h.title, left(h.body, 4000), h.provenance,
+           (1 - (h.embedding_gte <=> p_embedding))::numeric,
+           greatest(coalesce(ts_rank(h.te, v_tq), 0),
+                    coalesce(ts_rank(h.ta, v_tq_ar), 0),
+                    coalesce(ts_rank(h.ta, v_tq_ar_or), 0) * 0.5)::numeric,
+           true,
+           (select count(*) from unnest(h.te) u where u.lexeme = any (v_lex))
+      from (select f.id, coalesce(f.question, '') as title, coalesce(f.answer, '') as body,
+                   f.embedding_gte,
+                   'FAQ' || case when f.section is null then '' else ' · ' || f.section end
+                         || ' · ' || coalesce(f.language, 'en') as provenance,
+                   to_tsvector('english', coalesce(f.question, '') || ' ' || coalesce(f.answer, '')) as te,
+                   to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))) as ta
+              from company_faq f
+             where f.embedding_gte is not null
+               and f.status = 'approved'
+             order by f.embedding_gte <=> p_embedding
+             limit v_wide) h;
+  end if;
+  insert into _sa_cand
+  select 'company_faq', h.id::text, h.title, left(h.body, 4000), h.provenance,
+         null::numeric, h.lex_rank, false, 0
+    from (select f.id, coalesce(f.question, '') as title, coalesce(f.answer, '') as body,
+                 'FAQ' || case when f.section is null then '' else ' · ' || f.section end
+                       || ' · ' || coalesce(f.language, 'en') as provenance,
+                 greatest(coalesce(ts_rank(to_tsvector('english', coalesce(f.question, '') || ' ' || coalesce(f.answer, '')), v_tq), 0),
+                          coalesce(ts_rank(to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))), v_tq_ar), 0),
+                          coalesce(ts_rank(to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))), v_tq_ar_or), 0) * 0.5)::numeric as lex_rank
+            from company_faq f
+           where f.embedding_gte is null
+             and f.status = 'approved'
+             and (to_tsvector('english', coalesce(f.question, '') || ' ' || coalesce(f.answer, '')) @@ v_tq
+               or to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))) @@ v_tq_ar
+               or (v_tq_ar_or is not null
+                   and to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))) @@ v_tq_ar_or))
+           order by lex_rank desc
+           limit v_wide) h;
+
   -- ADMISSION. A vector-bearing row must clear the cosine floor AND corroborate lexically. A row
   -- with no vector must clear the stricter lexical-only bar. Nothing else is admitted.
   with judged as (
@@ -47948,7 +48084,7 @@ begin
         left('Answer an unanswered portal question: ' || btrim(p_text), 160),
         'A customer or supplier asked this in the portal and the Sales Engineer could not source an '
           || 'answer from any corpus it searches (sales_knowledge, ops_knowledge, kb_chunks, '
-          || 'agent_knowledge, support_knowledge, category_specs, category_quote_specs).' || E'\n\n'
+          || 'agent_knowledge, support_knowledge, company_faq, category_specs, category_quote_specs).' || E'\n\n'
           || 'QUESTION: ' || btrim(p_text) || E'\n'
           || 'REFUSAL: ' || v_refusal || E'\n'
           || 'CLOSEST THE ESTATE GOT: corpus ' || coalesce(v_best_corp, 'none')
@@ -48002,7 +48138,7 @@ begin
     'cited', v_cited,
     'candidates', v_cands,
     'corpora', jsonb_build_array('sales_knowledge','ops_knowledge','kb_chunks','agent_knowledge',
-                                 'support_knowledge','category_specs','category_quote_specs'),
+                                 'support_knowledge','company_faq','category_specs','category_quote_specs'),
     'floor', jsonb_build_object(
       'min_similarity', p_min_similarity, 'min_rank', p_min_rank, 'lexical_only', c_lex_only,
       'lexemes_in_question', coalesce(cardinality(v_lex), 0), 'lexeme_overlap_needed', v_need, 'k', v_k,
@@ -53547,6 +53683,26 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'empty_question');
   end if;
 
+  -- THE QUESTION ARRIVED WITH ITS SCRIPT STRIPPED, so there is nothing here to answer and
+  -- nothing to file. org_tasks 578945 is what happens without this branch: a task that sat in
+  -- the work queue for nine days titled in question marks, asked four times, with no reading of
+  -- it possible by anyone.
+  --
+  -- BOTH KEYS CARRY BOTH LANGUAGES. site_assistant picks between reply_en and reply_ar with
+  -- `/[؀-ۿ]/.test(message) || uiLang === 'ar'` — it reads the script of the message, and on this
+  -- branch the script is exactly what was destroyed, so a stripped Arabic message is pure ASCII
+  -- and that test says "English" for the one visitor who needs the Arabic. The language cannot be
+  -- known here, so it is not guessed: whichever key the caller reads, the person gets both
+  -- paragraphs. This is the fix for the defect the comment above would otherwise only describe.
+  if public.fn_text_lost_its_script(p_question) then
+    return jsonb_build_object(
+      'ok', false, 'reason', 'text_lost_its_script',
+      'reply_en', public.fn_text_did_not_survive_reply('en') || E'\n\n'
+                  || public.fn_text_did_not_survive_reply('ar'),
+      'reply_ar', public.fn_text_did_not_survive_reply('ar') || E'\n\n'
+                  || public.fn_text_did_not_survive_reply('en'));
+  end if;
+
   v_norm := left(lower(regexp_replace(btrim(p_question), '\s+', ' ', 'g')), 400);
   select * into v_gap from public.sales_knowledge_gap where question_norm = v_norm;
 
@@ -55310,6 +55466,47 @@ AS $function$
     ) x
    where x.code is not null
      and not exists (select 1 from public.taxonomy_trade t where t.code = x.code and not t.active);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_text_did_not_survive_reply(p_lang text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE PARALLEL SAFE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when lower(coalesce(p_lang, 'en')) = 'ar' then
+      'وصلتني رسالتك وقد تحوّلت حروفها إلى علامات استفهام، ولا أستطيع قراءة ما سألت عنه. '
+      || 'لا يوجد خطأ في سؤالك — النص لم يصل سليمًا عبر الاتصال. يرجى إرسال رسالتك مرة أخرى. '
+      || 'وإذا تكرر ذلك، يمكنك الاتصال أو المراسلة عبر واتساب:' || E'\n'
+      || E'‎' || '+971 50 931 9355' || E'\n'
+      || '(من الأحد إلى الخميس، من 9 صباحًا حتى 6 مساءً بتوقيت الإمارات)' || E'\n'
+      || 'أو البريد الإلكتروني:' || E'\n' || 'management@quotesdone.com'
+    else
+      'Your message reached me with its characters replaced by question marks, so I cannot read '
+      || 'what you asked. Nothing is wrong with your question — it did not survive the connection. '
+      || 'Please send it again. If it keeps happening, call or WhatsApp +971 50 931 9355 '
+      || '(Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.'
+  end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_text_lost_its_script(p_text text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE PARALLEL SAFE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+       p_text !~ '[^\x00-\x7F]'
+   and (
+         (    (select count(*) from regexp_matches(p_text, '[?][?]+', 'g')) >= 2
+          and length(regexp_replace(p_text, '[^?]', '', 'g'))::numeric
+                >= 0.30 * greatest(length(regexp_replace(p_text, '\s', '', 'g')), 1))
+      or (select count(*) from regexp_matches(p_text, '[?]{4,}', 'g')) >= 3
+      or p_text ~ '[?]{8,}'
+       ),
+  false);
 $function$
 
 
