@@ -489,6 +489,17 @@ begin
              'subject', 'org_tasks',
              'blast',  'agent_facing',
              'affected', x.n,
+             -- A STANDING GAP, NOT A FRESH FAILURE EVERY FIFTEEN MINUTES. This is the convention
+             -- #744 added on 18 Sep 2026 after duty:renewal:...:date_unknown was re-raised 320
+             -- times in four days: fn_it_duty_settle holds an already-open finding carrying
+             -- 'config' => true, refreshing its title and evidence to today's reading while
+             -- seen_count, last_seen_at and started_at stand still. That is exactly this subject.
+             -- Nothing about the running system changes between two ticks over the same queue;
+             -- what is missing is knowledge nobody has written or a supplier nobody has onboarded.
+             -- Without the flag this finding's seen_count would climb 96 times a day and bury
+             -- every finding that did move. A CLOSED one still reopens, because a class that
+             -- emptied and came back IS news.
+             'config', true,
              'evidence', jsonb_build_object(
                'ids', x.ids, 'oldest_created_at', x.oldest, 'max_attempts', x.max_attempts,
                'last_reason', x.reason,
