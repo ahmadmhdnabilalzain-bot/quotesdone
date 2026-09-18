@@ -58,47 +58,24 @@ insert into public.decision_policy (key, value, description) values
 on conflict (key) do nothing;
 
 -- ── 1. THE LEDGER ────────────────────────────────────────────────────────────────────────────────
-create or replace view public.v_accountant_recovery_ledger with (security_invoker = true) as
-  with p as (
-    select (select (value #>> '{}')::int from public.decision_policy where key = 'supplier_charge_final_demand_notice_days') notice_days,
-           (select (value #>> '{}')::int from public.decision_policy where key = 'supplier_charge_legal_minimum_notice_days') min_notice_days,
-           (select (value #>> '{}')::int from public.decision_policy where key = 'supplier_charge_payment_order_serve_months') serve_months,
-           (select (value #>> '{}')::int from public.decision_policy where key = 'supplier_charge_grievance_days') grievance_days,
-           (select (value #>> '{}')::int from public.decision_policy where key = 'supplier_charge_limitation_years') limitation_years)
-  select d.id as due_id, d.supplier_id, l.company_name as supplier, coalesce(l.is_demo, false) as demo, d.transaction_id,
-         d.amount_due as refund_aed, d.admin_fee as admin_fee_aed, d.interest_amount as interest_aed,
-         coalesce(d.total_claim, d.amount_due + coalesce(d.admin_fee, 0) + coalesce(d.interest_amount, 0)) as claim_aed,
-         d.due_date,
-         case when d.paid_at is not null or coalesce(d.status, '') = 'paid' then 'paid'
-              when coalesce(d.status, '') in ('settled', 'waived', 'cancelled') then d.status
-              when d.grievance_filed_on is not null then 'grievance_filed'
-              when d.payment_order_served_on is not null then 'order_served'
-              when d.payment_order_issued_on is not null then 'order_issued'
-              when d.payment_order_filed_on is not null or coalesce(d.legal_stage, '') like 'outcome:filed%' then 'filed'
-              when d.legal_stage is not null then d.legal_stage
-              when coalesce(d.reminders, 0) > 0 then 'reminded'
-              else 'notice_sent' end as stage,
-         d.reminders, d.last_reminder_at,
-         case when d.legal_stage is not null then d.legal_escalated_at end as demand_sent_at,
-         -- The demand gives notice_days to pay; CPL Art 144(1) requires at least min_notice_days. The order
-         -- is sought only after the period the demand itself promised.
-         case when d.legal_stage is not null
-              then (d.legal_escalated_at at time zone 'Asia/Dubai')::date + greatest(p.notice_days, p.min_notice_days) end as payment_order_earliest_on,
-         d.payment_order_filed_on, d.payment_order_issued_on,
-         (d.payment_order_issued_on + make_interval(months => p.serve_months))::date as serve_order_by,
-         d.payment_order_served_on,
-         d.payment_order_served_on + p.grievance_days as grievance_until,
-         d.grievance_filed_on,
-         (d.due_date + make_interval(years => p.limitation_years))::date as limitation_on,
-         d.court_reference, d.demand_letter_path, d.case_file_path, d.paid_at,
-         'docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md; the documents are rendered by supabase/functions/_shared/supplier_charge_documents.ts'::text as legal_pack,
-         '9% a year simple interest on the refund plus the AED 250 fee, from the due date, never compounded (CTL Arts 73, 86, 88; Supplier Agreement clauses 31 and 33)'::text as interest_rule
-    from public.supplier_dues d
-    left join public.leads l on l.id = d.supplier_id
-    cross join p;
-comment on view public.v_accountant_recovery_ledger is
-  'Every supplier-charge claim from notice to payment or court: the amounts (refund, AED 250, 9% simple interest), the stage, and every UAE deadline worked out from decision_policy (CPL 42/2022 Arts 144, 146, 147; CTL Art 92). The legal pack is docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md.';
-revoke all on public.v_accountant_recovery_ledger from anon, authenticated;
+-- VIEW DEFINITION CUT 18 September 2026. public.v_accountant_recovery_ledger is now owned by
+-- scripts/sql/a_reversed_supplier_charge_is_never_owed.sql, which appended a 29th column, `owed`, and sits
+-- LAST in MANIFEST (line 1448, after this file at 1410) — so that file, not this one, is what production
+-- runs. The older body is CUT rather than left here because CREATE OR REPLACE VIEW may only ADD columns at
+-- the end: replaying this file against the live view asked Postgres to remove `owed` and failed with
+-- "cannot drop columns from view", which killed the whole accountant fixture batch before a single duty ran
+-- (measured 18 Sep 2026, scripts/checks/the_accountant_closes_every_loop_it_opens.test.mjs). This is the
+-- same treatment the removed fn_supplier_invite_followups body got in
+-- scripts/sql/the_bd_manager_runs_the_supplier_acquisition_loop.sql.
+--
+-- THE COMMENT AND THE REVOKE GO WITH IT (database review, 18 Sep 2026). Keeping them here looked
+-- harmless — both are idempotent — but `comment on view` and `revoke on` are plain DDL that need the
+-- view to EXIST. On a fresh full-MANIFEST apply this file (line 1410) runs 38 files before the one that
+-- now creates the view (line 1448), so the two statements would have failed with "relation
+-- public.v_accountant_recovery_ledger does not exist" and taken disaster recovery down with them.
+-- a_reversed_supplier_charge_is_never_owed.sql restates both, next to the definition they describe.
+-- The plpgsql functions below that READ the view are unaffected: a view named inside a dollar-quoted
+-- body is not resolved until the function runs, long after both files have applied.
 
 -- ── 2. WHAT HAPPENED IN COURT ────────────────────────────────────────────────────────────────────
 -- Steps: filed, order_issued, order_served, grievance_filed, recovered (paid through the court or the

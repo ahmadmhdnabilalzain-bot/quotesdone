@@ -17,9 +17,33 @@
 //
 // EVERY ASSERTION IS ON A NON-ZERO EFFECT, never on an HTTP 200. quote_compare returned {ok:false}
 // at HTTP 200 for weeks.
+//
+// STATE ON 18 SEPTEMBER 2026 — READ THIS BEFORE RUNNING IT. The supplier half of `seed` is fixed and
+// proven (12 ZZ DEMO HVAC suppliers built by scripts/staging/demo_factory.mjs, all six of the founder's
+// mandatory items complete, all approved by fn_sales_engineer_verifies_supplier). Two further drifts
+// were measured on the way and ONE IS STILL OPEN:
+//   * FIXED here: the guard probe demanded a demo recipient come back 'pending' and production now
+//     returns 'suppressed' — stricter, not weaker — so `arm` refused and nothing could run. See
+//     proveGuard below.
+//   * STILL OPEN: the customer half of `seed` writes public.customer_organization, and `teardown`
+//     deletes from public.project_component — NEITHER TABLE EXISTS in production any more ("relation
+//     public.customer_organization does not exist"). The seed therefore stops after the suppliers, and
+//     teardown stops after the demo factory's own sweep. That sweep is the half that matters here and it
+//     runs FIRST and completely: the 18 Sep run removed 12 leads, 24 documents, 24 agent_actions, 12
+//     company_event rows and 60 storage objects, and left 0 rows and 0 objects behind. Restoring the
+//     customer, project and RFQ half of this rehearsal against the schema as it now stands is a separate
+//     piece of work; it is recorded here rather than half-guessed, and nothing below has been softened
+//     to hide it.
+//
+// `seed` writes to the live project through the demo factory, so it needs the factory's explicit
+// production opt-in as well as `arm`:   QD_FIXTURES=1 node scripts/rehearsal/hvac_dress_rehearsal.mjs seed
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { newRun, makeSupplier, teardown as factoryTeardown } from '../staging/demo_factory.mjs';
 
 const PROD = 'htdblwldjkcgjvmqkbeh';
+// The one run tag this rehearsal's demo suppliers carry, in leads.tags as 'qd_run:hvacdress'. Fixed and
+// not random because seed, run and teardown are three separate invocations of this file.
+const FACTORY_TAG = 'hvacdress';
 const cmd = process.argv[2] || 'markers';
 const OUT = 'docs/rehearsal';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
@@ -56,8 +80,18 @@ function assert(step, ok, measured, expected) {
 // arm / disarm
 // ---------------------------------------------------------------------------------------------
 async function proveGuard() {
-  // In an aborted transaction, with the switch forced on: a real recipient must be HELD and an
-  // @example.invalid recipient must pass. Nothing persists.
+  // In an aborted transaction, with the switch forced on: a real recipient must be HELD, and an
+  // @example.invalid recipient must reach a state that CANNOT be handed to Resend or Twilio.
+  // Nothing persists.
+  //
+  // RE-MEASURED 18 Sep 2026. This used to demand the demo recipient come back 'pending', and the probe
+  // returned 'suppressed', so `arm` refused and the whole rehearsal was unrunnable. The change is a
+  // SECOND guard added after this file was written: zzzz_notifications_demo_capture
+  // (fn_notifications_demo_capture) marks any demo recipient 'suppressed' — "Recorded for the rehearsal,
+  // never handed to Resend or Twilio" — and unlike zzz_notifications_demo_guard it does not even wait for
+  // demo_rehearsal_active. That is STRICTER than what this probe was asking for, not weaker, so the
+  // expectation is widened to the set of terminal-for-sending states rather than the guard relaxed: a
+  // real recipient still has to come back 'held' or the rehearsal still refuses to arm.
   let real = null, invalid = null;
   try {
     await q(`do $$
@@ -76,7 +110,7 @@ async function proveGuard() {
     const m = String(e.message).match(/GUARDPROBE ([a-z]+)\|([a-z]+)/);
     if (m) { real = m[1]; invalid = m[2]; }
   }
-  return { real, invalid, ok: real === 'held' && invalid === 'pending' };
+  return { real, invalid, ok: real === 'held' && ['pending', 'suppressed'].includes(invalid) };
 }
 
 if (cmd === 'arm') {
@@ -145,34 +179,65 @@ if (cmd === 'seed') {
     console.log(`baseline: ${rows.length} empty tables recorded`);
   }
 
-  // -- six more synthetic HVAC suppliers, cloned from the existing fixture so every column that
-  //    matters carries the same shape. Never a real lead.
-  const added = await one(`
-    with src as (select * from public.leads where place_id='qd-demo-supplier-001' limit 1),
-    n(i, nm, sc) as (values
-      (7,'Emirates Chill Engineering',52),(8,'Al Rashid Air Systems',37),(9,'Desert Breeze Mechanical',44),
-      (10,'Falcon HVAC Contracting',29),(11,'Marina Cooling Works',48),(12,'Jebel Ali Air Technologies',33))
-    insert into public.leads (
-      company_name, email, phone, place_id, sector, emirate, city, categories, services, products,
-      company_type, business_role, source, enrich_source, description, capability_summary,
-      capability_score, employee_count, team_size, service_emirates, invite_trades, rating,
-      approval_status, lifecycle_stage, claimed, claimed_by, matching_blocked, matching_block_reason,
-      permanently_closed, banned, wa_optin, website, founded_year, locale, registration_status, tags)
-    select ${L(DEMO)}||n.nm||${L(SUFFIX)},
-           'qd-demo-supplier-0'||n.i||'@example.invalid', '+9715000000'||n.i,
-           'qd-demo-supplier-0'||n.i, 'hvac', src.emirate, src.city, src.categories, src.services,
-           src.products, src.company_type, 'supplier', 'qd_demo_fixture', 'qd_demo_fixture',
-           'Demo fixture used to exercise the QuotesDone RFQ chain. Not a real business.',
-           src.capability_summary, n.sc, 40+n.i*7, 40+n.i*7, src.service_emirates, src.invite_trades,
-           4.0 + (n.i::numeric/20), 'pending', 'registered', true,
-           'qd-demo-supplier-0'||n.i||'@example.invalid', true,
-           'QuotesDone demo fixture — must never be matched, searched or revealed to a real customer',
-           false, false, false, 'https://example.invalid/qd-demo-supplier-0'||n.i, 2000+n.i, 'en',
-           'not_due', array['demo','rehearsal-2026-08-11']
-      from src, n
-     where not exists (select 1 from public.leads l where l.place_id = 'qd-demo-supplier-0'||n.i)
-    returning 1`);
-  console.log(`suppliers added this run: ${(await one(`select count(*) from public.leads where place_id like 'qd-demo-supplier-%'`))} total demo leads`);
+  // -- twelve synthetic HVAC suppliers, built by THE SHARED DEMO FACTORY.
+  //
+  // MEASURED 18 Sep 2026, two failures in one statement. This block used to CLONE qd-demo-supplier-001
+  // ("with src as (select * from public.leads where place_id='qd-demo-supplier-001')") and add six more
+  // beside the six that were expected to exist already. There are now ZERO leads with a qd-demo-supplier
+  // place_id in production, so `src` was empty, the insert added nothing, and `run` then approved nothing
+  // and asserted 12 == 0. Had it seeded, the approval in `run` would have been refused anyway:
+  // trg_leads_e0_mandatory_six_gate (live since #698, 15 Sep 2026) refuses approval_status='approved' or
+  // verified=true unless the founder's mandatory six are present AS EVIDENCE — a verified +9715 mobile,
+  // a verified e-mail (owner_email_verified, never leads.email), a licence and a company profile that
+  // storage.objects actually HOLDS, and signed terms.
+  //
+  // So the seed no longer hand-rolls a supplier. scripts/staging/demo_factory.mjs is the ONE way this
+  // estate makes a demo supplier: it uploads the two real PDFs, signs the agreement through
+  // compliance_archive, and has the SALES ENGINEER approve through fn_sales_engineer_verifies_supplier —
+  // the production path — instead of writing approval_status. The addresses stay @example.invalid, which
+  // is what zzz_notifications_demo_guard holds on, and withAuth:false because this rehearsal drives the
+  // edge functions with the internal secret and never logs in as a supplier.
+  //
+  // The tag is FIXED, not random: seed, run and teardown are separate invocations, so teardown has to be
+  // able to find the run. Every row the factory writes carries 'qd_run:hvacdress' in leads.tags.
+  const run = newRun({ tag: FACTORY_TAG, keep: true });
+  const NAMES = ['Gulf Air Conditioning', 'Al Noor Climate Control', 'Arabian Cooling Systems',
+    'Dubai Mechanical Services', 'Emirates Thermal Solutions', 'Sharjah Air Engineering',
+    'Emirates Chill Engineering', 'Al Rashid Air Systems', 'Desert Breeze Mechanical',
+    'Falcon HVAC Contracting', 'Marina Cooling Works', 'Jebel Ali Air Technologies'];
+  const seeded = [];
+  for (let i = 1; i <= NAMES.length; i++) {
+    const pid = 'qd-demo-supplier-' + String(i).padStart(3, '0');
+    if (await one(`select count(*) from public.leads where place_id=${L(pid)}`) > 0) continue;
+    const s = await makeSupplier(run, {
+      trade: 'hvac', variant: i - 1, variants: NAMES.length, withAuth: false,
+      company_name: DEMO + NAMES[i - 1] + SUFFIX, email: `${pid}@example.invalid`,
+    });
+    // The columns this rehearsal keys on. place_id is the handle every later step and the teardown use;
+    // matching_blocked starts true so a seeded-but-not-yet-running fixture can never reach a real
+    // customer, and `run` lifts it for the duration.
+    await q(`update public.leads set place_id=${L(pid)}, sector='hvac', business_role='supplier',
+               description='Demo fixture used to exercise the QuotesDone RFQ chain. Not a real business.',
+               capability_score=${25 + i * 3}, employee_count=${40 + i * 7}, team_size=${40 + i * 7},
+               rating=${(4.0 + i / 20).toFixed(2)}, matching_blocked=true,
+               matching_block_reason='QuotesDone demo fixture — must never be matched, searched or revealed to a real customer',
+               website='https://example.invalid/'||${L(pid)}, founded_year=${2000 + i}, locale='en',
+               registration_status='not_due',
+               tags=(select array(select distinct unnest(coalesce(tags,'{}'::text[]) || array['demo','rehearsal-2026-08-11'])))
+             where id=${Number(s.leadId)}`);
+    seeded.push(pid);
+  }
+  console.log(`suppliers added this run: ${seeded.length} (${(await one(`select count(*) from public.leads where place_id like 'qd-demo-supplier-%'`))} total demo leads)`);
+  // A SEED THAT WAS REFUSED IS NOT AN EMPTY RUN. If the six ever move ahead of the factory again, this
+  // says so here, where the seed is, instead of surfacing three steps later as "12 suppliers approved: 0".
+  const incomplete = await q(`select place_id, public.fn_supplier_mandatory_six_for(id) missing
+     from public.leads where place_id like 'qd-demo-supplier-%'
+      and cardinality(public.fn_supplier_mandatory_six_for(id)) > 0`);
+  if (incomplete.length) {
+    console.error(`REFUSING TO CONTINUE: ${incomplete.length} seeded supplier(s) do not satisfy the founder's mandatory six, `
+      + `so nothing below would measure the rehearsal. Fix the seed — never the gate. ${JSON.stringify(incomplete)}`);
+    process.exit(1);
+  }
 
   // -- customer organisation, two customers, one project
   await q(`
@@ -216,6 +281,14 @@ if (cmd === 'seed') {
 // teardown
 // ---------------------------------------------------------------------------------------------
 if (cmd === 'teardown') {
+  // THE FACTORY TEARS DOWN WHAT THE FACTORY BUILT (18 Sep 2026). The suppliers now come from
+  // demo_factory.makeSupplier, which also uploaded a trade licence and a company profile into
+  // supplier-docs and a signed agreement into signed-terms. The predicates below reach rows, never
+  // storage objects, so without this the three PDFs per supplier would outlive the rehearsal — the same
+  // class of residue as the supplier_dues row recorded further down. teardown() derives the paths from
+  // the database by run tag, which is why the tag is fixed.
+  const t = await factoryTeardown(newRun({ tag: FACTORY_TAG, quiet: true }));
+  console.log(`demo factory run ${FACTORY_TAG} torn down: ${t.summary}`);
   await q(`
     delete from public.quote_items qi using public.quotes q, public.inquiries i, public.customers c
       where qi.quote_id = q.id::text and q.inquiry_id = i.id and i.customer_id = c.id and c.email like '%@example.invalid';
@@ -285,13 +358,18 @@ if (cmd === 'run') {
   };
 
   // -- suppliers become approved and matchable for the duration. Restored by teardown.
-  // CHECK leads_approved_implies_verified refused the first attempt: approved requires verified=true.
-  // That is the onboarding gate doing its job, and verification IS a step of supplier_onboarding, so
-  // the rehearsal satisfies it rather than working around it. Teardown puts both back.
-  await q(`update public.leads set verified=true, verification_status='verified' where place_id like 'qd-demo-supplier-%';
-           update public.leads set approval_status='approved', approved_at=now(),
-             matching_blocked=false, matching_block_reason=null
-           where place_id like 'qd-demo-supplier-%'`);
+  // THE SALES ENGINEER APPROVES; THE REHEARSAL DOES NOT WRITE approval_status (18 Sep 2026). This used to
+  // set verified=true and then approval_status='approved' by hand, which trg_leads_e0_mandatory_six_gate
+  // now refuses outright unless the founder's mandatory six are present as evidence. Both gates —
+  // leads_approved_implies_verified, which refused the ORIGINAL hand-written attempt back in August, and
+  // the six gate — are satisfied rather than worked around, by going through the production routine the
+  // real sales engineer calls. The suppliers were seeded complete and already approved by the factory, so
+  // this is the same decision taken again; what it proves is that the decision is REACHABLE. Teardown
+  // puts the pending, unverified, matching-blocked state back.
+  await q(`select public.fn_sales_engineer_verifies_supplier(id, 'hvac_dress_rehearsal')
+             from public.leads where place_id like 'qd-demo-supplier-%';
+           update public.leads set matching_blocked=false, matching_block_reason=null
+            where place_id like 'qd-demo-supplier-%'`);
   assert('supplier_onboarding — 12 synthetic suppliers approved',
     (await one(`select count(*) from public.leads where place_id like 'qd-demo-supplier-%' and approval_status='approved'`)) == 12,
     await one(`select count(*) from public.leads where place_id like 'qd-demo-supplier-%' and approval_status='approved'`), '12');
