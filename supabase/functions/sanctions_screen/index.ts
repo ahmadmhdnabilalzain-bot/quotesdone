@@ -25,6 +25,25 @@
 // app_secrets.sanctions_screen_enabled = 'true'. A missing key reads as NOT enabled, so the gate is shut
 // until this function is deployed — the SQL can be applied in either order without the tick hammering a 404.
 //
+// ── IT RAN FOR THE FIRST TIME ON 18 Sep 2026 07:15 UTC, AND THREE MORE THINGS WERE WRONG ─────────
+// The flag was switched on and the screen still did not execute. Driven end to end by hand, it did —
+// and each of the three was invisible until something actually ran:
+//   1. verify_jwt. This function was deployed verify_jwt = true, so the PLATFORM refused every caller
+//      before a line of its code ran: net._http_response 432562 is HTTP 401 UNAUTHORIZED_NO_AUTH_HEADER,
+//      which is the tick's exact request, and posting resilience_ping's own shape got the same. It is
+//      verify_jwt = false now, in supabase/config.toml, with requireInternal below as the only gate —
+//      the posture send_outbox, role_guard and resilience_ping already use. PROVED, against the
+//      deployed function, that the gate is real: past the platform with NO credential → 403 forbidden.
+//   2. The wrong credential. Internal credentials are scoped, and exactly ONE in the whole table is
+//      scoped to sanctions_screen: id 175, context cron.compliance. resilience_ping's own credential is
+//      not, so the orphans step would have been refused 403 even with the budget and the gateway fixed.
+//      It now presents cred_cron_compliance for this one call.
+//   3. The UAE source was the wrong FILE. See uaeCandidateUrls in parse.ts: the page's first matching
+//      href is a Federal Decree PDF, and that 575,454-byte PDF is what run 74 downloaded and recorded
+//      as "parsed 0 names". The list is chosen by sniffing the bytes now, not by href order.
+// What the run proved does work: the UN consolidated list loaded 3,778 names (2,899 individuals plus
+// entity names and aliases), sha256 recorded, normalised and tokenised by trigger.
+//
 // NO MODEL. Fetch, sha256, parse, insert, and one SQL call. OpenRouter is on hold and nothing here needs it.
 //
 // EACH SOURCE FAILS ON ITS OWN. A screening_run row is written for every source on every attempt, with
@@ -35,8 +54,8 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import {
-  parseUaeWorkbook, parseUnXml, uaeExcelUrl,
-  UAE_FALLBACK_FILE_ID, UAE_PAGE, type ParsedEntry,
+  isWorkbook, parseUaeWorkbook, parseUnXml, uaeCandidateUrls,
+  UAE_FALLBACK_URL, UAE_PAGE, type ParsedEntry,
 } from './parse.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -106,10 +125,16 @@ async function un(): Promise<{ run_id: number | null; entries: number; status: s
   try {
     const r = await fetch(UN_URL, { signal: AbortSignal.timeout(FETCH_MS) });
     if (!r.ok) {
+      await r.body?.cancel().catch(() => {});
       const res = await record('un_consolidated', UN_URL, 'failed', 'HTTP ' + r.status + ' from scsanctions.un.org', null, []);
       return { run_id: res.run_id, entries: 0, status: 'failed', note: 'HTTP ' + r.status };
     }
-    const buf = await r.arrayBuffer();
+    const got = await boundedBody(r);
+    if ('tooBig' in got) {
+      const res = await record('un_consolidated', UN_URL, 'failed', 'refused the download: ' + got.tooBig, null, []);
+      return { run_id: res.run_id, entries: 0, status: 'failed', note: got.tooBig };
+    }
+    const { buf } = got;
     const bytes = new Uint8Array(buf);
     const sha = await sha256(buf);
     const parsed = parseUnXml(new TextDecoder().decode(bytes));
@@ -130,24 +155,83 @@ async function un(): Promise<{ run_id: number | null; entries: number; status: s
   }
 }
 
+// Tries the ranked candidates and keeps the first whose BYTES are a workbook. The first real run
+// downloaded a 575 KB PDF because the page's first matching href is a Federal Decree, so the choice is
+// made on what the file IS rather than where it sat in the HTML. Bounded at UAE_MAX_TRIES requests.
+// A CANDIDATE PROBE IS NOT A DOWNLOAD, AND A BODY IS NOT READ BEFORE ITS SIZE IS KNOWN (independent
+// security review). Three bounds, each with the measurement behind it:
+//   * 4 candidates at FETCH_MS each would be 180 s serially, against a caller that waits 55 s and an
+//     orphan step budget of 60 s — the function would keep running past everyone watching it, which is
+//     the CPU-cap-a-deadline-does-not-bound shape this estate has already paid for once. A real host
+//     answers in seconds (measured: the workbook in well under one), so a probe gets 12 s.
+//   * The real files are 2,176,957 bytes (UN) and 183,808 (UAE). 24 MB is ten times the larger one and
+//     still small enough that an isolate cannot be exhausted by one response.
+//   * Content-Length is checked BEFORE the body is buffered, so an oversized response costs a header
+//     read rather than the memory it declares.
+const UAE_MAX_TRIES = 4;
+const UAE_PROBE_MS = 12_000;
+const MAX_DOWNLOAD_BYTES = 24 * 1024 * 1024;
+
+// Reads a response body only if it declares, or turns out to be, a sane size. Returns null with a
+// reason rather than throwing, so the caller records WHY on the screening_run row.
+async function boundedBody(r: Response): Promise<{ buf: ArrayBuffer } | { tooBig: string }> {
+  const declared = Number(r.headers.get('content-length') ?? '');
+  if (Number.isFinite(declared) && declared > MAX_DOWNLOAD_BYTES) {
+    await r.body?.cancel().catch(() => {});
+    return { tooBig: 'declared ' + declared + ' bytes, over the ' + MAX_DOWNLOAD_BYTES + ' byte ceiling' };
+  }
+  const buf = await r.arrayBuffer();
+  if (buf.byteLength > MAX_DOWNLOAD_BYTES) {
+    return { tooBig: 'returned ' + buf.byteLength + ' bytes, over the ' + MAX_DOWNLOAD_BYTES + ' byte ceiling' };
+  }
+  return { buf };
+}
+async function uaeWorkbookBytes(): Promise<
+  { url: string; bytes: Uint8Array; buf: ArrayBuffer } | { error: string; tried: string[] }
+> {
+  let candidates = [UAE_FALLBACK_URL];
+  try {
+    const page = await fetch(UAE_PAGE, { signal: AbortSignal.timeout(FETCH_MS) });
+    if (page.ok) candidates = uaeCandidateUrls(await page.text());
+  } catch (_e) { /* the page is a convenience; the known FileID is the floor */ }
+  const tried: string[] = [];
+  let last = 'no candidate link was found on the page';
+  for (const url of candidates.slice(0, UAE_MAX_TRIES)) {
+    tried.push(url);
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(UAE_PROBE_MS) });
+      // Release the stream before moving on. This loop runs up to UAE_MAX_TRIES times, so a host that
+      // answers non-2xx every time would otherwise leave four undrained bodies per invocation — the same
+      // discipline boundedBody applies on the oversized path (independent review).
+      if (!r.ok) { await r.body?.cancel().catch(() => {}); last = 'HTTP ' + r.status + ' from ' + url; continue; }
+      const got = await boundedBody(r);
+      if ('tooBig' in got) { last = got.tooBig; continue; }
+      const { buf } = got;
+      const bytes = new Uint8Array(buf);
+      if (!isWorkbook(bytes)) {
+        last = 'not a workbook: ' + (r.headers.get('content-type') ?? 'unknown type') + ', ' + bytes.length + ' bytes';
+        continue;
+      }
+      return { url, bytes, buf };
+    } catch (e) { last = String((e as Error)?.message || e).slice(0, 160); }
+  }
+  return { error: last, tried };
+}
+
 async function uae(): Promise<{ run_id: number | null; entries: number; status: string; note: string }> {
-  const fallback = UAE_PAGE.replace(/\/en-us\/un-page$/, '') + '/DownloadFile?FileID=' + UAE_FALLBACK_FILE_ID;
-  let url = fallback;
+  let url = UAE_FALLBACK_URL;
   // The PDF edition of this list is NOT parsed. That limitation is written onto every run row rather than
   // left for someone to infer from the entry count.
   const limitation = 'UAE local terrorist list: the Excel edition is parsed; the PDF edition is not, and no XML/JSON endpoint exists.';
   try {
-    try {
-      const page = await fetch(UAE_PAGE, { signal: AbortSignal.timeout(FETCH_MS) });
-      if (page.ok) url = uaeExcelUrl(await page.text()) ?? fallback;
-    } catch (_e) { url = fallback; }
-    const r = await fetch(url, { signal: AbortSignal.timeout(FETCH_MS) });
-    if (!r.ok) {
-      const res = await record('uae_local_terrorist_list', url, 'failed', 'HTTP ' + r.status + '. ' + limitation, null, []);
-      return { run_id: res.run_id, entries: 0, status: 'failed', note: 'HTTP ' + r.status };
+    const got = await uaeWorkbookBytes();
+    if ('error' in got) {
+      const why = 'no workbook among ' + got.tried.length + ' candidate download(s): ' + got.error;
+      const res = await record('uae_local_terrorist_list', got.tried[0] ?? url, 'failed', why + '. ' + limitation, null, []);
+      return { run_id: res.run_id, entries: 0, status: 'failed', note: why };
     }
-    const buf = await r.arrayBuffer();
-    const bytes = new Uint8Array(buf);
+    url = got.url;
+    const { bytes, buf } = got;
     const sha = await sha256(buf);
     let parsed: ParsedEntry[] = [];
     try {
