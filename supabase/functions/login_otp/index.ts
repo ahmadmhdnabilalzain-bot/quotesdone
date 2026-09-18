@@ -4,6 +4,7 @@ import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
+import { sendWhatsAppFirst, type VerifySent } from '../_shared/whatsapp_choice.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
 const admin = createClient(SB_URL, SB_SERVICE);
@@ -12,7 +13,12 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '')); }
 function toE164(p: string): string { let d = String(p || '').replace(/[^\d+]/g, ''); if (d.startsWith('+')) { const n = d.slice(1).replace(/\D/g, ''); return n.length >= 8 ? '+' + n : ''; } d = d.replace(/\D/g, ''); if (d.startsWith('00')) d = d.slice(2); if (d.startsWith('971')) return '+' + d; if (d.startsWith('0')) return '+971' + d.slice(1); if (d.length === 9 && d.startsWith('5')) return '+971' + d; if (d.length >= 8) return '+' + d; return ''; }
-function code6() { return String(Math.floor(100000 + Math.random() * 900000)); }
+// 18 SEP 2026: Math.random() is not a credential generator. V8's PRNG is seeded per isolate and its
+// state is recoverable from a handful of outputs, so a caller who can make this function issue codes
+// to an address they control could predict the next one issued to somebody else. A sign-in code is a
+// credential; it comes from the CSPRNG. The modulo is on a 32-bit draw over 900000, whose bias is
+// ~2e-4 of one code — far below the 1e-6 guess probability the attempt caps already bound.
+function code6() { const b = new Uint32Array(1); crypto.getRandomValues(b); return String(100000 + (b[0] % 900000)); }
 // Sign-in codes are stored hashed. A 6-digit code is only safe if guesses are
 // capped, so verify is limited per issued code AND per caller.
 const EMAIL_VERIFY_MAX_ATTEMPTS = 5;
@@ -33,6 +39,17 @@ async function otpHash(code: string): Promise<string> {
   const ck = await crypto.subtle.importKey('raw', new TextEncoder().encode(await otpKey()), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const mac = await crypto.subtle.sign('HMAC', ck, new TextEncoder().encode(code));
   return Array.from(new Uint8Array(mac)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+// 18 Sep 2026 (security review): `===` on a secret short-circuits at the first differing byte, so the
+// time it takes leaks how much of the value was right. The attempt caps already bound guessing here,
+// but this is the one comparison in the sign-in path that touches a secret-bearing value, and a
+// constant-time compare costs nothing. Length is compared first and separately on purpose: both
+// operands are fixed-width (a 64-char hex HMAC, or a 6-digit legacy token), so length is not a secret.
+function eqConstantTime(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const secret = await sec('twilio_api_key_secret'); const va = await sec('twilio_verify_service_sid'); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
 async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; try { const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, subject, html }) }); return r.ok; } catch { return false; } }
@@ -141,6 +158,33 @@ async function resolveEmailByPhone(kind: string, e164: string): Promise<PhoneOwn
 }
 const AMBIGUOUS_MSG = 'More than one QuotesDone account uses this mobile number, so we cannot tell which one is yours. Please sign in with your email address instead.';
 
+// THE SIGN-IN CODE MAY GO BY WHATSAPP (founder, 18 Sep 2026), AND ONLY TO A NUMBER THE ACCOUNT
+// ITSELF CONFIRMED IS ON WHATSAPP.
+//
+// kyc's whatsapp_* actions (14 Sep) already prove a WhatsApp number by sending a code over WhatsApp
+// to it, and write whatsapp_phone only together with whatsapp_verified_at. This reads that proof and
+// nothing else: an unconfirmed mobile keeps going by SMS. Asking Verify for Channel=whatsapp on a
+// number that is not on WhatsApp does not fall back — it fails — so the gate is what stops a
+// sign-in from breaking, not a nicety.
+//
+// The code itself is never generated, stored, logged or seen here. Twilio Verify holds it on both
+// channels, exactly as the SMS path already works, so switching channel cannot leak a credential.
+// 'admin' is deliberately absent: the founder is neither a customers row nor a claimed lead, and
+// app_secrets.admin_mfa_phone carries no WhatsApp confirmation, so his sign-in stays on SMS.
+async function confirmedWhatsApp(kind: string, email: string, e164: string): Promise<boolean> {
+  if (kind !== 'customer' && kind !== 'supplier') return false;
+  const last9 = e164.replace(/\D/g, '').slice(-9);
+  if (last9.length < 9) return false;
+  try {
+    const q = kind === 'supplier'
+      ? admin.from('leads').select('whatsapp_phone,whatsapp_verified_at').eq('claimed_by', email).limit(5)
+      : admin.from('customers').select('whatsapp_phone,whatsapp_verified_at').eq('email', email).limit(5);
+    const { data } = await q;
+    return (data || []).some((r: { whatsapp_phone?: string | null; whatsapp_verified_at?: string | null }) =>
+      !!r.whatsapp_verified_at && String(r.whatsapp_phone || '').replace(/\D/g, '').slice(-9) === last9);
+  } catch (_e) { return false; }   // a read failure means SMS, never a lost sign-in
+}
+
 Deno.serve(observe('login_otp', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
@@ -248,10 +292,36 @@ Deno.serve(observe('login_otp', async (req) => {
       try {
         // Locale: Twilio Verify writes the SMS in the account holder's registered language.
         const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail }, body.lang);
-        const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: 'sms', Locale: smsLocale }) });
-        const jd = await r.json(); if (!r.ok || jd?.status === 'canceled') return J({ error: jd?.message || 'Could not send the SMS code.' }, 502);
-        await admin.from('phone_verifications').insert({ email: acctEmail || '', phone: e164, code: 'twilio', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
-        return J({ ok: true, channel: 'sms', identifier: e164, known: !!acctEmail });
+        const send = async (channel: 'whatsapp' | 'sms') => {
+          const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: channel, Locale: smsLocale }) });
+          return { r, jd: await r.json() };
+        };
+        // ONE CODE, ONE CHANNEL. sendWhatsAppFirst tries SMS only when Verify refuses the WhatsApp
+        // channel itself (a missing sender or an unapproved Authentication template — the three codes
+        // in _shared/whatsapp_choice.ts), which means no code was delivered on the first attempt. Any
+        // other Verify refusal is a send failure and is reported as one, never retried on the second
+        // channel. An account that has not confirmed a WhatsApp number goes straight to SMS as before.
+        const smsOnly = async (): Promise<VerifySent> => {
+          const x = await send('sms');
+          return x.r.ok && x.jd?.status !== 'canceled'
+            ? { ...x, refused: null, ok: true, channel: 'sms' } : { ...x, refused: null, ok: false, channel: null };
+        };
+        const wantsWa = await confirmedWhatsApp(kind, acctEmail, e164);
+        const res = wantsWa ? await sendWhatsAppFirst(send) : await smsOnly();
+        if (!res.ok) return J({ error: res.jd?.message || 'Could not send the sign-in code.' }, 502);
+        // The delivered channel is recorded in phone_verifications.code (the column only ever held the
+        // marker 'twilio'; no reader compares it), the same convention kyc's whatsapp_send_code uses,
+        // so the day WhatsApp starts carrying sign-in codes is visible in the table with no code change.
+        await admin.from('phone_verifications').insert({ email: acctEmail || '', phone: e164, code: 'twilio:' + res.channel, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+        // THE ANSWER DOES NOT NAME THE CHANNEL (security review, 18 Sep 2026). This endpoint takes no
+        // session, and 'whatsapp' vs 'sms' would tell any anonymous caller holding a number that
+        // resolves to one account whether THAT account has confirmed a WhatsApp number — private state
+        // of somebody else's account, for the price of one rate-limited send to the victim's own
+        // handset. The channel is in phone_verifications.code for us; the user finds the code in
+        // whichever app it arrived in, and no screen branches on it (measured: neither CustomerPortal
+        // nor SupplierPortal reads `channel`). The field is DROPPED rather than hard-coded to 'sms':
+        // a payload that names the wrong channel is a lie, and an absent field is not.
+        return J({ ok: true, identifier: e164, known: !!acctEmail });
       } catch (e) { return J({ error: 'Could not send the SMS code.', detail: String((e as Error)?.message || e) }, 502); }
     }
 
@@ -282,7 +352,7 @@ Deno.serve(observe('login_otp', async (req) => {
         }
         const givenHash = await otpHash(code);
         // row.token is only set for codes issued before hashing shipped
-        const match = row.token_hash ? (givenHash === row.token_hash) : (!!row.token && code === row.token);
+        const match = row.token_hash ? eqConstantTime(givenHash, row.token_hash) : (!!row.token && eqConstantTime(code, row.token));
         if (!match) {
           await admin.from('email_verifications').update({ attempts: (row.attempts || 0) + 1 }).eq('id', row.id);
           return J({ error: 'Incorrect or expired code.' }, 400);
