@@ -31,7 +31,9 @@ type Settings = {
 
 const T = {
   en: {
-    title: 'Settings', loading: 'Loading your settings…', loadErr: 'We could not load your settings. Please reload the page.',
+    // "Please reload the page" was the only way out while this failure could not resolve. It now
+    // resolves into this message WITH a retry, so the copy names the button instead of the browser.
+    title: 'Settings', loading: 'Loading your settings…', loadErr: 'We could not load your settings.', retry: 'Try again',
     prefs: 'Preferences', language: 'Interface language', langNote: 'The portal follows your account language. Changing it here updates your account (EN/AR).', english: 'English', arabic: 'العربية',
     notifications: 'Notifications',
     waNumber: 'WhatsApp number',
@@ -45,7 +47,7 @@ const T = {
     none: 'not set', never: 'not yet accepted',
   },
   ar: {
-    title: 'الإعدادات', loading: 'جارٍ تحميل إعداداتك…', loadErr: 'تعذّر تحميل إعداداتك. يُرجى إعادة تحميل الصفحة.',
+    title: 'الإعدادات', loading: 'جارٍ تحميل إعداداتك…', loadErr: 'تعذّر تحميل إعداداتك.', retry: 'حاول مرة أخرى',
     prefs: 'التفضيلات', language: 'لغة الواجهة', langNote: 'تتبع البوابة لغة حسابك، وتغييرها هنا يحدّث لغة الحساب.', english: 'English', arabic: 'العربية',
     notifications: 'الإشعارات',
     waNumber: 'رقم WhatsApp',
@@ -103,22 +105,39 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
   const [err, setErr] = useState('');
   // The WhatsApp route is kyc's (whatsapp_*); undefined hides the section until kyc serves it.
   const [waState, setWaState] = useState<WaState | undefined>(undefined);
-  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => setWaState(k && k.whatsapp ? k.whatsapp : undefined)).catch(() => {});
-  useEffect(() => { loadWa(); }, [token]);
+  // A tab switch unmounts this; an answer arriving afterwards must not write state. Declared here,
+  // above the first fetch that reads it, so the order on the page is the order it is used in.
+  const live = React.useRef(true);
+  useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
+  const loadWa = () => call('kyc', { action: 'state' }, token).then((k) => { if (live.current) setWaState(k && k.whatsapp ? k.whatsapp : undefined); }).catch(() => {});
+  useEffect(() => { loadWa(); }, [token]);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    let live = true;
-    call('supplier_api', { action: 'settings' }, token).then((j) => {
-      if (!live) return;
+  // A TAB THAT COULD LOAD FOR EVER. The `else` below looked total because `call()` answers a
+  // refusal as { ok:false } at HTTP 200 — but a dropped connection REJECTS instead, and with no
+  // catch neither `s` nor `err` was ever set, so the `if (!s)` return further down kept rendering
+  // its aria-busy panel with nothing left that could ever resolve it.
+  //
+  // #736 rule 4 (docs/CONVENTIONS_LOADING.md): a failure resolves the indicator into a visible
+  // error. Its 30 s ceiling does NOT cover this and was never going to — the ceiling lives inside
+  // useBusy().run(), which guards a PRESS. This is a first-load region fetch that never goes
+  // through run(), which is exactly how a tab reached "still busy" past a 30 s ceiling.
+  // The live-ref shape is SupplierInsightsSummary.tsx's, so the two read the same way.
+  const load = React.useCallback(() => {
+    setErr('');
+    return call('supplier_api', { action: 'settings' }, token).then((j) => {
+      if (!live.current) return;
       if (j && j.ok) {
         const x: Settings = j.settings || {};
         setS(x);
         setLocale(x.locale === 'ar' ? 'ar' : x.locale === 'en' ? 'en' : lang);
         setShare(!!x.email_shared);
       } else setErr(t(lang, 'loadErr'));
-    });
-    return () => { live = false; };
-  }, [token]);
+    }).catch(() => { if (live.current) setErr(t(lang, 'loadErr')); });
+  }, [token, lang]);
+  // `load` is deliberately NOT a dependency here: it changes identity when `lang` does, and a
+  // language switch must not refetch the settings — `lang` only picks which error string to show.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [token]);
 
   const save = async () => {
     setBusy(true); setMsg(''); setErr('');
@@ -132,7 +151,15 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
     setMsg(t(lang, 'saved'));
   };
 
-  if (err && !s) return <div className="qd-panel p-5 text-[13px] text-muted-foreground">{err}</div>;
+  // The resolved state of the load above. It carries a retry because the failure it now catches is
+  // usually transient — without one the only way out of a dropped connection is a full reload.
+  if (err && !s) return (
+    <div className="qd-panel p-5 text-[13px] text-muted-foreground" role="alert">
+      {err}
+      <button type="button" onClick={load}
+        className="ms-2 underline rounded outline-none focus-visible:ring-1 focus-visible:ring-ring">{t(lang, 'retry')}</button>
+    </div>
+  );
   if (!s) return <div className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t(lang, 'loading')}</div>;
 
   const yn = (v?: boolean | null) => (v ? t(lang, 'verified') : t(lang, 'unverified'));
