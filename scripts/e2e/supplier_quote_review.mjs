@@ -19,6 +19,7 @@
 // Nothing here can reach a real person: every identity is ZZ DEMO / @example.invalid (fixtures.mjs), and
 // demo notices are captured, never sent. Check no post-deploy smoke is running before a manual run.
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { deflateSync, crc32 } from 'node:zlib';
@@ -27,7 +28,10 @@ import { makeInquiry, uploadObject, q } from '../staging/demo_factory.mjs';
 import { launch, signedInPage, openPortal, portalUrl, realErrors, SITE } from './browser.mjs';
 
 const SHOTS = process.env.QD_SHOTS || join(tmpdir(), 'qd-quote-review');
-const REVIEW_API = process.env.QD_REVIEW_API || '';
+let REVIEW_API = process.env.QD_REVIEW_API || '';
+/** QD_REVIEW_STANDIN=1 starts review_server.ts here, so a pre-deploy run needs no second terminal. */
+const STANDIN = process.env.QD_REVIEW_STANDIN === '1' && !REVIEW_API;
+const VIEWPORTS = (process.env.QD_VIEWPORTS || 'desktop,mobile').split(',').map((s) => s.trim()).filter(Boolean);
 const FN_URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/supplier_api';
 const REVIEW_ACTIONS = ['inquiries_list', 'inquiry_detail', 'inquiry_documents', 'review_thread', 'review_start', 'review_message', 'review_upload', 'review_choose', 'review_submit'];
 mkdirSync(SHOTS, { recursive: true });
@@ -67,11 +71,11 @@ async function job(run, customer, supplier, lang) {
   return inq.id;
 }
 
-async function drive(browser, run, supplier, inquiryId, lang) {
+async function drive(browser, run, supplier, inquiryId, lang, viewport) {
   const ar = lang === 'ar';
   const job = String(inquiryId).slice(0, 8).toUpperCase();
   const L = (en, a) => (ar ? a : en);
-  const { ctx, page, consoleErrors, calls } = await signedInPage(browser, supplier, { lang, viewport: 'desktop' });
+  const { ctx, page, consoleErrors, calls } = await signedInPage(browser, supplier, { lang, viewport });
   if (REVIEW_API) {
     // PRE-DEPLOY: the new actions go to the stand-in; everything else stays on production.
     const hop = async (route) => {
@@ -85,8 +89,8 @@ async function drive(browser, run, supplier, inquiryId, lang) {
     await ctx.route(FN_URL, hop);
     await ctx.route(`${new URL(SITE).origin}/functions/v1/supplier_api`, hop);
   }
-  const shot = async (name) => { const f = join(SHOTS, `${lang}_${name}.png`); await page.screenshot({ path: f, fullPage: true }); report.shots.push(f); };
-  const name = (s) => `${lang}: ${s}`;
+  const shot = async (name) => { const f = join(SHOTS, `${lang}_${viewport}_${name}.png`); await page.screenshot({ path: f, fullPage: true }); report.shots.push(f); };
+  const name = (s) => `${lang}/${viewport}: ${s}`;
   try {
     await openPortal(page, portalUrl('supplier', lang), calls);
     await page.getByRole('button', { name: new RegExp(L('Inquiries received', 'الاستفسارات الواردة')) }).first().click();
@@ -154,12 +158,35 @@ async function drive(browser, run, supplier, inquiryId, lang) {
 
 const run = await openRun();
 let result = null;
+let standin = null;
 try {
+  if (STANDIN) {
+    // The nine actions are served here by the same code over memory; everything else stays production's.
+    const { keys } = await import('../staging/demo_factory.mjs');
+    const { ANON } = await keys();
+    const port = 8787 + (process.pid % 200);
+    standin = spawn('deno', ['run', '--allow-net', '--allow-env', '--allow-read', 'scripts/e2e/review_server.ts'],
+      { env: { ...process.env, PORT: String(port), QD_ANON_KEY: ANON }, stdio: ['ignore', 'pipe', 'pipe'] });
+    standin.stdout.on('data', (d) => process.stdout.write('[standin] ' + d));
+    standin.stderr.on('data', (d) => process.stdout.write('[standin] ' + d));
+    REVIEW_API = `http://127.0.0.1:${port}`;
+    for (let i = 0; i < 60; i++) {
+      const up = await fetch(REVIEW_API, { method: 'OPTIONS' }).then((r) => r.ok).catch(() => false);
+      if (up) break;
+      if (i === 59) throw new Error('the review stand-in did not start');
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    report.review_api = REVIEW_API + ' (stand-in: memory conversation, production inbox and submit_quote)';
+  }
   const customer = await makeDemoCustomer(run, { label: 'QuoteReview' });
   const supplier = await makeDemoSupplier(run, { label: 'QR' });
-  const jobs = { en: await job(run, customer, supplier, 'en'), ar: await job(run, customer, supplier, 'ar') };
+  // One job per journey: a conversation ends submitted, so each language and each viewport gets its own.
+  const jobs = {};
+  for (const lang of ['en', 'ar']) for (const vp of VIEWPORTS) jobs[`${lang}_${vp}`] = await job(run, customer, supplier, lang);
   const browser = await launch();
-  try { for (const lang of ['en', 'ar']) await drive(browser, run, supplier, jobs[lang], lang); } finally { await browser.close(); }
+  try {
+    for (const lang of ['en', 'ar']) for (const vp of VIEWPORTS) await drive(browser, run, supplier, jobs[`${lang}_${vp}`], lang, vp);
+  } finally { await browser.close(); }
   // The standardised quotation PDFs quote_pdf printed for this supplier (folder supplier/<id>).
   const pdfs = await read(`select bucket_id b, name from storage.objects where name like ${q(`supplier/${Number(supplier.leadId)}/%`)}`);
   for (const o of pdfs) run.ids.storage.push(`${o.b}/${o.name}`);
@@ -170,6 +197,7 @@ try {
 } catch (e) {
   step('fixtures', false, String(e.message).slice(0, 300));
 } finally {
+  if (standin) { try { standin.kill(); } catch { /* the stand-in owns nothing to clean up */ } }
   result = await closeRun(run);
   report.teardown = result.removed?.summary; report.leftovers = result.leftovers;
   step('teardown leaves nothing behind', result.leftovers?.total === 0, JSON.stringify(result.leftovers));

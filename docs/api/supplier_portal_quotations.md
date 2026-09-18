@@ -109,7 +109,8 @@ Issue = { code, kind: 'adjustment' | 'clarification', line_no, boq_line, attr, e
 | `review_choose` | `{ inquiry_id, choice: 'generate' \| 'reupload' }` | `generate`: the quotation is submitted through `submit_quote` and the standardised quotation is attached (`attachments[].kind = 'standard_quote'`; open it with `quote_pdf`). `reupload`: waits for the new version, reviews it, then asks for `review_submit`. |
 | `review_submit` | `{ inquiry_id }` | Only in `ready_to_submit`. Submits through `submit_quote` and closes the thread. |
 
-Error codes: `not_found` 404, `no_company` 400, `file_required` / `text_required` / `invalid_choice` 400,
+Error codes: `not_found` 404, `no_company` 400, `file_required` / `text_required` / `invalid_choice` /
+`file_unreadable` 400 (the byte-type gate itself could not read the attachment),
 `file_too_large` 413, `unsafe_type` / `malware_detected` 415, `upload_failed` 502, `inquiry_closed` /
 `review_closed` / `reviewing` / `not_awaiting_choice` / `not_ready` 409.
 
