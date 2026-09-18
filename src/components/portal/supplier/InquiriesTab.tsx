@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { emirateLabel, srvMsg } from './serverCopy';
+import { ws } from './workspaceCopy';
 import { BoqTable, ClarifyThread, DrawingGallery, RequestedTerms, WithheldCustomer } from './RfqParts';
 import { failed, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
 
@@ -112,7 +113,7 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
       {d.summary ? <section className="mt-4"><h3 className="text-[13px] font-semibold text-foreground">{t.scope}</h3><p dir="auto" className="mt-1 max-w-[70ch] text-[13.5px] leading-relaxed text-foreground/90">{d.summary}</p>{d.budget ? <p className="mt-1 text-[12px] text-muted-foreground">{t.budget}: {d.budget}</p> : null}</section> : null}
       <RequestedTerms spec={d.spec} lang={lang} />
       <Documents token={token} lang={lang} id={d.id} />
-      <DrawingGallery pages={d.drawing_pages} lang={lang} />
+      <DrawingGallery pages={d.drawing_pages} failed={Number(d.drawing_pages_failed || 0)} lang={lang} />
       <BoqTable boq={d.boq} confidence={d.boq_confidence} lang={lang} />
       {d.boq_withheld ? <p className="mt-3 text-[12.5px] text-muted-foreground">{t.boqHeld}</p> : null}
       <ClarifyThread inquiryId={d.id} token={token} lang={lang} canAsk={canQuote && !q} />
@@ -171,7 +172,8 @@ export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, re
                   <span className="mt-0.5 block text-[12px] text-muted-foreground">
                     {day(i.created_at, lang)}
                     {i.boq_lines ? ' · ' + t.boq(i.boq_lines) : ''}
-                    {i.drawing_pages ? ' · ' + t.drawings(i.drawing_pages) : ''}
+                    {i.drawing_pages_expected || i.drawing_pages ? ' · ' + t.drawings(i.drawing_pages_expected || i.drawing_pages) : ''}
+                    {i.drawing_pages_failed ? ' · ' + ws(lang, 'rfq_pages_row_missing', { n: i.drawing_pages_failed }) : ''}
                   </span>
                 </span>
                 <span className="flex flex-col items-end gap-1">

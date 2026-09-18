@@ -14,6 +14,13 @@ const EN: Dict = {
   tab_services: 'Services', tab_rfqs: 'Inquiries received', tab_quotes: 'Quotations submitted', tab_messages: 'Messages',
   tab_documents: 'Documents', tab_insights: 'Insights', account_menu: 'Account', acct_profile: 'Profile', acct_billing: 'Billing', acct_settings: 'Settings',
 
+  // inquiries received — a drawing page that could not be opened (18 Sep 2026, sales_engineer). The
+  // server counts what was expected, served and failed (supplier_api inbox: drawing_pages_expected /
+  // _served / _failed); showing fewer drawings than exist, with no word said, is what these replace.
+  rfq_pages_unavailable: '{n} of {total} drawing pages could not be opened — please refresh to try again.',
+  rfq_pages_row_missing: '{n} could not be opened',
+  rfq_pages_none: 'The drawings for this inquiry could not be opened — please refresh to try again. Please do not price from the bill of quantities alone.',
+
   // messages
   mb_loading: 'Loading your messages…', mb_err: 'We could not load your messages. Please try again.', mb_retry: 'Try again',
   mb_locked_h: 'Customer messaging opens when you win a job',
@@ -70,6 +77,10 @@ const EN: Dict = {
 const AR: Dict = {
   tab_services: 'الخدمات', tab_rfqs: 'الاستفسارات الواردة', tab_quotes: 'عروض الأسعار المقدَّمة', tab_messages: 'الرسائل',
   tab_documents: 'المستندات', tab_insights: 'الرؤى', account_menu: 'الحساب', acct_profile: 'الملف التعريفي', acct_billing: 'الفواتير', acct_settings: 'الإعدادات',
+
+  rfq_pages_unavailable: 'تعذّر فتح {n} من أصل {total} من صفحات المخططات — يُرجى تحديث الصفحة والمحاولة مرة أخرى.',
+  rfq_pages_row_missing: 'تعذّر فتح {n} منها',
+  rfq_pages_none: 'تعذّر فتح مخططات هذا الاستفسار — يُرجى تحديث الصفحة والمحاولة مرة أخرى. لا تُسعّر بالاعتماد على جدول الكميات وحده.',
 
   mb_loading: 'جارٍ تحميل رسائلك…', mb_err: 'تعذّر تحميل رسائلك. يُرجى المحاولة مرة أخرى.', mb_retry: 'إعادة المحاولة',
   mb_locked_h: 'تُفتح مراسلة العملاء عندما تفوز بعمل',

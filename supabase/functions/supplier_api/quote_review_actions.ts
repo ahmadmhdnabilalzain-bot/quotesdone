@@ -67,6 +67,10 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
         id: i.id, job_no: jobNo(String(i.id)), category: i.category ?? null, emirate: i.emirate ?? null, created_at: i.created_at, status: i.status,
         concluded: !!i.concluded, revealed: !!i.revealed, you_won: !!i.you_won, summary: i.summary ? String(i.summary).slice(0, 220) : null,
         boq_lines: boqRows(i).length, boq_withheld: !!i.boq_withheld, drawing_pages: (i.drawing_pages || []).length,
+        // What the inquiry HAS versus what could be signed. Without both, a row reading "2 drawing
+        // pages" cannot be told from one that has three and lost one on the way out.
+        drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),
+        drawing_pages_failed: Number(i.drawing_pages_failed || 0),
         quotes: qs.map((q) => ({ id: q.id, option_no: q.option_no || 1, status: q.status, quote_amount: q.quote_amount, on_hold: !!q.spec_hold })),
         review: stateOf(reviews, i.id),
       };
@@ -81,6 +85,9 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
       concluded: !!i.concluded, revealed: !!i.revealed, you_won: !!i.you_won, summary: i.summary ?? null, budget: i.budget ?? null,
       scope_type: i.scope_type ?? null, spec: i.spec ?? null, requested: i.spec?.customer_requirements?.display ?? null,
       boq: i.boq ?? null, boq_withheld: !!i.boq_withheld, boq_confidence: i.boq_confidence ?? null, drawing_pages: i.drawing_pages || [],
+      drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),
+      drawing_pages_served: Number(i.drawing_pages_served ?? (i.drawing_pages || []).length),
+      drawing_pages_failed: Number(i.drawing_pages_failed || 0),
       quotes: i.quotes || [], review: stateOf(await repo.reviewsOf(sup.id), i.id),
     } } };
   }
@@ -93,7 +100,10 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
     const documents: Json[] = (i.drawing_pages || []).map((u: string, k: number) => ({ kind: 'drawing_page', name: `Job_${job}_drawing_p${String(k + 1).padStart(2, '0')}${extOf(u)}`, url: u, expires_in: 3600 }));
     const rows = boqRows(i);
     if (rows.length) documents.push({ kind: 'boq_csv', name: `Job_${job}_BOQ.csv`, mime: 'text/csv', content: boqCsv(rows), lines: rows.length });
-    return { status: 200, json: { ok: true, job_no: job, boq_withheld: !!i.boq_withheld, documents } };
+    // A page that could not be signed is missing from this list too, so the list says how many.
+    return { status: 200, json: { ok: true, job_no: job, boq_withheld: !!i.boq_withheld, documents,
+      drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),
+      drawing_pages_failed: Number(i.drawing_pages_failed || 0) } };
   }
 
   // ── The conversation ─────────────────────────────────────────────────────────────────────────

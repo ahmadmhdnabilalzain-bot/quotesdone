@@ -15,6 +15,8 @@ export type InquiryListItem = {
   id: string; job_no: string; category: string | null; emirate: string | null; created_at: string; status: string;
   concluded: boolean; revealed: boolean; you_won: boolean; summary: string | null;
   boq_lines: number; boq_withheld: boolean; drawing_pages: number; quotes: QuoteSummary[];
+  /** What the inquiry HAS, and how many of them could not be signed. drawing_pages is what arrived. */
+  drawing_pages_expected: number; drawing_pages_failed: number;
   review: { state: ReviewState; updated_at: string } | null;
 };
 export type InquiriesList = { ok: true; approval_status: string | null; inquiries: InquiryListItem[] };
@@ -25,6 +27,8 @@ export type InquiryDetail = {
     concluded: boolean; revealed: boolean; you_won: boolean; summary: string | null; budget: string | null; scope_type: string | null;
     spec: unknown; requested: { en?: { key: string; label: string; value: string }[]; ar?: { key: string; label: string; value: string }[] } | null;
     boq: { boq?: unknown[] } | null; boq_withheld: boolean; boq_confidence: string | null; drawing_pages: string[];
+    /** expected = on the inquiry, served = signed and in drawing_pages, failed = missing from this view. */
+    drawing_pages_expected: number; drawing_pages_served: number; drawing_pages_failed: number;
     quotes: { id: string; option_no?: number; status: string; quote_amount: number | null; spec_hold?: unknown }[];
     review: { state: ReviewState; updated_at: string } | null;
   };
@@ -32,7 +36,8 @@ export type InquiryDetail = {
 export type InquiryDocument =
   | { kind: 'drawing_page'; name: string; url: string; expires_in: number }
   | { kind: 'boq_csv'; name: string; mime: 'text/csv'; content: string; lines: number };
-export type InquiryDocuments = { ok: true; job_no: string; boq_withheld: boolean; documents: InquiryDocument[] };
+export type InquiryDocuments = { ok: true; job_no: string; boq_withheld: boolean; documents: InquiryDocument[];
+  drawing_pages_expected: number; drawing_pages_failed: number };
 
 export type MessageView = {
   id: string; role: 'supplier' | 'sales_engineer'; kind: 'text' | 'file' | 'review' | 'choice_prompt' | 'choice' | 'submitted' | 'notice';
