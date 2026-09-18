@@ -76,8 +76,32 @@ begin
                                   null, null, null, 50, '{}'::text[]) m
   where m.supplier_id = v_lead;
 
+  -- EACH NUMBER IS ASSERTED, not merely printed. A probe whose only outcome is "it ran" cannot fail,
+  -- and a check that cannot fail is worse than no check (database review, 18 Sep 2026).
+  if v_n_stated <> 1 then
+    raise exception 'PROBE FAIL: a stated flooring.tiling should match a flooring.tiling inquiry once, got %', v_n_stated;
+  end if;
+  if v_n_implied <> 1 then
+    raise exception 'PROBE FAIL: a decoration-only supplier should reach a flooring.tiling inquiry through the implication map, got %', v_n_implied;
+  end if;
+  if v_via is null or cardinality(v_via) = 0 then
+    raise exception 'PROBE FAIL: the implied match records no implication rule; via_implication was %', coalesce(array_to_string(v_via, '; '), 'null');
+  end if;
+  if not ('interior_fitout.decoration -> flooring.tiling' = any(v_via)) then
+    raise exception 'PROBE FAIL: via_implication names the wrong rule: %', array_to_string(v_via, '; ');
+  end if;
+  if v_n_removed <> 0 then
+    raise exception 'PROBE FAIL: after removing flooring.tiling the inquiry must not reach this supplier, got %', v_n_removed;
+  end if;
+  if v_n_chain <> 0 then
+    raise exception 'PROBE FAIL: chaining leaked — decoration reached gypsum.acoustic_ceiling through gypsum.false_ceiling, got %', v_n_chain;
+  end if;
+  if v_n_noservice <> 1 then
+    raise exception 'PROBE FAIL: an inquiry naming no service must still match on the trade gate alone, got %', v_n_noservice;
+  end if;
+
   raise exception
-    'PROBE (rolled back) stated_match=% implied_match=% via=% after_removal=% chained=% no_service_named=%',
-    v_n_stated, v_n_implied, coalesce(array_to_string(v_via, '; '), '-'),
+    'PROBE PASS (rolled back) stated_match=% implied_match=% via=% after_removal=% chained=% no_service_named=%',
+    v_n_stated, v_n_implied, array_to_string(v_via, '; '),
     v_n_removed, v_n_chain, v_n_noservice;
 end $$;

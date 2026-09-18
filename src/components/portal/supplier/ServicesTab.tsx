@@ -75,9 +75,11 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const [roles, setRoles] = useState<string[]>([]);
   const [rawText, setRawText] = useState('');
   const [rw, setRw] = useState<Rewrite | null>(null);
-  // Which of the rewrite's own lines the supplier struck out. Keys for services and implications,
-  // the text itself for the words we could not name.
+  // Which lines the supplier struck out. Service and implication keys go in as they are; a phrase we
+  // could not name goes in under a `word:` prefix, because it is free text and nothing stops a
+  // supplier typing something shaped like a service key (React review, 18 Sep 2026).
   const [dropped, setDropped] = useState<Set<string>>(new Set());
+  const wordKey = (text: string) => 'word:' + text;
   const [rwBusy, setRwBusy] = useState(false);
   const [rwMsg, setRwMsg] = useState('');
   const [busy, setBusy] = useState(false);
@@ -97,12 +99,18 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       setTicked(new Set(d.selected_services));
       setRoles((d.capability && d.capability.roles) || []);
       setRawText(d.raw_text || '');
-      setRw(null); setDropped(new Set(d.removed_services || []));
+      // `dropped` starts empty on every load and is seeded from the preview instead: the server marks
+      // an implication the supplier removed before as `removed: true`, so what was struck out survives
+      // without this set having to hold keys the checklist may legitimately tick.
+      setRw(null); setDropped(new Set());
       setSt({ loading: false, err: '', data: d });
     } else {
       setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, sc(lang, 'load_failed')) }));
     }
   };
+  // `lang` is deliberately not a dependency: it is read only for an error string, and re-running the
+  // whole load on a language toggle would throw away the supplier's unsaved edits. A retry re-renders
+  // the message in the current language.
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── voice ──────────────────────────────────────────────────────────────────────────────────────
@@ -187,6 +195,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     if (j && j.ok) {
       const next = j as Rewrite;
       setRw(next);
+      setDropped((s) => new Set([...s, ...next.implied.filter((i) => i.removed).map((i) => i.key)]));
       if (!next.service_keys.length && !next.own_words.length) setRwMsg(sc(lang, 'rewrite_none'));
     } else setRwMsg(srvMsg(lang, j, sc(lang, 'rewrite_failed')));
   };
@@ -196,10 +205,14 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // stated / implied / removed apart and matching can subtract a removal (fn_services_effective).
   const rwStated = (rw?.service_keys || []).filter((k) => !dropped.has(k));
   const rwImplied = (rw?.implied || []).filter((i) => !dropped.has(i.key)).map((i) => i.key);
+  const rwOwnWords = (rw?.own_words || []).filter((w) => !dropped.has(wordKey(w)));
+  // A key struck out in the preview is struck out even if the prepared checklist also ticks it —
+  // otherwise "Remove" reads as done and the union puts the key straight back (React review, 18 Sep).
+  const statedKeys = [...new Set([...liveTicks, ...rwStated])].filter((k) => !dropped.has(k));
+  // Removals travel with the save so matching can subtract them: what was already stored, plus
+  // whatever was struck out in this preview, minus anything now stated or kept.
   const rwRemoved = [...new Set([...(d.removed_services || []), ...(rw?.implied || []).filter((i) => dropped.has(i.key)).map((i) => i.key)])]
-    .filter((k) => !rwImplied.includes(k) && !rwStated.includes(k));
-  const rwOwnWords = (rw?.own_words || []).filter((w) => !dropped.has(w));
-  const statedKeys = [...new Set([...liveTicks, ...rwStated])];
+    .filter((k) => !rwImplied.includes(k) && !statedKeys.includes(k));
 
   const save = async () => {
     setBusy(true); setNote(null);
@@ -208,6 +221,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       services: statedKeys, implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(),
     }, token).catch(() => null);
+    if (!mounted.current) return;
     setBusy(false);
     if (j && j.ok) {
       const review = (j.proposed_trades || []).length > 0 || (j.new_trades_under_review || []).length > 0;
@@ -366,18 +380,19 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
             </div>
           )}
 
-          {/* NEVER DROPPED, NEVER INVENTED: the supplier's own words, for the sales engineer. */}
+          {/* WE NEVER DROP THESE AND NEVER GUESS THEM: the supplier's own words, straight to the sales
+              engineer. The supplier may strike one out — that is its own correction, not ours. */}
           {rw.own_words.length > 0 && (
             <div className="mt-3">
               <h4 className={cn(sub, 'font-semibold')}>{sc(lang, 'own_words_title')}</h4>
               <p className={cn(sub, 'mt-0.5')}>{sc(lang, 'own_words_help')}</p>
               <ul className="mt-1.5 flex flex-col gap-1.5">
-                {rw.own_words.map((wtext) => (
-                  <li key={wtext} className={cn(chip, dropped.has(wtext) && 'opacity-60')}>
+                {rw.own_words.map((wtext, i) => (
+                  <li key={i + ':' + wtext} className={cn(chip, dropped.has(wordKey(wtext)) && 'opacity-60')}>
                     <span className="font-medium text-foreground" dir="auto">{wtext}</span>
-                    {dropped.has(wtext) ? <Badge variant="secondary">{sc(lang, 'removed_badge')}</Badge> : null}
-                    <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(wtext)}>
-                      {dropped.has(wtext) ? sc(lang, 'restore') : sc(lang, 'remove')}<span className="sr-only">: {wtext}</span>
+                    {dropped.has(wordKey(wtext)) ? <Badge variant="secondary">{sc(lang, 'removed_badge')}</Badge> : null}
+                    <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(wordKey(wtext))}>
+                      {dropped.has(wordKey(wtext)) ? sc(lang, 'restore') : sc(lang, 'remove')}<span className="sr-only">: {wtext}</span>
                     </Button>
                   </li>
                 ))}

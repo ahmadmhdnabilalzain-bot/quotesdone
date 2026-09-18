@@ -802,21 +802,35 @@ cand as (
 ),
 -- GATE: the services the inquiry names, at SERVICE level. Stated + one level of the curated
 -- implication map - what the supplier removed. Empty p_services leaves every candidate through.
-svc as (
+--
+-- ONE DEFINITION OF COVERAGE. eff_services is computed once per candidate by fn_services_effective,
+-- and BOTH the hit list and the attribution are derived from it. An earlier draft re-derived the
+-- attribution from c.services directly (database review, 18 Sep 2026): a service code the supplier
+-- still stores but taxonomy_trade_service no longer marks active was rejected by fn_services_effective
+-- and accepted by the attribution, so `why` could name a curated rule that never actually fired.
+eff as (
   select c.*,
-    case when cardinality(p_services) = 0 then '{}'::text[]
-         else array(select unnest(public.fn_services_effective(c.services, c.trades, c.services_removed))
-                    intersect select unnest(p_services)) end as service_hits,
-    case when cardinality(p_services) = 0 then '{}'::text[] else array(
+         case when cardinality(p_services) = 0 then '{}'::text[]
+              else public.fn_services_effective(c.services, c.trades, c.services_removed) end as eff_services
+  from cand c
+),
+svc as (
+  select e.*,
+    array(select unnest(e.eff_services) intersect select unnest(p_services)) as service_hits,
+    -- ponytail: one scan of service_implication per candidate. At 113 curated rows against a
+    -- candidate set the gates above have already cut down, this is not measurable; batch it with a
+    -- single unnest+join if the map or the candidate count grows an order of magnitude.
+    array(
       select distinct i.from_code || ' -> ' || i.implies_trade || '.' || i.implies_code
       from public.service_implication i
       where i.active
-        and (i.implies_trade || '.' || i.implies_code) = any(p_services)
-        and not ((i.implies_trade || '.' || i.implies_code) = any(coalesce(c.services, '{}'::text[])))
-        and not ((i.implies_trade || '.' || i.implies_code) = any(coalesce(c.services_removed, '{}'::text[])))
-        and (i.from_code = any(c.trades) or i.from_code = any(coalesce(c.services, '{}'::text[])))
-      order by 1) end as via_implication
-  from cand c
+        and (i.implies_trade || '.' || i.implies_code) = any(e.eff_services)   -- it really is covered
+        and (i.implies_trade || '.' || i.implies_code) = any(p_services)       -- and the inquiry asked
+        and not ((i.implies_trade || '.' || i.implies_code) = any(coalesce(e.services, '{}'::text[])))
+        and (i.from_code = any(coalesce(e.trades, '{}'::text[]))
+          or i.from_code = any(coalesce(e.services, '{}'::text[])))
+      order by 1) as via_implication
+  from eff e
 ),
 scored as (
   select c.*,
