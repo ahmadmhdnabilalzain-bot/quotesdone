@@ -55,8 +55,12 @@ type State = {
 // three lists below are what the supplier actually edits.
 type Because = { from: string; from_label_en: string; from_label_ar: string; en: string; ar: string };
 type Implied = { key: string; label_en: string; label_ar: string; trade: string; removed: boolean; because: Because[] };
+type RewriteItem =
+  | { kind: 'service'; key: string; trade: string; label_en: string; label_ar: string; from: string }
+  | { kind: 'trade'; trades: string[]; text: string; from: string }
+  | { kind: 'unmatched'; text: string; from: string };
 type Rewrite = {
-  raw_text: string; service_keys: string[]; own_words: string[];
+  raw_text: string; service_keys: string[]; own_words: string[]; items: RewriteItem[];
   summary_en: string; summary_ar: string; implied: Implied[]; pending_taxonomy: string[];
 };
 
@@ -172,7 +176,14 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const liveTicks = [...ticked].filter((k) => trades.includes(k.split('.')[0]));
   const docs = (d.capability?.source_docs?.docs || []).filter((x) => (x.trades || []).length);
   const noPrep = !d.confirmed && d.checklist.length === 0;
+  // THE REWRITE CARRIES ITS OWN LABELS and they are read first. services_by_trade only holds the
+  // trades the sales engineer PREPARED, so a service recognised from a trade the supplier does not
+  // have on file — the ordinary case for anything it adds — had no label there and rendered as its
+  // raw key ("interior fitout decoration"). Seen in the EN desktop screenshot, 18 Sep 2026.
+  const rwLabels = new Map((rw?.items || []).flatMap((i) => (i.kind === 'service' ? [[i.key, i] as const] : [])));
   const labelOfKey = (key: string) => {
+    const r = rwLabels.get(key);
+    if (r) return ar ? r.label_ar : r.label_en;
     const s = (d.services_by_trade[key.split('.')[0]] || []).find((x) => x.key === key);
     return s ? svcName(s) : key.replace(/[._]/g, ' ');
   };
