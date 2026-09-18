@@ -36,7 +36,7 @@ const SEED: Array<[string, number, number, 'plan' | 'last']> = [
   ['accountantDuties', 1800, 4500, 'plan'],
   ['whatsapp', 900, 8800, 'plan'],
   ['itdetect', 900, 8000, 'plan'],
-  ['itduties', 1800, 3000, 'plan'],
+  ['itduties', 1800, 17000, 'plan'],
   ['itscheduled', 1800, 4000, 'plan'],
   ['itlater', 1800, 3000, 'plan'],
   ['specoffer', 900, 4000, 'plan'],
@@ -44,7 +44,7 @@ const SEED: Array<[string, number, number, 'plan' | 'last']> = [
   ['orgtasks', 900, 1500, 'plan'],
   ['it', 900, 1000, 'last'],
   ['outbox', 900, 9500, 'last'],
-  ['archive', 900, 6200, 'last'],
+  ['archive', 900, 18000, 'last'],
 ];
 const BUDGET_MS = 70_000;
 const TICK_S = 900;

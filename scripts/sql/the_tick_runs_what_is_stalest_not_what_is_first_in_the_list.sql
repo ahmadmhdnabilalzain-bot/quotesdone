@@ -111,7 +111,7 @@ insert into public.resilience_step (step, every, budget_ms, place, rank, note) v
   ('accountantDuties', interval '30 min',    4500,  'plan', 0, 'the accountant''s other call; its own gates hold the daily duties'),
   ('whatsapp',         interval '15 min',    8800,  'plan', 0, 'drains the founder''s command channel; send_whatsapp averaged 8.8 s a call'),
   ('itdetect',         interval '15 min',    8000,  'plan', 0, 'the detector; three missed ticks produced a false SCHEDULER DOWN page on 17 Sep, so it keeps a one-tick floor'),
-  ('itduties',         interval '30 min',    3000,  'plan', 0, 'fn_it_duties_due is a 55-minute gate'),
+  ('itduties',         interval '30 min',   17000,  'plan', 0, 'fn_it_duties_due is a 55-minute gate. MEASURED, not estimated: the first planned tick recorded 17.3 s — the seed had guessed 3 s, and nobody had ever had a per-step number to check it against'),
   ('itscheduled',      interval '30 min',    4000,  'plan', 0, 'fn_it_scheduled_due reads it_duty_schedule, whose shortest `every` is 1 hour'),
   ('itlater',          interval '30 min',    3000,  'plan', 0, 'IT duties 19-24, each gated in its own routine'),
   ('specoffer',        interval '15 min',    4000,  'plan', 0, 'a supplier is waiting on the spec offer; sales_engineer averaged 3.8 s a call'),
@@ -123,7 +123,7 @@ insert into public.resilience_step (step, every, budget_ms, place, rank, note) v
   -- duty:heartbeat:archive, "not run: the tick passed its 110s deadline", seen 27 times by 18 Sep 07:17Z.
   ('it',               interval '15 min',    1000,  'last', 1, 'raises the findings the detector wrote this tick; must run AFTER itdetect'),
   ('outbox',           interval '15 min',    9500,  'last', 2, 'drains the mail AFTER everything that writes mail; send_outbox averaged 8.5 s a call'),
-  ('archive',          interval '15 min',    6200,  'last', 3, 'every conversation message gets its PDF within one beat (founder, 14 Sep 2026); conversation_archive averaged 6.2 s a call')
+  ('archive',          interval '15 min',   18000,  'last', 3, 'every conversation message gets its PDF within one beat (founder, 14 Sep 2026). MEASURED, not estimated: the first planned tick recorded 18.3 s, three times the 6.2 s the sub-function average suggested — which is exactly why it was the step the 110 s deadline kept cutting, and why it is `always` now')
 on conflict (step) do update
    set every = excluded.every, budget_ms = excluded.budget_ms,
        place = excluded.place, rank = excluded.rank, note = excluded.note;
