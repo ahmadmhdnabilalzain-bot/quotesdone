@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { CookieConsent } from '@/components/CookieConsent';
 import { ChatWidget } from '@/components/ChatWidget';
+import { RouteProgress } from '@/components/ui/route-progress';
 import { NodeField } from '@/components/NodeField';
 import { ldHtml, siteLd } from '@/lib/seo';
 import '../globals.css';
@@ -70,6 +71,8 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
         <script type="application/ld+json" dangerouslySetInnerHTML={ldHtml(siteLd(locale))} />
         <div className="aurora" aria-hidden />
         <NodeField />
+        {/* The top bar for route changes — the one loading system, see src/components/ui/busy.tsx. */}
+        <RouteProgress label={lang === 'ar' ? 'جارٍ التحميل' : 'Loading'} />
         <NextIntlClientProvider messages={messages}>{children}<CookieConsent /><ChatWidget /></NextIntlClientProvider>
       </body>
     </html>

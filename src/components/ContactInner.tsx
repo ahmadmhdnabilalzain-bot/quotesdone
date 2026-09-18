@@ -16,8 +16,23 @@ export function ContactInner() {
     const F = document.getElementById('cform') as HTMLFormElement | null;
     const Mg = document.getElementById('cmsg') as HTMLElement | null;
     if (!F) return;
+    // The form's markup comes from marketing.json, so the busy state is applied imperatively here.
+    // It follows the same rules as ui/busy.tsx: the submit is locked from the first millisecond
+    // (this form had NO guard at all — a second press filed a second ticket), the ring appears
+    // only after 150ms, and a failure resolves it into the error message below.
+    const Sub = F.querySelector<HTMLButtonElement | HTMLInputElement>('[type="submit"]');
+    let sending = false; let showTimer: ReturnType<typeof setTimeout>;
+    const setBusy = (on: boolean) => {
+      sending = on;
+      clearTimeout(showTimer);
+      if (Sub) Sub.disabled = on;
+      F.setAttribute('aria-busy', on ? 'true' : 'false');
+      if (on) showTimer = setTimeout(() => { if (Mg && sending) Mg.prepend(Object.assign(document.createElement('span'), { className: 'qd-spin me-2' })); }, 150);
+    };
     const onsub = async (e: Event) => {
       e.preventDefault();
+      if (sending) return;
+      setBusy(true);
       if (Mg) { Mg.style.color = 'var(--mut,#9DB2B2)'; Mg.textContent = locale === 'ar' ? 'جارٍ الإرسال…' : 'Sending…'; }
       const data: any = {}; new FormData(F).forEach((v, k) => { data[k] = v; });
       try {
@@ -40,9 +55,10 @@ export function ContactInner() {
         }
         else { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = ar ? 'تعذّر الإرسال. يرجى مراسلتنا على management@quotesdone.com.' : ((j && j.error) || 'Could not send. Please email management@quotesdone.com.'); } }
       } catch (_e) { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = locale === 'ar' ? 'تعذّر الإرسال. يرجى مراسلتنا على management@quotesdone.com.' : 'Could not send. Please email management@quotesdone.com.'; } }
+      finally { setBusy(false); }
     };
     F.addEventListener('submit', onsub);
-    return () => F.removeEventListener('submit', onsub);
+    return () => { clearTimeout(showTimer); F.removeEventListener('submit', onsub); };
   }, [locale]);
   const hero = splitHero(html);
   return (

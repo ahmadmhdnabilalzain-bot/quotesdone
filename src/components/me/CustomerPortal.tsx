@@ -8,6 +8,9 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Seal, Kicker } from '@/components/ui/sealed';
+// The one loading system (src/components/ui/busy.tsx): 150ms before a spinner shows, 300ms minimum
+// once it does, and `pending` guards the double press from ms 0. Nothing here rolls its own timing.
+import { useBusy, useDelayedFlag, Spinner, BusyButton, BusyNote } from '@/components/ui/busy';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { durationLabel } from '@/lib/durationLabel';
@@ -286,7 +289,15 @@ export function CustomerPortal() {
   // login_otp returns the account's registered language with the session, so the first dashboard
   // paint is already in it; the dashboard's own fetch then confirms it (onServedLocale).
   const onAuth = (access, refresh, locale) => { onServedLocale(locale); try { localStorage.setItem('qd-cust-token', access || ''); if (refresh) localStorage.setItem('qd-cust-refresh', refresh); } catch (_e) {} setToken(access || ''); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} } };
-  const doSignOut = () => { try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
+  // Signing out is a network call (Supabase revokes the session) and used to happen with no
+  // indicator at all. The tokens are dropped FIRST so a slow or failed revoke can never leave the
+  // customer signed in; the button then stays busy until the revoke settles.
+  const signOutBusy = useBusy();
+  const doSignOut = () => signOutBusy.run('out', async () => {
+    try { localStorage.removeItem('qd-cust-token'); localStorage.removeItem('qd-cust-refresh'); } catch (_e) {}
+    try { await SB().auth.signOut(); } catch (_e) {}
+    setToken(''); setPhase('login');
+  });
   const rtl = lang === 'ar';
   if (!mounted) return null;
   // THE STRIP IS FOR THE DOORWAY, NOT THE HOUSE. Signing in and completing a profile are two
@@ -298,7 +309,7 @@ export function CustomerPortal() {
       <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
       <Button variant="outline" size="sm" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
       <Button variant="outline" size="sm" onClick={swapTheme} aria-label={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')} title={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')}>{theme === 'dark' ? '☀' : '☾'}</Button>
-      {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
+      {phase === 'app' && <BusyButton busy={signOutBusy} act="out" variant="outline" size="sm" busyLabel={t(lang, 'signing_out')} onClick={doSignOut}>{t(lang, 'signout')}</BusyButton>}
     </div>
   </header>);
   return (<div dir={rtl ? 'rtl' : 'ltr'} data-theme={theme} className="osx min-h-screen bg-background text-foreground">
@@ -354,7 +365,12 @@ function Login({ onAuth, lang }) {
   const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
     try { const g = await call('role_guard', { user_kind: 'customer', identifier: v }); if (g && g.conflict === 'supplier') { setBusy(false); setMsg(t(lang, 'conflict_supplier')); return; } } catch (_e) {}
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(errText(j, lang, 'err_code_send')); };
-  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim(), lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; } setBusy(false); onAuth(j.access_token, j.refresh_token, j.locale); };
+  const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim(), lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; }
+    // THE BUTTON UN-BUSIED WHILE THE PORTAL WAS STILL BOOTING. setBusy(false) fired BEFORE onAuth,
+    // so the code was accepted, the button went back to "Verify & sign in", and nothing moved until
+    // the dashboard mounted. Busy is HELD across onAuth and released only if it throws — on success
+    // this card is replaced by the portal, which carries its own loading state.
+    try { await onAuth(j.access_token, j.refresh_token, j.locale); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); } };
   const swap = (m) => { setMode(m); setStep('id'); setMsg(''); setCode(''); };
   return (<AuthShell lang={lang}><Card className="relative w-full overflow-hidden p-6 shadow-e3 sm:p-8">
     <span aria-hidden className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
@@ -1360,6 +1376,10 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   const [dialog, ask] = useConfirm(lang);
   const [negOpen, setNegOpen] = useState(false);
   const [paying, setPaying] = useState(false);
+  // The Stripe redirect is a navigation, not a request that comes back: `leaving` only changes what
+  // the (still busy) button says, so the last thing the customer sees is "Taking you to payment…".
+  const [leaving, setLeaving] = useState(false);
+  const revealSpin = useDelayedFlag(busy);
   const reduce = useReducedMotion();
   // THE REVEAL MOMENT: the redaction bar lifts off the supplier the first time the customer sees
   // them — in this session, or on the return from Stripe (focus). Once; a later visit is plain.
@@ -1399,7 +1419,9 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     // keeps any path that already ends in /me.
     const cr = await call('stripe_checkout', { quote_id: q.id, return_url: location.origin + (lang === 'ar' ? '/ar/me' : '/me') }, token).catch(() => null);
     if (cr && cr.already_revealed) { unlock(await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null)); setBusy(false); return; }
-    if (cr && cr.url) { location.href = cr.url; return; }
+    // NOT setBusy(false): the browser is leaving this page. Clearing it here would put the button
+    // back to "Reveal & contact" for the seconds Stripe takes to load, inviting a second press.
+    if (cr && cr.url) { setLeaving(true); location.href = cr.url; return; }
     // stripe_checkout answers {error:'stripe_not_configured'} at HTTP 200; errText says it in words.
     setBusy(false); setMsg(errText(cr, lang, 'q_checkout_fail'));
   };
@@ -1442,7 +1464,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
           {/* Stacked below sm: beside the button the fee sentence was squeezed to 1-2 words a line at 375px. */}
           <div className={cn(S.sub, 'min-w-0 sm:flex-1')}>{w && c ? tf(lang, 'q_fee_line', { fee: aed(q.reveal_fee), w, c }) : aed(q.reveal_fee)}</div>
           {/* Gold: the one action in the product that unseals an identity. */}
-          <Button variant="reveal" disabled={busy || concluded} onClick={reveal}><Lock aria-hidden />{busy ? t(lang, 'q_wait') : t(lang, 'q_reveal')}</Button>
+          <Button variant="reveal" aria-busy={revealSpin || undefined} disabled={busy || concluded} onClick={reveal}>{revealSpin ? <Spinner /> : <Lock aria-hidden />}{busy ? t(lang, leaving ? 'q_redirecting' : 'q_wait') : t(lang, 'q_reveal')}</Button>
         </div>)}
     {paying && !revealed ? <RevealPayment q={q} token={token} lang={lang} call={call}
       onPaid={async () => { setPaying(false); unlock(await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null)); onChange && onChange(); }}
@@ -1465,11 +1487,17 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   const [rating, setRating] = useState(0); const [rated, setRated] = useState(!!(q && q.rated)); const [done, setDone] = useState('');
   const [dialog, ask] = useConfirm(lang);
   const g = terms || {};
-  const rate = async (n) => { setRating(n); const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token).catch(() => null); if (j && j.ok) { setRated(true); setDone(t(lang, 'c_thanks')); } else setDone(errText(j, lang, 'c_rate_fail')); };
-  const refund = async () => { if (!(await ask(tf(lang, 'c_refund_confirm', { c: g.chase_after_days, w: g.window_days, bmin: g.bank_min_days, bmax: g.bank_max_days }), { title: t(lang, 'c_refund'), confirm: t(lang, 'c_refund') }))) return; const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token).catch(() => null); setDone(j && j.ok ? t(lang, 'c_refund_ok') + (j.refund_ref ? ' ' + tf(lang, 'c_refund_ref', { r: j.refund_ref }) : '') : (j && j.message) || errText(j, lang, 'c_refund_fail')); };
+  // The three actions on a revealed supplier are all round trips and none of them said so: the stars
+  // stayed pressable during the call and showed nothing, and Hire/Refund could be pressed twice.
+  // One keyed state for all three — only one of them can sensibly be running at a time.
+  const act = useBusy();
+  // The stars fill optimistically (the press must feel instant), so a failure has to put them BACK.
+  // Leaving the attempted rating lit beside a failure message is the screen telling two stories.
+  const rate = (n) => { const prev = rating; setRating(n); return act.run('rate', async () => { const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token).catch(() => null); if (j && j.ok) { setRated(true); setDone(t(lang, 'c_thanks')); } else { setRating(prev); setDone(errText(j, lang, 'c_rate_fail')); } }); };
+  const refund = async () => { if (!(await ask(tf(lang, 'c_refund_confirm', { c: g.chase_after_days, w: g.window_days, bmin: g.bank_min_days, bmax: g.bank_max_days }), { title: t(lang, 'c_refund'), confirm: t(lang, 'c_refund') }))) return; await act.run('refund', async () => { const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token).catch(() => null); setDone(j && j.ok ? t(lang, 'c_refund_ok') + (j.refund_ref ? ' ' + tf(lang, 'c_refund_ref', { r: j.refund_ref }) : '') : (j && j.message) || errText(j, lang, 'c_refund_fail')); }); };
   // D4: the refund case and the chief executive's decision reference, from the refunds row itself.
   const gq = q.guarantee || {};
-  const hire = async () => { if (!(await ask(t(lang, 'c_hire_confirm'), { title: t(lang, 'c_hire'), confirm: t(lang, 'c_hire') }))) return; const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token).catch(() => null); if (j && j.ok) { setDone(t(lang, 'c_hired')); onChange && onChange(); } else setDone(errText(j, lang, 'c_update_fail')); };
+  const hire = async () => { if (!(await ask(t(lang, 'c_hire_confirm'), { title: t(lang, 'c_hire'), confirm: t(lang, 'c_hire') }))) return; await act.run('hire', async () => { const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token).catch(() => null); if (j && j.ok) { setDone(t(lang, 'c_hired')); onChange && onChange(); } else setDone(errText(j, lang, 'c_update_fail')); }); };
   const date = (d) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   return (<div className="mt-2.5 flex flex-col gap-2.5">{dialog}
     <div className="rounded-card border border-accent/35 bg-accent/[0.06] p-3.5">
@@ -1486,9 +1514,10 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
       {c.file_url && <div className="mt-1.5"><a href={c.file_url} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</a></div>}
       <div className="mt-2.5 flex flex-wrap items-center gap-4">
         {/* A11Y (5 Aug 2026): real buttons carrying their value, in a labelled group. */}
-        {!rated ? <span role="group" aria-label={t(lang, 'c_rate_group')} className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" onClick={() => rate(n)} aria-label={tf(lang, 'c_rate_n', { n })} className={cn('cursor-pointer border-0 bg-transparent p-0 leading-none', n <= rating && 'text-amber-400')}>★</button>)}</span> : <span className={S.sub}>{t(lang, 'c_rated')}</span>}
-        <Button variant="link" className="h-auto px-0" onClick={hire}>{t(lang, 'c_hire')}</Button>
-        <Button variant="link" className="h-auto px-0" onClick={refund}>{t(lang, 'c_refund')}</Button>
+        {!rated ? <span role="group" aria-label={t(lang, 'c_rate_group')} aria-busy={(act.busy && act.key === 'rate') || undefined} className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" disabled={act.pending} onClick={() => rate(n)} aria-label={tf(lang, 'c_rate_n', { n })} className={cn('cursor-pointer border-0 bg-transparent p-0 leading-none disabled:cursor-progress', n <= rating && 'text-amber-400')}>★</button>)}</span> : <span className={S.sub}>{t(lang, 'c_rated')}</span>}
+        <BusyNote busy={act.busy && act.key === 'rate'}>{t(lang, 'q_wait')}</BusyNote>
+        <BusyButton busy={act} act="hire" variant="link" className="h-auto px-0" busyLabel={t(lang, 'q_wait')} onClick={hire}>{t(lang, 'c_hire')}</BusyButton>
+        <BusyButton busy={act} act="refund" variant="link" className="h-auto px-0" busyLabel={t(lang, 'q_wait')} onClick={refund}>{t(lang, 'c_refund')}</BusyButton>
       </div>
       {done && <div className={cn(S.sub, 'mt-1.5 text-primary')} role="status">{done}</div>}
       {gq.refund_ref ? <div className={cn(S.sub, 'mt-1.5')}>{tf(lang, 'c_refund_ref', { r: gq.refund_ref })}{' · '}{gq.decision_ref ? tf(lang, 'c_decision_ref', { d: gq.decision_ref }) : t(lang, 'c_decision_wait')}</div> : null}

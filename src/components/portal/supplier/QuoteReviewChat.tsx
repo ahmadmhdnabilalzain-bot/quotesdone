@@ -135,7 +135,7 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
   const [th, setTh] = useState<ThreadView | null>(null);
   const [err, setErr] = useState('');
   const [text, setText] = useState('');
-  const [busy, setBusy] = useState<null | 'upload' | 'send' | 'choose' | 'submit'>(null);
+  const [busy, setBusy] = useState<null | 'upload' | 'send' | 'choose' | 'reupload' | 'submit'>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
   const alive = useRef(true);
@@ -234,7 +234,7 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
             {th.can_choose ? (
               <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label={t.choice}>
                 <Button disabled={!!busy} onClick={() => run('choose', () => qr.choose(token, inquiryId, 'generate', lang))}>{busy === 'choose' ? t.submitting : t.generate}</Button>
-                <Button variant="outline" disabled={!!busy} onClick={() => run('choose', () => qr.choose(token, inquiryId, 'reupload', lang))}>{t.reupload}</Button>
+                <Button variant="outline" disabled={!!busy} aria-busy={busy === 'reupload' || undefined} onClick={() => run('reupload', () => qr.choose(token, inquiryId, 'reupload', lang))}>{busy === 'reupload' ? t.sending : t.reupload}</Button>
               </div>
             ) : null}
             {th.can_submit ? (
