@@ -71,7 +71,7 @@
 --   node scripts/apply_sql.mjs scripts/sql/a_new_document_is_queued_at_once_and_the_backfill_runs_on_its_own.sql --apply --ddl
 --   node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production dropbox_backup
 -- Probe (aborted transaction under an 8 s statement_timeout, commits nothing):
---   node scripts/apply_sql.mjs scripts/checks/a_new_document_is_queued_at_once.probe.sql --apply
+--   node scripts/apply_sql.mjs scripts/checks/a_new_document_is_queued_at_once.probe.sql --apply --ddl
 
 -- ── 1. fn_backup_sweep_objects: the same list, computed once per file ────────────────────────────
 
