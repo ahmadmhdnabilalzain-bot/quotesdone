@@ -72,7 +72,10 @@ test('the destinations retired on 15 September are not crawled for any more', ()
   // inside Messages (TAB_ALIAS projects -> messages), "My scope" is Services, and "Get matched" is
   // the registration checklist that heads Documents. Each is still crawled, under its new home.
   assert.match(SUPPLIER, /TAB_ALIAS = \{[^}]*projects: 'messages'[^}]*\}/, 'Projects no longer folds into Messages');
-  assert.match(SUPPLIER, /tab === 'documents' && <>\s*\n\s*<GetMatched/, 'Get matched no longer heads Documents');
+  // Matched on the pair, not on the whitespace between them: #736 renamed `tab` to `shownTab` here
+  // while this branch was open, and a check that asserts a layout rather than a fact is a check that
+  // fails for the wrong reason.
+  assert.match(SUPPLIER, /Tab === 'documents' && <>[\s\S]{0,40}<GetMatched\b/i, 'Get matched no longer heads Documents');
   for (const gone of ['Get matched', 'My scope', 'RFQs']) {
     assert.ok(!NAV.supplier.en.includes(gone), `journey f still crawls the retired destination "${gone}"`);
   }

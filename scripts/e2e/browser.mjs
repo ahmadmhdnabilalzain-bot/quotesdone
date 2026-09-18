@@ -149,8 +149,14 @@ export async function fullPageShot(page, file) {
   return file;
 }
 
-export async function shot(page, dir, name) {
+export async function shot(page, dir, name, { fullPage = false } = {}) {
   const file = `${dir}/${name.replace(/[^a-z0-9_.-]+/gi, '_')}.png`;
+  // The same reason fullPageShot scrolls first (#735): a capture taken part-way down the page shows
+  // a sticky bar where a person never sees it. The crawl presses buttons that scroll, so its own
+  // captures were as exposed to this as the ones the founder read. One line, every journey.
+  if (fullPage) return fullPageShot(page, file);
+  await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+  await page.waitForTimeout(150);
   await page.screenshot({ path: file, fullPage: false }).catch(() => {});
   return file;
 }

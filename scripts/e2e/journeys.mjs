@@ -635,7 +635,20 @@ const ACCOUNT_MENU = {
 };
 const accountMenu = (kind, lang) => (kind === 'supplier' ? ACCOUNT_MENU[lang] : null);
 // Buttons a crawler must never press: they spend, send, delete or sign out. Everything else is pressed.
-const NEVER = /sign\s*out|log\s*out|delete|remove|cancel|withdraw|refund|reveal|pay|send|submit|approve|reject|accept|decline|close\s*request|تسجيل الخروج|حذف|إزالة|إلغاء|سحب|استرداد|كشف|ادفع|دفع|أرسل|إرسال|اعتماد|رفض|قبول/i;
+// …and one a crawler must never press for a different reason: #729's Services tab has a microphone
+// ("Speak your services" / "سجّل خدماتك صوتيًا"). Pressing it opens a recording, which is a side
+// effect on the supplier's machine, not a screen to look at. It is disabled today (the voice flag is
+// off) so Playwright would only wait out its timeout, but it will not be disabled forever.
+const NEVER = /sign\s*out|log\s*out|delete|remove|cancel|withdraw|refund|reveal|pay|send|submit|approve|reject|accept|decline|close\s*request|speak your|stop recording|تسجيل|سجّل|إيقاف التسجيل|الخروج|حذف|إزالة|إلغاء|سحب|استرداد|كشف|ادفع|دفع|أرسل|إرسال|اعتماد|رفض|قبول/i;
+// #736 gave every press and every region an aria-busy state, with a 300 ms minimum so a fast round
+// trip cannot strobe. A crawler that presses the next control while the last one is still working
+// measures the spinner rather than the page — and Playwright waits out its whole timeout against a
+// control the busy state has disabled. Wait for the screen to go quiet, bounded, and SAY SO in the
+// step's detail when it does not: a destination that is still busy after three seconds is a finding
+// about the journey, not something to hide behind a longer timeout.
+const notBusy = (page, ms = 3000) => page
+  .waitForFunction(() => !document.querySelector('[aria-busy="true"]'), null, { timeout: ms })
+  .then(() => true).catch(() => false);
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // The phone's overflow sheet (customer portal only). The button carries aria-controls; the sheet
 // itself, #qd-nav-more, exists only while it is open, and go() closes it on every choice.
@@ -745,9 +758,12 @@ export async function journeyCrawl(ctx) {
           try {
             await btn.click({ timeout: 8000 });
             await s.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+            const quiet = await notBusy(s.page);
             const ms = Date.now() - t0;
             const failed = s.calls.filter((c) => c.at >= t0 && (c.status >= 500 || c.status === 0)).map((c) => `${c.fn}:${c.action}:${c.status}`);
-            rep.step(J, `${who.kind} ${tag(m)}: ${label}`, failed.length ? 'FAIL' : 'PASS', `${ms} ms${failed.length ? ' failed calls ' + failed.join(', ') : ''}`, { ms, shot: await shot(s.page, dir, `f_${who.kind}_${tag(m)}_${at}`) });
+            rep.step(J, `${who.kind} ${tag(m)}: ${label}`, failed.length ? 'FAIL' : 'PASS',
+              `${ms} ms${quiet ? '' : ' — STILL BUSY after 3000 ms (aria-busy up when the crawl moved on)'}${failed.length ? ' failed calls ' + failed.join(', ') : ''}`,
+              { ms, shot: await shot(s.page, dir, `f_${who.kind}_${tag(m)}_${at}`) });
             // Every other button in this view, except those that spend, send, delete or sign out.
             // PRESS THE BUTTON THAT IS THERE, don't look it up again by its words. This used to read
             // each button's raw textContent and then ask getByRole for that exact accessible name —
@@ -769,7 +785,10 @@ export async function journeyCrawl(ctx) {
             // and waiting 3 s for it to reappear bought nothing.
             if (await btn.isVisible().catch(() => false)) await btn.click({ timeout: 3000 }).catch(() => {});
           } catch (e) {
-            rep.step(J, `${who.kind} ${tag(m)}: ${label}`, 'FAIL', `could not click: ${String(e.message).split('\n')[0].slice(0, 140)}`, { shot: await shot(s.page, dir, `f_fail_${who.kind}_${tag(m)}_${at}`) });
+            // A failure capture is the evidence somebody reads, so it is the WHOLE page (#735's
+            // fullPageShot, through shot's fullPage option): a viewport crop of a screen whose
+            // destination is missing tells you nothing about where it went.
+            rep.step(J, `${who.kind} ${tag(m)}: ${label}`, 'FAIL', `could not click: ${String(e.message).split('\n')[0].slice(0, 140)}`, { shot: await shot(s.page, dir, `f_fail_${who.kind}_${tag(m)}_${at}`, { fullPage: true }) });
           }
         }
       } finally {
