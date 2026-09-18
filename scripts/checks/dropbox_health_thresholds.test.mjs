@@ -43,8 +43,16 @@ test('resilience_ping calls op health as its own step, and both responses carry 
   // 15 Sep 2026 (PR #714): the handler runs its ticks from ONE ordered STEPS list and every return
   // spreads the step results by name, so "its own step" is its own STEPS entry and "both responses carry
   // it" is both returns spreading ...results. Same two properties, asserted on the new shape.
-  const steps = ts.slice(ts.indexOf('const STEPS'), ts.indexOf('Deno.serve('));
-  assert.match(steps, /\{ name: 'dropboxHealth', run: dropboxHealthTick \}/, 'dropboxHealthTick is not its own step');
+  //
+  // 18 Sep 2026 (PR #754): the order moved into Postgres and the list became the STEP_RUN map, so "its
+  // own step" now has two halves — declared in STEP_RUN, and named by the schedule that decides what is
+  // planned. A step the schedule does not name is never run at all, so this is a stronger statement
+  // than the old one, not a re-spelling of it. Both returns still spread ...results, unchanged.
+  const steps = ts.slice(ts.indexOf('const STEP_RUN'), ts.indexOf('const DECLARED_ORDER'));
+  assert.ok(steps.length > 0, 'the STEP_RUN map was not found before DECLARED_ORDER');
+  assert.match(steps, /dropboxHealth: \{ run: dropboxHealthTick \}/, 'dropboxHealthTick is not its own step');
+  assert.match(read('scripts/sql/the_tick_runs_what_is_stalest_not_what_is_first_in_the_list.sql'),
+    /\('dropboxHealth',\s+interval/, 'the schedule never names dropboxHealth, so the tick can never plan it');
   assert.equal((ts.match(/healthy: true,[^\n]*\.\.\.results/g) || []).length, 1);
   assert.equal((ts.match(/healthy: false,[^\n]*\.\.\.results/g) || []).length, 1);
 });

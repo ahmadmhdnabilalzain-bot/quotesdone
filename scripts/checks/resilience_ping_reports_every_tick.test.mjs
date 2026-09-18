@@ -17,14 +17,41 @@ import { fileURLToPath } from 'node:url';
 
 const src = readFileSync(fileURLToPath(new URL('../../supabase/functions/resilience_ping/index.ts', import.meta.url)), 'utf8');
 
+// 18 SEP 2026 — THE ORDER MOVED INTO POSTGRES, SO REACHABILITY GAINED A SECOND HALF.
+// The handler no longer walks a fixed `STEPS` array; it runs the order fn_resilience_tick_plan returns,
+// and STEP_RUN is a map of name -> runner. A tick is therefore reachable only if it is BOTH declared in
+// STEP_RUN and named by a row in public.resilience_step — a step the schedule does not name is never
+// planned, so it is dead in a way the old single-list check could not have expressed. Both halves are
+// asserted here, statically (the seed file), so this runs in a CI job with no database token;
+// scripts/checks/every_tick_step_is_scheduled.mjs asserts the same thing against the LIVE table.
+//
+// Verified before re-anchoring, so this is a moved anchor and not a softened assertion: 25 ticks
+// defined, 25 listed in STEP_RUN, 0 missing, and the live table holds the same 25 rows.
+const SEED = readFileSync(fileURLToPath(new URL(
+  '../../scripts/sql/the_tick_runs_what_is_stalest_not_what_is_first_in_the_list.sql', import.meta.url)), 'utf8');
+const stepRun = () => {
+  const open = src.indexOf("const STEP_RUN: Record<string, Omit<Step, 'name'>> = {");
+  assert.ok(open > 0, 'the STEP_RUN map was not found in resilience_ping/index.ts');
+  const close = src.indexOf('\n};', open);
+  assert.ok(close > open, 'the STEP_RUN map has no closing brace');
+  return src.slice(open, close);
+};
+
 test('every tick the file defines is a step the handler runs', () => {
   const defined = [...src.matchAll(/async function (\w+Tick)\(/g)].map((m) => m[1]);
   assert.ok(defined.length >= 10, `only ${defined.length} ticks found; the pattern no longer matches the file`);
-  const list = src.slice(src.indexOf('const STEPS'), src.indexOf('Deno.serve('));
-  assert.ok(list.length > 0, 'the STEPS list was not found before the handler');
-  const listed = new Set([...list.matchAll(/run: (\w+Tick)\b/g)].map((m) => m[1]));
-  const missing = defined.filter((t) => !listed.has(t));
-  assert.deepEqual(missing, [], 'ticks defined but never run');
+  const listed = new Set([...stepRun().matchAll(/run: (\w+Tick)\b/g)].map((m) => m[1]));
+  assert.deepEqual(defined.filter((t) => !listed.has(t)), [], 'ticks defined but never run');
+});
+
+test('every step the handler declares is one the schedule can plan', () => {
+  const keys = [...stepRun().matchAll(/^ {2}(\w+): \{\s*run:/gm)].map((m) => m[1]);
+  assert.ok(keys.length >= 10, `only ${keys.length} steps found in STEP_RUN; the pattern no longer matches`);
+  const unscheduled = keys.filter((k) => !new RegExp("\\('" + k + "',\\s+interval").test(SEED));
+  assert.deepEqual(unscheduled, [], 'steps the handler can run that public.resilience_step never names');
+  // and the other way: a row for a step the code does not have fails every tick, for ever
+  const seeded = [...SEED.matchAll(/^ {2}\('(\w+)',\s+interval/gm)].map((m) => m[1]);
+  assert.deepEqual(seeded.filter((s) => !keys.includes(s)), [], 'the schedule names steps the handler does not have');
 });
 
 test('both returns carry every step result and the failures', () => {
@@ -35,8 +62,12 @@ test('both returns carry every step result and the failures', () => {
   for (const r of returns) assert.match(r, /failing/, 'a return drops the failing steps');
 });
 
+// The property has not changed — the accountant's duty pass must be wired into the heartbeat and must
+// come back in the response — only the shape it is written in. It is now a STEP_RUN entry plus a row in
+// the schedule, and both are asserted rather than the one literal the old list happened to spell.
 test('the accountant\'s duties tick is run and reported', () => {
-  assert.match(src, /name: 'accountantDuties', run: accountantDutiesTick/);
+  assert.match(stepRun(), /accountantDuties: \{ run: accountantDutiesTick \}/, 'accountantDutiesTick is not a step');
+  assert.match(SEED, /\('accountantDuties',\s+interval/, 'the schedule never names accountantDuties, so it is never planned');
 });
 
 // 18 Sep 2026 — THE ORPHAN STEP'S TWO WAYS OF LOSING A FAILURE, both found in independent review

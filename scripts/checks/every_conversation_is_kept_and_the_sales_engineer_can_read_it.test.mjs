@@ -57,9 +57,22 @@ test('the sales engineer seat reads the whole record, and the heartbeat archives
   const rp = readFileSync(join(FN, 'resilience_ping', 'index.ts'), 'utf8');
   // 15 Sep 2026 (PR #714): ticks run from the STEPS list via runSteps, so "called before the healthy early
   // return" is: archiveTick is a STEPS entry, and runSteps(STEPS runs before the healthy return.
-  const steps = rp.slice(rp.indexOf('const STEPS'), rp.indexOf('Deno.serve('));
-  assert.match(steps, /run: archiveTick\b/, 'archiveTick is not one of the heartbeat steps');
-  const call = rp.indexOf('await runSteps(STEPS'), early = rp.indexOf('if (healthy) return J(');
+  //
+  // 18 Sep 2026 (PR #754): the order moved into Postgres and the list became the STEP_RUN map. Three
+  // things are asserted now instead of two, because the founder's rule is the PDF within one BEAT and
+  // the new design gives two ways to lose that which the old list did not have:
+  //   * the schedule must name `archive`, or it is never planned at all;
+  //   * it must be `always`, or the 110 s backstop skips it — which is exactly what was happening
+  //     (duty:heartbeat:archive, "not run: the tick passed its 110s deadline", seen 27 times on 18 Sep).
+  const steps = rp.slice(rp.indexOf('const STEP_RUN'), rp.indexOf('const DECLARED_ORDER'));
+  assert.ok(steps.length > 0, 'the STEP_RUN map was not found before DECLARED_ORDER');
+  assert.match(steps, /archive: \{ run: archiveTick, always: true \}/,
+    'archiveTick is not a heartbeat step that runs even past the deadline');
+  const seed = readFileSync(join(ROOT, 'scripts', 'sql',
+    'the_tick_runs_what_is_stalest_not_what_is_first_in_the_list.sql'), 'utf8');
+  assert.match(seed, /\('archive',\s+interval '15 min',\s+\d+,\s+'last'/,
+    'the schedule does not name archive as a drain that runs every tick');
+  const call = rp.indexOf('await runSteps(steps'), early = rp.indexOf('if (healthy) return J(');
   assert.ok(call > 0 && early > 0 && call < early, 'resilience_ping must call the archiver before the healthy early return');
   assert.match(rp, /\/conversation_archive'/, 'archiveTick no longer calls conversation_archive');
 });

@@ -24,14 +24,22 @@ export function failureOf(r: unknown): string | null {
 export async function runSteps(steps: Step[], t0: number, deadlineMs: number, now: () => number = Date.now) {
   const results: Record<string, unknown> = {};
   const failing: Failure[] = [];
+  // How long each step that actually ran took. Two Date.now() calls a step, so it costs nothing it is
+  // measuring, and it is what fn_resilience_step_record folds into each step's ewma_ms — the estimate
+  // the plan uses to decide what fits. Before this existed the only number anyone had was the tick's
+  // total, and "which step is eating the budget" had to be inferred from the sub-functions' own
+  // agent_runs rows, which says nothing at all about the steps that are pure RPCs.
+  const ms: Record<string, number> = {};
   for (const s of steps) {
     if (!s.always && now() - t0 > deadlineMs) {
       results[s.name] = { skipped: 'deadline' };
       failing.push({ name: s.name, error: 'not run: the tick passed its ' + Math.round(deadlineMs / 1000) + 's deadline' });
       continue;
     }
+    const s0 = now();
     let r: unknown;
     try { r = await s.run(); } catch (e) { r = { ok: false, error: String((e as Error)?.message || e) }; }
+    ms[s.name] = now() - s0;
     results[s.name] = r;
     // A NESTED STEP IS STILL JUDGED AT ITS OWN LEVEL FIRST (18 Sep 2026, it_engineer).
     // Found in review: the nested branch only looked at the entries, so a nested step that THREW —
@@ -50,5 +58,19 @@ export async function runSteps(steps: Step[], t0: number, deadlineMs: number, no
       }
     }
   }
-  return { results, failing };
+  return { results, failing, ms };
+}
+
+// WHAT THE TICK TELLS THE SCHEDULE AFTERWARDS, in the shape fn_resilience_step_record reads. A step is
+// `ok` when nothing in `failing` names it — either the step itself or one of its nested entries, because
+// `orphans.sanctions_screen` failing means the orphans step did not do its job. A deferred step stamps
+// nothing: leaving its last attempt untouched is exactly what makes it the stalest step next tick, so
+// this function is the other half of the starvation guarantee that lives in fn_resilience_tick_plan.
+export function stepRows(ranMs: Record<string, number>, failing: Failure[], deferred: string[]) {
+  const bad = new Set<string>();
+  for (const f of failing) bad.add(f.name.split('.')[0]);
+  const rows: Array<Record<string, unknown>> = Object.entries(ranMs)
+    .map(([step, ms]) => ({ step, ms, ok: !bad.has(step) }));
+  for (const step of deferred) rows.push({ step, deferred: true });
+  return rows;
 }
