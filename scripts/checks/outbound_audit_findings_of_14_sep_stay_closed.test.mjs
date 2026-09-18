@@ -60,11 +60,17 @@ test('4. contact_submit is rate limited per IP and per address before anything i
   assert.match(src, /, 429\)/);
 });
 
-test('5. supplier_account_notice is marked awaiting a template, never registered from code', () => {
+// "never registered from code" was the 14 Sep position and is SUPERSEDED: the founder authorised the
+// Meta submission on 18 Sep, and the EN + AR templates are in wa_template_setup's catalogue and
+// submitted. What this test protects is unchanged and is the part that mattered — a row that cannot
+// go yet says WHY instead of sitting silently, and the email twin is queued first and is the record.
+test('5. a supplier_account_notice row with no approved template says why, and the email carries it', () => {
   const src = R('supabase/functions/send_whatsapp/index.ts');
   assert.match(src, /return 'supplier_account_notice'/);
   assert.match(src, /key === 'supplier_account_notice'\) await admin\.from\('notifications'\)\.update\(\{ last_error: AWAITING_TEMPLATE_NOTE \}\)/);
-  assert.match(src, /awaiting template: supplier_account_notice/);
+  assert.match(src, /AWAITING_TEMPLATE_NOTE = 'awaiting template: /);
+  // and the template it is waiting for exists in the one place templates are authored
+  assert.match(R('supabase/functions/wa_template_setup/index.ts'), /^ {2}supplier_account_notice: \{$/m);
   // the email twin is what carries the notice meanwhile
   const notice = R('scripts/sql/a_supplier_who_leaves_holds_unanswered_is_warned_then_held.sql');
   const fn = notice.slice(notice.indexOf('function public.fn_supplier_notice'));

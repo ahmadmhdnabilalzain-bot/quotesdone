@@ -137,7 +137,11 @@ function tmplKey(type:string):string|null{
   if(t==='founder_alert') return 'founder_alert';
   return null;
 }
-const AWAITING_TEMPLATE_NOTE = 'awaiting template: supplier_account_notice has no WhatsApp template yet; registering one needs the founder\'s Meta submission. The email twin carried this notice.';
+// 18 SEP 2026: the founder authorised the submission and supplier_account_notice now HAS a template
+// (wa_template_setup catalogue, EN + AR, UTILITY). This branch is therefore reached only while Meta
+// is still reviewing it, or if its SID were ever unregistered again — so the note no longer says a
+// template will never exist, it says the row is waiting for one. The email twin remains the record.
+const AWAITING_TEMPLATE_NOTE = 'awaiting template: the supplier_account_notice WhatsApp template is submitted but not yet registered as an approved SID, so this row stays queued and goes the moment it lands. The email twin carried this notice.';
 function shortSummary(s:string){ let x=String(s||'').replace(/\s+/g,' ').trim(); x=x.replace(/^(QuotesDone[:\-\s]*)/i,''); return x.slice(0,90)||'your request'; }
 // A template variable may not carry a newline, a tab or a run of spaces (Meta refuses the send), so
 // every value is flattened and capped before it reaches Twilio.
