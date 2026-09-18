@@ -38,3 +38,22 @@ Deno.test('past the deadline a step is skipped and counted, except the ones that
   eq(results.outbox, { flushed: true }, 'always runs');
   eq(failing.map((f) => f.name), ['late'], 'the skip is a failure');
 });
+
+// A NESTED STEP THAT FAILS AS A WHOLE IS STILL A FAILURE (18 Sep 2026, it_engineer).
+// Found in review of the `orphans` step: the nested branch read only the ENTRIES, so a nested step
+// that threw — wrapped as {ok:false, error} by runSteps' own catch — was split into ('ok', false)
+// and ('error', '...'), neither readable by failureOf, and the failure disappeared. Same for a
+// nested step that returns {ok:false, error} because its gate RPC failed before it had any
+// sub-results. Both shapes are what a broken step actually looks like.
+Deno.test('a nested step that threw, or failed before it had sub-results, is still named', async () => {
+  const { failing } = await runSteps([
+    { name: 'threw', run: () => { throw new Error('gate exploded'); }, nested: true },
+    { name: 'gate', run: async () => ({ ok: false, error: 'rpc refused' }), nested: true },
+    { name: 'partial', run: async () => ({ email_cron: { status: 500 }, wa: { status: 200 } }), nested: true },
+  ], 0, 1e9, () => 0);
+  eq(failing, [
+    { name: 'threw', error: 'gate exploded' },
+    { name: 'gate', error: 'rpc refused' },
+    { name: 'partial.email_cron', error: 'HTTP 500' },
+  ], 'each failure is named once, at the level it happened');
+});

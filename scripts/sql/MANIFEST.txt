@@ -1463,3 +1463,9 @@ scripts/sql/a_supplier_describes_its_services_in_its_own_words_and_the_sales_eng
 scripts/sql/a_supplier_describes_its_services_in_its_own_words_probe.sql
 scripts/sql/a_founder_alert_whatsapp_cannot_deliver_falls_back_to_email.sql
 scripts/sql/the_sanctions_screen_stops_opening_tasks_on_seats_that_do_not_exist.sql
+# 18 SEP 2026 — THE WIRING AUDIT. Five of the eight scheduled workflows had no heartbeat, and two
+# deployed edge functions had no caller at all. Both files below are canonical for what they define:
+# nothing_watched_five_of_the_eight_scheduled_workflows.sql supersedes
+# the_it_engineer_takes_on_seven_more_duties.sql for fn_it_workflow_heartbeats only.
+scripts/sql/nothing_watched_five_of_the_eight_scheduled_workflows.sql
+scripts/sql/two_live_edge_functions_were_invoked_by_nothing.sql

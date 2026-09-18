@@ -38,3 +38,48 @@ test('both returns carry every step result and the failures', () => {
 test('the accountant\'s duties tick is run and reported', () => {
   assert.match(src, /name: 'accountantDuties', run: accountantDutiesTick/);
 });
+
+// EVERY CALLER MUST OUTWAIT THE DEADLINE THE FUNCTION DECLARES.
+//
+// Measured 17 Sep 2026: the external watchdog had been red for four days over a healthy system. The
+// GitHub job ran `curl -m 30`, the Vercel route waited `AbortSignal.timeout(30_000)`, and the function
+// declares DEADLINE_MS = 110_000 with sub-timeouts of 55 s inside individual ticks. So neither caller
+// could EVER see the answer once one tick ran long: 4/4 workflow failures on 14, 15, 16 and 17 Sep,
+// every one `curl: (28) ... 30002 ms`, against 194 successful function runs in the same 48 hours, and
+// the Vercel cron log permanently 502. This is the one watchdog that exists because an in-cluster
+// check cannot detect a total outage, and a real Supabase outage would have looked identical to it.
+//
+// The reason it shipped is that nothing compared the three numbers. This does. It reads the deadline
+// out of the function and both caller timeouts out of their own files, so raising the deadline without
+// raising the callers fails here rather than in four days of silence.
+// ONE MATCH, OR THE CHECK DOES NOT KNOW WHICH NUMBER IT READ. `.exec` takes the first hit, so a
+// second `curl -m` or a second AbortSignal.timeout — a retry, or a stale value left in a comment
+// above the real one — would have this check validate the wrong one and pass over a regression.
+const only = (re, text, what) => {
+  const all = [...text.matchAll(new RegExp(re, re.flags.includes('g') ? re.flags : re.flags + 'g'))];
+  assert.equal(all.length, 1, `expected exactly one ${what}, found ${all.length}`);
+  return Number(String(all[0][1]).replace(/_/g, ''));
+};
+
+test('both callers wait longer than the deadline the function declares', () => {
+  const deadline = only(/const DEADLINE_MS = ([\d_]+)/, src, 'DEADLINE_MS declaration in resilience_ping/index.ts');
+  assert.ok(deadline > 0, 'DEADLINE_MS was not found in resilience_ping/index.ts');
+
+  const wf = readFileSync(fileURLToPath(new URL('../../.github/workflows/resilience-ping.yml', import.meta.url)), 'utf8');
+  const curlMs = only(/curl [^\n]*-m (\d+)/, wf, 'curl -m timeout in resilience-ping.yml') * 1000;
+  assert.ok(curlMs > 0, 'the workflow no longer calls curl with an -m timeout');
+  assert.ok(curlMs > deadline,
+    `the GitHub watchdog waits ${curlMs} ms for a function that runs to ${deadline} ms; it can never see the answer`);
+
+  const route = readFileSync(fileURLToPath(new URL('../../src/app/api/resilience-ping/route.ts', import.meta.url)), 'utf8');
+  const abortMs = only(/AbortSignal\.timeout\(([\d_]+)\)/, route, 'AbortSignal.timeout in the resilience-ping route');
+  assert.ok(abortMs > 0, 'the Vercel route no longer sets an AbortSignal timeout');
+  assert.ok(abortMs > deadline,
+    `the Vercel route waits ${abortMs} ms for a function that runs to ${deadline} ms; its cron log can only ever show 502`);
+
+  // maxDuration is the platform's own kill, and it binds before the fetch timeout does.
+  const maxDurMs = only(/export const maxDuration = (\d+)/, route, 'maxDuration export in the resilience-ping route') * 1000;
+  assert.ok(maxDurMs > 0, 'the Vercel route declares no maxDuration, so the platform default (well under the deadline) applies');
+  assert.ok(maxDurMs >= abortMs,
+    `maxDuration is ${maxDurMs} ms but the route waits ${abortMs} ms; the platform kills the route before its own timeout fires`);
+});
