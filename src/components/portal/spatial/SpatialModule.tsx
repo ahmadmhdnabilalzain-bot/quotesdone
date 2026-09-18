@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner, useDelayedFlag } from '@/components/ui/busy';
 import { cn } from '@/lib/utils';
 import { ProjectRoom } from './ProjectRoom';
 import { SupplyChainMap } from './SupplyChainMap';
@@ -67,13 +69,19 @@ export function SpatialModule({ token, lang = 'en', projectId, inquiries = NO_IN
   // new chip with no error (the error card only shows when there is no project), and a successful
   // one never cleared an earlier error. `detailTry` lets Retry re-ask for the detail that failed.
   const [detailTry, setDetailTry] = useState(0);
+  // Picking a chip fires a round trip that changed nothing on screen until it answered: the room
+  // below kept the OLD project and, once cleared, read "no project geometry" — a load rendered as a
+  // fact. `detailBusy` is the pending flag (chips disabled from ms 0, rule 3 in busy.tsx).
+  const [detailBusy, setDetailBusy] = useState(false);
+  const detailSlow = useDelayedFlag(detailBusy);
   useEffect(() => {
     setProject(null); setRfqs([]);
-    if (!current) return;
-    setErr('');
+    if (!current) { setDetailBusy(false); return; }
+    setErr(''); setDetailBusy(true);
     let live = true;
     fetchProjectDetail(token, current).then((r) => {
       if (!live) return;
+      setDetailBusy(false);
       if (!r.ok) { setErr(r.error); return; }
       setProject(r.data.project || null);
       setRfqs(r.data.rfqs || []);
@@ -81,7 +89,20 @@ export function SpatialModule({ token, lang = 'en', projectId, inquiries = NO_IN
     return () => { live = false; };
   }, [token, current, detailTry]);
 
-  if (loading) return <div className="p-5 text-[13px] text-muted-foreground">{tx(lang, 'loading')}</div>;
+  // The `loading` flag existed and rendered one grey word. The room it is standing in for is a
+  // header, a chip row and a 320px canvas, so that is the shape the bars take.
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-4" aria-busy="true" aria-label={tx(lang, 'loading')}>
+        <Skeleton className="h-3.5 w-2/3 max-w-md" />
+        <div className="flex flex-wrap gap-1.5">
+          <Skeleton className="h-7 w-24 rounded-full" />
+          <Skeleton className="h-7 w-20 rounded-full" />
+        </div>
+        <Card className="p-4 md:p-5"><Skeleton className="h-[320px] w-full rounded-lg md:h-[400px]" /></Card>
+      </div>
+    );
+  }
 
   if (err && !project) {
     return (
@@ -104,17 +125,20 @@ export function SpatialModule({ token, lang = 'en', projectId, inquiries = NO_IN
       ) : (
         <>
           {picks && picks.length > 1 ? (
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label={tx(lang, 'pick_project')}>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label={tx(lang, 'pick_project')} aria-busy={detailSlow || undefined}>
               {picks.map((p) => (
                 <button
                   key={p.project_id}
                   onClick={() => setCurrent(p.project_id)}
                   aria-pressed={current === p.project_id}
+                  disabled={detailBusy}
                   className={cn(
-                    'rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors duration-150',
+                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-semibold transition-colors duration-150 disabled:opacity-60',
+                    detailBusy && 'cursor-progress',
                     current === p.project_id ? 'border-primary bg-primary/15 text-primary' : 'border-border bg-secondary/30 text-muted-foreground hover:bg-secondary/50',
                   )}
                 >
+                  {detailSlow && current === p.project_id ? <Spinner /> : null}
                   {p.name}
                 </button>
               ))}
@@ -128,6 +152,7 @@ export function SpatialModule({ token, lang = 'en', projectId, inquiries = NO_IN
             documents={documents}
             inquiries={inquiries}
             lang={lang}
+            loading={detailSlow}
             onOpenRfq={onOpenRfq}
           />
         </>

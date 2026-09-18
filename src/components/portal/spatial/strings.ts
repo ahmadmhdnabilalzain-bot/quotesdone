@@ -14,6 +14,8 @@ const EN = {
   pick_project: 'Choose a project',
   no_projects: 'You have no projects yet. Create one from the Projects screen and link your requests to it — this room is built from what is linked.',
   loading: 'Loading…',
+  loading_project: 'Loading this project…',
+  loading_model: 'Drawing the 3D model…',
   retry: 'Retry',
   err_load: 'Could not load this project.',
 
@@ -76,6 +78,8 @@ const AR: typeof EN = {
   pick_project: 'اختر مشروعًا',
   no_projects: 'لا توجد لديك مشاريع بعد. أنشئ مشروعًا من شاشة المشاريع واربط طلباتك به — تُبنى هذه الغرفة مما تم ربطه.',
   loading: 'جارٍ التحميل…',
+  loading_project: 'جارٍ تحميل هذا المشروع…',
+  loading_model: 'جارٍ رسم النموذج ثلاثي الأبعاد…',
   retry: 'إعادة المحاولة',
   err_load: 'تعذّر تحميل هذا المشروع.',
 

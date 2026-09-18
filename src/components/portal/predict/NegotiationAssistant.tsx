@@ -47,7 +47,7 @@ function DraftMessage({ label, body, lang }: { label: string; body: string; lang
     try {
       await navigator.clipboard.writeText(body);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
+      window.setTimeout(() => setCopied(false), 1500);
     } catch {
       // Clipboard permission refused. The text is on screen and selectable, so say nothing rather
       // than raise an error about a convenience.
@@ -57,8 +57,11 @@ function DraftMessage({ label, body, lang }: { label: string; body: string; lang
     <div className="rounded-lg border border-border bg-white/[0.02] p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h4 className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</h4>
+        {/* A clipboard write is instant, so under the loading rules no spinner may ever show here —
+            what was missing is the CONFIRMATION, and a label that only changes visually confirms
+            nothing to a screen reader. aria-live carries the swap. */}
         <Button type="button" size="sm" variant="outline" onClick={() => void copy()}>
-          {copied ? tr(lang, 'n_copied') : tr(lang, 'n_copy')}
+          <span aria-live="polite">{copied ? tr(lang, 'n_copied') : tr(lang, 'n_copy')}</span>
         </Button>
       </div>
       <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-foreground">{body}</p>

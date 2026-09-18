@@ -15,6 +15,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { MessageCircleQuestion, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Spinner, useDelayedFlag } from '@/components/ui/busy';
 import { t, tf, errText } from './portalText';
 
 export function Clarifications({ inq, token, lang, call }) {
@@ -23,6 +24,7 @@ export function Clarifications({ inq, token, lang, call }) {
   const [items, setItems] = useState(null);
   const [note, setNote] = useState(''); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
   const [answers, setAnswers] = useState({});
+  const ansSpin = useDelayedFlag(!!busy);
   const closed = ['completed', 'closed', 'cancelled'].includes(String(inq.status));
   const load = () => call('messages_api', { action: 'clarify_list', inquiry_id: inq.id }, token)
     .then((j) => { if (j && j.ok) setItems(j.items || []); else { setItems([]); setErr(errText(j, lang)); } })
@@ -82,7 +84,11 @@ export function Clarifications({ inq, token, lang, call }) {
                         <label className="sr-only" htmlFor={'qd-ans-' + it.id}>{t(lang, 'cl_answer_ph')}</label>
                         <textarea id={'qd-ans-' + it.id} rows={2} className="flex-1 resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-none focus-visible:ring-1 focus-visible:ring-ring"
                           placeholder={t(lang, 'cl_answer_ph')} value={answers[it.id] || ''} onChange={(e) => setAnswers((a) => ({ ...a, [it.id]: e.target.value }))} />
-                        <Button size="sm" disabled={busy === 'a' + it.id || !String(answers[it.id] || '').trim()} onClick={() => answer(it.id)}>{t(lang, 'cl_answer')}</Button>
+                        {/* The button was disabled while sending but said nothing — the one thing
+                            the founder's 18 Sep instruction names. Ring + label, shared rules. */}
+                        <Button size="sm" aria-busy={ansSpin && busy === 'a' + it.id || undefined} className="gap-2" disabled={busy === 'a' + it.id || !String(answers[it.id] || '').trim()} onClick={() => answer(it.id)}>
+                          {ansSpin && busy === 'a' + it.id ? <><Spinner />{t(lang, 'sending')}</> : t(lang, 'cl_answer')}
+                        </Button>
                       </div>
                     ) : null}
                   </>

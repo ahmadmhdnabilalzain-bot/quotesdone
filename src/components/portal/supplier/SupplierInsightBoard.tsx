@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { scaleLinear } from 'd3-scale';
 import { line as d3line, curveMonotoneX } from 'd3-shape';
 import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Lang = 'en' | 'ar';
 type Metric = { key: string; label: string; value: number | null; note?: string };
@@ -152,11 +153,15 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
   const [menu, setMenu] = useState<{ id: CardId; x: number; y: number } | null>(null);
   const [detail, setDetail] = useState<{ title: string; body: string } | null>(null);
   const [seenAt, setSeenAt] = useState<string>('');
+  // `loaded` is the FIRST answer, success or not — not `twin`. Keyed off twin the board would sit in
+  // bars forever when the read fails, and zero cannot tell a dead read from an unrated supplier.
+  const [loaded, setLoaded] = useState(false);
   const dragged = useRef<CardId | null>(null);
 
   const load = useCallback(async () => {
     const d = await call('supplier_portal', { action: 'twin' }, token).catch(() => null);
     if (d && !d.error) { setTwin(d.twin || d); setSeenAt(new Date().toLocaleTimeString()); }
+    setLoaded(true);
   }, [token]);
 
   // LIVE UPDATES, AND THE MECHANISM SAID OUT LOUD: this re-reads the twin on a timer and whenever
@@ -232,6 +237,18 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
   };
 
   const visible = order.filter((c) => !hidden.includes(c));
+
+  // FIRST READ (18 Sep 2026): with no indicator the board rendered its empty states — "not rated yet",
+  // three zeroes — while the twin was still in flight, so an arriving board was indistinguishable from
+  // an unrated one. Redaction bars until the first answer lands, then the real states.
+  if (!loaded) return (
+    <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
+      <Skeleton className="h-4 w-40" />
+      <div className="grid gap-3 md:grid-cols-3">
+        {[0, 1, 2].map((i) => <div key={i} className="qd-panel p-5"><Skeleton className="w-24" /><Skeleton className="mt-4 h-16" /></div>)}
+      </div>
+    </div>
+  );
 
   return (
     <div className="relative flex flex-col gap-3">

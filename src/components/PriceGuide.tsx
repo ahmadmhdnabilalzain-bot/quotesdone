@@ -11,11 +11,13 @@
 // router resolves to the right trade (checked on production 14 Sep 2026: "ac maintenance" routed to
 // swimming pools and "CCTV installation" to flooring, so those two carry reworded topics). A slug
 // with no honest match (handyman, facilities-management) renders nothing rather than a wrong trade.
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { publicSite, saveDraft, fmtNum } from '@/lib/publicSite';
 import s from '@/components/home/sealed.module.css';
+import { Spinner, useDelayedFlag } from '@/components/ui/busy';
+import { startRouteProgress } from '@/components/ui/route-progress';
 
 export const SERVICE_TOPIC: Record<string, string | null> = {
   'false-ceiling': 'false ceiling', 'pest-control': 'pest control', movers: 'movers', flooring: 'flooring',
@@ -51,6 +53,10 @@ export function PriceGuide({ slug }: { slug?: string }) {
     finally { setBusy(false); }
   }
   useEffect(() => { if (topic) ask({ topic }, topic); }, [topic]); // eslint-disable-line react-hooks/exhaustive-deps
+  const busyShown = useDelayedFlag(busy);
+  // /me is the customer-portal bundle; this jump was silent until it landed.
+  const [going, startGoing] = useTransition();
+  const goingShown = useDelayedFlag(going);
 
   if (slug && !topic) return null;
   // On a service page, a failed lookup or a question the guide cannot place shows nothing.
@@ -78,14 +84,15 @@ export function PriceGuide({ slug }: { slug?: string }) {
               dir="auto" value={q} maxLength={300} onChange={(e) => setQ(e.target.value)} placeholder={t('ph')}
               className="min-w-0 flex-1 rounded-full border border-[var(--line2)] bg-navy-deep/60 px-5 py-3 text-[14.5px] text-paper shadow-[var(--key)] outline-none placeholder:text-faint focus-visible:border-teal focus-visible:ring-2 focus-visible:ring-teal/30"
             />
-            <button type="submit" disabled={busy} className="btn-key press rounded-full bg-teal px-6 py-3 text-[14px] font-bold text-[#04231F] hover:bg-[#1ED0BC] disabled:opacity-50">
+            <button type="submit" disabled={busy} aria-busy={busyShown || undefined} className="btn-key press inline-flex items-center justify-center gap-2 rounded-full bg-teal px-6 py-3 text-[14px] font-bold text-[#04231F] hover:bg-[#1ED0BC] disabled:cursor-progress disabled:opacity-50">
+              {busyShown ? <Spinner /> : null}
               {busy ? t('busy') : t('submit')}
             </button>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {chips.map((c) => (
-              <button key={c} type="button" dir="auto" onClick={() => { setQ(c); ask({ question: c }, c); }}
-                className="rounded-full border border-[var(--line)] px-3 py-1.5 text-[12px] text-muted transition-colors hover:border-teal/50 hover:text-white">
+              <button key={c} type="button" dir="auto" disabled={busy} onClick={() => { setQ(c); ask({ question: c }, c); }}
+                className="rounded-full border border-[var(--line)] px-3 py-1.5 text-[12px] text-muted transition-colors hover:border-teal/50 hover:text-white disabled:cursor-progress disabled:opacity-50">
                 {c}
               </button>
             ))}
@@ -94,7 +101,7 @@ export function PriceGuide({ slug }: { slug?: string }) {
       )}
 
       <div aria-live="polite" className="relative mt-5">
-        {busy && slug && <p className="text-[13px] text-faint">{t('busy')}</p>}
+        {busyShown && <p className="inline-flex items-center gap-2 text-[13px] text-faint"><Spinner />{t('busy')}</p>}
         {res && res.ok && res.bands && (
           <>
             <ul className="divide-y divide-[var(--line)] overflow-hidden rounded-[14px] border border-[var(--line2)]">
@@ -124,9 +131,12 @@ export function PriceGuide({ slug }: { slug?: string }) {
         {res && (res.ok || res.reason === 'gap') && (
           <button
             type="button"
-            onClick={() => { saveDraft({ text: asked, category: null, emirate: null }); router.push('/me?draft=1'); }}
-            className="press mt-4 rounded-full border border-teal/50 px-5 py-2.5 text-[13.5px] font-semibold text-teal-light transition-colors hover:bg-teal/[0.08]"
+            onClick={() => { saveDraft({ text: asked, category: null, emirate: null }); startRouteProgress(); startGoing(() => router.push('/me?draft=1')); }}
+            disabled={going}
+            aria-busy={goingShown || undefined}
+            className="press mt-4 inline-flex items-center gap-2 rounded-full border border-teal/50 px-5 py-2.5 text-[13.5px] font-semibold text-teal-light transition-colors hover:bg-teal/[0.08] disabled:cursor-progress"
           >
+            {goingShown ? <Spinner /> : null}
             {t('cta')}
           </button>
         )}
