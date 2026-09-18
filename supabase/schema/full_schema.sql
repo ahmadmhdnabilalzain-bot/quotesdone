@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T05:26:12.263Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T05:29:44.284Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8639,6 +8639,7 @@ CREATE INDEX department_objective_goal_idx ON public.department_objective USING 
 CREATE INDEX doc_backups_gen_kind_ref_idx ON public.doc_backups USING btree (gen_kind, gen_ref);
 CREATE INDEX doc_reviews_status_idx ON public.doc_reviews USING btree (status, created_at DESC);
 CREATE UNIQUE INDEX document_kpi_snap_day ON public.document_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX documents_drainable_idx ON public.documents USING btree (id) WHERE (status = ANY (ARRAY['pending'::text, 'error'::text]));
 CREATE INDEX dr_restore_run_kind_idx ON public.dr_restore USING btree (run_id, kind);
 CREATE INDEX drawing_redaction_runs_caller_ref_idx ON public.drawing_redaction_runs USING btree (caller_ref text_pattern_ops);
 CREATE INDEX drawing_redaction_runs_customer_idx ON public.drawing_redaction_runs USING btree (customer_id, created_at DESC);
@@ -46592,7 +46593,48 @@ AS $function$
     -- reporting. A gate that opens only when a key is present and wrong is a gate that a deleted key
     -- switches off silently.
     'email_cron',   coalesce((select value from public.app_secrets where key = 'email_enabled'), '') is distinct from 'true',
-    'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true'
+    'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true',
+
+    -- The queue is the gate. No flag, because nothing here costs a model call and a queued SMS has a
+    -- person at the end of it.
+    'send_sms', exists (
+      select 1 from public.notifications where channel = 'sms' and status = 'queued'),
+
+    -- Both halves must hold: the switch is on AND there is work. Either alone would be a step that runs
+    -- for nothing 96 times a day.
+    'doc_extract', coalesce((select value from public.app_secrets where key = 'doc_extract_drain_enabled'), '') = 'true'
+      and exists (
+        select 1 from public.documents
+         where status in ('pending', 'error') and coalesce(attempts, 0) < 3),
+
+    'email_triage', coalesce((select value from public.app_secrets where key = 'email_triage_enabled'), '') = 'true'
+      and exists (
+        select 1 from public.inbound_messages
+         where needs_review and triaged_at is null and replied_at is null),
+
+    -- WEEKLY, MEASURED OFF THE WORK ITSELF rather than a schedule string, AND PER SOURCE. Due while
+    -- EITHER list lacks a recent enough attempt: an `ok` run holds that source for 6 days (the founder
+    -- asked for a weekly check, and 6 not 7 so a slow week never skips one), a failed or unparseable one
+    -- for 6 hours — a transient UN or UAE outage is retried a few times a day, never every 15 minutes.
+    --
+    -- PER SOURCE IS NOT A DETAIL (found in independent review before this was applied). Written as one
+    -- ungrouped NOT EXISTS over the whole table, a healthy UN fetch would hold the gate shut for six days
+    -- and the UAE list — failing every time — would be retried once a week instead of every six hours,
+    -- with the documented back-off silently never applying to the source that actually needed it. That is
+    -- the estate's "guarded by a condition that cannot occur" shape: the failure branch exists and can
+    -- never be reached. The cost of the correct version is that a broken source re-opens the gate every
+    -- 6 hours and the healthy list is downloaded again with it, ~4 times a day instead of once a week.
+    -- That is the right way round: bandwidth is cheap and an unscreened sanctions source is not.
+    --
+    -- Every attempt writes a screening_run row whatever happened, which is what makes this a measurement
+    -- and not a hope; a zero-run history reads as due, which is correct, because it has never run.
+    'sanctions', coalesce((select value from public.app_secrets where key = 'sanctions_screen_enabled'), '') = 'true'
+      and exists (
+        select 1 from (values ('un_consolidated'), ('uae_local_terrorist_list')) as s(source)
+         where not exists (
+           select 1 from public.screening_run r
+            where r.source = s.source
+              and r.fetched_at > now() - case when r.status = 'ok' then interval '6 days' else interval '6 hours' end))
   )
 $function$
 
