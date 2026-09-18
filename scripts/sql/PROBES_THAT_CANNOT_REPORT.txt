@@ -1,0 +1,60 @@
+# PROBES THAT CANNOT REPORT — measured 18 September 2026, seat it_engineer.
+#
+# Every file below reports a FAILED VERDICT through `raise notice`. MEASURED the same day: the
+# Supabase management API discards NOTICE and WARNING alike, log_min_messages is 'warning' so a
+# notice never reaches the Postgres log either, psql is not installed and there is no direct
+# connection string. So each of these verdicts printed NOWHERE at apply time.
+#
+# THIS IS A RECORD, NOT AN EXEMPTION. These files were applied before the convention existed and a
+# probe only runs when its file is applied, so editing them now recovers nothing that was lost.
+# What the register buys is that the NEXT one reports:
+# scripts/checks/a_probe_that_cannot_report_is_not_a_probe.test.mjs fails on any scripts/sql file
+# that is NOT on this list, and ALSO fails on a line here whose file has since been fixed — so the
+# list can only shrink, and cannot decay into a list nobody revisits.
+#
+# To take a file off this list: make its LAST statement a select of one row whose value begins with
+# the OK or the FAILED marker (scripts/apply_sql.mjs reads it and exits non-zero on a failure), or,
+# if the file carries no DDL, let it raise an exception instead. Then delete its line.
+# Worked example: scripts/sql/the_export_gate_was_red_because_another_session_held_a_lock.sql
+#
+# Measured population of scripts/sql on 18 Sep 2026: 1,123 files; 231 raise a notice of any kind;
+# 35 raise one whose text is a verdict of failure; 28 of those carry DDL, and 6 of those 28 have no
+# `raise exception` anywhere at all, so a discarded message was their ONLY channel.
+#
+# format:  <path> :: <why it is here>
+
+scripts/sql/a_browser_cannot_run_the_customer_document_routines_unsigned.sql :: applied before 18 Sep 2026; no DDL, so this one could raise an exception instead when it is next touched
+scripts/sql/a_failed_export_day_resumes_from_its_failed_page.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/a_founder_alert_whatsapp_cannot_deliver_falls_back_to_email.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/a_number_carries_its_meaning_and_a_record_proves_it_is_real.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/a_stalled_export_day_is_never_silent.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/a_statement_the_reader_cannot_read_is_the_it_engineers_defect.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/a_supplier_states_its_services_from_a_checklist_the_sales_engineer_prepares.sql :: applied before 18 Sep 2026; carries DDL and has no exception anywhere, so a discarded message is its ONLY channel
+scripts/sql/a_vendor_that_bills_every_month_and_then_stops_is_a_missing_receipt.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/an_export_day_reaches_dropbox_when_it_finishes.sql :: applied before 18 Sep 2026; carries DDL and has no exception anywhere, so a discarded message is its ONLY channel
+scripts/sql/board_reviews_the_open_decisions.sql :: applied before 18 Sep 2026; no DDL, so this one could raise an exception instead when it is next touched
+scripts/sql/bus_noise_retired_phantom_subscriptions_cut_priority_reorder.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/fn_decide_routes_a_proposed_decision.sql :: applied before 18 Sep 2026; carries DDL and has no exception anywhere, so a discarded message is its ONLY channel
+scripts/sql/metric_lifecycle_playbooks_close_the_loop_model_off.sql :: applied before 18 Sep 2026; no DDL, so this one could raise an exception instead when it is next touched
+scripts/sql/pacr_002_pbcr_001_baseline_rerecord.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/rc4_execution_and_trace_are_atomic.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/reputation_tier_gates_every_decision.sql :: applied before 18 Sep 2026; carries DDL and has no exception anywhere, so a discarded message is its ONLY channel
+scripts/sql/some_vendors_never_email_a_receipt_at_all.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/staff_org_recarve_2026_09_03.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/staff_org_recarve_bindings_2026_09_03.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/staff_org_recarve_settlement_2026_09_03.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/staff_org_seat_at_plan_size_2026_09_04.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/staff_org_seat_settlement_2026_09_04.sql :: applied before 18 Sep 2026; no DDL, so this one could raise an exception instead when it is next touched
+scripts/sql/staging_monitoring_parity.sql :: applied before 18 Sep 2026; no DDL, so this one could raise an exception instead when it is next touched
+scripts/sql/the_acceptance_the_product_writes_reaches_the_kernel.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/the_automation_page_answers_in_under_a_second.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/the_ceo_seat_gets_its_own_credential_and_the_tray_its_staff_file_into.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/the_department_knowledge_goes_to_the_seats_that_survived.sql :: applied before 18 Sep 2026; no DDL, so this one could raise an exception instead when it is next touched
+scripts/sql/the_dropbox_backup_is_confirmed_not_assumed.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/the_files_were_stale_not_the_database.sql :: applied before 18 Sep 2026; carries DDL and has no exception anywhere, so a discarded message is its ONLY channel
+scripts/sql/the_mandatory_six_have_one_definition_and_the_sales_engineer_verifies.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/the_org_task_queue_gets_a_consumer.sql :: applied before 18 Sep 2026; carries DDL and has no exception anywhere, so a discarded message is its ONLY channel
+scripts/sql/the_registered_language_follows_every_message_until_the_reveal.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/the_slow_query_duty_measures_the_last_interval_not_the_lifetime_average.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/the_supplier_and_the_sales_engineer_review_a_quotation_in_one_conversation.sql :: applied before 18 Sep 2026; carries DDL so §4 forbids its probe from raising, and its failed verdict goes to a message the API discards
+scripts/sql/workflow_backlog_drain_2026_09_04.sql :: applied before 18 Sep 2026; no DDL, so this one could raise an exception instead when it is next touched

@@ -78,48 +78,65 @@
 
 alter function public.fn_schema_export() set lock_timeout to '15s';
 
--- Read the setting back rather than trusting the ALTER, and confirm the ACL and the pinned
--- search_path both survived it. This file defines DDL, so the probe must NOT raise an exception:
--- that would roll the ALTER back inside its own file (quotesdone-apply-discipline §4). It leaves
--- nothing behind — it writes nothing and reads only catalogs.
+-- THE PROBE. Read the setting back rather than trusting the ALTER, and confirm the ACL and the
+-- pinned search_path both survived it. This file carries DDL, so the probe must NOT raise an
+-- exception — the raise would roll the ALTER back inside its own file
+-- (quotesdone-apply-discipline §4). It writes nothing, reads only catalogs, can touch no real
+-- person's data, and leaves nothing behind.
 --
--- AND THE NOTICE IS NOT A GATE. Measured 18 Sep 2026: the management API does not return NOTICE
--- text, and scripts/apply_sql.mjs has no handling for it, so `PROBE FAILED` would print nowhere.
--- canonical_routine_manifest compares pg_proc.prosrc and never reads proconfig, so nothing in CI
--- asserts this setting either. Verify it by hand after the apply — one statement:
---     select proconfig, has_function_privilege('anon', p.oid, 'EXECUTE') as anon_can_execute
---       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
---      where n.nspname = 'public' and p.proname = 'fn_schema_export';
---   expected: {search_path=public,lock_timeout=15s} and false.
--- MEASURED in a rolled-back transaction before this file was committed: exactly that, with
+-- IT IS A SELECT AND NOT A `raise notice`, because a notice prints NOWHERE. MEASURED 18 Sep 2026
+-- against this project, asking the management API directly and reading the raw body:
+--     do $$ begin raise notice 'a verdict'; end $$;                  -> []
+--     do $$ begin raise notice 'a verdict'; end $$; select 1 as a;   -> [{"a":1}]
+--     raise warning instead of notice                                -> [{"a":1}]
+--     set client_min_messages to notice; … same DO block …           -> [{"a":1}]
+-- NOTICE and WARNING are both discarded, log_min_messages is 'warning' so a notice is not even in
+-- the Postgres log, psql is not installed and there is no direct connection string. The applier has
+-- two channels: a RESULT SET and an ERROR. §4 forbids the error. So the verdict is a result set.
+--
+-- The contract, read by scripts/apply_sql.mjs and enforced by
+-- scripts/checks/a_probe_that_cannot_report_is_not_a_probe.test.mjs: the LAST statement of the file
+-- is a SELECT of one row whose value begins `PROBE OK` or `PROBE FAILED`. A FAILED verdict makes
+-- the apply exit non-zero while leaving the applied DDL alone, which is the honest outcome — the
+-- change is live and its verification did not pass.
+--
+-- MEASURED in a rolled-back transaction before this file was committed: proconfig
+-- {search_path=public,lock_timeout=15s}, anon_can_execute false, and
 -- proacl = postgres=X/postgres service_role=X/postgres.
-do $probe$
-declare
-  v_config text[];
-  v_acl    text;
-begin
-  select p.proconfig, coalesce(array_to_string(p.proacl, ' '), '(default: owner only)')
-    into v_config, v_acl
-    from pg_proc p
-    join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname = 'fn_schema_export';
-
-  if v_config is null or not ('lock_timeout=15s' = any (v_config)) then
-    raise notice 'PROBE FAILED: fn_schema_export proconfig is %, expected it to carry lock_timeout=15s', v_config;
-  elsif not ('search_path=public' = any (v_config)) then
-    raise notice 'PROBE FAILED: fn_schema_export lost its pinned search_path; proconfig is %', v_config;
-  else
-    raise notice 'fn_schema_export proconfig = %; acl = %', v_config, v_acl;
-  end if;
-
-  if exists (
-    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public' and p.proname = 'fn_schema_export'
-       and has_function_privilege('anon', p.oid, 'EXECUTE')
-  ) then
-    raise notice 'PROBE FAILED: anon can execute fn_schema_export — the revoke did not survive';
-  else
-    raise notice 'anon cannot execute fn_schema_export (revoke intact)';
-  end if;
-end
-$probe$;
+--
+-- TWO NULL-SHAPED WAYS TO ACCIDENTALLY PASS, both closed here, because the one outcome a probe may
+-- never produce is a false OK.
+--
+-- 1. `coalesce(proconfig, '{}')` is not decoration. `= any (null)` is NULL, `not NULL` is NULL, and
+--    a CASE arm evaluating to NULL is NOT TAKEN — so a routine that had lost every SET clause would
+--    fall straight through to the OK arm. Verified by forcing it: `alter function … reset all` in a
+--    rolled-back transaction gives `PROBE FAILED: … proconfig is (null)`.
+-- 2. ZERO ROWS. This file is an ALTER, so it defines no routine, so apply_sql.mjs's read-back has
+--    nothing to read back — this probe is the file's ONLY verification. A plain
+--    `select … from pg_proc where proname = 'fn_schema_export'` returns no row at all if the
+--    routine is absent or renamed, no row means no verdict, and no verdict used to read as success.
+--    The scalar subquery with a coalesce makes one row unconditional: absent is a FAILURE, stated.
+--    (apply_sql.mjs now also refuses an apply whose file carries a verdict marker and gets none
+--    back, so a probe that goes missing is caught for every file, not just this one.)
+select coalesce((
+  select case
+    when not ('lock_timeout=15s' = any (coalesce(p.proconfig, '{}'::text[])))
+      then 'PROBE FAILED: fn_schema_export proconfig is '
+           || coalesce(array_to_string(p.proconfig, ','), '(null)')
+           || ' — expected it to carry lock_timeout=15s'
+    when not ('search_path=public' = any (coalesce(p.proconfig, '{}'::text[])))
+      then 'PROBE FAILED: fn_schema_export lost its pinned search_path; proconfig is '
+           || coalesce(array_to_string(p.proconfig, ','), '(null)')
+    when has_function_privilege('anon', p.oid, 'EXECUTE')
+      then 'PROBE FAILED: anon can execute fn_schema_export — the revoke did not survive the ALTER'
+    when has_function_privilege('authenticated', p.oid, 'EXECUTE')
+      then 'PROBE FAILED: authenticated can execute fn_schema_export — the revoke did not survive'
+    else 'PROBE OK: fn_schema_export proconfig = {' || array_to_string(p.proconfig, ',')
+         || '}, acl = ' || coalesce(array_to_string(p.proacl, ' '), '(owner only)')
+         || ', neither anon nor authenticated can execute it'
+  end
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+ where n.nspname = 'public' and p.proname = 'fn_schema_export'
+), 'PROBE FAILED: public.fn_schema_export is not in pg_proc at all — the ALTER above named an object '
+   || 'that does not exist, so nothing was verified') as probe;
