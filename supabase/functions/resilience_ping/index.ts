@@ -1070,9 +1070,14 @@ Deno.serve(observe('resilience_ping', async (req) => {
       failing.push({ name, error: 'starved: due and not run for 4 ticks running' });
     }
     // Written back in ONE call. A deferred step stamps nothing, which is what makes it stalest next tick.
-    const schedule = await admin.rpc('fn_resilience_step_record', { p_rows: stepRows(stepMs, failing, plan.deferred) })
-      .then(({ data, error }) => (error ? { ok: false, error: error.message } : data))
-      .catch((e) => ({ ok: false, error: String((e as Error)?.message || e) }));
+    // Written as a plain await in a try/catch rather than a .then/.catch chain: the chain's callback
+    // parameters had no contextual type under `deno check` and failed CI with TS7006 twice over.
+    let schedule: unknown;
+    try {
+      const { data, error: sErr } = await admin.rpc('fn_resilience_step_record',
+        { p_rows: stepRows(stepMs, failing, plan.deferred) });
+      schedule = sErr ? { ok: false, error: sErr.message } : data;
+    } catch (e) { schedule = { ok: false, error: String((e as Error)?.message || e) }; }
     const warm = await warmP.catch(() => []);
     // Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
