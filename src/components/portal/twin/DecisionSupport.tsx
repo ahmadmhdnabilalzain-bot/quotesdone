@@ -128,7 +128,16 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
       } catch { if (on) setState('failed'); }
     })();
     return () => { on = false; };
-  }, [token, lang]);
+    // NOT [token, lang]. `lang` starts at the URL's guess and is corrected to the REGISTERED locale
+    // when customer_api my_inquiries answers (CustomerPortal onServedLocale), so on /ar it changed
+    // once per load and re-ran this effect — a second customer_portal:decision_support round trip
+    // that returns byte-identical data, because customer_portal deliberately reads customers.locale
+    // and IGNORES the `lang` in the body (see its header). Measured 18 Sep 2026: every /ar portal
+    // load made 7 function calls where /en made 6, in all 16 runs of
+    // scripts/e2e/portal_local_shell_hydration.mjs, and /ar settled ~300 ms later for it.
+    // `lang` is still used for this panel's own rendering; only the refetch is dropped.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   // A panel that could only ever be empty is a dead end with a heading on it. With nothing to
   // recommend, nothing quiet and no category history, this renders nothing at all and the
