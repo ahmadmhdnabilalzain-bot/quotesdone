@@ -1480,3 +1480,4 @@ scripts/sql/the_org_task_queue_gets_a_consumer.sql
 # sanctions_screen edge function is deployed — see the deploy order in its header.
 scripts/sql/four_live_functions_had_no_clock_and_the_sanctions_screen_had_no_producer.sql
 scripts/sql/the_export_gate_was_red_because_another_session_held_a_lock.sql
+scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql
