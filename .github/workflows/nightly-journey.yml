@@ -67,3 +67,17 @@ jobs:
         continue-on-error: true
       - if: steps.gate.outputs.skip != '1'
         run: node scripts/e2e/report_to_it_engineer.mjs e2e-out
+      # THE QUOTATION REVIEW, WALKED, BECAUSE NOTHING WAS WALKING IT (18 Sep 2026).
+      # The founder on this flow, 15 Sep: "this is the most important part in the whole supplier
+      # portal, so make sure its built perfectly". scripts/e2e/supplier_quote_review.mjs walks it end
+      # to end in both languages on desktop and a phone — and no workflow, no CI job and no npm
+      # script ran it. It is how tonight's handover defect was found by hand and how it would
+      # otherwise have stayed unfound: journey b drives the quotation through supplier_api, never
+      # through the review conversation the supplier actually uses.
+      # It runs AFTER the ingest above so a failure here cannot delay the journey heartbeat, and with
+      # continue-on-error for the same reason every other step has it: a failed step is the finding.
+      - if: steps.gate.outputs.skip != '1'
+        run: node scripts/e2e/supplier_quote_review.mjs
+        continue-on-error: true
+        env:
+          QD_SHOTS: e2e-out/quote-review

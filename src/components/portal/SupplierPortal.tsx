@@ -851,9 +851,26 @@ function Dashboard({ token, lang, onExpired }) {
       <span className="sr-only" role="status" aria-live="polite">{switching ? (ar ? "جارٍ التحميل" : "Loading") : ""}</span>
       {switchBars && <Card aria-busy className="qd-panel mb-3 p-5"><Skeleton className="w-1/3" /><Skeleton className="mt-3" /><Skeleton className="mt-2 w-2/3" /></Card>}
       {shownTab === 'services' && <ServicesTab token={token} lang={lang} goTo={go} />}
-      {shownTab === 'rfqs' && <InquiriesTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} onQuote={(id) => { setFocusRfq(id); setTab('quotes'); }}
+      {/* THE TAB THAT IS ON ITS WAY OUT MUST NOT EAT THE FOCUS THE NEXT ONE WAS SENT (18 Sep 2026).
+          `focusRfq` is one token that BOTH tabs read and BOTH clear through onFocused. That was fine
+          while the panels rendered on `tab`, because setFocusRfq(id) and setTab(...) commit together
+          and the old panel is gone in the same render. Since #736 they render on `shownTab`, a
+          useDeferredValue of `tab` — so after "Send your quotation to the sales engineer" runs
+          setFocusRfq(id); setTab('quotes'), InquiriesTab is STILL MOUNTED for at least one commit,
+          now holding the new focus. Its own focus effect fires, opens that inquiry again, and calls
+          onFocused() — which clears focusRfq. QuotationsTab then mounts with focus=null and opens
+          nothing, so the supplier lands on a list of collapsed jobs instead of the review
+          conversation they just asked for. Measured on production 18 Sep 2026: it failed in all four
+          matrices (en/ar x desktop/phone) of scripts/e2e/supplier_quote_review.mjs, every one of them
+          timing out waiting for the sales engineer's first line, with the capture showing the
+          Quotations submitted list and every job shut. Same shape in the other direction
+          (openInquiry, quotes -> rfqs).
+          The guard is `switching`: while shownTab has not caught up with tab, the panel on screen is
+          the OUTGOING one and the focus is not addressed to it, so it may act on it but may not
+          consume it. One condition, both directions, and nothing about the deferred render changes. */}
+      {shownTab === 'rfqs' && <InquiriesTab token={token} lang={lang} focus={focusRfq} onFocused={() => { if (!switching) setFocusRfq(null); }} onQuote={(id) => { setFocusRfq(id); setTab('quotes'); }}
         renderQuoteForm={(inq, done) => <QuoteForm inquiry={inq} token={token} lang={lang} onDone={done} />} />}
-      {shownTab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
+      {shownTab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => { if (!switching) setFocusRfq(null); }} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
       {/* Messages holds the revealed jobs (Projects) above the conversations, behind the reveal gate. */}
       {shownTab === 'messages' && <SupplierMailbox token={token} lang={lang} goTo={go}
         jobs={(open) => <Projects token={token} lang={lang} openChat={open} />} />}
