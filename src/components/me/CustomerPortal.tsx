@@ -125,6 +125,9 @@ async function call(path, body, token) { const r = await fetch(FN + '/' + path, 
 // behind it — see prefetch.ts for the measurement. Keys are what Dashboard and DecisionSupport take.
 import { warm, take, drop } from './prefetch';
 const warmDashboard = (tk, lang) => {
+  // 'kyc' joins the warmed set so Authed.load() can take the promise BootPrefetch.tsx already
+  // started at HTML-parse time. take() deletes on read, so load(retried) still asks fresh.
+  warm(tk, 'kyc', () => call('kyc', { action: 'state' }, tk));
   warm(tk, 'inq', () => call('customer_api', { action: 'my_inquiries' }, tk));
   warm(tk, 'ov', () => call('customer_portal', { action: 'overview', lang }, tk));
   warm(tk, 'pd', () => call('project_api', { action: 'dashboard' }, tk));
@@ -372,9 +375,16 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
   // beside it is still good. Ask for a new session ONCE before telling somebody their session has
   // expired; the auth listener in CustomerPortal picks the new token up from there. If the refresh
   // also fails, the session really is over and the message is true.
+  // A LOAD THAT RESOLVES AFTER ITS TOKEN IS GONE MUST NOT WRITE STATE. The first kyc read is now a
+  // promise started at HTML-parse time (BootPrefetch.tsx), so it can be in flight far longer than
+  // the same-tick fetch it replaced — long enough for Supabase's own refresh to hand the component
+  // a new token and start a newer load. The effect below clears this ref on cleanup, so only the
+  // live invocation sets k/err and an older answer is dropped instead of overwriting a fresher one.
+  const alive = useRef(true);
   const load = (retried) => {
     setErr('');
-    call('kyc', { action: 'state' }, token).then(async (j) => {
+    take(token, 'kyc', () => call('kyc', { action: 'state' }, token)).then(async (j) => {
+      if (!alive.current) return;
       if (j && j.error === 'unauthorized') {
         if (retried) { setErr('unauth'); return; }
         try {
@@ -386,7 +396,7 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
         return;
       }
       setK(j || {});
-    }).catch(() => setErr('net'));
+    }).catch(() => { if (alive.current) setErr('net'); });
   };
   // DO NOT ASK AN AUTHENTICATED ENDPOINT WHO WE ARE BEFORE WE HAVE A TOKEN. This ran on the first
   // render, when `token` is still '' because it is read from localStorage and from
@@ -397,7 +407,11 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
   // `retried` flag exists to protect. The effect re-runs when the token arrives, so waiting is free.
   // Wait for a token, and for a token that has not already expired. SB.auth refreshes on its own
   // and the auth listener re-renders with the new one, so this costs nothing but the 401.
-  useEffect(() => { if (tokenAlive(token)) { warmDashboard(token, lang); load(); } }, [token]);
+  useEffect(() => {
+    alive.current = true;
+    if (tokenAlive(token)) { warmDashboard(token, lang); load(); }
+    return () => { alive.current = false; };
+  }, [token]);
   if (err === 'unauth') return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'session_expired')}</div><Button className="w-full mt-3" onClick={onSignOut}>{t(lang, 'tab_signin')}</Button></Card></div></>;
   if (err) return <>{strip}<div className={S.center}><Card className="w-full max-w-[400px] p-5"><div className={S.sub}>{t(lang, 'load_failed')}</div>{/* () => load(), not load: a click handler passes the MouseEvent as the first argument, which
         would arrive as `retried` and skip the one refresh attempt this retry exists to make. */}
