@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T04:28:38.615Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T05:26:12.263Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3535,7 +3535,8 @@ CREATE TABLE IF NOT EXISTS public.it_expiry (
   checked_at timestamp with time zone DEFAULT now() NOT NULL,
   warn_days integer[] DEFAULT '{60,30}'::integer[] NOT NULL,
   secret_fingerprint text,
-  secret_seen_since timestamp with time zone
+  secret_seen_since timestamp with time zone,
+  never_expires boolean DEFAULT false NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_hold_signature (
@@ -3574,7 +3575,8 @@ CREATE TABLE IF NOT EXISTS public.it_playbook (
   not_automatable_reason text,
   regression_check text NOT NULL,
   added_by text NOT NULL,
-  added_at timestamp with time zone DEFAULT now() NOT NULL
+  added_at timestamp with time zone DEFAULT now() NOT NULL,
+  typical_cause text
 );
 
 CREATE TABLE IF NOT EXISTS public.it_query_stat_snapshot (
@@ -8043,6 +8045,7 @@ ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_au
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_engineering'::text, 'diagnostic_lens'::text, 'estate_architecture_measured'::text, 'failure_signature'::text, 'security_posture_no_version_claim'::text, 'resolve_from_live_system'::text, 'company_governance_ruling'::text, 'company_record_generated'::text])));
 ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_gap_ck CHECK (((max_gap_minutes >= 5) AND (max_gap_minutes <= 1440)));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_kind_check CHECK ((kind = ANY (ARRAY['licence'::text, 'domain'::text, 'tls'::text, 'token'::text])));
+ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_never_expires_ck CHECK ((NOT (never_expires AND (expires_on IS NOT NULL))));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_warn_days_ck CHECK (((cardinality(warn_days) > 0) AND (0 < ALL (warn_days))));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_added_by_check CHECK ((btrim(added_by) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_check CHECK (((COALESCE(btrim(remedy), ''::text) <> ''::text) OR (COALESCE(btrim(not_automatable_reason), ''::text) <> ''::text)));
@@ -8888,6 +8891,7 @@ CREATE INDEX org_role_identity_role ON public.org_role_identity USING btree (pac
 CREATE INDEX org_role_mgr_ix ON public.org_role USING btree (manager_role_id);
 CREATE UNIQUE INDEX org_role_one_per_agent_ux ON public.org_role USING btree (runtime_agent_key) WHERE ((status = 'active'::text) AND (runtime_agent_key IS NOT NULL));
 CREATE INDEX org_tasks_assigned_agent_idx ON public.org_tasks USING btree (assigned_agent) WHERE (assigned_agent IS NOT NULL);
+CREATE INDEX org_tasks_assigned_queue_idx ON public.org_tasks USING btree (priority DESC, id) WHERE (status = 'assigned'::text);
 CREATE INDEX os_audit_log_action_idx ON public.os_audit_log USING btree (action, at DESC);
 CREATE INDEX os_audit_log_actor_idx ON public.os_audit_log USING btree (actor, at DESC);
 CREATE INDEX os_audit_log_at_idx ON public.os_audit_log USING btree (at DESC);
@@ -33215,8 +33219,8 @@ begin
   if coalesce(p_key, '') !~ '^(cap|floor)_[a-z0-9_]+$' or p_key = 'cap_warn_ratio' then
     raise exception 'fn_it_cap_set sets a provider cap (cap_*) or floor (floor_*), not %', coalesce(p_key, 'nothing');
   end if;
-  if p_by is null or p_by not in ('accountant', 'ceo', 'founder') then
-    raise exception 'a cap is set by the accountant, the ceo or the founder, not %', coalesce(p_by, 'nobody');
+  if p_by is null or p_by not in ('accountant', 'ceo', 'founder', 'it_engineer') then
+    raise exception 'a cap is set by the accountant, the ceo, the founder or the it_engineer, not %', coalesce(p_by, 'nobody');
   end if;
   if coalesce(btrim(p_source), '') = '' then raise exception 'say where the cap comes from: the plan page or the invoice'; end if;
   if p_value is not null and p_value <= 0 then raise exception 'a cap must be above zero, or NULL for not recorded'; end if;
@@ -33235,10 +33239,17 @@ CREATE OR REPLACE FUNCTION public.fn_it_ceo_silence_watch()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.support_ceo_report; n_told int := 0;
+declare r public.support_ceo_report; n_told int := 0; v_window interval;
 begin
+  select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
+  -- Same fault, same answer as fn_it_loop_reverify above: a hardcoded 4 h fallback here would keep
+  -- policing to a number nobody can see, after the row that is supposed to hold it had gone.
+  if v_window is null then
+    raise exception 'fn_it_ceo_silence_watch: seat_handoff_kind names no reply window for it.finding from it_engineer';
+  end if;
   for r in select * from public.support_ceo_report
-            where source_agent = 'it_engineer' and status = 'sent' and next_review_at < now()
+            where source_agent = 'it_engineer' and status = 'sent'
+              and least(next_review_at, created_at + v_window) < now()
               and not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.target_id = 'delivery.request:' || support_ceo_report.id)
             order by id loop
@@ -33247,7 +33258,7 @@ begin
         'event', 'The CEO has not answered an IT report: ' || left(r.subject, 120),
         'detail', 'The IT engineer reported this to the CEO at '
                   || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (Dubai) and it was due an answer by '
-                  || to_char(r.next_review_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || E'. Nobody has answered.\n\n'
+                  || to_char(least(r.next_review_at, r.created_at + v_window) at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || E'. Nobody has answered.\n\n'
                   || 'Report: ' || r.subject || E'\n\nIt stays open until the CEO answers it. Reference: support_ceo_report ' || r.id || '.',
         'dedupe_key', 'it_ceo_silent:' || r.id));
     n_told := n_told + 1;
@@ -35152,7 +35163,8 @@ CREATE OR REPLACE FUNCTION public.fn_it_duty_settle(p_duty text, p_items jsonb)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare x jsonb; v_keys text[] := '{}'; v_key text; n_closed int := 0; v_open text;
+declare x jsonb; v_keys text[] := '{}'; v_key text; n_closed int := 0; v_open text; v_config boolean;
+        n_held int := 0;
 begin
   if coalesce(btrim(p_duty), '') = '' or jsonb_typeof(p_items) is distinct from 'array' then
     raise exception 'fn_it_duty_settle(duty, items[]): a duty name and an array of failing items are required';
@@ -35163,6 +35175,32 @@ begin
     end if;
     v_key := 'duty:' || p_duty || ':' || (x->>'item');
     v_keys := v_keys || v_key;
+
+    -- A CONFIGURATION GAP IS NOT NEWS ON THE SECOND TICK. Nothing about the running system changed
+    -- between one reading and the next; what is missing is a number or a date nobody has entered yet.
+    -- The key stays in v_keys so the sweep below does NOT close it - the gap is still open, and closes
+    -- the moment the cap or the date is recorded and the producer stops emitting the item. Recognised
+    -- from the item key both producers already use, or from an explicit 'config' flag for future ones.
+    v_config := coalesce((x->>'config')::boolean, false)
+                or (x->>'item') ~ '(^|:)cap_unknown:' or (x->>'item') ~ ':date_unknown$';
+    -- A CLOSED configuration finding is NOT held: it falls through to the upsert and reopens, because a
+    -- gap that was filled and has come back is news. Only an already-open one is held.
+    if v_config and exists (select 1 from public.it_engineer_finding f
+                             where f.issue_key = v_key and f.closed_at is null) then
+      -- The reading itself moves even though the gap does not: supabase storage was 34 GB when the
+      -- finding was raised and will be more when somebody reads it. So the title and the evidence are
+      -- refreshed to today's measurement while seen_count, last_seen_at and started_at stand still -
+      -- the row says what is true now without claiming anything happened this tick.
+      update public.it_engineer_finding f
+         set title = left(x->>'title', 300),
+             evidence = coalesce(x->'evidence', '{}'::jsonb) || jsonb_build_object(
+               'duty', p_duty, 'owner_seat', x->>'owner_seat', 'subject', x->>'subject',
+               'demo', coalesce((x->>'demo')::boolean, false), 'reading_refreshed_at', now())
+       where f.issue_key = v_key and f.closed_at is null;
+      n_held := n_held + 1;
+      continue;
+    end if;
+
     perform public.fn_it_engineer_finding_upsert(v_key, x->>'title', 'IT engineer duty: ' || p_duty,
       coalesce(x->>'blast', 'agent_facing'), coalesce((x->>'affected')::int, 1),
       coalesce(x->'evidence', '{}'::jsonb) || jsonb_build_object(
@@ -35175,7 +35213,8 @@ begin
     perform public.fn_it_engineer_finding_close(v_open, 'the ' || p_duty || ' duty no longer finds it');
     n_closed := n_closed + 1;
   end loop;
-  return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0), 'closed', n_closed);
+  return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0),
+                            'closed', n_closed, 'configuration_already_recorded', n_held);
 end $function$
 
 
@@ -35729,6 +35768,46 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_expiry_measured(p_expiries jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; n_date int := 0; n_never int := 0; n_seen int := 0;
+begin
+  if jsonb_typeof(coalesce(p_expiries, 'null'::jsonb)) is distinct from 'object' then
+    raise exception 'fn_it_expiry_measured takes the expiries object from takeDutyReadings';
+  end if;
+  for x in select key, value from jsonb_each(p_expiries) loop
+    -- A reading that was not taken settles nothing: an unreachable RDAP server must not clear a date.
+    continue when x.value->>'basis' is distinct from 'measured';
+    if (x.value->>'expires_on') is not null then
+      update public.it_expiry
+         set expires_on = (x.value->>'expires_on')::date, never_expires = false, checked_at = now()
+       where item = x.key;
+      if found then n_date := n_date + 1; end if;
+    elsif coalesce((x.value->>'never_expires')::boolean, false) then
+      -- The source line is written only on the transition, so a row that has been settled for months
+      -- does not rewrite its own provenance with today's date on every tick.
+      update public.it_expiry
+         set never_expires = true, expires_on = null, checked_at = now(),
+             source = left('the provider reports no expiry (measured '
+                           || to_char(now() at time zone 'Asia/Dubai', 'DD Mon YYYY') || '): ' || source, 500)
+       where item = x.key and never_expires is distinct from true;
+      if found then n_never := n_never + 1; end if;
+      update public.it_expiry set checked_at = now() where item = x.key;
+    else
+      -- Read, and the provider gave no date and did not say there is none: still unknown, but the row
+      -- records that it was looked at today, so a stale checked_at means the reading stopped running.
+      update public.it_expiry set checked_at = now() where item = x.key;
+    end if;
+    n_seen := n_seen + 1;
+  end loop;
+  return jsonb_build_object('read', n_seen, 'dated', n_date, 'never_expires', n_never);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_incident_open(p_handoff_id bigint)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -35884,6 +35963,55 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_learning_from_playbook(p_handoff_id bigint)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p public.it_playbook; v_key text; i public.it_incident;
+begin
+  -- A handoff id that is not an it.finding handoff is a caller's mistake, not a refusal, and is said
+  -- so out loud: fn_it_loop_reverify only ever passes ids from its own filtered query, so this cannot
+  -- fire from the loop. null is reserved for the two REFUSALS below -- no incident, no playbook class.
+  select h.detail->>'issue_key' into v_key from public.agent_actions h
+   where h.id = p_handoff_id and h.kind = 'handoff' and h.detail->>'type' = 'it.finding';
+  if v_key is null then
+    raise exception 'fn_it_learning_from_playbook: % is not an open it.finding handoff', p_handoff_id;
+  end if;
+
+  p := public.fn_it_playbook_for(v_key);
+  if p.failure_class is null then return null; end if;
+
+  update public.it_incident
+     set cause                  = coalesce(nullif(btrim(cause), ''), p.typical_cause),
+         fix                    = coalesce(nullif(btrim(fix), ''), nullif(btrim(p.remedy), ''), p.not_automatable_reason),
+         regression_check       = coalesce(nullif(btrim(regression_check), ''), p.regression_check),
+         playbook_class         = coalesce(playbook_class, p.failure_class),
+         not_automatable_reason = coalesce(not_automatable_reason, p.not_automatable_reason),
+         recorded_by            = coalesce(recorded_by, 'it_engineer (playbook: ' || p.failure_class || ')'),
+         updated_at             = now()
+   where handoff_id = p_handoff_id
+  returning * into i;
+  -- No incident row -- the handoff never became a new bug. Nothing to learn, and nothing is wrong.
+  -- Tested on FOUND rather than on a separate exists() before the update: two statements with no lock
+  -- between them can disagree, and the record `i` would then be all-NULL and read as "incomplete".
+  if not found then return null; end if;
+
+  -- it_playbook.regression_check is NOT NULL and a CHECK constraint makes remedy-or-reason non-empty,
+  -- so a matched row always leaves a complete incident. If a later migration ever weakens that, this
+  -- must NOT raise: fn_it_loop_reverify runs it inside a `for` loop with no per-row trap, so one
+  -- poisoned incident would stop every OTHER handoff in the tick from closing or escalating -- and,
+  -- ordered by id, would do it again on every tick after. It warns, returns null, and the handoff
+  -- stays parked for a human, which is the same answer as an unknown class.
+  if coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.fix), '') = '' or coalesce(btrim(i.regression_check), '') = '' then
+    raise warning 'fn_it_learning_from_playbook: playbook % left incident % incomplete; leaving it parked', p.failure_class, i.id;
+    return null;
+  end if;
+  return p.failure_class;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_loop_open(p_issue_key text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -35926,9 +36054,15 @@ CREATE OR REPLACE FUNCTION public.fn_it_loop_reverify()
 AS $function$
 declare
   h public.agent_actions; f public.it_engineer_finding; v_window interval; v_rep jsonb; v_cleared boolean;
-  n_closed int := 0; n_esc int := 0; n_wait int := 0;
+  n_closed int := 0; n_esc int := 0; n_wait int := 0; n_playbook int := 0; v_class text;
 begin
   select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
+  -- Review finding, 18 Sep 2026: with no such row v_window is null, `now() > created_at + null` is
+  -- null, and EVERY handoff fell quietly into 'waiting' -- the loop would never escalate again and
+  -- would say nothing about why. A missing conversation row is a configuration fault, not a default.
+  if v_window is null then
+    raise exception 'fn_it_loop_reverify: seat_handoff_kind names no reply window for it.finding from it_engineer';
+  end if;
   for h in select * from public.agent_actions
             where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
               and status in ('pending', 'failed') order by id loop
@@ -35937,9 +36071,18 @@ begin
     -- closed and reopened (a later started_at is a different occurrence with its own loop).
     v_cleared := f.issue_key is null or f.closed_at is not null
                  or f.started_at > (h.detail->>'occurrence_started_at')::timestamptz;
-    -- A new bug that has cleared waits for what was learned (trigger z62, fn_it_attach_learning).
+
+    if v_cleared then
+      -- A new bug that has cleared needs what was learned (trigger z62). Where the playbook already
+      -- covers this failure class, the IT engineer records it from there and closes now; where it
+      -- does not, the handoff waits for a human, which is what the gate is for.
+      v_class := public.fn_it_learning_from_playbook(h.id);
+      if v_class is not null then n_playbook := n_playbook + 1; end if;
+    end if;
+
     if v_cleared and exists (select 1 from public.it_incident i where i.handoff_id = h.id
-                              and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = ''
+                              and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.fix), '') = ''
+                                   or coalesce(btrim(i.regression_check), '') = ''
                                    or (i.playbook_class is null and coalesce(btrim(i.not_automatable_reason), '') = ''))) then
       if not (h.detail ? 'awaiting_learning') then
         update public.agent_actions set detail = detail || jsonb_build_object('awaiting_learning', now()) where id = h.id;
@@ -35952,6 +36095,7 @@ begin
       perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
         'verified_by', 'it_engineer', 'verified_at', now(),
         'verdict', coalesce(f.close_note, 'the finding is no longer open'),
+        'learning_from_playbook', v_class,
         'reply_before_close', h.detail ? 'replied_at'));
       perform set_config('qd.handoff_closer', '', true);
       update public.support_ceo_report
@@ -35982,7 +36126,7 @@ begin
       n_wait := n_wait + 1;
     end if;
   end loop;
-  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait);
+  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait, 'learned_from_playbook', n_playbook);
 end $function$
 
 
@@ -36154,6 +36298,20 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_playbook_for(p_issue_key text)
+ RETURNS it_playbook
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p.* from (
+    select b.* from public.it_playbook b
+     where left(p_issue_key, length(b.issue_prefix)) = b.issue_prefix
+     order by length(b.issue_prefix) desc, b.failure_class limit 1) p
+   where coalesce(btrim(p.typical_cause), '') <> '';
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_refusal_is_policy(p_subject text, p_counts jsonb)
  RETURNS boolean
  LANGUAGE sql
@@ -36258,11 +36416,13 @@ begin
   end loop;
 
   -- 3. WARN: every item inside a stage gets its handoff; the ledger records what is due.
-  for e in select * from public.it_expiry where kind <> 'tls' order by item loop
+  -- A never_expires item is settled, not overdue: there is no renewal to arrange and no date to chase.
+  for e in select * from public.it_expiry where kind <> 'tls' and not never_expires order by item loop
     if e.expires_on is null then
       v_items := v_items || jsonb_build_object('item', e.item || ':date_unknown', 'owner_seat', 'accountant', 'subject', e.item,
         'title', 'The renewal date of ' || e.item || ' is not known (' || e.source || ')',
-        'blast', 'internal', 'affected', 0, 'evidence', jsonb_build_object('route', e.route, 'source', e.source));
+        'blast', 'internal', 'affected', 0, 'config', true,
+        'evidence', jsonb_build_object('route', e.route, 'source', e.source));
       continue;
     end if;
     v_days := e.expires_on - current_date;
@@ -39867,6 +40027,429 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_org_task_consume_tick(p_limit integer DEFAULT 4, p_task_id bigint DEFAULT NULL::bigint, p_dry_run boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r          record;
+  v_q        text;
+  v_pg       jsonb;
+  v_best     record;
+  v_deliv    text;
+  v_reason   text;
+  v_handler  text;
+  v_basis    jsonb;
+  v_close    jsonb;
+  v_gap_id   bigint;
+  v_gap_status text;
+  v_exp      record;
+  v_inq      uuid;
+  v_inq_seen boolean;
+  v_matches  int;
+  v_vendor   text;
+  v_amount   numeric;
+  v_ccy      text;
+  v_charged  date;
+  v_back     interval;
+  v_done     jsonb := '[]'::jsonb;
+  v_left     jsonb := '[]'::jsonb;
+  v_items    jsonb := '[]'::jsonb;
+  v_settled  jsonb;
+  v_seen     int := 0;
+  v_refused  int := 0;
+  v_raised   int := 0;
+  v_t0       timestamptz := clock_timestamp();
+begin
+  for r in
+    select o.*
+      from public.org_tasks o
+     where o.status = 'assigned'
+       and (p_task_id is null or o.id = p_task_id)
+       and (p_task_id is not null
+            or o.last_run_at is null
+            or o.last_run_at < now() - make_interval(mins => (15 * power(2, least(o.attempts, 6)))::int))
+     order by (o.last_run_at is null) desc, o.priority desc, o.id
+     limit greatest(1, least(coalesce(p_limit, 4), 25))
+     -- TWO TICKS MUST NOT PICK THE SAME ROW. The 15-minute cron can double-fire or retry, and a
+     -- p_task_id replay can be issued by hand while a batch tick is in flight. Without this, both
+     -- callers select the row under READ COMMITTED; the loser's fn_org_task_close_as_fact refuses
+     -- (it guards on status='done') but its earlier result-merge update still lands on top of the
+     -- winner's. skip locked rather than for update: a row another tick is already working is not
+     -- this tick's work, and waiting on it would spend the budget queueing.
+       for update of o skip locked
+  loop
+    v_seen   := v_seen + 1;
+    v_deliv  := null;
+    v_reason := null;
+    v_basis  := '{}'::jsonb;
+    v_gap_id := null;
+    v_gap_status := null;
+    v_handler := null;
+    v_close  := null;
+
+    -- ONE BAD ROW MUST NOT TAKE THE BATCH, AND MUST NOT TAKE THE FINDING. Everything from routing
+    -- to the close runs inside this block, so a handler that raises -- a ::date cast on a captured
+    -- "Date: 2026-13-45", a ::uuid cast on 36 hex characters with the dashes in the wrong places, a
+    -- trigger refusing a close -- rolls back to the point this row was picked up instead of
+    -- aborting fn_org_task_consume_tick. Without it, one poisoned row would undo every close
+    -- already made in the same batch AND skip the per-class census at the end, so the tick would
+    -- lose the finding that says the queue is stuck, stamp nothing, and re-select the same poisoned
+    -- batch every 15 minutes with no forward progress and no explanation. The row itself is then
+    -- stamped and parked on the queued path below, carrying SQLERRM as its reason.
+    begin
+
+    -- ── knowledge_gap ─────────────────────────────────────────────────────────────────────────
+    if r.action_class = 'knowledge_gap' then
+      v_q := nullif(btrim(coalesce(substring(r.detail from 'QUESTION: ([^\n]+)'), '')), '');
+
+      -- THE GAP LEDGER IS THE WRITER'S OWN RECORD, SO READ IT FIRST. Measured 18 Sep 2026:
+      -- sales_knowledge_gap #13 ("how much does it cost to charter a helicopter to the moon") has
+      -- carried status='not_a_gap' since it was judged, while org_task 578944 stayed 'assigned'
+      -- for nine days -- the founder's own rule, a status column is not a delivery record, showing
+      -- up inside the very table that records the judgement. A question already judged out of
+      -- scope has nothing left to answer, and the judgement is the fact the close cites.
+      select g.id, g.status into v_gap_id, v_gap_status
+        from public.sales_knowledge_gap g where g.task_id = r.id;
+
+      if v_gap_status = 'not_a_gap' then
+        v_handler := 'sales_knowledge_gap';
+        v_deliv := 'ALREADY JUDGED. public.sales_knowledge_gap #' || v_gap_id || ', the record this '
+          || 'task''s own detail points at, carries status = ''not_a_gap'': the question was reviewed '
+          || 'and found not to be a gap in company knowledge.'
+          || E'\n\nQUESTION: ' || coalesce(v_q, '(none recorded on the task)')
+          || E'\n\nThere is nothing to answer and nothing to add to a corpus. The task stayed open '
+          || 'only because the judgement was written to the gap ledger and never carried back to the '
+          || 'queue -- which is the defect this consumer exists to end.';
+        v_basis := jsonb_build_object('answered_by', 'sales_knowledge_gap',
+                                      'sales_knowledge_gap_id', v_gap_id, 'gap_status', v_gap_status);
+
+      elsif v_q is null then
+        v_handler := 'none';
+        v_reason  := 'the task carries no "QUESTION:" line, so there is nothing to ask again';
+
+      else
+        -- 1. the price answerer, admitted only when it matched the subject and not just the trade
+        v_pg := public.fn_price_guidance(v_q, 6);
+
+        if coalesce((v_pg->>'ok')::boolean, false)
+           and jsonb_array_length(coalesce(v_pg->'unmatched_terms', '[]'::jsonb)) = 0 then
+          v_handler := 'fn_price_guidance';
+          v_deliv := 'ANSWERED TODAY by public.fn_price_guidance, the published-price answerer.'
+            || E'\n\nQUESTION: ' || v_q
+            || E'\n\nTRADE RESOLVED: ' || coalesce(v_pg->>'trade', '?')
+            || ' (via ' || coalesce(v_pg->>'resolved_via', '?') || '), '
+            || coalesce(v_pg->>'band_count', '0') || ' published UAE bands, and every substantive '
+            || 'term in the question matched -- unmatched_terms is empty, so this is the subject '
+            || 'that was asked about and not a trade-level substitute.'
+            || E'\n\nBANDS: ' || coalesce(v_pg->'bands', '[]'::jsonb)::text
+            || E'\n\nThese are published guide ranges in AED, never a quotation: QuotesDone does not '
+            || 'price the work, suppliers do.';
+          v_basis := jsonb_build_object('answered_by', 'fn_price_guidance', 'price_guidance', v_pg);
+
+        elsif coalesce(v_pg->>'reason', '') = 'trade_has_a_recorded_gap' then
+          v_handler := 'fn_price_guidance';
+          v_deliv := 'ANSWERED TODAY by public.fn_price_guidance: the company holds a DELIBERATE '
+            || 'recorded gap for this trade, which is an answer and not a silence.'
+            || E'\n\nQUESTION: ' || v_q
+            || E'\n\nTRADE: ' || coalesce(v_pg->>'trade', '?')
+            || E'\nRECORDED GAP: ' || coalesce(v_pg->>'gap_reason', '')
+            || E'\n\nTHE ANSWER TO GIVE: QuotesDone publishes no price range for this trade. Say so '
+            || 'plainly, never estimate one, and offer to put the job out to suppliers for real '
+            || 'quotes. ' || coalesce(v_pg->>'note', '');
+          v_basis := jsonb_build_object('answered_by', 'fn_price_guidance', 'price_guidance', v_pg);
+
+        else
+          -- 2. the corpus the writer named. Arabic-aware, read-only, public rows only.
+          select s.src, s.src_id, s.title, s.content, s.citation, s.rank
+            into v_best
+            from public.fn_support_corpus_search(v_q, true, 3) s
+           order by s.rank desc
+           limit 1;
+
+          if found and v_best.rank >= 1.5 then
+            v_handler := 'fn_support_corpus_search';
+            v_deliv := 'ANSWERED TODAY by public.fn_support_corpus_search over v_support_corpus '
+              || '(company_faq + support_knowledge + ops_knowledge) -- the corpus this task names.'
+              || E'\n\nQUESTION: ' || v_q
+              || E'\n\nSOURCE: ' || v_best.src || ':' || v_best.src_id
+              || ' -- ' || coalesce(v_best.citation, coalesce(v_best.title, ''))
+              || ' (rank ' || round(v_best.rank::numeric, 3) || ', floor 1.5)'
+              || E'\n\nANSWER: ' || left(coalesce(v_best.content, ''), 4000);
+            v_basis := jsonb_build_object(
+              'answered_by', 'fn_support_corpus_search',
+              'src', v_best.src, 'src_id', v_best.src_id, 'rank', round(v_best.rank::numeric, 4));
+          else
+            v_handler := 'fn_price_guidance + fn_support_corpus_search';
+            v_reason  := 'still unanswered: fn_price_guidance returned '
+              || coalesce(nullif(v_pg->>'reason', ''),
+                          case when coalesce((v_pg->>'ok')::boolean, false)
+                               then 'a trade-level match with unmatched terms '
+                                    || coalesce(v_pg->'unmatched_terms', '[]'::jsonb)::text
+                               else 'nothing' end)
+              || ', and the best company-knowledge hit ranked '
+              || coalesce(round(v_best.rank::numeric, 3)::text, 'nothing') || ' against a floor of 1.5. '
+              || 'The knowledge does not exist yet -- this needs a person to write it into a corpus, '
+              || 'not another search.';
+          end if;
+        end if;
+      end if;
+
+    -- ── routine_operational_decision ──────────────────────────────────────────────────────────
+    elsif r.action_class = 'routine_operational_decision'
+          and coalesce(r.result->'founder_mail'->>'kind', '') = 'expense_logged' then
+      v_handler := 'expense_entries';
+      v_vendor := btrim(coalesce(substring(r.title from '^Expense logged: (.+) [0-9.]+ [A-Za-z]{3}$'), ''));
+      v_amount := nullif(coalesce(substring(r.title from '([0-9]+\.?[0-9]*) [A-Za-z]{3}$'), ''), '')::numeric;
+      v_ccy    := upper(coalesce(substring(r.title from '([A-Za-z]{3})$'), ''));
+      -- THE DATE IS PART OF THE IDENTITY, AND LEAVING IT OUT CITED THE WRONG RECEIPT. Measured in
+      -- the rolled-back dry run of 18 Sep 2026: matching on vendor + amount + currency alone closed
+      -- "Expense logged: GoDaddy 93.8 AED" (announced 10 Sep) on expense_entries #62 charged
+      -- 10 AUGUST, and "Resend 20 USD" (15 Sep) on #52 charged 15 August -- because a monthly
+      -- subscription bills the same vendor the same amount every month and the oldest row won.
+      -- A close that cites the wrong month's receipt is worse than an open task. The announced date
+      -- is in the task's own body and matched exactly on all four live rows, so it is required: no
+      -- exact match means the row stays queued and says why, rather than closing on a near miss.
+      v_charged := nullif(coalesce(substring(r.detail from 'Date: ([0-9]{4}-[0-9]{2}-[0-9]{2})'), ''), '')::date;
+
+      select e.id, e.vendor, e.amount, e.currency, e.charged_on, e.source, e.category, e.doc_path
+        into v_exp
+        from public.expense_entries e
+       where e.vendor = v_vendor and e.amount = v_amount and upper(e.currency) = v_ccy
+         and v_charged is not null and e.charged_on = v_charged
+       order by e.id
+       limit 1;
+
+      if found then
+        v_deliv := 'ALREADY DONE BEFORE THIS TASK EXISTED. The expense is booked: '
+          || 'public.expense_entries #' || v_exp.id || ' -- ' || v_exp.vendor || ' '
+          || v_exp.amount || ' ' || v_exp.currency || ' charged on ' || v_exp.charged_on
+          || ', category ' || coalesce(v_exp.category, '(none)') || ', source ' || coalesce(v_exp.source, '?')
+          || ', document ' || coalesce(v_exp.doc_path, '(none -- founder-reported)') || '.'
+          || E'\n\nsupabase/functions/resend_inbound books the entry and posts it to the general '
+          || 'ledger through fn_expense_post_to_gl at intake, and only THEN requests the notification '
+          || 'that became this task. The task''s own words are "a booked expense is a record, not a '
+          || 'decision": the record exists, so the condition it was raised for is resolved and there '
+          || 'was never a decision to take.'
+          || case when coalesce((r.result->'founder_mail'->>'seen_count')::int, 1) > 1
+                  then E'\n\nThis signal recurred ' || (r.result->'founder_mail'->>'seen_count')
+                       || ' times; each recurrence is its own booked entry.'
+                  else '' end;
+        v_basis := jsonb_build_object('answered_by', 'expense_entries', 'expense_entry_id', v_exp.id,
+                                      'vendor', v_exp.vendor, 'amount', v_exp.amount, 'currency', v_exp.currency);
+      else
+        v_reason := 'no row in public.expense_entries matches ' || coalesce(v_vendor, '?') || ' '
+          || coalesce(v_amount::text, '?') || ' ' || coalesce(v_ccy, '?') || ' charged on '
+          || coalesce(v_charged::text, '(the task carries no "Date:" line)')
+          || '. Either the receipt was announced and never booked -- which is the accountant''s duty '
+          || 'failing rather than a task waiting -- or the booked entry carries a different date. Do '
+          || 'NOT close this until the exact entry exists: a monthly subscription bills the same '
+          || 'vendor the same amount every month, so vendor and amount alone identify nothing.';
+      end if;
+
+    elsif r.action_class = 'routine_operational_decision'
+          and coalesce(r.result->'founder_mail'->>'kind', '') = 'rfq_no_supplier' then
+      v_handler := 'inquiries + inquiry_matches';
+      v_inq := nullif(coalesce(substring(r.detail from 'Inquiry: ([0-9a-fA-F-]{36})'), ''), '')::uuid;
+
+      if v_inq is null then
+        v_reason := 'the task names no inquiry id, so the claim "the customer is waiting" cannot be checked';
+      else
+        select true into v_inq_seen from public.inquiries i where i.id = v_inq;
+        v_inq_seen := coalesce(v_inq_seen, false);
+        select count(*) into v_matches from public.inquiry_matches m where m.inquiry_id = v_inq;
+
+        if not v_inq_seen then
+          v_deliv := 'THE CONDITION IS GONE. This task was raised because inquiry ' || v_inq
+            || ' matched zero suppliers and a customer was waiting. That inquiry no longer exists in '
+            || 'public.inquiries, so there is no customer waiting on it and nothing to route.'
+            || E'\n\nThe underlying supply-coverage gap is NOT closed by this and is not claimed to '
+            || 'be: it remains recorded in public.agent_actions under kind=''coverage_gap'', which is '
+            || 'where a coverage decision belongs. What closes here is this signal, which named a '
+            || 'request that is no longer live.';
+          v_basis := jsonb_build_object('answered_by', 'inquiries', 'inquiry_id', v_inq, 'inquiry_present', false);
+        elsif v_matches > 0 then
+          v_deliv := 'THE CONDITION IS GONE. Inquiry ' || v_inq || ' now has ' || v_matches
+            || ' row(s) in public.inquiry_matches, so it no longer matches zero suppliers and the '
+            || 'signal this task carries is out of date.';
+          v_basis := jsonb_build_object('answered_by', 'inquiry_matches', 'inquiry_id', v_inq, 'matches', v_matches);
+        else
+          v_reason := 'inquiry ' || v_inq || ' is still live and still matches zero suppliers. There is '
+            || 'NO handler for this and this tick will not invent one: onboarding or contacting '
+            || 'suppliers in a trade and emirate is a commercial act, fn_supply_gap_scan was dropped '
+            || 'on 7 Sep 2026, and no live routine owns supply coverage. It stays queued for the ceo '
+            || 'seat, and the class carries a finding saying exactly this.';
+        end if;
+      end if;
+
+    else
+      v_handler := 'none';
+      v_reason  := 'no handler is mapped for action_class ' || coalesce(r.action_class, '(null)')
+        || ' on seat ' || coalesce(r.assigned_agent, '(unassigned)')
+        || '. Mapping one is a deliberate act, not a default.';
+    end if;
+
+    ------------------------------------------------------------------------------------------
+    -- SETTLE THE ROW
+    ------------------------------------------------------------------------------------------
+      if v_deliv is not null and not p_dry_run then
+        -- z50_task_close_needs_an_act refuses a close on a requires_evidence task whose result
+        -- records facts but no act. Flipping the knowledge gap and citing the source IS the act,
+        -- and it is written before the close so fn_org_task_close_as_fact merges onto it.
+        update public.org_tasks
+           set result = coalesce(result, '{}'::jsonb) || jsonb_build_object(
+                 'change_made', jsonb_build_object(
+                   'what', 'the condition this task was raised for was re-checked against the handler '
+                           || 'the writer named, and it is resolved',
+                   'handler', v_handler, 'basis', v_basis, 'at', now()))
+         where id = r.id;
+
+        v_close := public.fn_org_task_close_as_fact(r.id, 'fn_org_task_consume_tick', v_deliv,
+                     v_basis || jsonb_build_object('owner', r.assigned_agent, 'handler', v_handler));
+
+        -- A REFUSAL IS RETURNED, NOT RAISED, AND IT IS NOT A CLOSE. fn_org_task_close_as_fact
+        -- answers {ok:false, reason} when the task is already done, the resolver is unnamed or the
+        -- deliverable is too short. Flipping the gap ledger on that return would mark a customer's
+        -- question knowledge_added while the task never left 'assigned' -- the exact shape of "a
+        -- status column is not a delivery record", and worse: the refusal paths return before
+        -- stamping last_run_at, so the row would keep sorting first on every tick and re-run the
+        -- search forever behind a ledger already claiming success. So the refusal becomes the
+        -- reason and the row falls through to the queued path, where it is stamped and backs off.
+        if coalesce((v_close->>'ok')::boolean, false) then
+          -- what both writers asked for in words, done in one place at last
+          if r.action_class = 'knowledge_gap' then
+            update public.sales_knowledge_gap
+               set status = 'knowledge_added', closed_at = now()
+             where task_id = r.id and status = 'open'
+            returning id into v_gap_id;
+          end if;
+        else
+          v_reason := 'fn_org_task_close_as_fact REFUSED this close: '
+            || coalesce(nullif(btrim(v_close->>'reason'), ''), '(no reason given)')
+            || '. The handler had an answer and the close path rejected it, so nothing is recorded '
+            || 'as delivered and the row backs off instead.';
+          v_deliv  := null;
+          v_refused := v_refused + 1;
+        end if;
+      end if;
+
+    exception when others then
+      v_deliv  := null;
+      v_close  := null;
+      v_reason := 'the handler RAISED and this row was rolled back to the point it was picked up: '
+        || sqlerrm || ' (SQLSTATE ' || sqlstate || '). The rest of this batch and the per-class '
+        || 'finding are unaffected; this row is stamped and backs off so the failure is visible '
+        || 'rather than repeating every 15 minutes.';
+      v_raised := v_raised + 1;
+    end;
+
+    v_back := make_interval(mins => (15 * power(2, least(r.attempts + 1, 6)))::int);
+
+    if v_deliv is not null then
+      if p_dry_run then
+        v_done := v_done || jsonb_build_object('id', r.id, 'class', r.action_class, 'seat', r.assigned_agent,
+                    'handler', v_handler, 'would', 'close', 'basis', v_basis, 'deliverable', left(v_deliv, 1200));
+      else
+        v_done := v_done || jsonb_build_object('id', r.id, 'class', r.action_class, 'seat', r.assigned_agent,
+                    'handler', v_handler, 'closed', true,
+                    'close', v_close, 'sales_knowledge_gap', v_gap_id);
+      end if;
+
+    else
+      if p_dry_run then
+        v_left := v_left || jsonb_build_object('id', r.id, 'class', r.action_class, 'seat', r.assigned_agent,
+                    'handler', v_handler, 'would', 'stay queued', 'reason', v_reason,
+                    'attempts_would_be', r.attempts + 1, 'next_attempt_after', now() + v_back);
+      else
+        update public.org_tasks
+           set last_run_at = now(),
+               attempts    = coalesce(attempts, 0) + 1,
+               updated_at  = now(),
+               result      = coalesce(result, '{}'::jsonb) || jsonb_build_object(
+                 'consumer', jsonb_build_object(
+                   'at', now(), 'handler', v_handler, 'verdict', 'not_yet', 'reason', v_reason,
+                   'attempts', coalesce(r.attempts, 0) + 1, 'next_attempt_after', now() + v_back))
+         where id = r.id;
+
+        v_left := v_left || jsonb_build_object('id', r.id, 'class', r.action_class, 'seat', r.assigned_agent,
+                    'handler', v_handler, 'reason', v_reason, 'attempts', r.attempts + 1,
+                    'next_attempt_after', now() + v_back);
+      end if;
+    end if;
+  end loop;
+
+  ------------------------------------------------------------------------------------------------
+  -- ONE FINDING PER CLASS, OVER THE WHOLE TABLE. Not one per row, not one per tick.
+  ------------------------------------------------------------------------------------------------
+  if p_task_id is null and not p_dry_run then
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'item',  x.action_class || ':' || x.seat,
+             'title', x.n || ' org_task(s) of class ' || x.action_class || ' are queued on the '
+                      || x.seat || ' seat and the consumer cannot finish them; the oldest has waited '
+                      || x.age_days || ' day(s)',
+             'owner_seat', x.seat,
+             'subject', 'org_tasks',
+             'blast',  'agent_facing',
+             'affected', x.n,
+             -- A STANDING GAP, NOT A FRESH FAILURE EVERY FIFTEEN MINUTES. This is the convention
+             -- #744 added on 18 Sep 2026 after duty:renewal:...:date_unknown was re-raised 320
+             -- times in four days: fn_it_duty_settle holds an already-open finding carrying
+             -- 'config' => true, refreshing its title and evidence to today's reading while
+             -- seen_count, last_seen_at and started_at stand still. That is exactly this subject.
+             -- Nothing about the running system changes between two ticks over the same queue;
+             -- what is missing is knowledge nobody has written or a supplier nobody has onboarded.
+             -- Without the flag this finding's seen_count would climb 96 times a day and bury
+             -- every finding that did move. A CLOSED one still reopens, because a class that
+             -- emptied and came back IS news.
+             'config', true,
+             'evidence', jsonb_build_object(
+               'ids', x.ids, 'oldest_created_at', x.oldest, 'max_attempts', x.max_attempts,
+               'last_reason', x.reason,
+               'look_at', 'select id, title, result->''consumer'' from public.org_tasks where status = ''assigned'''))), '[]'::jsonb)
+      into v_items
+      from (
+        select o.action_class,
+               coalesce(o.assigned_agent, 'unassigned')          as seat,
+               count(*)::int                                     as n,
+               array_agg(o.id order by o.id)                     as ids,
+               min(o.created_at)                                 as oldest,
+               (extract(epoch from (now() - min(o.created_at))) / 86400)::int as age_days,
+               max(o.attempts)                                   as max_attempts,
+               max(o.result->'consumer'->>'reason')              as reason
+          from public.org_tasks o
+         where o.status = 'assigned'
+         group by 1, 2
+      ) x;
+
+    v_settled := public.fn_it_duty_settle('org_task_queue', v_items);
+  end if;
+
+  -- THE STEP RUNNER ONLY COUNTS {ok:false, error:'<string>'} AS A FAILURE (resilience_ping/steps.ts,
+  -- failureOf). A hardcoded ok:true would mean a refused close or a raising handler never reaches
+  -- settleFailures and never becomes duty:heartbeat:orgtasks -- a broken consumer reporting health.
+  -- So a tick that could not finish what it started says so in the shape the runner reads.
+  return jsonb_build_object(
+    'ok', (v_refused + v_raised) = 0,
+    'error', case when (v_refused + v_raised) > 0
+                  then v_refused || ' close(s) refused and ' || v_raised || ' handler(s) raised; '
+                       || 'see result->''consumer''->>''reason'' on the rows still at status=''assigned'''
+                  else null end,
+    'refused', v_refused,
+    'raised', v_raised,
+    'dry_run', p_dry_run,
+    'scanned', v_seen,
+    'closed', jsonb_array_length(v_done),
+    'still_queued', jsonb_array_length(v_left),
+    'done', v_done,
+    'queued', v_left,
+    'findings', v_settled,
+    'ms', round(extract(epoch from (clock_timestamp() - v_t0)) * 1000));
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_org_task_cross_os_guard()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -42982,16 +43565,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -43162,6 +43735,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 

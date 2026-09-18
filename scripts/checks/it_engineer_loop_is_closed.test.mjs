@@ -201,3 +201,47 @@ test('refusals inside a rehearsal window are the harness, not customers turned a
     end`);
   assert.equal(r.login_refusal_finding, 0);
 });
+
+// 8. THE LEARNING GATE CLOSES WHAT THE PLAYBOOK KNOWS AND STILL REFUSES WHAT NOBODY HAS.
+// scripts/sql/the_it_learning_gate_closes_what_the_playbook_already_knows.sql. Measured 18 Sep 2026:
+// 110 it_incident rows, every one empty on cause, fix, regression check and playbook class, because
+// only fn_it_attach_learning could fill them and no routine calls it. Both halves are asserted here
+// -- a parked handoff whose class the playbook covers must close, and one whose class it does not
+// must stay parked -- because a gate that opens for everything is the failure this build could cause.
+test('a parked handoff closes from the playbook, and an unknown class still refuses', { skip: SKIP }, async () => {
+  const r = await probe(`
+    declare v jsonb; v_before int; v_after int; v_known int; v_unknown int;
+    begin
+      set local statement_timeout = '60s';
+      select count(*) filter (where true),
+             count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null),
+             count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is null)
+        into v_before, v_known, v_unknown
+        from public.agent_actions a
+       where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
+         and a.status in ('pending','failed') and a.detail ? 'awaiting_learning';
+      v := public.fn_it_loop_reverify();
+      select count(*) into v_after from public.agent_actions a
+       where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
+         and a.status in ('pending','failed') and a.detail ? 'awaiting_learning';
+      raise exception 'CHK<<%>>', json_build_object(
+        'parked_before', v_before, 'parked_after', v_after,
+        'covered_by_playbook', v_known, 'not_covered', v_unknown,
+        'closed', (v->>'closed')::int, 'learned_from_playbook', (v->>'learned_from_playbook')::int,
+        'known_class', (public.fn_it_playbook_for('duty:heartbeat:ZZ DEMO probe step')).failure_class,
+        'narrower_class_without_a_cause', (public.fn_it_playbook_for('duty:demo:window:ZZ DEMO')).failure_class,
+        'unknown_class_opened', (public.fn_it_playbook_for('duty:zz_demo_no_such_class:ZZ DEMO')).failure_class);
+    end`);
+  // These three hold whatever the backlog happens to be, so the test cannot go quiet as it drains.
+  assert.equal(r.unknown_class_opened, null, 'the playbook answered a failure class nobody has written');
+  assert.equal(r.narrower_class_without_a_cause, null,
+    'a key whose own class has no written cause borrowed a broader class: the gate opened on a guess');
+  assert.equal(r.known_class, 'heartbeat_step', 'the playbook no longer covers duty:heartbeat:');
+  assert.equal(r.learned_from_playbook, r.covered_by_playbook,
+    'a parked handoff whose class the playbook covers was not filled from it');
+  assert.equal(r.parked_after, r.not_covered,
+    'the handoffs left parked are not exactly the ones no playbook class covers');
+  // Deliberately NO assertion that either count is above zero. Both are a snapshot of production's
+  // backlog: a floor on them would turn a drained queue -- the thing this build is for -- into a red
+  // check. The refusal path is proved by the three lookups above, which do not depend on the backlog.
+});

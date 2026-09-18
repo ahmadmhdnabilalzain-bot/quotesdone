@@ -128,6 +128,29 @@ async function specOfferTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE ORG_TASK QUEUE GETS A CONSUMER (18 Sep 2026). Measured that morning: public.org_tasks held 16
+// rows at status='assigned', every one with last_run_at IS NULL and attempts = 0, the oldest 9 days
+// old, carrying real unanswered customer questions (two of them in Arabic), booked expenses and two
+// "reached no suppliers" signals. 46 routines mention the table and not one selected 'assigned' to
+// execute it: everything wrote, nothing read.
+//
+// fn_org_task_consume_tick routes each class to the handler that already exists, stamps last_run_at
+// and attempts on every attempt, backs off 15 minutes doubling per attempt, and raises ONE
+// deduplicated finding per class through fn_it_duty_settle. It is deliberately placed BEFORE the
+// 'it' step for the same reason every detector is: itEngineerAlertTick reads the finding ledger, so
+// running it after would deliver the previous tick's picture.
+//
+// p_limit is 4, not the whole queue. Measured against production in a rolled-back transaction:
+// all 16 rows take 575 ms under `set local statement_timeout = '8s'`, so 4 is far inside both that
+// and the tick's own 110 s deadline, and it leaves the drains untouched on a day the queue is long.
+async function orgTaskTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_org_task_consume_tick', { p_limit: 4 });
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -665,9 +688,16 @@ async function itDutiesTick(): Promise<unknown> {
     const { data: due, error: dueErr } = await admin.rpc('fn_it_duties_due');
     if (dueErr) return { ok: false, error: dueErr.message };
     if (due !== true) return { due: false };
-    const { data, error } = await admin.rpc('fn_it_duties', { p_r: await takeDutyReadings(sec) });
+    const readings = await takeDutyReadings(sec);
+    const { data, error } = await admin.rpc('fn_it_duties', { p_r: readings });
     if (error) return { ok: false, error: error.message };
-    return { due: true, duties: Object.keys((data ?? {}) as Record<string, unknown>).length };
+    // The SAME readings, no second HTTP call: fn_it_duties stores only expires_on, so a provider that
+    // answers "this token has no expiry at all" (Meta debug_token expires_at 0) was measured hourly and
+    // dropped, and the ledger went on asking the accountant for a date that will never exist. See
+    // scripts/sql/configuration_that_is_missing_is_recorded_once_not_every_tick.sql.
+    const { error: expErr } = await admin.rpc('fn_it_expiry_measured', { p_expiries: readings.expiries ?? {} });
+    return { due: true, duties: Object.keys((data ?? {}) as Record<string, unknown>).length,
+             expiries: expErr ? { ok: false, error: expErr.message } : true };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -906,6 +936,7 @@ const STEPS: Step[] = [
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible — the exact defect this whole change exists to end.
   { name: 'orphans', run: orphanTick, nested: true },
+  { name: 'orgtasks', run: orgTaskTick },
   { name: 'it', run: itEngineerAlertTick, always: true },
   { name: 'outbox', run: outboxTick, always: true },
   // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
