@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T04:28:38.615Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T04:37:29.959Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3535,7 +3535,8 @@ CREATE TABLE IF NOT EXISTS public.it_expiry (
   checked_at timestamp with time zone DEFAULT now() NOT NULL,
   warn_days integer[] DEFAULT '{60,30}'::integer[] NOT NULL,
   secret_fingerprint text,
-  secret_seen_since timestamp with time zone
+  secret_seen_since timestamp with time zone,
+  never_expires boolean DEFAULT false NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_hold_signature (
@@ -8043,6 +8044,7 @@ ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_au
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_engineering'::text, 'diagnostic_lens'::text, 'estate_architecture_measured'::text, 'failure_signature'::text, 'security_posture_no_version_claim'::text, 'resolve_from_live_system'::text, 'company_governance_ruling'::text, 'company_record_generated'::text])));
 ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_gap_ck CHECK (((max_gap_minutes >= 5) AND (max_gap_minutes <= 1440)));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_kind_check CHECK ((kind = ANY (ARRAY['licence'::text, 'domain'::text, 'tls'::text, 'token'::text])));
+ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_never_expires_ck CHECK ((NOT (never_expires AND (expires_on IS NOT NULL))));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_warn_days_ck CHECK (((cardinality(warn_days) > 0) AND (0 < ALL (warn_days))));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_added_by_check CHECK ((btrim(added_by) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_check CHECK (((COALESCE(btrim(remedy), ''::text) <> ''::text) OR (COALESCE(btrim(not_automatable_reason), ''::text) <> ''::text)));
@@ -33215,8 +33217,8 @@ begin
   if coalesce(p_key, '') !~ '^(cap|floor)_[a-z0-9_]+$' or p_key = 'cap_warn_ratio' then
     raise exception 'fn_it_cap_set sets a provider cap (cap_*) or floor (floor_*), not %', coalesce(p_key, 'nothing');
   end if;
-  if p_by is null or p_by not in ('accountant', 'ceo', 'founder') then
-    raise exception 'a cap is set by the accountant, the ceo or the founder, not %', coalesce(p_by, 'nobody');
+  if p_by is null or p_by not in ('accountant', 'ceo', 'founder', 'it_engineer') then
+    raise exception 'a cap is set by the accountant, the ceo, the founder or the it_engineer, not %', coalesce(p_by, 'nobody');
   end if;
   if coalesce(btrim(p_source), '') = '' then raise exception 'say where the cap comes from: the plan page or the invoice'; end if;
   if p_value is not null and p_value <= 0 then raise exception 'a cap must be above zero, or NULL for not recorded'; end if;
@@ -35152,7 +35154,8 @@ CREATE OR REPLACE FUNCTION public.fn_it_duty_settle(p_duty text, p_items jsonb)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare x jsonb; v_keys text[] := '{}'; v_key text; n_closed int := 0; v_open text;
+declare x jsonb; v_keys text[] := '{}'; v_key text; n_closed int := 0; v_open text; v_config boolean;
+        n_held int := 0;
 begin
   if coalesce(btrim(p_duty), '') = '' or jsonb_typeof(p_items) is distinct from 'array' then
     raise exception 'fn_it_duty_settle(duty, items[]): a duty name and an array of failing items are required';
@@ -35163,6 +35166,32 @@ begin
     end if;
     v_key := 'duty:' || p_duty || ':' || (x->>'item');
     v_keys := v_keys || v_key;
+
+    -- A CONFIGURATION GAP IS NOT NEWS ON THE SECOND TICK. Nothing about the running system changed
+    -- between one reading and the next; what is missing is a number or a date nobody has entered yet.
+    -- The key stays in v_keys so the sweep below does NOT close it - the gap is still open, and closes
+    -- the moment the cap or the date is recorded and the producer stops emitting the item. Recognised
+    -- from the item key both producers already use, or from an explicit 'config' flag for future ones.
+    v_config := coalesce((x->>'config')::boolean, false)
+                or (x->>'item') ~ '(^|:)cap_unknown:' or (x->>'item') ~ ':date_unknown$';
+    -- A CLOSED configuration finding is NOT held: it falls through to the upsert and reopens, because a
+    -- gap that was filled and has come back is news. Only an already-open one is held.
+    if v_config and exists (select 1 from public.it_engineer_finding f
+                             where f.issue_key = v_key and f.closed_at is null) then
+      -- The reading itself moves even though the gap does not: supabase storage was 34 GB when the
+      -- finding was raised and will be more when somebody reads it. So the title and the evidence are
+      -- refreshed to today's measurement while seen_count, last_seen_at and started_at stand still -
+      -- the row says what is true now without claiming anything happened this tick.
+      update public.it_engineer_finding f
+         set title = left(x->>'title', 300),
+             evidence = coalesce(x->'evidence', '{}'::jsonb) || jsonb_build_object(
+               'duty', p_duty, 'owner_seat', x->>'owner_seat', 'subject', x->>'subject',
+               'demo', coalesce((x->>'demo')::boolean, false), 'reading_refreshed_at', now())
+       where f.issue_key = v_key and f.closed_at is null;
+      n_held := n_held + 1;
+      continue;
+    end if;
+
     perform public.fn_it_engineer_finding_upsert(v_key, x->>'title', 'IT engineer duty: ' || p_duty,
       coalesce(x->>'blast', 'agent_facing'), coalesce((x->>'affected')::int, 1),
       coalesce(x->'evidence', '{}'::jsonb) || jsonb_build_object(
@@ -35175,7 +35204,8 @@ begin
     perform public.fn_it_engineer_finding_close(v_open, 'the ' || p_duty || ' duty no longer finds it');
     n_closed := n_closed + 1;
   end loop;
-  return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0), 'closed', n_closed);
+  return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0),
+                            'closed', n_closed, 'configuration_already_recorded', n_held);
 end $function$
 
 
@@ -35729,6 +35759,46 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_expiry_measured(p_expiries jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; n_date int := 0; n_never int := 0; n_seen int := 0;
+begin
+  if jsonb_typeof(coalesce(p_expiries, 'null'::jsonb)) is distinct from 'object' then
+    raise exception 'fn_it_expiry_measured takes the expiries object from takeDutyReadings';
+  end if;
+  for x in select key, value from jsonb_each(p_expiries) loop
+    -- A reading that was not taken settles nothing: an unreachable RDAP server must not clear a date.
+    continue when x.value->>'basis' is distinct from 'measured';
+    if (x.value->>'expires_on') is not null then
+      update public.it_expiry
+         set expires_on = (x.value->>'expires_on')::date, never_expires = false, checked_at = now()
+       where item = x.key;
+      if found then n_date := n_date + 1; end if;
+    elsif coalesce((x.value->>'never_expires')::boolean, false) then
+      -- The source line is written only on the transition, so a row that has been settled for months
+      -- does not rewrite its own provenance with today's date on every tick.
+      update public.it_expiry
+         set never_expires = true, expires_on = null, checked_at = now(),
+             source = left('the provider reports no expiry (measured '
+                           || to_char(now() at time zone 'Asia/Dubai', 'DD Mon YYYY') || '): ' || source, 500)
+       where item = x.key and never_expires is distinct from true;
+      if found then n_never := n_never + 1; end if;
+      update public.it_expiry set checked_at = now() where item = x.key;
+    else
+      -- Read, and the provider gave no date and did not say there is none: still unknown, but the row
+      -- records that it was looked at today, so a stale checked_at means the reading stopped running.
+      update public.it_expiry set checked_at = now() where item = x.key;
+    end if;
+    n_seen := n_seen + 1;
+  end loop;
+  return jsonb_build_object('read', n_seen, 'dated', n_date, 'never_expires', n_never);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_incident_open(p_handoff_id bigint)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -36258,11 +36328,13 @@ begin
   end loop;
 
   -- 3. WARN: every item inside a stage gets its handoff; the ledger records what is due.
-  for e in select * from public.it_expiry where kind <> 'tls' order by item loop
+  -- A never_expires item is settled, not overdue: there is no renewal to arrange and no date to chase.
+  for e in select * from public.it_expiry where kind <> 'tls' and not never_expires order by item loop
     if e.expires_on is null then
       v_items := v_items || jsonb_build_object('item', e.item || ':date_unknown', 'owner_seat', 'accountant', 'subject', e.item,
         'title', 'The renewal date of ' || e.item || ' is not known (' || e.source || ')',
-        'blast', 'internal', 'affected', 0, 'evidence', jsonb_build_object('route', e.route, 'source', e.source));
+        'blast', 'internal', 'affected', 0, 'config', true,
+        'evidence', jsonb_build_object('route', e.route, 'source', e.source));
       continue;
     end if;
     v_days := e.expires_on - current_date;
