@@ -128,6 +128,29 @@ async function specOfferTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE ORG_TASK QUEUE GETS A CONSUMER (18 Sep 2026). Measured that morning: public.org_tasks held 16
+// rows at status='assigned', every one with last_run_at IS NULL and attempts = 0, the oldest 9 days
+// old, carrying real unanswered customer questions (two of them in Arabic), booked expenses and two
+// "reached no suppliers" signals. 46 routines mention the table and not one selected 'assigned' to
+// execute it: everything wrote, nothing read.
+//
+// fn_org_task_consume_tick routes each class to the handler that already exists, stamps last_run_at
+// and attempts on every attempt, backs off 15 minutes doubling per attempt, and raises ONE
+// deduplicated finding per class through fn_it_duty_settle. It is deliberately placed BEFORE the
+// 'it' step for the same reason every detector is: itEngineerAlertTick reads the finding ledger, so
+// running it after would deliver the previous tick's picture.
+//
+// p_limit is 4, not the whole queue. Measured against production in a rolled-back transaction:
+// all 16 rows take 575 ms under `set local statement_timeout = '8s'`, so 4 is far inside both that
+// and the tick's own 110 s deadline, and it leaves the drains untouched on a day the queue is long.
+async function orgTaskTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_org_task_consume_tick', { p_limit: 4 });
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -826,6 +849,7 @@ const STEPS: Step[] = [
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible — the exact defect this whole change exists to end.
   { name: 'orphans', run: orphanTick, nested: true },
+  { name: 'orgtasks', run: orgTaskTick },
   { name: 'it', run: itEngineerAlertTick, always: true },
   { name: 'outbox', run: outboxTick, always: true },
   // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
