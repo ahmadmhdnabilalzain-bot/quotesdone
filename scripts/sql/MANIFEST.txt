@@ -1479,3 +1479,4 @@ scripts/sql/the_org_task_queue_gets_a_consumer.sql
 # for its own reasoning and for nothing else it defines). It must be applied AFTER the
 # sanctions_screen edge function is deployed — see the deploy order in its header.
 scripts/sql/four_live_functions_had_no_clock_and_the_sanctions_screen_had_no_producer.sql
+scripts/sql/the_export_gate_was_red_because_another_session_held_a_lock.sql

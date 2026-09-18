@@ -30,7 +30,21 @@ function token() {
 // B", 18 minutes of wall clock for a check that can never pass. A rolled-back transaction is safe to
 // re-issue SERIALLY; it is not safe to re-issue CONCURRENTLY, and a 524 is not proof the first copy
 // has stopped. Any caller whose statement can outlive the gateway must pass `retry: false`.
-export async function sql(query, { ref = PROJECT_REF, retry = true } = {}) {
+// `retryableBody` widens the retry to a 400 whose BODY names an infrastructure answer rather than a
+// bad query. The management API returns `57014 canceling statement due to statement timeout` and
+// `55P03 lock_not_available` as HTTP 400, indistinguishable by status from a syntax error, so a
+// caller that must survive another session's apply has to name the pattern it will retry. It lives
+// here rather than in each caller because there is one endpoint and there should be one retry
+// policy for it: `export_from_either_source_is_identical.mjs` hand-rolled a second one on
+// 18 Sep 2026 and that is how a hazard learned in this file stops reaching the checks.
+// MEASURED 18 Sep 2026: fn_schema_export blocks for the whole duration of any concurrent
+// ACCESS EXCLUSIVE lock (12,374 ms behind a 12s lock on one table, against ~900 ms unblocked), so
+// without this a single `apply_sql --apply --ddl` elsewhere failed the schema-mirror gate outright.
+//
+// The waits carry up to 1s of JITTER. Several checks run in one CI job against one rate limiter;
+// deterministic powers of two make them retry in lockstep and collide on the same window again.
+export async function sql(query, { ref = PROJECT_REF, retry = true, retryableBody = null } = {}) {
+  const jitter = () => Math.floor(Math.random() * 1000);
   for (let attempt = 0; ; attempt++) {
     // THE CONNECTION ITSELF WAS THE ONE FAILURE THIS RETRY DID NOT COVER. A 429 and a 5xx were
     // retried; a fetch that THROWS -- ECONNRESET, "fetch failed", a socket hang up -- escaped and
@@ -54,7 +68,7 @@ export async function sql(query, { ref = PROJECT_REF, retry = true } = {}) {
       });
     } catch (err) {
       if (retry && attempt < 5) {
-        const wait = Math.min(2000 * 2 ** attempt, 30000);
+        const wait = Math.min(2000 * 2 ** attempt, 30000) + jitter();
         process.stderr.write(`-- transport ${err?.cause?.code || err?.message || 'error'}; `
           + `retry in ${wait / 1000}s (${attempt + 1}/5)\n`);
         await new Promise(r => setTimeout(r, wait));
@@ -63,9 +77,11 @@ export async function sql(query, { ref = PROJECT_REF, retry = true } = {}) {
       throw err;
     }
     const text = await res.text();
-    if (retry && (res.status === 429 || res.status >= 500) && attempt < 7) {
-      const wait = Math.min(2000 * 2 ** attempt, 60000);
-      process.stderr.write(`-- ${res.status}; retry in ${wait / 1000}s (${attempt + 1}/7)\n`);
+    const infraBody = Boolean(retryableBody) && !res.ok && retryableBody.test(text);
+    if (retry && (res.status === 429 || res.status >= 500 || infraBody) && attempt < 7) {
+      const wait = Math.min(2000 * 2 ** attempt, 60000) + jitter();
+      process.stderr.write(`-- ${res.status}${infraBody ? ' (infrastructure, not the query)' : ''};`
+        + ` retry in ${(wait / 1000).toFixed(1)}s (${attempt + 1}/7)\n`);
       await new Promise(r => setTimeout(r, wait));
       continue;
     }

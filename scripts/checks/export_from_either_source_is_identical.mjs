@@ -19,6 +19,11 @@
 //   node scripts/checks/export_from_either_source_is_identical.mjs            # report
 //   node scripts/checks/export_from_either_source_is_identical.mjs --write    # refresh the dump
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+// The repository's SQL reader, with the one retry policy this endpoint has. It adds no dependency
+// (node:fs and fetch only), and the token probe below stays because db.mjs THROWS when there is no
+// token while this check must SKIP — a check with no credential has measured nothing, and saying so
+// is not the same as failing.
+import { sql } from '../lib/db.mjs';
 
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
@@ -29,20 +34,72 @@ const PROD = 'htdblwldjkcgjvmqkbeh';
 const FILE = 'supabase/schema/full_schema.sql';
 const WRITE = process.argv.includes('--write');
 
-const q = async (ref, sql) => {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sql }),
-  });
-  if (!r.ok) { console.error(`query failed on ${ref}: ${r.status} ${(await r.text()).slice(0, 300)}`); process.exit(1); }
-  return r.json();
+// A TIMEOUT IS NOT DRIFT, AND THIS CHECK USED TO PRINT THEM THE SAME COLOUR.
+//
+// Until 18 Sep 2026 the single fetch below had no retry: one `57014 canceling statement due to
+// statement timeout` and the check exited 1, the same exit a genuine repository-versus-production
+// difference produces. MEASURED that day: 11 failures in 29 runs over 2.5 hours — 38%, including on
+// the head of main — and not one of them was drift. fn_schema_export deparses every object in
+// `public`, deparsing takes an ACCESS SHARE lock, and any other session mid-apply holds ACCESS
+// EXCLUSIVE; the export then waits out the whole 2-minute statement_timeout. Proven with an
+// aborted-transaction probe: a 12s lock on ONE table turned a ~900 ms export into 12,374 ms.
+// (scripts/sql/the_export_gate_was_red_because_another_session_held_a_lock.sql carries the numbers
+// and sets lock_timeout=15s on the routine so a blocked export gives up in seconds, as 55P03,
+// instead of burning two minutes before anything can be retried.)
+//
+// A gate that is red 38% of the time for a reason unrelated to its subject teaches everyone to
+// merge past it, and then the day it is right about real drift nobody looks. So there are now THREE
+// outcomes, never two, and the exit code says which:
+//
+//     0  the export was measured and matches the committed mirror
+//     1  the export was measured and DIFFERS — drift. Unchanged, still loud, still fails the merge.
+//     2  THE EXPORT COULD NOT BE MEASURED. Not a drift finding, not an OK. Also fails the merge,
+//        because a gate that cannot reach its subject must never report a green over nothing.
+//
+// The retry is the repository's ONE retry policy — scripts/lib/db.mjs — not a second copy written
+// here. `retryableBody` is the option added there for this: the management API answers a statement
+// timeout and a lock timeout with HTTP 400, the same status as a syntax error, so the pattern to
+// retry has to be named. db.mjs allows 7 attempts and backs off 2s doubling to a 60s cap with
+// jitter (~3 minutes of patience), which outlasts an ordinary apply by another session.
+//
+// WHAT COULD NOT BE MEASURED, honestly: the 429s seen on 18 Sep 2026 are account-wide throttling,
+// and 20 consecutive full 3.5 MB exports issued back to back in a quiet window all returned 201.
+// The limiter is therefore shared with whatever else is running, so no fixed throttle window was
+// measurable from this side and the budget above is a budget, not a derivation.
+//
+// This is a pure READ, which is why retrying it is safe. db.mjs's own header records the opposite
+// case — re-POSTing DDL while the first copy still ran server-side deadlocked for 18 minutes. The
+// distinguishing fact is not "only one statement": it is that fn_schema_export requests only
+// ACCESS SHARE, so two copies of it queue behind a writer harmlessly and can never deadlock each
+// other. A check that retries something which takes an exclusive lock does NOT inherit that.
+const RETRYABLE_BODY = /57014|55P03|40P01|canceling statement|lock_not_available|deadlock detected/i;
+
+/** Exit 2 with the reason. The wording is deliberate: it says what was not measured. */
+const couldNotMeasure = (why) => {
+  console.log('SCHEMA EXPORT — database vs git');
+  console.log('  THE EXPORT COULD NOT BE MEASURED.');
+  console.log(`  ${why}`);
+  console.log('  This is NOT a drift finding: the database was never compared to the committed');
+  console.log('  mirror, so nothing is known either way about whether production matches this');
+  console.log('  repository. Re-run once the session that is applying SQL has finished.');
+  process.exit(2);
 };
 
 // fn_schema_export returns one row per line; the committed file is those lines joined.
-const rows = await q(PROD, 'select * from public.fn_schema_export()');
+let rows;
+try {
+  rows = await sql('select * from public.fn_schema_export()', { ref: PROD, retryableBody: RETRYABLE_BODY });
+} catch (err) {
+  const msg = String(err?.message || err).replace(/\s+/g, ' ').slice(0, 400);
+  const infra = RETRYABLE_BODY.test(msg) || /HTTP (?:429|5\d\d)/.test(msg) || !/^HTTP /.test(msg);
+  couldNotMeasure(infra
+    ? `the export did not complete within db.mjs's retry budget. Last: ${msg}`
+    : `the query was refused and asking again will not help: ${msg}`);
+}
+if (!Array.isArray(rows) || !rows.length) couldNotMeasure('public.fn_schema_export() returned no rows.');
 const key = Object.keys(rows[0])[0];
 const live = rows.map((r) => r[key]).join('\n');
+if (!live.trim()) couldNotMeasure('public.fn_schema_export() returned an empty export.');
 
 // THE BANNER IS METADATA, NOT SCHEMA, AND IT IS DELIBERATELY EXCLUDED FROM THE COMPARISON.
 // schema_dump_not_replayable.test.mjs requires this file to state WHEN it was captured and what the
