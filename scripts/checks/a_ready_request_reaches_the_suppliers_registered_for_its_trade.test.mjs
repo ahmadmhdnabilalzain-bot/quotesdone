@@ -19,6 +19,14 @@
 //      supplier_capability.ts stores it) is invited to a request in that same category.
 // The end-to-end half — the portal posting a ready request and suppliers being invited — is harness
 // journeys a/b (scripts/e2e).
+//
+// RE-MEASURED 18 Sep 2026. All 13 tests failed against production with
+// "leads N: a supplier whose mandatory fields are incomplete cannot be verified (missing: reg_mobile,
+// reg_email, reg_licence, reg_profile, reg_terms)". The seed, not the gate, was wrong: it inserted an
+// approved+verified supplier carrying NONE of the founder's mandatory six. trg_leads_e0_mandatory_six_gate
+// went live with #698 (325a3e1, 15 Sep 11:14 +0400 — the commit that first carries it in the schema
+// mirror), not with #725; #725's only trigger on leads is AFTER UPDATE OF claimed_by. The gate is right
+// and stays untouched: the seed below now creates a COMPLETE demo supplier.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
@@ -37,12 +45,33 @@ const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 async function probe(label, capTrades, requested) {
   try {
     await sql(`do $probe$
-      declare v_id bigint; v_n int; v_demo boolean;
+      declare v_id bigint; v_n int; v_demo boolean; v_code text; v_lic text; v_prof text; v_six text[];
       begin
+        -- THE SIX ARE MANDATORY (the founder's rule; trg_leads_e0_mandatory_six_gate since 15 Sep 2026,
+        -- scripts/sql/the_mandatory_six_have_one_definition_and_the_sales_engineer_verifies.sql). An
+        -- approved supplier must carry all six, so the demo supplier this probe seeds is COMPLETE: name,
+        -- verified UAE mobile, verified e-mail, trade licence, company profile, signed terms. The two
+        -- documents are storage rows the probe creates for itself -- a path naming nothing is not a
+        -- document -- so no real document registration is touched; the whole block is rolled back.
+        v_code := public.fn_trade_code(${q(label)});
+        v_lic := 'zz-demo/routing-probe-' || v_code || '-licence.pdf';
+        v_prof := 'zz-demo/routing-probe-' || v_code || '-profile.pdf';
+        -- on conflict: two runs of this check probing the same trade at once would otherwise serialize
+        -- on the unique index (bucket_id, name) until the first one rolled back.
+        insert into storage.objects (bucket_id, name) values ('supplier-docs', v_lic), ('supplier-docs', v_prof)
+        on conflict (bucket_id, name) do nothing;
         -- leads.id is GENERATED ALWAYS; the probe rolls back, so the id it takes is never kept.
-        insert into public.leads (company_name, email, verified, approval_status)
-        values ('ZZ DEMO routing probe ' || ${q(label)}, 'routing-probe-' || public.fn_trade_code(${q(label)}) || '@example.invalid', true, 'approved')
+        insert into public.leads (company_name, email, phone, owner_phone_verified, owner_email_verified,
+                                  license_doc_path, company_profile_doc_path, signed_terms_path,
+                                  verified, approval_status)
+        values ('ZZ DEMO routing probe ' || ${q(label)}, 'routing-probe-' || v_code || '@example.invalid',
+                '+971500000099', true, true, v_lic, v_prof,
+                'suppliers/zz-demo-routing-probe-' || v_code || '.pdf', true, 'approved')
         returning id into v_id;
+        -- The gate would have refused the insert; this says so in the probe's own words if the
+        -- definition of the six ever moves ahead of this seed again.
+        v_six := public.fn_supplier_mandatory_six_for(v_id);
+        if cardinality(v_six) <> 0 then raise exception 'CHK<<incomplete demo supplier: %>>', v_six; end if;
         select is_demo into v_demo from public.leads where id = v_id;
         -- A trade that legally needs an approval (fire_fighting: civil_defence, security_systems: sira)
         -- is only matched to a supplier holding it, so the probe supplier holds what its trades need.
@@ -56,11 +85,18 @@ async function probe(label, capTrades, requested) {
          where m.supplier_id = v_id;
         raise exception 'CHK<<invited=% demo=%>>', v_n, v_demo;
       end $probe$;`);
-    return { invited: null, note: 'no exception at all' };
+    throw new Error(`${label}: the probe returned without its CHK exception, so nothing was measured and nothing was rolled back.`);
   } catch (e) {
-    const m = String(e?.message || e).match(/CHK<<invited=(\d+) demo=(\w+)>>/);
+    const msg = String(e?.message || e);
+    const m = msg.match(/CHK<<invited=(\d+) demo=(\w+)>>/);
     // RAISE prints a boolean as t/f, not true/false.
-    return m ? { invited: Number(m[1]), demo: m[2] === 't' || m[2] === 'true' } : { invited: null, note: String(e?.message || e).slice(0, 200) };
+    if (m) return { invited: Number(m[1]), demo: m[2] === 't' || m[2] === 'true' };
+    // A SEED THAT IS REFUSED IS NOT A MATCHING RESULT. This used to return { invited: null }, and
+    // every assertion then read "the supplier was not invited" when in truth the supplier was never
+    // created — an instrument measuring the wrong subject: 13 green-looking properties asserting
+    // nothing at all about matching. It is now an unmistakable error naming the seed.
+    throw new Error(`${label}: THE PROBE COULD NOT SEED A VERIFIABLE DEMO SUPPLIER, so this check asserts NOTHING about matching. `
+      + `Fix the seed (it must satisfy the founder's mandatory six) — never the gate. Database said: ${msg.slice(0, 400)}`);
   }
 }
 /** Registered the way the portal registers a picked trade: the taxonomy code(s) of that trade. */

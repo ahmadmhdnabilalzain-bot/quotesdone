@@ -20,13 +20,43 @@ declare
   v_lead   bigint;
   v_n_stated int; v_n_implied int; v_n_removed int; v_n_chain int; v_n_noservice int;
   v_via    text[];
+  v_lic text := 'zz-demo/own-words-probe-licence.pdf';
+  v_prof text := 'zz-demo/own-words-probe-profile.pdf';
+  v_six text[];
 begin
   set local statement_timeout = '8s';
 
-  insert into public.leads (company_name, email, emirate, sector, verified, approval_status)
+  -- THE MANDATORY SIX ARE EVIDENCE, NOT COLUMN VALUES (measured 18 Sep 2026, after this probe was
+  -- refused by trg_leads_e0_mandatory_six_gate with "missing: reg_mobile, reg_email, reg_licence,
+  -- reg_profile, reg_terms" on a row that did supply an email). fn_supplier_mandatory_six reads:
+  --   reg_mobile  -> owner_phone_verified AND the digits of phone/phone_e164 match ^9715[0-9]{8}$
+  --                  (the OTP verification, not a number typed into a column)
+  --   reg_email   -> owner_email_verified -- NOT leads.email, which is why an email was present and
+  --                  the item still missing
+  --   reg_licence -> storage.objects actually HOLDS license_doc_path in bucket supplier-docs
+  --   reg_profile -> the same for company_profile_doc_path (a path naming nothing is not a document)
+  --   reg_terms   -> signed_terms_path non-empty
+  -- So every seeding script in the estate that inserts an approved supplier directly must supply the
+  -- evidence. The gate is the founder's rule and is never softened; the fixture is what changes.
+  -- These two storage rows belong to this probe and are rolled back with everything else, so no real
+  -- supplier's document is pointed at or re-registered.
+  insert into storage.objects (bucket_id, name) values ('supplier-docs', v_lic), ('supplier-docs', v_prof)
+  on conflict (bucket_id, name) do nothing;
+
+  insert into public.leads (company_name, email, emirate, sector, phone, owner_phone_verified,
+                            owner_email_verified, license_doc_path, company_profile_doc_path,
+                            signed_terms_path, verified, approval_status)
   values ('ZZ DEMO — Decoration probe', 'zz.demo.decoration.probe@example.invalid', 'Dubai',
-          'interior_fitout', true, 'approved')
+          'interior_fitout', '+971500000099', true, true, v_lic, v_prof,
+          'suppliers/zz-demo-own-words-probe.pdf', true, 'approved')
   returning id into v_lead;
+
+  -- The gate would already have refused the insert; this states the seed's own completeness so a
+  -- future change to the definition of the six is named here rather than read as a matching result.
+  v_six := public.fn_supplier_mandatory_six_for(v_lead);
+  if cardinality(v_six) <> 0 then
+    raise exception 'PROBE FAIL: the ZZ DEMO supplier is not complete, so nothing below measures matching. Missing: %', v_six;
+  end if;
 
   insert into public.supplier_capabilities
     (supplier_id, trades, roles, services, coverage_emirates, confirmed_at)
