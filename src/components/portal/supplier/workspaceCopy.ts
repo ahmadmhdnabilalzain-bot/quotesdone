@@ -18,6 +18,7 @@ const EN: Dict = {
   // server counts what was expected, served and failed (supplier_api inbox: drawing_pages_expected /
   // _served / _failed); showing fewer drawings than exist, with no word said, is what these replace.
   rfq_pages_unavailable: '{n} of {total} drawing pages could not be opened — please refresh to try again.',
+  rfq_pages_row_missing: '{n} could not be opened',
   rfq_pages_none: 'The drawings for this inquiry could not be opened — please refresh to try again. Please do not price from the bill of quantities alone.',
 
   // messages
@@ -78,6 +79,7 @@ const AR: Dict = {
   tab_documents: 'المستندات', tab_insights: 'الرؤى', account_menu: 'الحساب', acct_profile: 'الملف التعريفي', acct_billing: 'الفواتير', acct_settings: 'الإعدادات',
 
   rfq_pages_unavailable: 'تعذّر فتح {n} من أصل {total} من صفحات المخططات — يُرجى تحديث الصفحة والمحاولة مرة أخرى.',
+  rfq_pages_row_missing: 'تعذّر فتح {n} منها',
   rfq_pages_none: 'تعذّر فتح مخططات هذا الاستفسار — يُرجى تحديث الصفحة والمحاولة مرة أخرى. لا تُسعّر بالاعتماد على جدول الكميات وحده.',
 
   mb_loading: 'جارٍ تحميل رسائلك…', mb_err: 'تعذّر تحميل رسائلك. يُرجى المحاولة مرة أخرى.', mb_retry: 'إعادة المحاولة',

@@ -11,11 +11,12 @@ import SupplierEntryHero from './supplier/SupplierEntryHero';
 import SupplierCommandPalette from './supplier/SupplierCommandPalette';
 import GetMatched from './supplier/GetMatched';
 import Insights, { INSIGHT_PANELS } from './supplier/Insights';
+// Inquiries received and Quotations submitted (founder, 15 Sep 2026) — the conversation with the sales engineer.
+import { InquiriesTab } from './supplier/InquiriesTab';
+import { QuotationsTab } from './supplier/QuotationsTab';
 import SupplierMailbox from './supplier/SupplierMailbox';
 import SupplierSupportingDocuments from './supplier/SupplierSupportingDocuments';
 import { ws } from './supplier/workspaceCopy';
-import { DrawingGallery, BoqTable, ClarifyThread, WithheldCustomer, RequestedTerms } from './supplier/RfqParts';
-import { SpecHoldPanel } from './supplier/SpecHold';
 import ServicesTab from './supplier/ServicesTab';
 import EmirateCheckboxes from './supplier/EmirateCheckboxes';
 import { Kicker } from '@/components/ui/sealed';
@@ -790,8 +791,9 @@ function Dashboard({ token, lang, onExpired }) {
       </div>
       <SupplierCommandPalette tabs={[...MAIN_TABS, ...ACCOUNT_TABS]} labels={TAB} onGo={go} lang={lang} />
       {tab === 'services' && <ServicesTab token={token} lang={lang} goTo={go} />}
-      {tab === 'rfqs' && <Rfqs token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} />}
-      {tab === 'quotes' && <MyQuotes token={token} lang={lang} goRfqs={() => setTab('rfqs')} openRfq={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
+      {tab === 'rfqs' && <InquiriesTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} onQuote={(id) => { setFocusRfq(id); setTab('quotes'); }}
+        renderQuoteForm={(inq, done) => <QuoteForm inquiry={inq} token={token} lang={lang} onDone={done} />} />}
+      {tab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
       {/* Messages holds the revealed jobs (Projects) above the conversations, behind the reveal gate. */}
       {tab === 'messages' && <SupplierMailbox token={token} lang={lang} goTo={go}
         jobs={(open) => <Projects token={token} lang={lang} openChat={open} />} />}
@@ -810,136 +812,8 @@ function Dashboard({ token, lang, onExpired }) {
     </div>
   );
 }
-// Quotes: what this supplier has sent, and which are still drafts that no customer can see. The inbox
-// already carries each RFQ's quote; this is that list read the other way round.
-// A quote's state in words. draft = held by the accept rule (the customer cannot see it); anything the
-// quotes table may hold that is not listed here still gets an Arabic word rather than a raw code.
-const QUOTE_ST = {
-  draft: { v: 'warn', en: 'Held — not sent yet', ar: 'محجوز — لم يُرسل بعد' },
-  submitted: { v: 'ok', en: 'Sent to the customer', ar: 'أُرسل إلى العميل' },
-  accepted: { v: 'ok', en: 'Customer revealed you', ar: 'كشف العميل عن عرضك' },
-  withdrawn: { v: 'secondary', en: 'Withdrawn', ar: 'مسحوب' },
-  expired: { v: 'secondary', en: 'Expired', ar: 'منتهي الصلاحية' },
-};
-const quoteSt = (q) => QUOTE_ST[q && q.status] || { v: 'secondary', en: String((q && q.status) || '').replace(/_/g, ' '), ar: 'حالة أخرى' };
-// The notes a held quote carries: what fn_quote_structured_score says is missing, in words, and the
-// one button that reopens the form to fix it.
-// 14 Sep 2026: a quote the sales engineer holds for exact details carries `spec_hold`; its notes are the
-// per-line list and the two ways out (./supplier/SpecHold). Otherwise the commercial draft notes below.
-const optLabel = (lang, n) => (lang === 'ar' ? `الخيار ${n}` : `Option ${n}`);
-function HeldNotes({ q, lang, onFix, token = null, onChanged = null, title = null }) {
-  if (q.spec_hold && token) return <SpecHoldPanel quoteId={q.id} lang={lang} token={token} onChanged={onChanged || undefined} onResubmit={onFix || undefined} title={title} />;
-  const ar = lang === 'ar';
-  const miss = Array.isArray(q.missing) ? q.missing : [];
-  return (
-    <div role="note" className="mt-3 rounded-md border border-warn/40 bg-warn/10 px-3.5 py-3">
-      <div className="text-[13px] font-semibold text-foreground">{ar ? 'لم يُرسل هذا العرض إلى العميل بعد — أكمل ما يلي ثم أعد الإرسال:' : 'This quote has not reached the customer yet — add the following, then send it again:'}</div>
-      {miss.length
-        ? <ul className="mt-1.5 flex flex-col gap-1">{miss.map((m) => <li key={m} className="flex items-start gap-2 text-[13px] text-foreground"><span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-warn" />{missingLabel(lang, m)}</li>)}</ul>
-        : <div className={cn(S.sub, 'mt-1')}>{ar ? 'أضف بندًا مسعّرًا واحدًا على الأقل، ومدة التنفيذ، وصلاحية العرض، والضمان.' : 'Add at least one priced line, the lead time, the quote validity and the warranty.'}</div>}
-      {onFix && <Button size="sm" className="mt-2.5" onClick={onFix}>{ar ? 'أصلح العرض وأعد إرساله' : 'Fix and resend'}</Button>}
-    </div>
-  );
-}
-function MyQuotes({ token, lang, goRfqs, openRfq }) {
-  const ar = lang === 'ar';
-  const [data, setData] = useState(null);
-  const load = () => call('supplier_api', { action: 'inbox' }, token).then(setData);
-  useEffect(() => { load(); }, [token]);
-  if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
-  if (data.error) return <Card className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
-  // Every option is its own quotation (founder, 14 Sep 2026), so each gets its own card.
-  const list = (data.inquiries || []).flatMap((i) => { const qs = i.quotes && i.quotes.length ? i.quotes : (i.quote ? [i.quote] : []); return qs.map((q) => ({ ...i, quote: q, multi: qs.length > 1 })); });
-  if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{ar ? 'لم تقدّم أي عرض بعد' : 'No quotes yet'}</div><div className={S.sub}>{ar ? 'تظهر هنا عروضك بعد أن تسعّر طلبًا من تبويب طلبات التسعير.' : 'Your quotes appear here once you price a request from the RFQs tab.'}</div><Button className="mt-3" variant="outline" onClick={goRfqs}>{t(lang, 't_rfqs')}</Button></Card>;
-  return <ul className={S.list}>{list.map((i) => { const q = i.quote; const st = quoteSt(q); const editable = !i.concluded && !i.revealed; return (
-    <li key={i.id + ':' + (q.option_no || 1)}><Card className="qd-panel qd-panel-hover p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <button type="button" className="min-w-0 text-start" onClick={() => openRfq(i.id)} aria-label={(ar ? 'افتح الطلب ' : 'Open request ') + String(i.id).slice(0, 8).toUpperCase()}>
-          <div className="font-semibold text-foreground underline-offset-2 hover:underline">{categoryLabel(i.category || '', lang) || t(lang, 'request_w')} · {emirateLabel(lang, i.emirate || '')}{i.multi ? ' · ' + optLabel(lang, q.option_no || 1) : ''}</div>
-          <div className="mt-1 flex flex-wrap gap-2 items-center"><Badge variant={st.v}>{ar ? st.ar : st.en}</Badge>{i.you_won ? <Badge variant="ok">{t(lang, 'you_won').replace(' · ', '')}</Badge> : i.concluded ? <Badge variant="secondary">{t(lang, 'concluded').replace(' · ', '')}</Badge> : null}{q.lead_time ? <span className={S.sub}>{(ar ? 'مدة التنفيذ: ' : 'Lead time: ') + q.lead_time}</span> : null}</div>
-        </button>
-        <div className="text-end"><div className="font-[family-name:var(--font-head)] text-[18px] font-extrabold tabular-nums text-foreground"><Ltr>{aed(q.quote_amount)}</Ltr></div>
-          {editable && q.status !== 'draft' ? <Button size="sm" variant="outline" className="mt-1" onClick={() => openRfq(i.id)}>{ar ? 'عدّل العرض' : 'Edit quote'}</Button> : null}
-          {q.id ? <div className="mt-1"><PdfLinks lang={lang} fetchPdf={(l) => call('supplier_api', { action: 'quote_pdf', quote_id: q.id, lang: l }, token)} /></div> : null}</div>
-      </div>
-      {q.status === 'draft' && editable ? <HeldNotes q={q} lang={lang} token={token} onChanged={load} onFix={() => openRfq(i.id)} /> : null}
-    </Card></li>); })}</ul>;
-}
 // Label above figure, not below: the eye lands on the number, and the label is
 // already read by then. Figures are tabular so a row of KPIs aligns on the digit.
-// An RFQ card shows what is actually being priced: the redacted drawing pages, the BOQ as a table
-// (with "quote against this BOQ" pre-filling the quote's line items), the customer's identity as a
-// redaction bar, and the anonymous pre-reveal Q&A. See ./supplier/RfqParts.tsx for why.
-function Rfqs({ token, lang, focus = null, onFocused = null }) {
-  const ar = lang === 'ar';
-  const [data, setData] = useState(null); const [open, setOpen] = useState(null); const [prefill, setPrefill] = useState({});
-  // A second form on a card: "<inquiry>#<option_no>" edits that option, "<inquiry>#new" adds another option.
-  const [extra, setExtra] = useState(null);
-  const reload = () => call('supplier_api', { action: 'inbox' }, token).then((j) => setData(j));
-  useEffect(() => { reload(); }, [token]);
-  // Opened from a Quotes card: open THAT request's form (if it can still be edited) and scroll to it.
-  useEffect(() => {
-    if (!focus || !data || !data.inquiries) return;
-    const it = data.inquiries.find((x) => x.id === focus);
-    if (it && !it.concluded && !it.revealed) setOpen(focus);
-    requestAnimationFrame(() => { try { document.getElementById('qd-rfq-' + focus)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_e) {} });
-    if (onFocused) onFocused();
-  }, [focus, data]);
-  if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading_rfqs')}</Card>;
-  if (data.error) return <Card className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
-  const list = data.inquiries || [];
-  if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_rfqs_h')}</div><div className={S.sub}>{t(lang, 'no_rfqs_sub')}</div></Card>;
-  const quoteBoq = (id, rows) => {
-    setPrefill((p) => ({ ...p, [id]: rows.slice(0, 80).map((r) => ({ description: String(r.description || '').slice(0, 300), qty: r.qty == null ? '' : String(r.qty), unit: r.unit || '', unit_price: '' })) }));
-    setOpen(id);
-    requestAnimationFrame(() => { try { document.getElementById('qd-qf-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_e) {} });
-  };
-  const date = (d) => (d ? new Date(d).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }) : '');
-  return <ul className={S.list}>{list.map((i) => {
-    // A quote can be edited and re-sent until the request concludes or the customer reveals it:
-    // submit_quote upserts on (inquiry, supplier). A held draft must be editable — that is the fix.
-    const canQuote = !i.concluded && !i.revealed;
-    const q = i.quote;
-    return <li key={i.id} id={'qd-rfq-' + i.id}><Card className="qd-panel qd-panel-hover p-5 sm:p-6">
-      <div className="flex justify-between items-start gap-3 flex-wrap">
-        <div className="min-w-0">
-          <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            <span className="me-1 font-mono text-label uppercase tracking-caps text-muted-foreground tabular-nums">{ar ? 'طلب ' : 'RFQ '}<Ltr>{String(i.id || '').slice(0, 8).toUpperCase()}</Ltr></span>
-            {i.category ? <Badge variant="outline">{categoryLabel(i.category, lang)}</Badge> : null}
-            {i.emirate ? <Badge variant="secondary">{emirateLabel(lang, i.emirate)}</Badge> : null}
-          </div>
-          <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{categoryLabel(i.category || '', lang) || t(lang, 'request_w')} <span className="font-medium text-muted-foreground">· {emirateLabel(lang, i.emirate || '')}</span>
-            {i.you_won ? <span className="text-primary font-bold">{t(lang, 'you_won')}</span> : i.concluded ? <span className="text-muted-foreground">{t(lang, 'concluded')}</span> : ''}</h2>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">{!i.you_won && !i.revealed && <WithheldCustomer lang={lang} />}<span className="font-mono text-[11.5px] text-muted-foreground tabular-nums">{date(i.created_at)}</span>{i.budget ? <span className="text-[11.5px] text-muted-foreground">{(ar ? 'الميزانية: ' : 'Budget: ') + i.budget}</span> : null}</div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {q ? <span className="rounded-chip border border-primary/30 bg-primary/10 px-2.5 py-1 font-mono text-primary text-[13px] tabular-nums">{t(lang, 'quoted')}<Ltr>{aed(q.quote_amount)}</Ltr></span> : null}
-          {q ? <Badge variant={quoteSt(q).v}>{ar ? quoteSt(q).ar : quoteSt(q).en}</Badge> : null}
-          {canQuote ? <Button size="sm" variant={q ? 'outline' : 'default'} aria-expanded={open === i.id} aria-controls={'qd-qf-' + i.id} onClick={() => setOpen(open === i.id ? null : i.id)}>{open === i.id ? t(lang, 'close') : q ? (q.status === 'draft' ? (ar ? 'أصلح العرض' : 'Fix quote') : (ar ? 'عدّل العرض' : 'Edit quote')) : t(lang, 'quote')}</Button> : null}
-        </div>
-      </div>
-      {q && q.status === 'draft' && canQuote && open !== i.id && !(i.quotes && i.quotes.length > 1) ? <HeldNotes q={q} lang={lang} token={token} onChanged={reload} onFix={() => setOpen(i.id)} /> : null}
-      {i.quotes && i.quotes.length > 1 ? <ul className="mt-3 flex flex-col gap-2" aria-label={ar ? 'خياراتك لهذا الطلب' : 'Your options on this request'}>{i.quotes.map((o) => (
-        <li key={o.id} className="rounded-md border border-border px-3 py-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[13.5px] font-semibold text-foreground">{optLabel(lang, o.option_no || 1)} · <Ltr>{aed(o.quote_amount)}</Ltr></span>
-            <span className="flex items-center gap-2"><Badge variant={quoteSt(o).v}>{ar ? quoteSt(o).ar : quoteSt(o).en}</Badge>
-              {canQuote ? <Button size="sm" variant="outline" onClick={() => setExtra(extra === i.id + '#' + (o.option_no || 1) ? null : i.id + '#' + (o.option_no || 1))}>{ar ? 'عدّل هذا الخيار' : 'Edit this option'}</Button> : null}</span>
-          </div>
-          {o.status === 'draft' && canQuote && extra !== i.id + '#' + (o.option_no || 1) ? <HeldNotes q={o} lang={lang} token={token} onChanged={reload} onFix={() => setExtra(i.id + '#' + (o.option_no || 1))} /> : null}
-        </li>))}</ul> : null}
-      {canQuote && q ? <div className="mt-2.5"><Button size="sm" variant="ghost" onClick={() => setExtra(extra === i.id + '#new' ? null : i.id + '#new')}>{ar ? '+ أضف خيارًا آخر (عرض مستقل)' : '+ Add another option (its own quotation)'}</Button></div> : null}
-      {canQuote && extra && extra.startsWith(i.id + '#') ? <div id={'qd-qf-' + extra}><QuoteForm key={extra} inquiry={i} token={token} lang={lang} newOption={extra.endsWith('#new')} quote={extra.endsWith('#new') ? null : (i.quotes || []).find((o) => i.id + '#' + (o.option_no || 1) === extra) || null} onDone={() => { setExtra(null); reload(); }} /></div> : null}
-      {i.summary && <p className={cn(S.sub, 'mt-2')}>{i.summary}</p>}
-      <RequestedTerms spec={i.spec} lang={lang} />
-      <DrawingGallery pages={i.drawing_pages || []} failed={Number(i.drawing_pages_failed || 0)} lang={lang} />
-      <BoqTable boq={i.boq} confidence={i.boq_confidence} lang={lang} onQuote={canQuote && !q ? (rows) => quoteBoq(i.id, rows) : undefined} />
-      {i.boq_withheld ? <div className={cn(S.sub, 'mt-3')}>{ar ? 'حُجب جدول الكميات لأننا لم نتمكّن من إثبات خلوّه من بيانات العميل. سعّر من المخططات والوصف.' : 'The bill of quantities is held back because we could not prove it free of the customer’s details. Price from the drawings and the description.'}</div> : null}
-      <ClarifyThread inquiryId={i.id} token={token} lang={lang} canAsk={canQuote && !q} />
-      {open === i.id && canQuote && <div id={'qd-qf-' + i.id}><QuoteForm key={i.id + ':' + ((prefill[i.id] || []).length)} inquiry={i} token={token} lang={lang} initialItems={prefill[i.id]} onDone={() => { setOpen(null); reload(); }} /></div>}
-    </Card></li>;
-  })}</ul>;
-}
 function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = null, newOption = false }) {
   // An existing quote (a held draft, or one already sent) reopens with what was sent, lines included.
   // `quote` names one option to edit; `newOption` starts another option, which is its own quotation.

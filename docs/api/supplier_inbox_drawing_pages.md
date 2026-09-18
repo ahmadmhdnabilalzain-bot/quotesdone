@@ -35,6 +35,34 @@ The three counts exist so a zero is readable: `expected: 0` is an inquiry with n
 `expected: 3, served: 3, failed: 0` is three drawings that all arrived. A client that shows only
 `drawing_pages.length` cannot tell those apart — which is exactly how the defect stayed invisible.
 
+## The same counts on the Inquiries tab's own actions
+
+`inquiries_list`, `inquiry_detail` and `inquiry_documents` (`supabase/functions/supplier_api/quote_review_actions.ts`)
+all derive from `inbox`, so they forward the counts rather than re-deriving them:
+
+| action | fields |
+| --- | --- |
+| `inquiries_list` | `drawing_pages` (how many arrived), `drawing_pages_expected`, `drawing_pages_failed` |
+| `inquiry_detail` | `drawing_pages[]`, `drawing_pages_expected`, `drawing_pages_served`, `drawing_pages_failed` |
+| `inquiry_documents` | `documents[]`, `drawing_pages_expected`, `drawing_pages_failed` — a page that could not be signed is missing from the download list too |
+
+A list row now counts the pages the inquiry **has**, not the pages that arrived, and appends
+`rfq_pages_row_missing` when any failed — "2 drawing pages" must never quietly mean "3, and one was lost".
+
+## The same counts on the Inquiries tab's own actions
+
+`inquiries_list`, `inquiry_detail` and `inquiry_documents` (`supabase/functions/supplier_api/quote_review_actions.ts`)
+all derive from `inbox`, so they forward the counts rather than re-deriving them:
+
+| action | fields |
+| --- | --- |
+| `inquiries_list` | `drawing_pages` (how many arrived), `drawing_pages_expected`, `drawing_pages_failed` |
+| `inquiry_detail` | `drawing_pages[]`, `drawing_pages_expected`, `drawing_pages_served`, `drawing_pages_failed` |
+| `inquiry_documents` | `documents[]`, `drawing_pages_expected`, `drawing_pages_failed` — a page that could not be signed is missing from the download list too |
+
+A list row now counts the pages the inquiry **has**, not the pages that arrived, and appends
+`rfq_pages_row_missing` when any failed — "2 drawing pages" must never quietly mean "3, and one was lost".
+
 ## What the client renders
 
 `drawing_pages_failed > 0` → show the count. The words are in
