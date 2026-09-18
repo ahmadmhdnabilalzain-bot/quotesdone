@@ -409,6 +409,19 @@ async function orphanTick(): Promise<unknown> {
     const due = data as any;
     if (!due || !Object.values(due).some(Boolean)) return { due: false };
     const secret = await sec('cred_fn_resilience_ping');
+    // THE SANCTIONS SCREEN TAKES A DIFFERENT CREDENTIAL, AND THIS STEP COULD NEVER HAVE REACHED IT
+    // (18 Sep 2026). Internal credentials are SCOPED — fn_internal_auth refuses one that is not scoped
+    // to the callee — and this function's is not scoped to sanctions_screen. Measured in production:
+    //   fn_internal_auth(cred_fn_resilience_ping, 'send_outbox')      -> ok:true (credential 49)
+    //   fn_internal_auth(cred_fn_resilience_ping, 'sanctions_screen') -> out_of_scope
+    //   fn_internal_auth(cred_cron_compliance,    'sanctions_screen') -> ok:true (credential 175,
+    //                                              context cron.compliance, scope ['sanctions_screen'])
+    // Exactly ONE credential in the table is scoped to sanctions_screen, and it is not this one. Proved
+    // over HTTP as well: presenting this function's credential past the platform gateway answered
+    // 403 {"error":"forbidden"}. So the step presents the credential the scope model already says owns
+    // that call, rather than widening fn.resilience_ping's scope — widening it would make scoped
+    // credentials decorative, which is the one thing audit 9.5 exists to prevent.
+    const complianceSecret = await sec('cred_cron_compliance');
     // A 200 CARRYING A FAILED BODY IS A FAILURE, AND failureOf CANNOT SEE INSIDE `body` (third finding
     // from independent review). Returning {status, body} meant only a fetch exception or a 4xx/5xx was
     // ever counted: a callee answering HTTP 200 {ok:false, error:'…'} — which is how every one of these
@@ -417,11 +430,11 @@ async function orphanTick(): Promise<unknown> {
     // reason to assert on the effect and not the status. The failure is lifted to the top of the entry so
     // failureOf reads it. A bare {ok:false} with NO error string is deliberately left alone: by steps.ts's
     // convention that is a seat that has already staged its own finding, and counting it twice is noise.
-    const call = async (slug: string, ms = 20000, body: Record<string, unknown> = {}) => {
+    const call = async (slug: string, ms = 20000, body: Record<string, unknown> = {}, cred: string = secret) => {
       try {
         const r = await fetch(FN + '/' + slug, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ __secret: secret, ...body }), signal: AbortSignal.timeout(ms),
+          body: JSON.stringify({ __secret: cred, ...body }), signal: AbortSignal.timeout(ms),
         });
         const b = await r.json().catch(() => null);
         const inner = r.status < 400 ? failureOf(b) : null;   // a 4xx/5xx is already read off `status`
@@ -460,7 +473,7 @@ async function orphanTick(): Promise<unknown> {
           : { calls: runs.length, ms: Date.now() - d0, runs };
       }],
       ['email_triage', 'email_triage', 40000, () => call('email_triage', 40000)],
-      ['sanctions', 'sanctions_screen', 55000, () => call('sanctions_screen', 55000)],
+      ['sanctions', 'sanctions_screen', 55000, () => call('sanctions_screen', 55000, {}, complianceSecret)],
     ];
     const out: Record<string, unknown> = {};
     for (const [gate, key, need, run] of jobs) {

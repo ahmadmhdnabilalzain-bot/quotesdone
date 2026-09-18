@@ -166,7 +166,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.sanctions_screen]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send_outbox]
 verify_jwt = false
