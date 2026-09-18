@@ -578,9 +578,16 @@ async function itDutiesTick(): Promise<unknown> {
     const { data: due, error: dueErr } = await admin.rpc('fn_it_duties_due');
     if (dueErr) return { ok: false, error: dueErr.message };
     if (due !== true) return { due: false };
-    const { data, error } = await admin.rpc('fn_it_duties', { p_r: await takeDutyReadings(sec) });
+    const readings = await takeDutyReadings(sec);
+    const { data, error } = await admin.rpc('fn_it_duties', { p_r: readings });
     if (error) return { ok: false, error: error.message };
-    return { due: true, duties: Object.keys((data ?? {}) as Record<string, unknown>).length };
+    // The SAME readings, no second HTTP call: fn_it_duties stores only expires_on, so a provider that
+    // answers "this token has no expiry at all" (Meta debug_token expires_at 0) was measured hourly and
+    // dropped, and the ledger went on asking the accountant for a date that will never exist. See
+    // scripts/sql/configuration_that_is_missing_is_recorded_once_not_every_tick.sql.
+    const { error: expErr } = await admin.rpc('fn_it_expiry_measured', { p_expiries: readings.expiries ?? {} });
+    return { due: true, duties: Object.keys((data ?? {}) as Record<string, unknown>).length,
+             expiries: expErr ? { ok: false, error: expErr.message } : true };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
