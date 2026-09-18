@@ -3,12 +3,19 @@
 -- page once each, in their shapes, and never a ZZ DEMO file, a demo supplier's file or a conversation PDF;
 -- and the 1-hour watch counts a missing owner row.
 --
--- A PURE PROBE: one transaction that ends in raise exception, so every fixture (storage.objects rows,
--- the doc_backups rows the calls write, any finding the watch settles, the one real doc_backups row the
--- detection step removes) is rolled back. The uploader runs in its own transaction and never sees an
--- uncommitted row; nothing reaches Dropbox or a person. Success is the exception text starting CHK<<ok.
+-- A PURE PROBE: one transaction that ends in raise exception, so every fixture (its own ZZ DEMO lead,
+-- storage.objects rows, the doc_backups rows the calls write, any finding the watch settles, the one real
+-- doc_backups row the detection step removes) is rolled back. The uploader runs in its own transaction and
+-- never sees an uncommitted row; nothing reaches Dropbox or a person. Success is the exception text
+-- starting CHK<<ok.
 --
---   node scripts/apply_sql.mjs scripts/checks/a_new_document_is_queued_at_once.probe.sql --apply
+-- Two things the rollback does NOT undo, both harmless: the leads IDENTITY sequence advances by one
+-- per run (a permanent id gap, nothing reads it), and the statement-level document kick holds
+-- pg_try_advisory_xact_lock('fn_backup_kick') for the ~4 s the probe runs, so a document landing in
+-- that window is debounced out of its IMMEDIATE kick and waits for the 15-minute pass. No backup is
+-- lost either way.
+--
+--   node scripts/apply_sql.mjs scripts/checks/a_new_document_is_queued_at_once.probe.sql --apply --ddl
 set local statement_timeout = '8s';
 do $probe$
 declare
@@ -18,8 +25,18 @@ declare
   v_lead bigint; t0 timestamptz; t_fast int; t_bf int; t_w int; n_fast int; n_bf int; n_bf2 int; n_bf3 int;
   v_in_fast int; v_sw int; v_leg int; v_ex int; w0 int; w1 int; v_det text;
 begin
-  select l.id into v_lead from public.leads l where l.is_demo order by l.id limit 1;
-  if v_lead is null then raise exception 'CHK<<fail: no demo lead to own the demo-supplier fixture>>'; end if;
+  -- The probe owns its demo supplier (15 Sep 2026: a lookup of an existing demo lead failed on production
+  -- when none existed). Only company_name, email and phone are set: is_demo is generated from them, and
+  -- with claimed, verified and approval_status left null no registration, founding-rank or mandatory-six
+  -- trigger acts. The statement-level document kick queues at most a pg_net row, rolled back with the rest.
+  -- The email carries the transaction id so it cannot collide with uq_leads_email_lower; leads has no
+  -- unique index on phone, and +971500000072 is claimed by no other fixture.
+  insert into public.leads (company_name, email, phone)
+  values ('ZZ DEMO enqueue split probe', 'qd-enqueue-probe-' || txid_current() || '@example.invalid', '+971500000072')
+  returning id into v_lead;
+  if not (select l.is_demo from public.leads l where l.id = v_lead) then
+    raise exception 'CHK<<fail: the probe lead % is not marked is_demo>>', v_lead;
+  end if;
 
   insert into storage.objects (bucket_id, name, metadata, created_at) values
     ('compliance-docs', p_sw, '{"size": 1}', v_old),                                               -- swept
