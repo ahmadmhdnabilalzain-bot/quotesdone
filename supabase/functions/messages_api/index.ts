@@ -14,6 +14,7 @@ import { isCustomerCorrespondence } from '../_shared/customer_mail.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
+import { sanctionedLead } from '../_shared/sanctioned.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -368,6 +369,11 @@ Deno.serve(observe('messages_api', async (req) => {
     else if (cust && rev && rev.customer_id === cust.id) role = 'customer';
     if (!role) return J({ error: 'forbidden' }, 403);
     if (!rev) return J({ ok: true, locked: true, messages: [], note: 'Messaging unlocks after the quote is revealed.' });
+    // THE COUNTERPARTY, NOT ONLY THE CALLER (founder instruction 516, 18 Sep 2026). The `banned`
+    // line below asks whether the person TYPING is banned; nothing asked whether the supplier being
+    // typed AT is. So a customer opened a live thread with, and e-mailed, a sanctioned party. One
+    // line here covers the thread open, the send and the notification that follows it.
+    if (await sanctionedLead(admin, supplier_id)) return J({ error: 'This conversation is closed.', code: 'account_sanctioned' }, 403);
     const banned = (role === 'supplier' ? supLead?.banned : cust?.banned) === true;
     const { data: th } = await admin.from('chat_threads').select('status,reason').eq('inquiry_id', inquiry_id).eq('supplier_id', supplier_id).maybeSingle();
     // POST-REVEAL CHAT OPENS ON FIRST TOUCH. It used to wait on "Admin → Agents → approvals", a

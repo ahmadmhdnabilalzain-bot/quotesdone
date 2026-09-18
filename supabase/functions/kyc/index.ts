@@ -7,6 +7,7 @@ import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/sup
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
+import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -92,6 +93,11 @@ Deno.serve(observe('kyc', async (req) => {
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
     const email = user.email.toLowerCase();
+    // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026; security review the
+    // same day found this function authenticated a supplier by leads.claimed_by and asked
+    // nothing about the ban). Above everything this function does, so it covers what is written
+    // here next year too.
+    if (await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);
     const b = await req.json().catch(() => ({} as any)); const action = String(b.action || '');
     // Every action that sends or checks a Twilio Verify code refuses a fixture number first.
     if (['send_sms', 'verify_sms', 'whatsapp_send_code', 'whatsapp_verify'].includes(action) && isDemoPhone(toE164(String(b.phone || '')))) {

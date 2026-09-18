@@ -55,7 +55,7 @@ Deno.serve(observe('claim_lookup', async (req) => {
     }
 
     const { data: l, error } = await admin.from('leads')
-      .select('id,company_name,emirate,claimed,approval_status,permanently_closed')
+      .select('id,company_name,emirate,claimed,approval_status,permanently_closed,banned')
       .eq('claim_token', token).maybeSingle();
 
     if (error) {
@@ -64,7 +64,10 @@ Deno.serve(observe('claim_lookup', async (req) => {
     }
 
     // Unknown token: do not distinguish "never existed" from "closed" in the response.
-    if (!l || l.permanently_closed) {
+    // banned is read alongside permanently_closed and answered identically -- the invitation link
+    // of a sanctioned party is a working front door otherwise (founder instruction 516, 18 Sep 2026).
+    // fn_supplier_screening_decide also nulls claim_token, so this is the second lock, not the only one.
+    if (!l || l.permanently_closed || l.banned === true) {
       await logRun('ok', { found: 0 }, 'claim_lookup received a well-formed token that matched no available lead. With unguessable tokens this should be rare; a run of these suggests a broken outreach template rather than probing, since tokens cannot be guessed.');
       return J({ ok: false, error: 'not_found', message: 'This claim link is no longer available. Please contact management@quotesdone.com.' }, 404);
     }

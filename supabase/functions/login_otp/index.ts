@@ -5,6 +5,7 @@ import { codeEmail } from '../_shared/code_email.ts';
 import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 import { sendWhatsAppFirst, type VerifySent } from '../_shared/whatsapp_choice.ts';
+import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
 const admin = createClient(SB_URL, SB_SERVICE);
@@ -99,8 +100,14 @@ async function ensureUser(email: string) { let uid = await uidByEmail(email); if
 // module-level, so in a warm isolate the next person's request inherited it too. The verify now runs
 // on a client made for this one call and dropped with it. generateLink stays on admin.auth.admin,
 // whose calls are always sent with the service key.
-async function mintSession(email: string): Promise<{ access_token: string; refresh_token: string } | null> {
+// A SANCTIONED PARTY NEVER GETS A SESSION (founder instruction 516, 18 Sep 2026). The check lives
+// HERE rather than at the two call sites because this is the only function in the estate that mints
+// a supplier or customer session, and a third caller written next year inherits the refusal for
+// free. It is asked of public.sanctions_ban, not of leads.banned: a supplier banned for unpaid dues
+// must still be able to sign in and pay them.
+async function mintSession(email: string): Promise<{ access_token: string; refresh_token: string } | 'sanctioned' | null> {
   try {
+    if (await sanctionedEmail(admin, email)) return 'sanctioned';
     await ensureUser(email);
     const { data } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
     const th = (data as any)?.properties?.hashed_token; if (!th) return null;
@@ -388,7 +395,7 @@ Deno.serve(observe('login_otp', async (req) => {
         // kind === 'admin' writes neither: the founder is not a customers row and not a claimed
         // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
         // into the else and ran an UPDATE on leads.claimed_by for the admin address.
-        const s = await mintSession(email); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
+        const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
         return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.' }, 400);
@@ -409,7 +416,7 @@ Deno.serve(observe('login_otp', async (req) => {
       if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.' }, 404);
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);
-      const s = await mintSession(email); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
+      const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
       return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
     }
 

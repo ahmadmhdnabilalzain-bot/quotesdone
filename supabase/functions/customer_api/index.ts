@@ -21,6 +21,7 @@ import { portalLink } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/sanctioned.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -141,7 +142,12 @@ async function notifyLosers(inquiryId: string, summary: string | null, winnerId:
     const { data: others } = await qb;
     const ids = [...new Set((others || []).map((o: any) => Number(o.supplier_id)).filter(Boolean))];
     if (!ids.length) return;
-    const { data: ls } = await admin.from('leads').select('id,email,company_name').in('id', ids);
+    const { data: lsAll } = await admin.from('leads').select('id,email,company_name').in('id', ids);
+    // founder instruction 516, 18 Sep 2026: a sanctioned party is never messaged. The trigger
+    // a02_notifications_never_reach_a_sanctioned_party would refuse the row anyway and take this
+    // whole fan-out down with it, so the filter is here as well as there.
+    const barredLosers = await sanctionedLeads(admin, (lsAll || []).map((l: any) => l.id));
+    const ls = (lsAll || []).filter((l: any) => !barredLosers.has(String(l.id)));
     // AUDIT 1.5: the losing suppliers never paid for a reveal, so this is a pre-reveal surface even
     // though it is sent after the award. If the owner could not be read we quote nothing back at
     // them - the generic phrase below is already the correct fallback.
@@ -1395,6 +1401,11 @@ Deno.serve(observe('customer_api', async (req) => {
       const cfg = await getCfg(); const qid = String(body.quote_id || '');
       const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,original_file_path,original_file_name').eq('id', qid).maybeSingle();
       if (!q) return J({ error: 'Quote not found' }, 404);
+      // NEVER SHOWN TO A CUSTOMER (founder instruction 516, 18 Sep 2026). A sanctions ban lands
+      // after the quote was already submitted, so the row survives the matcher that would have
+      // excluded it. The refusal belongs BEFORE the charge, not after: a customer must not pay to
+      // be handed the contact details of a sanctioned party.
+      if (await sanctionedLead(admin, q.supplier_id)) return J(SANCTIONED_REFUSAL, 403);
       const { data: inq } = await admin.from('inquiries').select('id,customer_id').eq('id', q.inquiry_id).maybeSingle();
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
@@ -1483,6 +1494,7 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'supplier_history') {
       const qid = String(body.quote_id || '');
       const { data: q } = await admin.from('quotes').select('id,supplier_id,original_file_path,original_file_name').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
+      if (await sanctionedLead(admin, q.supplier_id)) return J(SANCTIONED_REFUSAL, 403);  // founder instruction 516: never shown to a customer
       // The reveal check gates what is RETURNED, not what may be read, so the three reads that only
       // need q.supplier_id run beside it instead of one after another (14 Sep 2026: four sequential
       // round trips here, then three more below).

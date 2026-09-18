@@ -21,6 +21,7 @@
 //     the CEO when someone asks for a person. assistant_logs now records which seat answered.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { sanctionedEmail } from '../_shared/sanctioned.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -113,7 +114,11 @@ async function identify(req: Request): Promise<{ email: string; audience: 'custo
     const { data: cust } = await admin.from('customers').select('id').ilike('email', email).maybeSingle();
     if (cust) return { email, audience: 'customer' };
     const { data: sup } = await admin.from('leads').select('id').ilike('claimed_by', email).maybeSingle();
-    if (sup) return { email, audience: 'supplier' };
+    // A SANCTIONED PARTY IS NOBODY HERE (founder instruction 516, 18 Sep 2026). Returning null
+    // drops them to the anonymous voice every stranger gets — no account-scoped answers, no
+    // supplier surface — rather than refusing outright, because this widget serves the public
+    // homepage and a 403 here would tell a passer-by something about somebody else's account.
+    if (sup) return (await sanctionedEmail(admin, email)) ? null : { email, audience: 'supplier' };
     return null;
   } catch (_e) { return null; }
 }
