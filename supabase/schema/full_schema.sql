@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T01:27:31.366Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T01:38:16.593Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -190,7 +190,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (521) =====
+-- ===== TABLES (522) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -6228,6 +6228,15 @@ CREATE TABLE IF NOT EXISTS public.seo_categories (
   updated_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.service_implication (
+  from_code text NOT NULL,
+  implies_trade text NOT NULL,
+  implies_code text NOT NULL,
+  reason_en text NOT NULL,
+  reason_ar text NOT NULL,
+  active boolean DEFAULT true NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.simulations (
   id bigint DEFAULT nextval('simulations_id_seq'::regclass) NOT NULL,
   scenario jsonb,
@@ -6421,7 +6430,11 @@ CREATE TABLE IF NOT EXISTS public.supplier_capabilities (
   confirmed_at timestamp with time zone,
   confirmed_version integer,
   excluded_trades text[] DEFAULT '{}'::text[] NOT NULL,
-  proposed_trades text[] DEFAULT '{}'::text[] NOT NULL
+  proposed_trades text[] DEFAULT '{}'::text[] NOT NULL,
+  services_raw_text text,
+  services_implied text[] DEFAULT '{}'::text[] NOT NULL,
+  services_removed text[] DEFAULT '{}'::text[] NOT NULL,
+  services_rewritten_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_capability_confirmation (
@@ -6946,7 +6959,8 @@ CREATE TABLE IF NOT EXISTS public.taxonomy_trade_service (
   label_en text NOT NULL,
   label_ar text NOT NULL,
   sort integer DEFAULT 100 NOT NULL,
-  active boolean DEFAULT true NOT NULL
+  active boolean DEFAULT true NOT NULL,
+  aliases text[] DEFAULT '{}'::text[] NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.templates (
@@ -7701,6 +7715,7 @@ ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_pkey PRIMARY KEY (na
 ALTER TABLE public.security_kpi_snapshots ADD CONSTRAINT security_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.self_review ADD CONSTRAINT self_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY (slug);
+ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id);
@@ -8199,6 +8214,10 @@ ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_owner_file
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_reply_within_check CHECK ((reply_within > '00:00:00'::interval));
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_type_check CHECK ((type ~ '^[a-z]+(\.[a-z_]+)+$'::text));
 ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
+ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_from_code_check CHECK ((from_code ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)?$'::text));
+ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_itself CHECK ((from_code <> ((implies_trade || '.'::text) || implies_code)));
+ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
+ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_en_check CHECK ((btrim(reason_en) <> ''::text));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_clickable CHECK ((((image_url IS NOT NULL) OR (media_missing IS NOT NULL)) AND ((NOT ((mode = 'now'::text) AND (status = ANY (ARRAY['sent'::text, 'published'::text])))) OR ((permalinks IS NOT NULL) AND (permalinks <> '{}'::jsonb)) OR (permalink_missing IS NOT NULL))));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_alternatives_shape CHECK (((jsonb_typeof(alternatives) = 'array'::text) AND (jsonb_array_length(alternatives) >= 1) AND (NOT jsonb_path_exists(alternatives, '$[*]?(@.type() != "object")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*].keyvalue()?((@."key" != "option_id" && @."key" != "value") && @."key" != "suppliers")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*]."suppliers"?(@.type() != "number")'::jsonpath))));
@@ -8495,6 +8514,7 @@ ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_inquiry_id
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_task_id_fkey FOREIGN KEY (task_id) REFERENCES org_tasks(id);
 ALTER TABLE public.sales_qualification_field ADD CONSTRAINT sales_qualification_field_sector_id_fkey FOREIGN KEY (sector_id) REFERENCES sales_sector(sector_id) ON DELETE CASCADE;
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE CASCADE;
+ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.stripe_dispute ADD CONSTRAINT stripe_dispute_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
@@ -17986,16 +18006,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18021,6 +18031,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -38181,8 +38201,8 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_match_capability(p_trades text[], p_need text DEFAULT 'executes'::text, p_products text[] DEFAULT '{}'::text[], p_brands text[] DEFAULT '{}'::text[], p_project_type text DEFAULT NULL::text, p_value numeric DEFAULT NULL::numeric, p_emirate text DEFAULT NULL::text, p_limit integer DEFAULT 12)
- RETURNS TABLE(supplier_id bigint, company_name text, score numeric, trades text[], roles text[], product_hits integer, brand_hit boolean, ptype_hit boolean, track numeric, why text)
+CREATE OR REPLACE FUNCTION public.fn_match_capability(p_trades text[], p_need text DEFAULT 'executes'::text, p_products text[] DEFAULT '{}'::text[], p_brands text[] DEFAULT '{}'::text[], p_project_type text DEFAULT NULL::text, p_value numeric DEFAULT NULL::numeric, p_emirate text DEFAULT NULL::text, p_limit integer DEFAULT 12, p_services text[] DEFAULT '{}'::text[])
+ RETURNS TABLE(supplier_id bigint, company_name text, score numeric, trades text[], roles text[], product_hits integer, brand_hit boolean, ptype_hit boolean, track numeric, why text, service_hits text[], via_implication text[])
  LANGUAGE sql
  STABLE
  SET search_path TO 'public', 'pg_temp'
@@ -38202,6 +38222,7 @@ req_auth as (
 cand as (
   select sc.supplier_id, sc.trades, sc.roles, sc.products_norm, sc.brands, sc.project_types,
          sc.min_project_value, sc.max_project_value, sc.coverage_emirates,
+         sc.services, sc.services_removed,
          l.company_name, l.emirate as lead_emirate,
          least(1, greatest(0, coalesce(sp.quote_rate, sp.perf_score, 0))) as track,
          -- TIE-BREAK ONLY. Every UAE supplier covers the whole country (founder, 14 Sep 2026), so the
@@ -38233,6 +38254,38 @@ cand as (
           (sc.min_project_value is null or p_value >= sc.min_project_value)
       and (sc.max_project_value is null or p_value <= sc.max_project_value)))
 ),
+-- GATE: the services the inquiry names, at SERVICE level. Stated + one level of the curated
+-- implication map - what the supplier removed. Empty p_services leaves every candidate through.
+--
+-- ONE DEFINITION OF COVERAGE. eff_services is computed once per candidate by fn_services_effective,
+-- and BOTH the hit list and the attribution are derived from it. An earlier draft re-derived the
+-- attribution from c.services directly (database review, 18 Sep 2026): a service code the supplier
+-- still stores but taxonomy_trade_service no longer marks active was rejected by fn_services_effective
+-- and accepted by the attribution, so `why` could name a curated rule that never actually fired.
+eff as (
+  select c.*,
+         case when cardinality(p_services) = 0 then '{}'::text[]
+              else public.fn_services_effective(c.services, c.trades, c.services_removed) end as eff_services
+  from cand c
+),
+svc as (
+  select e.*,
+    array(select unnest(e.eff_services) intersect select unnest(p_services)) as service_hits,
+    -- ponytail: one scan of service_implication per candidate. At 113 curated rows against a
+    -- candidate set the gates above have already cut down, this is not measurable; batch it with a
+    -- single unnest+join if the map or the candidate count grows an order of magnitude.
+    array(
+      select distinct i.from_code || ' -> ' || i.implies_trade || '.' || i.implies_code
+      from public.service_implication i
+      where i.active
+        and (i.implies_trade || '.' || i.implies_code) = any(e.eff_services)   -- it really is covered
+        and (i.implies_trade || '.' || i.implies_code) = any(p_services)       -- and the inquiry asked
+        and not ((i.implies_trade || '.' || i.implies_code) = any(coalesce(e.services, '{}'::text[])))
+        and (i.from_code = any(coalesce(e.trades, '{}'::text[]))
+          or i.from_code = any(coalesce(e.services, '{}'::text[])))
+      order by 1) as via_implication
+  from eff e
+),
 scored as (
   select c.*,
     (select count(distinct pq) from unnest(p_products) pq
@@ -38246,7 +38299,8 @@ scored as (
        where pt ilike '%'||p_project_type||'%' or p_project_type ilike '%'||pt||'%'
      )) as ptype_hit,
     (p_value is not null and c.min_project_value is not null and c.max_project_value is not null) as size_known
-  from cand c
+  from svc c
+  where cardinality(p_services) = 0 or cardinality(c.service_hits) > 0
 ),
 ranked as (
   select s.*,
@@ -38264,14 +38318,17 @@ select r.supplier_id, r.company_name, r.score_v as score,
   r.trades, r.roles, r.product_hits, r.brand_hit, r.ptype_hit, round(r.track,3) as track,
   concat_ws(' · ',
     'trades ' || array_to_string(array(select unnest(r.trades) intersect select unnest(p_trades)), '+'),
+    case when cardinality(r.service_hits) > 0 then cardinality(r.service_hits)||'/'||cardinality(p_services)||' services' end,
+    case when cardinality(r.via_implication) > 0 then 'implied: ' || array_to_string(r.via_implication, ', ') end,
     case when r.product_hits > 0 then r.product_hits||'/'||cardinality(p_products)||' products' end,
     case when r.brand_hit then 'brand match' end,
     case when r.ptype_hit then 'project type' end,
     case when p_emirate is not null then
       case when r.in_emirate then 'in ' || p_emirate else 'UAE-wide' end end
-  ) as why
+  ) as why,
+  r.service_hits, r.via_implication
 from ranked r
-order by r.score_v desc, r.in_emirate desc, r.track desc, r.supplier_id
+order by r.score_v desc, cardinality(r.service_hits) desc, r.in_emirate desc, r.track desc, r.supplier_id
 limit greatest(1, p_limit);
 $function$
 
@@ -42855,16 +42912,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -43035,6 +43082,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -48832,6 +48889,47 @@ AS $function$
   select case lower(coalesce(p,''))
            when 'executive' then 1 when 'director' then 2
            when 'manager'   then 3 when 'specialist' then 4 else 9 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_service_implications(p_sources text[])
+ RETURNS TABLE(implies_key text, from_code text, reason_en text, reason_ar text)
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select i.implies_trade || '.' || i.implies_code, i.from_code, i.reason_en, i.reason_ar
+  from public.service_implication i
+  where i.active and i.from_code = any(coalesce(p_sources, '{}'::text[]))
+  order by 1, 2;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_services_effective(p_stated text[], p_trades text[] DEFAULT '{}'::text[], p_removed text[] DEFAULT '{}'::text[])
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with stated as (
+    select distinct s.trade_code || '.' || s.code as key
+    from public.taxonomy_trade_service s
+    where s.active and s.trade_code || '.' || s.code = any(coalesce(p_stated, '{}'::text[]))
+  ),
+  src as (
+    select key from stated
+    union
+    select t from unnest(coalesce(p_trades, '{}'::text[])) t
+  ),
+  implied as (
+    select distinct i.implies_trade || '.' || i.implies_code as key
+    from public.service_implication i
+    join src on src.key = i.from_code
+    where i.active
+  )
+  select coalesce(array_agg(distinct key order by key), '{}'::text[])
+  from (select key from stated union select key from implied) all_keys
+  where key <> all (coalesce(p_removed, '{}'::text[]));
 $function$
 
 
@@ -61529,6 +61627,7 @@ ALTER TABLE public.security_gap ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.self_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.service_implication ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_posts ENABLE ROW LEVEL SECURITY;
@@ -61670,6 +61769,7 @@ CREATE POLICY rfq_clarification_service_role_only ON public.rfq_clarification AS
 CREATE POLICY os_owner_admin_read ON public.risk_register AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY routine_change_log_service_role_only ON public.routine_change_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY spec_alternative_offer_service_role_only ON public.spec_alternative_offer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_dispute_service_role_only ON public.stripe_dispute AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_payout_service_role_only ON public.stripe_payout AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

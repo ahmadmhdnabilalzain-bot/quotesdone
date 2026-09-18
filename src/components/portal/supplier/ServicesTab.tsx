@@ -2,13 +2,24 @@
 // THE SERVICES TAB — the supplier's first screen and the matching's main source (founder, 15 Sep 2026:
 // "this will be our cross matching main source"). It supersedes the Scope panel (CapabilityConfirmPanel,
 // removed from SupplierPortal.tsx the same day): the same confirm, the same versioned ledger in
-// supplier_capability_confirmation, but the supplier now ticks SERVICES inside each trade from a list
-// the sales engineer prepared, instead of 40 bare trade names.
+// supplier_capability_confirmation.
+//
+// ADDING A SERVICE IS TYPING OR SPEAKING, NOT PICKING (founder, instruction 438): "for adding services
+// its not a checkbox or drop down menu. i told you its a voice to text or text box. once filled the
+// sales engineer will rewrite that professionally since he will cross match based on that." So the
+// "add a trade" dropdown and the one-at-a-time extras field are GONE. What is left is:
+//   * the sales engineer's PREPARED checklist — his proposal about the trades already on file, which
+//     the supplier corrects. That is the only checkbox on this screen, and it is not "adding".
+//   * ONE free text box (with the mic beside it) where the supplier says what it does, in its own
+//     words, in either language.
+//   * the SALES ENGINEER'S VERSION of those words — standard service names, the services they also
+//     cover with the reason for each, and anything we could not name kept verbatim — which the
+//     supplier edits and confirms before a single thing is saved.
 //
 // API-FIRST. Every read and write is a supplier_api action (docs/api/supplier_portal_services.md):
-// services_state, services_resolve, services_save, transcribe_service_note. This component holds no
-// matching rule of its own — what is pre-ticked, how free text resolves to a trade, and whether voice
-// is on all come from the server, so a mobile app gets the same answers.
+// services_state, services_rewrite, services_save_rewrite, transcribe_service_note. This component
+// holds no matching rule and no alias of its own — what a phrase means, what it implies and why all
+// come from the server, so a mobile app gets the same answers from the same actions.
 //
 // VOICE records here and is transcribed on the server (founder, 15 Sep 2026: "we cant use the browser
 // built in"). While decision_policy supplier_voice_input_enabled is off, the mic is shown disabled with
@@ -35,18 +46,29 @@ type State = {
   ok: boolean; confirmed: boolean; first_run: boolean;
   checklist: ChecklistTrade[]; services_by_trade: Record<string, Service[]>;
   selected_services: string[]; extra_services: string[];
+  raw_text: string; implied_services: string[]; removed_services: string[]; rewritten_at: string | null;
   vocabulary: { trades: Trade[]; roles: Role[] };
   capability: { roles?: string[]; source_docs?: { docs?: Doc[] } } | null;
   trade_proposals: Proposal[]; voice: Voice;
 };
-type Extra = { id: number; text: string; trades: string[] | null };
-let extraSeq = 0;
-const newExtra = (text: string): Extra => ({ id: ++extraSeq, text, trades: null });
+// What the sales engineer made of the supplier's words. `items` carries the per-phrase reading; the
+// three lists below are what the supplier actually edits.
+type Because = { from: string; from_label_en: string; from_label_ar: string; en: string; ar: string };
+type Implied = { key: string; label_en: string; label_ar: string; trade: string; removed: boolean; because: Because[] };
+type RewriteItem =
+  | { kind: 'service'; key: string; trade: string; label_en: string; label_ar: string; from: string }
+  | { kind: 'trade'; trades: string[]; text: string; from: string }
+  | { kind: 'unmatched'; text: string; from: string };
+type Rewrite = {
+  raw_text: string; service_keys: string[]; own_words: string[]; items: RewriteItem[];
+  summary_en: string; summary_ar: string; implied: Implied[]; pending_taxonomy: string[];
+};
 
 const box = 'mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 const row = 'flex min-h-11 cursor-pointer items-start gap-2.5 rounded-md px-2 py-2.5 text-[13.5px] leading-snug text-foreground hover:bg-muted/40';
 const h3 = 'text-[14.5px] font-bold tracking-[-.012em] text-foreground';
 const sub = 'text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]';
+const chip = 'flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px]';
 
 export default function ServicesTab({ token, lang, goTo }: { token: string; lang: string; goTo?: (k: string) => void }) {
   const ar = lang === 'ar';
@@ -54,10 +76,16 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const [st, setSt] = useState<{ loading: boolean; err: string; data: State | null }>({ loading: true, err: '', data: null });
   const [trades, setTrades] = useState<string[]>([]);
   const [ticked, setTicked] = useState<Set<string>>(new Set());
-  const [extras, setExtras] = useState<Extra[]>([]);
   const [roles, setRoles] = useState<string[]>([]);
-  const [extraInput, setExtraInput] = useState('');
-  const [addPick, setAddPick] = useState('');
+  const [rawText, setRawText] = useState('');
+  const [rw, setRw] = useState<Rewrite | null>(null);
+  // Which lines the supplier struck out. Service and implication keys go in as they are; a phrase we
+  // could not name goes in under a `word:` prefix, because it is free text and nothing stops a
+  // supplier typing something shaped like a service key (React review, 18 Sep 2026).
+  const [dropped, setDropped] = useState<Set<string>>(new Set());
+  const wordKey = (text: string) => 'word:' + text;
+  const [rwBusy, setRwBusy] = useState(false);
+  const [rwMsg, setRwMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ kind: 'ok' | 'err'; text: string; review?: boolean } | null>(null);
 
@@ -73,13 +101,20 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       const d = j as State;
       setTrades(d.checklist.map((c) => c.code));
       setTicked(new Set(d.selected_services));
-      setExtras(d.extra_services.map(newExtra));
       setRoles((d.capability && d.capability.roles) || []);
+      setRawText(d.raw_text || '');
+      // `dropped` starts empty on every load and is seeded from the preview instead: the server marks
+      // an implication the supplier removed before as `removed: true`, so what was struck out survives
+      // without this set having to hold keys the checklist may legitimately tick.
+      setRw(null); setDropped(new Set());
       setSt({ loading: false, err: '', data: d });
     } else {
       setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, sc(lang, 'load_failed')) }));
     }
   };
+  // `lang` is deliberately not a dependency: it is read only for an error string, and re-running the
+  // whole load on a language toggle would throw away the supplier's unsaved edits. A retry re-renders
+  // the message in the current language.
   useEffect(() => { load(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── voice ──────────────────────────────────────────────────────────────────────────────────────
@@ -109,7 +144,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           if (wav.bytes > voice.max_bytes) { setVoxMsg(sc(lang, 'mic_failed')); return; }
           const j = await call('supplier_api', { action: 'transcribe_service_note', audio_b64: wav.b64, mime: 'audio/wav', duration_ms: wav.durationMs }, token);
           if (!mounted.current) return;
-          if (j && j.ok) { if (j.text) setExtraInput((x) => (x ? x + ' ' : '') + String(j.text).trim()); }
+          // The dictation lands in the SAME box the supplier types in — one description, one rewrite.
+          if (j && j.ok) { if (j.text) setRawText((x) => (x ? x.trimEnd() + '\n' : '') + String(j.text).trim()); }
           else setVoxMsg(sc(lang, j && j.code === 'voice_rate_limited' ? 'mic_limited' : j && j.code === 'voice_input_off' ? 'mic_soon' : 'mic_failed'));
         } catch (_e) { if (mounted.current) setVoxMsg(sc(lang, 'mic_failed')); }
         finally { if (mounted.current) setVoxBusy(false); rec.current = null; }
@@ -140,28 +176,63 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const liveTicks = [...ticked].filter((k) => trades.includes(k.split('.')[0]));
   const docs = (d.capability?.source_docs?.docs || []).filter((x) => (x.trades || []).length);
   const noPrep = !d.confirmed && d.checklist.length === 0;
+  // THE REWRITE CARRIES ITS OWN LABELS and they are read first. services_by_trade only holds the
+  // trades the sales engineer PREPARED, so a service recognised from a trade the supplier does not
+  // have on file — the ordinary case for anything it adds — had no label there and rendered as its
+  // raw key ("interior fitout decoration"). Seen in the EN desktop screenshot, 18 Sep 2026.
+  const rwLabels = new Map((rw?.items || []).flatMap((i) => (i.kind === 'service' ? [[i.key, i] as const] : [])));
+  const labelOfKey = (key: string) => {
+    const r = rwLabels.get(key);
+    if (r) return ar ? r.label_ar : r.label_en;
+    const s = (d.services_by_trade[key.split('.')[0]] || []).find((x) => x.key === key);
+    return s ? svcName(s) : key.replace(/[._]/g, ' ');
+  };
 
   const toggleKey = (k: string) => setTicked((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const setAll = (code: string, on: boolean) => setTicked((s) => { const n = new Set(s); for (const k of keysOf(code)) { if (on) n.add(k); else n.delete(k); } return n; });
   const removeTrade = (code: string) => { setTrades((ts) => ts.filter((c) => c !== code)); setAll(code, false); };
-  const addTrade = () => { if (addPick && !trades.includes(addPick)) setTrades((ts) => [...ts, addPick]); setAddPick(''); };
   const toggleRole = (c: string) => setRoles((rs) => (rs.includes(c) ? rs.filter((x) => x !== c) : [...rs, c]));
+  const toggleDrop = (k: string) => setDropped((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
-  const addExtra = async () => {
-    const text = extraInput.replace(/\s+/g, ' ').trim().slice(0, 120);
-    if (text.length < 2 || extras.some((e) => e.text.toLowerCase() === text.toLowerCase())) { setExtraInput(''); return; }
-    setExtraInput('');
-    const item = newExtra(text);
-    setExtras((xs) => [...xs, item]);
-    const j = await call('supplier_api', { action: 'services_resolve', text }, token).catch(() => null);
-    if (mounted.current && j && j.ok) setExtras((xs) => xs.map((e) => (e.id === item.id ? { ...e, trades: j.trades || [] } : e)));
+  // THE REWRITE. Nothing is saved here — the supplier is shown what we made of its words and either
+  // confirms it below or edits the text and asks again.
+  const rewrite = async () => {
+    const text = rawText.trim();
+    if (text.length < 2) return;
+    setRwBusy(true); setRwMsg(''); setNote(null);
+    const j = await call('supplier_api', { action: 'services_rewrite', text, removed: [...dropped] }, token).catch(() => null);
+    if (!mounted.current) return;
+    setRwBusy(false);
+    if (j && j.ok) {
+      const next = j as Rewrite;
+      setRw(next);
+      setDropped((s) => new Set([...s, ...next.implied.filter((i) => i.removed).map((i) => i.key)]));
+      if (!next.service_keys.length && !next.own_words.length) setRwMsg(sc(lang, 'rewrite_none'));
+    } else setRwMsg(srvMsg(lang, j, sc(lang, 'rewrite_failed')));
   };
+
+  // What the supplier has actually agreed to: the ticked checklist plus the rewrite's services, minus
+  // anything struck out. The implied half is sent kept-and-removed separately, so the server stores
+  // stated / implied / removed apart and matching can subtract a removal (fn_services_effective).
+  const rwStated = (rw?.service_keys || []).filter((k) => !dropped.has(k));
+  const rwImplied = (rw?.implied || []).filter((i) => !dropped.has(i.key)).map((i) => i.key);
+  const rwOwnWords = (rw?.own_words || []).filter((w) => !dropped.has(wordKey(w)));
+  // A key struck out in the preview is struck out even if the prepared checklist also ticks it —
+  // otherwise "Remove" reads as done and the union puts the key straight back (React review, 18 Sep).
+  const statedKeys = [...new Set([...liveTicks, ...rwStated])].filter((k) => !dropped.has(k));
+  // Removals travel with the save so matching can subtract them: what was already stored, plus
+  // whatever was struck out in this preview, minus anything now stated or kept.
+  const rwRemoved = [...new Set([...(d.removed_services || []), ...(rw?.implied || []).filter((i) => dropped.has(i.key)).map((i) => i.key)])]
+    .filter((k) => !rwImplied.includes(k) && !statedKeys.includes(k));
 
   const save = async () => {
     setBusy(true); setNote(null);
     const j = await call('supplier_api', {
-      action: 'services_save', trades, roles, services: liveTicks, extra_services: extras.map((e) => e.text),
+      action: 'services_save_rewrite', trades, roles,
+      services: statedKeys, implied: rwImplied, removed: rwRemoved,
+      own_words: rwOwnWords, raw_text: rawText.trim(),
     }, token).catch(() => null);
+    if (!mounted.current) return;
     setBusy(false);
     if (j && j.ok) {
       const review = (j.proposed_trades || []).length > 0 || (j.new_trades_under_review || []).length > 0;
@@ -170,17 +241,15 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     } else setNote({ kind: 'err', text: srvMsg(lang, j, sc(lang, 'save_failed')) });
   };
 
-  const svcCount = liveTicks.length + extras.length;
-  const canSave = roles.length > 0 && (trades.length > 0 || extras.length > 0);
+  const svcCount = statedKeys.length + rwImplied.length + rwOwnWords.length;
+  const canSave = roles.length > 0 && (statedKeys.length > 0 || rwOwnWords.length > 0 || trades.length > 0);
   const voice = d.voice;
   const micNoteId = uid + '-mic';
   const micNote = !voice.enabled ? sc(lang, 'mic_soon') : !canRecord ? sc(lang, 'mic_unsupported') : voxBusy ? sc(lang, 'mic_busy') : voxMsg;
-  const addable = vocab.filter((t) => !trades.includes(t.code))
-    .sort((a, b) => tradeName(a.code).localeCompare(tradeName(b.code), lang));
 
   return (
     // scroll-pb keeps a focused control clear of the sticky confirm bar (WCAG 2.4.11).
-    <Card className={cn('qd-panel p-5', !d.confirmed && '[&_input]:scroll-mb-32 [&_button]:scroll-mb-32 [&_select]:scroll-mb-32')}>
+    <Card className={cn('qd-panel p-5', !d.confirmed && '[&_input]:scroll-mb-32 [&_button]:scroll-mb-32 [&_textarea]:scroll-mb-32')}>
       <h2 className="font-head text-[19px] font-semibold tracking-snug text-foreground">{sc(lang, 'title')}</h2>
       <p className={cn(sub, 'mt-1')}>{d.confirmed ? sc(lang, 'confirmed') : sc(lang, 'first_run')}</p>
 
@@ -206,6 +275,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
         </section>
       )}
 
+      {/* THE SALES ENGINEER'S PREPARED CHECKLIST. His proposal about what we already hold — the one
+          checkbox on this screen, and the supplier is correcting it, not adding to it. */}
       <div className="mt-4 flex flex-col gap-3">
         {trades.map((code) => {
           const svcs = d.services_by_trade[code] || [];
@@ -244,53 +315,103 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
         })}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-end gap-2">
-        <label className="flex min-w-[220px] flex-1 flex-col gap-1 text-[13px] font-semibold text-muted-foreground" htmlFor={uid + '-add'}>
-          {sc(lang, 'add_trade')}
-          <select id={uid + '-add'} className="h-11 w-full rounded-md border border-input bg-card px-3 text-sm font-normal text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  value={addPick} onChange={(e) => setAddPick(e.target.value)}>
-            <option value="">{sc(lang, 'add_trade_ph')}</option>
-            {addable.map((t) => <option key={t.code} value={t.code}>{tradeName(t.code)}</option>)}
-          </select>
-        </label>
-        <Button type="button" variant="outline" className="min-h-11" disabled={!addPick} onClick={addTrade}>{sc(lang, 'add')}</Button>
-      </div>
-
-      <section className="mt-5" aria-labelledby={uid + '-extra'}>
-        <h3 id={uid + '-extra'} className={h3}>{sc(lang, 'extras_title')}</h3>
-        <p className={cn(sub, 'mt-0.5')} id={uid + '-extra-help'}>{sc(lang, 'extras_help')}</p>
-        <form className="mt-2 flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); addExtra(); }}>
-          <label className="sr-only" htmlFor={uid + '-extra-in'}>{sc(lang, 'extras_label')}</label>
-          <input id={uid + '-extra-in'} dir="auto" maxLength={120} value={extraInput} onChange={(e) => setExtraInput(e.target.value)}
-                 aria-describedby={uid + '-extra-help'} placeholder={sc(lang, 'extras_ph')}
-                 className="h-11 min-w-[200px] flex-1 rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-          <Button type="button" variant="outline" className="min-h-11 min-w-11"
-                  disabled={!voice.enabled || !canRecord || voxBusy}
-                  aria-pressed={recording}
-                  aria-describedby={micNote ? micNoteId : undefined}
-                  onClick={() => (recording ? stopRec() : startRec(voice))}>
-            <span aria-hidden>{recording ? '■' : '🎙'}</span>
-            <span className="ms-1.5">{recording ? sc(lang, 'mic_stop') : sc(lang, 'mic_start')}</span>
-          </Button>
-          <Button type="submit" className="min-h-11" disabled={extraInput.trim().length < 2}>{sc(lang, 'add')}</Button>
+      {/* ADDING: ONE TEXT BOX AND THE MIC. Instruction 438. */}
+      <section className="mt-5" aria-labelledby={uid + '-describe'}>
+        <h3 id={uid + '-describe'} className={h3}>{sc(lang, 'describe_title')}</h3>
+        <p className={cn(sub, 'mt-0.5')} id={uid + '-describe-help'}>{sc(lang, 'describe_help')}</p>
+        <form className="mt-2" onSubmit={(e) => { e.preventDefault(); rewrite(); }}>
+          <label className="sr-only" htmlFor={uid + '-raw'}>{sc(lang, 'describe_label')}</label>
+          <textarea id={uid + '-raw'} dir="auto" rows={5} maxLength={2000} value={rawText}
+                    onChange={(e) => { setRawText(e.target.value); setRwMsg(''); }}
+                    aria-describedby={uid + '-describe-help'} placeholder={sc(lang, 'describe_ph')}
+                    className="w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button type="submit" className="min-h-11" disabled={rwBusy || rawText.trim().length < 2}>
+              {rwBusy ? sc(lang, 'rewriting') : sc(lang, 'rewrite')}
+            </Button>
+            <Button type="button" variant="outline" className="min-h-11 min-w-11"
+                    disabled={!voice.enabled || !canRecord || voxBusy}
+                    aria-pressed={recording}
+                    aria-describedby={micNote ? micNoteId : undefined}
+                    onClick={() => (recording ? stopRec() : startRec(voice))}>
+              <span aria-hidden>{recording ? '■' : '🎙'}</span>
+              <span className="ms-1.5">{recording ? sc(lang, 'mic_stop') : sc(lang, 'mic_start')}</span>
+            </Button>
+          </div>
         </form>
         <p id={micNoteId} role="status" className={cn('mt-1.5 text-[12.5px] text-muted-foreground', !micNote && 'sr-only')}>{micNote}</p>
-        {extras.length > 0 && (
-          <ul className="mt-2 flex flex-col gap-1.5">
-            {extras.map((e) => (
-              <li key={e.id} className="flex flex-wrap items-center gap-2 rounded-md border border-border px-3 py-1.5 text-[13px]">
-                <span className="font-medium text-foreground" dir="auto">{e.text}</span>
-                {e.trades && (e.trades.length
-                  ? <span className="text-muted-foreground">{sc(lang, 'resolves_to')}: {e.trades.map(tradeName).join(ar ? '، ' : ', ')}</span>
-                  : <span className="text-muted-foreground">{sc(lang, 'new_for_review')}</span>)}
-                <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => setExtras((xs) => xs.filter((x) => x.id !== e.id))}>
-                  {sc(lang, 'remove')}<span className="sr-only">: {e.text}</span>
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+        {rwMsg ? <p role="alert" className="mt-1.5 text-[12.5px] text-warn-fg">{rwMsg}</p> : null}
       </section>
+
+      {/* THE SALES ENGINEER'S VERSION — shown before anything is saved. */}
+      {rw && (rw.service_keys.length > 0 || rw.own_words.length > 0 || rw.implied.length > 0) && (
+        <section className="mt-5 rounded-md border border-border bg-muted/20 p-4" aria-labelledby={uid + '-rw'}>
+          <h3 id={uid + '-rw'} className={h3}>{sc(lang, 'rewrite_title')}</h3>
+          <p className={cn(sub, 'mt-0.5')}>{sc(lang, 'rewrite_help')}</p>
+
+          {rw.service_keys.length > 0 && (
+            <div className="mt-3">
+              <h4 className={cn(sub, 'font-semibold')}>{sc(lang, 'stated_title')}</h4>
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {rw.service_keys.map((k) => (
+                  <li key={k} className={cn(chip, dropped.has(k) && 'opacity-60')}>
+                    <span className="font-medium text-foreground" dir="auto">{labelOfKey(k)}</span>
+                    {dropped.has(k) ? <Badge variant="secondary">{sc(lang, 'removed_badge')}</Badge> : null}
+                    <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(k)}>
+                      {dropped.has(k) ? sc(lang, 'restore') : sc(lang, 'remove')}<span className="sr-only">: {labelOfKey(k)}</span>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* PRE-INCLUDED, WITH THE REASON. Instruction 439. */}
+          {rw.implied.length > 0 && (
+            <div className="mt-3">
+              <h4 className={cn(sub, 'font-semibold')}>{sc(lang, 'implied_title')}</h4>
+              <p className={cn(sub, 'mt-0.5')}>{sc(lang, 'implied_help')}</p>
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {rw.implied.map((i) => (
+                  <li key={i.key} className={cn(chip, 'items-start', dropped.has(i.key) && 'opacity-60')}>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="font-medium text-foreground" dir="auto">{ar ? i.label_ar : i.label_en}</span>
+                      <span className="text-[12px] text-muted-foreground" dir="auto">
+                        {sc(lang, 'implied_because')} {ar ? i.because[0]?.ar : i.because[0]?.en}
+                      </span>
+                    </div>
+                    {dropped.has(i.key) ? <Badge variant="secondary">{sc(lang, 'removed_badge')}</Badge> : null}
+                    <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(i.key)}>
+                      {dropped.has(i.key) ? sc(lang, 'restore') : sc(lang, 'remove')}
+                      <span className="sr-only">: {ar ? i.label_ar : i.label_en}</span>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* WE NEVER DROP THESE AND NEVER GUESS THEM: the supplier's own words, straight to the sales
+              engineer. The supplier may strike one out — that is its own correction, not ours. */}
+          {rw.own_words.length > 0 && (
+            <div className="mt-3">
+              <h4 className={cn(sub, 'font-semibold')}>{sc(lang, 'own_words_title')}</h4>
+              <p className={cn(sub, 'mt-0.5')}>{sc(lang, 'own_words_help')}</p>
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {rw.own_words.map((wtext, i) => (
+                  <li key={i + ':' + wtext} className={cn(chip, dropped.has(wordKey(wtext)) && 'opacity-60')}>
+                    <span className="font-medium text-foreground" dir="auto">{wtext}</span>
+                    {dropped.has(wordKey(wtext)) ? <Badge variant="secondary">{sc(lang, 'removed_badge')}</Badge> : null}
+                    <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(wordKey(wtext))}>
+                      {dropped.has(wordKey(wtext)) ? sc(lang, 'restore') : sc(lang, 'remove')}<span className="sr-only">: {wtext}</span>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
 
       <fieldset className="mt-5">
         <legend className={h3}>{sc(lang, 'roles_title')}</legend>
@@ -328,7 +449,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
         </section>
       )}
 
-      {(!roles.length || (!trades.length && !extras.length)) && <p className="mt-4 text-[13px] text-warn-fg">{sc(lang, 'need_trade_role')}</p>}
+      {!canSave && <p className="mt-4 text-[13px] text-warn-fg">{sc(lang, 'need_trade_role')}</p>}
       <div role="status" aria-live="polite">
         {note && note.kind === 'ok' ? <p className="mt-3 text-[13px] font-semibold text-primary">{note.text}{note.review ? ' ' + sc(lang, 'review_sent') : ''}</p> : null}
       </div>

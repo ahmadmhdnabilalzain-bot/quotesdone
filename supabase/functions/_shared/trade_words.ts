@@ -52,7 +52,7 @@ export function arNorm(s: string): string {
 
 /** The text as the matcher sees it (rule 1), with the index in the ORIGINAL text of every character,
  *  so the evidence snippet is the supplier's own line, not the folded one. */
-function foldForMatch(text: string): { norm: string; at: number[] } {
+export function foldForMatch(text: string): { norm: string; at: number[] } {
   let norm = '';
   const at: number[] = [];
   let inSep = false;

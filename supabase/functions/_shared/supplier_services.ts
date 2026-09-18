@@ -1,23 +1,35 @@
-// THE SERVICES CHECKLIST — what a supplier says it does, as server actions (15 Sep 2026, sales_engineer).
+// WHAT A SUPPLIER SAYS IT DOES, as server actions (15 Sep 2026, sales_engineer; rewritten 18 Sep).
 //
-// Founder, 15 Sep 2026: the Services tab "will be our cross matching main source", prepared by the
-// sales engineer so the supplier ticks rather than types; and "later this will be a mobile app as
-// well. the structure need to be built in already." So every step is a supplier_api action with a
-// typed request and response (docs/api/supplier_portal_services.md) and the React tab is one client:
+// Founder, 15 Sep 2026: the Services tab "will be our cross matching main source"; and "later this
+// will be a mobile app as well. the structure need to be built in already." So every step is a
+// supplier_api action with a typed request and response (docs/api/supplier_portal_services.md) and
+// the React tab is one client:
 //
 //   services_state          -> the prepared checklist, the vocabulary, what is saved, the voice switch
-//   services_resolve        -> what one free-text service means: listed trade codes, or a new proposal
-//   services_save           -> ticks + extras + roles, confirmed through capabilityConfirm (the ledger)
+//   services_resolve        -> what one phrase means as a TRADE: listed codes, or a new proposal
+//   services_rewrite        -> the supplier's own words -> standard services + what they imply (preview)
+//   services_save_rewrite   -> the confirmed preview, through capabilityConfirm (the ledger)
 //   transcribe_service_note -> a recorded note to text, behind decision_policy supplier_voice_input_enabled
 //
+// ADDING IS TYPING OR SPEAKING, NOT PICKING (instruction 438, 15 Sep 2026: "for adding services its
+// not a checkbox or drop down menu. i told you its a voice to text or text box. once filled the sales
+// engineer will rewrite that professionally since he will cross match based on that."). The prepared
+// checklist above is the sales engineer's own proposal and stays a checklist; there is ONE save, and
+// it is the confirmed rewrite. services_save and its extras list were deleted with the widgets they
+// served — two writers of supplier_capabilities.services is how two screens start disagreeing.
+//
 // WHERE IT LANDS FOR MATCHING. fn_match_capability gates on supplier_capabilities.trades +
-// confirmed_at. A ticked service is stored in supplier_capabilities.services as '<trade>.<code>' and
-// its trade is added to trades, so the checklist feeds the gate itself. A free-text service goes
-// through public.fn_norm_trades (exact alias or nothing, never a neighbour): each code it names joins
-// trades; text no alias names stays a service string and becomes a taxonomy_trade_proposal row that
-// the sales engineer reviews. No model anywhere on this path.
+// confirmed_at, and — when the inquiry names services — on fn_services_effective(services, trades,
+// services_removed): what the supplier STATED, plus ONE level of the curated service_implication map,
+// minus what it removed. A stated service is stored as '<trade>.<code>' and its trade joins trades,
+// so the trade gate is fed either way. Words the aliases do not name are kept EXACTLY as the supplier
+// wrote them and become a taxonomy_trade_proposal for the sales engineer — never dropped, never
+// guessed. No model anywhere on this path (OpenRouter is on hold, and a rewrite that decides who
+// receives an inquiry has to be reproducible).
 
 import { capabilityConfirm, capabilityState, tradeCode } from './supplier_capability.ts';
+import { impliedServices, rewriteServices, tidy, type Implication, type ServiceTerm } from './service_rewrite.ts';
+import type { TradeTerm } from './trade_words.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -116,6 +128,12 @@ export async function servicesState(admin: Admin, supplierId: number) {
     capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,
     services_by_trade: byTrade, checklist,
     selected_services: ticked, extra_services: extras,
+    // THE FREE-TEXT HALF (instruction 438). The checklist above is the sales engineer's PREPARED
+    // proposal and stays a checklist; ADDING a service is the text box, and this is its state.
+    raw_text: (cap?.services_raw_text as string | null) ?? '',
+    implied_services: Array.isArray(cap?.services_implied) ? cap!.services_implied as string[] : [],
+    removed_services: Array.isArray(cap?.services_removed) ? cap!.services_removed as string[] : [],
+    rewritten_at: (cap?.services_rewritten_at as string | null) ?? null,
     voice: { enabled: await voiceEnabled(admin), ...VOICE } as VoiceConfig,
   };
 }
@@ -131,43 +149,6 @@ export async function servicesResolve(admin: Admin, body: Record<string, unknown
   if (!text) return [400, { error: 'empty_text', code: 'services_empty_text' }];
   const trades = await resolveText(admin, text);
   return [200, { ok: true, text, trades, new_trade: trades.length ? null : tradeCode(text) }];
-}
-
-/** Save the checklist. Returns [status, body]; the confirm itself is capabilityConfirm, unchanged. */
-export async function servicesSave(admin: Admin, supplierId: number, body: Record<string, unknown>, declaredEmirates: string[] = []): Promise<[number, Record<string, unknown>]> {
-  const rows = await serviceRows(admin);
-  const known = new Set(rows.map((r) => serviceKey(r.trade_code, r.code)));
-  const keys = [...new Set((Array.isArray(body.services) ? body.services : []).map((s) => String(s ?? '')).filter((s) => known.has(s)))];
-  const extras = cleanExtras(body.extra_services);
-  const trades = new Set((Array.isArray(body.trades) ? body.trades : []).map((t) => String(t ?? '').trim()).filter(Boolean).slice(0, 25));
-  // A ticked service means its trade.
-  for (const k of keys) trades.add(k.split('.')[0]);
-  const resolved: Record<string, string[]> = {}; const proposals: string[] = [];
-  for (const e of extras) {
-    const codes = await resolveText(admin, e);
-    resolved[e] = codes;
-    if (codes.length) codes.forEach((c) => trades.add(c)); else proposals.push(e);
-  }
-  const { data: cap } = await admin.from('supplier_capabilities')
-    .select('products_norm,coverage_emirates,brands,project_types,exclusions').eq('supplier_id', supplierId).maybeSingle();
-  const coverage = Array.isArray(cap?.coverage_emirates) && cap.coverage_emirates.length ? cap.coverage_emirates : declaredEmirates;
-  const [status, out] = await capabilityConfirm(admin, supplierId, {
-    trades: [...trades], roles: body.roles,
-    services: [...keys, ...extras],
-    products: cap?.products_norm || [], coverage_emirates: coverage || [],
-    brands: cap?.brands || [], project_types: cap?.project_types || [], exclusions: cap?.exclusions || [],
-  });
-  if (status !== 200) return [status, out];
-  // Free text no alias names: kept as the supplier's service AND sent to the sales engineer as a
-  // possible new trade (the open list, founder 14 Sep 2026). ignoreDuplicates keeps a decided row.
-  const fresh = proposals.map((p) => ({ raw: p, code: tradeCode(p) })).filter((p) => p.code);
-  if (fresh.length) {
-    await admin.from('taxonomy_trade_proposal').upsert(fresh.map(({ raw, code }) => {
-      const ar = langOf(raw) === 'ar';
-      return { supplier_id: supplierId, code, label_en: ar ? null : raw, label_ar: ar ? raw : null, note: 'services checklist: free-text service' };
-    }), { onConflict: 'supplier_id,code', ignoreDuplicates: true });
-  }
-  return [200, { ...out, services: keys, extra_services: extras, resolved, proposed_trades: fresh.map((p) => p.code) }];
 }
 
 // ── VOICE ─────────────────────────────────────────────────────────────────────────────────────────
@@ -225,4 +206,167 @@ export async function transcribeServiceNote(supplierId: number, body: Record<str
   const lang = langOf(text);
   await finish({ outcome: text ? 'transcribed' : 'empty', lang: lang || null, chars: text.length });
   return [200, { ok: true, text, lang }];
+}
+
+// ── THE SALES ENGINEER'S REWRITE ──────────────────────────────────────────────────────────────────
+// Founder, instruction 438 (15 Sep 2026): "for adding services its not a checkbox or drop down menu.
+// i told you its a voice to text or text box. once filled the sales engineer will rewrite that
+// professionally since he will cross match based on that."
+//
+// So ADDING a service is ONE free text box (plus the mic, behind the same flag as before). The
+// rewrite is DETERMINISTIC -- _shared/service_rewrite.ts, the platform's own aliases, no model. The
+// supplier is shown the rewrite, removes what is wrong, and confirms; only then is anything saved.
+//
+//   services_rewrite      -> preview: the supplier's words -> standard services + what they imply
+//   services_save_rewrite -> the confirmed preview, into supplier_capabilities (+ the ledger)
+//
+// WHAT MATCHING READS is fn_services_effective(services, trades, services_removed): what the supplier
+// STATED, plus one level of the curated service_implication map, minus what it removed. Instruction
+// 439: "make sure the sales engineer is smart in cross matching. for example someone who does
+// decoration is definitely able to do flooring even through words cross matching is not there."
+
+export const RAW_TEXT_MAX = 2000;
+
+/** The alias vocabulary the rewriter matches with: every active service and the phrases that name it. */
+export async function serviceVocab(admin: Admin): Promise<ServiceTerm[]> {
+  const { data, error } = await admin.from('taxonomy_trade_service')
+    .select('trade_code,code,label_en,label_ar,aliases').eq('active', true).order('trade_code').order('sort');
+  return error ? [] : (data || []);
+}
+
+/** The trade aliases, for a phrase that names a trade but no service of it. */
+export async function tradeVocab(admin: Admin): Promise<TradeTerm[]> {
+  const { data, error } = await admin.from('taxonomy_trade').select('code,aliases').eq('active', true);
+  return error ? [] : (data || []);
+}
+
+/** public.service_implication, the curated map. THE TABLE IS THE SOURCE, not the JSON seed beside it:
+ *  a row the sales engineer retires stops implying immediately, without a deploy. */
+export async function implicationMap(admin: Admin): Promise<Implication[]> {
+  const { data, error } = await admin.from('service_implication')
+    .select('from_code,implies_trade,implies_code,reason_en,reason_ar').eq('active', true);
+  if (error || !Array.isArray(data)) return [];
+  // Every column is NOT NULL in the table; the guard is here because a null would concatenate into
+  // the string "null.tiling" and silently name a service that does not exist, rather than throwing.
+  return (data as Record<string, string | null>[])
+    .filter((r) => r.from_code && r.implies_trade && r.implies_code)
+    .map((r) => ({
+      from: String(r.from_code), to: `${r.implies_trade}.${r.implies_code}`,
+      en: String(r.reason_en ?? ''), ar: String(r.reason_ar ?? ''),
+    }));
+}
+
+export type ImpliedOut = {
+  key: string; label_en: string; label_ar: string; trade: string; removed: boolean;
+  because: { from: string; from_label_en: string; from_label_ar: string; en: string; ar: string }[];
+};
+
+/** The preview. `text` is the supplier's own words; `removed` the implied keys it has already
+ *  unticked in this session, so a re-run does not silently put them back. Nothing is saved here. */
+export async function servicesRewrite(admin: Admin, supplierId: number, body: Record<string, unknown>): Promise<[number, Record<string, unknown>]> {
+  const raw = String(body.text ?? '').slice(0, RAW_TEXT_MAX);
+  if (raw.trim().length < 2) return [400, { error: 'empty_text', code: 'services_empty_text' }];
+  const [services, trades, map] = await Promise.all([serviceVocab(admin), tradeVocab(admin), implicationMap(admin)]);
+  const rw = rewriteServices(raw, services, trades);
+
+  // WHAT THE STATED SERVICES ALSO COVER. The sources are the stated service keys, the trades those
+  // services belong to (stating "decoration" states interior_fitout too), and any trade a phrase named
+  // on its own. Read ONE level: what an implied service would imply is never added.
+  const byKey = new Map(services.map((s) => [s.trade_code + '.' + s.code, s]));
+  const sources = [...new Set([
+    ...rw.service_keys,
+    ...rw.service_keys.map((k) => k.split('.')[0]),
+    ...rw.items.flatMap((i) => (i.kind === 'trade' ? i.trades : [])),
+  ])];
+  const { data: capRow } = await admin.from('supplier_capabilities').select('services_removed').eq('supplier_id', supplierId).maybeSingle();
+  const removed = [...new Set([
+    ...(Array.isArray(capRow?.services_removed) ? capRow!.services_removed as string[] : []),
+    ...(Array.isArray(body.removed) ? (body.removed as unknown[]).map(String) : []),
+  ])];
+  const label = (code: string) => {
+    const s = byKey.get(code);
+    return s ? { en: s.label_en, ar: s.label_ar } : { en: code.replace(/[._]/g, ' '), ar: code.replace(/[._]/g, ' ') };
+  };
+  const implied: ImpliedOut[] = impliedServices(sources, map, rw.service_keys, removed).map((i) => {
+    const l = label(i.key);
+    return {
+      key: i.key, label_en: l.en, label_ar: l.ar, trade: i.key.split('.')[0], removed: i.removed,
+      because: i.because.map((b) => ({ from: b.from, from_label_en: label(b.from).en, from_label_ar: label(b.from).ar, en: b.en, ar: b.ar })),
+    };
+  });
+  return [200, {
+    ok: true, raw_text: raw, items: rw.items, service_keys: rw.service_keys, own_words: rw.own_words,
+    summary_en: rw.summary_en, summary_ar: rw.summary_ar, implied,
+    pending_taxonomy: rw.items.filter((i) => i.kind === 'unmatched').map((i) => i.text),
+  }];
+}
+
+/** Save the confirmed rewrite. The supplier's OWN WORDS are kept for anything the aliases did not
+ *  name -- never dropped, never guessed -- and each becomes a taxonomy_trade_proposal the sales
+ *  engineer decides. The raw text, the kept implications and the removed ones are stored separately. */
+export async function servicesSaveRewrite(admin: Admin, supplierId: number, body: Record<string, unknown>, declaredEmirates: string[] = []): Promise<[number, Record<string, unknown>]> {
+  const rows = await serviceRows(admin);
+  const known = new Set(rows.map((r) => serviceKey(r.trade_code, r.code)));
+  const arr = (v: unknown) => (Array.isArray(v) ? (v as unknown[]).map((s) => String(s ?? '')) : []);
+  const stated = [...new Set(arr(body.services).filter((s) => known.has(s)))];
+  const implied = [...new Set(arr(body.implied).filter((s) => known.has(s) && !stated.includes(s)))];
+  // A REMOVAL THE CLIENT DID NOT RE-SEND IS STILL A REMOVAL (TypeScript review, 18 Sep 2026). The
+  // preview merges what is stored before it offers the implied list; the save has to merge it too, or
+  // a client that echoes only this screen's removals would quietly re-enable a service the supplier
+  // struck out weeks ago. Anything now stated or kept wins over a stale removal.
+  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed').eq('supplier_id', supplierId).maybeSingle();
+  const removed = [...new Set([...(Array.isArray(prevCap?.services_removed) ? prevCap!.services_removed as string[] : []), ...arr(body.removed)])]
+    .filter((s) => known.has(s) && !implied.includes(s) && !stated.includes(s));
+  const own = cleanExtras(arr(body.own_words).map((w) => tidy(w)));
+  const raw = String(body.raw_text ?? '').slice(0, RAW_TEXT_MAX);
+
+  const trades = new Set(arr(body.trades).map((t) => t.trim()).filter(Boolean).slice(0, 25));
+  for (const k of stated) trades.add(k.split('.')[0]);
+  // The supplier's own words still resolve to a TRADE where an alias names one; where none does, the
+  // words stay as the supplier wrote them and the sales engineer gets a proposal to map or add.
+  const resolved: Record<string, string[]> = {}; const proposals: string[] = [];
+  // Independent lookups, so one round trip rather than up to 25 in series.
+  const codesFor = await Promise.all(own.map((w) => resolveText(admin, w)));
+  own.forEach((w, i) => {
+    const codes = codesFor[i];
+    resolved[w] = codes;
+    if (codes.length) codes.forEach((c) => trades.add(c)); else proposals.push(w);
+  });
+  if (!trades.size) return [400, { error: 'nothing_recognised', code: 'services_nothing_recognised' }];
+
+  const { data: cap } = await admin.from('supplier_capabilities')
+    .select('products_norm,coverage_emirates,brands,project_types,exclusions').eq('supplier_id', supplierId).maybeSingle();
+  const coverage = Array.isArray(cap?.coverage_emirates) && cap.coverage_emirates.length ? cap.coverage_emirates : declaredEmirates;
+
+  // THIS SCREEN'S OWN COLUMNS GO IN FIRST, and the confirm second (TypeScript review, 18 Sep 2026).
+  // capabilityConfirm owns `services` and sets confirmed_at — the gate fn_match_capability opens on.
+  // Writing these after it meant a failure here left the supplier CONFIRMED and matchable while
+  // services_removed still said something else, and matching reads services_removed. In this order a
+  // failure leaves the supplier exactly as matchable as it was before, with nothing confirmed.
+  const { error: upErr } = await admin.from('supplier_capabilities').upsert({
+    supplier_id: supplierId, services_raw_text: raw || null,
+    services_implied: implied, services_removed: removed, services_rewritten_at: new Date().toISOString(),
+  }, { onConflict: 'supplier_id' });
+  if (upErr) return [500, { error: 'services_rewrite_write_failed', code: 'services_rewrite_write_failed', detail: upErr.message }];
+
+  const [status, out] = await capabilityConfirm(admin, supplierId, {
+    trades: [...trades], roles: body.roles,
+    services: [...stated, ...own],
+    products: cap?.products_norm || [], coverage_emirates: coverage || [],
+    brands: cap?.brands || [], project_types: cap?.project_types || [], exclusions: cap?.exclusions || [],
+  });
+  if (status !== 200) return [status, out];
+
+  const fresh = proposals.map((p) => ({ words: p, code: tradeCode(p) })).filter((p) => p.code);
+  if (fresh.length) {
+    // A pending taxonomy item that never reaches the sales engineer is the supplier's words lost, so
+    // the failure is logged rather than swallowed (TypeScript review, 18 Sep 2026). It does not fail
+    // the confirm: the words are already stored in `services`, and this row is the review queue.
+    const { error: propErr } = await admin.from('taxonomy_trade_proposal').upsert(fresh.map(({ words, code }) => {
+      const isAr = langOf(words) === 'ar';
+      return { supplier_id: supplierId, code, label_en: isAr ? null : words, label_ar: isAr ? words : null, note: 'services free text: pending taxonomy item' };
+    }), { onConflict: 'supplier_id,code', ignoreDuplicates: true });
+    if (propErr) console.error('taxonomy_trade_proposal upsert failed', supplierId, propErr.message);
+  }
+  return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: fresh.map((p) => p.code) }];
 }
