@@ -12,6 +12,29 @@
 //      persisted nothing for 80 minutes), or a detector that stops persisting goes unreported;
 //   7. requests made inside a rehearsal window count as customers turned away.
 //
+// WHERE (6) STANDS ON 18 SEP 2026, because two sessions read it RED on unmodified main and it is
+// GREEN when run alone on the same code. Both readings are real and they are not the same number:
+//   * ALONE, six consecutive runs: 5475, 5495, 5535, 5563, 5571, 5592 ms. Under the 6000 ms asserted
+//     here and under PostgREST's 8000 ms cancel — by 7%. That floor is structural: profiled with
+//     pg_stat_statements at track=all, one call is 5899 ms, of which the run_failure CTE 2943, the
+//     refusal_rate CTE 1641 and the latency CTE 1068, all three scanning the same 7-day agent_runs
+//     baseline (62,203 live rows). 2.58 s of run_failure's 2.68 s is two per-row SQL predicates,
+//     fn_it_run_is_held (98,897 calls) and fn_it_run_is_refusal (99,831): both are fully qualified
+//     SECURITY INVOKER SQL functions whose only bar to INLINING is their pinned SET search_path, so
+//     every row pays a function invocation. Dropping the pin would inline them and add two
+//     function_search_path_mutable advisor findings; precomputing the two columns on agent_runs is a
+//     schema change with a backfill. Neither is done here and the 6000 is NOT moved for either.
+//   * UNDER LOAD, the same call took 118,425 ms and then 45,497 ms, and BOTH were spent waiting on a
+//     lock inside D5's dynamic count on public.doc_backups — a read that costs 2–4 ms unblocked
+//     (measured six times in the same hour). That was the real defect and it is fixed in
+//     scripts/sql/the_it_detector_fails_fast_on_a_lock_instead_of_dying_behind_one.sql: D5 now reads
+//     the watched tables under lock_timeout 250 ms, so a held table becomes the 'unreadable' note
+//     D5's own handler was always written for instead of taking the whole tick past the 8 s cancel
+//     with nothing persisted.
+// Hoisting the founder-hold arm of fn_it_run_is_held out of the row loop was tried and DISCARDED:
+// all 8 llm_route_health rows are 'HELD BY THE FOUNDER%' and in window (the OpenRouter hold is
+// standing), so the gate is always true and the hoist buys nothing.
+//
 // Against production. Every write is inside a transaction that ends in `raise exception 'CHK<<…>>'`,
 // so nothing commits; the result is read out of the error text.
 //

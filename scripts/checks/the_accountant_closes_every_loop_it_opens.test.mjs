@@ -10,7 +10,9 @@
 //     fn_accountant_duty_settle (the IT loop's ledger), never straight to the outbox or the founder
 //   * no reminder or final-demand wording is typed into a routine: it is read from decision_policy
 // Against production (skipped without a management token):
-//   * the files and the fixtures run as ONE batch that always rolls back; every duty's loop closes
+//   * the fixtures run against the LIVE routines as one batch that always rolls back; every duty's
+//     loop closes. Replaying the 22 files ahead of them is a second, opt-in test — see the note on
+//     QD_REPLAY_ACCOUNTANT_SQL: that batch outlives the management API gateway (measured, twice).
 //
 //   node --test scripts/checks/the_accountant_closes_every_loop_it_opens.test.mjs
 import { test } from 'node:test';
@@ -133,18 +135,48 @@ test('production: the accountant\'s notice kinds are live and their handler exis
   assert.deepEqual(rows.map((r) => r.type).sort(), [...NOTICE_KINDS].sort(), 'a notice kind is missing from public.seat_handoff_kind');
 });
 
+export const DUTIES = ['1_bank', '2_collections', '3_subscriptions', '4_vat', '6_expenses', '7_disputes', '8_close', '9_reserve',
+  '10_charge_audit', '11_costs', 'x1_cash', 'x2_ad_spend', 'x3_recovery', 'x4_year_end', 'x5_renewals', 'duties_hour'];
+
+const fixtures = () => read(join(REPO, 'scripts', 'checks', 'accountant_duties_fixtures.sql'));
+const chk = (e) => {
+  const m = String(e.message).match(/CHK<<(.*?)>>/s);
+  if (!m) throw e;
+  return JSON.parse(m[1].replace(/\\"/g, '"'));
+};
+
+// 18 Sep 2026 — WHY THE FIXTURES NOW RUN AGAINST THE LIVE ROUTINES AND NOT BEHIND A REPLAY OF THE
+// 22 FILES. This test used to POST the 22 SQL files AND the fixtures as one batch. That batch cannot
+// fit the transport: #737 measured 524 at the management API gateway after 125.2 s, and measured
+// again here twice, the retry in scripts/lib/db.mjs then POSTs the same DDL while the first copy is
+// still running server-side and the two deadlock ("AccessExclusiveLock on relation 17188; blocked by
+// process ...", after 18 minutes). So the check could never go green, on any code, and the red said
+// nothing about the accountant.
+//
+// The fixtures ALONE against the live routines took 77.0 s in one attempt and reported all 16 duties
+// (18 Sep 2026, 03:5x UTC). That is also the stronger claim: production proves the loops close, where
+// replaying the repo's files first proved the FILES close. Nothing is weakened -- every assertion
+// below is the one that was there, and the replay keeps its own test underneath.
 test('production: every duty\'s loop closes on ZZ DEMO fixtures, rolled back', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const batch = sqlText + '\n;\n' + read(join(REPO, 'scripts', 'checks', 'accountant_duties_fixtures.sql'));
   let r;
-  try { await sql(batch); } catch (e) {
-    const m = String(e.message).match(/CHK<<(.*?)>>/s);
-    if (!m) throw e;
-    r = JSON.parse(m[1].replace(/\\"/g, '"'));
-  }
+  try { await sql(fixtures()); } catch (e) { r = chk(e); }
   assert.ok(r, 'the fixture batch committed instead of rolling back');
-  for (const k of ['1_bank', '2_collections', '3_subscriptions', '4_vat', '6_expenses', '7_disputes', '8_close', '9_reserve', '10_charge_audit', '11_costs',
-                   'x1_cash', 'x2_ad_spend', 'x3_recovery', 'x4_year_end', 'x5_renewals', 'duties_hour']) {
-    assert.ok(r[k], `duty ${k} did not report`);
-  }
+  for (const k of DUTIES) assert.ok(r[k], `duty ${k} did not report`);
+});
+
+// THE FILE REPLAY, kept with its subject and NOT softened: it is the guard that caught the
+// v_accountant_recovery_ledger column drop in #737. It is opt-in because it cannot complete over the
+// management API (above), and it runs with retry OFF so a gateway timeout can never launch a second
+// copy of the same DDL. Run it against a transport that can hold a multi-minute statement:
+//   QD_REPLAY_ACCOUNTANT_SQL=1 node --test scripts/checks/the_accountant_closes_every_loop_it_opens.test.mjs
+const REPLAY = SKIP || (process.env.QD_REPLAY_ACCOUNTANT_SQL === '1' ? false
+  : 'opt-in: QD_REPLAY_ACCOUNTANT_SQL=1 (the 22-file DDL replay outlives the management API gateway)');
+
+test('production: the 22 files replay in MANIFEST order and every duty\'s loop still closes', { skip: REPLAY }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  let r;
+  try { await sql(sqlText + '\n;\n' + fixtures(), { retry: false }); } catch (e) { r = chk(e); }
+  assert.ok(r, 'the fixture batch committed instead of rolling back');
+  for (const k of DUTIES) assert.ok(r[k], `duty ${k} did not report`);
 });
