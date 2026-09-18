@@ -16,10 +16,25 @@ on:
 jobs:
   journey:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 17 Sep 2026: the wall was 30 minutes and NOTHING told the harness about it. Two consecutive
+    # nights (35037401883, 35164572430) were cancelled mid-crawl, which skips the report step below,
+    # so the heartbeat never reached fn_it_journey_ingest (duty:journey_heartbeat:no_run, open 3 days
+    # while the test ran every night) and the runs' demo identities were never torn down
+    # (duty:demo:leads, duty:demo:customers). run.mjs now stops at QD_E2E_DEADLINE_MS and always
+    # reaches teardown and the report; the job wall is set above it so the deadline is what ends a
+    # long run, not the cancellation.
+    #
+    # WHY 60 AND NOT 40 (review): the deadline is a START cutoff — it stops the harness beginning a
+    # new journey or a new crawl viewport, and cannot interrupt one already running. Journey c alone
+    # chains six 180-second calls, so a journey that starts at minute 19:59 can legitimately run for
+    # ~20 more. 20 (deadline) + ~24 (worst in-flight journey) + ~5 (npm ci, playwright install) +
+    # teardown and the report still fits inside 60 with margin. A wall the harness can hit is the
+    # bug this file is fixing; the wall exists only to stop a genuinely hung runner.
+    timeout-minutes: 60
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_E2E_REPORTS: e2e-out
+      QD_E2E_DEADLINE_MS: '1200000'
     steps:
       - id: gate
         run: |

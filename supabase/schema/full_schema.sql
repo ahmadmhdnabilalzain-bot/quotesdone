@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T00:06:45.040Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T00:48:48.266Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -35621,7 +35621,10 @@ CREATE OR REPLACE FUNCTION public.fn_it_journey_ingest(p_report jsonb)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_items jsonb := '[]'::jsonb; x jsonb; v_owner text; v_letter text; v_res jsonb;
+declare
+  v_items jsonb := '[]'::jsonb; x jsonb; v_owner text; v_letter text; v_res jsonb;
+  -- Absent means complete: reports written before the harness had a deadline could not be truncated.
+  v_complete boolean := coalesce((p_report->>'complete')::boolean, true);
 begin
   if jsonb_typeof(p_report->'steps') is distinct from 'array' or coalesce(btrim(p_report->>'tag'), '') = '' then
     raise exception 'fn_it_journey_ingest takes {tag, steps:[...]} from scripts/e2e/report_to_it_engineer.mjs';
@@ -35642,11 +35645,35 @@ begin
       'demo', coalesce((p_report->>'demo')::boolean, false),
       'evidence', jsonb_build_object('tag', p_report->>'tag', 'detail', left(x->>'detail', 600)));
   end loop;
-  v_res := public.fn_it_duty_settle('journey', v_items);
+  if v_complete then
+    -- Looked at everything: raise what fails and close what no longer does.
+    v_res := public.fn_it_duty_settle('journey', v_items);
+  else
+    -- Looked at part of it: raise what fails, close NOTHING. A step this run never reached says
+    -- nothing about whether the defect it would have found is still there.
+    for x in select e from jsonb_array_elements(v_items) e loop
+      perform public.fn_it_engineer_finding_upsert(
+        'duty:journey:' || (x->>'item'), x->>'title', 'IT engineer duty: journey',
+        coalesce(x->>'blast', 'agent_facing'), coalesce((x->>'affected')::int, 1),
+        coalesce(x->'evidence', '{}'::jsonb) || jsonb_build_object(
+          'duty', 'journey', 'owner_seat', x->>'owner_seat', 'subject', x->>'subject',
+          'demo', coalesce((x->>'demo')::boolean, false), 'run_complete', false),
+        '{}'::text[], '{}'::text[], 'it_engineer.journey');
+    end loop;
+    v_res := jsonb_build_object('duty', 'journey', 'failing', jsonb_array_length(v_items),
+                                'closed', 0, 'complete', false,
+                                'note', 'the run stopped before it saw every journey, so nothing was closed on its silence');
+  end if;
+  -- THE HEARTBEAT, WRITTEN ON EVERY PATH. duty:journey_heartbeat:no_run reads this row; a run that
+  -- was cut short has still reported, and must not be counted as a missing run.
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
-  values ('it_engineer', case when jsonb_array_length(v_items) = 0 then 'ok' else 'warn' end, now(), now(),
+  values ('it_engineer',
+          case when jsonb_array_length(v_items) = 0 and v_complete then 'ok' else 'warn' end, now(), now(),
           jsonb_build_object('job', 'journey', 'tag', p_report->>'tag', 'failed', jsonb_array_length(v_items),
-                             'steps', jsonb_array_length(p_report->'steps'), 'leftovers', p_report->'leftovers'), null);
+                             'steps', jsonb_array_length(p_report->'steps'), 'leftovers', p_report->'leftovers',
+                             'complete', v_complete),
+          case when v_complete then null
+               else 'the journey run stopped at its deadline before seeing every journey; failures were raised, nothing was closed' end);
   return v_res;
 end $function$
 
