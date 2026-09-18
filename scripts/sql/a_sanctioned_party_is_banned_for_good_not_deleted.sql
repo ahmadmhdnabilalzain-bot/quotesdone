@@ -586,46 +586,143 @@ $fn$;
 -- 10. THE RETENTION SWEEP KEEPS THE EVIDENCE
 -- ---------------------------------------------------------------------------------------------
 -- fn_supplier_sanctions_screen deletes every screening_entry outside the newest good run per
--- source. a00_entry_cited_is_kept now refuses a delete of an entry a hit cites, which would make
--- that sweep raise and take the whole screening run with it. The sweep is narrowed here so it
--- skips those rows instead of colliding with the guard -- the guard stays as the backstop for any
--- other caller.
-do $do$
-declare v_def text;
+-- source, and a00_entry_cited_is_kept now refuses the delete of an entry a hit cites -- which
+-- would make that sweep raise and take the whole weekly screening run with it. The sweep skips
+-- those rows instead.
+--
+-- RESTATED IN FULL, NOT PATCHED IN PLACE (18 Sep 2026, after the apply).
+--
+-- This section first narrowed the sweep with a `do $do$` block that read
+-- pg_get_functiondef(), regexp_replace()d one clause into it and re-executed the result. It worked
+-- -- production carries the narrowing -- and it was the WRONG SHAPE, which canonical_routine_manifest
+-- said out loud the moment it was applied:
+--
+--   fn_supplier_sanctions_screen DRIFTED - 1 canonical body not deployed, 1 deployed body not in
+--   the canonical file [scripts/sql/the_sanctions_screen_stops_opening_tasks_on_seats_that_do_not_exist.sql]
+--
+-- The scanner was right and the check must not be softened. A routine's canonical file is the file
+-- that CONTAINS its body, and a dynamic rewrite contains a diff instead: the older file stayed the
+-- canonical owner while no longer matching production, so the repository stopped showing what
+-- production runs. "One canonical file per routine, and it is what is deployed" is exactly the rule
+-- a rewrite block cannot satisfy, however correct its output.
+--
+-- So the body below is the LIVE definition, read back out of htdblwldjkcgjvmqkbeh with
+-- pg_get_functiondef() after the apply and pasted verbatim. This file is last in MANIFEST.txt, so it
+-- becomes the canonical owner and the drift closes. Everything here is PR #746's and #739's work
+-- unchanged except the one clause this change is about, marked SANCTIONS_EVIDENCE_KEPT below: an
+-- entry that a supplier_screening_hit cites is evidence, not a stale copy of the list, so the weekly
+-- retention sweep leaves it alone. a00_entry_cited_is_kept remains the backstop for every other
+-- caller -- the clause here is so the sweep SKIPS those rows rather than colliding with the trigger
+-- and taking the whole screening run down with it.
+--
+-- The rewrite block also reported nothing: it ended in `raise notice`, which the management API
+-- discards. A restated body needs no verdict -- apply_sql.mjs reads the definition back and compares
+-- it to the file, which is a stronger statement than any notice.
+CREATE OR REPLACE FUNCTION public.fn_supplier_sanctions_screen(p_run_ids bigint[], p_rehearsal_tag text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_reh boolean := p_rehearsal_tag is not null;
+  v_suppliers int := 0; v_entries int := 0; v_new int := 0; v_leads_hit int := 0; v_open int := 0;
+  v_sources text; r record; h record; v_task bigint; v_hold bigint; v_title text; v_hold_title text; v_hits text;
 begin
-  select pg_get_functiondef(p.oid) into v_def
-    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname = 'fn_supplier_sanctions_screen';
-  if v_def is null then
-    raise exception 'fn_supplier_sanctions_screen not found -- PR #739 must be applied first';
+  select string_agg(distinct source || ' (' || entries || ' entries, fetched ' || to_char(fetched_at, 'DD Mon YYYY HH24:MI') || ' UTC, sha256 ' || left(coalesce(sha256, '?'), 12) || ')', '; ')
+    into v_sources from public.screening_run where id = any(p_run_ids);
+
+  create temp table tmp_screen_sup on commit drop as
+    select l.id, f.field, f.val, public.fn_screening_normalise(f.val) as norm, public.fn_screening_tokens(f.val) as toks
+      from public.leads l
+      cross join lateral (values ('legal_name', l.company_name), ('licence_name', l.name_corrected_from),
+                                 ('owner', l.signatory_name), ('contact', l.contact_name),
+                                 ('email_domain', split_part(coalesce(l.email_domain, split_part(coalesce(l.email, ''), '@', 2)), '.', 1))) f(field, val)
+     where (l.lifecycle_stage = 'registered' or l.approval_status = 'approved')
+       and case when v_reh then l.company_name like 'ZZ DEMO — %'
+                else coalesce(l.company_name, '') not like 'ZZ DEMO — %' and coalesce(l.email, '') not ilike '%@example.invalid' end
+       and nullif(btrim(coalesce(f.val, '')), '') is not null;
+  select count(distinct id) into v_suppliers from tmp_screen_sup;
+  select count(*) into v_entries from public.screening_entry where run_id = any(p_run_ids);
+
+  for h in
+    select s.id as lead_id, s.field, s.val, e.id as entry_id, e.run_id, e.name, e.source, coalesce(e.reference, '') as reference, e.entry_type,
+           case when s.field = 'email_domain' or s.norm = e.name_norm then 'exact' else 'token_overlap' end as kind,
+           case when s.field = 'email_domain' or s.norm = e.name_norm then 1.0
+                else round(least(cardinality(s.toks), cardinality(e.tokens))::numeric / greatest(cardinality(s.toks), cardinality(e.tokens), 1), 2) end as score
+      from tmp_screen_sup s
+      join public.screening_entry e
+        on e.run_id = any(p_run_ids)
+       and ((s.field <> 'email_domain' and s.norm = e.name_norm and length(s.norm) >= 6)
+         or (s.field <> 'email_domain' and cardinality(s.toks) >= 2 and cardinality(e.tokens) >= 2
+             and (s.toks <@ e.tokens or e.tokens <@ s.toks))
+         or (s.field = 'email_domain' and length(s.norm) >= 6 and replace(e.name_norm, ' ', '') = s.norm))
+  loop
+    insert into public.supplier_screening_hit (run_id, lead_id, field, supplier_value, entry_id, entry_name, entry_source, entry_reference, entry_type, match_kind, score)
+    values (h.run_id, h.lead_id, h.field, h.val, h.entry_id, h.name, h.source, h.reference, h.entry_type, h.kind, h.score)
+    on conflict (lead_id, entry_source, entry_reference, field) do nothing;
+    if found then v_new := v_new + 1; end if;
+  end loop;
+
+  -- THE TEAM UPDATE, ON SEATS THAT EXIST (18 Sep 2026). One DECISION task on the ceo, because a confirmed
+  -- hit removes a supplier and every approval in this company is the CEO's; one HOLD on the sales_engineer,
+  -- because supplier verification and supplier-facing outreach are that seat's work. Never the founder.
+  for r in
+    select x.lead_id, l.company_name, count(*) as n,
+           string_agg(format('%s %L matched %L [%s %s] %s, score %s', x.field, x.supplier_value, x.entry_name, x.entry_source, x.entry_reference, x.match_kind, x.score), E'\n' order by x.score desc, x.id) as ev,
+           string_agg(x.id::text, ', ' order by x.id) as ids
+      from public.supplier_screening_hit x join public.leads l on l.id = x.lead_id
+     where x.status = 'open' and x.task_id is null and x.run_id = any(p_run_ids)
+     group by x.lead_id, l.company_name
+  loop
+    v_title := 'Sanctions screening hit: ' || coalesce(r.company_name, 'lead #' || r.lead_id) || ' — lead #' || r.lead_id;
+    select id into v_task from public.org_tasks where title = v_title and status not in ('done', 'cancelled') order by id limit 1;
+    if v_task is null then
+      insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, assigned_agent)
+      values (null, v_title,
+              'The weekly sanctions screening (' || coalesce(v_sources, 'fixture run') || ') matched a REGISTERED supplier. EVIDENCE:' || E'\n' || r.ev
+              || E'\n\n' || 'No automatic removal has happened. Compare the supplier''s trade licence, owner and address against the listing and decide, per hit: '
+              || 'select public.fn_supplier_screening_decide(<hit_id>, ''confirmed'' | ''false_positive'', ''ceo''). '
+              || 'A confirmed hit moves the supplier through the existing status path (leads.banned + banned_reason, matching_blocked, approval_status rejected) and closes this task and the sales engineer''s hold; a false positive closes the hit. '
+              || 'Hit id(s): ' || r.ids || '.',
+              'assigned', 'supervised', false, 'compliance_check', 'ceo')
+      returning id into v_task;
+    end if;
+    v_hold_title := 'Hold outreach and onboarding: ' || coalesce(r.company_name, 'lead #' || r.lead_id) || ' — lead #' || r.lead_id || ' (sanctions screening)';
+    select id into v_hold from public.org_tasks where title = v_hold_title and status not in ('done', 'cancelled') order by id limit 1;
+    if v_hold is null then
+      insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, assigned_agent)
+      values (null, v_hold_title,
+              'The CEO is reviewing a sanctions-screening match on this supplier (task #' || v_task || '). Send no invitation, follow-up or onboarding step to lead #' || r.lead_id
+              || ' until the CEO decides; this task closes with that decision.',
+              'assigned', 'autonomous', false, 'coordinate', 'sales_engineer')
+      returning id into v_hold;
+    end if;
+    update public.supplier_screening_hit set task_id = v_task, bd_task_id = v_hold
+     where lead_id = r.lead_id and status = 'open' and task_id is null;
+    v_leads_hit := v_leads_hit + 1;
+  end loop;
+
+  -- retention: the latest fetch per source is the list; older entries go (their run rows stay as the record)
+  if not v_reh then
+    delete from public.screening_entry e
+     where e.run_id not in (select max(id) from public.screening_run where status = 'ok' group by source)
+       -- SANCTIONS_EVIDENCE_KEPT (18 Sep 2026): an entry a hit cites is evidence, not a stale copy of
+       -- the list. Kept here, and a00_entry_cited_is_kept refuses it for every other caller.
+       and not exists (select 1 from public.supplier_screening_hit h
+                        where h.entry_id = e.id or (h.entry_source = e.source and h.entry_reference = e.reference));
   end if;
-  -- select ... into (without STRICT) takes ONE arbitrary row when a name is overloaded, and would
-  -- then rewrite whichever overload it happened to pick. Measured 18 Sep 2026: exactly 1 signature.
-  if (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-       where n.nspname = 'public' and p.proname = 'fn_supplier_sanctions_screen') <> 1 then
-    raise exception 'fn_supplier_sanctions_screen is overloaded -- name the signature before rewriting it';
-  end if;
-  if position('SANCTIONS_EVIDENCE_KEPT' in v_def) > 0 then
-    raise notice 'fn_supplier_sanctions_screen already keeps cited entries; nothing to do';
-    return;
-  end if;
-  -- regexp_replace, not replace: the pattern spans a line break, and a literal newline in THIS
-  -- file is whatever the checkout wrote (CRLF on Windows) while pg_get_functiondef always returns
-  -- LF. A literal match failed on exactly that, which is a good failure -- the file refuses rather
-  -- than silently leaving the sweep unpatched -- but \s+ is the honest way to say "one or more
-  -- spaces of some kind" and is what the text actually means.
-  v_def := regexp_replace(v_def,
-    '(delete from public\.screening_entry e\s+where e\.run_id not in \(select max\(id\) from public\.screening_run where status = ''ok'' group by source\))',
-    '\1'
-    || E'\n       -- SANCTIONS_EVIDENCE_KEPT (18 Sep 2026): an entry a hit cites is evidence, not a stale copy of'
-    || E'\n       -- the list. Kept here, and a00_entry_cited_is_kept refuses it for every other caller.'
-    || E'\n       and not exists (select 1 from public.supplier_screening_hit h'
-    || E'\n                        where h.entry_id = e.id or (h.entry_source = e.source and h.entry_reference = e.reference))');
-  if position('SANCTIONS_EVIDENCE_KEPT' in v_def) = 0 then
-    raise exception 'the retention sweep in fn_supplier_sanctions_screen did not match the expected text -- read the live body before re-running this file';
-  end if;
-  execute v_def;
-end $do$;
+
+  select count(*) into v_open from public.supplier_screening_hit where status = 'open';
+  insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
+  values ('supplier_sanctions_screen', 'ok',
+          jsonb_build_object('suppliers', v_suppliers, 'entries', v_entries, 'hits_new', v_new, 'leads_hit', v_leads_hit, 'hits_open', v_open,
+                             'runs', to_jsonb(p_run_ids), 'rehearsal', v_reh),
+          'Sanctions screening: ' || v_suppliers || ' registered supplier(s) screened against ' || v_entries || ' list entries (' || coalesce(v_sources, 'no run') || '): '
+          || v_new || ' new hit(s) on ' || v_leads_hit || ' supplier(s); ' || v_open || ' open. A hit opens ONE decision task on the ceo and ONE hold on the sales_engineer; nobody is removed automatically.'
+          || case when v_reh then ' [rehearsal ' || p_rehearsal_tag || ']' else '' end, now(), now());
+  return jsonb_build_object('suppliers', v_suppliers, 'entries', v_entries, 'hits_new', v_new, 'leads_hit', v_leads_hit, 'hits_open', v_open, 'sources', v_sources);
+end $function$;
 
 -- ---------------------------------------------------------------------------------------------
 -- 11. WHAT IS DELIBERATELY NOT CHANGED HERE
