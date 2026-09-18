@@ -21,6 +21,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
+import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -47,6 +48,12 @@ Deno.serve(observe('supplier_pay', async (req) => {
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
     const email = user.email.toLowerCase();
+    // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026; security review the
+    // same day found this function authenticated a supplier by leads.claimed_by and asked
+    // nothing about the ban). Above everything this function does, so it covers what is written
+    // here next year too.
+    if (await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);  // an ORDINARY dues ban still reaches this screen, which is the whole point of asking
+    // public.sanctions_ban rather than leads.banned; a sanctions ban is not a debt to be cleared.
 
     const { data: lead } = await admin.from('leads').select('id,company_name,email').eq('claimed_by', email).maybeSingle();
     if (!lead) { await logRun('error', { authorised: 0 }, 'supplier_pay called by ' + email + ' but no lead is claimed by that address, so their balance could not be looked up. If this is a real supplier they cannot pay - check leads.claimed_by.'); return J({ error: 'No supplier profile for this account' }, 403); }

@@ -11,6 +11,7 @@ import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supp
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { buildInsightsSummary } from './insights_summary.ts';
 import { deleteSupporting, listSupporting, saveSupporting, urlSupporting } from './supporting_documents.ts';
+import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/sanctioned.ts';
 // SUPPLIER-FACING TEXT CARRIES A CODE (14 Sep 2026). Every sentence below that reaches a supplier
 // (document hints, alerts, eligibility titles/details) now travels with a stable `code` and `params`;
 // the portal renders the EN/AR wording from src/components/portal/supplier/serverCopy.ts and falls
@@ -54,6 +55,11 @@ Deno.serve(observe('supplier_portal', async (req) => {
     const email = user.email.toLowerCase();
     const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from').eq('claimed_by', email).maybeSingle();
     if (!sup) return J({ error: 'no_company', hint: 'claim your company first' }, 400);
+    // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026). One gate, above the
+    // action switch, so every screen this function serves is covered by one line rather than
+    // forty — including the ones written after today. overview.ts already RENDERS a ban as a
+    // banner; a banner is not a refusal, and this is the refusal.
+    if (await sanctionedLead(admin, sup.id) || await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);
     const b = await req.json().catch(() => ({} as any));
     const action = b.action;
 

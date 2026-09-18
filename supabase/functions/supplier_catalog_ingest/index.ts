@@ -48,6 +48,7 @@ import { observe } from '../_shared/observe.ts';
 import { readDocument, type DocumentRead } from '../_shared/doc_read/index.ts';
 import { proposeTradesFromDocs } from '../_shared/supplier_doc_trades.ts';
 import { productsFromText } from './rows_from_text.ts';
+import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -147,6 +148,11 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
+    // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026; security review the
+    // same day found this function authenticated a supplier by leads.claimed_by and asked
+    // nothing about the ban). Above everything this function does, so it covers what is written
+    // here next year too.
+    if (await sanctionedEmail(admin, user.email.toLowerCase())) return J(SANCTIONED_REFUSAL, 403);
     const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', user.email.toLowerCase()).maybeSingle();
     if (!sup) return J({ error: 'no_company', hint: 'claim your company first' }, 400);
     const supId = sup.id as number;
