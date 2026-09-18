@@ -65,6 +65,11 @@ test('the crawl names the supplier portal\'s tabs and its Account menu, in both 
     assert.deepEqual(ACCOUNT_MENU[lang].items, acct.map((k) => ws(lang, 'acct_' + k)),
       `journey f's supplier ${lang} Account menu is not what SupplierPortal renders`);
   }
+  // Journey b opens two of those tabs by name through supplierTab(lang, key), which indexes
+  // NAV.supplier by this list. If MAIN_TABS is reordered and this is not, journey b silently drives
+  // the wrong tab — the same fault as the stale /^RFQs/ it replaced, one layer along.
+  const jb = JSON.parse(JOURNEYS.match(/const SUPPLIER_TABS = (\[[^\]]+\]);/)[1].replace(/'/g, '"'));
+  assert.deepEqual(jb, main, "journey b's SUPPLIER_TABS is not SupplierPortal's MAIN_TABS order");
 });
 
 test('the destinations retired on 15 September are not crawled for any more', () => {

@@ -24,17 +24,28 @@ jobs:
     # reaches teardown and the report; the job wall is set above it so the deadline is what ends a
     # long run, not the cancellation.
     #
-    # WHY 60 AND NOT 40 (review): the deadline is a START cutoff — it stops the harness beginning a
-    # new journey or a new crawl viewport, and cannot interrupt one already running. Journey c alone
-    # chains six 180-second calls, so a journey that starts at minute 19:59 can legitimately run for
-    # ~20 more. 20 (deadline) + ~24 (worst in-flight journey) + ~5 (npm ci, playwright install) +
-    # teardown and the report still fits inside 60 with margin. A wall the harness can hit is the
-    # bug this file is fixing; the wall exists only to stop a genuinely hung runner.
-    timeout-minutes: 60
+    # WHY THE WALL IS ABOVE THE DEADLINE: the deadline is a START cutoff — it stops the harness
+    # beginning a new journey or a new crawl viewport, and cannot interrupt one already running.
+    # Journey c alone chains six 180-second calls, so a journey that starts on the deadline can
+    # legitimately run for ~20 more minutes. A wall the harness can hit is the bug this file fixed;
+    # the wall exists only to stop a genuinely hung runner.
+    #
+    # WHY 35 AND NOT 20 (18 Sep 2026, measured). 20 minutes does not fit the work, and the run that
+    # does not fit is the crawl — the only journey that looks at every screen. Run 35301487989 (last
+    # night, 02:59): journeys a-e finished at 03:19, the deadline fell at 03:21, and of the EIGHT
+    # crawl surfaces (2 portals x en/ar x desktop/mobile) it reached ONE and part of a second; six
+    # were recorded "not crawled" and journey g never started. The job itself used 42 of its 60
+    # minutes, so nothing was short of wall clock — the harness was stopping itself less than
+    # two-thirds of the way through. A run that never looks at six of eight surfaces cannot settle a
+    # finding on those surfaces (run.mjs COMPLETE=false), so the nightly has been proving the funnel
+    # and almost none of the screens. A full pass measured against production the same morning took
+    # ~33 minutes end to end; 35 leaves the crawl room to finish, and the wall moves with it
+    # (35 + ~24 worst in-flight + ~5 npm ci and playwright install + teardown and the report).
+    timeout-minutes: 75
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_E2E_REPORTS: e2e-out
-      QD_E2E_DEADLINE_MS: '1200000'
+      QD_E2E_DEADLINE_MS: '2100000'
     steps:
       - id: gate
         run: |

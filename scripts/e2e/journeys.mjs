@@ -237,12 +237,18 @@ export async function journeySuppliers(ctx) {
     const s = await signedInPage(browser, A, m);
     try {
       await openPortal(s.page, portalUrl('supplier', m.lang), s.calls);
-      await s.page.getByRole('button', { name: m.lang === 'ar' ? /^طلبات التسعير/ : /^RFQs/ }).first().click({ timeout: 15000 }).catch(() => {});
+      // The tab is REACHED, and a tab that cannot be reached is the finding — not something to
+      // swallow and then assert against whatever screen was left open.
+      const inqTab = supplierTab(m.lang, 'rfqs');
+      const opened = await s.page.getByRole('button', { name: new RegExp('^' + esc(inqTab)) })
+        .first().click({ timeout: 15000 }).then(() => true).catch(() => false);
       await s.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
       const text = await s.page.locator('body').innerText().catch(() => '');
       const leaked = identity.filter((x) => x && text.includes(x));
-      const sees = /alumin|ألمنيوم|الألمنيوم|window|نوافذ/i.test(text);
-      rep.step(J, `sees the invitation (${tag(m)})`, sees ? 'PASS' : 'FAIL', sees ? 'RFQ visible in the RFQs tab' : 'no aluminium RFQ text on the RFQs tab', { shot: await shot(s.page, dir, `b_invitation_${tag(m)}`) });
+      const sees = opened && /alumin|ألمنيوم|الألمنيوم|window|نوافذ/i.test(text);
+      rep.step(J, `sees the invitation (${tag(m)})`, sees ? 'PASS' : 'FAIL',
+        !opened ? `the "${inqTab}" tab could not be opened in 15 s` : sees ? `RFQ visible in the "${inqTab}" tab` : `no aluminium RFQ text in the "${inqTab}" tab`,
+        { shot: await shot(s.page, dir, `b_invitation_${tag(m)}`) });
       rep.step(J, `invitation is anonymised (${tag(m)})`, leaked.length === 0 ? 'PASS' : 'FAIL', leaked.length ? `LEAKED ${leaked.join(', ')}` : `none of ${identity.length} customer identifiers on screen`);
       ctx.consoleErrors.push(...realErrors(s.consoleErrors).map((e) => `[supplier ${tag(m)}] ${e}`));
     } finally { await s.ctx.close(); }
@@ -309,9 +315,17 @@ export async function journeySuppliers(ctx) {
     const s = await signedInPage(browser, A, { lang: 'en', viewport: 'desktop' });
     try {
       await openPortal(s.page, portalUrl('supplier', 'en'), s.calls);
-      await s.page.getByRole('button', { name: /^Quotes/ }).first().click({ timeout: 15000 }).catch(() => {});
+      const qTab = supplierTab('en', 'quotes');
+      const qOpen = await s.page.getByRole('button', { name: new RegExp('^' + esc(qTab)) }).first().click({ timeout: 15000 })
+        .then(() => true).catch(() => false);
       await s.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-      rep.step(J, 'the Quotes tab opens after release', 'PASS', 'screenshot recorded', { shot: await shot(s.page, dir, 'b_quotes_after_release') });
+      // It used to report PASS unconditionally with the words "screenshot recorded" — a step that
+      // cannot fail asserts nothing, and it was named after a tab the portal no longer renders.
+      const onTab = qOpen && await s.page.getByRole('button', { name: new RegExp('^' + esc(qTab)), exact: false })
+        .first().getAttribute('aria-current').then((a) => a === 'page').catch(() => false);
+      rep.step(J, `the "${qTab}" tab opens after release`, onTab ? 'PASS' : 'FAIL',
+        qOpen ? `aria-current=page: ${onTab}` : `the "${qTab}" tab could not be opened in 15 s`,
+        { shot: await shot(s.page, dir, 'b_quotes_after_release') });
     } finally { await s.ctx.close(); }
   }
   ctx.quoteIds = (await read(`select id::text id, supplier_id, option_no, status from public.quotes where inquiry_id = ${q(inquiryId)} order by quote_amount`));
@@ -627,6 +641,16 @@ const NAV = {
     ar: ['الخدمات', 'الاستفسارات الواردة', 'عروض الأسعار المقدَّمة', 'الرسائل', 'المستندات', 'الرؤى'],
   },
 };
+// JOURNEY b DRIVES TWO OF THOSE TABS BY NAME, AND USED TO KEEP ITS OWN COPY OF THE WORDS (18 Sep
+// 2026, measured on production). #738 tied journey f's list above to the portal's own copy, but
+// journey b still clicked /^RFQs/ and /^Quotes/ — the names the supplier portal stopped rendering on
+// 15 September (#722/#725). Both clicks are written `.catch(() => {})`, so nothing failed loudly:
+// each one waited out its 15 s timeout in all four matrices and the step then asserted against
+// whichever tab happened to be open (Services, the default), which is not the screen it names.
+// Naming them out of NAV puts them under the CI check that ties NAV to MAIN_TABS and workspaceCopy,
+// so the next rename fails in seconds instead of quietly measuring the wrong tab.
+const SUPPLIER_TABS = ['services', 'rfqs', 'quotes', 'messages', 'documents', 'insights'];
+const supplierTab = (lang, key) => NAV.supplier[lang][SUPPLIER_TABS.indexOf(key)];
 // ACCOUNT_TABS: the three the supplier portal moved out of the main strip on 15 Sep. Opening the
 // menu is part of the journey — a supplier who cannot reach Settings has no working portal.
 const ACCOUNT_MENU = {
@@ -639,7 +663,15 @@ const accountMenu = (kind, lang) => (kind === 'supplier' ? ACCOUNT_MENU[lang] : 
 // ("Speak your services" / "سجّل خدماتك صوتيًا"). Pressing it opens a recording, which is a side
 // effect on the supplier's machine, not a screen to look at. It is disabled today (the voice flag is
 // off) so Playwright would only wait out its timeout, but it will not be disabled forever.
-const NEVER = /sign\s*out|log\s*out|delete|remove|cancel|withdraw|refund|reveal|pay|send|submit|approve|reject|accept|decline|close\s*request|speak your|stop recording|تسجيل|سجّل|إيقاف التسجيل|الخروج|حذف|إزالة|إلغاء|سحب|استرداد|كشف|ادفع|دفع|أرسل|إرسال|اعتماد|رفض|قبول/i;
+// …and one more of the same kind, measured on production 18 Sep 2026: "New request" / "طلب جديد" /
+// "Post your first request" / "انشر طلبك الأول". Pressing it opens the request composer, which
+// OPENS AN LLM INTERVIEW — inquiry_intake, whose calls this harness already allows 90 seconds each,
+// and an inquiry_intake row on a screen the crawl is only meant to look at. The composer then covers
+// the page, so every later press in the loop lands on it instead of the destination. Watched live:
+// the customer en-desktop "My requests" view sat in that composer for minutes, on the first of eight
+// surfaces — which is most of why the crawl has not finished inside the nightly's budget. A crawler
+// looks at screens; it does not start jobs.
+const NEVER = /sign\s*out|log\s*out|delete|remove|cancel|withdraw|refund|reveal|pay|send|submit|approve|reject|accept|decline|close\s*request|new request|post your first request|speak your|stop recording|تسجيل|سجّل|إيقاف التسجيل|طلب جديد|انشر طلبك|الخروج|حذف|إزالة|إلغاء|سحب|استرداد|كشف|ادفع|دفع|أرسل|إرسال|اعتماد|رفض|قبول/i;
 // #736 gave every press and every region an aria-busy state, with a 300 ms minimum so a fast round
 // trip cannot strobe. A crawler that presses the next control while the last one is still working
 // measures the spinner rather than the page — and Playwright waits out its whole timeout against a
