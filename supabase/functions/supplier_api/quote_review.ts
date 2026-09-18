@@ -30,7 +30,7 @@
 import { assessQuote, readDelivery, readInstallation, readWarranty, requirementsOf, type Line, type MissingItem, type TermsSpec } from '../_shared/line_specs/assess.ts';
 import { normText, VAGUE } from '../_shared/line_specs/model.ts';
 import { OPTION_HEAD } from '../_shared/line_specs/options.ts';
-import { readVat } from '../_shared/line_specs/vat.ts';
+import { readVat, type VatTreatment } from '../_shared/line_specs/vat.ts';
 import { maskIdentityNumbers } from '../_shared/identity_numbers.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 import type { Proposal } from '../quote_extract/quote_from_document.ts';
@@ -74,6 +74,9 @@ export type IssueCode =
   | 'currency_not_aed' | 'vat_basis' | 'vat_ex_price' | 'validity'
   | 'spec' | 'line_items' | 'delivery' | 'installation_included' | 'installation_detail'
   | 'warranty_period' | 'warranty_coverage' | 'price_ex_vat' | 'component';
+/** The quotation-level attributes assess.ts can report missing, as issue codes. */
+const TERM_CODES = new Set<IssueCode>(['delivery', 'installation_included', 'installation_detail',
+  'warranty_period', 'warranty_coverage', 'price_ex_vat', 'line_items']);
 export type Issue = {
   code: IssueCode; kind: 'adjustment' | 'clarification';
   /** The supplier's own line (1-based, in the order of their quotation). */
@@ -279,7 +282,10 @@ export function fromMissing(m: MissingItem): Issue {
       `Your line ${m.line_no} (${d}): state the exact ${m.label_en.toLowerCase()}${m.unit ? ` (${m.unit})` : ''} (for example: "line ${m.line_no} ${m.label_en.toLowerCase()}: …").`,
       `بندك ${m.line_no} (${d}): اذكر ${m.label_ar} بدقة${m.unit_ar || m.unit ? ` (${m.unit_ar || m.unit})` : ''} (مثال: "البند ${m.line_no} ${m.label_ar}: …").`);
   }
-  const code: IssueCode = m.attr.startsWith('component:') ? 'component' : (m.attr as IssueCode);
+  // assess.ts types MissingItem.attr as a plain string, so a term added there that nothing here knows
+  // would otherwise reach the database as an invalid code. An unknown attribute is asked as a `spec`.
+  const code: IssueCode = m.attr.startsWith('component:') ? 'component'
+    : (TERM_CODES.has(m.attr as IssueCode) ? m.attr as IssueCode : 'spec');
   const ex: Record<string, [string, string]> = {
     delivery: [' (for example: "lead time 3 weeks")', ' (مثال: "مدة التسليم 3 أسابيع")'],
     installation_included: [' (for example: "installation included, 5 working days on site" or "supply only")', ' (مثال: "التركيب مشمول، 5 أيام عمل في الموقع" أو "توريد فقط")'],
@@ -348,7 +354,9 @@ export const closedSaid = (): Said => ({
 // The supplier's reply, read by rule: the details they state, the choice they make, the question they ask.
 // ---------------------------------------------------------------------------------------------
 export type Correction =
-  | { field: 'validity' | 'lead_time' | 'warranty' | 'vat_treatment'; value: string }
+  | { field: 'validity' | 'lead_time' | 'warranty'; value: string }
+  // The treatment is the one readVat returns, never free text — 'not_stated' is not a correction.
+  | { field: 'vat_treatment'; value: Exclude<VatTreatment, 'not_stated'> }
   | { field: 'price_ex_vat'; value: number }
   | { field: 'installation'; included: 'yes' | 'no'; detail: string | null }
   | { field: 'warranty_terms'; period: string | null; coverage: string | null }
@@ -470,6 +478,8 @@ export function applyCorrections(w0: Working, cs: Correction[]): Working {
         l.spec = { ...(l.spec ?? {}), [c.attr]: c.value }; l.spec_source = { ...(l.spec_source ?? {}), [c.attr]: 'supplier_portal' };
         log(`line_spec:${c.attr}`, c.value, c.line_no); break;
       }
+      // A Correction added to the union without a case here would otherwise be dropped in silence.
+      default: { const _never: never = c; void _never; break; }
     }
   }
   return w;
@@ -517,8 +527,15 @@ export function tookSaid(cs: Correction[]): Said | null {
     else if (c.field === 'lead_time') { en.push(`lead time ${c.value}`); ar.push(`مدة التسليم ${c.value}`); }
     else if (c.field === 'price_ex_vat') { en.push(`price excluding VAT AED ${fmt(c.value)}`); ar.push(`السعر غير شامل الضريبة ${fmt(c.value)} درهم`); }
     else if (c.field === 'vat_treatment') {
-      const m: Record<string, [string, string]> = { exclusive: ['prices exclude VAT', 'الأسعار غير شاملة الضريبة'], inclusive: ['prices include VAT', 'الأسعار شاملة الضريبة'], not_registered: ['not VAT-registered', 'غير مسجل في الضريبة'] };
-      const x = m[c.value]; if (x) { en.push(x[0]); ar.push(x[1]); }
+      // Every treatment readVat can return is worded here — a value with no wording would have been
+      // applied to the quotation and never acknowledged back to the supplier.
+      const m: Record<Exclude<VatTreatment, 'not_stated'>, [string, string]> = {
+        exclusive: ['prices exclude VAT', 'الأسعار غير شاملة الضريبة'],
+        inclusive: ['prices include VAT', 'الأسعار شاملة الضريبة'],
+        not_registered: ['not VAT-registered', 'غير مسجل في الضريبة'],
+        confirmed_on_portal: ['the price excluding VAT as you stated it', 'السعر غير شامل الضريبة كما ذكرته'],
+      };
+      const x = m[c.value]; en.push(x[0]); ar.push(x[1]);
     }
     else if (c.field === 'warranty_terms') { en.push(`warranty ${[c.period, c.coverage].filter(Boolean).join(', ')}`); ar.push(`الضمان ${[c.period, c.coverage].filter(Boolean).join('، ')}`); }
     else if (c.field === 'installation') { en.push(c.included === 'yes' ? `installation included${c.detail ? ` (${c.detail})` : ''}` : 'supply only, no installation'); ar.push(c.included === 'yes' ? `التركيب مشمول${c.detail ? ` (${c.detail})` : ''}` : 'توريد فقط دون تركيب'); }

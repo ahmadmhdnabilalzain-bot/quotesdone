@@ -113,7 +113,9 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
         {parts ? <>
           <p className="whitespace-pre-line">{parts[0]}</p>
           <IssueList issues={m.issues!} lang={lang} />
-          {parts.length > 2 ? <p className="mt-2 whitespace-pre-line text-[12.5px] text-muted-foreground">{parts[parts.length - 1]}</p> : null}
+          {/* parts[1] is the numbered list the IssueList above renders; everything after it is the
+              engineer's closing text. Rendering only the LAST segment dropped any middle paragraph. */}
+          {parts.slice(2).map((p, i) => <p key={i} className="mt-2 whitespace-pre-line text-[12.5px] text-muted-foreground">{p}</p>)}
         </> : body ? <p className="whitespace-pre-line">{body}</p> : null}
         {m.attachments.map((a) => (
           <div key={`${a.kind}:${a.name}:${a.quote_id ?? ''}`} className={cn('flex flex-wrap items-center gap-2', body ? 'mt-2.5' : '')}>

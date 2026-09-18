@@ -260,7 +260,11 @@ export async function upload(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
   const l = await load(repo, deps, ctx, inquiryId); if (isFail(l)) return l;
   const bad = writableOr(l, l.r, deps.now()); if (bad) return bad;
   if (!file || typeof file.b64 !== 'string' || !file.b64) return fail(400, 'file_required', 'Attach the quotation file.');
-  const sc = await deps.scan(file.b64, String(file.filename || 'quotation'), String(file.mime || ''));
+  // The scan reads attacker-supplied bytes and calls out to the malware lookup, so it is treated the
+  // same way as the parser below: a throw becomes a refusal in this flow's own shape, never a bare 500.
+  let sc: Scanned;
+  try { sc = await deps.scan(file.b64, String(file.filename || 'quotation'), String(file.mime || '')); }
+  catch (_e) { return fail(400, 'file_unreadable', 'We could not read that file. Please attach it again, or send it as a PDF.'); }
   if (!sc.ok) return fail(sc.status, sc.code, sc.message);
   const r0 = await ensure(repo, ctx, l);
   const path = `review/${ctx.supplierId}/${inquiryId}/${deps.now().getTime()}_${sc.name}`;

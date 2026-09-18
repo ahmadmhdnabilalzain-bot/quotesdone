@@ -26,7 +26,7 @@ const COPY = {
     scope: 'Scope', documents: 'Documents', download: 'Download', noDocs: 'No documents were attached to this inquiry.',
     boqFile: (n: number) => `Bill of quantities (${n} lines, CSV)`, page: (n: number) => `Drawing page ${n} (identity removed)`,
     quote: 'Send your quotation to the sales engineer', form: 'Or type it into the quote form', closeForm: 'Close the form',
-    concluded: 'Concluded — the customer has chosen.', won: 'You won this job.', quoted: 'Your quotation', loading: 'Loading inquiries…', err: 'Something went wrong. Please try again.',
+    concluded: 'Concluded — the customer has chosen.', won: 'You won this job.', quoted: 'Your quotation', loading: 'Loading inquiries…', err: 'Something went wrong. Please try again.', retry: 'Try again',
     boqHeld: 'The bill of quantities is held back because we could not prove it free of the customer’s details. Price from the drawings and the scope.',
     budget: 'Budget', open: 'Open', close: 'Close',
   },
@@ -37,7 +37,7 @@ const COPY = {
     scope: 'النطاق', documents: 'المستندات', download: 'تنزيل', noDocs: 'لم تُرفق مستندات بهذا الطلب.',
     boqFile: (n: number) => `جدول الكميات (${n} بندًا، CSV)`, page: (n: number) => `صفحة المخطط ${n} (بعد إخفاء الهوية)`,
     quote: 'أرسل عرض سعرك إلى مهندس المبيعات', form: 'أو اكتبه في نموذج العرض', closeForm: 'أغلق النموذج',
-    concluded: 'انتهى — اختار العميل.', won: 'فزت بهذا الطلب.', quoted: 'عرضك', loading: 'جارٍ تحميل الطلبات…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
+    concluded: 'انتهى — اختار العميل.', won: 'فزت بهذا الطلب.', quoted: 'عرضك', loading: 'جارٍ تحميل الطلبات…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.', retry: 'أعد المحاولة',
     boqHeld: 'حُجب جدول الكميات لأننا لم نتمكّن من إثبات خلوّه من بيانات العميل. سعّر من المخططات والنطاق.',
     budget: 'الميزانية', open: 'افتح', close: 'أغلق',
   },
@@ -51,15 +51,31 @@ export type LegacyInquiry = { id: string; quote: unknown; quotes: unknown[]; [k:
 function Documents({ token, lang, id }: { token: string; lang: Lang; id: string }) {
   const t = COPY[lang];
   const [d, setD] = useState<InquiryDocuments | null>(null);
-  useEffect(() => { let on = true; qr.documents(token, id).then((j) => { if (on && !failed(j)) setD(j); }); return () => { on = false; }; }, [token, id]);
+  // A failed fetch used to leave the section rendering nothing, which reads as "this job has no
+  // drawings or BOQ" — the opposite of the truth. It says so, and offers the retry, instead.
+  const [err, setErr] = useState(false);
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let on = true;
+    qr.documents(token, id).then((j) => { if (!on) return; if (failed(j)) setErr(true); else { setD(j); setErr(false); } })
+      .catch(() => { if (on) setErr(true); });
+    return () => { on = false; };
+  }, [token, id, n]);
+  if (err) return (
+    <div className="mt-4">
+      <h3 className="text-[13px] font-semibold text-foreground">{t.documents}</h3>
+      <p className="mt-1 text-[12.5px] text-muted-foreground">{t.err}</p>
+      <Button className="mt-2" size="sm" variant="outline" onClick={() => { setErr(false); setN((x) => x + 1); }}>{t.retry}</Button>
+    </div>
+  );
   if (!d) return null;
   return (
     <div className="mt-4">
-      <h4 className="text-[13px] font-semibold text-foreground">{t.documents}</h4>
+      <h3 className="text-[13px] font-semibold text-foreground">{t.documents}</h3>
       {!d.documents.length ? <p className="mt-1 text-[12.5px] text-muted-foreground">{t.noDocs}</p> : (
         <ul className="mt-2 divide-y divide-[var(--line)] rounded-md border border-[var(--line)]">
           {d.documents.map((doc, k) => (
-            <li key={k} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            <li key={`${doc.kind}:${doc.name}:${k}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
               <span className="min-w-0 text-[13px] text-foreground">{doc.kind === 'boq_csv' ? t.boqFile(doc.lines) : t.page(k + 1)}<span className="ms-2 font-mono text-[11px] text-muted-foreground"><Ltr>{doc.name}</Ltr></span></span>
               {doc.kind === 'drawing_page'
                 ? (/^https:\/\//i.test(doc.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={doc.url} target="_blank" rel="noopener noreferrer" download={doc.name}>{t.download}</a> : null)
@@ -93,7 +109,7 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
         <div><dt className="text-muted-foreground">{lang === 'ar' ? 'الإمارة' : 'Emirate'}</dt><dd className="text-foreground">{emirateLabel(lang, d.emirate || '') || '—'}</dd></div>
       </dl>
       <div className="mt-3">{d.you_won ? <span className="text-[13px] font-semibold text-primary">{t.won}</span> : d.concluded ? <span className="text-[13px] text-muted-foreground">{t.concluded}</span> : !d.revealed ? <WithheldCustomer lang={lang} /> : null}</div>
-      {d.summary ? <section className="mt-4"><h4 className="text-[13px] font-semibold text-foreground">{t.scope}</h4><p dir="auto" className="mt-1 max-w-[70ch] text-[13.5px] leading-relaxed text-foreground/90">{d.summary}</p>{d.budget ? <p className="mt-1 text-[12px] text-muted-foreground">{t.budget}: {d.budget}</p> : null}</section> : null}
+      {d.summary ? <section className="mt-4"><h3 className="text-[13px] font-semibold text-foreground">{t.scope}</h3><p dir="auto" className="mt-1 max-w-[70ch] text-[13.5px] leading-relaxed text-foreground/90">{d.summary}</p>{d.budget ? <p className="mt-1 text-[12px] text-muted-foreground">{t.budget}: {d.budget}</p> : null}</section> : null}
       <RequestedTerms spec={d.spec} lang={lang} />
       <Documents token={token} lang={lang} id={d.id} />
       <DrawingGallery pages={d.drawing_pages} lang={lang} />

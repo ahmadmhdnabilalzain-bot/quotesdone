@@ -125,6 +125,9 @@ comment on table public.quote_review_request is 'A point the sales engineer rais
 create unique index if not exists quote_review_request_one_open on public.quote_review_request (review_id, key) where state = 'open';
 create index if not exists quote_review_request_by_review on public.quote_review_request (review_id, state);
 create index if not exists quote_review_messages_by_review_kind on public.quote_review_messages (review_id, kind);
+-- Database review, 18 Sep 2026: owner_email is the column all three own-row policies filter on, so
+-- every signed-in read of a conversation scans it. It is indexed like any other RLS predicate column.
+create index if not exists quote_reviews_by_owner_email on public.quote_reviews (owner_email);
 create index if not exists quote_review_request_by_asked_message on public.quote_review_request (asked_message_id);
 create index if not exists quote_review_request_by_answered_message on public.quote_review_request (answered_message_id);
 
@@ -153,9 +156,13 @@ create policy quote_review_request_supplier_reads_own on public.quote_review_req
 -- Security review, 15 Sep 2026: owner_email is the key the own-row policies read. Refreshed only when
 -- the supplier acted, a company that changed hands (leads.claimed_by) would have left its previous
 -- owner able to read every conversation nobody had touched since. It now follows claimed_by at once.
+-- SECURITY DEFINER because quote_reviews grants no write to anon or authenticated: whoever is allowed
+-- to change leads.claimed_by must not also need a write grant on the conversation for the address to
+-- follow. CREATE OR REPLACE preserves the ACL, so the revoke below is the one that holds.
 create or replace function public.fn_quote_reviews_follow_owner()
 returns trigger
 language plpgsql
+security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 begin
@@ -260,8 +267,12 @@ revoke all on public.v_conversation_message from public, anon, authenticated;
 do $$
 declare
   v_lead bigint; v_inq uuid; v_rev uuid; v_msg uuid; v_dir text; v_demo boolean; v_pk text; v_pid text;
-  v_before bigint; v_after bigint; v_bad boolean := false;
+  v_before bigint; v_after bigint; v_bad boolean := false; v_fail text := null;
 begin
+  -- Apply discipline §4: this file DEFINES things, so nothing the probe raises may escape the DO
+  -- block — a top-level raise would roll back every create/alter above it and the apply would still
+  -- report success. Every assertion below still raises; this guard catches it and says so loudly.
+  begin
   if (select count(*) from information_schema.columns where table_schema = 'public'
         and ((table_name = 'quote_reviews' and column_name in ('owner_email', 'choice', 'working', 'last_review', 'reviewing_since', 'submitted_quote_ids', 'owner_seat'))
           or (table_name = 'quote_review_messages' and column_name in ('kind', 'body_ar', 'issues')))) <> 10 then
@@ -307,4 +318,9 @@ begin
   if v_bad then raise exception 'CHK<<a supplier message read as "%" (demo %, party %:%), or an unknown status was accepted>>', v_dir, v_demo, v_pk, v_pid; end if;
   if v_after <> v_before then raise exception 'CHK<<the probe left % review row(s) behind>>', v_after - v_before; end if;
   raise notice 'CHK<<quotation conversation ready: supplier messages read in, demo kept out of the archive, unknown status refused, probe left nothing>>';
+  exception when others then v_fail := sqlerrm;
+  end;
+  if v_fail is not null then
+    raise notice 'CHK<<PROBE FAILED — the definitions above ARE applied; read this and fix it: %>>', v_fail;
+  end if;
 end $$;

@@ -7,7 +7,7 @@
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { sanitizeUpload, SAFE_DOCS } from '../_shared/attachment.ts';
 import {
-  applyCorrections, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec,
+  applyCorrections, fromMissing, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid,
   type IssueCode, type SafeInquiry, type Working,
 } from './quote_review.ts';
 import { choose, message, readQuotationFile, start, submit, submitPayload, thread, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
@@ -274,4 +274,25 @@ Deno.test('submitPayload carries the chat-confirmed details the hold gate reads'
   const p = submitPayload(inquiry(), { original_file_path: 'review/7/x/q.csv', original_file_name: 'q.csv' }, w, reviewQuotation(inquiry(), w));
   assertEquals((p.terms_spec as { installation?: { included: string } }).installation?.included, 'yes');
   assertEquals((p.items as { qty: number }[])[0].qty, 450);
+});
+
+// The three fixes from the 18 Sep independent reviews: an attribute this file does not know must not
+// reach the database as an invalid issue code, and every VAT treatment readVat can return must be
+// acknowledged back to the supplier rather than applied in silence.
+Deno.test('a term assess.ts adds but this file does not know is asked as a spec, not stored as a bad code', () => {
+  const known = fromMissing({ scope: 'quote', line_no: null, description: null, attr: 'delivery',
+    label_en: 'Delivery', label_ar: 'التسليم', type: 'text' });
+  assertEquals(known.code, 'delivery');
+  const unknown = fromMissing({ scope: 'quote', line_no: null, description: null, attr: 'payment_terms',
+    label_en: 'Payment terms', label_ar: 'شروط الدفع', type: 'text' });
+  assertEquals(unknown.code, 'spec', 'an unknown quote-level attribute must fall back to spec');
+  assertEquals(unknown.attr, 'payment_terms', 'and must still carry the attribute it came from');
+});
+
+Deno.test('every VAT treatment the reader returns is said back to the supplier', () => {
+  for (const v of ['exclusive', 'inclusive', 'not_registered', 'confirmed_on_portal'] as const) {
+    const said = tookSaid([{ field: 'vat_treatment', value: v }]);
+    assert(said, `no acknowledgement for ${v}`);
+    assert(said.en.length > 0 && said.ar.length > 0, `${v} was applied without being said in both languages`);
+  }
 });
