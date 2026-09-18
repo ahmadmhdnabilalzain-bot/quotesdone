@@ -8,7 +8,7 @@
 //   3. the tab records and sends audio to the server action — founder, 15 Sep 2026: the browser's own
 //      speech engine is not used, because a mobile app must use the same path;
 //   4. the service emirates at sign-up are seven checkboxes plus "All emirates", each with Arabic;
-//   5. supplier_api routes the four documented actions.
+//   5. supplier_api routes the five documented actions.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -19,7 +19,10 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const AR = /[؀-ۿ]/;
 
-const seed = read('scripts/sql/a_supplier_states_its_services_from_a_checklist_the_sales_engineer_prepares.sql');
+// Both seed files: the original 200 rows, and interior_fitout.decoration added 18 Sep with the
+// rewrite (the founder's own cross-matching example needs a decoration service to state).
+const seed = read('scripts/sql/a_supplier_states_its_services_from_a_checklist_the_sales_engineer_prepares.sql')
+  + read('scripts/sql/a_supplier_describes_its_services_in_its_own_words_and_the_sales_engineer_rewrites_them.sql');
 const rows = [...seed.matchAll(/\('([a-z_]+)','([a-z][a-z0-9_]*)','([^']+)','([^']+)',(\d+)\)/g)]
   .map(([, trade, code, en, ar]) => ({ trade, code, en, ar }));
 const labelsFile = read('scripts/sql/a_suppliers_documents_propose_trades_and_a_new_trade_is_reviewed_not_dropped.sql');
@@ -53,7 +56,23 @@ test('voice is recorded and sent to the server, never the browser speech engine'
   assert.ok(!/SpeechRecognition/.test(tab));
   assert.ok(tab.includes("'transcribe_service_note'"));
   assert.ok(tab.includes('MediaRecorder'));
-  for (const a of ['services_state', 'services_resolve', 'services_save']) assert.ok(tab.includes(`'${a}'`), a);
+  for (const a of ['services_state', 'services_rewrite', 'services_save_rewrite']) assert.ok(tab.includes(`'${a}'`), a);
+});
+
+// ADDING A SERVICE IS A TEXT BOX, NOT A PICKER (founder, instruction 438, 15 Sep 2026). This fails if
+// a dropdown or a per-service "add" checkbox comes back. The PREPARED checklist's own checkboxes stay:
+// they are the sales engineer's proposal being corrected, not the supplier adding something.
+test('services are added by free text and voice, never by a dropdown', () => {
+  const tab = read('src/components/portal/supplier/ServicesTab.tsx');
+  const jsx = tab.slice(tab.indexOf('return ('));           // the markup only, so a comment cannot pass this
+  assert.ok(!/<select/.test(jsx), 'the Services tab has a <select> again');
+  assert.ok(!/add_trade/.test(tab), 'the "add a trade" picker is back');
+  assert.ok(/<textarea/.test(jsx), 'the free text box is gone');
+  assert.ok(tab.includes("'services_rewrite'"), 'the rewrite preview is gone');
+  const copy = read('src/components/portal/supplier/servicesCopy.ts');
+  for (const k of ['describe_title', 'rewrite_title', 'implied_title', 'implied_because', 'own_words_title']) {
+    assert.ok(copy.includes(`${k}:`), `the copy table lost ${k}`);
+  }
 });
 
 test('service emirates are seven checkboxes and All emirates, with Arabic', () => {
@@ -68,10 +87,10 @@ test('service emirates are seven checkboxes and All emirates, with Arabic', () =
   assert.ok(read('src/components/portal/SupplierPortal.tsx').includes('<EmirateCheckboxes '));
 });
 
-test('supplier_api routes the four documented actions', () => {
+test('supplier_api routes the five documented actions', () => {
   const api = read('supabase/functions/supplier_api/index.ts');
   const doc = read('docs/api/supplier_portal_services.md');
-  for (const a of ['services_state', 'services_resolve', 'services_save', 'transcribe_service_note']) {
+  for (const a of ['services_state', 'services_resolve', 'services_rewrite', 'services_save_rewrite', 'transcribe_service_note']) {
     assert.ok(api.includes(`'${a}'`), `supplier_api does not route ${a}`);
     assert.ok(doc.includes('`' + a + '`'), `the API doc does not describe ${a}`);
   }

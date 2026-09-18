@@ -10,7 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
-import { servicesState, servicesResolve, servicesSave, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
+import { servicesState, servicesResolve, servicesRewrite, servicesSaveRewrite, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
@@ -381,17 +381,18 @@ Deno.serve(observe('supplier_api', async (req) => {
     // THE SERVICES CHECKLIST (15 Sep 2026, sales_engineer) — docs/api/supplier_portal_services.md.
     // Same rule as the capability pair above: the supplier id comes from the caller's own JWT, never
     // from the body. The confirm underneath is capabilityConfirm, so the ledger row is unchanged.
-    if (action === 'services_state' || action === 'services_resolve' || action === 'services_save' || action === 'transcribe_service_note') {
+    if (action === 'services_state' || action === 'services_resolve'
+        || action === 'services_rewrite' || action === 'services_save_rewrite' || action === 'transcribe_service_note') {
       const { data: mine } = await admin.from('leads').select('id,service_emirates').eq('claimed_by', email).maybeSingle();
       if (!mine) return J({ error: 'claim_your_company_first', code: 'no_company' }, 400);
       const sid = Number(mine.id);
+      const declaredEmirates = () => (Array.isArray(mine.service_emirates) ? mine.service_emirates as string[] : []);
       if (action === 'services_state') return J(await servicesState(admin, sid));
       if (action === 'services_resolve') { const [s, o] = await servicesResolve(admin, body); return J(o, s); }
-      if (action === 'services_save') {
-        const declared = Array.isArray(mine.service_emirates) ? mine.service_emirates as string[] : [];
-        const [s, o] = await servicesSave(admin, sid, body, declared);
-        return J(o, s);
-      }
+      // THE SALES ENGINEER'S REWRITE (instruction 438). Preview writes nothing; the save is the
+      // supplier's confirmation of what it was shown.
+      if (action === 'services_rewrite') { const [s, o] = await servicesRewrite(admin, sid, body); return J(o, s); }
+      if (action === 'services_save_rewrite') { const [s, o] = await servicesSaveRewrite(admin, sid, body, declaredEmirates()); return J(o, s); }
       // Voice goes to the existing transcribe function with the caller's own token, so it keeps its
       // own sign-in check, byte sniffing and malware scan. Nothing reaches it while the flag is off.
       const [s, o] = await transcribeServiceNote(sid, body, {
