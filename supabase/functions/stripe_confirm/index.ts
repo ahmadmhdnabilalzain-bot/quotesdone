@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
+import { sanctionedLead } from '../_shared/sanctioned.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -48,7 +49,11 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     if (!q) { await logRun('error', { quote_id: qid, session_id: sid }, 'quote_id from Stripe session not found in quotes'); return J({ error: 'Quote not found' }, 404); }
     const { data: inq } = await admin.from('inquiries').select('id,customer_id,summary').eq('id', q.inquiry_id).maybeSingle();
     if (!inq || inq.customer_id !== cust.id) { await logRun('error', { quote_id: qid }, 'ownership violation: customer confirmed another customer inquiry'); return J({ error: 'Not your inquiry' }, 403); }
-    const supSel = async () => { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return sup; };
+    // founder instruction 516, 18 Sep 2026: a sanctioned party is never shown to a customer, and
+    // this is the last door identity leaves by. Returning null here is deliberate and visible —
+    // customer_api's reveal refuses before the charge, so reaching this branch means the ban landed
+    // between the payment and the confirmation.
+    const supSel = async () => { if (await sanctionedLead(admin, q.supplier_id)) return null; const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return sup; };
     const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
     if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, 'already recorded (likely by stripe_webhook)'); return J({ ok: true, already_revealed: true, supplier: await supSel(), original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
     if (s.payment_status !== 'paid') { await logRun('ok', { quote_id: qid, payment_status: String(s.payment_status || '') }, 'session not paid yet - returned pending'); return J({ ok: false, pending: true }); }

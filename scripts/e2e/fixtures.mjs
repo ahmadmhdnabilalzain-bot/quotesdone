@@ -135,7 +135,8 @@ export async function makeDemoCustomer(run, opts = {}) {
     if (!id) throw new Error(`customer row not created for ${email}: save HTTP ${steps.save.status} ${steps.save.text}`);
     run.ids.customers.add(id);
     const session = await passwordSession(email, u.password);
-    return { kind: 'customer', email, phone, fullName, locale, customerId: id, steps, session, jwt: session.access_token };
+    return { kind: 'customer', email, phone, fullName, locale, customerId: id, steps, session, jwt: session.access_token,
+             newSession: () => passwordSession(email, u.password) };
   }
   // Sign-up asks "Is <mobile> also your WhatsApp number?" and kyc accept_terms refuses without the
   // answer (15 Sep 2026). 'same' = the verified fixture mobile above; notices to it are captured.
@@ -148,7 +149,8 @@ export async function makeDemoCustomer(run, opts = {}) {
   if (!row) throw new Error(`customer row not created for ${email}: save HTTP ${steps.save.status} ${steps.save.text}`);
   run.ids.customers.add(row.id);
   const session = await passwordSession(email, u.password);
-  return { kind: 'customer', email, phone, fullName, locale, customerId: row.id, row, steps, session, jwt: session.access_token };
+  return { kind: 'customer', email, phone, fullName, locale, customerId: row.id, row, steps, session, jwt: session.access_token,
+           newSession: () => passwordSession(email, u.password) };
 }
 
 /**
@@ -208,7 +210,8 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
       `(accept_terms HTTP ${terms.status}, signed=${row?.signed})`);
   }
   const session = await passwordSession(email, s.password);
-  return { kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token };
+  return { kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token,
+           newSession: () => passwordSession(email, s.password) };
 }
 
 /** Wait for a condition the product reaches asynchronously (the signed-terms PDF, a notification). */
