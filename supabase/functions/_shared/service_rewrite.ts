@@ -79,6 +79,7 @@ const STOP = new Set([
   'خدمات', 'خدمه', 'صيانه', 'تصليح', 'تنفيذ', 'نقوم', 'نقدم', 'لدينا', 'شركه', 'مقاولات', 'غيرها', 'ايضا',
   'انظمه', 'نظام',
   'ننفذ', 'ننفذها', 'نعمل', 'نحن', 'نستطيع', 'يمكننا', 'ونقوم', 'وننفذ', 'كذلك', 'حسب', 'الطلب', 'طلب',
+  'تجهيز', 'تجهيزات',   // "fit-out" as a verb; "تجهيز مطابخ" still keeps مطابخ, "تجهيز في دبي" keeps nothing
   'خبره', 'سنوات', 'سنه', 'متخصصون', 'متخصصه', 'متخصص', 'مختصون', 'افضل', 'اعلي', 'جوده', 'احترافيه',
   'مؤسسه', 'مجموعه', 'فرع', 'فروع', 'مقرها', 'مقرنا', 'كامله', 'كامل', 'شامله', 'شامل',
   'دبي', 'ابوظبي', 'الشارقه', 'عجمان', 'الفجيره', 'الخيمه', 'القيوين', 'راس', 'ام', 'الامارات', 'امارات',
@@ -128,6 +129,10 @@ export function tidy(text: string): string {
   let s = String(text ?? '').replace(/\s+/g, ' ')
     .replace(/^[\s,،;؛.:\-–—•·*&+/]+|[\s,،;؛.:\-–—•·*&+/]+$/g, '')
     .replace(/^(?:and|or|&)\s+/i, '').replace(/^و\s+/, '').trim();
+  // The Arabic conjunction attaches to its word, so a list item reads "وتلميع نوافذ" and the supplier
+  // sees its own service with an "and" stuck to the front. Stripped only on a MULTI-WORD phrase: a
+  // single word could legitimately begin with و (وقود, وكالة) and must not lose its first letter.
+  if (/^و[ء-ي]/.test(s) && s.includes(' ')) s = s.slice(1);
   if (!HAS_AR.test(s) && /[a-z]/i.test(s)) {
     s = s.split(' ').map((w) => (/^[A-Z0-9&]{2,4}$/.test(w) ? w : w.toLowerCase())).join(' ');
     s = s.charAt(0).toUpperCase() + s.slice(1);

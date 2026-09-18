@@ -225,3 +225,22 @@ Deno.test('the Arabic paragraph behaves the same way', () => {
   assert(r.own_words.some((w) => w.includes('المروحيات')), JSON.stringify(r.own_words));
   assert(!r.own_words.some((w) => /^ننفذ$/.test(w)), `glue survived: ${JSON.stringify(r.own_words)}`);
 });
+
+// ── 9. the Arabic a supplier actually types ───────────────────────────────────────────────────────
+Deno.test('a UAE decoration company is read as decoration, not as the design service', () => {
+  // "ديكور داخلي" is what a DECORATION contractor writes; interior_design is the drawings service.
+  // This is the founder's own cross-matching example (instruction 439), so it gets its own row.
+  assertEquals(keys('شركة ديكور داخلي في دبي'), ['interior_fitout.decoration']);
+  assertEquals(keys('تصميم داخلي'), ['interior_fitout.interior_design']);
+});
+
+Deno.test('a list item does not keep the Arabic conjunction stuck to its front', () => {
+  const r = rewriteServices('قواطع جبس، وتلميع نوافذ المروحيات', SERVICES, TRADES);
+  assertEquals(r.service_keys, ['gypsum.partitions']);
+  assertEquals(r.own_words, ['تلميع نوافذ المروحيات']);
+});
+
+Deno.test('a single Arabic word beginning with و keeps its first letter', () => {
+  assertEquals(tidy('وقود'), 'وقود');
+  assertEquals(tidy('وكالة'), 'وكالة');
+});
