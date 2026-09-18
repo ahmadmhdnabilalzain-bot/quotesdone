@@ -49,17 +49,39 @@ type Hit = { c: Compiled; start: number; end: number; len: number };
 
 const WORD = /[\p{L}\p{N}]/u;
 const HAS_AR = /[؀-ۿ]/;
-// Words that describe how a service is delivered, not which service it is. Compared after arNorm, with a
-// leading و / ال / وال removed from Arabic words.
+// Words that describe how a service is delivered, or glue a sentence together, rather than naming a
+// service. Compared after arNorm, with a leading و / ال / وال removed from Arabic words.
+//
+// A LEFTOVER MADE ONLY OF THESE IS NOT A PENDING TAXONOMY ITEM. Measured 18 Sep 2026 against a
+// realistic supplier paragraph ("We are an interior decoration and fit-out company in Dubai. We do
+// gypsum partitions... plus chiller maintenance..."): the rewriter handed the sales engineer "We are
+// an", "Plus", "ننفذ" and "تجهيز في دبي" as services to decide on. Nothing the supplier named was
+// lost — that queue was filling with grammar. The words below are the ones that did it: sentence
+// verbs and pronouns, the connectives a list uses, and the emirates a company says it works in.
 const STOP = new Set([
   'and', 'or', 'of', 'for', 'the', 'a', 'an', 'in', 'on', 'with', 'to', 'all', 'any', 'other', 'type', 'types',
   'kind', 'kinds', 'various', 'general', 'including', 'etc', 'supply', 'supplying', 'supplier', 'suppliers',
   'installation', 'installations', 'install', 'installing', 'fixing', 'works', 'work', 'service', 'services',
   'solution', 'solutions', 'maintenance', 'repair', 'repairs', 'company', 'contracting', 'contractor',
   'contractors', 'llc', 'we', 'our', 'do', 'provide', 'providing', 'also', 'system', 'systems',
+  // sentence glue: a leftover made only of these says nothing about what the company does
+  'are', 'is', 'was', 'be', 'been', 'am', 'us', 'you', 'they', 'it', 'its', 'their', 'his', 'her',
+  'have', 'has', 'had', 'can', 'will', 'would', 'shall', 'may', 'plus', 'both', 'from', 'by', 'at', 'as',
+  'that', 'this', 'these', 'those', 'who', 'which', 'what', 'where', 'when', 'than', 'then', 'such',
+  'many', 'most', 'some', 'more', 'every', 'each', 'well', 'full', 'complete', 'new', 'best', 'top',
+  'quality', 'high', 'professional', 'reliable', 'specialist', 'specialised', 'specialized', 'expert',
+  'experts', 'experienced', 'leading', 'years', 'year', 'since', 'based', 'located', 'offer', 'offering',
+  'carry', 'carrying', 'out', 'undertake', 'undertaking', 'execute', 'execution', 'deal', 'dealing',
+  // the UAE, as a company writes where it works
+  'uae', 'emirates', 'emirate', 'dubai', 'abu', 'dhabi', 'sharjah', 'ajman', 'fujairah', 'ras', 'khaimah',
+  'quwain', 'umm', 'alquwain', 'rak', 'auh', 'dxb', 'wide', 'countrywide', 'nationwide', 'across',
   'في', 'من', 'مع', 'علي', 'الي', 'جميع', 'كافه', 'كل', 'انواع', 'نوع', 'توريد', 'تركيب', 'اعمال', 'عمل',
   'خدمات', 'خدمه', 'صيانه', 'تصليح', 'تنفيذ', 'نقوم', 'نقدم', 'لدينا', 'شركه', 'مقاولات', 'غيرها', 'ايضا',
   'انظمه', 'نظام',
+  'ننفذ', 'ننفذها', 'نعمل', 'نحن', 'نستطيع', 'يمكننا', 'ونقوم', 'وننفذ', 'كذلك', 'حسب', 'الطلب', 'طلب',
+  'خبره', 'سنوات', 'سنه', 'متخصصون', 'متخصصه', 'متخصص', 'مختصون', 'افضل', 'اعلي', 'جوده', 'احترافيه',
+  'مؤسسه', 'مجموعه', 'فرع', 'فروع', 'مقرها', 'مقرنا', 'كامله', 'كامل', 'شامله', 'شامل',
+  'دبي', 'ابوظبي', 'الشارقه', 'عجمان', 'الفجيره', 'الخيمه', 'القيوين', 'راس', 'ام', 'الامارات', 'امارات',
 ].map(arNorm));
 
 const isStop = (w: string): boolean => {
@@ -68,6 +90,25 @@ const isStop = (w: string): boolean => {
   const forms = [n, n.replace(/^و/, ''), n.replace(/^ال/, ''), n.replace(/^وال/, '')];
   return forms.some((f) => STOP.has(f) || f.length < 2);
 };
+
+/** Is this leftover worth putting in front of the sales engineer at all?
+ *
+ *  A service name is a short noun phrase — "Helicopter window polishing", "تلميع نوافذ المروحيات",
+ *  "supply and installation of aluminium composite panel cladding". A sentence about the company is
+ *  long and says almost nothing — "We are a leading company with many years of experience" is ten
+ *  words carrying one content word. So: three or more content words is a service however long it is,
+ *  and below that it has to be short. Chasing every adjective into STOP would never end; this is the
+ *  shape difference, and it does not need a word list to keep working.
+ *
+ *  This can only drop PROSE. Anything an alias names was already matched before a leftover exists,
+ *  and anything short stays whatever it is — the founder's "never dropped" is about a service the
+ *  supplier named, not about the sentence it was wrapped in. */
+const looksLikeAService = (text: string): boolean => {
+  const words = text.split(/\s+/).filter(Boolean);
+  const content = words.filter((w) => !isStop(w)).length;
+  return content >= 3 || (content >= 1 && words.length <= 6);
+};
+
 
 /** Rule 1: the phrases of a free text, at most MAX_PHRASES, each trimmed and on one line.
  *  The list marker is stripped AFTER the split, not inside it: the line-break branch consumes the
@@ -143,8 +184,7 @@ function leftovers(phrase: string, norm: string, at: number[], hits: Hit[]): str
     // A leftover that follows a hit and starts with an attached و is the conjunction ("... وتنجيد سيارات").
     const t = g.afterHit ? g.text.replace(/^\s*و(?=[ء-ي])/, '') : g.text;
     for (const p of t.split(/\s+(?:and|or|with)\s+|\s*[&+]\s*|\s+و\s+/i)) {
-      const words = p.split(/\s+/).filter(Boolean);
-      if (words.some((w) => !isStop(w))) pieces.push(p);
+      if (looksLikeAService(p.trim())) pieces.push(p);
     }
   }
   return pieces;
@@ -154,8 +194,12 @@ function leftovers(phrase: string, norm: string, at: number[], hits: Hit[]): str
 function wordsItem(text: string, from: string, trades: TradeTerm[]): RewriteItem | null {
   const t = tidy(text);
   if (t.length < 2) return null;
+  // THE TRADE IS LOOKED FOR FIRST. A phrase that names a trade is never prose, however it is wrapped
+  // ("We are an interior fit out company" is seven words carrying one content word, and it is still
+  // the clearest thing the supplier said). Only when no trade is named does the prose test apply.
   const codes = tradesFromText(text, trades).map((h) => h.code);
-  return codes.length ? { kind: 'trade', trades: codes, text: t, from } : { kind: 'unmatched', text: t, from };
+  if (codes.length) return { kind: 'trade', trades: codes, text: t, from };
+  return looksLikeAService(t) ? { kind: 'unmatched', text: t, from } : null;
 }
 
 /** The whole rewrite. `services` are the active taxonomy_trade_service rows with their aliases;

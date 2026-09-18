@@ -186,3 +186,42 @@ Deno.test('the worst case — 2000 characters matching nothing — stays well in
   assert(ms < 4000, `the adversarial rewrite took ${Math.round(ms)}ms`);
   console.log(`worst-case rewrite over ${SERVICES.length} services: ${Math.round(ms)}ms`);
 });
+
+// ── 8. the sales engineer's queue holds services, not grammar ─────────────────────────────────────
+// Measured 18 Sep 2026 on a realistic supplier paragraph: the queue was being handed "We are an",
+// "Plus", "ننفذ" and "تجهيز في دبي". Nothing the supplier NAMED was ever lost; the queue was filling
+// with sentence glue, which is how a review queue stops being read.
+const NOT_A_SERVICE: { name: string; text: string }[] = [
+  { name: 'EN, a whole sentence of glue', text: 'We are a leading company with many years of experience' },
+  { name: 'EN, where the company works', text: 'Dubai, Abu Dhabi, Sharjah and Ras Al Khaimah' },
+  { name: 'AR, a whole sentence of glue', text: 'نحن شركة رائدة لدينا خبرة سنوات طويلة' },
+  { name: 'AR, where the company works', text: 'دبي، أبوظبي، الشارقة، عجمان' },
+];
+for (const c of NOT_A_SERVICE) {
+  Deno.test(`not a pending taxonomy item: ${c.name}`, () => {
+    const r = rewriteServices(c.text, SERVICES, TRADES);
+    assertEquals(r.own_words, [], `sentence glue reached the sales engineer: ${JSON.stringify(r.own_words)}`);
+  });
+}
+
+Deno.test('a realistic paragraph yields services and only real unknowns', () => {
+  const r = rewriteServices(
+    'We are an interior decoration and fit-out company in Dubai. We do gypsum partitions, false ceilings and painting, '
+    + 'plus chiller maintenance and helicopter window polishing.', SERVICES, TRADES);
+  assert(r.service_keys.includes('interior_fitout.decoration'), JSON.stringify(r.service_keys));
+  assert(r.service_keys.includes('gypsum.partitions') && r.service_keys.includes('gypsum.false_ceiling'));
+  assert(r.service_keys.includes('hvac.maintenance_amc'));
+  // The only thing this platform genuinely cannot name, kept exactly as written.
+  assertEquals(r.own_words.filter((w) => !/^painting$/i.test(w)), ['Helicopter window polishing']);
+});
+
+Deno.test('the Arabic paragraph behaves the same way', () => {
+  const r = rewriteServices(
+    'شركة ديكور داخلي وتجهيز في دبي. ننفذ قواطع جبس وأسقف مستعارة ودهانات، وصيانة تشيلر، وتلميع نوافذ المروحيات.',
+    SERVICES, TRADES);
+  assert(r.service_keys.includes('gypsum.partitions'), JSON.stringify(r.service_keys));
+  assert(r.service_keys.includes('gypsum.false_ceiling'));
+  assert(r.service_keys.includes('hvac.maintenance_amc'));
+  assert(r.own_words.some((w) => w.includes('المروحيات')), JSON.stringify(r.own_words));
+  assert(!r.own_words.some((w) => /^ننفذ$/.test(w)), `glue survived: ${JSON.stringify(r.own_words)}`);
+});

@@ -53,10 +53,10 @@
     "ar": "من يركّب ألواح الجبس ينفّذ الأسقف المعلّقة بالنظام نفسه." },
   { "from": "painting.interior", "to": ["painting.repainting"],
     "en": "Painters take on repainting and touch-up work.",
-    "ar": "شركات الدهان تتولّى إعادة الدهان والترميم." },
+    "ar": "شركات الدهان تتولّى إعادة الدهان وأعمال الترقيع." },
   { "from": "painting.exterior", "to": ["painting.repainting"],
     "en": "Painters take on repainting and touch-up work.",
-    "ar": "شركات الدهان تتولّى إعادة الدهان والترميم." },
+    "ar": "شركات الدهان تتولّى إعادة الدهان وأعمال الترقيع." },
   { "from": "flooring.marble_granite", "to": ["flooring.tiling"],
     "en": "Stone fixers lay tiles with the same skills and tools.",
     "ar": "من يركّب الرخام والجرانيت يركّب البلاط بالمهارة والأدوات نفسها." },
@@ -97,13 +97,13 @@
     "ar": "من يركّب الشبكات يمدّ الكابلات التي تحتاجها الشبكة." },
   { "from": "it_services.structured_cabling", "to": ["av_it.data_cabling"],
     "en": "The same cabling is listed under IT and under AV & IT.",
-    "ar": "الكابلات نفسها مدرجة تحت تقنية المعلومات وتحت الصوتيات وتقنية المعلومات." },
+    "ar": "الكابلات نفسها مدرجة تحت خدمات تقنية المعلومات وتحت الأنظمة الصوتية والمرئية." },
   { "from": "av_it.data_cabling", "to": ["it_services.structured_cabling"],
     "en": "The same cabling is listed under AV & IT and under IT.",
     "ar": "الكابلات نفسها مدرجة تحت الصوتيات وتقنية المعلومات وتحت تقنية المعلومات." },
   { "from": "home_automation.smart_home", "to": ["home_automation.lighting_control", "home_automation.intercom"],
     "en": "Smart home integrators install lighting control and door entry.",
-    "ar": "شركات المنزل الذكي تركّب التحكم بالإنارة وأنظمة الدخول." },
+    "ar": "شركات المنزل الذكي تركّب التحكم بالإنارة وأنظمة الاتصال الداخلي (الإنتركم)." },
 
   { "from": "fire_fighting.sprinklers", "to": ["fire_fighting.fire_pumps"],
     "en": "Sprinkler contractors install the fire pumps that feed them.",
@@ -152,5 +152,5 @@
     "ar": "صانعو اللافتات يصنعون الحروف البارزة والصناديق المضيئة." },
   { "from": "logistics_moving.moving", "to": ["logistics_moving.storage"],
     "en": "Moving companies store goods between moves.",
-    "ar": "شركات النقل تخزّن الأغراض بين عمليات النقل." }
+    "ar": "شركات نقل الأثاث تخزّن الأغراض بين عمليات النقل." }
 ]
