@@ -7,7 +7,7 @@
 // external monitor can wire it with just the URL.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { type Failure, failureOf, runSteps, type Step } from './steps.ts';
+import { type Failure, failureOf, runSteps, type Step, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
@@ -338,11 +338,24 @@ async function backupTick(): Promise<unknown> {
     if (error) return { ok: false, error: error.message };
     if (!(data as any)?.due) return { due: false, ran_today: (data as any)?.ran_today, queued: (data as any)?.queued };
     const secret = await sec('cred_fn_resilience_ping');
-    const r = await fetch(FN + '/dropbox_backup', {
+    // STARTED, NOT AWAITED (18 Sep 2026, it_engineer) — the same shape as tableExportTick above, and for
+    // the same reason. dropbox_backup v8 "calls itself again (process_only, up to 20 links) so a backlog
+    // drains without waiting for the next tick": the chain runs in its OWN invocations whatever this tick
+    // does, so awaiting the first pass bought nothing and cost everything. Measured 18 Sep: 2,006
+    // documents queued, dropbox_backup averaging 33.8 s a call over 306 calls in 6 hours — of which only
+    // ~4 an hour are this step; the rest are the chain draining itself. Awaiting it was ~25 s of a 110 s
+    // tick spent watching a worker that did not need watching, and it is where the finding
+    // duty:heartbeat:backup, "Signal timed out", seen 34 times by 07:17Z, came from: the 55 s timeout
+    // fired on a pass that was working perfectly.
+    // The pass still reports itself — dropbox_backup writes its own agent_runs rows, fn_it_backup_tick
+    // and fn_dropbox_backup_due both read them, so a chain that stops is still a finding.
+    const started = fetch(FN + '/dropbox_backup', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: secret, limit: 25 }), signal: AbortSignal.timeout(55000),
-    });
-    return { due: true, status: r.status, result: await r.json().catch(() => null) };
+      body: JSON.stringify({ __secret: secret, limit: 25 }),
+    }).then((r) => r.body?.cancel()).catch(() => {});
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(started);
+    return { due: true, started: true, queued: (data as any)?.queued };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -903,53 +916,72 @@ async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> 
   }));
 }
 
-// THE ORDER THE TICKS RUN IN, ONE LIST (15 Sep 2026). Each name is the key its result has in the
-// response. The order carries three rules: the ladder runs before the outbox and WhatsApp drains, so a
-// chase written now leaves on this pass; DETECT BEFORE ALERTING, because itEngineerAlertTick reads the
-// finding ledger and running it first would deliver the previous tick's picture; and the outbox drains
-// AFTER everything that writes mail. `always` marks the two that deliver: they run even past the deadline.
-// itlater is a map of the IT engineer's duties 19-24, each judged on its own (`nested`).
-const STEPS: Step[] = [
-  { name: 'digest', run: digestTick },
-  { name: 'ratings', run: ratingTick },
-  { name: 'backup', run: backupTick },
-  { name: 'backupVerify', run: dropboxVerifyTick },
-  { name: 'dropboxHealth', run: dropboxHealthTick },
-  { name: 'tableExport', run: tableExportTick },
-  { name: 'backupPrune', run: backupPruneTick },
-  { name: 'weekly', run: accountantWeeklyTick },
-  { name: 'vat', run: vatThresholdTick },
-  { name: 'ceoWeekly', run: ceoWeeklyTick },
-  { name: 'openrouter', run: openrouterMeterTick },
-  { name: 'ladder', run: refundLadderTick },
-  { name: 'refunds', run: accountantRefundTick },
-  { name: 'accountantDuties', run: accountantDutiesTick },
-  { name: 'whatsapp', run: whatsappTick },
-  { name: 'itdetect', run: itDetectTick },
-  { name: 'itduties', run: itDutiesTick },
-  { name: 'itscheduled', run: itScheduledTick },
-  { name: 'itlater', run: itLaterDutiesTick, nested: true },
-  { name: 'specoffer', run: specOfferTick },
-  // Before the outbox drain: email_cron queues nothing itself, but wa_templates_watch queues the
-  // founder's "templates approved" mail, and that should leave on this pass rather than the next.
+// EVERY TICK THIS FUNCTION CAN RUN, BY NAME. The ORDER is not here any more — public.resilience_step
+// holds each step's cadence and fn_resilience_tick_plan returns the order, stalest first (18 Sep 2026,
+// it_engineer). It had to move: 25 steps on one wall clock in one hard-coded order meant the same tail
+// lost every time the front ran long, and on 18 Sep at 06:45Z the tick hit its 110 s deadline exactly
+// and the sanctions screen — 22nd of 25 — did not fire despite being due.
+//
+// What the list still carries, because these are real dependencies and not preferences:
+//   * `nested` — the step returns one entry per job and each is judged on its own.
+//   * `always` — it runs even past the deadline, because it delivers (the two drains).
+//   * itdetect before it, and the outbox after everything that writes mail: expressed in the schedule
+//     as place='last' for it/outbox/archive, which the plan appends after every planned step.
+const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
+  digest: { run: digestTick },
+  ratings: { run: ratingTick },
+  backup: { run: backupTick },
+  backupVerify: { run: dropboxVerifyTick },
+  dropboxHealth: { run: dropboxHealthTick },
+  tableExport: { run: tableExportTick },
+  backupPrune: { run: backupPruneTick },
+  weekly: { run: accountantWeeklyTick },
+  vat: { run: vatThresholdTick },
+  ceoWeekly: { run: ceoWeeklyTick },
+  openrouter: { run: openrouterMeterTick },
+  ladder: { run: refundLadderTick },
+  refunds: { run: accountantRefundTick },
+  accountantDuties: { run: accountantDutiesTick },
+  whatsapp: { run: whatsappTick },
+  itdetect: { run: itDetectTick },
+  itduties: { run: itDutiesTick },
+  itscheduled: { run: itScheduledTick },
+  itlater: { run: itLaterDutiesTick, nested: true },
+  specoffer: { run: specOfferTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
-  // would be invisible — the exact defect this whole change exists to end.
-  { name: 'orphans', run: orphanTick, nested: true },
-  { name: 'orgtasks', run: orgTaskTick },
-  { name: 'it', run: itEngineerAlertTick, always: true },
-  { name: 'outbox', run: outboxTick, always: true },
+  // would be invisible.
+  orphans: { run: orphanTick, nested: true },
+  orgtasks: { run: orgTaskTick },
+  it: { run: itEngineerAlertTick, always: true },
+  outbox: { run: outboxTick, always: true },
   // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
-  // printed to PDF and kept in "supabase and dropbox"). Called every tick, work or none, for the
-  // same reason as the outbox: a heartbeat that beats only under load is not a heartbeat.
-  { name: 'archive', run: archiveTick },
-];
+  // printed to PDF and kept in "supabase and dropbox"). `always` since 18 Sep: it is a delivery step
+  // exactly like the outbox, and it is the one the deadline was actually eating — the finding
+  // duty:heartbeat:archive, "not run: the tick passed its 110s deadline", had been seen 27 times by
+  // 07:17Z. A conversation without its PDF is lost work, not tidiness.
+  archive: { run: archiveTick, always: true },
+};
 
-// THE DEADLINE. Measured 15 Sep 2026: the whole tick took 42-100 s (observe's 'slow run' notes, last
-// two hours). Supabase documents an edge function's wall-clock limit as 150 s on the free plan and 400 s
-// on paid; the tighter one is assumed. A step not started 110 s in is skipped and raised, leaving room
-// for the drains (up to 20 s for the outbox) and the liveness read before the platform kills the tick.
+// THE FALLBACK ORDER, used only when fn_resilience_tick_plan cannot be reached. A watchdog that stops
+// watching because its scheduler is unavailable is worse than one that schedules badly, so the tick
+// still runs every step, in declaration order, exactly as it did before this change.
+const DECLARED_ORDER = Object.keys(STEP_RUN);
+
+// THE DEADLINE, UNCHANGED AT 110 s — DELIBERATELY. Vercel's route and the callers were aligned to 180 s
+// on 17 Sep (#742), so there is headroom, and raising this would have made today's tick fit. It would
+// also have moved the cliff rather than removed it: the list grew by two steps this week, and a fuller
+// list on a longer deadline is the same defect later. It stays as the BACKSTOP — the thing that catches
+// a step whose real cost the plan's estimate got wrong — while the plan is what keeps the tick inside it.
 const DEADLINE_MS = 110_000;
+
+// WHAT THE PLAN MAY COMMIT, against the 110 s backstop. The three place='last' drains are appended
+// OUTSIDE it because they deliver (measured 9.4 s outbox + 5.4 s archive + ~1 s it a tick), so the
+// arithmetic is 70 + 16 + the liveness read and fn_it_duty_settle ≈ 90 s inside 110 s. The every-tick
+// set adds up to 57.4 s of expected cost, which fits with room for the hourly and daily steps to take
+// turns in the gap. Measured mean tick before this change: 80.4 s over 24 h, max 140.9 s — the max is
+// what this bounds, because before it nothing capped what one tick could commit to.
+const PLAN_BUDGET_MS = 70_000;
 
 // A FAILING STEP IS THE IT ENGINEER'S FINDING, NOT A LINE IN A RESPONSE NOBODY READS (15 Sep 2026).
 // fn_it_duty_settle raises one finding per failing step (issue key duty:heartbeat:<step>, so a step
@@ -987,6 +1019,22 @@ async function pageSchedulerDown(ageMin: unknown): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// ASK POSTGRES WHAT TO RUN, IN WHAT ORDER. Returns the ordered step names, the due ones that did not
+// fit, and any that have now been passed over four ticks running. If the plan cannot be read the tick
+// falls back to running everything in declaration order — the behaviour it had before — and says so as a
+// failing step, so an unreachable scheduler is a finding rather than a silent return to the old defect.
+async function tickPlan(): Promise<{ run: string[]; deferred: string[]; starved: string[]; error?: string }> {
+  try {
+    const { data, error } = await admin.rpc('fn_resilience_tick_plan', { p_budget_ms: PLAN_BUDGET_MS });
+    if (error) return { run: DECLARED_ORDER, deferred: [], starved: [], error: error.message };
+    const d = data as { run?: unknown; deferred?: unknown; starved?: unknown } | null;
+    const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+    const run = list(d?.run);
+    if (run.length === 0) return { run: DECLARED_ORDER, deferred: [], starved: [], error: 'the plan named no steps' };
+    return { run, deferred: list(d?.deferred), starved: list(d?.starved) };
+  } catch (e) { return { run: DECLARED_ORDER, deferred: [], starved: [], error: String((e as Error)?.message || e) }; }
+}
+
 Deno.serve(observe('resilience_ping', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok');
   try {
@@ -994,7 +1042,37 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // Fired now, awaited last: nothing below depends on the portal being warm, so the five pings
     // run alongside the ticks instead of lengthening this already-sequential chain.
     const warmP = warmPortal();
-    const { results, failing } = await runSteps(STEPS, t0, DEADLINE_MS);
+    const plan = await tickPlan();
+    // A NAME IN THE PLAN WITH NO RUNNER IS A FAILING STEP, NOT A SILENTLY DROPPED ONE. The schedule and
+    // the code are two files; scripts/checks/every_tick_step_is_scheduled.mjs keeps them in step, and
+    // this is what happens if it ever does not.
+    // DE-DUPLICATED (independent review, ecc:typescript-reviewer, 18 Sep 2026). The old list was
+    // authored once and could not repeat itself; a plan is data, and a name arriving twice would drain
+    // the outbox or the WhatsApp queue twice in one tick. The Set is the whole guard.
+    const steps: Step[] = [];
+    const unknown: string[] = [];
+    for (const name of new Set(plan.run)) {
+      const s = STEP_RUN[name];
+      if (s) steps.push({ name, ...s }); else unknown.push(name);
+    }
+    const { results, failing, ms: stepMs } = await runSteps(steps, t0, DEADLINE_MS);
+    if (plan.error) failing.push({ name: 'plan', error: 'fn_resilience_tick_plan unusable, ran every step in declaration order: ' + plan.error });
+    for (const name of unknown) failing.push({ name, error: 'the schedule names a step this function does not have' });
+    // Deferring a step for one beat is the plan working. Being passed over four ticks running — an hour —
+    // is the guarantee not holding, and that is the alarm that was missing when the sanctions screen
+    // stopped running: it had to be noticed by a person reading a response.
+    // A name that ran on THIS tick is not starved, whatever the plan said before it ran. The plan's own
+    // `run` and `starved` are disjoint by construction, but a false ok:false here would poison that
+    // step's ewma and raise a finding against a step that passed, so it is checked rather than assumed
+    // (independent review, ecc:typescript-reviewer, 18 Sep 2026).
+    for (const name of plan.starved) {
+      if (name in stepMs) continue;
+      failing.push({ name, error: 'starved: due and not run for 4 ticks running' });
+    }
+    // Written back in ONE call. A deferred step stamps nothing, which is what makes it stalest next tick.
+    const schedule = await admin.rpc('fn_resilience_step_record', { p_rows: stepRows(stepMs, failing, plan.deferred) })
+      .then(({ data, error }) => (error ? { ok: false, error: error.message } : data))
+      .catch((e) => ({ ok: false, error: String((e as Error)?.message || e) }));
     const warm = await warmP.catch(() => []);
     // Read cron liveness (plain SELECT; works while Postgres is up even if pg_cron stopped scheduling).
     const { data: live, error } = await admin.rpc('fn_cron_liveness');
@@ -1009,8 +1087,11 @@ Deno.serve(observe('resilience_ping', async (req) => {
     }
     const heartbeat = await settleFailures(failing);
     const failed = failing.map((f) => f.name);
-    if (error) return J({ ok: false, error: error.message, failing: failed, heartbeat, ...results, warm }, 200);
-    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, failing: failed, heartbeat, ...results, warm });
-    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, page, failing: failed, heartbeat, ...results, warm });
+    // `tick` is the whole schedule decision in one field: what ran, what was held for a beat, how long
+    // each step took. It is what turns "the tick was slow" into "which step", without a second ledger.
+    const tick = { ran: steps.map((s) => s.name), deferred: plan.deferred, ms: stepMs, total_ms: Date.now() - t0, schedule };
+    if (error) return J({ ok: false, error: error.message, failing: failed, heartbeat, tick, ...results, warm }, 200);
+    if (healthy) return J({ ok: true, healthy: true, newest_run_age_min: ageMin, failing: failed, heartbeat, tick, ...results, warm });
+    return J({ ok: true, healthy: false, newest_run_age_min: ageMin, page, failing: failed, heartbeat, tick, ...results, warm });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));
