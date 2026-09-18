@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T00:56:23.574Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T01:27:31.366Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -190,7 +190,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (520) =====
+-- ===== TABLES (521) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3575,6 +3575,13 @@ CREATE TABLE IF NOT EXISTS public.it_playbook (
   regression_check text NOT NULL,
   added_by text NOT NULL,
   added_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_query_stat_snapshot (
+  queryid bigint NOT NULL,
+  calls bigint NOT NULL,
+  total_exec_time double precision NOT NULL,
+  taken_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_refusal_policy (
@@ -7500,6 +7507,7 @@ ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_pkey PRIMARY KEY (item);
 ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_pkey PRIMARY KEY (failure_class);
+ALTER TABLE public.it_query_stat_snapshot ADD CONSTRAINT it_query_stat_snapshot_pkey PRIMARY KEY (queryid);
 ALTER TABLE public.it_refusal_policy ADD CONSTRAINT it_refusal_policy_pkey PRIMARY KEY (subject, reason_key);
 ALTER TABLE public.it_restore_drill_result ADD CONSTRAINT it_restore_drill_result_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_pkey PRIMARY KEY (table_name);
@@ -8763,6 +8771,7 @@ CREATE INDEX ix_decision_trace_correlation ON public.decision_trace USING btree 
 CREATE INDEX ix_decision_trace_dept ON public.decision_trace USING btree (department_id, created_at DESC);
 CREATE INDEX ix_decision_trace_role ON public.decision_trace USING btree (role_id, created_at DESC);
 CREATE INDEX ix_decision_trace_status ON public.decision_trace USING btree (outcome_status, created_at DESC);
+CREATE INDEX ix_doc_backups_live_status ON public.doc_backups USING btree (status, id) WHERE (status = ANY (ARRAY['processing'::text, 'waiting_source'::text, 'prune_pending'::text, 'pruning'::text]));
 CREATE INDEX ix_doc_backups_status ON public.doc_backups USING btree (status) WHERE (status = ANY (ARRAY['pending'::text, 'error'::text]));
 CREATE INDEX ix_event_assessment_event ON public.event_assessment USING btree (event_id);
 CREATE INDEX ix_gl_accounts_parent_code ON public.gl_accounts USING btree (parent_code);
@@ -34954,15 +34963,79 @@ begin
   -- ── 14. DATABASE HEALTH ──
   if 'db_health' = any (v_due) then
     v_items := '[]'::jsonb;
-    for x in select s.queryid, left(regexp_replace(s.query, '\s+', ' ', 'g'), 200) q, s.calls, round(s.mean_exec_time::numeric, 1) mean_ms
-               from extensions.pg_stat_statements s
-              where s.calls >= public.fn_it_threshold('slow_query_min_calls')
-                and s.mean_exec_time > public.fn_it_threshold('slow_query_mean_ms')
-              order by s.mean_exec_time desc limit 10 loop
+    -- THE SLOW STATEMENTS OF THE LAST INTERVAL, NOT OF THE DATABASE'S WHOLE LIFE.
+    -- pg_stat_statements counters are cumulative since stats_reset and never decay, so
+    -- s.mean_exec_time is a lifetime average: a statement that was slow in August and has not run
+    -- since keeps the same mean for ever and is re-raised on every run. The interval is measured
+    -- against public.it_query_stat_snapshot, written at the end of this block.
+    --   INNER join, not left. A statement with no snapshot row has no interval -- it is not a
+    --   statement that ran for a long time, it is a statement nobody has measured yet. Reading a
+    --   missing baseline as zero would make its whole lifetime the first interval, which is exactly
+    --   the lifetime rule this block replaces, and it would come back every time
+    --   pg_stat_statements is reset or an entry is evicted and re-created. The upsert below gives it
+    --   a baseline in this same run, so it is judged on the next one, one interval later.
+    --   The two <= clauses keep counters that went BACKWARDS from producing a negative interval:
+    --   a re-created entry can pass calls and still be behind on total_exec_time, or the reverse.
+    --   Neither can be true of the same statement continuing, so both must hold or there is no
+    --   comparable baseline and the row waits a run.
+    -- The view is keyed on (userid, dbid, toplevel, queryid), so it is summed per queryid first --
+    -- one statement's cost is what it cost, whoever ran it -- and min(query) picks one of the
+    -- identical texts those rows share. That text can be NULL (pg_stat_statements can lose the text
+    -- file, and a role that may not read it gets null), and a null title makes fn_it_duty_settle
+    -- raise, which would abort every duty after this one: hence the coalesce.
+    for x in with s as (
+               select ss.queryid, sum(ss.calls) calls, sum(ss.total_exec_time) total_exec_time,
+                      coalesce(min(left(regexp_replace(ss.query, '\s+', ' ', 'g'), 200)),
+                               '(query text unavailable)') q
+                 from extensions.pg_stat_statements ss
+                where ss.queryid is not null
+                group by ss.queryid)
+             select s.queryid, s.q,
+                    (s.calls - p.calls) d_calls,
+                    round(((s.total_exec_time - p.total_exec_time) / nullif(s.calls - p.calls, 0))::numeric, 1) d_mean_ms,
+                    round((s.total_exec_time - p.total_exec_time)::numeric / 1000, 1) d_total_s,
+                    p.taken_at since
+               from s
+               join public.it_query_stat_snapshot p
+                 on p.queryid = s.queryid and p.calls <= s.calls and p.total_exec_time <= s.total_exec_time
+              where (s.total_exec_time - p.total_exec_time) / nullif(s.calls - p.calls, 0)
+                    > public.fn_it_threshold('slow_query_mean_ms')
+                -- Either the interval carried the call volume the threshold asks for, OR the
+                -- statement burned that much time whatever its volume. Without the second arm a
+                -- nightly export taking 60 s once could never be raised at all: the old rule could
+                -- reach 50 calls across four months, one interval cannot. min_calls * mean_ms is
+                -- not a new knob -- it is the time the first arm already has to accumulate before
+                -- it fires (50 x 500 ms = 25 s), stated for the case where one call does it alone.
+                and (s.calls - p.calls >= public.fn_it_threshold('slow_query_min_calls')
+                     or s.total_exec_time - p.total_exec_time
+                        > public.fn_it_threshold('slow_query_min_calls') * public.fn_it_threshold('slow_query_mean_ms'))
+              order by 5 desc limit 10 loop
       v_items := v_items || jsonb_build_object('item', 'slow:' || x.queryid, 'owner_seat', 'ceo', 'subject', 'database',
-        'title', 'A statement averages ' || x.mean_ms || ' ms over ' || x.calls || ' calls: ' || left(x.q, 90),
-        'blast', 'internal', 'affected', 1, 'evidence', jsonb_build_object('queryid', x.queryid, 'query', x.q, 'calls', x.calls, 'mean_ms', x.mean_ms));
+        'title', 'A statement averaged ' || x.d_mean_ms || ' ms over ' || x.d_calls || ' calls since the last check ('
+                 || x.d_total_s || ' s in total): ' || left(x.q, 90),
+        'blast', 'internal', 'affected', 1,
+        'evidence', jsonb_build_object('queryid', x.queryid, 'query', x.q, 'calls', x.d_calls, 'mean_ms', x.d_mean_ms,
+                                       'interval_total_s', x.d_total_s, 'interval_started_at', x.since,
+                                       'interval_minutes', round((extract(epoch from (now() - x.since)) / 60)::numeric, 1),
+                                       'basis', 'measured over the interval between this run and the previous db_health run, from public.it_query_stat_snapshot'));
     end loop;
+    -- The reading this run measured against the next one. Every statement is recorded, not only the
+    -- slow ones, or a statement that is fast today and slow tomorrow would have no baseline.
+    -- The where clause keeps the snapshot MONOTONIC: two db_health runs overlapping would otherwise
+    -- let the one that READ first COMMIT last and write its older reading over the newer, and the
+    -- next interval would then re-count work already measured.
+    insert into public.it_query_stat_snapshot (queryid, calls, total_exec_time, taken_at)
+    select ss.queryid, sum(ss.calls), sum(ss.total_exec_time), now()
+      from extensions.pg_stat_statements ss
+     where ss.queryid is not null
+     group by ss.queryid
+      on conflict (queryid) do update
+         set calls = excluded.calls, total_exec_time = excluded.total_exec_time, taken_at = excluded.taken_at
+       where excluded.calls >= public.it_query_stat_snapshot.calls;
+    -- A queryid pg_stat_statements has evicted will never return; keeping its row would make the
+    -- table grow for ever and would give a re-created entry a stale baseline.
+    delete from public.it_query_stat_snapshot p
+     where not exists (select 1 from extensions.pg_stat_statements ss where ss.queryid = p.queryid);
     insert into public.it_table_size_daily (day, relid, bytes)
     -- The alias is pc, not c: c is this function's rotation-loop record, and plpgsql would read c.oid
     -- as that (unassigned) record instead of the table.
@@ -61261,6 +61334,7 @@ ALTER TABLE public.it_expiry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_hold_signature ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_incident ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_playbook ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_query_stat_snapshot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_refusal_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_restore_drill_result ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_restore_drill_table ENABLE ROW LEVEL SECURITY;
@@ -61558,6 +61632,7 @@ CREATE POLICY it_expiry_service_role_only ON public.it_expiry AS PERMISSIVE FOR 
 CREATE POLICY it_hold_signature_service_role_only ON public.it_hold_signature AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_incident_service_role_only ON public.it_incident AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_playbook_service_role_only ON public.it_playbook AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_query_stat_snapshot_service_role_only ON public.it_query_stat_snapshot AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_restore_drill_result_service_role_only ON public.it_restore_drill_result AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_restore_drill_table_service_role_only ON public.it_restore_drill_table AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
