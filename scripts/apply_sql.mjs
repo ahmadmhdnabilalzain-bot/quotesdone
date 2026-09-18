@@ -232,8 +232,77 @@ const tag = `qd-apply ${rev} ${base(process.cwd())} ${base(file)}`.replace(/[^A-
 // the same query would wrap it in an implicit transaction and Postgres would refuse it.
 // Statements only: a comment that mentions the word used to send a routine file unsigned.
 const mustRunAlone = (await import('./lib/sql_text.mjs')).runsOutsideTransaction(sql);
-await dbPost(mustRunAlone ? sql : `set application_name = '${tag}'; ` + sql);
+const applied = await dbPost(mustRunAlone ? sql : `set application_name = '${tag}'; ` + sql);
 console.log(`applied ${file} to ${PROD_REF}`);
+
+// A PROBE THAT CANNOT REPORT IS NOT A PROBE.
+//
+// apply-discipline §4 is right that a file carrying DDL must not `raise exception` from its probe —
+// the raise would roll back the DDL in its own file, which happened twice. What it prescribed
+// instead, `raise notice`, prints NOWHERE. MEASURED 18 Sep 2026 against this project:
+//
+//     do $$ begin raise notice 'a verdict'; end $$;                  -> body []
+//     do $$ begin raise notice 'a verdict'; end $$; select 1 as a;   -> body [{"a":1}]
+//     raise warning instead of notice                                -> body [{"a":1}]
+//     set client_min_messages to notice; … same DO block …           -> body [{"a":1}]
+//     select name, setting from pg_settings                          -> log_min_messages = warning
+//
+// The management API discards NOTICE and WARNING alike, and this tool had no handling for either
+// (`grep -n NOTICE scripts/apply_sql.mjs` returned nothing before today). `psql` is not installed
+// and no direct connection string exists in the environment or in supabase/config.toml, so the
+// applier has exactly TWO channels: a RESULT SET, and an ERROR. An error is what §4 forbids. That
+// leaves the result set, and nothing was reading it — `await dbPost(...)` threw the rows away.
+//
+// So the convention is the channel that exists: a probe's LAST statement is a plain SELECT whose
+// value begins with the OK marker or the FAILED marker below, and this reads it. A FAILED verdict
+// is counted into `bad`, so the exit code is non-zero even though the DDL applied — which is the
+// honest outcome: the change is live and its verification did not pass. Say so rather than printing
+// a success line over an unverified apply.
+//
+// Chosen over two alternatives, on this evidence. Writing the verdict to a ROW would need a new
+// table and would defer the finding to whenever some later check happens to run, while this fires
+// at the moment of the apply. Splitting every such file into DDL plus a separate pure-probe file
+// that MAY raise would double the files and the MANIFEST lines and move the forgettable step from
+// "a notice nobody reads" to "a second file nobody applies".
+//
+// scripts/checks/a_probe_that_cannot_report_is_not_a_probe.test.mjs keeps the blind spot from
+// growing back, and records the files measured today that predate the convention.
+const PROBE_OK = 'PROBE OK';
+const PROBE_FAILED = 'PROBE FAILED';
+let probeFailures = 0;
+let probeVerdicts = 0;
+for (const row of Array.isArray(applied) ? applied : []) {
+  for (const cell of Object.values(row || {})) {
+    if (typeof cell !== 'string') continue;
+    const v = cell.trim();
+    if (v.startsWith(PROBE_OK)) { probeVerdicts++; console.log(`PROBE   ${v.slice(0, 500)}`); }
+    else if (v.startsWith(PROBE_FAILED)) { probeVerdicts++; probeFailures++; console.error(`PROBE   ${v.slice(0, 500)}`); }
+  }
+}
+
+// AND A PROBE THAT RETURNS NOTHING IS NOT A PASS. This is the same defect one layer up, and it is
+// worth closing here rather than in each file, because every file that adopts the convention
+// inherits it. Found in review of this change, in the file that introduced the convention:
+//
+//   * that file is an ALTER, so it defines no routine, so `uniq` is empty and the read-back loop
+//     below never runs — the probe is its ONLY verification;
+//   * a probe written as `select … from pg_proc where proname = '…'` returns ZERO ROWS if the
+//     routine is absent or renamed, rather than an error;
+//   * zero rows means no verdict, and the success line at the end of this file does not depend on
+//     one, so the apply printed "read back and identical to the file" having checked nothing.
+//
+// A file whose SOURCE carries a verdict marker has promised a verdict. If none came back, either
+// the probe matched nothing, or it was not the last row-producing statement in the file (the
+// management API returns only the last result set), or somebody deleted it and left the marker in a
+// comment. All three are the same thing from here: unverified. Anchored on the file's own text, so
+// a file with no probe at all is not accused of losing one.
+const promisesAVerdict = sql.includes(PROBE_OK) || sql.includes(PROBE_FAILED);
+if (promisesAVerdict && probeVerdicts === 0) {
+  probeFailures++;
+  console.error(`PROBE   ${PROBE_FAILED}: ${file} contains a verdict marker and the apply returned no `
+    + 'verdict. Nothing was verified. Either the probe query matched no rows, or it is not the last '
+    + 'row-producing statement in the file — only the last result set comes back.');
+}
 
 // READ THE DEFINITIONS BACK OUT. This is the founder's rule, and it is the only reason the exit
 // code below is worth anything: a 200 from the management API says the statement was accepted, not
@@ -272,5 +341,13 @@ if (bad) {
   console.error(`\n${bad} routine(s) are not what ${file} says they are. The apply reported success `
     + 'and the database disagrees; do not assume the file is what is running.');
   process.exit(1);
+}
+// A FAILED PROBE IS NOT A ROUTINE MISMATCH, so it gets its own words and its own exit code. The DDL
+// is applied and live; what did not pass is the file's own verification of it.
+if (probeFailures) {
+  console.error(`\n${probeFailures} probe verdict(s) in ${file} reported FAILED. The statements were `
+    + 'applied and are live — this is not a half-applied database — but the file\'s own check of '
+    + 'what it just did did NOT pass. Read the PROBE line above before treating this apply as done.');
+  process.exit(3);
 }
 console.log(`\nAPPLIED ${uniq.length} routine(s)${DDL ? ' + DDL' : ''} to ${PROD_REF}, read back and identical to the file`);
