@@ -23,7 +23,14 @@ function token() {
   throw new Error('No Supabase access token (SUPABASE_ACCESS_TOKEN or ~/.supabase/access-token).');
 }
 
-export async function sql(query, { ref = PROJECT_REF } = {}) {
+// `retry: false` turns the backoff OFF for one call. MEASURED 18 Sep 2026, twice: the accountant's
+// 22-file DDL replay outlives the management API gateway (524), the retry POSTs the SAME batch while
+// the first copy is still running server-side, and the two copies deadlock on each other --
+// "deadlock detected: process A waits for AccessExclusiveLock on relation 17188; blocked by process
+// B", 18 minutes of wall clock for a check that can never pass. A rolled-back transaction is safe to
+// re-issue SERIALLY; it is not safe to re-issue CONCURRENTLY, and a 524 is not proof the first copy
+// has stopped. Any caller whose statement can outlive the gateway must pass `retry: false`.
+export async function sql(query, { ref = PROJECT_REF, retry = true } = {}) {
   for (let attempt = 0; ; attempt++) {
     // THE CONNECTION ITSELF WAS THE ONE FAILURE THIS RETRY DID NOT COVER. A 429 and a 5xx were
     // retried; a fetch that THROWS -- ECONNRESET, "fetch failed", a socket hang up -- escaped and
@@ -46,7 +53,7 @@ export async function sql(query, { ref = PROJECT_REF } = {}) {
         body: JSON.stringify({ query }),
       });
     } catch (err) {
-      if (attempt < 5) {
+      if (retry && attempt < 5) {
         const wait = Math.min(2000 * 2 ** attempt, 30000);
         process.stderr.write(`-- transport ${err?.cause?.code || err?.message || 'error'}; `
           + `retry in ${wait / 1000}s (${attempt + 1}/5)\n`);
@@ -56,7 +63,7 @@ export async function sql(query, { ref = PROJECT_REF } = {}) {
       throw err;
     }
     const text = await res.text();
-    if ((res.status === 429 || res.status >= 500) && attempt < 7) {
+    if (retry && (res.status === 429 || res.status >= 500) && attempt < 7) {
       const wait = Math.min(2000 * 2 ** attempt, 60000);
       process.stderr.write(`-- ${res.status}; retry in ${wait / 1000}s (${attempt + 1}/7)\n`);
       await new Promise(r => setTimeout(r, wait));

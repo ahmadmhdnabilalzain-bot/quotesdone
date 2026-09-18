@@ -54,15 +54,42 @@ test('restore drill: a file that comes back changed is a finding for the sales e
   assert.equal(r.storage_ok, true);
 });
 
+// 18 Sep 2026: an OPEN GAP is a registry source that is not backed up AND carries no EXEMPT reason.
+// That is the duty's own definition since 15 Sep (fn_it_duties_scheduled section 9b: "a reasoned
+// EXEMPT is not a gap"); this check still counted every `not backed_up` row, so it demanded 7
+// findings for the 7 reasoned exemptions the duty deliberately does not raise -- measured against
+// production 18 Sep: 71 sources, 7 not backed up, 7 of those EXEMPT, 0 OPEN GAPS, 0 findings.
+// Three assertions now, because a count that is legitimately 0 proves nothing on its own:
+//   (a) no EXEMPT is a bare word -- writing EXEMPT with no reason is how a real gap would be hidden
+//       from the duty rather than fixed (a genuinely NEW open gap is not failed here: the duty raises
+//       it, and (b) is what proves that);
+//   (b) the duty raises exactly one sales_engineer finding per OPEN GAP, no more and no fewer;
+//   (c) a POSITIVE CONTROL through the duty's own persistence path (fn_it_duty_settle, the call
+//       section 9b makes): a ZZ DEMO gap must become 'duty:backup_gap:<item>' owned by the sales
+//       engineer. Without it (b) would be 0 = 0 and would pass with the whole loop torn out.
 test('every OPEN GAP in the backup registry is a finding for the sales engineer', { skip: SKIP }, async () => {
   const r = await probe(`begin ${DUE}
     perform public.fn_it_duties_scheduled('{}'::jsonb);
+    -- captured BEFORE the positive control below, which re-settles the family
+    perform set_config('app.zz_gaps', (select count(*) from public.fn_backup_source_registry()
+                                        where not backed_up and coalesce(reason, '') !~ '^EXEMPT')::text, true);
+    perform set_config('app.zz_findings', (select count(*) from public.it_engineer_finding
+                                            where closed_at is null and issue_key like 'duty:backup_gap:%'
+                                              and evidence->>'owner_seat' = 'sales_engineer')::text, true);
+    perform public.fn_it_duty_settle('backup_gap', jsonb_build_array(jsonb_build_object(
+      'item', 'zz-demo-source', 'owner_seat', 'sales_engineer', 'subject', 'dropbox_backup',
+      'title', 'ZZ DEMO: a registry source with no backup and no EXEMPT reason',
+      'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('source', 'ZZ DEMO'))));
     raise exception 'CHK<<%>>', json_build_object(
-      'gaps', (select count(*) from public.fn_backup_source_registry() where not backed_up),
-      'findings', (select count(*) from public.it_engineer_finding where closed_at is null and issue_key like 'duty:backup_gap:%'
-                     and evidence->>'owner_seat' = 'sales_engineer'));
+      'gaps', current_setting('app.zz_gaps')::int,
+      'findings', current_setting('app.zz_findings')::int,
+      'bare_exempt', (select coalesce(jsonb_agg(source), '[]'::jsonb) from public.fn_backup_source_registry()
+                       where not backed_up and reason ~ '^EXEMPT' and length(reason) < 40),
+      'control_owner', (select evidence->>'owner_seat' from public.it_engineer_finding
+                         where issue_key = 'duty:backup_gap:zz-demo-source' and closed_at is null));
   end`);
-  assert.ok(r.gaps > 0);
+  assert.equal(r.control_owner, 'sales_engineer', 'a backup gap no longer becomes a sales_engineer finding');
+  assert.deepEqual(r.bare_exempt, [], 'a source is exempted from backup by the bare word EXEMPT, with no reason');
   assert.equal(r.findings, r.gaps);
 });
 

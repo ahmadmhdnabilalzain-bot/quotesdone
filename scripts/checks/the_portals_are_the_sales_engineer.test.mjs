@@ -10,8 +10,9 @@
 // A reachable slug passes only if it is owned by sales_engineer, OR it is a PAYMENT function owned by
 // the accountant, OR it is a documented PLATFORM SERVICE below. Payments are the accountant's (founder,
 // 14 Sep 2026: "anything related to payment is under the accountant agent"): the portal calls them,
-// they speak to nobody, and anything they need said goes to the sales engineer as a handoff. Sign-in /
-// OTP / role_guard stay platform services held for a future seat, and Support's pipe stays Support's
+// they speak to nobody, and anything they need said goes to the sales engineer as a handoff. Sign-in,
+// sessions and access rules are the sales engineer's since 15 Sep 2026 (see PLATFORM_SERVICES below —
+// they were held for a future seat until then), and Support's pipe stays Support's
 // (the standing guard in scripts/sql/the_sales_engineer_owns_both_portals_end_to_end.sql refuses
 // channel slugs on sales_engineer).
 //
@@ -38,9 +39,18 @@ const SEAT = 'sales_engineer';
 // engineer, customer_support, the ceo or anyone else.
 export const ACCOUNTANT_SERVICES = ['stripe_checkout', 'stripe_confirm', 'supplier_pay', 'reveal_invoice', 'quote_pdf', 'refunds_api', 'refund_flow'];
 
+// 18 Sep 2026: sign-in, sessions and access rules are NO LONGER carved out here. On 15 Sep the
+// estate moved auth_api, login_otp, mobile_otp, voice_otp, voice_otp_capture, role_guard and sup_dob
+// off the ownerless 'website' owner and onto sales_engineer, with the reason recorded in the row's
+// own note and in scripts/sql/the_ceo_decides_every_sales_engineer_report_and_every_sender_closes_
+// their_handoff.sql section 9: "Either portal, its sign-in and its access rules: sales_engineer"
+// (a 'website' owner is no seat, so every finding on those 18 slugs fell to the CEO). Carving them
+// out here contradicted that decision and failed on the two the portal actually reaches -- login_otp
+// and role_guard. They now sit in the sales-owned set, so the check ENFORCES the 15 Sep ownership
+// instead of refusing it: "must not be sales_engineer" became "must be sales_engineer".
+// send_sms stays below because the same file gave it to customer_support, the only sender.
 export const PLATFORM_SERVICES = {
-  login_otp: 'sign-in / OTP', send_sms: 'sign-in / OTP', mobile_otp: 'sign-in / OTP', voice_otp: 'sign-in / OTP',
-  voice_otp_capture: 'sign-in / OTP', sup_dob: 'sign-in / OTP', auth_api: 'sign-in / OTP', role_guard: 'auth',
+  send_sms: 'sign-in / OTP (customer_support is the only sender)',
   transcribe: 'channel (Support pipe)', ai_gateway: 'model gateway (Support pipe)',
   extract_text: 'channel (Support pipe)', license_extract: 'channel (Support pipe)', doc_extract: 'channel (Support pipe)',
   send_outbox: 'channel (Support pipe)', send_whatsapp: 'channel (Support pipe)',
