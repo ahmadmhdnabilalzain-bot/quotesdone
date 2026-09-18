@@ -22,7 +22,7 @@ nothing was left behind.
 | `scripts/e2e/run.mjs` | the one command: preflight, fixtures, journeys, safety assertion, teardown, report |
 | `scripts/e2e/fixtures.mjs` | demo customers and suppliers, sign-in without an OTP, leftovers count |
 | `scripts/e2e/browser.mjs` | a signed-in Playwright page, timings, console capture, screenshots |
-| `scripts/e2e/journeys.mjs` | journeys a-f |
+| `scripts/e2e/journeys.mjs` | journeys a-g |
 | `scripts/lib/demo_pdf.mjs` | the ZZ DEMO trade-licence PDF (shared with `scripts/staging/make_fixture_licence_pdf.mjs`) |
 | `scripts/sql/demo_identities_are_marked_and_never_reach_a_real_person.sql` | the database half: marker, pairing guard, capture, figures |
 | `supabase/functions/_shared/demo_identity.ts` | the TypeScript half of the same rule (`send_whatsapp`, `stripe_checkout`, `stripe_confirm`) |
@@ -101,6 +101,24 @@ The funnel runs once, in order. The screens run across English and Arabic, deskt
 | c | the comparison report and a quotation open as PDFs in EN and AR; the deep link opens the request |
 | d | the reveal in Stripe TEST mode (skips until the test keys exist) |
 | e | the invoice; the refund ladder (skips; see the run report) |
-| f | every nav item on both portals, and the non-destructive buttons in each view, with timings and console errors |
+| f | every nav item on both portals — the supplier's Account menu opened, the phone's More sheet opened — and the non-destructive buttons in each view, with timings and console errors |
+| g | the WhatsApp question inside sign-up: Yes (en), No + a second number (ar), and a supplier through the same kyc actions |
 
 A step that could not be proved says SKIP or FAIL with the reason. It never passes by assumption.
+
+### Journey f follows the ACCOUNT's language, not the URL
+
+Both portals render in the language the account registered in (founder, 14 Sep 2026: *"if someone
+registered while the language was arabic then arabic follows through the whole workflow"* —
+`customers.locale`, `leads.locale`). So journey f sets that column per matrix before it opens the
+portal, exactly as journey a does, and restores `en` afterwards. Without it the two Arabic passes
+crawl an English screen and every Arabic label waits out its click timeout: measured 18 Sep on
+production, an `en`-registered fixture opening `/ar/portal` gets `dir=ltr lang=en`.
+
+The list of destinations journey f expects lives in `scripts/e2e/journeys.mjs` (`NAV`,
+`ACCOUNT_MENU`) and is a second copy of words owned by `src/components/me/portalText.ts` and
+`src/components/portal/supplier/workspaceCopy.ts`. It is kept honest by
+`scripts/checks/the_crawl_names_the_navigation_the_portals_render.test.mjs`, which fails in CI the
+moment a tab is renamed — written after the 15 September supplier rebuild (#722, #723) renamed six
+destinations and moved three into an Account menu without it, and the nightly run was cancelled at
+its 30-minute wall on 15, 16 and 17 September.

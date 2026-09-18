@@ -585,19 +585,134 @@ async function refundEndToEnd(ctx, live, J) {
 }
 
 // ---- f. every nav item on both portals ----------------------------------------------------------
+// WHAT THIS CRAWLS, AND WHY IT COST THE WHOLE NIGHT (18 Sep 2026, sales_engineer).
+//
+// The nightly full journey was CANCELLED at the 30-minute wall on 15, 16 and 17 September, and a
+// cancelled job writes no heartbeat, so the estate read it as "never ran" (#728 bounds the run so a
+// truncated night still reports honestly; this fixes what ate the budget). Measured: every failing
+// step here was a `locator.click: Timeout 8000ms exceeded` on a navigation item, from two causes,
+// neither of them the portal's:
+//
+//   1. THE SUPPLIER LIST WAS A YEAR OUT OF DATE. The supplier portal was rebuilt on 15 Sep
+//      (#722 Services, #723 Messages/Documents/Insights): "Get matched" was removed, RFQs became
+//      "Inquiries received", Quotes became "Quotations submitted", Projects stopped being a
+//      destination (TAB_ALIAS maps projects -> messages; the revealed-jobs list now renders INSIDE
+//      Messages, and is crawled there), "My scope" became Services, and Profile, Billing and
+//      Settings moved into an Account menu — a native <details> that is CLOSED until pressed, so
+//      their buttons exist in the DOM and are never clickable. Eight stale labels x 8 s x four
+//      matrices.
+//   2. THE ARABIC PASSES WERE NEVER IN ARABIC. Both portals follow the ACCOUNT's locale, not the
+//      URL (founder, 14 Sep: "if someone registered while the language was arabic then arabic
+//      follows through the whole workflow" — customers.locale, leads.locale). Journey a sets it and
+//      this one never did, so /ar rendered in English and every Arabic label timed out as well.
+//      Measured on production, 18 Sep: an en-registered fixture on /ar gives dir=ltr lang=en.
+//
+// THE LIST STAYS DECLARED. A crawl that only clicks what it finds cannot notice a destination that
+// disappeared — that is exactly how #722 went unreported here. It is now checked as a set in ONE
+// step per surface, so drift is stated once, in words, instead of being paid for eight times at
+// eight seconds each.
 const NAV = {
+  // src/components/me/PortalShell.tsx NAV_GROUPS, named by src/components/me/portalText.ts.
   customer: {
     en: ['Overview', 'My requests', 'Documents', 'Orders', 'Messages', 'Projects', 'Project room', 'What you may need next', 'Buying profile', 'Account'],
     ar: ['نظرة عامة', 'طلباتي', 'المستندات', 'أوامر الشراء', 'الرسائل', 'المشاريع', 'غرفة المشروع', 'ما قد تحتاجه لاحقًا', 'ملف المشتريات', 'الحساب'],
   },
+  // src/components/portal/SupplierPortal.tsx MAIN_TABS, named by supplier/workspaceCopy.ts tab_*.
+  // PR #725 (Inquiries received / Quotations submitted) and #729 (Services) change what is INSIDE
+  // these tabs, not the tab names: both branches still declare the same MAIN_TABS and ACCOUNT_TABS
+  // and the same tab_* / acct_* values, so this list survives their merge — and the check named
+  // below fails in CI on the day one of them does rename a tab.
   supplier: {
-    en: ['Get matched', 'RFQs', 'Quotes', 'Projects', 'Messages', 'Documents', 'Billing', 'Insights', 'Profile', 'My scope', 'Settings'],
-    ar: ['احصل على المطابقة', 'طلبات التسعير', 'العروض', 'المشاريع', 'الرسائل', 'المستندات', 'الفواتير', 'الرؤى', 'الملف', 'نطاق عملي', 'الإعدادات'],
+    en: ['Services', 'Inquiries received', 'Quotations submitted', 'Messages', 'Documents', 'Insights'],
+    ar: ['الخدمات', 'الاستفسارات الواردة', 'عروض الأسعار المقدَّمة', 'الرسائل', 'المستندات', 'الرؤى'],
   },
 };
+// ACCOUNT_TABS: the three the supplier portal moved out of the main strip on 15 Sep. Opening the
+// menu is part of the journey — a supplier who cannot reach Settings has no working portal.
+const ACCOUNT_MENU = {
+  en: { menu: 'Account', items: ['Profile', 'Billing', 'Settings'] },
+  ar: { menu: 'الحساب', items: ['الملف التعريفي', 'الفواتير', 'الإعدادات'] },
+};
+const accountMenu = (kind, lang) => (kind === 'supplier' ? ACCOUNT_MENU[lang] : null);
 // Buttons a crawler must never press: they spend, send, delete or sign out. Everything else is pressed.
-const NEVER = /sign\s*out|log\s*out|delete|remove|cancel|withdraw|refund|reveal|pay|send|submit|approve|reject|accept|decline|close\s*request|تسجيل الخروج|حذف|إزالة|إلغاء|سحب|استرداد|كشف|ادفع|دفع|أرسل|إرسال|اعتماد|رفض|قبول/i;
+// …and one a crawler must never press for a different reason: #729's Services tab has a microphone
+// ("Speak your services" / "سجّل خدماتك صوتيًا"). Pressing it opens a recording, which is a side
+// effect on the supplier's machine, not a screen to look at. It is disabled today (the voice flag is
+// off) so Playwright would only wait out its timeout, but it will not be disabled forever.
+const NEVER = /sign\s*out|log\s*out|delete|remove|cancel|withdraw|refund|reveal|pay|send|submit|approve|reject|accept|decline|close\s*request|speak your|stop recording|تسجيل|سجّل|إيقاف التسجيل|الخروج|حذف|إزالة|إلغاء|سحب|استرداد|كشف|ادفع|دفع|أرسل|إرسال|اعتماد|رفض|قبول/i;
+// #736 gave every press and every region an aria-busy state, with a 300 ms minimum so a fast round
+// trip cannot strobe. A crawler that presses the next control while the last one is still working
+// measures the spinner rather than the page — and Playwright waits out its whole timeout against a
+// control the busy state has disabled. Wait for the screen to go quiet, bounded, and SAY SO in the
+// step's detail when it does not: a destination that is still busy after three seconds is a finding
+// about the journey, not something to hide behind a longer timeout.
+const notBusy = (page, ms = 3000) => page
+  .waitForFunction(() => !document.querySelector('[aria-busy="true"]'), null, { timeout: ms })
+  .then(() => true).catch(() => false);
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+// The phone's overflow sheet (customer portal only). The button carries aria-controls; the sheet
+// itself, #qd-nav-more, exists only while it is open, and go() closes it on every choice.
+// IT IS IN THE DOM ON DESKTOP TOO, hidden by `md:hidden`, so every gate below asks whether it is
+// VISIBLE and not whether it exists: counting it cost a 3 s click timeout on each desktop surface.
+const MORE_BTN = 'button[aria-controls="qd-nav-more"]';
+const moreSheetButton = async (page) => {
+  const b = page.locator(MORE_BTN).first();
+  return (await b.isVisible().catch(() => false)) ? b : null;
+};
+
+/** Open the supplier's Account menu if this portal has one and it is shut. Returns false if absent. */
+async function openAccountMenu(page, menu) {
+  if (!menu) return false;
+  const sum = page.locator('details > summary').filter({ hasText: menu.menu }).first();
+  if (!(await sum.isVisible().catch(() => false))) return false;
+  if (await sum.evaluate((e) => e.parentElement.open).catch(() => false)) return true;
+  await sum.click({ timeout: 3000 }).catch(() => {});
+  return true;
+}
+
+/** Shut anything this file opened: a <details> ignores Escape, and an open one overlays the tabs. */
+const closeMenus = async (page) => {
+  await page.evaluate(() => { for (const d of document.querySelectorAll('details[open]')) d.open = false; }).catch(() => {});
+  await page.keyboard.press('Escape').catch(() => {});   // the customer portal's More sheet closes on Escape
+};
+
+/** Every destination on screen right now, with the sheet and the Account menu opened first. */
+async function destinations(page, menu) {
+  const more = await moreSheetButton(page);
+  if (more) await more.click({ timeout: 3000 }).catch(() => {});
+  await openAccountMenu(page, menu);
+  const names = await page.evaluate(() => {
+    const seen = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
+    const out = [];
+    for (const b of document.querySelectorAll('nav button, details[open] button')) {
+      if (b.hasAttribute('aria-controls') || !seen(b)) continue;   // the More button opens the sheet; it is not a destination
+      const n = (b.getAttribute('aria-label') || b.innerText || '').replace(/\s+/g, ' ').trim();
+      if (n) out.push(n);
+    }
+    return [...new Set(out)];
+  }).catch(() => []);
+  await closeMenus(page);
+  return names;
+}
+
+/** The nav button for `label`, reached through the sheet or the Account menu when it is not on screen. */
+async function reach(page, menu, label) {
+  const btn = page.getByRole('button', { name: new RegExp('^' + esc(label)) }).first();
+  if (await btn.isVisible().catch(() => false)) return btn;
+  const more = await moreSheetButton(page);
+  if (more) {
+    await more.click({ timeout: 3000 }).catch(() => {});
+    if (await btn.isVisible().catch(() => false)) return btn;
+  }
+  await openAccountMenu(page, menu);
+  return btn;
+}
+
+// The portal follows the account's locale, not the URL. Journey a proves that rule; this journey has
+// to obey it or every Arabic pass crawls an English screen.
+const setPortalLocale = (who, lang) => (who.kind === 'customer'
+  ? write(`update public.customers set locale = ${q(lang)} where id = ${q(who.customerId)} and is_demo = true and email like '%@example.invalid'`, 'e2e crawl language')
+  : write(`update public.leads set locale = ${q(lang)} where email = ${q(who.email)} and is_demo = true and email like '%@example.invalid'`, 'e2e crawl language'));
 
 export async function journeyCrawl(ctx) {
   const { rep, browser, fx, dir } = ctx;
@@ -609,38 +724,71 @@ export async function journeyCrawl(ctx) {
   // ctx.outOfTime is run.mjs's shared deadline: stop starting views, record what was not reached.
   const stop = ctx.outOfTime || (() => false);
   for (const who of [fx.customer, fx.suppliers[0]]) {
+   // Left as it was found even if a pass throws: journey a files its request in English, and a
+   // re-run of a against a KEPT fixture (--keep, then --purge-tag later) must not inherit this
+   // journey's last Arabic pass. run.mjs catches at the journey level, so without this finally the
+   // restore below would be skipped on the one path that needs it.
+   try {
     for (const m of MATRIX) {
       if (stop()) { rep.step(J, `${who.kind} ${tag(m)}: not crawled`, 'SKIP', 'the harness deadline passed before this viewport; the run still tears down and reports'); continue; }
+      await setPortalLocale(who, m.lang);
+      const lang = m.lang;
+      const labels = [...NAV[who.kind][lang], ...(accountMenu(who.kind, lang)?.items || [])];
       const s = await signedInPage(browser, who, m);
       const before = s.consoleErrors.length;
       try {
-        await openPortal(s.page, portalUrl(who.kind, m.lang), s.calls);
-        for (const label of NAV[who.kind][m.lang]) {
+        await openPortal(s.page, portalUrl(who.kind, lang), s.calls);
+        // The portal is in the language this pass is about, and it offers every destination it
+        // should. Both are asserted BEFORE the clicking, so a rename is one FAIL with the words in
+        // it rather than N clicks that each wait out their timeout.
+        const dirAttr = await s.page.evaluate(() => document.documentElement.dir + '/' + document.documentElement.lang).catch(() => '?');
+        rep.step(J, `${who.kind} ${tag(m)}: the portal is in this language`, dirAttr === (lang === 'ar' ? 'rtl/ar' : 'ltr/en') ? 'PASS' : 'FAIL', `dir/lang = ${dirAttr}`);
+        const offered = await destinations(s.page, accountMenu(who.kind, lang));
+        const missing = labels.filter((l) => !offered.some((o) => o.startsWith(l)));
+        rep.step(J, `${who.kind} ${tag(m)}: every destination is on screen`, missing.length ? 'FAIL' : 'PASS',
+          missing.length ? `not offered: ${missing.join(', ')} — offered: ${offered.join(' | ')}` : `${labels.length} destination(s): ${offered.join(' | ')}`);
+        // shot() strips everything outside [a-z0-9_.-] from a file name, so ALL TEN Arabic labels
+        // resolved to the same file and each overwrote the last: the Arabic evidence was one image.
+        // The position in the nav carries the identity that the alphabet cannot.
+        for (const [i, label] of labels.entries()) {
+          const at = `${i + 1}_${label}`;
           if (stop()) { rep.step(J, `${who.kind} ${tag(m)}: ${label}`, 'SKIP', 'the harness deadline passed mid-viewport'); continue; }
-          const btn = s.page.getByRole('button', { name: new RegExp('^' + esc(label)) }).first();
-          // On a phone the item may sit in the More sheet; its button is aria-controls="qd-nav-more"
-          // (the sheet itself, #qd-nav-more, only exists while open).
-          if (!(await btn.isVisible().catch(() => false))) await s.page.locator('button[aria-controls="qd-nav-more"]').first().click({ timeout: 3000 }).catch(() => {});
+          const btn = await reach(s.page, accountMenu(who.kind, lang), label);
           const t0 = Date.now();
           try {
             await btn.click({ timeout: 8000 });
             await s.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+            const quiet = await notBusy(s.page);
             const ms = Date.now() - t0;
             const failed = s.calls.filter((c) => c.at >= t0 && (c.status >= 500 || c.status === 0)).map((c) => `${c.fn}:${c.action}:${c.status}`);
-            rep.step(J, `${who.kind} ${tag(m)}: ${label}`, failed.length ? 'FAIL' : 'PASS', `${ms} ms${failed.length ? ' failed calls ' + failed.join(', ') : ''}`, { ms, shot: await shot(s.page, dir, `f_${who.kind}_${tag(m)}_${label}`) });
+            rep.step(J, `${who.kind} ${tag(m)}: ${label}`, failed.length ? 'FAIL' : 'PASS',
+              `${ms} ms${quiet ? '' : ' — STILL BUSY after 3000 ms (aria-busy up when the crawl moved on)'}${failed.length ? ' failed calls ' + failed.join(', ') : ''}`,
+              { ms, shot: await shot(s.page, dir, `f_${who.kind}_${tag(m)}_${at}`) });
             // Every other button in this view, except those that spend, send, delete or sign out.
-            const names = await s.page.locator('main button:visible, [role=main] button:visible').evaluateAll((els) => els.map((e) => (e.getAttribute('aria-label') || e.textContent || '').trim()).filter(Boolean)).catch(() => []);
+            // PRESS THE BUTTON THAT IS THERE, don't look it up again by its words. This used to read
+            // each button's raw textContent and then ask getByRole for that exact accessible name —
+            // and an accessible name is whitespace-normalised where textContent is not, so a label
+            // that wrapped onto two lines never matched and spent its full 3 s timeout. Measured on
+            // the 17 Sep production run: "Documents - in-view buttons" reported 6 presses and took
+            // 24.8 s. The handles are already known visible, so 1.5 s is a generous wait.
+            const inView = await s.page.locator('main button:visible, [role=main] button:visible').all().catch(() => []);
             let pressed = 0;
-            for (const n of [...new Set(names)].slice(0, 15)) {
-              if (NEVER.test(n)) continue;
-              const b2 = s.page.getByRole('button', { name: n, exact: true }).first();
-              await b2.click({ timeout: 3000 }).then(() => { pressed++; }).catch(() => {});
+            for (const b2 of inView.slice(0, 15)) {
+              const n = await b2.evaluate((e) => (e.getAttribute('aria-label') || e.innerText || '').replace(/\s+/g, ' ').trim()).catch(() => '');
+              if (!n || NEVER.test(n)) continue;
+              await b2.click({ timeout: 1500 }).then(() => { pressed++; }).catch(() => {});
               await s.page.keyboard.press('Escape').catch(() => {});
             }
             if (pressed) rep.step(J, `${who.kind} ${tag(m)}: ${label} - in-view buttons`, 'PASS', `${pressed} button(s) pressed without a crash`);
-            await btn.click({ timeout: 3000 }).catch(() => {});
+            // Back to this destination if one of those buttons navigated away. Only when the control
+            // is on screen: an overflow-sheet or Account-menu item is shut again by its own choice,
+            // and waiting 3 s for it to reappear bought nothing.
+            if (await btn.isVisible().catch(() => false)) await btn.click({ timeout: 3000 }).catch(() => {});
           } catch (e) {
-            rep.step(J, `${who.kind} ${tag(m)}: ${label}`, 'FAIL', `could not click: ${String(e.message).split('\n')[0].slice(0, 140)}`, { shot: await shot(s.page, dir, `f_fail_${who.kind}_${tag(m)}_${label}`) });
+            // A failure capture is the evidence somebody reads, so it is the WHOLE page (#735's
+            // fullPageShot, through shot's fullPage option): a viewport crop of a screen whose
+            // destination is missing tells you nothing about where it went.
+            rep.step(J, `${who.kind} ${tag(m)}: ${label}`, 'FAIL', `could not click: ${String(e.message).split('\n')[0].slice(0, 140)}`, { shot: await shot(s.page, dir, `f_fail_${who.kind}_${tag(m)}_${at}`, { fullPage: true }) });
           }
         }
       } finally {
@@ -650,6 +798,7 @@ export async function journeyCrawl(ctx) {
         await s.ctx.close();
       }
     }
+   } finally { await setPortalLocale(who, 'en').catch(() => {}); }
   }
 }
 

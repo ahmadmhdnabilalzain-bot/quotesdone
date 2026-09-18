@@ -63,7 +63,7 @@ export const T = {
     next_4:'Revealing a supplier costs 3% of that quote plus card processing, and nothing else. Everything you paid is refunded if they do not respond within 5 working days: we chase them for you after 3, and banks take 7-14 working days to show a refund.',
     // ── shell ──
     nav_main:'Portal navigation', nav_work:'Your work', nav_collaborate:'Working with others', nav_intelligence:'Suggestions for you',
-    nav_account:'Your account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More', nav_more_title:'All sections',
+    nav_account:'Your account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More', nav_more_title:'All sections', nav_main_bar:'Main sections', nav_main_bar:'Main sections',
     alerts_label:'Alerts',
     ask_ph:'Ask about your requests, quotes or documents…', ask_ph_short:'Ask your sales engineer…',
     asst_title:'QuotesDone sales engineer', asst_sub:'Answers from your own account',
@@ -157,7 +157,7 @@ export const T = {
     next_4:'كشف المورّد يكلّف 3% من قيمة عرضه مع رسوم معالجة البطاقة، ولا شيء غير ذلك. ويُردّ إليك كامل ما دفعته إذا لم يردّ خلال 5 أيام عمل: نتابعه نيابةً عنك بعد 3 أيام، وتستغرق البنوك 7-14 يوم عمل لإظهار الاسترداد.',
     // ── الهيكل ──
     nav_main:'تنقل البوابة', nav_work:'عملك', nav_collaborate:'العمل مع الآخرين', nav_intelligence:'اقتراحات لك',
-    nav_account:'حسابك', nav_overview:'نظرة عامة', nav_requests:'طلباتي', nav_more:'المزيد', nav_more_title:'جميع الأقسام',
+    nav_account:'حسابك', nav_overview:'نظرة عامة', nav_requests:'طلباتي', nav_more:'المزيد', nav_more_title:'جميع الأقسام', nav_main_bar:'الأقسام الرئيسية', nav_main_bar:'الأقسام الرئيسية',
     alerts_label:'التنبيهات',
     ask_ph:'اسأل عن طلباتك أو عروض الأسعار أو مستنداتك…', ask_ph_short:'اسأل مهندس المبيعات…',
     asst_title:'مهندس مبيعات QuotesDone', asst_sub:'يجيب من حسابك أنت',

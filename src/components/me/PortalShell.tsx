@@ -315,6 +315,28 @@ export function PortalShell({
   const [q, setQ] = useState('');
   const searchRef = useRef(null);
 
+  // FOCUS COMES BACK TO THE CONTROL THAT OPENED THE PANEL (a11y review, 18 Sep 2026).
+  // Choosing a destination in the More sheet, or an alert in the bell list, or closing the
+  // assistant, unmounts the very element that holds focus — `go()` sets moreOpen false and the
+  // whole `{moreOpen && …}` block goes with it. A browser then drops focus on <body>, so a
+  // keyboard user's next Tab restarts at the top of the document instead of continuing from the
+  // control they were on (WCAG 2.4.3). One place, because all three close down several paths:
+  // Escape, the backdrop, and the choice itself.
+  const moreBtn = useRef(null);
+  const bellBtn = useRef(null);
+  const wasOpen = useRef({ more: false, bell: false, asst: false });
+  useEffect(() => {
+    const back = (was, now, el) => {
+      if (was && !now && el && (document.activeElement === document.body || !document.activeElement)) el.focus();
+      return now;
+    };
+    wasOpen.current = {
+      more: back(wasOpen.current.more, moreOpen, moreBtn.current),
+      bell: back(wasOpen.current.bell, bellOpen, bellBtn.current),
+      asst: back(wasOpen.current.asst, asstOpen, searchRef.current),
+    };
+  }, [moreOpen, bellOpen, asstOpen]);
+
   // A placeholder that says what the field can do is the point of the field — and at 375px
   // "Ask about your requests, quotes or documents…" renders as "Ask about your", which says
   // nothing and looks broken. A placeholder cannot be set per breakpoint in CSS, so it is set here.
@@ -441,7 +463,7 @@ export function PortalShell({
                 opens something other than the notifications is the same defect this codebase keeps
                 finding: an instrument reporting on a different subject to the one it names. */}
             <div className="relative shrink-0">
-              <button type="button" onClick={() => setBellOpen((v) => !v)}
+              <button type="button" ref={bellBtn} onClick={() => setBellOpen((v) => !v)}
                 aria-label={t('alerts_label')} aria-expanded={bellOpen}
                 className="relative grid h-10 w-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 <Bell className="h-[18px] w-[18px]" aria-hidden />
@@ -479,7 +501,9 @@ export function PortalShell({
               )}
             </div>
 
-            <button type="button" onClick={() => go('account')}
+            {/* Its name is the customer's INITIAL below lg, where the name span is hidden — one
+                letter, for a control that opens Account (a11y review, 18 Sep 2026). */}
+            <button type="button" onClick={() => go('account')} aria-label={t('mod_account')}
               className="flex shrink-0 items-center gap-2 rounded-xl py-1 ps-1 pe-2 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-[12px] font-bold text-primary">
                 {String(customerName || '?').trim().charAt(0).toUpperCase()}
@@ -504,7 +528,10 @@ export function PortalShell({
       </div>
 
       {/* ── MOBILE TAB BAR ────────────────────────────────────────────────────────────────── */}
-      <nav aria-label={t('nav_main')}
+      {/* Its own name, not the sidebar's. Only one of the two is in the accessibility tree at a
+          time (the other is display:none), but two landmarks that answer to "Portal navigation"
+          is one CSS regression away from being a real defect (a11y review, 18 Sep 2026). */}
+      <nav aria-label={t('nav_main_bar')}
         className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card shadow-e2 md:hidden">
         {mobileItems.map((item) => {
           const Icon = item.icon;
@@ -517,13 +544,18 @@ export function PortalShell({
               <Icon className="h-[18px] w-[18px]" aria-hidden />
               {/* Wraps to a second line before it would ever be cut. */}
               <span className="max-w-full break-words text-center">{t(item.label)}</span>
-              {item.badge === 'unread' && unread > 0
-                ? <span className="absolute end-[22%] top-1.5 h-2 w-2 rounded-full bg-primary" aria-hidden /> : null}
+              {/* The dot is decoration; the COUNT is the information, and the sidebar says it out
+                  loud (line above). A phone must not tell a screen-reader user less than a desktop
+                  does about the same state (a11y review, 18 Sep 2026). */}
+              {item.badge === 'unread' && unread > 0 ? <>
+                <span className="absolute end-[22%] top-1.5 h-2 w-2 rounded-full bg-primary" aria-hidden />
+                <span className="sr-only">{unread}</span>
+              </> : null}
               {active ? <span className="absolute inset-x-5 top-0 h-[2px] rounded-full bg-primary" aria-hidden /> : null}
             </button>
           );
         })}
-        <button type="button" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-controls="qd-nav-more"
+        <button type="button" ref={moreBtn} onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-controls="qd-nav-more"
           className={cn('flex min-h-[56px] min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[11.5px] font-semibold leading-tight transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
             moreOpen ? 'text-primary' : 'text-foreground/75')}>

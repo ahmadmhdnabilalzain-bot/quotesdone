@@ -25,7 +25,60 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 // catalogue; the default stays the document-expiry notice this function was written for. Every body
 // opens AND closes with literal text (the Meta rule in the header), and {{1}} / {{2}} are the same two
 // variables send_whatsapp's varsFor() supplies: a short summary and a link.
-const CATALOGUE: Record<string, { en: string; ar: string; sample1_en: string; sample1_ar: string; url: string; sample2_en?: string; sample2_ar?: string }> = {
+// 18 SEP 2026 — a template is no longer always a twilio/text UTILITY body. `category` and `types`
+// are now decided per catalogue entry so the login code can be submitted as what Meta requires an
+// AUTHENTICATION template to be: a body Meta writes and localises itself, one variable (the code),
+// a copy-code button and a stated expiry. A UTILITY entry keeps the shape it always had, so nothing
+// about the five existing keys changes.
+// A UNION, NOT ONE ALL-OPTIONAL BAG (typescript review, 18 Sep 2026). Making every field optional so
+// the authentication entry could omit the bodies would have removed the compiler's only protection on
+// the five UTILITY entries: a future key missing `en` would submit an EMPTY template body to Meta for
+// approval rather than fail to build — precisely the class of mistake this file's header records
+// thirteen rejections learning. Each kind now states its own required fields.
+type Catalogue =
+  | { category?: 'UTILITY'; en: string; ar: string; sample1_en: string; sample1_ar: string;
+      url: string; sample2_en?: string; sample2_ar?: string }
+  // AUTHENTICATION: Meta owns the body text of an authentication template and renders it in the
+  // recipient's own language, so there is nothing to author or translate except the button label.
+  | { category: 'AUTHENTICATION'; copy_code_en: string; copy_code_ar: string; expiry_minutes: number };
+const CATALOGUE: Record<string, Catalogue> = {
+  // 18 SEP 2026 — THE SIGN-IN CODE. Founder authorised this submission. AUTHENTICATION category:
+  // Meta refuses to carry a one-time code under UTILITY, and refuses an authentication body written
+  // by us — the body, its security line and its expiry line are Meta's own strings, localised per
+  // language, with exactly one variable {{1}} that is the code itself. So the "variables can't be at
+  // the start or end" rule in this file's header does NOT apply here: there is no body of ours for a
+  // variable to sit at the end of.
+  //
+  // The previous attempt under the key control_mode_code was REJECTED on 7 Sep with
+  // "This WhatsApp business account does not have permission to create message template"
+  // (OAuthException 10 / 2388185) — a WABA capability refusal, not a content refusal. The WABA has
+  // since been verified, so this resubmission is also the measurement of whether that is now open.
+  login_code: {
+    category: 'AUTHENTICATION',
+    copy_code_en: 'Copy code', copy_code_ar: 'نسخ الرمز',
+    expiry_minutes: 10,
+  },
+  // 18 SEP 2026 — the supplier's own account notices: a quote put on hold for missing specs, that
+  // hold lifted, and the collaboration warning. send_whatsapp's tmplKey() has mapped six types to
+  // this key since 14 Sep with no SID to send them, so every one of them has been sitting queued
+  // while only the email twin went. fn_supplier_notice queues the email FIRST and always; this
+  // template is the second channel, never the record. UTILITY: a transactional notice about the
+  // recipient's own account. {{1}} is the notice subject varsFor() passes, {{2}} the portal link;
+  // both are bounded by literal text, which is the rule thirteen rejections were spent learning.
+  supplier_account_notice: {
+    en: 'QuotesDone update about your supplier account: {{1}}. Please open your supplier portal for the full details and any action needed: {{2}} Thank you.',
+    // Arabic reviewed 18 Sep 2026 by a dedicated Arabic pass, not machine-translated. Two calques were
+    // removed: `حساب المورّد الخاص بك` (an English possessive hung off a definite idāfa — `حسابك كمورّد`
+    // is what a Gulf business writer produces, and approved template #2 already models it with `بوابتك`),
+    // and `وأي إجراء مطلوب` (`أي` + indefinite singular is word-for-word "any action needed"; the definite
+    // plural carries it idiomatically and keeps the two conjoined objects symmetric).
+    ar: 'تحديث من QuotesDone بخصوص حسابك كمورّد: {{1}}. يُرجى فتح بوابة الموردين للاطلاع على التفاصيل الكاملة والإجراءات المطلوبة: {{2}} شكرًا لك.',
+    sample1_en: 'New requests to your company are paused on QuotesDone',
+    // `استقبال`, not `إيقاف إرسال … إلى شركتك`: nothing stopped being sent, the company stopped receiving.
+    // The brand is not repeated — the body it lands in already opens with `تحديث من QuotesDone`.
+    sample1_ar: 'تم إيقاف استقبال الطلبات الجديدة لشركتك مؤقتًا',
+    url: 'https://quotesdone.com/portal',
+  },
   // 6 SEP 2026 — the founder's own alert. Founder: "whatsapp token with twilio is with you, fix the
   // template yourself." Until today alert_founder sent him a freeform Body, which WhatsApp never
   // delivers business-initiated: every founder WhatsApp on the account (13-16 Aug) is 'undelivered'
@@ -98,26 +151,37 @@ Deno.serve(observe('wa_template_setup', async (req) => {
       const lang = String(body.language || 'en');
       const isAr = lang === 'ar';
       const cat = CATALOGUE[KEY];
-      const text = isAr ? cat.ar : cat.en;
-      const sample1 = isAr ? cat.sample1_ar : cat.sample1_en;
-      const sample2 = (isAr ? cat.sample2_ar : cat.sample2_en) || cat.url;   // {{2}} is a link for the customer/supplier notices, a detail for the founder alert
+      const category = cat.category || 'UTILITY';
       const stamp = Date.now().toString(36);
+
+      // An AUTHENTICATION template carries no body and no variables of ours: Meta writes the text,
+      // localises it, and substitutes the single code variable itself. Sending `variables` or a
+      // twilio/text body with it is refused. Everything else is the two-variable UTILITY notice this
+      // function was written for.
+      const payload = cat.category === 'AUTHENTICATION'
+        ? { types: { 'whatsapp/authentication': {
+              add_security_recommendation: true,
+              code_expiration_minutes: cat.expiry_minutes,
+              actions: [{ type: 'COPY_CODE', copy_code_text: isAr ? cat.copy_code_ar : cat.copy_code_en }],
+            } } }
+        : { variables: { '1': isAr ? cat.sample1_ar : cat.sample1_en,
+                         // {{2}} is a link for the customer/supplier notices, a detail for the founder alert
+                         '2': (isAr ? cat.sample2_ar : cat.sample2_en) || cat.url },
+            types: { 'twilio/text': { body: isAr ? cat.ar : cat.en } } };
 
       const createRes = await fetch('https://content.twilio.com/v1/Content', {
         method: 'POST', headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ friendly_name: 'quotesdone_' + KEY + '_' + lang + '_' + stamp, language: lang,
-          variables: { '1': sample1, '2': sample2 },
-          types: { 'twilio/text': { body: text } } }) });
+        body: JSON.stringify({ friendly_name: 'quotesdone_' + KEY + '_' + lang + '_' + stamp, language: lang, ...payload }) });
       const created = await createRes.json().catch(() => ({}));
       if (!createRes.ok) return J({ step: 'create', ok: false, http: createRes.status, error: created?.message || created }, 502);
       const sid = String(created?.sid || '');
       if (!sid) return J({ step: 'create', ok: false, error: 'no sid returned', raw: created }, 502);
 
-      // UTILITY is correct: a transactional notice about the recipient's own account, not marketing.
+      // UTILITY for a transactional notice about the recipient's own account; AUTHENTICATION only for a one-time code (Meta refuses a code under any other category).
       const apprName = ('quotesdone_' + KEY + '_' + lang + '_' + stamp).toLowerCase().replace(/[^a-z0-9_]/g, '_');
       const apprRes = await fetch('https://content.twilio.com/v1/Content/' + sid + '/ApprovalRequests/whatsapp', {
         method: 'POST', headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: apprName, category: 'UTILITY' }) });
+        body: JSON.stringify({ name: apprName, category }) });
       const appr = await apprRes.json().catch(() => ({}));
 
       let registered = false; let sids: Record<string, any> = {};
@@ -134,7 +198,7 @@ Deno.serve(observe('wa_template_setup', async (req) => {
       const apprStatus = String(appr?.status || appr?.whatsapp?.status || (apprRes.ok ? 'pending' : 'unknown'));
       const nowIso = new Date().toISOString();
       const { error: ledgerErr } = await admin.from('messaging_template').upsert({
-        sid, channel: 'whatsapp', template_key: KEY, lang, name: apprName, category: 'UTILITY', status: apprStatus,
+        sid, channel: 'whatsapp', template_key: KEY, lang, name: apprName, category, status: apprStatus,
         submitted_at: nowIso, last_checked_at: nowIso, approved_at: apprStatus === 'approved' ? nowIso : null,
         rejection_reason: apprRes.ok ? (appr?.whatsapp?.rejection_reason || null) : String(appr?.message || JSON.stringify(appr)).slice(0, 500),
       }, { onConflict: 'sid' });
