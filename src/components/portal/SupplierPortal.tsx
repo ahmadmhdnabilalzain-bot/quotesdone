@@ -665,6 +665,30 @@ function ReacceptTerms({ token, lang, me, onDone }) {
     </div>
   );
 }
+// A NATIVE <details> IS A DISCLOSURE, AND A POPOVER IS EXPECTED TO CLOSE (a11y review, 18 Sep 2026).
+// `<details>` gives us keyboard operation and a second-press close for free, which is why the bell and
+// the Account menu below use it. What it does NOT give is the two things everyone tries on a panel
+// floating over the page: Escape, and clicking away from it. The customer portal's own bell has both
+// (src/components/me/PortalShell.tsx: a keydown listener and a full-viewport backdrop button); these two
+// had neither, so a supplier who opened the Account menu and changed their mind was left with it pinned
+// open over the tab strip. Nine lines, once, for both.
+function useDismissablePopover() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const shut = () => {
+      const d = ref.current;
+      if (!d || !d.open) return false;
+      d.open = false;
+      return true;
+    };
+    const onKey = (e) => { if (e.key === 'Escape' && shut()) { const s = ref.current.querySelector('summary'); if (s) s.focus(); } };
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) shut(); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onDown);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onDown); };
+  }, []);
+  return ref;
+}
 // THE BELL (15 Sep 2026). One list of what is waiting for this supplier, fed by what the dashboard call
 // already carries: unread customer messages, quotes held for exact details, and the overview alerts
 // (new RFQs, draft quotes, expiring documents). Each item opens the tab where it is dealt with. A native
@@ -678,8 +702,9 @@ function NotificationBell({ ov, lang, go }) {
     ...alerts.map((a, i) => ({ k: 'a' + i, tab: a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs', text: itemCopy(lang, a).title })),
   ].filter(Boolean);
   const label = ar ? `الإشعارات (${items.length})` : `Notifications (${items.length})`;
+  const ref = useDismissablePopover();
   return (
-    <details className="relative">
+    <details ref={ref} className="relative">
       <summary aria-label={label} title={label} className="relative inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <Bell aria-hidden className="h-[18px] w-[18px]" />
         {items.length ? <span aria-hidden className="absolute -top-1 -end-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{items.length}</span> : null}
@@ -697,8 +722,9 @@ function NotificationBell({ ov, lang, go }) {
 // <details>, like the bell: keyboard-operable and closed by a second press with no script.
 function AccountMenu({ tab, labels, lang, go }) {
   const on = ACCOUNT_TABS.includes(tab);
+  const ref = useDismissablePopover();
   return (
-    <details className="relative">
+    <details ref={ref} className="relative">
       <summary className={cn('inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden', on ? 'text-primary' : 'text-muted-foreground hover:text-foreground')}>
         {ws(lang, 'account_menu')}{on ? <span className="font-normal"> · {labels[tab]}</span> : null}<span aria-hidden>▾</span>
       </summary>

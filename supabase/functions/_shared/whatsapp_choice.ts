@@ -63,12 +63,19 @@ export function deliveredChannel(jd: any, asked: string): string {
 // unit-tested without Twilio.
 // deno-lint-ignore no-explicit-any
 export type VerifySendResult = { r: { ok: boolean; status: number }; jd: any };
-export async function sendWhatsAppFirst(send: (channel: 'whatsapp' | 'sms') => Promise<VerifySendResult>) {
+// 18 Sep 2026 (typescript review): the pairing "ok ⇒ channel is a real channel" was true in the code
+// and absent from the type, so `channel` inferred as string|null and every caller concatenated a
+// possible null. A later edit here could have written 'twilio:null' into phone_verifications.code
+// with nothing failing. The union states the pairing, so the compiler enforces it at every caller.
+export type VerifySent = VerifySendResult & { refused: number | null }
+  & ({ ok: true; channel: string } | { ok: false; channel: null });
+export async function sendWhatsAppFirst(send: (channel: 'whatsapp' | 'sms') => Promise<VerifySendResult>): Promise<VerifySent> {
   let res = await send('whatsapp');
   let refused: number | null = null;
   if (whatsappUnavailable(res.r.status, res.jd)) { refused = Number(res.jd?.code); res = await send('sms'); }
-  const ok = res.r.ok && res.jd?.status !== 'canceled';
-  return { ...res, ok, refused, channel: ok ? deliveredChannel(res.jd, refused ? 'sms' : 'whatsapp') : null };
+  return res.r.ok && res.jd?.status !== 'canceled'
+    ? { ...res, refused, ok: true, channel: deliveredChannel(res.jd, refused ? 'sms' : 'whatsapp') }
+    : { ...res, refused, ok: false, channel: null };
 }
 
 export type Patch = Record<string, string | boolean | null>;

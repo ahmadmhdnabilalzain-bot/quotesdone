@@ -59,7 +59,15 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://${SUPA}`,
   "font-src 'self' data:",
-  `connect-src 'self' https://${SUPA} wss://${SUPA} https://cdn.jsdelivr.net${vercelLive}${isDev ? ' ws:' : ''}`,
+  // `data:` (18 Sep 2026). public/models/supplier-warehouse.gltf, which scripts/gen_warehouse_gltf.mjs
+  // writes, carries its vertex and index buffers as `"uri": "data:application/octet-stream;base64,…"`
+  // inside the .gltf. three.js's GLTFLoader FETCHES those URIs, so with no `data:` here the browser
+  // refused them and the warehouse in Insights > Company health never drew for any supplier — silently,
+  // because the only sign was a console line nobody read. Found by journey f on 18 Sep, the first night
+  // it could reach that panel. A `data:` URL is the document's own bytes: it names no host, so it can
+  // carry nothing out, which is why it is safe here and why img-src, font-src and media-src above
+  // already allow it.
+  `connect-src 'self' data: https://${SUPA} wss://${SUPA} https://cdn.jsdelivr.net${vercelLive}${isDev ? ' ws:' : ''}`,
   `media-src 'self' blob: data: https://${SUPA}`,
   "worker-src 'self' blob: https://cdnjs.cloudflare.com",
   `frame-src 'self'${vercelLive}`,
