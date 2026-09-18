@@ -39,6 +39,35 @@ test('the accountant\'s duties tick is run and reported', () => {
   assert.match(src, /name: 'accountantDuties', run: accountantDutiesTick/);
 });
 
+// 18 Sep 2026 — THE ORPHAN STEP'S TWO WAYS OF LOSING A FAILURE, both found in independent review
+// before they shipped. `orphans` is a `nested` step, so steps.ts asks failureOf about each ENTRY, and
+// failureOf reads only `ok`/`error`/`status` at the TOP of that entry. Two shapes defeat it:
+//   * a deferral written as a plain note — the budget runs out, the entry has no `ok` and no
+//     `status`, and `sanctions` (last in the priority list, and the one compliance obligation there)
+//     could be starved every tick for ever in silence. That is outbox starvation (#691) one level down.
+//   * a callee answering HTTP 200 with {ok:false, error:'…'} — which is how all of these report a
+//     refusal — recorded as {status:200, body:{…}}, where failureOf cannot see it. That is
+//     quote_compare's {ok:false} at HTTP 200, the estate's oldest instance of this bug.
+// Both are asserted at the source, because the alternative is importing a module that needs a live
+// Deno runtime and service-role environment variables.
+test('a deferred orphan job is shaped as a failure failureOf can read', () => {
+  const tick = src.slice(src.indexOf('async function orphanTick'), src.indexOf('async function tableExportTick'));
+  assert.ok(tick.length > 0, 'orphanTick was not found before tableExportTick');
+  // NOT a doesNotMatch on the old shape: this file's own comment above names it, and a check that
+  // greps source matches its own prose (apply-discipline, 9 Sep 2026). The positive assertion is the
+  // one that has teeth — replace the shape and it fails.
+  assert.match(tick, /ok: false, error: 'deferred/, 'a deferred job does not report {ok:false, error:...}');
+  // and it must not start a job it cannot afford to finish, or the budget is decoration
+  assert.match(tick, /left\(\) < need/, 'the budget check does not account for the job about to run');
+});
+
+test('the orphan step lifts a body-level failure out of an HTTP 200', () => {
+  const tick = src.slice(src.indexOf('async function orphanTick'), src.indexOf('async function tableExportTick'));
+  assert.match(tick, /const inner = r\.status < 400 \? failureOf\(b\) : null/, 'call() no longer inspects the response body');
+  assert.match(tick, /inner\s*\n?\s*\?\s*\{ ok: false, error:/, 'a failed body is not lifted to the top of the entry');
+  assert.match(src, /import \{[^}]*failureOf[^}]*\} from '\.\/steps\.ts'/, 'failureOf is not imported');
+});
+
 // EVERY CALLER MUST OUTWAIT THE DEADLINE THE FUNCTION DECLARES.
 //
 // Measured 17 Sep 2026: the external watchdog had been red for four days over a healthy system. The

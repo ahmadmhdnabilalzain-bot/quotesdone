@@ -1470,3 +1470,10 @@ scripts/sql/the_it_detector_fails_fast_on_a_lock_instead_of_dying_behind_one.sql
 # the_it_engineer_takes_on_seven_more_duties.sql for fn_it_workflow_heartbeats only.
 scripts/sql/nothing_watched_five_of_the_eight_scheduled_workflows.sql
 scripts/sql/two_live_edge_functions_were_invoked_by_nothing.sql
+
+# 18 SEP 2026 — FOUR MORE LIVE FUNCTIONS HAD NO CLOCK, AND THE WEEKLY SANCTIONS SCREEN HAD NO
+# PRODUCER. This file is canonical for fn_resilience_orphan_steps_due and SUPERSEDES
+# two_live_edge_functions_were_invoked_by_nothing.sql for that routine only (that file stays canonical
+# for its own reasoning and for nothing else it defines). It must be applied AFTER the
+# sanctions_screen edge function is deployed — see the deploy order in its header.
+scripts/sql/four_live_functions_had_no_clock_and_the_sanctions_screen_had_no_producer.sql

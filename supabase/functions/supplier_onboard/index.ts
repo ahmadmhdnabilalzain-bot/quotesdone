@@ -1,5 +1,20 @@
 // supplier_onboard — SPEC FILE #5 §2. A SENTENCE IN, A SUPPLIER PROFILE OUT.
 //
+// ── DORMANT BY DESIGN, DECIDED 18 Sep 2026 (it_engineer, orphan-function audit) ───────────────────
+// It came up in an audit of edge functions that nothing invokes, alongside doc_extract, email_triage and
+// send_sms. Those three were wired to resilience_ping's `orphans` step. THIS ONE WAS NOT, and the reason
+// is its shape, not its worth: it is a JWT-authenticated REQUEST/RESPONSE endpoint that takes a paragraph
+// a supplier is typing right now and returns structure. It has no queue, no producer, and therefore no
+// backlog — agent_runs holds no row for it at all. There is nothing for a clock to drain, and putting it
+// on a 15-minute tick would be a step that can never have work.
+// What it lacks is a CALLER IN THE FRONT END. Measured 18 Sep: no file under src/ names it. The supplier
+// portal's own free-text path (src/components/portal/supplier/ServicesTab.tsx, "Your services, in your own
+// words") goes to the services matching built on 15 Sep, and the licence gate and approval decision live
+// in supplier_api/save_profile — so nothing about sign-up is broken by this sitting idle.
+// It is held, not deleted (surfaces are held for future agents), for the case the spec describes and the
+// portal still does not cover: the FIRST paragraph, before there is a company row to attach anything to.
+// The day a screen asks for it, it is one fetch away.
+//
 // The spec opens by rejecting the form wall: the supplier should not "register then fill 20 forms",
 // they should be asked about their company and answer in their own words. Nothing in the estate did
 // that. `profile_ai` looks like it does and does not: it enriches a lead from an INBOUND EMAIL and
