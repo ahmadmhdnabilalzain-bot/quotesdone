@@ -4,6 +4,7 @@ import { CompanyIdentity } from '@/components/CompanyIdentity';
 import { Reveal } from '@/components/motion/reveal';
 import { BrandMark } from '@/components/BrandMark';
 import C from '@/content/company.json';
+import { Ltr } from '@/lib/Ltr';
 
 // Live company accounts (verified against Postiz + reachable). Keep in sync if a handle changes.
 const SOCIALS = [
@@ -48,9 +49,9 @@ export function SiteFooter() {
               <dd className="mt-2 text-copy text-paper/90">
                 <span className="font-semibold">{C.legal_name}</span>
                 <span className="block text-muted">{C.licence[l]} <bdi dir="ltr" className="tabular font-mono text-paper">{C.licence_no}</bdi></span>
-                <span className="block text-muted">{C.licence_authority[l]} · {C.valid_until[l]} <bdi dir="ltr" className="tabular">{new Date(C.licence_expiry + 'T00:00:00Z').toLocaleDateString(l === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</bdi></span>
+                <span className="block text-muted">{C.licence_authority[l]} · {C.valid_until[l]} <Ltr className="tabular">{new Date(C.licence_expiry + 'T00:00:00Z').toLocaleDateString(l === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</Ltr></span>
                 {/* TDRA No Objection Letter for the e-activity, received 14 Sep 2026 (Nol Report.pdf). */}
-                <span className="mt-1.5 block text-muted">{C.tdra_nol[l]} <bdi dir="ltr" className="tabular font-mono text-paper">{C.tdra_nol_no}</bdi> · {C.valid_until[l]} <bdi dir="ltr" className="tabular">{new Date(C.tdra_nol_expiry + 'T00:00:00Z').toLocaleDateString(l === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</bdi></span>
+                <span className="mt-1.5 block text-muted">{C.tdra_nol[l]} <bdi dir="ltr" className="tabular font-mono text-paper">{C.tdra_nol_no}</bdi> · {C.valid_until[l]} <Ltr className="tabular">{new Date(C.tdra_nol_expiry + 'T00:00:00Z').toLocaleDateString(l === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</Ltr></span>
                 <a href={C.licence_verify.url} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-flex min-h-[28px] items-center text-copy font-semibold text-teal-light underline-offset-4 hover:underline">{C.licence_verify.label[l]} <span aria-hidden className="ms-1 inline-block rtl:-scale-x-100">↗</span></a>
               </dd>
             </dl>

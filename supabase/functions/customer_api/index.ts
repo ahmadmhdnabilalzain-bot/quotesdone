@@ -1449,14 +1449,36 @@ Deno.serve(observe('customer_api', async (req) => {
         duplicate: rf.duplicate === true, decision_after: rf.decision_after ?? null, message: msg });
     }
 
+    // A CUSTOMER IS NEVER BLOCKED FROM RATING (operator, 17 Sep 2026). Measured on the production
+    // journey: every star press returned HTTP 500 — SQLSTATE 23514, `reviews_reason_required` — and
+    // public.reviews held 0 rows, so no rating had ever succeeded. The widget sends stars and no
+    // comment; the constraint demanded a comment of 10+ characters. The constraint now reads
+    // "a comment, IF GIVEN, must be 10+ characters"
+    // (scripts/sql/a_customer_is_never_blocked_from_rating.sql) and this handler refuses a short one
+    // BEFORE the write, in words the customer can read, rather than letting the database refuse it
+    // as a 500. Who may rate and when is unchanged: a transaction on this quote, 1..5, one per job.
     if (action === 'rate_supplier') {
-      const qid = String(body.quote_id || ''); const rating = Number(body.rating); const comment = body.comment ? String(body.comment).slice(0, 500) : null;
-      if (!(rating >= 1 && rating <= 5)) return J({ error: 'Rating must be 1 to 5.' }, 400);
-      const { data: q } = await admin.from('quotes').select('id,supplier_id,inquiry_id').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
+      const qid = String(body.quote_id || ''); const rating = Number(body.rating);
+      // '' and '   ' are "no comment", not a 3-character comment: a customer who tabbed through the
+      // optional box must not be told their blank is too short.
+      const typed = body.comment == null ? '' : String(body.comment).trim();
+      const comment = typed ? typed.slice(0, 500) : null;
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return J({ error: 'Rating must be 1 to 5.', code: 'rating_out_of_range' }, 400);
+      if (comment && comment.length < 10) return J({ error: 'A comment is optional — but if you write one, please make it at least 10 characters.', code: 'review_comment_too_short' }, 400);
+      const { data: q } = await admin.from('quotes').select('id,supplier_id,inquiry_id').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found', code: 'not_found' }, 404);
       const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle();
-      if (!tx) return J({ error: 'You can only rate a supplier you have revealed and dealt with.' }, 403);
+      if (!tx) return J({ error: 'You can only rate a supplier you have revealed and dealt with.', code: 'forbidden' }, 403);
       const { error } = await admin.from('reviews').upsert({ supplier_id: q.supplier_id, customer_id: cust.id, inquiry_id: q.inquiry_id, transaction_id: tx.id, rating, comment }, { onConflict: 'transaction_id' });
-      if (error) return J({ error: error.message }, 500);
+      if (error) {
+        // A 500 ON A USER ACTION IS ITSELF A DEFECT: the customer sees a broken product and we learn
+        // nothing. Class 23 is an integrity violation — the database REFUSED the request, which is a
+        // 4xx. Anything else is ours, and is still answered in words rather than with a raw driver
+        // string that would put a constraint name in front of a customer.
+        const sqlstate = String((error as { code?: string }).code || '');
+        console.error('rate_supplier refused', JSON.stringify({ sqlstate, message: error.message, quote_id: qid }));
+        if (sqlstate.startsWith('23')) return J({ error: 'We could not accept that rating. Please check what you entered and try again.', code: 'review_refused' }, 400);
+        return J({ error: 'Could not save your rating. Please try again in a moment.', code: 'review_save_failed' }, 500);
+      }
       await admin.rpc('recompute_supplier_rating', { p_supplier: q.supplier_id });
       return J({ ok: true });
     }
