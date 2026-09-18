@@ -1116,6 +1116,37 @@ return jsonb_build_object(
 end
 $function$;
 
+-- ══ 3b. AND ONE FINDING THAT WAS NEVER TRUE IS CLOSED, BY ITS EXACT KEY ═════════════════════
+-- duty:db_health:slow:-4784328982199561541 — "A statement averages 20662.8 ms over 69 calls:
+-- select count(*) icp from public.kb_chunks where source_id=$1" — has been open since 14 Sep and
+-- was named tonight as the probable root cause of the export timeouts. It is not. Measured
+-- 18 Sep 2026:
+--   explain (analyze, buffers) of that exact statement, on a real source_id:
+--     Aggregate -> Index Only Scan using kb_chunks_source_id_idx
+--     Heap Fetches: 1   Buffers: shared hit=3 read=2   Execution Time: 1.576 ms
+--   The index it supposedly needs has existed all along, and the planner uses it.
+--   pg_stat_statements for the same queryid:  calls 69, min_exec_time 0.04 ms,
+--   max_exec_time 117,713 ms, stddev 34,517 ms, shared_blks_read 2,046,009, stats_since 28 Aug.
+--   A minimum of 0.04 ms and a maximum of 117 s is not a slow statement. It is a handful of calls
+--   that read two million blocks cold while the daily export was scanning the same 9.1 GB table.
+--   And the calls have not moved: 69 on 14 Sep, 69 on 18 Sep. Nothing has run this statement since
+--   the finding was raised — it is session tooling, and it appears nowhere in the repository.
+-- #732 already replaced that duty's lifetime average with a per-interval delta, which is why this
+-- finding has not been re-raised since 00:16Z. What was left was the row itself. Closed by its
+-- EXACT key, never by a title match: an ilike sweep closed an unfixed Stripe finding on 15 Sep.
+update public.it_engineer_finding
+   set closed_at = now(),
+       close_note = 'Not a slow statement and not a missing index. Measured 18 Sep 2026: the exact '
+         || 'statement plans as an Index Only Scan on kb_chunks_source_id_idx, 1.576 ms, 5 buffers. '
+         || 'pg_stat_statements min_exec_time is 0.04 ms against a max of 117,713 ms over 69 calls '
+         || 'since 28 Aug — cold-cache IO contention with the full export of a 9.1 GB table, not '
+         || 'the query. The call count has not changed since the finding was raised (69 on 14 Sep, '
+         || '69 on 18 Sep): nothing has run it since, and it exists in no file in the repository. '
+         || 'The duty that raised it was corrected by #732 to measure an interval rather than a '
+         || '104-day lifetime average, and has not re-raised this since 00:16Z.'
+ where issue_key = 'duty:db_health:slow:-4784328982199561541'
+   and closed_at is null;
+
 -- ══ 4. PROBE ═══════════════════════════════════════════════════════════════════════════════
 -- This file carries DDL, so the probe must not raise: a raise would roll back the CREATE OR
 -- REPLACE above it. It reports through the one channel the management API does not discard, a
@@ -1158,7 +1189,10 @@ chk as (
                                                                                  as drained_last_hour,
     (select n from depth)                                                        as pending_now,
     (select count(*) from public.it_watch_tick where ran_at > now() - interval '20 seconds')
-                                                                                 as ticks_written_by_the_probe
+                                                                                 as ticks_written_by_the_probe,
+    (select count(*) from public.it_engineer_finding
+      where issue_key = 'duty:db_health:slow:-4784328982199561541' and closed_at is null)
+                                                                                 as stale_slow_still_open
 ),
 verdict as (
   select *,
@@ -1169,7 +1203,7 @@ verdict as (
 select case when reads_the_scheduler and empty_read_is_raised and own_ticks_have_their_own_key
              and drain_arm_present and registered_drain_column = 'backed_up_at' and drain_index = 1
              and scheduler_basis = 'measured' and drain_measured
-             and ticks_written_by_the_probe = 0
+             and ticks_written_by_the_probe = 0 and stale_slow_still_open = 0
        then 'PROBE OK: the scheduler is read from agent_runs (basis ' || coalesce(scheduler_basis,'?')
             || '), this detector''s own missed ticks have their own key, and doc_backups_pending is '
             || 'measured at ' || coalesce(pending_now::text,'?') || ' pending / '
@@ -1186,5 +1220,6 @@ select case when reads_the_scheduler and empty_read_is_raised and own_ticks_have
             || ' drain_basis=' || coalesce(drain_basis,'null')
             || ' pending_now=' || coalesce(pending_now::text,'null')
             || ' ticks_written_by_the_probe=' || coalesce(ticks_written_by_the_probe::text,'null')
+            || ' stale_slow_still_open=' || coalesce(stale_slow_still_open::text,'null')
        end as verdict
 from verdict;
