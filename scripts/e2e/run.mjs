@@ -61,8 +61,37 @@ if (guards.length !== 3) {
 
 mkdirSync(DIR, { recursive: true });
 const t0 = Date.now();
+// A WALL CLOCK, BECAUSE THE JOB HAS ONE (17 Sep 2026, measured). The nightly workflow gives this
+// harness a 30-minute job; nothing here was bounded against it. On 15/16 and 16/17 Sep the crawl
+// spent 11.2 s on each nav item it could not click (8 s click timeout + retries) and the job was
+// CANCELLED at the wall — which skips every remaining step, so teardown never ran and
+// report_to_it_engineer.mjs never wrote the heartbeat. The visible consequences: the IT engineer
+// raised duty:journey_heartbeat:no_run for three days while the test was in fact running nightly,
+// and two runs' demo identities (tags 8a5b7ad5 and 414bbb3e — 6 leads, 2 customers) survived as
+// duty:demo leftovers. A cancelled job reports nothing at all; a truncated run reports what it saw.
+// So the harness stops STARTING new work at its own deadline and always reaches teardown and the
+// report below. Skipped work is recorded as SKIP with the reason, never silently dropped.
+//
+// A MALFORMED VALUE MUST NOT SILENTLY RESTORE THE BUG (review). `Number('20m')` is NaN, and
+// `Date.now() > NaN` is false forever — an unbounded harness again, with nothing in the log to say
+// so. A deadline that can be switched off by a typo in a workflow file is not a deadline.
+const DEADLINE_MS = Number(process.env.QD_E2E_DEADLINE_MS || 20 * 60 * 1000);
+if (!Number.isFinite(DEADLINE_MS) || DEADLINE_MS <= 0) {
+  console.error(`REFUSED: QD_E2E_DEADLINE_MS=${JSON.stringify(process.env.QD_E2E_DEADLINE_MS)} is not a positive number of milliseconds. ` +
+    'Running without a deadline is what let the job be cancelled mid-crawl, taking teardown and the heartbeat with it.');
+  process.exit(2);
+}
+const DEADLINE = t0 + DEADLINE_MS;
+// TRUNCATION IS A FACT THE REPORT MUST CARRY, NOT A DETAIL IN A STRING. fn_it_journey_ingest hands
+// the failing steps to fn_it_duty_settle, which CLOSES every open duty:journey:% finding that is
+// not in this run's failing set — "the journey duty no longer finds it". A run that stopped early
+// did not look at those steps, so settling on it would close real, unverified defects: the exact
+// "could not look read as all clear" fault the duty engine was built to avoid. So the harness says
+// plainly whether it looked at everything, and the ingest only settles when it did.
+const state = { truncated: false };
+const outOfTime = () => { if (Date.now() <= DEADLINE) return false; state.truncated = true; return true; };
 const run = await openRun({ keep: KEEP });
-const ctx = { run, rep, dir: DIR, consoleErrors: [], fx: {} };
+const ctx = { run, rep, dir: DIR, consoleErrors: [], fx: {}, deadline: DEADLINE, outOfTime };
 let browser = null, closed = null, fatal = null;
 try {
   // Identities: one customer, three suppliers (A holds then releases, B quotes two options, C is complete).
@@ -84,6 +113,7 @@ try {
   ctx.browser = browser;
   for (const k of ['a', 'b', 'c', 'd', 'e', 'f', 'g']) {
     if (!only.includes(k)) continue;
+    if (outOfTime()) { rep.step(`${k}`, 'journey not started', 'SKIP', `the ${Math.round((DEADLINE - t0) / 60000)}-minute harness deadline passed before this journey; teardown and the report run so the heartbeat still reaches the IT engineer`); continue; }
     try { await JOURNEYS[k](ctx); }
     catch (e) { rep.step(`${k}`, 'journey crashed', 'FAIL', String(e.stack || e.message).split('\n').slice(0, 3).join(' | ')); }
   }
@@ -125,8 +155,14 @@ writeFileSync(join(DIR, 'steps.json'), JSON.stringify(steps, null, 1));
 // A STABLE RESULT FOR WHOEVER RUNS THIS UNATTENDED (14 Sep 2026): the nightly it_engineer duty reads
 // this file, hands each FAIL to the seat that owns it, and re-runs to verify. The shape is a contract:
 // add fields, never rename or remove one.
+// COMPLETE = this run looked at everything it is supposed to look at. False when the deadline cut
+// it short, and false when --journey asked for only part of the funnel: in both cases the steps it
+// did not reach say nothing about the defects they would have found, so nothing may be closed on
+// their silence. `ok` carries it too — a truncated run that happened to fail nothing is not a pass.
+const COMPLETE = !state.truncated && ['a', 'b', 'c', 'd', 'e', 'f', 'g'].every((k) => only.includes(k));
 const result = {
-  version: 1, ok: count('FAIL') === 0 && !fatal, tag: run.tag, site: SITE, project: REF, started: stamp, seconds: secs,
+  version: 1, ok: count('FAIL') === 0 && !fatal && COMPLETE, complete: COMPLETE, truncated: state.truncated,
+  tag: run.tag, site: SITE, project: REF, started: stamp, seconds: secs,
   journeys: only, kept: KEEP, pass: count('PASS'), fail: count('FAIL'), skip: count('SKIP'),
   report: join(DIR, 'report.md'), purge: KEEP ? `node scripts/e2e/run.mjs --purge-tag ${run.tag}` : null,
   steps: steps.map((s) => ({ journey: s.journey, name: s.name, status: s.status, detail: s.detail, ms: s.ms ?? null })),
@@ -134,6 +170,9 @@ const result = {
 writeFileSync(join(DIR, 'result.json'), JSON.stringify(result, null, 1));
 if (argv.includes('--json')) console.log(JSON.stringify({ ...result, steps: undefined, result: join(DIR, 'result.json') }));
 // Read by scripts/e2e/report_to_it_engineer.mjs, which hands this run to the IT engineer.
-writeFileSync(join(DIR, 'run.json'), JSON.stringify({ tag: run.tag, kept: KEEP, leftovers: closed?.leftovers ?? null }));
+writeFileSync(join(DIR, 'run.json'), JSON.stringify({ tag: run.tag, kept: KEEP, leftovers: closed?.leftovers ?? null, complete: COMPLETE }));
 console.log(`\nE2E ${count('PASS')} passed, ${count('FAIL')} failed, ${count('SKIP')} skipped - report ${join(DIR, 'report.md')}`);
-process.exitCode = count('FAIL') === 0 && !fatal ? 0 : 1;
+// The same verdict result.ok carries, so the two cannot drift apart: a truncated run is not a pass,
+// whoever is reading. (The nightly workflow runs this step with continue-on-error, because a failed
+// STEP is the finding and the report below it must still run — so this exit code is for a human.)
+process.exitCode = result.ok ? 0 : 1;

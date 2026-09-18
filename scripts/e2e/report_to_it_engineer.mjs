@@ -27,7 +27,12 @@ if (!runs.length) { console.error(`no run with a run.json under ${root}: the har
 const run = JSON.parse(readFileSync(join(runs[0], 'run.json'), 'utf8'));
 const steps = JSON.parse(readFileSync(join(runs[0], 'steps.json'), 'utf8'))
   .map(({ journey, name, status, detail }) => ({ journey, name, status, detail: String(detail ?? '').slice(0, 600) }));
-const report = { tag: run.tag, leftovers: run.leftovers ?? null, steps };
+// complete: did the harness look at everything? fn_it_journey_ingest settles the journey duty —
+// closing every open duty:journey:% finding this run did not re-raise — and that is only sound on a
+// run that actually ran every journey. A run cut short by its deadline (QD_E2E_DEADLINE_MS) or by
+// --journey still reports its heartbeat and its failures; it just may not close anything.
+// Older reports have no such field; those runs predate truncation and are treated as complete.
+const report = { tag: run.tag, leftovers: run.leftovers ?? null, complete: run.complete !== false, steps };
 if (smoke) {
   report.sha = smoke.sha;
   report.changed_files = readFileSync(smoke.files, 'utf8').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
