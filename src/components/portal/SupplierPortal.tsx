@@ -465,7 +465,11 @@ export function SupplierPortal() {
           {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
         </div>
       </header>
-      <main id="qd-portal-main">
+      {/* id="main", not "qd-portal-main": the skip link the layout renders before the header points
+          at #main (app/[locale]/layout.tsx), and on 18 Sep 2026 it pointed at nothing here — the id
+          it had was referenced by no CSS, no script and no test, so the first focusable element on
+          the supplier portal did nothing at all. */}
+      <main id="main">
       {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
         {/* An invited supplier is told whose listing this is, before anything else on the page. */}
         {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}

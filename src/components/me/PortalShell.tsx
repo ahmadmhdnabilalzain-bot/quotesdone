@@ -498,7 +498,9 @@ export function PortalShell({
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 pb-24 md:pb-8">{children}</main>
+        {/* id="main" — the layout's skip link targets #main; without it the first focusable element
+            on the signed-in customer portal did nothing (measured 18 Sep 2026). */}
+        <main id="main" className="min-w-0 flex-1 pb-24 md:pb-8">{children}</main>
       </div>
 
       {/* ── MOBILE TAB BAR ────────────────────────────────────────────────────────────────── */}
