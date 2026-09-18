@@ -1490,10 +1490,12 @@ scripts/sql/the_scheduler_was_never_down_and_the_queue_nobody_counted_was_fine.s
 scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql
 
 # 18 SEP 2026 — THE SCREEN RAN FOR THE FIRST TIME AND ABORTED ON ITS OWN RETENTION SWEEP. Canonical for
-# fn_supplier_sanctions_screen (SUPERSEDING a_sanctioned_party_is_banned_for_good_not_deleted.sql for
-# that routine only — that file stays canonical for everything else it defines), for
-# fn_sanctions_screen_tick (SUPERSEDING the_compliance_officer_screens_registered_suppliers_weekly.sql
-# for that routine only), and for fn_sanctions_screen_tick_status, which is NEW.
+# three routines. It SUPERSEDES a_sanctioned_party_is_banned_for_good_not_deleted for
+# fn_supplier_sanctions_screen only, and the_compliance_officer_screens_registered_suppliers_weekly for
+# fn_sanctions_screen_tick only; both of those stay canonical for everything else they define.
+# fn_sanctions_screen_tick_status is NEW and has no previous owner.
+# (No line in this note ends in a .sql filename on purpose: supplier_matching_is_exact_or_none reads
+# any MANIFEST line ending that way as a path to open, and a comment that looks like one breaks it.)
 # Every body in it was read back out of production with pg_get_functiondef() and pasted verbatim:
 # the three routines were applied to htdblwldjkcgjvmqkbeh at ~07:21 UTC that day by a scratch harness
 # that could not roll back a file carrying its own commit; the file's own header records that in full.
