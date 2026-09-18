@@ -57,9 +57,13 @@ export default function SupplierSupportingDocuments({ token, lang }: { token: st
     setBusy(''); setConfirm(null);
     setNote(j && j.ok ? { ok: true, text: ws(lang, 'sd_removed') } : { ok: false, text: errText(lang, j, max) }); load();
   };
-  // A fresh URL each time: the one in the list expires after an hour.
+  // A fresh URL each time: the one in the list expires after an hour. That round trip said nothing
+  // (18 Sep 2026) — the press looked ignored until the tab opened — so it takes the same keyed `busy`
+  // the replace and remove buttons already use.
   const download = async (id: number) => {
+    setBusy('d' + id); setNote(null);
     const j = await call('supplier_portal', { action: 'supporting_document_url', id }, token).catch(() => null);
+    if (live.current) setBusy('');
     if (j && j.ok && j.url) window.open(j.url, '_blank', 'noopener,noreferrer'); else if (live.current) setNote({ ok: false, text: errText(lang, j, max) });
   };
   const docs = list?.documents || [];
@@ -108,7 +112,7 @@ export default function SupplierSupportingDocuments({ token, lang }: { token: st
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-1.5" aria-live="polite">
-                <Button size="sm" variant="outline" className="min-h-11" onClick={() => download(d.id)}><Download aria-hidden className="h-4 w-4" />{ws(lang, 'sd_download')}</Button>
+                <Button size="sm" variant="outline" className="min-h-11" disabled={busy === 'd' + d.id} aria-busy={busy === 'd' + d.id || undefined} onClick={() => download(d.id)}><Download aria-hidden className="h-4 w-4" />{busy === 'd' + d.id ? ws(lang, 'sd_opening') : ws(lang, 'sd_download')}</Button>
                 <label className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-medium text-foreground focus-within:ring-2 focus-within:ring-ring hover:bg-muted">
                   <RefreshCw aria-hidden className="h-4 w-4" />{busy === 'r' + d.id ? ws(lang, 'sd_uploading') : ws(lang, 'sd_replace')}
                   <input type="file" accept={ACCEPT} className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) save({ id: d.id }, f, 'r' + d.id); e.target.value = ''; }} />

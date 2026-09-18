@@ -336,6 +336,10 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
   // exits early, so a chip lit up and the answers did not change; it now re-asks under that kind.
   const pickKind = (k: string | null) => { setKind(k); if (asked) void ask(undefined, k); };
 
+  // The two ways this list is in flight: the question (`busy`) and the plain refetch, which clears
+  // `res` and already renders the skeleton cards below.
+  const reloading = busy || (!res && !err);
+
   const docs = res?.documents || [];
   const answer = (res as VaultSearchResponse | null)?.answer || null;
   const matched = (res as VaultSearchResponse | null)?.matched_by;
@@ -364,15 +368,19 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
 
       {/* Kind filters, from what the vault actually holds. */}
       {kinds.length > 1 ? (
-        <div className="flex flex-wrap gap-1.5">
-          <button type="button" onClick={() => pickKind(null)}
-            className={cn('rounded-full border px-3 py-1 text-[12px] transition-colors',
+        <div className="flex flex-wrap gap-1.5" aria-busy={reloading || undefined}>
+          {/* Disabled while the list behind them is refetching: a chip took the click, lit up, and
+              accepted three more before the first answer landed. The bars below are the indicator. */}
+          <button type="button" onClick={() => pickKind(null)} disabled={reloading}
+            className={cn('rounded-full border px-3 py-1 text-[12px] transition-colors disabled:opacity-60',
+              reloading && 'cursor-progress',
               kind === null ? 'border-primary bg-primary/15 font-semibold text-primary' : 'border-border text-muted-foreground hover:text-foreground')}>
             {w.all_kinds}
           </button>
           {kinds.map((k) => (
-            <button key={k} type="button" onClick={() => pickKind(k)}
-              className={cn('rounded-full border px-3 py-1 text-[12px] transition-colors',
+            <button key={k} type="button" onClick={() => pickKind(k)} disabled={reloading}
+              className={cn('rounded-full border px-3 py-1 text-[12px] transition-colors disabled:opacity-60',
+                reloading && 'cursor-progress',
                 kind === k ? 'border-primary bg-primary/15 font-semibold text-primary' : 'border-border text-muted-foreground hover:text-foreground')}>
               {kindLabel(k, lang)}
             </button>

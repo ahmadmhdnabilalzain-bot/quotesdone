@@ -6,7 +6,7 @@
 // shell. Every component under src/components/me reads its strings from here, so a missing Arabic
 // key is one grep away and no component can carry its own private copy of a sentence.
 export const T = {
-  en: { brand_sub:'My Requests', home:'Home', signout:'Sign out', loading:'Loading…', loading_requests:'Loading your requests…',
+  en: { brand_sub:'My Requests', home:'Home', signout:'Sign out', signing_out:'Signing out…', loading:'Loading…', loading_requests:'Loading your requests…',
     tab_signin:'Sign in', tab_signup:'Create account', welcome_back:'Welcome back', create_account_title:'Create your account',
     signup_sub:"Enter your email and we'll set you up instantly. You'll add your name, date of birth and verify your mobile in the next step.",
     signin_sub:'Sign in with the email or mobile you registered with.', email_or_mobile:'Email or mobile', email_address:'Email address',
@@ -100,7 +100,7 @@ export const T = {
     req_one:'request', req_many:'requests',
     qa_compare_off:'Needs a request with two or more quotes',
     q_neg_show:'Negotiation guidance', q_neg_hide:'Hide negotiation guidance' },
-  ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
+  ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', signing_out:'جارٍ تسجيل الخروج…', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', create_account_title:'أنشئ حسابك',
     signup_sub:'أدخل بريدك الإلكتروني وسننشئ حسابك فورًا. ستضيف اسمك وتاريخ ميلادك وتتحقق من رقم جوالك في الخطوة التالية.',
     signin_sub:'سجّل الدخول بالبريد الإلكتروني أو رقم الجوال المسجّل.', email_or_mobile:'البريد الإلكتروني أو الجوال', email_address:'البريد الإلكتروني',
@@ -275,7 +275,7 @@ Object.assign(T.en, {
   q_lead: 'Lead time', q_warranty: 'Warranty', q_terms: 'Terms', q_win: 'win rate', q_note: "Supplier's note: ", q_excl: 'Not included: ', q_cond: 'Conditions: ', q_validity: 'Validity: ', q_why: 'Why we matched this supplier: ',
   q_pdf: 'View quote (PDF)', q_pdf_busy: 'Preparing…', q_pdf_fail: 'Could not open the PDF',
   q_fee_line: 'Reveal fee {fee} — refunded in full if the supplier does not respond within {w} working days (we chase them after {c}).',
-  q_reveal: 'Reveal & contact', q_wait: 'Please wait…', q_loading_contact: 'Loading contact…', q_checkout_fail: 'Could not start checkout. Please try again.',
+  q_reveal: 'Reveal & contact', q_wait: 'Please wait…', q_redirecting: 'Taking you to payment…', q_loading_contact: 'Loading contact…', q_checkout_fail: 'Could not start checkout. Please try again.',
   q_confirm_title: 'Reveal this supplier', q_confirm_body: 'You pay {total}: the 3% reveal fee on this {price} quote plus card processing. No VAT. Payment is taken securely by Stripe.', q_confirm_pay: 'Continue to secure payment',
   q_bd_fee: 'Reveal fee (3% of {price})', q_bd_proc: 'Card processing (Stripe)', q_bd_total: 'Total', q_bd_refund: 'A refund returns the full amount you paid.',
   q_inv_pdf: 'Invoice (PDF)', q_inv_fail: 'Could not open the invoice.',
@@ -398,7 +398,7 @@ Object.assign(T.ar, {
   q_lead: 'مدة التوريد', q_warranty: 'الضمان', q_terms: 'شروط الدفع', q_win: 'نسبة الفوز', q_note: 'ملاحظة المورّد: ', q_excl: 'غير شامل: ', q_cond: 'الشروط: ', q_validity: 'مدة السريان: ', q_why: 'سبب مطابقتنا لهذا المورّد: ',
   q_pdf: 'عرض السعر (PDF)', q_pdf_busy: 'جارٍ التحضير…', q_pdf_fail: 'تعذّر فتح الملف',
   q_fee_line: 'رسوم الكشف {fee} — تُردّ بالكامل إذا لم يردّ المورّد خلال {w} أيام عمل (نتابعه نيابةً عنك بعد {c}).',
-  q_reveal: 'اكشف وتواصل', q_wait: 'يُرجى الانتظار…', q_loading_contact: 'جارٍ تحميل بيانات التواصل…', q_checkout_fail: 'تعذّر بدء الدفع. يُرجى المحاولة مرة أخرى.',
+  q_reveal: 'اكشف وتواصل', q_wait: 'يُرجى الانتظار…', q_redirecting: 'جارٍ تحويلك إلى الدفع…', q_loading_contact: 'جارٍ تحميل بيانات التواصل…', q_checkout_fail: 'تعذّر بدء الدفع. يُرجى المحاولة مرة أخرى.',
   q_confirm_title: 'كشف هذا المورّد', q_confirm_body: 'تدفع {total}: رسوم الكشف 3% من عرض السعر البالغ {price} مع رسوم معالجة البطاقة. بدون ضريبة قيمة مضافة. يتم الدفع بأمان عبر Stripe.', q_confirm_pay: 'متابعة إلى الدفع الآمن',
   q_bd_fee: 'رسوم الكشف (3% من {price})', q_bd_proc: 'رسوم معالجة البطاقة (Stripe)', q_bd_total: 'الإجمالي', q_bd_refund: 'عند الاسترداد يُعاد إليك كامل المبلغ الذي دفعته.',
   q_inv_pdf: 'الفاتورة (PDF)', q_inv_fail: 'تعذّر فتح الفاتورة.',

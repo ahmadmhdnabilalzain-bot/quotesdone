@@ -36,6 +36,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDelayedFlag } from '@/components/ui/busy';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import {
@@ -54,6 +56,8 @@ export interface ProjectRoomProps {
   /** my_inquiries rows the portal already holds — used ONLY for quote counts and revealed names. */
   inquiries?: PortalInquiry[];
   lang?: Lang;
+  /** The project detail behind this room is still in flight. Shown as bars, never as "no geometry". */
+  loading?: boolean;
   /** Called with an inquiry id when the customer asks to open the request itself. */
   onOpenRfq?: (rfqId: string) => void;
 }
@@ -74,10 +78,14 @@ function layout(levelIndex: number, i: number, n: number) {
   };
 }
 
-export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_INQUIRIES, lang = 'en', onOpenRfq }: ProjectRoomProps) {
+export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_INQUIRIES, lang = 'en', loading = false, onOpenRfq }: ProjectRoomProps) {
   const model = useMemo(() => buildModel(project, rfqs, orders, inquiries), [project, rfqs, orders, inquiries]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [glFailed, setGlFailed] = useState(false);
+  // `three` is a dynamic import and the scene is built after it lands, so the canvas box sat empty
+  // with nothing saying it was coming. `drawing` is that gap, under the 150/300ms rules.
+  const [scened, setScened] = useState(false);
+  const drawing = useDelayedFlag(!scened && !glFailed && model.packageCount > 0);
   const host = useRef<HTMLDivElement | null>(null);
   const selectRef = useRef(setSelectedId);
   selectRef.current = setSelectedId;
@@ -93,6 +101,7 @@ export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_I
   // model changes because the geometry IS the data — there is no incremental path worth the code.
   useEffect(() => {
     const el = host.current;
+    setScened(false);
     if (!el || flat.length === 0) return;
     let disposed = false;
     let cleanup: (() => void) | null = null;
@@ -232,6 +241,7 @@ export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_I
       let raf = 0;
       const tick = () => { raf = requestAnimationFrame(tick); renderer.render(scene, camera); };
       tick();
+      setScened(true);
 
       cleanup = () => {
         cancelAnimationFrame(raf);
@@ -263,7 +273,14 @@ export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_I
         <StageLegend lang={lang} />
       </div>
 
-      {nBlocks === 0 ? (
+      {loading ? (
+        <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" aria-busy="true" aria-label={tx(lang, 'loading_project')}>
+          <Skeleton className="h-[320px] w-full rounded-lg md:h-[400px]" />
+          <div className="space-y-1.5">
+            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full rounded-md" />)}
+          </div>
+        </div>
+      ) : nBlocks === 0 ? (
         <div className="mt-3 rounded-lg border border-dashed border-border bg-secondary/20 p-5 text-center">
           <div className="text-[14px] font-semibold text-foreground">{tx(lang, 'model_empty_title')}</div>
           <div className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{tx(lang, 'model_empty_body')}</div>
@@ -277,10 +294,13 @@ export function ProjectRoom({ project, rfqs, orders, documents, inquiries = NO_I
                   {tx(lang, 'webgl_missing')}
                 </div>
               ) : (
-                <div
-                  ref={host}
-                  className="h-[320px] md:h-[400px] w-full rounded-lg border border-border bg-gradient-to-b from-secondary/40 to-background overflow-hidden transition-colors"
-                />
+                <div className="relative" aria-busy={drawing || undefined} aria-label={drawing ? tx(lang, 'loading_model') : undefined}>
+                  <div
+                    ref={host}
+                    className="h-[320px] md:h-[400px] w-full rounded-lg border border-border bg-gradient-to-b from-secondary/40 to-background overflow-hidden transition-colors"
+                  />
+                  {drawing ? <Skeleton className="absolute inset-0 h-full w-full rounded-lg" /> : null}
+                </div>
               )}
               <div className="mt-1.5 text-[11.5px] text-muted-foreground">{tx(lang, 'model_hint')}</div>
             </div>

@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useRef, useState } from 'react';
 import { urlLocale, applyDocumentLocale, adoptLocale } from '@/lib/documentLocale';
 import { supaClient } from '@/lib/supaClient';
 // 14 Sep 2026: the row-#5 intelligence panels are no longer top-level tabs; ./supplier/Insights loads
@@ -39,6 +39,9 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+// The one loading system (src/components/ui/busy.tsx): 150ms before anything shows, 300ms once it does.
+import { Spinner, useBusy, useDelayedFlag } from '@/components/ui/busy';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/BrandMark';
 
@@ -140,10 +143,14 @@ function BillingPanel({ token, lang, receipt }) {
   useEffect(() => { load(); }, [token]);
   // A disputed charge goes to the sales engineer, who has the accountant check it against the payment
   // record; the answer arrives by email from customer_support.
+  // It said NOTHING between the prompt and the alert (18 Sep 2026) — on a slow line the supplier had
+  // no way to tell a sent dispute from an ignored press, and could send the same one twice. useBusy
+  // closes the double-press window from ms 0 and carries the ring after 150ms.
+  const disp = useBusy();
   const dispute = async (dueId) => {
     const reason = window.prompt(lang === 'ar' ? 'ما سبب اعتراضك على هذه الرسوم؟' : 'What is wrong with this charge?');
     if (!reason) return;
-    const j = await call('supplier_api', { action: 'dispute_charge', due_id: dueId, reason }, token);
+    const j = await disp.run('d' + dueId, () => call('supplier_api', { action: 'dispute_charge', due_id: dueId, reason }, token));
     window.alert(j && j.ok
       ? (lang === 'ar' ? 'استلمنا اعتراضك. نراجع الرسوم مقابل سجل الدفع وسنراسلك.' : 'We have your query. We are checking the charge against the payment record and will write back to you.')
       : t(lang, 'err_generic'));
@@ -171,8 +178,11 @@ function BillingPanel({ token, lang, receipt }) {
             </div>
             <div className="text-right">
               <div className={S.sub}>{d.due_date ? <>{t(lang, 'bill_due')} <Ltr>{fmtDate(d.due_date, lang)}</Ltr></> : ''}</div>
-              <button type="button" className="text-[12px] underline text-muted-foreground" onClick={() => dispute(d.id)}>
-                {lang === 'ar' ? 'الاعتراض على هذه الرسوم' : 'Dispute this charge'}
+              <button type="button" disabled={disp.pending} aria-busy={(disp.busy && disp.key === 'd' + d.id) || undefined}
+                className="inline-flex items-center gap-1.5 text-[12px] underline text-muted-foreground disabled:opacity-60" onClick={() => dispute(d.id)}>
+                {disp.busy && disp.key === 'd' + d.id
+                  ? <><Spinner />{lang === 'ar' ? 'جارٍ إرسال اعتراضك…' : 'Sending your query…'}</>
+                  : (lang === 'ar' ? 'الاعتراض على هذه الرسوم' : 'Dispute this charge')}
               </button>
             </div>
           </div>
@@ -465,7 +475,11 @@ export function SupplierPortal() {
           {phase === 'app' && <Button variant="outline" size="sm" onClick={doSignOut}>{t(lang, 'signout')}</Button>}
         </div>
       </header>
-      <main id="qd-portal-main">
+      {/* id="main", not "qd-portal-main": the skip link the layout renders before the header points
+          at #main (app/[locale]/layout.tsx), and on 18 Sep 2026 it pointed at nothing here — the id
+          it had was referenced by no CSS, no script and no test, so the first focusable element on
+          the supplier portal did nothing at all. */}
+      <main id="main">
       {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
         {/* An invited supplier is told whose listing this is, before anything else on the page. */}
         {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
@@ -742,6 +756,9 @@ function Dashboard({ token, lang, onExpired }) {
   // request warmSupplier started with the token; every later load asks fresh.
   // Only the latest request may write: an older answer arriving late must not overwrite a newer one.
   const seq = useRef(0);
+  // busy-exempt: the affordance is the absence of `ov` — the dashboard renders its aria-busy
+  // redaction-bar card until this resolves, and resolves into `err` on failure. A second flag here
+  // would be a second source of truth for the same state. (docs/CONVENTIONS_LOADING.md)
   const load = async (first = false) => { const n = ++seq.current; const j = await (first ? take(token, DASH_KEY, () => fetchDashboard(token)) : fetchDashboard(token)); if (n !== seq.current) return; if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
   useEffect(() => { load(true); }, [token]);
   // On leaving Messages only the bell's counts are read again (two reads, not the whole dashboard), so
@@ -766,6 +783,17 @@ function Dashboard({ token, lang, onExpired }) {
       }
     } catch (_e) {}
   }, []);
+  // THE SWITCH WINDOW (18 Sep 2026). Pressing a tab said nothing at all on this side, while the
+  // customer's tabs get a ModuleLoading skeleton. Each supplier tab owns its own fetch, so the parent
+  // cannot see a child's data arrive — but it CAN see what the press costs: useDeferredValue keeps the
+  // panel already on screen while the new tab renders at low priority, and `switching` is exactly that
+  // render, which on a phone is the whole of a heavy tab's mount. The redaction bars sit ABOVE the
+  // still-mounted old panel rather than replacing it — replacing it would unmount the child and restart
+  // the very fetch being waited on — and appear only past 150ms (busy.tsx rule 1), so a light tab
+  // never flashes them.
+  const shownTab = useDeferredValue(tab);
+  const switching = shownTab !== tab;
+  const switchBars = useDelayedFlag(switching);
   // Every panel's goTo(...) lands here. Old tab keys still resolve: 'inbox' is the RFQs list, and the
   // intelligence keys open their panel inside Insights.
   const go = (k) => {
@@ -816,25 +844,32 @@ function Dashboard({ token, lang, onExpired }) {
         </nav>
       </div>
       <SupplierCommandPalette tabs={[...MAIN_TABS, ...ACCOUNT_TABS]} labels={TAB} onGo={go} lang={lang} />
-      {tab === 'services' && <ServicesTab token={token} lang={lang} goTo={go} />}
-      {tab === 'rfqs' && <InquiriesTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} onQuote={(id) => { setFocusRfq(id); setTab('quotes'); }}
+      {/* aria-busy sits on the INCOMING skeleton, not on the wrapper: the previous tab under it
+          is still valid, rendered content, and marking it busy tells assistive tech to ignore
+          something that is not stale. The status node is what announces the switch. */}
+      <div>
+      <span className="sr-only" role="status" aria-live="polite">{switching ? (ar ? "جارٍ التحميل" : "Loading") : ""}</span>
+      {switchBars && <Card aria-busy className="qd-panel mb-3 p-5"><Skeleton className="w-1/3" /><Skeleton className="mt-3" /><Skeleton className="mt-2 w-2/3" /></Card>}
+      {shownTab === 'services' && <ServicesTab token={token} lang={lang} goTo={go} />}
+      {shownTab === 'rfqs' && <InquiriesTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} onQuote={(id) => { setFocusRfq(id); setTab('quotes'); }}
         renderQuoteForm={(inq, done) => <QuoteForm inquiry={inq} token={token} lang={lang} onDone={done} />} />}
-      {tab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
+      {shownTab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => setFocusRfq(null)} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
       {/* Messages holds the revealed jobs (Projects) above the conversations, behind the reveal gate. */}
-      {tab === 'messages' && <SupplierMailbox token={token} lang={lang} goTo={go}
+      {shownTab === 'messages' && <SupplierMailbox token={token} lang={lang} goTo={go}
         jobs={(open) => <Projects token={token} lang={lang} openChat={open} />} />}
       {/* The registration checklist heads Documents, next to the uploads it asks for; after an upload the
           dashboard is read again so the checklist and document impact reflect the new file. */}
-      {tab === 'documents' && <>
+      {shownTab === 'documents' && <>
         <GetMatched token={token} lang={lang} go={go} initial={ov.eligibility || null} />
         <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={go} initial={ov.document_impact || null} /></div>
         <Documents token={token} lang={lang} onSaved={load} />
         <div className="mt-4"><SupplierSupportingDocuments token={token} lang={lang} /></div>
       </>}
-      {tab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
-      {tab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
-      {tab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} />}
-      {tab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={(l) => adoptLocale(l, setLang)} />}
+      {shownTab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
+      {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
+      {shownTab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} />}
+      {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={(l) => adoptLocale(l, setLang)} />}
+      </div>
     </div>
   );
 }

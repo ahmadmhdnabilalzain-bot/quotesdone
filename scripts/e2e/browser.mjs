@@ -126,6 +126,29 @@ export async function openPortal(page, url, calls, navSelector = PORTAL_READY) {
   return { shellMs, dataMs, calls: mine.length, breakdown };
 }
 
+/**
+ * A full-page capture TAKEN FROM THE TOP OF THE DOCUMENT.
+ *
+ * WHY THE SCROLL. `page.screenshot({ fullPage: true })` paints `position: sticky` / `position:
+ * fixed` chrome where it is STUCK at the moment of capture, then stitches that into an image of the
+ * whole document — so a bar that a user only ever sees at the top of the window lands in the middle
+ * of the picture, on top of whatever the document has at that offset. Measured 18 Sep 2026 on
+ * https://quotesdone.com/portal: the supplier top bar's getBoundingClientRect().top is 0 at every
+ * scroll offset (0 / 400 / 900, EN + AR, 1440x900 and 375x812), yet the same page captured with
+ * fullPage while scrolled 275px put the bar across a paragraph. The founder read two of the merged
+ * #725 captures (en_desktop_04 at y=158, en_desktop_07 at y=681) as a bar "moving up and down when
+ * you scroll" and covering a job card. Nothing was wrong with the page; the capture was wrong.
+ *
+ * Scrolling to 0 first costs nothing — fullPage already captures the whole document — and makes the
+ * picture agree with what a supplier sees.
+ */
+export async function fullPageShot(page, file) {
+  await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: file, fullPage: true }).catch(() => {});
+  return file;
+}
+
 export async function shot(page, dir, name) {
   const file = `${dir}/${name.replace(/[^a-z0-9_.-]+/gi, '_')}.png`;
   await page.screenshot({ path: file, fullPage: false }).catch(() => {});

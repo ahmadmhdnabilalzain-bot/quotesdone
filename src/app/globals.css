@@ -313,6 +313,36 @@ html:not(.qd-awake) :is(.node-dot,.beam)::after{animation-play-state:paused}
   background:radial-gradient(closest-side,rgba(20,184,166,.20),rgba(20,184,166,.07) 50%,transparent 72%)}
 @keyframes qd-rotate{to{transform:rotate(360deg)}}
 
+/* ══════════════════════════════════════════════════════════════════════
+   2b · LOADING — the one system (founder instruction, 18 Sep 2026)
+   CSS, not motion/react: the bundle is already 1.35 MB and a rotating ring and a growing bar are
+   two properties. Rules and components live in src/components/ui/busy.tsx; the standing convention
+   is docs/CONVENTIONS_LOADING.md. The redaction bar (.redact, above) remains the loading state for
+   CONTENT; these two are for ACTIONS and for ROUTE CHANGES.
+
+   RTL: the ring is a rotation, which has no reading direction — it is deliberately NOT reversed,
+   because a counter-clockwise spinner reads as "undoing" in every locale. The bar is the one with a
+   direction, and it grows from inset-inline-start, so in Arabic it fills right-to-left on its own
+   with no [dir] rule at all.
+   Reduced motion: a STATIC ring and a STATIC bar — an indicator that is present but still, never
+   nothing. The ring keeps its gap so it still reads as a loading glyph rather than an "o".
+   ══════════════════════════════════════════════════════════════════════ */
+.qd-spin{display:inline-block;width:1em;height:1em;flex:none;border-radius:99px;vertical-align:-.125em;
+  border:2px solid currentColor;border-inline-end-color:transparent;opacity:.85;
+  animation:qd-rotate .7s linear infinite}
+.qd-routebar{position:fixed;inset-block-start:0;inset-inline:0;height:2px;z-index:90;pointer-events:none}
+/* scaleX, not width: the bar animates for seconds at a time, and a transform composites where a
+   width change relayouts. transform-origin has no logical keyword, so it is the ONE thing here
+   that needs a [dir] rule. */
+.qd-routebar::before{content:'';position:absolute;inset:0;transform-origin:left center;
+  transform:scaleX(var(--qd-progress,0));
+  background:var(--teal-light);box-shadow:0 0 10px rgba(110,231,212,.55);transition:transform .2s linear}
+[dir="rtl"] .qd-routebar::before{transform-origin:right center}
+@media (prefers-reduced-motion:reduce){
+  .qd-spin{animation:none}
+  .qd-routebar::before{transition:none}
+}
+
 /* technical grid + measurement ticks */
 .grid-tech{position:absolute;inset:0;z-index:0;pointer-events:none;
   background-image:linear-gradient(rgba(110,231,212,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(110,231,212,.055) 1px,transparent 1px);

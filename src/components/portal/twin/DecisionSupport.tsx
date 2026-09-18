@@ -24,6 +24,8 @@
 //     stated lead times is shown, so "fastest" is never a guess presented as a fact.
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDelayedFlag } from '@/components/ui/busy';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
@@ -104,6 +106,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
   const [chase, setChase] = useState<Chase[]>([]);
   const [minN, setMinN] = useState(5);
   const [state, setState] = useState<'loading' | 'ok' | 'failed'>('loading');
+  const slow = useDelayedFlag(state === 'loading');
 
   useEffect(() => {
     let on = true;
@@ -143,7 +146,22 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
   // recommend, nothing quiet and no category history, this renders nothing at all and the
   // overview keeps the space.
   const empty = !rec.length && !mkt.length && !chase.length;
-  if (state === 'loading' || (state === 'ok' && empty)) return null;
+  // Below 150ms this panel stays absent rather than flashing bars it is about to replace — and a
+  // load that resolves to "nothing to say" was showing a heading over an empty card. See busy.tsx.
+  if (state === 'loading') {
+    if (!slow) return null;
+    return (
+      <Card className="p-3.5" aria-busy="true" aria-label={L(lang, 'Working out what to recommend…', 'جارٍ تحديد ما نوصي به…')}>
+        <div className={S.label}>{L(lang, 'Help me decide', 'ساعدني في القرار')}</div>
+        <div className="mt-2 space-y-1.5">
+          <Skeleton className="h-3.5 w-2/5" />
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-4/5" />
+        </div>
+      </Card>
+    );
+  }
+  if (state === 'ok' && empty) return null;
   if (state === 'failed') {
     return (
       <Card className="p-3.5">

@@ -11,11 +11,13 @@
 //
 // Presented as a command bar (Sealed homepage): the field, its examples and the submit sit in one
 // machined surface; Enter submits, Shift+Enter breaks a line.
-import { useId, useRef, useState } from 'react';
+import { useId, useRef, useState, useTransition } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from '@/i18n/routing';
 import { publicSite, saveDraft } from '@/lib/publicSite';
 import s from '@/components/home/sealed.module.css';
+import { Spinner, useDelayedFlag } from '@/components/ui/busy';
+import { startRouteProgress } from '@/components/ui/route-progress';
 
 type Result = {
   ok: boolean; recognised?: boolean; category?: string; label?: string; emirate?: string | null;
@@ -51,9 +53,16 @@ export function BriefBox() {
     finally { setBusy(false); }
   }
 
+  // The router call itself is the slow part (it pulls the customer-portal bundle), so the busy
+  // state has to live on the transition, not on saveDraft.
+  const [going, startGoing] = useTransition();
+  const goingShown = useDelayedFlag(going);
+  const busyShown = useDelayedFlag(busy);
+
   function proceed() {
     saveDraft({ text: text.trim(), category: res?.category ?? null, emirate: res?.emirate ?? null });
-    router.push('/me?draft=1');
+    startRouteProgress();
+    startGoing(() => router.push('/me?draft=1'));
   }
 
   return (
@@ -92,8 +101,9 @@ export function BriefBox() {
                   key={ex}
                   type="button"
                   dir="auto"
+                  disabled={busy}
                   onClick={() => { setText(ex); check(ex); }}
-                  className="rounded-full px-3 py-1.5 text-[12px] text-muted shadow-[inset_0_0_0_1px_rgba(110,231,212,.14)] transition-[color,box-shadow] duration-300 hover:text-white hover:shadow-[inset_0_0_0_1px_rgba(110,231,212,.4)]"
+                  className="rounded-full px-3 py-1.5 text-[12px] text-muted shadow-[inset_0_0_0_1px_rgba(110,231,212,.14)] transition-[color,box-shadow] duration-300 hover:text-white hover:shadow-[inset_0_0_0_1px_rgba(110,231,212,.4)] disabled:cursor-progress disabled:opacity-50"
                 >
                   {/* An example in the other language is tagged, so it reads as the bilingual router it
                       demonstrates. The tag follows the page direction and the example is isolated in
@@ -111,8 +121,10 @@ export function BriefBox() {
             <button
               type="submit"
               disabled={busy}
-              className="press shrink-0 rounded-full bg-teal px-5 py-2.5 text-[14px] font-bold text-[#04231F] shadow-[0_14px_36px_-16px_rgba(20,184,166,.85)] transition-colors hover:bg-[#1ED0BC] disabled:cursor-progress"
+              aria-busy={busyShown || undefined}
+              className="press inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-teal px-5 py-2.5 text-[14px] font-bold text-[#04231F] shadow-[0_14px_36px_-16px_rgba(20,184,166,.85)] transition-colors hover:bg-[#1ED0BC] disabled:cursor-progress"
             >
+              {busyShown ? <Spinner /> : null}
               {busy ? t('busy') : t('submit')}
             </button>
           </div>
@@ -170,8 +182,11 @@ export function BriefBox() {
               <button
                 type="button"
                 onClick={proceed}
-                className="press mt-5 w-full rounded-full bg-teal px-5 py-3 text-[14.5px] font-bold text-[#04231F] transition-colors hover:bg-[#1ED0BC] sm:w-auto"
+                disabled={going}
+                aria-busy={goingShown || undefined}
+                className="press mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-teal px-5 py-3 text-[14.5px] font-bold text-[#04231F] transition-colors hover:bg-[#1ED0BC] disabled:cursor-progress sm:w-auto"
               >
+                {goingShown ? <Spinner /> : null}
                 {t('continue')}
               </button>
               <p className="mt-2 text-[12px] text-faint">{t('continueNote')}</p>

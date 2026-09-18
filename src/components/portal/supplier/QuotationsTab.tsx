@@ -4,6 +4,7 @@
 // adjusted and submitted. A quote the hold desk is holding for exact details shows its panel here too
 // (./SpecHold — the two ways out: fill in the details, or send a revised quotation in the chat).
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'motion/react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -38,15 +39,19 @@ export function QuotationsTab({ token, lang, focus = null, onFocused, openInquir
   const [list, setList] = useState<InquiryListItem[] | null>(null);
   const [err, setErr] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  const reduce = useReducedMotion();
   const alive = useRef(true);
   const load = useCallback(() => qr.inquiries(token).then((j) => { if (!alive.current) return; if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setList(j.inquiries); }), [token, lang, t.err]);
   useEffect(() => { alive.current = true; load(); return () => { alive.current = false; }; }, [load]);
   useEffect(() => {
     if (!focus || !list) return;
     setOpen(focus);
-    requestAnimationFrame(() => document.getElementById('qd-qt-' + focus)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    // reduce ? 'auto' : 'smooth' — the same gate every other scrollIntoView in the portal uses
+    // (CustomerPortal, NewRequest). A supplier who asked the OS for reduced motion was still given a
+    // smooth-scrolled page here (a11y review, 18 Sep 2026).
+    requestAnimationFrame(() => document.getElementById('qd-qt-' + focus)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }));
     onFocused?.();
-  }, [focus, list, onFocused]);
+  }, [focus, list, onFocused, reduce]);
 
   if (err) return <Card role="alert" className="qd-panel p-5 text-[13px]">{err}</Card>;
   if (!list) return <Card className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t.loading}</Card>;

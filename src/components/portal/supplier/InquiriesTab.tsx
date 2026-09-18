@@ -9,6 +9,7 @@
 // scrubbers: only redacted drawings and the scrubbed BOQ are ever offered, and nothing identifies the
 // customer before a reveal.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -137,13 +138,15 @@ export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, re
   const [list, setList] = useState<InquiryListItem[] | null>(null);
   const [err, setErr] = useState('');
   const [open, setOpen] = useState<string | null>(null);
+  const reduce = useReducedMotion();
   useEffect(() => { let on = true; qr.inquiries(token).then((j) => { if (!on) return; if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setList(j.inquiries); }); return () => { on = false; }; }, [token, lang, t.err]);
   useEffect(() => {
     if (!focus || !list) return;
     setOpen(focus);
-    requestAnimationFrame(() => document.getElementById('qd-inq-' + focus)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    // reduce ? 'auto' : 'smooth' — the gate every other scrollIntoView in the portal already uses.
+    requestAnimationFrame(() => document.getElementById('qd-inq-' + focus)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }));
     onFocused?.();
-  }, [focus, list, onFocused]);
+  }, [focus, list, onFocused, reduce]);
 
   if (err) return <Card role="alert" className="qd-panel p-5 text-[13px]">{err}</Card>;
   if (!list) return <Card className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t.loading}</Card>;
