@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T02:33:37.162Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T03:43:15.156Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -5886,7 +5886,7 @@ CREATE TABLE IF NOT EXISTS public.review_chain (
   id bigint DEFAULT nextval('review_chain_id_seq'::regclass) NOT NULL,
   subject_type text NOT NULL,
   subject_id text NOT NULL,
-  dept_key text NOT NULL,
+  dept_key text,
   author_agent text NOT NULL,
   reviewer_agent text,
   stage text NOT NULL,
@@ -25215,14 +25215,14 @@ declare
   v_records jsonb; r jsonb; v_rid text; v_n int := 0;
   reg public.company_registration%rowtype;
   -- 6 SEP 2026: the two supplier loops (acquisition, sanctions screening) — live values for the record below
-  v_golive boolean; v_reg_target text; v_reg_month text; v_bd text; v_co text; v_last_un text; v_last_uae text;
+  v_golive boolean; v_reg_target text; v_reg_month text; v_supply_owner text; v_co text; v_last_un text; v_last_uae text;
   v_hits_open int; v_invited int; v_registered int; v_followups int; v_intake int;
 begin
   v_golive := public.fn_supplier_outreach_golive();
   select coalesce(target_value::text, '300') into v_reg_target from public.company_goals where key = 'suppliers_registered_monthly';
   select coalesce(actual_value::text, '0') || ' (measured ' || coalesce(to_char(measured_at, 'DD Mon YYYY HH24:MI'), 'not yet') || ' UTC)'
-    into v_reg_month from public.employee_kpi where agent_key = 'bd' and kpi = 'Suppliers registered per month' and active;
-  select display_name into v_bd from public.org_role where role_id = 'business_development';
+    into v_reg_month from public.employee_kpi where agent_key = 'sales_engineer' and kpi = 'Suppliers registered per month' and active;
+  select display_name into v_supply_owner from public.org_role where role_id = 'sales_engineer';
   select display_name into v_co from public.org_role where role_id = 'ceo';
   select entries || ' entries, fetched ' || to_char(fetched_at, 'DD Mon YYYY HH24:MI') || ' UTC, sha256 ' || left(coalesce(sha256, '?'), 12) || ', ' || status
     into v_last_un from public.screening_run where source = 'un_consolidated' and run_tag is null order by id desc limit 1;
@@ -25534,24 +25534,24 @@ begin
         'sanctions','sanctions screening','UN consolidated list','UAE terrorist list','local terrorist list','screening hit','banned supplier',
         'who owns supplier acquisition','who screens suppliers','compliance officer','business development manager','weekly screening','when do we screen']),
       'content',
-        'SUPPLIER ACQUISITION LOOP (founder decision 6 Sep 2026). Owner: ' || coalesce(v_bd, 'Business Development Manager') || ' (org_role business_development, agent bd, department supply) — '
+        'SUPPLIER ACQUISITION LOOP (founder decision 6 Sep 2026). Owner: ' || coalesce(v_supply_owner, 'Sales Engineer') || ' (org_agents.sales_engineer; there are no departments) — '
         'no new employee was created; this is that role''s existing responsibility. Target: at least ' || v_reg_target || ' suppliers registered every month '
         '(company_goals.suppliers_registered_monthly; the BD scorecard KPI "Suppliers registered per month", measured from leads registration timestamps). '
         'This month so far: ' || coalesce(v_reg_month, '0 (not measured yet)') || '. Sources: the leads we already hold (' || v_invited || ' invited to date, '
         || v_registered || ' registered), inbound e-mail (senders on business domains become leads; supplier-intent replies are classified by keyword — no model — into '
-        'register / question / document / decline / bounce and become ONE reply task on the BD manager; ' || v_intake || ' classified so far), and the staged directory '
+        'register / question / document / decline / bounce and become ONE reply task on the sales engineer; ' || v_intake || ' classified so far), and the staged directory '
         'promoted daily by supplier_discovery_daily. No scraping (Apify paused) and no paid inference anywhere in the loop. Cadence: supplier_invites_daily 09:00 UTC '
         '(the invitation batch, capped, deliverability-guarded) and supplier_outreach_daily 05:30 UTC (follow-ups at +3 and +7 WORKING days after a delivered '
         'invitation, at most two, never to a lead that replied, registered, bounced or is suppressed; ' || v_followups || ' follow-ups sent to date; inbox intake; lead sourcing). '
         'THE SWITCH: app_secrets.supplier_outreach_golive is ' || case when v_golive then 'TRUE — outreach is LIVE.' else 'FALSE — every part of the loop is HELD and records "held" on each run; the founder flips it when the app is ready ("none of this will run till the app is perfect").' end
         || ' Both it and invite_enabled must be true before an invitation is written.' || E'\n\n' ||
-        'WEEKLY SANCTIONS SCREENING (founder decision 6 Sep 2026). Owner: ' || coalesce(v_co, 'Compliance & Privacy Officer') || ' (org_role compliance_and_privacy_officer, agent compliance_mgr, '
-        'department legal — the actor of supplier_onboarding step 4 "Compliance screen before anything is activated"). Cadence: sanctions_screen_weekly, Mondays 03:00 UTC (07:00 Dubai). '
+        'WEEKLY SANCTIONS SCREENING (founder decision 6 Sep 2026). Owner: ' || coalesce(v_co, 'Chief Executive (AI)') || ' (org_agents.ceo — a confirmed hit removes a supplier and every approval is the CEO''s; '
+        'the sales engineer holds the outreach while the decision is open). Cadence: sanctions_screen_weekly, Mondays 03:00 UTC (07:00 Dubai). '
         'Sources: the UN Security Council consolidated list (XML; last: ' || coalesce(v_last_un, 'not fetched yet') || ') and the UAE Local Terrorist List from the Executive Office '
         'for Control & Non-Proliferation (published as PDF and legacy Excel only — the Excel is parsed, the PDF is not; last: ' || coalesce(v_last_uae, 'not fetched yet') || '). '
         'Every registered supplier is screened on legal name, licence name, owner, contact and e-mail domain by normalised exact match and conservative token overlap. '
-        'A hit opens ONE task on the compliance officer with the evidence and ONE hold on the BD manager — the team is updated, never the founder — and NOBODY is removed automatically: '
-        'the compliance officer decides (fn_supplier_screening_decide), and a CONFIRMED hit moves the supplier through the existing status path (banned, matching blocked, approval withdrawn). '
+        'A hit opens ONE decision task on the ceo with the evidence and ONE hold on the sales engineer — the team is updated, never the founder — and NOBODY is removed automatically: '
+        'the ceo decides (fn_supplier_screening_decide), and a CONFIRMED hit moves the supplier through the existing status path (banned, matching blocked, approval withdrawn). '
         'Open hits right now: ' || v_hits_open || '. Records: screening_run (source, entries, fetched_at, sha256), screening_entry, supplier_screening_hit.'),
 
     -- 6 SEP 2026 (LAST on purpose — every sibling file of the day restates this function and the last record
@@ -51356,7 +51356,7 @@ AS $function$
 declare
   v_reh boolean := p_rehearsal_tag is not null;
   v_suppliers int := 0; v_entries int := 0; v_new int := 0; v_leads_hit int := 0; v_open int := 0;
-  v_sources text; r record; h record; v_task bigint; v_bd bigint; v_title text; v_bd_title text; v_hits text;
+  v_sources text; r record; h record; v_task bigint; v_hold bigint; v_title text; v_hold_title text; v_hits text;
 begin
   select string_agg(distinct source || ' (' || entries || ' entries, fetched ' || to_char(fetched_at, 'DD Mon YYYY HH24:MI') || ' UTC, sha256 ' || left(coalesce(sha256, '?'), 12) || ')', '; ')
     into v_sources from public.screening_run where id = any(p_run_ids);
@@ -51393,7 +51393,9 @@ begin
     if found then v_new := v_new + 1; end if;
   end loop;
 
-  -- the team update: one task on compliance with the evidence, one on BD to hold outreach; never the founder
+  -- THE TEAM UPDATE, ON SEATS THAT EXIST (18 Sep 2026). One DECISION task on the ceo, because a confirmed
+  -- hit removes a supplier and every approval in this company is the CEO's; one HOLD on the sales_engineer,
+  -- because supplier verification and supplier-facing outreach are that seat's work. Never the founder.
   for r in
     select x.lead_id, l.company_name, count(*) as n,
            string_agg(format('%s %L matched %L [%s %s] %s, score %s', x.field, x.supplier_value, x.entry_name, x.entry_source, x.entry_reference, x.match_kind, x.score), E'\n' order by x.score desc, x.id) as ev,
@@ -51406,26 +51408,26 @@ begin
     select id into v_task from public.org_tasks where title = v_title and status not in ('done', 'cancelled') order by id limit 1;
     if v_task is null then
       insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, assigned_agent)
-      values ('legal', v_title,
+      values (null, v_title,
               'The weekly sanctions screening (' || coalesce(v_sources, 'fixture run') || ') matched a REGISTERED supplier. EVIDENCE:' || E'\n' || r.ev
               || E'\n\n' || 'No automatic removal has happened. Compare the supplier''s trade licence, owner and address against the listing and decide, per hit: '
-              || 'select public.fn_supplier_screening_decide(<hit_id>, ''confirmed'' | ''false_positive'', ''compliance_mgr''). '
-              || 'A confirmed hit moves the supplier through the existing status path (leads.banned + banned_reason, matching_blocked, approval_status rejected) and closes this task and the BD hold; a false positive closes the hit. '
+              || 'select public.fn_supplier_screening_decide(<hit_id>, ''confirmed'' | ''false_positive'', ''ceo''). '
+              || 'A confirmed hit moves the supplier through the existing status path (leads.banned + banned_reason, matching_blocked, approval_status rejected) and closes this task and the sales engineer''s hold; a false positive closes the hit. '
               || 'Hit id(s): ' || r.ids || '.',
-              'assigned', 'supervised', false, 'compliance_check', 'compliance_mgr')
+              'assigned', 'supervised', false, 'compliance_check', 'ceo')
       returning id into v_task;
     end if;
-    v_bd_title := 'Hold outreach and onboarding: ' || coalesce(r.company_name, 'lead #' || r.lead_id) || ' — lead #' || r.lead_id || ' (sanctions screening)';
-    select id into v_bd from public.org_tasks where title = v_bd_title and status not in ('done', 'cancelled') order by id limit 1;
-    if v_bd is null then
+    v_hold_title := 'Hold outreach and onboarding: ' || coalesce(r.company_name, 'lead #' || r.lead_id) || ' — lead #' || r.lead_id || ' (sanctions screening)';
+    select id into v_hold from public.org_tasks where title = v_hold_title and status not in ('done', 'cancelled') order by id limit 1;
+    if v_hold is null then
       insert into public.org_tasks (dept_key, title, detail, status, tier, needs_founder, action_class, assigned_agent)
-      values ('supply', v_bd_title,
-              'Compliance is reviewing a sanctions-screening match on this supplier (task #' || v_task || '). Send no invitation, follow-up or onboarding step to lead #' || r.lead_id
-              || ' until compliance decides; this task closes with that decision.',
-              'assigned', 'autonomous', false, 'coordinate', 'bd')
-      returning id into v_bd;
+      values (null, v_hold_title,
+              'The CEO is reviewing a sanctions-screening match on this supplier (task #' || v_task || '). Send no invitation, follow-up or onboarding step to lead #' || r.lead_id
+              || ' until the CEO decides; this task closes with that decision.',
+              'assigned', 'autonomous', false, 'coordinate', 'sales_engineer')
+      returning id into v_hold;
     end if;
-    update public.supplier_screening_hit set task_id = v_task, bd_task_id = v_bd
+    update public.supplier_screening_hit set task_id = v_task, bd_task_id = v_hold
      where lead_id = r.lead_id and status = 'open' and task_id is null;
     v_leads_hit := v_leads_hit + 1;
   end loop;
@@ -51442,7 +51444,7 @@ begin
           jsonb_build_object('suppliers', v_suppliers, 'entries', v_entries, 'hits_new', v_new, 'leads_hit', v_leads_hit, 'hits_open', v_open,
                              'runs', to_jsonb(p_run_ids), 'rehearsal', v_reh),
           'Sanctions screening: ' || v_suppliers || ' registered supplier(s) screened against ' || v_entries || ' list entries (' || coalesce(v_sources, 'no run') || '): '
-          || v_new || ' new hit(s) on ' || v_leads_hit || ' supplier(s); ' || v_open || ' open. A hit opens a compliance task and a BD hold; nobody is removed automatically.'
+          || v_new || ' new hit(s) on ' || v_leads_hit || ' supplier(s); ' || v_open || ' open. A hit opens ONE decision task on the ceo and ONE hold on the sales_engineer; nobody is removed automatically.'
           || case when v_reh then ' [rehearsal ' || p_rehearsal_tag || ']' else '' end, now(), now());
   return jsonb_build_object('suppliers', v_suppliers, 'entries', v_entries, 'hits_new', v_new, 'leads_hit', v_leads_hit, 'hits_open', v_open, 'sources', v_sources);
 end $function$
@@ -51513,7 +51515,7 @@ begin
 end; $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_supplier_screening_decide(p_hit_id bigint, p_decision text, p_actor text DEFAULT 'compliance_mgr'::text)
+CREATE OR REPLACE FUNCTION public.fn_supplier_screening_decide(p_hit_id bigint, p_decision text, p_actor text DEFAULT 'ceo'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -62058,6 +62060,7 @@ $CRON$);
 --   invite_target_per_trade
 --   job_eligibility_note
 --   marketing_golive
+--   meta_access_token
 --   meta_ad_account_id
 --   meta_autospend_golive
 --   meta_campaign_filter
