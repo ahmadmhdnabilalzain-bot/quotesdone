@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T04:37:29.959Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T05:00:29.691Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3575,7 +3575,8 @@ CREATE TABLE IF NOT EXISTS public.it_playbook (
   not_automatable_reason text,
   regression_check text NOT NULL,
   added_by text NOT NULL,
-  added_at timestamp with time zone DEFAULT now() NOT NULL
+  added_at timestamp with time zone DEFAULT now() NOT NULL,
+  typical_cause text
 );
 
 CREATE TABLE IF NOT EXISTS public.it_query_stat_snapshot (
@@ -33237,10 +33238,17 @@ CREATE OR REPLACE FUNCTION public.fn_it_ceo_silence_watch()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.support_ceo_report; n_told int := 0;
+declare r public.support_ceo_report; n_told int := 0; v_window interval;
 begin
+  select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
+  -- Same fault, same answer as fn_it_loop_reverify above: a hardcoded 4 h fallback here would keep
+  -- policing to a number nobody can see, after the row that is supposed to hold it had gone.
+  if v_window is null then
+    raise exception 'fn_it_ceo_silence_watch: seat_handoff_kind names no reply window for it.finding from it_engineer';
+  end if;
   for r in select * from public.support_ceo_report
-            where source_agent = 'it_engineer' and status = 'sent' and next_review_at < now()
+            where source_agent = 'it_engineer' and status = 'sent'
+              and least(next_review_at, created_at + v_window) < now()
               and not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.target_id = 'delivery.request:' || support_ceo_report.id)
             order by id loop
@@ -33249,7 +33257,7 @@ begin
         'event', 'The CEO has not answered an IT report: ' || left(r.subject, 120),
         'detail', 'The IT engineer reported this to the CEO at '
                   || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (Dubai) and it was due an answer by '
-                  || to_char(r.next_review_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || E'. Nobody has answered.\n\n'
+                  || to_char(least(r.next_review_at, r.created_at + v_window) at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || E'. Nobody has answered.\n\n'
                   || 'Report: ' || r.subject || E'\n\nIt stays open until the CEO answers it. Reference: support_ceo_report ' || r.id || '.',
         'dedupe_key', 'it_ceo_silent:' || r.id));
     n_told := n_told + 1;
@@ -35954,6 +35962,55 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_learning_from_playbook(p_handoff_id bigint)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p public.it_playbook; v_key text; i public.it_incident;
+begin
+  -- A handoff id that is not an it.finding handoff is a caller's mistake, not a refusal, and is said
+  -- so out loud: fn_it_loop_reverify only ever passes ids from its own filtered query, so this cannot
+  -- fire from the loop. null is reserved for the two REFUSALS below -- no incident, no playbook class.
+  select h.detail->>'issue_key' into v_key from public.agent_actions h
+   where h.id = p_handoff_id and h.kind = 'handoff' and h.detail->>'type' = 'it.finding';
+  if v_key is null then
+    raise exception 'fn_it_learning_from_playbook: % is not an open it.finding handoff', p_handoff_id;
+  end if;
+
+  p := public.fn_it_playbook_for(v_key);
+  if p.failure_class is null then return null; end if;
+
+  update public.it_incident
+     set cause                  = coalesce(nullif(btrim(cause), ''), p.typical_cause),
+         fix                    = coalesce(nullif(btrim(fix), ''), nullif(btrim(p.remedy), ''), p.not_automatable_reason),
+         regression_check       = coalesce(nullif(btrim(regression_check), ''), p.regression_check),
+         playbook_class         = coalesce(playbook_class, p.failure_class),
+         not_automatable_reason = coalesce(not_automatable_reason, p.not_automatable_reason),
+         recorded_by            = coalesce(recorded_by, 'it_engineer (playbook: ' || p.failure_class || ')'),
+         updated_at             = now()
+   where handoff_id = p_handoff_id
+  returning * into i;
+  -- No incident row -- the handoff never became a new bug. Nothing to learn, and nothing is wrong.
+  -- Tested on FOUND rather than on a separate exists() before the update: two statements with no lock
+  -- between them can disagree, and the record `i` would then be all-NULL and read as "incomplete".
+  if not found then return null; end if;
+
+  -- it_playbook.regression_check is NOT NULL and a CHECK constraint makes remedy-or-reason non-empty,
+  -- so a matched row always leaves a complete incident. If a later migration ever weakens that, this
+  -- must NOT raise: fn_it_loop_reverify runs it inside a `for` loop with no per-row trap, so one
+  -- poisoned incident would stop every OTHER handoff in the tick from closing or escalating -- and,
+  -- ordered by id, would do it again on every tick after. It warns, returns null, and the handoff
+  -- stays parked for a human, which is the same answer as an unknown class.
+  if coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.fix), '') = '' or coalesce(btrim(i.regression_check), '') = '' then
+    raise warning 'fn_it_learning_from_playbook: playbook % left incident % incomplete; leaving it parked', p.failure_class, i.id;
+    return null;
+  end if;
+  return p.failure_class;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_loop_open(p_issue_key text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -35996,9 +36053,15 @@ CREATE OR REPLACE FUNCTION public.fn_it_loop_reverify()
 AS $function$
 declare
   h public.agent_actions; f public.it_engineer_finding; v_window interval; v_rep jsonb; v_cleared boolean;
-  n_closed int := 0; n_esc int := 0; n_wait int := 0;
+  n_closed int := 0; n_esc int := 0; n_wait int := 0; n_playbook int := 0; v_class text;
 begin
   select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
+  -- Review finding, 18 Sep 2026: with no such row v_window is null, `now() > created_at + null` is
+  -- null, and EVERY handoff fell quietly into 'waiting' -- the loop would never escalate again and
+  -- would say nothing about why. A missing conversation row is a configuration fault, not a default.
+  if v_window is null then
+    raise exception 'fn_it_loop_reverify: seat_handoff_kind names no reply window for it.finding from it_engineer';
+  end if;
   for h in select * from public.agent_actions
             where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
               and status in ('pending', 'failed') order by id loop
@@ -36007,9 +36070,18 @@ begin
     -- closed and reopened (a later started_at is a different occurrence with its own loop).
     v_cleared := f.issue_key is null or f.closed_at is not null
                  or f.started_at > (h.detail->>'occurrence_started_at')::timestamptz;
-    -- A new bug that has cleared waits for what was learned (trigger z62, fn_it_attach_learning).
+
+    if v_cleared then
+      -- A new bug that has cleared needs what was learned (trigger z62). Where the playbook already
+      -- covers this failure class, the IT engineer records it from there and closes now; where it
+      -- does not, the handoff waits for a human, which is what the gate is for.
+      v_class := public.fn_it_learning_from_playbook(h.id);
+      if v_class is not null then n_playbook := n_playbook + 1; end if;
+    end if;
+
     if v_cleared and exists (select 1 from public.it_incident i where i.handoff_id = h.id
-                              and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = ''
+                              and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.fix), '') = ''
+                                   or coalesce(btrim(i.regression_check), '') = ''
                                    or (i.playbook_class is null and coalesce(btrim(i.not_automatable_reason), '') = ''))) then
       if not (h.detail ? 'awaiting_learning') then
         update public.agent_actions set detail = detail || jsonb_build_object('awaiting_learning', now()) where id = h.id;
@@ -36022,6 +36094,7 @@ begin
       perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
         'verified_by', 'it_engineer', 'verified_at', now(),
         'verdict', coalesce(f.close_note, 'the finding is no longer open'),
+        'learning_from_playbook', v_class,
         'reply_before_close', h.detail ? 'replied_at'));
       perform set_config('qd.handoff_closer', '', true);
       update public.support_ceo_report
@@ -36052,7 +36125,7 @@ begin
       n_wait := n_wait + 1;
     end if;
   end loop;
-  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait);
+  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait, 'learned_from_playbook', n_playbook);
 end $function$
 
 
@@ -36222,6 +36295,20 @@ begin
           jsonb_build_object('job', 'playbook', 'issue_key', p_issue_key, 'failure_class', p.failure_class), p.remedy);
   return true;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_playbook_for(p_issue_key text)
+ RETURNS it_playbook
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select p.* from (
+    select b.* from public.it_playbook b
+     where left(p_issue_key, length(b.issue_prefix)) = b.issue_prefix
+     order by length(b.issue_prefix) desc, b.failure_class limit 1) p
+   where coalesce(btrim(p.typical_cause), '') <> '';
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_refusal_is_policy(p_subject text, p_counts jsonb)
