@@ -25,7 +25,7 @@ import { join } from 'node:path';
 import { deflateSync, crc32 } from 'node:zlib';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, write } from './fixtures.mjs';
 import { makeInquiry, uploadObject, q } from '../staging/demo_factory.mjs';
-import { launch, signedInPage, openPortal, portalUrl, realErrors, SITE } from './browser.mjs';
+import { launch, signedInPage, openPortal, portalUrl, realErrors, fullPageShot, SITE } from './browser.mjs';
 
 const SHOTS = process.env.QD_SHOTS || join(tmpdir(), 'qd-quote-review');
 let REVIEW_API = process.env.QD_REVIEW_API || '';
@@ -89,7 +89,11 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
     await ctx.route(FN_URL, hop);
     await ctx.route(`${new URL(SITE).origin}/functions/v1/supplier_api`, hop);
   }
-  const shot = async (name) => { const f = join(SHOTS, `${lang}_${viewport}_${name}.png`); await page.screenshot({ path: f, fullPage: true }); report.shots.push(f); };
+  // fullPageShot, not page.screenshot({ fullPage: true }): a fullPage capture taken while the page is
+  // scrolled paints the sticky top bar at its stuck offset, in the middle of the picture, over the
+  // content that happens to be there. That is what made the merged #725 captures look like a bar
+  // "moving up and down when you scroll" (founder, 18 Sep 2026). See browser.mjs for the measurement.
+  const shot = async (name) => { const f = join(SHOTS, `${lang}_${viewport}_${name}.png`); await fullPageShot(page, f); report.shots.push(f); };
   const name = (s) => `${lang}/${viewport}: ${s}`;
   try {
     await openPortal(page, portalUrl('supplier', lang), calls);
@@ -107,6 +111,30 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
     await row.waitFor({ timeout: 30000 });
     step(name(`inquiry listed by job number ${job}`), (await row.innerText()).includes(job));
     await shot('01_inquiries_received');
+    // THE TOP BAR STAYS AT THE TOP OF THE WINDOW, AND HIDES NOTHING (founder, 18 Sep 2026: it
+    // "seems like it's moving up and down when you scroll down"). It is position:sticky top-0, so it
+    // does not move for a supplier — only a fullPage capture ever moved it. Measured here so the
+    // claim is a reading and not an opinion: at three scroll offsets the bar's top edge is 0, and a
+    // job row scrolled to by job number lands BELOW the bar, never under it — which is carried by
+    // `[id]{scroll-margin-top:92px}` in globals.css, 92px against a 57px bar.
+    const bar = await page.evaluate(async (id) => {
+      const frame = () => new Promise((r) => requestAnimationFrame(r));
+      const h = document.querySelector('header.qd-topbar');
+      // A renamed or removed bar must fail THIS step with its own message, not throw into the
+      // journey's catch-all where it would read as an opaque exception.
+      if (!h) return { tops: [], height: -1, rowTop: -1, missing: true };
+      const tops = [];
+      for (const y of [0, 400, 900]) { window.scrollTo(0, y); await frame(); await frame(); tops.push(Math.round(h.getBoundingClientRect().top)); }
+      const height = Math.round(h.getBoundingClientRect().height);
+      document.getElementById('qd-inq-' + id).scrollIntoView({ block: 'start' });
+      await frame(); await frame();
+      const rowTop = Math.round(document.getElementById('qd-inq-' + id).getBoundingClientRect().top);
+      window.scrollTo(0, 0);
+      return { tops, height, rowTop };
+    }, inquiryId);
+    step(name('the top bar stays at the top at every scroll offset, and covers nothing scrolled to'),
+      !bar.missing && bar.tops.length === 3 && bar.tops.every((t) => t === 0) && bar.rowTop >= bar.height,
+      `bar top at scroll 0/400/900 = ${bar.tops.join('/')}, bar height ${bar.height}, scrolled-to row top ${bar.rowTop}`);
     await row.click();
     const detail = page.locator(`#qd-inq-d-${inquiryId}`);
     await detail.getByText(job).first().waitFor({ timeout: 30000 });
