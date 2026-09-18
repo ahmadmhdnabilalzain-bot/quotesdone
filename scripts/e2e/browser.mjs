@@ -34,6 +34,67 @@ export async function launch() {
   }
 }
 
+/** Thrown when the HARNESS's own session is dead. Never a portal defect — see harnessSession(). */
+export class HarnessSignedOut extends Error {
+  constructor(msg) { super(HARNESS_SIGNED_OUT + ': ' + msg); this.name = 'HarnessSignedOut'; }
+}
+
+/**
+ * The words every harness-session failure is announced with — in the thrown message and in the step
+ * name run.mjs records — so one phrase is searchable across a report, a log and a workflow run.
+ *
+ * WHY IT MATTERS DOWNSTREAM. fn_it_journey_ingest assigns an owner from the JOURNEY LETTER alone
+ * (a/b/c/f -> sales_engineer, d/e -> accountant), so a FAIL step raised on journey f becomes a
+ * finding addressed to the sales_engineer. A harness failure delivered to a seat as their product
+ * defect is the same mislabelling this change exists to remove, one layer downstream, which is why
+ * report_to_it_engineer.mjs keeps that step out of the per-seat ingest — it identifies it by
+ * run.json's own harness_signed_out value rather than importing this constant, because that file's
+ * only other dependency is the database client and this module pulls in playwright.
+ */
+export const HARNESS_SIGNED_OUT = 'THE HARNESS IS SIGNED OUT';
+
+/**
+ * A SESSION OF THIS CONTEXT'S OWN — not a second copy of the first one.
+ *
+ * WHY. Every context used to be injected with the SAME session object the fixture minted once. The
+ * project runs jwt_exp 3600 with refresh-token ROTATION on and a 10 s reuse interval, so the first
+ * context to cross its refresh threshold rotates the pair and REVOKES the refresh token every other
+ * context is still holding. The next context to try to refresh is signed out — measured as journey f
+ * meeting a signed-out portal ~17 minutes into a run ("FAIL … offered: (empty)", "FAIL … 401"), and
+ * reported as a portal defect because a signed-out portal renders no navigation at all.
+ *
+ * Rejected alternatives. `autoRefreshToken: false` on the injected client is not ours to set — the
+ * PAGE constructs its own supabase-js client (src/lib/supaClient.ts) and a harness that reached in to
+ * disable refresh would stop exercising the refresh path real users depend on. A single shared session
+ * with refresh suppressed has the same problem one layer down.
+ *
+ * Minting per context is the fix: each password grant opens an INDEPENDENT refresh-token family, so
+ * one context rotating its own pair cannot revoke another's. A fixture made before this (or one that
+ * deliberately holds a fixed session) has no `newSession` and keeps the old behaviour.
+ */
+async function harnessSession(who) {
+  // NO SILENT FALLBACK TO `who.session`. Falling back to the shared session when `newSession` is
+  // absent would reopen this exact bug for the next fixture factory written from an older example,
+  // and it would do it the same way it happened the first time: no exception, no log, just a run
+  // whose evidence is wrong 17 minutes later. Every factory in fixtures.mjs attaches `newSession`;
+  // a `who` that does not is a harness mistake and says so here, at the point of use.
+  if (typeof who.newSession !== 'function') {
+    throw new HarnessSignedOut(`fixture ${who.email || '(unnamed)'} (${who.kind}) carries no newSession(), so every context would share one ` +
+      'refresh-token family and revoke it for the others. Add newSession to the factory in scripts/e2e/fixtures.mjs.');
+  }
+  // RETRIED, BECAUSE MINTING PER CONTEXT ASKS AUTH ~8x MORE OFTEN THAN HOLDING ONE SESSION DID.
+  // Measured on the 18 Sep production run of journey f: the password grant came back as
+  // "upstream request timeout" (not even JSON) on one of the eight contexts and took the whole
+  // journey with it. A gateway blip is not a signed-out session, and answering it as one would be
+  // the same mislabelling in the opposite direction. Three tries over ~3 s; if all three fail,
+  // something is genuinely wrong with the session and it says so.
+  let last;
+  for (let i = 0; i < 3; i++) {
+    try { return await who.newSession(); } catch (e) { last = e; await new Promise((r) => setTimeout(r, 500 + i * 1000)); }
+  }
+  throw new HarnessSignedOut(`could not mint a session for ${who.email} (${who.kind}) in 3 tries — ${String(last?.message).slice(0, 200)}`);
+}
+
 /**
  * A browser context signed in as `who` (a fixture from fixtures.mjs), in `lang` at `viewport`.
  * Returns { ctx, page, consoleErrors, calls } where calls records every edge-function round trip.
@@ -45,7 +106,7 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
     viewport: vp, locale: lang === 'ar' ? 'ar-AE' : 'en-GB',
     ...(viewport === 'mobile' ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
   });
-  const s = who.session;
+  const s = await harnessSession(who);
   await ctx.addInitScript(([k, s, lang]) => {
     try {
       localStorage.setItem(k.token, s.access_token);
@@ -111,13 +172,45 @@ export const realErrors = (errs) => errs.filter((e) => !IGNORABLE_CONSOLE.some((
 // and waiting for it cost 30 s per page on the first phone run.
 export const PORTAL_READY = 'nav:visible, button[aria-controls="qd-nav-more"]:visible';
 
+/**
+ * THE HARNESS SAYS SO ITSELF RATHER THAN LETTING A JOURNEY MISREAD IT.
+ *
+ * A 401 on a portal's own edge call, made with a session this harness minted moments ago, can only
+ * mean the harness's session died — and a signed-out portal renders no navigation, so every
+ * assertion after that point fails and reads like a product defect. That mislabelling is the
+ * expensive part: a whole run's evidence is silently WRONG, not merely missing. The portals answer
+ * their own refusals {ok:false} at HTTP 200 (src/components/portal/supplier/api.ts) and every
+ * function reserves 401 for a missing or invalid JWT, so 401 here is unambiguous.
+ *
+ * Exported because two journey-g steps navigate with page.goto instead of openPortal (they load a
+ * portal mid-sign-up, where the nav openPortal waits for does not exist yet) and must not be the
+ * one place a dead session can still be reported as a product assertion failure.
+ */
+export function assertHarnessSignedIn(calls, since, where) {
+  const dead = calls.filter((c) => c.at >= since && c.status === 401);
+  if (!dead.length) return;
+  throw new HarnessSignedOut(`${where} answered 401 on ${[...new Set(dead.map((c) => c.fn + (c.action ? ':' + c.action : '')))].join(', ')}` +
+    ' — the injected session is no longer valid. This is the harness, NOT a portal defect.');
+}
+
 export async function openPortal(page, url, calls, navSelector = PORTAL_READY) {
   const t0 = Date.now();
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await page.locator(navSelector).first().waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
+  const navUp = await page.locator(navSelector).first().waitFor({ state: 'visible', timeout: 30000 }).then(() => true).catch(() => false);
   const shellMs = Date.now() - t0;
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   const mine = calls.filter((c) => c.at >= t0);
+  assertHarnessSignedIn(calls, t0, url);
+  // A DEAD SESSION THAT NEVER GETS AS FAR AS A 401. supabase-js can decide on its own that the
+  // stored session is unusable and put the portal back on its sign-in screen without ever calling a
+  // function, so the 401 test above would see nothing. A portal that reached neither its navigation
+  // NOR a single edge call in 30 s has not loaded signed in, and saying "no navigation" about it is
+  // the same mislabelling one layer down. The two conditions together are what makes this safe: a
+  // portal that is merely slow still makes its calls, and one that is merely quiet still has a nav.
+  if (!navUp && !mine.length) {
+    throw new HarnessSignedOut(`${url} showed no portal navigation and made no edge-function call in ${shellMs} ms` +
+      ' — the page never loaded signed in. This is the harness, NOT a portal defect.');
+  }
   const dataMs = mine.length ? Math.max(...mine.map((c) => c.at)) - t0 : shellMs;
   // Each call as "<fn>:<action> @<start after navigation> +<duration>", in start order, so a slow
   // call and a call that waited for another are told apart in the report.
