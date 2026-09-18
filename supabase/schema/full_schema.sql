@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T05:29:44.284Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-18T05:41:09.927Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -48919,6 +48919,7 @@ CREATE OR REPLACE FUNCTION public.fn_schema_export()
  LANGUAGE sql
  SECURITY DEFINER
  SET search_path TO 'public'
+ SET lock_timeout TO '15s'
 AS $function$
 with t as (
   select c.relname as rel,
