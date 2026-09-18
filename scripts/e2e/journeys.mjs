@@ -6,7 +6,7 @@
 // and Arabic, desktop 1440 and mobile 375. Every step records PASS, FAIL or SKIP with the reason.
 import { writeFileSync } from 'node:fs';
 import { call, read, write, waitFor } from './fixtures.mjs';
-import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE } from './browser.mjs';
+import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE, assertHarnessSignedIn } from './browser.mjs';
 import { makeInquiry } from '../staging/demo_factory.mjs';
 
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
@@ -646,9 +646,21 @@ const NEVER = /sign\s*out|log\s*out|delete|remove|cancel|withdraw|refund|reveal|
 // control the busy state has disabled. Wait for the screen to go quiet, bounded, and SAY SO in the
 // step's detail when it does not: a destination that is still busy after three seconds is a finding
 // about the journey, not something to hide behind a longer timeout.
-const notBusy = (page, ms = 3000) => page
-  .waitForFunction(() => !document.querySelector('[aria-busy="true"]'), null, { timeout: ms })
-  .then(() => true).catch(() => false);
+// IT NAMES WHAT IS STILL BUSY. The note used to say only "STILL BUSY after 3000 ms", which is a
+// symptom with no subject: reading it back, there is no way to tell a never-cleared flag from a
+// slow fetch that is genuinely still in flight, and the two need opposite fixes. The 18 Sep note on
+// the supplier's Insights tab cost a whole re-measurement to attribute (it was the second stage of
+// a real two-stage load, not a stuck flag). The elements are cheap to read and settle it on sight.
+const notBusy = async (page, ms = 3000) => {
+  const quiet = await page.waitForFunction(() => !document.querySelector('[aria-busy="true"]'), null, { timeout: ms })
+    .then(() => true).catch(() => false);
+  if (quiet) return { quiet, what: '' };
+  const what = await page.evaluate(() => [...document.querySelectorAll('[aria-busy="true"]')]
+    .map((e) => `${e.tagName.toLowerCase()}.${(e.getAttribute('class') || '').split(/\s+/)[0] || '?'}` +
+                `${e.getAttribute('aria-label') ? '[' + e.getAttribute('aria-label') + ']' : ''}`)
+    .slice(0, 4).join(' + ')).catch(() => '(could not read)');
+  return { quiet, what };
+};
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // The phone's overflow sheet (customer portal only). The button carries aria-controls; the sheet
 // itself, #qd-nav-more, exists only while it is open, and go() closes it on every choice.
@@ -758,11 +770,13 @@ export async function journeyCrawl(ctx) {
           try {
             await btn.click({ timeout: 8000 });
             await s.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
-            const quiet = await notBusy(s.page);
+            const { quiet, what } = await notBusy(s.page);
             const ms = Date.now() - t0;
             const failed = s.calls.filter((c) => c.at >= t0 && (c.status >= 500 || c.status === 0)).map((c) => `${c.fn}:${c.action}:${c.status}`);
+            // The calls STILL IN FLIGHT are what separates "never cleared" from "still fetching".
+            const open = s.calls.filter((c) => c.at >= t0).length;
             rep.step(J, `${who.kind} ${tag(m)}: ${label}`, failed.length ? 'FAIL' : 'PASS',
-              `${ms} ms${quiet ? '' : ' — STILL BUSY after 3000 ms (aria-busy up when the crawl moved on)'}${failed.length ? ' failed calls ' + failed.join(', ') : ''}`,
+              `${ms} ms${quiet ? '' : ` — STILL BUSY after 3000 ms: ${what} (${open} call(s) since the press)`}${failed.length ? ' failed calls ' + failed.join(', ') : ''}`,
               { ms, shot: await shot(s.page, dir, `f_${who.kind}_${tag(m)}_${at}`) });
             // Every other button in this view, except those that spend, send, delete or sign out.
             // PRESS THE BUTTON THAT IS THERE, don't look it up again by its words. This used to read
@@ -846,7 +860,13 @@ export async function journeySignupWhatsApp(ctx) {
   {
     const s = await signedInPage(browser, yes, { lang: 'en' });
     try {
+      // These two steps load a portal MID-SIGN-UP, where the navigation openPortal waits for does
+      // not exist yet, so they navigate themselves - and would be the one place left where a dead
+      // harness session is reported as a product assertion failure. The same check, on its own.
+      const gT0 = Date.now();
       await s.page.goto(portalUrl('customer', 'en'), { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await s.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+      assertHarnessSignedIn(s.calls, gT0, 'the sign-up WhatsApp step (en)');
       const q1 = section(s.page);
       await q1.waitFor({ state: 'visible', timeout: 30000 });
       const title = (await q1.locator('h2').innerText()).replace(/\s+/g, ' ').trim();
@@ -871,7 +891,10 @@ export async function journeySignupWhatsApp(ctx) {
     const other = demoMobile();
     const s = await signedInPage(browser, no, { lang });
     try {
+      const gT0 = Date.now();
       await s.page.goto(portalUrl('customer', lang), { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await s.page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+      assertHarnessSignedIn(s.calls, gT0, `the sign-up WhatsApp step (${lang})`);
       const q2 = section(s.page);
       await q2.waitFor({ state: 'visible', timeout: 30000 });
       const title = (await q2.locator('h2').innerText()).replace(/\s+/g, ' ').trim();

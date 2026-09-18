@@ -17,7 +17,7 @@
 // statement about the supplier that the platform is in no position to make.
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { callShared } from './api';
 
 type Lang = 'en' | 'ar';
 type Reason = { key: string; applies: boolean; available?: boolean; text: string; similar_jobs?: number };
@@ -33,17 +33,13 @@ type Payload = {
   opportunities?: Opportunity[];
 };
 
-const FN = SUPA_FN;
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
+// THE THIRD COPY OF `call` IS GONE. This file and SupplierQuoteBuilder.tsx each carried a private,
+// byte-identical copy of the fetch helper — the exact thing ./api.ts's own header warns about ("a
+// second copy is how two error-handling behaviours start"), and both copies were weaker: no `_http`
+// on a non-2xx answer, and a bare `r.json()` that REJECTS on a non-JSON body instead of resolving to
+// { ok:false }. They also both fetched `opportunities` for themselves while sitting in the SAME
+// Insights panel, so every open of that tab made the identical call twice (measured 18 Sep 2026 on
+// production: 683 ms and 1375 ms, contending). `callShared` shares the one flight — see ./api.ts.
 
 const T = {
   en: {
@@ -84,7 +80,7 @@ export default function SupplierOpportunities({ token, lang = 'en' }:
 
   useEffect(() => {
     let live = true;
-    call('supplier_portal', { action: 'opportunities' }, token).then((j) => {
+    callShared('supplier_portal', { action: 'opportunities' }, token).then((j) => {
       if (!live) return;
       if (j && j.ok) setD(j); else setErr((j && (j.error || j.hint)) || 'load_err');
     }).catch(() => { if (live) setErr('load_err'); });

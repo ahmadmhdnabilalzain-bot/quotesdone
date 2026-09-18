@@ -20,7 +20,7 @@
 // the same approval gate, the same registration gate and the same identity scrubbing. A supplier
 // cannot reach a quote the platform would otherwise refuse by coming through this door instead.
 import React, { useEffect, useMemo, useState } from 'react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { call, callShared } from './api';
 import { Button } from '@/components/ui/button';
 
 type Lang = 'en' | 'ar';
@@ -43,17 +43,8 @@ type Rec = {
                  recommended_action?: string; basis?: string };
 };
 
-const FN = SUPA_FN;
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
+// The private copy of `call` this file carried is gone, for the reasons written at the head of
+// SupplierOpportunities.tsx: ./api.ts owns the one helper, and it is the stronger one.
 
 const T = {
   en: {
@@ -126,11 +117,15 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
 
   useEffect(() => {
     let live = true;
-    call('supplier_portal', { action: 'opportunities' }, token).then((j) => {
+    // Shares the one flight with SupplierOpportunities, which sits in the same Insights panel.
+    // The catch is not decoration: the old private `call` used a bare r.json(), so a non-JSON
+    // answer rejected here with nothing listening, and this panel simply stayed empty for ever
+    // with no trace. ./api.ts's call resolves that case to { ok:false }; this covers the rest.
+    callShared('supplier_portal', { action: 'opportunities' }, token).then((j) => {
       if (!live || !j) return;
       const list: Opp[] = j.opportunities || j.items || j.rows || [];
       setOpps(Array.isArray(list) ? list : []);
-    });
+    }).catch(() => { if (live) setOpps([]); });
     // The demo banner is driven by the same routine that partitions the population, so the two can
     // never disagree about which market this supplier is being shown.
     call('supplier_portal', { action: 'market' }, token).then((j) => { if (live && j) setDemo(j.population === 'demo'); });
