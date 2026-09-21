@@ -12,6 +12,7 @@ import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
+import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -838,6 +839,31 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   return out;
 }
 
+// THE LAUNCH PATH, HOURLY (21 Sep 2026, it_engineer): the invitation link on both hosts in EN/AR, the
+// customer's request page, the portal API, the sign-in code request and the portal functions' health —
+// all read-only, none able to reach a person; _shared/launch_path.ts says what each probe asserts.
+// Hourly by public.resilience_step (scripts/sql/the_launch_path_is_tested_every_hour.sql), not by
+// GitHub Actions: an hourly job is 720 billed minutes a month on the allowance the 15-minute ping was
+// moved off for (.github/workflows/resilience-ping.yml).
+// A broken path is ONE finding, duty:launch_path:down, held open two clean hours before it closes so a
+// blip cannot reopen it and re-email the founder as a recurrence. It reaches him only through
+// fn_it_engineer_alert_tick and founder_mail_policy, never from here. This step reports ok:false only
+// when it could not settle; a failing probe is the finding, not a failing step.
+async function launchPathTick(): Promise<unknown> {
+  try {
+    const r = await probeLaunchPath(Deno.env.get('SUPABASE_ANON_KEY')!);
+    const { data: open } = await admin.from('it_engineer_finding').select('last_seen_at')
+      .eq('issue_key', 'duty:launch_path:down').is('closed_at', null).maybeSingle();
+    const act = launchPathAction(r.ok, (open?.last_seen_at as string) ?? null);
+    if (act !== 'hold') {
+      const { error } = await admin.rpc('fn_it_duty_settle', { p_duty: 'launch_path', p_items: act === 'raise' ? [launchPathItem(r)] : [] });
+      if (error) return { ok: false, error: 'fn_it_duty_settle: ' + error.message };
+    }
+    // Counts and probe names only: this endpoint is public.
+    return { probes: r.results.length, failed: r.failed.map((x) => x.id), action: act, ms: r.ms };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function itEngineerAlertTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_it_engineer_alert_tick');
@@ -1013,6 +1039,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   // would be invisible.
   orphans: { run: orphanTick, nested: true },
   orgtasks: { run: orgTaskTick },
+  launchpath: { run: launchPathTick },
   it: { run: itEngineerAlertTick, always: true },
   outbox: { run: outboxTick, always: true },
   // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
