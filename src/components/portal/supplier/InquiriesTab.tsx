@@ -19,7 +19,7 @@ import { emirateLabel, srvMsg } from './serverCopy';
 import { ws } from './workspaceCopy';
 import DocActions from '../DocActions';
 import { BoqTable, ClarifyThread, DrawingGallery, RequestedTerms, WithheldCustomer } from './RfqParts';
-import { failed, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { failed, openPdf, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
 import { Ltr } from '@/lib/Ltr';
 
 const COPY = {
@@ -29,7 +29,8 @@ const COPY = {
     job: 'Job No.', received: 'Received', boq: (n: number) => `BOQ ${n} line${n === 1 ? '' : 's'}`, drawings: (n: number) => `${n} drawing page${n === 1 ? '' : 's'}`,
     scope: 'Scope', documents: 'Documents', download: 'Download', noDocs: 'No documents were attached to this inquiry.',
     boqFile: (n: number) => `Bill of quantities (${n} lines, CSV)`, page: (n: number) => `Drawing page ${n} (identity removed)`,
-    quote: 'Send your quotation to the sales engineer', form: 'Or type it into the quote form', closeForm: 'Close the form',
+    inqPdf: 'Inquiry document (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfFailed: 'The document could not be prepared. Please try again.',
+    quote: 'Send your quotation to the sales engineer', form: 'Or type it into the quote form', closeForm: 'Close the form', sentOk: 'Your quotation was submitted.', sentHeld: 'Your quotation is saved and on hold: the card below lists what is still needed.',
     concluded: 'Concluded — the customer has chosen.', won: 'You won this job.', quoted: 'Your quotation', loading: 'Loading inquiries…', err: 'Something went wrong. Please try again.', retry: 'Try again',
     boqHeld: 'The bill of quantities is held back because we could not prove it free of the customer’s details. Price from the drawings and the scope.',
     budget: 'Budget', open: 'Open', close: 'Close',
@@ -40,7 +41,8 @@ const COPY = {
     job: 'رقم الطلب', received: 'تاريخ الاستلام', boq: (n: number) => `جدول الكميات: ${n} بند`, drawings: (n: number) => `${n} صفحة مخطط`,
     scope: 'النطاق', documents: 'المستندات', download: 'تنزيل', noDocs: 'لم تُرفق مستندات بهذا الطلب.',
     boqFile: (n: number) => `جدول الكميات (${n} بندًا، CSV)`, page: (n: number) => `صفحة المخطط ${n} (بعد إخفاء الهوية)`,
-    quote: 'أرسل عرض سعرك إلى مهندس المبيعات', form: 'أو اكتبه في نموذج العرض', closeForm: 'أغلق النموذج',
+    inqPdf: 'مستند الاستفسار (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
+    quote: 'أرسل عرض سعرك إلى مهندس المبيعات', form: 'أو اكتبه في نموذج العرض', closeForm: 'أغلق النموذج', sentOk: 'تم تقديم عرض سعرك.', sentHeld: 'حُفظ عرض سعرك وهو معلّق: البطاقة أدناه تذكر ما يلزم بعد.',
     concluded: 'انتهى — اختار العميل.', won: 'فزت بهذا الطلب.', quoted: 'عرضك', loading: 'جارٍ تحميل الطلبات…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.', retry: 'أعد المحاولة',
     boqHeld: 'حُجب جدول الكميات لأننا لم نتمكّن من إثبات خلوّه من بيانات العميل. سعّر من المخططات والنطاق.',
     budget: 'الميزانية', open: 'افتح', close: 'أغلق',
@@ -58,12 +60,29 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
   // drawings or BOQ" — the opposite of the truth. It says so, and offers the retry, instead.
   const [err, setErr] = useState(false);
   const [n, setN] = useState(0);
+  // THE INQUIRY AS A DOCUMENT (21 Sep 2026; founder instruction 435). The sales engineer's template
+  // as a PDF, English or Arabic, printed by supplier_api inquiry_pdf on the same renderer as the
+  // quotation and cached there. It sits first in the documents list because it is the document the
+  // drawings and the BOQ belong to.
+  const [busy, setBusy] = useState<Lang | null>(null);
+  const [pdfErr, setPdfErr] = useState(false);
+  const inquiryPdf = async (l: Lang) => { setBusy(l); setPdfErr(false); const ok = await openPdf(() => qr.inquiryPdf(token, id, l)); setBusy(null); if (!ok) setPdfErr(true); };
   useEffect(() => {
     let on = true;
     qr.documents(token, id).then((j) => { if (!on) return; if (failed(j)) setErr(true); else { setD(j); setErr(false); } })
       .catch(() => { if (on) setErr(true); });
     return () => { on = false; };
   }, [token, id, n]);
+  const pdfRow = (
+    <li className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+      <span className="min-w-0 text-[13px] font-semibold text-foreground">{t.inqPdf}</span>
+      <span className="flex items-center gap-1.5">
+        <Button size="sm" variant="outline" disabled={!!busy} onClick={() => inquiryPdf('en')} lang="en">{busy === 'en' ? t.preparing : t.pdfEn}</Button>
+        <Button size="sm" variant="outline" disabled={!!busy} onClick={() => inquiryPdf('ar')} lang="ar">{busy === 'ar' ? t.preparing : t.pdfAr}</Button>
+      </span>
+      {pdfErr ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
+    </li>
+  );
   if (err) return (
     <div className="mt-4">
       <h3 className="text-[13px] font-semibold text-foreground">{t.documents}</h3>
@@ -75,8 +94,10 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
   return (
     <div className="mt-4">
       <h3 className="text-[13px] font-semibold text-foreground">{t.documents}</h3>
-      {!d.documents.length ? <p className="mt-1 text-[12.5px] text-muted-foreground">{t.noDocs}</p> : (
+      {!d.documents.length ? <p className="mt-1 text-[12.5px] text-muted-foreground">{t.noDocs}</p> : null}
+      {(
         <ul className="mt-2 divide-y divide-[var(--line)] rounded-md border border-[var(--line)]">
+          {pdfRow}
           {d.documents.map((doc, k) => (
             <li key={`${doc.kind}:${doc.name}:${k}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
               <span className="min-w-0 text-[13px] text-foreground">{doc.kind === 'boq_csv' ? t.boqFile(doc.lines) : t.page(k + 1)}<span className="ms-2 font-mono text-[11px] text-muted-foreground"><Ltr>{doc.name}</Ltr></span></span>
@@ -93,11 +114,13 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
   );
 }
 
-function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; lang: Lang; id: string; onQuote: (id: string) => void; renderQuoteForm?: (inq: LegacyInquiry, done: () => void) => React.ReactNode }) {
+function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; lang: Lang; id: string; onQuote: (id: string) => void; renderQuoteForm?: (inq: LegacyInquiry, done: (r?: { held?: boolean }) => void) => React.ReactNode }) {
   const t = COPY[lang];
   const [d, setD] = useState<InquiryDetail['inquiry'] | null>(null);
   const [err, setErr] = useState('');
   const [form, setForm] = useState(false);
+  // Submit confirmation (audit 21 Sep 2026, finding 33: the form closed with no word of what happened).
+  const [sent, setSent] = useState<'' | 'ok' | 'held'>('');
   const alive = useRef(true);
   const load = useCallback(() => qr.inquiry(token, id).then((j) => { if (!alive.current) return; if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setD(j.inquiry); }), [token, id, lang, t.err]);
   useEffect(() => { alive.current = true; load(); return () => { alive.current = false; }; }, [load]);
@@ -128,14 +151,15 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
           {renderQuoteForm ? <Button variant="ghost" aria-expanded={form} onClick={() => setForm(!form)}>{form ? t.closeForm : t.form}</Button> : null}
         </div>
       ) : null}
-      {form && renderQuoteForm ? renderQuoteForm({ ...d, quote: q ?? null, quotes: d.quotes }, () => { setForm(false); load(); }) : null}
+      {sent ? <p role="status" className="mt-3 text-[13px] text-foreground">{sent === 'held' ? t.sentHeld : t.sentOk}</p> : null}
+      {form && renderQuoteForm ? renderQuoteForm({ ...d, quote: q ?? null, quotes: d.quotes }, (r) => { setForm(false); setSent(r?.held ? 'held' : 'ok'); load(); }) : null}
     </div>
   );
 }
 
 export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, renderQuoteForm }: {
   token: string; lang: Lang; focus?: string | null; onFocused?: () => void; onQuote: (id: string) => void;
-  renderQuoteForm?: (inq: LegacyInquiry, done: () => void) => React.ReactNode;
+  renderQuoteForm?: (inq: LegacyInquiry, done: (r?: { held?: boolean }) => void) => React.ReactNode;
 }) {
   const t = COPY[lang];
   const [list, setList] = useState<InquiryListItem[] | null>(null);

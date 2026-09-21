@@ -7,6 +7,14 @@
 # an entry with no reason — so "committed and not applied" is a stated fact rather than an absence.
 #
 # Format: <path> :: <reason, and what would move it>
+#
+# 21 Sep 2026 — the IT failures of 18–21 Sep (docs/it/IT_FAILURES_18_21_SEP_2026.md). Applies are
+# serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the
+# END of MANIFEST.txt (a file cannot be in both): each carries a PROBE row and was executed rolled-back.
+#
+# 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+#
+# 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
 scripts/sql/the_customer_vault_lists_the_quote_pdf_and_reads_the_quotes_warranty.sql :: audit finding 11 (21 Sep 2026); dry run green, awaiting the sales_engineer apply — remove this line when applied.
 
 

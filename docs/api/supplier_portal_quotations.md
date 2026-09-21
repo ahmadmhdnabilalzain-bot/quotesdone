@@ -71,7 +71,27 @@ documents: (
 )[]
 ```
 
+### `inquiry_pdf`
+Request: `{ inquiry_id, lang: 'en' | 'ar' }`.
+Response: `{ ok, url, ref, job_no, lang, cached }` — a signed URL (1 hour when served from the cache, 7 days
+when just printed) to the inquiry as the sales engineer's document: one file per language, on the same
+renderer as the quotation (`_shared/quote_documents.ts inquiryDocument`). It carries the job number, the
+trade and site, the required-by date, the customer's answers on materials / installation / warranty, every
+bill-of-quantities line with quantity and unit, and the list of attached documents (the redacted drawing
+pages and the BOQ CSV, named as `inquiry_documents` names them). It is built from the same inbox row the
+list and detail come from, so it never holds more than the portal shows, and nothing identifies the
+customer before a reveal. Cached in `public.supplier_document_cache` by a hash of its input; an edited
+inquiry is printed again. `429 rate_limited` after 40 prints in an hour. Founder instruction 435.
+
 ## Quotations submitted — the conversation with the sales engineer
+
+### `quote_pdf`
+Request: `{ quote_id, lang: 'en' | 'ar' }`.
+Response: `{ ok, url, ref, lang, cached }` — the standardised quotation QuotesDone issues in this supplier's
+name, for the supplier's OWN quote only (the customer downloads the same layout from `customer_api`).
+Letter `S`, no request text, so it carries no customer identity and no price rank; no reveal gate applies.
+The "Quotations submitted" list offers it per option in both languages; the review chat's `standard_quote`
+attachment opens the same file. Cached like `inquiry_pdf`.
 
 Every conversation action returns a `ThreadView`, so a client renders the same thing after every step:
 

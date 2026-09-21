@@ -46,14 +46,13 @@ jobs:
       - if: steps.gate.outputs.skip != '1'
         run: node scripts/it/report_platform_readings.mjs
       # Duty 23: the safe patch, after the audit has reported. A patch it cannot make is recorded, not failed.
+      # The commit is authored as the repository owner's account, NOT a separate "it-engineer" identity
+      # (21 Sep 2026): Vercel builds a branch only when the commit author is on the Vercel team, so PR
+      # #768 (author it-engineer@users.noreply.github.com) could not deploy and Vercel emailed the
+      # founder asking to add a paid seat. The seat is still named — every commit message starts
+      # "it_engineer:" (open_dependency_patch_pr.mjs). This step used to appear twice; once is enough.
       - if: steps.gate.outputs.skip != '1'
         run: |
-          git config user.name "it_engineer"
-          git config user.email "it-engineer@users.noreply.github.com"
-          node scripts/it/open_dependency_patch_pr.mjs
-      # Duty 23: the safe patch, after the audit has reported. A patch it cannot make is recorded, not failed.
-      - if: steps.gate.outputs.skip != '1'
-        run: |
-          git config user.name "it_engineer"
-          git config user.email "it-engineer@users.noreply.github.com"
+          git config user.name "ahmadmhdnabilalzain-bot"
+          git config user.email "286641016+ahmadmhdnabilalzain-bot@users.noreply.github.com"
           node scripts/it/open_dependency_patch_pr.mjs

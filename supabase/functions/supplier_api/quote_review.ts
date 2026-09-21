@@ -50,6 +50,8 @@ export type SafeInquiry = {
 };
 export type WLine = {
   description: string; qty: string; unit: string; unit_price: number | null; amount: number | null; option?: number;
+  /** The file's own "Specification" column for this line, read with the description by every spec reader. */
+  specification?: string;
   spec?: Record<string, string>; spec_source?: Record<string, 'extracted' | 'supplier_portal'>;
 };
 /** The quotation under review: what the file said, plus every detail the supplier confirmed in the chat. */
@@ -110,7 +112,8 @@ export function workingFromProposal(p: Proposal, fileText = ''): Working {
     const { n, unit } = parseQty(l.qty);
     const amount = l.amount == null ? null : Number(l.amount);
     return { description: String(l.description || ''), qty: n == null ? '' : String(n), unit, amount,
-      unit_price: n && amount ? Math.round((amount / n) * 100) / 100 : null, ...(l.option != null ? { option: l.option } : {}) };
+      unit_price: n && amount ? Math.round((amount / n) * 100) / 100 : null, ...(l.option != null ? { option: l.option } : {}),
+      ...(l.specification ? { specification: String(l.specification) } : {}) };
   });
   return {
     lines, amount: p.amount, subtotal: p.subtotal, vat_amount: p.vat_amount, vat_treatment: p.vat_treatment ?? null,
@@ -180,7 +183,7 @@ export function matchBoq(boq: BoqRow[], lines: WLine[]): Map<number, number> {
 const cut = (s: unknown, n = 60) => { const t = normText(String(s ?? '')); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 const I = (code: IssueCode, kind: Issue['kind'], line_no: number | null, boq_line: number | null, attr: string | null, en: string, ar: string): Issue => ({ code, kind, line_no, boq_line, attr, en, ar });
-const assessLines = (w: Working): Line[] => w.lines.map((l, i) => ({ line_no: i + 1, description: l.description, qty: l.qty, unit: l.unit, unit_price: l.unit_price, amount: l.amount, spec: l.spec ?? null, spec_source: l.spec_source ?? null }));
+const assessLines = (w: Working): Line[] => w.lines.map((l, i) => ({ line_no: i + 1, description: l.description, specification: l.specification ?? null, qty: l.qty, unit: l.unit, unit_price: l.unit_price, amount: l.amount, spec: l.spec ?? null, spec_source: l.spec_source ?? null }));
 
 export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
   const issues: Issue[] = [];
@@ -251,7 +254,7 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
   // 4. The lines add up to the total (a single-option quotation only; options are totalled apiece).
   const sum = lines.filter((l) => !heading(l)).reduce((s, l) => s + (Number(l.amount) || 0), 0);
   const totals = [exVat, w.amount, w.subtotal].filter((x): x is number => Number(x) > 0);
-  if (sum > 0 && totals.length && Object.keys(w.option_totals || {}).length < 2 && !totals.some((t) => Math.abs(t - sum) <= Math.max(1, t * 0.01))) {
+  if (sum > 0 && totals.length && !w.qty_explained?.total && Object.keys(w.option_totals || {}).length < 2 && !totals.some((t) => Math.abs(t - sum) <= Math.max(1, t * 0.01))) {
     issues.push(I('total_mismatch', 'clarification', null, null, 'total',
       `Your line amounts add up to AED ${fmt(Math.round(sum * 100) / 100)}, but the quotation's total is AED ${fmt(totals[0])}. Correct the lines or the total, or tell me what the difference is (for example a discount).`,
       `مجموع مبالغ بنودك ${fmt(Math.round(sum * 100) / 100)} درهم، بينما إجمالي العرض ${fmt(totals[0])} درهم. صحّح البنود أو الإجمالي، أو وضّح سبب الفرق (كخصم مثلًا).`));
@@ -362,7 +365,20 @@ export type Correction =
   | { field: 'warranty_terms'; period: string | null; coverage: string | null }
   | { field: 'aed' }
   | { field: 'boq_excluded' | 'qty_explained'; boq_line: number; value: string; what?: 'qty' | 'unit' }
-  | { field: 'line_spec'; line_no: number; attr: string; value: string };
+  | { field: 'line_spec'; line_no: number; attr: string; value: string }
+  /** A price typed for a BOQ line: the rate, the amount, or both (at least one). */
+  | { field: 'boq_price'; boq_line: number; unit_price: number | null; amount: number | null }
+  // EVERY OPEN POINT CAN BE CLOSED FROM THE CHAT (audit 21 Sep 2026, finding 2). Before these, a
+  // supplier's own unpriced line, a total that did not add up and a customer's material had no reply
+  // that closed them — the only way out was a new file.
+  /** A price typed for the supplier's OWN line N (a line_unpriced point, not a BOQ line). */
+  | { field: 'line_price'; line_no: number; unit_price: number | null; amount: number | null }
+  /** "total AED 65,960": the quotation's total, re-stated. */
+  | { field: 'total'; value: number }
+  /** "discount AED 500": why the lines and the total differ. */
+  | { field: 'total_explained'; value: string }
+  /** "glass: 6mm clear tempered" for a material the customer named (terms_spec.components). */
+  | { field: 'component'; key: string; value: string; label_en: string; label_ar: string };
 export type Topic = 'vat' | 'validity' | 'currency' | 'boq' | 'customer' | 'delivery' | 'warranty' | 'installation' | 'missing' | 'general';
 export type ReplyRead = { corrections: Correction[]; choice: 'generate' | 'reupload' | null; submit: boolean; topic: Topic | null };
 
@@ -374,9 +390,57 @@ const RE_VALIDITY = new RegExp(String.raw`(?:validity|valid(?:\s+for|\s+until|\s
 const RE_LEAD = new RegExp(String.raw`(?:lead\s*time|delivery(?:\s+(?:time|period|date))?|deliver(?:ed|y)?\s+(?:in|within|by|on)|مدة\s+التسليم|مدة\s+التنفيذ|التسليم|تسليم)\s*[:\-–]?\s*(?:is\s+|in\s+|within\s+|by\s+|on\s+|خلال\s+)?(${DUR}|${DATE})`, 'i');
 const RE_EXVAT = /(?:ex(?:cl(?:uding|usive|\.)?)?\.?\s*(?:of\s*)?vat|before\s*vat|غير\s*شامل\s*(?:ال)?ضريبة(?:\s*القيمة\s*المضافة)?|قبل\s*(?:ال)?ضريبة)[^\d\n]{0,25}([\d][\d,]*(?:\.\d+)?)|([\d][\d,]*(?:\.\d+)?)\s*(?:aed|درهم)?\s*(?:ex(?:cl(?:uding|\.)?)?\.?\s*vat|before\s*vat|غير\s*شامل\s*(?:ال)?ضريبة)/i;
 const LINE = String.raw`(?:line|item|بند|البند|بندي)\s*#?\s*(\d{1,3})`;
-const RE_EXCLUDED = new RegExp(String.raw`(boq\s*|جدول\s*الكميات\s*)?${LINE}[^.\n;]{0,40}?(excluded|not\s+included|by\s+others|not\s+in\s+(?:our|my)\s+scope|مستثنى|غير\s+مشمول|خارج\s+النطاق|من\s+قبل\s+الغير)([^.\n;]{0,100})`, 'gi');
-const RE_QTYWHY = new RegExp(String.raw`(boq\s*|جدول\s*الكميات\s*)?${LINE}[^.\n;]{0,30}?(quantity|qty|unit|الكمية|الوحدة)\s*[:\-–]?\s*([^\n;]{3,140})`, 'gi');
-const RE_SPEC = new RegExp(String.raw`${LINE}\s*[,:\-–]?\s*([^\n:=;]{2,40}?)\s*[:=]\s*([^\n;]{1,120})`, 'gi');
+// SEVERAL ANSWERS IN ONE MESSAGE (audit 21 Sep 2026, finding 14): "line 1 board: Knauf. line 2
+// thickness: 15mm. line 2 frame: …" — a value that ran to the end of the line swallowed every answer
+// after the first, and the acknowledgement echoed the lot. A value now ends where the next "line N"
+// begins, at a sentence end before it, at ";" or at the end of the line.
+const NEXT_LINE = String.raw`\s*[.;,]?\s*(?:boq\s*|جدول\s*الكميات\s*)?(?:line|item|بند|البند|بندي)\s*#?\s*\d`;
+const VAL = (min: number, max: number) => String.raw`((?:(?!${NEXT_LINE}|[.;؛]\s+\S)[^\n;؛]){${min},${max}})`;
+const RE_EXCLUDED = new RegExp(String.raw`(boq\s*|جدول\s*الكميات\s*)?${LINE}[^.\n;]{0,40}?(excluded|not\s+included|by\s+others|not\s+in\s+(?:our|my)\s+scope|مستثنى|غير\s+مشمول|خارج\s+النطاق|من\s+قبل\s+الغير)${VAL(0, 100)}`, 'gi');
+const RE_QTYWHY = new RegExp(String.raw`(boq\s*|جدول\s*الكميات\s*)?${LINE}[^.\n;]{0,30}?(quantity|qty|unit|الكمية|الوحدة)\s*[:\-–]?\s*${VAL(3, 140)}`, 'gi');
+// The attribute name never runs across the next "line N" either: "line 3 excluded — by others. line 1
+// thickness: 12.5mm" read "excluded — by others. line 1 thickness" as line 3's attribute.
+const RE_SPEC = new RegExp(String.raw`${LINE}\s*[,:\-–]?\s*((?:(?!${NEXT_LINE})[^\n:=;]){2,40}?)\s*[:=]\s*${VAL(1, 120)}`, 'gi');
+// THE PRICE GRAMMAR (audit 21 Sep 2026, finding 2: "BOQ line 1: AED 95.00 per m2 … = AED 30,400" and
+// the review's own "BOQ line 1 AED 30,400" both answered "I could not match that to an open point").
+// A clause is the text from "line N" to the next "line N" (or ";" / end). Inside it, a figure is:
+//   a RATE when it is followed by "per <unit>", "/<unit>", "لكل", "each", or preceded by "@", "rate", "unit price", "سعر الوحدة";
+//   an AMOUNT when it is preceded by "=", "total", "amount", "المبلغ", "الإجمالي", or when it is the only figure with no rate marker;
+//   two bare figures are rate then amount (the order every quotation writes them in).
+// Arabic-Indic digits are normalised first (normText). Nothing is guessed from an unmarked single
+// figure beyond that rule, which the review states in its own words to the supplier.
+const MONEY = String.raw`(?:AED|Dhs?\.?|درهم|د\.إ\.?)?\s*(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*(?:AED|Dhs?\.?|درهم|د\.إ\.?)?`;
+const RE_PRICE_CLAUSE = new RegExp(String.raw`(boq\s*|جدول\s*الكميات\s*)?${LINE}\s*[,:\-–]?\s*${VAL(1, 200)}`, 'gi');
+const RE_FIG = new RegExp(MONEY, 'g');
+// A total re-stated at the start of a sentence ("Total AED 65,960", "الإجمالي 65960 درهم") — never the
+// "= total" inside a "line N" price clause. A discount states why the lines and the total differ.
+const RE_TOTAL = new RegExp(String.raw`(?:^|[.;؛\n]\s*)(?:the\s+)?(?:grand\s+|net\s+)?(?:total|الإجمالي|المجموع)(?:\s+(?:is|should\s+be|excluding\s+vat|ex\.?\s*vat))?\s*[:=]?\s*${MONEY}`, 'i');
+const RE_DISCOUNT = new RegExp(String.raw`(?:discount|rebate|خصم)[^\d\n]{0,20}${MONEY}`, 'i');
+// "each" / "للوحدة" may end the message ("line 4 AED 150 each"); "per" / "/" / "لكل" name a unit after them.
+const RATE_AFTER = /^\s*(?:(?:per|\/|لكل|لل|a\s)\s*\S|each\b|للوحدة)/i;
+const RATE_BEFORE = /(?:@|rate|unit\s*price|price\s*per|سعر\s*الوحدة|السعر\s*لكل|بسعر)\s*[:=]?\s*$/i;
+const AMOUNT_BEFORE = /(?:=|total|amount|المبلغ|الإجمالي|المجموع|بمبلغ|إجمالي)\s*[:=]?\s*$/i;
+/** The rate and amount a clause states for one BOQ line, or null when it states no figure. */
+export function readPriceClause(clause: string): { unit_price: number | null; amount: number | null } | null {
+  const c = normText(clause);
+  // a quantity restated ("320 m2") and a percentage are not prices
+  const figs: { n: number; rate: boolean; amount: boolean }[] = [];
+  for (const m of c.matchAll(RE_FIG)) {
+    const n = Number(m[1].replace(/,/g, '')); if (!(n > 0)) continue;
+    const before = c.slice(0, m.index!), after = c.slice(m.index! + m[0].length);
+    if (/^\s*%/.test(after) || /^\s*(?:m2|m²|sqm|m3|m|lm|rm|nos?|nr|pcs?|ls|kg|set|متر|م2|م²|عدد|قطعة)\b(?!\s*(?:@|=|at|rate))/i.test(after) && !/(?:@|=|per|\/|لكل|rate|price|بسعر)\s*$/i.test(before)) continue;
+    const money = /(?:AED|Dhs?\.?|درهم|د\.إ)/i.test(m[0]);
+    const rate = RATE_AFTER.test(after) || RATE_BEFORE.test(before);
+    const amount = AMOUNT_BEFORE.test(before);
+    if (!money && !rate && !amount) continue;   // a bare number with no dirham sign and no marker is not a price
+    figs.push({ n, rate, amount });
+  }
+  if (!figs.length) return null;
+  const r = figs.find((f) => f.rate), a = figs.find((f) => f.amount && !f.rate);
+  if (r || a) return { unit_price: r?.n ?? null, amount: a?.n ?? null };
+  if (figs.length >= 2) return { unit_price: figs[0].n, amount: figs[1].n };
+  return { unit_price: null, amount: figs[0].n };
+}
 const RE_AED = /\b(?:all\s+)?(?:prices?\s+|amounts?\s+)?(?:are\s+)?in\s+aed\b|\ball\s+(?:prices?\s+)?(?:are\s+)?aed\b|\baed\s+only\b|بالدرهم/i;
 const RE_GENERATE = /\bgenerate\b|\b(?:prepare|create|make)\s+(?:it|the\s+quot\w*|a\s+quot\w*)?\s*for\s+me\b|\byou\s+(?:do|prepare|generate)\s+it\b|إعداد|أعدّه|اعده|أعدها|أنشئ|انشئ|ولّد|جهّز/i;
 const RE_REUPLOAD = /\bre-?upload\b|\bupload\b|\bnew\s+version\b|\brevised\s+(?:file|quot\w*)\b|\bi\s*(?:will|'ll)\s+(?:attach|send)\b|رفع|ارفع|سأرفع|نسخة\s+جديدة|نسخة\s+معدلة/i;
@@ -394,8 +458,12 @@ export function readReply(text: string, open: Issue[]): ReplyRead {
     const vr = readVat({ amount: null, text: t });
     if (vr.treatment !== 'not_stated') out.push({ field: 'vat_treatment', value: vr.treatment });
   }
-  if (/warrant|guarant|ضمان/i.test(t)) {
-    const w = readWarranty(t);
+  // The warranty is read from ITS sentence only. Measured 21 Sep 2026 (audit, finding 4): a message
+  // "Installation included 4 weeks. Warranty 2 years parts and labour" read as coverage "installation,
+  // on site, parts, labour", because the whole message was scanned for coverage words.
+  const wSentence = t.split(/(?<=[.;؛])\s+|\n/).find((s) => /warrant|guarant|ضمان/i.test(s));
+  if (wSentence) {
+    const w = readWarranty(wSentence);
     if (w.period || w.coverage) out.push({ field: 'warranty_terms', period: w.period, coverage: w.coverage });
   }
   if (/install|تركيب|supply\s*only|توريد\s*فقط/i.test(t)) {
@@ -414,10 +482,37 @@ export function readReply(text: string, open: Issue[]): ReplyRead {
     if (!excluded.has(n) && open.some((i) => i.boq_line === n && i.code === code)) out.push({ field: 'qty_explained', boq_line: n, value: clean(m[4], 140), what });
   }
   for (const m of t.matchAll(RE_SPEC)) {
-    const n = Number(m[1]); const key = normText(m[2]).toLowerCase(); const val = clean(m[3], 120);
+    const n = Number(m[1]); const key = normText(m[2]).toLowerCase(); const val = clean(m[3], 120).replace(/[.،]+$/, '').trim();
     if (!val || VAGUE.test(val)) continue;
-    const hit = open.find((i) => i.code === 'spec' && i.line_no === n && i.attr && (key.includes(String(i.attr).replace(/_/g, ' ')) || i.en.toLowerCase().includes(`exact ${key}`) || i.ar.includes(key)));
+    // "line 2 thickness: 15mm" names the attribute by its label ("thickness"), its code ("thickness_mm"),
+    // the code's first word, or its Arabic label — the review's own example wording, in either language.
+    const hit = open.find((i) => i.code === 'spec' && i.line_no === n && i.attr && (key.includes(String(i.attr).replace(/_/g, ' ')) || key.includes(String(i.attr).split('_')[0]) || i.en.toLowerCase().includes(`exact ${key}`) || i.ar.includes(key)));
     if (hit) out.push({ field: 'line_spec', line_no: n, attr: String(hit.attr), value: val });
+  }
+  // Prices typed for BOQ lines. A clause that also states an exclusion or a quantity reason is not a
+  // price ("BOQ line 3 excluded — by others" carries no dirham figure and reads as none).
+  for (const m of t.matchAll(RE_PRICE_CLAUSE)) {
+    const n = Number(m[2]); if (excluded.has(n)) continue;
+    // "line N" alone is the supplier's own line unless a BOQ point is open for N
+    const own = !m[1] && !open.some((i) => i.boq_line === n) && open.some((i) => i.code === 'line_unpriced' && i.line_no === n);
+    if (!m[1] && !own && !open.some((i) => i.boq_line === n)) continue;
+    const p = readPriceClause(m[3]); if (!p) continue;
+    out.push(own ? { field: 'line_price', line_no: n, unit_price: p.unit_price, amount: p.amount } : { field: 'boq_price', boq_line: n, unit_price: p.unit_price, amount: p.amount });
+  }
+  if (has('total_mismatch')) {
+    const tot = t.match(RE_TOTAL); const tv = tot ? Number(tot[1].replace(/,/g, '')) : 0;
+    if (tv > 0) out.push({ field: 'total', value: tv });
+    const dis = t.match(RE_DISCOUNT);
+    if (dis) out.push({ field: 'total_explained', value: clean(dis[0], 120) });
+  }
+  // A material the customer named: "<its name or key>: <value>", in either language.
+  for (const i of open.filter((x) => x.code === 'component' && x.attr)) {
+    const key = String(i.attr).slice('component:'.length);
+    const names = [key.replace(/_/g, ' '), ...[i.en.match(/Material — ([^.(:]+)/)?.[1], i.ar.match(/المادة — ([^.(:]+)/)?.[1]].filter(Boolean).map((s) => s!.trim())]
+      .filter((s) => s.length >= 2).map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const m = t.match(new RegExp(String.raw`(?:^|[\s,.;؛])(?:${names.join('|')})\s*[:=\-–]\s*${VAL(2, 120)}`, 'i'));
+    const val = m ? clean(m[1], 120).replace(/[.،]+$/, '').trim() : '';
+    if (val && !VAGUE.test(val)) out.push({ field: 'component', key, value: val, label_en: i.en.match(/Material — ([^.(:]+)/)?.[1]?.trim() || key.replace(/_/g, ' '), label_ar: i.ar.match(/المادة — ([^.(:]+)/)?.[1]?.trim() || 'المادة' });
   }
   const choice = RE_GENERATE.test(t) ? 'generate' : RE_REUPLOAD.test(t) ? 'reupload' : null;
   const q = RE_QUESTION.test(t);
@@ -435,12 +530,52 @@ export function readReply(text: string, open: Issue[]): ReplyRead {
   return { corrections: out, choice, submit: RE_SUBMIT.test(t), topic };
 }
 
-/** The working quotation with the supplier's stated details applied. Pure: returns a new object. */
-export function applyCorrections(w0: Working, cs: Correction[]): Working {
+const r2 = (n: number) => Math.round(n * 100) / 100;
+/** The working quotation with the supplier's stated details applied. Pure: returns a new object. `boq` is the job's BOQ, needed only to price a BOQ line. */
+export function applyCorrections(w0: Working, cs: Correction[], boq: BoqRow[] = []): Working {
   const w: Working = structuredClone(w0);
   const log = (field: string, value: string, line: number | null = null) => w.corrections.push({ field, value, line });
+  const drop = new Set<WLine>();
   for (const c of cs) {
     switch (c.field) {
+      case 'boq_price': {
+        const b = boq[c.boq_line - 1]; if (!b) break;
+        const qty = num(b.qty);
+        let unit_price = c.unit_price, amount = c.amount;
+        if (unit_price == null && amount != null && qty) unit_price = r2(amount / qty);
+        if (amount == null && unit_price != null && qty) amount = r2(unit_price * qty);
+        if (amount == null && unit_price == null) break;
+        // the quotation line already matched to this BOQ line is re-priced; otherwise the BOQ line
+        // becomes a line of the quotation in the BOQ's own words, quantity and unit
+        const j = matchBoq(boq, w.lines).get(c.boq_line - 1);
+        if (j != null) { w.lines[j].unit_price = unit_price ?? w.lines[j].unit_price; w.lines[j].amount = amount ?? w.lines[j].amount; if (!w.lines[j].qty && qty != null) { w.lines[j].qty = String(qty); w.lines[j].unit = String(b.unit ?? ''); } }
+        else w.lines.push({ description: String(b.description ?? ''), qty: qty == null ? '' : String(qty), unit: String(b.unit ?? ''), unit_price, amount });
+        // a priced line is not an excluded one
+        if (w.boq_excluded[String(c.boq_line)]) { delete w.boq_excluded[String(c.boq_line)]; w.exclusions = withoutExclusionNote(w.exclusions, c.boq_line); }
+        // the total follows the lines the supplier priced; the VAT basis is asked separately
+        retotal(w);
+        log('boq_price', `${unit_price ?? ''}|${amount ?? ''}`, c.boq_line); break;
+      }
+      case 'line_price': {
+        const l = w.lines[c.line_no - 1]; if (!l) break;
+        const qty = num(l.qty);
+        l.unit_price = c.unit_price ?? (c.amount != null && qty ? r2(c.amount / qty) : l.unit_price);
+        l.amount = c.amount ?? (c.unit_price != null && qty ? r2(c.unit_price * qty) : l.amount);
+        retotal(w); log('line_price', `${l.unit_price ?? ''}|${l.amount ?? ''}`, c.line_no); break;
+      }
+      case 'total': {
+        w.amount = c.value; if (w.subtotal != null) w.subtotal = c.value; if (w.price_ex_vat != null) w.price_ex_vat = c.value; w.vat_amount = null;
+        log('total', String(c.value)); break;
+      }
+      case 'total_explained': {
+        w.qty_explained = { ...w.qty_explained, total: c.value };
+        w.conditions = [w.conditions, c.value].filter(Boolean).join('; ').slice(0, 2000);
+        log('total_explained', c.value); break;
+      }
+      case 'component': {
+        w.terms_spec = { ...w.terms_spec, components: { ...(w.terms_spec.components ?? {}), [c.key]: { value: c.value, source: 'supplier_portal' } } };
+        log(`component:${c.key}`, c.value); break;
+      }
       case 'validity': w.validity = c.value; log('validity', c.value); break;
       case 'lead_time': w.lead_time = c.value; w.terms_spec = { ...w.terms_spec, delivery: { value: c.value, source: 'supplier_portal' } }; log('lead_time', c.value); break;
       case 'warranty': w.warranty = c.value; log('warranty', c.value); break;
@@ -465,6 +600,13 @@ export function applyCorrections(w0: Working, cs: Correction[]): Working {
         w.boq_excluded = { ...w.boq_excluded, [String(c.boq_line)]: c.value || 'excluded' };
         const note = `BOQ line ${c.boq_line} excluded${c.value ? ': ' + c.value : ''}`;
         w.exclusions = [w.exclusions, note].filter(Boolean).join('; ').slice(0, 2000);
+        // EXCLUDED MEANS NOT IN THE PRICE (audit 21 Sep 2026, finding 4: the generated quotation read
+        // "BOQ line 3 excluded — by others" while line 3 was priced AED 7,680 and counted in the total).
+        // The supplier's word in the chat is the later one: the priced line leaves the quotation and the
+        // total. It is dropped after every correction of this message, so a "line N" spec in the same
+        // message still names the line the supplier saw.
+        const j = boq.length ? matchBoq(boq, w.lines).get(c.boq_line - 1) : undefined;
+        if (j != null && priced(w.lines[j])) drop.add(w.lines[j]);
         log('boq_excluded', c.value, c.boq_line); break;
       }
       case 'qty_explained': {
@@ -482,6 +624,67 @@ export function applyCorrections(w0: Working, cs: Correction[]): Working {
       default: { const _never: never = c; void _never; break; }
     }
   }
+  if (drop.size) { w.lines = w.lines.filter((l) => !drop.has(l)); retotal(w); }
+  return w;
+}
+/**
+ * The total follows the priced lines. A VAT amount the file stated described the OLD total, so it is
+ * cleared; the stated VAT treatment stands and the review asks the basis only if none was stated.
+ */
+function retotal(w: Working) {
+  const sum = r2(w.lines.filter((l) => !heading(l)).reduce((s, l) => s + (Number(l.amount) || 0), 0));
+  w.amount = sum; if (w.subtotal != null) w.subtotal = sum; if (w.price_ex_vat != null) w.price_ex_vat = sum;
+  w.vat_amount = null;
+}
+
+const withoutExclusionNote = (s: string, n: number) => s.split(/;\s*/).filter((x) => !new RegExp(String.raw`^BOQ line ${n} excluded`).test(x)).join('; ');
+
+// ---------------------------------------------------------------------------------------------
+// A revised file keeps what the chat already settled (audit 21 Sep 2026, finding 12: after validity,
+// installation and warranty were answered in the chat, a revised CSV re-opened all of them — 3 open
+// points became 10). A new version replaces what the OLD FILE said; it does not un-say what the
+// SUPPLIER said in the conversation. Rule: every term the new file states wins; every term it does
+// not state keeps the conversation's answer; an exclusion stands only for a BOQ line the new file
+// leaves unpriced; a line specification stated in the chat follows its line by description.
+// ---------------------------------------------------------------------------------------------
+export function carryOver(prev: Working | null, next: Working, boq: BoqRow[] = []): Working {
+  if (!prev) return next;
+  const w: Working = structuredClone(next);
+  const log = (field: string, value: string, line: number | null = null) => w.corrections.push({ field: `carried:${field}`, value, line });
+  for (const f of ['validity', 'lead_time', 'warranty', 'payment_terms'] as const) if (!w[f] && prev[f]) { w[f] = prev[f]; log(f, prev[f]); }
+  const stated = (v: unknown) => v && v !== 'not_stated';
+  if (!stated(w.vat_treatment) && stated(prev.vat_treatment)) {
+    w.vat_treatment = prev.vat_treatment;
+    if (prev.vat_treatment === 'exclusive' || prev.vat_treatment === 'not_registered') w.price_ex_vat = w.amount ?? w.price_ex_vat;
+    else if (prev.price_ex_vat != null && prev.amount === w.amount) w.price_ex_vat = prev.price_ex_vat;
+    log('vat_treatment', String(prev.vat_treatment));
+  }
+  if (w.foreign_currency && !prev.foreign_currency && prev.corrections.some((c) => c.field === 'currency')) { w.foreign_currency = null; log('currency', 'AED'); }
+  // delivery / installation / warranty confirmed in the chat stay unless the new file states them
+  const ts = { ...prev.terms_spec };
+  if (readDelivery(w.lead_time)) delete ts.delivery;
+  if (readWarranty(w.warranty).period) delete ts.warranty;
+  if (readInstallation(assessLines(w), { scope: w.scope, conditions: w.conditions, notes: w.notes, exclusions: w.exclusions }).included) delete ts.installation;
+  w.terms_spec = { ...ts, ...w.terms_spec };
+  // exclusions and quantity reasons are about the job, not the file — unless the new file priced the line
+  const match = matchBoq(boq, w.lines);
+  for (const [n, why] of Object.entries(prev.boq_excluded || {})) {
+    const j = match.get(Number(n) - 1);
+    if (j != null && priced(w.lines[j])) continue;
+    w.boq_excluded[n] = why; w.exclusions = [w.exclusions, `BOQ line ${n} excluded: ${why}`].filter(Boolean).join('; ').slice(0, 2000);
+  }
+  w.qty_explained = { ...(prev.qty_explained || {}), ...w.qty_explained };
+  // a specification the supplier stated in the chat follows the line that says the same thing
+  prev.lines.forEach((pl) => {
+    const chat = Object.entries(pl.spec_source ?? {}).filter(([, s]) => s === 'supplier_portal').map(([k]) => k);
+    if (!chat.length) return;
+    const pt = new Set(toks(pl.description));
+    const j = w.lines.findIndex((nl) => { const nt = toks(nl.description); return nt.length && nt.filter((t) => pt.has(t)).length / nt.length >= 0.5; });
+    if (j < 0) return;
+    const nl = w.lines[j];
+    for (const k of chat) { if (!nl.spec?.[k]) { nl.spec = { ...(nl.spec ?? {}), [k]: pl.spec![k] }; nl.spec_source = { ...(nl.spec_source ?? {}), [k]: 'supplier_portal' }; log(`line_spec:${k}`, pl.spec![k], j + 1); } }
+  });
+  w.corrections = [...prev.corrections, ...w.corrections];
   return w;
 }
 
@@ -543,6 +746,19 @@ export function tookSaid(cs: Correction[]): Said | null {
     else if (c.field === 'boq_excluded') { en.push(`BOQ line ${c.boq_line} excluded${c.value ? ` (${c.value})` : ''}`); ar.push(`البند ${c.boq_line} مستثنى${c.value ? ` (${c.value})` : ''}`); }
     else if (c.field === 'qty_explained') { const u = c.what === 'unit'; en.push(`BOQ line ${c.boq_line} ${u ? 'unit' : 'quantity'} explained`); ar.push(u ? `وُضّحت وحدة البند ${c.boq_line}` : `وُضّحت كمية البند ${c.boq_line}`); }
     else if (c.field === 'line_spec') { en.push(`line ${c.line_no}: ${c.value}`); ar.push(`البند ${c.line_no}: ${c.value}`); }
+    else if (c.field === 'boq_price') {
+      const parts = [c.unit_price != null ? `AED ${fmt(c.unit_price)} per unit` : '', c.amount != null ? `AED ${fmt(c.amount)}` : ''].filter(Boolean).join(' = ');
+      const partsAr = [c.unit_price != null ? `${fmt(c.unit_price)} درهم للوحدة` : '', c.amount != null ? `${fmt(c.amount)} درهم` : ''].filter(Boolean).join(' = ');
+      en.push(`BOQ line ${c.boq_line} priced at ${parts}`); ar.push(`سُعّر البند ${c.boq_line}: ${partsAr}`);
+    }
+    else if (c.field === 'line_price') {
+      const parts = [c.unit_price != null ? `AED ${fmt(c.unit_price)} per unit` : '', c.amount != null ? `AED ${fmt(c.amount)}` : ''].filter(Boolean).join(' = ');
+      const partsAr = [c.unit_price != null ? `${fmt(c.unit_price)} درهم للوحدة` : '', c.amount != null ? `${fmt(c.amount)} درهم` : ''].filter(Boolean).join(' = ');
+      en.push(`your line ${c.line_no} priced at ${parts}`); ar.push(`سُعّر بندك ${c.line_no}: ${partsAr}`);
+    }
+    else if (c.field === 'total') { en.push(`total AED ${fmt(c.value)}`); ar.push(`الإجمالي ${fmt(c.value)} درهم`); }
+    else if (c.field === 'total_explained') { en.push(`difference in the total: ${c.value}`); ar.push(`سبب الفرق في الإجمالي: ${c.value}`); }
+    else if (c.field === 'component') { en.push(`${c.label_en}: ${c.value}`); ar.push(`${c.label_ar}: ${c.value}`); }
   }
   return { en: `Thank you — noted: ${en.join('; ')}.`, ar: `شكرًا — سجّلت: ${ar.join('؛ ')}.` };
 }
