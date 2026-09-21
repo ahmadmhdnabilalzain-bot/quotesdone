@@ -37,3 +37,9 @@ scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :
 # 21 Sep 2026 — it_engineer, the IT alerts of 21 Sep fixed at their cause. Independent of each other; apply
 # with --apply --ddl, then move each line to the END of MANIFEST.txt. Each was rehearsed rolled-back on
 # 21 Sep (PROBE OK); each probe answers PROBE FAILED against the unchanged database.
+#
+# 21 Sep 2026 — ceo, the weekly report arrives and the decision rules decide. Apply with --apply --ddl, move
+# the line to the END of MANIFEST.txt, then deploy resilience_ping AT ONCE (the file seeds resilience_step
+# 'ceoDecisions', which the deployed function must know). Rehearsed rolled-back 21 Sep: PROBE OK.
+scripts/sql/the_weekly_report_arrives_and_the_rules_decide.sql :: ceo_weekly_report PDF + delivery through the board_report gate, the tick finishing an in-flight week on any day, and fn_ceo_decisions_evaluate on the heartbeat. Moves to MANIFEST when applied.
+scripts/sql/the_weekly_report_arrives_and_the_rules_decide_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED until then.

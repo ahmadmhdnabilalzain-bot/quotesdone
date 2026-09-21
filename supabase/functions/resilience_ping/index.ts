@@ -209,12 +209,64 @@ async function outboxTick(): Promise<unknown> {
 // whole company". fn_ceo_weekly_report_tick is idempotent by ISO week and gated on a configured
 // local day and hour (app_secrets.ceo_weekly_report_local_dow / _local_time, Asia/Dubai), so it
 // returns fired:false roughly 670 of the 672 times it runs in a week and sends exactly once.
+// 21 Sep 2026 (ceo): it failed on 14 and 21 Sep with the same fault — the delivery stored
+// fn_notify_founder's jsonb answer in a bigint — and this step still read as healthy, because the
+// failure sat one level down. The report now goes out AS A PDF on the company template, rendered here
+// exactly as the accountant's weekly report is, and the tick answers ok:false at the top level when
+// delivery fails. See scripts/sql/the_weekly_report_arrives_and_the_rules_decide.sql.
 async function ceoWeeklyTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_ceo_weekly_report_tick');
     if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.pdf_pending || !t?.pdf_blocks || !t?.id) return t;
+    // strict_glyphs false: this is a narrative report whose figures are ASCII digits from format(); a
+    // dash the font lacks must not hold the whole week's report back. The financial statement keeps true.
+    return await renderPdfAndAttach(t, 'ceo/weekly', 'weekly_company_report', false, 'fn_ceo_weekly_report_attach_pdf');
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE CEO'S TEN DECISION RULES, EVALUATED ON THE SAME HEARTBEAT (21 Sep 2026, ceo).
+// public.ceo_decision held ten active rules and ceo_decision_log had never held a row: nothing in the
+// database evaluated a rule. fn_ceo_decisions_evaluate is deterministic, writes one evidenced row per
+// firing (deduplicated), emails nobody, and answers ok:false naming any active rule it cannot evaluate.
+async function ceoDecisionsTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_ceo_decisions_evaluate', { p_dry_run: false });
+    if (error) return { ok: false, error: error.message };
     return data;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// Postgres cannot draw a PDF, so a weekly tick hands back its block list and this renders it on the
+// company template (pdf_native, letterhead) and hands the result — or the failure, as p_error — to the
+// report's own attach routine. The report is RETAINED on a failed render and the next tick re-renders.
+// deno-lint-ignore no-explicit-any
+async function renderPdfAndAttach(t: any, folder: string, fallbackName: string, strictGlyphs: boolean, attachRpc: string): Promise<unknown> {
+  let path: string | null = null, url: string | null = null, bytes: number | null = null, err: string | null = null;
+  try {
+    const r = await fetch(FN + '/pdf_native', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        __secret: await sec('cred_fn_resilience_ping'), title: t.subject, blocks: t.pdf_blocks,
+        bucket: 'agent-docs', folder,
+        name: String(t.report_key || fallbackName).replace(/[^\w.-]+/g, '_'),
+        options: { letterhead: true, strict_glyphs: strictGlyphs },
+      }), signal: AbortSignal.timeout(55000),
+    });
+    const j = await r.json().catch(() => null);
+    if (r.ok && j?.ok && j?.path) { path = j.path; url = j.url ?? null; bytes = j.bytes ?? null; }
+    else err = 'pdf_native ' + r.status + ': ' + JSON.stringify(j ?? {}).slice(0, 400);
+  } catch (e) { err = 'pdf_native unreachable: ' + String((e as Error)?.message || e); }
+  const { data: att, error: aerr } = await admin.rpc(attachRpc, {
+    p_id: t.id, p_bucket: 'agent-docs', p_path: path, p_url: url, p_bytes: bytes, p_error: err,
+  });
+  if (aerr) return { ...t, pdf_blocks: undefined, pdf_error: err, ok: false, error: 'attach: ' + aerr.message };
+  // deno-lint-ignore no-explicit-any
+  const a = att as any;
+  const failed = err ?? (a && a.ok === false ? (a.error ?? a.reason ?? 'delivery refused') : null);
+  return { ...t, pdf_blocks: undefined, delivery: att, ...(failed ? { ok: false, error: String(failed) } : {}) };
 }
 
 // THE EMBEDDING BACKFILL HANGS HERE, AND FOR THE SAME REASON AS THE DROPBOX BACKUP.
@@ -984,6 +1036,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   weekly: { run: accountantWeeklyTick },
   vat: { run: vatThresholdTick },
   ceoWeekly: { run: ceoWeeklyTick },
+  ceoDecisions: { run: ceoDecisionsTick },
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   refunds: { run: accountantRefundTick },
