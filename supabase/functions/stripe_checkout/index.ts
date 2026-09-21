@@ -183,8 +183,15 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     //
     // With this on, every reveal fee produces a real Stripe Invoice with an `invoice_pdf` the
     // accountant can fetch, store in finance-docs and mirror to Dropbox, exactly like the 48
-    // expense receipts it already holds. The customer also gets a proper tax-style document rather
-    // than a receipt page.
+    // expense receipts it already holds.
+    //
+    // THAT FILE IS NEVER THE CUSTOMER'S DOCUMENT (22 Sep 2026; founder instructions 568, 569). It is
+    // the accountant's source record and its NUMBER is printed on OUR invoice and receipt
+    // (_shared/reveal_fee_documents.ts, served by reveal_invoice). Whether Stripe also EMAILS its own
+    // invoice/receipt is not a per-session API choice: it is the account's Dashboard setting
+    // Settings → Business → Customer emails → "Successful payments" (and "Refunds"), which must stay
+    // OFF in live. No code here or anywhere sets receipt_email or sends an invoice; checked by
+    // scripts/checks/every_pdf_we_issue_is_on_our_template.mjs (check E).
     //
     // The description is what appears on the customer's invoice, so it says what they bought in
     // their words, not ours: they paid to unlock a supplier's details on a specific request.

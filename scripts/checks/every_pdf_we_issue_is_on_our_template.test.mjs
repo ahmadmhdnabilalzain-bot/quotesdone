@@ -22,3 +22,18 @@ test('the check catches each shape, and a comment describing it does not trip it
   assert.equal(findingsFor('supabase/functions/pdf_native/render.ts', "const pdf = await PDFDocument.create();").length, 0);
   assert.equal(findingsFor(fn, "await fetch(URL + '/functions/v1/pdf_native', { body })").length, 0);
 });
+
+// 22 Sep 2026 (audit finding 2): supplier_pay turned invoice_creation on for both supplier checkouts, so a
+// supplier's only document for a payment was Stripe's. E replays that input.
+test('E: Stripe is never asked to make or send a document a person receives as ours', () => {
+  const pay = 'supabase/functions/supplier_pay/index.ts';
+  assert.equal(findingsFor(pay, "f.set('invoice_creation[enabled]', 'true');").length, 1);
+  assert.equal(findingsFor('supabase/functions/stripe_checkout/index.ts', "form.set('invoice_creation[enabled]', 'true');").length, 0);
+  assert.equal(findingsFor(pay, "form.set('payment_intent_data[receipt_email]', e);").length, 1);
+  assert.equal(findingsFor(pay, "await stripe('invoices/' + id + '/send', new URLSearchParams());").length, 1);
+  assert.equal(findingsFor('supabase/functions/zz/index.ts', "attachments: [{ bucket: 'finance-docs', path: 'invoices/stripe/' + p }]").length, 1);
+  assert.equal(findingsFor('supabase/functions/stripe_webhook/index.ts', "const path = 'invoices/stripe/' + day;").length, 0);
+  // reading who a receipt went to is not asking Stripe to send one
+  assert.equal(findingsFor('supabase/functions/_shared/it_duty_readings.ts', "const e = x?.charge?.receipt_email ?? null;").length, 0);
+  assert.equal(findingsFor(pay, "// we used to set invoice_creation[enabled] here\nconst x = 1;").length, 0);
+});
