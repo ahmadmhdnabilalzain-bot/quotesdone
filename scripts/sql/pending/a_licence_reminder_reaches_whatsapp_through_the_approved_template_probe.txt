@@ -1,0 +1,1 @@
+pure probe for a_licence_reminder_reaches_whatsapp_through_the_approved_template.sql: run with node scripts/qsql.mjs after that file is applied; answers PROBE FAILED until then.
