@@ -55,3 +55,21 @@ export function applyDocumentLocale(lang: Lang, doc: { documentElement: { lang: 
   doc.documentElement.lang = lang === 'ar' ? 'ar' : 'en';
   doc.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
 }
+
+// THE TWO STRINGS THE LAYOUT WROTE ON THE SERVER (customer-portal audit 21 Sep 2026, item 23). A
+// client-side language switch re-rendered every panel but not the <title> or the skip link — both
+// come from src/app/[locale]/layout.tsx and src/lib/seo.ts and are written once per request — so an
+// Arabic portal kept an English tab title until a full reload. The same words as those two files,
+// applied by the portals' language effect beside applyDocumentLocale.
+const SKIP = { en: 'Skip to content', ar: 'تخطَّ إلى المحتوى' };
+const SHELL_TITLE = {
+  me: { en: 'My requests — QuotesDone', ar: 'طلباتي — QuotesDone' },
+  portal: { en: 'Supplier portal — QuotesDone', ar: 'بوابة الموردين — QuotesDone' },
+};
+export function applyShellChrome(lang: Lang, shell: 'me' | 'portal', doc: { title: string; querySelector: (s: string) => { textContent: string | null } | null } | undefined = (globalThis as { document?: Document }).document) {
+  if (!doc) return;
+  const l = lang === 'ar' ? 'ar' : 'en';
+  doc.title = SHELL_TITLE[shell][l];
+  const skip = doc.querySelector('a.skip-link');
+  if (skip) skip.textContent = SKIP[l];
+}

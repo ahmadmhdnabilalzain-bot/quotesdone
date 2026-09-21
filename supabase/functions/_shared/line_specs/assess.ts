@@ -180,7 +180,9 @@ export function readDelivery(text: string): { value: string; days: number | null
 const INSTALL_YES = /supply\s*(?:&|and|\+|,)\s*(?:install|fix|apply|lay|erect)|s\s*[&\/]\s*i\b|supply,?\s*install|includ(?:es|ing|ed)?\s*(?:the\s*)?(?:install|fixing)|install(?:ation)?\s*(?:is\s*)?includ|incl\.?\s*install|install(?:ation)?\s*(?:&|and)\s*commission|توريد وتركيب|شامل التركيب|يشمل التركيب|مع التركيب|التركيب مشمول/i;
 const INSTALL_NO = /supply\s*only|install(?:ation)?\s*(?:is\s*)?(?:not\s*included|excluded|by\s*others|extra)|exclud(?:es|ing|ed)?\s*(?:the\s*)?install|without\s*install|توريد فقط|بدون تركيب|التركيب غير مشمول|لا يشمل التركيب|غير شامل التركيب/i;
 const INSTALL_LINE = /^(?:\d+[.)]\s*)?(?:install|fix|fixing|erect|lay(?:ing)?|تركيب)|\binstall(?:ation)?\s*(?:of|labou?r|charges?)|تركيب/i;
-const INSTALL_TIME = /install\w*\s*(?:period|time|duration|within|in)?\s*[:\-]?\s*(\d+\s*(?:working\s*)?(?:days?|weeks?|يوم|أيام|أسبوع|أسابيع))|(\d+\s*(?:working\s*)?(?:days?|weeks?|يوم|أيام|أسبوع|أسابيع))\s*(?:for\s*)?(?:install|تركيب)|(?:مدة التركيب)\s*[:\-]?\s*([^,;.]{2,30})/i;
+// "Installation included 4 weeks" / "installation included, 5 working days on site" state the timeline
+// (audit 21 Sep 2026: the auditor's CSV said the first and was asked the timeline again).
+const INSTALL_TIME = /install\w*\s*(?:is\s*)?(?:included\s*|مشمول\s*)?[,:\-]?\s*(?:period|time|duration|within|in)?\s*[:\-]?\s*(\d+\s*(?:working\s*)?(?:days?|weeks?|يوم|أيام|أسبوع|أسابيع))|(\d+\s*(?:working\s*)?(?:days?|weeks?|يوم|أيام|أسبوع|أسابيع))\s*(?:for\s*)?(?:install|تركيب)|(?:مدة التركيب)\s*[:\-]?\s*([^,;.]{2,30})/i;
 
 export function readInstallation(lines: Line[], t: Terms): { included: 'yes' | 'no' | null; detail: string | null } {
   const lineText = lines.map((l) => `${l.description} ${l.specification ?? ''} ${l.notes ?? ''}`).join(' \n ');

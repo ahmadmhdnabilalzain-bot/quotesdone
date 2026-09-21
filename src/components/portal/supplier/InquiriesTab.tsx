@@ -30,7 +30,7 @@ const COPY = {
     scope: 'Scope', documents: 'Documents', download: 'Download', noDocs: 'No documents were attached to this inquiry.',
     boqFile: (n: number) => `Bill of quantities (${n} lines, CSV)`, page: (n: number) => `Drawing page ${n} (identity removed)`,
     inqPdf: 'Inquiry document (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfFailed: 'The document could not be prepared. Please try again.',
-    quote: 'Send your quotation to the sales engineer', form: 'Or type it into the quote form', closeForm: 'Close the form',
+    quote: 'Send your quotation to the sales engineer', form: 'Or type it into the quote form', closeForm: 'Close the form', sentOk: 'Your quotation was submitted.', sentHeld: 'Your quotation is saved and on hold: the card below lists what is still needed.',
     concluded: 'Concluded — the customer has chosen.', won: 'You won this job.', quoted: 'Your quotation', loading: 'Loading inquiries…', err: 'Something went wrong. Please try again.', retry: 'Try again',
     boqHeld: 'The bill of quantities is held back because we could not prove it free of the customer’s details. Price from the drawings and the scope.',
     budget: 'Budget', open: 'Open', close: 'Close',
@@ -42,7 +42,7 @@ const COPY = {
     scope: 'النطاق', documents: 'المستندات', download: 'تنزيل', noDocs: 'لم تُرفق مستندات بهذا الطلب.',
     boqFile: (n: number) => `جدول الكميات (${n} بندًا، CSV)`, page: (n: number) => `صفحة المخطط ${n} (بعد إخفاء الهوية)`,
     inqPdf: 'مستند الاستفسار (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
-    quote: 'أرسل عرض سعرك إلى مهندس المبيعات', form: 'أو اكتبه في نموذج العرض', closeForm: 'أغلق النموذج',
+    quote: 'أرسل عرض سعرك إلى مهندس المبيعات', form: 'أو اكتبه في نموذج العرض', closeForm: 'أغلق النموذج', sentOk: 'تم تقديم عرض سعرك.', sentHeld: 'حُفظ عرض سعرك وهو معلّق: البطاقة أدناه تذكر ما يلزم بعد.',
     concluded: 'انتهى — اختار العميل.', won: 'فزت بهذا الطلب.', quoted: 'عرضك', loading: 'جارٍ تحميل الطلبات…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.', retry: 'أعد المحاولة',
     boqHeld: 'حُجب جدول الكميات لأننا لم نتمكّن من إثبات خلوّه من بيانات العميل. سعّر من المخططات والنطاق.',
     budget: 'الميزانية', open: 'افتح', close: 'أغلق',
@@ -114,11 +114,13 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
   );
 }
 
-function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; lang: Lang; id: string; onQuote: (id: string) => void; renderQuoteForm?: (inq: LegacyInquiry, done: () => void) => React.ReactNode }) {
+function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; lang: Lang; id: string; onQuote: (id: string) => void; renderQuoteForm?: (inq: LegacyInquiry, done: (r?: { held?: boolean }) => void) => React.ReactNode }) {
   const t = COPY[lang];
   const [d, setD] = useState<InquiryDetail['inquiry'] | null>(null);
   const [err, setErr] = useState('');
   const [form, setForm] = useState(false);
+  // Submit confirmation (audit 21 Sep 2026, finding 33: the form closed with no word of what happened).
+  const [sent, setSent] = useState<'' | 'ok' | 'held'>('');
   const alive = useRef(true);
   const load = useCallback(() => qr.inquiry(token, id).then((j) => { if (!alive.current) return; if (failed(j)) setErr(srvMsg(lang, j, t.err)); else setD(j.inquiry); }), [token, id, lang, t.err]);
   useEffect(() => { alive.current = true; load(); return () => { alive.current = false; }; }, [load]);
@@ -149,14 +151,15 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
           {renderQuoteForm ? <Button variant="ghost" aria-expanded={form} onClick={() => setForm(!form)}>{form ? t.closeForm : t.form}</Button> : null}
         </div>
       ) : null}
-      {form && renderQuoteForm ? renderQuoteForm({ ...d, quote: q ?? null, quotes: d.quotes }, () => { setForm(false); load(); }) : null}
+      {sent ? <p role="status" className="mt-3 text-[13px] text-foreground">{sent === 'held' ? t.sentHeld : t.sentOk}</p> : null}
+      {form && renderQuoteForm ? renderQuoteForm({ ...d, quote: q ?? null, quotes: d.quotes }, (r) => { setForm(false); setSent(r?.held ? 'held' : 'ok'); load(); }) : null}
     </div>
   );
 }
 
 export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, renderQuoteForm }: {
   token: string; lang: Lang; focus?: string | null; onFocused?: () => void; onQuote: (id: string) => void;
-  renderQuoteForm?: (inq: LegacyInquiry, done: () => void) => React.ReactNode;
+  renderQuoteForm?: (inq: LegacyInquiry, done: (r?: { held?: boolean }) => void) => React.ReactNode;
 }) {
   const t = COPY[lang];
   const [list, setList] = useState<InquiryListItem[] | null>(null);

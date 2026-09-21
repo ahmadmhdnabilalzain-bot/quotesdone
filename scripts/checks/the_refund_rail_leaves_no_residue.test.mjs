@@ -68,7 +68,8 @@ test('fn_gl_post refuses unless the journal is a draft, and its file is the last
 test('the reveal receipt makes no invoice number of its own', () => {
   const s = read('supabase/functions/reveal_invoice/index.ts');
   assert.doesNotMatch(s, /'QD-INV-'/);
-  assert.match(s, /receiptCitation\(res\.sale\)/);
+  // 21 Sep 2026: the number printed is Stripe's (reveal_fee_documents.ts docRef), never one made here.
+  assert.match(read('supabase/functions/_shared/reveal_fee_documents.ts'), /return s\.invoice_no \|\| s\.payment_ref;/);
 });
 
 test('Control Mode is retired: no live code names it, and the retirement is recorded', () => {

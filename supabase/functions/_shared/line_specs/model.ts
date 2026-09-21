@@ -101,6 +101,8 @@ const thickness = (t: string) => {
     const before = s.slice(Math.max(0, m.index! - 3), m.index!);
     const after = s.slice(m.index! + m[0].length, m.index! + m[0].length + 3);
     if (/[x×*]\s*$/i.test(before) || /^\s*[x×*]/i.test(after)) continue;
+    // "100mm metal stud", "300mm drop": the stud, channel, track or drop size is not the board's thickness
+    if (/^\s*(?:gi|galv\w*|metal|steel)?\s*(?:studs?|channels?|tracks?|runners?|frames?|framing|profiles?|drop|deep|wide|high|cavity|gap|void)\b/i.test(s.slice(m.index! + m[0].length, m.index! + m[0].length + 24))) continue;
     if (Number(m[1]) > 0 && Number(m[1]) <= 300) return String(Number(m[1]));
   }
   return null;
@@ -159,8 +161,13 @@ export const TRADES: Record<string, Trade> = Object.fromEntries([
         ['Mineral fibre tile', /mineral\s*fib(?:er|re)|armstrong|ceiling\s*tile|بلاط سقف/i], ['Calcium silicate', /calcium\s*silicate/i],
         ['Standard gypsum board', /(?:standard|regular|normal|plain)\s*(?:gypsum|board)|gypsum\s*board|plaster\s*board|لوح جبس|ألواح جبس|جبس بورد/i],
       ]), { options: ['Standard gypsum board', 'Moisture-resistant board', 'Fire-rated board', 'Acoustic board', 'Cement board', 'Mineral fibre tile', 'Calcium silicate'] }),
-      THK(),
-      A('frame', 'Frame / stud system & gauge', 'نظام الهيكل / القطاعات وسماكتها', true, (t) => { const s = normText(t); const m = s.match(/(\d+(?:\.\d+)?\s*mm\s*(?:gi|galv\w*)?\s*(?:studs?|channels?|frames?|framing|profiles?|runners?))|((?:studs?|channels?|framing|profiles?)\s*[:\-]?\s*\d+(?:\.\d+)?\s*mm)|(\d{2}\s*(?:gauge|ga)\b)|((?:knauf|gyproc|usg|siniat)\s*(?:system|frame|grid|\w+\s*system))|(furring\s*channel[\w .]{0,20})|(قطاعات\s*[^,;]{2,30})|(هيكل\s*مجلفن[^,;]{0,30})/i); return m ? clean(m.slice(1).find(Boolean)!) : null; }),
+      // PER LINE TYPE (audit 21 Sep 2026, finding 13): a 600×600 ceiling TILE has a size and no stud
+      // system; a bulkhead or cornice is a shape on a frame, with no board thickness of its own. The
+      // partition and the plain ceiling keep thickness + frame.
+      THK(true, { except: /mineral\s*fib|ceiling\s*tiles?|\btiles?\b|bulkhead|cornice|access\s*panel|بلاط|كورنيش|فتحة/i }),
+      DIMS(true, { applies: /mineral\s*fib|ceiling\s*tiles?|\btiles?\b|بلاط سقف/i }),
+      A('frame', 'Frame / stud system & gauge', 'نظام الهيكل / القطاعات وسماكتها', true, (t) => { const s = normText(t); const m = s.match(/(\d+(?:\.\d+)?\s*mm\s*(?:gi|galv\w*|metal|steel)?\s*(?:studs?|channels?|frames?|framing|profiles?|runners?|tracks?))|((?:studs?|channels?|framing|profiles?)\s*[:\-]?\s*\d+(?:\.\d+)?\s*mm)|(\d{2}\s*(?:gauge|ga)\b)|((?:knauf|gyproc|usg|siniat)\s*(?:system|frame|grid|\w+\s*system))|(furring\s*channel[\w .]{0,20})|(قطاعات\s*[^,;]{2,30})|(هيكل\s*مجلفن[^,;]{0,30})/i); return m ? clean(m.slice(1).find(Boolean)!) : null; },
+        { except: /mineral\s*fib|ceiling\s*tiles?|\btiles?\b|bulkhead|cornice|access\s*panel|بلاط|كورنيش|فتحة/i }),
       A('insulation', 'Insulation', 'العزل', false, (t) => { const m = normText(t).match(/((?:rock|glass|mineral)\s*wool(?:\s*\d+\s*(?:kg\/m3|kg\/m³|mm))*)|(صوف صخري[^,;]{0,20})|(صوف زجاجي[^,;]{0,20})/i); return m ? clean(m.slice(1).find(Boolean)!) : null; }),
       BRAND(['Knauf', 'Gyproc', 'USG Boral', 'USG', 'Saint-Gobain', 'Armstrong', 'Siniat', 'Rigips'], false),
     ]),

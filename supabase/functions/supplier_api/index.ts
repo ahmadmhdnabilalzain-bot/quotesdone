@@ -23,7 +23,9 @@ import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
-import { inquiryDocument, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
+import { completenessOf, inquiryDocument, itemsOfRows, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
+import { jobAlias } from '../_shared/quote_labels.ts';
+import { deriveLineFields, deriveTermsFromScope } from '../_shared/line_specs/derive.ts';
 // A DRAWING PAGE THAT FAILS TO SIGN IS COUNTED, LOGGED AND RAISED - never silently dropped from the
 // inbox (18 Sep 2026, sales_engineer). See _shared/drawing_pages.ts for the production measurement.
 import { signRedactedDrawings } from '../_shared/drawing_pages.ts';
@@ -39,7 +41,10 @@ const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 // 15 Sep 2026 (sales_engineer): trade_license_no, license_expiry and license_doc_path are NOT here. They
 // are written only by the upload paths, from the stored file and what license_extract read off it; from
 // this list a supplier could type their own expiry or point at a path that is not their licence.
-const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','license_authority','trn','bank_name','bank_account_name','bank_iban','iban_doc_path','egr_doc_path','egr_doc_name','egr_number'];
+// bank_name, bank_account_name, bank_iban and iban_doc_path left this list on 21 Sep 2026: the columns are
+// being dropped/purged (scripts/sql/the_founder_removed_bank_details_from_the_estate.sql). Money moves both
+// directions through Stripe, so the estate never holds a supplier's bank details — founder instruction 527.
+const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','license_authority','trn','egr_doc_path','egr_doc_name','egr_number'];
 const YEAR_MS = 365 * 864e5;
 const CONCLUDED = ['completed','closed','cancelled'];
 // EVIDENCE FIX 19 Jul 2026 -----------------------------------------------------------------
@@ -170,7 +175,7 @@ async function aiSummarize(leadId: number) {
   try { const { data: lead } = await admin.from('leads').select('id,company_name,sector,emirate,services,products,description,certifications,verified,service_emirates').eq('id', leadId).maybeSingle(); if (!lead) return; const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return; const text = [lead.company_name && ('Company: ' + lead.company_name), lead.sector && ('Trade: ' + lead.sector), lead.services && ('Services: ' + lead.services), lead.products && ('Products: ' + lead.products), lead.description && ('About: ' + lead.description), lead.certifications && ('Certifications: ' + lead.certifications)].filter(Boolean).join('\n'); if (!text) return; const r = await fetch(`${SUPA_URL}/functions/v1/profile_ai`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, company_name: lead.company_name, sector: lead.sector, emirate: lead.emirate, text }) }); if (!r.ok) return; const jd = await r.json(); if (jd?.ok && jd.profile) { const p = jd.profile; const upd: Record<string, unknown> = {}; if (p.capability_summary) upd.capability_summary = p.capability_summary; if (Array.isArray(p.service_emirates) && p.service_emirates.length && !(Array.isArray(lead.service_emirates) && lead.service_emirates.length)) upd.service_emirates = p.service_emirates; if (p.description && !lead.description) upd.description = p.description; if (p.category && !lead.sector) upd.sector = p.category; if (Object.keys(upd).length) await admin.from('leads').update(upd).eq('id', leadId); } } catch (_e) { /* */ }
 }
 async function aiReview(lead: Record<string, unknown>) {
-  try { const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null; const profile: Record<string, unknown> = {}; for (const k of ['company_name','sector','emirate','service_emirates','contact_name','signatory_name','phone','services','products','description','trade_license_no','license_authority','license_expiry','trn','egr_number','bank_name','bank_account_name','bank_iban']) profile[k] = lead[k]; const r = await fetch(`${SUPA_URL}/functions/v1/supplier_review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, profile }) }); if (!r.ok) return null; return await r.json(); } catch (_e) { return null; }
+  try { const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null; const profile: Record<string, unknown> = {}; for (const k of ['company_name','sector','emirate','service_emirates','contact_name','signatory_name','phone','services','products','description','trade_license_no','license_authority','license_expiry','trn','egr_number']) profile[k] = lead[k]; const r = await fetch(`${SUPA_URL}/functions/v1/supplier_review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, profile }) }); if (!r.ok) return null; return await r.json(); } catch (_e) { return null; }
 }
 async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 
@@ -347,7 +352,7 @@ const handle = async (req: Request): Promise<Response> => {
     // claimed_by is the account e-mail. Registration SHOWS it with its verification state rather
     // than asking for it — the supplier signed in with it, so a field here could only ever be
     // answered with the value we already hold.
-    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,bank_name,bank_account_name,bank_iban,license_doc_path,iban_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
+    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select(SEARCH_COLUMNS).ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); const rows = (data || []) as LeadHit[]; /* a sanctioned party is never shown to anybody — founder instruction 516, 18 Sep 2026 */ const barred = await sanctionedLeads(admin, rows.map((r) => r.id)); return J({ results: rows.filter((r) => !barred.has(String(r.id))).map((r) => searchResult(r, email)) }); } // search_result.ts: claimed_by is read, never returned
     if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: asLocale(body.lang), scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) { /* a01_leads_sanctioned_identity_cannot_re_register raises this when the name, trade licence or account e-mail belongs to a confirmed sanctions ban. The trigger is the guard; this turns it into a sentence a stranger can read rather than a raw 23514 — founder instruction 516, 18 Sep 2026. */ if (String(error.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); return J({ error: error.message }, 500); } const reg = await setRegistration(ins!.id); return J({ ok: true, id: ins?.id, registration: reg }); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
@@ -605,11 +610,11 @@ const handle = async (req: Request): Promise<Response> => {
 
     // ROW #5 §24 — SETTINGS. Language and notification preferences, on their own narrow allowlist.
     //
-    // These are deliberately NOT added to PROFILE_COLS. That list carries the bank IBAN, the
-    // emirates ID, the trade licence number and the licence expiry — fields whose writes are what
+    // These are deliberately NOT added to PROFILE_COLS. That list carries the emirates ID, the
+    // trade licence number and the licence expiry — fields whose writes are what
     // the licence gate and the approval flow are built around. Letting a preferences screen post
     // into the same allowlist would mean a change of interface language travelled through the same
-    // door as a change of bank account. Three columns, named here, and nothing else is settable.
+    // door as a change of trade licence number. Three columns, named here, and nothing else is settable.
     if (action === 'save_settings') {
       const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
@@ -832,7 +837,7 @@ const handle = async (req: Request): Promise<Response> => {
       // buyer's own name, all of which the retrieval-time scrub did catch.
       // scrubIdentity below is deliberately kept as a second, independent layer.
       const { data: inq } = await admin.from('inquiries_supplier_safe').select('id,category,emirate,summary,spec,created_at,budget,scope_type,brief_source,boq,boq_confidence,drawing_redacted_paths,status,outcome,hired_supplier_id').in('id', ids).order('created_at', { ascending: false }).limit(25);
-      const { data: myq } = await admin.from('quotes').select('id,inquiry_id,option_no,quote_amount,price_ex_vat,vat_treatment,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,source,original_file_name,submittable').eq('supplier_id', sup.id).in('inquiry_id', ids);
+      const { data: myq } = await admin.from('quotes').select('id,inquiry_id,option_no,quote_amount,price_ex_vat,amount_as_stated,vat_treatment,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,source,original_file_name,submittable').eq('supplier_id', sup.id).in('inquiry_id', ids);
       // A DRAFT COULD NOT BE REOPENED (14 Sep 2026). The portal only ever offered the quote form on an
       // RFQ with no quote, so a quote the accept rule held as a draft sat there with "Complete it"
       // leading back to a card with no form, and nothing said what was missing. The inbox now carries
@@ -1016,21 +1021,29 @@ const handle = async (req: Request): Promise<Response> => {
       if (action === 'quote_pdf') {
         const { data: q } = await admin.from('quotes').select('*').eq('id', String(body.quote_id || '')).eq('supplier_id', sup.id).maybeSingle();
         if (!q) return J({ error: 'Quote not found' }, 404);
-        const [{ data: inq }, { data: qi }] = await Promise.all([
+        const [{ data: inq }, { data: qi }, { data: spec }, { data: matches }] = await Promise.all([
           admin.from('inquiries_supplier_safe').select('id,category,emirate').eq('id', q.inquiry_id).maybeSingle(),
           admin.from('quote_items').select('*').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60),
+          // the customer's intake answers decide what the completeness checks require (assess.ts); read
+          // here for the checks only, never printed
+          admin.from('inquiries').select('spec').eq('id', q.inquiry_id).maybeSingle(),
+          admin.from('inquiry_matches').select('id,supplier_id').eq('inquiry_id', q.inquiry_id).order('id', { ascending: true }),
         ]);
-        const items: Item[] = (qi || []).map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || ''),
-          unit_price: b.unit_price == null ? null : Number(b.unit_price), amount: b.amount == null ? null : Number(b.amount),
-          brand: b.brand ?? null, model: b.model ?? null, specification: b.specification ?? null,
-          specs: (b.specs && typeof b.specs === 'object' && !Array.isArray(b.specs)) ? b.specs : null })).filter((x: Item) => x.desc);
+        // The completeness checks and each line's specs come from the hold desk's own reader
+        // (_shared/quote_documents.ts completenessOf — audit 21 Sep 2026, finding 4).
+        const done = completenessOf(q as any, itemsOfRows(qi), inq?.category ?? null, spec?.spec ?? null);
+        const items: Item[] = done.items;
         // The customer's request text is NOT printed (summary: null): pre-reveal it reaches a supplier only
-        // through the inbox's scrubbers, and this document must not become a second, unscrubbed door. The
-        // letter is 'S', not the customer's letter — that one is the price rank among competing quotes,
-        // which a supplier must never learn.
+        // through the inbox's scrubbers, and this document must not become a second, unscrubbed door.
+        // ONE ALIAS PER SUPPLIER PER JOB (audit 21 Sep 2026, finding 29: "Supplier A" in the question
+        // thread, "Supplier S" on the quotation). The supplier's letter is its place in the job's match
+        // order — the rule messages_api already uses for the question thread — never the customer's
+        // price-rank letter, which a supplier must not learn.
+        const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
+        const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
         const inquiry = { id: String(q.inquiry_id), category: inq?.category ?? null, emirate: inq?.emirate ?? null, summary: null };
-        const ref = quoteRef(String(q.inquiry_id), 'S');
-        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry }), async () => ({ doc: quoteDocument({ quote: q as any, inquiry, items, letter: 'S', lang }).body as Record<string, unknown>, ref }));
+        const ref = quoteRef(String(q.inquiry_id), letter);
+        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote }), async () => ({ doc: quoteDocument({ quote: done.quote, inquiry, items, letter, lang }).body as Record<string, unknown>, ref }));
         if (r && 'error' in r) return J({ error: 'You have generated many PDFs recently. Please try again shortly.', code: 'rate_limited' }, 429);
         return r ? J({ ok: true, url: r.url, ref, lang, cached: r.cached }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
       }
@@ -1243,7 +1256,10 @@ const handle = async (req: Request): Promise<Response> => {
       // that is already clean unchanged, so a quotation quote_extract anonymised is unaffected.
       const maskHits: string[] = [];
       const scrub = (v: unknown, n: number) => scrubIdentity(clip(v, n), sup.company_name, maskHits);
-      const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions, 2000);
+      // What the scope itself states is read into its columns (line_specs/derive.ts — audit 21 Sep
+      // 2026, finding 15): "Exclusions: …" typed inside the scope, and "installation included".
+      const fromScope = deriveTermsFromScope(body.scope, body.exclusions);
+      const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions || fromScope.exclusions || '', 2000);
       const priorMasked: string[] = Array.isArray(body.masked_terms) ? body.masked_terms.map((x: unknown) => String(x)) : [];
       const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
       const { data: inqRow } = await admin.from('inquiries').select('category,spec').eq('id', body.inquiry_id).maybeSingle();
@@ -1297,7 +1313,12 @@ const handle = async (req: Request): Promise<Response> => {
         else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
         try {
           await admin.from('quote_items').delete().eq('quote_id', qid);
-          const rows = p.lines.slice(0, 80).map((it: any, i: number) => ({ quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand, 120), model: clip(it.model, 120), specification: clip(it.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }));
+          // A line's own words fill brand / model / specification where the caller sent none; a scope
+          // that says installation is included, with no line carrying a labour or install figure, marks
+          // the first line install = 0 — "included in the rate" — so the scorer's labour-or-installation
+          // count reads what the supplier wrote (derive.ts, finding 15).
+          const anyInstall = p.lines.some((it: any) => numOrNull(it.labour) != null || numOrNull(it.install) != null);
+          const rows = p.lines.slice(0, 80).map((it: any, i: number) => { const dv = deriveLineFields(it); return { quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand || dv.brand, 120), model: clip(it.model || dv.model, 120), specification: clip(it.specification || dv.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install) ?? (i === 0 && !anyInstall && fromScope.installation_included ? 0 : null), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }; });
           // A line item with no description is dropped, not stored blank - a quote line the buyer
           // cannot read is worse than one that is absent.
           const clean = rows.filter((r: { description: string | null }) => r.description);
