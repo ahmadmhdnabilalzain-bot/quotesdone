@@ -108,7 +108,10 @@ Deno.serve(observe('resend_webhook', async (req) => {
       const reason = isComplaint ? 'spam_complaint' : ('hard_bounce' + (bounceType ? ':' + bounceType : ''));
       for (const e of emails) {
         try { await admin.from('email_suppressions').upsert({ email: e, reason, source: 'resend_webhook' }, { onConflict: 'email' }); suppressed++; } catch (_e) {}
-        try { await admin.from('leads').update({ invite_status: 'bounced' }).eq('email', e).or('invite_status.is.null,invite_status.eq.queued,invite_status.eq.sent'); } catch (_e) {}
+        // CASE-INSENSITIVE (21 Sep 2026): `e` is lower-cased above and 47 lead emails carry a capital,
+        // so an exact match left those leads 'sent' after a hard bounce and the invite bounce brake
+        // never counted them. ilike with LIKE's metacharacters escaped is an exact, case-folded match.
+        try { await admin.from('leads').update({ invite_status: 'bounced' }).ilike('email', e.replace(/[\\%_]/g, '\\$&')).or('invite_status.is.null,invite_status.eq.queued,invite_status.eq.sent'); } catch (_e) {}
       }
       try { await admin.from('error_events').insert({ source: 'resend_webhook', kind: reason, severity: 'low', detail: { emails, type } }); } catch (_e) {}
     }

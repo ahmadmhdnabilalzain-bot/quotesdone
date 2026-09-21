@@ -22,6 +22,9 @@
 #
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
 #
+# 21 Sep 2026 — supplier campaign readiness (customer_support, ceo oversight). Apply in this order; the
+# probe must answer PROBE OK. Both were executed in a rolled-back transaction against production first.
+#
 # 21 Sep 2026 — registration-day surge review (it_engineer).
 #
 # 21 Sep 2026 — the founder brief in seven plain items (ceo, instruction 587).
