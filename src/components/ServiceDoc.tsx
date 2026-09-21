@@ -43,7 +43,9 @@ export function svcMeta(slug: string, locale: string) {
   const { service, loc } = parse(slug); const d = S[service];
   if (!d) return { title: 'QuotesDone' };
   const c = (d as any)[locale] || d.en;
-  const title = sub(c.title, loc, locale);
+  // The content JSON stores titles HTML-escaped; <title> is text, so React escapes again and the
+  // tab read "Movers &amp;amp; Packers" (audit 21 Sep 2026, item 26). Decoded once, here.
+  const title = textFromHtml(sub(c.title, loc, locale));
   const body = textFromHtml(sub(c.html, loc, locale)).replace(title, '').trim();
   return buildMeta({ locale, path: '/services/' + slug, title, description: body });
 }

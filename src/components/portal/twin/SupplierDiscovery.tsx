@@ -129,7 +129,9 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
       {res ? (
         <div className="mt-3">
           <div className="text-[15px] font-extrabold text-foreground">
-            {L(lang, 'Found', 'وُجد')} {res.found} {L(lang, res.found === 1 ? 'supplier' : 'suppliers', 'مورّد')}
+            {res.found === 0
+              ? L(lang, 'No supplier is shortlisted for this yet', 'لا يوجد مورّد مرشّح لهذا بعد')
+              : `${L(lang, 'Found', 'وُجد')} ${res.found} ${L(lang, res.found === 1 ? 'supplier' : 'suppliers', 'مورّد')}`}
           </div>
 
           {/* §9: the applied filters, shown back. They come from the server's own echo of what it
