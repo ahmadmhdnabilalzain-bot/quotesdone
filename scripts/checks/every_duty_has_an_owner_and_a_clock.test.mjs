@@ -57,6 +57,35 @@ test('every customer- and supplier-facing message is written in English and in A
   assert.doesNotMatch(CHANGE, /fn_notify_founder\(|to_role['"]?,\s*'founder'/, 'a clock addresses the founder');
 });
 
+// ONE SUPPRESSION RULE IN TWO LANGUAGES (instruction 632, PR #804). send_outbox applies the TS policy; the
+// seat clocks apply the SQL mirror before they queue. If the lists drift, a clock queues what the outbox then
+// suppresses (or refuses what the outbox would send) -- so the two lists must be identical, and the SQL answers
+// must equal the TS rule on every (reason, type) pair.
+const POLICY_TS = R('supabase/functions/_shared/suppression_policy.ts');
+const listOf = (src, re) => { const m = src.match(re); assert.ok(m, 'list not found'); return [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]); };
+const TS_LIST = listOf(POLICY_TS, /export const OPT_OUT_TYPES[^=]*=\s*\[([^\]]*)\]/);
+const SQL_LIST = listOf(CHANGE, /create or replace function public\.fn_opt_out_types\(\)[\s\S]*?select array\[([^\]]*)\]/);
+
+test('the SQL opt-out list is the TS opt-out list', () => {
+  assert.deepEqual(SQL_LIST, TS_LIST, 'fn_opt_out_types() and OPT_OUT_TYPES disagree');
+  assert.ok(TS_LIST.includes('supplier_rfq_widened_invite'), 'the cold widened invitation is not opt-out-eligible');
+  for (const t of ['rfq_quote_reminder', 'rfq_short_of_quotes', 'reveal_outcome_check']) {
+    assert.ok(!TS_LIST.includes(t), `${t} is transactional and must not be stopped by an opt-out`);
+  }
+});
+
+test('fn_suppression_stops answers what suppressionStops answers, on every reason and type', { skip: SKIP }, async () => {
+  const reasons = ['unsubscribe', 'UNSUBSCRIBE ', 'hard_bounce:permanent', 'spam_complaint', 'blocked: pattern', ''];
+  const types = [...TS_LIST, 'rfq_quote_reminder', 'rfq_short_of_quotes', 'reveal_outcome_check', 'new_inquiry', 'login_otp'];
+  const pairs = reasons.flatMap((r) => types.map((t) => `('${r}','${t}')`)).join(',');
+  const rows = await sql(`select r, t, public.fn_suppression_stops(r, t) as stops from (values ${pairs}) v(r, t)`);
+  assert.ok(Array.isArray(rows) && rows.length === reasons.length * types.length, JSON.stringify(rows).slice(0, 300));
+  for (const x of rows) {
+    const ts = String(x.r).trim().toLowerCase() !== 'unsubscribe' || TS_LIST.includes(x.t);   // suppressionStops, verbatim rule
+    assert.equal(x.stops, ts, `reason '${x.r}', type ${x.t}: SQL ${x.stops}, TS ${ts}`);
+  }
+});
+
 test('the rolled-back rehearsal on production answers PROBE OK', { skip: SKIP }, async () => {
   const r = await sql(PROBE, { retry: false });
   const verdict = Array.isArray(r) && r[0] ? String(r[0].verdict) : JSON.stringify(r).slice(0, 500);

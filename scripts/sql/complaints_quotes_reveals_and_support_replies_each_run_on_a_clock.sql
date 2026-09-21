@@ -49,7 +49,7 @@
 --      evidence.
 --   6. fn_seat_clocks_tick runs the four, each isolated; resilience_step 'seatClocks' every 30 min.
 --
--- THE GATE THAT KEEPS REAL PEOPLE OUT (fn_seat_clock_may_write): a message is written only when the
+-- THE GATE THAT KEEPS REAL PEOPLE OUT (fn_seat_clock_refusal): a message is written only when the
 -- subject and the recipient are the same kind -- a fixture subject (ZZ DEMO / is_demo / @example.invalid)
 -- may only ever write to a fixture address, which zzzz_notifications_demo_capture records 'suppressed' and
 -- never sends; a real subject only to a real, sendable address. Today every inquiry, reveal and ticket is
@@ -91,25 +91,69 @@ $fn$;
 revoke execute on function public.fn_seat_clock_policy(text, numeric) from public, anon, authenticated;
 
 -- ── 2. the gate ───────────────────────────────────────────────────────────────────────────────────
--- Same kind or nothing. The reveal-receipt probe of 10 Sep wrote about a fixture to a REAL supplier; this
--- makes that shape impossible here rather than cleaned up afterwards.
-create or replace function public.fn_seat_clock_may_write(p_subject_is_fixture boolean, p_to text)
+-- WHAT A SUPPRESSION STOPS, IN SQL. The rule is the founder's (instruction 632) and its definition is
+-- supabase/functions/_shared/suppression_policy.ts (PR #804): reason 'unsubscribe' is a preference and stops
+-- only the cold outreach in OPT_OUT_TYPES; a bounce, a complaint or a guardrail block stops everything.
+-- fn_email_sendable refuses on ANY suppression row, so a supplier who opted out of the campaign would also
+-- lose the reminder for a request he was matched to -- and the agreement charges for non-response. This is
+-- the SQL mirror; every_duty_has_an_owner_and_a_clock.test.mjs fails if the two lists or the two answers
+-- ever disagree. 'supplier_rfq_widened_invite' is this file's cold invitation (a supplier matched only by
+-- the short-of-quotes sweep, who never asked for this request) and is added to the TS list in the same PR.
+create or replace function public.fn_opt_out_types()
+returns text[]
+language sql
+immutable
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select array['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']::text[]
+$fn$;
+revoke execute on function public.fn_opt_out_types() from public, anon, authenticated;
+
+create or replace function public.fn_suppression_stops(p_reason text, p_type text)
 returns boolean
 language sql
+immutable
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select lower(btrim(coalesce(p_reason, ''))) <> 'unsubscribe' or coalesce(p_type, '') = any (public.fn_opt_out_types())
+$fn$;
+revoke execute on function public.fn_suppression_stops(text, text) from public, anon, authenticated;
+
+-- Same kind or nothing. The reveal-receipt probe of 10 Sep wrote about a fixture to a REAL supplier; this
+-- makes that shape impossible here rather than cleaned up afterwards. Returns NULL when the message may be
+-- written, otherwise the reason it may not (which the caller records -- a skip is never silent).
+-- The address checks are fn_email_sendable's own tables (email_suppressions, email_domain_mx,
+-- email_block_pattern), with the suppression read through the policy above instead of "any row".
+create or replace function public.fn_seat_clock_refusal(p_subject_is_fixture boolean, p_to text, p_type text)
+returns text
+language plpgsql
 stable
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select case when coalesce(btrim(p_to), '') !~ '@' then false
-              when p_subject_is_fixture then public.fn_is_demo_email(p_to)
-              else not public.fn_is_demo_email(p_to)
-                   and coalesce((public.fn_email_sendable(p_to)->>'ok')::boolean, false)
-                   and lower(btrim(p_to)) not in (select lower(btrim(x)) from public.app_secrets s,
-                                                   unnest(string_to_array(coalesce(s.value, ''), ',')) x
-                                                   where s.key = 'admin_emails')
-         end
+declare v_e text := lower(btrim(coalesce(p_to, ''))); v_reason text;
+begin
+  if v_e !~ '^[a-z0-9._%+-]+@[a-z0-9.-]+[.][a-z]{2,}$' then return 'no valid address'; end if;
+  if p_subject_is_fixture then
+    return case when public.fn_is_demo_email(v_e) then null else 'a fixture subject may not write to a real address' end;
+  end if;
+  if public.fn_is_demo_email(v_e) then return 'a real subject may not write to a fixture address'; end if;
+  if v_e in (select lower(btrim(x)) from public.app_secrets s, unnest(string_to_array(coalesce(s.value, ''), ',')) x
+              where s.key = 'admin_emails') then return 'the founder is never addressed by a seat clock'; end if;
+  select s.reason into v_reason from public.email_suppressions s
+   where lower(s.email) = v_e and public.fn_suppression_stops(s.reason, p_type) limit 1;
+  if found then
+    return case when lower(btrim(coalesce(v_reason, ''))) = 'unsubscribe' then 'opted out (unsubscribe) of ' || p_type
+                else 'suppressed: ' || coalesce(v_reason, 'no reason recorded') end;
+  end if;
+  if exists (select 1 from public.email_domain_mx m where m.domain = split_part(v_e, '@', 2)
+              and m.has_mx = false and m.kind in ('nxdomain', 'no_records')) then return 'the domain does not accept mail'; end if;
+  select b.reason into v_reason from public.email_block_pattern b where b.active and v_e ~ b.pattern limit 1;
+  if found then return 'blocked: ' || coalesce(v_reason, 'block pattern'); end if;
+  return null;
+end
 $fn$;
-revoke execute on function public.fn_seat_clock_may_write(boolean, text) from public, anon, authenticated;
+revoke execute on function public.fn_seat_clock_refusal(boolean, text, text) from public, anon, authenticated;
 
 -- Already asked? Read from the delivery requests themselves (fn_seat_handoff's own key), not a status column.
 create or replace function public.fn_seat_clock_asked(p_dedupe_key text)
@@ -265,18 +309,40 @@ language plpgsql
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare m jsonb; v jsonb;
+declare m jsonb; v jsonb; v_why text; v_key text := 'seat_clock_not_written:' || p_dedupe_key;
 begin
   if public.fn_seat_clock_asked(p_dedupe_key) then return jsonb_build_object('ok', true, 'already', true); end if;
-  if not public.fn_seat_clock_may_write(p_subject_is_fixture, p_to) then
-    return jsonb_build_object('ok', false, 'reason', 'not written: recipient and subject are not the same kind, or the address is not sendable');
+  v_why := public.fn_seat_clock_refusal(p_subject_is_fixture, p_to, p_type);
+  if v_why is null then
+    m := public.fn_seat_clock_compose(p_kind, p_lang, p);
+    v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', p_type, 'requested_by', p_seat, 'channel', 'email', 'to_email', lower(btrim(p_to)), 'to_role', p_to_role,
+      'lead_id', p_lead_id, 'inquiry_id', p_inquiry_id, 'quote_id', p_quote_id, 'lang', m->>'lang',
+      'subject', m->>'subject', 'body', m->>'body', 'dedupe_key', p_dedupe_key)));
+    if coalesce(v->0->>'status', '') <> 'failed' then
+      return jsonb_build_object('ok', true, 'delivery', v->0, 'lang', m->>'lang');
+    end if;
+    v_why := 'the delivery request failed: ' || coalesce(v->0->>'error', 'no error recorded');
   end if;
-  m := public.fn_seat_clock_compose(p_kind, p_lang, p);
-  v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
-    'type', p_type, 'requested_by', p_seat, 'channel', 'email', 'to_email', lower(btrim(p_to)), 'to_role', p_to_role,
-    'lead_id', p_lead_id, 'inquiry_id', p_inquiry_id, 'quote_id', p_quote_id, 'lang', m->>'lang',
-    'subject', m->>'subject', 'body', m->>'body', 'dedupe_key', p_dedupe_key)));
-  return jsonb_build_object('ok', coalesce(v->0->>'status', '') <> 'failed', 'delivery', v->0, 'lang', m->>'lang');
+  -- A SKIP IS RECORDED, NEVER ONLY COUNTED: one finding per message, owned by the seat that wanted to send
+  -- it. An opt-out is the recipient's own choice (instruction 632) -- recorded and closed at once, so it is
+  -- on the ledger without paging anybody; anything else stays open for the seat to act on. The same opt-out
+  -- seen again on the next tick is already on the ledger and is not re-written.
+  if v_why like 'opted out%' and exists (select 1 from public.it_engineer_finding
+                                          where issue_key = v_key and closed_at is not null and evidence->>'reason' = v_why) then
+    return jsonb_build_object('ok', false, 'reason', v_why, 'recorded_as', v_key);
+  end if;
+  perform public.fn_it_engineer_finding_upsert(v_key,
+    left('Not sent (' || p_type || ' to the ' || p_to_role || '): ' || v_why, 300),
+    'seat clock ' || p_seat || ' -> fn_seat_clock_deliver', case when v_why like 'opted out%' then 'agent_facing' else 'customer_facing' end, 1,
+    jsonb_build_object('type', p_type, 'to_role', p_to_role, 'reason', v_why, 'dedupe_key', p_dedupe_key,
+                       'inquiry_id', p_inquiry_id, 'quote_id', p_quote_id, 'lead_id', p_lead_id,
+                       'owner_seat', p_seat, 'duty', 'seat_clock', 'demo', p_subject_is_fixture),
+    '{}'::text[], '{}'::text[], p_seat);
+  if v_why like 'opted out%' then
+    perform public.fn_it_engineer_finding_close(v_key, 'recorded: the recipient opted out of this kind of mail, which is the rule (instruction 632)');
+  end if;
+  return jsonb_build_object('ok', false, 'reason', v_why, 'recorded_as', v_key);
 end
 $fn$;
 revoke execute on function public.fn_seat_clock_deliver(text, text, text, text, boolean, text, text, jsonb, text, uuid, uuid, bigint) from public, anon, authenticated;
@@ -427,7 +493,7 @@ begin
           if found then
             v_new := v_new + 1;
             select * into l from public.leads where id = s.supplier_id;
-            v := public.fn_seat_clock_deliver('sales_engineer', 'new_inquiry', 'supplier',
+            v := public.fn_seat_clock_deliver('sales_engineer', 'supplier_rfq_widened_invite', 'supplier',
                    lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email))), r.fixture, l.locale, 'rfq_invite',
                    jsonb_build_object('name', l.company_name, 'category', r.category, 'emirate', r.emirate),
                    'rfq_invite:' || r.id || ':' || l.id, r.id, null, l.id);

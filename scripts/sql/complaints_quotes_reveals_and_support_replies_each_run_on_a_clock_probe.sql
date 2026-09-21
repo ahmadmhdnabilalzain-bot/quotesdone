@@ -18,7 +18,8 @@ begin
   -- ── structure ──
   foreach v_fn in array array['public.fn_seat_clocks_tick()', 'public.fn_complaint_clock_tick(boolean)',
       'public.fn_rfq_short_of_quotes_tick(boolean)', 'public.fn_reveal_outcome_check_tick(boolean)',
-      'public.fn_support_reply_watch_tick()', 'public.fn_seat_clock_may_write(boolean,text)',
+      'public.fn_support_reply_watch_tick()', 'public.fn_seat_clock_refusal(boolean,text,text)',
+      'public.fn_suppression_stops(text,text)', 'public.fn_opt_out_types()',
       'public.fn_seat_clock_deliver(text,text,text,text,boolean,text,text,jsonb,text,uuid,uuid,bigint)',
       'public.fn_seat_clock_compose(text,text,jsonb)', 'public.fn_complaint_due_waits_for_the_response(bigint)'] loop
     if to_regprocedure(v_fn) is null then f := f || (v_fn || ' does not exist'); continue; end if;
@@ -43,9 +44,37 @@ begin
 
   begin
     -- ── the gate ──
-    if public.fn_seat_clock_may_write(true, 'someone@quotesdone.com') then f := f || text 'a fixture subject may write to a real address'; end if;
-    if public.fn_seat_clock_may_write(false, 'zz.clock@example.invalid') then f := f || text 'a real subject may write to a fixture address'; end if;
-    if not public.fn_seat_clock_may_write(true, 'zz.clock@example.invalid') then f := f || text 'a fixture subject cannot reach its own fixture'; end if;
+    if public.fn_seat_clock_refusal(true, 'someone@quotesdone.com', 'rfq_quote_reminder') is null then f := f || text 'a fixture subject may write to a real address'; end if;
+    if public.fn_seat_clock_refusal(false, 'zz.clock@example.invalid', 'rfq_quote_reminder') is null then f := f || text 'a real subject may write to a fixture address'; end if;
+    if public.fn_seat_clock_refusal(true, 'zz.clock@example.invalid', 'rfq_quote_reminder') is not null then f := f || text 'a fixture subject cannot reach its own fixture'; end if;
+
+    -- ── the suppression policy (instruction 632, PR #804): an opt-out stops only cold outreach ──
+    -- The address is only READ by the gate below; nothing is ever queued to it (the row is rolled back).
+    insert into public.email_suppressions (email, reason, source) values ('zz.optout.clockprobe@probe-never-sent.com', 'unsubscribe', 'probe');
+    foreach v_fn in array array['rfq_quote_reminder', 'rfq_short_of_quotes', 'reveal_outcome_check'] loop
+      if public.fn_seat_clock_refusal(false, 'zz.optout.clockprobe@probe-never-sent.com', v_fn) is not null then
+        f := f || (v_fn || ' was stopped by an opt-out (it is not cold outreach): '
+                   || public.fn_seat_clock_refusal(false, 'zz.optout.clockprobe@probe-never-sent.com', v_fn)); end if;
+    end loop;
+    if coalesce(public.fn_seat_clock_refusal(false, 'zz.optout.clockprobe@probe-never-sent.com', 'supplier_rfq_widened_invite'), '') not like 'opted out%' then
+      f := f || text 'the cold widened invitation ignored an opt-out'; end if;
+    update public.email_suppressions set reason = 'hard_bounce:permanent' where email = 'zz.optout.clockprobe@probe-never-sent.com';
+    if public.fn_seat_clock_refusal(false, 'zz.optout.clockprobe@probe-never-sent.com', 'rfq_short_of_quotes') is null then
+      f := f || text 'a hard bounce did not stop a customer notice'; end if;
+    -- a skip is recorded: open for a real fault, recorded-and-closed for an opt-out
+    v := public.fn_seat_clock_deliver('sales_engineer', 'rfq_quote_reminder', 'supplier', 'zz.optout.clockprobe@probe-never-sent.com',
+           false, 'en', 'rfq_quote_reminder', '{}'::jsonb, 'zz_clock_probe_bounce');
+    if coalesce((v->>'ok')::boolean, true) or not exists (select 1 from public.it_engineer_finding
+         where issue_key = 'seat_clock_not_written:zz_clock_probe_bounce' and closed_at is null) then
+      f := f || text 'a send refused for a bounce was not recorded as an open finding'; end if;
+    update public.email_suppressions set reason = 'unsubscribe' where email = 'zz.optout.clockprobe@probe-never-sent.com';
+    v := public.fn_seat_clock_deliver('sales_engineer', 'supplier_rfq_widened_invite', 'supplier', 'zz.optout.clockprobe@probe-never-sent.com',
+           false, 'en', 'rfq_invite', '{}'::jsonb, 'zz_clock_probe_optout');
+    if coalesce((v->>'ok')::boolean, true) or not exists (select 1 from public.it_engineer_finding
+         where issue_key = 'seat_clock_not_written:zz_clock_probe_optout' and closed_at is not null) then
+      f := f || text 'an opted-out invitation was not recorded (and closed) on the ledger'; end if;
+    if exists (select 1 from public.notifications where lower(to_email) = 'zz.optout.clockprobe@probe-never-sent.com') then
+      f := f || text 'a refused address was queued a message'; end if;
 
     -- ── the words, EN and AR, for every kind ──
     foreach v_fn in array array['rfq_invite', 'rfq_quote_reminder', 'rfq_short_of_quotes', 'reveal_outcome_check'] loop
@@ -157,7 +186,7 @@ begin
   select count(*) into v_left from public.complaint_tickets where email = 'zz.clock@example.invalid';
   if v_left <> 0 then f := f || (v_left || ' probe ticket(s) survived the rollback'); end if;
   insert into zz_seat_clock_probe values (case when cardinality(f) = 0
-    then 'PROBE OK: complaints go to the seat then the CEO once and close on the final response; a short request is widened, reminded and its customer told once; the 7-day reveal check is asked once and never after the rating ask; a late first reply is a finding that closes; EN and AR text; nothing to a real address or the founder'
+    then 'PROBE OK: complaints go to the seat then the CEO once and close on the final response; a short request is widened, reminded and its customer told once; the 7-day reveal check is asked once and never after the rating ask; a late first reply is a finding that closes; an opt-out stops only cold outreach and every skip is recorded; EN and AR text; nothing to a real address or the founder'
     else 'PROBE FAILED: ' || array_to_string(f, '; ') end);
 end $probe$;
 select verdict from zz_seat_clock_probe;
