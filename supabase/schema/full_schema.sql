@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T22:17:17.679Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T22:22:23.899Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -64758,6 +64758,7 @@ $CRON$);
 --   dropbox_oauth_key
 --   dropbox_refresh_token
 --   dropbox_roots
+--   email_asset_public_base
 --   email_enabled
 --   email_from_info
 --   email_from_supplier
@@ -64853,6 +64854,7 @@ $CRON$);
 --   twilio_from
 --   twilio_verify_service_sid
 --   twilio_wa_from
+--   unsubscribe_public_base
 --   unsubscribe_signing_key
 --   unsubscribe_signing_key_legacy
 --   uptime_last_autoheal
