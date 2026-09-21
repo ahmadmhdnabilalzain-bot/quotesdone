@@ -47,7 +47,8 @@ const COPY = {
   },
 };
 const day = (d: string, lang: Lang) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-const aed = (n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
+// The currency word follows the UI language (audit 21 Sep 2026, finding 26); the digits stay Latin inside <Ltr>.
+const aedIn = (lang: Lang, n: number | null | undefined) => { const v = Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 }); return lang === 'ar' ? v + ' د.إ' : 'AED ' + v; };
 // deno-style loose shape the legacy quote form reads (SupplierPortal QuoteForm): the inquiry and its quotes.
 export type LegacyInquiry = { id: string; quote: unknown; quotes: unknown[]; [k: string]: unknown };
 
@@ -120,8 +121,10 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
       <DrawingGallery pages={d.drawing_pages} failed={Number(d.drawing_pages_failed || 0)} lang={lang} />
       <BoqTable boq={d.boq} confidence={d.boq_confidence} lang={lang} />
       {d.boq_withheld ? <p className="mt-3 text-[12.5px] text-muted-foreground">{t.boqHeld}</p> : null}
-      <ClarifyThread inquiryId={d.id} token={token} lang={lang} canAsk={canQuote && !q} />
-      {q ? <p className="mt-4 text-[13px] text-foreground">{t.quoted}: <span className="font-mono tabular-nums"><Ltr>{aed(q.quote_amount)}</Ltr></span></p> : null}
+      {/* A question stays possible after a quote exists (audit 21 Sep 2026, finding 30): the answer reaches every
+          matched supplier and a supplier revises its quote on it. Only a concluded or revealed job closes it. */}
+      <ClarifyThread inquiryId={d.id} token={token} lang={lang} canAsk={canQuote} />
+      {q ? <p className="mt-4 text-[13px] text-foreground">{t.quoted}: <span className="font-mono tabular-nums"><Ltr>{aedIn(lang, q.quote_amount)}</Ltr></span></p> : null}
       {canQuote ? (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button onClick={() => onQuote(d.id)}>{t.quote}</Button>
@@ -184,7 +187,7 @@ export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, re
                 </span>
                 <span className="flex flex-col items-end gap-1">
                   {i.you_won ? <Badge variant="ok">{t.won}</Badge> : i.concluded ? <Badge variant="secondary">{lang === 'ar' ? 'منتهٍ' : 'Concluded'}</Badge> : null}
-                  {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : q ? <span className="font-mono text-[12px] tabular-nums text-foreground"><Ltr>{aed(q.quote_amount)}</Ltr></span> : null}
+                  {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : q ? <span className="font-mono text-[12px] tabular-nums text-foreground"><Ltr>{aedIn(lang, q.quote_amount)}</Ltr></span> : null}
                   <span aria-hidden className="text-[11.5px] text-muted-foreground">{on ? t.close : t.open}</span>
                 </span>
               </button>

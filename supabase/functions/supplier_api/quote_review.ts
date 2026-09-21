@@ -89,8 +89,18 @@ export type Review = { approved: boolean; issues: Issue[]; price_ex_vat: number 
 
 /** The key that tracks one request across reviews: the same missing detail is the same request. */
 export const issueKey = (i: Pick<Issue, 'code' | 'line_no' | 'boq_line' | 'attr'>) => `${i.code}|${i.line_no ?? ''}|${i.boq_line ?? ''}|${i.attr ?? ''}`;
-/** The job number every supplier-facing surface prints — the same 8 characters the hold notices use. */
-export const jobNo = (inquiryId: string) => String(inquiryId || '').slice(0, 8).toUpperCase();
+/**
+ * The job number every surface prints: inquiries.rfq_no, the same number the customer portal shows
+ * and every notice carries ('RFQ-151767'). Measured 21 Sep 2026 (audit finding 7): this printed the
+ * first 8 characters of the uuid (D958E1EA) while the customer read 151767 for the same job, so
+ * neither side could quote the other's number. The uuid prefix remains only as a fallback for a row
+ * read without rfq_no, which the column's NOT NULL makes a caller's omission rather than a state.
+ */
+export const jobNo = (inq: { rfq_no?: number | string | null; id?: string | null } | string) => {
+  if (typeof inq === 'string') return inq.slice(0, 8).toUpperCase();
+  const n = inq?.rfq_no;
+  return n != null && String(n).trim() !== '' ? String(n) : String(inq?.id || '').slice(0, 8).toUpperCase();
+};
 
 // ---------------------------------------------------------------------------------------------
 // Reading a quotation file's proposal (quote_extract/quote_from_document.ts) into the working quote.

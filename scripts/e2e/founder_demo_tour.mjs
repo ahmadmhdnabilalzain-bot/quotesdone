@@ -28,6 +28,7 @@
 //   node scripts/e2e/founder_demo_tour.mjs --link       mint FRESH links for the demo already standing
 //   node scripts/e2e/founder_demo_tour.mjs --verify     open the supplier link in a browser and prove it lands signed in
 //   node scripts/e2e/founder_demo_tour.mjs --teardown   remove every row, file and auth user this seeded
+//   node scripts/e2e/founder_demo_tour.mjs --redraw     re-upload the readable redacted plan over a standing demo's pages
 //
 // The link is a Supabase magic link (POST /auth/v1/admin/generate_link, type magiclink). Its token
 // is single-use and expires after mailer_otp_exp — 3600 s on this project — so --link is the
@@ -36,10 +37,9 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { deflateSync, crc32 } from 'node:zlib';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call } from './fixtures.mjs';
 import { newRun, makeInquiry, uploadObject, keys, q, num } from '../staging/demo_factory.mjs';
-import { demoPdf } from '../lib/demo_pdf.mjs';
+import { demoPdf, demoOfficePlanPng } from '../lib/demo_pdf.mjs';
 
 // ONE TAG FOR THE LIFE OF THE DEMO. Not random: the founder's demo is a standing thing, so --link
 // and --teardown must be able to find it tomorrow without being told a hex string from today.
@@ -55,18 +55,24 @@ const step = (name, ok, detail = '') => console.log(`${ok ? 'PASS' : 'FAIL'}  ${
 // engineer's rewrite turns these words into the service list, nothing is typed in as a list.
 const OWN_WORDS = 'we do gypsum partitions, false ceilings and painting';
 
+// EVERY JOB IS IN DUBAI. The demo supplier's stated coverage comes from makeSupplier
+// (scripts/staging/demo_factory.mjs: service_emirates = EMIRATES.slice(0, 1 + variant % 3), which
+// always starts with 'Dubai'; measured 21 Sep 2026 on lead 126512: coverage_emirates {Dubai}). A
+// supplier who limited itself is matched only inside its stated emirates (audit finding 25,
+// a_supplier_who_limits_its_emirates_is_matched_only_there.sql), so an Abu Dhabi or Sharjah job would
+// never reach it through the real matcher, and this tour now asks the matcher before it invites.
 const JOBS = [
   { key: 'office', trade: 'gypsum', emirate: 'Dubai',
     summary: 'Gypsum partitions and false ceiling for an office fit-out in Business Bay, Dubai',
     boq: [{ section: 'Partitions', description: 'Gypsum board partition, 100mm metal stud, both faces', qty: 320, unit: 'm2', confidence: 'high' },
           { section: 'Ceilings', description: 'Suspended false ceiling, 600x600 mineral fibre tiles', qty: 410, unit: 'm2', confidence: 'high' },
           { section: 'Ceilings', description: 'Gypsum bulkhead, 300mm drop, painted finish', qty: 64, unit: 'm', confidence: 'medium' }] },
-  { key: 'villa', trade: 'gypsum', emirate: 'Abu Dhabi',
-    summary: 'False ceilings and gypsum cornice for a private villa in Khalifa City, Abu Dhabi',
+  { key: 'villa', trade: 'gypsum', emirate: 'Dubai',
+    summary: 'False ceilings and gypsum cornice for a private villa in Jumeirah, Dubai',
     boq: [{ section: 'Ceilings', description: 'Plain gypsum false ceiling with cove lighting detail', qty: 180, unit: 'm2', confidence: 'high' },
           { section: 'Ceilings', description: 'Gypsum cornice 150mm, supplied and fixed', qty: 210, unit: 'm', confidence: 'medium' }] },
-  { key: 'retail', trade: 'painting', emirate: 'Sharjah',
-    summary: 'Internal painting for a retail unit handover in Al Nahda, Sharjah',
+  { key: 'retail', trade: 'painting', emirate: 'Dubai',
+    summary: 'Internal painting for a retail unit handover in Al Nahda, Dubai',
     boq: [{ section: 'Internal walls', description: 'Internal wall painting, emulsion, two coats', qty: 540, unit: 'm2', confidence: 'high' },
           { section: 'Ceilings', description: 'Ceiling painting, emulsion, two coats', qty: 150, unit: 'm2', confidence: 'medium' }] },
 ];
@@ -156,17 +162,12 @@ async function reviewToSubmission(rv, files) {
   return { view, raised, still_open: openIssues(view).length };
 }
 
-/** A drawing page as a PNG: a white sheet with a plan outline and no text. Same shape as supplier_quote_review.mjs. */
-function drawingPng(w = 620, h = 440) {
-  const px = Buffer.alloc((w * 3 + 1) * h, 255);
-  const dot = (x, y) => { const o = y * (w * 3 + 1) + 1 + x * 3; px[o] = 30; px[o + 1] = 60; px[o + 2] = 90; };
-  for (let x = 40; x < w - 40; x++) { dot(x, 40); dot(x, h - 40); dot(x, 210); }
-  for (let y = 40; y < h - 40; y++) { dot(40, y); dot(w - 40, y); dot(330, y); }
-  for (let y = 0; y < h; y++) px[y * (w * 3 + 1)] = 0;
-  const chunk = (type, data) => { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(type), data]); const c = Buffer.alloc(4); c.writeUInt32BE(crc32(td) >>> 0); return Buffer.concat([len, td, c]); };
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
-  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(px)), chunk('IEND', Buffer.alloc(0))]);
-}
+// The redacted drawing page a supplier downloads. Until 21 Sep 2026 this was a local drawingPng():
+// a white sheet with a plan outline and no text, so the founder-demo supplier saw four empty
+// rectangles (audit 21 Sep, finding 3). The page is uploaded straight to drawings/redacted/ and
+// drawing_redact never runs on it, so it must already BE the redacted page: the shared office plan
+// (rooms, areas, dimensions, legend, north, scale) with its title block painted black.
+const drawingPng = () => demoOfficePlanPng({ redactTitleBlock: true });
 
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
 
@@ -276,13 +277,24 @@ async function seed() {
               spec = coalesce(spec,'{}'::jsonb) || ${q(JSON.stringify({ customer_requirements: { version: 1, installation: { required: 'yes' }, warranty: { required: 'yes' } } }))}::jsonb,
               drawing_redacted_paths = array[${q(page)}]
         where id = ${q(inq.id)}`, 'founder demo inquiry');
-      const m = await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
-          values (${q(inq.id)}, ${num(sup.leadId)}, 0.92, 'founder demo: direct invitation')
-          on conflict do nothing returning inquiry_id`, 'founder demo match');
+      // THE MATCHER DECIDES FIRST. The real fn_match_capability is asked whether this supplier is
+      // returned for the job's trade in the job's emirate (stated coverage honoured, audit finding 25).
+      // Only then is the match written -- and it is still written directly, not dispatched, because
+      // dispatch is the one path that could put a demo brief in front of a real supplier.
+      const hit = await read(`select supplier_id, why from public.fn_match_capability(
+          array[${q(j.trade)}], 'executes', '{}'::text[], '{}'::text[], null, null, ${q(j.emirate)}, 50)
+          where supplier_id = ${num(sup.leadId)}`);
+      step(`the matcher returns the demo supplier for ${j.trade} in ${j.emirate} (${j.key})`,
+        (hit || []).length === 1, hit?.[0]?.why || 'not returned: a gate (coverage, trade, role, confirmed scope) refused it');
+      const m = (hit || []).length === 1
+        ? await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
+            values (${q(inq.id)}, ${num(sup.leadId)}, 0.92, 'founder demo: matcher-confirmed invitation')
+            on conflict do nothing returning inquiry_id`, 'founder demo match')
+        : [];
       step(`job ${String(inq.id).slice(0, 8).toUpperCase()} (${j.key}) is in the supplier's inbox`,
         (m || []).length === 1, `${j.boq.length} BOQ lines, 1 drawing page`);
       j.id = inq.id;
-      out.jobs.push({ key: j.key, id: inq.id, job_no: String(inq.id).slice(0, 8).toUpperCase(), summary: j.summary });
+      out.jobs.push({ key: j.key, id: inq.id, job_no: String(inq.rfq_no ?? (await read(`select rfq_no from public.inquiries where id = ${q(inq.id)}`))[0]?.rfq_no ?? ''), summary: j.summary });
     }
 
     // ── the review conversation, carried to a submitted quotation (the villa job) ──────────────
@@ -380,6 +392,28 @@ if (has('--teardown')) {
   console.log('torn down:', JSON.stringify(r.removed.summary ?? r.removed));
   console.log('leftovers:', JSON.stringify(r.leftovers));
   process.exit(r.leftovers && r.leftovers.total > 0 ? 1 : 0);
+}
+
+if (has('--redraw')) {
+  // 21 Sep 2026, audit finding 3: the standing demo's redacted pages were the old blank fixture.
+  // Re-upload the readable plan (title block already black) to the SAME storage paths the
+  // inquiries point at, so nothing in the database changes and the supplier's download changes.
+  const { sup } = await standing();
+  if (!sup) { console.error(`no demo tagged ${TAG} is standing — run --seed first`); process.exit(1); }
+  const rows = await read(`select i.id, i.drawing_redacted_paths as paths from public.inquiries i
+      join public.customers c on c.id = i.customer_id
+      where c.email like ${q('qd-' + TAG + '-%')} and coalesce(array_length(i.drawing_redacted_paths, 1), 0) > 0
+      order by i.created_at`);
+  const png = drawingPng();
+  let n = 0;
+  for (const r of rows) for (const path of r.paths) {
+    if (!path.startsWith(`drawings/redacted/${TAG}/`)) { console.log(`skipped (not a ${TAG} page): ${path}`); continue; }
+    await uploadObject('drawing-files', path, png, 'image/png');
+    console.log(`rewrote drawing-files/${path}  (inquiry ${r.id})`);
+    n++;
+  }
+  console.log(`${n} redacted page(s) rewritten for ${rows.length} inquiry(ies), ${png.length} bytes each`);
+  process.exit(n > 0 ? 0 : 1);
 }
 
 if (has('--link')) {

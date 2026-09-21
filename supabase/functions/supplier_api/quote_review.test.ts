@@ -16,7 +16,7 @@ import { memoryReviewRepo } from './quote_review_memory_repo.ts';
 
 const INQ_ID = '3f2a9c1e-0000-4000-8000-00000000abcd';
 const inquiry = (over: Partial<SafeInquiry> = {}): SafeInquiry => ({
-  id: INQ_ID, job_no: jobNo(INQ_ID), category: 'painting', emirate: 'Dubai',
+  id: INQ_ID, job_no: jobNo({ id: INQ_ID, rfq_no: 151767 }), category: 'painting', emirate: 'Dubai',
   spec: { customer_requirements: { version: 1, installation: { required: 'no' }, warranty: { required: 'yes' } } },
   boq_rows: [{ description: 'Internal wall painting emulsion', qty: 450, unit: 'm2' }], boq_withheld: false, concluded: false, revealed: false, ...over,
 });

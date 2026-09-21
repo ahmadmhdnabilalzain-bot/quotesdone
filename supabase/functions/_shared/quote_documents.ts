@@ -196,7 +196,10 @@ export type QuoteRow = {
    * shows and compares this figure; the 3% fee is taken on it. Absent: quote_amount is ex-VAT. */
   price_ex_vat?: number | null;
 };
-export type InquiryRow = { id: string; category?: string | null; summary?: string | null; emirate?: string | null };
+export type InquiryRow = { id: string; rfq_no?: number | string | null; category?: string | null; summary?: string | null; emirate?: string | null };
+/** The one job number (inquiries.rfq_no) as printed on every document; the uuid prefix only for a row read without it. */
+export const jobNoOf = (inq: { id?: string | null; rfq_no?: number | string | null } | null | undefined) =>
+  inq?.rfq_no != null && String(inq.rfq_no).trim() !== '' ? String(inq.rfq_no) : String(inq?.id || '').slice(0, 8).toUpperCase();
 /** One priced line of the supplier's own breakdown (quote_items). `specs` is attribute → stated value. */
 export type Item = {
   desc: string; qty: string; unit: string; unit_price?: number | null; amount?: number | null;
@@ -219,7 +222,8 @@ export type TechnicalComparison = {
   terms?: { lead_time?: TechTerm | null; installation?: TechTerm | null; warranty?: TechTerm | null } | null;
 };
 
-export function quoteRef(inquiryId: string, letter: string) { return 'QD-' + String(inquiryId || '').slice(0, 8).toUpperCase() + '-' + letter; }
+/** 'QD-<job number>-<letter>' — the job number is inquiries.rfq_no, the same one both portals print (21 Sep 2026, audit finding 7). */
+export function quoteRef(inq: { id?: string | null; rfq_no?: number | string | null }, letter: string) { return 'QD-' + jobNoOf(inq) + '-' + letter; }
 export function clipCell(s: unknown, n: number) { const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; }
 // deno-lint-ignore no-explicit-any
 const arrOf = (x: any) => Array.isArray(x) ? x : [];
@@ -320,7 +324,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   const items = (args.items || []).filter((it) => !VAT_RE.test(String(it.desc || '')));
   const exVat = Number(q.price_ex_vat) > 0 ? Number(q.price_ex_vat) : Number(q.quote_amount) || 0;
   const k = kit(lang, args.maskNames || []); const { T, ar } = k;
-  const ref = quoteRef(inq.id, letter);
+  const ref = quoteRef(inq, letter);
   const date = (ar ? args.date_ar : args.date) || k.today();
   const party = k.label('Supplier ' + letter);
   const trade = ar ? (arCategory(inq.category) ?? k.loc(inq.category).text) : enCategory(inq.category);
@@ -510,7 +514,7 @@ export function toCsv(head: string[], rows: string[][]): string {
 export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang: Lang; maskNames?: string[]; portalUrl?: string; linkFor?: (quoteId: string) => string; date?: string; date_ar?: string }) {
   const { analysis: a, inquiry: inq, lang } = args;
   const k = kit(lang, args.maskNames || []); const { T, ar } = k;
-  const ref = 'QD-' + String(inq?.id || '').slice(0, 8).toUpperCase() + '-CMP';
+  const ref = 'QD-' + jobNoOf(inq) + '-CMP';
   const date = (ar ? args.date_ar : args.date) || k.today();
   const roster = arrOf(a.all_quotes);
   const held = heldLabels(a);

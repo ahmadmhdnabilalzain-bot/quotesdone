@@ -72,7 +72,7 @@ Deno.serve(observe('reveal_invoice', async (req) => {
     const { data: cached } = await admin.from('reveal_invoices').select('bucket,path,invoice_no').eq('transaction_id', tx.id).maybeSingle();
     // A cached receipt is reused only in the language it was made in: the Arabic copy carries -AR in its name.
     if (cached?.path && String(cached.path).includes('-AR') === ar) { const url = await signedDoc(cached.bucket, cached.path); if (url) { await logRun('ok', { quote_id: qid, cached: true, invoice_no: cached.invoice_no }, ''); return J({ ok: true, url, invoice_no: cached.invoice_no, cached: true }); } }
-    const { data: inq } = await admin.from('inquiries').select('summary,category,emirate').eq('id', tx.inquiry_id).maybeSingle();
+    const { data: inq } = await admin.from('inquiries').select('summary,category,emirate,rfq_no').eq('id', tx.inquiry_id).maybeSingle();
     // NO VAT, NO TRN (founder, 14 Sep 2026: "our company is not vat registered so for our reveal fee
     // there is no vat"). The branch that back-calculated 5% VAT when company_trn was set is removed.
     const fee = Number(tx.reveal_fee || 0);
@@ -81,7 +81,8 @@ Deno.serve(observe('reveal_invoice', async (req) => {
     // A receipt, not a second invoice: it cites Stripe's invoice number and makes none of its own.
     const cite = receiptCitation(res.sale);
     const invNo = cite.invoiceNo;
-    const inqRef = 'QD-' + String(tx.inquiry_id || '').replace(/-/g, '').slice(0, 8).toUpperCase();
+    // The job number (inquiries.rfq_no), the same one both portals and the quotation PDF print (21 Sep 2026).
+    const inqRef = 'QD-' + (inq?.rfq_no != null ? String(inq.rfq_no) : String(tx.inquiry_id || '').replace(/-/g, '').slice(0, 8).toUpperCase());
     // ONE LANGUAGE PER RECEIPT: the customer's registered one (founder, 14 Sep 2026).
     const T = (en: string, arText: string) => ar ? arText : en;
     const dateStr = new Date(tx.revealed_at || Date.now()).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: '2-digit', month: 'short', year: 'numeric' });

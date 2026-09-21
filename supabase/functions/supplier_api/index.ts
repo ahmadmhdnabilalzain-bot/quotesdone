@@ -10,7 +10,8 @@ import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
-import { servicesState, servicesResolve, servicesRewrite, servicesSaveRewrite, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
+import { serviceVocab, servicesState, servicesResolve, servicesRewrite, servicesSaveRewrite, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
+import { boqWithArabic } from '../_shared/boq_arabic.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
@@ -30,7 +31,7 @@ import { signRedactedDrawings } from '../_shared/drawing_pages.ts';
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
 import { MAX_FILE, REVIEW_ACTIONS, reviewAction } from './quote_review_actions.ts';
 import { supabaseReviewRepo } from './quote_review_flow.ts';
-import { sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
+import { jobNo, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
 import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLeads } from '../_shared/sanctioned.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
@@ -900,9 +901,12 @@ const handle = async (req: Request): Promise<Response> => {
       let ownerResolved = true;
       const ownerOf: Record<string, string> = {};
       const projectOf: Record<string, string> = {};
-      { const { data: owners, error: eOwners } = await admin.from('inquiries').select('id,customer_id,project_id').in('id', ids);
+      // rfq_no rides on the owner read: the ONE job number (audit 21 Sep 2026, finding 7), read from the
+      // table because the supplier-safe projection does not carry it and a sequence number identifies nobody.
+      const rfqOf: Record<string, number | null> = {};
+      { const { data: owners, error: eOwners } = await admin.from('inquiries').select('id,customer_id,project_id,rfq_no').in('id', ids);
         if (eOwners) ownerResolved = false;
-        else for (const o of (owners || [])) { if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); if (o?.project_id) projectOf[String(o.id)] = String(o.project_id); } }
+        else for (const o of (owners || [])) { rfqOf[String(o.id)] = o?.rfq_no ?? null; if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); if (o?.project_id) projectOf[String(o.id)] = String(o.project_id); } }
       const custIds = Array.from(new Set(Object.values(ownerOf)));
       const custName: Record<string, string> = {};
       // 14 Sep 2026 (founder: nothing that identifies the customer may reach a supplier). The buyer's
@@ -929,6 +933,9 @@ const handle = async (req: Request): Promise<Response> => {
       // Sign every redacted drawing page for the whole inbox page at once. A page that cannot be signed
       // is counted and raised rather than dropped in silence; the pages that did sign are still served.
       const pagesOf = await signRedactedDrawings(admin, (inq || []).map((i) => ({ id: i.id, paths: i.drawing_redacted_paths })));
+      // The BOQ read in Arabic (audit 21 Sep 2026, findings 26/27): section_ar / description_ar derived from
+      // the sales engineer's own service vocabulary, once per inbox read, only when a BOQ is served.
+      const vocab = (inq || []).some((x: any) => x.boq) ? await serviceVocab(admin) : [];
       const out: any[] = [];
       for (const i of (inq || [])) {
         const dp = pagesOf[String(i.id)] || { urls: [], expected: 0, served: 0, failed: 0 };
@@ -959,12 +966,13 @@ const handle = async (req: Request): Promise<Response> => {
           boqWithheld = r.held;
           return r.held ? null : r.boq;
         })() : null);
+        const sBoqAr = sBoq ? boqWithArabic(sBoq as any, vocab) : null;
         // ANONYMITY FIX 29 Jul 2026. budget is an 80-char FREE-TEXT box, not a number ("around
         // 250k, call Ahmad on 050 123 4567"), and it was the one customer-authored field on this
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
         // through the same scrubIdentity as summary, behind the same reveal gate.
         const sBudget = revealed ? i.budget : (ownerResolved ? scrubIdentity(i.budget ?? null, buyerName, hits) : null);
-        out.push({ id: i.id, job_no: String(i.id).slice(0, 8).toUpperCase(), category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoq || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
@@ -994,8 +1002,9 @@ const handle = async (req: Request): Promise<Response> => {
       if (action === 'quote_pdf') {
         const { data: q } = await admin.from('quotes').select('*').eq('id', String(body.quote_id || '')).eq('supplier_id', sup.id).maybeSingle();
         if (!q) return J({ error: 'Quote not found' }, 404);
-        const [{ data: inq }, { data: qi }] = await Promise.all([
+        const [{ data: inq }, { data: inqNo }, { data: qi }] = await Promise.all([
           admin.from('inquiries_supplier_safe').select('id,category,emirate').eq('id', q.inquiry_id).maybeSingle(),
+          admin.from('inquiries').select('rfq_no').eq('id', q.inquiry_id).maybeSingle(),
           admin.from('quote_items').select('*').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60),
         ]);
         const items: Item[] = (qi || []).map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || ''),
@@ -1006,7 +1015,7 @@ const handle = async (req: Request): Promise<Response> => {
         // through the inbox's scrubbers, and this document must not become a second, unscrubbed door. The
         // letter is 'S', not the customer's letter — that one is the price rank among competing quotes,
         // which a supplier must never learn.
-        const { body: doc, ref } = quoteDocument({ quote: q as any, inquiry: { id: String(q.inquiry_id), category: inq?.category ?? null, emirate: inq?.emirate ?? null, summary: null }, items, letter: 'S', lang });
+        const { body: doc, ref } = quoteDocument({ quote: q as any, inquiry: { id: String(q.inquiry_id), rfq_no: inqNo?.rfq_no ?? null, category: inq?.category ?? null, emirate: inq?.emirate ?? null, summary: null }, items, letter: 'S', lang });
         const url = await print(doc as Record<string, unknown>);
         return url ? J({ ok: true, url, ref, lang }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
       }
@@ -1128,11 +1137,11 @@ const handle = async (req: Request): Promise<Response> => {
       const repo = supabaseRepo(admin, { dispatch: kickDelivery });
       const q = await repo.quote(qid);
       if (!q || Number(q.supplier_id) !== Number(sup.id)) return J({ error: 'not found', code: 'not_found' }, 404);
-      const { data: inqRow } = await admin.from('inquiries').select('category,spec').eq('id', q.inquiry_id).maybeSingle();
+      const { data: inqRow } = await admin.from('inquiries').select('category,spec,rfq_no').eq('id', q.inquiry_id).maybeSingle();
       const { count: optCount } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiry_id).eq('supplier_id', sup.id);
       // deno-lint-ignore no-explicit-any
       const spec: any = inqRow?.spec;
-      const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: String(q.inquiry_id).slice(0, 8).toUpperCase(), multiOption: (optCount || 0) > 1 };
+      const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1 };
       const signed = async (b?: string | null, p?: string | null) => { if (!b || !p) return null; try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
       if (action === 'spec_hold') {
         const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
@@ -1199,7 +1208,7 @@ const handle = async (req: Request): Promise<Response> => {
       const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions, 2000);
       const priorMasked: string[] = Array.isArray(body.masked_terms) ? body.masked_terms.map((x: unknown) => String(x)) : [];
       const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
-      const { data: inqRow } = await admin.from('inquiries').select('category,spec').eq('id', body.inquiry_id).maybeSingle();
+      const { data: inqRow } = await admin.from('inquiries').select('category,spec,rfq_no').eq('id', body.inquiry_id).maybeSingle();
       // deno-lint-ignore no-explicit-any
       const requirements = requirementsOf(inqRow?.spec);
       const category = inqRow?.category ?? null;
@@ -1228,7 +1237,7 @@ const handle = async (req: Request): Promise<Response> => {
       const submission_id = crypto.randomUUID();
       const repo = supabaseRepo(admin, { dispatch: kickDelivery });
       const supplier = supplierOf(sup, email);
-      const ref = String(body.inquiry_id).slice(0, 8).toUpperCase();
+      const ref = jobNo({ id: String(body.inquiry_id), rfq_no: inqRow?.rfq_no });
       const multiOption = multi || single > 1 || (mine || []).length > 1;
       const results: any[] = [];
       let anyAccepted = false;

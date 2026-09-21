@@ -26,6 +26,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
+import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
 import { supplierPageReadable } from '../_shared/supplier_copy.ts';
 
 // ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
@@ -42,26 +43,8 @@ import { supplierPageReadable } from '../_shared/supplier_copy.ts';
 //    labels with the words beside them) is located and boxed on the matching raster page. Added to
 //    BOTH paths. It never publishes a page on its own: a logo or a scanned title block has no text,
 //    so text-layer boxes without the customer's review or the verifier are not a clean page.
-const ID_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\b(?:https?:\/\/|www\.)\S+|(?:\+|00)?971[\s-]?\d|\b0\d[\s-]?\d{3}[\s-]?\d{4}\b|\b05\d[\s-]?\d{3}[\s-]?\d{4}\b|\b(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Est\.|Establishment|Consultants?|Contracting|Architects?|Developers?|Properties)\b|شركة|مؤسسة|ذ\.م\.م|مكتب\s+هندسي/i;
-const ID_LABEL = /\b(drawn|checked|approved|prepared|reviewed|designed)\s*(by)?\b|\b(client|owner|employer|consultant|contractor|developer|project(?:\s*(?:name|no|number|title))?|plot(?:\s*no)?|makani|dwg\.?\s*no|drawing\s*no|address|tel|phone|mobile|fax|e-?mail)\b\s*[:.#]?|المالك|العميل|الاستشاري|المقاول|المشروع|رقم\s*القطعة|مكاني|رسم\s*بواسطة|اعتمد/i;
-function textLayerBoxes(pages: PdfPage[], pageIndex: number): { boxes: Array<{x:number;y:number;w:number;h:number}>; rotated: boolean } {
-  const p = pages[pageIndex];
-  if (!p) return { boxes: [], rotated: false };
-  // A rotated page's raster no longer shares the PDF's axes; boxing it would miss by a quarter turn.
-  if (p.rotate) return { boxes: [], rotated: true };
-  const boxes: Array<{x:number;y:number;w:number;h:number}> = [];
-  for (const r of p.runs) {
-    if (ID_TEXT.test(r.text)) { boxes.push({ x: r.x, y: r.y, w: r.w, h: r.h }); continue; }
-    if (ID_LABEL.test(r.text)) {
-      // The label's value is the text to its right on the same line; cover the label and that run.
-      const base = r.y + r.h;
-      const line = p.runs.filter((o) => Math.abs((o.y + o.h) - base) <= r.h * 0.6 && o.x >= r.x && o.x <= r.x + r.w + 0.25);
-      const x2 = Math.max(...line.map((o) => o.x + o.w), r.x + r.w);
-      boxes.push({ x: r.x, y: r.y, w: Math.min(1 - r.x, x2 - r.x), h: r.h });
-    }
-  }
-  return { boxes, rotated: false };
-}
+//    The detector itself (ID_TEXT, ID_LABEL, textLayerBoxes) lives in _shared/drawing_identity_text.ts
+//    since 21 Sep 2026, where its test proves it against the demo plan.
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
