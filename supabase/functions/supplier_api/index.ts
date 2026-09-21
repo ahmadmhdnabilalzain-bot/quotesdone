@@ -25,7 +25,7 @@ import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
-import { completenessOf, inquiryDocument, itemsOfRows, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
+import { DOC_VERSION, completenessOf, inquiryDocument, itemsOfRows, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
 import { jobAlias } from '../_shared/quote_labels.ts';
 import { deriveLineFields, deriveTermsFromScope } from '../_shared/line_specs/derive.ts';
 // A DRAWING PAGE THAT FAILS TO SIGN IS COUNTED, LOGGED AND RAISED - never silently dropped from the
@@ -984,7 +984,7 @@ const handle = async (req: Request): Promise<Response> => {
         const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
         const inquiry = { id: String(q.inquiry_id), rfq_no: spec?.rfq_no ?? null, category: inq?.category ?? null, emirate: inq?.emirate ?? null, summary: null };
         const ref = quoteRef(inquiry, letter);
-        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote }), async () => ({ doc: quoteDocument({ quote: done.quote, inquiry, items, letter, lang }).body as Record<string, unknown>, ref }));
+        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote, layout: DOC_VERSION }), async () => ({ doc: quoteDocument({ quote: done.quote, inquiry, items, letter, lang }).body as Record<string, unknown>, ref }));
         if (r && 'error' in r) return J({ error: 'You have generated many PDFs recently. Please try again shortly.', code: 'rate_limited' }, 429);
         return r ? J({ ok: true, url: r.url, ref, lang, cached: r.cached }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
       }
@@ -1007,7 +1007,7 @@ const handle = async (req: Request): Promise<Response> => {
           documents: d.documents.map((x: any) => ({ kind: x.kind, name: x.name, lines: x.lines })), drawing_pages_failed: d.drawing_pages_failed };
         const ref = quoteRef(row, 'RFQ');
         // The signed drawing URLs are not on the row, so the hash is stable across signings.
-        const r = await served('inquiry', iid, await hashOf(row), async () => ({ doc: inquiryDocument({ inquiry: row, lang, portalUrl: CANONICAL_ORIGIN + (lang === 'ar' ? '/ar/portal' : '/portal') }).body as Record<string, unknown>, ref }));
+        const r = await served('inquiry', iid, await hashOf({ row, layout: DOC_VERSION }), async () => ({ doc: inquiryDocument({ inquiry: row, lang, portalUrl: CANONICAL_ORIGIN + (lang === 'ar' ? '/ar/portal' : '/portal') }).body as Record<string, unknown>, ref }));
         if (r && 'error' in r) return J({ error: 'You have generated many PDFs recently. Please try again shortly.', code: 'rate_limited' }, 429);
         return r ? J({ ok: true, url: r.url, ref, job_no: d.job, lang, cached: r.cached }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
       }

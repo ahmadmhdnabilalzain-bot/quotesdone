@@ -2,6 +2,7 @@
 // Auth: customer Supabase JWT -> email -> customers row (same model as customer_api).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { parseBudget } from '../_shared/project_budget.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -93,10 +94,13 @@ Deno.serve(observe('project_api', async (req) => {
     if (action === 'create') {
       const name = String(body.name || '').trim().slice(0, 160);
       if (!name) return J({ error: 'name required' }, 400);
+      // The budget is bounded HERE, the trust boundary (_shared/project_budget.ts); the form only says it sooner.
+      const budget = parseBudget(body.budget_total);
+      if (!budget.ok) return J({ error: budget.code, message: budget.en, message_ar: budget.ar }, 400);
       const row: Record<string, unknown> = { customer_id: cust.id, name,
         description: String(body.description || '').slice(0, 4000) || null,
         target_open_date: /^\d{4}-\d{2}-\d{2}$/.test(String(body.target_open_date || '')) ? body.target_open_date : null,
-        budget_total: (body.budget_total !== undefined && body.budget_total !== '') ? Number(body.budget_total) : null };
+        budget_total: budget.value };
       const { data, error } = await admin.from('projects').insert(row).select('*').maybeSingle();
       if (error) return J({ error: error.message }, 500);
       return J({ ok: true, project: data });
@@ -111,7 +115,11 @@ Deno.serve(observe('project_api', async (req) => {
       if (body.description !== undefined) patch.description = String(body.description).slice(0, 4000);
       if (body.status !== undefined && ['active','completed','archived'].includes(String(body.status))) patch.status = body.status;
       if (body.target_open_date !== undefined) patch.target_open_date = /^\d{4}-\d{2}-\d{2}$/.test(String(body.target_open_date)) ? body.target_open_date : null;
-      if (body.budget_total !== undefined) patch.budget_total = body.budget_total === '' ? null : Number(body.budget_total);
+      if (body.budget_total !== undefined) {
+        const budget = parseBudget(body.budget_total);
+        if (!budget.ok) return J({ error: budget.code, message: budget.en, message_ar: budget.ar }, 400);
+        patch.budget_total = budget.value;
+      }
       const { error } = await admin.from('projects').update(patch).eq('id', id);
       if (error) return J({ error: error.message }, 500);
       return J({ ok: true });
