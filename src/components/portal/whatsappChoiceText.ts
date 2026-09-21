@@ -63,6 +63,7 @@ const EN = {
   err_save_failed: 'Your answer could not be saved. Please try again.',
   err_send_failed: 'The WhatsApp code could not be sent. Please try again in a moment.',
   err_fixture_number: 'This is a reserved test number. No code is ever sent to it, so none can be checked.',
+  err_email_not_sent: 'We could not send the code by email just now. Please try again in a minute.',
   err_generic: 'Something went wrong. Please try again.',
 };
 export type WaKey = keyof typeof EN;
@@ -110,6 +111,7 @@ const AR: Record<WaKey, string> = {
   err_save_failed: 'تعذّر حفظ إجابتك. يُرجى المحاولة مرة أخرى.',
   err_send_failed: 'تعذّر إرسال رمز WhatsApp. يُرجى المحاولة بعد قليل.',
   err_fixture_number: 'هذا رقم اختبار محجوز. لا يُرسَل إليه أي رمز، لذا لا يمكن التحقق منه.',
+  err_email_not_sent: 'تعذّر إرسال الرمز عبر البريد الإلكتروني الآن. يُرجى المحاولة مرة أخرى بعد دقيقة.',
   err_generic: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
 };
 
@@ -121,7 +123,7 @@ export const waText = (lang: WaLang, k: WaKey): string => (WA_TEXT[lang] || EN)[
 // Audit 21 Sep 2026, finding 31: kyc refuses a reserved fixture mobile with code `fixture_number`
 // (_shared/demo_identity.ts FIXTURE_REFUSAL); it was missing here, so the reason read as "Something went
 // wrong". WhatsAppChoice.test.mjs now reads every code kyc can answer and fails on one missing here.
-export const WA_ERROR_CODES = ['mobile_not_verified', 'bad_opt', 'bad_phone', 'rate_limited', 'wrong_code', 'whatsapp_unavailable', 'save_failed', 'send_failed', 'fixture_number'] as const;
+export const WA_ERROR_CODES = ['mobile_not_verified', 'bad_opt', 'bad_phone', 'rate_limited', 'wrong_code', 'whatsapp_unavailable', 'save_failed', 'send_failed', 'fixture_number', 'email_not_sent'] as const;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function waErrorKey(j: any): WaKey {
