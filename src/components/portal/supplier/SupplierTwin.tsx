@@ -23,7 +23,7 @@
 // is a false statement about a real business. Null renders as an explicit "not rated yet" with no
 // bar at all.
 import React, { useEffect, useState } from 'react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 // The twin payload as fn_supplier_twin actually returns it. Every numeric field is nullable on
 // purpose: price_index is null on all 20,464 production rows, and a type that pretended otherwise
@@ -44,11 +44,10 @@ type Twin = {
 };
 type CapMapShape = { root?: string; children?: { name: string }[] } | null;
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),

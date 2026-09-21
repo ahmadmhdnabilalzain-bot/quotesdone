@@ -17,6 +17,7 @@ import { requestDelivery } from '../_shared/deliver.ts';
 import { jobAlias } from '../_shared/quote_labels.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
+import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -237,10 +238,10 @@ Deno.serve(observe('messages_api', async (req) => {
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
   if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
-    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-    const { data: { user } } = await admin.auth.getUser(jwt);
-    if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
-    const email = user.email.toLowerCase();
+    // Local refusal first, a bounded auth call, and 503 (not 401) when auth is down — _shared/signed_in_user.ts.
+    const who = await signedInUser(admin, req.headers.get('Authorization'));
+    if (!who.ok) return J(refusalBody(who), who.status);
+    const { email } = who;
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
 
     const { data: supLead } = await admin.from('leads').select('id,company_name,banned').eq('claimed_by', email).maybeSingle();
