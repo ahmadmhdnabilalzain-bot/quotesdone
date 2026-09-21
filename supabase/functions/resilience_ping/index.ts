@@ -13,7 +13,6 @@ import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
-import { makeLlmRich } from '../_shared/llm.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -272,11 +271,10 @@ async function ceoDecisionsTick(): Promise<unknown> {
 // funnel against the twelve-month plan, names the binding constraint, directs the seat that can move it
 // through a ceo.directive handoff, and re-measures and closes every open directive on each call. That is
 // plan C, the coded path, and it has already ACTED before anything below runs.
-// Plan A/B is the model (instruction 643: the CEO will run on one, not yet chosen). It is asked ONLY when
-// the tick says call_model -- app_secrets.ceo_model_slot = 'on', which the founder sets -- and its answer
-// is validated by fn_ceo_judgement_accept against the contract before it can do anything; a failed call
-// or an answer outside the contract is recorded and plan C stands. The slot is off today, so this branch
-// has never run against the gateway: the first call after the switch is the one to watch.
+// Plan A/B is the model (instruction 643: the CEO will run on one, not yet chosen). It runs in the CEO's
+// own function, ceo_agent action 'judgement', and ONLY when the tick says call_model --
+// app_secrets.ceo_model_slot = 'on', which the founder sets. This heartbeat never imports the model
+// client. The slot is off today, so that branch has never reached the gateway.
 // scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql.
 async function ceoPlanTick(): Promise<unknown> {
   try {
@@ -284,17 +282,15 @@ async function ceoPlanTick(): Promise<unknown> {
     if (error) return { ok: false, error: error.message };
     // deno-lint-ignore no-explicit-any
     const t = data as any;
-    if (!t?.judgement?.call_model || !t?.judgement?.request || !t?.plan_id) return t;
-    const req = t.judgement.request;
-    const llm = makeLlmRich(undefined, { fn: 'resilience_ping', taskClass: 'ceo_judgement', max: 900, timeoutMs: 25000, temperature: 0.1 });
-    const r = await llm(String(req.system), JSON.stringify({ output_schema: req.output_schema, input: req.input }), 900);
-    // deno-lint-ignore no-explicit-any
-    let out: any = null;
-    try { out = JSON.parse(String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { out = null; }
-    const why = r.error ?? (r.truncated ? 'the answer was truncated' : (out ? null : 'the answer was not JSON'));
-    const { data: acc, error: aerr } = await admin.rpc('fn_ceo_judgement_accept', { p_plan_id: t.plan_id, p_output: out, p_error: why });
-    // A rejected answer is plan C working, not a failing step; only a broken accept call is.
-    return { ...t, judgement: { slot: t.judgement.slot, call_model: true, accepted: acc }, ...(aerr ? { ok: false, error: 'judgement accept: ' + aerr.message } : {}) };
+    if (!t?.judgement?.call_model || !t?.plan_id) return t;
+    const r = await fetch(FN + '/ceo_agent', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'judgement', plan_id: t.plan_id }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const j = await r.json().catch(() => null);
+    // A rejected answer is plan C working, not a failing step; only an unreachable seat is.
+    return { ...t, judgement: { ...t.judgement, answer: j }, ...(r.ok ? {} : { ok: false, error: 'ceo_agent judgement ' + r.status }) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 

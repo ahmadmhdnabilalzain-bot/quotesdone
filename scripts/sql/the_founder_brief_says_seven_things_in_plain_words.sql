@@ -135,9 +135,10 @@ begin
          coalesce(nullif(max(value) filter (where key='invite_daily_cap'),'')::int, 0)
     into v_on, v_cap from public.app_secrets where key in ('invite_enabled','supplier_outreach_golive','invite_daily_cap');
 
-  v_plan := jsonb_build_array(
-    case when v_on then 'The sales engineer sends up to '||v_cap||' supplier invitations.'
-         else 'No supplier invitations will be sent: invitations are switched off.' end);
+  -- 22 Sep 2026 (ceo, instructions 636/639): the campaign gate is the founder's reserved decision and he
+  -- is never reminded of it. While it is closed the brief says nothing about invitations at all.
+  v_plan := case when v_on then jsonb_build_array('The sales engineer sends up to '||v_cap||' supplier invitations.')
+                 else '[]'::jsonb end;
 
   v_plan := v_plan || (
     select jsonb_build_array(case when count(*) = 0 then 'No customer request is waiting for a quote.'

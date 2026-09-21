@@ -69,10 +69,12 @@ test('D. directives travel the handoff machinery and only the CEO closes them', 
 test('E. the model slot is bounded, validated, and second to plan C', () => {
   const c = fnBody('fn_ceo_judgement_contract');
   for (const w of ['may not move money', 'change a supplier or customer record', 'message a customer, a supplier or the founder',
-                   'raise the invitation cap', 'Choose exactly one option id'])
+                   'are not yours to propose or mention', 'Choose exactly one option id'])
     assert.ok(c.includes(w), `the contract lost: ${w}`);
+  assert.doesNotMatch(c, /propose such a change in founder_decision/, 'the contract invites the model to propose a campaign or cap change');
   const acc = fnBody('fn_ceo_judgement_accept');
   assert.match(acc, /option_id is not one of the options/);
+  assert.match(acc, /~\* public\.fn_ceo_founder_text_forbidden\(\)/, 'a founder_decision about the campaign would be accepted');
   assert.match(acc, /a directive is outside the contract/);
   assert.match(acc, /plan_c_stands/);
   const tick = fnBody('fn_ceo_plan_tick');
@@ -108,9 +110,68 @@ test('G. the decision names the right lever and escalates a stall (pure, replaye
   const rows = await r.json();
   assert.ok(r.ok, `query failed: ${r.status} ${JSON.stringify(rows)}`);
   const [{ off, seat, l2, l3 }] = rows;
-  assert.equal(off.stage, 'invitations'); assert.equal(off.lever, 'founder'); assert.equal(off.directive, null);
-  assert.ok(off.founder_line, 'switches off must put a line in the brief');
+  assert.equal(off.stage, 'invitations'); assert.equal(off.lever, 'founder_reserved'); assert.equal(off.directive, null);
+  assert.equal(off.founder_line, null, 'a closed campaign gate must be held silently (instruction 636)');
   assert.equal(seat.lever, 'seat'); assert.equal(seat.directive.seat, 'sales_engineer'); assert.equal(seat.directive.due_days, 7);
   assert.equal(l2.stalled, true); assert.equal(l2.level, 2); assert.equal(l2.directive.due_days, 3); assert.equal(l2.plan_c_choice, 'escalate');
-  assert.equal(l3.level, 3); assert.ok(l3.founder_line, 'a 15-day stall must reach the founder brief');
+  assert.equal(l3.level, 3); assert.equal(l3.founder_line, null, 'the invitation stage never reaches the founder, even at level 3');
+});
+
+// H. FOUNDER-FACING TEXT (instructions 636, 639, 22 Sep 2026). The founder is never asked or reminded about
+//    the campaign go, the invitation switches, caps or warm-up, subscriptions, and is never told about a
+//    seat that does not exist. Replayed live over every lever the decision can take, then every source of
+//    founder-facing text in the repository is scanned for the reserved subjects.
+const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer'];
+const FORBIDDEN = /(switched off|switch them|campaign|\bgate\b|go[- ]?live|invite_enabled|\bcaps?\b|ceiling|warm[- ]?up|subscription|marketing)/i;
+
+test('H. no founder-facing text raises the campaign, caps, subscriptions or a seat that does not exist', async (t) => {
+  // the pattern the database enforces is the pattern this test enforces
+  const fbd = fnBody('fn_ceo_founder_text_forbidden');
+  for (const w of ['switched off', 'campaign', 'go[- ]?live', 'caps?', 'warm[- ]?up', 'subscription', 'marketing'])
+    assert.ok(fbd.includes(w), `fn_ceo_founder_text_forbidden lost ${w}`);
+  assert.match(fnBody('fn_ceo_plan_brief_lines'), /x !~\* public\.fn_ceo_founder_text_forbidden\(\)/, 'brief lines are not filtered');
+
+  // static: the founder-facing literals in the brief and in the plan's decision
+  const brief = readFileSync(path.join(REPO, 'scripts/sql/the_founder_brief_says_seven_things_in_plain_words.sql'), 'utf8');
+  // the text the founder reads: item 7's lines and the words of the brief (not delivery error strings)
+  const item7 = brief.slice(brief.indexOf('-- 7. THE PLAN FOR TOMORROW'), brief.indexOf("'window_from', p_from"));
+  const words = (brief.match(/create or replace function public\.fn_founder_brief_text\([\s\S]*?\$fn\$;/) || [''])[0];
+  assert.ok(item7.length > 100 && words.length > 100, 'the brief text or its item 7 could not be located');
+  const briefLits = ((item7 + words).replace(/--[^\n]*/g, '').match(/'(?:[^']|'')*'/g) || []).filter((s) => / /.test(s));
+  const bad = briefLits.filter((s) => FORBIDDEN.test(s));
+  assert.deepEqual(bad, [], 'the founder brief carries a reserved subject: ' + bad.join(' | '));
+  const decide = fnBody('fn_ceo_plan_decide').replace(/--[^\n]*/g, '');
+  const founderAssigns = decide.match(/v_founder := [\s\S]*?;/g) || [];
+  for (const a of founderAssigns) assert.doesNotMatch(a, FORBIDDEN, 'a founder line raises a reserved subject: ' + a);
+
+  if (!token) { t.skip('no management token for the live replay'); return; }
+  const fn = [fnBody('fn_ceo_plan_decide').replace('public.fn_ceo_plan_decide', 'pg_temp.fn_ceo_plan_decide')].join('\n');
+  const z = (o = {}) => `jsonb_build_object('invitations_delivered',${o.i ?? 0},'registrations_submitted',${o.r ?? 0},'registrations_verified',${o.v ?? 0},'inquiries_posted',${o.q ?? 0},'quote_coverage_pct',null,'reveals_paid',0,'fee_aed',0)`;
+  const f = (on, date, cap, mtd) => `jsonb_build_object('local_date','${date}','day_of_month',15,'days_in_month',31,
+      'gates', jsonb_build_object('invite_enabled',${on},'supplier_outreach_golive',${on},'invite_daily_cap',${cap}),
+      'month_to_date', ${mtd}, 'last_7_days', ${z()}, 'state', jsonb_build_object('bounce_pct_7d',1,'stranded_submissions',0))`;
+  const tg = `jsonb_build_object('invites',2200,'registered',90,'verified',65,'inquiries',70,'reveals',30,'fee_aed',45000)`;
+  const prev = (s) => `jsonb_build_object('stage','${s}','constraint_since','2000-01-10')`;
+  const cases = {
+    gate_closed: `${f(false, '2000-01-25', 50, z())}, ${tg}, ${prev('invitations')}`,
+    cap_short: `${f(true, '2000-01-25', 50, z())}, ${tg}, ${prev('invitations')}`,
+    demand_unowned: `${f(true, '2000-01-25', 100, z({ i: 5000, r: 500, v: 500 }))}, ${tg}, ${prev('demand')}`,
+    reveals_l3: `${f(true, '2000-01-25', 100, z({ i: 5000, r: 500, v: 500, q: 500 }))}, ${tg}, ${prev('reveals')}`,
+  };
+  const query = fn + '\nselect ' + Object.entries(cases).map(([k, a]) => `pg_temp.fn_ceo_plan_decide(${a}) as ${k}`).join(', ') + ';';
+  const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),
+  });
+  const rows = await r.json();
+  assert.ok(r.ok, `query failed: ${r.status} ${JSON.stringify(rows)}`);
+  const [d] = rows;
+  assert.equal(d.gate_closed.founder_line, null, 'a closed campaign gate reached the founder');
+  assert.equal(d.cap_short.founder_line, null, 'the invitation cap reached the founder');
+  assert.equal(d.demand_unowned.lever, 'unowned'); assert.equal(d.demand_unowned.founder_line, null, 'a seat that does not exist reached the founder');
+  assert.ok(d.reveals_l3.founder_line, 'a seat-movable 15-day stall must still reach the brief');
+  for (const [k, v] of Object.entries(d)) {
+    const line = v.founder_line || '';
+    assert.doesNotMatch(line, FORBIDDEN, `${k}: the founder line raises a reserved subject: ${line}`);
+    for (const m of line.matchAll(/\b([a-z]+_[a-z_]+)\b/g)) assert.ok(SEATS.includes(m[1]), `${k}: the founder line names ${m[1]}, not a seat in org_agents`);
+  }
 });

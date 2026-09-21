@@ -49,8 +49,9 @@ The method runs in five steps. The first four repeat every day, and the fifth ru
    nothing downstream can move until it does. Effort spent anywhere else is waste.
 4. **Attack it.** Ask who can move this stage:
    - If a seat can, direct that seat with a target, a deadline and a measure.
-   - If only the founder can (one of his switches, or a seat he has not yet opened), say so once, in
-     the daily brief. Do not give a seat an order it cannot carry out.
+   - If the stage is held by the founder's own reserved decision (the campaign gate), or no existing
+     seat owns it, hold it silently. Record it internally, give no seat an order it cannot carry out,
+     and do not raise it with the founder (§7).
 5. **Measure and iterate weekly.** Re-measure every directive at its deadline and close it as met
    or missed. If the constraint has not moved in 7 days, escalate. If it still has not moved in 14
    days, tell the founder in the brief. Every Monday, compare plan and actual. On the 1st of each
@@ -95,7 +96,7 @@ nothing goes to me"). Within the founder's hard rules he decides alone:
   in the portals and customer support's delivery. The CEO directs those seats. He does not do their
   work.
 - **Touch a founder switch** (`invite_enabled`, `supplier_outreach_golive`, `invite_daily_cap`,
-  `ceo_model_slot`), or raise a ceiling. He names the switch in the brief when it is the constraint.
+  `ceo_model_slot`), or raise a ceiling, and never ask or remind the founder about them.
 - **Email the founder** anything beyond the daily brief and the weekly PDF report. No alerts, no
   "[Attention]", no WhatsApp.
 - **Wire Meta, ads or social media into any seat** (instruction 641). All of that belongs to the
@@ -110,7 +111,7 @@ nothing goes to me"). Within the founder's hard rules he decides alone:
 | **Every hour** | Re-measures every open directive; closes it met, or missed if it is past its deadline | `fn_ceo_plan_followup` on the heartbeat (`ceoPlan`) |
 | **Every hour** | Evaluates his decision rules against production | `fn_ceo_decisions_evaluate` (`ceoDecisions`) |
 | **Daily, 06:00 Dubai** | Measures the funnel, finds the constraint and who can move it, writes the day's plan, issues the directive, logs the decision with its evidence | `fn_ceo_plan_tick` → `ceo_plan`, `ceo_decision_log` |
-| **Daily, 20:00 Dubai** | The founder brief: seven items. Item 7 opens with the CEO's focus, the directives in force, and any decision only the founder can take | `fn_founder_brief_figures` → `fn_ceo_plan_brief_lines` |
+| **Daily, 20:00 Dubai** | The founder brief: seven items. Item 7 opens with the CEO's focus and the directives in force; a held stage adds nothing | `fn_founder_brief_figures` → `fn_ceo_plan_brief_lines` |
 | **Every Monday** | Plan vs actual for the week, per stage, with directives met and missed; the weekly PDF report to the founder | `fn_ceo_plan_review` (rule `plan_review`); `fn_ceo_weekly_report_tick` |
 | **1st of the month** | Cumulative fee against the cumulative plan; what each remaining month must now produce; whether the target is still reachable | `fn_ceo_plan_review` |
 | **Quarterly** | Test the assumptions in §9 against measured rates, revise the monthly plan with the evidence, and decide which capability is missing (build, buy or do without) | judgement (model slot, §8); the revision is a `plan_review` decision |
@@ -144,7 +145,7 @@ duties.
 | deliverability | customer_support | the bounce canary and the outbox bounce brake |
 | invitations, registrations | sales_engineer | the daily invitation batch and the day-2/day-6 reminders |
 | verification | sales_engineer | the 24-hour clock and the mandatory-six check |
-| customer requests | none yet (the marketing seat) | none; the founder lever |
+| customer requests | no existing seat | none; held and recorded internally |
 | quotes | sales_engineer | the RFQ dispatch and the spec-offer duty |
 | reveals | sales_engineer (the accountant owns the payment path) | the comparison follow-up |
 
@@ -157,13 +158,17 @@ He sends only three things:
    - the focus, as the actual against the plan so far this month and the days spent on this
      constraint
    - each directive in force
-   - "Waiting on you:", followed by the one decision only the founder can take, when there is one
+   - "Waiting on you:", only when a stage a seat can move has not moved in 14 days despite directives
 2. **The weekly report**: a PDF on the company letterhead, every Monday.
-3. **The decisions reserved to the founder**, and only inside the brief:
-   - his invitation switches and the daily invitation number
-   - opening the marketing seat, which is what moves customer demand
-   - the model slot
-   - a constraint that has not moved in 14 days despite the CEO's directives
+
+**What never reaches the founder** (instructions 636 and 639): the supplier invitation campaign's go,
+its switches, its daily volume, cap and warm-up; subscriptions; and any seat that does not exist yet.
+When one of these holds the funnel, the CEO holds the stage **silently**: it is recorded in `ceo_plan`
+(`held_because`) and `ceo_decision_log`, and the brief, the weekly report and every founder line say
+nothing about it. The model contract forbids it too, and `fn_ceo_judgement_accept` refuses a
+`founder_decision` that raises it (`fn_ceo_founder_text_forbidden`). The campaign go is the founder's
+own decision, taken when he chooses. The invitation ramp belongs to the sales engineer and customer
+support.
 
 Everything else is decided, logged and done. A month in which the founder was asked more than three
 things means a boundary is drawn in the wrong place, and fixing that is the CEO's job.
@@ -177,8 +182,9 @@ has not been chosen. Plans A and B are the model. **Plan C is the code**, and it
   numbers into the same answer, and `fn_ceo_plan_act` carries that answer out before any model is
   consulted. With the model off (today), the company is still directed.
 - **The slot**: `app_secrets.ceo_model_slot`. It is off unless the founder sets it to `on`. When it is
-  on, the heartbeat sends the day's judgement request to `ai_gateway` and passes the answer to
-  `fn_ceo_judgement_accept`.
+  on, the heartbeat asks the CEO's own function (`ceo_agent`, action `judgement`) to send the day's
+  judgement request to `ai_gateway` and pass the answer to `fn_ceo_judgement_accept`. The heartbeat
+  itself never loads the model client.
 - **The prompt contract** (`fn_ceo_judgement_contract`, version `ceo-judgement-v1`, held as data):
   - *Inputs*, all measured or computed by code:
     - the date and the goal
@@ -265,17 +271,19 @@ measures against.
 
 **What the math says, in plain words:**
 
-1. **Invitations bind today, and only the founder can move them.** Both switches are off. The plan
-   needs 300 invitations by the end of September and 1,100 in October.
-2. **The cap binds from November.** 2,200 invitations a month needs 100 a day on 22 working days.
-   At today's cap of 50, supply reaches about 500 registrations by August, not 950. The founder sets
-   that number. The CEO puts it in the brief when it becomes the constraint.
+1. **Invitations bind today, held silently.** The campaign has not started, which is the founder's own
+   decision, taken when he chooses. The plan records the hold and never raises it with him. Once the
+   campaign runs, the plan needs 300 invitations by the end of September and 1,100 in October.
+2. **The daily volume binds from November.** 2,200 invitations a month needs 100 a day on 22 working
+   days. At 50 a day, supply reaches about 500 registrations by August, not 950. The ramp belongs to
+   the sales engineer and customer support (the warm-up configuration), so the CEO directs those seats
+   on it. It is never put to the founder.
 3. **The lead list runs out in June 2027.** 23,400 invitations against 19,726 contactable leads means
    about 3,700 new contacts are needed before June. Lead sourcing is paused until about February 2027.
-4. **Demand has no owner.** Customer requests are driven by buyer acquisition, and the founder has
-   reserved that for the marketing seat, with no Meta or social media before then. Until that seat
-   opens, the demand stage is a founder lever. From November onward it becomes the binding constraint
-   if supply is on plan.
+4. **Demand has no owner yet.** Customer requests are driven by buyer acquisition, which no existing
+   seat owns, and there is no Meta or social media in any seat before the marketing seat. Until a seat
+   owns it, the demand stage is held and recorded internally. From November onward it becomes the
+   binding constraint if supply is on plan.
 5. **Revenue is back-loaded.** 78% of the fee is planned for March to August 2027. A slip of one
    month in supply costs roughly AED 200,000 at the end, which is why the invitation stage is watched
    daily and not quarterly.

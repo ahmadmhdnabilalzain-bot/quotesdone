@@ -65,9 +65,17 @@ begin
         p.funnel->'month_to_date'->>'registrations_submitted', v_sub, p.funnel->'state'->>'contactable_leads', v_cont;
     end if;
     if not (p.funnel->'gates'->>'invite_enabled')::boolean or not (p.funnel->'gates'->>'supplier_outreach_golive')::boolean then
-      if p.stage <> 'invitations' or p.decision->>'lever' <> 'founder' or p.founder_line is null or p.decision->'directive' <> 'null'::jsonb then
-        raise exception 'A: with the switches off the plan must bind on invitations, founder lever, a brief line and no directive; got % % %', p.stage, p.decision->>'lever', p.founder_line;
+      -- instruction 636: a closed campaign gate is held SILENTLY -- no founder line, no brief line, no directive
+      if p.stage <> 'invitations' or p.decision->>'lever' <> 'founder_reserved' or p.founder_line is not null
+         or p.decision->'directive' <> 'null'::jsonb or p.decision->>'held_because' is null then
+        raise exception 'A: with the switches off the plan must bind on invitations, held silently with no directive; got % % %', p.stage, p.decision->>'lever', p.founder_line;
       end if;
+      if jsonb_array_length(public.fn_ceo_plan_brief_lines()) <> 0 then
+        raise exception 'A: a silent hold put lines in the founder brief: %', public.fn_ceo_plan_brief_lines();
+      end if;
+    end if;
+    if exists (select 1 from jsonb_array_elements_text(public.fn_ceo_plan_brief_lines()) x where x ~* public.fn_ceo_founder_text_forbidden()) then
+      raise exception 'A: the brief lines raise a reserved subject: %', public.fn_ceo_plan_brief_lines();
     end if;
     select count(*) into v_bc from public.ceo_decision_log
      where decision_key = 'binding_constraint' and (evidence->>'plan_id')::bigint = p.id and evidence ? 'funnel_month_to_date';
@@ -139,8 +147,18 @@ begin
        or (v_d2->'directive'->>'due_days')::int <> 3 then
       raise exception 'E: 8 days without movement must be level 2 with a 3-day deadline, got %', v_d2 - 'options' - 'attainment';
     end if;
-    if (v_d3->>'level')::int <> 3 or v_d3->>'founder_line' is null then
-      raise exception 'E: 15 days without movement must be level 3 with a brief line, got %', v_d3 - 'options' - 'attainment';
+    -- the invitation stage stays with the seats even at level 3 (instructions 636/639)
+    if (v_d3->>'level')::int <> 3 or v_d3->>'founder_line' is not null then
+      raise exception 'E: 15 days on invitations must be level 3 with NO founder line, got %', v_d3 - 'options' - 'attainment';
+    end if;
+    -- any other seat-movable stage reaches the brief at level 3: reveals behind with everything upstream on plan
+    v_d3 := public.fn_ceo_plan_decide(v_f || jsonb_build_object('local_date', '2000-01-25',
+              'month_to_date', (v_f->'month_to_date') || jsonb_build_object('invitations_delivered', 5000, 'registrations_submitted', 500,
+                                                                             'registrations_verified', 500, 'inquiries_posted', 500)),
+              v_oct || jsonb_build_object('reveals', 30), jsonb_build_object('stage', 'reveals', 'constraint_since', '2000-01-10'));
+    if v_d3->>'stage' <> 'reveals' or (v_d3->>'level')::int <> 3 or v_d3->>'founder_line' is null
+       or v_d3->>'founder_line' ~* public.fn_ceo_founder_text_forbidden() then
+      raise exception 'E: a 15-day stall on reveals must reach the brief in allowed words, got %', v_d3 - 'options' - 'attainment';
     end if;
     insert into public.ceo_plan (plan_date, funnel, month_target, stage, constraint_since, decision, founder_line)
     values ('2000-01-18', v_f, v_oct, v_d2->>'stage', '2000-01-10', v_d2, v_d2->>'founder_line') returning id into v_pid;
@@ -156,6 +174,15 @@ begin
     v_bad := public.fn_ceo_judgement_accept(v_pid, jsonb_build_object('option_id', 'wire_the_money', 'reasoning', 'x'), null);
     if coalesce((v_bad->>'ok')::boolean, true) or not coalesce((v_bad->>'plan_c_stands')::boolean, false) then
       raise exception 'F: an answer outside the contract was not rejected: %', v_bad;
+    end if;
+    -- a well-formed answer that raises the campaign with the founder is refused (instruction 636)
+    v_bad := public.fn_ceo_judgement_accept(v_pid, jsonb_build_object(
+      'option_id', 'hold_reserved',
+      'reasoning', 'Invitations delivered read 0 against a plan of 1,100 for the month, eight days running.',
+      'prediction', jsonb_build_object('measure_key', 'invitations_delivered', 'direction', 'min', 'value', 0, 'by_date', '2000-01-25'),
+      'directives', '[]'::jsonb, 'founder_decision', 'Please switch the supplier invitation campaign on.'), null);
+    if coalesce((v_bad->>'ok')::boolean, true) or v_bad->>'error' !~ 'reserved from the founder' then
+      raise exception 'F: a founder_decision about the campaign was not refused: %', v_bad;
     end if;
     v_good := public.fn_ceo_judgement_accept(v_pid, jsonb_build_object(
       'option_id', 'escalate',
