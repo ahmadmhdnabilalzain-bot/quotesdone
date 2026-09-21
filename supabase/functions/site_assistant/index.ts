@@ -257,9 +257,6 @@ Deno.serve(observe('site_assistant', async (req) => {
       seatForSurface = typeof s === 'string' ? s : null;
     } catch (_e) { seatForSurface = null; }
 
-    const key = await sec('cred_fn_ai');
-    if (!key) return J({ reply: 'For help, please call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.' });
-
     const { data: faqs } = await admin.from('company_faq').select('id,question,answer,tags,language').eq('public', true).eq('status','approved');
 
     // ── THE QUESTION THAT WAS ASKED IS ANSWERED FIRST (21 Sep 2026, seat customer_support) ──────
@@ -279,6 +276,11 @@ Deno.serve(observe('site_assistant', async (req) => {
         return J({ reply, scope: live ? audience : 'public', routed: qType, faq_id: faq.id });
       }
     }
+    // The gateway credential is read only AFTER the deterministic route: a missing or held model key
+    // must never take away an answer that needs no model (measured 21 Sep 2026: the common questions
+    // were refused with circuit_open because they reached ai_gateway at all).
+    const key = await sec('cred_fn_ai');
+    if (!key) return J({ reply: 'For help, please call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.' });
     const qtok = tok(message);
     const scored = (faqs||[]).map((f:any)=>{ const hay = tok(f.question+' '+f.answer+' '+((f.tags||[]).join(' '))); let sc=0; for(const t of qtok){ if(hay.includes(t)) sc++; } return { f, sc }; }).sort((a,b)=>b.sc-a.sc).slice(0,8).filter(x=>x.sc>0);
     const ctx0 = scored.map(x=>`Q: ${x.f.question}\nA: ${x.f.answer}`).join('\n\n');

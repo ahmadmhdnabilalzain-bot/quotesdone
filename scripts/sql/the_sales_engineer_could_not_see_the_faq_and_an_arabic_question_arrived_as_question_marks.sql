@@ -578,9 +578,12 @@ begin
   insert into _sa_cand
   select 'company_faq', h.id::text, h.title, left(h.body, 4000), h.provenance,
          null::numeric, h.lex_rank, false, 0
-    from (select f.id, coalesce(f.question, '') as title, coalesce(f.answer, '') as body,
-                 'FAQ' || case when f.section is null then '' else ' · ' || f.section end
-                       || ' · ' || coalesce(f.language, 'en') as provenance,
+    -- The outer select reads the alias g. It read f (the inner table's alias) until 21 Sep 2026 —
+    -- the dry run passed and the routine failed on its first call with 42P01 "missing FROM-clause
+    -- entry for table f", measured by running it inside an aborted transaction.
+    from (select g.id, coalesce(g.question, '') as title, coalesce(g.answer, '') as body,
+                 'FAQ' || case when g.section is null then '' else ' · ' || g.section end
+                       || ' · ' || coalesce(g.language, 'en') as provenance,
                  greatest(case when g.te @@ v_tq then ts_rank(g.te, v_tq) else 0 end,
                           case when v_tq_ar is not null and g.ta @@ v_tq_ar then ts_rank(g.ta, v_tq_ar) else 0 end,
                           case when v_tq_ar_or is not null and g.ta @@ v_tq_ar_or then ts_rank(g.ta, v_tq_ar_or) * 0.5 else 0 end)::numeric as lex_rank
