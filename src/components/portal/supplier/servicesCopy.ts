@@ -25,6 +25,9 @@ export const SERVICES_COPY = {
     select_all: 'Select all',
     clear_all: 'Clear',
     remove_trade: 'Remove this trade',
+    trade_removed: 'Removed. It is dropped from your services when you press Update.',
+    undo: 'Undo',
+    under_review: 'Under review by our sales engineer',
     no_services_listed: 'We do not list services for this trade yet. Describe yours below.',
     add: 'Add',
     remove: 'Remove',
@@ -99,6 +102,9 @@ export const SERVICES_COPY = {
     select_all: 'تحديد الكل',
     clear_all: 'إلغاء التحديد',
     remove_trade: 'إزالة هذا التخصص',
+    trade_removed: 'تمت الإزالة. يُحذف من خدماتك عند الضغط على تحديث.',
+    undo: 'تراجع',
+    under_review: 'قيد المراجعة لدى مهندس المبيعات',
     no_services_listed: 'لا نُدرج خدمات لهذا التخصص بعد. اكتب خدماتك أدناه.',
     add: 'إضافة',
     remove: 'إزالة',
@@ -166,3 +172,11 @@ export type ServicesLang = keyof typeof SERVICES_COPY;
 export type ServicesKey = Exclude<keyof typeof SERVICES_COPY.en, 'count'>;
 export const sc = (lang: string, k: ServicesKey): string => SERVICES_COPY[lang === 'ar' ? 'ar' : 'en'][k];
 export const scCount = (lang: string, s: number, r: number): string => SERVICES_COPY[lang === 'ar' ? 'ar' : 'en'].count(s, r);
+// THE SERVICES COUNT, ONE RULE FOR BEFORE AND AFTER A RELOAD (audit 21 Sep 2026, finding 11: "8
+// services" after a rewrite whose services were already ticked, "5" after reload). A service is counted
+// once by its key however many lists carry it (the ticked checklist, the rewrite, the implications),
+// and an own-words phrase once however it is capitalised. scripts/checks/services_tab_count_and_removal.test.mjs.
+export function countServices(keys: readonly string[], ownWords: readonly string[]): number {
+  const words = new Set(ownWords.map((w) => w.replace(/\s+/g, ' ').trim().toLowerCase()).filter((w) => w.length >= 2));
+  return new Set(keys).size + words.size;
+}
