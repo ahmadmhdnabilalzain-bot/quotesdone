@@ -545,7 +545,7 @@ const LOGIN_ERR = [
   [/too many code requests/i, 'le_too_many'], [/valid (email address or uae )?mobile|valid email address/i, 'le_bad_id'],
   [/do-not-send list/i, 'le_suppressed'], [/more than one quotesdone account/i, 'le_ambiguous'],
   [/cannot create an account from a mobile/i, 'le_signup_email'], [/isn't linked|no account is registered/i, 'le_no_account'],
-  [/sms (sign-in is not enabled|codes are not available)/i, 'le_sms_off'], [/could not send the sms/i, 'err_code_send'],
+  [/sms (sign-in is not enabled|codes are not available)/i, 'le_sms_off'], [/could not send the (sms|email)/i, 'err_code_send'],
   [/enter the code/i, 'le_enter_code'], [/too many (incorrect )?attempts/i, 'le_attempts'], [/has expired/i, 'le_expired'],
   [/incorrect or expired/i, 'err_incorrect'], [/could not start your session/i, 'le_session'],
 ];

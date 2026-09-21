@@ -15,3 +15,6 @@
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
 #
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+#
+# 21 Sep 2026 — registration-day surge review (it_engineer).
+scripts/sql/a_registration_day_is_not_an_otp_pumping_attack.sql :: duty 11b judges a served-country OTP burst by codes never used, not by volume; replayed rolled-back (47 codes on +97150 with 3 dead: old rule raises, new does not; 30 dead on +97155: both raise). Apply before the supplier campaign; moves to MANIFEST when applied.
