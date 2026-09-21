@@ -327,7 +327,9 @@ Deno.serve(async (req) => {
       const d = doc as { title: string; blocks: unknown[] };
       const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/pdf_native', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: await sec('cred_fn_to_pdf_native'), title: d.title, blocks: d.blocks,
+        // options.letterhead: the issuer and licence line an auditor reads first (audit of every document
+        // we issue, 22 Sep 2026, finding 5: the incident record rendered without it).
+        body: JSON.stringify({ __secret: await sec('cred_fn_to_pdf_native'), title: d.title, blocks: d.blocks, options: { letterhead: true },
                                bucket: 'agent-docs', folder: 'it_engineer/incidents', name: 'incident_' + id }),
         signal: AbortSignal.timeout(60000),
       });

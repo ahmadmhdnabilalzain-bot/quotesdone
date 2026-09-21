@@ -1,0 +1,1 @@
+pure probe, no DDL: run with node scripts/qsql.mjs after the change file scripts/sql/every_pdf_the_brand_describes_is_the_one_template.sql is applied; it answers PROBE FAILED until then.
