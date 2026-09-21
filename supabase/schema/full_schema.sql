@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T09:54:18.869Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T14:13:44.452Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -192,7 +192,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (526) =====
+-- ===== TABLES (527) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3788,6 +3788,21 @@ CREATE TABLE IF NOT EXISTS public.kb_operational_route_test (
   last_run_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.kb_purge_ledger (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  verdict text NOT NULL,
+  clause smallint NOT NULL,
+  source_kind text NOT NULL,
+  category text,
+  rows bigint,
+  bytes bigint,
+  batch_no integer,
+  id_from bigint,
+  id_to bigint,
+  note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.kb_revisions (
   id bigint DEFAULT nextval('kb_revisions_id_seq'::regclass) NOT NULL,
   entry_kind text NOT NULL,
@@ -3974,9 +3989,6 @@ CREATE TABLE IF NOT EXISTS public.leads (
   claimed boolean DEFAULT false,
   contact_name text,
   service_emirates text[],
-  bank_name text,
-  bank_iban text,
-  bank_account_name text,
   trade_license_no text,
   verified boolean DEFAULT false,
   portal_updated_at timestamp with time zone,
@@ -7601,6 +7613,7 @@ ALTER TABLE public.kb_operational_alias ADD CONSTRAINT kb_operational_alias_pkey
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_operational_route_pkey PRIMARY KEY (catalog_num);
 ALTER TABLE public.kb_operational_route_map ADD CONSTRAINT kb_operational_route_map_pkey PRIMARY KEY (catalog_num, package_slug, subcategory_slug);
 ALTER TABLE public.kb_operational_route_test ADD CONSTRAINT kb_operational_route_test_pkey PRIMARY KEY (test_id);
+ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_pkey PRIMARY KEY (catalog_num, trigger_scope);
 ALTER TABLE public.kb_usage_log ADD CONSTRAINT kb_usage_log_pkey PRIMARY KEY (id);
@@ -8122,6 +8135,8 @@ ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_kind
 ALTER TABLE public.it_threshold ADD CONSTRAINT it_threshold_basis_check CHECK ((btrim(basis) <> ''::text));
 ALTER TABLE public.kb_embed_priority ADD CONSTRAINT kb_embed_priority_tier_check CHECK (((tier >= 1) AND (tier <= 4)));
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_route_reg_coverage_chk CHECK ((regulatory_coverage_status = ANY (ARRAY['confirmed_none'::text, 'confirmed_covered'::text, 'incomplete'::text, 'requires_review'::text])));
+ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_clause_check CHECK (((clause >= 0) AND (clause <= 5)));
+ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_verdict_check CHECK ((verdict = ANY (ARRAY['KEEP'::text, 'UNSURE'::text, 'DELETE'::text, 'SIZE'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_status_check CHECK ((status = ANY (ARRAY['running'::text, 'ok'::text, 'failed'::text, 'rolled_back'::text])));
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_table_name_check CHECK ((table_name = ANY (ARRAY['ops_knowledge'::text, 'agent_training_case'::text])));
@@ -8905,6 +8920,7 @@ CREATE INDEX kb_op_alias_lang_idx ON public.kb_operational_alias USING btree (la
 CREATE INDEX kb_op_alias_norm_idx ON public.kb_operational_alias USING btree (alias_norm);
 CREATE INDEX kb_op_route_map_pkg_idx ON public.kb_operational_route_map USING btree (package_slug, subcategory_slug);
 CREATE INDEX kb_op_route_test_num_idx ON public.kb_operational_route_test USING btree (catalog_num);
+CREATE INDEX kb_purge_ledger_batch_idx ON public.kb_purge_ledger USING btree (batch_no) WHERE (batch_no IS NOT NULL);
 CREATE INDEX kb_usage_log_created ON public.kb_usage_log USING btree (created_at);
 CREATE INDEX knowledge_ingestion_run_pkg ON public.knowledge_ingestion_run USING btree (package_version, generation);
 CREATE INDEX knowledge_ingestion_undo_run ON public.knowledge_ingestion_undo USING btree (run_id);
@@ -18822,135 +18838,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19466,6 +19353,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -22486,6 +22502,33 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_backup_coverage_decide(p_report_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.support_ceo_report; v_re jsonb; v_cov jsonb; v_receipt text;
+begin
+  select * into r from public.support_ceo_report where id = p_report_id for update;
+  if not found or r.status <> 'sent' then return jsonb_build_object('ok', false, 'reason', 'no open report ' || p_report_id); end if;
+  v_re  := public.fn_it_backup_recheck();
+  v_cov := public.fn_backup_coverage();
+  v_receipt := 'ceo: ran the IT backup re-check (closed ' || coalesce(v_re ->> 'closed', '0') || ', second refiles '
+               || coalesce(v_re ->> 'second_refiles', '0') || ', escalated ' || coalesce(v_re ->> 'escalated', '0')
+               || '); coverage now ok=' || coalesce(v_cov ->> 'ok', '?') || ', failing=' || coalesce(v_cov ->> 'failing', '[]')
+               || ', refiles open past 48h=' || coalesce(v_cov ->> 'refiles_open_past_48h', '?')
+               || ', not done after 48h=' || coalesce(v_cov ->> 'not_done_after_48h', '?')
+               || '. Each file still missing is carried by its own backup_escalation report.';
+  update public.support_ceo_report
+     set status = 'accepted', accepted_at = now(), acceptance_receipt = v_receipt, owner_role_id = 'ceo',
+         completed_at = case when coalesce((v_cov ->> 'ok')::boolean, false) then now() else completed_at end,
+         completion_note = case when coalesce((v_cov ->> 'ok')::boolean, false) then 'coverage measured ok after the re-check' else completion_note end
+   where id = r.id;
+  return jsonb_build_object('ok', true, 'report_id', r.id, 'recheck', v_re, 'coverage', v_cov);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_backup_escalation_decide(p_report_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -22984,6 +23027,73 @@ begin
     'note', case when p_approve
                  then 'Authorised. Execution is the payment service''s, and the states stay separate: authorised is not submitted, and submitted is not settled.'
                  else 'Declined with a rationale. Support owes the customer that explanation and an appropriate alternative remedy -- a decline is not the end of the case.' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_decide_report(p_report_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_key text; v_family text;
+begin
+  select idempotency_key into v_key from public.support_ceo_report where id = p_report_id;
+  if v_key is null then return jsonb_build_object('ok', false, 'reason', 'no report ' || p_report_id); end if;
+  v_family := split_part(v_key, ':', 1);
+  return case v_family
+    when 'backup_escalation'         then public.fn_ceo_backup_escalation_decide(p_report_id)
+    when 'dropbox_backup_escalation' then public.fn_ceo_backup_coverage_decide(p_report_id)
+    when 'delivery_undelivered'      then public.fn_ceo_delivery_undelivered_decide(p_report_id)
+    else jsonb_build_object('ok', false, 'report_id', p_report_id, 'family', v_family, 'reason', 'no decider for this family')
+  end;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_delivery_undelivered_decide(p_report_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r public.support_ceo_report; n public.notifications; twin public.notifications; v_receipt text;
+begin
+  select * into r from public.support_ceo_report where id = p_report_id for update;
+  if not found or r.status <> 'sent' then return jsonb_build_object('ok', false, 'reason', 'no open report ' || p_report_id); end if;
+  select * into n from public.notifications
+   where id = coalesce((r.verified_evidence -> 'rechecked' ->> 'notification_id')::bigint,
+                       (r.verified_evidence -> 'support_evidence' -> 'notification' ->> 'id')::bigint);
+  if n.id is null then
+    return jsonb_build_object('ok', false, 'report_id', r.id, 'reason', 'the report names no notification');
+  end if;
+  -- The email twin fn_notify_founder writes in the same statement as the WhatsApp fan-out.
+  select * into twin from public.notifications t
+   where t.channel = 'email' and t.type = n.type and t.created_at = n.created_at
+     and t.to_role is not distinct from n.to_role and t.id <> n.id and t.status = 'sent'
+   order by t.id limit 1;
+
+  if n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> '' then
+    v_receipt := 'ceo: the provider confirmed notification ' || n.id || ' (' || n.channel || ', message '
+                 || n.provider_message_id || ', sent ' || to_char(n.sent_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai)';
+  elsif n.status = 'sent' and n.channel = 'whatsapp' and twin.id is not null then
+    v_receipt := 'ceo: notification ' || n.id || ' was handed to Twilio at '
+                 || to_char(n.sent_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai without a provider id on record; '
+                 || 'the email twin ' || twin.id || ' was sent and confirmed (' || coalesce(twin.provider_message_id, '?') || '). '
+                 || 'send_whatsapp stores the SID from 21 Sep 2026, so a WhatsApp send is confirmed or failed, never unconfirmed.';
+  elsif n.status in ('failed', 'skipped', 'suppressed') and twin.id is not null then
+    v_receipt := 'ceo: notification ' || n.id || ' (' || n.channel || ') ended ' || n.status
+                 || coalesce(' — ' || left(n.last_error, 160), '') || '; the email twin ' || twin.id
+                 || ' was sent and confirmed (' || coalesce(twin.provider_message_id, '?') || '), so the alert reached the founder.';
+  else
+    -- A founder alert with no delivered twin, or still in the queue: not the CEO's to wave through.
+    return jsonb_build_object('ok', false, 'report_id', r.id, 'notification_id', n.id, 'status', n.status,
+                              'reason', 'undecided: no confirmed delivery on any channel');
+  end if;
+  update public.support_ceo_report
+     set status = 'accepted', accepted_at = now(), acceptance_receipt = v_receipt, owner_role_id = 'ceo'
+   where id = r.id;
+  return jsonb_build_object('ok', true, 'report_id', r.id, 'notification_id', n.id, 'receipt', v_receipt);
 end $function$
 
 
@@ -26212,7 +26322,7 @@ CREATE OR REPLACE FUNCTION public.fn_cron_liveness()
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog', 'cron'
+ SET search_path TO 'public', 'pg_catalog', 'cron', 'pg_temp'
 AS $function$
 declare
   v_tick  timestamptz;
@@ -26221,12 +26331,12 @@ declare
   v_src   text;
   v_age   numeric;
 begin
-  -- The last tick BEFORE this request's own. See the note above: reading the newest row would
-  -- measure a row resilience_ping inserted seconds ago and could never report an outage.
-  select ran_at into v_tick
-  from public.it_watch_tick
-  order by ran_at desc
-  offset 1 limit 1;
+  -- The scheduler's own record: the newest COMPLETED resilience_ping tick. Written at the end of a
+  -- tick, so the caller's own run is not yet there; the guard keeps that true regardless.
+  select max(started_at) into v_tick
+    from public.agent_runs
+   where agent = 'fn:resilience_ping'
+     and started_at < now() - interval '1 minute';
 
   begin
     select max(start_time) into v_cron from cron.job_run_details;
@@ -26239,15 +26349,15 @@ begin
   v_last := greatest(v_tick, v_cron);
   v_src  := case
               when v_last is null then null
-              when v_tick is not null and v_last = v_tick then 'resilience tick (it_watch_tick)'
+              when v_tick is not null and v_last = v_tick then 'resilience tick (agent_runs fn:resilience_ping)'
               else 'pg_cron (cron.job_run_details)' end;
 
   if v_last is null then
-    -- Said out loud rather than returned as a clean bill: with no tick history and no cron
+    -- Said out loud rather than returned as a clean bill: with no scheduler row and no cron
     -- history there is nothing to measure, and "no evidence of a scheduler" is not "healthy".
     return jsonb_build_object(
       'healthy', false, 'newest_run_age_min', null, 'source', null, 'checked_at', now(),
-      'note', 'no completed scheduler tick has ever been recorded, in it_watch_tick or in cron.job_run_details');
+      'note', 'no completed scheduler tick has ever been recorded, in agent_runs (fn:resilience_ping) or in cron.job_run_details');
   end if;
 
   v_age := extract(epoch from (now() - v_last))/60.0;
@@ -33173,7 +33283,19 @@ AS $function$
 declare
   h public.agent_actions; s record; d public.doc_backups; v_since timestamptz; v_files jsonb; v_state text;
   n_ok int; n_fail int; n_wait int; v_att int; v_rep jsonb; n_closed int := 0; n_retry int := 0; n_esc int := 0;
+  n_orphaned int := 0;
 begin
+  -- 1. A backup whose source row is gone can never be filed. Measured 21 Sep 2026: two Stripe invoice
+  --    rows for TEST transactions the nightly journey tore down. The reason carries the date and the id.
+  update public.doc_backups d
+     set status = 'abandoned',
+         error = left('abandoned: source transaction ' || d.entity_id || ' no longer exists (measured '
+                      || to_char(now() at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai; last error: '
+                      || coalesce(d.error, 'none') || ')', 300)
+   where d.entity = 'transaction' and d.status <> 'done' and d.status <> 'abandoned'
+     and not exists (select 1 from public.transactions t where t.id::text = d.entity_id);
+  get diagnostics n_orphaned = row_count;
+
   for h in select * from public.agent_actions
             where kind = 'handoff' and agent = 'sales_engineer' and status = 'pending'
               and detail->>'type' in ('backup.refile', 'backup.remediate') order by id loop
@@ -33185,6 +33307,8 @@ begin
       v_state := case
         when d.id is null then case when h.detail ? 'sales_done_at' then 'failing' else 'waiting' end
         when d.status = 'done' and d.verified_at > v_since then 'ok'
+        -- 2. Abandoned with its reason on the row: settled, the same reading fn_backup_coverage gives it.
+        when d.status = 'abandoned' and coalesce(d.error, '') like 'abandoned:%' then 'ok'
         when d.status in ('skipped_large', 'abandoned') or (d.status = 'error' and d.attempts >= 5) then 'failing'
         else 'waiting' end;
       if v_state = 'ok' then n_ok := n_ok + 1; elsif v_state = 'failing' then n_fail := n_fail + 1; else n_wait := n_wait + 1; end if;
@@ -33221,7 +33345,7 @@ begin
       end if;
     end if;
   end loop;
-  return jsonb_build_object('closed', n_closed, 'second_refiles', n_retry, 'escalated', n_esc);
+  return jsonb_build_object('closed', n_closed, 'second_refiles', n_retry, 'escalated', n_esc, 'orphaned_abandoned', n_orphaned);
 end $function$
 
 
@@ -33315,7 +33439,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_ceo_silence_watch()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.support_ceo_report; n_told int := 0; v_window interval;
+declare r public.support_ceo_report; n_told int := 0; n_answered int := 0; v_window interval; v_dec jsonb; v_status text;
 begin
   select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
   -- Same fault, same answer as fn_it_loop_reverify above: a hardcoded 4 h fallback here would keep
@@ -33329,17 +33453,29 @@ begin
               and not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.target_id = 'delivery.request:' || support_ceo_report.id)
             order by id loop
+    -- The CEO's answer comes before the founder's page (21 Sep 2026). A family this dispatcher does
+    -- not know answers 'no decider for this family', and that string travels in the page below.
+    begin
+      v_dec := public.fn_ceo_decide_report(r.id);
+    exception when others then
+      v_dec := jsonb_build_object('ok', false, 'reason', 'decider raised: ' || sqlerrm);
+    end;
+    select status into v_status from public.support_ceo_report where id = r.id;
+    if v_status <> 'sent' then n_answered := n_answered + 1; continue; end if;
+
     perform public.fn_seat_handoff('it_engineer', 'customer_support', 'delivery.request', 'support_ceo_report', r.id::text,
       jsonb_build_object('recipient_role', 'founder', 'kind', 'it_new_bug', 'level', 'high',
         'event', 'The CEO has not answered an IT report: ' || left(r.subject, 120),
         'detail', 'The IT engineer reported this to the CEO at '
                   || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (Dubai) and it was due an answer by '
                   || to_char(least(r.next_review_at, r.created_at + v_window) at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || E'. Nobody has answered.\n\n'
-                  || 'Report: ' || r.subject || E'\n\nIt stays open until the CEO answers it. Reference: support_ceo_report ' || r.id || '.',
-        'dedupe_key', 'it_ceo_silent:' || r.id));
+                  || 'Report: ' || r.subject || E'\n\nThe CEO''s decider said: ' || coalesce(v_dec ->> 'reason', 'nothing')
+                  || E'.\n\nIt stays open until the CEO answers it. Reference: support_ceo_report ' || r.id || '.',
+        'dedupe_key', 'it_ceo_silent:' || split_part(r.idempotency_key, ':', 1) || ':'
+                      || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD')));
     n_told := n_told + 1;
   end loop;
-  return jsonb_build_object('founder_told', n_told);
+  return jsonb_build_object('founder_told', n_told, 'ceo_answered_first', n_answered);
 end $function$
 
 
@@ -33642,6 +33778,12 @@ declare
   -- Statuses agent_runs uses for "this run did its job". Anything else, NULL included, is a
   -- failure: a run that started and never recorded an outcome is not a success.
   c_ok        constant text[] := array['ok','success','completed','skipped','warn','held','noop'];
+  -- D0 (21 Sep 2026). The newest c_cap rows per agent are the slice every arm reads. One subject's
+  -- flood (fn:ai_gateway, 40,368 rows in 7 days) took this routine from 5.9 s to 11.0 s and past
+  -- PostgREST's 8 s cancel, and the estate went blind for 50 hours. See the file header.
+  c_cap       constant int := 5000;
+  v_capped    int;
+  v_slice     int;
   v_now       timestamptz := now();
   -- Whatever lock_timeout the caller arrived with, so D5 can put it back exactly (see D5).
   v_lock_prev text;
@@ -33685,6 +33827,30 @@ declare
   v_ref_thin  int := 0;
 begin
 
+-- ══ D0. ONE SLICE OF agent_runs, READ ONCE, BOUNDED PER SUBJECT ════════════════════════════
+-- Reads: public.agent_runs, seven days of it — ONCE. D1, D2, D6 and D9 used to each scan the
+-- same seven days and D1, D6 and D9 each re-ran fn_it_run_is_refusal per row (three passes,
+-- ~100,000 calls each on 18 Sep). The two per-row predicates are evaluated here exactly once.
+-- The cap is per AGENT (the raw name, before the fn: prefix is stripped), newest rows first, so
+-- a subject that logs 6,000 rows an hour keeps a baseline of its own most recent history and
+-- every other subject keeps all of its seven days. A cap that fired is published in notes.slice;
+-- silence there means no subject was cut.
+drop table if exists pg_temp.it_runs7;
+create temp table it_runs7 on commit drop as
+  select x.agent, regexp_replace(x.agent, '^fn:', '') subject, x.started_at, x.finished_at,
+         x.status, x.counts, x.note,
+         public.fn_it_run_is_held(x.agent, x.started_at, x.counts, x.note)  held,
+         public.fn_it_run_is_refusal(x.agent, x.started_at, x.counts)       refused0
+    from (select a.*, row_number() over (partition by a.agent order by a.started_at desc) rn
+            from public.agent_runs a where a.started_at > v_now - c_base) x
+   where x.rn <= c_cap;
+select count(*) into v_slice from it_runs7;
+select count(*) into v_capped from (
+  select agent from public.agent_runs where started_at > v_now - c_base
+   group by agent having count(*) > c_cap) z;
+v_notes := v_notes || jsonb_build_object('slice', jsonb_build_object(
+  'basis', 'measured', 'rows', v_slice, 'cap_per_subject', c_cap, 'subjects_capped', v_capped));
+
 -- ══ D1. EDGE FUNCTIONS / AGENTS FAILING, OR FAILING MORE THAN USUAL ═════════════════════════
 -- Reads: public.agent_runs (window vs the 7 days before it), public.it_watch_subject.
 -- Fires when every attempt in the window failed ('stopped'), or when the window's failure rate is
@@ -33697,15 +33863,13 @@ begin
 -- neither half can be looked up in it_watch_subject to find out whether it is customer-facing.
 for r in
   with runs as (
-    select regexp_replace(agent, '^fn:', '')                       subject,
-           agent, started_at,
+    select subject, agent, started_at,
            coalesce(status,'error') <> all (c_ok)                  bad,
            -- A run the founder's hold refused is neither the caller turned away nor the subject's
            -- fault: it leaves both sides of the rate and is reported apart as window_held.
-           public.fn_it_run_is_refusal(agent, started_at, counts) or held  refused,
+           refused0 or held                                        refused,
            held
-    from (select *, public.fn_it_run_is_held(agent, started_at, counts, note) held
-            from public.agent_runs where started_at > v_now - c_base) ar0),
+    from it_runs7),
   w as (
     select subject,
            count(*) filter (where not refused)::int              n,
@@ -33777,8 +33941,8 @@ end loop;
 v_watched := 0;
 for r in
   with s0 as (
-    select regexp_replace(agent, '^fn:', '') agent, started_at
-    from public.agent_runs where started_at > v_now - c_base),
+    select subject agent, started_at
+    from it_runs7),
   g as (
     select agent, started_at,
            extract(epoch from (started_at - lag(started_at) over (partition by agent order by started_at)))/60 gap
@@ -34090,11 +34254,11 @@ for r in
   -- takes, so refusals are excluded from the baseline as well as from the failure rate. Left in,
   -- they would drag the baseline down and make ordinary work look like a departure.
   with d as (
-    select regexp_replace(agent, '^fn:', '') agent, started_at,
+    select subject agent, started_at,
            extract(epoch from (finished_at - started_at)) * 1000 ms
-    from public.agent_runs
-    where finished_at is not null and finished_at >= started_at and started_at > v_now - c_base
-      and not public.fn_it_run_is_refusal(agent, started_at, counts)),
+    from it_runs7
+    where finished_at is not null and finished_at >= started_at
+      and not refused0),
   b as (
     select agent, count(*)::int n,
            (percentile_cont(0.50) within group (order by ms))::numeric p50,
@@ -34445,9 +34609,9 @@ v_ref_eval := 0;
 v_ref_thin := 0;
 for r in
   with rows0 as (
-    select regexp_replace(a.agent, '^fn:', '') subject, a.agent, a.started_at, a.status, a.counts
-    from public.agent_runs a
-    where a.started_at > v_now - c_base
+    select a.subject, a.agent, a.started_at, a.status, a.counts
+    from it_runs7 a
+    where true
       -- 14 Sep 2026: a request made inside a rehearsal window is the test harness, not a customer.
       -- Measured: all 264 non-policy login_otp refusals of the day fell inside e2e rehearsal windows and
       -- none outside, and the finding they raised was hours from emailing the founder. The demo
@@ -35236,7 +35400,10 @@ begin
     for x in with s as (
                select ss.queryid, sum(ss.calls) calls, sum(ss.total_exec_time) total_exec_time,
                       coalesce(min(left(regexp_replace(ss.query, '\s+', ' ', 'g'), 200)),
-                               '(query text unavailable)') q
+                               '(query text unavailable)') q,
+                      -- An operator's session, not the product (21 Sep 2026): the management API
+                      -- stamps every statement it runs with its own route in a trailing comment.
+                      bool_and(coalesce(ss.query, '') like '%/v1/projects/:ref/database/query%') operator_session
                  from extensions.pg_stat_statements ss
                 where ss.queryid is not null
                 group by ss.queryid)
@@ -35248,7 +35415,8 @@ begin
                from s
                join public.it_query_stat_snapshot p
                  on p.queryid = s.queryid and p.calls <= s.calls and p.total_exec_time <= s.total_exec_time
-              where (s.total_exec_time - p.total_exec_time) / nullif(s.calls - p.calls, 0)
+              where not s.operator_session
+                and (s.total_exec_time - p.total_exec_time) / nullif(s.calls - p.calls, 0)
                     > public.fn_it_threshold('slow_query_mean_ms')
                 -- Either the interval carried the call volume the threshold asks for, OR the
                 -- statement burned that much time whatever its volume. Without the second arm a
@@ -35317,6 +35485,11 @@ begin
         'evidence', jsonb_build_object('bytes', pg_database_size(current_database()), 'limit_bytes', v_lim,
                                        'route', 'the accountant approves a larger disk or plan'));
     end if;
+    -- Published every run, so the exclusion is a number on the record and never a silent gap.
+    select count(*) into v_n from (
+      select ss.queryid from extensions.pg_stat_statements ss where ss.queryid is not null
+       group by ss.queryid having bool_and(coalesce(ss.query, '') like '%/v1/projects/:ref/database/query%')) z;
+    v_out := v_out || jsonb_build_object('db_health_operator_statements_excluded', v_n);
     v_out := v_out || jsonb_build_object('db_health', public.fn_it_duty_settle('db_health', v_items),
                                          'disk_limit_basis', case when v_lim is null then 'not_measured_yet' else 'measured' end);
     perform public.fn_it_duty_ran('db_health', v_out->'db_health');
@@ -37495,6 +37668,96 @@ begin
   end if;
   return jsonb_build_object('error','unsupported_kind', 'kind', p_kind);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_purge_batch(p_limit integer DEFAULT 50000)
+ RETURNS TABLE(batch_no integer, deleted_count bigint, deleted_bytes bigint, cursor_from bigint, cursor_to bigint, remaining_count bigint)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_planned bigint;
+  v_done    bigint;
+  v_from    bigint;
+  v_to      bigint;
+  v_batch   integer;
+  v_deleted bigint;
+  v_bytes   bigint;
+begin
+  if p_limit is null or p_limit < 1 or p_limit > 200000 then
+    raise exception 'fn_kb_purge_batch: p_limit must be 1..200000 (got %)', p_limit;
+  end if;
+
+  -- §6: the audit row per (verdict, source_kind, category) is written FIRST. No census, no delete.
+  select sum(l.rows) into v_planned
+    from public.kb_purge_ledger l where l.verdict = 'DELETE' and l.clause = 5 and l.batch_no is null;
+  if v_planned is null then
+    raise exception 'fn_kb_purge_batch: no census in kb_purge_ledger — run scripts/kb/purge_kb_bulk.mjs, which writes it before the first batch';
+  end if;
+
+  select coalesce(max(l.id_to), 0), coalesce(max(l.batch_no), 0), coalesce(sum(l.rows), 0)
+    into v_from, v_batch, v_done
+    from public.kb_purge_ledger l where l.verdict = 'DELETE' and l.batch_no is not null;
+  v_batch := v_batch + 1;
+
+  -- ponytail: id-ordered cursor, so a batch never rescans what an earlier batch already walked;
+  -- the predicate is evaluated on ~p_limit rows per call (~4 s per 50,000), not on the table.
+  with pick as (
+    select k.id
+      from public.kb_chunks k
+     where k.id > v_from
+       and public.fn_kb_purge_clause(k.source_kind, k.category, k.citation) = 5
+       and k.id not in (select split_part(x, ':', 2)::bigint
+                          from public.sales_decision_log s, unnest(s.cited) x
+                         where x ~ '^kb_chunks:[0-9]+$')            -- clause 2
+     order by k.id
+     limit p_limit
+  ), del as (
+    delete from public.kb_chunks k
+     using pick p
+     where k.id = p.id
+    returning k.id, k.source_kind, k.category, octet_length(k.content) as b
+  ), rec as (
+    insert into public.kb_purge_ledger (verdict, clause, source_kind, category, rows, bytes, batch_no, id_from, id_to)
+    select 'DELETE', 5, d.source_kind, d.category, count(*), sum(d.b), v_batch, v_from, (select max(id) from del)
+      from del d
+     group by d.source_kind, d.category
+    returning rows, bytes, id_to
+  )
+  select coalesce(sum(r.rows), 0), coalesce(sum(r.bytes), 0), coalesce(max(r.id_to), v_from)
+    into v_deleted, v_bytes, v_to
+    from rec r;
+
+  return query select v_batch, v_deleted, v_bytes, v_from, v_to,
+                      greatest(v_planned - v_done - v_deleted, 0);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_purge_clause(p_source_kind text, p_category text, p_citation text)
+ RETURNS smallint
+ LANGUAGE sql
+ IMMUTABLE PARALLEL SAFE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    -- 1. KEEP — QuotesDone-authored
+    when p_source_kind in ('qd_kb_pack','company_faq','memory','generated','trade','material','document','library')
+      or p_citation ilike '%QD-KB%' or p_citation ilike '%quotesdone%'
+      or p_category like 'cat:%' or p_category like 'exec:%' then 1
+    -- 2. KEEP — ever cited: a row-id join, applied by the caller (see fn_kb_purge_batch)
+    -- 3. KEEP — cites a UAE/GCC authority
+    when p_citation ~* '(\mUAE\M|United Arab Emirates|Emirat|Dubai|Abu Dhabi|Sharjah|Ajman|Fujairah|Ras Al Khaimah|Umm Al Quwain|\mDEWA\M|\mADDC\M|\mAADC\M|\mSEWA\M|\mFEWA\M|Etihad ?WE|Civil Defen[cs]e|\mSIRA\M|\mESMA\M|\mMOIAT\M|\mGSO\M|\mGCC\M|Trakhees|Municipality|\mADQCC\M|\mRTA\M|\mTDRA\M|Estidama|Sa''fat|Tadweer|\mOSHAD\M|\mDMT\M|\mJAFZA\M|\mDDA\M|\mTECOM\M)' then 3
+    -- 4a. UNSURE — statute and code text is never deleted on a pattern
+    when p_source_kind in ('code','regulation','spec') then 4
+    -- 4b. UNSURE — a foreign code a UAE document may adopt. §6 limits this to in-scope trade
+    --     families; this file applies it to EVERY category, which only moves rows from DELETE to
+    --     UNSURE (never the other way), so the delete set is a subset of §8's. Measured effect on
+    --     the non-`standard` kinds: 1,013 more rows held (guide 869, paper 144) than §8 shows.
+    when p_citation ~* '(\mNFPA\M|\mNEC\M|\mBS ?EN\M|Eurocode|\mIEC\M|\mISO\M|ASHRAE|\mASTM\M|SMACNA|IAPMO|\mUPC\M|\mIPC\M|\mIBC\M|\mICC\M|CIBSE|BS ?7671|AWS ?D1|\mAPI\M|\mASME\M|\mANSI\M|\mUL\M|\mEN ?54\M|\mEN ?12845\M|LPCB|FM ?Global)' then 4
+    -- 5. DELETE — foreign bulk
+    else 5 end;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_kb_route(p_text text, p_limit integer DEFAULT 5)
@@ -51095,8 +51358,10 @@ AS $function$
       ('vat',                'VAT certificate',            'high',     'Needed before you can invoice with VAT.'),
       ('iso',               'ISO certification',           'medium',   'Strengthens your capability score and unlocks quality-gated requests.'),
       ('manufacturer_auth', 'Manufacturer authorisation',  'medium',   'Proves you are authorised for the brands you carry.'),
-      ('establishment',     'Establishment card',          'low',      'Administrative record. Does not gate work.'),
-      ('bank_iban',         'Bank details (IBAN)',         'medium',   'We cannot pay you without it.')
+      ('establishment',     'Establishment card',          'low',      'Administrative record. Does not gate work.')
+      -- 'bank_iban' ("We cannot pay you without it.") was a row here until 21 Sep 2026. It was false: money
+      -- moves both directions through Stripe and the estate never holds a supplier's bank details
+      -- (founder instruction 527; scripts/sql/the_founder_removed_bank_details_from_the_estate.sql).
     ) d(key, label, impact, impact_why)
   ),
   held as (
@@ -51108,7 +51373,6 @@ AS $function$
         when 'iso'                then (select iso_doc_path from me)
         when 'manufacturer_auth'  then (select manufacturer_auth_doc_path from me)
         when 'establishment'      then (select egr_doc_path from me)
-        when 'bank_iban'          then (select iban_doc_path from me)
       end as path,
       case d.key
         when 'trade_licence'     then (select license_expiry from me)
@@ -63309,6 +63573,7 @@ ALTER TABLE public.kb_operational_alias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_operational_route ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_operational_route_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_operational_route_test ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kb_purge_ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_revisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_route_scope_trigger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_usage_log ENABLE ROW LEVEL SECURITY;
@@ -63602,6 +63867,7 @@ CREATE POLICY kb_chunk_quarantine_service_role_only ON public.kb_chunk_quarantin
 CREATE POLICY os_owner_admin_read ON public.kb_chunks AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY kb_purge_ledger_service_role_only ON public.kb_purge_ledger AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));

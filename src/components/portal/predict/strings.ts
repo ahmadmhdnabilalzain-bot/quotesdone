@@ -1,6 +1,6 @@
-// English/Arabic copy for the Predictive Intelligence (§20) and Negotiation Assistant (§15)
-// surfaces. The customer portal picks language at the shell level, so both components take `lang`
-// and fall back to English per key.
+// English/Arabic copy for the Predictive Intelligence (§20) surface. The customer portal picks
+// language at the shell level, so the component takes `lang` and falls back to English per key.
+// (§15 Negotiation Assistant copy lived here until 21 Sep 2026 — founder instruction 526.)
 //
 // THE EMPTY STATES ARE THE POINT OF THIS FILE. Production holds zero customers, zero inquiries and
 // zero quotes, so both routines behind these surfaces answer with an `empty_reason` sentence and no
@@ -20,6 +20,7 @@ const EN = {
   retry: 'Retry',
   err_load: 'Could not load your forecast.',
   err_session: 'Your session has expired. Please sign in again.',
+  err_unexpected: 'Something went wrong at our end. Your requests are unaffected — please try again.',
 
   empty_no_history_title: 'Nothing to predict from yet',
   empty_no_predictions_title: 'No upcoming requirement could be predicted',
@@ -48,34 +49,6 @@ const EN = {
   fc_by_category: 'By trade',
   fc_share: 'of your requests',
   fc_not_projected: 'Not projected',
-
-  /* §15 negotiation */
-  neg: 'Negotiation assistant',
-  neg_sub: 'Your quote against the market, the action the house policy recommends, and a message you can send as written.',
-  loading_neg: 'Comparing this quote to the market…',
-  err_load_neg: 'Could not load negotiation guidance.',
-  err_not_your_quote: 'That quote is not on one of your requests.',
-  err_unexpected: 'Something went wrong at our end. Your quotes are unaffected — please try again.',
-  empty_no_quote_title: 'Open a quote to compare it',
-  empty_no_quote_body:
-    'Pick one of the quotes on your requests and this panel shows where it sits against the market, what the house policy recommends, and a message drafted for the supplier.',
-
-  n_quote: 'This quote',
-  n_market: 'Market average',
-  n_sample: (n: number) => `median of ${n} comparable quote${n === 1 ? '' : 's'}`,
-  n_above: 'above the market median',
-  n_below: 'below the market median',
-  n_level: 'level with the market median',
-  n_action: 'Recommended action',
-  n_target: 'Target price',
-  n_no_target: 'No target price is proposed',
-  n_message: 'Suggested message',
-  n_message_ar: 'Arabic version',
-  n_copy: 'Copy',
-  n_copied: 'Copied',
-  n_no_benchmark_title: 'No market benchmark yet',
-  n_policy_scope: 'Policy',
-  n_supplier_locked: 'Supplier name appears once you reveal this quote.',
 } as const;
 
 type Key = keyof typeof EN;
@@ -97,6 +70,7 @@ const AR: Translations = {
   retry: 'إعادة المحاولة',
   err_load: 'تعذّر تحميل التوقعات.',
   err_session: 'انتهت الجلسة. الرجاء تسجيل الدخول مجددًا.',
+  err_unexpected: 'حدث خطأ لدينا. طلباتك لم تتأثر — يُرجى المحاولة مرة أخرى.',
 
   empty_no_history_title: 'لا يوجد ما يمكن التنبؤ منه بعد',
   empty_no_predictions_title: 'تعذّر التنبؤ بأي احتياج قادم',
@@ -126,32 +100,6 @@ const AR: Translations = {
   fc_share: 'من طلباتك',
   fc_not_projected: 'غير متوقَّع',
 
-  neg: 'مساعد التفاوض',
-  neg_sub: 'عرضك مقارنةً بالسوق، والإجراء الذي توصي به سياسة الشركة، ورسالة جاهزة للإرسال كما هي.',
-  loading_neg: 'جارٍ مقارنة هذا العرض بالسوق…',
-  err_load_neg: 'تعذّر تحميل إرشادات التفاوض.',
-  err_not_your_quote: 'هذا العرض ليس ضمن طلباتك.',
-  err_unexpected: 'حدث خطأ لدينا. عروضك لم تتأثر — يُرجى المحاولة مرة أخرى.',
-  empty_no_quote_title: 'افتح عرضًا لمقارنته',
-  empty_no_quote_body:
-    'اختر أحد العروض على طلباتك، وستعرض هذه اللوحة موقعه مقابل السوق، وما توصي به سياسة الشركة، ورسالة مصاغة للمورّد.',
-
-  n_quote: 'هذا العرض',
-  n_market: 'متوسط السوق',
-  n_sample: (n: number) => `وسيط ${n} عرضًا مماثلًا`,
-  n_above: 'أعلى من وسيط السوق',
-  n_below: 'أدنى من وسيط السوق',
-  n_level: 'مساوٍ لوسيط السوق',
-  n_action: 'الإجراء الموصى به',
-  n_target: 'السعر المستهدف',
-  n_no_target: 'لا يُقترح سعر مستهدف',
-  n_message: 'الرسالة المقترحة',
-  n_message_ar: 'النسخة العربية',
-  n_copy: 'نسخ',
-  n_copied: 'تم النسخ',
-  n_no_benchmark_title: 'لا يوجد مرجع سوقي بعد',
-  n_policy_scope: 'السياسة',
-  n_supplier_locked: 'يظهر اسم المورّد بعد كشف هذا العرض.',
 };
 
 export function tr<K extends Key>(lang: Lang, key: K): Widen<(typeof EN)[K]> {
@@ -189,6 +137,5 @@ export function urgencyLabel(lang: Lang, u: Urgency): string {
  */
 export function errText(lang: Lang, code: string): string {
   if (code === 'unauthorized') return tr(lang, 'err_session') as string;
-  if (code === 'not_your_quote') return tr(lang, 'err_not_your_quote') as string;
   return tr(lang, 'err_unexpected') as string;
 }

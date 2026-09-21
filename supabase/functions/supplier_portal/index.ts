@@ -50,9 +50,10 @@ const DOC_KINDS: Record<string, { pathCol: string; nameCol?: string; expCol: str
   iso:          { pathCol:'iso_doc_path',                                           expCol:'iso_expiry',                label:'ISO certification',          folder:'certs',     hint:'Any ISO certificate you hold. Strengthens your capability score.' },
   manufacturer: { pathCol:'manufacturer_auth_doc_path',                             expCol:'manufacturer_auth_expiry',  label:'Manufacturer authorisation', folder:'certs',     hint:'Authorised-dealer letters from the brands you carry.' },
   egr:          { pathCol:'egr_doc_path',               nameCol:'egr_doc_name',     expCol:null,                        label:'Establishment card',         folder:'certs',     hint:'Your immigration establishment card (EGR).' },
-  iban:         { pathCol:'iban_doc_path',              nameCol:'iban_doc_name',    expCol:null,                        label:'Bank details (IBAN)',        folder:'certs',     hint:'Bank letter confirming your IBAN. Used to pay you.' },
 };
-const DOC_ORDER = ['license','profile','catalogs','vat','insurance','iso','manufacturer','egr','iban'];
+// `iban` (a bank letter) was a document type here until 21 Sep 2026. Money moves both directions through
+// Stripe, so the estate never holds a supplier's bank details — founder instruction 527.
+const DOC_ORDER = ['license','profile','catalogs','vat','insurance','iso','manufacturer','egr'];
 
 Deno.serve(observe('supplier_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -185,12 +186,6 @@ Deno.serve(observe('supplier_portal', async (req) => {
       return J({ ok: true, ...kg });
     }
 
-    if (action === 'network_map') {
-      const { data: map, error } = await admin.rpc('fn_supplier_network_map');
-      if (error) return J({ error: error.message }, 500);
-      return J({ ok: true, ...map });
-    }
-
     // §10 — RANKED OPPORTUNITIES. "Recommended for you", ordered by fit score and never by date.
     //
     // The ranking itself is fn_supplier_opportunities: it is a query over inquiries, leads and
@@ -203,75 +198,10 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // similar project — each carrying whether it applied and, when it could not be asked at all,
     // why. With 0 completed jobs the history reason is unanswerable for EVERY supplier, and it
     // says so rather than reading as "you have no relevant experience".
-    // §12 — THE NEGOTIATION ASSISTANT. Detect a discount request, show the arithmetic, draft a reply.
-    //
-    // Two halves, deliberately split. fn_supplier_negotiation does the ARITHMETIC — quote, app fee,
-    // customer price, reduction scenarios — because it is a query and it must be exact. The DETECTION
-    // is a language problem ("can you sharpen that?", "the other guy is cheaper", "budget is 170")
-    // and goes to the model.
-    //
-    // WHAT THE DRAFT MAY NOT DO IS CONCEDE. QuotesDone does not know what the job costs the supplier,
-    // so any draft that names a discount would be advising a cut against a floor nobody knows. The
-    // prompt forbids proposing a number; the draft acknowledges the request and puts the decision
-    // back to the supplier, who is the only party holding the cost.
-    if (action === 'negotiation') {
-      // quote_id is optional: with none given this analyses the supplier's most recent quote, which
-      // is the one a customer is almost certainly pushing back on. Ownership is enforced either way
-      // — the lookup is always scoped to supId, so a supplier can only ever analyse their own.
-      let quoteId = String(b.quote_id || '');
-      if (quoteId) {
-        const { data: own } = await admin.from('quotes').select('id').eq('id', quoteId).eq('supplier_id', supId).maybeSingle();
-        if (!own) return J({ error: 'not your quote' }, 403);
-      } else {
-        const { data: latest } = await admin.from('quotes').select('id')
-          .eq('supplier_id', supId).order('created_at', { ascending: false }).limit(1).maybeSingle();
-        if (!latest) return J({ ok: true, quote_id: null, population: { customer_messages: 0, note: 'you have not submitted a quote yet, so there is nothing to negotiate' } });
-        quoteId = latest.id;
-      }
+    // §12 (the negotiation assistant) and the 3D network map action were removed 21 Sep 2026 — founder
+    // instructions 525/526. fn_supplier_negotiation and fn_supplier_network_map remain in the database
+    // with no caller.
 
-      const { data: neg, error } = await admin.rpc('fn_supplier_negotiation', { p_quote_id: quoteId });
-      if (error) return J({ error: error.message }, 500);
-
-      const inbound = (neg?.inbound_messages || []) as { body: string }[];
-      let analysis: Record<string, unknown> = {
-        price_pressure_detected: false,
-        detection: 'no customer message to read yet',
-        recommended_response: null,
-      };
-      if (inbound.length) {
-        const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
-        if (keyRow?.value) {
-          const SYS = `You read a UAE construction customer's messages to a supplier and classify whether they are asking for a DISCOUNT or applying price pressure.
-Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"signals":[string],"recommended_response":string}
-- price_pressure_detected: true only if they actually push on price — a request to lower it, a competitor comparison, a stated budget below the quote. Asking what something costs is not pressure.
-- detection: one sentence naming what you saw, quoting their words.
-- signals: the exact phrases that made you decide. Empty if none.
-- recommended_response: a short, warm reply the supplier could send. NEVER propose a discount, a percentage or a new price — you do not know what this job costs them. Acknowledge the request, restate the value in their quote (lead time, warranty, scope), and ask what is driving the number. If there is no price pressure, reply to what they actually asked instead.`;
-          try {
-            const r = await fetch(SUPA_URL + '/functions/v1/ai_gateway', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                __secret: keyRow.value, fn: 'supplier_negotiation', max: 700, temperature: 0.2,
-                sys: SYS, response_format: 'json',
-                input: [{ role: 'user', content: inbound.map((m) => m.body).join('\n---\n').slice(0, 6000) }],
-              }),
-            });
-            const d = await r.json();
-            const txt = String(d?.content || '{}');
-            analysis = JSON.parse(txt.match(/\{[\s\S]*\}/)?.[0] || '{}');
-          } catch (e) {
-            // A model failure must not read as "no discount was requested" — that is the one wrong
-            // answer that costs the supplier money.
-            analysis = { price_pressure_detected: null, detection: 'the analysis could not run: ' + String((e as Error)?.message || e), recommended_response: null };
-          }
-        }
-      }
-      return J({ ok: true, ...neg, analysis });
-    }
-
-    // §8 — which of MY products answers this enquiry, and how well. The match_pct on a product card
-    // is computed by fn_supplier_product_match and never in the browser: a percentage the client
-    // invents is a decoration, and the supplier cannot tell the difference by looking.
     if (action === 'product_match') {
       const inquiryId = String(b.inquiry_id || '');
       if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
@@ -340,7 +270,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       const panels: [string, string, Record<string, unknown>][] = [
         ['twin', 'fn_supplier_twin', { p_lead_id: supId }],
         ['market', 'fn_supplier_market', { p_lead_id: supId }],
-        ['network', 'fn_supplier_network_map', {}],
+        ['network', 'fn_supplier_knowledge_graph', { p_lead_id: supId }],
         ['workspaces', 'fn_supplier_workspaces', { p_lead_id: supId }],
         ['recommended', 'fn_supplier_opportunities', { p_lead_id: supId }],
         ['ranking', 'fn_supplier_tier', { p_lead_id: supId }],
@@ -358,9 +288,6 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
           return { key, available: ok, basis: ok ? 'data' : 'empty_population' };
         } catch (_e) { return { key, available: false, basis: 'routine_error' }; }
       }));
-      // Negotiation reads one of this supplier's quotes; with none there is nothing to negotiate.
-      const { count: myQuotes } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', supId);
-      out.push({ key: 'negotiation', available: (myQuotes || 0) > 0, basis: (myQuotes || 0) > 0 ? 'data' : 'no_quotes' });
       return J({ ok: true, panels: out });
     }
 
