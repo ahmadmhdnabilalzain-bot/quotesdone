@@ -3,6 +3,7 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_D
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
+import { parseRatingInput } from './rating_input.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
 import { detectCat } from '../_shared/trade_classify.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
@@ -1458,13 +1459,12 @@ Deno.serve(observe('customer_api', async (req) => {
     // BEFORE the write, in words the customer can read, rather than letting the database refuse it
     // as a 500. Who may rate and when is unchanged: a transaction on this quote, 1..5, one per job.
     if (action === 'rate_supplier') {
-      const qid = String(body.quote_id || ''); const rating = Number(body.rating);
-      // '' and '   ' are "no comment", not a 3-character comment: a customer who tabbed through the
-      // optional box must not be told their blank is too short.
-      const typed = body.comment == null ? '' : String(body.comment).trim();
-      const comment = typed ? typed.slice(0, 500) : null;
-      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return J({ error: 'Rating must be 1 to 5.', code: 'rating_out_of_range' }, 400);
-      if (comment && comment.length < 10) return J({ error: 'A comment is optional — but if you write one, please make it at least 10 characters.', code: 'review_comment_too_short' }, 400);
+      const qid = String(body.quote_id || '');
+      // The rule (stars alone suffice; a comment, if given, is 10+ characters) lives in
+      // ./rating_input.ts with its tests, so the handler and the test read the same code.
+      const parsed = parseRatingInput(body);
+      if (!parsed.ok) return J({ error: parsed.error, code: parsed.code }, 400);
+      const { rating, comment } = parsed;
       const { data: q } = await admin.from('quotes').select('id,supplier_id,inquiry_id').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found', code: 'not_found' }, 404);
       const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle();
       if (!tx) return J({ error: 'You can only rate a supplier you have revealed and dealt with.', code: 'forbidden' }, 403);

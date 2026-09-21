@@ -27,12 +27,12 @@ import { motion } from 'motion/react';
 import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
-type Rung = { tier: string; needs: string };
+type Rung = { tier: string; needs: string; needs_ar?: string };
 type Payload = {
-  tier?: string; available?: boolean; basis?: string;
+  tier?: string; available?: boolean; basis?: string; basis_ar?: string;
   ladder?: Rung[];
   progress?: { quotes_submitted?: number; quotes_won?: number; quality_rating?: number | null; response_rate?: number | null };
-  benefits_active?: boolean; affects_matching?: boolean; benefits_note?: string;
+  benefits_active?: boolean; affects_matching?: boolean; benefits_note?: string; benefits_note_ar?: string;
 };
 
 const FN = SUPA_FN;
@@ -91,6 +91,9 @@ export default function SupplierTier({ token, lang = 'en' }: { token?: string | 
   const tier = String(d.tier || 'unranked');
   const ladder = [...(d.ladder || [])].sort((a, b) => ORDER.indexOf(a.tier) - ORDER.indexOf(b.tier));
   const p = d.progress || {};
+  // The routine carries every sentence in both languages (the_supplier_ranking_reads_the_suppliers_real_quotes.sql);
+  // an Arabic reader must never see the English basis under an Arabic heading.
+  const ar = lang === 'ar';
 
   return (
     <div className="flex flex-col gap-3" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
@@ -105,7 +108,7 @@ export default function SupplierTier({ token, lang = 'en' }: { token?: string | 
           {ranked ? tier : t(lang, 'unranked')}
         </motion.div>
         {/* The reason, always. "Unranked" without it reads as a bad score. */}
-        <p className="mt-1.5 text-xs leading-[1.7] text-muted-foreground">{d.basis}</p>
+        <p className="mt-1.5 text-xs leading-[1.7] text-muted-foreground">{(ar && d.basis_ar) || d.basis}</p>
       </section>
 
       <section className="qd-panel p-4">
@@ -114,7 +117,7 @@ export default function SupplierTier({ token, lang = 'en' }: { token?: string | 
           {ladder.map((r) => (
             <li key={r.tier} className="flex items-baseline gap-2 text-[12.5px]">
               <span className={'w-[4.5rem] shrink-0 font-medium capitalize ' + (STYLE[r.tier] || 'text-white')}>{r.tier}</span>
-              <span className={r.tier === tier ? 'text-white' : 'text-muted-foreground'}>{r.needs}</span>
+              <span className={r.tier === tier ? 'text-white' : 'text-muted-foreground'}>{(ar && r.needs_ar) || r.needs}</span>
               {r.tier === tier && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ok" />}
             </li>
           ))}
@@ -145,7 +148,7 @@ export default function SupplierTier({ token, lang = 'en' }: { token?: string | 
         <h3 className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">{t(lang, 'benefits')}</h3>
         <p className="text-xs leading-[1.7] text-muted-foreground">
           {!d.benefits_active && <b className="text-white/80">{t(lang, 'notYet')} · </b>}
-          {d.benefits_note}
+          {(ar && d.benefits_note_ar) || d.benefits_note}
         </p>
       </section>
     </div>

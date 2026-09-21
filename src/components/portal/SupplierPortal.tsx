@@ -68,7 +68,9 @@ const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFrac
 // Arabic text beside it (portal audit 14 Sep 2026); <Ltr> keeps each one whole.
 // A LOCALISED DATE IS NOT ONE OF THEM. This comment used to say "dates" and that was the defect
 // (17 Sep 2026): fmtDate(d, 'ar') returns Arabic — "18 سبتمبر 2026" — and forcing dir="ltr" onto it
-// made the licence chip read "سبتمبر 2027 18". `Ltr` now decides per string; src/lib/Ltr.tsx.
+// made the licence chip print the day AFTER the year, backwards. (Not quoted here with a year in it:
+// pricing_arabic_parity.test.mjs greps this file for calendar years to keep the fee undated, and a
+// comment would match.) `Ltr` now decides per string; src/lib/Ltr.tsx.
 const fmtDate = (d, lang, withYear = true) => (d ? new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' }) : '');
 // What a held (draft) quote is missing, in the codes fn_quote_structured_score returns. One table for
 // the preflight panel and the held-quote notes, so the two can never describe the same gap differently.
