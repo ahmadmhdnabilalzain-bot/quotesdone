@@ -1,0 +1,8 @@
+not applied yet: waits for resilience_ping to be deployed with the deliveryCanary step, then apply with --apply --ddl.
+
+21 Sep 2026 — customer_support, a bounce report is proven to arrive every day (PR #804). DEPLOY resilience_ping
+FIRST (its STEP_RUN gains deliveryCanary; a schedule row for a step the deployed code lacks fails every tick),
+then apply this file, delete this note, append the file to the END of MANIFEST.txt, and run the probe
+scripts/sql/a_bounce_report_is_proven_to_arrive_every_day_probe.sql. Rehearsed rolled-back 21 Sep: PROBE OK
+(queue -> silence raises delivery_feedback:bounce_reports_silent -> next day's arrival closes it, no canary
+suppression left).

@@ -1,0 +1,6 @@
+pure probe, no DDL: run with node scripts/qsql.mjs after the change file scripts/sql/one_job_number_on_every_portal_document_and_notice.sql is applied; it answers PROBE FAILED until then.
+
+21 Sep 2026 — sales_engineer, supplier audit of 21 Sep (findings 7, 25, 37). Apply in THIS order; as each is
+applied, delete its note here and append its line to the END of MANIFEST.txt. Both changes were rehearsed in a
+rolled-back transaction with their probe on 21 Sep 2026 (PROBE OK); against the unchanged database the probes
+answer PROBE FAILED.

@@ -11,7 +11,7 @@
 // canonicalReplay(files) returns, for every routine the given files define, the CANONICAL definition:
 // the last one in scripts/sql/MANIFEST.txt order (the order files are applied), skipping a definition
 // scripts/sql/SUPERSEDED.txt retires. It is the rule scripts/checks/canonical_routine_manifest.mjs
-// uses, with one difference: a PENDING.txt file is included, because a pull request's own change is
+// uses, with one difference: a pending file (scripts/sql/pending/) is included, because a pull request's own change is
 // pending until the coordinator applies it and the replay exists to test that change before it is.
 // Only CREATE FUNCTION statements are emitted, in MANIFEST order, a bare `create` made `create or
 // replace`; tables, views and triggers are production's own (canonical_routine_manifest proves the
