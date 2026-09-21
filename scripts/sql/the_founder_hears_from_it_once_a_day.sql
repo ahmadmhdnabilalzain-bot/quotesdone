@@ -19,8 +19,10 @@
 --   1. ONE DIGEST A DAY, at 19:00 Dubai. fn_customer_support_sends_the_it_digest(p_now) now runs its
 --      decision once per Dubai day, on the first IT tick at or after 19:00, and the email carries ONLY:
 --        (a) DECISIONS ONLY HE CAN MAKE: a finding whose issue_key matches public.it_founder_decision_class,
---            the register created here (a refused credential, an account owner nobody recognised, a
---            spending cap nobody set, a paid backup feature);
+--            the register created here, derived against his answers (instructions >= 585): a refused
+--            credential, an account owner nobody recognised. What he has answered or ruled not his
+--            (caps and subscriptions 639, PITR and receipts 585, the campaign go 636) is registered
+--            to_founder = false and never reaches him, not even as a day-old fault;
 --        (b) FAULTS OPEN MORE THAN 24 HOURS THAT THE COMPANY COULD NOT FIX: held because the owning seat
 --            and the CEO could not fix it, still open in it_engineer_finding, and started over 24 h ago.
 --      Each is ONE plain sentence with what the company is doing about it. Everything else held is
@@ -48,10 +50,14 @@
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_founder_hears_from_it_once_a_day.sql --apply --ddl
 
--- ── 1. THE REGISTER OF DECISIONS ONLY THE FOUNDER CAN MAKE ───────────────────────────────────────
+-- ── 1. THE REGISTER: WHAT IS HIS TO DECIDE, AND WHAT HE HAS RULED IS NOT ─────────────────────────
+-- to_founder true:  a decision only he can make -> a DECISION line in the digest.
+-- to_founder false: he has answered it or ruled it is not his -> never sent, not even as a day-old
+--                   fault; completed internal, citing his instruction. A declined decision is never re-asked.
 create table if not exists public.it_founder_decision_class (
   issue_key_like text primary key,          -- a LIKE pattern over it_engineer_finding.issue_key
-  why            text not null,             -- the sentence he reads: why only he can decide it
+  to_founder     boolean not null,
+  why            text not null,             -- to_founder: the sentence he reads; otherwise his ruling, cited
   recorded_at    timestamptz not null default now()
 );
 alter table public.it_founder_decision_class enable row level security;
@@ -60,13 +66,25 @@ create policy it_founder_decision_class_service_role_only on public.it_founder_d
   as permissive for all to public using (false) with check (false);
 revoke all on public.it_founder_decision_class from anon, authenticated;
 
--- Each class is one the founder was actually asked about in 14-21 Sep 2026 (it_engineer_finding).
-insert into public.it_founder_decision_class (issue_key_like, why) values
-  ('duty:credential:%',             'a provider refused the company''s credential and only the account holder can issue a new one'),
-  ('duty:access:%',                 'an account has an owner nobody recognises and only you can say whether it is yours'),
-  ('duty:usage_%:cap_unknown:%',    'no spending cap or floor is recorded for this service and only you set what the company may spend'),
-  ('duty:db_backup:pitr',           'point-in-time recovery is a paid database feature and only you decide to buy it')
-on conflict (issue_key_like) do update set why = excluded.why;
+-- Derived 22 Sep 2026 from what he was asked 14-21 Sep (it_engineer_finding) AGAINST his answers
+-- (public.founder_instruction >= 585). Still his and undecided: a refused credential (only the account
+-- holder re-issues it) and an account owner nobody recognises (he confirmed two on 15 Sep; a new one is a
+-- security question only he can answer). Everything else he was asked is answered or ruled not his.
+insert into public.it_founder_decision_class (issue_key_like, to_founder, why) values
+  ('duty:credential:%',          true,  'a provider refused the company''s credential and only the account holder can issue a new one'),
+  ('duty:access:%',              true,  'an account has an owner nobody recognises and only you can say whether it is yours'),
+  -- 639: "Do not ask about Vercel caps or subscriptions; that is on him and he adds when reached.
+  --       Twilio balance: only raise it if it is actually a blocker." A cap or floor nobody recorded is not
+  --       a blocker; a balance that stops sends fails the sends, and that arrives as its own fault.
+  ('duty:usage_%:cap_unknown:%', false, 'instruction 639: caps and subscriptions are his, added when reached; not asked'),
+  ('duty:renewal:%',             false, 'instruction 639: subscriptions are his; the accountant tracks renewals, he is not asked'),
+  -- 585: "no need for the point in time recovery ... receipts will be shared later ... ongoing routine".
+  ('duty:db_backup:pitr',        false, 'instruction 585: point-in-time recovery declined'),
+  ('acct:expenses:%',            false, 'instruction 585: receipts are an ongoing routine the accountant reads; not an alarm to him'),
+  -- 636: "The campaign is not going now. He will say exactly when. Do not ask about it and do not remind him."
+  ('%campaign%',                 false, 'instruction 636: the campaign go is his to give unasked; never asked or reminded'),
+  ('%invitation%',               false, 'instruction 636: the invitation campaign go is his to give unasked; never asked or reminded')
+on conflict (issue_key_like) do update set to_founder = excluded.to_founder, why = excluded.why;
 
 -- ── 2. THE EMERGENCY CLASS AND THE DIGEST'S OWN KIND ─────────────────────────────────────────────
 insert into public.founder_mail_policy (kind, allowed_to_email, reason, owner_role, updated_at) values
@@ -106,7 +124,7 @@ declare
   v_stub  boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
   v_local timestamp := p_now at time zone 'Asia/Dubai';
   v_key   text := 'it_daily_digest:' || to_char(p_now at time zone 'Asia/Dubai', 'YYYY-MM-DD');
-  x record; f public.it_engineer_finding; v_why text; v_items jsonb := '[]'::jsonb;
+  x record; f public.it_engineer_finding; v_why text; v_his boolean; v_items jsonb := '[]'::jsonb;
   v_event text; v_detail text; v_res jsonb; v_fan jsonb := '[]'::jsonb; v_before bigint;
   n_dec int := 0; n_flt int := 0; n_int int := 0; n_fixed int := 0; n_wait int := 0;
 begin
@@ -137,8 +155,15 @@ begin
         'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
       n_fixed := n_fixed + 1; continue;
     end if;
-    select c.why into v_why from public.it_founder_decision_class c where f.issue_key like c.issue_key_like
-     order by length(c.issue_key_like) desc limit 1;
+    -- His ruling that something is NOT his wins over any pattern that would ask him.
+    select c.why, c.to_founder into v_why, v_his from public.it_founder_decision_class c where f.issue_key like c.issue_key_like
+     order by c.to_founder, length(c.issue_key_like) desc limit 1;
+    if found and not v_his then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
+        'why', v_why, 'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
+      n_int := n_int + 1; v_why := null; continue;
+    end if;
+    if not found then v_why := null; end if;
     if v_why is null and f.started_at > p_now - interval '24 hours' then
       n_wait := n_wait + 1; continue;                          -- still young: judged again tomorrow
     end if;
@@ -219,7 +244,12 @@ with f as (
     case when (select array_agg(kind order by kind) from public.founder_mail_policy where owner_role = 'it_engineer' and allowed_to_email)
               is distinct from array['backup_failed_after_retry', 'it_daily_digest', 'platform_down', 'security_critical', 'uptime_alert']
          then 'the it_engineer kinds allowed to reach the founder are not exactly the emergency class plus the digest' end,
-    case when (select count(*) from public.it_founder_decision_class) < 4 then 'the founder decision register is not seeded' end,
+    case when (select count(*) filter (where to_founder) from public.it_founder_decision_class) <> 2
+              or (select count(*) filter (where not to_founder) from public.it_founder_decision_class) < 6
+         then 'the founder decision register is not seeded as derived' end,
+    case when exists (select 1 from public.it_founder_decision_class where to_founder
+                       and issue_key_like ~* '(cap_unknown|pitr|campaign|invitation|subscription|renewal|expenses)')
+         then 'the register would ask him something he has answered or ruled is not his' end,
     case when not exists (select 1 from public.company_policy_decision where decision_key = 'meta_and_social_held_for_marketing')
          then 'rule 641 is not recorded' end
   ]) why)

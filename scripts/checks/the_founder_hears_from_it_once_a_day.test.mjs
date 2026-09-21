@@ -70,6 +70,25 @@ test('the digest leaves once, at 19:00 Dubai, by email only', () => {
   assert.match(body('fn_it_loop_tick'), /fn_customer_support_sends_the_it_digest\(\)/, 'the IT tick no longer calls the digest');
 });
 
+// The register rows as the file writes them: ('<pattern>', true|false, '<why>').
+export const registerRows = (src) => [...src.matchAll(/^\s*\('([^']+)',\s*(true|false),/gm)].map((m) => ({ like: m[1], toFounder: m[2] === 'true' }));
+// What he has answered or ruled is not his (instructions 585, 636, 639, 22 Sep 2026). A decision row
+// matching any of these would ask him again; the file must register them to_founder = false instead.
+const NEVER_ASK = /cap_unknown|pitr|campaign|invitation|subscription|renewal|expenses/i;
+export const askedAgain = (rows) => rows.filter((r) => r.toFounder && NEVER_ASK.test(r.like)).map((r) => r.like);
+
+test('the decision register never asks him what he has answered: caps, PITR, subscriptions, the campaign go', () => {
+  const rows = registerRows(readFileSync(join(REPO, FILE), 'utf8'));
+  assert.ok(rows.length >= 8, `the register rows were not read from ${FILE} (${rows.length})`);
+  assert.deepEqual(askedAgain(rows), []);
+  for (const must of ['duty:usage_%:cap_unknown:%', 'duty:db_backup:pitr', '%campaign%', '%invitation%']) {
+    assert.ok(rows.some((r) => r.like === must && !r.toFounder), `${must} must be registered to_founder = false`);
+  }
+  // and the gate can fail
+  assert.deepEqual(askedAgain([{ like: 'duty:usage_%:cap_unknown:%', toFounder: true }, { like: 'duty:access:%', toFounder: true }]),
+    ['duty:usage_%:cap_unknown:%']);
+});
+
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token';
 
@@ -83,13 +102,17 @@ begin
   values ('duty:credential:zz_demo_daily', 'ZZ DEMO credential refused', 'probe', 'internal', 1, '{"demo":true}', 'probe', v_at - interval '2 hours', v_at, 1),
          ('duty:zz_demo_old:a', 'ZZ DEMO old fault', 'probe', 'internal', 1, '{"demo":true,"owner_seat":"sales_engineer"}', 'probe', v_at - interval '30 hours', v_at, 1),
          ('duty:zz_demo_young:a', 'ZZ DEMO young fault', 'probe', 'internal', 1, '{"demo":true}', 'probe', v_at - interval '3 hours', v_at, 1),
-         ('duty:zz_demo_closed:a', 'ZZ DEMO closed fault', 'probe', 'internal', 1, '{"demo":true}', 'probe', v_at - interval '30 hours', v_at, 1);
+         ('duty:zz_demo_closed:a', 'ZZ DEMO closed fault', 'probe', 'internal', 1, '{"demo":true}', 'probe', v_at - interval '30 hours', v_at, 1),
+         -- He has ruled these are not his (639 caps, 636 campaign/invitation): day-old, still never told.
+         ('duty:usage_zz_demo:cap_unknown:zz_month', 'ZZ DEMO no cap recorded', 'probe', 'internal', 1, '{"demo":true}', 'probe', v_at - interval '30 hours', v_at, 1),
+         ('duty:zz_demo_invitation_gate:a', 'ZZ DEMO campaign go', 'probe', 'internal', 1, '{"demo":true}', 'probe', v_at - interval '30 hours', v_at, 1);
   update public.it_engineer_finding set closed_at = v_at, close_note = 'ZZ DEMO closed' where issue_key = 'duty:zz_demo_closed:a';
-  for k in 1..5 loop
+  for k in 1..7 loop
     perform public.fn_seat_handoff('ceo', 'customer_support', 'delivery.request', 'support_ceo_report', 'zz-demo-daily-' || k,
       jsonb_build_object('recipient_role', 'founder', 'kind', 'it_new_bug', 'level', 'high', 'event', 'ZZ DEMO', 'detail', 'ZZ DEMO',
         'dedupe_key', case k when 5 then 'it_ceo_silent:zz_demo'
-                      else 'it_new_bug:' || (array['duty:credential:zz_demo_daily', 'duty:zz_demo_old:a', 'duty:zz_demo_young:a', 'duty:zz_demo_closed:a'])[k] end));
+                      else 'it_new_bug:' || (array['duty:credential:zz_demo_daily', 'duty:zz_demo_old:a', 'duty:zz_demo_young:a', 'duty:zz_demo_closed:a',
+                                                   null, 'duty:usage_zz_demo:cap_unknown:zz_month', 'duty:zz_demo_invitation_gate:a'])[k] end));
   end loop;
   select count(*) into k from public.agent_actions
    where target_id like 'delivery.request:zz-demo-daily-%' and status = 'pending' and evidence->>'digest' = 'pending';
@@ -102,7 +125,7 @@ begin
   raise exception 'CHK<<%>>', jsonb_build_object('held', k, 'early', w->>'reason', 'again', d->>'reason', 'states', e,
     'event', v->>'event', 'told_decision', v->>'detail' ~ 'DECISION: ZZ DEMO credential refused. Only you can decide this',
     'told_old', v->>'detail' ~ 'ZZ DEMO old fault, open since 3[01] Dec. Nothing inside the company fixed it; the sales engineer has it',
-    'told_young_or_closed', v->>'detail' ~ 'ZZ DEMO (young|closed)',
+    'told_young_or_closed', v->>'detail' ~ 'ZZ DEMO (young|closed)', 'told_ruled_out', v->>'detail' ~ 'ZZ DEMO (no cap|campaign)',
     'founder_rows', (select count(*) from public.notifications where id > v_max))::text;
 end $p$;`;
 
@@ -123,10 +146,11 @@ test('production: one digest a day carries only decisions and day-old faults, an
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 1500));
   const o = JSON.parse(chk[1].replace(/\\"/g, '"'));
-  assert.equal(o.held, 5, 'the five requests were not all held for the digest');
+  assert.equal(o.held, 7, 'the seven requests were not all held for the digest');
   assert.match(o.early, /19:00 Dubai/);
   assert.match(o.again, /already decided/);
-  assert.deepEqual(o.states, { 1: 'sent', 2: 'sent', 3: 'pending', 4: 'fixed', 5: 'internal' });
+  assert.deepEqual(o.states, { 1: 'sent', 2: 'sent', 3: 'pending', 4: 'fixed', 5: 'internal', 6: 'internal', 7: 'internal' });
+  assert.equal(o.told_ruled_out, false, 'the digest told him something he ruled is not his');
   assert.equal(o.told_decision, true);
   assert.equal(o.told_old, true, JSON.stringify(o));
   assert.equal(o.told_young_or_closed, false);
