@@ -109,3 +109,31 @@ Deno.test('parsers: units, emirates EN/AR, dates, yes/no options, budget', () =>
   const emi: SpecField = { key: 'location', type: 'select', options: ['Dubai', 'Abu Dhabi', 'Sharjah', 'Northern Emirates', 'Not sure'], question: 'Which emirate?' };
   assertEquals(parseAnswer(emi, 'Ajman', true), 'Northern Emirates');
 });
+
+// Customer audit 21 Sep 2026, finding 8: the intake ignored what the customer wrote. Production's
+// category_specs `scope` and `property_area` rows for `electrical`, read 21 Sep 2026.
+const ELEC_SCOPE: SpecField = { key: 'scope', type: 'multiselect', required: true, options: ['New wiring (first fix)', 'Rewiring', 'DB board supply & install', 'Lighting', 'Power sockets', 'Data & TV points', 'AC power points', 'DEWA new connection', 'DEWA load upgrade', 'Testing & certification only'], question: 'What electrical work?' };
+const ELEC_AREA: SpecField = { key: 'property_area', type: 'text', required: true, options: [], question: 'Property type, built-up area (m²) and number of rooms/zones?' };
+const AUDIT_MSG = 'Electrical works for a ZZ DEMO 4-bedroom villa in Khalifa City A, Abu Dhabi. Supply and install 500 m of 4 mm2 copper cable (BS EN 50525, LSZH) and 3 x 12-way DB boards with MCBs (IEC 61439, Schneider or ABB), plus 60 double sockets and 24 switches (MK Logic or Legrand). Installation and 2-year warranty required. Site is ready for first fix; work must finish by 30 November 2026.';
+
+Deno.test('finding 8b: a multiselect scope keeps every work the customer named, not just one', () => {
+  // Measured before the fix: "DB board supply & install" alone; the cable (first fix) and sockets were dropped.
+  assertEquals(parseAnswer(ELEC_SCOPE, AUDIT_MSG, false), 'New wiring (first fix), DB board supply & install, Power sockets');
+  assertEquals(parseAnswer(ELEC_SCOPE, 'I need the lighting and the DB board changed', true), 'DB board supply & install, Lighting');
+  assertEquals(parseAnswer(ELEC_SCOPE, 'a new AC connection', false), null, 'generic words (new, connection) pick nothing');
+});
+
+Deno.test('finding 8c: a paragraph answers a "how big" question with its measure sentence; quantity is a measure or empty', () => {
+  const reply = 'It is a 4-bedroom villa, about 450 m2 built-up, 9 rooms. Three-phase supply. As I said: MK Logic or Legrand for switches and sockets, Schneider or ABB DBs, supplier to install, 2-year warranty minimum, finished by 30 November 2026.';
+  assertEquals(parseAnswer(ELEC_AREA, reply, true), 'It is a 4-bedroom villa, about 450 m2 built-up, 9 rooms.');
+  const brief = buildBrief('electrical', { property_area: 'It is a 4-bedroom villa, about 450 m2 built-up, 9 rooms.', scope: 'Power sockets' }, AUDIT_MSG, 'Abu Dhabi', AUDIT_MSG);
+  assertEquals(brief.quantity, '450 sqm', 'the number, not the prose');
+  assertEquals(buildBrief('electrical', { property_area: 'a villa, not sure how big' }, 'x', null, 'x').quantity, '', 'no measure stated: empty, never prose');
+  assertEquals(buildBrief('aluminium', { dimensions_qty: '40 windows, 1200 x 1500 mm' }, 'x', null, 'x').quantity, '40 windows, 1200 x 1500 mm', 'a count with its size is kept whole');
+});
+
+Deno.test('finding 8d: the summary is the customer\'s full description, not its first 160 characters', () => {
+  const brief = buildBrief('electrical', {}, AUDIT_MSG, 'Abu Dhabi', AUDIT_MSG);
+  assertEquals(brief.summary, AUDIT_MSG);
+  assert(brief.summary.includes('24 switches (MK Logic or Legrand)'), 'measured before the fix: cut at "3 x 12-way D"');
+});

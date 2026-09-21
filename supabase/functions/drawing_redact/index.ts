@@ -26,6 +26,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
+import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
 import { supplierPageReadable } from '../_shared/supplier_copy.ts';
 
 // ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
@@ -42,26 +43,8 @@ import { supplierPageReadable } from '../_shared/supplier_copy.ts';
 //    labels with the words beside them) is located and boxed on the matching raster page. Added to
 //    BOTH paths. It never publishes a page on its own: a logo or a scanned title block has no text,
 //    so text-layer boxes without the customer's review or the verifier are not a clean page.
-const ID_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\b(?:https?:\/\/|www\.)\S+|(?:\+|00)?971[\s-]?\d|\b0\d[\s-]?\d{3}[\s-]?\d{4}\b|\b05\d[\s-]?\d{3}[\s-]?\d{4}\b|\b(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Est\.|Establishment|Consultants?|Contracting|Architects?|Developers?|Properties)\b|شركة|مؤسسة|ذ\.م\.م|مكتب\s+هندسي/i;
-const ID_LABEL = /\b(drawn|checked|approved|prepared|reviewed|designed)\s*(by)?\b|\b(client|owner|employer|consultant|contractor|developer|project(?:\s*(?:name|no|number|title))?|plot(?:\s*no)?|makani|dwg\.?\s*no|drawing\s*no|address|tel|phone|mobile|fax|e-?mail)\b\s*[:.#]?|المالك|العميل|الاستشاري|المقاول|المشروع|رقم\s*القطعة|مكاني|رسم\s*بواسطة|اعتمد/i;
-function textLayerBoxes(pages: PdfPage[], pageIndex: number): { boxes: Array<{x:number;y:number;w:number;h:number}>; rotated: boolean } {
-  const p = pages[pageIndex];
-  if (!p) return { boxes: [], rotated: false };
-  // A rotated page's raster no longer shares the PDF's axes; boxing it would miss by a quarter turn.
-  if (p.rotate) return { boxes: [], rotated: true };
-  const boxes: Array<{x:number;y:number;w:number;h:number}> = [];
-  for (const r of p.runs) {
-    if (ID_TEXT.test(r.text)) { boxes.push({ x: r.x, y: r.y, w: r.w, h: r.h }); continue; }
-    if (ID_LABEL.test(r.text)) {
-      // The label's value is the text to its right on the same line; cover the label and that run.
-      const base = r.y + r.h;
-      const line = p.runs.filter((o) => Math.abs((o.y + o.h) - base) <= r.h * 0.6 && o.x >= r.x && o.x <= r.x + r.w + 0.25);
-      const x2 = Math.max(...line.map((o) => o.x + o.w), r.x + r.w);
-      boxes.push({ x: r.x, y: r.y, w: Math.min(1 - r.x, x2 - r.x), h: r.h });
-    }
-  }
-  return { boxes, rotated: false };
-}
+//    The detector itself (ID_TEXT, ID_LABEL, textLayerBoxes) lives in _shared/drawing_identity_text.ts
+//    since 21 Sep 2026, where its test proves it against the demo plan.
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -78,8 +61,19 @@ function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/
 function bytesToB64(u8: Uint8Array){ let out=''; const CH=0x8000; for(let i=0;i<u8.length;i+=CH){ out+=String.fromCharCode.apply(null, Array.from(u8.subarray(i,i+CH)) as any); } return btoa(out); }
 function stripB64(s:string){ return String(s).replace(/^data:[^;]+;base64,/,''); }
 function b64ToBytes(b64:string){ const bin=atob(stripB64(b64)); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
-const MAXW = 1600;
+// 21 Sep 2026: 1600 px across a 36x24 in sheet is 44 dpi — a 1/8-in note is 7 px tall and a supplier
+// cannot read the tags this whole change exists to keep (founder instruction 580: the drawing content
+// must survive). The portal already sends 2600 px (pdfRaster MAX_EDGE); it is now kept, not shrunk.
+// Measured locally (deno, imagescript 1.2.17, a real 2600 px sheet): decode 455 ms, paint + encode 270 ms
+// at 2600 against 422 + 279 ms with the resize to 1600 — skipping the resize pays for the bigger encode,
+// so customer_api's 4-pages-per-call batch is unchanged. Not yet measured on the edge runtime itself.
+const MAXW = 2600;
+// MARGIN pads a MODEL's region (a guess). The server's own boxes (anonymise.titleBlockBoxes, sent as
+// manual_boxes by customer_api) are computed from text positions and already padded; a 3% pad on them
+// cut 1 in off the drawing beside every title block (measured on the mechanical set: the notes column
+// and the VAV schedule lost their right edge). They get SERVER_MARGIN instead.
 const MARGIN = 0.03;
+const SERVER_MARGIN = 0.004;
 
 const SYS = `You are a privacy redaction assistant for construction / architectural / MEP drawings that will be shared with COMPETING suppliers. For EACH page image, find EVERY area containing information that could identify the client, the project, or the firms involved — so a supplier cannot identify or contact them.\nCover: the title block (usually a vertical strip on the right edge or a horizontal strip along the bottom), and any consultant / architect / engineer / contractor / developer / owner / client names, company logos, stamps, signatures, addresses, plot / parcel / makani numbers, project name or number, BUILDING or TOWER or VILLA name, COMMUNITY / DISTRICT / AREA name, drawing number or reference, revision number, phone numbers, emails and websites — wherever they appear (including next to the legend).\nALSO cover the NAMES OF INDIVIDUALS anywhere on the sheet: "Drawn by", "Checked by", "Approved by", "Prepared by", "Reviewed by" and any personal name beside a signature or a stamp. A draughtsman's or an approving engineer's name identifies the project to anyone in the trade as surely as the firm's does. (The text masker missed exactly these two on the one real drawing this platform has processed, which is why they are named here explicitly.)\nDo NOT cover the technical drawing, dimensions, room/space names, grid bubbles, north arrow, or the legend's SYMBOL EXPLANATIONS themselves — only the identifying text/logos. The distinction matters and is deliberate: the founder's instruction is that the legend must not show PROJECT DETAILS, not that the symbol key should be destroyed. A supplier who cannot read "◻ = single socket outlet" cannot price the job, and a drawing nobody can quote from is not anonymised, it is wasted.\nBe GENEROUS: if unsure whether a block is identifying, INCLUDE it. It is far better to over-cover than to leak.\nReturn STRICT JSON ONLY: {\"pages\":[{\"i\":0,\"has_identity\":true,\"regions\":[{\"x\":0.80,\"y\":0.0,\"w\":0.20,\"h\":1.0}]}]} — x,y,w,h are fractions 0..1 of the page (x,y = top-left corner of the box). One object per page, in the SAME order as the images. If a page truly has no identifying info, set has_identity=false and regions=[].`;
 
@@ -279,11 +273,11 @@ Deno.serve(observe('drawing_redact', async (req) => {
       try { pdf = await pdfPages(b64ToBytes(body.original_b64)); } catch (_e) { pdf = []; }
     }
     const textBoxes = (i: number) => textLayerBoxes(pdf, pageOffset + i);
-    const paintBoxes = (target: any, gs: Array<{x:number;y:number;w:number;h:number}>) => {
+    const paintBoxes = (target: any, gs: Array<{x:number;y:number;w:number;h:number}>, pad = SERVER_MARGIN) => {
       const W2 = target.width, H2 = target.height;
       for (const g of gs) {
-        let x = Math.floor((g.x - MARGIN) * W2), y = Math.floor((g.y - MARGIN) * H2);
-        let w = Math.ceil((g.w + 2 * MARGIN) * W2), h = Math.ceil((g.h + 2 * MARGIN) * H2);
+        let x = Math.floor((g.x - pad) * W2), y = Math.floor((g.y - pad) * H2);
+        let w = Math.ceil((g.w + 2 * pad) * W2), h = Math.ceil((g.h + 2 * pad) * H2);
         x = Math.max(0, Math.min(x, W2 - 1)); y = Math.max(0, Math.min(y, H2 - 1));
         w = Math.max(1, Math.min(w, W2 - x)); h = Math.max(1, Math.min(h, H2 - y));
         target.composite(new Image(w, h).fill(0x000000ff), x, y);

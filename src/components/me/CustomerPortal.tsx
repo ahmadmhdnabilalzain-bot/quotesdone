@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
 import { supaClient } from '@/lib/supaClient';
+import { takeAuthFragment } from '@/lib/authFragment';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -234,8 +235,12 @@ export function CustomerPortal() {
   useEffect(() => {
     setMounted(true);
     try { const l = initLang(); if (l !== 'en') setLangState(l); } catch (_e) {}
-    try { const tk = localStorage.getItem('qd-cust-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
-    try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {}); } catch (_e) {}
+    // A magic-link session in the URL is taken out of it in place and signs in (audit 21 Sep, item 29).
+    // It wins over a stored session, so the stored one is not restored on top of it.
+    const urlSession = takeAuthFragment();
+    if (urlSession) onAuth(urlSession.access_token, urlSession.refresh_token);
+    else try { const tk = localStorage.getItem('qd-cust-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
+    if (!urlSession) try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {}); } catch (_e) {}
     // THE PORTAL SIGNED PEOPLE OUT EVERY HOUR WHILE HOLDING A VALID REFRESH TOKEN (13 Aug 2026).
     //
     // A Supabase access token lives 60 minutes. This client is created with autoRefreshToken:true
@@ -1556,7 +1561,7 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
       <div className="flex flex-wrap items-center gap-2"><Badge variant="revealed" dot className="!text-accent font-mono uppercase tracking-caps">{t(lang, 'q_unlocked')}</Badge><div className="min-w-0 font-head text-[16px] font-semibold tracking-snug"><OpenSeal play={play}>{s.company_name || t(lang, 'c_supplier')}</OpenSeal></div></div>
       {q && q.revealed_at ? <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_revealed_on', { d: date(q.revealed_at) })}</div> : null}
       {won ? <div className="mt-0.5 text-[12px] font-bold text-primary">🏆 {t(lang, 'c_hired_badge')}</div> : null}
-      <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_paid', { fee: aed(q.reveal_fee) })}</div>
+      <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_paid', { fee: aed(q.total_charged ?? q.reveal_fee) })}</div>
       <div className="mt-1.5 flex flex-wrap gap-3.5">
         {s.phone && <a href={'tel:' + s.phone} className="font-semibold text-primary">📞 <bdi dir="ltr">{s.phone}</bdi></a>}
         {s.whatsapp && <a href={'https://wa.me/' + String(s.whatsapp).replace(/[^0-9]/g, '')} target="_blank" rel="noopener" className="font-semibold text-primary">WhatsApp</a>}
@@ -1611,6 +1616,11 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
 // was charged.
 function ReceiptNote({ receipt, inqs, lang, onClose }) {
   const reduce = useReducedMotion();
+  // 21 Sep 2026 (customer audit, finding 17): "Payment received" never went away. The amount is
+  // stated on the request card too (c_paid), so the receipt leaves by itself after 15 seconds.
+  // Armed once on mount: the parent passes a fresh arrow each render, and re-arming on every render would never let it fire.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { const id = setTimeout(onClose, 15000); return () => clearTimeout(id); }, []);
   const all = inqs.flatMap((i) => [i, ...(i.children || [])]);
   const q = receipt.quoteId ? all.flatMap((i) => i.quotes || []).find((x) => x.id === receipt.quoteId) : null;
   const paid = receipt.kind === 'paid';
@@ -1622,7 +1632,7 @@ function ReceiptNote({ receipt, inqs, lang, onClose }) {
     </motion.span>
     <div className="min-w-0 flex-1">
       {paid
-        ? <><div className="font-head text-[15px] font-bold text-foreground">{t(lang, 'rcpt_title')}</div><p className="mt-0.5 text-[13px] text-muted-foreground">{q ? tf(lang, 'rcpt_body', { fee: aed(q.reveal_fee) }) : t(lang, 'payment_confirmed')}</p></>
+        ? <><div className="font-head text-[15px] font-bold text-foreground">{t(lang, 'rcpt_title')}</div><p className="mt-0.5 text-[13px] text-muted-foreground">{q ? tf(lang, 'rcpt_body', { fee: aed(q.total_charged ?? q.reveal_fee) }) : t(lang, 'payment_confirmed')}</p></>
         : <p className="text-[13px] text-foreground">{t(lang, 'rcpt_cancelled')}</p>}
     </div>
     <button type="button" onClick={onClose} aria-label={t(lang, 'close')} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" aria-hidden /></button>

@@ -391,7 +391,8 @@ function PackageDetail({ pkg, project, documents, inquiries, lang, onOpenRfq }: 
   }
   const inq = inquiries.find((i) => i.id === pkg.rfqId) || null;
   const quotes = inq && Array.isArray(inq.quotes) ? inq.quotes : null;
-  const revealed = (quotes || []).filter((q) => q && q.revealed && q.supplier);
+  // my_inquiries serves `supplier_name` on a revealed quote (customer_api); `supplier` is kept for callers that set it.
+  const revealed = (quotes || []).filter((q) => q && q.revealed && (q.supplier_name || q.supplier)).map((q) => ({ ...q, supplier: q.supplier_name || q.supplier }));
   const docs = docsForRfq(documents, pkg.rfqId);
   const legs = chainLegs(pkg.orders);
   const ordered = pkg.orders.reduce((a, o) => a + (Number(o.subtotal) || 0), 0);

@@ -17,8 +17,9 @@
 // from every item because this output is shown to competing suppliers.
 import type { PdfPage } from '../_shared/pdf_text_positions.ts';
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
+import { scrubContacts } from '../_shared/identity_contacts.ts';
 
-export type BoqItem = { section: string; item: string; description: string; qty: number | null; unit: string; basis: string; confidence: 'low' | 'medium' };
+export type BoqItem = { section: string; item: string; description: string; qty: number | null; unit: string; basis: string; confidence: 'low' | 'medium'; specification?: string };
 
 const UNIT: [string, RegExp][] = [
   ['sqm', /^(?:sqm|sq\.?\s?m|m2|m²)$/i], ['sqft', /^(?:sqft|sq\.?\s?ft|ft2)$/i], ['m3', /^(?:m3|m³|cum)$/i],
@@ -28,7 +29,9 @@ const UNIT: [string, RegExp][] = [
 const unitOf = (s: string) => { for (const [u, re] of UNIT) if (re.test(s)) return u; return null; };
 
 export function scrubIdentity(s: string): string {
-  return String(s || '')
+  // Non-UAE phones, bare web hosts, street addresses and city/ZIP lines first (identity_contacts.ts,
+  // 21 Sep 2026): a US consultant's title block matched none of the patterns below.
+  return scrubContacts(String(s || ''))
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '')
     .replace(/\b(?:https?:\/\/|www\.)\S+/gi, '')
     .replace(/(?:\+?971|00971|\b0)[\s-]?\d{1,2}[\s-]?\d{3}[\s-]?\d{4}\b/g, '')

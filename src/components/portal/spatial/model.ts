@@ -97,7 +97,7 @@ export interface VaultDoc {
 /** A my_inquiries row, narrowed to the two things this module needs from it. */
 export interface PortalInquiry {
   id: string;
-  quotes?: Array<{ id: string; price?: number | null; supplier?: string | null; revealed?: boolean }>;
+  quotes?: Array<{ id: string; price?: number | null; supplier?: string | null; supplier_name?: string | null; revealed?: boolean }>;
 }
 
 /**
@@ -166,7 +166,7 @@ export interface SpatialPackage {
   /** The trade. project_api serves `category`; an RFQ with none is grouped as 'unspecified'. */
   category: string;
   stage: PackageStage;
-  /** expected_value, else budget, else null. Never 0-for-unknown. */
+  /** expected_value, else the revealed quote's price, else budget, else null. Never 0-for-unknown. */
   value: number | null;
   summary: string | null;
   emirate: string | null;
@@ -238,13 +238,19 @@ export function buildModel(
   inquiries: PortalInquiry[] = [],
 ): SpatialModel {
   const quoteCounts = new Map<string, number>();
-  for (const i of inquiries || []) if (i && i.id) quoteCounts.set(i.id, Array.isArray(i.quotes) ? i.quotes.length : 0);
+  // 21 Sep 2026 (customer audit, finding 19): a revealed AED 25,920 quote read "no cost recorded".
+  // The quote the customer paid to reveal IS the cost when expected_value is unset.
+  const revealedPrice = new Map<string, number>();
+  for (const i of inquiries || []) if (i && i.id) {
+    quoteCounts.set(i.id, Array.isArray(i.quotes) ? i.quotes.length : 0);
+    for (const q of i.quotes || []) if (q && q.revealed && Number(q.price) > 0) revealedPrice.set(i.id, Number(q.price));
+  }
 
   const pkgs: SpatialPackage[] = (rfqs || []).map((r) => ({
     rfqId: r.id,
     category: (r.category || '').trim() || 'unspecified',
     stage: stageOf(r, orders || [], quoteCounts.get(r.id) || 0),
-    value: r.expected_value != null ? Number(r.expected_value) : (r.budget != null ? Number(r.budget) : null),
+    value: r.expected_value != null ? Number(r.expected_value) : (revealedPrice.get(r.id) ?? (r.budget != null ? Number(r.budget) : null)),
     summary: r.summary,
     emirate: r.emirate,
     createdAt: r.created_at,

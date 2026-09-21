@@ -62,7 +62,10 @@ function token() {
 // the parity job red and emailed the founder. A miss is now retried twice, 2 s then 4 s apart. A log
 // that is STILL unreadable after the third attempt exits 2 exactly as before: the gate is not
 // weakened, a blip just stops counting as an outage. withRetry is tested in scripts/lib/retry.test.mjs.
-const logs = (query) => withRetry(() => logsOnce(query));
+// FIVE ATTEMPTS, 5 s DOUBLING (21 Sep 2026, run 35637779273): five PRs' CI read the logs at once and the
+// management API answered HTTP 429 three times inside 7 s — its throttle window is about a minute, so
+// 2 s + 4 s could never outlast it. 5+10+20+40 s = 75 s now spans the window; the gate itself is unchanged.
+const logs = (query) => withRetry(() => logsOnce(query), 5, 5000);
 
 async function logsOnce(query) {
   // The window MUST be explicit. Without iso_timestamp_start the endpoint answers over a very short

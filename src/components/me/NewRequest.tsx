@@ -85,6 +85,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [editor, setEditor] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [schedPct, setSchedPct] = useState(null); // 0-100 while ocrSchedules reads a PDF's schedules
+  const readingText = schedPct != null ? tf(lang, 'nr_reading_schedules', { pct: schedPct }) : t(lang, 'nr_reading');
   const [brief, setBrief] = useState(null);
   const [ready, setReady] = useState(false);
   const [meta, setMeta] = useState({}); // what the last intake turn said about itself
@@ -146,7 +148,25 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const analyze = async (p, manual_boxes, ocr) => {
     const hint = messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400);
     const o = typeof ocr === 'string' ? { ocr_text: ocr } : ocr ? { ocr_text: ocr.text, ocr_lines: ocr.lines, ocr_width: ocr.width, ...(ocr.symbols ? { symbol_counts: { counts: ocr.symbols.counts } } : {}) } : {};
-    return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}), ...(o.ocr_text || o.ocr_lines ? o : {}) }, token);
+    const sched = p.schedule_tables && p.schedule_tables.length ? { schedule_tables: p.schedule_tables } : {};
+    return call('customer_api', { action: 'analyze_drawing', images: p.images, original_b64: p.b64, mime: p.mime, drawing_file_name: p.name, hint, ...(manual_boxes ? { manual_boxes } : {}), ...(o.ocr_text || o.ocr_lines ? o : {}), ...sched }, token);
+  };
+  // SCHEDULES (21 Sep 2026, founder instruction 580). A PDF drawing set's schedules are read table by
+  // table, cell by cell (ocrClient.ocrSchedules) and sent as schedule_tables with the drawing. Measured
+  // on a desktop Chromium: 57 s for a real 8 + 5 sheet pair of 36x24 sets (13 tables, ~1,100 cells),
+  // with a 35 MB page buffer and a 64 MB render tile. NOT run on a screen under 700 px wide: a phone's
+  // CPU is several times slower and its tab is the first killed for memory, and a customer on a phone
+  // still gets the drawing read by the server path. Any failure returns [] — the schedules are extra
+  // evidence, never a reason the upload fails.
+  const readSchedules = async (b64) => {
+    if (typeof window === 'undefined' || window.innerWidth < 700) return [];
+    try {
+      const raw = atob(b64); const bytes = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+      const { ocrSchedules } = await import('./ocrClient');
+      setSchedPct(0);
+      const r = await ocrSchedules(bytes, { onProgress: (f) => setSchedPct(Math.min(99, Math.round(f * 100))) });
+      return r.schedule_tables;
+    } catch (_e) { return []; } finally { setSchedPct(null); }
   };
   // A DRAWING photo is read with the drawing plan (ocrPlan.ts) and its symbols counted, in the
   // browser. Falls back to the plain read on any failure, so a drawing never gets less than before.
@@ -157,7 +177,11 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const ocr = async (images) => { try { const { ocrImages } = await import('./ocrClient'); return (await ocrImages(images)).text || ''; } catch (_e) { return ''; } };
   // source 'boq' when the customer attached a BOQ (sheet or PDF): create_inquiry tells suppliers so.
   const adopt = (res, name, source = 'drawing') => {
-    const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || name, drawing_redacted_paths: (res && res.drawing_redacted_paths) || null, boq: (res && res.boq) || null, brief_source: source };
+    // A HELD DRAWING (audit 21 Sep 2026, finding 9). customer_api says drawing_held when not every page
+    // came back verified; nothing of the drawing is then offered for suppliers (no paths, and
+    // share_redacted:false, which create_inquiry honours), and the card above Send says so.
+    const held = !!(res && res.drawing_file_path && res.drawing_held === true);
+    const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || name, drawing_redacted_paths: held ? null : ((res && res.drawing_redacted_paths) || null), boq: (res && res.boq) || null, brief_source: source, ...(held ? { held: true, share_redacted: false } : {}) };
     setDrawing(dr);
     return dr;
   };
@@ -166,6 +190,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     push({ role: 'user', text: '', chip: file.name });
     try {
       const p = { ...(await fileToImages(file)), name: file.name, source };
+      if (p.mime === 'application/pdf' && p.images.length) p.schedule_tables = await readSchedules(p.b64);
       setPages(p);
       const isPhoto = /^image\//.test(p.mime) && p.images.length > 0;
       const read = isPhoto && source === 'drawing' ? await ocrDraw(p.images[0]) : null;
@@ -188,14 +213,15 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // TELL THE TRUTH ABOUT THE DRAWING. A drawing that is not fully redacted is NOT sent to
       // suppliers (customer_api drops the paths, create_inquiry refuses unrecorded ones), so this
       // never says "attached" unless redaction_complete says every page came back.
-      const pagesIn = Number((res && res.redaction_pages_in) || 0), pagesOut = Number((res && res.redaction_pages_out) || 0);
+      // A partial run shares nothing either (customer_api drawing_hold): held is all-or-nothing.
+      const pagesIn = Number((res && res.redaction_pages_in) || 0);
       const attached = pagesIn > 0 && res.redaction_complete === true;
       const partial = pagesIn > 0 && !attached;
       let text;
       if (n >= 1) {
         const cat = res.boq.category ? ' (' + res.boq.category + ')' : '';
         text = tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, cat })
-          + (partial ? (pagesOut ? tf(lang, 'nr_partial_some', { out: pagesOut, in: pagesIn }) : t(lang, 'nr_partial_none')) : '')
+          + (partial ? t(lang, 'nr_partial_none') : '')
           + t(lang, 'nr_add_or_send');
       } else if (res && res.advice && !p.images.length) {
         text = res.advice; // customer_api names the real reason (CAD not converted, archive, unreadable)
@@ -340,7 +366,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <span className="min-w-0 truncate font-mono text-label uppercase tracking-caps text-muted-foreground">{t(lang, 'nr_kicker')}</span>
         <span className="ms-auto flex shrink-0 items-center gap-1.5 font-mono text-label text-primary" aria-hidden>
           <span className={cn('h-1.5 w-1.5 rounded-full bg-primary', (thinking || analyzing) && 'motion-safe:animate-pulse')} />
-          {thinking || analyzing ? t(lang, analyzing ? 'nr_reading' : 'nr_typing') : meta.readiness != null ? <span className="tabular">{meta.readiness}%</span> : null}
+          {thinking || analyzing ? (analyzing ? readingText : t(lang, 'nr_typing')) : meta.readiness != null ? <span className="tabular">{meta.readiness}%</span> : null}
         </span>
       </div>
       <div className="flex items-center justify-between gap-2.5 border-b border-border px-5 py-3">
@@ -381,7 +407,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         ) : null}
         {(thinking || analyzing) && (
           <div className="flex justify-start"><div className="flex items-center gap-2 rounded-2xl border border-border bg-secondary/60 px-3.5 py-2 text-[13px] text-muted-foreground">
-            <span className="redact redact-bar" style={{ width: 54 }} aria-hidden />{analyzing ? t(lang, 'nr_reading') : t(lang, 'nr_typing')}
+            <span className="redact redact-bar" style={{ width: 54 }} aria-hidden />{analyzing ? readingText : t(lang, 'nr_typing')}
           </div></div>
         )}
         {editor && pages && pages.images.length > 0 && (
@@ -436,6 +462,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 </fieldset>
               ) : null}
               {brief.plausibility && brief.plausibility.note ? <div className="mt-2 text-[12.5px] text-warn-fg">{t(lang, 'nr_note')} {brief.plausibility.note}</div> : null}
+              {drawing && drawing.held ? <div className="mt-2 text-[12.5px] font-semibold text-warn-fg" role="status">{tf(lang, 'nr_drawing_held', { name: drawing.drawing_file_name || '' })}</div> : null}
               <Button size="lg" className="mt-3.5 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
               <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
             </motion.div>

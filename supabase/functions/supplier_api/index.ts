@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS } from '../_shared/attachment.ts';
-import { seedTerms, redactBoq, redactText } from '../_shared/anonymise.ts';
+import { seedTerms, redactText } from '../_shared/anonymise.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 // MALWARE WATCH, 9 Sep 2026. Every file a supplier sends is hashed and looked up before it reaches
 // storage; a hash VirusTotal already knows to be malicious is refused here rather than stored,
@@ -23,7 +23,7 @@ import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render }
 import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
-import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
+import { findTrn } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { completenessOf, inquiryDocument, itemsOfRows, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
 import { jobAlias } from '../_shared/quote_labels.ts';
@@ -63,77 +63,9 @@ const CONCLUDED = ['completed','closed','cancelled'];
 // Same derivation as auth_api line 9 so the two paths produce comparable records.
 function clientIp(req: Request): string { return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || ''; }
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
-// ANONYMITY FIX 27 Jul 2026 -------------------------------------------------------------------
-// submit_quote stored the supplier's typed scope / conditions / exclusions / notes with nothing
-// but a length clip, and set anonymized = (source === 'upload'). The UPLOAD path is scrubbed by
-// quote_extract's model prompt; the FORM path was never scrubbed at all, so every typed quote was
-// served to the buyer verbatim BEFORE the reveal is paid for. One supplier typing "call Ahmed on
-// 050 123 4567, Al Noor Trading LLC, www.alnoor.ae" into scope hands the buyer everything the 3%
-// reveal fee is charged for, and the platform is cut out of its own transaction.
-//
-// scrubIdentity redacts, case-insensitively: the supplier's OWN company_name (loaded from leads
-// for this supplier_id) with the usual LLC / L.L.C / Trading / Contracting / Est suffix variants,
-// email addresses, URLs and bare domains, and UAE phone numbers (+971, 00971, and 0 followed by
-// 8-9 digits, which covers 05x mobiles and 02/03/04/06/07/09 landlines). Each hit becomes
-// '[removed]' and the original string is collected into quotes.masked_terms - the same audit
-// shape quote_extract already writes for the upload path, so both paths are reviewable the
-// same way. It deliberately over-redacts: a false positive costs a line of scope text, a false
-// negative costs the whole commission.
+// The identity scrubbers (scrubIdentity, scrubDeep, inboxBoq) live in ./identity_scrub.ts.
+import { inboxBoq, scrubDeep, scrubIdentity } from './identity_scrub.ts';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const CO_SUFFIX = '(?:l\\.?\\s?l\\.?\\s?c\\.?|fz-?llc|fzc|fze|trading|contracting|establishment|est\\.?|general|co\\.?|company|group)';
-const ID_PATTERNS: RegExp[] = [
-  // A TRN or a licence number finds the company on a public register (founder, 14 Sep 2026). First,
-  // so the phone patterns below cannot take a 15-digit TRN apart and leave its label behind.
-  TRN_LABELLED, TRN_BARE, LICENCE_NO,
-  /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g,
-  /(?:https?:\/\/|www\.)[^\s,;)\]]+/gi,
-  /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io|me|biz|info)(?:\.[A-Za-z]{2})?\b/gi,
-  /\+\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b00\s?971[\s.-]?\d(?:[\s.-]?\d){6,10}/g,
-  /\b0\d(?:[\s.-]?\d){7,8}\b/g,
-];
-const rxEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-function companyRe(name: unknown): RegExp | null {
-  const base = String(name || '').replace(new RegExp('\\b' + CO_SUFFIX, 'gi'), ' ').replace(/[^A-Za-z0-9؀-ۿ ]+/g, ' ').trim();
-  const words = base.split(/\s+/).filter((w) => w.length > 1).map(rxEsc);
-  if (!words.length || base.replace(/\s+/g, '').length < 3) return null;
-  try { return new RegExp('\\b' + words.join('[\\s.,_-]*') + '(?:[\\s.,_-]*' + CO_SUFFIX + ')*', 'gi'); } catch (_e) { return null; }
-}
-function scrubIdentity(text: string | null, ownName: unknown, hits: string[]): string | null {
-  if (text == null) return text;
-  let out = String(text);
-  const nameRe = companyRe(ownName);
-  // Contact patterns run BEFORE the company-name pattern on purpose: "www.alnoor.ae" must be
-  // taken out whole as a URL, otherwise the name pattern eats "alnoor" first and leaves a
-  // half-redacted "www.[removed].ae" that still points at the supplier.
-  for (const re of (nameRe ? [...ID_PATTERNS, nameRe] : ID_PATTERNS)) {
-    out = out.replace(re, (m: string) => { const t = String(m).trim(); if (t.length < 3) return m; if (!hits.includes(t)) hits.push(t); return '[removed]'; });
-  }
-  return out;
-}
-// ANONYMITY FIX 27 Jul 2026 (customer -> supplier direction) ----------------------------------
-// scrubIdentity above protects the SUPPLIER's identity in the text a supplier types. The same
-// leak exists in the opposite direction and is worth more money: inbox serves the buyer's own
-// free text (summary / spec / boq) to every matched supplier BEFORE the 3% reveal fee is paid.
-// A brief reading "villa fit-out for Ahmed Khan, call 050 123 4567" hands the supplier
-// everything the reveal fee is charged for, and the platform is cut out of its own transaction.
-//
-// inquiry_ai's prompt already tells the model not to put identity into summary/spec, but that is
-// a soft control the customer can bypass entirely: customer_api's create_inquiry inserts a
-// client-supplied summary/spec/raw_input, and edit_inquiry patches summary/spec/boq with no
-// scrub at all. This is the deterministic server-side backstop for both paths.
-//
-// scrubDeep walks JSONB (spec, boq) and applies the EXISTING scrubIdentity to every string it
-// finds, so emails, URLs, bare domains and UAE phone numbers are redacted by exactly the same
-// patterns already trusted on the supplier side. Numbers are returned untouched, so BOQ
-// quantities and prices are unaffected. `ownName` is the buyer's own full_name, which lets
-// companyRe redact the buyer by name the same way it redacts a supplier by company name.
-function scrubDeep(v: unknown, ownName: unknown, hits: string[]): unknown {
-  if (typeof v === 'string') return scrubIdentity(v, ownName, hits);
-  if (Array.isArray(v)) return v.map((x) => scrubDeep(x, ownName, hits));
-  if (v && typeof v === 'object') { const o: Record<string, unknown> = {}; for (const k of Object.keys(v as Record<string, unknown>)) o[k] = scrubDeep((v as Record<string, unknown>)[k], ownName, hits); return o; }
-  return v;
-}
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
 function b64ToBytes(b64:string){ const bin=atob(String(b64).replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
@@ -965,13 +897,10 @@ const handle = async (req: Request): Promise<Response> => {
         // THE LAST GATE before a supplier sees a BOQ. redactBoq removes the buyer's seed terms and the
         // generic identifiers, then residual-scans; anything still identifying HOLDS the BOQ (null,
         // boq_withheld:true). It never fails open: a BOQ we cannot prove clean is not shown.
-        let boqWithheld = false;
-        const sBoq = revealed ? i.boq : (ownerResolved ? (() => {
-          if (!i.boq) return null;
-          const r = redactBoq(scrubDeep(i.boq, buyerName, hits) as any, seeds);
-          boqWithheld = r.held;
-          return r.held ? null : r.boq;
-        })() : null);
+        // One function (identity_scrub.ts inboxBoq) so drawing_boq/drawing_chain.test.ts runs this gate.
+        const gated = revealed || !ownerResolved ? null : inboxBoq(i.boq, buyerName, seeds, hits);
+        const boqWithheld = gated ? gated.withheld : false;
+        const sBoq = revealed ? i.boq : (gated ? gated.boq : null);
         const sBoqAr = sBoq ? boqWithArabic(sBoq as any, vocab) : null;
         // The scope in Arabic ONLY when the trade glossary reads every word of it (audit 21 Sep 2026, finding 26);
         // a partial reading would be a guessed scope, so it stays null and the portal shows the customer's words.

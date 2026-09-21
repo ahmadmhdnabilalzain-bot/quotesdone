@@ -19,7 +19,7 @@ PRs with no defect fix are left out of the table: #762 (skill text), #763 (doctr
 | 9 | #761 | the footer date stayed backwards | CSS `direction:ltr` overrode the `dir` attribute | same file (`:not([dir])`) | yes, ran |
 | 10 | #761 | Arabic-Indic digits would scramble | U+0660–0669 were treated as RTL | `src/lib/ltrDirection.test.mjs` | yes, ran |
 | 11 | #761 | "Reveal" greyed out after paying to reveal | the step was read from `rfqStageIdx` (hired only) | **NEW** `scripts/checks/the_customer_portal_fixes_of_21_september_stay_fixed.test.mjs` | yes, ran |
-| 12 | #761 | empty-state flash after "Request sent" | stale `data` shown during the refresh | **none**: it is timing, visible only in a browser. Needs a nightly journey step (sales_engineer) | no |
+| 12 | #761 | empty-state flash after "Request sent" | stale `data` shown during the refresh | **NEW** nightly journey a, step "no empty-state flash after "Request sent"" (`scripts/e2e/journeys.mjs`: a MutationObserver in the page, 6 s from "Request sent") | see the addendum |
 | 13 | #766 | negotiation_assistant deleted in the repo but still live | the repo and the live project drifted | `scripts/gen_supabase_config.mjs --check` (run by `deploy_functions.mjs` before every deploy) and `every_deployed_function_has_an_owner.mjs` | yes, ran: OK, 67 functions |
 | 14–19 | #767 | six IT causes that paged the founder | see `docs/it/IT_FAILURES_18_21_SEP_2026.md` | `scripts/checks/it_failures_of_18_to_21_september_do_not_recur.test.mjs` | yes, ran. It **found #20**. The `fn_it_detect < 6 s` timing assertion failed once (10.1 s, with the census running) and passed on the rerun |
 | 20 | #767 | **fn_it_backup_recheck raises 42702 on every call** (the backup refile loop and the CEO's coverage decider are dead) | the UPDATE's alias `d` has the same name as the record `d public.doc_backups`. The file's probe read source text and never ran the routine | **NEW** `scripts/checks/no_routine_names_a_table_alias_after_its_own_record.test.mjs` (every plpgsql routine in the mirror). Fix: `scripts/sql/the_backup_recheck_names_its_table_alias_apart_from_its_record.sql` | yes. The check fails today, and on exactly this one routine. The fix ran rolled back on production and returned `closed 3, orphaned_abandoned 1` |
@@ -30,10 +30,10 @@ PRs with no defect fix are left out of the table: #762 (skill text), #763 (doctr
 | 25 | #771 | a wrong URL showed the bare English 404 | no `[locale]/not-found.tsx` | **NEW** portal test | yes, ran |
 | 26 | #771 | "rising" shown for a single month; Arabic chart months | trend and month-label logic | `src/components/portal/intelligence/spread.test.mjs` | yes, ran |
 | 27 | #771 | reserved sign-up domains accepted | no refusal | `src/lib/signupEmail.test.mjs` | yes, ran |
-| 28 | #771 | items 15, 16, 20, 22, 24, 25, 27 (theme, copy, layout) | copy and presentation | **none**: needs a browser. Nightly journey step (sales_engineer) | no |
+| 28 | #771 | items 15, 16, 20, 22, 24, 25, 27 (theme, copy, layout) | copy and presentation | **NEW** nightly journey h (`scripts/e2e/journey_audit_buttons.mjs`): 15 theme switches on the first press; 16 an absurd project budget is refused; 22 and 24 no developer text on any customer destination; 25 a reload stays on its section. **Still unguarded: 20 and 27** (need a supplier-count and a one-quote fixture) | see the addendum |
 | 29 | #773 | findings 1, 2, 4, 12, 13, 14, 15, 28 (quotation review) | reading and matching rules | `supabase/functions/supplier_api/quote_review.test.ts` and `_shared/line_specs/derive.test.ts` | yes, ran (deno, 64 passed with #6 and #30) |
 | 30 | #775 | the customer got Stripe's invoice PDF | reveal_invoice handed out Stripe's copy | `scripts/checks/every_pdf_we_issue_is_on_our_template.test.mjs` and `reveal_invoice/resolve.test.ts` | yes, ran |
-| 31 | #773/#775 | findings 29, 33, 35 and the in-app invoice button opening an empty tab | UI state | **none**: needs a browser. Nightly journey step (sales_engineer, accountant) | no |
+| 31 | #773/#775 | findings 29, 33, 35 and the in-app invoice button opening an empty tab | UI state | **NEW** nightly journey h: the "Invoice (PDF)" button's tab must end on our PDF (accountant); 35 a submitted quote is served back with its VAT basis. **Still unguarded: 29 and 33** (alias across the review thread and the PDF; the submit confirmation) | see the addendum |
 | 32 | #776 | 5 npm advisories | dependency age | weekly IT duty (`scripts/it/report_dependency_audit.mjs`), the same one that found them | detection, not prevention |
 | 33 | #776 | knowledge_gap tasks re-asked for ever; no decider for supplier_registered / sales_rating | no terminal state | **NEW** live-schema test | yes, ran |
 | 34 | #776 | the first v2 tick scanned 0 of 8 rows | a back-off earned under v1 bound v2 | **NEW** live-schema test (the picker's version must equal the version the consumer writes) | yes, mutated |
@@ -43,3 +43,30 @@ PRs with no defect fix are left out of the table: #762 (skill text), #763 (doctr
 | 38 | CI | main deploy run 35619142770 went red at 62/63 on a jsr.io timeout | no retry for a registry blip | `scripts/lib/retry.test.mjs` (the classifier: the verbatim jsr timeout is transient; TS, bundle and module-not-found errors are not) | yes, ran |
 
 **Counts.** 38 rows (grouped where one guard covers several items). Before today: 19 guarded, 1 partly guarded (row 5, token-only), 1 detection only (row 32), 17 unguarded. Added: 14 guarded by the new checks (rows 3, 4, 7, 11, 20, 21, 23–25, 33–35, 37, 38). Still unguarded: 3 rows (12, 28, 31). All are browser-only UI, and they need a nightly journey step from the owning seat.
+
+## Addendum: the audit's presses, in the nightly journey (it_engineer, 21 Sep 2026, evening)
+
+Journey h (`scripts/e2e/journey_audit_buttons.mjs`, run by `scripts/e2e/run.mjs` after e and before the crawl) presses what the two browser audits of 21 Sep pressed, on ZZ DEMO fixtures only. A failed step reaches the owning seat through `fn_it_journey_ingest`, which reads the first letter of the journey label: `c customer audit` and `b supplier audit` go to the sales_engineer, `e customer documents` to the accountant. Measured on production, run 2026-09-21T17-48-38 (journeys a–e and h, zero leftovers, nothing dispatched):
+
+| Step | Would have caught | Result on 21 Sep |
+|---|---|---|
+| a: no empty-state flash after "Request sent" | row 12 | PASS |
+| quotation / comparison PDF is ours and in en / ar; the Arabic quotation is not the English file | customer item 4 | quotation ar **FAIL** (0% Arabic: still served in English); comparison PASS |
+| rating: a 3-character comment refused with 400; stars only; a 10+ character comment; the review row | the star button's 500 (row 6) | PASS |
+| "Invoice (PDF)" button's tab ends on our PDF | row 31 (empty tab) | PASS |
+| invoice and receipt PDFs, en and ar, on our template | row 30 | PASS |
+| Messages after the reveal: write and send | customer item 6 | PASS |
+| theme on the first press; reload keeps the section; no developer text on any destination | items 15, 25, 22, 24 | PASS |
+| Project room opens with no 4xx or 5xx | customer item 31 | PASS |
+| an absurd project budget is refused | item 16 | **FAIL** (AED 18,000,015,122,026 stored; project_api has no bound) |
+| magic link signs in and leaves no token in the address bar or one Back press away | customer item 29 | **FAIL until this PR's portal change is deployed** |
+| two roles in one browser: the customer tab stays on /me for 20 s | customer item 30 | PASS (not reproduced) |
+| inquiry PDF en/ar ours, right language, no customer contact; documents only under drawings/redacted/; nothing on screen | supplier items 3, 26 | PASS |
+| the auditor's text PDF opens exactly the 5 genuinely missing points | supplier item 1 | PASS |
+| prices typed in the chat close the price points; total 65,960 | supplier item 2 | PASS |
+| bell items and notices keep the supplier in /portal | supplier item 5 | PASS |
+| "Remove this trade" persists after Update and a reload | supplier item 10 | PASS |
+
+Customer items 29–31: **29** fixed at the root (`src/lib/authFragment.ts`; `supaClient` builds with `detectSessionInUrl:false`, because auth-js cleared the fragment with `location.hash = ''`, which pushes a history entry). Prevented by `src/lib/authFragment.test.mjs` and the magic-link step. **30** not reproduced: a supplier magic link opened in a second tab of the same browser left the customer tab on /me for 40 s (repro) and 20 s (journey), and no code path in src/ navigates /me to /portal. Guarded by the two-roles step. **31** not reproduced on a fresh customer or one with a linked project, EN and AR; production edge-function and Vercel logs for 21 Sep hold no 400 on any Project room call (the one customer_api 400, 09:35:11Z, matches the audit's expected rating 400). Guarded by the Project room step.
+
+Still unguarded: customer items 20 and 27, supplier findings 29 and 33 (see rows 28 and 31).

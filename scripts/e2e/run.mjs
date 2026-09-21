@@ -1,7 +1,7 @@
 // scripts/e2e/run.mjs — ONE command: create demo identities, drive both portals, report, clean up.
 // Assigned: ceo (it_engineer's tooling, carried out for the ceo). Documented in docs/e2e.md.
 //
-//   node scripts/e2e/run.mjs                 every journey (a-f)
+//   node scripts/e2e/run.mjs                 every journey (a-h)
 //   node scripts/e2e/run.mjs --journey a,f   only these (the funnel's later journeys need a and b)
 //   node scripts/e2e/run.mjs --keep          leave the run's rows in place (tear down later with --purge-tag <tag>)
 //   node scripts/e2e/run.mjs --purge-tag <tag>
@@ -25,7 +25,10 @@ import { newRun, teardown } from '../staging/demo_factory.mjs';
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
 const KEEP = argv.includes('--keep');
-const only = (val('--journey') || 'a,b,c,d,e,f,g').split(',').map((s) => s.trim()).filter(Boolean);
+// ONE list of journeys, in the order they run. h (the 21 Sep audit's presses) runs right after the
+// funnel it needs (a quote, a TEST reveal) and BEFORE the crawl, which is the journey the deadline cuts.
+const ORDER = ['a', 'b', 'c', 'd', 'e', 'h', 'f', 'g'];
+const only = (val('--journey') || ORDER.join(',')).split(',').map((s) => s.trim()).filter(Boolean);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
@@ -115,7 +118,7 @@ try {
   }
   browser = await launch();
   ctx.browser = browser;
-  for (const k of ['a', 'b', 'c', 'd', 'e', 'f', 'g']) {
+  for (const k of ORDER) {
     if (!only.includes(k)) continue;
     if (outOfTime()) { rep.step(`${k}`, 'journey not started', 'SKIP', `the ${Math.round((DEADLINE - t0) / 60000)}-minute harness deadline passed before this journey; teardown and the report run so the heartbeat still reaches the IT engineer`); continue; }
     try { await JOURNEYS[k](ctx); }
@@ -178,7 +181,7 @@ writeFileSync(join(DIR, 'steps.json'), JSON.stringify(steps, null, 1));
 // A run whose own session died is INCOMPLETE for the same reason a truncated one is: the steps after
 // it stopped say nothing about the defects they would have found, so nothing may be closed on their
 // silence — and here the steps BEFORE it are suspect too, which is why it is reported, not hidden.
-const COMPLETE = !state.truncated && !harnessDead && ['a', 'b', 'c', 'd', 'e', 'f', 'g'].every((k) => only.includes(k));
+const COMPLETE = !state.truncated && !harnessDead && ORDER.every((k) => only.includes(k));
 const result = {
   version: 1, ok: count('FAIL') === 0 && !fatal && COMPLETE, complete: COMPLETE, truncated: state.truncated,
   harness_signed_out: harnessDead,

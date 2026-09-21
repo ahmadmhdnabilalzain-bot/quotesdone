@@ -231,6 +231,13 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   // deno-lint-ignore no-explicit-any
   function wrap(t: string, f: any, s: number, w: number) { return wrapWords(t, (x) => meas(x, f, s), w); }
   const lines = (t: unknown, size: number, b: boolean, w: number) => { const s = String(t ?? ''); return s ? wrap(s, fontFor(s, b), size, w) : []; };
+  /** A key-figure value as at most two lines that each fit the cell width; a third line is folded into an ellipsis. */
+  const figureLines = (s: string, size: number, w: number): string[] => {
+    const f = fontFor(s, true); const ls = wrap(s, f, size, w);
+    if (ls.length <= 2) return ls;
+    let last = ls[1]; while (last.length > 1 && meas(last + '…', f, size) > w) last = last.slice(0, -1);
+    return [ls[0], last + '…'];
+  };
 
   // ── Direction-aware primitives. `sx` is a logical offset from the START margin (left in English,
   // right in Arabic); px turns a logical box into its physical left edge. Align 's' | 'e' | 'c' is
@@ -330,8 +337,13 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
         const x = px(i * fw, fw);
         if (i > 0) { const sepX = RTL ? x + fw : x; page.drawLine({ start: { x: sepX, y: y - 12 }, end: { x: sepX, y: y - h + 10 }, thickness: 0.5, color: HAIR }); }
         txt(k, x + 12, fw - 24, y - 19, 7.2, { color: MUT });
+        // A value the cell cannot hold at 9pt on one line wraps onto a second line inside its own cell
+        // (58pt strip: label at 19, value at 42, second line at 42+s+1 stays above 58). Until 21 Sep 2026
+        // it was drawn unwrapped and ran across the separator: "2 years materials and workmanship" sat on
+        // top of "Valid for 30 days" (customer audit, finding 12). Anything past two lines is cut with …
         let s = 15; const vs = String(v ?? ''); while (s > 9 && meas(vs, fontFor(vs, true), s) > fw - 24) s -= 0.5;
-        txt(vs, x + 12, fw - 24, y - 42, s, { bold: true, color: NAVY });
+        const vl = figureLines(vs, s, fw - 24);
+        vl.forEach((ln, li) => txt(ln, x + 12, fw - 24, y - 42 - li * (s + 1), s, { bold: true, color: NAVY }));
       });
       y -= h + 26;
     }
