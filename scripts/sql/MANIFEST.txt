@@ -1541,3 +1541,4 @@ scripts/sql/the_launch_path_is_tested_every_hour.sql
 scripts/sql/the_weekly_report_arrives_and_the_rules_decide.sql
 scripts/sql/the_weekly_report_arrives_and_the_rules_decide_probe.sql
 scripts/sql/the_ceo_weekly_report_pdf_is_registered_for_backup.sql
+scripts/sql/a_project_budget_is_a_positive_bounded_aed_amount.sql

@@ -34,4 +34,3 @@
 scripts/sql/one_job_number_on_every_portal_document_and_notice_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED until then.
 scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED (Sharjah returned) until then.
 # 21 Sep 2026 — sales_engineer, customer-portal audit: the project budget is bounded. On apply, move the line to the END of MANIFEST.txt.
-scripts/sql/a_project_budget_is_a_positive_bounded_aed_amount.sql :: CHECK constraint on projects.budget_total (null or 0 < x <= 1e9); awaits the coordinator's serialised apply; ends in a PROBE OK/FAILED verdict row.
