@@ -21,6 +21,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { canonicalReplay } from '../lib/canonical_sql.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const SQL = join(REPO, 'scripts', 'sql');
@@ -170,13 +171,18 @@ test('production: every duty\'s loop closes on ZZ DEMO fixtures, rolled back', {
 // management API (above), and it runs with retry OFF so a gateway timeout can never launch a second
 // copy of the same DDL. Run it against a transport that can hold a multi-minute statement:
 //   QD_REPLAY_ACCOUNTANT_SQL=1 node --test scripts/checks/the_accountant_closes_every_loop_it_opens.test.mjs
+// 21 Sep 2026: replaying only the canonical routines (no tables, views or superseded bodies), it passed
+// over the management API in 55.1 s. Still opt-in: that is inside the gateway, not far inside it.
 const REPLAY = SKIP || (process.env.QD_REPLAY_ACCOUNTANT_SQL === '1' ? false
   : 'opt-in: QD_REPLAY_ACCOUNTANT_SQL=1 (the 22-file DDL replay outlives the management API gateway)');
 
 test('production: the 22 files replay in MANIFEST order and every duty\'s loop still closes', { skip: REPLAY }, async () => {
   const { sql } = await import('../lib/db.mjs');
   let r;
-  try { await sql(sqlText + '\n;\n' + fixtures(), { retry: false }); } catch (e) { r = chk(e); }
+  // The CANONICAL definition of every routine the files define, not the files whole (21 Sep 2026): a
+  // whole file re-runs bodies a later file replaced, which fails on columns since dropped (#777) and
+  // tests code production no longer runs. scripts/lib/canonical_sql.mjs resolves each by MANIFEST order.
+  try { await sql(canonicalReplay(FILES) + '\n;\n' + fixtures(), { retry: false }); } catch (e) { r = chk(e); }
   assert.ok(r, 'the fixture batch committed instead of rolling back');
   for (const k of DUTIES) assert.ok(r[k], `duty ${k} did not report`);
 });

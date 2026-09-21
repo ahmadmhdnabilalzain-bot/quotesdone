@@ -1,8 +1,8 @@
 -- THE REFUND LADDER, END TO END, ON ZZ DEMO FIXTURES, INSIDE A TRANSACTION THAT ALWAYS ROLLS BACK.
 --
--- Run by scripts/checks/payments_are_the_accountant.test.mjs AFTER the routine file
--- (scripts/sql/payments_are_the_accountant_and_the_seats_close_every_refund_together.sql)
--- in the SAME statement batch, so it proves the file as written whether or not they are applied yet.
+-- Run by scripts/checks/payments_are_the_accountant.test.mjs AFTER the CANONICAL definition of every
+-- routine the refund files define (scripts/lib/canonical_sql.mjs) in the SAME statement batch, so it
+-- proves what production runs, including a pull request's own routine change before it is applied.
 -- It ends in raise exception 'CHK<<...>>' on success and 'ZZFAIL: ...' on the first failed assertion;
 -- either way nothing it wrote survives.
 --
@@ -37,6 +37,27 @@ end $f$;
 create function pg_temp.zz_h(p_target text) returns text language sql as $f$
   select status from public.agent_actions where kind = 'handoff' and target_id = p_target order by id desc limit 1
 $f$;
+
+-- A notice or question whose kind has a reply window closes only when its ORIGINATOR re-verifies it
+-- (the_ceo_decides_every_sales_engineer_report_and_every_sender_closes_its_handoff.sql, 15 Sep 2026):
+-- the receiving seat's reply leaves it pending with replied_at. This runs that loop for one handoff --
+-- each send it made is delivered (stubbed as below) and watched, then fn_originators_reverify_handoffs
+-- runs -- and returns the status. 'done' therefore means answered AND verified by the sender.
+-- Measured 21 Sep 2026: asserting 'done' straight after the reply failed on the live routines.
+create function pg_temp.zz_loop(p_target text) returns text language plpgsql as $f$
+declare h public.agent_actions; r bigint;
+begin
+  select * into h from public.agent_actions where kind = 'handoff' and target_id = p_target order by id desc limit 1;
+  for r in select x from unnest(array[(h.evidence->>'delivery_request')::bigint,
+             (select a.id from public.agent_actions a where h.detail->>'type' = 'reveal.paid' and a.kind = 'handoff'
+               and a.target_id = 'delivery.request:quote_accepted:' || (h.detail->>'subject_id') order by a.id desc limit 1)]) x
+            where x is not null and not exists (select 1 from public.agent_actions q where q.id = x and q.detail ? 'loop') loop
+    perform pg_temp.zz_send(r);
+    perform public.fn_customer_support_delivery_watch(r);
+  end loop;
+  perform public.fn_originators_reverify_handoffs();
+  return pg_temp.zz_h(p_target);
+end $f$;
 
 create function pg_temp.zz_req(p_tx uuid, p_step text) returns bigint language sql as $f$
   select id from public.agent_actions
@@ -94,7 +115,7 @@ begin
 
   -- ── 1. THE HAPPY LADDER: reveal -> chase -> complaint -> final call -> CEO -> Stripe -> charge ──
   tx1 := pg_temp.zz_case('s1', 10, 103.00, 100.00);
-  perform pg_temp.zz_assert(pg_temp.zz_h('reveal.paid:' || tx1) = 'done', 's1 reveal.paid handoff not done');
+  perform pg_temp.zz_assert(pg_temp.zz_loop('reveal.paid:' || tx1) = 'done', 's1 reveal.paid handoff not done');
   perform pg_temp.zz_assert(pg_temp.zz_h('delivery.request:reveal_receipt:' || tx1) = 'done', 's1 support did not deliver the reveal receipt');
   perform pg_temp.zz_assert(exists (select 1 from public.company_event e where e.event_type = 'handoff.reveal.paid.done'
                                      and e.entity_id = (select id::text from public.agent_actions where target_id = 'reveal.paid:' || tx1)),
@@ -107,7 +128,7 @@ begin
                                      and result = 'no_response_confirmation' and delivered), 's1 chase: no confirmation attached ' || v::text);
   v := public.fn_refund_open_from_customer(tx1, 'customer'); rf := (v->>'refund_id')::bigint;
   perform pg_temp.zz_assert(rf is not null, 's1 refund not opened ' || v::text);
-  perform pg_temp.zz_assert(pg_temp.zz_h('refund.requested:' || rf) = 'done' and pg_temp.zz_h('refund.request_checked:' || rf) = 'done', 's1 refund request handoffs');
+  perform pg_temp.zz_assert(pg_temp.zz_loop('refund.request_checked:' || rf) = 'done' and pg_temp.zz_loop('refund.requested:' || rf) = 'done', 's1 refund request handoffs');
   perform pg_temp.zz_assert((select (evidence->>'money_ok')::boolean from public.agent_actions where target_id = 'refund.requested:' || rf),
                             's1 the accountant''s money check failed');
   perform public.fn_sales_engineer_ladder_step(tx1, 'final_call', rf);
@@ -268,10 +289,15 @@ begin
   perform pg_temp.zz_assert(inc is not null and pg_temp.zz_h('incident.fix:' || inc || ':cancel_duplicate') = 'pending', 's8 the duplicate did not open a cancel task');
   perform public.fn_accountant_incident_fix_failed((select id from public.agent_actions where target_id = 'incident.fix:' || inc || ':cancel_duplicate'),
                                                    'ZZ DEMO: Stripe cannot cancel a refund that has succeeded');
-  perform pg_temp.zz_assert((select status from public.refund_incident where id = inc) = 'fixed'
-                            and exists (select 1 from public.gl_journal where source = 'refund_over_loss' and source_ref = t7 || ':' || inc), 's8 the loss was not booked: ' || pg_temp.zz_why(t7));
+  -- Since test_money_never_reaches_the_books.sql (15 Sep 2026) the loss of a FIXTURE transaction is refused,
+  -- never booked: the playbook still routes the refused cancel to book_over_refund_loss, and the ledger stays clean.
+  perform pg_temp.zz_assert((select evidence->>'refused' from public.agent_actions where kind = 'handoff'
+                              and target_id = 'incident.fix:' || inc || ':book_over_refund_loss' order by id desc limit 1) like 'not booked: fixture:%',
+                            's8 the refused cancel did not become a loss to book, refused as test money: ' || pg_temp.zz_why(t7));
+  perform pg_temp.zz_assert(not exists (select 1 from public.gl_journal where source = 'refund_over_loss' and source_ref = t7 || ':' || inc),
+                            's8 a ZZ DEMO loss reached the books');
   perform pg_temp.zz_assert((select amount_due from public.supplier_dues where transaction_id = t7 and status <> 'cancelled') = 103.00, 's8 the supplier was charged for the duplicate');
-  res := res || jsonb_build_object('8_duplicate_refund', 'stopped, cancel refused by Stripe, AED 103 booked as company loss, supplier charge stays AED 103');
+  res := res || jsonb_build_object('8_duplicate_refund', 'stopped, cancel refused by Stripe, the loss routed to booking and refused as test money (ledger untouched), supplier charge stays AED 103');
 
   -- ── 9. MISMATCH: WRONG CHARGE ALREADY SENT -> CANCEL, REISSUE, CORRECTION TO THE SAME RECIPIENTS ──
   t7 := pg_temp.zz_approved('7d');
@@ -306,12 +332,17 @@ begin
   values (t7, 'pi_zz_demo_7f', 're_zz_o_7f', 11000, 'webhook_event', 'other', 'ZZ DEMO over-refund reported by Stripe', 'stripe_webhook', 'succeeded', 'stripe_dashboard', now());
   update public.transactions set refund_status = 'succeeded', refund_amount_aed = 110, refund_confirmed_at = now() where id = t7;
   inc := (select id from public.refund_incident where transaction_id = t7 order by id desc limit 1);
-  perform pg_temp.zz_assert((select status from public.refund_incident where id = inc) = 'fixed'
-                            and exists (select 1 from public.gl_journal where source = 'refund_over_loss' and source_ref = t7 || ':' || inc)
-                            and (select amount_due from public.supplier_dues where transaction_id = t7 and status <> 'cancelled') = 103.00,
-    's11 over-refund ' || coalesce((select status || ' ' || kinds::text from public.refund_incident where id = inc), 'no incident'));
-  perform pg_temp.zz_assert(not public.fn_refunds_paused(), 's11 left paused');
-  res := res || jsonb_build_object('11_over_refund', 'AED 7 booked as company loss, supplier charged the approved AED 103');
+  -- As in s8, a fixture's loss is refused by the books (test_money_never_reaches_the_books.sql), so the
+  -- incident cannot close on ZZ DEMO money and the breaker s8 left on stays on; what the ladder must
+  -- still do is see the over-refund, route it to booking, and keep the ledger clean.
+  perform pg_temp.zz_assert(inc is not null and (select 'over_refund' = any(kinds) from public.refund_incident where id = inc),
+    's11 over-refund not detected ' || coalesce((select status || ' ' || kinds::text from public.refund_incident where id = inc), 'no incident'));
+  perform pg_temp.zz_assert((select evidence->>'refused' from public.agent_actions where kind = 'handoff'
+                              and target_id = 'incident.fix:' || inc || ':book_over_refund_loss' order by id desc limit 1) like 'not booked: fixture:%',
+                            's11 the over-refund was not routed to booking and refused as test money: ' || pg_temp.zz_why(t7));
+  perform pg_temp.zz_assert(not exists (select 1 from public.gl_journal where source = 'refund_over_loss' and source_ref = t7 || ':' || inc),
+                            's11 a ZZ DEMO loss reached the books');
+  res := res || jsonb_build_object('11_over_refund', 'over-refund detected, routed to booking, refused as test money (ledger untouched)');
 
   res := res || jsonb_build_object('handoff_events_in_stream', (select count(*) from public.company_event where event_type like 'handoff.%' and occurred_at > now() - interval '1 hour'),
                                    'founder_summaries_stubbed', (select count(*) from public.agent_actions where kind = 'handoff' and agent = 'customer_support'

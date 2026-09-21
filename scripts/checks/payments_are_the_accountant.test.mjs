@@ -12,7 +12,7 @@
 // Against production (skipped without a management token):
 //   * function_owner and llm_seat_binding for every payment slug say 'accountant'
 //   * the live fn_seat_handoff_types() is the same list, and every trigger that starts a conversation exists
-//   * THE WHOLE LADDER on ZZ DEMO fixtures -- the routine file and scripts/checks/refund_ladder_fixtures.sql
+//   * THE WHOLE LADDER on ZZ DEMO fixtures -- the canonical routines and scripts/checks/refund_ladder_fixtures.sql
 //     run as ONE batch that always rolls back -- eleven scenarios, from the happy path through every
 //     mismatch the CEO's playbook fixes. Nothing it writes survives and nothing it queues is sent.
 import { test } from 'node:test';
@@ -21,15 +21,17 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { canonicalReplay, definitions } from '../lib/canonical_sql.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
 const SQL = join(REPO, 'scripts', 'sql');
-// In MANIFEST order: a later file redefines a routine, and the LAST definition is the live one. Only
-// files whose definitions are still canonical: the_dropbox_backup_is_confirmed_not_assumed.sql is
-// superseded by the last file and cannot be replayed over it (fn_dropbox_reconcile_sample changed shape).
-// the_it_engineer_closes_every_loop_it_opens.sql is the ONE definer of fn_seat_handoff_types and
-// fn_seat_handoff_act; every_send_comes_back_to_whoever_asked.sql is last: support's handler and the watch.
+// The files that own the refund ladder and the handoff loop. The check does NOT replay them whole: it
+// replays the CANONICAL definition of every routine they define -- the last one in MANIFEST order,
+// wherever it now lives (scripts/lib/canonical_sql.mjs). Replaying the files whole re-ran bodies later
+// files had replaced; on 21 Sep 2026 that failed on main with "column l.iban_doc_path does not exist"
+// (#777 dropped the column and redefined the routines that read it), red on code production no longer
+// runs, and the file order here had to be hand-tuned for every such case before.
 const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_together.sql',
   'the_it_engineer_knows_what_should_be_backed_up_and_closes_the_loop.sql',
   'the_it_engineer_closes_every_loop_it_opens.sql',
@@ -47,7 +49,7 @@ const walk = (d) => readdirSync(d).flatMap((f) => {
 });
 const slugs = readdirSync(FNS).filter((s) => !s.startsWith('_') && statSync(join(FNS, s)).isDirectory());
 const fnSource = (s) => walk(join(FNS, s)).map(read).join('\n');
-const sqlText = FILES.map((f) => read(join(SQL, f))).join('\n');
+const sqlText = canonicalReplay(FILES);
 
 function tsRegistry() {
   const src = read(join(FNS, '_shared', 'payment_handoffs.ts'));
@@ -71,9 +73,9 @@ function kindRows() {
 }
 const sqlRegistry = () => kindRows().map((r) => `${r.type}|${r.from}|${r.to}`).sort();
 function fnBody(name) {
-  const at = sqlText.lastIndexOf(`create or replace function public.${name}(`);
-  assert.ok(at >= 0, `${name} is not defined in the routine file`);
-  return sqlText.slice(at, sqlText.indexOf('$fn$;', at));
+  const d = definitions(sqlText).filter((x) => x.name === name).pop();
+  assert.ok(d, `${name} has no canonical definition`);
+  return d.stmt;
 }
 
 test('only accountant-owned functions call Stripe', () => {
@@ -155,7 +157,7 @@ test('production: the live conversations and the triggers that start them', { sk
 
 test('production: the whole refund ladder on ZZ DEMO fixtures, rolled back', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const batch = [...FILES.map((f) => read(join(SQL, f))), read(join(REPO, 'scripts', 'checks', 'refund_ladder_fixtures.sql'))].join('\n;\n');
+  const batch = [sqlText, read(join(REPO, 'scripts', 'checks', 'refund_ladder_fixtures.sql'))].join('\n;\n');
   let message = '';
   try { await sql(batch); message = 'the fixture batch returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
