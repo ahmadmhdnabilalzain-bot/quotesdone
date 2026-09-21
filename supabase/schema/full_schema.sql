@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T15:38:15.634Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T16:07:13.895Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -33094,13 +33094,13 @@ declare
 begin
   -- 1. A backup whose source row is gone can never be filed. Measured 21 Sep 2026: two Stripe invoice
   --    rows for TEST transactions the nightly journey tore down. The reason carries the date and the id.
-  update public.doc_backups d
+  update public.doc_backups b
      set status = 'abandoned',
-         error = left('abandoned: source transaction ' || d.entity_id || ' no longer exists (measured '
+         error = left('abandoned: source transaction ' || b.entity_id || ' no longer exists (measured '
                       || to_char(now() at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai; last error: '
-                      || coalesce(d.error, 'none') || ')', 300)
-   where d.entity = 'transaction' and d.status <> 'done' and d.status <> 'abandoned'
-     and not exists (select 1 from public.transactions t where t.id::text = d.entity_id);
+                      || coalesce(b.error, 'none') || ')', 300)
+   where b.entity = 'transaction' and b.status <> 'done' and b.status <> 'abandoned'
+     and not exists (select 1 from public.transactions t where t.id::text = b.entity_id);
   get diagnostics n_orphaned = row_count;
 
   for h in select * from public.agent_actions
