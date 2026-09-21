@@ -27,12 +27,21 @@ const sql = read(SQL_FILE);
 const aliases = json('supabase/functions/_shared/service_aliases.json');
 const implications = json('supabase/functions/_shared/service_implications.json');
 
-// The alias seed block: ('trade','code', array['a','b'])
-const aliasBlock = sql.slice(sql.indexOf('with seed(trade_code, code, aliases) as (values'), sql.indexOf('update public.taxonomy_trade_service t'));
-const sqlAliases = new Map(
-  [...aliasBlock.matchAll(/\('([a-z_]+)','([a-z][a-z0-9_]*)', array\[([^\]]*)\]::text\[\]\)/g)]
-    .map(([, trade, code, list]) => [`${trade}.${code}`, [...list.matchAll(/'((?:[^']|'')*)'/g)].map((m) => m[1].replace(/''/g, "'"))]),
-);
+// The alias seed blocks: ('trade','code', array['a','b']). A later file that re-seeds a key (21 Sep 2026:
+// the catalogue aliases and the office_equipment / pos_retail services) replaces that key's list, in
+// the order the files are applied.
+const SEED_FILES = [
+  SQL_FILE,
+  'scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql',
+];
+const sqlAliases = new Map();
+for (const f of SEED_FILES) {
+  const src = read(f);
+  const aliasBlock = src.slice(src.indexOf('with seed(trade_code, code, aliases) as (values'), src.indexOf('update public.taxonomy_trade_service t'));
+  for (const [, trade, code, list] of aliasBlock.matchAll(/\('([a-z_]+)','([a-z][a-z0-9_]*)', array\[([^\]]*)\]::text\[\]\)/g)) {
+    sqlAliases.set(`${trade}.${code}`, [...list.matchAll(/'((?:[^']|'')*)'/g)].map((m) => m[1].replace(/''/g, "'")));
+  }
+}
 
 // The implication seed block: ('from','trade','code','en','ar')
 const implBlock = sql.slice(sql.indexOf('insert into public.service_implication (from_code, implies_trade, implies_code, reason_en, reason_ar) values'));
