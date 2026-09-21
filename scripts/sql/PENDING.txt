@@ -7,5 +7,6 @@
 # an entry with no reason — so "committed and not applied" is a stated fact rather than an absence.
 #
 # Format: <path> :: <reason, and what would move it>
+scripts/sql/the_comparison_engine_executes_codified_trade_rules.sql :: sales_engineer, 21 Sep 2026 — the five rule tables, fn_trade_rules and the gypsum seed. Dry run green; executed in full inside a rollback-only DO block on production (PROBE OK: 13/17/5/3/4) with nothing persisted. Moves when the coordinator applies it (--apply --ddl) and then deploys quote_compare.
 
 

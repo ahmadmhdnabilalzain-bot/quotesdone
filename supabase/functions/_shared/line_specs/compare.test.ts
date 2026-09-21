@@ -95,7 +95,7 @@ Deno.test('an incomplete quote can never be ranked: it is removed before the ran
   const D = { ...A, quote_id: 'qd', lines: [{ line_no: 1, description: 'Wardrobes MDF, HPL finish', amount: 3000 }], terms: { ...A.terms, scope: '', notes: 'Installation included' } };
   const r = rankable([A, B, D], 'joinery', null);
   assertEquals([r.rankable.map((q) => q.quote_id), r.held], [['qa', 'qb'], 1]);
-  assertEquals(rankable([{ ...A, quote_id: 'qe', terms: { ...A.terms, price_ex_vat: null } }], 'joinery', null), { rankable: [], held: 1 });
+  assertEquals(rankable([{ ...A, quote_id: 'qe', terms: { ...A.terms, price_ex_vat: null } }], 'joinery', null), { rankable: [], held: 1, held_by_rule: [] });
 });
 
 Deno.test('two options from one supplier are two rows, labelled as that supplier\'s options', () => {

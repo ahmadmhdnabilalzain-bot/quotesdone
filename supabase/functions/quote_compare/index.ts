@@ -26,6 +26,10 @@ async function sha256hex(s: string){ const b=await crypto.subtle.digest('SHA-256
 // The technical comparison (docs/contracts/technical_comparison.md) and the option-aware labels.
 import { rankable, rendererView, technicalComparison, type TechnicalComparison } from '../_shared/line_specs/compare.ts';
 import { requirementsOf } from '../_shared/line_specs/assess.ts';
+// THE CODIFIED TRADE RULES (docs/KNOWLEDGE_DOCTRINE.md section 7; founder instructions 520-523). One
+// RPC per run, executed deterministically by line_specs/rules.ts inside rankable() and
+// technicalComparison(); nothing here calls a model. No rules for the trade = the comparison as before.
+import { ruleLine, rulesFromJson, type TradeRules } from '../_shared/line_specs/rules.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
 function parseJson(t: string){ let s=String(t||'').trim(); const f=s.match(/```(?:json)?\s*([\s\S]*?)```/i); if(f) s=f[1].trim(); try { return JSON.parse(s); } catch {} const m = s.match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch {} } return null; }
@@ -53,7 +57,7 @@ Deno.serve(observe('quote_compare', async (req) => {
       if (body.__secret !== undefined) { await logRun('error', { bad_secret: 1, compared: 0 }, 'quote_compare rejected a caller presenting a wrong inbound secret (401) for inquiry ' + String(inquiry_id).slice(0, 60) + '. No quote comparison was produced, so the customer is left with raw quotes and no recommendation.'); }
       return J({ error: 'unauthorized' }, 401);
     }
-    const { data: inq, error: inqErr } = await admin.from('inquiries').select('id,customer_id,summary,category,emirate,budget,raw_input,spec,boq,accepted_alternatives').eq('id', inquiry_id).maybeSingle();
+    const { data: inq, error: inqErr } = await admin.from('inquiries').select('id,customer_id,summary,category,emirate,budget,raw_input,spec,boq,accepted_alternatives,trades').eq('id', inquiry_id).maybeSingle();
     // A MALFORMED ID IS NOT A STALLED CUSTOMER (13 Aug 2026).
     //
     // This logged status='error' for ANY failure to load the inquiry and asserted, in every case,
@@ -110,17 +114,27 @@ Deno.serve(observe('quote_compare', async (req) => {
     // the ranking, the shortlist or either table — whatever its status column says. It is counted as
     // on hold and nothing else (line_specs/compare.ts rankable).
     let heldAtRanking = 0;
+    // The trade's codified rules, by taxonomy code (inquiries.trades[0]), never by directory slug.
+    // deno-lint-ignore no-explicit-any
+    const tradeCode: string | null = (Array.isArray((inq as any).trades) && (inq as any).trades[0]) ? String((inq as any).trades[0]) : null;
+    let rules: TradeRules | null = null; let rulesLoaded = 0;
+    if (tradeCode) { try { const { data: rj } = await admin.rpc('fn_trade_rules', { p_trade_code: tradeCode }); rules = rulesFromJson(rj); rulesLoaded = rules ? 1 : 0; } catch (_e) { rules = null; } }
+    // deno-lint-ignore no-explicit-any
+    const requestText = [inq.summary, inq.raw_input, ...(((inq.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq : []).map((b: any) => String(b?.description || '')))].filter(Boolean).join(' \n ');
+    // deno-lint-ignore no-explicit-any
+    let heldByRule: { quote_id: string; label: string; lines: any[] }[] = [];
     {
       // deno-lint-ignore no-explicit-any
       const s0: any = inq.spec;
       const r = rankable(qs.map((q: any) => ({ q,
         lines: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ line_no: it.line, description: String(it.description || ''), brand: it.brand, model: it.model, specification: it.specification, qty: it.qty, unit: it.unit, unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount, notes: it.notes, spec: it.spec })),
         terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec, price_ex_vat: q.price_ex_vat } })),
-        inq.category, requirementsOf(s0));
+        inq.category, requirementsOf(s0), rules, requestText);
       heldAtRanking = r.held; qs = r.rankable.map((x) => x.q);
+      heldByRule = r.held_by_rule.map((h) => ({ quote_id: String(h.quote.q.id), label: '', lines: h.lines }));
     }
     if (qs.length < 2) {
-      await logRun('ok', { compared: 0, quotes_seen: qs.length, held_at_ranking: heldAtRanking, need_two: 1 }, 'Customer asked to compare quotes but only ' + qs.length + ' complete quote(s) exist for this RFQ (' + heldAtRanking + ' more are on hold for missing details), so no comparison was produced.');
+      await logRun('ok', { compared: 0, quotes_seen: qs.length, held_at_ranking: heldAtRanking, held_by_rule: heldByRule.length, rules_loaded: rulesLoaded, need_two: 1 }, 'Customer asked to compare quotes but only ' + qs.length + ' complete quote(s) exist for this RFQ (' + heldAtRanking + ' more are on hold for missing details), so no comparison was produced.');
       return J({ ok: false, error: 'need_two', on_hold: heldAtRanking, note: 'Comparison needs at least two complete quotes.' }, 200);
     }
 
@@ -171,11 +185,19 @@ Deno.serve(observe('quote_compare', async (req) => {
       // (founder_instruction #321): a quote offering it matches instead of being shown as a deviation.
       // deno-lint-ignore no-explicit-any
       const accepted = (Array.isArray((inq as any).accepted_alternatives) ? (inq as any).accepted_alternatives : []).map((x: any) => ({ line_no: Number(x?.line_no), attr: String(x?.attr || ''), accepted: String(x?.accepted || '') }));
-      technical = technicalComparison({ category: inq.category, request_lines: requestLines, requirements: requirementsOf(inqSpec), on_hold: onHold, now: new Date(), accepted,
+      technical = technicalComparison({ category: inq.category, request_lines: requestLines, requirements: requirementsOf(inqSpec), on_hold: onHold, now: new Date(), accepted, rules, request_text: requestText, emirate: inq.emirate,
         quotes: qs.map((q: any) => { const lab = labels.get(String(q.id))!; return { quote_id: String(q.id), label_en: lab.en, label_ar: lab.ar, supplier_letter: lab.letter, option_no: lab.option_no,
           lines: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ line_no: it.line, description: String(it.description || ''), brand: it.brand, model: it.model, specification: it.specification, qty: it.qty, unit: it.unit, unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount, notes: it.notes, spec: it.spec, spec_source: specOf[String(q.id)]?.[it.line] ?? null })),
           terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec, price_ex_vat: q.price_ex_vat ?? q.quote_amount } }; }) });
     } catch (e) { await logRun('error', { technical_comparison_failed: 1 }, 'quote_compare could not build the technical comparison (' + String((e as Error)?.message || e).slice(0, 160) + '); the ranking is served without it.'); }
+    // Per itemised line the rules priced: fn_price_confidence's band beside the rule's own band and
+    // reason (doctrine section 7, family 4). Capped so a 40-line quote cannot turn into 40 RPCs each.
+    if (technical && tradeCode) {
+      technical.holds = heldByRule.map((h) => ({ quote_id: h.quote_id, lines: h.lines }));
+      for (const p of (technical.prices ?? []).slice(0, 60)) {
+        try { const { data: pc } = await admin.rpc('fn_price_confidence', { p_category: tradeCode, p_amount: p.rate, p_quantity: 1, p_unit: p.unit }); p.band = pc?.band ?? null; p.confidence = typeof pc?.confidence === 'number' ? pc.confidence : null; } catch (_e) { p.band = null; }
+      }
+    }
     const labelled = qs.map((q: any, i: number) => {
       const ql = (q.quality && typeof q.quality === 'object') ? q.quality : null;
       // AUDIT (4 Aug 2026). This read `m.mandatory` off `quality.missing`, which trg_quote_quality
@@ -205,7 +227,34 @@ Deno.serve(observe('quote_compare', async (req) => {
     // Every live quote with its place (see rosterOf). Recomputed on every answer, cached or not,
     // so it always reflects the quotes as they are now; it is never part of the model's input.
     // deno-lint-ignore no-explicit-any
-    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.on_hold = onHold; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
+    // WHAT THE RULES FOUND, IN THE CUSTOMER'S LANGUAGE, on the analysis the customer reads (model or
+    // rules, cached or fresh): omitted scope lines -> missing_from_request; price red flags and
+    // non-equivalent substitutions -> flags; approvals and not-comparable lines -> watch_outs.
+    // deno-lint-ignore no-explicit-any
+    const withRules = (a: any) => {
+      if (!technical || !a || typeof a !== 'object' || !technical.rules_applied) return;
+      const L = lang as 'en' | 'ar'; const ar = L === 'ar';
+      // deno-lint-ignore no-explicit-any
+      const rowOf = (qid: string): any => (Array.isArray(a.quotes) ? a.quotes : []).find((x: any) => x && x.label === labels.get(qid)?.en) || null;
+      // deno-lint-ignore no-explicit-any
+      const push = (row: any, key: string, s: string) => { if (!row) return; if (!Array.isArray(row[key])) row[key] = []; if (!row[key].includes(s)) row[key].push(s); };
+      for (const o of technical.omissions ?? []) for (const l of o.lines) push(rowOf(o.quote_id), 'missing_from_request', ruleLine(l, L));
+      for (const p of technical.prices ?? []) {
+        if (p.verdict === 'within') continue;
+        push(rowOf(p.quote_id), 'flags', ar
+          ? `${p.item}: ${p.rate.toLocaleString('en-US')} درهم/${p.unit} ${p.verdict === 'below' ? 'أدنى من' : 'أعلى من'} النطاق ${p.low}-${p.high} درهم (${p.benchmark_item}). ${p.rule_ar}`
+          : `${p.item}: AED ${p.rate.toLocaleString('en-US')}/${p.unit} is ${p.verdict} the AED ${p.low}-${p.high} band (${p.benchmark_item}). ${p.rule_en}`);
+      }
+      for (const ln of technical.lines) {
+        for (const at of ln.attributes) for (const c of at.cells) if (c.flag === 'differs' && c.note_en) push(rowOf(c.quote_id), 'spec_deviation', ar ? `${ln.item} — ${at.label_ar}: ${c.value ?? ''} بدلًا من ${at.requested ?? ''}. ${c.note_ar}` : `${ln.item} — ${at.label_en}: ${c.value ?? ''} instead of ${at.requested ?? ''}. ${c.note_en}`);
+        if (ln.comparable === false && ln.comparability) push(a, 'watch_outs', ar ? `البند «${ln.item}» غير قابل للمقارنة (≁): ${ln.comparability.rule_ar}` : `Line "${ln.item}" is not comparable (≁): ${ln.comparability.rule_en}`);
+      }
+      for (const ap of technical.approvals ?? []) push(a, 'watch_outs', ruleLine(ap, L));
+      a.rules_applied = technical.rules_applied;
+      a.held_by_rule = (technical.holds ?? []).map((h) => ({ quote_id: h.quote_id, lines: h.lines.map((l) => ruleLine(l, L)) }));
+    };
+    // deno-lint-ignore no-explicit-any
+    const withRoster = (a: any) => { if (a && typeof a === 'object') { withRules(a); a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.on_hold = onHold; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
     const qhash = await sha256hex(JSON.stringify(labelled));
     try { const { data: cached } = await admin.from('qd_compare_cache').select('analysis').eq('inquiry_id', inquiry_id).eq('quotes_hash', qhash).eq('lang', lang).maybeSingle(); if (cached?.analysis) { await logRun('ok', { compared: 1, quotes_seen: qs.length, cached: 1, lang }, 'Quote comparison for ' + qs.length + ' quotes served from cache; the customer got their recommendation with no model call.'); return J({ ok: true, analysis: withRoster(cached.analysis), cached: true }); } } catch (_e) { /* */ }
     const boqItems = (inq.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq.map((b: any) => `${b.description || ''}${b.qty ? ' ('+b.qty+' '+(b.unit||'')+')' : ''}`).slice(0, 40) : [];

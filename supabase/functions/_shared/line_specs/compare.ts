@@ -13,34 +13,46 @@
 //
 // Held quotes never appear here (they are drafts and never reach the comparison); the report is
 // told only how many are on hold. Pure: no I/O.
-import { assessQuote, componentAttr, componentOnLine, customerAnswer, customerRequires, lineDefs, MATERIAL_ATTRS, readDelivery, requestedValue, type Line, type Requirements, type Terms } from './assess.ts';
+import { assessQuote, componentAttr, componentOnLine, customerAnswer, customerRequires, lineDefs, lineText, MATERIAL_ATTRS, readDelivery, requestedValue, type Line, type Requirements, type Terms } from './assess.ts';
 import { attrsForLine, normText, TRADES, tradeOfCategory, tradeOfLine, type Attr } from './model.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
+import { approvalsFor, comparabilityFor, equivalenceOf, priceFlag, scopeCheck, type ApprovalRule, type ComparabilityRule, type EquivalenceRule, type PriceVerdict, type ScopeLineRule, type TradeRules } from './rules.ts';
 
 // optional_not_stated: the detail applies to this product and another supplier may state it, but it is
 // not mandatory, so its absence never holds a quote. Shown, so the customer sees the gap, and never
 // chased. Distinct from not_applicable (no such line, or the detail does not apply) and from missing.
-export type Flag = 'match' | 'differs' | 'missing' | 'optional_not_stated' | 'stated' | 'not_applicable';
-export const MARKER: Record<Flag, string> = { match: '✓', differs: '≠', missing: '—', optional_not_stated: '○', stated: '', not_applicable: 'n/a' };
+// not_comparable (≁): a trade_comparability rule names this attribute as required for the line and at
+// least one compared quote does not state it, so the line cannot be ranked on it (doctrine section 7).
+export type Flag = 'match' | 'differs' | 'missing' | 'optional_not_stated' | 'stated' | 'not_applicable' | 'not_comparable';
+export const MARKER: Record<Flag, string> = { match: '✓', differs: '≠', missing: '—', optional_not_stated: '○', stated: '', not_applicable: 'n/a', not_comparable: '≁' };
 
 export type CmpQuote = { quote_id: string; label_en: string; label_ar: string; supplier_letter: string; option_no: number; lines: Line[]; terms: Terms };
 // Values shown to the customer never carry a TRN or licence number (identity_numbers.ts), and no VAT
 // figure is part of this dataset at all: price_ex_vat is the only price.
 const safe = (v: string | null) => (v == null ? null : maskIdentityNumbers(v).replace(/\s{2,}/g, ' ').trim() || null);
 export type RequestLine = { line_no: number; description: string; qty?: number | string | null; unit?: string | null };
-export type Cell = { quote_id: string; value: string | null; source: 'extracted' | 'supplier_portal' | null; quote_line_no: number | null; flag: Flag; marker: string };
+// note_en/note_ar: the rule that decided a ≠ or ≁ cell (its rule text), so the report can say why.
+export type Cell = { quote_id: string; value: string | null; source: 'extracted' | 'supplier_portal' | null; quote_line_no: number | null; flag: Flag; marker: string; note_en?: string | null; note_ar?: string | null; rule?: { label: string; citation: string } | null };
 // 'accepted': the customer accepted this value in place of their own when no supplier could quote
 // their exact spec (founder_instruction #321; inquiries.accepted_alternatives). It is then the request.
 export type ReqSource = 'boq' | 'intake' | 'intake_other' | 'no_preference' | 'accepted';
 export type AcceptedSpec = { line_no: number; attr: string; accepted: string };
 export type AttrRow = { code: string; label_en: string; label_ar: string; unit: string | null; unit_ar: string | null; mandatory: boolean; requested: string | null; requested_source: ReqSource | null; cells: Cell[] };
-export type LineRow = { row: number; item: string; request_line: RequestLine | null; trade: string | null; trade_en: string | null; trade_ar: string | null; attributes: AttrRow[] };
+export type LineRow = { row: number; item: string; request_line: RequestLine | null; trade: string | null; trade_en: string | null; trade_ar: string | null; attributes: AttrRow[];
+  /** Set when a trade_comparability rule applies to this line: false = at least one compared quote does not state a required attribute. */
+  comparable?: boolean | null; comparability?: { line_type: string; required_attrs: string[]; missing: { quote_id: string; attrs: string[] }[]; rule_en: string; rule_ar: string; citation: string; label: string } | null };
+export type OmissionRow = { quote_id: string; lines: ScopeLineRule[] };
+export type HoldRow = { quote_id: string; lines: ScopeLineRule[] };
+export type PriceRow = { quote_id: string; quote_line_no: number; item: string; rate: number; unit: string; verdict: PriceVerdict['verdict']; low: number; high: number; benchmark_item: string; rule_en: string; rule_ar: string; citation: string; label: string; band?: string | null; confidence?: number | null };
 export type TermCell = { quote_id: string; applies: boolean; value: string | null; flag: Flag; marker: string };
 export type TermRow = { code: 'delivery' | 'installation' | 'warranty'; label_en: string; label_ar: string; requested: string | null; requested_source: 'intake' | 'no_preference' | null; cells: TermCell[] };
 export type TechnicalComparison = {
   contract: 'technical_comparison'; version: 1; generated_at: string; trade: string; on_hold: number;
   quotes: { quote_id: string; label_en: string; label_ar: string; supplier_letter: string; option_no: number; price_ex_vat: number | null }[];
   lines: LineRow[]; terms: TermRow[]; legend: Record<Flag, string>;
+  /** The codified rules applied (doctrine section 7). Absent fields mean no rules were loaded for the trade. */
+  rules_applied?: { trade_code: string; scope_lines: number; equivalence: number; price_flags: number; comparability: number; approvals: number } | null;
+  omissions?: OmissionRow[]; holds?: HoldRow[]; prices?: PriceRow[]; approvals?: ApprovalRule[];
 };
 
 const tokens = (s: string) => new Set(normText(s).toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, ' ').split(' ').filter((w) => w.length > 2));
@@ -64,9 +76,22 @@ function flagOf(applies: boolean, value: string | null, requested: string | null
   if (!requested) return 'stated';
   return same(value, requested) ? 'match' : 'differs';
 }
-const cellOf = (quote_id: string, applies: boolean, value: string | null, requested: string | null, noPref: boolean, extra: Partial<Cell> = {}): Cell => {
-  const flag = flagOf(applies, value, requested, noPref);
-  return { quote_id, value: safe(value), source: null, quote_line_no: null, flag, marker: MARKER[flag], ...extra };
+// THE EQUIVALENCE RULES ARE CONSULTED BEFORE sameValue() (doctrine section 7). An explicit
+// equivalent=false pair is ≠ with the rule as the note; an explicit member is ✓; a brand the classes
+// do not know is 'stated', never ✓ (unclassified is not "worse", and it is not "the same"); any other
+// unclassified value falls through to sameValue's number/substring reading, exactly as before.
+function ruledFlag(rules: TradeRules | null | undefined, attr: string, applies: boolean, value: string | null, requested: string | null, noPref: boolean): { flag: Flag; rule: EquivalenceRule | null; unclassified: boolean } {
+  if (applies && value && !noPref && requested) {
+    const v = equivalenceOf(rules, attr, value, requested);
+    if (v && v.flag !== 'unclassified') return { flag: v.flag, rule: v.rule, unclassified: false };
+    if (v && attr === 'brand') return { flag: 'stated', rule: null, unclassified: true };
+  }
+  return { flag: flagOf(applies, value, requested, noPref), rule: null, unclassified: false };
+}
+const cellOf = (quote_id: string, applies: boolean, value: string | null, requested: string | null, noPref: boolean, extra: Partial<Cell> = {}, rules?: TradeRules | null, attr = ''): Cell => {
+  const { flag, rule } = ruledFlag(rules, attr, applies, value, requested, noPref);
+  const noted: Partial<Cell> = rule ? { note_en: rule.rule_en, note_ar: rule.rule_ar, rule: { label: rule.label, citation: rule.citation } } : {};
+  return { quote_id, value: safe(value), source: null, quote_line_no: null, flag, marker: MARKER[flag], ...noted, ...extra };
 };
 
 /**
@@ -92,9 +117,16 @@ function requestedFor(rl: RequestLine, trade: string | null, attrs: Attr[], req:
   return out;
 }
 
-export function technicalComparison(input: { category: string | null; request_lines: RequestLine[]; requirements: Requirements; quotes: CmpQuote[]; on_hold: number; now: Date; accepted?: AcceptedSpec[] }): TechnicalComparison {
+/** Every word of a quote the scope rules may read: its lines and its terms. */
+export const quoteText = (q: { lines: Line[]; terms: Terms }) => [...q.lines.map(lineText), q.terms.scope, q.terms.exclusions, q.terms.conditions, q.terms.notes].filter((x) => x != null && String(x).trim() !== '').join(' \n ');
+
+export function technicalComparison(input: { category: string | null; request_lines: RequestLine[]; requirements: Requirements; quotes: CmpQuote[]; on_hold: number; now: Date; accepted?: AcceptedSpec[];
+  /** The trade's codified rules (fn_trade_rules / rules.ts). Null = none loaded: the comparison behaves exactly as before. */
+  rules?: TradeRules | null; request_text?: string | null; emirate?: string | null }): TechnicalComparison {
   const trade = tradeOfCategory(input.category);
   const req = input.requirements ?? null;
+  const rules = input.rules ?? null;
+  const requestText = [input.request_text ?? '', ...input.request_lines.map((r) => r?.description ?? '')].join(' \n ');
   const assessed = input.quotes.map((q) => ({ q, a: assessQuote({ category: input.category, lines: q.lines, terms: q.terms, requirements: req }) }));
 
   // The backbone: the customer's request lines; with no BOQ, the lines of the most itemised quote.
@@ -139,7 +171,7 @@ export function technicalComparison(input: { category: string | null; request_li
         // MEASURED 14 Sep 2026, both live e2e comparisons: all 20 "missing" cells were a quote with NO
         // line on the row (another supplier's own item), and the report told the customer "not stated —
         // ask for it". A quote that does not include an item is not missing a detail of it: not_applicable.
-        if (!l) return cellOf(q.quote_id, false, null, baseline, noPref);
+        if (!l) return cellOf(q.quote_id, false, null, baseline, noPref, {}, rules, a.code);
         // On a line the quote does include, three states for a detail it did not state:
         //  - MANDATORY for that line → missing. The hold gate (assess.ts, rankable) holds such a quote, so
         //    a compared quote never carries one; the state stays as a safety net.
@@ -148,14 +180,57 @@ export function technicalComparison(input: { category: string | null; request_li
         //  - does not apply to what this line is → not_applicable.
         const owed = l.defs.some((d) => d.code === a.code && d.mandatory);
         if (!l.spec[a.code] && !owed && l.asked.includes(a.code)) {
-          return { ...cellOf(q.quote_id, true, null, baseline, noPref, { source: null, quote_line_no: ln }), flag: 'optional_not_stated' as Flag, marker: MARKER.optional_not_stated };
+          return { ...cellOf(q.quote_id, true, null, baseline, noPref, { source: null, quote_line_no: ln }, rules, a.code), flag: 'optional_not_stated' as Flag, marker: MARKER.optional_not_stated };
         }
-        return cellOf(q.quote_id, owed || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln });
+        return cellOf(q.quote_id, owed || !!l.spec[a.code], l.spec[a.code] ?? null, baseline, noPref, { source: l.source[a.code] ?? null, quote_line_no: ln }, rules, a.code);
       });
       return { code: a.code, label_en: a.en, label_ar: a.ar, unit: a.unit ?? null, unit_ar: a.unit_ar ?? null, mandatory: defs.some((d) => d.code === a.code && d.mandatory), requested: rq && !noPref ? rq.value : null, requested_source: rq?.source ?? null, cells };
     }).filter((row) => row.mandatory || row.requested || row.requested_source || row.cells.some((c) => c.value));
-    return { row: i + 1, item: safe(text) ?? '', request_line: fromRequest ? r.rl : null, trade: lt, trade_en: lt ? TRADES[lt].en : null, trade_ar: lt ? TRADES[lt].ar : null, attributes };
+    // COMPARABILITY (doctrine section 7). When a trade_comparability rule names this line's type, every
+    // quote that has a line on the row must state every required attribute; otherwise the row is
+    // reported as not comparable — the cells it cannot compare are marked ≁ — and the ranking must
+    // not rest on it. A quote with NO line on the row is not judged (not_applicable stays).
+    let comparable: boolean | null = null; let comparability: LineRow['comparability'] = null;
+    const ck = comparabilityFor(rules, text);
+    if (ck) {
+      const missing: { quote_id: string; attrs: string[] }[] = [];
+      for (const q of assessed) {
+        if (!r.picks.has(q.q.quote_id)) continue;
+        const attrs = ck.required_attrs.filter((code) => { const row = attributes.find((x) => x.code === code); const c = row?.cells.find((x) => x.quote_id === q.q.quote_id); return !row || !c || !c.value; });
+        if (attrs.length) missing.push({ quote_id: q.q.quote_id, attrs });
+      }
+      comparable = missing.length === 0;
+      comparability = { line_type: ck.line_type, required_attrs: ck.required_attrs, missing, rule_en: ck.rule_en, rule_ar: ck.rule_ar, citation: ck.citation, label: ck.label };
+      if (!comparable) {
+        for (const m of missing) for (const code of m.attrs) {
+          const row = attributes.find((x) => x.code === code); const c = row?.cells.find((x) => x.quote_id === m.quote_id);
+          if (c) { c.flag = 'not_comparable'; c.marker = MARKER.not_comparable; c.note_en = ck.rule_en; c.note_ar = ck.rule_ar; c.rule = { label: ck.label, citation: ck.citation }; }
+        }
+        // A required attribute the row filter dropped (nobody stated it, not mandatory) still needs a row to carry ≁.
+        for (const code of ck.required_attrs) if (!attributes.some((x) => x.code === code)) {
+          const a = attrs.find((x) => x.code === code); if (!a) continue;
+          attributes.push({ code, label_en: a.en, label_ar: a.ar, unit: a.unit ?? null, unit_ar: a.unit_ar ?? null, mandatory: false, requested: null, requested_source: null,
+            cells: assessed.map(({ q }) => r.picks.has(q.quote_id) ? { quote_id: q.quote_id, value: null, source: null, quote_line_no: r.picks.get(q.quote_id) ?? null, flag: 'not_comparable' as Flag, marker: MARKER.not_comparable, note_en: ck.rule_en, note_ar: ck.rule_ar, rule: { label: ck.label, citation: ck.citation } } : cellOf(q.quote_id, false, null, null, false)) });
+        }
+      }
+    }
+    return { row: i + 1, item: safe(text) ?? '', request_line: fromRequest ? r.rl : null, trade: lt, trade_en: lt ? TRADES[lt].en : null, trade_ar: lt ? TRADES[lt].ar : null, attributes, comparable, comparability };
   });
+
+  // SCOPE, PRICE AND APPROVAL RULES (doctrine section 7), per quote, from the trade's rule rows.
+  const omissions: OmissionRow[] = []; const holds: HoldRow[] = []; const prices: PriceRow[] = [];
+  if (rules) {
+    for (const { q } of assessed) {
+      const sc = scopeCheck(rules, requestText, quoteText(q));
+      if (sc.omitted.length) omissions.push({ quote_id: q.quote_id, lines: sc.omitted });
+      if (sc.missing_mandatory.length) holds.push({ quote_id: q.quote_id, lines: sc.missing_mandatory });
+      for (const l of q.lines) {
+        const pv = priceFlag(rules, lineText(l), l.qty, l.unit, l.amount, l.unit_price);
+        if (pv) prices.push({ quote_id: q.quote_id, quote_line_no: l.line_no, item: safe(l.description) ?? '', rate: pv.rate, unit: pv.unit, verdict: pv.verdict, low: pv.rule.low, high: pv.rule.high, benchmark_item: pv.rule.item, rule_en: pv.rule.rule_en, rule_ar: pv.rule.rule_ar, citation: pv.rule.citation, label: pv.rule.label });
+      }
+    }
+  }
+  const approvals = approvalsFor(rules, input.emirate, requestText);
 
   // Quote-level terms, against the customer's intake answers.
   const rb = req?.required_by;
@@ -193,6 +268,8 @@ export function technicalComparison(input: { category: string | null; request_li
     contract: 'technical_comparison', version: 1, generated_at: input.now.toISOString(), trade, on_hold: input.on_hold,
     quotes: input.quotes.map(({ quote_id, label_en, label_ar, supplier_letter, option_no, terms }) => ({ quote_id, label_en, label_ar, supplier_letter, option_no, price_ex_vat: Number(terms.price_ex_vat) > 0 ? Number(terms.price_ex_vat) : null })),
     lines, terms: [deliveryRow, installationRow, warrantyRow], legend: MARKER,
+    rules_applied: rules ? { trade_code: rules.trade_code, scope_lines: rules.scope_lines.length, equivalence: rules.equivalence.length, price_flags: rules.price_flags.length, comparability: rules.comparability.length, approvals: rules.approvals.length } : null,
+    omissions, holds, prices, approvals,
   };
 }
 
@@ -205,7 +282,7 @@ export function technicalComparison(input: { category: string | null; request_li
 //   stated (a value, no baseline) → 'match': the value is stated and the quote passed the gate.
 //   not_applicable → 'na'.
 // ---------------------------------------------------------------------------------------------
-export type RenderFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na';
+export type RenderFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na' | 'not_comparable';
 export type RenderCell = { value?: string | null; flag: RenderFlag; note?: string | null };
 export type RendererTechnical = {
   suppliers: string[];
@@ -214,13 +291,13 @@ export type RendererTechnical = {
   terms?: { lead_time?: RenderTerm | null; installation?: RenderTerm | null; warranty?: RenderTerm | null } | null;
 };
 type RenderTerm = { applicable?: boolean | null; requested?: string | null; values: Record<string, RenderCell> };
-const rflag = (f: Flag): RenderFlag => (f === 'not_applicable' ? 'na' : f === 'stated' ? 'match' : f === 'optional_not_stated' ? 'optional' : f);
+const rflag = (f: Flag): RenderFlag => (f === 'not_applicable' ? 'na' : f === 'stated' ? 'match' : f === 'optional_not_stated' ? 'optional' : f);   // not_comparable passes through: the renderer prints ≁
 
 export function rendererView(t: TechnicalComparison, lang: 'en' | 'ar'): RendererTechnical {
   const ar = lang === 'ar';
   const labelOf = new Map(t.quotes.map((q) => [q.quote_id, q.label_en]));
-  const values = (cells: { quote_id: string; value: string | null; flag: Flag }[]) =>
-    Object.fromEntries(cells.map((c) => [labelOf.get(c.quote_id)!, { value: c.value, flag: rflag(c.flag) }]));
+  const values = (cells: { quote_id: string; value: string | null; flag: Flag; note_en?: string | null; note_ar?: string | null }[]) =>
+    Object.fromEntries(cells.map((c) => [labelOf.get(c.quote_id)!, { value: c.value, flag: rflag(c.flag), ...((ar ? c.note_ar : c.note_en) ? { note: ar ? c.note_ar : c.note_en } : {}) }]));
   const term = (code: TermRow['code']): RenderTerm | null => {
     const r = t.terms.find((x) => x.code === code); if (!r) return null;
     return { applicable: r.cells.some((c) => c.applies), requested: r.requested, values: values(r.cells) };
@@ -242,10 +319,17 @@ export function rendererView(t: TechnicalComparison, lang: 'en' | 'ar'): Rendere
  * offered to the ranking is assessed again here with the same gate; one that would be held is
  * removed and only counted.
  */
-export function rankable<Q extends { lines: Line[]; terms: Terms }>(quotes: Q[], category: string | null, requirements: Requirements): { rankable: Q[]; held: number } {
-  const out: Q[] = []; let held = 0;
-  for (const q of quotes) { if (assessQuote({ category, lines: q.lines, terms: q.terms, requirements }).held) held++; else out.push(q); }
-  return { rankable: out, held };
+export function rankable<Q extends { lines: Line[]; terms: Terms }>(quotes: Q[], category: string | null, requirements: Requirements, rules?: TradeRules | null, requestText = ''): { rankable: Q[]; held: number; held_by_rule: { quote: Q; lines: ScopeLineRule[] }[] } {
+  const out: Q[] = []; let held = 0; const held_by_rule: { quote: Q; lines: ScopeLineRule[] }[] = [];
+  for (const q of quotes) {
+    if (assessQuote({ category, lines: q.lines, terms: q.terms, requirements }).held) { held++; continue; }
+    // A MANDATORY SCOPE LINE THE QUOTE DOES NOT INCLUDE HOLDS IT (doctrine section 7, family 1): the
+    // hold names the line in the customer's language (holds on the TechnicalComparison).
+    const sc = scopeCheck(rules, requestText, quoteText(q));
+    if (sc.missing_mandatory.length) { held++; held_by_rule.push({ quote: q, lines: sc.missing_mandatory }); continue; }
+    out.push(q);
+  }
+  return { rankable: out, held, held_by_rule };
 }
 
 export { readDelivery };
