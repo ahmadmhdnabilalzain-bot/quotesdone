@@ -63,7 +63,7 @@
 --
 -- ORDER: deploy resilience_ping (STEP_RUN gains seatClocks) BEFORE applying this file -- a schedule row
 -- for a step the deployed code lacks fails every tick (every_tick_step_is_scheduled.mjs). Then run
--- scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock_probe.sql -> PROBE OK.
+-- scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock_probe.sql -> its verdict row reads OK (the change file itself returns no verdict).
 --   node scripts/apply_sql.mjs scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql --apply --ddl
 
 -- ── 1. the settings the CEO can change ────────────────────────────────────────────────────────────

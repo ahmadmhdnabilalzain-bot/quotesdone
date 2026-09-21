@@ -1,5 +1,0 @@
-22 Sep 2026 — ceo, founder instruction 583 gap 1. Data only (function_owner rows), no routine.
-Apply with --apply --ddl (the file defines no routine, so apply_sql needs --ddl to act), then append the file to the END of MANIFEST.txt and delete this note.
-Then `node scripts/checks/every_deployed_function_has_an_owner.mjs` must EXIT 0 (it EXITs 1 today: 2 unowned,
-11 stale). The parity job runs that check from this PR on, so it stays red on every PR until this is applied.
-Rehearsed rolled-back 22 Sep 2026: PROBE OK: 12 functions on their right seat, 11 stale rows gone (67 rows = 67 deployed).
