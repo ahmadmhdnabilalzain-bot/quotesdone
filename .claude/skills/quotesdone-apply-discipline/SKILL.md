@@ -36,6 +36,11 @@ node scripts/checks/canonical_routine_manifest.mjs                # 3. confirm 0
   supersedes loses. Append to the END.
 - If several agents are writing to the tree at once, re-read the tail before appending; the line you
   are anchoring on may have moved.
+- **A file committed but not yet applied gets its own note, never a MANIFEST line:**
+  `scripts/sql/pending/<same name as the .sql>.txt`, whose text is the reason and what would move it.
+  When it is applied, **delete that note and append the file to the END of MANIFEST.txt** in the same
+  commit. An empty note, or a note plus a MANIFEST line, is a finding. (One shared `PENDING.txt` made
+  every parallel PR conflict on the same end-of-file lines; it was retired 22 Sep 2026.)
 
 ---
 

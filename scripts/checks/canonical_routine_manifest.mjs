@@ -55,6 +55,7 @@
 import { readdirSync, readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
+import { pendingNotes } from '../lib/pending_sql.mjs';
 
 const ROOT = process.cwd().replace(/\\/g, '/');
 const PROD = 'htdblwldjkcgjvmqkbeh';
@@ -167,25 +168,13 @@ function definitionsIn(file) {
   return [...last.values()];
 }
 
-// FILES COMMITTED AND DELIBERATELY NOT APPLIED are read from scripts/sql/PENDING.txt and excluded
-// from the canonical scan below. A file that has not run is not the canonical definition of
-// anything — including it would report repository -> production drift for a change nobody has made
-// yet, which is exactly what a pending founder decision looks like from here.
-const PENDING = new Map();
-{
-  const p = 'scripts/sql/PENDING.txt';
-  if (existsSync(p)) {
-    for (const raw of readFileSync(p, 'utf8').split(/\r?\n/)) {
-      const l = raw.trim();
-      if (!l || l.startsWith('#')) continue;
-      const i = l.indexOf('::');
-      if (i < 0) continue;
-      const f = l.slice(0, i).trim();
-      const why = l.slice(i + 2).trim();
-      if (f && why) PENDING.set(f, why);
-    }
-  }
-}
+// FILES COMMITTED AND DELIBERATELY NOT APPLIED have one note each, scripts/sql/pending/<name>.txt
+// (scripts/lib/pending_sql.mjs), and are excluded from the canonical scan below. A file that has not
+// run is not the canonical definition of anything — including it would report repository -> production
+// drift for a change nobody has made yet, which is exactly what a pending founder decision looks like
+// from here. An empty note excludes nothing; it is reported below.
+const NOTES = pendingNotes();
+const PENDING = new Map([...NOTES].filter(([, why]) => why));
 
 const FILES = [
   ...lsSql('supabase/migrations_history'),
@@ -250,20 +239,18 @@ const GAPS = [];
 // migration would be the exact defect it closes. Before this, such a file read as "ON DISK, NOT IN
 // MANIFEST", which is the same words this check uses for a file somebody forgot.
 //
-// scripts/sql/PENDING.txt carries the path and the REASON. A file in both lists is refused: it
-// cannot be both applied and pending, and letting that pass would be a way to hide an apply.
-// AN ENTRY WITH NO REASON IS AN EXCLUSION NOBODY EXPLAINED, and it would be a way to hide a file
-// from the canonical scan. The PENDING map above skips such a line; this reports it.
-for (const raw of (read('scripts/sql/PENDING.txt') || '').split(/\r?\n/)) {
-  const l = raw.trim();
-  if (!l || l.startsWith('#')) continue;
-  const i = l.indexOf('::');
-  if (i < 0 || !l.slice(i + 2).trim()) GAPS.push(`PENDING ENTRY WITH NO REASON  ${l}`);
-}
+// scripts/sql/pending/<name>.txt carries the REASON for scripts/sql/<name>.sql. A file with a note AND
+// a MANIFEST line is refused: it cannot be both applied and pending, and letting that pass would be a
+// way to hide an apply. AN EMPTY NOTE IS AN EXCLUSION NOBODY EXPLAINED, and it would be a way to hide a
+// file from the canonical scan. The PENDING map above skips such a note; this reports it.
+// The retired shared list must not come back through a branch cut before 22 Sep 2026: its entries would
+// be read by nothing.
+if (existsSync('scripts/sql/PENDING.txt')) GAPS.push('RETIRED LIST REAPPEARED     scripts/sql/PENDING.txt — convert each entry to scripts/sql/pending/<name>.txt');
+for (const [f, why] of NOTES) if (!why) GAPS.push(`PENDING ENTRY WITH NO REASON  ${f} (its note in scripts/sql/pending/ is empty)`);
 for (const [f, why] of PENDING) {
   if (manifestPos.has(f)) GAPS.push(`PENDING AND ALSO IN MANIFEST  ${f} — a file cannot be both applied and pending`);
   else if (!diskScripts.has(f)) GAPS.push(`PENDING, NOT ON DISK  ${f}`);
-  else console.log(`   PENDING (committed, deliberately not applied)  ${f}\n      ${why}`);
+  else console.log(`   PENDING (committed, deliberately not applied)  ${f}\n      ${why.replace(/\r?\n/g, '\n      ')}`);
 }
 
 for (const f of diskScripts) if (!manifestPos.has(f) && !PENDING.has(f)) GAPS.push(`ON DISK, NOT IN MANIFEST  ${f}`);

@@ -53,7 +53,8 @@ The CEO's own `founder_brief` (one a day, `to_role='admin'`) is not an IT email 
 4. `scripts/sql/a_backup_of_a_source_that_no_longer_exists_is_abandoned_not_refiled_for_ever.sql`
 5. `scripts/sql/the_slow_statement_duty_does_not_page_about_an_operators_session.sql`
 
-Move each line from `PENDING.txt` to the end of `MANIFEST.txt` as it is applied. Then deploy
+As each is applied, delete its note `scripts/sql/pending/<file>.txt` and append the file to the end
+of `MANIFEST.txt` (the shared `PENDING.txt` list was retired 22 Sep 2026). Then deploy
 `send_whatsapp` and `resilience_ping`, then run
 `node --test scripts/checks/it_failures_of_18_to_21_september_do_not_recur.test.mjs` and
 `node --test scripts/checks/it_engineer_loop_is_closed.test.mjs` (its 6,000 ms assertion is red on

@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { BATCH_DEFAULT, BATCH_MAX, LIMITS, loadVerdict, inNightWindow } from './purge_guard.mjs';
+import { pendingNotes } from '../lib/pending_sql.mjs';
 
 const root = new URL('../../', import.meta.url);
 const driver = readFileSync(new URL('scripts/kb/purge_kb_bulk.mjs', root), 'utf8');
@@ -18,7 +19,7 @@ const driver = readFileSync(new URL('scripts/kb/purge_kb_bulk.mjs', root), 'utf8
 function latestBatchDefinition() {
   const order = [
     ...readFileSync(new URL('scripts/sql/MANIFEST.txt', root), 'utf8').split('\n'),
-    ...readFileSync(new URL('scripts/sql/PENDING.txt', root), 'utf8').split('\n').map(l => l.split(' :: ')[0]),
+    ...pendingNotes().keys(),
   ].map(l => l.trim()).filter(l => l && !l.startsWith('#')).map(l => l.replace(/^scripts\/sql\//, ''));
   const files = readdirSync(new URL('scripts/sql/', root)).filter(f => f.endsWith('.sql'));
   let best = null, bestAt = -1;

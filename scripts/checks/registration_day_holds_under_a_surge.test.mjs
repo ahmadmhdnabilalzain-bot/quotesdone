@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pendingNotes } from '../lib/pending_sql.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '../..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
@@ -65,8 +66,8 @@ test('the portal shows the email-not-sent refusal in the reader\'s language', ()
 
 test('a served country\'s OTP burst is judged by codes never used, not by volume', () => {
   const file = 'scripts/sql/a_registration_day_is_not_an_otp_pumping_attack.sql';
-  const listed = (read('scripts/sql/MANIFEST.txt') + '\n' + read('scripts/sql/PENDING.txt')).split('\n').some((l) => l.startsWith(file));
-  assert.ok(listed, file + ' is in neither MANIFEST.txt nor PENDING.txt');
+  const listed = read('scripts/sql/MANIFEST.txt').split('\n').some((l) => l.startsWith(file)) || pendingNotes().has(file);
+  assert.ok(listed, file + ' is neither in MANIFEST.txt nor pending (scripts/sql/pending/)');
   const sql = code(read(file));
   assert.match(sql, /count\(\*\) filter \(where not used and expires_at < now\(\)\) n_dead/);
   assert.match(sql, /elsif x\.n_dead > v_max and x\.n_dead \* 2 >= x\.n then/);

@@ -20,6 +20,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pendingNotes } from '../lib/pending_sql.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL_FILE = 'scripts/sql/the_founder_brief_says_seven_things_in_plain_words.sql';
@@ -99,10 +100,10 @@ test('E. the customer PDF is rendered on the heartbeat and attached, never skipp
   assert.match(rp, /pdf_pending/);
   const submit = fnBody('fn_ceo_daily_digest_submit');
   assert.match(submit, /waiting for the customer list PDF/, 'a day with customers could be sent without its PDF');
-  // Applied -> a MANIFEST line; committed and not yet applied -> a PENDING line. Neither = orphan.
-  const listed = ['MANIFEST.txt', 'PENDING.txt'].some((f) => readFileSync(path.join(REPO, 'scripts/sql', f), 'utf8')
-    .split(/\r?\n/).some((l) => l === SQL_FILE || l.startsWith(SQL_FILE + ' ::')));
-  assert.ok(listed, 'the file is in neither MANIFEST.txt nor PENDING.txt');
+  // Applied -> a MANIFEST line; committed and not yet applied -> a note in scripts/sql/pending/. Neither = orphan.
+  const listed = readFileSync(path.join(REPO, 'scripts/sql/MANIFEST.txt'), 'utf8')
+    .split(/\r?\n/).some((l) => l === SQL_FILE) || pendingNotes().has(SQL_FILE);
+  assert.ok(listed, 'the file is neither in MANIFEST.txt nor pending (scripts/sql/pending/)');
 });
 
 // F. Live replay of the fixture day. The three pure functions are created in pg_temp inside one

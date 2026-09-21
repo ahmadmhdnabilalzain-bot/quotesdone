@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { pendingNotes } from '../lib/pending_sql.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const read = (...p) => readFileSync(join(ROOT, ...p), 'utf8');
@@ -53,8 +54,8 @@ test('finding 7: the notice trigger file prints the job number, not the uuid pre
 });
 
 test('finding 25: the canonical matcher honours a stated emirate limit', () => {
-  const m = read('scripts', 'sql', 'MANIFEST.txt') + '\n' + read('scripts', 'sql', 'PENDING.txt');
-  const files = m.split('\n').map((l) => l.split(' :: ')[0].trim()).filter((l) => /^scripts\/sql\/.+\.sql$/.test(l));
+  const files = [...read('scripts', 'sql', 'MANIFEST.txt').split('\n').map((l) => l.trim()), ...pendingNotes().keys()]
+    .filter((l) => /^scripts\/sql\/.+\.sql$/.test(l));
   const defs = files.filter((f) => { try { return /create or replace function public\.fn_match_capability\(/i.test(read(f)); } catch { return false; } });
   const last = read(defs[defs.length - 1]).replace(/--[^\n]*/g, '');
   assert.match(last, /cardinality\(loc\.stated\) = 0/, `${defs[defs.length - 1]}: no stated limit = UAE-wide`);
