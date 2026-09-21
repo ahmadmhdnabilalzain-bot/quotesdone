@@ -9,5 +9,3 @@
 # Format: <path> :: <reason, and what would move it>
 
 
-scripts/sql/the_foreign_bulk_leaves_the_knowledge_library_permanently.sql :: it_engineer, 21 Sep 2026 — the kb_chunks purge (instruction 520). Creates fn_kb_purge_clause, kb_purge_ledger, fn_kb_purge_batch; deletes nothing on apply. Moves when the coordinator applies it and runs scripts/kb/purge_kb_bulk.mjs --run.
-scripts/sql/the_foreign_bulk_leaves_the_knowledge_library_permanently.sql :: it_engineer, 21 Sep 2026 — the kb_chunks purge (instruction 520). Creates fn_kb_purge_clause, kb_purge_ledger, fn_kb_purge_batch; deletes nothing on apply. Moves when the coordinator applies it and runs scripts/kb/purge_kb_bulk.mjs --run.
