@@ -24,7 +24,7 @@ export type InquiryDetail = {
   ok: true;
   inquiry: {
     id: string; job_no: string; category: string | null; emirate: string | null; created_at: string; status: string;
-    concluded: boolean; revealed: boolean; you_won: boolean; summary: string | null; budget: string | null; scope_type: string | null;
+    concluded: boolean; revealed: boolean; you_won: boolean; summary: string | null; summary_ar?: string | null; budget: string | null; scope_type: string | null;
     spec: unknown; requested: { en?: { key: string; label: string; value: string }[]; ar?: { key: string; label: string; value: string }[] } | null;
     boq: { boq?: unknown[] } | null; boq_withheld: boolean; boq_confidence: string | null; drawing_pages: string[];
     /** expected = on the inquiry, served = signed and in drawing_pages, failed = missing from this view. */
@@ -42,7 +42,7 @@ export type InquiryDocuments = { ok: true; job_no: string; boq_withheld: boolean
 export type MessageView = {
   id: string; role: 'supplier' | 'sales_engineer'; kind: 'text' | 'file' | 'review' | 'choice_prompt' | 'choice' | 'submitted' | 'notice';
   body_en: string | null; body_ar: string | null; text: string | null;
-  attachments: { kind: 'quotation_file' | 'standard_quote'; name: string; url: string | null; quote_id: string | null }[];
+  attachments: { kind: 'quotation_file' | 'standard_quote'; name: string; url: string | null; quote_id: string | null; /** standard_quote: which language this print is. */ lang?: Lang | null }[];
   issues: Issue[] | null; created_at: string;
 };
 export type RequestView = { id: number; key: string; code: string; kind: 'adjustment' | 'clarification' | 'choice'; line_no: number | null; boq_line: number | null; label_en: string; label_ar: string; opened_at: string };
@@ -72,7 +72,18 @@ export const qr = {
   choose: (token: string, id: string, choice: 'generate' | 'reupload', lang: Lang) => post<ThreadView>({ action: 'review_choose', inquiry_id: id, choice, lang }, token),
   submit: (token: string, id: string, lang: Lang) => post<ThreadView>({ action: 'review_submit', inquiry_id: id, lang }, token),
   quotePdf: (token: string, quoteId: string, lang: Lang) => call('supplier_api', { action: 'quote_pdf', quote_id: quoteId, lang }, token),
+  /** The inquiry as the sales engineer's document (PDF, one language per file), cached server-side. */
+  inquiryPdf: (token: string, inquiryId: string, lang: Lang) => call('supplier_api', { action: 'inquiry_pdf', inquiry_id: inquiryId, lang }, token),
 };
+export type PdfResult = { ok: true; url: string; ref: string; lang: Lang; cached?: boolean } | Failure;
+/** Open a document the server signed. Only https URLs are opened; anything else is treated as a failure. */
+export async function openPdf(fetchIt: () => Promise<unknown>): Promise<boolean> {
+  const j = (await fetchIt().catch(() => null)) as PdfResult | null;
+  const u = j && (j as { url?: unknown }).url; const url = typeof u === 'string' && /^https:\/\//i.test(u) ? u : null;
+  if (!url) return false;
+  window.open(url, '_blank', 'noopener');
+  return true;
+}
 
 /** A File as the base64 the upload action takes — the same body a native app sends. */
 export function fileToBase64(file: File): Promise<string> {
@@ -100,3 +111,6 @@ export const REVIEW_STATE: Record<ReviewState, { en: string; ar: string; tone: '
   submitted: { en: 'Submitted', ar: 'مُقدَّم', tone: 'ok' },
   closed: { en: 'Closed', ar: 'مغلق', tone: 'secondary' },
 };
+
+/** A price in the UI language: 'AED 30,400' / '30,400 د.إ'. Digits stay Latin (wrap in <Ltr>). Audit 21 Sep 2026, finding 26. */
+export const aedIn = (lang: Lang, n: number | null | undefined) => { const v = Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 }); return lang === 'ar' ? v + ' د.إ' : 'AED ' + v; };

@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { jobNoOf } from '../_shared/quote_documents.ts';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
@@ -70,7 +71,7 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     const idx = Math.max(0, (sibs || []).findIndex((x: { id: string }) => x.id === q.id));
     const letter = String.fromCharCode(65 + (idx % 26));
     // The job number (inquiries.rfq_no): what the customer's card statement says must match the portal (21 Sep 2026).
-    const requestRef = 'QD-' + (inq?.rfq_no != null ? String(inq.rfq_no) : String(q.inquiry_id || '').slice(0, 8).toUpperCase());
+    const requestRef = 'QD-' + jobNoOf({ id: String(q.inquiry_id || ''), rfq_no: inq?.rfq_no });
     // 27 Jul 2026 — two defects fixed here.
     // (1) OPEN REDIRECT. return_url was taken verbatim from the request body, so a crafted call
     //     sent the paying customer to any domain with the Checkout Session id in the query string.

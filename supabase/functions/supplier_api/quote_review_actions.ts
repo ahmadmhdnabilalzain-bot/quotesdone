@@ -41,6 +41,19 @@ export function boqCsv(rows: BoqRow[]): string {
   return '﻿' + [['No', 'Section', 'Description', 'Qty', 'Unit'].join(','), ...rows.map((r, k) => [k + 1, r.section, r.description, r.qty, r.unit].map(esc).join(','))].join('\r\n') + '\r\n';
 }
 const extOf = (url: string) => { const m = String(url).split('?')[0].match(/\.([a-z0-9]{2,4})$/i); return m ? '.' + m[1].toLowerCase() : ''; };
+/**
+ * The documents an inbox row offers for download: the REDACTED drawing pages (signed for an hour) and
+ * the scrubbed BOQ as CSV. Only what the inbox already serves; the customer's original drawing is never
+ * offered. Shared by inquiry_documents and by the inquiry PDF (index.ts inquiry_pdf), so the list the
+ * PDF prints is the list the portal downloads.
+ */
+export function inquiryDocuments(i: Json): { job: string; documents: Json[]; boq_withheld: boolean; drawing_pages_expected: number; drawing_pages_failed: number } {
+  const job = jobNo(i);
+  const documents: Json[] = (i.drawing_pages || []).map((u: string, k: number) => ({ kind: 'drawing_page', name: `Job_${job}_drawing_p${String(k + 1).padStart(2, '0')}${extOf(u)}`, url: u, expires_in: 3600 }));
+  const rows = boqRows(i);
+  if (rows.length && !i.boq_withheld) documents.push({ kind: 'boq_csv', name: `Job_${job}_BOQ.csv`, mime: 'text/csv', content: boqCsv(rows), lines: rows.length });
+  return { job, documents, boq_withheld: !!i.boq_withheld, drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length), drawing_pages_failed: Number(i.drawing_pages_failed || 0) };
+}
 
 export async function reviewAction(o: { sup: Supplier; email: string; self: Self; body: Json; repo: flow.ReviewRepo; scan: flow.ReviewDeps['scan'] }): Promise<{ status: number; json: unknown }> {
   const { sup, email, self, body, repo } = o;
@@ -82,7 +95,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
     const i = await one(body.inquiry_id); if (!i) return { status: 404, json: { error: 'not_found', code: 'not_found' } };
     return { status: 200, json: { ok: true, inquiry: {
       id: i.id, job_no: jobNo(i), category: i.category ?? null, emirate: i.emirate ?? null, created_at: i.created_at, status: i.status,
-      concluded: !!i.concluded, revealed: !!i.revealed, you_won: !!i.you_won, summary: i.summary ?? null, budget: i.budget ?? null,
+      concluded: !!i.concluded, revealed: !!i.revealed, you_won: !!i.you_won, summary: i.summary ?? null, summary_ar: i.summary_ar ?? null, budget: i.budget ?? null,
       scope_type: i.scope_type ?? null, spec: i.spec ?? null, requested: i.spec?.customer_requirements?.display ?? null,
       boq: i.boq ?? null, boq_withheld: !!i.boq_withheld, boq_confidence: i.boq_confidence ?? null, drawing_pages: i.drawing_pages || [],
       drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),
@@ -94,16 +107,9 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
 
   if (action === 'inquiry_documents') {
     const i = await one(body.inquiry_id); if (!i) return { status: 404, json: { error: 'not_found', code: 'not_found' } };
-    const job = jobNo(i);
-    // Only what the inbox already serves: the REDACTED drawing pages (signed for an hour) and the
-    // scrubbed BOQ. The customer's original drawing is never offered.
-    const documents: Json[] = (i.drawing_pages || []).map((u: string, k: number) => ({ kind: 'drawing_page', name: `Job_${job}_drawing_p${String(k + 1).padStart(2, '0')}${extOf(u)}`, url: u, expires_in: 3600 }));
-    const rows = boqRows(i);
-    if (rows.length) documents.push({ kind: 'boq_csv', name: `Job_${job}_BOQ.csv`, mime: 'text/csv', content: boqCsv(rows), lines: rows.length });
     // A page that could not be signed is missing from this list too, so the list says how many.
-    return { status: 200, json: { ok: true, job_no: job, boq_withheld: !!i.boq_withheld, documents,
-      drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),
-      drawing_pages_failed: Number(i.drawing_pages_failed || 0) } };
+    const d = inquiryDocuments(i);
+    return { status: 200, json: { ok: true, job_no: d.job, boq_withheld: d.boq_withheld, documents: d.documents, drawing_pages_expected: d.drawing_pages_expected, drawing_pages_failed: d.drawing_pages_failed } };
   }
 
   // ── The conversation ─────────────────────────────────────────────────────────────────────────

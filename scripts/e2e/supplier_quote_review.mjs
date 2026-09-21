@@ -22,9 +22,9 @@ import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { deflateSync, crc32 } from 'node:zlib';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, write } from './fixtures.mjs';
 import { makeInquiry, uploadObject, q } from '../staging/demo_factory.mjs';
-import { demoOfficePlanPng } from '../lib/demo_pdf.mjs';
 import { launch, signedInPage, openPortal, portalUrl, realErrors, fullPageShot, SITE } from './browser.mjs';
 
 const SHOTS = process.env.QD_SHOTS || join(tmpdir(), 'qd-quote-review');
@@ -38,12 +38,17 @@ mkdirSync(SHOTS, { recursive: true });
 const report = { site: SITE, review_api: REVIEW_API || 'production', steps: [], shots: [] };
 const step = (name, ok, detail = '') => { report.steps.push({ name, ok, detail }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`); };
 
-// The redacted drawing page a supplier downloads. Until 21 Sep 2026 this was a local drawingPng():
-// a white sheet with a plan outline and no text, so the founder-demo supplier saw four empty
-// rectangles (audit 21 Sep, finding 3). The page is uploaded straight to drawings/redacted/ and
-// drawing_redact never runs on it, so it must already BE the redacted page: the shared office plan
-// (rooms, areas, dimensions, legend, north, scale) with its title block painted black.
-const drawingPng = () => demoOfficePlanPng({ redactTitleBlock: true });
+/** A small drawing page as a PNG: a white sheet with a plan outline, no text. */
+function drawingPng(w = 480, h = 340) {
+  const px = Buffer.alloc((w * 3 + 1) * h, 255);
+  const dot = (x, y) => { const o = y * (w * 3 + 1) + 1 + x * 3; px[o] = 30; px[o + 1] = 60; px[o + 2] = 90; };
+  for (let x = 40; x < w - 40; x++) { dot(x, 40); dot(x, h - 40); dot(x, 170); }
+  for (let y = 40; y < h - 40; y++) { dot(40, y); dot(w - 40, y); dot(250, y); }
+  for (let y = 0; y < h; y++) px[y * (w * 3 + 1)] = 0;
+  const chunk = (type, data) => { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(type), data]); const c = Buffer.alloc(4); c.writeUInt32BE(crc32(td) >>> 0); return Buffer.concat([len, td, c]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(px)), chunk('IEND', Buffer.alloc(0))]);
+}
 const BOQ = { boq: [
   { section: 'Internal walls', description: 'Internal wall painting emulsion', qty: 450, unit: 'm2', confidence: 'high' },
   { section: 'Ceilings', description: 'Ceiling painting emulsion', qty: 120, unit: 'm2', confidence: 'medium' },

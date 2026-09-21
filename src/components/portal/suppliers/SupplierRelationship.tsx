@@ -201,7 +201,7 @@ export function SupplierRelationshipCard({
   const ratingHint =
     quote.rating_count == null || quote.rating_count === ''
       ? undefined
-      : `${quote.rating_count} ${ar(lang, 'تقييم', 'reviews')}${quote.rating_source ? ` · ${quote.rating_source}` : ''}`;
+      : `${quote.rating_count} ${ar(lang, 'تقييم', Number(quote.rating_count) === 1 ? 'review' : 'reviews')}${quote.rating_source ? ` · ${quote.rating_source}` : ''}`;
 
   const yearsText = quote.years_active == null || quote.years_active === '' ? null : String(quote.years_active);
   const jobsWon = typeof quote.jobs_won === 'number' ? quote.jobs_won : null;
@@ -283,8 +283,8 @@ export function SupplierRelationshipCard({
         <div className={cn(S.note, 'mt-2')}>
           {ar(
             lang,
-            'لا نعرض بعد معدّل التسليم أو درجة العلاقة: هذه المقاييس محسوبة لدينا لكن لم تُتَح بعد لواجهة العميل.',
-            'Delivery rate, quality score and relationship score are not shown yet — we compute them internally but they are not served to the customer portal.',
+            'لا يوجد سجل تسليم لهذا المورّد على QuotesDone بعد — يظهر هنا بعد أول مشروع يُنجزه عبرنا.',
+            'No delivery record on QuotesDone for this supplier yet — it appears here after their first job completed through us.',
           )}
         </div>
       )}
@@ -459,7 +459,7 @@ export function SupplierHistoryPanel({
       {rd && rd.value != null ? (
         <div className={cn(S.sub, 'mt-1')}>
           <span className="text-accent font-semibold">★ {Number(rd.value).toFixed(1)}</span>
-          {` · ${rd.count ?? 0} ${ar(lang, 'تقييم', 'reviews')}${rd.source ? ` (${rd.source})` : ''}`}
+          {` · ${rd.count ?? 0} ${ar(lang, 'تقييم', Number(rd.count) === 1 ? 'review' : 'reviews')}${rd.source ? ` (${rd.source})` : ''}`}
         </div>
       ) : (
         <div className={cn(S.note, 'mt-1')}>{ar(lang, 'لم يُقيّم أي عميل هذا المورّد على QuotesDone بعد. لا نحتسب تقييمات المواقع الأخرى.', 'No QuotesDone customer has rated this supplier yet. Ratings from other websites are not counted.')}</div>
@@ -636,8 +636,8 @@ export function DiscoveryReachPanel({ inquiry, lang = 'en' }: DiscoveryReachPane
       <div className={cn(S.note, 'mt-1.5')}>
         {ar(
           lang,
-          'نسجّل سبب مطابقة كل مورّد، ويظهر لك سبب أي مورّد بعد كشفه — فقد يذكر السبب اسم الشركة. أما درجة التطابق الرقمية فغير مُسجّلة لأي مورّد حتى الآن.',
-          'We record why each supplier was matched, and you can read that reason for any supplier once you reveal them — the reason can name the company, so it stays hidden until then. A numeric match score is not recorded for any supplier yet.',
+          'يظهر لك سبب مطابقة أي مورّد بعد كشفه، لأن السبب قد يذكر اسم الشركة.',
+          'You can read why a supplier was matched once you reveal them — the reason can name the company, so it stays sealed until then.',
         )}
       </div>
     </Card>

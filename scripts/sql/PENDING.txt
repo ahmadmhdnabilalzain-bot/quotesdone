@@ -7,5 +7,19 @@
 # an entry with no reason — so "committed and not applied" is a stated fact rather than an absence.
 #
 # Format: <path> :: <reason, and what would move it>
-
-
+#
+# 21 Sep 2026 — the IT failures of 18–21 Sep (docs/it/IT_FAILURES_18_21_SEP_2026.md). Applies are
+# serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the
+# END of MANIFEST.txt (a file cannot be in both): each carries a PROBE row and was executed rolled-back.
+#
+# 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+#
+# 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+#
+# 21 Sep 2026 — sales_engineer, supplier audit of 21 Sep (findings 7, 25, 37). Apply in THIS order; as each is
+# applied, move its line to the END of MANIFEST.txt. Both changes were rehearsed in a rolled-back transaction
+# with their probe on 21 Sep 2026 (PROBE OK); against the unchanged database the probes answer PROBE FAILED.
+scripts/sql/one_job_number_on_every_portal_document_and_notice.sql :: not applied: the coordinator serialises applies. Apply with --apply --ddl, then run its _probe.sql (PROBE OK expected) and deploy supplier_api, customer_api, reveal_invoice, stripe_checkout in the same window.
+scripts/sql/one_job_number_on_every_portal_document_and_notice_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED until then.
+scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there.sql :: not applied: the coordinator serialises applies. Apply with --apply --ddl, then run its _probe.sql (PROBE OK expected).
+scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED (Sharjah returned) until then.

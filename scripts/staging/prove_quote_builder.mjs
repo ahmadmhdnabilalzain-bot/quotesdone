@@ -192,11 +192,13 @@ try {
   if (after.settings?.wa_optin !== flipped) fails.push('save_settings did not persist wa_optin');
   // Restore, so a proof run leaves no state behind.
   await post('supplier_api', { action: 'save_settings', wa_optin: !!before.settings?.wa_optin });
-  // And the allowlist must hold: a banking column offered here must be ignored.
-  await post('supplier_api', { action: 'save_settings', bank_iban: 'AE000000000000000000000' });
-  const iban = (await sql(`select coalesce(bank_iban,'-') v from public.leads where place_id='qd-demo-supplier-001'`))[0].v;
-  console.log(`  bank_iban after a settings post that tried to set it: ${iban}`);
-  if (iban !== '-') fails.push('save_settings wrote a column outside its allowlist');
+  // And the allowlist must hold: a profile column offered here must be ignored. (Until 21 Sep 2026 this
+  // posted bank_iban; that column was dropped with the founder's bank-details removal, instruction 527.)
+  const eidBefore = (await sql(`select coalesce(emirates_id,'-') v from public.leads where place_id='qd-demo-supplier-001'`))[0].v;
+  await post('supplier_api', { action: 'save_settings', emirates_id: '784-0000-0000000-0' });
+  const eidAfter = (await sql(`select coalesce(emirates_id,'-') v from public.leads where place_id='qd-demo-supplier-001'`))[0].v;
+  console.log(`  emirates_id after a settings post that tried to set it: unchanged=${eidBefore === eidAfter}`);
+  if (eidAfter !== eidBefore) fails.push('save_settings wrote a column outside its allowlist');
 
   if (fails.length) { console.log('\nFAILED:'); fails.forEach((f) => console.log('  - ' + f)); process.exit(1); }
   console.log('\nPASS: the price is the recomputed median, an unpriced enquiry is refused, the demand half is live, '

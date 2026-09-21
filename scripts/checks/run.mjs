@@ -213,8 +213,13 @@ function main() {
     // --allow-env, SCOPED to three names (15 Sep 2026): resend_inbound/index.test.ts drives the live
     // webhook's own handler, whose module builds its Supabase client from these at import. The test points
     // them at a stub host and replaces fetch; no network, no filesystem, no other variable is granted.
+    // --allow-read, SCOPED to one fixtures folder (21 Sep 2026): supplier_api/quote_review.test.ts
+    // replays the browser auditor's own quotation PDF and CSVs, committed under supplier_api/fixtures/.
+    // CI refused with NotCapable "Requires read access to .../fixtures/ZZDEMO_quotation_D958E1EA.pdf"
+    // while the same test passed locally. Only that folder is readable; the rest of the tree is not.
     const denoRes = spawnSync('deno', ['test', '--no-lock', '--node-modules-dir=auto',
-      '--allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_INBOUND_NO_SERVE', ...deno],
+      '--allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_INBOUND_NO_SERVE',
+      `--allow-read=${path.join(REPO, 'supabase', 'functions', 'supplier_api', 'fixtures')}`, ...deno],
       { stdio: 'inherit', cwd: REPO, shell: process.platform === 'win32' });
     if (denoRes.error && denoRes.error.code === 'ENOENT') {
       // NEVER SKIP. Passing silently when the runner is absent is the precise failure this file

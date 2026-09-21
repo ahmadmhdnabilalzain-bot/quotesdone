@@ -28,7 +28,6 @@
 //   node scripts/e2e/founder_demo_tour.mjs --link       mint FRESH links for the demo already standing
 //   node scripts/e2e/founder_demo_tour.mjs --verify     open the supplier link in a browser and prove it lands signed in
 //   node scripts/e2e/founder_demo_tour.mjs --teardown   remove every row, file and auth user this seeded
-//   node scripts/e2e/founder_demo_tour.mjs --redraw     re-upload the readable redacted plan over a standing demo's pages
 //
 // The link is a Supabase magic link (POST /auth/v1/admin/generate_link, type magiclink). Its token
 // is single-use and expires after mailer_otp_exp — 3600 s on this project — so --link is the
@@ -37,9 +36,10 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { deflateSync, crc32 } from 'node:zlib';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call } from './fixtures.mjs';
 import { newRun, makeInquiry, uploadObject, keys, q, num } from '../staging/demo_factory.mjs';
-import { demoPdf, demoOfficePlanPng } from '../lib/demo_pdf.mjs';
+import { demoPdf } from '../lib/demo_pdf.mjs';
 
 // ONE TAG FOR THE LIFE OF THE DEMO. Not random: the founder's demo is a standing thing, so --link
 // and --teardown must be able to find it tomorrow without being told a hex string from today.
@@ -162,12 +162,17 @@ async function reviewToSubmission(rv, files) {
   return { view, raised, still_open: openIssues(view).length };
 }
 
-// The redacted drawing page a supplier downloads. Until 21 Sep 2026 this was a local drawingPng():
-// a white sheet with a plan outline and no text, so the founder-demo supplier saw four empty
-// rectangles (audit 21 Sep, finding 3). The page is uploaded straight to drawings/redacted/ and
-// drawing_redact never runs on it, so it must already BE the redacted page: the shared office plan
-// (rooms, areas, dimensions, legend, north, scale) with its title block painted black.
-const drawingPng = () => demoOfficePlanPng({ redactTitleBlock: true });
+/** A drawing page as a PNG: a white sheet with a plan outline and no text. Same shape as supplier_quote_review.mjs. */
+function drawingPng(w = 620, h = 440) {
+  const px = Buffer.alloc((w * 3 + 1) * h, 255);
+  const dot = (x, y) => { const o = y * (w * 3 + 1) + 1 + x * 3; px[o] = 30; px[o + 1] = 60; px[o + 2] = 90; };
+  for (let x = 40; x < w - 40; x++) { dot(x, 40); dot(x, h - 40); dot(x, 210); }
+  for (let y = 40; y < h - 40; y++) { dot(40, y); dot(w - 40, y); dot(330, y); }
+  for (let y = 0; y < h; y++) px[y * (w * 3 + 1)] = 0;
+  const chunk = (type, data) => { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(type), data]); const c = Buffer.alloc(4); c.writeUInt32BE(crc32(td) >>> 0); return Buffer.concat([len, td, c]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(px)), chunk('IEND', Buffer.alloc(0))]);
+}
 
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
 
@@ -392,28 +397,6 @@ if (has('--teardown')) {
   console.log('torn down:', JSON.stringify(r.removed.summary ?? r.removed));
   console.log('leftovers:', JSON.stringify(r.leftovers));
   process.exit(r.leftovers && r.leftovers.total > 0 ? 1 : 0);
-}
-
-if (has('--redraw')) {
-  // 21 Sep 2026, audit finding 3: the standing demo's redacted pages were the old blank fixture.
-  // Re-upload the readable plan (title block already black) to the SAME storage paths the
-  // inquiries point at, so nothing in the database changes and the supplier's download changes.
-  const { sup } = await standing();
-  if (!sup) { console.error(`no demo tagged ${TAG} is standing — run --seed first`); process.exit(1); }
-  const rows = await read(`select i.id, i.drawing_redacted_paths as paths from public.inquiries i
-      join public.customers c on c.id = i.customer_id
-      where c.email like ${q('qd-' + TAG + '-%')} and coalesce(array_length(i.drawing_redacted_paths, 1), 0) > 0
-      order by i.created_at`);
-  const png = drawingPng();
-  let n = 0;
-  for (const r of rows) for (const path of r.paths) {
-    if (!path.startsWith(`drawings/redacted/${TAG}/`)) { console.log(`skipped (not a ${TAG} page): ${path}`); continue; }
-    await uploadObject('drawing-files', path, png, 'image/png');
-    console.log(`rewrote drawing-files/${path}  (inquiry ${r.id})`);
-    n++;
-  }
-  console.log(`${n} redacted page(s) rewritten for ${rows.length} inquiry(ies), ${png.length} bytes each`);
-  process.exit(n > 0 ? 0 : 1);
 }
 
 if (has('--link')) {

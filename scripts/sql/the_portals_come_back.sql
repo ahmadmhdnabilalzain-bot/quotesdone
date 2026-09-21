@@ -325,12 +325,13 @@ AS $function$
 $function$;
 
 -- fn_supplier_certifications -- called by a portal edge function that PR #530 deleted and this change restores
-CREATE OR REPLACE FUNCTION public.fn_supplier_certifications(p_lead_id bigint)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
+create or replace function public.fn_supplier_certifications(p_lead_id bigint)
+returns jsonb
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
   with me as (select * from public.leads where id = p_lead_id),
   docs as (
     select * from (values
@@ -339,8 +340,10 @@ AS $function$
       ('vat',                'VAT certificate',            'high',     'Needed before you can invoice with VAT.'),
       ('iso',               'ISO certification',           'medium',   'Strengthens your capability score and unlocks quality-gated requests.'),
       ('manufacturer_auth', 'Manufacturer authorisation',  'medium',   'Proves you are authorised for the brands you carry.'),
-      ('establishment',     'Establishment card',          'low',      'Administrative record. Does not gate work.'),
-      ('bank_iban',         'Bank details (IBAN)',         'medium',   'We cannot pay you without it.')
+      ('establishment',     'Establishment card',          'low',      'Administrative record. Does not gate work.')
+      -- 'bank_iban' ("We cannot pay you without it.") was a row here until 21 Sep 2026. It was false: money
+      -- moves both directions through Stripe and the estate never holds a supplier's bank details
+      -- (founder instruction 527; scripts/sql/the_founder_removed_bank_details_from_the_estate.sql).
     ) d(key, label, impact, impact_why)
   ),
   held as (
@@ -352,7 +355,6 @@ AS $function$
         when 'iso'                then (select iso_doc_path from me)
         when 'manufacturer_auth'  then (select manufacturer_auth_doc_path from me)
         when 'establishment'      then (select egr_doc_path from me)
-        when 'bank_iban'          then (select iban_doc_path from me)
       end as path,
       case d.key
         when 'trade_licence'     then (select license_expiry from me)

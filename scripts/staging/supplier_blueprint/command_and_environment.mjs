@@ -1,7 +1,7 @@
 // SPEC FILE #5, sections 4-6 — Command Center, 3D Supplier Environment, Supplier Profile Page.
 //
 //   4. Supplier Command Center UI (10) — the home screen, and the spec insists it is NOT a dashboard
-//   5. 3D Supplier Environment    (12) — a factory scene whose objects open real inventory
+//   5. 3D Supplier Environment    (0)  — RETIRED 21 Sep 2026; founder: "its useless remove it"
 //   6. Supplier Profile Page       (9) — a LIVING intelligence page, not a static company record
 //
 // ── EVERY LEG IS PER-FILE OR PER-FUNCTION, AND THE EVIDENCE NAMES WHAT SATISFIED IT ──────────────
@@ -14,30 +14,26 @@
 //
 // ── THE OVERLAP THIS MODULE MUST NOT CAUSE ───────────────────────────────────────────────────────
 // docs/sessions/ROW5_REQUIREMENTS.md logs four pairs that risk one implementation scoring twice.
-// Two are this module's responsibility:
-//   · env-3d-scene (§5) vs map-globe (§19) vs ui-3d-maps (§22) vs tech-threejs (§23). ONE <Canvas>
-//     must not satisfy all four. §5 is specifically a COMPANY ENVIRONMENT — a factory with a
-//     production line, inventory, orders and customers — so the scene leg requires 3D machinery AND
-//     a company-environment subject. A globe alone cannot pass it, and neither can a bare import.
+// One is this module's responsibility (the 3D pair — env-3d-scene vs map-globe vs ui-3d-maps vs
+// tech-threejs — was retired 21 Sep 2026 with the 3D environment and the network map):
 //   · cc-perf-response / cc-perf-quality (§4) vs the §13 health panel. §4 draws two SUMMARY TILES on
 //     the command center; §13 draws five bars in a health panel. Scored on different components, and
 //     the §4 legs require the value on the command-center screen rather than anywhere on the surface.
 //
 // ── THE EMPTY-ESTATE RULE ────────────────────────────────────────────────────────────────────────
-// §5's inventory legs sit on inv_items / inv_stock_moves, which hold 0 rows on production. A row
-// count is therefore NEVER the verdict — the verdict is whether a reader and a supplier-facing
-// surface exist. The row count is printed beside it so a MISSING can never be mistaken for an
-// artefact of the empty estate, and so a future run with real stock reads the same verdict.
+// A row count is NEVER the verdict — the verdict is whether a reader and a supplier-facing surface
+// exist. The row count is printed beside it so a MISSING can never be mistaken for an artefact of
+// the empty estate.
 import {
   S, P, FILES, FNS, fileSrc, fnSrc, n, has, filesMatching, fnsMatching, fnsWithBoth,
   delivered, cover, B, Q, READERS_SQL, NROWS_SQL, rpcSources,
 } from '../supplier_checks.mjs';
 
-export const EXPECTED = 31;
+export const EXPECTED = 19;   // 31 until 21 Sep 2026; the twelve §5 env-* legs retired with the 3D environment
 
 export default async function (H) {
   const { req, one } = H;
-  const SEC4 = 'cc', SEC5 = 'env', SEC6 = 'prof';
+  const SEC4 = 'cc', SEC6 = 'prof';
 
   // The serving population follows the rpc hop — the same false MISSING found in §13, §7 and §15.
   const RPC = await rpcSources(one);
@@ -168,89 +164,15 @@ export default async function (H) {
     Q(`${panels} panel token(s) vs ${tables} table token(s) — a command center may hold a table, it may not be built of them`));
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════
-  // §5 — 3D SUPPLIER ENVIRONMENT (12)
+  // §5 — 3D SUPPLIER ENVIRONMENT — RETIRED 21 SEP 2026
   // ════════════════════════════════════════════════════════════════════════════════════════════════
-
-  // THE SCENE LEG IS DELIBERATELY NARROWER THAN "IS THERE 3D". §19's globe, §22's design-language
-  // commitment to 3D maps and §23's Three.js dependency are three other requirements; if a bare
-  // <Canvas> satisfied all four the score would count one implementation four times. §5 is a COMPANY
-  // ENVIRONMENT, so it needs 3D machinery AND a factory/warehouse subject in the same file.
-  const threeD = /@react-three|three\b|<Canvas\b|useFrame|WebGLRenderer|webgl/i;
-  const factorySubject = /factory|warehouse|production[_ ]?line|shop[_ ]?floor|plant\b/i;
-  const sceneFiles = FILES.filter((f) => threeD.test(fileSrc(f)) && factorySubject.test(fileSrc(f)));
-  const anyThreeD = filesMatching(threeD);
-  await req(SEC5, 'env-3d-scene', 'a 3D company environment on the supplier surface',
-    B(sceneFiles.length > 0),
-    Q(`${sceneFiles.length} file(s) carry BOTH 3D and a factory subject [${sceneFiles.map(f => f.split('/').pop()).join(' ') || 'none'}]; ` +
-      `${anyThreeD.length} file(s) carry 3D at all — §19/§22/§23 score those separately`));
-
-  // Defect class #3 — the spec enumerates FIVE objects in the scene, so each is its own requirement
-  // rather than one "the scene has nodes" verdict. Each names the file that carried it.
-  for (const [id, re, label] of [
-    ['env-node-factory', /\bfactory\b/i, 'Factory'],
-    ['env-node-production-line', /production[_ ]?line/i, 'Production Line'],
-    ['env-node-inventory', /\binventory\b/i, 'Inventory'],
-    ['env-node-orders', /\borders?\b/i, 'Orders'],
-    ['env-node-customers', /\bcustomers?\b/i, 'Customers'],
-  ]) {
-    const inScene = sceneFiles.filter((f) => re.test(fileSrc(f)));
-    const onPortal = filesMatching(re);
-    await req(SEC5, id, `the environment has a ${label} node`,
-      B(inScene.length > 0),
-      Q(`${label}: in a 3D scene file ${inScene.length ? '[' + inScene.map(f => f.split('/').pop()).join(' ') + ']' : 'NO'}; ` +
-        `mentioned in ${onPortal.length} portal file(s) — a mention outside the scene is not a scene node`));
-  }
-
-  const clickable = sceneFiles.filter((f) => /onClick|onPointer(Down|Up|Over)|raycast|useCursor/i.test(fileSrc(f)));
-  await req(SEC5, 'env-clickable-objects', 'clicking an object opens its information',
-    B(clickable.length > 0),
-    Q(`${clickable.length} scene file(s) with pointer handlers [${clickable.map(f => f.split('/').pop()).join(' ') || 'none'}]`));
-
-  const whPanel = filesMatching(/warehouse/i).filter((f) => /inventory|stock|available|reserved/i.test(fileSrc(f)));
-  await req(SEC5, 'env-warehouse-panel', 'the warehouse click opens an inventory panel',
-    B(whPanel.length > 0),
-    Q(`${whPanel.length} file(s) pair a warehouse with inventory content [${whPanel.map(f => f.split('/').pop()).join(' ') || 'none'}]`));
-
-  // ── THESE CHECKS WERE POINTED AT THE WRONG RELATION ───────────────────────────────────────────
-  // The first version read inv_items / inv_stock_moves, on the assumption that they held supplier
-  // stock. They do not. Measured: inv_items has NO supplier_id at all — its columns are
-  // sku, name, uom, category, inventory_account, cogs_account, reorder_point. Those GL account
-  // columns give it away: it is QuotesDone's OWN accounting inventory ledger, not a per-supplier
-  // stock table. A supplier's warehouse could never appear in it.
-  //
-  // The supplier's actual stock lives in supplier_product_variant.attributes.available_units, which
-  // is where §8's "Available: 120 units" was proven coming from. Scoring §5's warehouse panel
-  // against the company's own COGS ledger would have been unsatisfiable by any correct
-  // implementation — row #4's unsatisfiable-check defect, arriving through a wrong table rather
-  // than a wrong threshold. Both populations are printed so the distinction stays visible.
-  const invRows = await one(NROWS_SQL('supplier_product_variant'));
-  const moveRows = await one(NROWS_SQL('inv_items'));
-  for (const [id, re, label] of [
-    ['env-inv-available', /\bavailable\b|qty[_ ]?available|on[_ ]?hand/i, 'Available'],
-    ['env-inv-reserved', /\breserved\b|qty[_ ]?reserved|allocated/i, 'Reserved'],
-    ['env-inv-production', /in[_ ]?production|qty[_ ]?production|being[_ ]?made|wip\b/i, 'In production'],
-  ]) {
-    const shown = delivered(re);
-    const served = servedBy(re);
-    await req(SEC5, id, `the warehouse panel shows ${label}`,
-      B(shown && served.length > 0),
-      Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]; ` +
-        `supplier_product_variant ${invRows} row(s) (the supplier stock); inv_items ${moveRows} (the company COGS ledger, a different thing) — the verdict is delivery, not rows`));
-  }
-
-  // Defect class #1 — a reader that is not the writer. The brief names inv_items/inv_stock_moves as
-  // built-but-unread; this measures it rather than repeating it, and requires a SUPPLIER-FACING
-  // reader specifically, because a staff-side routine reading stock is not the supplier seeing it.
-  // The SUPPLIER's stock, not the company's ledger. See the note above the quantity legs.
-  const invReaders = await one(READERS_SQL('supplier_product_variant'));
-  const invFnReaders = [
-    ...fnsMatching(/supplier_product_variant|available_units/i),
-    ...RPC.filter(([, src]) => /supplier_product_variant|available_units/i.test(src)).map(([nm]) => nm),
-  ];
-  await req(SEC5, 'env-inventory-reader', 'the panel reads real inventory rows',
-    B(invFnReaders.length > 0),
-    Q(`${invFnReaders.length} supplier-reachable edge fn(s) read inventory [${invFnReaders.join(' ') || 'none'}]; ` +
-      `${invReaders} non-writer SQL routine(s) read supplier_product_variant`));
+  // The founder removed the 3D company environment from the supplier portal (instruction 525:
+  // "its useless remove it"). SupplierEnvironment.tsx and the warehouse .gltf are deleted. Its
+  // twelve requirements (env-3d-scene, env-node-factory, env-node-production-line,
+  // env-node-inventory, env-node-orders, env-node-customers, env-clickable-objects,
+  // env-warehouse-panel, env-inv-available, env-inv-reserved, env-inv-production,
+  // env-inventory-reader) retired WITH their subject. They are not scored as missing, because
+  // building them again would contradict the ruling.
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════
   // §6 — SUPPLIER PROFILE PAGE (9)
