@@ -72,6 +72,16 @@ Deno.serve(observe('claim_lookup', async (req) => {
       return J({ ok: false, error: 'not_found', message: 'This claim link is no longer available. Please contact management@quotesdone.com.' }, 404);
     }
 
+    // THE CLICK IS RECORDED (21 Sep 2026, sales_engineer): the first opening of an unclaimed invitation
+    // is what fn_supplier_registration_reminders_due follows up on day 2 and day 6. Only the first one
+    // (`is null`), so a reload does not restart the supplier's clock. A failure here must never cost the
+    // supplier the page, so it is logged and the lookup answers as before.
+    if (!l.claimed) {
+      const { error: clickErr } = await admin.from('leads').update({ invite_clicked_at: new Date().toISOString() })
+        .eq('id', l.id).is('invite_clicked_at', null);
+      if (clickErr) console.error('claim_lookup: could not record the click —', clickErr.message);
+    }
+
     await logRun('ok', { found: 1, already_claimed: l.claimed ? 1 : 0 },
       'claim_lookup resolved a valid invitation token' + (l.claimed ? ' for a lead that has ALREADY been claimed - the supplier will be told it is taken.' : ' for an unclaimed lead; the supplier can proceed to claim it.'));
 
