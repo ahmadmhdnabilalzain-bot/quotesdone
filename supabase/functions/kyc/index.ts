@@ -8,6 +8,7 @@ import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
+import { resendWithRetry } from '../_shared/resend_send.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -40,10 +41,20 @@ type TwAuth = { hdr: string; va: string };
 // these inline; the WhatsApp question needs the identical machinery on Channel=whatsapp, and two
 // copies of a rate limit is how one of them ends up looser. The limit counts phone_verifications rows
 // for the number in the last hour regardless of channel, so SMS, call and WhatsApp share 5 per hour.
-async function phoneRateLimited(phone: string): Promise<boolean> {
+// PER ACCOUNT TOO (21 Sep 2026, registration-day surge review). The cap above was per NUMBER only, so
+// one signed-in account could walk a list of numbers at 5 billable Verify sends each (~$0.17 per SMS to
+// the UAE) with nothing in this function stopping it - the hole login_otp closed on 19 Jul. On a
+// campaign day that is also SMS sent in our name to strangers. A real supplier verifies one mobile,
+// perhaps after a typo and a resend or two, so 8 sends per account per hour across every number and
+// channel is never reached honestly.
+const KYC_PHONE_SENDS_PER_NUMBER_HOUR = 5;
+const KYC_PHONE_SENDS_PER_ACCOUNT_HOUR = 8;
+async function phoneRateLimited(phone: string, email: string): Promise<boolean> {
   const since = new Date(Date.now() - 3600e3).toISOString();
   const { count } = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('phone', phone).gte('created_at', since);
-  return (count || 0) >= 5;
+  if ((count || 0) >= KYC_PHONE_SENDS_PER_NUMBER_HOUR) return true;
+  const mine = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
+  return (mine.count || 0) >= KYC_PHONE_SENDS_PER_ACCOUNT_HOUR;
 }
 async function verifySend(tw: TwAuth, phone: string, channel: string, locale: string) {
   const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel, Locale: locale }) });
@@ -55,7 +66,10 @@ async function verifyCheck(tw: TwAuth, phone: string, code: string): Promise<boo
   const jd: any = await r.json().catch(() => ({}));
   return jd?.status === 'approved';
 }
-async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; try { const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, subject, html }) }); return r.ok; } catch { return false; } }
+// ONE RETRY ON 429 (21 Sep 2026). Resend allows 10 requests a second per team, shared with send_outbox
+// draining a campaign on the same key; a code refused for a busy second is retried once rather than lost.
+// The call lives in _shared/resend_send.ts so login_otp and kyc cannot drift apart.
+async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; return await resendWithRetry(key, { from, to, subject, html }); }
 // SUPPRESSION BYPASS 28 Jul 2026 ----------------------------------------------------------------
 // login_otp and contact_submit both consult email_suppressions before handing anything to Resend,
 // and send_outbox queries the same table. kyc did not: sendEmail() above builds its own Resend call,
@@ -204,6 +218,10 @@ Deno.serve(observe('kyc', async (req) => {
         await logRun('error', { action, kind, suppressed: 1, channel: 'email' }, 'kyc refused to email a verification code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or unsubscribe). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
         return J({ error: 'We cannot email this address - it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.', suppressed: true }, 403);
       }
+      // The same 8-an-hour ceiling login_otp puts on sign-in codes; this branch had none (21 Sep 2026).
+      const since = new Date(Date.now() - 3600e3).toISOString();
+      const { count: sentLastHour } = await admin.from('email_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
+      if ((sentLastHour || 0) >= 8) return J({ ok: false, error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
       const c = code6();
       // 27 Jul 2026: store token_hash (HMAC), never the bare code. token stays NULL from here on;
       // verify_email still honours a plaintext token row so codes issued before this deploy work out
@@ -213,8 +231,10 @@ Deno.serve(observe('kyc', async (req) => {
       const codeAr = (await registeredLocale(admin, { role: kind, email }, b.lang)) === 'ar';
       const mail = codeEmail('confirm', c, codeAr);
       const sent = await sendEmail(email, mail.subject, mail.html);
-      if (!sent) await logRun('error', { action, kind }, 'verification email failed to send (Resend rejected or key missing) - user cannot verify');
-      else await logRun('ok', { action, kind }, '');
+      // A code that did not leave is not "sent" (21 Sep 2026): this answered ok:true either way, so the
+      // screen said "we emailed you a code" over a Resend refusal and the supplier waited for nothing.
+      if (!sent) { await logRun('error', { action, kind }, 'verification email failed to send (Resend rejected or key missing) - user cannot verify'); return J({ ok: false, error: 'Could not send the email code. Please try again in a minute.', code: 'email_not_sent' }, 502); }
+      await logRun('ok', { action, kind }, '');
       return J({ ok: true });
     }
     if (action === 'verify_email') {
@@ -258,7 +278,7 @@ Deno.serve(observe('kyc', async (req) => {
     if (action === 'send_sms') {
       const phone = toE164(String(b.phone || '')); if (!phone) return J({ error: 'Enter a valid mobile number.' }, 400);
       const tw = await twilioAuth(); if (!tw) { await logRun('error', { action, kind }, 'SMS not configured: missing twilio_api_key_sid / secret / verify_service_sid'); return J({ error: 'SMS is not configured.' }, 500); }
-      if (await phoneRateLimited(phone)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour'); return J({ error: 'Too many code requests. Please try again later.' }, 429); }
+      if (await phoneRateLimited(phone, email)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour'); return J({ error: 'Too many code requests. Please try again later.' }, 429); }
       // LANDLINE FALLBACK (12 Aug 2026). Twilio Verify refuses SMS to a landline with error 21635,
       // and the only customer on file registered a Dubai landline: Twilio Lookup returns
       // type=landline for +97142587734, and a real send returned HTTP 400 / 21635. So the one
@@ -317,7 +337,7 @@ Deno.serve(observe('kyc', async (req) => {
       // the number sent to Twilio below.
       const tw = await twilioAuth();
       if (!tw) { await logRun('error', { action, kind }, 'WhatsApp code not sent: missing twilio_api_key_sid / secret / verify_service_sid'); return J({ ok: false, error: 'whatsapp_unavailable', code: 'whatsapp_unavailable' }, 200); }
-      if (await phoneRateLimited(phone)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour (SMS, call and WhatsApp share it)'); return J({ ok: false, error: 'rate_limited', code: 'rate_limited' }, 429); }
+      if (await phoneRateLimited(phone, email)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour (SMS, call and WhatsApp share it)'); return J({ ok: false, error: 'rate_limited', code: 'rate_limited' }, 429); }
       if (!(await writeWa(askedPatch(new Date().toISOString())))) return saveFailed();
       const vLocale = await registeredLocale(admin, { role: kind, email }, b.lang);
       const res = await sendWhatsAppFirst((ch) => verifySend(tw, phone, ch, vLocale));
