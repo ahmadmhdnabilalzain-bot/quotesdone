@@ -7,8 +7,9 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { encodeBase64 } from 'jsr:@std/encoding/base64';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { BRAND, lockupImg } from '../_shared/brand.ts';
+import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
+import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { ownsChannel, selectQueue } from './channels.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -22,17 +23,6 @@ async function sec(k: string) { const { data } = await admin.from('app_secrets')
 // stored secret must now be a real value before any caller value can equal it.
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 async function tmplRow(n: string) { try { const { data } = await admin.from('templates').select('content').eq('name', n).maybeSingle(); return (data?.content as string) || ''; } catch { return ''; } }
-function esc(s: string) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-// BRAND: the founder's kit is on file (public.company_brand). Every colour below is one of its
-// rows, and this file now renders on NAVY, so it uses the on-navy pair throughout. The on-white
-// link (teal-deep #0B8276) is gone from here -- it was correct when the mail was white and is
-// near-invisible on #123041. Brand teal #14B8A6 remains an accent that never carries text.
-// v18 (8 Sep 2026): renderBody's output is placed on the DARK internal card, so it needs the
-// on-navy pair, not the on-white one. company_brand.contrast.links states it outright -- "On navy:
-// teal-light #6EE7D4" -- and teal-deep #0B8276 is the on-WHITE link, near-invisible on #123041.
-// The body colour had the same fault: #1f2937 is dark grey, which on navy is grey on black.
-const DARK_LINK = '#6EE7D4', DARK_INK = '#EAF4F2';
-function linkify(s: string) { return s.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:' + DARK_LINK + '">$1</a>'); }
 
 // ATTACHMENTS (9 Sep 2026) ---------------------------------------------------
 // Until today this function could not email a file. The Resend payload below was built as
@@ -95,61 +85,6 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
   await logRun(status, { ...counts, signal }, note);
 }
 
-// Turn a plain-text agent body into structured HTML: ALL-CAPS short lines -> headings, -/• lines -> bullets, URLs -> links.
-function renderBody(raw: string) {
-  const lines = String(raw || '').split('\n'); let html = ''; let inList = false;
-  const closeList = () => { if (inList) { html += '</ul>'; inList = false; } };
-  for (const line of lines) {
-    const t = line.replace(/\s+$/, '');
-    if (!t) { closeList(); html += '<div style="height:8px"></div>'; continue; }
-    if (/^[=\-_]{3,}$/.test(t)) { continue; }
-    if (/^\s*[-•*]\s+/.test(t)) { if (!inList) { html += '<ul style="margin:6px 0 6px 18px;padding:0">'; inList = true; } html += '<li style="margin:3px 0;font-size:15px;line-height:1.55;color:' + DARK_INK + '">' + linkify(esc(t.replace(/^\s*[-•*]\s+/, ''))) + '</li>'; continue; }
-    closeList();
-    if (t === t.toUpperCase() && /[A-Z]/.test(t) && t.length <= 64) { html += '<h3 style="margin:18px 0 6px;font-size:13px;font-weight:800;color:' + DARK_LINK + ';text-transform:uppercase;letter-spacing:.04em">' + esc(t) + '</h3>'; continue; }
-    html += '<p style="margin:0 0 9px;font-size:15px;line-height:1.6;color:' + DARK_INK + '">' + linkify(esc(t)) + '</p>';
-  }
-  closeList();
-  return html;
-}
-function tmpl(opts: { body: string; logo: string; name: string; title: string; channelEmail: string; unsub: string; wrapper?: string; internal?: boolean; subject?: string }) {
-  const { body, logo, name, title, channelEmail, unsub, wrapper, internal, subject } = opts;
-  // v17 (8 Sep 2026): the logo is the horizontal OnDark lockup, not the 192px PWA app tile, so
-  // 34x34 with a border-radius would squash a wordmark into a square and round its corners off.
-  //
-  // v18 (8 Sep 2026, founder: "make the logo a bit bigger... everywhere from now it should [be
-  // sized] in terms of the height"). Measured rather than nudged: the supplied lockup is a
-  // 1859x460 box holding 1608x176 of artwork, so 62% of its height is empty alpha. At width 170
-  // the box came out 42px tall and the visible wordmark 16px -- the same height as the 15px body
-  // text beneath it, which is precisely what he was looking at. Widening the box would have spent
-  // 62% of every added pixel on nothing.
-  //
-  // So the size now comes from lockupImg() in _shared/brand.ts, which uses the TRIMMED lockup and
-  // takes a HEIGHT. One helper, so email, UI and PDF cannot drift apart, and one unit, because a
-  // width means something different for every asset depending on the padding it was drawn inside.
-  const logoTag = logo ? lockupImg({ ground: 'dark', height: BRAND.logoHeight.email }) : '';
-  const unsubLine = unsub ? `<br><a href="${unsub}" style="color:#9ca3af">Unsubscribe</a> &middot; or reply to this email to be removed.` : '';
-  if (wrapper && wrapper.indexOf('{{BODY}}') >= 0) {
-    return wrapper.split('{{LOGO}}').join(logoTag).split('{{BODY}}').join(esc(body)).split('{{NAME}}').join(esc(name)).split('{{TITLE}}').join(esc(title)).split('{{REPLY}}').join(esc(channelEmail)).split('{{UNSUB}}').join(unsubLine);
-  }
-  // v17 (8 Sep 2026): dark, on the brand kit's own navy, and table-based. This fallback is what
-  // internal/admin mail uses (it takes no wrapper), and it had the same two faults the customer
-  // template had: display:flex, which Outlook's Word engine ignores outright, and a light ground.
-  // Colours and their contrast ratios come from company_brand, which records them measured:
-  // paper #EAF4F2 on navy 14.4:1 AAA, muted #9DB2B2 7.3:1 AAA, teal-light #6EE7D4 10.8:1 AAA.
-  // The kit also states the rule this file previously broke -- on navy the link is teal-light, and
-  // brand teal #14B8A6 is an accent that must never carry text.
-  const INK = '#EAF4F2', MUTED = '#9DB2B2', SURFACE = '#123041', GROUND = '#06121B', RULE = '#173A4B', DLINK = '#6EE7D4';
-  const header = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="vertical-align:middle">${logoTag}</td>${internal ? `<td align="right" style="vertical-align:middle;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:${MUTED};letter-spacing:.06em">INTERNAL</td>` : ''}</tr></table>`;
-  const titleBlock = (internal && subject) ? `<h2 style="margin:18px 0 12px;font-size:19px;line-height:1.3;color:#FFFFFF;font-family:Arial,Helvetica,sans-serif">${esc(subject)}</h2>` : '';
-  const content = internal ? renderBody(body) : `<div dir="auto" style="font-size:15px;line-height:1.65;white-space:pre-wrap;color:${INK};text-align:start;unicode-bidi:plaintext">${esc(body)}</div>`;
-  const sig = `<div style="margin-top:26px;padding-top:18px;border-top:1px solid ${RULE};font-size:13px;color:${MUTED};line-height:1.6"><div style="font-weight:700;color:#FFFFFF">${esc(name)}</div><div style="color:${INK}">${esc(title)}, QuotesDone</div><div style="margin-top:3px">${esc(channelEmail)} &middot; <a href="https://quotesdone.com" style="color:${DLINK};text-decoration:none">quotesdone.com</a></div></div>`;
-  const footer = internal
-    ? `<div style="text-align:center;color:${MUTED};font-size:12px;margin-top:16px;line-height:1.55">QuotesDone OS &middot; internal operations report &middot; Dubai, UAE<br>You're receiving this because you're an administrator of QuotesDone.</div>`
-    : `<div style="text-align:center;color:${MUTED};font-size:12px;margin-top:16px;line-height:1.55">QuotesDone &middot; Dubai, UAE<br>You're receiving this because your business is publicly listed and may match clients sourcing on QuotesDone.${unsubLine}</div>`;
-  // bgcolor AND inline background on every coloured cell: different clients read different ones,
-  // and Outlook is unreliable about background-color on a div.
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"></head><body style="margin:0;padding:0;background:${GROUND};font-family:Arial,Helvetica,sans-serif"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${GROUND}" style="background:${GROUND};padding:28px 12px"><tr><td align="center"><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${SURFACE}" style="max-width:600px;width:100%;background:${SURFACE};border:1px solid ${RULE};border-radius:14px"><tr><td style="padding:30px">${header}${titleBlock}${content}${sig}</td></tr></table><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%"><tr><td>${footer}</td></tr></table></td></tr></table></body></html>`;
-}
 // okEveryMs 10 minutes: this polls every 2 minutes, and its logRun/logThrottled rows above already
 // carry the business signal. The observe() row adds only the HTTP/latency view, so one healthy
 // sample per ten minutes is plenty and 720 rows a day would bury the rows that matter.
@@ -184,6 +119,8 @@ Deno.serve(observe('send_outbox', async (req) => {
     const replyInfo = (await sec('email_reply_info')) || 'info@quotesdone.com';
     const logo = (await sec('email_logo_url')) || '';
     const sigName = (await sec('email_signature_name')) || 'Ahmad Alzain';
+    // The founder's name in Arabic script for Arabic mail (instruction 586): a Latin name under an Arabic letter reads as a translation.
+    const sigNameAr = (await sec('email_signature_name_ar')) || 'أحمد الزين';
     const sigTitle = (await sec('email_signature_title')) || 'Founder';
     const tplSup = await tmplRow('email_supplier'); const tplCust = await tmplRow('email_customer');
     const cap = parseInt((await sec('daily_send_cap')) || '80', 10);
@@ -195,9 +132,12 @@ Deno.serve(observe('send_outbox', async (req) => {
     // Previously a silent ok:true - mail just accumulated with no signal anywhere.
     if (!enabled || !key) { await logThrottled('email_disabled', 60, 'error', { pending: rows.length, email_enabled: enabled, has_resend_key: !!key }, 'EMAIL NOT SENDING - ' + (!enabled ? 'email_enabled is not true' : 'resend_api_key missing') + '; ' + rows.length + ' notification(s) waiting'); return J({ ok: true, pending: rows.length, sent: 0, note: 'email disabled or resend_api_key missing - queued and will flush once enabled' }); }
     if (remaining <= 0) { await logThrottled('cap_reached', 60, 'error', { pending: rows.length, cap, sent_today: sentToday || 0 }, 'daily send cap reached - ' + rows.length + ' notification(s) held until tomorrow'); return J({ ok: true, sent: 0, pending: rows.length, note: 'daily send cap reached', cap, sent_today: sentToday || 0 }); }
-    const toEmails = [...new Set(rows.map((r: any) => r.to_email).filter(Boolean))];
+    // CASE-FOLDED BOTH SIDES (21 Sep 2026). email_suppressions is written lower-case by unsubscribe and
+    // resend_webhook, and this lookup used to match the queued address exactly, so a supplier whose
+    // lead email carried a capital letter (47 leads, measured) unsubscribed and kept being mailed.
+    const toEmails = [...new Set(rows.map((r: any) => foldEmail(r.to_email)).filter(Boolean))];
     let supSet = new Set<string>();
-    if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email').in('email', toEmails); supSet = new Set((sup || []).map((s: any) => s.email)); }
+    if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email').in('email', toEmails); supSet = new Set((sup || []).map((s: any) => foldEmail(s.email))); }
     let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0;
     const failNote = async (n: any, msg: string) => {
       const att = (Number(n.attempts) || 0) + 1;
@@ -224,7 +164,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       // purpose; refusing before any provider call is the clean skip, and it guarantees production
       // never emails a fixture address.
       if (RESERVED_TEST_DOMAIN.test(n.to_email)) { await admin.from('notifications').update({ status: 'skipped', last_error: 'reserved test domain (RFC 2606): never deliverable, refused before any provider call' }).eq('id', n.id); skipped++; continue; }
-      if (supSet.has(n.to_email)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
+      if (supSet.has(foldEmail(n.to_email))) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
       const ageH = (Date.now() - new Date(n.created_at).getTime()) / 3.6e6;
       if (ageH > staleH) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
       const supplierSide = n.to_role === 'supplier';
@@ -235,6 +175,10 @@ Deno.serve(observe('send_outbox', async (req) => {
       const from = supplierSide ? fromSup : fromInfo;
       const reply = supplierSide ? (docReq ? replyDocs : replySup) : replyInfo;
       const unsub = (supplierSide && unsubKey) ? `${FN_BASE}/unsubscribe?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
+      // NO UNSUBSCRIBE, NO SUPPLIER MARKETING (21 Sep 2026). The link and the RFC 8058 headers are only
+      // built when unsubscribe_signing_key reads back; when it did not, supplier mail used to go out with
+      // neither. A licence/document request is transactional and still goes; everything else waits.
+      if (holdForNoUnsubscribe(supplierSide, docReq, unsub)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: no unsubscribe link could be built (unsubscribe_signing_key unreadable); supplier mail never goes without one' }).eq('id', n.id); held++; continue; }
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
       // agent"), so its mail is signed by that seat, not with the founder's name.
@@ -243,7 +187,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       // the registered language; an Arabic body inside an English signature and footer is exactly the
       // mixed message the rule forbids.
       const arMail = !internal && n.lang === 'ar';
-      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'QuotesDone Sales Engineer') : sigName, title: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
+      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'QuotesDone Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
       const htmlBody = arMail ? arabicFrame(htmlBody0) : htmlBody0;
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the
@@ -257,7 +201,10 @@ Deno.serve(observe('send_outbox', async (req) => {
         continue;
       }
       try {
-        const mail: Record<string, unknown> = { from, to: [n.to_email], reply_to: reply, subject: n.subject || 'QuotesDone', html: htmlBody };
+        // The text/plain part is written, not left to be derived from the dark HTML frame: it carries
+        // the body, the footer and the unsubscribe URL in the recipient's language.
+        const mail: Record<string, unknown> = { from, to: [n.to_email], reply_to: reply, subject: n.subject || 'QuotesDone', html: htmlBody,
+          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }) };
         if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
         if (unsub) mail.headers = { 'List-Unsubscribe': `<${unsub}>, <mailto:${reply}?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
         const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(mail) });
