@@ -1245,21 +1245,27 @@ function QuotePdfLink({ q, token, lang }) {
     {msg ? <span className={cn(S.sub, 'text-danger')}>{msg}</span> : null}
   </span>);
 }
-// THE REVEAL INVOICE (14 Sep 2026). Stripe's own PDF, fetched fresh by reveal_invoice at click
-// time; reveal_invoice refuses any quote that is not this customer's own paid reveal.
+// THE REVEAL INVOICE AND RECEIPT (21 Sep 2026, agent: accountant). Both are QuotesDone template
+// documents rendered by reveal_invoice (founder, 21 Sep: no PDF reaches a person unless it is on our
+// template); reveal_invoice refuses any quote that is not this customer's own paid reveal. The
+// customer's language first, the other language one click away, as for the quotation.
 function InvoicePdfLink({ q, token, lang }) {
-  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
-  const open = async (e) => {
-    e.stopPropagation(); setBusy(true); setMsg(''); let j = null;
-    const ok = await openDocument(lang, async () => { j = await call('reveal_invoice', { quote_id: q.id }, token); return j && j.ok && j.url ? j.url : null; });
-    setBusy(false); if (!ok) setMsg(errText(j, lang, 'q_inv_fail'));
+  const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  const mine = lang === 'ar' ? 'ar' : 'en'; const other = mine === 'ar' ? 'en' : 'ar';
+  const open = (doc, docLang) => async (e) => {
+    e.stopPropagation(); setBusy(doc + docLang); setMsg(''); let j = null;
+    const ok = await openDocument(lang, async () => { j = await call('reveal_invoice', { quote_id: q.id, doc, lang: docLang }, token); return j && j.ok && j.url ? j.url : null; });
+    setBusy(''); if (!ok) setMsg(errText(j, lang, 'q_inv_fail'));
   };
-  return (<span className="inline-flex items-center gap-2">
-    <button type="button" className="text-primary font-semibold text-[12.5px]" disabled={busy} onClick={open}>{busy ? t(lang, 'q_pdf_busy') : '🧾 ' + t(lang, 'q_inv_pdf')}</button>
+  const btn = (doc, key) => (<button type="button" className="text-primary font-semibold text-[12.5px]" disabled={!!busy} onClick={open(doc, mine)}>{busy === doc + mine ? t(lang, 'q_pdf_busy') : '🧾 ' + t(lang, key)}</button>);
+  return (<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+    {btn('invoice', 'q_inv_pdf')}{btn('receipt', 'q_rcpt_pdf')}
+    <button type="button" lang={other} className="text-muted-foreground underline underline-offset-2 text-[11.5px]" disabled={!!busy} onClick={open('invoice', other)}>{busy === 'invoice' + other ? t(lang, 'q_pdf_busy') : (other === 'ar' ? 'الفاتورة بالعربية' : 'Invoice in English')}</button>
+    <button type="button" lang={other} className="text-muted-foreground underline underline-offset-2 text-[11.5px]" disabled={!!busy} onClick={open('receipt', other)}>{busy === 'receipt' + other ? t(lang, 'q_pdf_busy') : (other === 'ar' ? 'الإيصال بالعربية' : 'Receipt in English')}</button>
     {msg ? <span className={cn(S.sub, 'text-danger')}>{msg}</span> : null}
   </span>);
 }
-// The three lines the Stripe invoice prints, shown before the customer pays.
+// The three lines the invoice prints, shown before the customer pays.
 function FeeBreakdown({ r, price, lang }) {
   if (!r || r.total_charged == null) return null;
   const row = (k, v, strong = false) => (<div className={cn('flex justify-between gap-4', strong && 'font-semibold text-foreground border-t border-border pt-1')}><span>{k}</span><span className="tabular font-mono">{v}</span></div>);

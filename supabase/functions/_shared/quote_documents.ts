@@ -31,6 +31,7 @@ import { arTrade, arUnit as glossaryUnit, arCount as glossaryCount, arAttr, CATE
 import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.ts';
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
+import { assessQuote, requirementsOf, type Line as SpecLine, type TermsSpec } from './line_specs/assess.ts';
 export type Lang = 'en' | 'ar';
 /** The version printed in each document's control line. Bump when the layout or wording changes. */
 export const DOC_VERSION = 'v2.0';
@@ -197,6 +198,46 @@ export type QuoteRow = {
   price_ex_vat?: number | null;
 };
 export type InquiryRow = { id: string; category?: string | null; summary?: string | null; emirate?: string | null };
+
+// ── The completeness checks come from the hold desk's own reading ─────────────────────────────
+// MEASURED 21 Sep 2026 (audit, finding 4): the generated quotation said "Material specification:
+// Missing on 3 of 3 lines", "Installation: Not stated", "Warranty coverage not stated" for a quote the
+// sales engineer had just approved as complete. Two causes, both here: (1) both printers read the
+// per-line specs from a column named `specs` — the stored column is quote_items.spec — so no line ever
+// had a specification; (2) nothing ever wrote quotes.installation_included / warranty_coverage, so the
+// four checks were always "Not stated". The document now asks line_specs/assess.ts — the ONE reader
+// the review and the hold gate use — so the PDF can never disagree with the approval.
+/** quote_items rows as printed lines. The stored column is `spec`; `specs` is accepted for an older row shape. */
+// deno-lint-ignore no-explicit-any
+export function itemsOfRows(rows: any[] | null | undefined): Item[] {
+  return (rows || []).map((b) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || ''),
+    unit_price: b.unit_price == null ? null : Number(b.unit_price), amount: b.amount == null ? null : Number(b.amount),
+    brand: b.brand ?? null, model: b.model ?? null, specification: b.specification ?? null,
+    specs: (b.spec && typeof b.spec === 'object' && !Array.isArray(b.spec)) ? b.spec : ((b.specs && typeof b.specs === 'object' && !Array.isArray(b.specs)) ? b.specs : null) })).filter((x) => x.desc);
+}
+/**
+ * The four checks (material per line, delivery, installation, warranty) as assess.ts reads this quote,
+ * and each line's specs completed with what its own words state. Pure.
+ */
+export function completenessOf(q: QuoteRow & { terms_spec?: unknown; lead_time?: string | null }, items: Item[], category: string | null | undefined, inquirySpec: unknown): { quote: QuoteRow; items: Item[] } {
+  const lines: SpecLine[] = items.map((it, i) => ({ line_no: i + 1, description: it.desc, brand: it.brand ?? null, model: it.model ?? null, specification: it.specification ?? null,
+    qty: it.qty, unit: it.unit, unit_price: it.unit_price ?? null, amount: it.amount ?? null,
+    spec: it.specs ? Object.fromEntries(Object.entries(it.specs).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])) : null }));
+  const a = assessQuote({ category: category ?? null, lines, requirements: requirementsOf(inquirySpec),
+    terms: { lead_time: q.lead_time ?? null, warranty: q.warranty ?? null, scope: q.scope ?? null, exclusions: q.exclusions ?? null, conditions: q.conditions ?? null, notes: q.notes ?? null,
+      terms_spec: (q.terms_spec && typeof q.terms_spec === 'object' ? q.terms_spec : null) as TermsSpec | null, price_ex_vat: q.price_ex_vat ?? q.quote_amount ?? null } });
+  const out = items.map((it, i) => { const r = a.lines[i]; const specs = r && Object.keys(r.spec).length ? { ...(it.specs ?? {}), ...r.spec } : it.specs; return { ...it, specs: specs ?? null }; });
+  const inst = a.terms.installation, w = a.terms.warranty;
+  const timeline = inst.detail && /^Installation in /.test(inst.detail) ? inst.detail.replace(/^Installation in /, '') : null;
+  return {
+    items: out,
+    quote: { ...q,
+      installation_applicable: inst.applies, installation_included: inst.included === 'yes' ? true : inst.included === 'no' ? false : null,
+      installation_scope: inst.detail && !timeline ? inst.detail.replace(/^Scope: /, '') : null, installation_timeline: timeline,
+      // the cover figure and the terms cell carry the PERIOD; the coverage has its own place in the checks
+      warranty_applicable: w.applies, warranty_coverage: w.coverage, warranty: w.period ?? q.warranty ?? null },
+  };
+}
 /** One priced line of the supplier's own breakdown (quote_items). `specs` is attribute → stated value. */
 export type Item = {
   desc: string; qty: string; unit: string; unit_price?: number | null; amount?: number | null;

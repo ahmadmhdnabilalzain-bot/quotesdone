@@ -33,7 +33,7 @@ import { readDocument } from '../_shared/doc_read/index.ts';
 import { quoteFromExtracted, type Proposal } from '../quote_extract/quote_from_document.ts';
 import type { MissingItem } from '../_shared/line_specs/assess.ts';
 import {
-  answerSaid, applyCorrections, awaitingUploadSaid, choiceSaid, closedSaid, fromMissing, greeting, issueKey, notUnderstoodSaid,
+  answerSaid, applyCorrections, awaitingUploadSaid, carryOver, choiceSaid, closedSaid, fromMissing, greeting, issueKey, notUnderstoodSaid,
   parseQty, readReply, readyToSubmitSaid, reviewQuotation, reviewSaid, SEAT, submittedSaid, tookSaid, unreadableSaid, workingFromProposal,
   type Issue, type Lang, type Review, type SafeInquiry, type Said, type Working,
 } from './quote_review.ts';
@@ -46,7 +46,7 @@ export type ReviewRow = {
   reviewing_since: string | null; total_amount: number | null; currency: string | null; submitted_quote_ids: string[] | null;
   completed_at: string | null; created_at: string; updated_at: string;
 };
-export type Attachment = { kind: 'quotation_file' | 'standard_quote'; name: string; bucket?: string | null; path?: string | null; quote_id?: string | null };
+export type Attachment = { kind: 'quotation_file' | 'standard_quote'; name: string; bucket?: string | null; path?: string | null; quote_id?: string | null; /** standard_quote: which language this print is. */ lang?: Lang };
 export type MsgKind = 'text' | 'file' | 'review' | 'choice_prompt' | 'choice' | 'submitted' | 'notice';
 export type MessageRow = {
   id: string; review_id: string; role: 'supplier' | typeof SEAT; kind: MsgKind; body: string | null; body_ar: string | null;
@@ -103,7 +103,7 @@ export type MessageView = {
   body_en: string | null; body_ar: string | null;
   /** The supplier's own words, as they typed them; null on the engineer's message. */
   text: string | null;
-  attachments: { kind: Attachment['kind']; name: string; url: string | null; quote_id: string | null }[];
+  attachments: { kind: Attachment['kind']; name: string; url: string | null; quote_id: string | null; lang: Lang | null }[];
   issues: Issue[] | null; created_at: string;
 };
 export type RequestView = { id: number; key: string; code: string; kind: RequestRow['kind']; line_no: number | null; boq_line: number | null; label_en: string; label_ar: string; opened_at: string };
@@ -154,7 +154,7 @@ async function view(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r: Rev
   const messages: MessageView[] = [];
   for (const m of msgs) {
     const atts: MessageView['attachments'] = [];
-    for (const a of m.attachments || []) atts.push({ kind: a.kind, name: a.name, quote_id: a.quote_id ?? null, url: a.bucket && a.path ? await repo.signFile(a.bucket, a.path) : null });
+    for (const a of m.attachments || []) atts.push({ kind: a.kind, name: a.name, quote_id: a.quote_id ?? null, lang: a.lang ?? null, url: a.bucket && a.path ? await repo.signFile(a.bucket, a.path) : null });
     const eng = m.role === SEAT;
     messages.push({ id: m.id, role: eng ? 'sales_engineer' : 'supplier', kind: m.kind, body_en: eng ? m.body : null, body_ar: eng ? m.body_ar : null, text: eng ? null : m.body, attachments: atts, issues: m.issues, created_at: m.created_at });
   }
@@ -283,11 +283,10 @@ export async function upload(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
     await repo.updateReview(r.id, { status: prior, reviewing_since: null });
     return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
   }
-  // A new version replaces what the last file said. The supplier's explanations of excluded lines
-  // and differing quantities are about the job, not the file, so they carry over.
-  let w = workingFromProposal(read.proposal, read.text);
-  if (r.working) w = { ...w, boq_excluded: r.working.boq_excluded || {}, qty_explained: r.working.qty_explained || {}, exclusions: [w.exclusions, ...Object.entries(r.working.boq_excluded || {}).map(([n, v]) => `BOQ line ${n} excluded: ${v}`)].filter(Boolean).join('; ') };
-  if (note) w = applyCorrections(w, readReply(note, []).corrections);
+  // A new version replaces what the last file said, and keeps what the CHAT settled (carryOver: the
+  // audit of 21 Sep 2026 saw a revised CSV re-open validity, installation and warranty answered in text).
+  let w = carryOver(r.working, workingFromProposal(read.proposal, read.text), l.inq.boq_rows);
+  if (note) w = applyCorrections(w, readReply(note, await openIssuesOf(repo, r)).corrections, l.inq.boq_rows);
   await repo.updateReview(r.id, { extracted: read.proposal });
   await runReview(repo, deps, l.inq, r, w, fm.id);
   } catch (e) {
@@ -311,7 +310,7 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   if (st === 'ready_to_submit' && rr.submit) return doSubmit(repo, deps, ctx, l.inq, r, sm.id);
   if (rr.corrections.length && r.working) {
     const took = tookSaid(rr.corrections); if (took) await say(repo, r.id, 'text', took);
-    await runReview(repo, deps, l.inq, r, applyCorrections(r.working, rr.corrections), sm.id);
+    await runReview(repo, deps, l.inq, r, applyCorrections(r.working, rr.corrections, l.inq.boq_rows), sm.id);
   } else if (rr.topic) {
     await say(repo, r.id, 'text', answerSaid(rr.topic, l.inq.job_no, open, r.last_review?.boq_lines ?? l.inq.boq_rows.length));
   } else if (!r.working || st === 'awaiting_upload') {
@@ -359,7 +358,7 @@ export function submitPayload(inq: SafeInquiry, r: Pick<ReviewRow, 'original_fil
   const vt = ['exclusive', 'inclusive', 'not_registered'].includes(String(w.vat_treatment)) ? w.vat_treatment : undefined;
   return {
     action: 'submit_quote', inquiry_id: inq.id, source: 'upload', amount: rv.price_ex_vat ?? w.amount,
-    items: w.lines.map((l) => ({ description: l.description, qty: parseQty(l.qty).n, unit: l.unit || null, unit_price: l.unit_price, amount: l.amount, spec: l.spec ?? undefined })),
+    items: w.lines.map((l) => ({ description: l.description, specification: l.specification ?? undefined, qty: parseQty(l.qty).n, unit: l.unit || null, unit_price: l.unit_price, amount: l.amount, spec: l.spec ?? undefined })),
     lead_time: w.lead_time, validity: w.validity, payment_terms: w.payment_terms, warranty: w.warranty,
     scope: w.scope, conditions: w.conditions, exclusions: w.exclusions, notes: w.notes, terms_spec: w.terms_spec,
     original_file_path: r.original_file_path, original_file_name: r.original_file_name, masked_terms: w.masked_terms,
@@ -395,8 +394,14 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
   const heldOpts = opts.filter((o) => o.held);
   if (j.ok && acceptedIds.length) {
     const ids = acceptedIds;
-    const pdf = generated && ids[0] ? await deps.quotePdf(ids[0], ctx.lang).catch(() => ({ url: null, ref: null })) : { url: null, ref: null };
-    const atts: Attachment[] = generated && ids[0] ? [{ kind: 'standard_quote', name: `${pdf.ref || 'QuotesDone quotation'}.pdf`, quote_id: ids[0] }] : [];
+    // BOTH LANGUAGES (audit 21 Sep 2026, finding 28: an Arabic-UI supplier got an English-only
+    // quotation). The supplier's own language is printed first and named in the message; the other
+    // is attached beside it. A print that fails still leaves the attachment, which the portal prints
+    // on demand through quote_pdf.
+    const first: Lang = ctx.lang, second: Lang = first === 'ar' ? 'en' : 'ar';
+    const pdf = generated && ids[0] ? await deps.quotePdf(ids[0], first).catch(() => ({ url: null, ref: null })) : { url: null, ref: null };
+    if (generated && ids[0]) await deps.quotePdf(ids[0], second).catch(() => null);
+    const atts: Attachment[] = generated && ids[0] ? [first, second].map((lg) => ({ kind: 'standard_quote' as const, name: `${pdf.ref || 'QuotesDone quotation'}-${lg}.pdf`, quote_id: ids[0], lang: lg })) : [];
     const heldIssues = heldOpts.flatMap((o) => (Array.isArray(o.missing) ? o.missing : []) as MissingItem[]).map(fromMissing);
     const base = submittedSaid(inq.job_no, pdf.ref, generated);
     const said: Said = heldOpts.length ? {

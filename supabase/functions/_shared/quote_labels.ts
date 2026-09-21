@@ -9,6 +9,18 @@
 export type LabelInput = { id: string; supplier_id: number | string | null; option_no?: number | null };
 export type QuoteLabel = { letter: string; option_no: number; multi: boolean; en: string; ar: string };
 
+/**
+ * ONE ALIAS PER SUPPLIER PER JOB, on the supplier's own side (audit 21 Sep 2026, finding 29). The
+ * supplier's letter is its place in the job's match order (inquiry_matches by id) — the question thread
+ * (messages_api) and the supplier's own quotation (supplier_api quote_pdf) both read it from here. It is
+ * NOT the customer's letter above: that one is the price rank among live quotes, which a supplier must
+ * never learn. A supplier not in the order (never matched) is "Supplier ?" and is refused upstream.
+ */
+export function jobAlias(order: Array<number | string>, supplierId: number | string): string {
+  const i = order.findIndex((x) => String(x) === String(supplierId));
+  return 'Supplier ' + (i >= 0 ? letter(i) : '?');
+}
+
 export function letter(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
 
 export function labelQuotes(quotes: LabelInput[]): Map<string, QuoteLabel> {
