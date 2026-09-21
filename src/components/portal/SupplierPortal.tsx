@@ -30,7 +30,7 @@ import { Bell } from 'lucide-react';
 // THE DASHBOARD'S FIRST READ STARTS WITH THE TOKEN (15 Sep 2026), the way the customer portal's does
 // (me/prefetch.ts): the moment a token is known the combined `dashboard` call is started, and Dashboard's
 // first load takes that promise instead of asking again. Every later load asks the server fresh.
-import { warm, take } from '@/components/me/prefetch';
+import { warm, take, drop } from '@/components/me/prefetch';
 const DASH_KEY = 'sup_dash';
 const fetchDashboard = (tk) => call('supplier_portal', { action: 'dashboard' }, tk);
 const warmSupplier = (tk) => warm(tk, DASH_KEY, () => fetchDashboard(tk));
@@ -266,7 +266,7 @@ async function fileToImages(file) {
 }
 
 const T = {
-  en: { brand_sub:'Supplier Portal', home:'Home', signout:'Sign out', loading:'Loading…', loading_dash:'Loading your dashboard…',
+  en: { brand_sub:'Supplier Portal', home:'Home', signout:'Sign out', loading:'Loading…', loading_dash:'Loading your dashboard…', claiming_listing:'Attaching your company listing to your account…',
     tab_signin:'Sign in', tab_signup:'Create account', welcome_back:'Welcome back', register_title:'Register as a supplier',
     signup_sub:"Enter your work email and we'll create your account — then you'll register your company and verify your mobile.",
     signin_sub:'Sign in with the email or mobile you registered with.', work_email:'Work email', email_or_mobile:'Email or mobile',
@@ -300,7 +300,7 @@ const T = {
     le_no_account:'This mobile number isn’t linked to a QuotesDone account yet. Sign in with your email, or create your account first.', le_sms_off:'SMS codes are not available for this number. Please sign in with your email.',
     le_enter_code:'Enter the code you received.', le_attempts:'Too many attempts. Please request a new code.', le_expired:'That code has expired. Please request a new one.', le_session:'Could not start your session. Please try again.', le_generic:'Something went wrong. Please try again.',
     main_nav:'Supplier portal sections', account:'Account' },
-  ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…',
+  ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…', claiming_listing:'جارٍ ربط سجلّ شركتك بحسابك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', register_title:'سجّل كمورّد',
     signup_sub:'أدخل بريدك الإلكتروني للعمل وسننشئ حسابك — ثم تسجّل شركتك وتتحقق من رقم جوالك.',
     signin_sub:'سجّل الدخول بالبريد الإلكتروني أو رقم الجوال المسجّل.', work_email:'البريد الإلكتروني للعمل', email_or_mobile:'البريد الإلكتروني أو الجوال',
@@ -404,16 +404,34 @@ export function SupplierPortal() {
   // a stale token cannot attach a later, unrelated sign-in to someone else's company.
   const CLAIM_KEY = 'qd-claim-token';
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const claimIfInvited = async (access) => {
+  // THE DASHBOARD RACED THE CLAIM AND SHOWED AN INVITED SUPPLIER A BLANK FORM (21 Sep 2026, walk of
+  // the campaign registration). The dashboard was warmed and mounted in the same tick the claim was
+  // sent, and the claim takes ~5.8 s (measured on production, lead 126711). The dashboard answered
+  // no_company, Onboarding read `me` before the claim landed, and the supplier who had just been told
+  // "this listing is reserved for your company" was shown an empty "Register your company" form —
+  // nothing re-read once the claim completed. Both mount paths (stored token AND getSession) also
+  // sent the claim, so it went twice. Now: one claim per page, the dashboard waits for it, and the
+  // warm-up it discarded is started again with the claimed company in place.
+  // Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs.
+  const [claiming, setClaiming] = useState(false);
+  const claimRun = useRef(null);
+  const claimIfInvited = (access) => {
     let t = '';
     try { t = sessionStorage.getItem(CLAIM_KEY) || ''; } catch (_e) {}
-    if (!UUID_RE.test(t) || !access) return;
-    try {
-      // A failure here must never block the portal: the supplier can still register manually, which
-      // is exactly what everyone has had to do until now.
-      await call('supplier_api', { action: 'claim', t }, access);
-    } catch (_e) { /* claim is an improvement on the flow, not a gate into it */ }
-    try { sessionStorage.removeItem(CLAIM_KEY); } catch (_e) {}
+    if (!UUID_RE.test(t) || !access) return null;
+    if (claimRun.current) return claimRun.current;
+    setClaiming(true);
+    claimRun.current = (async () => {
+      try {
+        // A failure here must never block the portal: the supplier can still register manually, which
+        // is exactly what everyone has had to do until now.
+        await call('supplier_api', { action: 'claim', t }, access);
+      } catch (_e) { /* claim is an improvement on the flow, not a gate into it */ }
+      try { sessionStorage.removeItem(CLAIM_KEY); } catch (_e) {}
+      drop(); warmSupplier(access);   // what was warmed was asked before the company was claimed
+      setClaiming(false);
+    })();
+    return claimRun.current;
   };
   // THE SUPPLIER'S REGISTERED LANGUAGE WINS ONCE SIGNED IN (founder, 14 Sep 2026). The portal took its
   // language from the URL alone, so a supplier registered in Arabic who opened an English link worked
@@ -508,7 +526,9 @@ export function SupplierPortal() {
         {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
         {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
         {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && invite.claimable ? 'signup' : 'signin'} /></div>}
-        {phase === 'app' && <Dashboard token={token} lang={lang} onExpired={onExpired} />}
+        {phase === 'app' && (claiming
+          ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>
+          : <Dashboard token={token} lang={lang} onExpired={onExpired} />)}
       </>)}
       </main>
     </div>
@@ -1535,7 +1555,18 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
       if (uaeMobile(f.phone)) payload.phone = uaeMobile(f.phone);
       if (String(f.founded_year || '').trim()) payload.founded_year = Number(f.founded_year);
-      const j = await call('supplier_api', payload, token);
+      let j = await call('supplier_api', payload, token);
+      // A CERTIFICATE THAT FAILED ONCE FAILED FOREVER (21 Sep 2026, campaign registration walk). Under
+      // load the first certificate write timed out (compliance_archive: "cert_record_failed … statement
+      // timeout", measured on production). The acceptance was recorded but no signed PDF exists, so every
+      // later save_profile answers missing_required [reg_terms] — and this function returned on that
+      // answer BEFORE the kyc call below, the only thing that issues the certificate. Ticked, saved,
+      // refused, forever. Now the certificate is requested exactly when that is what is missing, and the
+      // save is asked once more. Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs.
+      if (terms && j && j.saved && j.code === 'missing_required' && ((j.params && j.params.missing) || []).includes('reg_terms')) {
+        const k0 = await call('kyc', { action: 'accept_terms' }, token).catch(() => null);
+        if (k0 && k0.ok) j = await call('supplier_api', payload, token);
+      }
       if (!(j && j.ok)) { setBusy(false); setMsg(srvMsg(lang, j, t(lang, 'could_not_save'))); return; }
       // The signed acceptance certificate. Its failure used to be swallowed, so a supplier could finish
       // registration with no certificate on file. The save above stands; pressing again retries both.
@@ -1596,7 +1627,14 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       {/* The number is read-only while a code is out, so verify_sms checks the number that was texted
           (review of #695); this reopens it. */}
       <Button variant="link" className="px-0 h-auto" onClick={() => { setSmsSent(false); setSmsCode(''); setMsg(''); }}>{t(lang, 'change_mobile')}</Button></>)}
-    {!isEdit && phoneVerified && !waSignupSettled(wa) && <div className="mt-3">
+    {/* NOT `!isEdit` (21 Sep 2026, campaign registration walk). An INVITED supplier claims a listing
+        that already exists, so Onboarding never runs and they finish registering on the Profile tab —
+        edit mode. save() below demands this answer from every supplier not yet approved, and the
+        question was rendered only outside edit mode: "Still needed to register: Your answer on your
+        WhatsApp number" with nothing on screen to answer it, a dead end for every invited supplier.
+        The question now shows exactly when save() would ask for it.
+        Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs. */}
+    {me.approval_status !== 'approved' && phoneVerified && !waSignupSettled(wa) && <div className="mt-3">
       {/* Enforced by save() like the six, so it carries the same Required marker (review of #695). */}
       {/* S.h2 like the other required headers, but not a heading: WhatsAppChoice's own h2 follows. */}
       <div className={cn(S.h2, 'mb-1')}>{srvText(lang, 'reg_whatsapp')}<Need lang={lang} req /></div>

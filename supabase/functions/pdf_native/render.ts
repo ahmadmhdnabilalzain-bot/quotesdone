@@ -75,6 +75,24 @@ type TC = { text: string; sub?: string; flag?: Flag; chip?: 'short' | 'open' | '
 const toCell = (c: any): TC => (c && typeof c === 'object' && !Array.isArray(c)) ? { ...c, text: String(c.text ?? '') } : { text: String(c ?? '') };
 
 // deno-lint-ignore no-explicit-any
+// Word wrap to a width. A single word wider than the line is broken by character, never drawn past
+// the edge (21 Sep 2026): the signed-terms certificate's 64-character SHA-256 fingerprint ran off the
+// page, so the one value that lets the acceptance be verified was printed cut short. Prevented by
+// render.test.ts.
+export function wrapWords(t: unknown, meas: (s: string) => number, w: number): string[] {
+  const lines: string[] = []; let cur = '';
+  for (const wd of String(t == null ? '' : t).split(/\s+/)) {
+    if (meas(wd) > w) {
+      if (cur) { lines.push(cur); cur = ''; }
+      for (const ch of wd) { if (cur && meas(cur + ch) > w) { lines.push(cur); cur = ch; } else cur += ch; }
+      continue;
+    }
+    const test = cur ? cur + ' ' + wd : wd;
+    if (meas(test) > w && cur) { lines.push(cur); cur = wd; } else cur = test;
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [''];
+}
 export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderResult> {
   const CO: DocIdentity = deps.identity ?? FALLBACK;
   const fetchBytes = deps.fetchBytes;
@@ -211,7 +229,7 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   // deno-lint-ignore no-explicit-any
   const meas = (t: string, f: any, s: number) => hasAr(t) ? measRTL(t, f, s) : W(t, f, s);
   // deno-lint-ignore no-explicit-any
-  function wrap(t: string, f: any, s: number, w: number) { const words = String(t == null ? '' : t).split(/\s+/); const lines: string[] = []; let cur = ''; for (const wd0 of words) { const test = cur ? cur + ' ' + wd0 : wd0; if (meas(test, f, s) > w && cur) { lines.push(cur); cur = wd0; } else cur = test; } if (cur) lines.push(cur); return lines.length ? lines : ['']; }
+  function wrap(t: string, f: any, s: number, w: number) { return wrapWords(t, (x) => meas(x, f, s), w); }
   const lines = (t: unknown, size: number, b: boolean, w: number) => { const s = String(t ?? ''); return s ? wrap(s, fontFor(s, b), size, w) : []; };
   /** A key-figure value as at most two lines that each fit the cell width; a third line is folded into an ellipsis. */
   const figureLines = (s: string, size: number, w: number): string[] => {
