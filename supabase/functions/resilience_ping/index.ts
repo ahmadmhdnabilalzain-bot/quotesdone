@@ -567,13 +567,20 @@ async function whatsappTick(): Promise<unknown> {
   try {
     const { count } = await admin.from('notifications')
       .select('id', { count: 'exact', head: true }).eq('channel', 'whatsapp').eq('status', 'queued');
-    if (!count) return { queued: 0 };
+    // A HEARTBEAT THAT BEATS ONLY UNDER LOAD IS NOT A HEARTBEAT (21 Sep 2026). This used to return
+    // here when nothing was queued, so send_whatsapp ran only when there was mail: 26 runs in the
+    // 3.4 days to 21 Sep against a tick every 15 minutes. fn_it_detect's run_silent arm reads that
+    // subject's own rhythm (p50 13 min over 7 days, from the weeks it drained every two minutes) and
+    // raised "send_whatsapp has not run for 60/99/150 minutes" — seen 290 times, emailed to the
+    // founder on 18 Sep — about a function that had nothing to do. The call is ~0.8 s (resilience_step
+    // ewma 1654 ms) and the function's own queue read is its first statement, so it is made on every
+    // tick and the subject has a real pulse to be measured against.
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/send_whatsapp', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: secret, limit: 25 }), signal: AbortSignal.timeout(30000),
     });
-    return { queued: count, status: r.status, result: await r.json().catch(() => null) };
+    return { queued: count ?? 0, status: r.status, result: await r.json().catch(() => null) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
