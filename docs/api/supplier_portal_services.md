@@ -115,6 +115,27 @@ type RewriteItem =
 
 `400 { code: 'services_empty_text' }` for fewer than 2 non-blank characters.
 
+**Added 21 Sep 2026 (a catalogue is read as a catalogue).** Request also takes
+`"from_catalogue"?: true` — read the supplier's latest uploaded catalogue (its text layer, or the text
+its browser recognised in a photo or scan) WHOLE, through `_shared/catalogue_read.ts`, instead of `text`
+— and `"supply_only"?: boolean`, the supplier's own answer that overrides what the words suggested.
+`404 { code: 'services_no_catalogue' }` when there is no readable catalogue. The response adds:
+
+```ts
+  supply_only: { proposed: boolean; applied: boolean; supply_words: string[]; install_words: string[] },
+  // applied = true: installation work is not proposed, and every implied item comes back removed: true
+  meaning: { state: 'on' | 'nothing_to_read' | 'service_vectors_missing' | 'embedding_unavailable',
+             proposals: { key: string; trade: string; label_en: string; label_ar: string; similarity: number;
+                          because: 'head_word' | 'alias' | 'two_lines'; word: string | null; lines: string[] }[] },
+  source: { kind: 'typed' } | { kind: 'catalogue'; name: string; read_from: 'document_text' | 'photo_text' },
+  model?: { state: 'off'; message_en: string; message_ar: string } | { state: 'read' | 'failed'; ... }
+  // present only when code read nothing; OFF unless decision_policy supplier_catalogue_model_enabled
+```
+
+A meaning proposal the supplier keeps is sent back in `services` like any stated key. The rules
+(`_shared/service_meaning.ts`): gte-small similarity above 0.82 AND a head word of the service's name or
+one of its aliases in the line, or two lines agreeing above 0.86; never a nearest neighbour alone.
+
 **How the rewrite works — deterministic, no model.** `supabase/functions/_shared/service_rewrite.ts`,
 proved case by case in `service_rewrite.test.ts`. OpenRouter is on hold, and a rewrite that decides who
 receives an inquiry has to be reproducible.
