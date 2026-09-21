@@ -38,4 +38,4 @@ scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :
 # Needs PR #787's campaign file applied first (it is). Rehearsed in a rolled-back transaction: PROBE OK.
 # Apply outside a campaign hour (it adds a nullable column to leads, lock_timeout 3 s), THEN deploy
 # resilience_ping and claim_lookup. Gates invite_enabled / supplier_outreach_golive stay 'false'.
-scripts/sql/the_invitations_go_out_every_day_and_a_started_registration_is_followed.sql
+scripts/sql/the_invitations_go_out_every_day_and_a_started_registration_is_followed.sql :: committed, not applied: apply with --ddl outside a campaign hour after review, then deploy resilience_ping and claim_lookup and move this line to the END of MANIFEST.txt
