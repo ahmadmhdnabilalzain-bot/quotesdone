@@ -106,7 +106,10 @@ transaction, so the raise takes the `create function` with it. This happened twi
 proved and simultaneously un-built, and the apply reported success.
 
 - **File contains DDL → the probe must CLEAN UP AFTER ITSELF** (delete its rows, assert they are
-  gone) and end in `raise notice`.
+  gone) and end by RETURNING A VERDICT ROW — `select 'PROBE OK' as verdict` or
+  `select 'PROBE FAILED: <why>' as verdict`. **Never `raise notice`**: the management API discards
+  NOTICE and `apply_sql.mjs` reads none, so 35 files carried a failure verdict nobody could ever read
+  (measured 18 Sep 2026, PR #749). The applier now exits 3 on a `PROBE FAILED` row.
 - **File is a pure probe, no DDL → `raise exception 'CHK<<…>>'` is correct.**
 
 Either way the probe must assert it left nothing behind, and must not touch real rows — name the

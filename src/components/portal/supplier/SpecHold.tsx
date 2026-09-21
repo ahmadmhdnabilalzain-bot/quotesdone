@@ -18,6 +18,8 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { call } from './api';
 import { srvMsg } from './serverCopy';
+// Amounts, units and codes are left-to-right runs inside Arabic text; src/lib/Ltr.tsx holds the rule.
+import { Ltr } from '@/lib/Ltr';
 
 type Lang = 'en' | 'ar' | string;
 const COPY = {
@@ -50,8 +52,6 @@ const TERM_PLACEHOLDER: Record<string, [string, string]> = {
   delivery: ['21 days from approval', '21 يومًا من الاعتماد'], installation_detail: ['Installation in 5 working days on site', 'التركيب خلال 5 أيام عمل في الموقع'],
   warranty_period: ['2 years', 'سنتان'], warranty_coverage: ['Parts, labour and workmanship', 'قطع الغيار والعمالة والمصنعية'], price_ex_vat: ['10500', '10500'],
 };
-// Amounts, units and codes are left-to-right runs inside Arabic text.
-const Ltr = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr">{children}</bdi>;
 
 export function SpecHoldPanel({ quoteId, lang, token, onChanged, onResubmit, title }: { quoteId: string; lang: Lang; token: string; onChanged?: () => void; onResubmit?: () => void; title?: string | null }) {
   const ar = lang === 'ar'; const t = ar ? COPY.ar : COPY.en;

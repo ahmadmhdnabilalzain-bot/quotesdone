@@ -692,7 +692,15 @@ html[dir="rtl"] :is(.legalx,.mk) *{letter-spacing:0;text-transform:none}
 html[dir="rtl"] :is(h1,h2,h3,h4){line-height:1.45}
 html[dir="rtl"] :is(p,li){line-height:1.9}
 html[lang="ar"] :is(h1,h2,h3){font-weight:700;font-family:var(--font-head)}
-[dir="rtl"] :is(.ltr,.tabular){direction:ltr;unicode-bidi:isolate}
+/* AN EXPLICIT dir ON THE ELEMENT DECIDES (17 Sep 2026). This rule forced direction:ltr on every
+   .ltr/.tabular element inside the Arabic page, and a CSS `direction` OVERRIDES the dir attribute —
+   so it silently defeated <Ltr> (src/lib/Ltr.tsx) on the two footer licence dates, which carry
+   className="tabular": measured, dir="auto" but getComputedStyle().direction === "ltr", and the
+   Arabic date still rendered backwards. `:not([dir])` hands elements that state their own direction
+   back to their attribute and leaves every element that does NOT state one exactly as it was —
+   .tabular is a font feature (tabular-nums), never a direction, and the ~30 bare .tabular counters,
+   indices and amounts are unchanged. */
+[dir="rtl"] :is(.ltr,.tabular):not([dir]){direction:ltr;unicode-bidi:isolate}
 [dir="rtl"] .tabular{font-variant-numeric:tabular-nums}
 /* bridge for components still on clamp() literals until the codemod moves them to text-display */
 html[lang="ar"] h1[class*="text-[clamp(40px"]{font-size:var(--fs-display)}
