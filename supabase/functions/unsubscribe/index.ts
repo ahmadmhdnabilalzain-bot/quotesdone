@@ -45,29 +45,29 @@ Deno.serve(observe('unsubscribe', async (req) => {
       (!!legacyKey && t === (await tok(e, legacyKey)))
     );
     if (!tokenOk) {
-      return new Response(page('Invalid link', 'This unsubscribe link is invalid or has expired. If you keep receiving emails, reply to any of them and we will remove you.'), { status: 400, headers: H });
+      return new Response(page('Invalid link', 'This unsubscribe link is invalid or has expired. If you keep receiving emails, write to unsubscribe@mail.quotesdone.com from that address and it is removed automatically.'), { status: 400, headers: H });
     }
     const { data: cur } = await admin.from('email_suppressions').select('email,reason,source').eq('email', e).maybeSingle();
     if (req.method !== 'POST') {
-      if (!cur) return new Response(page('Unsubscribe', `Please confirm you want to stop receiving sourcing requests at <b>${esc(e)}</b>.` + btn(link(''), 'Unsubscribe me', '#b91c1c')), { status: 200, headers: H });
-      if (cur.source === 'link') return new Response(page('Already unsubscribed', `<b>${esc(e)}</b> is already unsubscribed and receives no sourcing requests from QuotesDone.<br><br>Changed your mind? You can put yourself back on the list right here.` + btn(link('resub'), 'Resubscribe me', '#0d9488')), { status: 200, headers: H });
+      if (!cur) return new Response(page('Unsubscribe', `Please confirm you want to stop receiving invitations and reminders at <b>${esc(e)}</b>.` + btn(link(''), 'Unsubscribe me', '#b91c1c')), { status: 200, headers: H });
+      if (cur.reason === 'unsubscribe') return new Response(page('Already unsubscribed', `<b>${esc(e)}</b> is already unsubscribed and receives no invitations or reminders from QuotesDone.<br><br>Changed your mind? You can put yourself back on the list right here.` + btn(link('resub'), 'Resubscribe me', '#0d9488')), { status: 200, headers: H });
       return new Response(page('Not currently emailed', `We are not sending anything to <b>${esc(e)}</b>. Mail to this address was rejected or reported, so we stopped automatically - that was not an unsubscribe you made, and it is not something this page can undo. If the mailbox works now, email info@quotesdone.com and we will restore it.`), { status: 200, headers: H });
     }
     // NO WAY BACK 27 Jul 2026 - nothing anywhere in the codebase could DELETE from email_suppressions,
     // yet this page told suppliers we would "add you back". That promise was impossible to keep, so
-    // here is the path that keeps it. Resubscribe is scoped to the row this link itself created
-    // (source='link'). A hard bounce or spam complaint recorded by resend_webhook is a deliverability
+    // here is the path that keeps it. Resubscribe is scoped to a preference row (reason 'unsubscribe', from this
+    // link or, since 22 Sep 2026, from an unsubscribe email; the signed token proves the address). A hard bounce or spam complaint recorded by resend_webhook is a deliverability
     // fact rather than a preference - un-suppressing one from a link would re-mail a dead box and
     // damage the sending domain for every other supplier - so those say so honestly instead.
     // Authorisation is the same signed token that authorises the unsubscribe; no new secret.
     if (a === 'resub') {
-      const { data: del } = await admin.from('email_suppressions').delete().eq('email', e).eq('source', 'link').select('email');
-      if (del && del.length) return new Response(page('Resubscribed', `<b>${esc(e)}</b> is back on the list and will receive matching sourcing requests again.<br><br>You can unsubscribe again at any time from the link in any of our emails.`), { status: 200, headers: H });
+      const { data: del } = await admin.from('email_suppressions').delete().eq('email', e).eq('reason', 'unsubscribe').select('email');
+      if (del && del.length) return new Response(page('Resubscribed', `<b>${esc(e)}</b> is back on the list and will receive invitations and reminders again.<br><br>You can unsubscribe again at any time from the link in any of our emails.`), { status: 200, headers: H });
       return new Response(page('Nothing to restore', `<b>${esc(e)}</b> was not removed by an unsubscribe link, so this page cannot restore it. If mail to this address bounced and the mailbox works now, email info@quotesdone.com and we will put you back.`), { status: 200, headers: H });
     }
     await admin.from('email_suppressions').upsert({ email: e, reason: 'unsubscribe', source: 'link' }, { onConflict: 'email' });
-    return new Response(page('Unsubscribed', `<b>${esc(e)}</b> has been removed.<br><br>You will no longer receive sourcing requests from QuotesDone. Sorry to see you go — if this was a mistake, use the button below or reply to any earlier email.` + btn(link('resub'), 'Resubscribe me', '#0d9488')), { status: 200, headers: H });
+    return new Response(page('Unsubscribed', `<b>${esc(e)}</b> has been removed.<br><br>You will no longer receive invitations or reminders from QuotesDone. Sign-in codes and messages about requests and quotes you are part of still reach you. Sorry to see you go — if this was a mistake, use the button below or reply to any earlier email.` + btn(link('resub'), 'Resubscribe me', '#0d9488')), { status: 200, headers: H });
   } catch (_e) {
-    return new Response(page('Something went wrong', 'We could not process that right now. Please reply to any of our emails and we will remove you manually.'), { status: 200, headers: H });
+    return new Response(page('Something went wrong', 'We could not process that right now. Please write to unsubscribe@mail.quotesdone.com from that address and it is removed automatically.'), { status: 200, headers: H });
   }
 }));

@@ -37,6 +37,8 @@ import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { takeInStatement } from '../_shared/bank_statement_intake.ts';
+import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
+import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -218,6 +220,50 @@ export const handler = observe('resend_inbound', async (req) => {
       await handToBookkeeper(refusedRow?.id, [], `Mail to ${to} from ${from} was REFUSED: that address is not on app_secrets.expense_forwarders. Nothing was booked and no attachment was stored. Decide whether this sender should be added to the allowlist; if it is a company expense, add them and ask for a re-forward.`);
       await logRun('ok', { expenses_mailbox: 1, authorised: 0, from, to }, 'mail to the expenses mailbox was refused: ' + from + ' is not on the expense forwarder allowlist. Recorded as inbound_messages#' + (refusedRow?.id ?? '?') + ' and handed to the accountant.');
       return J({ ok: true, receipt: false, booked: false, reason: 'sender_not_allowlisted' });
+    }
+
+    // ---- AN UNSUBSCRIBE BY EMAIL IS HONOURED HERE (21 Sep 2026, customer_support) ----
+    // See _shared/unsubscribe_mailbox.ts for the measurement: the reply path the supplier mail offered
+    // had no reader. The sender is suppressed exactly as the link does it, except that an existing row
+    // is left alone -- a hard bounce or complaint is a deliverability fact and must not be relabelled a
+    // preference.
+    // A FROM HEADER CAN BE FORGED (independent review, 22 Sep 2026). Svix proves Resend delivered this,
+    // not who wrote it, so three gates stand before any suppression, and a request that fails one is kept
+    // for customer_support to review (inbound_messages, needs_review) -- never applied:
+    //   1. never our own domains, the admin addresses, the expense forwarders or the expense mailbox;
+    //   2. the receiving server (SES) must have authenticated the From domain (_shared/suppression_policy.ts);
+    //   3. we must actually have sent this address an invitation or reminder -- the only mail an opt-out stops.
+    if (!isExpenseMailbox && from && isUnsubscribeRequest({ to, subject, text: fullText })) {
+      let why = '';
+      if (neverSuppressible(from, [...adminList, ...fwdList, EXPENSE_MAILBOX])) {
+        why = 'a protected address (our own domain, an admin address or an expense forwarder)';
+      } else {
+        // The webhook is metadata-only; the headers come from GET /emails/inbound/{id} (measured 22 Sep 2026).
+        const hdrs = d.headers?.['authentication-results'] ? d.headers
+          : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+        if (!fromDomainAuthenticated(hdrs?.['authentication-results'], from)) {
+          why = 'the receiving server did not authenticate the sender domain (no aligned DMARC, DKIM or SPF pass)';
+        } else {
+          const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+            .ilike('to_email', from.replace(/[\\%_]/g, '\\$&')).in('type', [...OPT_OUT_TYPES]).eq('status', 'sent');
+          if (!count) why = 'we never sent this address an invitation or reminder';
+        }
+      }
+      if (why) {
+        await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject,
+          body: '[UNSUBSCRIBE REQUEST NOT APPLIED: ' + why + '. customer_support to review.]\n\n' + fullText, html: fullHtml,
+          provider_email_id: providerEmailId, attachments_count: 0, matched_existing: false, needs_review: true });
+        await logRun('ok', { unsubscribe: 1, suppressed: 0, from }, 'unsubscribe email from ' + from + ' NOT applied: ' + why + '; kept for review.');
+        return J({ ok: true, unsubscribe: true, suppressed: false, review: why });
+      }
+      const { error: supErr } = await admin.from('email_suppressions')
+        .upsert({ email: from, reason: 'unsubscribe', source: 'reply' }, { onConflict: 'email', ignoreDuplicates: true });
+      await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: fullText, html: fullHtml,
+        provider_email_id: providerEmailId, attachments_count: 0, matched_existing: false, needs_review: !!supErr });
+      await logRun(supErr ? 'error' : 'ok', { unsubscribe: 1, suppressed: supErr ? 0 : 1, from },
+        supErr ? ('an unsubscribe email from ' + from + ' could NOT be recorded: ' + String(supErr.message || '').slice(0, 200) + ' - kept for review so a person removes them')
+               : ('unsubscribe by email: ' + from + ' is suppressed and will not be mailed again.'));
+      return J({ ok: true, unsubscribe: true, suppressed: !supErr }, supErr ? 500 : 200);
     }
 
     let att: { bytes: Uint8Array; name: string; mime: string; ext: string } | null = null;
