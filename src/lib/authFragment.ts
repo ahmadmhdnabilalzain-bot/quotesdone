@@ -22,7 +22,7 @@ type Win = {
 
 const AUTH_KEYS = /(?:^#|&)(?:access_token|refresh_token|error|error_code|error_description)=/;
 
-export function takeAuthFragment(win: Win | undefined = (globalThis as { window?: Win }).window): UrlSession | null {
+export function takeAuthFragment(win: Win | undefined = (globalThis as unknown as { window?: Win }).window): UrlSession | null {
   if (!win) return null;
   const hash = String(win.location.hash || '');
   if (!AUTH_KEYS.test(hash)) return null;
