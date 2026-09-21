@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T20:38:36.005Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T21:46:29.462Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -28922,11 +28922,10 @@ AS $function$
 declare
   rec record; v_email int := 0; v_wa int := 0; v_skipped int := 0;
   v_horizon date := current_date + make_interval(days => p_days);
-  v_phone text; v_to text; v_label text; v_exp date;
+  v_to text; v_label text; v_exp date;
 begin
   for rec in
-    select id, company_name, claimed_by, email, phone, whatsapp,
-           license_expiry, insurance_expiry
+    select id, company_name, claimed_by, email, license_expiry, insurance_expiry
       from leads
      where approval_status = 'approved'
        and coalesce(banned,false) = false
@@ -28967,23 +28966,18 @@ begin
       'queued');
     v_email := v_email + 1;
 
-    -- WhatsApp: queued for the same supplier when we hold a number. Delivery depends on the
-    -- approved template described in the header comment.
-    v_phone := nullif(trim(coalesce(rec.whatsapp, rec.phone)), '');
-    if v_phone is not null then
-      insert into notifications(type,to_email,to_role,lead_id,channel,to_phone,subject,body,status)
-      values ('supplier_doc_expiry', v_to, 'supplier', rec.id, 'whatsapp', v_phone,
-        'Your ' || v_label || ' expires on ' || v_exp,
-        'Your ' || v_label || ' expires on ' || v_exp || '. Renew it to keep receiving QuotesDone requests: https://quotesdone.com/portal',
-        'queued');
+    -- WhatsApp is the fan-out twin of that email (confirmed number only, approved
+    -- supplier_doc_expiry template). A second row of our own would be a duplicate message.
+    if exists (select 1 from notifications n
+                where n.lead_id = rec.id and n.type = 'doc_final_notice' and n.channel = 'whatsapp'
+                  and n.created_at >= now()) then
       v_wa := v_wa + 1;
     end if;
   end loop;
 
   return json_build_object('emails_queued', v_email, 'whatsapp_queued', v_wa,
                            'skipped', v_skipped, 'days_ahead', p_days,
-                           'whatsapp_deliverable', false,
-                           'whatsapp_note', 'Queued but not deliverable until a supplier_doc_expiry template SID is registered in wa_template_sids.',
+                           'whatsapp_note', 'WhatsApp goes only as the fan-out twin to a confirmed number, on the approved supplier_doc_expiry template.',
                            'ran_at', now());
 end $function$
 
@@ -38811,7 +38805,7 @@ CREATE OR REPLACE FUNCTION public.fn_licence_expiry_sweep(p_dry_run boolean DEFA
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   r          record;
@@ -38821,20 +38815,15 @@ declare
   v_email    int := 0;
   v_wa       int := 0;
   v_blocked  int := 0;
-  v_wa_ok    boolean;
-  v_wa_why   text;
   v_rows     jsonb := '[]'::jsonb;
   v_subject  text;
   v_body     text;
   v_note     bigint;
+  v_twin     bigint;
+  v_twin_st  text;
+  v_twin_err text;
+  v_dest     text;
 begin
-  -- Ask the channel policy rather than assuming. Today WhatsApp is blocked for want of a template
-  -- and any opt-in, and this must say so instead of quietly sending nothing.
-  select (status = 'open'), status_reason
-    into v_wa_ok, v_wa_why
-    from public.outreach_channel_policy where channel_key = 'whatsapp';
-  v_wa_ok := coalesce(v_wa_ok, false);
-
   for r in
     select l.id, l.company_name, l.email, l.phone_e164, l.license_expiry, l.license_doc_path,
            (l.license_expiry - (now() at time zone 'Asia/Dubai')::date) as days_left
@@ -38851,12 +38840,14 @@ begin
       when v_days <= 7  then 't_minus_7'
       when v_days <= 14 then 't_minus_14'
       else                   't_minus_30' end;
-
     v_planned := v_planned + 1;
+    v_twin := null; v_twin_st := null; v_twin_err := null;
+    -- Where a WhatsApp twin would go: only a number the supplier confirmed, never the raw phone.
+    v_dest := public.fn_whatsapp_destination('supplier', null, r.id, r.email);
 
     v_subject := case when v_days < 0
-      then 'Your trade licence has expired - QuotesDone'
-      else 'Your trade licence expires in ' || v_days || ' days - QuotesDone' end;
+      then 'Your trade licence has expired'
+      else 'Your trade licence expires in ' || v_days || ' days' end;
 
     v_body := 'Dear ' || coalesce(r.company_name, 'Supplier') || ',' || chr(10) || chr(10)
            || case when v_days < 0
@@ -38866,12 +38857,13 @@ begin
                   || ', which is ' || v_days || ' days from now.' end
            || chr(10) || chr(10)
            || 'Please send us the renewed copy. A clear photograph is fine, a PDF is better. '
-           || 'You can reply to this email with it attached, or send it on WhatsApp and it will go '
-           || 'straight onto your file.' || chr(10) || chr(10)
+           || 'You can reply to this email with it attached, or upload it in the Documents tab of your '
+           || 'supplier portal: https://quotesdone.com/portal' || chr(10) || chr(10)
            || 'Nothing else is needed and there is no charge.' || chr(10) || chr(10)
            || 'QuotesDone';
 
-    -- EMAIL. Always attempted when we hold an address.
+    -- EMAIL. Always attempted when we hold an address. Addressed to the supplier role so the
+    -- language trigger and trg_wa_fanout both see who it is for.
     if coalesce(btrim(r.email), '') <> '' then
       if not p_dry_run then
         insert into public.licence_renewal_ask
@@ -38880,30 +38872,46 @@ begin
         on conflict (lead_id, expiry_date, band, channel) do nothing;
 
         if found then
-          insert into public.notifications (type, kind, to_email, subject, body, status, channel, lead_id)
-          values ('licence_renewal', 'licence_expiry', r.email, v_subject, v_body, 'queued', 'email', r.id)
+          insert into public.notifications (type, kind, to_email, to_role, subject, body, status, channel, lead_id)
+          values ('licence_renewal', 'licence_expiry', r.email, 'supplier', v_subject, v_body, 'queued', 'email', r.id)
           returning id into v_note;
 
           update public.licence_renewal_ask
              set sent = true, notification_id = v_note
            where lead_id = r.id and expiry_date = r.license_expiry and band = v_band and channel = 'email';
+
+          -- The fan-out has already run (AFTER INSERT); its twin is the WhatsApp ask.
+          -- Its status is whatever the BEFORE triggers made of it (queued, or captured/skipped with a reason).
+          select n.id, n.status, n.last_error into v_twin, v_twin_st, v_twin_err from public.notifications n
+           where n.lead_id = r.id and n.type = 'licence_renewal' and n.channel = 'whatsapp'
+             and n.created_at >= now()
+           order by n.id desc limit 1;
         end if;
       end if;
       v_email := v_email + 1;
     end if;
 
-    -- WHATSAPP. Planned either way, and the block is recorded rather than the ask vanishing.
-    if coalesce(btrim(r.phone_e164), '') <> '' then
-      if v_wa_ok then
-        v_wa := v_wa + 1;
-      else
-        v_blocked := v_blocked + 1;
-        if not p_dry_run then
-          insert into public.licence_renewal_ask
-            (lead_id, band, expiry_date, days_to_expiry, channel, sent, blocked_reason)
-          values (r.id, v_band, r.license_expiry, v_days, 'whatsapp', false, v_wa_why)
-          on conflict (lead_id, expiry_date, band, channel) do nothing;
-        end if;
+    -- WHATSAPP. The twin of the email, to the confirmed number, on the approved supplier_doc_expiry
+    -- template. No confirmed number is recorded as the reason, never hidden.
+    if v_twin is not null then
+      if v_twin_st = 'queued' then v_wa := v_wa + 1; else v_blocked := v_blocked + 1; end if;
+      insert into public.licence_renewal_ask
+        (lead_id, band, expiry_date, days_to_expiry, channel, sent, notification_id, blocked_reason)
+      values (r.id, v_band, r.license_expiry, v_days, 'whatsapp', v_twin_st = 'queued', v_twin,
+              case when v_twin_st <> 'queued' then left(coalesce(v_twin_err, 'twin ' || v_twin_st), 500) end)
+      on conflict (lead_id, expiry_date, band, channel) do nothing;
+    elsif p_dry_run and v_dest is not null and coalesce(btrim(r.email), '') <> '' then
+      v_wa := v_wa + 1;
+    elsif coalesce(btrim(r.phone_e164), '') <> '' or v_dest is not null then
+      v_blocked := v_blocked + 1;
+      if not p_dry_run then
+        insert into public.licence_renewal_ask
+          (lead_id, band, expiry_date, days_to_expiry, channel, sent, blocked_reason)
+        values (r.id, v_band, r.license_expiry, v_days, 'whatsapp', false,
+                case when v_dest is null
+                     then 'no confirmed WhatsApp number on file (an unverified number is never used)'
+                     else 'no email was queued this run, so there was nothing to twin' end)
+        on conflict (lead_id, expiry_date, band, channel) do nothing;
       end if;
     end if;
 
@@ -38912,7 +38920,7 @@ begin
         'lead_id', r.id, 'company', r.company_name, 'expiry', r.license_expiry,
         'days_left', v_days, 'band', v_band,
         'email', case when coalesce(btrim(r.email),'')<>'' then 'queued' else 'no address held' end,
-        'whatsapp', case when v_wa_ok then 'queued' else 'BLOCKED' end);
+        'whatsapp', case when v_dest is not null then 'queued to the confirmed number' else 'no confirmed number' end);
     end if;
   end loop;
 
@@ -38923,7 +38931,7 @@ begin
     'email_asks', v_email,
     'whatsapp_asks_sent', v_wa,
     'whatsapp_asks_blocked', v_blocked,
-    'whatsapp_status', case when v_wa_ok then 'open' else 'BLOCKED: ' || coalesce(v_wa_why,'no policy row') end,
+    'whatsapp_status', 'open to confirmed numbers: the email is twinned by trg_wa_fanout and sent on the approved supplier_doc_expiry template',
     'sample', v_rows,
     'note', case when p_dry_run
       then 'Dry run. Nothing was queued and nothing was written. Call with p_dry_run => false to act.'
