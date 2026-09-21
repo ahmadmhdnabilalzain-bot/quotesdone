@@ -49,6 +49,7 @@ import { BrandMark } from '@/components/BrandMark';
 // Same as the customer portal: an inline production fallback meant an unconfigured preview let
 // suppliers upload trade licences into the LIVE database. See supaEnv.
 import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { Ltr } from '@/lib/Ltr';
 const SB = () => supaClient('qd-portal-auth');
 
 // call() lives in ./supplier/api.ts, shared with the journey, RFQ and insights components.
@@ -63,10 +64,14 @@ function Lbl({ text, children, className = '', visible = false, need = null, lan
   return <label className={cn('block min-w-0', className)}><span className={visible || need ? 'mb-1 block text-[12px] font-semibold text-muted-foreground' : 'sr-only'}>{text}{need ? <Need lang={lang} req={need === 'req'} /> : null}</span>{children}</label>;
 }
 const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
-// Amounts, phone numbers, e-mails, dates and reference codes are left-to-right runs. Inside the Arabic
+// Amounts, phone numbers, e-mails and reference codes are left-to-right runs. Inside the Arabic
 // portal an unisolated "AED 12,500" or "+971 50 …" is reordered by the bidi algorithm around the
-// Arabic text beside it (portal audit 14 Sep 2026); <bdi dir="ltr"> keeps each one whole.
-const Ltr = ({ children, className = '' }) => <bdi dir="ltr" className={className}>{children}</bdi>;
+// Arabic text beside it (portal audit 14 Sep 2026); <Ltr> keeps each one whole.
+// A LOCALISED DATE IS NOT ONE OF THEM. This comment used to say "dates" and that was the defect
+// (17 Sep 2026): fmtDate(d, 'ar') returns Arabic — "18 سبتمبر 2026" — and forcing dir="ltr" onto it
+// made the licence chip print the day AFTER the year, backwards. (Not quoted here with a year in it:
+// pricing_arabic_parity.test.mjs greps this file for calendar years to keep the fee undated, and a
+// comment would match.) `Ltr` now decides per string; src/lib/Ltr.tsx.
 const fmtDate = (d, lang, withYear = true) => (d ? new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' }) : '');
 // What a held (draft) quote is missing, in the codes fn_quote_structured_score returns. One table for
 // the preflight panel and the held-quote notes, so the two can never describe the same gap differently.
