@@ -9,6 +9,7 @@ import { call, read, write, waitFor } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE, assertHarnessSignedIn } from './browser.mjs';
 import { makeInquiry } from '../staging/demo_factory.mjs';
 import { journeyAuditButtons } from './journey_audit_buttons.mjs';
+import { payHostedTestCheckout, checkoutBlockers } from './stripe_test_checkout.mjs';
 
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
 export const MATRIX = [
@@ -477,13 +478,17 @@ export async function journeyPayment(ctx) {
   const b = signed.ctx; const p = signed.page;
   try {
     await p.goto(sess.json.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await p.locator('#cardNumber').fill('4242 4242 4242 4242'); await p.locator('#cardExpiry').fill('12 / 34');
-    await p.locator('#cardCvc').fill('123'); await p.locator('#billingName').fill('ZZ DEMO Customer').catch(() => {});
+    // The runner is in the US, so Stripe pre-selects a US billing country and a required ZIP; the
+    // helper pins the UAE (see scripts/e2e/stripe_test_checkout.mjs for the measurement).
+    await p.locator('#cardNumber').waitFor({ timeout: 60000 });
+    await payHostedTestCheckout(p);
     await shot(p, ctx.dir, 'd_stripe_checkout_filled');
-    await p.locator('button[type=submit]').click();
     await p.waitForURL(/quotesdone\.(com|ae)/, { timeout: 90000 }).catch(() => {});
     await shot(p, ctx.dir, 'd_after_pay');
-    rep.step(J, 'Stripe test checkout completed and returned to the portal', /quotesdone\.(com|ae)/.test(p.url()) ? 'PASS' : 'FAIL', `landed on ${p.url().split('?')[0].slice(0, 80)}`);
+    const returned = /quotesdone\.(com|ae)/.test(p.url());
+    // The whole session id (it was cut at 80 characters, which made it unfindable in Stripe).
+    rep.step(J, 'Stripe test checkout completed and returned to the portal', returned ? 'PASS' : 'FAIL',
+      `landed on ${p.url().split('?')[0]}${returned ? '' : ` — Stripe held the form on: [${(await checkoutBlockers(p)).join(', ') || 'no empty or invalid field'}]`}`);
   } catch (e) {
     await shot(p, ctx.dir, 'd_checkout_error');
     rep.step(J, 'Stripe test checkout completed and returned to the portal', 'FAIL', String(e.message).split('\n')[0].slice(0, 200));
