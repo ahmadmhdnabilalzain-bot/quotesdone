@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T16:07:13.895Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T16:40:58.734Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7028,7 +7028,8 @@ CREATE TABLE IF NOT EXISTS public.taxonomy_trade_service (
   label_ar text NOT NULL,
   sort integer DEFAULT 100 NOT NULL,
   active boolean DEFAULT true NOT NULL,
-  aliases text[] DEFAULT '{}'::text[] NOT NULL
+  aliases text[] DEFAULT '{}'::text[] NOT NULL,
+  embedding_gte vector(384)
 );
 
 CREATE TABLE IF NOT EXISTS public.templates (
