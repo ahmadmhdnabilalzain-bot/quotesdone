@@ -40,4 +40,3 @@ scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :
 #
 # 21 Sep 2026 — it_engineer, the launch path tested every hour. Apply BEFORE deploying resilience_ping
 # (its STEP_RUN gains `launchpath`) with --apply --ddl, then move its line to the END of MANIFEST.txt.
-scripts/sql/the_launch_path_is_tested_every_hour.sql :: seeds the hourly `launchpath` heartbeat step; apply before deploying resilience_ping, then move to the end of MANIFEST.txt. Ends in a verdict row (PROBE OK).
