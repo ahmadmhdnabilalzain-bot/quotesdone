@@ -657,3 +657,8 @@ match_suppliers_kw :: dropped 15 Sep 2026; the keyword supplier matcher. Its las
 # since the one refund rail (14 Sep). Canonical file for fn_control_mode_require kept as history.
 fn_control_mode_require :: dropped 15 Sep 2026; 0 routine bodies, triggers, pg_depend rows, views, policies, defaults or cron jobs name it, and 0 references in supabase/functions, src or .github :: none
 fn_phase1_disarmed :: dropped 15 Sep 2026 with fn_control_mode_require, its only caller (same measurements) :: none
+# 18 Sep 2026 — we_back_up_the_extra_stuff_only_unless_they_got_updated.sql. Founder instruction 519: the
+# incremental rule applies by SIZE, not by one hard-coded table name, and a DELETE has to be recorded.
+# public.table_export_change (one log, every tracked table, deletes included) and
+# public.trg_table_export_change (generic, attached by the registrar) replace both of these.
+trg_kb_chunks_export_change :: dropped 18 Sep 2026; the kb_chunks-only change trigger. Measured on production before the drop: exactly 2 triggers call it (kb_chunks_export_change_ins/_upd, dropped in the same file) and those are its only 2 normal pg_depend rows; 0 views name it; the only 2 routine bodies naming the table kb_chunks_export_change are fn_table_export_list and fn_table_export_finish, both redefined in the same file to read public.table_export_change instead; 0 references in supabase/functions, src, scripts or .github :: public.trg_table_export_change

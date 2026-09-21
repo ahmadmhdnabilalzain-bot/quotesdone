@@ -1500,3 +1500,6 @@ scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arri
 # that could not roll back a file carrying its own commit; the file's own header records that in full.
 scripts/sql/the_sanctions_screen_aborted_on_its_own_retention_sweep.sql
 scripts/sql/the_tick_runs_what_is_stalest_not_what_is_first_in_the_list.sql
+scripts/sql/we_back_up_the_extra_stuff_only_unless_they_got_updated.sql
+scripts/sql/a_customer_is_never_blocked_from_rating.sql
+scripts/sql/the_supplier_ranking_reads_the_suppliers_real_quotes.sql

@@ -14,6 +14,7 @@ import { emirateLabel, srvMsg } from './serverCopy';
 import { SpecHoldPanel } from './SpecHold';
 import { QuoteReviewChat } from './QuoteReviewChat';
 import { failed, qr, REVIEW_STATE, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { Ltr } from '@/lib/Ltr';
 
 const COPY = {
   en: {
@@ -31,8 +32,7 @@ const COPY = {
     qst: { draft: 'محجوز — لم يُرسل بعد', submitted: 'أُرسل إلى العميل', accepted: 'كشف العميل عن عرضك', withdrawn: 'مسحوب', expired: 'منتهي الصلاحية' } as Record<string, string>,
   },
 };
-const Ltr = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr">{children}</bdi>;
-const aed = (n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
+const aed =(n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 
 export function QuotationsTab({ token, lang, focus = null, onFocused, openInquiry }: { token: string; lang: Lang; focus?: string | null; onFocused?: () => void; openInquiry: (id: string) => void }) {
   const t = COPY[lang];
