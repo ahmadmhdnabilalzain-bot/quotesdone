@@ -914,11 +914,17 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   // sees the supplier's VAT details. The supplier says how the total is stated; if it includes VAT,
   // they give the ex-VAT figure.
   const VAT_BASIS = ['exclusive', 'inclusive', 'not_registered'];
-  const [vat, setVat] = useState(VAT_BASIS.includes(q0.vat_treatment) ? q0.vat_treatment : '');
-  const [exVat, setExVat] = useState(q0.vat_treatment === 'inclusive' && q0.price_ex_vat != null ? String(q0.price_ex_vat) : '');
+  // A quote sent with an ex-VAT figure is stored as 'confirmed_on_portal' (vat.ts), which is none of
+  // the three choices, so the select reopened on "Choose…" (audit 21 Sep 2026, finding 35). The
+  // stated amount above the ex-VAT figure says it was VAT-inclusive; equal, VAT-exclusive.
+  const vat0 = VAT_BASIS.includes(q0.vat_treatment) ? q0.vat_treatment
+    : q0.vat_treatment === 'confirmed_on_portal' && Number(q0.price_ex_vat) > 0
+      ? (Number(q0.amount_as_stated) > Number(q0.price_ex_vat) + 0.5 ? 'inclusive' : 'exclusive') : '';
+  const [vat, setVat] = useState(vat0);
+  const [exVat, setExVat] = useState(vat0 === 'inclusive' && q0.price_ex_vat != null ? String(q0.price_ex_vat) : '');
   const lines0 = initialItems && initialItems.length ? initialItems
     : (Array.isArray(q0.items) && q0.items.length ? q0.items.map((r) => ({ description: r.description || '', qty: r.qty == null ? '' : String(r.qty), unit: r.unit || '', unit_price: r.unit_price == null ? '' : String(r.unit_price) })) : [{ description: '', qty: '', unit: '', unit_price: '' }]);
-  const [amount, setAmount] = useState(q0.quote_amount != null ? String(q0.quote_amount) : ''); const [lead, setLead] = useState(q0.lead_time || ''); const [notes, setNotes] = useState(q0.notes || ''); const [scope, setScope] = useState(q0.scope || ''); const [validity, setValidity] = useState(q0.validity || ''); const [payment, setPayment] = useState(q0.payment_terms || ''); const [warranty, setWarranty] = useState(q0.warranty || ''); const [items, setItems] = useState(lines0); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  const [amount, setAmount] = useState(vat0 === 'inclusive' && Number(q0.amount_as_stated) > 0 ? String(q0.amount_as_stated) : q0.quote_amount != null ? String(q0.quote_amount) : ''); const [lead, setLead] = useState(q0.lead_time || ''); const [notes, setNotes] = useState(q0.notes || ''); const [scope, setScope] = useState(q0.scope || ''); const [validity, setValidity] = useState(q0.validity || ''); const [payment, setPayment] = useState(q0.payment_terms || ''); const [warranty, setWarranty] = useState(q0.warranty || ''); const [items, setItems] = useState(lines0); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
   const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
   const [chk, setChk] = useState(null); const [checking, setChecking] = useState(false);
@@ -947,7 +953,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     setBusy(false);
     // Accepted, held by the sales engineer (the card then shows exactly what is missing and the two
     // ways out) or split into options: the card is the next thing the supplier needs to see.
-    if (j && j.ok && (j.accepted || j.held || j.options)) onDone();
+    if (j && j.ok && (j.accepted || j.held || j.options)) onDone({ held: !!j.held && !j.accepted });
     else if (j && j.ok) setMsg(srvMsg(lang, j, t(lang, 'draft_saved')));
     else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
@@ -1031,11 +1037,13 @@ function QuoteCheck({ chk, lang }) {
         {/* the 70 pass mark, shown so the number has meaning */}
         <div className="absolute top-0 bottom-0 w-px bg-foreground/40" style={{ left: pass + '%' }} aria-hidden="true" />
       </div>
-      <div className={cn(S.sub, 'mt-1.5')}>{ar ? 'علامة النجاح 70' : 'Pass mark is 70'}</div>
+      {/* A quote below 70 can still be sent (accept_via form_complete), so 70 is the QUALITY mark, not a
+          pass mark: "Pass mark is 70" beside "This will be sent" read as a contradiction (audit 21 Sep 2026, finding 15). */}
+      <div className={cn(S.sub, 'mt-1.5')}>{ar ? 'علامة الجودة 70 — العرض الأقوى للمقارنة' : 'Quality mark is 70 — the strongest quotes to compare'}</div>
 
       {chk.would_accept
         ? <div className="mt-2.5">
-            <Badge variant={chk.submittable ? 'ok' : 'warn'}>{ar ? 'سيُرسل إلى العميل' : 'This will be sent to the customer'}</Badge>
+            <Badge variant={chk.submittable ? 'ok' : 'warn'}>{viaForm ? (ar ? 'سيُرسل إلى العميل — دون علامة الجودة' : 'This will be sent to the customer — below the quality mark') : (ar ? 'سيُرسل إلى العميل' : 'This will be sent to the customer')}</Badge>
             {viaForm && <div className={cn(S.sub, 'mt-1.5')}>{ar
               ? 'سيُقبل لأن الحقول الأساسية مكتملة، لكنه لم يبلغ علامة الجودة. إضافة ما يلي تجعل عرضك أسهل للمقارنة وأقوى أمام العميل.'
               : 'It is accepted because the essential fields are filled, but it has not reached the quality mark. Adding the items below makes your quote easier to compare and stronger against competing bids.'}</div>}

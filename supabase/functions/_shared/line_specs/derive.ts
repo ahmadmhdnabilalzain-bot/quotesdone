@@ -11,7 +11,7 @@
 // inferred that the text does not say, and a column the caller filled is never overwritten.
 import { normText, VAGUE } from './model.ts';
 
-const label = (names: string) => new RegExp(`(?:^|[\\s,;|(–-])(?:${names})\\s*[:\\-–=]\\s*([^,;|()\\n–]{2,80})`, 'i');
+const label = (names: string) => new RegExp(`(?:^|[\\s,،;؛|(–-])(?:${names})\\s*[:\\-–=]\\s*([^,،;؛|()\\n–]{2,80})`, 'i');
 const BRAND = label('brand|make|manufacturer|mfr|ماركة|الماركة|العلامة التجارية|الشركة المصنعة');
 const MODEL = label('model(?:\\s*no\\.?)?|model number|product|range|series|موديل|الموديل|رقم الموديل|المنتج|اسم المنتج');
 const SPEC = label('spec(?:ification)?s?|المواصفات|مواصفات');

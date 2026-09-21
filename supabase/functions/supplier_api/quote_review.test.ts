@@ -13,6 +13,7 @@ import {
 import { choose, message, readQuotationFile, start, submit, submitPayload, thread, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
 import { boqCsv } from './quote_review_actions.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
+import { completenessOf, itemsOfRows, quoteDocument } from '../_shared/quote_documents.ts';
 
 const INQ_ID = '3f2a9c1e-0000-4000-8000-00000000abcd';
 const inquiry = (over: Partial<SafeInquiry> = {}): SafeInquiry => ({
@@ -418,4 +419,76 @@ Deno.test('finding 12: a revised file keeps what the chat settled; only what the
   const atts = t5.messages.find((m) => m.kind === 'submitted')!.attachments;
   assertEquals(atts.map((a) => a.lang), ['en', 'ar']);
   assert(atts.every((a) => a.kind === 'standard_quote' && a.quote_id === 'q-1'));
+});
+
+Deno.test('finding 2: every open point closes from the chat — the supplier\'s own unpriced line, the total, a named material', () => {
+  const inq = gypsumInquiry();
+  const panel = { description: 'Access panel 600x600 with lock', qty: '4', unit: 'nos', unit_price: null, amount: null };
+  const w0 = good({ lines: [
+    { description: 'Gypsum board partition 12.5mm board, 100mm metal stud, both faces', qty: '320', unit: 'm2', unit_price: 95, amount: 30400 },
+    { description: 'Suspended false ceiling 600x600 mineral fibre tiles', qty: '410', unit: 'm2', unit_price: 68, amount: 27880 },
+    { description: 'Gypsum bulkhead, standard gypsum board, 300mm drop, painted finish', qty: '64', unit: 'm', unit_price: 120, amount: 7680 }, panel,
+  ], amount: 70000, price_ex_vat: 70000, warranty: '2 years parts and labour', scope: 'Supply and install, installation included, 4 weeks on site', notes: 'Prices exclude VAT', lead_time: '4 weeks' });
+  const open = reviewQuotation(inq, w0).issues;
+  assert(open.some((i) => i.code === 'line_unpriced' && i.line_no === 4), JSON.stringify(open.map(issueKey)));
+  const rr = readReply('line 4 AED 150 each', open);
+  assertEquals(rr.corrections, [{ field: 'line_price', line_no: 4, unit_price: 150, amount: null }]);
+  const w1 = applyCorrections(w0, rr.corrections, inq.boq_rows);
+  assertEquals(w1.lines[3].amount, 600); assertEquals(w1.amount, 66560);
+  assert(!reviewQuotation(inq, w1).issues.some((i) => i.code === 'line_unpriced' || i.code === 'total_mismatch'));
+  // a total that does not add up: re-stated, or explained by a discount
+  const w2 = good({ ...w1, amount: 70000, price_ex_vat: 70000 });
+  const open2 = reviewQuotation(inq, w2).issues; assert(open2.some((i) => i.code === 'total_mismatch'));
+  assert(!reviewQuotation(inq, applyCorrections(w2, readReply('Total AED 66,560', open2).corrections)).issues.some((i) => i.code === 'total_mismatch'));
+  const wd = applyCorrections(w2, readReply('We give a discount of AED 3,440.', open2).corrections);
+  assert(!reviewQuotation(inq, wd).issues.some((i) => i.code === 'total_mismatch')); assertMatch(wd.conditions, /discount of AED 3,440/);
+  // a material the customer named
+  const withGlass: SafeInquiry = { ...inq, category: 'glass', boq_rows: [], spec: { customer_requirements: { version: 1, materials: [{ component: 'glass', label_en: 'Glass', label_ar: 'الزجاج' }] } } };
+  const wg = good({ lines: [{ description: 'Shower screen, 8mm clear tempered, chrome hinges', qty: '1', unit: 'nos', unit_price: 9000, amount: 9000 }] });
+  const og = reviewQuotation(withGlass, wg).issues.filter((i) => i.code === 'component');
+  assertEquals(og.map(issueKey), ['component|||component:glass']); {
+    const rg = readReply('glass: 8mm clear tempered, polished edges', og);
+    const c = rg.corrections.find((x) => x.field === 'component') as { key: string; value: string } | undefined;
+    assert(c, JSON.stringify({ og, rg })); assertEquals(c.key, 'glass');
+    const after = reviewQuotation(withGlass, applyCorrections(wg, rg.corrections)).issues;
+    assert(!after.some((i) => i.code === 'component'), JSON.stringify(after.map(issueKey)));
+    assert(ARABIC.test(tookSaid(rg.corrections)!.ar));
+  }
+});
+
+Deno.test('finding 4 + 28: the generated quotation says what the approval said — every check met, every line\'s spec printed, in English and Arabic', async () => {
+  const { mem, deps, ctx, submitted } = gypsumHarness();
+  const inq = gypsumInquiry();
+  await start(mem.repo, deps, ctx, GYPSUM_INQ_ID);
+  ok(await upload(mem.repo, deps, ctx, GYPSUM_INQ_ID, { b64: b64bytes(await fixture('ZZDEMO_quotation_D958E1EA.pdf')), filename: 'ZZDEMO_quotation_D958E1EA.pdf', mime: 'application/pdf' }));
+  const t2 = ok(await message(mem.repo, deps, ctx, GYPSUM_INQ_ID, 'Installation included, 4 weeks on site. Warranty 2 years parts and labour. line 1 thickness: 12.5mm. line 3 board type: standard gypsum board'));
+  assertEquals(t2.state, 'awaiting_choice', JSON.stringify(t2.open_requests));
+  ok(await choose(mem.repo, deps, ctx, GYPSUM_INQ_ID, 'generate'));
+  const p = submitted.at(-1)! as Record<string, any>;
+  // what submit_quote stores (quotes + quote_items.spec), read back the way both quote_pdf printers read it
+  const q = { id: 'q-1', inquiry_id: GYPSUM_INQ_ID, supplier_id: 7, quote_amount: p.amount, price_ex_vat: p.amount, lead_time: p.lead_time, validity: p.validity, payment_terms: p.payment_terms,
+    warranty: p.warranty, scope: p.scope, conditions: p.conditions, exclusions: p.exclusions, notes: p.notes, terms_spec: p.terms_spec } as any;
+  const done = completenessOf(q, itemsOfRows(p.items), inq.category, inq.spec);
+  assertEquals(done.items.length, 3);
+  assert(done.items.every((it) => it.specs && Object.keys(it.specs).length), JSON.stringify(done.items.map((it) => it.specs)));
+  assert(!/excluded/i.test(String(q.exclusions || '')), 'no line is excluded, so none is printed as excluded');
+  for (const lang of ['en', 'ar'] as const) {
+    const body = quoteDocument({ quote: done.quote, inquiry: { id: GYPSUM_INQ_ID, category: 'gypsum', emirate: 'Dubai', summary: null }, items: done.items, letter: 'A', lang }).body as { blocks: { t: string; items?: [string, { text: string; flag: string }][] }[] };
+    const checks = body.blocks.find((b) => b.t === 'checks')!.items!;
+    assertEquals(checks.map(([, c]) => c.flag), ['match', 'match', 'match', 'match'], JSON.stringify(checks));
+    if (lang === 'ar') assert(checks.every(([k]) => ARABIC.test(k)), 'Arabic check labels');
+  }
+});
+
+Deno.test('finding 4: a BOQ line excluded in the chat leaves the quotation and the total — never "excluded" and priced at once', async () => {
+  const inq = gypsumInquiry();
+  const read = await readQuotationFile(await fixture('ZZDEMO_quotation_D958E1EA.pdf'), 'ZZDEMO_quotation_D958E1EA.pdf', 'application/pdf', ['ZZ DEMO Interiors gypsum founderdemo']);
+  const w0 = workingFromProposal(read.proposal!, read.text);
+  const open = reviewQuotation(inq, w0).issues;
+  const w1 = applyCorrections(w0, readReply('BOQ line 3 excluded — by others. line 1 thickness: 12.5mm', open).corrections, inq.boq_rows);
+  assertEquals(w1.lines.map((l) => l.amount), [30400, 27880]);
+  assertEquals(w1.amount, 58280); assertEquals(w1.price_ex_vat, 58280); assertEquals(Object.keys(w1.boq_excluded), ['3']);
+  assertEquals(w1.lines[0].spec?.thickness_mm, '12.5mm');   // the spec in the same message still names line 1
+  const rv = reviewQuotation(inq, w1);
+  assert(!rv.issues.some((i) => ['boq_line_not_priced', 'total_mismatch', 'vat_basis', 'vat_ex_price', 'price_ex_vat'].includes(i.code)), JSON.stringify(rv.issues.map((i) => i.en)));
 });

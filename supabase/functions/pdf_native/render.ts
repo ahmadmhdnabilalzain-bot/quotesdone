@@ -312,10 +312,7 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
         const x = px(i * fw, fw);
         if (i > 0) { const sepX = RTL ? x + fw : x; page.drawLine({ start: { x: sepX, y: y - 12 }, end: { x: sepX, y: y - h + 10 }, thickness: 0.5, color: HAIR }); }
         txt(k, x + 12, fw - 24, y - 19, 7.2, { color: MUT });
-        // A figure shrinks to 9pt and then TRUNCATES with an ellipsis: it never runs into the next
-        // cell. Measured 21 Sep 2026 (audit, finding 4): a warranty figure overlapped "30 days".
-        let s = 15; let vs = String(v ?? ''); while (s > 9 && meas(vs, fontFor(vs, true), s) > fw - 24) s -= 0.5;
-        if (meas(vs, fontFor(vs, true), s) > fw - 24) { while (vs.length > 1 && meas(vs + '…', fontFor(vs, true), s) > fw - 24) vs = vs.slice(0, -1); vs = vs.trimEnd() + '…'; }
+        let s = 15; const vs = String(v ?? ''); while (s > 9 && meas(vs, fontFor(vs, true), s) > fw - 24) s -= 0.5;
         txt(vs, x + 12, fw - 24, y - 42, s, { bold: true, color: NAVY });
       });
       y -= h + 26;
