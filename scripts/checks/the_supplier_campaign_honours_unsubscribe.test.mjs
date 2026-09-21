@@ -31,7 +31,9 @@ test('send_outbox sends a text/plain part', () => {
 });
 
 test('a hard bounce reaches the lead whatever the case of its stored email', () => {
-  assert.match(webhook, /from\('leads'\)\.update\(\{ invite_status: 'bounced' \}\)\.ilike\('email', /,
+  // 22 Sep 2026: the status comes from inviteStatusFor (a complaint is 'complained', not 'bounced');
+  // the case-insensitive match is what this test guards.
+  assert.match(webhook, /from\('leads'\)\.update\(\{ invite_status: inviteStatusFor\(isComplaint, isHardBounce\) \}\)\.ilike\('email', /,
     'resend_webhook marks the bounced lead by an exact-case match again, so capitalised lead emails are never marked bounced');
 });
 
