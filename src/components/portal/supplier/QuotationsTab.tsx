@@ -13,7 +13,7 @@ import { categoryLabel } from '@/lib/categoryLabel';
 import { emirateLabel, srvMsg } from './serverCopy';
 import { SpecHoldPanel } from './SpecHold';
 import { QuoteReviewChat } from './QuoteReviewChat';
-import { failed, openPdf, qr, REVIEW_STATE, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { aedIn, failed, openPdf, qr, REVIEW_STATE, type InquiryListItem, type Lang } from './quoteReviewApi';
 import { Ltr } from '@/lib/Ltr';
 
 const COPY = {
@@ -34,7 +34,6 @@ const COPY = {
     qst: { draft: 'محجوز — لم يُرسل بعد', submitted: 'أُرسل إلى العميل', accepted: 'كشف العميل عن عرضك', withdrawn: 'مسحوب', expired: 'منتهي الصلاحية' } as Record<string, string>,
   },
 };
-const aed =(n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 
 // THE SUPPLIER SEES THE QUOTATION ISSUED IN ITS NAME (21 Sep 2026). Measured: quote_pdf existed in
 // supplier_api and was reachable only from one attachment button inside the review chat; the
@@ -102,7 +101,7 @@ export function QuotationsTab({ token, lang, focus = null, onFocused, openInquir
                       {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : null}
                       {i.quotes.map((q) => (
                         <span key={q.id} className="inline-flex items-center gap-1.5 rounded-chip border border-[var(--line2)] px-2 py-0.5 text-[11.5px] text-foreground">
-                          {i.quotes.length > 1 ? t.option(q.option_no) + ' · ' : ''}<span className="font-mono tabular-nums"><Ltr>{aed(q.quote_amount)}</Ltr></span>
+                          {i.quotes.length > 1 ? t.option(q.option_no) + ' · ' : ''}<span className="font-mono tabular-nums"><Ltr>{aedIn(lang, q.quote_amount)}</Ltr></span>
                           <span className="text-muted-foreground">· {t.qst[q.status] || q.status}</span>
                         </span>
                       ))}

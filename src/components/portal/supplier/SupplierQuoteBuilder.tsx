@@ -56,6 +56,7 @@ const T = {
     placeholder: 'e.g. the chiller replacement in Business Bay',
     build: 'Build me a quote', building: 'Reading the market…',
     noMatch: 'Nothing matches that yet. Try fewer words.',
+    noOpen: 'There is no open request you can quote right now. New requests in your trades appear here.',
     recPrice: 'Suggested price', marketPos: 'Market position', delivery: 'Suggested delivery',
     warranty: 'Suggested warranty', risk: 'Risk level', terms: 'Suggested payment terms',
     middleHalf: 'middle half', range: 'range', theyAgreed: 'bids agreed', noConsensus: 'no two bids agreed',
@@ -72,6 +73,7 @@ const T = {
     placeholder: 'مثال: استبدال المبردات في الخليج التجاري',
     build: 'أنشئ لي عرض سعر', building: 'جارٍ قراءة السوق…',
     noMatch: 'لا يوجد ما يطابق ذلك بعد. جرّب كلمات أقل.',
+    noOpen: 'لا يوجد طلب مفتوح يمكنك تسعيره الآن. تظهر هنا الطلبات الجديدة في تخصصاتك.',
     recPrice: 'السعر المقترح', marketPos: 'الموقع في السوق', delivery: 'مدة التسليم المقترحة',
     warranty: 'الضمان المقترح', risk: 'مستوى المخاطر', terms: 'شروط الدفع المقترحة',
     middleHalf: 'النصف الأوسط', range: 'المدى', theyAgreed: 'عروض متفقة', noConsensus: 'لا يوجد عرضان متفقان',
@@ -106,7 +108,8 @@ function Suggested({ label, children, foot }: { label: string; children: React.R
 }
 
 export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: string | null; lang?: Lang }) {
-  const [opps, setOpps] = useState<Opp[]>([]);
+  // null until the list has loaded: "nothing matches" before the answer arrives would be a guess.
+  const [opps, setOpps] = useState<Opp[] | null>(null);
   const [intent, setIntent] = useState('');
   const [chosen, setChosen] = useState<string>('');
   const [rec, setRec] = useState<Rec | null>(null);
@@ -138,11 +141,12 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
   // The free-text intent narrows the list; it does not guess. A builder that picked a project on
   // its own would be proposing a price for something the supplier never chose.
   const matches = useMemo(() => {
+    const all = opps || [];
     const q = intent.trim().toLowerCase();
-    if (!q) return opps;
+    if (!q) return all;
     const words = q.split(/\s+/).filter((w) => w.length > 2);
-    if (!words.length) return opps;
-    return opps.filter((o) => {
+    if (!words.length) return all;
+    return all.filter((o) => {
       const hay = (otitle(o) + ' ' + (o.category || '') + ' ' + (o.emirate || '') + ' ' + (o.requirement || '')).toLowerCase();
       return words.some((w) => hay.includes(w));
     });
@@ -176,6 +180,9 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
     if (j && j.ok) setSent(t(lang, 'created')); else setErr((j && (j.error || j.hint)) || 'submit_err');
   };
 
+  const loaded = opps !== null;
+  const hasOpen = (opps || []).length > 0;
+  const hasQuery = intent.trim().length > 0;
   const price = rec?.recommended_price;
   const risk = rec?.risk_level;
   const riskWord = risk?.value === 'high' ? t(lang, 'highRisk') : risk?.value === 'medium' ? t(lang, 'medRisk') : t(lang, 'lowRisk');
@@ -201,7 +208,11 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
           onChange={(e) => setIntent(e.target.value)}
         />
         <div className="mt-3 space-y-1.5 max-h-64 overflow-y-auto">
-          {matches.length === 0 && <p className="text-[11px] opacity-50">{t(lang, 'noMatch')}</p>}
+          {/* Audit 21 Sep 2026, finding 38: "Nothing matches that yet" printed before anything was
+              typed, beside "Choose a project above" with nothing above. Each line now needs its own
+              condition: no open request at all, or a typed query that matched none. */}
+          {loaded && !hasOpen && <p className="text-[11px] opacity-50">{t(lang, 'noOpen')}</p>}
+          {hasOpen && hasQuery && matches.length === 0 && <p className="text-[11px] opacity-50">{t(lang, 'noMatch')}</p>}
           {matches.map((o) => (
             <button
               key={oid(o)}
@@ -223,7 +234,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
       {busy && <p className="text-xs opacity-60 px-1">{t(lang, 'building')}</p>}
       {err && <p className="text-xs text-danger-fg/90 px-1">{err}</p>}
       {sent && <p className="text-xs text-ok-fg/90 px-1">{sent}</p>}
-      {!chosen && !busy && <p className="text-xs opacity-50 px-1">{t(lang, 'pickOne')}</p>}
+      {!chosen && !busy && matches.length > 0 && <p className="text-xs opacity-50 px-1">{t(lang, 'pickOne')}</p>}
 
       {/* A recommendation the routine refused to make, shown with the reason it gave. */}
       {rec && !rec.available && (
