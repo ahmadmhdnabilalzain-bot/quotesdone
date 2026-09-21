@@ -33,7 +33,7 @@ const EXPORT_PAGES = 4177;            // §8: the full copy of 2026-09-18, 11,92
 const SIZE_BEFORE_MB = 9313;          // §8, measured 21 Sep 2026 09:18 UTC
 // id slice for the census, EVERY kind (21 Sep 2026): the census hit the management API gateway's 524
 // (~100 s). 100k ids is ~85k rows at today's density, well under it. Measured before: 200k ids ≈ 12 s.
-const CENSUS_SLICE = 100000;
+const CENSUS_SLICE = 20000;
 
 function token() {
   if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
