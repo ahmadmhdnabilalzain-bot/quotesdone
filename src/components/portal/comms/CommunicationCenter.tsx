@@ -84,9 +84,12 @@ const EN = {
   unread: 'unread',
   no_messages: 'No messages yet',
   st_none: 'No chat open',
+  st_ready: 'Ready to message',
   st_requested: 'Chat requested',
   st_open: 'Chat open',
   st_banned: 'Chat closed',
+  open_write: 'Open and write a message',
+  open_conv: 'Open conversation',
   docs_h: 'Documents on this conversation',
   docs_rfq: 'Filed against this request',
   docs_supplier: 'From this supplier',
@@ -143,9 +146,12 @@ const AR: typeof EN = {
   unread: 'غير مقروءة',
   no_messages: 'لا توجد رسائل بعد',
   st_none: 'لا توجد محادثة مفتوحة',
+  st_ready: 'جاهزة للمراسلة',
   st_requested: 'تم طلب المحادثة',
   st_open: 'المحادثة مفتوحة',
   st_banned: 'المحادثة مغلقة',
+  open_write: 'افتح واكتب رسالة',
+  open_conv: 'افتح المحادثة',
   docs_h: 'مستندات هذه المحادثة',
   docs_rfq: 'مُرفقة بهذا الطلب',
   docs_supplier: 'من هذا المورّد',
@@ -179,9 +185,14 @@ const fmtWhen = (iso: string | null | undefined, lang: Lang) => {
   return d.toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 };
 
+// A supplier row in this list exists only because the reveal was paid, and messages_api `thread`
+// opens the chat on first touch (index.ts: "POST-REVEAL CHAT OPENS ON FIRST TOUCH"). So a
+// chat_status of 'none' on a listed row is "not opened yet", not "cannot be opened" — the audit
+// of 21 Sep 2026 read "No chat open" as the customer having no way to write. It is labelled as
+// what it is: ready.
 const statusWord = (s: string, lang: Lang) => {
   const w = W(lang);
-  return s === 'open' ? w.st_open : s === 'requested' ? w.st_requested : s === 'banned' ? w.st_banned : w.st_none;
+  return s === 'open' ? w.st_open : s === 'requested' ? w.st_requested : s === 'banned' ? w.st_banned : w.st_ready;
 };
 
 /** The one line that tells the customer what is and is not in front of them. */
@@ -550,7 +561,13 @@ export function CommunicationCenter({ token, lang = 'en', onOpenRfq, refreshKey 
             const n = documentCount(linked.byThread[k]);
             const isCh = isChannelThread(t);
             return (
-              <Card key={k} className="cursor-pointer p-4 transition-colors hover:border-primary/40" onClick={() => setOpenKey(k)}>
+              // A BUTTON, NOT A DIV WITH A HANDLER. The audit of 21 Sep 2026 saw this card as
+              // "non-clickable": no role, no keyboard path, no control that says what happens. The
+              // whole row is a real button and carries the explicit action beneath it.
+              <Card key={k} role="button" tabIndex={0} aria-label={`${w.open_conv}: ${t.counterpart}`}
+                className="cursor-pointer p-4 transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                onClick={() => setOpenKey(k)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenKey(k); } }}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="text-[14px] font-bold text-foreground">{t.counterpart}</div>
@@ -562,6 +579,12 @@ export function CommunicationCenter({ token, lang = 'en', onOpenRfq, refreshKey 
                         : <><span className="font-semibold">{w.rfq}:</span> {t.subject}</>}
                     </div>
                     <div className="mt-1 truncate text-[12.5px] text-muted-foreground">{t.last || w.no_messages}</div>
+                    <div className="mt-2">
+                      <Button type="button" size="sm" variant={isCh ? 'outline' : 'default'} tabIndex={-1}
+                        onClick={(e) => { e.stopPropagation(); setOpenKey(k); }}>
+                        {isCh ? w.open_conv : w.open_write}
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     {t.unread ? (

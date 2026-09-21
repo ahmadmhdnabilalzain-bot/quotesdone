@@ -7,5 +7,8 @@
 # an entry with no reason — so "committed and not applied" is a stated fact rather than an absence.
 #
 # Format: <path> :: <reason, and what would move it>
+# 21 Sep 2026 — customer_support / sales_engineer chat PR. Coordinator applies in this order, then deploys sales_engineer + site_assistant:
+#   1. scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql (RE-APPLY; fn_sales_assist FAQ ranks gated by @@, Arabic arms only for Arabic text; probe c3)
+#   2. scripts/sql/the_arabic_visitor_asking_how_long_gets_the_same_answer_as_the_english_one.sql (one Arabic FAQ row; already in MANIFEST)
 
 

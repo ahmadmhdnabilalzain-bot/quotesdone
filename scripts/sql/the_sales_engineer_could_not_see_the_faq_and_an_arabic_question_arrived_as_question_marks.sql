@@ -39,6 +39,16 @@
 -- with reasons, recorded in full beside the new corpus block below.
 --
 -- ─────────────────────────────────────────────────────────────────────────────────────────────
+-- DEFECT 3 (added 21 Sep 2026, seat sales_engineer) — the FAQ arm answered questions it did not
+-- match. MEASURED on production: the customer's English portal question about a scaffolding
+-- exclusion cited FAQs 624, 167, 30, 623 and 26 at lexical_rank up to 0.7640 while `@@` was FALSE
+-- for every one of them — ts_rank scores partial term hits, and the 'arabic' configuration (no
+-- stopwords) made 'the', 'does', 'that', 'are' into query terms that every English FAQ contains.
+-- CHANGES: the Arabic arms are built only for a question carrying Arabic script, and every FAQ rank
+-- (english, arabic strict, arabic loose) is zero unless the row matches that query. NOT CHANGED:
+-- the floors, the other seven corpora, the gap/task fallback. Probe (c3) asserts the case.
+--
+-- ─────────────────────────────────────────────────────────────────────────────────────────────
 -- DEFECT 2 — an Arabic question was destroyed before it reached the database.
 --
 -- org_tasks 578945 / sales_knowledge_gap 14 held a question made entirely of question marks. The
@@ -338,11 +348,24 @@ begin
   end if;
 
   v_tq := websearch_to_tsquery('english', p_text);
-  v_tq_ar := websearch_to_tsquery('arabic', public.fn_ar_norm(p_text));
-  select nullif(array_to_string(array(
-           select lexeme from unnest(to_tsvector('arabic', public.fn_ar_norm(p_text)))), ' | '), '')
-    into v_or_ar;
-  v_tq_ar_or := case when v_or_ar is null then null else to_tsquery('arabic', v_or_ar) end;
+  -- 21 SEP 2026 — THE ARABIC ARMS EXIST ONLY FOR A QUESTION WRITTEN IN ARABIC. Measured on
+  -- production with the customer's English question "the quote excludes scaffolding above 4 m but
+  -- my ceilings are 3.2 m, does that exclusion matter": the 'arabic' configuration has no stopword
+  -- list, so 'the', 'does', 'that', 'are' became query lexemes, and ts_rank scores PARTIAL matches —
+  -- FAQ 624 "Does a Dubai supplier cover Abu Dhabi as well?" ranked 0.7640 under the strict Arabic
+  -- query while `@@` was FALSE for it. Five unrelated FAQs cleared the 0.20 lexical-only bar that
+  -- way and were dumped on the customer as the answer. An English question now carries null Arabic
+  -- arms, and (below) every rank is gated by its own `@@`, so a rank can no longer be earned by a
+  -- query the row does not actually match.
+  if p_text ~ '[؀-ۿ]' then
+    v_tq_ar := websearch_to_tsquery('arabic', public.fn_ar_norm(p_text));
+    select nullif(array_to_string(array(
+             select lexeme from unnest(to_tsvector('arabic', public.fn_ar_norm(p_text)))), ' | '), '')
+      into v_or_ar;
+    v_tq_ar_or := case when v_or_ar is null then null else to_tsquery('arabic', v_or_ar) end;
+  else
+    v_tq_ar := null; v_or_ar := null; v_tq_ar_or := null;
+  end if;
   select array_agg(distinct u.lexeme) into v_lex from unnest(to_tsvector('english', p_text)) u;
   v_need := least(coalesce(cardinality(v_lex), 0), greatest(2, ceil(0.4 * coalesce(cardinality(v_lex), 0))::int));
 
@@ -535,9 +558,9 @@ begin
     insert into _sa_cand
     select 'company_faq', h.id::text, h.title, left(h.body, 4000), h.provenance,
            (1 - (h.embedding_gte <=> p_embedding))::numeric,
-           greatest(coalesce(ts_rank(h.te, v_tq), 0),
-                    coalesce(ts_rank(h.ta, v_tq_ar), 0),
-                    coalesce(ts_rank(h.ta, v_tq_ar_or), 0) * 0.5)::numeric,
+           greatest(case when h.te @@ v_tq then ts_rank(h.te, v_tq) else 0 end,
+                    case when v_tq_ar is not null and h.ta @@ v_tq_ar then ts_rank(h.ta, v_tq_ar) else 0 end,
+                    case when v_tq_ar_or is not null and h.ta @@ v_tq_ar_or then ts_rank(h.ta, v_tq_ar_or) * 0.5 else 0 end)::numeric,
            true,
            (select count(*) from unnest(h.te) u where u.lexeme = any (v_lex))
       from (select f.id, coalesce(f.question, '') as title, coalesce(f.answer, '') as body,
@@ -558,16 +581,18 @@ begin
     from (select f.id, coalesce(f.question, '') as title, coalesce(f.answer, '') as body,
                  'FAQ' || case when f.section is null then '' else ' · ' || f.section end
                        || ' · ' || coalesce(f.language, 'en') as provenance,
-                 greatest(coalesce(ts_rank(to_tsvector('english', coalesce(f.question, '') || ' ' || coalesce(f.answer, '')), v_tq), 0),
-                          coalesce(ts_rank(to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))), v_tq_ar), 0),
-                          coalesce(ts_rank(to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))), v_tq_ar_or), 0) * 0.5)::numeric as lex_rank
-            from company_faq f
-           where f.embedding_gte is null
-             and f.status = 'approved'
-             and (to_tsvector('english', coalesce(f.question, '') || ' ' || coalesce(f.answer, '')) @@ v_tq
-               or to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))) @@ v_tq_ar
-               or (v_tq_ar_or is not null
-                   and to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))) @@ v_tq_ar_or))
+                 greatest(case when g.te @@ v_tq then ts_rank(g.te, v_tq) else 0 end,
+                          case when v_tq_ar is not null and g.ta @@ v_tq_ar then ts_rank(g.ta, v_tq_ar) else 0 end,
+                          case when v_tq_ar_or is not null and g.ta @@ v_tq_ar_or then ts_rank(g.ta, v_tq_ar_or) * 0.5 else 0 end)::numeric as lex_rank
+            from (select f.*,
+                         to_tsvector('english', coalesce(f.question, '') || ' ' || coalesce(f.answer, '')) as te,
+                         to_tsvector('arabic', public.fn_ar_norm(coalesce(f.question, '') || ' ' || coalesce(f.answer, ''))) as ta
+                    from company_faq f
+                   where f.embedding_gte is null
+                     and f.status = 'approved') g
+           where (g.te @@ v_tq
+               or (v_tq_ar is not null and g.ta @@ v_tq_ar)
+               or (v_tq_ar_or is not null and g.ta @@ v_tq_ar_or))
            order by lex_rank desc
            limit v_wide) h;
 
@@ -864,6 +889,8 @@ declare
   v_max_log     bigint;
   v_before_task bigint;
   v_before_gap  bigint;
+  v_max_task    bigint;
+  v_max_gap     bigint;
   v_emb         vector;
   v_emb_q       text;
   v_q    text := 'does a Dubai supplier cover Abu Dhabi as well';
@@ -963,6 +990,25 @@ begin
                            || 'embedding: ' || coalesce(v_hit->>'refusal', 'no refusal recorded'));
     end if;
   end if;
+
+  -- (c3) 21 SEP 2026 — AN ENGLISH QUESTION NO FAQ ANSWERS MUST NOT BE ANSWERED BY THE FAQ. The
+  --      customer's own question from the portal audit: before this change it cited five FAQs
+  --      (624, 167, 30, 623, 26) that share no subject with it, because the stopword-less arabic
+  --      configuration ranked 'the/does/that/are' against every English row. Nothing may be cited
+  --      from company_faq for it now. (The quote-specific answer lives in the edge function, which
+  --      reads the customer's own quote; this routine is only asserted not to lie.)
+  select coalesce(max(id), 0) into v_max_task from public.org_tasks;
+  select coalesce(max(id), 0) into v_max_gap  from public.sales_knowledge_gap;
+  v_hit := public.fn_sales_assist('the quote excludes scaffolding above 4 m but my ceilings are 3.2 m, does that exclusion matter', null::vector);
+  if exists (select 1 from jsonb_array_elements(coalesce(v_hit->'records', '[]'::jsonb)) r
+              where r->>'corpus' = 'company_faq') then
+    v_fail := v_fail || ('an unrelated English question was still answered from company_faq: '
+                         || coalesce((v_hit->'cited')::text, 'null'));
+  end if;
+  -- when nothing clears it records a gap and opens a task; both are removed, bounded by the ids
+  -- read a moment ago so only the probe's own rows are reachable.
+  delete from public.org_tasks where id > v_max_task;
+  delete from public.sales_knowledge_gap where id > v_max_gap;
 
   -- clean up what both calls left, bounded by id so they can only reach their own rows, and prove it.
   delete from public.sales_decision_log where id > v_max_log;
