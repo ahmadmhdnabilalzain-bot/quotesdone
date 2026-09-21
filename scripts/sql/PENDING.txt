@@ -15,3 +15,8 @@
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
 #
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+#
+# 21 Sep 2026 — supplier campaign readiness (customer_support, ceo oversight). Apply in this order; the
+# probe must answer PROBE OK. Both were executed in a rolled-back transaction against production first.
+scripts/sql/the_supplier_invitation_goes_once_in_the_suppliers_language_and_never_to_a_demo_or_sanctioned_lead.sql :: committed, not applied: the coordinator serialises applies; moves to MANIFEST when applied with --ddl
+scripts/sql/probe_the_supplier_invitation_goes_once_and_whole.sql :: pure probe, depends on the file above being live; run after it and move to MANIFEST once it answers PROBE OK
