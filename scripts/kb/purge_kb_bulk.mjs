@@ -273,7 +273,7 @@ step('vacuum / reindex / stats');
                                   (select n_dead_tup from pg_stat_user_tables where relname = 'kb_chunks') as dead,
                                   (select count(*) from public.kb_chunks) as live`);
   await sql(`insert into public.kb_purge_ledger (verdict, clause, source_kind, category, bytes, note)
-             values ('SIZE', 0, 'kb_chunks', 'pg_total_relation_size', ${after.b}, 'after the purge, vacuum and reindex')`);
+             values ('SIZE', 0, 'kb_chunks', 'pg_total_relation_size', ${after.b}, 'after the purge, vacuum and reindex')`, 0, false);
   const reclaimed = SIZE_BEFORE_MB - Math.round(Number(after.b) / 1048576);
   console.log(`   kb_chunks now: ${after.p} total (heap ${after.heap}, indexes ${after.idx}), ${after.live} live rows, ${after.dead} dead tuples`);
   console.log(`   reclaimed vs §8's ${SIZE_BEFORE_MB} MB: ${reclaimed} MB. A plain VACUUM returns space to the table, not to the disk — the heap and TOAST files only shrink with VACUUM FULL, which needs a session without the 2-minute cap and an exclusive lock.`);

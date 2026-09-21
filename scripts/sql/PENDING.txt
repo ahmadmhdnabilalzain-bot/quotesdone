@@ -34,5 +34,3 @@
 scripts/sql/one_job_number_on_every_portal_document_and_notice_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED until then.
 scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED (Sharjah returned) until then.
 #
-# 21 Sep 2026 — the kb purge restarted production at 17:44 UTC (it_engineer).
-scripts/sql/the_purge_cannot_take_the_database_down.sql :: bounds fn_kb_purge_batch (2,000 default, 5,000 max, no seq scan, no overlap), records a purge batch by a forced full export instead of 2.47 M change rows, and adds the load guard. Apply BEFORE the next `purge_kb_bulk.mjs --run`, outside a campaign hour; its PROBE row must read PROBE OK; then move this line to the end of MANIFEST.txt.
