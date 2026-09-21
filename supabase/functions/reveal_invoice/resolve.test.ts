@@ -3,7 +3,7 @@
 // invoice and receipt bodies are template documents in both languages with lines that add up.
 import { assertEquals, assertThrows } from 'jsr:@std/assert@1';
 import { resolveSale, type Sale } from './resolve.ts';
-import { revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
+import { NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
 
 const SALES: Record<string, Sale> = {
   'q-mine': { id: 'tx-1', customer_id: 'c-mine', stripe_invoice_id: 'in_zzdemo_mine', stripe_invoice_number: 'ZZDEMO-0001' },
@@ -25,8 +25,43 @@ Deno.test("another customer's sale is refused; an unknown sign-in and a missing 
 const SALE: RevealSale = {
   tx_id: 'tx-1', invoice_no: 'ZZDEMO-0001', paid_at: '2026-09-21T09:33:20Z', reveal_fee: 777.6, processing_fee: 38.77, total_charged: 816.37,
   quote_amount: 25920, payment_ref: 'pi_zzdemo', customer: { name: 'ZZ DEMO Buyer', email: 'zz.demo.buyer@example.invalid', phone: null },
-  request: { summary: 'ZZ DEMO gypsum ceilings', category: 'gypsum', ref: 'QD-ZZDEMO01' }, card: { brand: 'visa', last4: '4242' },
+  request: { summary: 'ZZ DEMO gypsum ceilings', category: 'gypsum', ref: 'QD-ZZDEMO01' }, card: { brand: 'visa', last4: '4242' }, refund: null,
 };
+
+const TX = { fee_status: 'paid', revealed_at: '2026-09-21T09:33:20Z', refund_status: null, refund_amount_aed: null, refund_confirmed_at: null, refund_resolved_at: null };
+
+Deno.test('state (a) paid, not refunded: PAID documents, and a requested/approved/failed refund changes nothing', () => {
+  const rows = [{ status: 'requested', amount_fils: 81637, settled_at: null }, { status: 'approved', amount_fils: 81637, settled_at: null }, { status: 'failed', amount_fils: 81637, settled_at: null }];
+  assertEquals(paymentState(TX, rows), { state: 'paid', refund: null });
+  assertEquals(paymentState({ ...TX, refund_status: 'requested' }, []), { state: 'paid', refund: null });
+});
+
+Deno.test('state (b) refunded: the invoice still shows it was paid, plus REFUNDED with amount and date; partial shows the net', () => {
+  const full = paymentState(TX, [{ status: 'succeeded', amount_fils: 81637, settled_at: '2026-09-25T10:00:00Z' }]);
+  assertEquals(full, { state: 'paid', refund: { amount: 816.37, date: '2026-09-25T10:00:00Z' } });
+  const fromTx = paymentState({ ...TX, refund_status: 'refunded', refund_amount_aed: 816.37, refund_confirmed_at: '2026-09-26T08:00:00Z' }, []);
+  assertEquals(fromTx, { state: 'paid', refund: { amount: 816.37, date: '2026-09-26T08:00:00Z' } });
+  for (const lang of ['en', 'ar'] as const) {
+    const s = JSON.stringify(revealInvoiceDocument({ ...SALE, refund: { amount: 816.37, date: '2026-09-25T10:00:00Z' } }, lang));
+    assertEquals(s.includes(lang === 'ar' ? '"مستردّة"' : '"REFUNDED"'), true);
+    assertEquals(s.includes(lang === 'ar' ? '25 سبتمبر 2026' : '25 September 2026'), true);
+    assertEquals(s.includes(lang === 'ar' ? 'المدفوع بتاريخ' : 'Paid on'), true); // it was paid
+    const r = JSON.stringify(revealReceiptDocument({ ...SALE, refund: { amount: 816.37, date: '2026-09-25T10:00:00Z' } }, lang));
+    assertEquals(r.includes(lang === 'ar' ? '"مستردّة"' : '"REFUNDED"'), true);
+  }
+  const part = paymentState(TX, [{ status: 'succeeded', amount_fils: 38777, settled_at: '2026-09-25T10:00:00Z' }]);
+  const doc = JSON.stringify(revealInvoiceDocument({ ...SALE, refund: part.state === 'paid' ? part.refund : null }, 'en'));
+  assertEquals(doc.includes('"PART REFUNDED"'), true);
+  assertEquals(doc.includes('AED 428.60'), true); // 816.37 - 387.77
+  assertEquals(doc.includes('"REFUNDED"'), false);
+});
+
+Deno.test('state (c) not paid / pending / failed: no document, a readable EN + AR refusal', () => {
+  for (const fee_status of [null, 'pending', 'failed', 'unpaid', 'requires_payment_method']) assertEquals(paymentState({ ...TX, fee_status }, []).state, 'not_paid');
+  assertEquals(paymentState({ ...TX, revealed_at: null }, []).state, 'not_paid');
+  assertEquals(NOT_PAID.code, 'payment_not_settled');
+  assertEquals(/[؀-ۿ]/.test(NOT_PAID.ar) && /not been completed/.test(NOT_PAID.en), true);
+});
 
 Deno.test('the invoice is a template document, PAID, no TRN, carries Stripe\'s number and no other, EN and AR', () => {
   for (const lang of ['en', 'ar'] as const) {

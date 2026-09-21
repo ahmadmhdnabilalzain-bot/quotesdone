@@ -276,7 +276,7 @@ Object.assign(T.en, {
   q_reveal: 'Reveal & contact', q_wait: 'Please wait…', q_redirecting: 'Taking you to payment…', q_loading_contact: 'Loading contact…', q_checkout_fail: 'Could not start checkout. Please try again.',
   q_confirm_title: 'Reveal this supplier', q_confirm_body: 'You pay {total}: the 3% reveal fee on this {price} quote plus card processing. No VAT. Payment is taken securely by Stripe.', q_confirm_pay: 'Continue to secure payment',
   q_bd_fee: 'Reveal fee (3% of {price})', q_bd_proc: 'Card processing — the fee Stripe charges to take the card payment, passed on at cost; it depends on the card used', q_bd_total: 'Total', q_bd_refund: 'A refund returns the full amount you paid.',
-  q_inv_pdf: 'Invoice (PDF)', q_rcpt_pdf: 'Receipt (PDF)', q_inv_fail: 'Could not open the invoice.',
+  q_inv_pdf: 'Invoice (PDF)', q_rcpt_pdf: 'Receipt (PDF)', q_inv_fail: 'Could not open the invoice.', q_inv_not_paid: 'This payment has not been completed, so there is no invoice or receipt for it yet.',
   pay_title: 'Pay securely with Stripe', pay_loading: 'Loading secure payment…', pay_continue: 'Continue',
   pay_final: 'Total {total} (3% + card processing)', pay_lines: 'Reveal fee {fee} + card processing {proc}. No VAT.',
   pay_basis_dom: 'UAE card rate', pay_basis_intl: 'International card rate',
@@ -405,7 +405,7 @@ Object.assign(T.ar, {
   q_reveal: 'اكشف وتواصل', q_wait: 'يُرجى الانتظار…', q_redirecting: 'جارٍ تحويلك إلى الدفع…', q_loading_contact: 'جارٍ تحميل بيانات التواصل…', q_checkout_fail: 'تعذّر بدء الدفع. يُرجى المحاولة مرة أخرى.',
   q_confirm_title: 'كشف هذا المورّد', q_confirm_body: 'تدفع {total}: رسوم الكشف 3% من عرض السعر البالغ {price} مع رسوم معالجة البطاقة. بدون ضريبة قيمة مضافة. يتم الدفع بأمان عبر Stripe.', q_confirm_pay: 'متابعة إلى الدفع الآمن',
   q_bd_fee: 'رسوم الكشف (3% من {price})', q_bd_proc: 'رسوم معالجة البطاقة — رسوم Stripe لتحصيل الدفع بالبطاقة، تُمرَّر بالتكلفة وتختلف بحسب البطاقة', q_bd_total: 'الإجمالي', q_bd_refund: 'عند الاسترداد يُعاد إليك كامل المبلغ الذي دفعته.',
-  q_inv_pdf: 'الفاتورة (PDF)', q_rcpt_pdf: 'إيصال الدفع (PDF)', q_inv_fail: 'تعذّر فتح الفاتورة.',
+  q_inv_pdf: 'الفاتورة (PDF)', q_rcpt_pdf: 'إيصال الدفع (PDF)', q_inv_fail: 'تعذّر فتح الفاتورة.', q_inv_not_paid: 'لم تكتمل هذه الدفعة بعد، لذلك لا توجد لها فاتورة أو إيصال حتى الآن.',
   pay_title: 'ادفع بأمان عبر Stripe', pay_loading: 'جارٍ تحميل صفحة الدفع الآمن…', pay_continue: 'متابعة',
   pay_final: 'الإجمالي {total} (3% + رسوم معالجة البطاقة)', pay_lines: 'رسوم الكشف {fee} + رسوم معالجة البطاقة {proc}. بدون ضريبة قيمة مضافة.',
   pay_basis_dom: 'سعر البطاقة الإماراتية', pay_basis_intl: 'سعر البطاقة الدولية',
@@ -485,6 +485,8 @@ const CODE_KEY = {
   // customer_api rate_supplier, 17 Sep 2026: a refused rating comes back as a 4xx with a code, never
   // as the 500 that used to carry a raw constraint name to the customer.
   review_comment_too_short: 'err_review_comment', rating_out_of_range: 'err_rating_range',
+  // reveal_invoice, 21 Sep 2026: no invoice or receipt for a payment that has not settled.
+  payment_not_settled: 'q_inv_not_paid',
 };
 const MSG_KEY = [
   [/do-not-send/i, 'err_suppressed'], [/create an account from a mobile/i, 'signup_email_only'], [/not linked|No account is registered/i, 'err_mobile_unknown'],

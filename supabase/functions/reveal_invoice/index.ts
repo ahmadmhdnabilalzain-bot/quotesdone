@@ -2,7 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { resolveSale } from './resolve.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
-import { revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
+import { NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
@@ -65,8 +65,16 @@ Deno.serve(observe('reveal_invoice', async (req) => {
     }, user.email, qid);
     if (!('sale' in res)) { await logRun('error', { quote_id: qid, status: res.status }, 'invoice refused: ' + res.body.error); return J(res.body, res.status); }
 
-    const { data: tx } = await admin.from('transactions').select('id,inquiry_id,reveal_fee,processing_fee,total_charged,quote_amount,payment_ref,revealed_at,stripe_invoice_number').eq('id', res.sale.id).maybeSingle();
+    const { data: tx } = await admin.from('transactions').select('id,inquiry_id,reveal_fee,processing_fee,total_charged,quote_amount,payment_ref,revealed_at,stripe_invoice_number,fee_status,refund_status,refund_amount_aed,refund_confirmed_at,refund_resolved_at').eq('id', res.sale.id).maybeSingle();
     if (!tx) return J({ error: 'No paid reveal found for this quote' }, 404);
+    // A PAID document only for a payment that settled; a refund is printed from the refund record.
+    const { data: refundRows, error: refundErr } = await admin.from('refunds').select('status,amount_fils,settled_at,updated_at').eq('transaction_id', tx.id);
+    if (refundErr) { await logRun('error', { quote_id: qid }, 'refunds unreadable: ' + refundErr.message); return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503); }
+    const pay = paymentState(tx, refundRows || []);
+    if (pay.state !== 'paid') {
+      await logRun('ok', { quote_id: qid, doc: kind, refused: NOT_PAID.code, fee_status: tx.fee_status }, '');
+      return J({ error: NOT_PAID.code, code: NOT_PAID.code, message_en: NOT_PAID.en, message_ar: NOT_PAID.ar }, 409);
+    }
     const { data: cust } = await admin.from('customers').select('email,full_name,phone').eq('email', user.email.toLowerCase()).maybeSingle();
     const { data: inq } = await admin.from('inquiries').select('summary,category').eq('id', tx.inquiry_id).maybeSingle();
     const fee = Number(tx.reveal_fee || 0), processing = Number(tx.processing_fee || 0);
@@ -77,7 +85,7 @@ Deno.serve(observe('reveal_invoice', async (req) => {
       quote_amount: tx.quote_amount != null ? Number(tx.quote_amount) : null, payment_ref: String(tx.payment_ref || ''),
       customer: { name: cust?.full_name || null, email: cust?.email || user.email, phone: cust?.phone || null },
       request: { summary: inq?.summary || null, category: inq?.category || null, ref: 'QD-' + String(tx.inquiry_id || '').replace(/-/g, '').slice(0, 8).toUpperCase() },
-      card: null,
+      card: null, refund: pay.refund,
     };
 
     // A document already rendered for this sale, kind and language is served again. reveal_invoices

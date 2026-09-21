@@ -37,7 +37,54 @@ export type RevealSale = {
   request: { summary: string | null; category: string | null; ref: string };
   /** From the Stripe charge; null when Stripe could not be asked. */
   card: { brand: string; last4: string } | null;
+  /** Money returned to the customer, from paymentState(); null when nothing was refunded. */
+  refund: { amount: number; date: string } | null;
 };
+
+// WHAT THE PAYMENT IS NOW (21 Sep 2026, review of PR #775). A PAID document is issued only for a
+// payment that settled. Measured 21 Sep 2026 on production: transactions.fee_status has no CHECK and
+// every writer in the repository sets only 'paid' (1 row today, 'paid'); refunds.status is CHECKed to
+// requested|approved|rejected|processing|succeeded|failed|cancelled (0 rows today) and only 'succeeded'
+// means money went back (amount_fils, settled_at); transactions.refund_status is written 'refunded' or
+// 'succeeded' with refund_amount_aed when a refund settles. The refund rows are read first; the
+// transaction's own refund columns cover a refund recorded without a row. A requested or approved
+// refund has moved no money and changes nothing on the document.
+export type PaymentTx = { fee_status: string | null; revealed_at: string | null; refund_status: string | null; refund_amount_aed: number | string | null; refund_confirmed_at: string | null; refund_resolved_at: string | null };
+export type RefundRow = { status: string | null; amount_fils: number | string | null; settled_at: string | null; updated_at?: string | null };
+export type PaymentState = { state: 'not_paid' } | { state: 'paid'; refund: RevealSale['refund'] };
+export function paymentState(tx: PaymentTx, refunds: RefundRow[]): PaymentState {
+  if (String(tx.fee_status || '') !== 'paid' || !tx.revealed_at) return { state: 'not_paid' };
+  const done = refunds.filter((x) => x.status === 'succeeded' && Number(x.amount_fils) > 0);
+  if (done.length) {
+    const amount = Math.round(done.reduce((a, x) => a + Number(x.amount_fils), 0)) / 100;
+    const date = done.map((x) => String(x.settled_at || x.updated_at || '')).filter(Boolean).sort().at(-1) || String(tx.refund_confirmed_at || tx.refund_resolved_at || '');
+    return { state: 'paid', refund: { amount, date } };
+  }
+  if (['refunded', 'succeeded'].includes(String(tx.refund_status || '')) && Number(tx.refund_amount_aed) > 0) {
+    return { state: 'paid', refund: { amount: Number(tx.refund_amount_aed), date: String(tx.refund_confirmed_at || tx.refund_resolved_at || '') } };
+  }
+  return { state: 'paid', refund: null };
+}
+/** The readable refusal for a payment that has not settled (EN + AR): never a PAID document. */
+export const NOT_PAID = {
+  code: 'payment_not_settled',
+  en: 'This payment has not been completed, so there is no invoice or receipt for it yet.',
+  ar: 'لم تكتمل هذه الدفعة بعد، لذلك لا توجد لها فاتورة أو إيصال حتى الآن.',
+};
+function refundFacts(s: RevealSale, lang: Lang) {
+  const ar = lang === 'ar', f = s.refund;
+  if (!f) return null;
+  const full = Math.round(f.amount * 100) >= Math.round(s.total_charged * 100);
+  const on = f.date ? fmtDate(f.date, lang) : (ar ? 'تاريخ غير مسجّل' : 'date not recorded');
+  const net = Math.max(0, Math.round((s.total_charged - f.amount) * 100) / 100);
+  return {
+    status: full ? (ar ? 'مستردّة' : 'REFUNDED') : (ar ? 'مستردّة جزئيًا' : 'PART REFUNDED'),
+    row: [ar ? `المسترد بتاريخ ${on}` : `Refunded on ${on}`, '− ' + money(f.amount, lang), false],
+    netRow: [ar ? 'صافي المدفوع بعد الاسترداد' : 'Net paid after refund', money(net, lang), true],
+    note: ar ? `تم ردّ ${money(f.amount, 'ar')} إلى العميل بتاريخ ${on}${full ? '، أي كامل المبلغ المدفوع' : `؛ وصافي المدفوع ${money(net, 'ar')}`}.`
+      : `${money(f.amount)} was refunded to the customer on ${on}${full ? ', the full amount paid' : `; the net amount paid is ${money(net)}`}.`,
+  };
+}
 
 // deno-lint-ignore no-explicit-any
 type Block = Record<string, any>;
@@ -91,35 +138,37 @@ function body(lang: Lang, ref: string, name: string, title: string, kicker: stri
 }
 
 export function revealInvoiceDocument(s: RevealSale, lang: Lang) {
-  const ar = lang === 'ar', ref = docRef(s), paid = fmtDate(s.paid_at, lang);
+  const ar = lang === 'ar', ref = docRef(s), paid = fmtDate(s.paid_at, lang), rf = refundFacts(s, lang);
   const T = (en: string, a: string) => ar ? a : en;
-  return body(lang, ref, `invoice-${ref}-${lang}-${REVEAL_DOC_VERSION}`, T('Invoice', 'فاتورة'), T('Invoice — paid — not subject to VAT', 'فاتورة — مدفوعة — غير خاضعة لضريبة القيمة المضافة'),
+  return body(lang, ref, `invoice-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}`, T('Invoice', 'فاتورة'),
+    rf ? T('Invoice — paid, then refunded — not subject to VAT', 'فاتورة — مدفوعة ثم مستردّة — غير خاضعة لضريبة القيمة المضافة') : T('Invoice — paid — not subject to VAT', 'فاتورة — مدفوعة — غير خاضعة لضريبة القيمة المضافة'),
     T(`Reveal fee for request ${s.request.ref}`, `رسوم الكشف عن الطلب ${s.request.ref}`), s,
-    [[T('Invoice no.', 'رقم الفاتورة'), s.invoice_no || T('— (see payment ref.)', '— (انظر مرجع الدفع)')], [T('Invoice date', 'تاريخ الفاتورة'), paid], [T('Status', 'الحالة'), T('PAID', 'مدفوعة')], [T('Request ref.', 'مرجع الطلب'), s.request.ref]],
+    [[T('Invoice no.', 'رقم الفاتورة'), s.invoice_no || T('— (see payment ref.)', '— (انظر مرجع الدفع)')], [T('Invoice date', 'تاريخ الفاتورة'), paid], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')], [T('Request ref.', 'مرجع الطلب'), s.request.ref]],
     // No key-figures strip: the meta row says PAID and the totals block ends on "Balance due 0.00";
     // the strip's 84pt is what keeps the signed invoice on one page.
     [],
     [
       parties(s, lang, T('Billed to', 'صادرة إلى')),
       { t: 'section', n: 1, text: T('Charges', 'تفاصيل المبلغ') }, charges(s, lang),
-      { t: 'totals', rows: [[T('Total', 'الإجمالي'), money(s.total_charged, lang), false], [T(`Paid on ${paid}`, `المدفوع بتاريخ ${paid}`), '− ' + money(s.total_charged, lang), false], [T('Balance due', 'الرصيد المستحق'), money(0, lang), true]], note: '' },
-      { t: 'note', text: NO_VAT[lang] },
+      { t: 'totals', rows: [[T('Total', 'الإجمالي'), money(s.total_charged, lang), false], [T(`Paid on ${paid}`, `المدفوع بتاريخ ${paid}`), '− ' + money(s.total_charged, lang), false], ...(rf ? [rf.row, rf.netRow] : [[T('Balance due', 'الرصيد المستحق'), money(0, lang), true]])], note: '' },
+      { t: 'note', text: (rf ? rf.note + ' ' : '') + NO_VAT[lang] },
       { t: 'kv', pairs: [[T('Paid by', 'طريقة الدفع'), method(s, lang)], [T('Payment reference', 'مرجع الدفع'), s.payment_ref]] },
       { t: 'note', text: (s.invoice_no ? T('The invoice number is the one our payment processor, Stripe, assigned to this payment; this is the only invoice for it. ', 'رقم الفاتورة هو الرقم الذي خصّصه معالج الدفع Stripe لهذه الدفعة، وهذه هي الفاتورة الوحيدة لها. ') : '') + NATURE[lang] },
     ]);
 }
 
 export function revealReceiptDocument(s: RevealSale, lang: Lang) {
-  const ar = lang === 'ar', ref = docRef(s), paid = fmtDate(s.paid_at, lang);
+  const ar = lang === 'ar', ref = docRef(s), paid = fmtDate(s.paid_at, lang), rf = refundFacts(s, lang);
   const T = (en: string, a: string) => ar ? a : en;
-  return body(lang, ref, `receipt-${ref}-${lang}-${REVEAL_DOC_VERSION}`, T('Payment Receipt', 'إيصال دفع'), T('Receipt — payment received', 'إيصال — تم استلام الدفعة'),
+  return body(lang, ref, `receipt-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}`, T('Payment Receipt', 'إيصال دفع'), T('Receipt — payment received', 'إيصال — تم استلام الدفعة'),
     s.invoice_no ? T(`Payment of invoice ${s.invoice_no} — request ${s.request.ref}`, `سداد الفاتورة ${s.invoice_no} — الطلب ${s.request.ref}`) : T(`Reveal fee for request ${s.request.ref}`, `رسوم الكشف عن الطلب ${s.request.ref}`), s,
-    [[T('For invoice no.', 'عن الفاتورة رقم'), s.invoice_no || '—'], [T('Date received', 'تاريخ الاستلام'), paid], [T('Amount received', 'المبلغ المستلَم'), money(s.total_charged, lang)], [T('Status', 'الحالة'), T('PAID', 'مدفوعة')]],
+    [[T('For invoice no.', 'عن الفاتورة رقم'), s.invoice_no || '—'], [T('Date received', 'تاريخ الاستلام'), paid], [T('Amount received', 'المبلغ المستلَم'), money(s.total_charged, lang)], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')]],
     [],
     [
       parties(s, lang, T('Received from', 'استُلم من')),
       { t: 'section', n: 1, text: T('Payment for', 'مقابل') }, charges(s, lang),
-      { t: 'totals', rows: [[T('Total received', 'إجمالي المبلغ المستلَم'), money(s.total_charged, lang), true]], note: '' },
+      { t: 'totals', rows: [[T('Total received', 'إجمالي المبلغ المستلَم'), money(s.total_charged, lang), !rf], ...(rf ? [rf.row, rf.netRow] : [])], note: '' },
+      ...(rf ? [{ t: 'note', text: rf.note }] : []),
       { t: 'kv', pairs: [[T('Paid by', 'طريقة الدفع'), method(s, lang)], [T('Payment reference', 'مرجع الدفع'), s.payment_ref]] },
       { t: 'note', text: (s.invoice_no ? T(`This receipt confirms payment in full of invoice ${s.invoice_no}. It is not a second invoice. `, `يؤكد هذا الإيصال سداد الفاتورة رقم ${s.invoice_no} بالكامل، وهو ليس فاتورة ثانية. `) : T('This receipt confirms payment in full of the amount above. ', 'يؤكد هذا الإيصال سداد المبلغ أعلاه بالكامل. ')) + NO_VAT[lang] },
       { t: 'note', text: NATURE[lang] },
