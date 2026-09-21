@@ -14,6 +14,7 @@ import { projectApi } from './api';
 import { PROJECT_STATUSES, type Lang, type Project } from './model';
 import { Notice } from './parts';
 import { errText, statusLabel, tr } from './strings';
+import { BUDGET_MAX_AED, parseBudget } from '../../../../supabase/functions/_shared/project_budget';
 
 export interface ProjectFormProps {
   /** Customer Supabase JWT. */
@@ -55,6 +56,14 @@ export function ProjectForm({ token, lang = 'en', project = null, onSaved, onCan
       setError(tr(lang, 'f_name_required'));
       return;
     }
+    // The server's own rule (project_api refuses the same input): said here so the customer is told
+    // before a round trip. min/max on the input alone were never a bound — typed text and pasted
+    // negatives went straight through (audit 21 Sep 2026).
+    const checked = parseBudget(budget);
+    if (!checked.ok) {
+      setError(lang === 'ar' ? checked.ar : checked.en);
+      return;
+    }
     setBusy(true);
     setError('');
     const shared = {
@@ -77,7 +86,7 @@ export function ProjectForm({ token, lang = 'en', project = null, onSaved, onCan
         description: shared.description || null,
         status,
         target_open_date: /^\d{4}-\d{2}-\d{2}$/.test(targetDate) ? targetDate : null,
-        budget_total: budget.trim() === '' ? null : Number(budget),
+        budget_total: checked.value,
       });
       return;
     }
@@ -153,8 +162,8 @@ export function ProjectForm({ token, lang = 'en', project = null, onSaved, onCan
             className={field}
             type="number"
             inputMode="decimal"
-            min={0}
-            max={1e9}
+            min={0.01}
+            max={BUDGET_MAX_AED}
             step="0.01"
             value={budget}
             onChange={(e) => setBudget(e.target.value)}

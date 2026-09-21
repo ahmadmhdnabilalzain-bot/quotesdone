@@ -33,8 +33,17 @@ import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.t
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 import { assessQuote, requirementsOf, type Line as SpecLine, type TermsSpec } from './line_specs/assess.ts';
 export type Lang = 'en' | 'ar';
-/** The version printed in each document's control line. Bump when the layout or wording changes. */
-export const DOC_VERSION = 'v2.0';
+/** The version printed in each document's control line AND carried in its file name. Bump when the
+ * layout or wording changes: a cached file whose name lacks the current version is re-rendered
+ * (isCurrentDoc). v2.1, 21 Sep 2026: the Arabic fixes of #782/#790/#794 — before this, the cache kept
+ * serving documents rendered by v2.0 for as long as the quote was untouched. */
+export const DOC_VERSION = 'v2.1';
+/** The file name pdf_native writes: `<ts>_<name>.pdf`, name = `<ref>-<DOC_VERSION>-<kind>-<lang>`. The
+ * version sits BEFORE the kind: trg_quote_pdf_cache_register replaces a quote's earlier vault entry by
+ * matching a path that ENDS in `-quotation-<lang>.pdf`, and that ending must not move. */
+export const docName = (ref: string, kind: string, lang: Lang) => `${ref}-${DOC_VERSION}-${kind}-${lang}`;
+/** True only for a stored file rendered by the current layout. */
+export const isCurrentDoc = (path: unknown) => String(path ?? '').includes(`-${DOC_VERSION}-`);
 const PREPARED_BY = { en: 'Prepared by the QuotesDone sales engineer', ar: 'أعدّه مهندس مبيعات QuotesDone' };
 
 /** A, B … Z, AA, AB … — the anonymous label for the i-th live quote by ascending price. */
@@ -471,7 +480,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   const control = `${ref} · ${DOC_VERSION} · ${T('Generated', 'أُنشئ في')} ${date} · ${ar ? PREPARED_BY.ar : PREPARED_BY.en}`;
   const names = args.maskNames || [];
   const body: Record<string, unknown> = {
-    lang, ref, name: ref + '-quotation-' + lang, title: T('Quotation', 'عرض أسعار'),
+    lang, ref, name: docName(ref, 'quotation', lang), title: T('Quotation', 'عرض أسعار'),
     cover: maskDeep(cover0, names, lang), control, blocks: maskDeep(blocks, names, lang), options: { letterhead: true },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
@@ -749,7 +758,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
   const control = `${ref} · ${DOC_VERSION} · ${T('Generated', 'أُنشئ في')} ${date} · ${ar ? PREPARED_BY.ar : PREPARED_BY.en}`;
   const names = args.maskNames || [];
   const body: Record<string, unknown> = {
-    title: T('Quote comparison report', 'تقرير مقارنة العروض'), ref, name: ref + '-comparison-' + lang, lang,
+    title: T('Quote comparison report', 'تقرير مقارنة العروض'), ref, name: docName(ref, 'comparison', lang), lang,
     cover: maskDeep(cover0, names, lang), control, blocks: maskDeep(blocks, names, lang), options: { letterhead: true },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
@@ -901,7 +910,7 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
   // deno-lint-ignore no-explicit-any
   const relabel = (v: any): any => typeof v === 'string' ? (v.startsWith(ORIGINAL) ? CUSTOMER_ORIGINAL + v.slice(ORIGINAL.length) : v) : Array.isArray(v) ? v.map(relabel) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([kk, x]) => [kk, kk === 'sub' ? relabel(x) : relabel(x)])) : v;
   const body: Record<string, unknown> = {
-    title: T('Inquiry', 'استفسار'), ref, name: ref + '-inquiry-' + lang, lang,
+    title: T('Inquiry', 'استفسار'), ref, name: docName(ref, 'inquiry', lang), lang,
     cover: relabel(maskDeep(cover0, [], lang)), control, blocks: relabel(maskDeep(blocks, [], lang)), options: { letterhead: true },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;

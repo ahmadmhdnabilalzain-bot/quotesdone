@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T19:41:51.889Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T19:58:39.701Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -1276,7 +1276,9 @@ CREATE TABLE IF NOT EXISTS public.ceo_decision_log (
   reading_before text,
   reading_after text,
   escalated_to_founder boolean DEFAULT false NOT NULL,
-  founder_answer text
+  founder_answer text,
+  outcome text DEFAULT 'decided'::text NOT NULL,
+  dedupe_key text
 );
 
 CREATE TABLE IF NOT EXISTS public.ceo_identity (
@@ -1372,7 +1374,14 @@ CREATE TABLE IF NOT EXISTS public.ceo_weekly_report (
   delivery_attempts integer DEFAULT 0 NOT NULL,
   last_delivery_error text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  pdf_blocks jsonb,
+  pdf_bucket text,
+  pdf_path text,
+  pdf_url text,
+  pdf_bytes integer,
+  pdf_error text,
+  pdf_generated_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.challenge_heuristic (
@@ -8017,6 +8026,7 @@ ALTER TABLE public.ceo_command ADD CONSTRAINT ceo_command_channel_check CHECK ((
 ALTER TABLE public.ceo_daily_digest ADD CONSTRAINT ceo_daily_digest_status_ck CHECK ((status = ANY (ARRAY['generated'::text, 'submitted'::text, 'delivered'::text, 'delivery_failed'::text])));
 ALTER TABLE public.ceo_decision ADD CONSTRAINT ceo_decision_authority_ck CHECK ((authority = ANY (ARRAY['ceo_alone'::text, 'ceo_case_decision'::text, 'founder_specified'::text])));
 ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_evidence_ck CHECK (((jsonb_typeof(evidence) = 'object'::text) AND (evidence <> '{}'::jsonb)));
+ALTER TABLE public.ceo_decision_log ADD CONSTRAINT ceo_decision_log_outcome_ck CHECK ((outcome = ANY (ARRAY['decided'::text, 'needs_judgement'::text])));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_exec_ck CHECK ((external_execution_enabled = false));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_scope_ck CHECK ((company_scope = ANY (ARRAY['generic'::text, 'industry'::text])));
@@ -8235,6 +8245,7 @@ ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_no_discount_no_c
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_period_ck CHECK ((supplier_reg_period = ANY (ARRAY['yearly'::text, 'monthly'::text])));
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_refund_ladder_ck CHECK (((chase_after_working_days > 0) AND (chase_after_working_days < refund_window_working_days) AND (bank_settlement_working_days_min > 0) AND (bank_settlement_working_days_min <= bank_settlement_working_days_max)));
 ALTER TABLE public.pricing_config ADD CONSTRAINT pricing_config_singleton CHECK ((id = 1));
+ALTER TABLE public.projects ADD CONSTRAINT projects_budget_total_positive_bounded CHECK (((budget_total IS NULL) OR ((budget_total > (0)::numeric) AND (budget_total <= (1000000000)::numeric))));
 ALTER TABLE public.quote_comparisons ADD CONSTRAINT quote_comparisons_publication_state_ck CHECK ((publication_state = ANY (ARRAY['DRAFT'::text, 'SUBMITTED'::text, 'UNDER_REVIEW'::text, 'REVISION_REQUIRED'::text, 'APPROVED'::text, 'PUBLISHED'::text, 'WITHDRAWN'::text, 'SUPERSEDED'::text])));
 ALTER TABLE public.quote_comparisons ADD CONSTRAINT quote_comparisons_published_is_stamped CHECK (((publication_state <> 'PUBLISHED'::text) OR (published_at IS NOT NULL)));
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_kind_known CHECK ((kind = ANY (ARRAY['text'::text, 'file'::text, 'review'::text, 'choice_prompt'::text, 'choice'::text, 'submitted'::text, 'notice'::text])));
@@ -8703,6 +8714,7 @@ CREATE INDEX ceo_approval_subject_idx ON public.ceo_approval USING btree (subjec
 CREATE INDEX ceo_command_state_idx ON public.ceo_command USING btree (state, received_at DESC);
 CREATE INDEX ceo_daily_digest_local_date_idx ON public.ceo_daily_digest USING btree (local_date DESC);
 CREATE INDEX ceo_daily_digest_undelivered_idx ON public.ceo_daily_digest USING btree (local_date DESC) WHERE (delivered_at IS NULL);
+CREATE UNIQUE INDEX ceo_decision_log_dedupe_uidx ON public.ceo_decision_log USING btree (dedupe_key) WHERE (dedupe_key IS NOT NULL);
 CREATE INDEX ceo_knowledge_kind_idx ON public.ceo_knowledge USING btree (record_kind, domain);
 CREATE INDEX ceo_knowledge_search_idx ON public.ceo_knowledge USING gin (search);
 CREATE INDEX ceo_task_open_idx ON public.ceo_task USING btree (state, created_at) WHERE (state = ANY (ARRAY['open'::text, 'working'::text, 'blocked'::text]));
@@ -17875,16 +17887,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17910,6 +17912,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -18621,6 +18633,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19136,135 +19277,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -21371,6 +21383,7 @@ AS $function$
     ('exec_reports.pdf_path',                'column', 'reports',          true, 'fn_enqueue_doc_backups: STORAGE SWEEP (2 of 2 paths in reports)', null),
     ('it_incident.pdf_path',                 'column', 'agent-docs',       true, 'fn_enqueue_doc_backups: STORAGE SWEEP (rendered into agent-docs/it_engineer/incidents/)', null),
     ('ceo_daily_digest.pdf_path',            'column', 'agent-docs',       true, 'fn_enqueue_doc_backups: STORAGE SWEEP (rendered into agent-docs/ceo/daily_brief/)', null),
+    ('ceo_weekly_report.pdf_path',           'column', 'agent-docs',       true, 'fn_enqueue_doc_backups: STORAGE SWEEP (rendered into agent-docs by resilience_ping renderPdfAndAttach)', null),
 
     -- ── (b) EXEMPT (not a file or not ours) ──
     ('doc_backups.dropbox_path',             'column', null, false, null, 'EXEMPT (not a file or not ours): the Dropbox destination of a backup, not a source'),
@@ -22813,6 +22826,190 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_decisions_evaluate(p_dry_run boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  d record; x record;
+  v_out jsonb := '[]'::jsonb; v_fired int := 0; v_written int := 0; v_missing text[] := '{}';
+  v_state text; v_detail text; v_reading text;
+  v_day date := ((now() at time zone 'Asia/Dubai')::date - 1);   -- the last COMPLETE Dubai day
+  v_hold timestamptz := timestamptz '2026-08-15 02:51:33.108565+00';
+  v_n bigint; v_m numeric; v_rate numeric; v_prev text; v_ev jsonb;
+  v_rows jsonb;   -- [{key, decision, outcome, evidence}] this rule wants written
+begin
+  for d in select * from public.ceo_decision where active order by decision_key loop
+    v_rows := '[]'::jsonb; v_state := 'quiet'; v_detail := null; v_reading := null;
+    if d.measure_sql is not null then
+      begin execute d.measure_sql into v_reading;
+      exception when others then v_reading := 'INSTRUMENT FAILED -- '||sqlerrm; end;
+    end if;
+
+    case d.decision_key
+    when 'target_is_reachable' then
+      -- "Any weekly feasibility run whose verdict is not REACHABLE, or any week the required run rate
+      -- rises above twice the highest ever measured." One firing per feasibility run.
+      for x in select v.*, c.contract_key,
+                      (select max(v2.current_run_rate) from public.target_verdict v2 where v2.contract_id = c.id) as best_rate
+                 from public.target_contract c
+                 join lateral (select * from public.target_verdict v where v.contract_id = c.id order by v.run_at desc limit 1) v on true
+                where c.status = 'active' and c.metric_unit = 'AED'
+      loop
+        if x.verdict <> 'REACHABLE' or (x.best_rate > 0 and x.required_run_rate > 2 * x.best_rate) then
+          v_rows := v_rows || jsonb_build_object('key', 'target_is_reachable:verdict:'||x.id, 'outcome', 'decided',
+            'decision', format('The AED 1,000,000 target is NOT reachable on the evidence (verdict %s of %s). What must change: %s',
+                               x.verdict, to_char(x.run_at at time zone 'Asia/Dubai','DD Mon YYYY'),
+                               coalesce(array_to_string(x.what_must_change, ' '), x.verdict_reason)),
+            'evidence', jsonb_build_object('contract', x.contract_key, 'verdict_id', x.id, 'verdict', x.verdict,
+              'run_at', x.run_at, 'verdict_reason', x.verdict_reason, 'binding_stage', x.binding_stage,
+              'required_run_rate', x.required_run_rate, 'highest_measured_run_rate', x.best_rate,
+              'measured_rate_count', x.measured_rate_count, 'assumed_rate_count', x.assumed_rate_count));
+        end if;
+      end loop;
+
+    when 'binding_constraint' then
+      -- "Any week the binding stage named by the feasibility run differs from the one currently being
+      -- worked." The one being worked is the stage of the last logged binding_constraint decision.
+      select v.* into x from public.target_verdict v join public.target_contract c on c.id = v.contract_id
+       where c.status = 'active' and v.binding_stage is not null order by v.run_at desc limit 1;
+      if not found then
+        v_detail := 'no feasibility run has named a binding stage (target_verdict.binding_stage is null on every run)';
+      else
+        select l.evidence->>'binding_stage' into v_prev from public.ceo_decision_log l
+         where l.decision_key = 'binding_constraint' order by l.decided_at desc limit 1;
+        if v_prev is distinct from x.binding_stage then
+          v_rows := jsonb_build_array(jsonb_build_object('key', 'binding_constraint:verdict:'||x.id, 'outcome', 'decided',
+            'decision', format('Work the %s stage next: the feasibility run names it as the binding constraint%s.',
+                               x.binding_stage, case when v_prev is null then '' else ' (previously '||v_prev||')' end),
+            'evidence', jsonb_build_object('verdict_id', x.id, 'run_at', x.run_at, 'binding_stage', x.binding_stage,
+              'binding_reason', x.binding_reason, 'previous_stage', v_prev)));
+        end if;
+      end if;
+
+    when 'supplier_admission' then
+      -- "A registration arrives with all six present." Fixtures never produce a company decision.
+      for x in select l.id, l.company_name, l.verified, l.owner_email_verified, l.owner_phone_verified
+                 from public.leads l
+                where l.claimed and coalesce(l.company_name,'') not ilike 'ZZ DEMO%'
+                  and coalesce(l.email,'') !~* '@example[.]invalid$'
+                  and cardinality(public.fn_supplier_mandatory_six_for(l.id)) = 0
+      loop
+        v_rows := v_rows || jsonb_build_object(
+          'key', 'supplier_admission:lead:'||x.id||':'||case when x.owner_email_verified and x.owner_phone_verified then 'admit' else 'hold' end,
+          'outcome', 'decided',
+          'decision', case when x.owner_email_verified and x.owner_phone_verified
+                           then format('Admit %s: all six mandatory fields present, email and UAE mobile confirmed by OTP.', x.company_name)
+                           else format('Hold %s: the six are present but the %s is not OTP-confirmed.', x.company_name,
+                                       case when not coalesce(x.owner_email_verified,false) then 'email' else 'UAE mobile' end) end,
+          'evidence', jsonb_build_object('lead_id', x.id, 'mandatory_missing', '[]'::jsonb,
+            'owner_email_verified', x.owner_email_verified, 'owner_phone_verified', x.owner_phone_verified,
+            'verified_flag_now', x.verified));
+      end loop;
+
+    when 'report_to_founder' then
+      -- "Every reporting cadence." Fires once per weekly report the founder actually received.
+      for x in select * from public.ceo_weekly_report where founder_submitted_at is not null
+                  and report_key like 'quotesdone:%'
+                order by week_start desc limit 4
+      loop
+        select count(*) into v_n from public.ceo_decision_log l
+         where l.decided_at > x.founder_submitted_at - interval '7 days' and l.decided_at <= x.founder_submitted_at;
+        v_rows := v_rows || jsonb_build_object('key', 'report_to_founder:'||x.report_key||':r'||x.revision, 'outcome', 'decided',
+          'decision', format('Reported to the founder: "%s". %s decision(s) taken alone in the week before it; none escalated.', x.subject, v_n),
+          'evidence', jsonb_build_object('report_id', x.id, 'report_key', x.report_key, 'notification_id', x.notification_id,
+            'delivered_at', x.founder_submitted_at, 'pdf', x.pdf_bucket||'/'||x.pdf_path, 'decisions_alone', v_n, 'escalated', 0));
+      end loop;
+
+    when 'channel_volume' then
+      -- "Any bounce rate above 5 per cent." Bounces = email_suppressions added for a bounce in the last 7
+      -- days, over emails sent in the same window. The "proposal to send more" half has no instrument.
+      select count(*) into v_n from public.notifications
+       where channel = 'email' and status = 'sent' and sent_at > now() - interval '7 days';
+      select count(*) into v_m from public.email_suppressions
+       where reason ilike '%bounce%' and created_at > now() - interval '7 days';
+      v_rate := case when v_n > 0 then round(100.0 * v_m / v_n, 2) end;
+      v_detail := format('bounce %s%% (%s bounced / %s sent, 7 days); proposals to raise volume are not instrumented',
+                         coalesce(v_rate::text,'n/a'), v_m, v_n);
+      if v_rate > 5 then
+        v_rows := jsonb_build_array(jsonb_build_object('key', 'channel_volume:'||v_day, 'outcome', 'decided',
+          'decision', format('No outreach channel is raised above its standing ceiling: the 7-day bounce rate is %s%%, above the 5%% limit.', v_rate),
+          'evidence', jsonb_build_object('bounced_7d', v_m, 'sent_7d', v_n, 'bounce_pct', v_rate, 'ceilings', v_reading)));
+      end if;
+
+    when 'refund' then
+      -- "A buyer asks for a refund, or a reveal is disputed." Weighing a buyer's stated reason is
+      -- judgement; the CEO's refund review decides it. Until that review has an outcome, say so.
+      for x in select t.id, t.refund_status,
+                      (select rv.outcome from public.refund_ceo_review rv where rv.transaction_id = t.id
+                        order by rv.created_at desc limit 1) as review_outcome
+                 from public.transactions t where coalesce(t.refund_status,'') <> ''
+      loop
+        v_rows := v_rows || jsonb_build_object(
+          'key', 'refund:tx:'||x.id||':'||coalesce(x.review_outcome,'open'),
+          'outcome', case when x.review_outcome is null then 'needs_judgement' else 'decided' end,
+          'decision', case when x.review_outcome is null
+                           then format('Refund on transaction %s needs judgement: no CEO refund review has reached an outcome.', x.id)
+                           else format('Refund on transaction %s: %s (the CEO refund review).', x.id, x.review_outcome) end,
+          'evidence', jsonb_build_object('transaction_id', x.id, 'refund_status', x.refund_status, 'review_outcome', x.review_outcome));
+      end loop;
+
+    when 'paid_inference' then
+      -- "Any request that needs a paid model while the hold is on." ai_gateway marks those rows HELD.
+      -- One firing per complete Dubai day. A charge during the hold is not a rule's to excuse.
+      select coalesce(sum(n), 0), coalesce(jsonb_object_agg(fn, n), '{}'::jsonb) into v_n, v_ev from (
+        select coalesce(fn, '(unnamed)') fn, count(*) n from public.ai_cost_log
+         where model_selected_because like '%HELD:%'
+           and occurred_at >= (v_day::timestamp at time zone 'Asia/Dubai')
+           and occurred_at <  ((v_day + 1)::timestamp at time zone 'Asia/Dubai')
+         group by fn) s;
+      select coalesce(sum(cost_aed),0) into v_m from public.ai_cost_log where occurred_at > v_hold;
+      if v_n > 0 or v_m > 0 then
+        v_rows := jsonb_build_array(jsonb_build_object('key', 'paid_inference:'||v_day,
+          'outcome', case when v_m > 0 then 'needs_judgement' else 'decided' end,
+          'decision', case when v_m > 0
+            then format('Paid inference was charged during the hold (AED %s since 15 Aug). The hold is the founder''s constraint; this is not excused by a rule.', v_m)
+            else format('Paid inference refused on %s for %s request(s) that asked for a model; each was held and answered without one. Cost since the hold: AED 0.', v_day, v_n) end,
+          'evidence', jsonb_build_object('day', v_day, 'held_requests', v_n, 'held_by_function', v_ev, 'cost_since_hold_aed', v_m)));
+      end if;
+
+    when 'spend_against_constraint', 'risk_owner' then
+      v_state := 'not_instrumented'; v_detail := d.measure;
+
+    when 'structure' then
+      v_state := 'founder_specified'; v_detail := 'the founder specifies the seats; the CEO decides nothing here';
+
+    else
+      v_state := 'no_evaluator'; v_missing := v_missing || d.decision_key;
+    end case;
+
+    if jsonb_array_length(v_rows) > 0 then
+      v_state := 'fired'; v_fired := v_fired + jsonb_array_length(v_rows);
+      if not p_dry_run then
+        with ins as (
+          insert into public.ceo_decision_log (decision_key, the_decision, evidence, reading_before, escalated_to_founder, outcome, dedupe_key)
+          select d.decision_key, e->>'decision', (e->'evidence') || jsonb_build_object('rule', d.trigger_condition),
+                 v_reading, false, e->>'outcome', e->>'key'
+            from jsonb_array_elements(v_rows) e
+          on conflict (dedupe_key) where dedupe_key is not null do nothing
+          returning 1)
+        select v_written + count(*) into v_written from ins;
+      end if;
+    end if;
+
+    v_out := v_out || jsonb_build_object('rule', d.decision_key, 'state', v_state, 'firings', jsonb_array_length(v_rows),
+                                         'detail', v_detail, 'keys', (select jsonb_agg(e->'key') from jsonb_array_elements(v_rows) e));
+  end loop;
+
+  return jsonb_build_object('ok', cardinality(v_missing) = 0, 'dry_run', p_dry_run,
+           'fired', v_fired, 'written', v_written, 'rules', v_out)
+      || case when cardinality(v_missing) = 0 then '{}'::jsonb
+              else jsonb_build_object('error', 'active ceo_decision rule(s) with no evaluator: '||array_to_string(v_missing, ', ')) end;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_delivery_undelivered_decide(p_report_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -24071,86 +24268,177 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_report_attach_pdf(p_id bigint, p_bucket text DEFAULT NULL::text, p_path text DEFAULT NULL::text, p_url text DEFAULT NULL::text, p_bytes integer DEFAULT NULL::integer, p_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.ceo_weekly_report;
+begin
+  select * into r from public.ceo_weekly_report where id = p_id;
+  if not found then return jsonb_build_object('ok', false, 'error', 'no such ceo_weekly_report '||p_id); end if;
+
+  if p_path is null or coalesce(p_error,'') <> '' then
+    update public.ceo_weekly_report
+       set pdf_error = coalesce(nullif(p_error,''), 'pdf_native returned no path'),
+           delivery_attempts = delivery_attempts + 1,
+           last_delivery_error = 'the PDF could not be rendered: '||coalesce(nullif(p_error,''),'no path returned'),
+           status = case when founder_submitted_at is null then 'delivery_failed' else status end,
+           updated_at = now()
+     where id = p_id returning * into r;
+    return jsonb_build_object('ok', false, 'report_key', r.report_key, 'retained', true, 'error', r.last_delivery_error);
+  end if;
+
+  update public.ceo_weekly_report
+     set pdf_bucket = coalesce(p_bucket,'agent-docs'), pdf_path = p_path, pdf_url = p_url, pdf_bytes = p_bytes,
+         pdf_generated_at = now(), pdf_error = null, updated_at = now()
+   where id = p_id;
+  return public.fn_ceo_weekly_report_deliver(p_id);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_report_deliver(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.ceo_weekly_report; v_notif bigint; v_errs text[] := '{}';
+declare
+  r        public.ceo_weekly_report;
+  v_owner  text;
+  v_notif  bigint;          -- the notifications.id from RETURNING, never a routine's jsonb answer
+  v_file   text;
+  v_err    text;
 begin
-  select * into r from public.ceo_weekly_report where id = p_id;
-  if not found then return jsonb_build_object('ok', false, 'reason', 'no such report'); end if;
+  -- FOR UPDATE (review of #802): two overlapping ticks both read founder_submitted_at null and mailed the
+  -- week twice. The row lock makes the second wait for the first to commit, then see it delivered.
+  select * into r from public.ceo_weekly_report where id = p_id for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'no such ceo_weekly_report '||p_id); end if;
+  if r.founder_submitted_at is not null then
+    return jsonb_build_object('ok', true, 'report_key', r.report_key, 'status', r.status, 'already', true);
+  end if;
 
-  if r.founder_submitted_at is null then
-    begin
-      -- board_report is the kind founder_mail_policy already allows AND already owns to 'ceo'.
-      -- Using a kind the gate does not know would return NULL and drop the mail silently.
-      v_notif := public.fn_notify_founder(
-        r.subject,
-        r.body,
-        case when (r.constraint_now->>'severity') = 'blocking' then 'high' else 'normal' end,
-        p_kind       => 'board_report',
-        p_dedupe_key => 'ceo_weekly:' || r.report_key || ':r' || r.revision);
-      if v_notif is null then
-        v_errs := v_errs || 'the founder-mail gate did not accept the row (kind board_report)'::text;
-      end if;
-    exception when others then
-      v_errs := v_errs || ('founder submission raised: ' || sqlerrm)::text;
-    end;
+  -- THE PDF IS THE DELIVERABLE. Mailing text and closing the week would close it on the wrong thing.
+  if r.pdf_path is null then
+    v_err := 'not delivered: the PDF has not been rendered yet; the report is retained and the next tick retries';
+  else
+    select nullif(btrim(split_part(coalesce(value,''), ',', 1)), '') into v_owner
+      from public.app_secrets where key = 'admin_emails';
+    if v_owner is null then
+      v_err := 'no recipient configured in app_secrets.admin_emails';
+    else
+      v_file := 'QuotesDone_Weekly_Company_Report_'
+             || regexp_replace(replace(r.report_key, 'quotesdone:', ''), '[^A-Za-z0-9_-]', '_', 'g')
+             || case when r.revision > 1 then '_revision_'||r.revision else '' end || '.pdf';
+      begin
+        -- kind board_report: allowed by founder_mail_policy and owned by the ceo. The a10 gate decides;
+        -- if it refuses, RETURNING yields no row and v_notif stays null, named below.
+        insert into public.notifications(type, kind, to_email, to_role, channel, subject, body, attachments)
+        values ('board_report', 'board_report', v_owner, 'admin', 'email', r.subject,
+                coalesce(r.body,'') || E'\n\nThe report is attached as ' || v_file || '.',
+                jsonb_build_array(jsonb_build_object('bucket', coalesce(r.pdf_bucket,'agent-docs'),
+                                                     'path', r.pdf_path, 'filename', v_file)))
+        returning id into v_notif;
+        if v_notif is null then
+          v_err := 'the founder-mail gate did not accept the row (kind board_report)';
+        end if;
+      exception when others then
+        v_err := 'founder submission raised: ' || sqlerrm;
+      end;
+    end if;
   end if;
 
   update public.ceo_weekly_report
      set notification_id      = coalesce(v_notif, notification_id),
          founder_submitted_at = case when v_notif is not null then now() else founder_submitted_at end,
          delivery_attempts    = delivery_attempts + 1,
-         last_delivery_error  = nullif(array_to_string(v_errs, ' | '), ''),
-         status               = case when v_notif is not null or founder_submitted_at is not null
-                                     then 'delivered' else 'delivery_failed' end,
+         last_delivery_error  = v_err,
+         status               = case when v_notif is not null then 'delivered' else 'delivery_failed' end,
          updated_at           = now()
    where id = p_id returning * into r;
 
-  return jsonb_build_object('ok', r.founder_submitted_at is not null,
-    'report_key', r.report_key, 'notification_id', r.notification_id,
-    'status', r.status, 'errors', to_jsonb(v_errs));
+  -- ok/error at the TOP LEVEL: resilience_ping's failureOf reads nothing deeper, which is how 76 failed
+  -- attempts were recorded as a healthy step.
+  return jsonb_build_object('ok', v_notif is not null, 'report_key', r.report_key,
+    'notification_id', r.notification_id, 'status', r.status, 'pdf_filename', v_file)
+    || case when v_err is null then '{}'::jsonb else jsonb_build_object('error', v_err) end;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_report_pdf_blocks(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_array(
+           jsonb_build_object('t','h2','text','Weekly company report'),
+           jsonb_build_object('t','p','text', to_char(r.week_start,'Dy DD Mon YYYY')||' to '||to_char(r.week_end,'Dy DD Mon YYYY')
+                                              ||'  (Asia/Dubai)   ISO '||to_char(r.week_start,'IYYY-"W"IW')||'   Revision '||r.revision),
+           jsonb_build_object('t','note','text','Prepared by the CEO seat for the founder. Informational: nothing in this document asks for an approval.'),
+           jsonb_build_object('t','space','h',6))
+      || coalesce((
+           select jsonb_agg(case
+                    when l.line ~ '^-{5,}$'              then jsonb_build_object('t','space','h',8)
+                    when l.line ~ '^\s{2}'               then jsonb_build_object('t','li','text', btrim(l.line))
+                    when l.line ~ '^[A-Z][A-Z ]+[A-Z]$'  then jsonb_build_object('t','h3','text', initcap(l.line))
+                    else jsonb_build_object('t','p','text', l.line) end order by l.n)
+             from regexp_split_to_table(coalesce(r.body,''), E'\n') with ordinality as l(line, n)
+            where btrim(l.line) <> ''), '[]'::jsonb)
+    from public.ceo_weekly_report r where r.id = p_id
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_report_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  v_local timestamptz := now() at time zone 'Asia/Dubai';
-  v_dow int; v_time time; v_key text; v_gen jsonb; v_id bigint; v_del jsonb; v_ws date;
+  v_local timestamp := now() at time zone 'Asia/Dubai';
+  v_dow int; v_at time; v_ws date; v_key text; v_gen jsonb;
+  r public.ceo_weekly_report;
 begin
-  select coalesce(value,'1')::int     into v_dow  from public.app_secrets where key = 'ceo_weekly_report_local_dow';
-  select coalesce(value,'08:00')::time into v_time from public.app_secrets where key = 'ceo_weekly_report_local_time';
+  begin
+    select coalesce(nullif(btrim(value),''),'1')::int into v_dow from public.app_secrets where key = 'ceo_weekly_report_local_dow';
+  exception when others then v_dow := 1; end;
+  begin
+    select coalesce(nullif(btrim(value),''),'08:00')::time into v_at from public.app_secrets where key = 'ceo_weekly_report_local_time';
+  exception when others then v_at := time '08:00'; end;
+  v_dow := coalesce(v_dow, 1); v_at := coalesce(v_at, time '08:00');
 
-  if extract(isodow from v_local)::int <> coalesce(v_dow,1) then
-    return jsonb_build_object('fired', false, 'reason', 'not the configured day', 'today', extract(isodow from v_local));
-  end if;
-  if v_local::time < coalesce(v_time,'08:00'::time) then
-    return jsonb_build_object('fired', false, 'reason', 'before the configured hour', 'local_time', v_local::time);
-  end if;
-
-  v_ws  := (date_trunc('week', v_local::date - 7))::date;
+  v_ws  := (date_trunc('week', v_local::date) - interval '7 days')::date;   -- the week that closed
   v_key := 'quotesdone:' || to_char(v_ws, 'IYYY-"W"IW');
 
-  -- ALREADY SENT THIS WEEK. Without this the tick would send ninety-six reports a day.
-  if exists (select 1 from public.ceo_weekly_report
-              where report_key = v_key and founder_submitted_at is not null) then
-    return jsonb_build_object('fired', false, 'reason', 'already delivered', 'report_key', v_key);
+  select * into r from public.ceo_weekly_report where report_key = v_key order by revision desc limit 1;
+
+  if not found then
+    if extract(isodow from v_local)::int < v_dow
+       or (extract(isodow from v_local)::int = v_dow and v_local::time < v_at) then
+      return jsonb_build_object('fired', false, 'reason', 'before the configured local day/time',
+        'report_key', v_key, 'configured_dow', v_dow, 'configured_at', v_at::text);
+    end if;
+    v_gen := public.fn_ceo_weekly_report(v_ws);
+    select * into r from public.ceo_weekly_report where id = (v_gen->>'id')::bigint;
   end if;
 
-  v_gen := public.fn_ceo_weekly_report(v_ws);
-  v_id  := (v_gen->>'id')::bigint;
-  v_del := public.fn_ceo_weekly_report_deliver(v_id);
+  if r.founder_submitted_at is not null then
+    return jsonb_build_object('fired', false, 'reason', 'already delivered', 'report_key', v_key, 'id', r.id);
+  end if;
 
-  return jsonb_build_object('fired', true, 'report_key', v_key,
-    'constraint', v_gen->>'constraint', 'delivery', v_del);
+  -- A REPORT IN FLIGHT IS FINISHED WHATEVER DAY IT IS (the Monday-only gate abandoned W37).
+  if r.pdf_path is null then
+    if r.pdf_blocks is null then
+      update public.ceo_weekly_report set pdf_blocks = public.fn_ceo_weekly_report_pdf_blocks(r.id), updated_at = now()
+       where id = r.id returning * into r;
+    end if;
+    return jsonb_build_object('fired', true, 'pdf_pending', true, 'id', r.id, 'report_key', r.report_key,
+      'revision', r.revision, 'subject', r.subject, 'pdf_blocks', r.pdf_blocks);
+  end if;
+
+  return public.fn_ceo_weekly_report_deliver(r.id) || jsonb_build_object('fired', true);
 end $function$
 
 
@@ -64092,6 +64380,7 @@ CREATE POLICY bank_statement_line_service_role_only ON public.bank_statement_lin
 CREATE POLICY blog_posts_public_read ON public.blog_posts AS PERMISSIVE FOR SELECT TO anon USING ((published = true));
 CREATE POLICY brand_assets_public_read ON public.brand_assets AS PERMISSIVE FOR SELECT TO anon, authenticated USING (true);
 CREATE POLICY "specs readable" ON public.category_specs AS PERMISSIVE FOR SELECT TO anon USING (true);
+CREATE POLICY ceo_decision_log_service_role_only ON public.ceo_decision_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_weekly_report_service_role_only ON public.ceo_weekly_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY charge_audit_service_role_only ON public.charge_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY complaint_tickets_service_role_only ON public.complaint_tickets AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
