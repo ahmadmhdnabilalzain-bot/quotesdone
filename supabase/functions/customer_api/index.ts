@@ -4,17 +4,18 @@ import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { parseRatingInput } from './rating_input.ts';
+import { drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
-import { detectCat } from '../_shared/trade_classify.ts';
+import { KW, detect } from './keywords.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
-import { asLocale } from '../_shared/registered_locale.ts';
+import { asLocale, documentLocale } from '../_shared/registered_locale.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
-import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, type Item } from '../_shared/quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, jobNoOf, type Item } from '../_shared/quote_documents.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
@@ -40,23 +41,7 @@ async function signedDoc(bucket: string | null | undefined, path: string | null 
 async function getSecret(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 function b64ToBytes(b64: string): Uint8Array { const raw = atob(String(b64).replace(/^data:[^;]+;base64,/, '')); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return arr; }
 
-const KW: Record<string, string[]> = {
-  flooring: ['floor', 'flooring', 'spc', 'vinyl', 'lvt', 'parquet', 'laminate', 'epoxy', 'tile', 'tiles', 'marble', 'granite', 'carpet'], glass: ['glass', 'glazing', 'mirror', 'shower enclosure', 'partition', 'facade', 'curtain wall', 'window'], aluminium: ['aluminium', 'aluminum', 'pergola', 'cladding', 'composite panel', 'window frame'], steel: ['steel', 'metal', 'fabrication', 'welding', 'staircase', 'railing', 'gate', 'structure'], acrylic: ['acrylic', 'plexiglass', 'perspex', 'display stand'], carpentry: ['carpentry', 'wood', 'joinery', 'wardrobe', 'cabinet', 'kitchen', 'furniture', 'door'], gypsum: ['gypsum', 'false ceiling', 'drywall', 'partition wall', 'ceiling'], signage: ['sign', 'signage', '3d letters', 'lightbox', 'led sign', 'billboard', 'sticker', 'branding'], wallpaper: ['wallpaper', 'wall covering'], upholstery: ['upholstery', 'sofa', 'curtain', 'blinds', 'cushion', 'reupholster'], fitout: ['fitout', 'fit-out', 'fit out', 'interior', 'renovation', 'refurbish', 'turnkey', 'decoration'], painting: ['paint', 'painting', 'varnish', 'coating'], landscaping: ['landscaping', 'garden', 'grass', 'artificial grass', 'irrigation', 'swimming pool', 'pool'], scaffolding: ['scaffolding', 'scaffold', 'formwork'], security: ['cctv', 'camera', 'access control', 'intercom', 'alarm', 'security system', 'gate barrier'], safety: ['safety', 'ppe', 'fire extinguisher', 'fire alarm', 'first aid', 'helmet'],
-};
-const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'];
-// 14 Sep 2026: the category comes from _shared/trade_classify (the intake's own reading). This map
-// scored raw substrings one point each, so "ground floor fire alarm" tied flooring, security and
-// safety and went to flooring. KW below now only fills inquiries.keywords, which the sales engineer
-// reads as brief text when an inquiry carries no trades (fn_norm_trades, exact aliases); since
-// 15 Sep 2026 no keyword matcher consumes it.
-function detect(text: string) {
-  const t = ' ' + String(text || '').toLowerCase() + ' ';
-  const best = detectCat(text);
-  let em: string | null = null;
-  for (const e of EMIRATES) { if (t.includes(e.toLowerCase())) { em = e; break; } }
-  if (!em && t.includes('abudhabi')) em = 'Abu Dhabi'; if (!em && / rak /.test(t)) em = 'Ras Al Khaimah';
-  return { category: best, emirate: em, keywords: best ? KW[best].filter((k) => t.includes(k)) : [] };
-}
+// KW and detect() live in ./keywords.ts (21 Sep 2026) — see its header for the create_inquiry 500.
 // The portal's drawing OCR (ocrPlan lines with page boxes, the sheet width, the symbol counts),
 // passed through to drawing_boq, which validates every field. Bounded here only by size.
 function drawingOcr(body: any): Record<string, unknown> {
@@ -458,7 +443,18 @@ async function supplierIdentities(ids: any[]): Promise<string[]> {
     return (data || []).flatMap((l: any) => [l.company_name, l.email, l.phone, l.whatsapp, l.website]).filter((v: any) => v && String(v).trim().length >= 3).map(String);
   } catch (_e) { return []; }
 }
+// 21 Sep 2026 (customer audit, finding 19): after a paid reveal the PDF still said "Supplier A".
+// A transactions row for the quote means the customer bought the name; it is printed as the party.
+async function revealedPartyName(q: any): Promise<string | null> {
+  try {
+    const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', String(q.id)).limit(1).maybeSingle();
+    if (!tx) return null;
+    const { data: l } = await admin.from('leads').select('company_name').eq('id', q.supplier_id).maybeSingle();
+    return l?.company_name ? String(l.company_name) : null;
+  } catch (_e) { return null; }
+}
 async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
+  const partyName = await revealedPartyName(q);
   const letter = await letterOf(q);
   // The supplier's OWN priced breakdown lives in quote_items; the customer's requested BOQ is only
   // the fallback when the supplier priced a lump sum.
@@ -478,7 +474,7 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   items = done.items;
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
   const quoteRow = { ...done.quote, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
-  const { body, ref } = quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, maskNames: await supplierIdentities([q.supplier_id]), requestUrl: portalLink(lang, inq.id, q.id) });
+  const { body, ref } = quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames: partyName ? [] : await supplierIdentities([q.supplier_id]), requestUrl: portalLink(lang, inq.id, q.id) });
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });
   const j = await r.json();
@@ -491,7 +487,7 @@ async function buildBriefPdf(inq: any, lang: string) {
   const ar = lang === 'ar';
   const T = (en: string, arx: string) => (ar ? arx : en);
   const blocks: any[] = [];
-  const ref = 'QD-' + String(inq?.id || '').slice(0, 8).toUpperCase() + '-BRIEF';
+  const ref = 'QD-' + jobNoOf(inq) + '-BRIEF';
   const kv: any[] = [
     [T('Reference', 'الرقم المرجعي'), ref],
     [T('Category', 'الفئة'), clipCell(inq?.category, 40) || '—'],
@@ -615,6 +611,9 @@ async function resolveRedactedPaths(custId: string, authUserId: string, drawing:
     // uploads repeatedly would push their own REAL redaction runs out of the window, and
     // create_inquiry would answer redaction_job_not_found (403) on a perfectly good drawing.
     .neq('status', 'original_stored')
+    // 'held' rows (analyze_drawing, 21 Sep 2026) are the ledger of drawings that went out unshared;
+    // they carry no output_paths either and must not push real runs out of the window.
+    .neq('status', 'held')
     .order('created_at', { ascending: false }).limit(60);
   if (rerr) return { err: { error: 'redaction_lookup_failed', message: 'We could not verify the redacted drawing pages just now. Please try again in a moment.' }, status: 503 };
   const mine = (runs || []).filter((r: any) => (r.customer_id && String(r.customer_id) === String(custId)) || (r.caller_ref && String(r.caller_ref).startsWith(photoRef)));
@@ -766,7 +765,7 @@ Deno.serve(observe('customer_api', async (req) => {
             ? 'This is a compressed archive, so we cannot read the drawings inside it. Please extract it and upload the PDF or image files themselves — you can attach up to 10 pages.'
             : 'We could not read any pages from this file. It may be corrupted, password-protected, or saved in a format we cannot open. Please re-export it as a PDF or upload clear images of each page.');
         return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name,
-                   drawing_redacted_paths: [], note, advice });
+                   drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false, note, advice });
       }
       try {
         const redPrefix = `redacted/${crypto.randomUUID()}/page`;
@@ -839,9 +838,17 @@ Deno.serve(observe('customer_api', async (req) => {
         // it can report anything - so total failure read as "complete". It now requires that pages
         // were sent AND that every one of them came back.
         const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn, needs_manual_boxes: false /* the customer's boxes no longer make a page shareable (trust boundary, 14 Sep 2026), so they are not asked for */ };
-        if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
+        // THE HOLD IS DECIDED AND RECORDED HERE (audit 21 Sep 2026, finding 9; ./drawing_hold.ts).
+        // Anything short of every page verified hands back NO redacted paths and share_redacted:false,
+        // and writes one 'held' row against the stored original so the unshared drawing is visible.
+        const hand = drawingHandoff(redMeta, path, redacted);
+        if (hand.drawing_held && path) {
+          const reason = serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified'));
+          try { await admin.from('drawing_redaction_runs').insert(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason })); } catch (_e) { /* the hold stands even if its record fails */ }
+        }
+        if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 200);
         const jd = await boqRes.value.json();
-        if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta }, 200);
+        if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 200);
         // THE CONFIRM STEP RUNS ONLY NOW, after redaction has finished and every page came back
         // (review of #642: it used to run in parallel and could see the original page). drawing_boq
         // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
@@ -853,8 +860,8 @@ Deno.serve(observe('customer_api', async (req) => {
             if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
           } catch (_e) { /* the coded result stands */ }
         }
-        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: redacted, ...redMeta });
-      } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [] }, 200); }
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand });
+      } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false }, 200); }
     }
 
     if (action === 'create_inquiry') {
@@ -1169,7 +1176,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const [cfg, { data: tops }, txRes, { data: revs }] = await Promise.all([
         getCfg(),
         admin.from('inquiries').select(cols).eq('customer_id', cust.id).is('parent_inquiry_id', null).order('created_at', { ascending: false }).limit(25),
-        admin.from('transactions').select('id,quote_id,revealed_at,supplier_ack_at,refund_status,refund_deadline').eq('customer_id', cust.id),
+        admin.from('transactions').select('id,quote_id,revealed_at,supplier_ack_at,refund_status,refund_deadline,total_charged').eq('customer_id', cust.id),
         admin.from('reviews').select('transaction_id').eq('customer_id', cust.id),
       ]);
       const topIds = (tops || []).map((i) => i.id);
@@ -1223,8 +1230,11 @@ Deno.serve(observe('customer_api', async (req) => {
       try { const ms = msRes?.data; for (const m of (ms || [])) { matchedBy[String(m.inquiry_id)] = (matchedBy[String(m.inquiry_id)] || 0) + 1; if (m.match_reason) reasonBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = String(m.match_reason); const sim = m.similarity == null ? null : Number(m.similarity); if (sim != null && Number.isFinite(sim)) { const pct = Math.round(sim * 100); pctBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = pct; if (pct > (bestPct[String(m.inquiry_id)] ?? -1)) bestPct[String(m.inquiry_id)] = pct; } } } catch (_e) { /* */ }
       const supIds = [...new Set(quotes.map((q) => q.supplier_id))];
       const supMeta: Record<string, any> = {};
-      if (supIds.length) { const [{ data: ls }, { data: perf }] = await Promise.all([admin.from('leads').select('id,app_rating,app_reviews,emirate,verified,founded_year,rv_response_rate,rv_reveals').in('id', supIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds)]); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null, rr: Number(l.rv_reveals) > 0 && l.rv_response_rate != null ? Number(l.rv_response_rate) : null }; }
+      if (supIds.length) { const [{ data: ls }, { data: perf }] = await Promise.all([admin.from('leads').select('id,company_name,app_rating,app_reviews,emirate,verified,founded_year,rv_response_rate,rv_reveals').in('id', supIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds)]); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), name: l.company_name || null, emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null, rr: Number(l.rv_reveals) > 0 && l.rv_response_rate != null ? Number(l.rv_response_rate) : null }; }
       const revealedQ = new Set<string>(); const txByQuote: Record<string, string> = {}; const revealAtByQuote: Record<string, string | null> = {};
+      // 21 Sep 2026 (customer audit, finding 17): the portal said "AED 778 paid" for a card charged
+      // AED 816.37 — it printed the 3% fee, not transactions.total_charged (fee + card processing).
+      const chargedByQuote: Record<string, number | null> = {};
       // public.transactions HAS NO created_at COLUMN - in staging or in production. Selecting it
       // made PostgREST answer 400, so `txs` came back null, `for (const t of txs || [])` iterated
       // nothing, and revealedQ stayed empty: NO QUOTE WAS EVER MARKED REVEALED. The customer paid
@@ -1236,7 +1246,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // on — when they paid, whether the supplier acknowledged, and any refund already in motion.
       // All four are columns on the sale; nothing is inferred.
       const guaranteeByQuote: Record<string, Record<string, unknown>> = {};
-      if (ids.length) { for (const t of txs) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = t.revealed_at || null; guaranteeByQuote[String(t.quote_id)] = { revealed_at: t.revealed_at || null, supplier_ack_at: t.supplier_ack_at || null, refund_status: t.refund_status || null, refund_deadline: t.refund_deadline || null }; }
+      if (ids.length) { for (const t of txs) { revealedQ.add(String(t.quote_id)); txByQuote[String(t.quote_id)] = String(t.id); revealAtByQuote[String(t.quote_id)] = t.revealed_at || null; chargedByQuote[String(t.quote_id)] = t.total_charged == null ? null : Number(t.total_charged); guaranteeByQuote[String(t.quote_id)] = { revealed_at: t.revealed_at || null, supplier_ack_at: t.supplier_ack_at || null, refund_status: t.refund_status || null, refund_deadline: t.refund_deadline || null }; }
         // D4 (14 Sep 2026): the refund case and the chief executive's decision behind it, so the
         // customer can quote both. refunds.refund_decision_id references ceo_approval(decision_id);
         // it is null until the decision exists, and the portal says "awaiting" rather than inventing one.
@@ -1269,7 +1279,7 @@ Deno.serve(observe('customer_api', async (req) => {
         applied_filters: appliedFilters(i.routing),
         // §6/§7: the floor this RFQ is scoped to, and the delivery window the assistant extracted.
         floor: i.floor ?? null, required_by: i.required_by ?? null, delivery_window: i.delivery_window ?? null,
-        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
+        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
           // W9 badges: only measured facts, null when absent. Pre-reveal the response rate is floored
           // to a 10% band and the rating stays out (the banded rating above already shows it), so a
           // badge can never be an exact fingerprint of one company.
@@ -1337,7 +1347,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // while the language was arabic then arabic follows through the whole workflow"). body.lang is
       // ignored for every document here; customers.locale decides.
       const lang = asLocale(cust.locale);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate').eq('id', iid).maybeSingle();
+      const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
@@ -1361,7 +1371,7 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'compare_csv') {
       const iid = String(body.inquiry_id || '');
       const lang = asLocale(cust.locale);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id').eq('id', iid).maybeSingle();
+      const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
@@ -1374,13 +1384,13 @@ Deno.serve(observe('customer_api', async (req) => {
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       const side = compareTable(analysis, lang === 'ar');
       if (!side) return J({ error: 'comparison_unavailable' }, 200);
-      return J({ ok: true, csv: toCsv(side.head, side.rows), filename: 'QD-' + iid.slice(0, 8).toUpperCase() + (lang === 'ar' ? '-مقارنة' : '-comparison') + '.csv' });
+      return J({ ok: true, csv: toCsv(side.head, side.rows), filename: 'QD-' + jobNoOf(inq) + (lang === 'ar' ? '-مقارنة' : '-comparison') + '.csv' });
     }
 
     if (action === 'brief_pdf') {
       const iid = String(body.inquiry_id || '');
       const lang = asLocale(cust.locale);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate,budget,spec,boq,trades,drawing_file_name').eq('id', iid).maybeSingle();
+      const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate,budget,spec,boq,trades,drawing_file_name').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
@@ -1398,10 +1408,15 @@ Deno.serve(observe('customer_api', async (req) => {
       // ONE LANGUAGE PER DOCUMENT, BOTH ALWAYS ON OFFER (founder, 14 Sep 2026). The old 'bi' file —
       // English page, then an "Arabic" page whose content was English whenever ai_gateway failed —
       // is no longer produced; its cache rows are simply never read again.
-      const lang: 'en' | 'ar' = asLocale(cust.locale);
+      // 21 Sep 2026 (customer audit, finding 4): the portal's "النسخة العربية" button sent lang:'ar'
+      // and this line read customers.locale instead, so an English-registered customer could never
+      // get the Arabic document the button promises ("both always on offer"). The registered locale
+      // is the DEFAULT; an explicit request for the other language is the customer asking for the
+      // second document, not a message being addressed in the wrong language.
+      const lang = documentLocale(body.lang, cust.locale);
       const { data: q } = await admin.from('quotes').select('*').eq('id', qid).maybeSingle();
       if (!q) return J({ error: 'Quote not found' }, 404);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
+      const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       // A draft is not a quote the customer has; it has no letter and no document.
       if (q.status === 'draft') return J({ error: 'Quote not found' }, 404);
@@ -1409,7 +1424,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const touched = q.updated_at ? new Date(q.updated_at) : (q.created_at ? new Date(q.created_at) : null);
       if (cached && (!touched || new Date(cached.created_at) >= touched)) {
         const url = await signedDoc(cached.bucket, cached.path);
-        if (url) return J({ ok: true, url, ref: quoteRef(q.inquiry_id, await letterOf(q)), lang, cached: true });
+        if (url) return J({ ok: true, url, ref: quoteRef(inq, await letterOf(q)), lang, cached: true });
       }
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
       const { count: gens } = await admin.from('quote_pdf_cache').select('quote_id', { count: 'exact', head: true }).eq('customer_id', cust.id).gte('created_at', hourAgo);

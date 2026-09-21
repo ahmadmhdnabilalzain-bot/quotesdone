@@ -80,8 +80,10 @@ const EN = {
     certificate: 'Certificates', drawing: 'Drawings', purchase_order: 'Purchase orders',
     licence: 'Licences', license: 'Licences', boq: 'Bills of quantities', warranty: 'Warranties',
   } as Record<string, string>,
-  // Extraction keys an expiry/coverage came out of, shown as "from <source>".
-  sources: { document: 'the document', filename: 'the file name', summary: 'the summary' } as Record<string, string>,
+  // Where an expiry/coverage came from, shown as "from <source>". customer_documents translates
+  // its internal keys to these three before they leave the server; a key not listed here is not
+  // printed at all (audit 21 Sep 2026: "from leads.license expiry" reached a customer).
+  sources: { document: 'the document', supplier_record: "the supplier's verified record", quotation: 'the quotation' } as Record<string, string>,
 };
 
 const AR: typeof EN = {
@@ -129,7 +131,7 @@ const AR: typeof EN = {
     certificate: 'الشهادات', drawing: 'الرسومات', purchase_order: 'أوامر الشراء',
     licence: 'الرخص', license: 'الرخص', boq: 'جداول الكميات', warranty: 'الضمانات',
   },
-  sources: { document: 'المستند', filename: 'اسم الملف', summary: 'الملخص' },
+  sources: { document: 'المستند', supplier_record: 'سجل المورّد الموثّق', quotation: 'عرض السعر' },
 };
 
 const W = (lang: Lang) => (lang === 'ar' ? AR : EN);
@@ -168,7 +170,7 @@ function Field({ label, value, missing, source, fromWord, sourceWords }: {
       <div className={cn('mt-0.5 text-[13px] font-semibold leading-snug break-words', has ? 'text-foreground' : 'text-muted-foreground font-normal italic')}>
         {has ? value : missing}
       </div>
-      {has && source ? <div className="text-[10.5px] text-muted-foreground">{fromWord} {sourceWords?.[source] || source.replace(/_/g, ' ')}</div> : null}
+      {has && source && sourceWords?.[source] ? <div className="text-[10.5px] text-muted-foreground">{fromWord} {sourceWords[source]}</div> : null}
     </div>
   );
 }
@@ -324,7 +326,7 @@ export function DocumentVault({ token, lang = 'en', refreshKey = 0, className }:
     const text = q.trim();
     if (!text) return;
     setBusy(true); setErr(''); setRes(null);
-    const r = await askDocuments(token, text, k);
+    const r = await askDocuments(token, text, k, 50, lang);
     setBusy(false);
     if (!r.ok) { setErr(errText(lang, r.error)); setAsked(text); return; }
     setAsked(text);

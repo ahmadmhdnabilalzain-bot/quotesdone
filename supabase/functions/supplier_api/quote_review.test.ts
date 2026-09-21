@@ -4,7 +4,7 @@
 // Arabic words; the supplier's replies read by rule; and the whole conversation — incomplete file,
 // points raised, answered in text, approved, "generate", submitted through submit_quote — run on the
 // in-memory repository with the REAL doc_read and quote_from_document readers. No database, no network.
-import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
+import { assert, assertEquals, assertMatch, assertStringIncludes } from 'jsr:@std/assert@1';
 import { sanitizeUpload, SAFE_DOCS } from '../_shared/attachment.ts';
 import {
   applyCorrections, fromMissing, issueKey, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
@@ -17,7 +17,7 @@ import { completenessOf, itemsOfRows, quoteDocument } from '../_shared/quote_doc
 
 const INQ_ID = '3f2a9c1e-0000-4000-8000-00000000abcd';
 const inquiry = (over: Partial<SafeInquiry> = {}): SafeInquiry => ({
-  id: INQ_ID, job_no: jobNo(INQ_ID), category: 'painting', emirate: 'Dubai',
+  id: INQ_ID, job_no: jobNo({ id: INQ_ID, rfq_no: 151767 }), category: 'painting', emirate: 'Dubai',
   spec: { customer_requirements: { version: 1, installation: { required: 'no' }, warranty: { required: 'yes' } } },
   boq_rows: [{ description: 'Internal wall painting emulsion', qty: 450, unit: 'm2' }], boq_withheld: false, concluded: false, revealed: false, ...over,
 });
@@ -492,3 +492,17 @@ Deno.test('finding 4: a BOQ line excluded in the chat leaves the quotation and t
   const rv = reviewQuotation(inq, w1);
   assert(!rv.issues.some((i) => ['boq_line_not_priced', 'total_mismatch', 'vat_basis', 'vat_ex_price', 'price_ex_vat'].includes(i.code)), JSON.stringify(rv.issues.map((i) => i.en)));
 });
+
+// ── Supplier audit 21 Sep 2026, findings 7 and 26 ──────────────────────────────────────────────────
+Deno.test('job number: the review speaks the rfq number both portals print, not the uuid prefix', () => {
+  assertEquals(jobNo({ id: 'd958e1ea-0000-4000-8000-000000000000', rfq_no: 151767 }), '151767');
+  assertEquals(inquiry().job_no, '151767');
+});
+Deno.test('Arabic acknowledgement: a stated period is read back in Arabic ("الصلاحية 30 days" never again)', () => {
+  const said = tookSaid([{ field: 'validity', value: '30 days' }, { field: 'lead_time', value: '3 weeks' }])!;
+  assertStringIncludes(said.ar, 'الصلاحية 30 يومًا');
+  assertStringIncludes(said.ar, 'مدة التسليم 3 أسابيع');
+  assert(!/\bdays?\b|\bweeks?\b/.test(said.ar), said.ar);
+  assertStringIncludes(said.en, 'validity 30 days');
+});
+

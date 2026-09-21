@@ -19,7 +19,7 @@ import type { PdfPage } from '../_shared/pdf_text_positions.ts';
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 import { scrubContacts } from '../_shared/identity_contacts.ts';
 
-export type BoqItem = { section: string; item: string; description: string; qty: number | null; unit: string; basis: string; confidence: 'low' | 'medium' };
+export type BoqItem = { section: string; item: string; description: string; qty: number | null; unit: string; basis: string; confidence: 'low' | 'medium'; specification?: string };
 
 const UNIT: [string, RegExp][] = [
   ['sqm', /^(?:sqm|sq\.?\s?m|m2|m²)$/i], ['sqft', /^(?:sqft|sq\.?\s?ft|ft2)$/i], ['m3', /^(?:m3|m³|cum)$/i],

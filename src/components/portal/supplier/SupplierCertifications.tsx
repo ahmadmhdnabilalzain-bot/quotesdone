@@ -16,24 +16,23 @@
 // guarding against.
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 type Cert = {
-  key: string; label: string; held: boolean; expiry?: string | null; days_left?: number | null;
+  key: string; label: string; label_ar?: string | null; held: boolean; expiry?: string | null; days_left?: number | null;
   document_status: 'valid' | 'expiring' | 'expired' | 'missing';
-  impact_level: 'critical' | 'high' | 'medium' | 'low'; impact_why?: string;
+  impact_level: 'critical' | 'high' | 'medium' | 'low'; impact_why?: string; impact_why_ar?: string | null;
 };
 type Payload = {
-  certifications?: Cert[]; impact_basis?: string;
+  certifications?: Cert[]; impact_basis?: string; impact_basis_ar?: string | null;
   summary?: { held?: number; total?: number; expired?: number; expiring?: number; blocking_missing?: number };
 };
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),
@@ -44,18 +43,29 @@ async function call(path: string, body: unknown, token?: string | null) {
 const T = {
   en: {
     title: 'Certifications', loading: 'Checking your certificates…',
-    held: 'held', blocking: 'blocking your approval', expiresIn: 'expires in', daysAgo: 'days ago',
+    held: 'held', blocking: 'blocking your approval', expiresIn: 'expires in', days: 'days', daysAgo: 'days ago',
     impact: 'Impact', upload: 'Upload in Documents',
     status: { valid: 'Valid', expiring: 'Expiring', expired: 'Expired', missing: 'Not uploaded' },
   },
   ar: {
     title: 'الشهادات', loading: 'جارٍ فحص شهاداتك…',
-    held: 'محفوظة', blocking: 'يمنع اعتمادك', expiresIn: 'تنتهي خلال', daysAgo: 'يومًا مضت',
+    held: 'محفوظة', blocking: 'يمنع اعتمادك', expiresIn: 'تنتهي خلال', days: 'يومًا', daysAgo: 'يومًا مضت',
     impact: 'الأثر', upload: 'ارفعها من المستندات',
     status: { valid: 'سارية', expiring: 'قاربت الانتهاء', expired: 'منتهية', missing: 'غير مرفوعة' },
   },
 };
 const t = (lang: Lang) => T[lang] || T.en;
+
+// The Documents tab has no slot for a tax certificate or bank details (the TRN is read off the
+// licence; money moves through Stripe), and bank details were removed estate-wide. A server that
+// has not yet been redeployed can still send those two rows, and "Upload in Documents" beside a
+// row the Documents tab cannot take is a dead end — so those two keys are dropped here too.
+const RETIRED_SUBJECTS = new Set(['vat', 'bank_iban']);
+
+const IMPACT_LABEL: Record<Lang, Record<Cert['impact_level'], string>> = {
+  en: { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' },
+  ar: { critical: 'حرج', high: 'مرتفع', medium: 'متوسط', low: 'منخفض' },
+};
 
 const DOT: Record<Cert['document_status'], string> = {
   valid: 'bg-ok', expiring: 'bg-warn', expired: 'bg-danger', missing: 'bg-white/25',
@@ -82,7 +92,8 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
   if (err) return <div className="p-4 text-xs opacity-60">{err}</div>;
   if (!d) return <div className="p-4 text-xs opacity-60">{L.loading}</div>;
 
-  const certs = d.certifications || [];
+  const certs = (d.certifications || []).filter((c) => !RETIRED_SUBJECTS.has(c.key));
+  const ar = lang === 'ar';
   const s = d.summary || {};
 
   return (
@@ -90,7 +101,8 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
       <header className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[15px] font-semibold text-white">{L.title}</h2>
         <p className="text-[11px] text-muted-foreground">
-          <span className="tabular-nums">{s.held ?? 0}/{s.total ?? 0}</span> {L.held}
+          {/* Counted from the rows on screen, so the fraction always matches the list beneath it. */}
+          <span className="tabular-nums">{certs.filter((c) => c.held).length}/{certs.length}</span> {L.held}
           {!!s.blocking_missing && <span className="text-danger-fg"> · {s.blocking_missing} {L.blocking}</span>}
         </p>
       </header>
@@ -106,21 +118,21 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
             <div className="flex min-w-0 items-start gap-2.5">
               <span aria-hidden className={'mt-[7px] h-2 w-2 shrink-0 rounded-full ' + DOT[c.document_status]} />
               <div className="min-w-0">
-                <p className="text-[13px] font-medium text-white">{c.label}</p>
+                <p className="text-[13px] font-medium text-white">{(ar && c.label_ar) || c.label}</p>
                 <p className="mt-0.5 text-[11.5px] text-muted-foreground">
                   {L.status[c.document_status]}
                   {c.expiry && c.days_left != null && (
                     <> · {c.days_left >= 0
-                      ? `${L.expiresIn} ${c.days_left}d`
+                      ? `${L.expiresIn} ${c.days_left} ${L.days}`
                       : `${Math.abs(c.days_left)} ${L.daysAgo}`}</>
                   )}
                 </p>
-                <p className="mt-1 text-[11px] leading-[1.6] text-muted-foreground/75">{c.impact_why}</p>
+                <p className="mt-1 text-[11px] leading-[1.6] text-muted-foreground/75">{(ar && c.impact_why_ar) || c.impact_why}</p>
               </div>
             </div>
             <div className="shrink-0 text-end">
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{L.impact}</div>
-              <div className={'text-[12px] font-medium capitalize ' + IMPACT_STYLE[c.impact_level]}>{c.impact_level}</div>
+              <div className={'text-[12px] font-medium ' + IMPACT_STYLE[c.impact_level]}>{IMPACT_LABEL[ar ? 'ar' : 'en'][c.impact_level] || c.impact_level}</div>
               {!c.held && goTo && (
                 <button type="button" className="qd-link mt-1 text-[11px]" onClick={() => goTo('documents')}>
                   {L.upload}
@@ -132,7 +144,7 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
       </ul>
 
       {/* The provenance of the impact column, stated rather than implied. */}
-      <p className="text-[11px] leading-[1.6] text-muted-foreground/60">{d.impact_basis}</p>
+      <p className="text-[11px] leading-[1.6] text-muted-foreground/60">{(ar && d.impact_basis_ar) || d.impact_basis}</p>
     </div>
   );
 }

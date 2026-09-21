@@ -160,7 +160,11 @@ console.log(`documents: quote_documents.test.ts ${deno.status === 0 ? 'passed' :
 // ── 3b. EACH TOUCHPOINT READS THE REGISTERED ROW ─────────────────────────────────────────────────
 const F = 'supabase/functions/';
 const capi = src(F + 'customer_api/index.ts');
-ok((capi.match(/asLocale\(cust\.locale\)/g) || []).length >= 4, 'customer_api: the quotation, comparison, CSV and brief documents must each take asLocale(cust.locale)');
+ok((capi.match(/asLocale\(cust\.locale\)/g) || []).length >= 3, 'customer_api: the comparison, CSV and brief documents must each take asLocale(cust.locale)');
+// The quotation is the one document with a second-language copy on offer (customer audit 21 Sep 2026,
+// finding 4: the "النسخة العربية" button served English). It defaults to the registered language and
+// honours only an explicit 'en'/'ar' (documentLocale, tested in _shared/registered_locale.test.ts).
+ok((capi.match(/documentLocale\(body\.lang, cust\.locale\)/g) || []).length === 1, 'customer_api: only quote_pdf may take a requested document language, via documentLocale(body.lang, cust.locale)');
 ok(!/String\(body\.lang/.test(capi), 'customer_api: a document still reads its language from the request body');
 ok(/registeredLocale\(admin, \{ role: 'customer'/.test(src(F + 'quote_compare/index.ts')), 'quote_compare: an unspecified language must come from the registered customer');
 ok(!/test\(String\(inq\.summary/.test(src(F + 'quote_compare/index.ts')), 'quote_compare: still guesses the language from the request text');
@@ -188,7 +192,12 @@ ok(!/getItem\('qd-lang'\)\) return/.test(cp), 'CustomerPortal: this device\'s st
 ok(/action: 'set_locale', locale: l/.test(cp), 'CustomerPortal: switching language while signed in must save customers.locale');
 ok(/action: 'verify', user_kind: 'customer'[^}]*lang/.test(cp), 'CustomerPortal: sign-up must send the page language it registers');
 const sp = src('src/components/portal/SupplierPortal.tsx');
-ok(/action: 'settings' \}, token\)\.then\(\(j\) => \{\s*const l = /.test(sp) && /switchLang\(l\)/.test(sp), 'SupplierPortal: the supplier\'s registered language must open the portal');
+// 21 Sep 2026: this assertion had been red on main since 3bb1bf5 (14 Sep), which deliberately replaced
+// the reloading switchLang with adoptLocale (src/lib/documentLocale.ts) — the same path the customer
+// portal uses. The behaviour stayed; the check still named the removed function. It now asserts the
+// behaviour: the settings answer's locale is adopted, and switching while signed in saves leads.locale.
+ok(/action: 'settings' \}, token\)\.then\(\(j\) => \{\s*const l = [^\n]*settings\.locale[\s\S]{0,200}?adoptLocale\(l, setLang\)/.test(sp), 'SupplierPortal: the supplier\'s registered language must open the portal');
+ok(/action: 'save_settings', locale: l/.test(sp), 'SupplierPortal: switching language while signed in must save leads.locale');
 
 if (fails.length) {
   console.error(`\nlanguage_follows_registration: ${fails.length} failure(s)`);

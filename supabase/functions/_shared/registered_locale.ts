@@ -12,6 +12,13 @@
 export type Locale = 'en' | 'ar';
 export const asLocale = (v: unknown): Locale => (/^ar/i.test(String(v || '')) ? 'ar' : 'en');
 
+// A DOCUMENT the person asks for by language (customer audit, 21 Sep 2026, finding 4). "Both always
+// on offer" (founder, 14 Sep 2026): the registered language is the default copy, and the portal's
+// "النسخة العربية" / "English copy" button is the person asking for the other one. Only 'en' or 'ar'
+// is honoured; anything else falls back to the registered language. Messages never use this.
+export const documentLocale = (requested: unknown, registered: unknown): Locale =>
+  requested === 'ar' || requested === 'en' ? requested : asLocale(registered);
+
 export const LOOKUP_FAILED_ISSUE = 'language:registered_locale_lookup_failed';
 
 // A FAILED LOOKUP IS NEVER SILENT (review of PR #629, 14 Sep 2026). The message still goes, in the

@@ -54,18 +54,24 @@ const step = (name, ok, detail = '') => console.log(`${ok ? 'PASS' : 'FAIL'}  ${
 // engineer's rewrite turns these words into the service list, nothing is typed in as a list.
 const OWN_WORDS = 'we do gypsum partitions, false ceilings and painting';
 
+// EVERY JOB IS IN DUBAI. The demo supplier's stated coverage comes from makeSupplier
+// (scripts/staging/demo_factory.mjs: service_emirates = EMIRATES.slice(0, 1 + variant % 3), which
+// always starts with 'Dubai'; measured 21 Sep 2026 on lead 126512: coverage_emirates {Dubai}). A
+// supplier who limited itself is matched only inside its stated emirates (audit finding 25,
+// a_supplier_who_limits_its_emirates_is_matched_only_there.sql), so an Abu Dhabi or Sharjah job would
+// never reach it through the real matcher, and this tour now asks the matcher before it invites.
 const JOBS = [
   { key: 'office', trade: 'gypsum', emirate: 'Dubai',
     summary: 'Gypsum partitions and false ceiling for an office fit-out in Business Bay, Dubai',
     boq: [{ section: 'Partitions', description: 'Gypsum board partition, 100mm metal stud, both faces', qty: 320, unit: 'm2', confidence: 'high' },
           { section: 'Ceilings', description: 'Suspended false ceiling, 600x600 mineral fibre tiles', qty: 410, unit: 'm2', confidence: 'high' },
           { section: 'Ceilings', description: 'Gypsum bulkhead, 300mm drop, painted finish', qty: 64, unit: 'm', confidence: 'medium' }] },
-  { key: 'villa', trade: 'gypsum', emirate: 'Abu Dhabi',
-    summary: 'False ceilings and gypsum cornice for a private villa in Khalifa City, Abu Dhabi',
+  { key: 'villa', trade: 'gypsum', emirate: 'Dubai',
+    summary: 'False ceilings and gypsum cornice for a private villa in Jumeirah, Dubai',
     boq: [{ section: 'Ceilings', description: 'Plain gypsum false ceiling with cove lighting detail', qty: 180, unit: 'm2', confidence: 'high' },
           { section: 'Ceilings', description: 'Gypsum cornice 150mm, supplied and fixed', qty: 210, unit: 'm', confidence: 'medium' }] },
-  { key: 'retail', trade: 'painting', emirate: 'Sharjah',
-    summary: 'Internal painting for a retail unit handover in Al Nahda, Sharjah',
+  { key: 'retail', trade: 'painting', emirate: 'Dubai',
+    summary: 'Internal painting for a retail unit handover in Al Nahda, Dubai',
     boq: [{ section: 'Internal walls', description: 'Internal wall painting, emulsion, two coats', qty: 540, unit: 'm2', confidence: 'high' },
           { section: 'Ceilings', description: 'Ceiling painting, emulsion, two coats', qty: 150, unit: 'm2', confidence: 'medium' }] },
 ];
@@ -270,13 +276,24 @@ async function seed() {
               spec = coalesce(spec,'{}'::jsonb) || ${q(JSON.stringify({ customer_requirements: { version: 1, installation: { required: 'yes' }, warranty: { required: 'yes' } } }))}::jsonb,
               drawing_redacted_paths = array[${q(page)}]
         where id = ${q(inq.id)}`, 'founder demo inquiry');
-      const m = await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
-          values (${q(inq.id)}, ${num(sup.leadId)}, 0.92, 'founder demo: direct invitation')
-          on conflict do nothing returning inquiry_id`, 'founder demo match');
+      // THE MATCHER DECIDES FIRST. The real fn_match_capability is asked whether this supplier is
+      // returned for the job's trade in the job's emirate (stated coverage honoured, audit finding 25).
+      // Only then is the match written -- and it is still written directly, not dispatched, because
+      // dispatch is the one path that could put a demo brief in front of a real supplier.
+      const hit = await read(`select supplier_id, why from public.fn_match_capability(
+          array[${q(j.trade)}], 'executes', '{}'::text[], '{}'::text[], null, null, ${q(j.emirate)}, 50)
+          where supplier_id = ${num(sup.leadId)}`);
+      step(`the matcher returns the demo supplier for ${j.trade} in ${j.emirate} (${j.key})`,
+        (hit || []).length === 1, hit?.[0]?.why || 'not returned: a gate (coverage, trade, role, confirmed scope) refused it');
+      const m = (hit || []).length === 1
+        ? await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason)
+            values (${q(inq.id)}, ${num(sup.leadId)}, 0.92, 'founder demo: matcher-confirmed invitation')
+            on conflict do nothing returning inquiry_id`, 'founder demo match')
+        : [];
       step(`job ${String(inq.id).slice(0, 8).toUpperCase()} (${j.key}) is in the supplier's inbox`,
         (m || []).length === 1, `${j.boq.length} BOQ lines, 1 drawing page`);
       j.id = inq.id;
-      out.jobs.push({ key: j.key, id: inq.id, job_no: String(inq.id).slice(0, 8).toUpperCase(), summary: j.summary });
+      out.jobs.push({ key: j.key, id: inq.id, job_no: String(inq.rfq_no ?? (await read(`select rfq_no from public.inquiries where id = ${q(inq.id)}`))[0]?.rfq_no ?? ''), summary: j.summary });
     }
 
     // ── the review conversation, carried to a submitted quotation (the villa job) ──────────────

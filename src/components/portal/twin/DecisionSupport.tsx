@@ -28,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedFlag } from '@/components/ui/busy';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import { take } from '@/components/me/prefetch';
 
 const L = (lang: string, en: string, ar: string) => (lang === 'ar' ? ar : en);
@@ -114,7 +114,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
       try {
         // First render takes the request CustomerPortal started beside the kyc gate (prefetch.ts).
         const j: any = await take(token, 'decision_support', async () => {
-          const r = await fetch(`${SUPA_FN}/customer_portal`, {
+          const r = await fetch(fnUrl('customer_portal'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
             body: JSON.stringify({ action: 'decision_support', lang }),

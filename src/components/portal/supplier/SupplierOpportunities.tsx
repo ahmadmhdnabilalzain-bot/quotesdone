@@ -105,7 +105,9 @@ export default function SupplierOpportunities({ token, lang = 'en' }:
           <p className="mt-1 opacity-75">{t(lang, 'emptyWhy')}</p>
           {/* The population behind the empty list — never a silent nothing. */}
           <p className="mt-1.5 opacity-50">
-            {d.population?.open_inquiries ?? 0} open · {d.population?.quotes_in_estate ?? 0} quotes in the estate
+            {lang === 'ar'
+              ? `${d.population?.open_inquiries ?? 0} طلب مفتوح · ${d.population?.quotes_in_estate ?? 0} عرض سعر في المنصة`
+              : `${d.population?.open_inquiries ?? 0} open · ${d.population?.quotes_in_estate ?? 0} quotes in the estate`}
           </p>
         </section>
       )}
