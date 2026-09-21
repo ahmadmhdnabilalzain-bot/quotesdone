@@ -108,7 +108,7 @@ import { motion, useReducedMotion } from 'motion/react';
 // The customer portal is the page a paying customer uses. Its Supabase target was an inline
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
 // LIVE database. supaEnv resolves it once and warns on fallback; see the note there.
-import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { signupEmailProblem } from '@/lib/signupEmail';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
@@ -123,7 +123,7 @@ const tokenAlive = (t) => {
   try { return (JSON.parse(atob(String(t).split('.')[1])).exp || 0) > (Date.now() / 1000) + 60; }
   catch (_e) { return true; } // unparseable: let the endpoint be the judge, do not lock anyone out
 };
-async function call(path, body, token) { const r = await fetch(FN + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
+async function call(path, body, token) { const r = await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
 // The five reads the dashboard makes on its first render, started beside the kyc gate rather than
 // behind it — see prefetch.ts for the measurement. Keys are what Dashboard and DecisionSupport take.
 import { warm, take, drop } from './prefetch';

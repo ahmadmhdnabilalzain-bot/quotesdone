@@ -15,7 +15,7 @@ import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
-import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, type Item } from '../_shared/quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, jobNoOf, type Item } from '../_shared/quote_documents.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
@@ -465,7 +465,7 @@ async function buildBriefPdf(inq: any, lang: string) {
   const ar = lang === 'ar';
   const T = (en: string, arx: string) => (ar ? arx : en);
   const blocks: any[] = [];
-  const ref = 'QD-' + String(inq?.id || '').slice(0, 8).toUpperCase() + '-BRIEF';
+  const ref = 'QD-' + jobNoOf(inq) + '-BRIEF';
   const kv: any[] = [
     [T('Reference', 'الرقم المرجعي'), ref],
     [T('Category', 'الفئة'), clipCell(inq?.category, 40) || '—'],
@@ -1325,7 +1325,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // while the language was arabic then arabic follows through the whole workflow"). body.lang is
       // ignored for every document here; customers.locale decides.
       const lang = asLocale(cust.locale);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate').eq('id', iid).maybeSingle();
+      const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
@@ -1349,7 +1349,7 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'compare_csv') {
       const iid = String(body.inquiry_id || '');
       const lang = asLocale(cust.locale);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id').eq('id', iid).maybeSingle();
+      const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
@@ -1362,13 +1362,13 @@ Deno.serve(observe('customer_api', async (req) => {
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       const side = compareTable(analysis, lang === 'ar');
       if (!side) return J({ error: 'comparison_unavailable' }, 200);
-      return J({ ok: true, csv: toCsv(side.head, side.rows), filename: 'QD-' + iid.slice(0, 8).toUpperCase() + (lang === 'ar' ? '-مقارنة' : '-comparison') + '.csv' });
+      return J({ ok: true, csv: toCsv(side.head, side.rows), filename: 'QD-' + jobNoOf(inq) + (lang === 'ar' ? '-مقارنة' : '-comparison') + '.csv' });
     }
 
     if (action === 'brief_pdf') {
       const iid = String(body.inquiry_id || '');
       const lang = asLocale(cust.locale);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate,budget,spec,boq,trades,drawing_file_name').eq('id', iid).maybeSingle();
+      const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate,budget,spec,boq,trades,drawing_file_name').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
@@ -1394,7 +1394,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const lang = documentLocale(body.lang, cust.locale);
       const { data: q } = await admin.from('quotes').select('*').eq('id', qid).maybeSingle();
       if (!q) return J({ error: 'Quote not found' }, 404);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
+      const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       // A draft is not a quote the customer has; it has no letter and no document.
       if (q.status === 'draft') return J({ error: 'Quote not found' }, 404);
@@ -1402,7 +1402,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const touched = q.updated_at ? new Date(q.updated_at) : (q.created_at ? new Date(q.created_at) : null);
       if (cached && (!touched || new Date(cached.created_at) >= touched)) {
         const url = await signedDoc(cached.bucket, cached.path);
-        if (url) return J({ ok: true, url, ref: quoteRef(q.inquiry_id, await letterOf(q)), lang, cached: true });
+        if (url) return J({ ok: true, url, ref: quoteRef(inq, await letterOf(q)), lang, cached: true });
       }
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
       const { count: gens } = await admin.from('quote_pdf_cache').select('quote_id', { count: 'exact', head: true }).eq('customer_id', cust.id).gte('created_at', hourAgo);
