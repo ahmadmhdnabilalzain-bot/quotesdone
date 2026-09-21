@@ -200,8 +200,8 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // why. With 0 completed jobs the history reason is unanswerable for EVERY supplier, and it
     // says so rather than reading as "you have no relevant experience".
     // §12 (the negotiation assistant) and the 3D network map action were removed 21 Sep 2026 — founder
-    // instructions 525/526. fn_supplier_negotiation and fn_supplier_network_map remain in the database
-    // with no caller.
+    // instructions 525/526. fn_supplier_negotiation and fn_supplier_network_map are dropped by
+    // scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql.
 
     if (action === 'product_match') {
       const inquiryId = String(b.inquiry_id || '');

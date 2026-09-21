@@ -25,11 +25,41 @@ import { motion } from 'motion/react';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
+type DocRead = { status?: string; source?: string; supply_only?: boolean; trades?: { code: string }[] };
 type Result = {
   ok?: boolean; catalog_id?: string | null; format?: string;
   products_created?: number; products_found?: number; note?: string;
   status?: string; why?: string; error?: string;
+  documents_read?: { ok?: boolean; docs?: DocRead[] };
+  vision?: { state?: string; message_en?: string; message_ar?: string };
 };
+
+// TEXT IN A PHOTO, READ HERE (instruction 576, 21 Sep 2026). A photographed page, label, nameplate or
+// price list — and a scanned PDF's rendered pages — are read by tesseract.js in the supplier's own
+// browser (src/components/me/ocrClient.ts: self-hosted, eng+ara, the same OCR the customer side uses),
+// and the words go to supplier_catalog_ingest as ocr_text, into the same catalogue reader as a text
+// layer. Nothing leaves the browser but the text. OCR failing is not an upload failing: the file is
+// still sent, and the server says honestly that it could not read it.
+async function photoText(images: { mime: string; data: string }[]): Promise<string> {
+  try {
+    if (!images.length) return '';
+    const { ocrImages } = await import('@/components/me/ocrClient');
+    return (await ocrImages(images)).text || '';
+  } catch (_e) { return ''; }
+}
+async function imagesOf(file: File): Promise<{ mime: string; data: string }[]> {
+  try {
+    if (file.type === 'application/pdf') {
+      const { rasterisePdf } = await import('@/components/me/pdfRaster');
+      return await rasterisePdf(new Uint8Array(await file.arrayBuffer()));
+    }
+    if (file.type.startsWith('image/')) {
+      const { toJpegPages } = await import('@/components/me/ocrClient');
+      return await toJpegPages(file);
+    }
+  } catch (_e) { /* a page the browser cannot draw is sent without text; the server says so */ }
+  return [];
+}
 
 const ANON = SUPA_ANON;
 
@@ -61,6 +91,8 @@ const T = {
     unsupported: 'We stored the file but could not read products from it.',
     failed: 'The extraction did not complete.', route: 'How it was read',
     held: 'We stored your file, but reading its products needs our reading engine, which is paused. It has not been read yet — this is not "no products". It will be read when the engine is back, or upload a CSV or Excel price list to be read now.',
+    photo_text: 'Read from the text in your photo or scan.',
+    supply_only: 'Your catalogue reads as supply only (importer, wholesaler or stockist). Confirm or correct this on the Services tab.',
   },
   ar: {
     title: 'كتالوج بالذكاء الاصطناعي', lead: 'ارفع كتالوج منتجاتك أو قائمة الأسعار أو الجدول أو المخطط. نقرأه وننشئ سجلات منتجاتك.',
@@ -71,6 +103,8 @@ const T = {
     unsupported: 'حفظنا الملف لكن تعذّرت قراءة المنتجات منه.',
     failed: 'لم يكتمل الاستخراج.', route: 'كيف تمت القراءة',
     held: 'حفظنا ملفك، لكن قراءة منتجاته تحتاج إلى محرك القراءة لدينا، وهو متوقف مؤقتًا. لم يُقرأ الملف بعد — وهذا لا يعني «لا توجد منتجات». سيُقرأ عند عودة المحرك، أو ارفع قائمة أسعار بصيغة CSV أو Excel لتُقرأ الآن.',
+    photo_text: 'قُرئ من النص الموجود في صورتك أو ملفك الممسوح ضوئيًا.',
+    supply_only: 'يُقرأ كتالوجك على أنه توريد فقط (مستورد أو تاجر جملة أو مخزّن). أكّد ذلك أو صحّحه في تبويب الخدمات.',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
@@ -90,8 +124,19 @@ export default function SupplierCatalogUpload({ token, lang = 'en', onDone }:
       fr.readAsDataURL(file);
     }).catch(() => '');
     if (!data) { setBusy(false); setRes({ error: 'could not read that file' }); return; }
-    const r: Result = await call('supplier_catalog_ingest', { file_name: file.name, data }, token)
+    // A photo's words are read before the upload; a PDF's only if the server finds no text layer in it.
+    const ocr_text = file.type.startsWith('image/') ? await photoText(await imagesOf(file)) : '';
+    let r: Result = await call('supplier_catalog_ingest', { file_name: file.name, data, ...(ocr_text ? { ocr_text } : {}) }, token)
       .catch(() => ({ error: 'upload failed' }));
+    const scanned = file.type === 'application/pdf' && r?.catalog_id != null
+      && (r.documents_read?.docs || []).some((d) => d.status === 'needs_ocr');
+    if (scanned) {
+      const text = await photoText(await imagesOf(file));
+      if (text.trim()) {
+        const again: Result = await call('supplier_catalog_ingest', { catalog_id: r.catalog_id, ocr_text: text }, token).catch(() => ({}));
+        if (again?.documents_read) r = { ...r, documents_read: again.documents_read };
+      }
+    }
     setBusy(false); setRes(r);
     if ((r?.products_created ?? 0) > 0 && onDone) onDone();
   }
@@ -129,6 +174,15 @@ export default function SupplierCatalogUpload({ token, lang = 'en', onDone }:
           )}
           {status === 'extraction_failed' && <p className="text-warn-fg/90">{t(lang, 'failed')} <span className="text-muted-foreground">{res.why}</span></p>}
           {res.error && <p className="text-warn-fg/90">{res.error}</p>}
+          {(res.documents_read?.docs || []).some((d) => d.source === 'photo_text') && (
+            <p className="mt-1 text-[12px] text-muted-foreground">{t(lang, 'photo_text')}</p>
+          )}
+          {(res.documents_read?.docs || []).some((d) => d.supply_only) && (
+            <p className="mt-1 text-[12px] text-muted-foreground">{t(lang, 'supply_only')}</p>
+          )}
+          {res.vision?.state === 'off' && (
+            <p className="mt-1 text-[12px] text-muted-foreground" dir="auto">{lang === 'ar' ? res.vision.message_ar : res.vision.message_en}</p>
+          )}
           {res.note && (
             <p className="mt-1 text-[11px] text-muted-foreground/70">
               <span className="uppercase tracking-wide">{t(lang, 'route')}:</span> {res.note}

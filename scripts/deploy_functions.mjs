@@ -23,6 +23,7 @@
 // 4. THE CLI's EXIT CODE IS NOT THE VERIFICATION. Each function's version is read from the API
 //    before and after; a deploy that did not bump the version did not happen, whatever it printed.
 import { execFileSync, spawnSync } from 'node:child_process';
+import { isTransientDeployFailure } from './lib/retry.mjs';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { sql } from './lib/db.mjs';
 
@@ -171,7 +172,7 @@ for (const f of slugs) {
 
 console.log(`\n--- deploying ${slugs.length} function(s) to ${ref} ---`);
 const failed = [];
-slugs.forEach((f, i) => {
+for (const [i, f] of slugs.entries()) {
   // NO verify_jwt FLAG. See rule 3. --use-api matches what the .ps1 does.
   // ── HOW THE CLI IS INVOKED, WHICH TOOK THREE ATTEMPTS ────────────────────────────────────────
   // `shell: true` works but concatenates the argv into a command line, which Node deprecates
@@ -183,8 +184,20 @@ slugs.forEach((f, i) => {
   const [exe, pre] = process.platform === 'win32'
     ? [process.env.ComSpec || 'cmd.exe', ['/c', 'supabase']]
     : ['supabase', []];
-  const r = spawnSync(exe, [...pre, 'functions', 'deploy', f, '--project-ref', ref, '--use-api'],
-    { encoding: 'utf8', env: { ...process.env, SUPABASE_ACCESS_TOKEN: token } });
+  // A REGISTRY BLIP IS NOT A BROKEN FUNCTION (21 Sep 2026, main run 35619142770: 62/63 deployed;
+  // email_cron failed because jsr.io's supabase-js manifest "timed out after 10s"). Up to 3 attempts,
+  // 5 s then 10 s apart, ONLY when the failure text is a network/registry class
+  // (scripts/lib/retry.mjs isTransientDeployFailure, tested in retry.test.mjs). A type or bundle
+  // error in our code fails on the first attempt, exactly as before.
+  let r;
+  for (let attempt = 1; ; attempt++) {
+    r = spawnSync(exe, [...pre, 'functions', 'deploy', f, '--project-ref', ref, '--use-api'],
+      { encoding: 'utf8', env: { ...process.env, SUPABASE_ACCESS_TOKEN: token } });
+    const out = (r.stdout || '') + (r.stderr || '');
+    if (r.status === 0 || attempt >= 3 || !isTransientDeployFailure(out)) break;
+    console.log(`[${i + 1}/${slugs.length}] ${f} transient failure (attempt ${attempt}/3), retrying: ${out.trim().slice(-200)}`);
+    await new Promise((res) => setTimeout(res, 5000 * 2 ** (attempt - 1)));
+  }
   if (r.status !== 0) {
     failed.push(f);
     console.log(`[${i + 1}/${slugs.length}] ${f} DEPLOY FAILED exit=${r.status}`);
@@ -192,7 +205,7 @@ slugs.forEach((f, i) => {
   } else {
     console.log(`[${i + 1}/${slugs.length}] ${f} deployed`);
   }
-});
+}
 
 // ── RULE 4: VERIFY AGAINST THE DEPLOYED BUNDLE ─────────────────────────────────────────────────
 console.log('\n--- verifying against the DEPLOYED bundle ---');
