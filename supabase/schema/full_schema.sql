@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T09:34:18.484Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T09:59:27.116Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -192,7 +192,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (525) =====
+-- ===== TABLES (526) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3974,9 +3974,6 @@ CREATE TABLE IF NOT EXISTS public.leads (
   claimed boolean DEFAULT false,
   contact_name text,
   service_emirates text[],
-  bank_name text,
-  bank_iban text,
-  bank_account_name text,
   trade_license_no text,
   verified boolean DEFAULT false,
   portal_updated_at timestamp with time zone,
@@ -6521,6 +6518,17 @@ CREATE TABLE IF NOT EXISTS public.supplier_collaboration_event (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_document_cache (
+  kind text NOT NULL,
+  subject_id uuid NOT NULL,
+  supplier_id bigint NOT NULL,
+  lang text NOT NULL,
+  content_hash text NOT NULL,
+  bucket text NOT NULL,
+  path text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.supplier_dues (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   transaction_id uuid,
@@ -7780,6 +7788,7 @@ ALTER TABLE public.supplier_capability_confirmation ADD CONSTRAINT supplier_capa
 ALTER TABLE public.supplier_catalog ADD CONSTRAINT supplier_catalog_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_collaboration ADD CONSTRAINT supplier_collaboration_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.supplier_collaboration_event ADD CONSTRAINT supplier_collaboration_event_pkey PRIMARY KEY (id);
+ALTER TABLE public.supplier_document_cache ADD CONSTRAINT supplier_document_cache_pkey PRIMARY KEY (kind, subject_id, supplier_id, lang);
 ALTER TABLE public.supplier_dues ADD CONSTRAINT supplier_dues_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_kpi_snapshots ADD CONSTRAINT supplier_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_lead_intake ADD CONSTRAINT supplier_lead_intake_pkey PRIMARY KEY (inbound_id);
@@ -8288,6 +8297,8 @@ ALTER TABLE public.supplier_collaboration ADD CONSTRAINT supplier_collaboration_
 ALTER TABLE public.supplier_collaboration ADD CONSTRAINT supplier_collaboration_total_ignored_check CHECK ((total_ignored >= 0));
 ALTER TABLE public.supplier_collaboration_event ADD CONSTRAINT supplier_collaboration_event_actor_check CHECK ((actor = ANY (ARRAY['sales_engineer'::text, 'founder'::text])));
 ALTER TABLE public.supplier_collaboration_event ADD CONSTRAINT supplier_collaboration_event_kind_check CHECK ((kind = ANY (ARRAY['ignored_hold'::text, 'cooperated'::text, 'warning_sent'::text, 'matching_hold'::text, 'hold_lifted'::text])));
+ALTER TABLE public.supplier_document_cache ADD CONSTRAINT supplier_document_cache_kind_check CHECK ((kind = ANY (ARRAY['inquiry'::text, 'quotation'::text])));
+ALTER TABLE public.supplier_document_cache ADD CONSTRAINT supplier_document_cache_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
 ALTER TABLE public.supplier_lead_intake ADD CONSTRAINT supplier_lead_intake_intent_check CHECK ((intent = ANY (ARRAY['register'::text, 'question'::text, 'document'::text, 'decline'::text, 'bounce'::text, 'other'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_match_kind_check CHECK ((match_kind = ANY (ARRAY['exact'::text, 'token_overlap'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_status_check CHECK ((status = ANY (ARRAY['open'::text, 'confirmed'::text, 'false_positive'::text])));
@@ -9023,6 +9034,7 @@ CREATE UNIQUE INDEX spec_backlog_spec_ref_uidx ON public.spec_backlog USING btre
 CREATE INDEX spec_backlog_status_idx ON public.spec_backlog USING btree (status, priority);
 CREATE INDEX subcategory_agent_map_agent_idx ON public.subcategory_agent_map USING btree (agent_slug);
 CREATE INDEX supplier_collaboration_event_by_lead ON public.supplier_collaboration_event USING btree (lead_id, created_at);
+CREATE INDEX supplier_document_cache_supplier_time_idx ON public.supplier_document_cache USING btree (supplier_id, created_at);
 CREATE UNIQUE INDEX supplier_dues_stripe_session_key ON public.supplier_dues USING btree (stripe_session_id) WHERE (stripe_session_id IS NOT NULL);
 CREATE UNIQUE INDEX supplier_kpi_snap_day ON public.supplier_kpi_snapshots USING btree (snapshot_date);
 CREATE UNIQUE INDEX supplier_negotiation_policy_supplier_key ON public.supplier_negotiation_policy USING btree (supplier_id) WHERE (supplier_id IS NOT NULL);
@@ -51080,8 +51092,10 @@ AS $function$
       ('vat',                'VAT certificate',            'high',     'Needed before you can invoice with VAT.'),
       ('iso',               'ISO certification',           'medium',   'Strengthens your capability score and unlocks quality-gated requests.'),
       ('manufacturer_auth', 'Manufacturer authorisation',  'medium',   'Proves you are authorised for the brands you carry.'),
-      ('establishment',     'Establishment card',          'low',      'Administrative record. Does not gate work.'),
-      ('bank_iban',         'Bank details (IBAN)',         'medium',   'We cannot pay you without it.')
+      ('establishment',     'Establishment card',          'low',      'Administrative record. Does not gate work.')
+      -- 'bank_iban' ("We cannot pay you without it.") was a row here until 21 Sep 2026. It was false: money
+      -- moves both directions through Stripe and the estate never holds a supplier's bank details
+      -- (founder instruction 527; scripts/sql/the_founder_removed_bank_details_from_the_estate.sql).
     ) d(key, label, impact, impact_why)
   ),
   held as (
@@ -51093,7 +51107,6 @@ AS $function$
         when 'iso'                then (select iso_doc_path from me)
         when 'manufacturer_auth'  then (select manufacturer_auth_doc_path from me)
         when 'establishment'      then (select egr_doc_path from me)
-        when 'bank_iban'          then (select iban_doc_path from me)
       end as path,
       case d.key
         when 'trade_licence'     then (select license_expiry from me)
@@ -63484,6 +63497,7 @@ ALTER TABLE public.supplier_capability_confirmation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_catalog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_collaboration ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_collaboration_event ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_document_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_dues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_lead_intake ENABLE ROW LEVEL SECURITY;
@@ -63619,6 +63633,7 @@ CREATE POLICY stripe_dispute_service_role_only ON public.stripe_dispute AS PERMI
 CREATE POLICY stripe_payout_service_role_only ON public.stripe_payout AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collaboration AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_event_service_role_only ON public.supplier_collaboration_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_document_cache_service_role_only ON public.supplier_document_cache AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_voice_note_service_role_only ON public.supplier_voice_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_change_service_role_only ON public.table_export_change AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

@@ -53,7 +53,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const EXPECTED = 34;   // 35 until 14 Sep 2026; mod-approvals retired
+export const EXPECTED = 33;   // 35 until 14 Sep 2026; mod-approvals retired. 34 until 21 Sep 2026; mod-negotiation-ai retired
 
 export default async function (H) {
   const { req, one } = H;
@@ -593,11 +593,7 @@ export default async function (H) {
     `select 'public.quotes ' || ${RELTXT('quotes')} || ', ' || ${ROWS('quotes')}
        || ' row(s) — PRODUCTION HAS NO QUOTES, so the comparison is scored on the mechanism, not on traffic'`);
 
-  await MODULE('mod-negotiation-ai', 'Module: Negotiation AI',
-    /(negotiat|counter_offer|supplier_negotiation_policy)/i, /(target|counter|leverage|market_average|draft|negotiat)/i,
-    REL('supplier_negotiation_policy'),
-    `select 'public.supplier_negotiation_policy ' || ${RELTXT('supplier_negotiation_policy')} || ' with ' || ${ROWS('supplier_negotiation_policy')}
-       || ' row(s) and ' || ${ALL_READS('supplier_negotiation_policy')} || ' routine/view reader(s) anywhere'`);
+  // mod-negotiation-ai retired 21 Sep 2026: the founder removed negotiations from both portals (instruction 527).
 
   await MODULE('mod-orders', 'Module: Orders',
     /(po_orders|purchase_order|action:\s*'orders'|po_no)/i, /(po_no|order_date|expected_date|order|vendor)/i,

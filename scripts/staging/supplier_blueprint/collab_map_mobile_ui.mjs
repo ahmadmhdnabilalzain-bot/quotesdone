@@ -1,45 +1,39 @@
 // SPEC FILE #5, sections 18-24 — Collaboration, Network Map, Gamification, Mobile, UI, Tech, Structure.
 //
 //   18. Supplier Collaboration Workspace (8)  — a workspace per customer relationship
-//   19. Supplier Network Map             (7)  — a 3D globe with four data layers
+//   19. Supplier Network Map             (0)  — RETIRED 21 Sep 2026; founder: "its useless remove it"
 //   20. Supplier Gamification            (8)  — tiers that confer REAL benefits, not badges
 //   21. Supplier Mobile App              (9)  — six bottom-nav destinations, same intelligence
-//   22. Maximum UI Design Language      (13)  — thirteen named style and interaction commitments
-//   23. Technology Behind This UI       (15)  — fifteen named technologies
-//   24. Final Supplier Portal Structure (19)  — nineteen modules, each reachable from navigation
+//   22. Maximum UI Design Language      (12)  — twelve named style and interaction commitments (ui-3d-maps retired 21 Sep 2026)
+//   23. Technology Behind This UI        (9)  — nine named technologies (six 3D legs retired 21 Sep 2026)
+//   24. Final Supplier Portal Structure (18)  — eighteen modules, each reachable from navigation (struct-negotiation-ai retired 21 Sep 2026)
 //
 // ── §23 IS THE SECTION WHERE "INSTALLED" AND "USED" DIVERGE, AND THAT IS THE POINT ───────────────
-// Measured before writing: package.json carries three ^0.180.0, motion ^12.42.2, cmdk 1.1.1 and
-// recharts 2.15.4. The supplier surface imports NONE of them — three 0, r3f 0, framer 0, webgl 0,
-// webgpu 0, d3 0, gltf 0, cmdk 0, drag-and-drop 0.
+// Measured before writing: package.json carries motion ^12.42.2, cmdk 1.1.1 and recharts 2.15.4.
+// The supplier surface imports NONE of them — framer 0, d3 0, cmdk 0, drag-and-drop 0.
 //
 // A dependency in package.json is a purchase, not a feature. Scoring §23 off the manifest would
-// certify a 3D holographic workspace that renders as a plain form, and it would keep certifying it
+// certify a holographic workspace that renders as a plain form, and it would keep certifying it
 // forever because nobody uninstalls a package. Every §23 leg therefore measures USE on the supplier
 // surface (or, for the backend items, reachability from it) and prints the installed version beside
 // it, so the evidence says exactly which kind of absence this is: never bought, or bought and unused.
 //
-// ── §19 / §22 / §5 / §23 — FOUR CLAIMS ABOUT 3D THAT MUST NOT SHARE ONE IMPLEMENTATION ───────────
-// docs/sessions/ROW5_REQUIREMENTS.md logs this as overlap risk #1. Resolved by making each measure
-// something a different implementation would satisfy:
-//   · §5  env-3d-scene  — 3D machinery + a FACTORY subject (scored in command_and_environment.mjs)
-//   · §19 map-globe     — 3D machinery + a GLOBE/geographic subject, with geo markers
-//   · §22 ui-3d-maps    — 3D map presentation as a recurring DESIGN LANGUAGE: >= 2 files, because a
-//                         style used exactly once is a feature, not a language. Satisfiable: the
-//                         spec's portal has both a factory scene and a network globe.
-//   · §23 tech-threejs  — the dependency actually imported on this surface
-// One <Canvas> can no longer satisfy all four.
+// ── THE 3D CLAIMS ARE GONE ───────────────────────────────────────────────────────────────────────
+// §5 env-3d-scene, §19 map-globe, §22 ui-3d-maps and §23 tech-threejs were four claims about 3D
+// that had to be kept from sharing one <Canvas> (ROW5_REQUIREMENTS.md overlap risk #1). On
+// 21 Sep 2026 the founder removed the 3D environment and the network map ("its useless remove
+// it"), so all four retired with their subject and the overlap no longer exists.
 import { readFileSync } from 'node:fs';
 import {
   S, P, FILES, P_FILES, FNS, fileSrc, fnSrc, n, has, filesMatching, fnsMatching, fnsWithBoth,
   near, filesNear, fnsNear, delivered, cover, B, Q, READERS_SQL, NROWS_SQL, rpcSources,
 } from '../supplier_checks.mjs';
 
-export const EXPECTED = 79;
+export const EXPECTED = 64;   // 79 until 21 Sep 2026; §19 map-* (7), ui-3d-maps, six §23 tech-* 3D legs and struct-negotiation-ai retired
 
 export default async function (H) {
   const { req, one } = H;
-  const S18 = 'collab', S19 = 'map', S20 = 'game', S21 = 'mob', S22 = 'ui', S23 = 'tech', S24 = 'struct';
+  const S18 = 'collab', S20 = 'game', S21 = 'mob', S22 = 'ui', S23 = 'tech', S24 = 'struct';
 
   // The serving population follows the rpc hop — the same false MISSING already fixed in §13, §7,
   // §15 and §14. §18's project identity, message count and timeline are all served through
@@ -56,8 +50,6 @@ export default async function (H) {
   const CSS = (() => {
     try { return readFileSync(new URL('../../../src/app/globals.css', import.meta.url), 'utf8'); } catch { return ''; }
   })();
-
-  const THREED = /@react-three|from ['"]three|<Canvas\b|useFrame|WebGLRenderer|webgl/i;
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════
   // §18 — SUPPLIER COLLABORATION WORKSPACE (8)
@@ -129,44 +121,14 @@ export default async function (H) {
     Q(`workspace container on ${wsFiles.length} file(s), files inside it on ${wsFilesLeg.length} — both required`));
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════
-  // §19 — SUPPLIER NETWORK MAP (7)
+  // §19 — SUPPLIER NETWORK MAP — RETIRED 21 SEP 2026
   // ════════════════════════════════════════════════════════════════════════════════════════════════
-
-  const globeFiles = P_FILES.filter((f) => near(fileSrc(f), THREED, /globe|world|earth|sphere|geo/i, 500));
-  const anyGeo = filesMatching(/globe|world[_ ]?map|latitude|longitude|geoJson|mapbox|leaflet/i, P_FILES);
-  await req(S19, 'map-globe', 'a 3D globe component',
-    B(globeFiles.length > 0),
-    Q(`${globeFiles.length} portal file(s) pair 3D machinery with a globe subject ` +
-      `[${globeFiles.map(f => f.split('/').pop()).join(' ') || 'none'}]; ` +
-      `${anyGeo.length} file(s) carry any geo token — §5's factory scene and §22's design language are scored separately`));
-
-  const markers = filesNear(/marker|<Point|position=\{|coordinates/i, /lat|lng|longitude|latitude|geo/i, 300, P_FILES);
-  await req(S19, 'map-geo-markers', 'markers positioned by real geography',
-    B(markers.length > 0),
-    Q(`${markers.length} portal file(s) pair markers with coordinates ` +
-      `[${markers.map(f => f.split('/').pop()).join(' ') || 'none'}]`));
-
-  // Defect class #3 — the spec names FOUR layers, one requirement each, each needing the layer to be
-  // on a map rather than merely a word on the portal.
-  for (const [id, re, label] of [
-    ['map-layer-suppliers', /suppliers?/i, 'suppliers'],
-    ['map-layer-demand', /demand/i, 'demand'],
-    ['map-layer-projects', /projects?/i, 'projects'],
-    ['map-layer-shipments', /shipments?|deliver(y|ies)[_ ]?route|logistics/i, 'shipments'],
-  ]) {
-    const onMap = P_FILES.filter((f) => near(fileSrc(f), re, /globe|world[_ ]?map|marker|lat|lng|layer/i, 400));
-    const anywhere = has(re, P);
-    await req(S19, id, `the map has a ${label} layer`,
-      B(onMap.length > 0),
-      Q(`${label}: on a map in ${onMap.length} file(s) [${onMap.map(f => f.split('/').pop()).join(' ') || 'none'}]; ` +
-        `mentioned somewhere on the portal ${anywhere ? 'yes' : 'no'} — a word off the map is not a layer`));
-  }
-
-  const mapFn = fnsNear(/globe|map|geo|lat|emirate|country/i, /select|from\(/i, 400);
-  await req(S19, 'map-data-reader', 'markers read real rows, not fixtures',
-    B(globeFiles.length > 0 && mapFn.length > 0),
-    Q(`globe on ${globeFiles.length} file(s), ${mapFn.length} fn(s) could serve geo rows ` +
-      `[${mapFn.join(' ') || 'none'}] — both legs required, a globe over a literal array is a fixture`));
+  // The founder removed the supplier network map (the 3D globe, SupplierNetworkMap.tsx) from the
+  // supplier portal (instruction 526: "its useless remove it"). Its seven requirements (map-globe,
+  // map-geo-markers, map-layer-suppliers, map-layer-demand, map-layer-projects, map-layer-shipments,
+  // map-data-reader) retired WITH their subject. They are not scored as missing, because building
+  // them again would contradict the ruling. fn_supplier_network_map still exists in the database;
+  // no surface calls it.
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════
   // §20 — SUPPLIER GAMIFICATION (8)
@@ -327,14 +289,8 @@ export default async function (H) {
     B(n(/holograph|hologram|\bglow\b|neon|iridescen/i, P) > 0),
     Q(`${n(/holograph|hologram|\bglow\b|neon|iridescen/i, P)} holographic token(s) on the portal`));
 
-  // A DESIGN LANGUAGE IS RECURRING — see the header note on overlap risk #1. One 3D map is §19's
-  // feature; a style commitment shows up in more than one place. Satisfiable: the spec's portal has
-  // a factory scene AND a network globe.
-  const threeDFiles = P_FILES.filter((f) => THREED.test(fileSrc(f)));
-  await req(S22, 'ui-3d-maps', '3D maps as a recurring design element',
-    B(threeDFiles.length >= 2),
-    Q(`${threeDFiles.length} portal file(s) use 3D [${threeDFiles.map(f => f.split('/').pop()).join(' ') || 'none'}]; ` +
-      `>=2 required — a style used once is §19's feature, not a design language`));
+  // ui-3d-maps retired 21 Sep 2026 with the 3D environment (§5) and the network map (§19) — the two
+  // surfaces that made 3D a recurring design element. Founder: "its useless remove it".
 
   const chartLib = /recharts|from ['"]d3|d3-|<svg[\s\S]{0,200}<path|sparkline/i;
   await req(S22, 'ui-animated-charts', 'animated charts',
@@ -387,23 +343,16 @@ export default async function (H) {
   // ════════════════════════════════════════════════════════════════════════════════════════════════
   //
   // USE, not purchase. See the header note. Every leg prints the installed version so the evidence
-  // distinguishes "never bought" from "bought and unused" — three, motion and cmdk are all the
-  // second kind, which no manifest-based check could ever tell you.
+  // distinguishes "never bought" from "bought and unused" — motion and cmdk are both the second
+  // kind, which no manifest-based check could ever tell you.
+  // The six 3D technology legs (tech-threejs, tech-r3f, tech-webgl, tech-3d-model-assets, tech-gltf,
+  // tech-webgpu) retired 21 Sep 2026 with the 3D environment and the network map — the only
+  // surfaces that used them. Founder: "its useless remove it".
   for (const [id, re, dep, label] of [
     ['tech-nextjs', /next\/|from ['"]next['"]|use client/i, 'next', 'Next.js'],
     ['tech-react', /from ['"]react['"]|useState|useEffect/i, 'react', 'React'],
-    ['tech-threejs', /from ['"]three|THREE\./i, 'three', 'Three.js'],
-    // NOT /<Canvas\b/i. The `i` flag made it match a plain HTML `<canvas>` element, and the check
-    // read MET while its own evidence said "dependency not installed" — an incoherent verdict that
-    // could not be true, since a real <Canvas> without @react-three/fiber would not build. A raw
-    // canvas is not React Three Fiber. The leg now needs an r3f-specific import or hook.
-    ['tech-r3f', /@react-three\/(fiber|drei)|useFrame|useThree/, '@react-three/fiber', 'React Three Fiber'],
     ['tech-framer-motion', /framer-motion|from ['"]motion|motion\.\w+/i, 'motion', 'Framer Motion'],
-    ['tech-webgl', /webgl|WebGLRenderer|getContext\(\s*['"]webgl/i, null, 'WebGL'],
     ['tech-d3', /from ['"]d3|d3-(scale|shape|array|selection)/i, 'd3', 'D3.js'],
-    ['tech-3d-model-assets', /\.glb['"]|\.gltf['"]|models\//i, null, 'Blender models (3D assets)'],
-    ['tech-gltf', /useGLTF|GLTFLoader|gltfjsx/i, null, 'GLTF loading'],
-    ['tech-webgpu', /webgpu|WebGPURenderer|navigator\.gpu/i, null, 'WebGPU'],
   ]) {
     const used = n(re, P);
     const installed = dep && DEPS[dep] ? `INSTALLED ${DEPS[dep]}` : (dep ? 'not installed' : 'n/a');
@@ -469,7 +418,7 @@ export default async function (H) {
     ['struct-catalog-ai', /catalog/i, 'Catalog AI'],
     ['struct-rfq-marketplace', /rfq|marketplace|opportunit|inbox|request/i, 'RFQ Marketplace'],
     ['struct-quote-builder', /quote/i, 'Quote Builder'],
-    ['struct-negotiation-ai', /negotiat/i, 'Negotiation AI'],
+    // struct-negotiation-ai retired 21 Sep 2026: the founder removed negotiations from both portals (instruction 527).
     ['struct-customer-projects', /project/i, 'Customer Projects'],
     ['struct-documents', /document/i, 'Documents'],
     ['struct-certifications', /certificat/i, 'Certifications'],

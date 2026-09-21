@@ -7,15 +7,7 @@
 //   npm test        (the repository runner discovers *.test.mjs anywhere in the tree)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { marketComparison, projection, urgency } from './model.ts';
-
-const guidance = (o) => ({
-  quote_id: 'q', inquiry_id: 'i', category: 'Steel', quote_amount: 850000, supplier_id: 1,
-  supplier_name: null, market: null, market_median: null, market_sample_n: 0,
-  delta_vs_median_pct: null, band: null, policy_scope: 'default', recommended_action: null,
-  ask_discount_pct: null, target_price: null, headline: null, suggested_message: null,
-  suggested_message_ar: null, empty_reason: null, ...o,
-});
+import { projection, urgency } from './model.ts';
 
 const forecast = (o) => ({
   customer_id: 'c', as_of: '', horizon_days: 365, basis: 'history', sufficient_data: true,
@@ -23,38 +15,6 @@ const forecast = (o) => ({
   series: [], next_year: { horizon_days: 365, projected_rfqs: 24, projected_spend_aed: 500000, by_category: [] },
   predictions: [], ...o,
 });
-
-/* ── §15: the market comparison must refuse a benchmark the backend called insufficient ────── */
-
-test('a band the routine calls insufficient_data is NOT a market comparison, thin sample or not', () => {
-  // Production today: no quotes at all, so no median and no band.
-  assert.equal(marketComparison(guidance({ band: 'insufficient_data' })), null);
-  // The dangerous one: the routine DOES return a median and a delta off a below-min_sample count
-  // while withholding the target price. "12% above market" from two quotes is a confident sentence
-  // with nothing behind it, so it is refused here too.
-  assert.equal(
-    marketComparison(guidance({ band: 'insufficient_data', market_median: 760000, market_sample_n: 2, delta_vs_median_pct: 11.8 })),
-    null,
-  );
-  assert.equal(marketComparison(null), null);
-  assert.equal(marketComparison(guidance({ band: null })), null);
-});
-
-test('a real benchmark is shown, with its direction', () => {
-  const above = marketComparison(guidance({ band: 'high', market_median: 790000, market_sample_n: 7, delta_vs_median_pct: 7.6 }));
-  assert.deepEqual(above, { median: 790000, sampleN: 7, deltaPct: 7.6, direction: 'above' });
-  assert.equal(marketComparison(guidance({ band: 'low', market_median: 790000, market_sample_n: 7, delta_vs_median_pct: -4 })).direction, 'below');
-  assert.equal(marketComparison(guidance({ band: 'fair', market_median: 790000, market_sample_n: 7, delta_vs_median_pct: 0 })).direction, 'level');
-});
-
-test('a band without the numbers behind it is still no comparison', () => {
-  assert.equal(marketComparison(guidance({ band: 'high', market_median: null, market_sample_n: 7, delta_vs_median_pct: 3 })), null);
-  assert.equal(marketComparison(guidance({ band: 'high', market_median: 790000, market_sample_n: 0, delta_vs_median_pct: 3 })), null);
-  assert.equal(marketComparison(guidance({ band: 'high', market_median: 790000, market_sample_n: 7, delta_vs_median_pct: null })), null);
-  assert.equal(marketComparison(guidance({ band: 'high', market_median: 0, market_sample_n: 7, delta_vs_median_pct: 3 })), null);
-});
-
-/* ── §20: the projection must refuse a straight line through one point ─────────────────────── */
 
 test('the projection is shown only when the routine says the account clears its own floor', () => {
   assert.deepEqual(projection(forecast()), { rfqs: 24, spendAed: 500000, horizonDays: 365 });
