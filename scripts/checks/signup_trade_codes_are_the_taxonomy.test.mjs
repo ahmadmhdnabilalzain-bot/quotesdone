@@ -1,7 +1,7 @@
 // THE SUPPLIER SIGN-UP FORM ASKS FOR A taxonomy_trade CODE, NOT FREE TEXT (15 Sep 2026, agent: customer_support).
 //
 // The sign-up trade was free text over 29 suggestions, 25 of which no taxonomy_trade code carries, so
-// leads.sector never met fn_match_capability's exact-code overlap. The picker now offers the 40 active
+// leads.sector never met fn_match_capability's exact-code overlap. The picker now offers the active
 // codes. A supplier with no company cannot read taxonomy_trade, so the English labels are mirrored in
 // serverCopy.ts TRADE_EN beside the Arabic TRADE_AR. This check fails if the two mirrors drift apart,
 // if the form goes back to free-text suggestions, or if accept_terms stops following the checkbox.
@@ -19,9 +19,9 @@ const keysOf = (name) => {
   return [...body[1].matchAll(/(?:^|[\s,{])([a-z_]+):\s*'/g)].map((m) => m[1]);
 };
 
-test('TRADE_EN and TRADE_AR carry the same 40 taxonomy_trade codes', () => {
+test('TRADE_EN and TRADE_AR carry the same 42 taxonomy_trade codes', () => {
   const en = keysOf('TRADE_EN'); const ar = keysOf('TRADE_AR');
-  assert.equal(en.length, 40, 'TRADE_EN should mirror the 40 active taxonomy_trade codes');
+  assert.equal(en.length, 42, 'TRADE_EN should mirror the 42 active taxonomy_trade codes');
   assert.deepEqual([...en].sort(), [...ar].sort());
 });
 
