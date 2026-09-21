@@ -6,7 +6,7 @@
 // supplier's own company name, phone and email, since the customer pays to reveal who quoted.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { readDocument } from '../_shared/doc_read/index.ts';
-import { quoteFromExtracted } from './quote_from_document.ts';
+import { quoteFromExtracted, rowText } from './quote_from_document.ts';
 
 const CSV = [
   'ZZ DEMO Tiling Contracting LLC,,,,',
@@ -33,6 +33,23 @@ Deno.test('a CSV quotation gives the ex-VAT price, the priced lines and the term
   const all = JSON.stringify({ ...p, masked_terms: [] });
   assert(!all.includes('ZZ DEMO Tiling') && !all.includes('123 4567') && !all.includes('zzdemo'), 'supplier identity reached the proposal');
   assert(p.masked_terms.includes('ZZ DEMO Tiling'));
+});
+
+// 21 Sep 2026 (customer audit, finding 12): the audited CSV's note rows were split on their commas
+// and joined back with spaces, so the customer's PDF read "electrical fittings painting of walls
+// scaffolding above 4m" and "50% advance 50% on completion".
+Deno.test('a note row the CSV reader split on its commas keeps them; a priced line is unchanged', async () => {
+  const csv = ['Description,Qty,Unit,Rate,Amount', 'Knauf gypsum false ceiling 12.5mm with cove lighting detail,180,m2,95,17100', 'Total,,,,17100',
+    'Warranty: 2 years materials and workmanship', 'Payment terms: 50% advance, 50% on completion', 'Exclusions: electrical fittings, painting of walls, scaffolding above 4m'].join('\n');
+  const r = await readDocument(new TextEncoder().encode(csv), 'quotation-final.csv', 'text/csv');
+  assert(r.ok, JSON.stringify(r));
+  const p = quoteFromExtracted(r, []);
+  assertEquals(p.exclusions, 'electrical fittings, painting of walls, scaffolding above 4m');
+  assertEquals(p.payment_terms, '50% advance, 50% on completion');
+  assertEquals(p.warranty, '2 years materials and workmanship');
+  assertEquals(p.line_items.map((l) => [l.description, l.amount]), [['Knauf gypsum false ceiling 12.5mm with cove lighting detail', 17100]]);
+  assertEquals(rowText(['Exclusions: a', ' b', ' c', '', '']), 'Exclusions: a, b, c');
+  assertEquals(rowText(['Skirting 100mm', '45', 'm', '20', '900']), 'Skirting 100mm 45 m 20 900');
 });
 
 Deno.test('a TRN and a licence number in the file are masked; the TRN is kept for the record only', async () => {

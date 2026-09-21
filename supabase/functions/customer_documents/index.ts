@@ -29,57 +29,9 @@ const admin = createClient(SUPABASE_URL, SERVICE);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 
-type Doc = {
-  id: number; kind: string; file_name: string | null; bucket: string; path: string;
-  mime: string | null; status: string; created_at: string; source: string;
-  ref_table: string | null; ref_id: string | null;
-  supplier: string | null; supplier_revealed: boolean;
-  expiry_date: string | null; expiry_source: string | null;
-  covers: string | null; covers_source: string | null;
-  summary: string | null; specifications: string[]; certifications: string[]; brands: string[];
-  extracted_at: string | null; match_reason: string; score: number;
-};
-
-// The row the surface renders. Everything a customer is allowed to know about one document, and
-// nothing that would name an unrevealed supplier.
-function shape(d: Doc) {
-  return {
-    id: d.id,
-    kind: d.kind,
-    file_name: d.file_name,
-    mime: d.mime,
-    created_at: d.created_at,
-    // where it came from, in the customer's own vocabulary
-    source: d.source,                       // 'inquiry' | 'quote' | 'supplier'
-    ref_table: d.ref_table,
-    ref_id: d.ref_id,
-    supplier: d.supplier,                   // null until this quote's reveal fee is paid
-    supplier_revealed: d.supplier_revealed,
-    expiry_date: d.expiry_date,             // null when the document does not state one
-    expiry_source: d.expiry_source,
-    covers: d.covers,
-    covers_source: d.covers_source,
-    summary: d.summary,
-    specifications: d.specifications || [],
-    certifications: d.certifications || [],
-    brands: d.brands || [],
-    extracted: d.status === 'done' && !!d.extracted_at,
-    extraction_status: d.status,
-    match_reason: d.match_reason,
-    score: d.score,
-  };
-}
-
-// One line of plain English for the answer panel. It states only what the row actually carries —
-// a missing expiry is reported as missing, never rounded to a year.
-function answerLine(d: ReturnType<typeof shape>): string {
-  const bits: string[] = [];
-  bits.push(`${d.file_name || d.kind}`);
-  bits.push(d.supplier ? `from ${d.supplier}` : (d.source === 'quote' ? 'from a supplier you have not revealed yet' : 'your own upload'));
-  bits.push(d.expiry_date ? `expires ${d.expiry_date}` : 'no expiry stated on the document');
-  bits.push(d.covers ? `covers ${d.covers}` : 'no coverage stated on the document');
-  return bits.join(' · ');
-}
+// The row shape, the provenance translation (no internal column name reaches a customer) and the
+// bilingual answer line live in ./shape.ts so shape.test.ts can prove them without a database.
+import { answerLine, shape, type Doc, type Lang } from './shape.ts';
 
 Deno.serve(observe('customer_documents', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -111,6 +63,7 @@ Deno.serve(observe('customer_documents', async (req) => {
     const action = String((body as Record<string, unknown>).action || 'list');
     const kind = String((body as Record<string, unknown>).kind || '').trim() || null;
     const limit = Math.min(200, Math.max(1, Number((body as Record<string, unknown>).limit) || 50));
+    const lang: Lang = String((body as Record<string, unknown>).lang || 'en').toLowerCase().startsWith('ar') ? 'ar' : 'en';
 
     if (!cust) {
       return J({ ok: true, action, documents: [], count: 0, answer: null,
@@ -175,7 +128,7 @@ Deno.serve(observe('customer_documents', async (req) => {
         ok: true, action: 'ask', q,
         documents: rows,
         count: rows.length,
-        answer: rows.length ? rows.slice(0, 3).map(answerLine) : null,
+        answer: rows.length ? rows.slice(0, 3).map((r) => answerLine(r, lang)) : null,
         matched_by: { extraction_text: rows.filter((r) => r.match_reason === 'text').length,
                       related_request: rows.filter((r) => r.match_reason === 'related_request').length },
         searched: { owned_refs: ownedRefs.size, related_requests_matched: related.length },

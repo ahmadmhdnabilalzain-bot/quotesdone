@@ -43,7 +43,7 @@ const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 const XLS_MIME = 'application/vnd.ms-excel';
 
 type Cell = string | number | boolean | null | undefined;
-type Role = 'ref' | 'desc' | 'qty' | 'unit' | 'price' | 'group';
+type Role = 'ref' | 'desc' | 'qty' | 'unit' | 'price' | 'group' | 'spec';
 /** The bill convention the wording points to. Reported, never required. */
 export type Layout = 'nrm' | 'fidic' | 'masterformat' | 'din276' | 'generic';
 
@@ -73,6 +73,9 @@ function roleOf(h: string): Role | null {
   if (/(qty|quantity|quantities|menge|الكمية|الكميه|كمية)/.test(h)) return 'qty';
   if (/(rate|price|amount|total|cost|value|preis|betrag|سعر|السعر|المبلغ|الإجمالي|الاجمالي|القيمة)/.test(h) || /^(ep|gp|£|aed|dhs)$/.test(h)) return 'price';
   if (/^(unit|units|uom|u o m|u m|unit of meas\w*|einheit|me|eh|الوحدة|الوحده|وحدة)$/.test(h)) return 'unit';
+  // A Spec / Specification / Standard column beside the description carries the line's standard
+  // ("BS EN 50525", "IEC 61439"); measured 21 Sep 2026 (customer audit, finding 8) it was not read.
+  if (/^(spec|specs|specification|specifications|standard|standards|المواصفات|مواصفات|المواصفة)$/.test(h)) return 'spec';
   if (/(description|particulars|scope|specification|works?$|kurztext|langtext|beschreibung|الوصف|وصف|البيان)/.test(h)) return 'desc';
   if (/^(bill|bill no|bill ref|section|spec section|section no|csi|csi code|division|kostengruppe|kg|kgr|القسم)$/.test(h)) return 'group';
   if (/^(item|items|item no|item ref|ref no|no|s no|sr no|sl no|sn|ref|code|pos|position|oz|البند|رقم البند|رقم|م)$/.test(h)) return 'ref';
@@ -162,8 +165,9 @@ export function boqFromRows(rows: Cell[][], where: string, hint = '') {
       let sec = section, item = ref;
       if (grp && h.groupKind !== 'code') { const l = groupLabel(grp); seen.push(l); if (!section.startsWith(l)) sec = l; }
       else if (grp && !item) { item = grp; seen.push(grp); }
+      const specification = cellText(at(row, 'spec'), 200);
       boq.push({ section: sec, item: item || desc.slice(0, 120), description: desc, qty, unit, basis: `${where}, row ${i + 1}`,
-                 confidence: qty != null && unit ? 'medium' : 'low' });
+                 confidence: qty != null && unit ? 'medium' : 'low', ...(specification ? { specification } : {}) });
     }
     if (!boq.length) missing.push('A header row was found, but no item lines with a description under it.');
   }

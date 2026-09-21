@@ -67,12 +67,24 @@ Deno.serve(observe('customer_portal', async (req) => {
           detail: ar ? ('قابل للتعديل لمدة ' + e.edit_minutes_left + ' دقيقة أخرى، بعدها تُقفل التعديلات ويستمر المورّدون في التسعير على النطاق الأصلي.') : ('Editable for another ' + e.edit_minutes_left + ' minutes. After that, edits are locked and suppliers keep quoting the original scope.'),
           inquiry_id: e.id });
       }
-      const toReview = inqs.filter((x: any) => (x.quotes_count || 0) > 0 && !['completed', 'closed', 'cancelled'].includes(String(x.status)));
+      // 21 Sep 2026 (customer audit, finding 17): a request whose quote the customer already PAID to
+      // reveal is decided, not "to review", and it is no longer collecting quotes. fn_customer_stats
+      // knows nothing about transactions, so the revealed set is read here and applied to both the
+      // alert list and the "open" tile. Alerts are one per inquiry id, and the title carries the
+      // emirate so two same-trade requests do not read as one card printed twice.
+      const { data: revealedRows } = await admin.from('transactions').select('inquiry_id').eq('customer_id', cust.id);
+      const revealedInq = new Set((revealedRows || []).map((r: any) => String(r.inquiry_id)));
+      const notClosed = (x: any) => !['completed', 'closed', 'cancelled', 'split'].includes(String(x.status));
+      const collecting = inqs.filter((x: any) => notClosed(x) && !revealedInq.has(String(x.id)));
+      if (stats && typeof stats === 'object') (stats as any).open_inquiries = collecting.length;
+      const seenReview = new Set<string>();
+      const toReview = collecting.filter((x: any) => (x.quotes_count || 0) > 0 && !seenReview.has(String(x.id)) && seenReview.add(String(x.id)));
       for (const t of toReview) {
         const cat = t.category || (ar ? 'طلبك' : 'your request');
+        const where = t.emirate ? (ar ? ' في ' : ' in ') + t.emirate : '';
         const n = t.quotes_count;
         alerts.push({ kind: 'quotes_ready', severity: 'low',
-          title: ar ? (n + ' عرض للمراجعة على «' + cat + '»') : (n + ' quote' + (n > 1 ? 's' : '') + ' to review on “' + cat + '”'),
+          title: ar ? (n + ' عرض للمراجعة على «' + cat + '»' + where) : (n + ' quote' + (n > 1 ? 's' : '') + ' to review on “' + cat + '”' + where),
           detail: ar ? ('قارن العروض جنبًا إلى جنب واكشف عن المورّد الذي تريد.') : ('Compare quotes side by side and reveal the supplier you want.'),
           inquiry_id: t.id });
       }
