@@ -137,7 +137,9 @@ step('census (verdict per source_kind × category, written to kb_purge_ledger be
   for (const r of plan) console.log(`   ${r.verdict.padEnd(6)} clause ${r.clause}: ${r.rows} rows — ${r.by_kind}`);
   const del = plan.find(r => r.verdict === 'DELETE');
   console.log(`   §8 preview said DELETE 2,437,975; this census says ${del ? del.rows : 0} (this rule holds every foreign-code citation as UNSURE regardless of category, so fewer is expected, never more)`);
-  if (del && Number(del.rows) > 2437975) throw new Error('the census would delete MORE than §8 previewed — stop and compare the rule');
+  // Founder instruction 535 (21 Sep) moved US codes/laws from UNSURE to DELETE, so the ceiling is
+  // §8's DELETE (2,437,975) plus §8's whole UNSURE set (45,169) = 2,483,144. Above that, the rule is wrong.
+  if (del && Number(del.rows) > 2483144) throw new Error('the census would delete MORE than §8 DELETE + UNSURE — stop and compare the rule');
 }
 
 if (!RUN) { console.log('\nPlan only. Re-run with --run to delete.'); process.exit(0); }
