@@ -23,7 +23,7 @@
 // `matchable` now counts on both legs of the real gate and `me_matchable` is computed about the
 // reader, so a supplier who has done the work is told they are ahead instead of being told a lie.
 import React, { useEffect, useState } from 'react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { emirateLabel, tradeLabel } from './serverCopy';
 
@@ -51,11 +51,10 @@ type Market = {
 };
 type Lang = 'en' | 'ar';
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),

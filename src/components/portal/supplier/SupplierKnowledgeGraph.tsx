@@ -14,7 +14,7 @@
 // similarity score. Pairs below five are not drawn at all — two companies overlapping is a
 // coincidence, and a line for it would be decoration.
 import React, { useEffect, useState } from 'react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import { categoryLabel } from '@/lib/categoryLabel';
 
 type Lang = 'en' | 'ar';
@@ -31,11 +31,10 @@ type Graph = {
   population?: { category_nodes?: number; adjacency_edges?: number; listed_companies?: number };
 };
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),
