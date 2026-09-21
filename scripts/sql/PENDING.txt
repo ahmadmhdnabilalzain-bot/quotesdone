@@ -11,6 +11,5 @@
 # 21 Sep 2026 — the IT failures of 18–21 Sep (docs/it/IT_FAILURES_18_21_SEP_2026.md). Applies are
 # serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the
 # END of MANIFEST.txt (a file cannot be in both): each carries a PROBE row and was executed rolled-back.
-scripts/sql/a_billing_answer_points_to_our_invoice_not_to_stripes_page.sql :: accountant, 21 Sep 2026 (founder instructions 568, 569) - a billing answer stops handing the customer Stripe's hosted invoice page; waits for the coordinator's serialised apply, then moves to the END of MANIFEST.txt
 
 
