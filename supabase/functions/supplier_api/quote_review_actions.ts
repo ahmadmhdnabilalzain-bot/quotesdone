@@ -16,6 +16,9 @@
 // upload gate, so this module holds no client and no credential of its own.
 import { jobNo, type BoqRow, type Lang, type SafeInquiry } from './quote_review.ts';
 import * as flow from './quote_review_flow.ts';
+// 'Qty basis' in the BOQ CSV (21 Sep 2026): the file a supplier prices from says which quantities are our
+// estimate to confirm, in the same words as the inquiry PDF. Before it, qty_status was dropped from the CSV.
+import { qtyBasis } from '../_shared/quote_documents.ts';
 
 export const REVIEW_ACTIONS = new Set(['inquiries_list', 'inquiry_detail', 'inquiry_documents', 'review_thread', 'review_start', 'review_message', 'review_upload', 'review_choose', 'review_submit']);
 // deno-lint-ignore no-explicit-any
@@ -38,7 +41,7 @@ export const safeInquiry = (i: Json): SafeInquiry => ({
  */
 export function boqCsv(rows: BoqRow[]): string {
   const esc = (v: unknown) => { let s = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  return '﻿' + [['No', 'Section', 'Description', 'Qty', 'Unit'].join(','), ...rows.map((r, k) => [k + 1, r.section, r.description, r.qty, r.unit].map(esc).join(','))].join('\r\n') + '\r\n';
+  return '﻿' + [['No', 'Section', 'Description', 'Qty', 'Unit', 'Qty basis'].join(','), ...rows.map((r, k) => [k + 1, r.section, r.description, r.qty, r.unit, qtyBasis(r)?.en ?? ''].map(esc).join(','))].join('\r\n') + '\r\n';
 }
 const extOf = (url: string) => { const m = String(url).split('?')[0].match(/\.([a-z0-9]{2,4})$/i); return m ? '.' + m[1].toLowerCase() : ''; };
 /**

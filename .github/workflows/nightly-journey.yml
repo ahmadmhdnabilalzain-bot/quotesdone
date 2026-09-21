@@ -41,11 +41,13 @@ jobs:
     # and almost none of the screens. A full pass measured against production the same morning took
     # ~33 minutes end to end; 35 leaves the crawl room to finish, and the wall moves with it
     # (35 + ~24 worst in-flight + ~5 npm ci and playwright install + teardown and the report).
-    timeout-minutes: 75
+    # 21 Sep 2026: +6 minutes for journey h (the audit's presses), measured at ~6 min on its first
+    # production run, and it runs before the crawl, so the crawl keeps the room it had.
+    timeout-minutes: 81
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_E2E_REPORTS: e2e-out
-      QD_E2E_DEADLINE_MS: '2100000'
+      QD_E2E_DEADLINE_MS: '2460000'
     steps:
       - id: gate
         run: |

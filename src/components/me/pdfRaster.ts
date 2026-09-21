@@ -11,10 +11,13 @@
 // 21-megapixel pages and drawing_redact's isolate was killed (HTTP 546 on a single page). The long
 // edge is capped at 2600px, which extracted 23 BoQ line items from the same schedules.
 const MAX_EDGE = 2600;
-const MAX_PAGES = 6;
+// 21 Sep 2026 (sales_engineer, founder instruction 580): this was 6. The real 8-sheet mechanical
+// permit set measured today put its floor plan and roof plan on sheets 7 and 8, so neither was ever
+// rendered, OCR'd or shared. customer_api analyze_drawing caps at the same number (MAX_DRAWING_PAGES).
+export const PDF_MAX_PAGES = 20;
 
 let lib: Promise<any> | null = null;
-function loadPdfjs(): Promise<any> {
+export function loadPdfjs(): Promise<any> {
   if (!lib) {
     lib = import('pdfjs-dist').then((m: any) => {
       const pdfjs = m.default || m;
@@ -27,11 +30,16 @@ function loadPdfjs(): Promise<any> {
   return lib;
 }
 
-export async function rasterisePdf(bytes: Uint8Array): Promise<{ mime: string; data: string }[]> {
+export async function openPdf(bytes: Uint8Array): Promise<any> {
   const pdfjs = await loadPdfjs();
-  const pdf = await pdfjs.getDocument({ data: bytes }).promise;
+  // pdf.js takes ownership of (detaches) the buffer it is given; a copy keeps the caller's bytes usable.
+  return pdfjs.getDocument({ data: bytes.slice() }).promise;
+}
+
+export async function rasterisePdf(bytes: Uint8Array): Promise<{ mime: string; data: string }[]> {
+  const pdf = await openPdf(bytes);
   const out: { mime: string; data: string }[] = [];
-  const n = Math.min(pdf.numPages, MAX_PAGES);
+  const n = Math.min(pdf.numPages, PDF_MAX_PAGES);
   for (let p = 1; p <= n; p++) {
     const page = await pdf.getPage(p);
     const v1 = page.getViewport({ scale: 1 });
@@ -40,6 +48,49 @@ export async function rasterisePdf(bytes: Uint8Array): Promise<{ mime: string; d
     c.width = Math.round(vp.width); c.height = Math.round(vp.height);
     await page.render({ canvasContext: c.getContext('2d') as CanvasRenderingContext2D, viewport: vp }).promise;
     out.push({ mime: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.8).split(',')[1] });
+    page.cleanup();
   }
   return out;
+}
+
+// ── A PAGE AT READING RESOLUTION, AS ONE GRAYSCALE BUFFER (21 Sep 2026) ──────────────────────────────
+// The schedule reader (ocrClient.ocrSchedules + supabase/functions/_shared/table_grid.ts) needs the
+// sheet at ~200 dpi, not 72: a 36x24 sheet is then 7200x4800 = 34.6 MP. Safari refuses a canvas over
+// 16,777,216 px (4096^2), so the page is rendered in TILES of at most 4000x4000 through viewport
+// offsets and each tile's luma copied into one Uint8Array (1 byte/px: 34.6 MB for that sheet). One tile
+// canvas exists at a time. A page that would exceed MAX_GRAY_PX at the asked dpi is rendered at the dpi
+// that fits (an A0 sheet at 200 dpi would be 62 MP), so memory stays bounded whatever is uploaded.
+const TILE = 4000;
+const MAX_GRAY_PX = 48_000_000;
+
+export type GrayPage = { data: Uint8Array; w: number; h: number; dpi: number };
+
+export async function renderPageGray(src: any, pageNo: number, dpi = 200, maxPx = MAX_GRAY_PX): Promise<GrayPage> {
+  const pdf = src instanceof Uint8Array ? await openPdf(src) : src;
+  const page = await pdf.getPage(pageNo);
+  const v1 = page.getViewport({ scale: 1 }); // 72 units per inch, in the display frame (after /Rotate)
+  let scale = dpi / 72;
+  const px = v1.width * v1.height * scale * scale;
+  if (px > maxPx) scale *= Math.sqrt(maxPx / px);
+  const W = Math.round(v1.width * scale), H = Math.round(v1.height * scale);
+  const out = new Uint8Array(W * H);
+  const c = document.createElement('canvas');
+  const ctx = c.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+  for (let ty = 0; ty < H; ty += TILE) {
+    for (let tx = 0; tx < W; tx += TILE) {
+      const tw = Math.min(TILE, W - tx), th = Math.min(TILE, H - ty);
+      c.width = tw; c.height = th;
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, tw, th);
+      const vp = page.getViewport({ scale, offsetX: -tx, offsetY: -ty });
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      const d = ctx.getImageData(0, 0, tw, th).data;
+      for (let y = 0; y < th; y++) {
+        let o = (ty + y) * W + tx, i = y * tw * 4;
+        for (let x = 0; x < tw; x++, i += 4) out[o++] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+      }
+    }
+  }
+  c.width = c.height = 0; // release the tile's backing store now, not at the next GC
+  page.cleanup();
+  return { data: out, w: W, h: H, dpi: scale * 72 };
 }
