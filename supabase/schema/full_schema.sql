@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T19:58:39.701Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T20:01:43.473Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -14058,6 +14058,9 @@ begin
           'Waiting, not an alarm (founder instruction 585, 21 Sep 2026): receipts are an ongoing routine the '
           || 'founder forwards to the expenses mailbox; the accountant tracks this item in its duty result.');
       end if;
+      -- 21 Sep 2026: a loop escalated before the ruling holds an incident with no learning record, and
+      -- fn_it_loop_reverify parks it for ever. The ruling IS the record; the IT engineer still closes.
+      perform public.fn_accountant_receipt_incident_learning(v_key);
       continue;
     end if;
     v_keys := v_keys || v_key;
@@ -15051,6 +15054,40 @@ begin
                 || 'book should not be called complete while one stands unexplained.' end);
 end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_receipt_incident_learning(p_issue_key text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n int;
+begin
+  if p_issue_key not in ('acct:expenses:cadence_gaps', 'acct:expenses:never_billed', 'acct:expenses:renewal_receipt')
+     or not exists (select 1 from public.company_policy_decision where decision_key = 'expenses_receipts_are_an_ongoing_routine') then
+    return 0;
+  end if;
+  update public.it_incident i
+     set cause = coalesce(nullif(btrim(i.cause), ''),
+           'Not a fault: a receipt the founder has not forwarded yet. Founder instruction 585 (21 Sep 2026) rules receipts '
+           || 'an ongoing routine he forwards to the expenses mailbox whenever he chooses; the accountant reads the mailbox.'),
+         fix = coalesce(nullif(btrim(i.fix), ''),
+           'Recorded as company_policy_decision expenses_receipts_are_an_ongoing_routine; fn_accountant_duty_settle returns '
+           || 'the item as `waiting` in the expenses duty result and raises no finding while that decision stands.'),
+         regression_check = coalesce(nullif(btrim(i.regression_check), ''),
+           'scripts/sql/a_missing_receipt_the_founder_ruled_a_waiting_item_leaves_no_open_handoff.sql (probe row)'),
+         not_automatable_reason = coalesce(nullif(btrim(i.not_automatable_reason), ''),
+           'Nothing to automate: the receipt exists only when the founder forwards it.'),
+         recorded_by = coalesce(i.recorded_by, 'accountant (founder decision expenses_receipts_are_an_ongoing_routine)'),
+         ended_at = coalesce(i.ended_at, now()),
+         updated_at = now()
+   where i.issue_key = p_issue_key
+     and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.fix), '') = '' or coalesce(btrim(i.regression_check), '') = ''
+          or (i.playbook_class is null and coalesce(btrim(i.not_automatable_reason), '') = ''));
+  get diagnostics n = row_count;
+  return n;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_record_court_step(p_due_id bigint, p_step text, p_on date, p_reference text DEFAULT NULL::text)
