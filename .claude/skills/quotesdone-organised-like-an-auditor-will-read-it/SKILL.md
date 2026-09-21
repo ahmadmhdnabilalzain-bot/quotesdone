@@ -178,7 +178,9 @@ five-day clock and a penalty attached. No customer had. Cleanup is a promise; ca
 - A probe creates its own subjects and deletes them, and asserts on **every** direction it touched —
   that probe checked the customer's address and never the supplier's, which is exactly the row that
   escaped.
-- A probe in a file that also defines something must end in `raise notice`, never `raise exception`
+- A probe in a file that also defines something must end by returning a verdict ROW (`PROBE OK` /
+  `PROBE FAILED: …`), never `raise exception` and never `raise notice` (NOTICE is discarded by the
+  management API and nobody reads it — PR #749)
   — the raise rolls the DDL back with it and the apply reports success over nothing.
 - A `DO` block is ONE statement. Four calls to a routine that reads a 2.69-million-row table ran past
   `statement_timeout` and rolled back a completed migration. Assert once, cheaply; prefer
