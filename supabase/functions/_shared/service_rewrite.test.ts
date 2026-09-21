@@ -88,6 +88,24 @@ Deno.test('a phrase that names only a TRADE is kept with that trade, not guessed
 });
 
 // ── 3. tidying ────────────────────────────────────────────────────────────────────────────────────
+// ── ARABIC COVERAGE OF EVERY SERVICE (audit 21 Sep 2026, finding 8) ──────────────────────────────
+// "الدهانات" fell to the supplier's own words although Painting exists. Every one of the 201 services
+// must carry at least one Arabic alias, and every Arabic alias must come back as ITS OWN key when a
+// supplier writes it plainly, with the definite article, or after the conjunction و — the three ways
+// a service is named in an Arabic sentence. A cross-hit is allowed (two aliases on the same words are
+// both kept); a miss is not.
+Deno.test('every service has an Arabic alias, and every Arabic alias resolves to its own service', () => {
+  const misses: string[] = [];
+  for (const [key, v] of Object.entries(ALIASES as Record<string, { en: string[]; ar: string[] }>)) {
+    if (!v.ar.length) { misses.push(key + ': no Arabic alias'); continue; }
+    for (const a of v.ar) {
+      const forms = [a, 'ال' + a, 'نقوم بأعمال ' + a + ' و' + a];
+      for (const f of forms) if (!keys(f).includes(key)) misses.push(`${key}: "${f}"`);
+    }
+  }
+  assertEquals(misses, [], misses.join('\n'));
+});
+
 Deno.test('tidy: sentence case in English, acronyms kept, Arabic untouched', () => {
   assertEquals(tidy('  HELICOPTER   window   POLISHING '), 'Helicopter window polishing');
   assertEquals(tidy('VRF system servicing'), 'VRF system servicing');
@@ -243,4 +261,25 @@ Deno.test('a list item does not keep the Arabic conjunction stuck to its front',
 Deno.test('a single Arabic word beginning with و keeps its first letter', () => {
   assertEquals(tidy('وقود'), 'وقود');
   assertEquals(tidy('وكالة'), 'وكالة');
+});
+
+// AUDIT 21 Sep 2026, finding 8 (ZZ DEMO Interiors, gypsum). The exact sentence a supplier typed: only
+// the false ceilings were recognised; "الدهانات" fell to "kept in your own words" although Painting ›
+// Interior painting exists, and "الجبس" named nothing. The matcher already strips ال / و / وال (the
+// PROCLITIC in trade_words.ts) and reads a word to its end (دهان -> دهانات); what was missing was the
+// bare word a supplier actually uses — the aliases carried only "دهان داخلي" and "قواطع جبس".
+Deno.test('audit 21 Sep: "نقوم بأعمال الجبس والأسقف المستعارة والدهانات" names gypsum, false ceilings and painting', () => {
+  const rw = rewriteServices('نقوم بأعمال الجبس والأسقف المستعارة والدهانات', SERVICES, TRADES);
+  const got = new Set(rw.service_keys);
+  assert(got.has('painting.interior'), JSON.stringify(rw.items));
+  assert(got.has('gypsum.false_ceiling'), JSON.stringify(rw.items));
+  assert(got.has('gypsum.partitions'), JSON.stringify(rw.items));
+  assertEquals(rw.own_words, [], 'nothing of this sentence is left in the supplier\'s own words');
+});
+
+Deno.test('the bare Arabic words do not steal a longer, more exact alias', () => {
+  assertEquals(keys('دهانات خارجية'), ['painting.exterior']);
+  assertEquals(keys('اعادة دهان'), ['painting.repainting']);
+  assertEquals(keys('أسقف جبس'), ['gypsum.false_ceiling']);
+  assertEquals(keys('جبس ديكور'), ['gypsum.decorative']);
 });

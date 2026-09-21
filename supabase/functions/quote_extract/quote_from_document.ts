@@ -107,7 +107,9 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
 // sentence end, or at the end of the line — "Lead time: 4 weeks from LPO. Payment: 50% advance" gives
 // "4 weeks from LPO", not the payment terms too. A validity or lead time with no digit and no
 // "immediate / ex stock" is prose ("prices valid subject to…"), not a term, and is dropped.
-const VALUE = String.raw`([^\n|·]{2,160}?)(?=\s*(?:[.;]\s|\s+(?:[A-Z][a-z]+(?:\s[a-z]+)?|[؀-ۿ]+(?:\s[؀-ۿ]+)?)\s*[:\-–]\s|$))`;
+// The next label is looked for on the SAME line ([ \t], not \s): with \s, "50% on completion\nExclusions:"
+// read "completion\nExclusions" as a two-word label and cut the payment terms to "50% advance, 50% on".
+const VALUE = String.raw`([^\n|·]{2,160}?)(?=\s*(?:[.;]\s|\s+(?:[A-Z][a-z]+(?:[ \t][a-z]+)?|[؀-ۿ]+(?:[ \t][؀-ۿ]+)?)[ \t]*[:\-–]\s|$))`;
 const FIELD: [keyof Proposal, RegExp][] = [
   ['lead_time', new RegExp(String.raw`(?:^|[\s|·])(?:lead\s*time|delivery(?:\s*(?:time|period))?|completion|مدة التسليم|مدة التنفيذ)\s*[:\-–]\s*${VALUE}`, 'im')],
   ['validity', new RegExp(String.raw`(?:^|[\s|·])(?:validity|valid\s*(?:for|until|till)?|offer\s*valid(?:ity)?|صلاحية العرض|الصلاحية|العرض ساري)\s*[:\-–]?\s*${VALUE}`, 'im')],
@@ -166,6 +168,17 @@ function totalsFromText(text: string): { subtotal: number | null; vat: number | 
   return { subtotal, vat, total };
 }
 
+// A note row ("Exclusions: electrical fittings, painting of walls, scaffolding above 4m") is one
+// sentence that the CSV reader split on its commas. Joined back with a space it lost them, and the
+// customer's PDF read "electrical fittings painting of walls scaffolding above 4m" (customer audit,
+// 21 Sep 2026, finding 12). A row that starts with a "Label:" cell and carries no number is such a
+// sentence and is put back with its commas; every other row (a priced line) keeps the space join.
+export function rowText(row: Cell[] | null | undefined): string {
+  const cells = (row || []).map((c) => String(c ?? '').trim());
+  const note = /^[^\d:]{2,40}[:\-–]\s*\S/.test(cells[0] || '') && !cells.slice(1).some((c) => num(c) != null);
+  return cells.filter((c, i) => c || i === 0).join(note ? ', ' : ' ');
+}
+
 export function quoteFromExtracted(ex: Extracted, terms: string[] = []): Proposal {
   const masked = new Set<string>();
   const t = terms.map((s) => String(s || '').trim()).filter((s) => s.length >= 3);
@@ -182,11 +195,13 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = []): Proposa
   const texts: string[] = [];
   let best: Table | null = null;
   const visit = (e: Extracted) => {
-    if (e.text) texts.push(e.text);
+    // The tables' rows first, then the reader's own text: for a CSV or sheet the text is the same rows
+    // tab-joined, and a FIELD match taken from it would give back the comma-less note row.
     for (const tb of e.tables) {
-      texts.push(tb.map((row) => (row || []).map((c) => String(c ?? '')).join(' ')).join('\n'));
+      texts.push(tb.map(rowText).join('\n'));
       const q = tableQuote(tb, clean); if (q && (!best || q.lines.length > best.lines.length)) best = q;
     }
+    if (e.text) texts.push(e.text);
     for (const c of e.children) visit(c.doc);
   };
   visit(ex);

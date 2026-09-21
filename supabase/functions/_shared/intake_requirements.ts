@@ -350,7 +350,7 @@ export function statedAnswers(category: string, conversation: string, now = new 
   for (const q of requirementQuestions(category)) {
     if (q.kind === 'installation') {
       if (/\b(?:supply|delivery|deliver)\s+only\b|\bwithout installation\b|\bno installation\b|توريد فقط|بدون تركيب/.test(lo)) out[q.key] = { v: 'supply_only' };
-      else if (/\binstallation (?:is )?(?:required|needed|included)\b|\bsuppl(?:y|ied) and install(?:ed)?\b|\bwith installation\b|\bneeds? (?:to be )?installed\b|مع التركيب|التوريد والتركيب/.test(lo)) out[q.key] = { v: 'yes' };
+      else if (/\binstallation (?:is )?(?:required|needed|included)\b|\binstallation and [^.]{0,40}\brequired\b|\bsupplier to install\b|\bsuppl(?:y|ied) and install(?:ed)?\b|\bwith installation\b|\bneeds? (?:to be )?installed\b|مع التركيب|التوريد والتركيب/.test(lo)) out[q.key] = { v: 'yes' };
     }
     if (q.kind === 'warranty') {
       const m = lo.match(/(\d+(?:\.\d+)?|one|two|three|five|ten)[\s-]*(years?|yrs?|months?)[\s-]+warranty|warranty (?:of|for)\s+(?:at least\s+)?(\d+(?:\.\d+)?|one|two|three|five|ten)\s*(years?|months?)/);
@@ -374,6 +374,18 @@ export function statedAnswers(category: string, conversation: string, now = new 
       const flo = fold(lo);
       const hit = q.options.find((x) => x.v !== NO_PREFERENCE.v && (() => { const en = fold(x.en.replace(/\s*\(.*?\)\s*/g, ' ')); return en.length > 4 && new RegExp(`(^|[^a-z])${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(flo); })());
       if (hit) out[q.key] = { v: hit.v };
+      // Brands the customer named outright ("Schneider or ABB", "MK Logic or Legrand") are their
+      // material answer in their own words. Measured 21 Sep 2026 (customer audit, finding 8): both
+      // pairs were in the first message and the brand question was asked twice more. A brand is read
+      // only as a capitalised pair joined by "or" / "أو", never a lone capitalised word — a bare
+      // proper noun is as likely a place or a person as a make.
+      // ponytail: no brand catalogue; the upgrade is a brands column on category_specs.
+      else if (!out[q.key]) {
+        const pairs = [...String(conversation || '').matchAll(/\b([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+)?) (?:or|أو) ([A-Z][A-Za-z]{2,})\b/g)]
+          .map((m) => `${m[1]} or ${m[2]}`)
+          .filter((p) => !/^(Yes|No|Supply|Install|Installation|Deliver|Delivery|Dubai|Abu|Sharjah|Ajman|Fujairah|Ras|Umm)\b/.test(p));
+        if (pairs.length) out[q.key] = { v: 'other', note: Array.from(new Set(pairs)).join('; ').slice(0, 200) };
+      }
     }
   }
   return out;

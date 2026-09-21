@@ -136,3 +136,16 @@ Deno.test('an oversize file and a non-spreadsheet are refused before any parsing
   const html = boqFromSheet(new TextEncoder().encode('<!doctype html><script>alert(1)</script>'), 'text/csv', 'boq.csv');
   assert(!html.ok); assertEquals(html.error, 'unsafe_file_type');
 });
+
+Deno.test('finding 8e (customer audit 21 Sep 2026): a Spec / Standard column is read into each line\'s specification', () => {
+  const csv = [
+    'Item,Description,Spec,Qty,Unit,Rate,Amount',
+    '1,4 mm2 copper cable LSZH,BS EN 50525,500,m,12,6000',
+    '2,12-way DB board with MCBs,IEC 61439,3,nos,850,2550',
+    '3,Double socket outlet,,60,nos,35,2100',
+  ].join('\r\n');
+  const r = boqFromSheet(new TextEncoder().encode(csv), 'text/csv', 'zz_demo_boq.csv', 'villa');
+  assert(r.ok, JSON.stringify(r));
+  assertEquals(r.boq.boq.map((l) => l.specification), ['BS EN 50525', 'IEC 61439', undefined]);
+  assertEquals(r.boq.boq[0].description, '4 mm2 copper cable LSZH', 'the spec is beside the description, not merged into it');
+});

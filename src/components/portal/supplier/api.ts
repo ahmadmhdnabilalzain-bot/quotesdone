@@ -13,7 +13,7 @@
 // `_http` carries the status of a non-2xx answer (14 Sep 2026). The body alone cannot tell an expired
 // session from a refusal — the gateway's "Invalid JWT" and a function's own 401 look different — so
 // the portal could only show "Something went wrong" and a retry that could never succeed.
-import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 
 /**
  * ONE IN-FLIGHT READ, SHARED BY EVERY CALLER THAT ASKS FOR IT AT THE SAME TIME.
@@ -49,7 +49,7 @@ export function callShared(path: string, body: Record<string, unknown>, token?: 
 }
 
 export async function call(path: string, body: Record<string, unknown>, token?: string | null): Promise<any> {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),

@@ -27,7 +27,7 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { cn } from '@/lib/utils';
 import { projectApi } from './api';
 import {
-  aed, deriveStats, elapsedPct, fmtDate, isOpenRfq,
+  aed, deriveStats, elapsedPct, fmtDate, isOpenRfq, rfqValue,
   type Lang, type Project, type ProjectRfq,
 } from './model';
 import { Notice, Stat } from './parts';
@@ -278,7 +278,7 @@ export function ProjectWorkspace({
                     </TableCell>
                     <TableCell>{r.category || '—'}</TableCell>
                     <TableCell>{r.emirate || '—'}</TableCell>
-                    <TableCell>{r.expected_value ? aed(r.expected_value) : '—'}</TableCell>
+                    <TableCell>{rfqValue(r) != null ? aed(rfqValue(r)) : '—'}</TableCell>
                     <TableCell>
                       <span className="flex flex-wrap items-center gap-1.5">
                         <Badge variant={isOpenRfq(r) ? 'default' : 'secondary'}>{r.status || '—'}</Badge>

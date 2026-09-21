@@ -23,8 +23,9 @@
 // `matchable` now counts on both legs of the real gate and `me_matchable` is computed about the
 // reader, so a supplier who has done the work is told they are ahead instead of being told a lie.
 import React, { useEffect, useState } from 'react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import { categoryLabel } from '@/lib/categoryLabel';
+import { emirateLabel, tradeLabel } from './serverCopy';
 
 type Blocked = { available?: boolean; value?: unknown; basis?: string; population?: number; note?: string };
 type Trend = Blocked & {
@@ -37,8 +38,10 @@ type Price = Blocked & {
   value?: number | null; median?: number | null; p25?: number | null; p75?: number | null;
   low?: number | null; high?: number | null; currency?: string;
 };
+// `trades` since 21 Sep 2026: peers and demand are counted through supplier_capabilities.trades (the
+// rows fn_customer_decision_support counts), so the supplier's own confirmed trades are the subject.
 type Market = {
-  sector?: string | null;
+  sector?: string | null; trades?: string[] | null;
   population?: 'demo' | 'live';
   competitors?: { available?: boolean; basis?: string; total?: number; in_my_area?: number;
                   matchable?: number; me_matchable?: boolean;
@@ -48,11 +51,10 @@ type Market = {
 };
 type Lang = 'en' | 'ar';
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),
@@ -66,7 +68,8 @@ const T = {
     matchable: 'able to receive an RFQ', composition: 'Where your competition sits',
     demandTrend: 'Demand trend', mostRequested: 'Most requested', avgPrice: 'Average market price',
     notAvailable: 'not available yet', loading: 'Reading the market…',
-    sector: 'sector', companies: 'companies', none: 'none',
+    sector: 'sector', trades: 'your trades', companies: 'companies', none: 'none',
+    enquiries: 'enquiries', quotes: 'quotes',
     // Two notes, because "including you" is a claim about the reader and `matchable` counts only
     // their competitors — fn_supplier_market's `peers` CTE opens with `l.id <> me.id`. On 13 Aug
     // 2026 the single constant note told MERIDIAN MEP, the one supplier in the estate an RFQ could
@@ -83,7 +86,8 @@ const T = {
     matchable: 'قادر على تلقي طلب', composition: 'أين يقع منافسوك',
     demandTrend: 'اتجاه الطلب', mostRequested: 'الأكثر طلبًا', avgPrice: 'متوسط سعر السوق',
     notAvailable: 'غير متاح بعد', loading: 'جارٍ قراءة السوق…',
-    sector: 'القطاع', companies: 'شركة', none: 'لا يوجد',
+    sector: 'القطاع', trades: 'تخصصاتك', companies: 'شركة', none: 'لا يوجد',
+    enquiries: 'طلب', quotes: 'عرض سعر',
     matchableNoteBlocked: 'لا يمكن مطابقة أي منهم بالعمل — ولا أنت. أكّد ما يمكن لشركتك تسعيره من تبويب «نطاق عملي» وتكون الأول.',
     matchableNoteAhead: 'أنت تستطيع. لا أحد منهم يستطيع — الطلب في تخصصك يصلك أنت دونهم.',
     thisPeriod: 'طلب خلال ١٤ يومًا الماضية', priorPeriod: 'في الـ١٤ يومًا قبلها',
@@ -142,7 +146,8 @@ function Unavailable({ label, b, lang }: { label: string; b?: Blocked; lang: Lan
         <span className="text-[11px] opacity-60">{label}</span>
         <span className="text-[11px] opacity-40">{t(lang, 'notAvailable')}</span>
       </div>
-      {b?.note && <p className="text-[10px] opacity-40 mt-1 leading-snug">{b.note}</p>}
+      {/* The routine's reason is English-only prose; an Arabic page does not print it raw. */}
+      {b?.note && lang === 'en' && <p className="text-[10px] opacity-40 mt-1 leading-snug">{b.note}</p>}
     </div>
   );
 }
@@ -165,8 +170,8 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
   if (!m) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
 
   const c = m.competitors || {};
-  const byEm = (c.by_emirate || []).map((x) => ({ name: x.emirate, count: x.count }));
-  const segs = m.market_composition?.segments || [];
+  const byEm = (c.by_emirate || []).map((x) => ({ name: emirateLabel(lang, x.emirate), count: x.count }));
+  const segs = (m.market_composition?.segments || []).map((s) => ({ name: categoryLabel(s.name, lang), count: s.count }));
 
   // The direction the routine computed, as the one glyph a supplier reads before any number.
   // 'flat' gets its own mark rather than defaulting to a down arrow — no change is not a decline.
@@ -176,7 +181,7 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
     : trend?.direction === 'down' ? 'text-danger-fg' : 'text-white/60';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* A demo fixture must never be able to read its own figures as live trading. The routine
           says which population it computed over; the surface says so out loud. */}
       {m.population === 'demo' && (
@@ -187,7 +192,9 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
-          {m.sector && <span className="text-[10px] opacity-40">{t(lang, 'sector')}: {m.sector}</span>}
+          {(m.trades || []).length > 0
+            ? <span className="text-[10px] opacity-40">{t(lang, 'trades')}: {(m.trades || []).map((c) => tradeLabel(lang, c)).join(lang === 'ar' ? '، ' : ', ')}</span>
+            : m.sector && <span className="text-[10px] opacity-40">{t(lang, 'sector')}: {categoryLabel(m.sector, lang)}</span>}
         </div>
 
         <div className="grid grid-cols-3 gap-4">
@@ -250,7 +257,7 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
                 <Bars rows={(trend.series || []).map((w) => ({ name: w.week, count: w.count }))} lang={lang} />
               </div>
             )}
-            {trend.note && <p className="text-[10px] opacity-40 mt-1.5 leading-snug">{trend.note}</p>}
+            {trend.note && lang === 'en' && <p className="text-[10px] opacity-40 mt-1.5 leading-snug">{trend.note}</p>}
           </Figure>
         ) : <Unavailable label={t(lang, 'demandTrend')} b={m.demand_trend} lang={lang} />}
 
@@ -258,9 +265,9 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
           <Figure label={t(lang, 'mostRequested')}>
             <div className="flex items-baseline gap-2">
               <span className="text-lg font-semibold">{categoryLabel(String(m.most_requested.value || ''), lang)}</span>
-              <span className="text-[11px] opacity-50">{m.most_requested.count} {t(lang, 'companies') === 'companies' ? 'enquiries' : 'طلب'}</span>
+              <span className="text-[11px] opacity-50">{m.most_requested.count} {t(lang, 'enquiries')}</span>
             </div>
-            <p className="text-[10px] opacity-40 mt-1">{m.most_requested.basis}</p>
+            {lang === 'en' && <p className="text-[10px] opacity-40 mt-1">{m.most_requested.basis}</p>}
           </Figure>
         ) : <Unavailable label={t(lang, 'mostRequested')} b={m.most_requested} lang={lang} />}
 
@@ -277,7 +284,10 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
               <div>{t(lang, 'quartiles')}: <span className="tabular-nums">{aed(m.avg_market_price.p25, m.avg_market_price.currency)} – {aed(m.avg_market_price.p75, m.avg_market_price.currency)}</span></div>
               <div className="opacity-70">{t(lang, 'range')}: <span className="tabular-nums">{aed(m.avg_market_price.low, m.avg_market_price.currency)} – {aed(m.avg_market_price.high, m.avg_market_price.currency)}</span></div>
             </div>
-            <p className="text-[10px] opacity-40 mt-1.5 leading-snug">{m.avg_market_price.basis} · {m.avg_market_price.population} quotes</p>
+            <p className="text-[10px] opacity-40 mt-1.5 leading-snug">
+              {lang === 'en' && m.avg_market_price.basis ? m.avg_market_price.basis + ' · ' : ''}
+              {m.avg_market_price.population} {t(lang, 'quotes')}
+            </p>
           </Figure>
         ) : <Unavailable label={t(lang, 'avgPrice')} b={m.avg_market_price} lang={lang} />}
       </section>

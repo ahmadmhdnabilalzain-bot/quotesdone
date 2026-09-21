@@ -50,7 +50,7 @@ export async function buildAlerts(admin: Admin, supId: number): Promise<Row[]> {
     const quoted = new Set((myq || []).map((x: Row) => x.inquiry_id));
     const { data: openInq } = await admin.from('inquiries').select('id').in('id', mids).in('status', OPEN_INQ);
     const openIds = (openInq || []).map((x: Row) => x.id).filter((id: unknown) => !quoted.has(id));
-    if (openIds.length) out.push({ kind: 'new_rfq', code: 'new_rfq', params: { count: openIds.length }, severity: 'medium', count: openIds.length, title: openIds.length + ' new RFQ' + (openIds.length > 1 ? 's' : '') + ' waiting for your quote', detail: 'Open requests matched to your capabilities that you have not quoted yet.', action: 'inbox' });
+    if (openIds.length) out.push({ kind: 'new_rfq', code: 'new_rfq', params: { count: openIds.length, total: (openInq || []).length }, severity: 'medium', count: openIds.length, title: openIds.length + ' new RFQ' + (openIds.length > 1 ? 's' : '') + ' waiting for your quote', detail: 'Open requests matched to your capabilities that you have not quoted yet.', action: 'inbox' });
   }
   if (drafts) out.push({ kind: 'draft_quote', code: 'draft_quote', params: { count: drafts }, severity: 'low', count: drafts, title: drafts + ' draft quote' + (drafts > 1 ? 's' : '') + ' to complete', detail: 'Add the missing details so we can send them to customers.', action: 'inbox' });
   return out;
@@ -136,8 +136,12 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
   }
 
   const improving: Row[] = [];
-  if (!has(r.sector)) improving.push({ code: 'no_sector', title: 'Set your sector', detail: 'A matching sector adds 2 points to your score on every request in that category, which decides who makes the shortlist.', fix: 'profile' });
-  for (const c of kwCols) if (!has(r[c])) improving.push({ code: 'empty_' + c, title: 'Add your ' + c.replace('_', ' '), detail: 'Each keyword found here raises your match score. Empty fields cannot match anything.', fix: 'profile' });
+  // ONLY FIELDS THE SUPPLIER CAN REACH (audit 21 Sep 2026, finding 20). "Set your sector", "Add your
+  // categories" and "Add your capability summary" pointed at Profile, which has none of the three
+  // (sector is chosen at company creation, categories are the confirmed trades, capability_summary
+  // is written by profile_ai). Products lives on Profile; services on the Services tab.
+  if (!has(r.products)) improving.push({ code: 'empty_products', title: 'Add your products', detail: 'Each keyword found here raises your match score. Empty fields cannot match anything.', fix: 'profile' });
+  if (!has(r.services)) improving.push({ code: 'empty_services', title: 'Add your services', detail: 'Each keyword found here raises your match score. Empty fields cannot match anything.', fix: 'scope' });
   if (!has(r.emirate) && !(Array.isArray(r.service_emirates) && r.service_emirates.length)) {
     improving.push({ code: 'no_emirate', title: 'Set your home emirate', detail: 'You receive requests from the whole UAE either way. Your emirate is used only to break a tie between equally good matches.', fix: 'profile' });
   }
@@ -175,15 +179,39 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
 
 export const supplierCard = (sup: Supplier) => ({ id: sup.id, company_name: sup.company_name, approval_status: sup.approval_status, registration_status: sup.registration_status, license_expiry: sup.license_expiry || null, name_corrected: !!sup.name_corrected_from });
 
+// THE NOTICES THE ESTATE WROTE TO THIS SUPPLIER, AND THE TAB EACH ONE IS DEALT WITH IN (audit
+// 21 Sep 2026, findings 5 and 6). Every message the company sends a supplier is a public.notifications
+// row addressed to_role 'supplier' — the reveal ('quote_accepted', queued by trg_reveal_receipt), a
+// new RFQ, an addendum, a customer message, an award to someone else. The bell used to know none of
+// them, so a customer paying to reveal this supplier's quote changed nothing on the bell, and the
+// only link a supplier ever got was the e-mail's, which points at the customer portal (/me). Here
+// every notice carries the SUPPLIER portal tab it belongs to, never a URL: the portal of the
+// recipient role is the one the reader is already in.
+export const NOTICE_TAB: Record<string, string> = {
+  quote_accepted: 'messages', new_message: 'messages', new_inquiry: 'rfqs', rfq_addendum: 'rfqs',
+  job_awarded_other: 'rfqs', rfq_no_supplier: 'rfqs', doc_received: 'documents', registration_received: 'services',
+  quote_spec_hold: 'quotes', quote_spec_released: 'quotes', quote_spec_regenerated: 'quotes',
+};
+const NOTICE_DAYS = 30;
+export type Notice = { id: number; type: string; tab: string; inquiry_id: string | null; quote_id: string | null; at: string };
+
 // The bell: counts fed by rows that already exist. unread_messages is the same count messages_api
 // `threads` sums per chat (a customer message this supplier has not read, not blocked); spec_holds
-// is the hold desk's live rows for this supplier's quotes.
+// is the hold desk's live rows for this supplier's quotes; notices are the last 30 days of what the
+// estate wrote to this supplier, newest first.
 export async function buildNotifications(admin: Admin, supId: number) {
-  const [{ count: unread }, { count: holds }] = await Promise.all([
+  const since = new Date(Date.now() - NOTICE_DAYS * 864e5).toISOString();
+  const [{ count: unread }, { count: holds }, { data: rows }] = await Promise.all([
     admin.from('messages').select('id', { count: 'exact', head: true }).eq('supplier_id', supId).eq('sender', 'customer').eq('read_by_supplier', false).eq('blocked', false),
     admin.from('quote_spec_hold').select('id', { count: 'exact', head: true }).eq('supplier_id', supId).in('state', LIVE_HOLD),
+    admin.from('notifications').select('id,type,inquiry_id,quote_id,created_at').eq('to_role', 'supplier').eq('lead_id', supId).gte('created_at', since).order('created_at', { ascending: false }).limit(20),
   ]);
-  return { unread_messages: unread || 0, spec_holds: holds || 0 };
+  const notices: Notice[] = ((rows || []) as Row[])
+    // A spec-hold notice (sales_engineer_*) belongs on the Quotes tab; anything unmapped is not
+    // shown rather than shown with a guessed destination.
+    .map((r) => ({ id: Number(r.id), type: String(r.type), tab: NOTICE_TAB[String(r.type)] || (String(r.type).startsWith('sales_engineer_') ? 'quotes' : ''), inquiry_id: r.inquiry_id || null, quote_id: r.quote_id || null, at: String(r.created_at) }))
+    .filter((n) => n.tab);
+  return { unread_messages: unread || 0, spec_holds: holds || 0, notices };
 }
 
 export async function buildDashboard(admin: Admin, sup: Supplier): Promise<{ status: number; body: Row }> {

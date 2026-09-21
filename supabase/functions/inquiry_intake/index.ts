@@ -8,9 +8,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { detectCat, detectTrades, detectEmirate, detectUrgency } from './classify.ts';
+import { detectCat, detectTrades, detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
-import { ACTOR, requirementsStep, requirementQuestions, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
+import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -95,7 +95,11 @@ Deno.serve(observe('inquiry_intake', async (req) => {
 
     const turns: any[] = Array.isArray(draft.turns) ? draft.turns : [];
     if (text) turns.push({ role: 'user', text });
-    const allText = turns.filter((t) => t.role === 'user').map((t) => t.text).join(' \n ') + ' ' + (draft.raw_input || '');
+    // Every customer message, once. raw_input is saved as this same text below, so appending it here
+    // doubled the whole conversation on every turn (measured 21 Sep 2026, inquiry_intake c99beee8:
+    // the first message appeared three times in raw_input) and the 4000-character cut then lost the
+    // end of what the customer wrote.
+    const allText = turns.filter((t) => t.role === 'user').map((t) => t.text).join(' \n ');
     // THE SALES ENGINEER ANSWERS IN THE REGISTERED LANGUAGE (founder, 14 Sep 2026). This read the
     // script of what the customer typed, so an Arabic-registered customer who typed one line in
     // English was interviewed in English from then on. customers.locale decides; what they type in
@@ -513,7 +517,11 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     const prevBrief: any = (draft.brief && typeof draft.brief === 'object') ? draft.brief : {};
     let reqAnswers: Answers = (prevBrief.req_answers && typeof prevBrief.req_answers === 'object') ? prevBrief.req_answers : {};
     let reqAsked: string | null = null;
-    let reqRemaining: string[] = category ? requirementQuestions(category).filter((q) => !reqAnswers[q.key]).map((q) => questionIn(q, reqLang)) : [];
+    // "6 LEFT" while the category questions still run counted every sales-engineer question as open,
+    // including the three the customer had already stated (measured 21 Sep 2026, customer audit,
+    // finding 8). What they said outright is read here too, so the count is honest before 'ready'.
+    const stated = category ? statedAnswers(category, allText) : {};
+    let reqRemaining: string[] = category ? requirementQuestions(category).filter((q) => !reqAnswers[q.key] && !stated[q.key]).map((q) => questionIn(q, reqLang)) : [];
     let reqProgress: { filled: number; total: number } | null = null;
     if (status === 'ready' && category) {
       const known = { ...((interview && interview.details) || prevBrief.details || {}), ...((out.brief && out.brief.details) || {}) };
@@ -601,9 +609,14 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
         const { data: cs } = await admin.from('category_specs').select('compliance_checklist').eq('category', category).maybeSingle();
         const cl = (cs as any)?.compliance_checklist;
         const list = Array.isArray(cl?.list) ? cl.list : (Array.isArray(cl) ? cl : []);
+        // The checklist names "DEWA / the relevant emirate authority"; once the emirate is known the
+        // one utility that serves it is named (classify.ts UTILITY_BY_EMIRATE).
+        const em = brief.emirate || emirate || null;
         brief.required_documents = list.slice(0, 8).map((x: any) => ({
-          item: String(x?.item ?? x ?? '').slice(0, 160),
-          authority: x?.authority ? String(x.authority).slice(0, 80) : null,
+          item: utilityText(String(x?.item ?? x ?? '').slice(0, 160), em),
+          item_ar: x?.item_ar ? utilityText(String(x.item_ar).slice(0, 160), em, 'ar') : null,
+          authority: x?.authority ? utilityText(String(x.authority).slice(0, 80), em) : null,
+          authority_ar: x?.authority_ar ? utilityText(String(x.authority_ar).slice(0, 80), em, 'ar') : null,
           notes: x?.notes ? String(x.notes).slice(0, 160) : null,
         })).filter((x: any) => x.item);
         brief.required_documents_source = brief.required_documents.length ? 'category_specs.compliance_checklist' : 'no checklist published for this category';
