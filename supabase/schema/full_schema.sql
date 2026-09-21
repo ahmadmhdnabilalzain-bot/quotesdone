@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T09:54:18.869Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T09:59:27.116Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3974,9 +3974,6 @@ CREATE TABLE IF NOT EXISTS public.leads (
   claimed boolean DEFAULT false,
   contact_name text,
   service_emirates text[],
-  bank_name text,
-  bank_iban text,
-  bank_account_name text,
   trade_license_no text,
   verified boolean DEFAULT false,
   portal_updated_at timestamp with time zone,
@@ -51095,8 +51092,10 @@ AS $function$
       ('vat',                'VAT certificate',            'high',     'Needed before you can invoice with VAT.'),
       ('iso',               'ISO certification',           'medium',   'Strengthens your capability score and unlocks quality-gated requests.'),
       ('manufacturer_auth', 'Manufacturer authorisation',  'medium',   'Proves you are authorised for the brands you carry.'),
-      ('establishment',     'Establishment card',          'low',      'Administrative record. Does not gate work.'),
-      ('bank_iban',         'Bank details (IBAN)',         'medium',   'We cannot pay you without it.')
+      ('establishment',     'Establishment card',          'low',      'Administrative record. Does not gate work.')
+      -- 'bank_iban' ("We cannot pay you without it.") was a row here until 21 Sep 2026. It was false: money
+      -- moves both directions through Stripe and the estate never holds a supplier's bank details
+      -- (founder instruction 527; scripts/sql/the_founder_removed_bank_details_from_the_estate.sql).
     ) d(key, label, impact, impact_why)
   ),
   held as (
@@ -51108,7 +51107,6 @@ AS $function$
         when 'iso'                then (select iso_doc_path from me)
         when 'manufacturer_auth'  then (select manufacturer_auth_doc_path from me)
         when 'establishment'      then (select egr_doc_path from me)
-        when 'bank_iban'          then (select iban_doc_path from me)
       end as path,
       case d.key
         when 'trade_licence'     then (select license_expiry from me)
