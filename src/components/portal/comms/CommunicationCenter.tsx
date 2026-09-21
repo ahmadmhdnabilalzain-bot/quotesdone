@@ -309,6 +309,9 @@ function ConversationView({
 
   React.useEffect(() => { load(); }, [load]);
   React.useEffect(() => { endRef.current?.scrollIntoView({ block: 'nearest' }); }, [data?.messages?.length]);
+  // Who is reading: messages_api `thread` says. Measured 21 Sep 2026 (supplier audit, finding 36): the
+  // supplier's own message was labelled with the CUSTOMER's name and sat on the customer's side.
+  const me = data?.role || 'customer';
 
   const status = data?.chat_status || thread.chat_status || 'none';
   const messages: ChatMessage[] = data?.messages || [];
@@ -399,12 +402,12 @@ function ConversationView({
         <div className="max-h-[46vh] min-h-[120px] flex-1 space-y-2.5 overflow-y-auto px-4 py-3">
           {!data ? <Skeleton className="h-16 w-full rounded-lg" />
             : messages.length ? messages.map((m) => (
-              <div key={m.id} className={cn('flex', m.sender === 'customer' ? 'justify-end' : 'justify-start')}>
+              <div key={m.id} className={cn('flex', m.sender === me ? 'justify-end' : 'justify-start')}>
                 <div className={cn('max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2 text-[13.5px] leading-relaxed',
-                  m.sender === 'customer' ? 'bg-primary text-primary-foreground' : 'border border-border bg-secondary/60 text-foreground')}>
+                  m.sender === me ? 'bg-primary text-primary-foreground' : 'border border-border bg-secondary/60 text-foreground')}>
                   {m.body}
-                  <div className={cn('mt-1 text-[10.5px]', m.sender === 'customer' ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
-                    {m.sender === 'customer' ? w.you : thread.counterpart} · {fmtWhen(m.created_at, lang)}
+                  <div className={cn('mt-1 text-[10.5px]', m.sender === me ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
+                    {m.sender === me ? w.you : thread.counterpart} · {fmtWhen(m.created_at, lang)}
                   </div>
                 </div>
               </div>

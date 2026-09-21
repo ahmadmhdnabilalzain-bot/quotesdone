@@ -16,7 +16,7 @@
 // reachable (`deno test --allow-net`), and the sample renderer in the PR proves the Arabic pages.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { PDFDocument, PDFDict, PDFName } from 'https://esm.sh/pdf-lib@1.17.1';
-import { quoteDocument, compareDocument, compareTable, inquiryDocument, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv } from './quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, inquiryDocument, jobNoOf, quoteRef, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv } from './quote_documents.ts';
 import { footerLines, footerLinesAr, FALLBACK } from './doc_template.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 import { renderPdf } from '../pdf_native/render.ts';
@@ -496,3 +496,41 @@ Deno.test('inquiry document renders to a PDF that loads back, both languages', a
     assert(links.some((u) => u.startsWith('https://quotesdone.com/')), 'the portal link is written into the file: ' + JSON.stringify(links));
   }
 });
+
+// ── ONE JOB NUMBER (supplier audit 21 Sep 2026, finding 7) ──────────────────────────────────────────
+// Replays the failing input: job d958e1ea… is rfq 151767; the supplier's documents printed D958E1EA.
+Deno.test('job number: every document prints inquiries.rfq_no, the number the customer portal shows', () => {
+  const inq = { id: 'd958e1ea-0000-4000-8000-000000000000', rfq_no: 151767 };
+  assertEquals(jobNoOf(inq), '151767');
+  assertEquals(quoteRef(inq, 'A'), 'QD-151767-A');
+  // only a row read WITHOUT rfq_no falls back to the uuid prefix
+  assertEquals(jobNoOf({ id: inq.id }), 'D958E1EA');
+  for (const lang of ['en', 'ar'] as Lang[]) {
+    // the attachment names come from inquiryDocuments (quote_review_actions.ts), which names them by the same jobNo
+    const prefix = String(F.REQUEST.id).slice(0, 8).toUpperCase();
+    const documents = F.REQUEST.documents.map((d) => ({ ...d, name: d.name.replace(prefix, '151767') }));
+    const r = inquiryDocument({ inquiry: { ...F.REQUEST, rfq_no: 151767, documents }, lang });
+    assertEquals(r.job, '151767'); assertEquals(r.ref, 'QD-151767-RFQ');
+    assert(!JSON.stringify(r.body).includes(String(F.REQUEST.id).slice(0, 8).toUpperCase()), `${lang}: the uuid prefix is not printed`);
+  }
+});
+
+// ── THE ARABIC INQUIRY BOQ (finding 26) ─────────────────────────────────────────────────────────────
+// The inbox hands the document section_ar / description_ar (_shared/boq_arabic.ts). On the Arabic page a
+// line the glossary alone cannot finish prints the sales engineer's Arabic label, with the customer's
+// words on the secondary line; the English page is unchanged.
+Deno.test('inquiry document: the Arabic page prints the Arabic BOQ section and description, the original under it', () => {
+  const boq = { boq: [{ section: 'Partitions', section_ar: 'القواطع والجدران الداخلية', description: 'Gypsum board partition, 100mm metal stud, both faces, zz-fixture-word', description_ar: 'قواطع ألواح الجبس', qty: 320, unit: 'm2' }] };
+  const table = (lang: Lang) => {
+    // deno-lint-ignore no-explicit-any
+    const t = (inquiryDocument({ inquiry: { ...F.REQUEST, boq }, lang }).body.blocks as any[]).filter((b) => b.t === 'table')[1];
+    return t.rows[0];
+  };
+  const ar = table('ar');
+  assertEquals(ar[1], 'القواطع والجدران الداخلية');
+  assertEquals(ar[2].text, 'قواطع ألواح الجبس');
+  assertStringIncludes(ar[2].sub, 'Gypsum board partition');
+  const en = table('en');
+  assertEquals(cellStr(en[2]), 'Gypsum board partition, 100mm metal stud, both faces, zz-fixture-word');
+});
+
