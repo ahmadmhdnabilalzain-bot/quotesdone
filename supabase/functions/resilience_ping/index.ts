@@ -205,6 +205,18 @@ async function deliveryCanaryTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE SEAT CLOCKS (22 Sep 2026, ceo; founder instruction 583). Complaint deadlines, requests short of
+// 3 quotes, the 7-day reveal outcome check and time to first support reply, each on its owning seat
+// (complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql). It queues mail, so it must
+// run before the outbox drain, which is place=last.
+async function seatClocksTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_clocks_tick');
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -1102,6 +1114,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   specoffer: { run: specOfferTick },
   supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
+  seatClocks: { run: seatClocksTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.

@@ -25,7 +25,8 @@ import * as fontkitMod from 'https://esm.sh/@pdf-lib/fontkit@1.1.1';
 // deno-lint-ignore no-explicit-any
 const fontkit = ((fontkitMod as any).default ?? fontkitMod) as any;
 import bidiFactory from 'https://esm.sh/bidi-js@1.0.3';
-import { footerLines, footerLinesAr, FALLBACK, LOCKUP, lockupWidthFor, type DocIdentity } from '../_shared/doc_template.ts';
+import { footerLines, footerLinesAr, FALLBACK, licenceLine, LOCKUP, lockupWidthFor, type DocIdentity } from '../_shared/doc_template.ts';
+import { BRAND } from '../_shared/brand.ts';
 import { shapeArabic } from './arabic_shape.ts';
 
 export type RenderDeps = {
@@ -42,9 +43,13 @@ export type RenderResult =
   | { ok: false; status: number; body: Record<string, unknown> };
 
 const CO_AR = { city: 'دبي، الإمارات العربية المتحدة', signer: 'أحمد الزين', title: 'المؤسس والمدير الإداري' };
-// The Sealed brand: navy #0A1720, teal #14B8A6 / #6EE7D4 / #0B8276, gold #E3C065.
+// The brand hues come from ONE place, _shared/brand.ts BRAND, the edge-side copy of public.company_brand's
+// colour.* rows (the same file mail uses). 22 Sep 2026 (audit finding 6): this file drew navy #0A1720 while the brand table says
+// #0C2330, and the brand guide calls an off-table colour a defect. The greys below are neutral tints for
+// hairlines, zebra rows and body text on white, not brand colours.
 const C = (r: number, g: number, b: number) => rgb(r / 255, g / 255, b / 255);
-const NAVY = C(10, 23, 32), TEAL = C(20, 184, 166), TEAL_L = C(110, 231, 212), TEAL_D = C(11, 130, 118), GOLD = C(227, 192, 101);
+const H = (hex: string) => C(parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16));
+const NAVY = H(BRAND.navy), TEAL = H(BRAND.teal), TEAL_L = H(BRAND.tealLight), TEAL_D = H(BRAND.tealDeep), GOLD = H(BRAND.gold);
 const INK = C(22, 29, 37), MUT = C(88, 99, 113), HAIR = C(222, 227, 233), ZEBRA = C(246, 248, 250), WHITE = rgb(1, 1, 1), BANDTXT = C(196, 211, 220);
 const TINT_T = C(230, 247, 244), TINT_G = C(251, 244, 224), TINT_N = C(237, 241, 245), AMBER_D = C(128, 96, 10), MISS = C(160, 170, 182), LINE = HAIR;
 export function isArCode(c: number) { return (c >= 0x600 && c <= 0x6FF) || (c >= 0x750 && c <= 0x77F) || (c >= 0x8A0 && c <= 0x8FF) || (c >= 0xFB50 && c <= 0xFDFF) || (c >= 0xFE70 && c <= 0xFEFF); }
@@ -107,7 +112,10 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   try { const sr = await fetchBytes('qd_sora_regular.ttf'); const sb = await fetchBytes('qd_sora_bold.ttf'); if (sr) { font = await pdf.embedFont(sr, { subset: true }); latinFull = true; } if (sb) bold = await pdf.embedFont(sb, { subset: true }); } catch (_e) { /* Helvetica stands */ }
   const PW = 595.28, PH = 841.89, M = 46; const CW = PW - 2 * M; const BOTTOM = 78;
   const opt = body.options || {};
-  const letterhead = !!opt.letterhead, doSign = !!opt.sign, doStamp = !!opt.stamp;
+  // THE LETTERHEAD IS THE DEFAULT (22 Sep 2026, audit of every document we issue, finding 5). It was
+  // opt-in, and the IT incident record and the conversation archive never opted in, so they went out
+  // with no issuer and no licence line. Every document now wears it; only an explicit false removes it.
+  const letterhead = opt.letterhead !== false, doSign = !!opt.sign, doStamp = !!opt.stamp;
   const needAr = lang !== 'en' || hasAr(JSON.stringify(body));
   let arReg = font, arBold = bold;
   if (needAr) { const rb = await fetchBytes('qd_ar_regular.ttf'); const bb = await fetchBytes('qd_ar_bold.ttf'); if (rb) { arReg = await pdf.embedFont(rb, { subset: AR_SUBSET }); arFull = true; } if (bb) arBold = await pdf.embedFont(bb, { subset: AR_SUBSET }); if (arFull) { plainLayout(arReg); plainLayout(arBold); } }
@@ -318,7 +326,7 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
     page.drawRectangle({ x: 0, y: PH - H, width: PW, height: H, color: NAVY });
     page.drawRectangle({ x: 0, y: PH - H, width: PW, height: 2.6, color: GOLD }); page.drawRectangle({ x: 0, y: PH - H + 2.6, width: PW, height: 1, color: TEAL });
     drawLockup(CO.logoPt, PH - 30 - CO.logoPt);
-    const issuer = RTL ? [CO.name, `رخصة تاجر رقم ${(CO.licence.match(/\d{5,}/) || [''])[0]} · ${CO.permit}`] : [CO.name, `${CO.licence} · ${CO.permit}`];
+    const issuer = [CO.name, licenceLine(CO, L)];
     txt(safeText(issuer[0]), M, CW, PH - 36, 9.5, { bold: true, color: WHITE, align: 'e' });
     txt(safeText(issuer[1]), M, CW, PH - 48, 7, { color: BANDTXT, align: 'e' });
     txt(cv.kicker, M, CW, PH - (K ? 80 : 94), 9, { bold: true, color: TEAL_L });
@@ -352,7 +360,10 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   function legacyHeader() {
     const h = 92; page.drawRectangle({ x: 0, y: PH - h, width: PW, height: h, color: NAVY }); page.drawRectangle({ x: 0, y: PH - h, width: PW, height: 2.6, color: GOLD }); page.drawRectangle({ x: 0, y: PH - h + 2.6, width: PW, height: 1, color: TEAL });
     const lg = lockupImg(); if (lg) { const hh = lockupTrimmed ? CO.logoPt : lg.height * (128 / lg.width); const w = lockupTrimmed ? lockupWidthFor(hh) : 128; page.drawImage(lg, { x: M, y: PH - h / 2 - hh / 2 + 2, width: w, height: hh }); }
-    if (letterhead) { const ls = [CO.name, CO.licence + ' · ' + CO.permit, CO.email + ' · ' + CO.phone]; let ly = PH - 26; ls.forEach((ln, i) => { const f = i === 0 ? bold : font; const s = i === 0 ? 11 : 8; page.drawText(ln, { x: PW - M - W(ln, f, s), y: ly - s, size: s, font: f, color: i === 0 ? WHITE : BANDTXT }); ly -= (i === 0 ? 15 : 11); }); }
+    // The licence line in the document's language (22 Sep 2026, audit finding 4: every Arabic page
+    // without a cover printed the English "DET Trader License No. 1633275 · TDRA…"). Drawn at the right
+    // edge in both languages, away from the lockup on the left: 'e' is the right edge in English, 's' in Arabic.
+    if (letterhead) { const ls = [CO.name, licenceLine(CO, L), CO.email + ' · ' + CO.phone]; let ly = PH - 26; ls.forEach((ln, i) => { const s = i === 0 ? 11 : 8; txt(safeText(ln), M, CW, ly - s, s, { bold: i === 0, color: i === 0 ? WHITE : BANDTXT, align: RTL ? 's' : 'e' }); ly -= (i === 0 ? 15 : 11); }); }
     y = PH - h - 24;
     txt(title, M, CW, y - 18, 20, { bold: true, color: NAVY }); y -= 24;
     const meta = (refText ? (RTL ? 'الرقم المرجعي: ' + refText : 'Ref: ' + refText) + ' · ' : '') + (RTL ? CO_AR.city : CO.city) + ' · ' + dateFor();

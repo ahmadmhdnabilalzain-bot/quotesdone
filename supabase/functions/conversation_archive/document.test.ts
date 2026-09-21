@@ -34,6 +34,18 @@ Deno.test('an Arabic message is laid out in Arabic', () => {
   assert(JSON.stringify(d.blocks).includes('من'), 'Arabic labels');
 });
 
+// Audit 22 Sep 2026, finding 5: the Arabic archive printed "Sept" and "Correspondence archive", and
+// neither page carried the letterhead (so no licence line).
+Deno.test('dates are "14 Sep 2026" / "14 سبتمبر 2026", the Arabic page has no English furniture, and both wear the letterhead', () => {
+  const en = conversationDocument(base), ar = conversationDocument(arabic);
+  assertEquals(en.date, '14 Sep 2026, 12:05');
+  assertEquals(ar.date_ar, '14 سبتمبر 2026، 12:05');
+  assertEquals(ar.control, 'أرشيف المراسلات');
+  const arText = JSON.stringify([ar.blocks, ar.control, ar.date_ar]);
+  assert(!/Sept|archive|received|email -/.test(arText), 'no English label on the Arabic page: ' + arText.slice(0, 200));
+  assertEquals(en.options.letterhead, true); assertEquals(ar.options.letterhead, true);
+});
+
 // The suite runner grants no permissions, so env and net are asked for, not assumed.
 const URL_ = Deno.permissions.querySync({ name: 'env', variable: 'SUPABASE_URL' }).state === 'granted'
   && Deno.permissions.querySync({ name: 'net' }).state === 'granted' ? Deno.env.get('SUPABASE_URL') : undefined;
