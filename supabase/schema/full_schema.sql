@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T16:07:13.895Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T17:00:16.924Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7028,7 +7028,8 @@ CREATE TABLE IF NOT EXISTS public.taxonomy_trade_service (
   label_ar text NOT NULL,
   sort integer DEFAULT 100 NOT NULL,
   active boolean DEFAULT true NOT NULL,
-  aliases text[] DEFAULT '{}'::text[] NOT NULL
+  aliases text[] DEFAULT '{}'::text[] NOT NULL,
+  embedding_gte vector(384)
 );
 
 CREATE TABLE IF NOT EXISTS public.templates (
@@ -35141,9 +35142,13 @@ begin
   if 'otp' = any (v_due) then
     v_items := '[]'::jsonb;
     v_max := coalesce(public.fn_it_threshold('otp_burst_per_prefix_hour'), 5)::int;
-    for x in select left(regexp_replace(phone, '\D', '', 'g'), 5) prefix, count(*) n
-               from (select phone, created_at from public.phone_verifications
-                     union all select phone, created_at from public.customer_phone_otps) z
+    -- n_dead: codes that were never used and have already expired. Pumping sends codes nobody enters;
+    -- a registration day sends codes people enter within minutes (registration-day surge review,
+    -- 21 Sep 2026). A code still inside its 10 minutes is neither, so it is not counted as dead.
+    for x in select left(regexp_replace(phone, '\D', '', 'g'), 5) prefix, count(*) n,
+                    count(*) filter (where not used and expires_at < now()) n_dead
+               from (select phone, created_at, used_at is not null used, expires_at from public.phone_verifications
+                     union all select phone, created_at, coalesce(consumed, false), expires_at from public.customer_phone_otps) z
               where created_at > now() - interval '1 hour' and phone is not null
               group by 1 having count(*) > v_max loop
       -- A prefix the CEO or founder allowed is never auto-blocked again; its burst is handed on instead.
@@ -35158,11 +35163,16 @@ begin
           'title', x.n || ' sign-in codes in an hour to +' || x.prefix || '…, a country we do not serve — prefix blocked by the IT engineer',
           'blast', 'agent_facing', 'affected', 0,
           'evidence', jsonb_build_object('prefix', x.prefix, 'codes_last_hour', x.n, 'remedy', 'otp_blocked_prefix'));
-      else
+      -- INSIDE A SERVED COUNTRY, VOLUME IS NOT THE SIGNAL. The UAE has a handful of mobile prefixes
+      -- (+97150, +97152, +97154, +97155, +97156, +97158), so six suppliers verifying on +97150 in one
+      -- hour crossed the 5-code line and raised a 'security' finding to the CEO for the system working —
+      -- on a campaign day, one per prefix every tick. Raised now only when more than v_max of the codes
+      -- died unused AND they are at least half of what was sent: the shape of pumping, not of sign-ups.
+      elsif x.n_dead > v_max and x.n_dead * 2 >= x.n then
         v_items := v_items || jsonb_build_object('item', 'prefix:' || x.prefix, 'owner_seat', 'ceo', 'subject', 'login_otp',
-          'title', x.n || ' sign-in codes in an hour to +' || x.prefix || '…, inside a country we serve',
+          'title', x.n_dead || ' of ' || x.n || ' sign-in codes in an hour to +' || x.prefix || '… were never used, inside a country we serve',
           'blast', 'security', 'affected', 1,
-          'evidence', jsonb_build_object('prefix', x.prefix, 'codes_last_hour', x.n,
+          'evidence', jsonb_build_object('prefix', x.prefix, 'codes_last_hour', x.n, 'codes_never_used', x.n_dead,
                                          'why_not_blocked', 'a served country: blocking could lock real customers out'));
       end if;
     end loop;

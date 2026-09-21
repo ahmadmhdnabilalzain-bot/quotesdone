@@ -46,7 +46,8 @@ import { sanitizeUpload, zipExpansionWithinLimits, SAFE_SHEET, SAFE_DOCUMENT, SA
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { readDocument, type DocumentRead } from '../_shared/doc_read/index.ts';
-import { proposeTradesFromDocs } from '../_shared/supplier_doc_trades.ts';
+import { PHOTO_TEXT_MAX, proposeTradesFromDocs } from '../_shared/supplier_doc_trades.ts';
+import { readWithModel } from '../_shared/catalogue_model.ts';
 import { productsFromText } from './rows_from_text.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 
@@ -158,6 +159,24 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
     const supId = sup.id as number;
 
     const b = await req.json().catch(() => ({} as Record<string, unknown>));
+    // TEXT IN A PHOTO (founder, instruction 576, 21 Sep 2026: "it needs to understand the photos even").
+    // The supplier's own browser reads the words in a photographed page, label, nameplate or price list,
+    // or in a scanned PDF's rendered pages (tesseract.js eng+ara, self-hosted, the same OCR the customer
+    // side uses — SupplierCatalogUpload.tsx). The text arrives here as untrusted words, is kept beside
+    // the file as <path>.ocr.txt, and is read by the same catalogue path as a text layer, marked
+    // 'photo_text' in the evidence. A scanned PDF sends it in a second call naming its catalog_id,
+    // because only after the upload do we know the PDF has no text layer of its own.
+    const photoText = String(b.ocr_text ?? '').slice(0, PHOTO_TEXT_MAX);
+    if (!b.data && b.catalog_id != null && photoText.trim()) {
+      const { data: row } = await admin.from('supplier_catalog').select('id,source_document_path')
+        .eq('id', Number(b.catalog_id)).eq('supplier_id', supId).maybeSingle();
+      if (!row?.source_document_path) return J({ error: 'not_your_catalogue' }, 404);
+      const p = String(row.source_document_path);
+      await admin.storage.from('supplier-docs').upload(`${p}.ocr.txt`, new TextEncoder().encode(photoText), { contentType: 'text/plain', upsert: true });
+      const name = p.split('/').pop() || p;
+      return J({ ok: true, catalog_id: row.id, read_from: 'photo_text',
+                 documents_read: await proposeTradesFromDocs(admin, supId, [{ path: p, name, kind: 'catalogue', photo_text: photoText }]) });
+    }
     const fileName = String(b.file_name || '').slice(0, 200);
     const dataB64 = String(b.data || '');
     if (!fileName || !dataB64) return J({ error: 'file_name and data required' }, 400);
@@ -193,11 +212,22 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
     // The same file is also read for the TRADES it names, into the supplier's proposal on "What your
     // company can quote for" (_shared/supplier_doc_trades.ts). A PDF already read below is reused.
     let docRead: DocumentRead | undefined;
-    const readTrades = () => proposeTradesFromDocs(admin, supId, [{ path, name: fileName, kind: 'catalogue', bytes, mime: san.mime, read: docRead }]);
+    if (photoText.trim()) {
+      await admin.storage.from('supplier-docs').upload(`${path}.ocr.txt`, new TextEncoder().encode(photoText), { contentType: 'text/plain', upsert: true });
+    }
+    const readTrades = () => proposeTradesFromDocs(admin, supId, [{ path, name: fileName, kind: 'catalogue', bytes, mime: san.mime, read: docRead, photo_text: photoText }]);
+    // WHAT A PHOTO SHOWS is the vision model's to say (_shared/catalogue_model.ts), behind
+    // supplier_photo_vision_enabled, OFF by default: then the answer is the honest EN/AR line, never a guess.
+    const vision = async () => {
+      if (!san.mime.startsWith('image/')) return undefined;
+      const { data: keys } = await admin.from('taxonomy_trade_service').select('trade_code,code').eq('active', true);
+      return readWithModel(admin, 'photo', { image_b64: dataB64.replace(/^data:[^,]*,/, ''), mime: san.mime },
+        new Set(((keys || []) as { trade_code: string; code: string }[]).map((k) => `${k.trade_code}.${k.code}`)));
+    };
 
     const fail = async (status: string, why: string) => {
       if (catalogId) await admin.from('supplier_catalog').update({ status }).eq('id', catalogId);
-      return J({ ok: true, catalog_id: catalogId, products_created: 0, status, why, documents_read: await readTrades() });
+      return J({ ok: true, catalog_id: catalogId, products_created: 0, status, why, documents_read: await readTrades(), vision: await vision() });
     };
 
     let products: Record<string, unknown>[] = [];
@@ -312,6 +342,7 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
       // 0 found is a real answer and is reported as one, distinct from a format we cannot read.
       status: created ? 'extracted' : 'no_products_found',
       documents_read: await readTrades(),
+      vision: await vision(),
     });
   } catch (e) {
     return J({ ok: false, error: String((e as Error)?.message || e) }, 500);
