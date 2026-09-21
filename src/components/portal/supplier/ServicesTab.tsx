@@ -32,7 +32,7 @@ import { cn } from '@/lib/utils';
 import { blobToWav } from '@/lib/wavEncode';
 import { call } from './api';
 import { srvMsg, vocabLabel } from './serverCopy';
-import { sc, scCount } from './servicesCopy';
+import { countServices, sc, scCount } from './servicesCopy';
 
 type Service = { key: string; label_en: string; label_ar: string };
 type Trade = { code: string; label: string; label_ar?: string | null };
@@ -75,6 +75,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const uid = useId();
   const [st, setSt] = useState<{ loading: boolean; err: string; data: State | null }>({ loading: true, err: '', data: null });
   const [trades, setTrades] = useState<string[]>([]);
+  // A trade the supplier removed, held until Update so it can be undone (audit 21 Sep 2026, finding
+  // 10: the card vanished instantly and came back after Update + reload). The save sends it as
+  // removed_trades and the server drops it from the confirmed trades.
+  const [removedTrades, setRemovedTrades] = useState<Set<string>>(new Set());
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [roles, setRoles] = useState<string[]>([]);
   const [rawText, setRawText] = useState('');
@@ -100,6 +104,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     if (j && j.ok) {
       const d = j as State;
       setTrades(d.checklist.map((c) => c.code));
+      setRemovedTrades(new Set());
       setTicked(new Set(d.selected_services));
       setRoles((d.capability && d.capability.roles) || []);
       setRawText(d.raw_text || '');
@@ -173,7 +178,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const svcName = (s: Service) => (ar ? s.label_ar : s.label_en);
   const sourceOf = (code: string) => d.checklist.find((c) => c.code === code)?.source;
   const keysOf = (code: string) => (d.services_by_trade[code] || []).map((s) => s.key);
-  const liveTicks = [...ticked].filter((k) => trades.includes(k.split('.')[0]));
+  const activeTrades = trades.filter((c) => !removedTrades.has(c));
+  const ofActive = (k: string) => !removedTrades.has(k.split('.')[0]);
+  const liveTicks = [...ticked].filter((k) => activeTrades.includes(k.split('.')[0]));
   const docs = (d.capability?.source_docs?.docs || []).filter((x) => (x.trades || []).length);
   const noPrep = !d.confirmed && d.checklist.length === 0;
   // THE REWRITE CARRIES ITS OWN LABELS and they are read first. services_by_trade only holds the
@@ -190,7 +197,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
   const toggleKey = (k: string) => setTicked((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const setAll = (code: string, on: boolean) => setTicked((s) => { const n = new Set(s); for (const k of keysOf(code)) { if (on) n.add(k); else n.delete(k); } return n; });
-  const removeTrade = (code: string) => { setTrades((ts) => ts.filter((c) => c !== code)); setAll(code, false); };
+  // Removing marks the card; nothing is lost until Update, and Undo puts the ticks back as they were.
+  const removeTrade = (code: string, on: boolean) => setRemovedTrades((s) => { const n = new Set(s); if (on) n.add(code); else n.delete(code); return n; });
   const toggleRole = (c: string) => setRoles((rs) => (rs.includes(c) ? rs.filter((x) => x !== c) : [...rs, c]));
   const toggleDrop = (k: string) => setDropped((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
@@ -214,21 +222,29 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // What the supplier has actually agreed to: the ticked checklist plus the rewrite's services, minus
   // anything struck out. The implied half is sent kept-and-removed separately, so the server stores
   // stated / implied / removed apart and matching can subtract a removal (fn_services_effective).
-  const rwStated = (rw?.service_keys || []).filter((k) => !dropped.has(k));
-  const rwImplied = (rw?.implied || []).filter((i) => !dropped.has(i.key)).map((i) => i.key);
-  const rwOwnWords = (rw?.own_words || []).filter((w) => !dropped.has(wordKey(w)));
+  const rwStated = (rw?.service_keys || []).filter((k) => !dropped.has(k) && ofActive(k));
+  // Without a rewrite on screen the STORED implications are what the supplier has — sending [] here
+  // wiped services_implied on every plain Update, and the count fell from 8 to 5 (finding 11).
+  const rwImplied = (rw ? rw.implied.map((i) => i.key) : d.implied_services).filter((k) => !dropped.has(k) && ofActive(k));
+  // THE SUPPLIER'S OWN WORDS ALREADY SAVED (finding 9). They are stored in `services` and come back as
+  // extra_services; this tab used to ignore them, so they vanished on reload and the next Update —
+  // which sent only the preview's words — deleted them. They are shown, kept, and re-sent.
+  const savedOwn = d.extra_services || [];
+  const rwOwnWords = [...savedOwn, ...(rw?.own_words || [])]
+    .filter((w, i, all) => all.findIndex((x) => x.toLowerCase() === w.toLowerCase()) === i)
+    .filter((w) => !dropped.has(wordKey(w)));
   // A key struck out in the preview is struck out even if the prepared checklist also ticks it —
   // otherwise "Remove" reads as done and the union puts the key straight back (React review, 18 Sep).
   const statedKeys = [...new Set([...liveTicks, ...rwStated])].filter((k) => !dropped.has(k));
   // Removals travel with the save so matching can subtract them: what was already stored, plus
   // whatever was struck out in this preview, minus anything now stated or kept.
-  const rwRemoved = [...new Set([...(d.removed_services || []), ...(rw?.implied || []).filter((i) => dropped.has(i.key)).map((i) => i.key)])]
+  const rwRemoved = [...new Set([...(d.removed_services || []), ...(rw ? rw.implied.map((i) => i.key) : d.implied_services).filter((k) => dropped.has(k))])]
     .filter((k) => !rwImplied.includes(k) && !statedKeys.includes(k));
 
   const save = async () => {
     setBusy(true); setNote(null);
     const j = await call('supplier_api', {
-      action: 'services_save_rewrite', trades, roles,
+      action: 'services_save_rewrite', trades: activeTrades, removed_trades: [...removedTrades], roles,
       services: statedKeys, implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(),
     }, token).catch(() => null);
@@ -241,8 +257,10 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     } else setNote({ kind: 'err', text: srvMsg(lang, j, sc(lang, 'save_failed')) });
   };
 
-  const svcCount = statedKeys.length + rwImplied.length + rwOwnWords.length;
-  const canSave = roles.length > 0 && (statedKeys.length > 0 || rwOwnWords.length > 0 || trades.length > 0);
+  // The preview lists only words not already saved above, so one phrase is never shown twice.
+  const rwNewOwn = (rw?.own_words || []).filter((w) => !savedOwn.some((s) => s.toLowerCase() === w.toLowerCase()));
+  const svcCount = countServices([...statedKeys, ...rwImplied], rwOwnWords);
+  const canSave = roles.length > 0 && (statedKeys.length > 0 || rwOwnWords.length > 0 || activeTrades.length > 0);
   const voice = d.voice;
   const micNoteId = uid + '-mic';
   const micNote = !voice.enabled ? sc(lang, 'mic_soon') : !canRecord ? sc(lang, 'mic_unsupported') : voxBusy ? sc(lang, 'mic_busy') : voxMsg;
@@ -282,6 +300,15 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           const svcs = d.services_by_trade[code] || [];
           const src = sourceOf(code);
           const allOn = svcs.length > 0 && svcs.every((s) => ticked.has(s.key));
+          if (removedTrades.has(code)) return (
+            <div key={code} className={cn(chip, 'border-dashed')} role="status">
+              <span className="font-medium text-foreground line-through" dir="auto">{tradeName(code)}</span>
+              <span className="text-muted-foreground">{sc(lang, 'trade_removed')}</span>
+              <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => removeTrade(code, false)}>
+                {sc(lang, 'undo')}<span className="sr-only">: {tradeName(code)}</span>
+              </Button>
+            </div>
+          );
           return (
             <fieldset key={code} className="rounded-md border border-border p-3">
               <legend className="px-1">
@@ -306,7 +333,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
                     {allOn ? sc(lang, 'clear_all') : sc(lang, 'select_all')}<span className="sr-only">: {tradeName(code)}</span>
                   </Button>
                 )}
-                <Button type="button" variant="link" className="min-h-11 px-2 text-muted-foreground" onClick={() => removeTrade(code)}>
+                <Button type="button" variant="link" className="min-h-11 px-2 text-muted-foreground" onClick={() => removeTrade(code, true)}>
                   {sc(lang, 'remove_trade')}<span className="sr-only">: {tradeName(code)}</span>
                 </Button>
               </div>
@@ -342,6 +369,26 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
         <p id={micNoteId} role="status" className={cn('mt-1.5 text-[12.5px] text-muted-foreground', !micNote && 'sr-only')}>{micNote}</p>
         {rwMsg ? <p role="alert" className="mt-1.5 text-[12.5px] text-warn-fg">{rwMsg}</p> : null}
       </section>
+
+      {/* SAVED IN THE SUPPLIER'S OWN WORDS, UNDER REVIEW (finding 9). Stored, re-sent on every Update,
+          and removable only by the supplier. */}
+      {savedOwn.length > 0 && (
+        <section className="mt-5" aria-labelledby={uid + '-saved-own'}>
+          <h3 id={uid + '-saved-own'} className={h3}>{sc(lang, 'own_words_title')}</h3>
+          <p className={cn(sub, 'mt-0.5')}>{sc(lang, 'own_words_help')}</p>
+          <ul className="mt-1.5 flex flex-col gap-1.5">
+            {savedOwn.map((wtext, i) => (
+              <li key={i + ':' + wtext} className={cn(chip, dropped.has(wordKey(wtext)) && 'opacity-60')}>
+                <span className="font-medium text-foreground" dir="auto">{wtext}</span>
+                <Badge variant="secondary">{dropped.has(wordKey(wtext)) ? sc(lang, 'removed_badge') : sc(lang, 'under_review')}</Badge>
+                <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(wordKey(wtext))}>
+                  {dropped.has(wordKey(wtext)) ? sc(lang, 'restore') : sc(lang, 'remove')}<span className="sr-only">: {wtext}</span>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* THE SALES ENGINEER'S VERSION — shown before anything is saved. */}
       {rw && (rw.service_keys.length > 0 || rw.own_words.length > 0 || rw.implied.length > 0) && (
@@ -393,12 +440,12 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
           {/* WE NEVER DROP THESE AND NEVER GUESS THEM: the supplier's own words, straight to the sales
               engineer. The supplier may strike one out — that is its own correction, not ours. */}
-          {rw.own_words.length > 0 && (
+          {rwNewOwn.length > 0 && (
             <div className="mt-3">
               <h4 className={cn(sub, 'font-semibold')}>{sc(lang, 'own_words_title')}</h4>
               <p className={cn(sub, 'mt-0.5')}>{sc(lang, 'own_words_help')}</p>
               <ul className="mt-1.5 flex flex-col gap-1.5">
-                {rw.own_words.map((wtext, i) => (
+                {rwNewOwn.map((wtext, i) => (
                   <li key={i + ':' + wtext} className={cn(chip, dropped.has(wordKey(wtext)) && 'opacity-60')}>
                     <span className="font-medium text-foreground" dir="auto">{wtext}</span>
                     {dropped.has(wordKey(wtext)) ? <Badge variant="secondary">{sc(lang, 'removed_badge')}</Badge> : null}

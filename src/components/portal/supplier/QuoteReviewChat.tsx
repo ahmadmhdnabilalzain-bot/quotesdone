@@ -247,7 +247,8 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
               className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60" />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <input ref={fileRef} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1} aria-label={th.file ? t.attachNew : t.attach} id={'qd-rv-file-' + inquiryId} onChange={(e) => onFile(e.target.files?.[0])} disabled={!th.can_upload || !!busy} />
+                {/* aria-hidden (audit 21 Sep 2026, finding 45): the Button below is the one control; a labelled hidden input made two "Attach quotation" entries for a screen reader. */}
+                <input ref={fileRef} type="file" accept={ACCEPT} className="sr-only" tabIndex={-1} aria-hidden="true" id={'qd-rv-file-' + inquiryId} onChange={(e) => onFile(e.target.files?.[0])} disabled={!th.can_upload || !!busy} />
                 <Button variant={th.file ? 'outline' : 'default'} disabled={!th.can_upload || !!busy || th.reviewing} onClick={() => fileRef.current?.click()}>{th.file ? t.attachNew : t.attach}</Button>
                 <span className="text-[11.5px] text-muted-foreground">{t.fileTip}</span>
               </div>

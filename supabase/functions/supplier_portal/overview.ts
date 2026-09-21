@@ -50,7 +50,7 @@ export async function buildAlerts(admin: Admin, supId: number): Promise<Row[]> {
     const quoted = new Set((myq || []).map((x: Row) => x.inquiry_id));
     const { data: openInq } = await admin.from('inquiries').select('id').in('id', mids).in('status', OPEN_INQ);
     const openIds = (openInq || []).map((x: Row) => x.id).filter((id: unknown) => !quoted.has(id));
-    if (openIds.length) out.push({ kind: 'new_rfq', code: 'new_rfq', params: { count: openIds.length }, severity: 'medium', count: openIds.length, title: openIds.length + ' new RFQ' + (openIds.length > 1 ? 's' : '') + ' waiting for your quote', detail: 'Open requests matched to your capabilities that you have not quoted yet.', action: 'inbox' });
+    if (openIds.length) out.push({ kind: 'new_rfq', code: 'new_rfq', params: { count: openIds.length, total: (openInq || []).length }, severity: 'medium', count: openIds.length, title: openIds.length + ' new RFQ' + (openIds.length > 1 ? 's' : '') + ' waiting for your quote', detail: 'Open requests matched to your capabilities that you have not quoted yet.', action: 'inbox' });
   }
   if (drafts) out.push({ kind: 'draft_quote', code: 'draft_quote', params: { count: drafts }, severity: 'low', count: drafts, title: drafts + ' draft quote' + (drafts > 1 ? 's' : '') + ' to complete', detail: 'Add the missing details so we can send them to customers.', action: 'inbox' });
   return out;
@@ -190,6 +190,7 @@ export const supplierCard = (sup: Supplier) => ({ id: sup.id, company_name: sup.
 export const NOTICE_TAB: Record<string, string> = {
   quote_accepted: 'messages', new_message: 'messages', new_inquiry: 'rfqs', rfq_addendum: 'rfqs',
   job_awarded_other: 'rfqs', rfq_no_supplier: 'rfqs', doc_received: 'documents', registration_received: 'services',
+  quote_spec_hold: 'quotes', quote_spec_released: 'quotes', quote_spec_regenerated: 'quotes',
 };
 const NOTICE_DAYS = 30;
 export type Notice = { id: number; type: string; tab: string; inquiry_id: string | null; quote_id: string | null; at: string };
@@ -208,7 +209,7 @@ export async function buildNotifications(admin: Admin, supId: number) {
   const notices: Notice[] = ((rows || []) as Row[])
     // A spec-hold notice (sales_engineer_*) belongs on the Quotes tab; anything unmapped is not
     // shown rather than shown with a guessed destination.
-    .map((r) => ({ id: Number(r.id), type: String(r.type), tab: NOTICE_TAB[String(r.type)] || (String(r.type).startsWith('sales_engineer_') || String(r.type).startsWith('spec_') ? 'quotes' : ''), inquiry_id: r.inquiry_id || null, quote_id: r.quote_id || null, at: String(r.created_at) }))
+    .map((r) => ({ id: Number(r.id), type: String(r.type), tab: NOTICE_TAB[String(r.type)] || (String(r.type).startsWith('sales_engineer_') ? 'quotes' : ''), inquiry_id: r.inquiry_id || null, quote_id: r.quote_id || null, at: String(r.created_at) }))
     .filter((n) => n.tab);
   return { unread_messages: unread || 0, spec_holds: holds || 0, notices };
 }

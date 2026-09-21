@@ -308,13 +308,20 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   const rows = await serviceRows(admin);
   const known = new Set(rows.map((r) => serviceKey(r.trade_code, r.code)));
   const arr = (v: unknown) => (Array.isArray(v) ? (v as unknown[]).map((s) => String(s ?? '')) : []);
-  const stated = [...new Set(arr(body.services).filter((s) => known.has(s)))];
-  const implied = [...new Set(arr(body.implied).filter((s) => known.has(s) && !stated.includes(s)))];
+  // A TRADE THE SUPPLIER REMOVED STAYS REMOVED (audit 21 Sep 2026, finding 10: "Remove this trade",
+  // Update, reload -> the card was back, "Confirmed", nothing ticked). The trade list below is rebuilt
+  // from the card list PLUS every trade a stated key or an own word resolves to, so a word such as
+  // "الدهانات" resolving to painting put the removed trade straight back. An explicit removal in this
+  // save now wins over every derived addition: its services, implications and resolved words drop it.
+  const removedTrades = new Set(arr(body.removed_trades).map((t) => t.trim()).filter(Boolean));
+  const ofRemoved = (k: string) => removedTrades.has(k.split('.')[0]);
+  const stated = [...new Set(arr(body.services).filter((s) => known.has(s) && !ofRemoved(s)))];
+  const implied = [...new Set(arr(body.implied).filter((s) => known.has(s) && !stated.includes(s) && !ofRemoved(s)))];
   // A REMOVAL THE CLIENT DID NOT RE-SEND IS STILL A REMOVAL (TypeScript review, 18 Sep 2026). The
   // preview merges what is stored before it offers the implied list; the save has to merge it too, or
   // a client that echoes only this screen's removals would quietly re-enable a service the supplier
   // struck out weeks ago. Anything now stated or kept wins over a stale removal.
-  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed').eq('supplier_id', supplierId).maybeSingle();
+  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed,services').eq('supplier_id', supplierId).maybeSingle();
   const removed = [...new Set([...(Array.isArray(prevCap?.services_removed) ? prevCap!.services_removed as string[] : []), ...arr(body.removed)])]
     .filter((s) => known.has(s) && !implied.includes(s) && !stated.includes(s));
   const own = cleanExtras(arr(body.own_words).map((w) => tidy(w)));
@@ -324,14 +331,21 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   for (const k of stated) trades.add(k.split('.')[0]);
   // The supplier's own words still resolve to a TRADE where an alias names one; where none does, the
   // words stay as the supplier wrote them and the sales engineer gets a proposal to map or add.
+  //
+  // Words ALREADY STORED are not resolved again: they were resolved when first saved, their trade is on
+  // the card list since, and their proposal already exists. Re-resolving them on every Update is what
+  // made a removed trade come back on the NEXT save too (finding 10). They are still re-sent and kept.
+  const storedOwn = new Set(splitServices(prevCap?.services, known).extras.map((w) => w.toLowerCase()));
+  const freshOwn = own.filter((w) => !storedOwn.has(w.toLowerCase()));
   const resolved: Record<string, string[]> = {}; const proposals: string[] = [];
   // Independent lookups, so one round trip rather than up to 25 in series.
-  const codesFor = await Promise.all(own.map((w) => resolveText(admin, w)));
-  own.forEach((w, i) => {
+  const codesFor = await Promise.all(freshOwn.map((w) => resolveText(admin, w)));
+  freshOwn.forEach((w, i) => {
     const codes = codesFor[i];
     resolved[w] = codes;
     if (codes.length) codes.forEach((c) => trades.add(c)); else proposals.push(w);
   });
+  for (const t of removedTrades) trades.delete(t);
   if (!trades.size) return [400, { error: 'nothing_recognised', code: 'services_nothing_recognised' }];
 
   const { data: cap } = await admin.from('supplier_capabilities')

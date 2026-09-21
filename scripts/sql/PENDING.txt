@@ -15,3 +15,7 @@
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
 #
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+#
+# 21 Sep 2026 — supplier-portal audit (it_engineer, branch it_engineer/the-supplier-portal-tells-one-truth-in-every-panel). Apply in this order.
+scripts/sql/the_supplier_portal_tells_one_truth_in_every_panel.sql :: awaiting the coordinator's serialised apply; deploy supplier_portal right after (its documents action reads fn_supplier_document_home)
+scripts/sql/the_arabic_words_for_painting_and_gypsum_reach_their_services.sql :: awaiting the coordinator's serialised apply; independent of the file above
