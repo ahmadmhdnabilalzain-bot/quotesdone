@@ -98,7 +98,9 @@ declare
   v_file   text;
   v_err    text;
 begin
-  select * into r from public.ceo_weekly_report where id = p_id;
+  -- FOR UPDATE (review of #802): two overlapping ticks both read founder_submitted_at null and mailed the
+  -- week twice. The row lock makes the second wait for the first to commit, then see it delivered.
+  select * into r from public.ceo_weekly_report where id = p_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'no such ceo_weekly_report '||p_id); end if;
   if r.founder_submitted_at is not null then
     return jsonb_build_object('ok', true, 'report_key', r.report_key, 'status', r.status, 'already', true);
