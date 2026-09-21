@@ -79,4 +79,7 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // channel on file and the CEO closes it once the resend is confirmed or none exists
   // (scripts/sql/the_ceo_decides_every_sales_engineer_report_and_every_sender_closes_its_handoff.sql)
   { type: 'delivery.remediate', from: 'ceo', to: 'sales_engineer' },
+  // the complaint clock hands customer_support its own complaint before the Complaints Policy due date and
+  // closes it on the final response (scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql)
+  { type: 'complaint.due', from: 'customer_support', to: 'customer_support' },
 ] as const;

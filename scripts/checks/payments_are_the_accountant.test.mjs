@@ -37,10 +37,11 @@ const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_tog
   'the_it_engineer_closes_every_loop_it_opens.sql',
   'every_send_comes_back_to_whoever_asked.sql'];
 
-// Every payment function, as function_owner lists them. quote_pdf has an owner row and no directory
-// in this repository (it is not deployed from here); it is checked against production only.
+// Every payment function, as function_owner lists them. quote_pdf left this list on 22 Sep 2026: it is not
+// deployed and has no directory here, and every_deployed_function_has_exactly_one_right_owner.sql (PR #811)
+// removed its stale owner row; the quotation PDF is served by customer_api / supplier_api.
 export const PAYMENT_SLUGS = ['stripe_checkout', 'stripe_confirm', 'stripe_webhook', 'stripe_setup', 'stripe_setup_page',
-  'supplier_pay', 'reveal_invoice', 'quote_pdf', 'refunds_api', 'refund_flow', 'accountant'];
+  'supplier_pay', 'reveal_invoice', 'refunds_api', 'refund_flow', 'accountant'];
 
 const read = (p) => readFileSync(p, 'utf8');
 const walk = (d) => readdirSync(d).flatMap((f) => {
