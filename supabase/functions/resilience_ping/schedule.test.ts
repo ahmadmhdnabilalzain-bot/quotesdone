@@ -43,6 +43,7 @@ const SEED: Array<[string, number, number, 'plan' | 'last']> = [
   ['specoffer', 900, 4000, 'plan'],
   ['orphans', 900, 12000, 'plan'],
   ['orgtasks', 900, 1500, 'plan'],
+  ['launchpath', 3600, 8000, 'plan'],
   ['it', 900, 1000, 'last'],
   ['outbox', 900, 9500, 'last'],
   ['archive', 900, 18000, 'last'],
