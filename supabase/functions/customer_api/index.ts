@@ -15,7 +15,7 @@ import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
-import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, jobNoOf, type Item } from '../_shared/quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, jobNoOf, isCurrentDoc, arCategory, arEmirate, enCategory, type Item } from '../_shared/quote_documents.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
@@ -488,12 +488,15 @@ async function buildBriefPdf(inq: any, lang: string) {
   const T = (en: string, arx: string) => (ar ? arx : en);
   const blocks: any[] = [];
   const ref = 'QD-' + jobNoOf(inq) + '-BRIEF';
+  // The trade code ('hvac') and the emirate ('Dubai') printed raw on the Arabic brief (audit 21 Sep 2026);
+  // they take the same deterministic Arabic the quotation uses. The budget is the customer's own words.
+  const trade = (c: unknown) => (ar ? arCategory(c) : null) ?? enCategory(c);
   const kv: any[] = [
     [T('Reference', 'الرقم المرجعي'), ref],
-    [T('Category', 'الفئة'), clipCell(inq?.category, 40) || '—'],
-    [T('Emirate', 'الإمارة'), clipCell(inq?.emirate, 40) || '—'],
+    [T('Category', 'الفئة'), clipCell(trade(inq?.category), 40) || '—'],
+    [T('Emirate', 'الإمارة'), clipCell((ar ? arEmirate(inq?.emirate) : null) ?? inq?.emirate, 40) || '—'],
     [T('Budget', 'الميزانية'), clipCell(inq?.budget, 40) || '—'] ];
-  if (Array.isArray(inq?.trades) && inq.trades.length) kv.push([T('Trades', 'التخصصات'), clipCell(inq.trades.join(', '), 80)]);
+  if (Array.isArray(inq?.trades) && inq.trades.length) kv.push([T('Trades', 'التخصصات'), clipCell(inq.trades.map(trade).join(ar ? '، ' : ', '), 80)]);
   blocks.push({ t: 'kv', pairs: kv });
   blocks.push({ t: 'h2', text: T('Scope', 'النطاق') });
   blocks.push({ t: 'p', text: String(inq?.summary || '—') });
@@ -1343,10 +1346,13 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'compare_pdf') {
       const iid = String(body.inquiry_id || '');
-      // THE REGISTERED LANGUAGE, NOT THE REQUEST'S (founder, 14 Sep 2026: "if someone registered
-      // while the language was arabic then arabic follows through the whole workflow"). body.lang is
-      // ignored for every document here; customers.locale decides.
-      const lang = asLocale(cust.locale);
+      // THE REGISTERED LANGUAGE IS THE DEFAULT; THE BUTTON PRESSED IS THE DOCUMENT ASKED FOR.
+      // 21 Sep 2026 (customer-portal journey audit): an English-registered customer on the Arabic
+      // portal pressed the Arabic report and got English. The portal sends lang: docLang, and this line
+      // read customers.locale only — the same defect quote_pdf had (finding 4) and was fixed for alone.
+      // Every customer document now routes through documentLocale (prevented by
+      // customer_api/arabic_documents.test.ts, which fails if any document action reads the locale alone).
+      const lang = documentLocale(body.lang, cust.locale);
       const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
@@ -1370,7 +1376,7 @@ Deno.serve(observe('customer_api', async (req) => {
     // quote_compare analysis as compare_pdf, rendered through the same compareTable().
     if (action === 'compare_csv') {
       const iid = String(body.inquiry_id || '');
-      const lang = asLocale(cust.locale);
+      const lang = documentLocale(body.lang, cust.locale);
       const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
@@ -1389,7 +1395,7 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'brief_pdf') {
       const iid = String(body.inquiry_id || '');
-      const lang = asLocale(cust.locale);
+      const lang = documentLocale(body.lang, cust.locale);
       const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate,budget,spec,boq,trades,drawing_file_name').eq('id', iid).maybeSingle();
       if (!inq) return J({ error: 'Request not found' }, 404);
       if (inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
@@ -1422,7 +1428,11 @@ Deno.serve(observe('customer_api', async (req) => {
       if (q.status === 'draft') return J({ error: 'Quote not found' }, 404);
       const { data: cached } = await admin.from('quote_pdf_cache').select('bucket,path,created_at').eq('quote_id', qid).eq('lang', lang).maybeSingle();
       const touched = q.updated_at ? new Date(q.updated_at) : (q.created_at ? new Date(q.created_at) : null);
-      if (cached && (!touched || new Date(cached.created_at) >= touched)) {
+      // A cached file is served only if it was rendered by THIS layout (isCurrentDoc: DOC_VERSION is in the
+      // file name). Measured 21 Sep 2026: 14 Arabic rows in quote_pdf_cache, the first from 14 Sep — every
+      // one rendered before the Arabic fixes of #782/#790/#794 and served for as long as the quote itself
+      // was untouched, so a customer kept getting the old, part-English document after the fix shipped.
+      if (cached && isCurrentDoc(cached.path) && (!touched || new Date(cached.created_at) >= touched)) {
         const url = await signedDoc(cached.bucket, cached.path);
         if (url) return J({ ok: true, url, ref: quoteRef(inq, await letterOf(q)), lang, cached: true });
       }
