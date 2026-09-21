@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T23:00:58.188Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T23:23:59.038Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -193,7 +193,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (529) =====
+-- ===== TABLES (530) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3578,6 +3578,13 @@ CREATE TABLE IF NOT EXISTS public.it_expiry (
   secret_fingerprint text,
   secret_seen_since timestamp with time zone,
   never_expires boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_founder_decision_class (
+  issue_key_like text NOT NULL,
+  to_founder boolean NOT NULL,
+  why text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_hold_signature (
@@ -7632,6 +7639,7 @@ ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_pkey P
 ALTER TABLE public.it_engineer_knowledge ADD CONSTRAINT it_engineer_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_pkey PRIMARY KEY (scanner);
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_pkey PRIMARY KEY (item);
+ALTER TABLE public.it_founder_decision_class ADD CONSTRAINT it_founder_decision_class_pkey PRIMARY KEY (issue_key_like);
 ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_pkey PRIMARY KEY (failure_class);
@@ -14061,8 +14069,12 @@ begin
   exception when others then v_err := v_err || jsonb_build_object('step', 'costs', 'error', sqlerrm); end;
   -- The five further duties (14 Sep 2026). Ad spend, recovery and renewals run BEFORE the close, which
   -- reads their figures; the bank balance and the year-end pack read the close, so they run after it.
-  begin o := o || jsonb_build_object('ad_spend', public.fn_accountant_ad_spend_tick());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'ad_spend', 'error', sqlerrm); end;
+  -- F2 AD SPEND IS HELD FOR THE MARKETING SEAT (founder rule 641, 22 Sep 2026: Meta and social are
+  -- wired to no agent until that seat exists). The tick booked Meta spend from meta_insights (2 rows)
+  -- into accountant_ad_spend_month (0 rows, measured 22 Sep 2026), so unwiring it changes no figure.
+  -- fn_accountant_ad_spend_tick and _figures stay defined, and the close still reads the (empty)
+  -- figures. The hold is recorded once, in public.company_policy_decision 'meta_and_social_held_for_marketing'.
+  o := o || jsonb_build_object('ad_spend', jsonb_build_object('held', 'for the marketing seat (founder rule 641)'));
   begin o := o || jsonb_build_object('recovery', public.fn_accountant_recovery_tick());
   exception when others then v_err := v_err || jsonb_build_object('step', 'recovery', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('renewals', public.fn_accountant_renewals_tick());
@@ -14079,7 +14091,7 @@ begin
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
 
   foreach v_step in array array['stripe', 'bank', 'collections', 'subscriptions', 'expenses', 'charge_audit', 'disputes', 'costs',
-                                'ad_spend', 'recovery', 'renewals', 'close', 'bank_balance', 'year_end', 'ceo'] loop
+                                'recovery', 'renewals', 'close', 'bank_balance', 'year_end', 'ceo'] loop
     perform public.fn_accountant_duty_stage(v_step,
       (select string_agg(e->>'error', '; ') from jsonb_array_elements(v_err) e where e->>'step' = v_step));
   end loop;
@@ -18000,16 +18012,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18035,6 +18037,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -28425,120 +28437,120 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_customer_support_sends_the_it_digest(p_floor interval DEFAULT '01:00:00'::interval)
+CREATE OR REPLACE FUNCTION public.fn_customer_support_sends_the_it_digest(p_now timestamp with time zone DEFAULT now())
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  v_stub boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
-  v_ids bigint[]; v_dup bigint[]; v_send bigint[]; v_last timestamptz; v_n int; v_lines int := 0;
-  v_event text; v_detail text; v_key text; v_res jsonb; v_fan jsonb := '[]'::jsonb; v_before bigint; x record;
+  c_hour  constant time := time '19:00';                         -- the founder's fixed local time
+  v_stub  boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
+  v_local timestamp := p_now at time zone 'Asia/Dubai';
+  v_key   text := 'it_daily_digest:' || to_char(p_now at time zone 'Asia/Dubai', 'YYYY-MM-DD');
+  x record; f public.it_engineer_finding; v_why text; v_his boolean; v_items jsonb := '[]'::jsonb;
+  v_event text; v_detail text; v_res jsonb; v_fan jsonb := '[]'::jsonb; v_before bigint;
+  n_dec int := 0; n_flt int := 0; n_int int := 0; n_fixed int := 0; n_wait int := 0;
 begin
-  -- Two ticks at once must not both send: the second waits, then finds nothing pending.
   perform pg_advisory_xact_lock(hashtext('fn_customer_support_sends_the_it_digest'));
-
-  select coalesce(array_agg(a.id order by a.id), '{}') into v_ids
-    from public.agent_actions a
-   where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'pending'
-     and a.detail->>'type' = 'delivery.request' and a.detail->>'recipient_role' = 'founder'
-     and a.detail->>'kind' = 'it_new_bug' and a.evidence->>'digest' = 'pending';
-  if cardinality(v_ids) = 0 then return jsonb_build_object('sent', false, 'held', 0); end if;
-
-  select max(f.created_at) into v_last from public.founder_alerts f
-   where f.dedupe_key like 'it_new_bug_digest:%' and f.channel = 'email';  -- fn_notify_founder logs the send as 'email'
-  if v_last > now() - p_floor then
-    return jsonb_build_object('sent', false, 'held', cardinality(v_ids), 'next_after', v_last + p_floor);
+  if v_local::time < c_hour then
+    return jsonb_build_object('sent', false, 'reason', 'the IT digest leaves at 19:00 Dubai', 'digest_key', v_key);
+  end if;
+  if exists (select 1 from public.founder_alerts where dedupe_key = v_key) then
+    return jsonb_build_object('sent', false, 'reason', 'today''s IT digest was already decided', 'digest_key', v_key);
   end if;
 
-  -- The per-issue promise fn_notify_founder kept: one message per problem per 24 hours.
-  select coalesce(array_agg(a.id order by a.id) filter (where exists (
-           select 1 from public.founder_alerts f
-            where f.dedupe_key = a.detail->>'dedupe_key' and f.channel in ('email', 'whatsapp', 'digested')
-              and f.created_at > now() - interval '24 hours')), '{}'),
-         coalesce(array_agg(a.id order by a.id) filter (where not exists (
-           select 1 from public.founder_alerts f
-            where f.dedupe_key = a.detail->>'dedupe_key' and f.channel in ('email', 'whatsapp', 'digested')
-              and f.created_at > now() - interval '24 hours')), '{}')
-    into v_dup, v_send
-    from public.agent_actions a where a.id = any(v_ids);
-  v_n := cardinality(v_send);
-
-  if v_n = 1 then
-    -- One problem reads as it always did.
-    select a.detail->>'event', a.detail->>'detail' into v_event, v_detail from public.agent_actions a where a.id = v_send[1];
-  elsif v_n > 1 then
-    with items as (
-      select a.id,
-             regexp_replace(coalesce(a.detail->>'dedupe_key', 'handoff:' || a.id), '^it_new_bug:', '') as ref,
-             regexp_replace(coalesce(a.detail->>'event', ''), '^New problem the IT engineer could not fix: ', '') as title
-        from public.agent_actions a where a.id = any(v_send)),
-    fam as (
-      select i.*, case when regexp_replace(i.ref, ':[^:]*$', '') ~ ':' then regexp_replace(i.ref, ':[^:]*$', '') else i.ref end as family
-        from items i),
-    g as (
-      select family, count(distinct ref) as n, min(title) as title, min(ref) as ref, min(id) as first_id,
-             row_number() over (order by min(id)) as rn
-        from fam group by family)
-    select count(*)::int,
-           string_agg(case when n = 1 then '- ' || left(title, 140) || ' (reference ' || ref || ')'
-                           else '- ' || n || ' problems of one kind, ' || family || ', e.g. ' || left(title, 110)
-                                || ' (references ' || family || ':...)' end,
-                      E'\n' order by rn) filter (where rn <= 15)
-      into v_lines, v_detail
-      from g;
-    -- ponytail: 15 lines keep the WhatsApp twin readable; the rest is on each handoff in the OS.
-    v_event := v_n || ' new problems the IT engineer could not fix';
-    v_detail := 'Raised since the last message, one line each; problems of one kind raised together are one line with their count.'
-             || E'\n\n' || v_detail
-             || case when v_lines > 15 then E'\n- and ' || (v_lines - 15) || ' more lines, each on its handoff in the OS' else '' end
-             || E'\n\nNothing inside the company fixed these, so each needs a code or configuration change. '
-             || 'Each stays tracked until the IT engineer confirms it is gone.';
-  end if;
-
-  if v_n > 0 then
-    v_key := 'it_new_bug_digest:' || v_send[1] || '-' || v_send[v_n];
-    if v_stub then
-      -- A TEST NEVER REACHES HIM: nothing is queued and nothing is logged as told.
-      v_res := jsonb_build_object('stubbed', true);
-    else
-      select coalesce(max(id), 0) into v_before from public.notifications;
-      perform set_config('app.qd_delivery_tracked', 'on', true);
-      v_res := public.fn_notify_founder(p_event => v_event, p_detail => v_detail, p_level => 'high',
-                                        p_kind => 'it_new_bug', p_dedupe_key => v_key, p_owner_agent => 'customer_support');
-      select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
-       where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
-      perform set_config('app.qd_delivery_tracked', 'off', true);
-      -- Each problem is recorded as told, under its own key, so the 24-hour promise holds next tick --
-      -- only when he WAS told: a digest the policy routed elsewhere must not count as telling him.
-      if coalesce((v_res->>'emailed')::boolean, false) then
-        insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
-        select 'high', a.detail->>'event', 'told in ' || v_key, 'digested', a.detail->>'dedupe_key'
-          from public.agent_actions a where a.id = any(v_send);
-      end if;
+  for x in select a.id, a.detail, a.evidence from public.agent_actions a
+            where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'pending'
+              and a.detail->>'type' = 'delivery.request' and a.detail->>'recipient_role' = 'founder'
+              and a.detail->>'kind' = 'it_new_bug' and a.evidence->>'digest' = 'pending'
+            order by a.id loop
+    -- Anything that is not "a new bug nobody could fix" (today: the CEO-silence reports) is the CEO's.
+    if coalesce(x.detail->>'dedupe_key', '') !~ '^it_new_bug:' then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
+        'why', 'instruction 642: kept internal; the CEO is asked every tick until it answers',
+        'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
+      n_int := n_int + 1; continue;
     end if;
-  end if;
-  if not v_stub and cardinality(v_dup) > 0 then
-    insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
-    select 'high', a.detail->>'event', a.detail->>'detail', 'deduped', a.detail->>'dedupe_key'
-      from public.agent_actions a where a.id = any(v_dup);
-  end if;
-
-  -- Every held request is completed with what became of it; the delivery watch takes it from there.
-  for x in select a.id, a.evidence from public.agent_actions a where a.id = any(v_ids) order by a.id loop
-    if x.id = any(v_dup) then
-      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'deduped',
-        'notify', jsonb_build_object('emailed', false, 'deduped', true, 'kind', 'it_new_bug')));
-    else
-      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'sent',
-        'digest_key', v_key, 'digest_size', v_n, 'notify', v_res, 'notification_ids', v_fan, 'notification_id', v_fan->0)
-        || case when v_stub then jsonb_build_object('stubbed', true) else '{}'::jsonb end);
+    select * into f from public.it_engineer_finding where issue_key = regexp_replace(x.detail->>'dedupe_key', '^it_new_bug:', '');
+    if not found or f.closed_at is not null then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'fixed',
+        'why', 'closed before the digest: ' || coalesce(f.close_note, 'no finding row'),
+        'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
+      n_fixed := n_fixed + 1; continue;
     end if;
+    -- His ruling that something is NOT his wins over any pattern that would ask him.
+    select c.why, c.to_founder into v_why, v_his from public.it_founder_decision_class c where f.issue_key like c.issue_key_like
+     order by c.to_founder, length(c.issue_key_like) desc limit 1;
+    if found and not v_his then
+      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'internal',
+        'why', v_why, 'notify', jsonb_build_object('emailed', false, 'kind', 'it_new_bug')));
+      n_int := n_int + 1; v_why := null; continue;
+    end if;
+    if not found then v_why := null; end if;
+    if v_why is null and f.started_at > p_now - interval '24 hours' then
+      n_wait := n_wait + 1; continue;                          -- still young: judged again tomorrow
+    end if;
+    v_items := v_items || jsonb_build_object('id', x.id, 'decision', v_why is not null, 'key', f.issue_key,
+      'family', case when regexp_replace(f.issue_key, ':[^:]*$', '') ~ ':' then regexp_replace(f.issue_key, ':[^:]*$', '') else f.issue_key end,
+      'title', regexp_replace(left(f.title, 140), '[.\s]+$', ''), 'since', f.started_at,
+      'owner', coalesce(f.evidence->>'owner_seat', 'it_engineer'), 'why', v_why);
+    if v_why is not null then n_dec := n_dec + 1; else n_flt := n_flt + 1; end if;
   end loop;
 
-  return jsonb_build_object('sent', v_n > 0, 'items', cardinality(v_ids), 'problems', v_n, 'lines', v_lines,
-                            'deduped', cardinality(v_dup), 'digest_key', v_key, 'event', v_event, 'detail', v_detail,
+  if jsonb_array_length(v_items) = 0 then
+    if not v_stub then
+      insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+      values ('info', 'IT daily digest: nothing needs the founder today',
+              jsonb_build_object('fixed', n_fixed, 'internal', n_int, 'waiting', n_wait)::text, 'os', v_key);
+    end if;
+    return jsonb_build_object('sent', false, 'reason', 'nothing needs him today', 'digest_key', v_key,
+                              'fixed', n_fixed, 'internal', n_int, 'waiting', n_wait, 'stubbed', v_stub);
+  end if;
+
+  -- One sentence per decision; faults of one family raised together are one sentence with their count.
+  select string_agg(line, E'\n' order by decision desc, first_id)
+    into v_detail
+    from (select bool_or((i->>'decision')::boolean) decision, min((i->>'id')::bigint) first_id,
+                 case when bool_or((i->>'decision')::boolean) then
+                   '- DECISION: ' || min(i->>'title') || '. Only you can decide this: ' || min(i->>'why')
+                   || '. The CEO keeps it open until you answer (reference ' || min(i->>'key') || ').'
+                 else
+                   '- ' || case when count(*) > 1 then count(*) || ' problems of one kind, e.g. ' else '' end
+                   || min(i->>'title') || ', open since '
+                   || to_char(min((i->>'since')::timestamptz) at time zone 'Asia/Dubai', 'DD Mon') || '. Nothing inside the company fixed it; the '
+                   || replace(min(i->>'owner'), '_', ' ') || ' has it, the engineers are making the code or configuration change, and the IT engineer re-checks it every 15 minutes and closes it when it is gone (reference '
+                   || case when count(*) > 1 then min(i->>'family') || ':...' else min(i->>'key') end || ').'
+                 end line
+            from jsonb_array_elements(v_items) i
+           group by case when (i->>'decision')::boolean then i->>'key' else i->>'family' end) g;
+  v_event := 'IT today: ' || case when n_dec > 0 then n_dec || ' decision' || case when n_dec > 1 then 's' else '' end || ' for you' else '' end
+             || case when n_dec > 0 and n_flt > 0 then ', ' else '' end
+             || case when n_flt > 0 then n_flt || ' fault' || case when n_flt > 1 then 's' else '' end || ' open more than a day' else '' end;
+  v_detail := 'The one IT message of the day. It carries only what needs you: decisions only you can make, and faults '
+           || 'the company could not fix that have been open more than 24 hours. Everything else stays with the CEO and the seats.'
+           || E'\n\n' || v_detail;
+
+  if v_stub then
+    v_res := jsonb_build_object('stubbed', true);               -- A TEST NEVER REACHES HIM
+  else
+    select coalesce(max(id), 0) into v_before from public.notifications;
+    perform set_config('app.qd_delivery_tracked', 'on', true);
+    v_res := public.fn_notify_founder(p_event => v_event, p_detail => v_detail, p_level => 'normal',
+                                      p_kind => 'it_daily_digest', p_dedupe_key => v_key, p_owner_agent => 'customer_support');
+    select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
+     where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
+    perform set_config('app.qd_delivery_tracked', 'off', true);
+  end if;
+  -- Each item told is completed with the digest's notification ids; the delivery watch takes it from there.
+  for x in select (i->>'id')::bigint id from jsonb_array_elements(v_items) i loop
+    perform public.fn_seat_handoff_complete(x.id, (select (a.evidence - 'waiting') from public.agent_actions a where a.id = x.id)
+      || jsonb_build_object('digest', 'sent', 'digest_key', v_key, 'notify', v_res, 'notification_ids', v_fan, 'notification_id', v_fan->0)
+      || case when v_stub then jsonb_build_object('stubbed', true) else '{}'::jsonb end);
+  end loop;
+
+  return jsonb_build_object('sent', true, 'digest_key', v_key, 'event', v_event, 'detail', v_detail,
+                            'decisions', n_dec, 'faults', n_flt, 'fixed', n_fixed, 'internal', n_int, 'waiting', n_wait,
                             'notify', v_res, 'notification_ids', v_fan, 'stubbed', v_stub);
 end $function$
 
@@ -65490,6 +65502,7 @@ ALTER TABLE public.it_engineer_finding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_scanner ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_expiry ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_founder_decision_class ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_hold_signature ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_incident ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_playbook ENABLE ROW LEVEL SECURITY;
@@ -65797,6 +65810,7 @@ CREATE POLICY it_change_source_service_role_only ON public.it_change_source AS P
 CREATE POLICY it_credential_rotation_service_role_only ON public.it_credential_rotation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_duty_schedule_service_role_only ON public.it_duty_schedule AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_expiry_service_role_only ON public.it_expiry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_founder_decision_class_service_role_only ON public.it_founder_decision_class AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_hold_signature_service_role_only ON public.it_hold_signature AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_incident_service_role_only ON public.it_incident AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_playbook_service_role_only ON public.it_playbook AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

@@ -1,7 +1,0 @@
-22 Sep 2026 — it_engineer (policy, register) / customer_support (the digest), founder instructions 642 and 641.
-New file, not yet in MANIFEST.txt. Coordinator: `node scripts/apply_sql.mjs scripts/sql/the_founder_hears_from_it_once_a_day.sql --apply --ddl`,
-expect the verdict row 'PROBE OK: one IT digest a day ...', then append the file to the END of MANIFEST.txt and delete this note.
-Drops fn_customer_support_sends_the_it_digest(interval) and creates (timestamptz); fn_it_loop_tick calls it with no argument, so it keeps working.
-Rehearsed rolled back 22 Sep 2026 (file + behaviour probe in one aborted transaction): held 5, too-early nothing, decision + 30 h fault told,
-3 h fault waits, closed = fixed, CEO-silence = internal, second run the same day refused, 0 founder rows.
-After apply: node --test scripts/checks/the_founder_hears_from_it_once_a_day.test.mjs (the policy test stops skipping).
