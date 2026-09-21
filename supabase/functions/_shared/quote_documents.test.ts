@@ -16,7 +16,7 @@
 // reachable (`deno test --allow-net`), and the sample renderer in the PR proves the Arabic pages.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { PDFDocument, PDFDict, PDFName } from 'https://esm.sh/pdf-lib@1.17.1';
-import { quoteDocument, compareDocument, compareTable, inquiryDocument, jobNoOf, quoteRef, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv, type Item } from './quote_documents.ts';
+import { DOC_VERSION, quoteDocument, compareDocument, compareTable, inquiryDocument, jobNoOf, quoteRef, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv, type Item } from './quote_documents.ts';
 import { footerLines, footerLinesAr, FALLBACK } from './doc_template.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 import { renderPdf } from '../pdf_native/render.ts';
@@ -336,7 +336,7 @@ for (const c of ['hvac', 'fitout'] as const) {
         : ['الطلب والجهة مقدّمة العرض', 'نطاق العمل والمواصفات الفنية', 'فحص اكتمال العرض', 'الشروط التجارية', 'وحّدته QuotesDone', 'أعدّه مهندس مبيعات QuotesDone', 'المورّد A', 'مواصفات المواد لكل بند', 'التسليم / مدة التنفيذ', 'التركيب', 'الضمان — المدة والتغطية'];
       for (const w of want) assertStringIncludes(s, w);
       assertEquals(blocksOf(body, 'checks')[0].items.length, 4, 'the four completeness checks');
-      assertStringIncludes(body.control, 'v2.0');
+      assertStringIncludes(body.control, DOC_VERSION);
       assertStringIncludes(body.control, lang === 'en' ? 'Prepared by the QuotesDone sales engineer' : 'أعدّه مهندس مبيعات QuotesDone');
       assertStringIncludes(JSON.stringify(body.cover), q.quote_amount!.toLocaleString('en-AE'));
       assertEquals(body.cover.figures.length, 4);
@@ -393,7 +393,7 @@ for (const c of ['hvac', 'fitout'] as const) {
       // deno-lint-ignore no-explicit-any
       const flags = spec.rows.filter((r: unknown[]) => r.length > 1).flatMap((r: any[]) => r.slice(2).map((x) => x.flag));
       assert(flags.includes('match') && flags.includes('differs') && flags.includes('missing'), 'the table marks matches, differences and gaps');
-      assertStringIncludes(body.control, 'v2.0');
+      assertStringIncludes(body.control, DOC_VERSION);
       if (lang === 'ar') { assertFullyArabic(body); assert(!s.includes('"Supplier '), 'an untranslated supplier label on the Arabic report'); }
       assertNoIdentity(body, c); assertNoVat(body, lang); assertNoMachinery(body);
       await assertRenders(body, lang);
