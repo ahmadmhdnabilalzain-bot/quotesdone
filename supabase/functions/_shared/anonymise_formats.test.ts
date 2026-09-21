@@ -128,7 +128,9 @@ Deno.test('TRUST BOUNDARY: client boxes never make an unreadable page shareable'
   // A photo, a scan or a CAD raster: no text layer. Held, even when the client "covered" everything.
   assert(!supplierPageReadable({ runs: [] }), 'scan page');
   assert(!supplierPageReadable(undefined), 'image upload with no PDF at all');
-  assert(!supplierPageReadable({ runs: [{}], rotate: 90 }), 'rotated page');
+  // 21 Sep 2026: a rotated page with a text layer IS readable — its runs are in the display frame
+  // (pdf_text_positions), so the server's boxes land on the raster the portal rendered.
+  assert(supplierPageReadable({ runs: [{}], rotate: 90 }), 'rotated page with text is readable');
   // The server's own detection was not confident: client boxes are ignored, the answer is HOLD.
   assertEquals(supplierBoxes({ boxes: [[]], confidence: 'low', residual: [] }, full, 1), null);
   assertEquals(supplierBoxes({ boxes: [[]], confidence: 'medium', residual: ['seed:mansoori'] }, full, 1), null);

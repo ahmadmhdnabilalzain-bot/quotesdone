@@ -49,7 +49,11 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
   const fromText = (text: string, where: string, confidence?: 'low') => {
     const lines = text.split('\n').map(stripPrices).filter((t) => t.length > 2).map((t) => ({ page: 1, text: t }));
     for (const b of boqFromLines(lines)) {
-      boq.push({ ...b, section: where, basis: b.basis.replace(/^printed on page \d+/, `written in ${where}`).replace(/^schedule row on page \d+/, `row in ${where}`), ...(confidence ? { confidence } : {}) });
+      // OCR TEXT IS NEVER "READY" (21 Sep 2026, founder instruction 580). Measured on a real 8-sheet
+      // mechanical set: the portal's whole-page OCR at ~72 dpi produced 4 lines of noise ("Ere Mill || + |
+      // I 0 99 5" = 2 m), each with a qty and no qty_status, so NewRequest marked the brief ready with
+      // invented quantities. A line read from OCR carries its number as OUR estimate to confirm.
+      boq.push({ ...b, section: where, basis: b.basis.replace(/^printed on page \d+/, `written in ${where}`).replace(/^schedule row on page \d+/, `row in ${where}`), ...(confidence ? { confidence, qty_status: 'to_confirm', estimate: b.qty } : {}) });
     }
   };
 
