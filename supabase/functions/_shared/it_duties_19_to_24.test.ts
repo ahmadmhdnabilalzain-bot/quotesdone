@@ -3,7 +3,7 @@
 // table export's rows are, how Vercel's FOCUS charges are summed, and what a blocklist answer means.
 import { sumFocusCharges } from './it_duty_readings.ts';
 import { opensAs, rowsOf } from './it_restore_drill.ts';
-import { dnsblVerdict } from './it_scheduled_readings.ts';
+import { dnsblVerdict, templateEntries } from './it_scheduled_readings.ts';
 
 const eq = (a: unknown, b: unknown, m: string) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
@@ -41,4 +41,16 @@ Deno.test('a blocklist refusal is never a listing and never clean', () => {
   eq(dnsblVerdict('multi.uribl.com', ['127.0.0.2']), 'listed', 'uribl black');
   eq(dnsblVerdict('multi.surbl.org', ['127.0.0.1']), 'refused', 'surbl refusal');
   eq(dnsblVerdict('multi.surbl.org', ['10.0.0.1']), 'refused', 'an answer outside 127/8 means nothing');
+});
+
+// 22 Sep 2026: the reading took {key:{lang:sid}} as a flat map, found no SID and reported every template
+// 'unavailable', so no unapproved template ever became a finding. Replays the live shape.
+Deno.test('every registered WhatsApp template is read per language, so an unapproved one can be measured', () => {
+  eq(templateEntries('{"supplier_doc_expiry":{"en":"HXa","ar":"HXb"},"founder_alert":{"en":"HXc"}}'),
+    [{ name: 'supplier_doc_expiry_en', sid: 'HXa' }, { name: 'supplier_doc_expiry_ar', sid: 'HXb' }, { name: 'founder_alert_en', sid: 'HXc' }],
+    'nested map');
+  eq(templateEntries('{"legacy":"HXd"}'), [{ name: 'legacy', sid: 'HXd' }], 'flat legacy value');
+  eq(templateEntries('{"empty":{}}'), [{ name: 'empty', sid: null }], 'a key with no SID is reported, not dropped');
+  eq(templateEntries('not json'), [{ name: 'wa_template_sids', sid: null }], 'an unreadable map is reported');
+  eq(templateEntries(undefined), [], 'no map');
 });
