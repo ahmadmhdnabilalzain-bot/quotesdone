@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS, DISPUTE_EVENTS, stripeEventMode, signingSecretFor } from '../_shared/stripe_events.ts';
+import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS, DISPUTE_EVENTS, stripeEventMode, signingSecretFor, refundsInEvent } from '../_shared/stripe_events.ts';
 import { handleRevealInvoiceEvent } from './invoice_event.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { shortfallAfterPayment } from '../_shared/reveal_fee.ts';
@@ -319,6 +319,11 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           const n = (settled || []).length;
           if (n === 0) { await logRun('ok', { kind: 'supplier_registration', duplicate: true, supplier_id: supId }, 'Duplicate Stripe delivery for supplier registration ignored - that supplier was already marked paid.'); }
           else {
+            // What the supplier's invoice and receipt print (supplier_payment_documents.ts, 22 Sep 2026):
+            // the amount and the payment reference. A SEPARATE, best-effort write so a missing column
+            // (scripts/sql/the_suppliers_annual_listing_fee_keeps_what_was_paid.sql not yet applied) can
+            // never undo the settlement above.
+            try { await admin.from('leads').update({ registration_payment_ref: payRef, registration_amount_aed: paidAmount }).eq('id', supId); } catch (_e) { /* the settlement stands */ }
             try {
               await admin.rpc('fn_seat_handoff', { p_from: 'accountant', p_to: 'sales_engineer', p_type: 'payment.received',
                 p_subject_table: 'leads', p_subject_id: payRef,
@@ -482,8 +487,21 @@ Deno.serve(observe('stripe_webhook', async (req) => {
     // moved. It carries the same bare refund object as refund.created/updated.
     if ((REFUND_EVENTS as readonly string[]).includes(String(event.type))) {
       const o = event.data?.object || {};
-      // charge.refunded delivers a charge with a refunds list; refund.* deliver the refund itself.
-      const refunds = Array.isArray(o?.refunds?.data) ? o.refunds.data : (o?.object === 'refund' ? [o] : []);
+      // refund.* deliver the refund itself; charge.refunded's Charge may not embed its refunds, so they
+      // are asked of Stripe by charge id with the key of the event's mode (refundsInEvent).
+      const where = refundsInEvent(String(event.type), o);
+      // deno-lint-ignore no-explicit-any
+      let refunds: any[] = 'refunds' in where ? where.refunds : [];
+      if ('lookup' in where) {
+        try {
+          const sk = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
+          if (sk) {
+            const lj = await fetch('https://api.stripe.com/v1/refunds?limit=100&charge=' + encodeURIComponent(where.lookup),
+              { headers: { Authorization: 'Bearer ' + sk } }).then((r) => r.json()).catch(() => ({}));
+            if (Array.isArray(lj?.data)) refunds = lj.data;
+          }
+        } catch (_e) { /* falls through to the quarantine below, which names it */ }
+      }
       if (!refunds.length) {
         await logRun('error', { type: event.type, id: String(o?.id || '') },
           'REFUND EVENT WITH NO REFUND OBJECT - nothing settled; check the Stripe payload shape');

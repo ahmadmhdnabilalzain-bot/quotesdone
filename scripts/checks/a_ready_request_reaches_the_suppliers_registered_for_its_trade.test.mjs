@@ -59,7 +59,7 @@ async function probe(label, capTrades, requested) {
         -- on conflict: two runs of this check probing the same trade at once would otherwise serialize
         -- on the unique index (bucket_id, name) until the first one rolled back.
         insert into storage.objects (bucket_id, name) values ('supplier-docs', v_lic), ('supplier-docs', v_prof)
-        on conflict (bucket_id, name) do nothing;
+        on conflict do nothing;  -- no target: since Supabase storage versioning (measured 22 Sep 2026) the (bucket_id, name) uniques are partial indexes, which a column list cannot name (42P10)
         -- leads.id is GENERATED ALWAYS; the probe rolls back, so the id it takes is never kept.
         insert into public.leads (company_name, email, phone, owner_phone_verified, owner_email_verified,
                                   license_doc_path, company_profile_doc_path, signed_terms_path,

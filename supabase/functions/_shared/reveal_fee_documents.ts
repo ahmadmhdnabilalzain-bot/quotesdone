@@ -88,11 +88,12 @@ function refundFacts(s: RevealSale, lang: Lang) {
 
 // deno-lint-ignore no-explicit-any
 type Block = Record<string, any>;
-const CO = {
+/** The issuer line on every payment document (the supplier documents reuse it). */
+export const ISSUER = {
   en: { name: FALLBACK.name, licence: 'Trader License No. 1633275 (Dubai Department of Economy and Tourism)', city: 'Dubai, United Arab Emirates' },
   ar: { name: FALLBACK.name, licence: 'رخصة تاجر رقم 1633275 (دائرة الاقتصاد والسياحة في دبي)', city: 'دبي، الإمارات العربية المتحدة' },
 };
-const NO_VAT = {
+export const NO_VAT = {
   en: 'QuotesDone Technologies is not registered for VAT; no VAT has been charged on this amount.',
   ar: 'QuotesDone Technologies غير مسجّلة في ضريبة القيمة المضافة؛ ولم تُحتسب أي ضريبة على هذا المبلغ.',
 };
@@ -122,7 +123,7 @@ function charges(s: RevealSale, lang: Lang): Block {
   return { t: 'table', head: ar ? ['#', 'البيان', 'المبلغ'] : ['#', 'Description', 'Amount'], rows, widths: [0.06, 0.7, 0.24] };
 }
 function parties(s: RevealSale, lang: Lang, toLabel: string): Block {
-  const ar = lang === 'ar', co = CO[lang], c = s.customer;
+  const ar = lang === 'ar', co = ISSUER[lang], c = s.customer;
   const to = [c.name, c.email, c.phone].filter(Boolean).join(' · ');
   return { t: 'kv', pairs: [[ar ? 'من' : 'From', `${co.name} · ${co.licence}`], [toLabel, to]] };
 }

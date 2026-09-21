@@ -15,12 +15,22 @@ export const NOT_OWNED_CHANNELS = ['sms', 'whatsapp'] as const;
 export const OWNED_CHANNEL_FILTER = `channel.is.null,channel.not.in.(${NOT_OWNED_CHANNELS.join(',')})`;
 
 // The queue query itself lives here so channels.test.ts builds the exact request the function sends.
-// Two .or() calls become two `or=` params, which PostgREST ANDs: (status in queued/pending/null)
-// AND (channel owned).
-export function selectQueue(admin: SupabaseClient, limit: number) {
+// Each .or() call becomes its own `or=` param, which PostgREST ANDs: (status in queued/pending/null)
+// AND (channel owned) AND (due).
+// NOT BEFORE ITS TIME (22 Sep 2026, customer_support). enqueue_supplier_invites spreads a day's supplier
+// invitations across the Dubai working window by setting notifications.not_before; a row is not
+// selected until it is due, so the queue never drains a new domain's whole day in one burst. NULL (every
+// other row) means now. This needs the column: apply
+// the_invitations_warm_up_on_measured_health_and_leave_across_the_working_day.sql BEFORE deploying.
+export function dueFilter(now: Date): string {
+  return `not_before.is.null,not_before.lte.${now.toISOString()}`;
+}
+
+export function selectQueue(admin: SupabaseClient, limit: number, now: Date = new Date()) {
   return admin.from('notifications').select('*')
     .or('status.eq.queued,status.eq.pending,status.is.null')
     .or(OWNED_CHANNEL_FILTER)
+    .or(dueFilter(now))
     .order('created_at', { ascending: true }).limit(limit);
 }
 
