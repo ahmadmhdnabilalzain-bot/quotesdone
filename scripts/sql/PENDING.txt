@@ -38,3 +38,10 @@ scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :
 # Needs PR #787's campaign file applied first (it is). Rehearsed in a rolled-back transaction: PROBE OK.
 # Apply outside a campaign hour (it adds a nullable column to leads, lock_timeout 3 s), THEN deploy
 # resilience_ping and claim_lookup. Gates invite_enabled / supplier_outreach_golive stay 'false'.
+#
+# 21 Sep 2026 — customer_support, a bounce report is proven to arrive every day. DEPLOY resilience_ping FIRST
+# (its STEP_RUN gains deliveryCanary; a schedule row for a step the code lacks fails every tick), then apply the
+# change file with --apply --ddl, then run the probe. Rehearsed rolled-back 21 Sep: PROBE OK (queue -> silence
+# raises delivery_feedback:bounce_reports_silent -> next day's arrival closes it, no canary suppression left).
+scripts/sql/a_bounce_report_is_proven_to_arrive_every_day_or_it_is_a_finding.sql :: not applied yet: waits for resilience_ping to be deployed with deliveryCanary, then apply --ddl
+scripts/sql/a_bounce_report_is_proven_to_arrive_every_day_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED until then.

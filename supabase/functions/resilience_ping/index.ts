@@ -190,6 +190,20 @@ async function supplierOutreachTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// A BOUNCE REPORT IS PROVEN TO ARRIVE EVERY DAY (21 Sep 2026, customer_support). Before the supplier
+// campaign the last bounce resend_webhook had recorded was 15 Aug, and nothing could tell "no bounces"
+// from "reports stopped arriving" -- the campaign's 5% brake reads zero either way. Once a day, while real
+// mail is going out, this queues one mail to Resend's bounce test sink (the outbox drain later in the same
+// tick sends it) and judges the previous one: silence 30 minutes after sending is the IT finding
+// delivery_feedback:bounce_reports_silent (a_bounce_report_is_proven_to_arrive_every_day_or_it_is_a_finding.sql).
+async function deliveryCanaryTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_delivery_feedback_canary_tick');
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -1008,6 +1022,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   itlater: { run: itLaterDutiesTick, nested: true },
   specoffer: { run: specOfferTick },
   supplierOutreach: { run: supplierOutreachTick },
+  deliveryCanary: { run: deliveryCanaryTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.

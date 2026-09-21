@@ -37,6 +37,7 @@ import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { takeInStatement } from '../_shared/bank_statement_intake.ts';
+import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -218,6 +219,24 @@ export const handler = observe('resend_inbound', async (req) => {
       await handToBookkeeper(refusedRow?.id, [], `Mail to ${to} from ${from} was REFUSED: that address is not on app_secrets.expense_forwarders. Nothing was booked and no attachment was stored. Decide whether this sender should be added to the allowlist; if it is a company expense, add them and ask for a re-forward.`);
       await logRun('ok', { expenses_mailbox: 1, authorised: 0, from, to }, 'mail to the expenses mailbox was refused: ' + from + ' is not on the expense forwarder allowlist. Recorded as inbound_messages#' + (refusedRow?.id ?? '?') + ' and handed to the accountant.');
       return J({ ok: true, receipt: false, booked: false, reason: 'sender_not_allowlisted' });
+    }
+
+    // ---- AN UNSUBSCRIBE BY EMAIL IS HONOURED HERE (21 Sep 2026, customer_support) ----
+    // See _shared/unsubscribe_mailbox.ts for the measurement: the reply path the supplier mail offered
+    // had no reader. The sender is suppressed exactly as the link does it, except that an existing row
+    // is left alone -- a hard bounce or complaint is a deliverability fact and must not be relabelled a
+    // preference. A 'reply' row is undone the way it was made: by writing to us.
+    // Accepted limit: a From header can be forged. The worst a forger achieves is that we stop mailing
+    // an address, which is the same property every mailto List-Unsubscribe has; nothing is sent.
+    if (!isExpenseMailbox && from && isUnsubscribeRequest({ to, subject, text: fullText })) {
+      const { error: supErr } = await admin.from('email_suppressions')
+        .upsert({ email: from, reason: 'unsubscribe', source: 'reply' }, { onConflict: 'email', ignoreDuplicates: true });
+      await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: fullText, html: fullHtml,
+        provider_email_id: providerEmailId, attachments_count: 0, matched_existing: false, needs_review: !!supErr });
+      await logRun(supErr ? 'error' : 'ok', { unsubscribe: 1, suppressed: supErr ? 0 : 1, from },
+        supErr ? ('an unsubscribe email from ' + from + ' could NOT be recorded: ' + String(supErr.message || '').slice(0, 200) + ' - kept for review so a person removes them')
+               : ('unsubscribe by email: ' + from + ' is suppressed and will not be mailed again.'));
+      return J({ ok: true, unsubscribe: true, suppressed: !supErr }, supErr ? 500 : 200);
     }
 
     let att: { bytes: Uint8Array; name: string; mime: string; ext: string } | null = null;

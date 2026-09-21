@@ -17,12 +17,12 @@ Deno.env.set('SUPABASE_URL', 'http://stub.invalid');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'zz-demo-key');
 Deno.env.set('RESEND_INBOUND_NO_SERVE', '1');
 
-type Call = { url: string; method: string; body: string };
+type Call = { url: string; method: string; body: string; prefer: string };
 const calls: Call[] = [];
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
   const req = new Request(input, init);
   const url = req.url; const body = req.method === 'GET' ? '' : await req.text();
-  calls.push({ url, method: req.method, body });
+  calls.push({ url, method: req.method, body, prefer: req.headers.get('Prefer') || '' });
   const json = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
   const u = new URL(url);
   if (u.hostname !== 'stub.invalid') return json({ error: 'not found' }, 404);          // VirusTotal etc.
@@ -125,4 +125,36 @@ Deno.test({ name: 'a statement that does not add up is ingested empty with a fin
   assert(/does not add up/.test(ing.p_note));
   assertEquals(calls.filter((c) => /fn_accountant_bank_balance_record/.test(c.url)).length, 0);
   noReceiptPath();
+} });
+
+// 21 Sep 2026 (customer_support): the supplier mail's List-Unsubscribe mailto and footer now name
+// unsubscribe@mail.quotesdone.com. Before, an unsubscribe by email reached an inbox no code read.
+async function signed(data: Record<string, unknown>): Promise<Request> {
+  const raw = JSON.stringify({ type: 'email.received', data });
+  const id = 'msg_zz_demo_unsub'; const ts = String(Math.floor(Date.now() / 1000));
+  const key = await crypto.subtle.importKey('raw', SECRET_RAW, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(id + '.' + ts + '.' + raw)))));
+  return new Request('http://stub.invalid/functions/v1/resend_inbound?s=' + TOKEN, {
+    method: 'POST', body: raw, headers: { 'svix-id': id, 'svix-timestamp': ts, 'svix-signature': 'v1,' + sig } });
+}
+const suppressions = () => calls.filter((c) => c.url.includes('/rest/v1/email_suppressions') && c.method === 'POST');
+
+Deno.test({ name: 'an email to the unsubscribe mailbox suppresses its sender and keeps an existing bounce record', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  calls.length = 0;
+  const out = await (await handler(await signed({ email_id: 'zz-demo-unsub-1', from: 'ZZ DEMO Supplier <Supplier.Owner@example.invalid>',
+    to: ['unsubscribe@mail.quotesdone.com'], subject: 'unsubscribe', text: 'This is a long enough body to skip the fetch.' }))).json();
+  assertEquals([out.unsubscribe, out.suppressed], [true, true]);
+  const [s] = suppressions();
+  const row = JSON.parse(s.body);
+  assertEquals(Array.isArray(row) ? row[0] : row, { email: 'supplier.owner@example.invalid', reason: 'unsubscribe', source: 'reply' });
+  assert(s.url.includes('on_conflict=email'));
+  assert(/resolution=ignore-duplicates/.test(s.prefer), 'an existing hard-bounce or complaint row is never relabelled');
+  assertEquals(calls.filter((c) => /ai_gateway|leads/.test(c.url) && c.method !== 'GET').length, 0);   // no model, no supplier record touched
+} });
+
+Deno.test({ name: 'a supplier document email that mentions stopping is not an unsubscribe', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  calls.length = 0;
+  await handler(await signed({ email_id: 'zz-demo-unsub-2', from: 'ZZ DEMO Supplier <owner@example.invalid>',
+    to: ['docs@mail.quotesdone.com'], subject: 'Re: licence renewal', text: 'Please do not stop the tender. Licence attached next week.' }));
+  assertEquals(suppressions().length, 0);
 } });

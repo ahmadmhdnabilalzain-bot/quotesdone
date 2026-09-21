@@ -33,6 +33,9 @@ Deno.test('the plain-text part carries the body, the licence footer and the unsu
   assertStringIncludes(en, 'Licence 1633275');
   const ar = plainTextPart({ body: 'السادة', unsub: UNSUB, ar: true, internal: false });
   assertStringIncludes(ar, 'إلغاء الاشتراك: ' + UNSUB);
+  // The second way out names the mailbox resend_inbound reads, never "reply" (that went to an unread inbox).
+  assertStringIncludes(en, 'or email unsubscribe@mail.quotesdone.com to be removed.');
+  assert(!/reply to this email/i.test(en));
   assert(!/Unsubscribe|Dubai, UAE/.test(ar), 'no English frame words in the Arabic text part');
 });
 
@@ -48,5 +51,5 @@ Deno.test('the rendered invitation has a clickable portal link and the unsubscri
   assertStringIncludes(ar, 'href="https://quotesdone.com/ar/portal?t=');
   assert(!ar.includes('>Unsubscribe</a>'));
   assertStringIncludes(ar, '<div>المؤسس، QuotesDone</div>');
-  assertStringIncludes(ar, 'أو الرد على هذه الرسالة لإزالة عنوانكم من القائمة');
+  assertStringIncludes(ar, 'أو مراسلة unsubscribe@mail.quotesdone.com لإزالة عنوانكم من القائمة');
 });

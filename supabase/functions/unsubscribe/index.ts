@@ -45,7 +45,7 @@ Deno.serve(observe('unsubscribe', async (req) => {
       (!!legacyKey && t === (await tok(e, legacyKey)))
     );
     if (!tokenOk) {
-      return new Response(page('Invalid link', 'This unsubscribe link is invalid or has expired. If you keep receiving emails, reply to any of them and we will remove you.'), { status: 400, headers: H });
+      return new Response(page('Invalid link', 'This unsubscribe link is invalid or has expired. If you keep receiving emails, write to unsubscribe@mail.quotesdone.com from that address and it is removed automatically.'), { status: 400, headers: H });
     }
     const { data: cur } = await admin.from('email_suppressions').select('email,reason,source').eq('email', e).maybeSingle();
     if (req.method !== 'POST') {
@@ -68,6 +68,6 @@ Deno.serve(observe('unsubscribe', async (req) => {
     await admin.from('email_suppressions').upsert({ email: e, reason: 'unsubscribe', source: 'link' }, { onConflict: 'email' });
     return new Response(page('Unsubscribed', `<b>${esc(e)}</b> has been removed.<br><br>You will no longer receive sourcing requests from QuotesDone. Sorry to see you go — if this was a mistake, use the button below or reply to any earlier email.` + btn(link('resub'), 'Resubscribe me', '#0d9488')), { status: 200, headers: H });
   } catch (_e) {
-    return new Response(page('Something went wrong', 'We could not process that right now. Please reply to any of our emails and we will remove you manually.'), { status: 200, headers: H });
+    return new Response(page('Something went wrong', 'We could not process that right now. Please write to unsubscribe@mail.quotesdone.com from that address and it is removed automatically.'), { status: 200, headers: H });
   }
 }));

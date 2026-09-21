@@ -11,6 +11,7 @@ import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { ownsChannel, selectQueue } from './channels.ts';
+import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
@@ -206,7 +207,9 @@ Deno.serve(observe('send_outbox', async (req) => {
         const mail: Record<string, unknown> = { from, to: [n.to_email], reply_to: reply, subject: n.subject || 'QuotesDone', html: htmlBody,
           text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }) };
         if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
-        if (unsub) mail.headers = { 'List-Unsubscribe': `<${unsub}>, <mailto:${reply}?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
+        // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
+        // the reply-to address: that one is a Microsoft 365 inbox and no code ever read an unsubscribe there.
+        if (unsub) mail.headers = { 'List-Unsubscribe': `<${unsub}>, <mailto:${UNSUBSCRIBE_MAILBOX}?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
         const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(mail) });
         // KEEP THE PROVIDER'S OWN NAME FOR THE MESSAGE. status='sent' only ever meant "Resend
         // answered 2xx"; without the id, that claim could never be taken back to the provider and
