@@ -57,9 +57,17 @@ export interface ProjectRfq {
   pipeline_stage: string | null;
   budget: number | null;
   expected_value: number | null;
+  /** The quote the customer paid to reveal on this RFQ (transactions.quote_amount), else null. */
+  revealed_value?: number | null;
   hired_supplier_id: string | null;
   created_at: string;
 }
+
+/** The cost of an RFQ: expected_value when set, else the revealed quote, else null (never 0-for-unknown). */
+export const rfqValue = (r: Pick<ProjectRfq, 'expected_value' | 'revealed_value'>): number | null => {
+  const e = Number(r.expected_value); if (e > 0) return e;
+  const v = Number(r.revealed_value); return v > 0 ? v : null;
+};
 
 /**
  * project_summary counts rfq_open as `status <> ALL (ARRAY['completed','cancelled'])`.
@@ -74,7 +82,7 @@ export interface DerivedStats {
   open: number;
   /** RFQs carrying a hired_supplier_id. */
   awarded: number;
-  /** Sum of expected_value across linked RFQs — the figure project_summary.pipeline_value holds. */
+  /** Sum of rfqValue across linked RFQs — the figure project_api's list serves as pipeline_value. */
   pipeline: number;
   /** Distinct non-empty `category` across linked RFQs. NOT a materials list; project_api has none. */
   categories: string[];
@@ -95,7 +103,7 @@ export function deriveStats(rfqs: ProjectRfq[]): DerivedStats {
       awarded += 1;
       suppliers.add(r.hired_supplier_id);
     }
-    pipeline += Number(r.expected_value) || 0;
+    pipeline += rfqValue(r) || 0;
     const c = (r.category || '').trim();
     if (c && !categories.includes(c)) categories.push(c);
   }

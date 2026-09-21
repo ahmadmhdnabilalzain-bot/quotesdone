@@ -14,7 +14,7 @@ export type Sale = {
 export type ResolveDeps = {
   customerIdByEmail: (email: string) => Promise<string | null>;
   saleByQuote: (quoteId: string) => Promise<Sale | null>;
-  /** Fresh invoice_pdf from Stripe for this invoice id, or null if Stripe would not give one. */
+  /** Fresh link to the Stripe invoice (see stripeInvoiceLink), or null if Stripe would not give one. */
   stripeInvoicePdf: (invoiceId: string) => Promise<string | null>;
   /** Signed link to the copy of the same PDF held in finance-docs. */
   signedStoredCopy: (path: string) => Promise<string | null>;
@@ -44,6 +44,20 @@ export async function resolveInvoice(deps: ResolveDeps, email: string, quoteId: 
   }
   // No Stripe invoice for this sale (paid before invoice_creation was on): the QuotesDone receipt.
   return { status: 200, fallback: true, sale };
+}
+
+// THE LINK THE CUSTOMER OPENS IS THE HOSTED INVOICE PAGE, NOT invoice_pdf (21 Sep 2026, agent:
+// sales_engineer; customer-portal audit finding 5). Measured on TEST invoice PQZAIUL8-0001: status
+// 'paid' at finalisation, yet invoice_pdf fetched hours later still printed "AED816.37 due — Pay
+// online / Amount due AED816.37". Stripe renders invoice_pdf once, at finalisation, and never
+// re-renders it as paid; the paid document is the hosted page, which read "Invoice paid AED 816.37"
+// with "Download invoice" and "Download receipt" buttons. invoice_pdf is also served as
+// Content-Disposition: attachment, so the tab openDocument opened for it never navigated and stayed
+// blank while the file downloaded. The hosted page renders in that tab.
+const STRIPE_URL = /^https:\/\/[a-z0-9.-]*\.?stripe\.com\//;
+export function stripeInvoiceLink(inv: { hosted_invoice_url?: unknown; invoice_pdf?: unknown } | null | undefined): string | null {
+  for (const u of [inv?.hosted_invoice_url, inv?.invoice_pdf]) { const s = String(u || ''); if (STRIPE_URL.test(s)) return s; }
+  return null;
 }
 
 // ONE INVOICE PER SALE (15 Sep 2026, agent: accountant). Stripe's invoice is the only invoice; the

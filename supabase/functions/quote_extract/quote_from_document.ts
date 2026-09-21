@@ -105,6 +105,17 @@ const FIELD: [keyof Proposal, RegExp][] = [
   ['exclusions', /^(?:exclusions?|excluded|not\s*included|الاستثناءات)\s*[:\-–]\s*(.{2,200})$/im],
 ];
 
+// A note row ("Exclusions: electrical fittings, painting of walls, scaffolding above 4m") is one
+// sentence that the CSV reader split on its commas. Joined back with a space it lost them, and the
+// customer's PDF read "electrical fittings painting of walls scaffolding above 4m" (customer audit,
+// 21 Sep 2026, finding 12). A row that starts with a "Label:" cell and carries no number is such a
+// sentence and is put back with its commas; every other row (a priced line) keeps the space join.
+export function rowText(row: Cell[] | null | undefined): string {
+  const cells = (row || []).map((c) => String(c ?? '').trim());
+  const note = /^[^\d:]{2,40}[:\-–]\s*\S/.test(cells[0] || '') && !cells.slice(1).some((c) => num(c) != null);
+  return cells.filter((c, i) => c || i === 0).join(note ? ', ' : ' ');
+}
+
 export function quoteFromExtracted(ex: Extracted, terms: string[] = []): Proposal {
   const masked = new Set<string>();
   const t = terms.map((s) => String(s || '').trim()).filter((s) => s.length >= 3);
@@ -121,11 +132,13 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = []): Proposa
   const texts: string[] = [];
   let best: Table | null = null;
   const visit = (e: Extracted) => {
-    if (e.text) texts.push(e.text);
+    // The tables' rows first, then the reader's own text: for a CSV or sheet the text is the same rows
+    // tab-joined, and a FIELD match taken from it would give back the comma-less note row.
     for (const tb of e.tables) {
-      texts.push(tb.map((row) => (row || []).map((c) => String(c ?? '')).join(' ')).join('\n'));
+      texts.push(tb.map(rowText).join('\n'));
       const q = tableQuote(tb, clean); if (q && (!best || q.lines.length > best.lines.length)) best = q;
     }
+    if (e.text) texts.push(e.text);
     for (const c of e.children) visit(c.doc);
   };
   visit(ex);

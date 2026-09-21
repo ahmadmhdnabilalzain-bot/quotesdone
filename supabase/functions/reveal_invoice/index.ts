@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { receiptCitation, resolveInvoice } from './resolve.ts';
+import { receiptCitation, resolveInvoice, stripeInvoiceLink } from './resolve.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
@@ -12,7 +12,8 @@ function money(n: number) { return 'AED ' + Number(n || 0).toLocaleString('en-AE
 async function signedDoc(bucket: string, path: string, ttl = 7 * 24 * 3600) { try { const { data } = await admin.storage.from(bucket || 'agent-docs').createSignedUrl(path, ttl); return data?.signedUrl || null; } catch { return null; } }
 
 // The accountant's invoice door for the customer (14 Sep 2026). A sale billed by Stripe opens
-// Stripe's own PDF, fetched fresh at click time (resolve.ts); only a sale with no Stripe invoice
+// Stripe's own hosted invoice page (reads "Invoice paid", offers the invoice and receipt PDFs; see
+// stripeInvoiceLink in resolve.ts), fetched fresh at click time; only a sale with no Stripe invoice
 // falls back to the QuotesDone receipt below.
 async function stripeInvoicePdf(invoiceId: string): Promise<string | null> {
   // The sale does not record which mode it was charged in, so live is asked first and the test key
@@ -24,8 +25,7 @@ async function stripeInvoicePdf(invoiceId: string): Promise<string | null> {
       const r = await fetch('https://api.stripe.com/v1/invoices/' + encodeURIComponent(invoiceId), { headers: { Authorization: 'Bearer ' + sk } });
       if (r.status === 404) continue;
       const j = await r.json().catch(() => ({}));
-      const pdf = String(j?.invoice_pdf || '');
-      return /^https:\/\/[a-z0-9.-]*\.?stripe\.com\//.test(pdf) ? pdf : null;
+      return stripeInvoiceLink(j);
     } catch { return null; }
   }
   return null;
