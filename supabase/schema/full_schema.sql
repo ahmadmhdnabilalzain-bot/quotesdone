@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T17:56:50.927Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T18:09:31.701Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -14067,10 +14067,16 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_duty_settle(p_duty text, p_items
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare x jsonb; v_keys text[] := '{}'; v_key text; n_closed int := 0; v_open text;
+        v_waiting jsonb := '[]'::jsonb; v_receipts_wait boolean;
 begin
   if coalesce(btrim(p_duty), '') = '' or jsonb_typeof(p_items) is distinct from 'array' then
     raise exception 'fn_accountant_duty_settle(duty, items[]): a duty name and an array of failing items are required';
   end if;
+  -- Founder instruction 585 (21 Sep 2026): receipts arrive when he forwards them; a missing one is
+  -- the accountant's waiting item, not a founder alarm. Read from the decision register, so the rule
+  -- is a reviewable row and lifting it is deleting that row.
+  v_receipts_wait := p_duty = 'expenses' and exists (select 1 from public.company_policy_decision d
+                       where d.decision_key = 'expenses_receipts_are_an_ongoing_routine');
   for x in select e from jsonb_array_elements(p_items) e loop
     if coalesce(btrim(x->>'item'), '') = '' or coalesce(btrim(x->>'title'), '') = '' then
       raise exception 'fn_accountant_duty_settle: every item needs an item key and a title (%)', x;
@@ -14079,6 +14085,15 @@ begin
       raise exception 'fn_accountant_duty_settle: item % names owner seat %, which is not a seat the loop can hand to', x->>'item', x->>'owner_seat';
     end if;
     v_key := 'acct:' || p_duty || ':' || (x->>'item');
+    if v_receipts_wait and (x->>'item') in ('cadence_gaps', 'never_billed', 'renewal_receipt') then
+      v_waiting := v_waiting || jsonb_build_object('item', x->>'item', 'title', x->>'title', 'evidence', x->'evidence');
+      if exists (select 1 from public.it_engineer_finding f where f.issue_key = v_key and f.closed_at is null) then
+        perform public.fn_it_engineer_finding_close(v_key,
+          'Waiting, not an alarm (founder instruction 585, 21 Sep 2026): receipts are an ongoing routine the '
+          || 'founder forwards to the expenses mailbox; the accountant tracks this item in its duty result.');
+      end if;
+      continue;
+    end if;
     v_keys := v_keys || v_key;
     perform public.fn_it_engineer_finding_upsert(v_key, x->>'title', 'Accountant duty: ' || p_duty,
       coalesce(x->>'blast', 'agent_facing'), coalesce((x->>'affected')::int, 1),
@@ -14092,7 +14107,8 @@ begin
     perform public.fn_it_engineer_finding_close(v_open, 'the accountant''s ' || p_duty || ' duty re-checked and no longer finds it');
     n_closed := n_closed + 1;
   end loop;
-  return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0), 'closed', n_closed);
+  return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0), 'closed', n_closed,
+                            'waiting', v_waiting);
 end $function$
 
 
@@ -17905,16 +17921,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -17940,6 +17946,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -26034,7 +26050,15 @@ begin
         coalesce((select c.is_demo or coalesce(c.email, '') ~* 'example\.invalid' from public.customers c where c.id = v_c), false);
       return;
     end if;
-    select l.id into v_l from public.leads l where lower(l.email) = v_email or lower(l.claimed_by) = v_email limit 1;
+    -- 21 SEP 2026 (it_engineer): TWO LOOKUPS, EACH ON ITS INDEX. The single OR over both columns could use
+    -- neither index (uq_leads_email_lower is partial on email <> '', which the OR did not state), so every
+    -- call seq-scanned all 22,270 leads: 49.6 ms, measured. The non-empty-email clause admits the partial
+    -- index (0.8 ms, generic plan); claimed_by has idx_leads_claimedby. A registered email now wins over a
+    -- claimed_by match where both exist; before, the scan order chose.
+    select l.id into v_l from public.leads l where lower(l.email) = v_email and l.email <> '' limit 1;
+    if v_l is null then
+      select l.id into v_l from public.leads l where lower(l.claimed_by) = v_email limit 1;
+    end if;
   end if;
   if v_l is null and v_tail is not null then
     -- 14 Sep 2026 (#322): only a CONFIRMED WhatsApp number names a party.
@@ -29502,7 +29526,7 @@ CREATE OR REPLACE FUNCTION public.fn_enqueue_doc_backups()
  RETURNS integer
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public', 'pg_catalog'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare n integer := 0; m integer;
 begin
@@ -29640,8 +29664,18 @@ begin
   insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
   select x.entity, x.entity_id, 'Correspondence', a.pdf_bucket, a.pdf_path, x.fname, x.base || x.fname, 'storage',
          'CONV:' || a.source_table || ':' || a.source_id
-  from public.conversation_archive a
-  join public.v_conversation_message v on v.source_table = a.source_table and v.source_id = a.source_id
+  -- 21 SEP 2026 (it_engineer): ONLY ARCHIVE ROWS THAT HAVE NO CORRESPONDENCE ROW YET. This block used to
+  -- join every conversation_archive row (257) to v_conversation_message on every call and let ON CONFLICT
+  -- discard all of them; the view resolves each message's party through fn_conversation_party, 20-45 ms
+  -- a row, so the call cost 7,006 ms (EXPLAIN ANALYZE, 21 Sep) and PostgREST cancels at 8 s. The OFFSET 0
+  -- fences keep the anti-join FIRST and the view LATERAL, so a call with nothing new costs 1.7 ms and a
+  -- new message costs one party lookup. The dedupe key is unchanged, so what is queued is unchanged.
+  from (select ca.* from public.conversation_archive ca
+         where not exists (select 1 from public.doc_backups d
+                            where d.dedupe_key = 'CONV:' || ca.source_table || ':' || ca.source_id)
+         offset 0) a
+  cross join lateral (select * from public.v_conversation_message v0
+                       where v0.source_table = a.source_table and v0.source_id = a.source_id offset 0) v
   left join public.customers c on v.party_kind = 'customer' and c.id::text = v.party_id
   left join public.inquiries i on c.id is not null and i.id::text = v.inquiry_id
   left join public.leads l on v.party_kind = 'supplier' and l.id::text = v.party_id
@@ -33643,14 +33677,58 @@ begin
 -- a subject that logs 6,000 rows an hour keeps a baseline of its own most recent history and
 -- every other subject keeps all of its seven days. A cap that fired is published in notes.slice;
 -- silence there means no subject was cut.
+--
+-- 21 SEP 2026 (evening) — THE ROW RULES ARE EVALUATED AS SETS, NOT AS ~140,000 FUNCTION CALLS.
+-- Measured on 46,700 slice rows: the two per-row predicates below cost 2,740 ms of this block
+-- (2,960 ms with them, 221 ms without), and D9's per-row rehearsal-window test another ~2,300 ms.
+-- None of the four helpers can be inlined by the planner: each has a pinned SET search_path AND an
+-- EXISTS sub-select, and either one alone forbids SQL-function inlining. So every row paid a full
+-- function invocation, and D9's rehearsal test additionally scanned all 266 rehearsal_window rows
+-- per row. The SAME rules are written here as set expressions over the same tables:
+--   held       = fn_it_run_is_held: the founder-hold arm (some 'HELD BY THE FOUNDER%' route whose
+--                open_until is after the run) is exactly "the run started before the latest such
+--                open_until", read once; the signature arm is the same EXISTS, reached only for the
+--                subjects it_hold_signature names.
+--   refused0   = fn_it_run_is_refusal, the same four telemetry shapes and the same ±5 s neighbour.
+--   rehearsal  = fn_rehearsal_window_covers: the windows (open ones run six hours) are folded once
+--                into one multirange and each row is a containment test. A window that ends before
+--                it starts covers no instant in either form and is left out, because a range
+--                cannot be built from it.
+-- Proved equal on the live slice before this was written, 21 Sep 2026: 46,618 rows, 0 mismatches
+-- on each flag (643 held, 999 refused, 32,565 in a rehearsal window, 151 policy). The probe at the
+-- foot of this file repeats that comparison against the helpers on every apply, so if a helper's
+-- rule changes and this copy does not, the apply says PROBE FAILED instead of drifting silently.
 drop table if exists pg_temp.it_runs7;
 create temp table it_runs7 on commit drop as
   select x.agent, regexp_replace(x.agent, '^fn:', '') subject, x.started_at, x.finished_at,
          x.status, x.counts, x.note,
-         public.fn_it_run_is_held(x.agent, x.started_at, x.counts, x.note)  held,
-         public.fn_it_run_is_refusal(x.agent, x.started_at, x.counts)       refused0
+         coalesce(x.started_at < h.hold_until
+           and regexp_replace(coalesce(x.agent, ''), '^fn:', '') = any (h.subjects)
+           and exists (select 1 from public.it_hold_signature s
+                        where s.subject = regexp_replace(coalesce(x.agent, ''), '^fn:', '')
+                          and coalesce(x.counts, '{}'::jsonb) @> s.counts_match
+                          and (s.note_like is null or coalesce(x.note, '') like s.note_like)), false) held,
+         coalesce(
+              (x.counts ->> 'http') ~ '^4[0-9][0-9]$'
+           or (x.counts ->> 'signal') in ('forbidden','bad_secret')
+           or (x.counts ->> 'authorised') = '0'
+           or coalesce(nullif(x.counts ->> 'forbidden','')::int, 0) > 0
+           or (x.agent not like 'fn:%' and exists (
+                select 1 from public.agent_runs t
+                 where t.agent = 'fn:' || x.agent
+                   and t.started_at between x.started_at - interval '5 seconds' and x.started_at + interval '5 seconds'
+                   and (t.counts ->> 'http') ~ '^4[0-9][0-9]$')), false) refused0,
+         coalesce(x.started_at <@ rw.covered, false) rehearsal
     from (select a.*, row_number() over (partition by a.agent order by a.started_at desc) rn
             from public.agent_runs a where a.started_at > v_now - c_base) x
+   cross join (select max(l.open_until) hold_until,
+                      (select coalesce(array_agg(distinct s.subject), '{}') from public.it_hold_signature s) subjects
+                 from public.llm_route_health l
+                where l.opened_reason like 'HELD BY THE FOUNDER%') h
+   cross join (select range_agg(tstzrange(w.started_at, coalesce(w.ended_at, w.started_at + interval '6 hours'), '[]')) covered
+                 from public.rehearsal_window w
+                where w.started_at is not null
+                  and coalesce(w.ended_at, w.started_at + interval '6 hours') >= w.started_at) rw
    where x.rn <= c_cap;
 select count(*) into v_slice from it_runs7;
 select count(*) into v_capped from (
@@ -34424,7 +34502,8 @@ for r in
       -- Measured: all 264 non-policy login_otp refusals of the day fell inside e2e rehearsal windows and
       -- none outside, and the finding they raised was hours from emailing the founder. The demo
       -- hygiene duty closes any window left open past six hours, which bounds what this can hide.
-      and not public.fn_rehearsal_window_covers(a.started_at)
+      -- (the rehearsal flag is computed once per row in D0, as a set; see D0)
+      and not a.rehearsal
       -- drop the semantic half of a double-logged request; see THE DOUBLE LOG above
       and not (a.agent not like 'fn:%' and exists (
         select 1 from public.agent_runs t
@@ -34454,7 +34533,10 @@ for r in
            -- word for itself: it_refusal_policy holds an explicit (subject, reason) pair with the
            -- rule it enforces written in the row, so opting out of monitoring takes a reviewable
            -- act rather than a flattering sentence in a note.
-           and not public.fn_it_refusal_is_policy(r0.subject, r0.counts) refused
+           -- fn_it_refusal_is_policy's rule, as the same EXISTS written inline (see D0 for why).
+           and not exists (select 1 from public.it_refusal_policy p
+                            where p.subject = regexp_replace(coalesce(r0.subject,''), '^fn:', '')
+                              and coalesce(r0.counts, '{}'::jsonb) ? p.reason_key) refused
     from rows0 r0
     left join public.it_watch_subject s on s.subject = r0.subject),
   w as (
