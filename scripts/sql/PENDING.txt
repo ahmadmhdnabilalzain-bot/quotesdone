@@ -7,6 +7,12 @@
 # an entry with no reason — so "committed and not applied" is a stated fact rather than an absence.
 #
 # Format: <path> :: <reason, and what would move it>
+# 21 Sep 2026 — customer_support / sales_engineer chat PR. Coordinator applies in this order, then deploys sales_engineer + site_assistant:
+#   1. scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql (RE-APPLY; fn_sales_assist FAQ ranks gated by @@, Arabic arms only for Arabic text; probe c3; the lexical-only FAQ arm's f/g alias fixed — it failed 42P01 on first call, measured in an aborted transaction)
+#      (its probe cleanup deletes the probe's sales_knowledge_gap rows before its org_tasks: the first apply failed 23503 on sales_knowledge_gap_task_id_fkey)
+#   2. the Arabic timeline FAQ file is APPLIED and listed at the end of MANIFEST.txt.
+
+
 #
 # 21 Sep 2026 — the IT failures of 18–21 Sep (docs/it/IT_FAILURES_18_21_SEP_2026.md). Applies are
 # serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the

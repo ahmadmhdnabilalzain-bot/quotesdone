@@ -37,7 +37,7 @@ insert into public.it_threshold (key, value, unit, basis) values
   ('cap_warn_ratio',             0.8,  'ratio',            'Warn at 80% of any provider cap, so there is time to act; the ratio the disk check uses.'),
   ('cap_supabase_storage_bytes', null, 'bytes',            'not recorded: the accountant enters the storage the Supabase plan includes, from the invoice'),
   ('cap_resend_emails_month',    null, 'emails',           'not recorded: the accountant enters the monthly send quota of the Resend plan'),
-  ('cap_resend_emails_day',      null, 'emails',           'not recorded: the accountant enters the daily send quota, if the Resend plan has one'),
+  -- cap_resend_emails_day was here: the Resend Pro plan has no daily limit (the_open_account_facts_of_21_september_are_recorded.sql).
   ('cap_vercel_charges_month',   null, 'billing currency', 'not recorded: the accountant enters the monthly Vercel budget'),
   ('floor_twilio_balance',       null, 'account currency', 'not recorded: the accountant enters the lowest balance the prepaid Twilio account may fall to')
 -- Re-applying this file never wipes a cap somebody set: value and basis are kept once a value exists.
