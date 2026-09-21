@@ -42,7 +42,7 @@ export type InquiryDocuments = { ok: true; job_no: string; boq_withheld: boolean
 export type MessageView = {
   id: string; role: 'supplier' | 'sales_engineer'; kind: 'text' | 'file' | 'review' | 'choice_prompt' | 'choice' | 'submitted' | 'notice';
   body_en: string | null; body_ar: string | null; text: string | null;
-  attachments: { kind: 'quotation_file' | 'standard_quote'; name: string; url: string | null; quote_id: string | null }[];
+  attachments: { kind: 'quotation_file' | 'standard_quote'; name: string; url: string | null; quote_id: string | null; /** standard_quote: which language this print is. */ lang?: Lang | null }[];
   issues: Issue[] | null; created_at: string;
 };
 export type RequestView = { id: number; key: string; code: string; kind: 'adjustment' | 'clarification' | 'choice'; line_no: number | null; boq_line: number | null; label_en: string; label_ar: string; opened_at: string };

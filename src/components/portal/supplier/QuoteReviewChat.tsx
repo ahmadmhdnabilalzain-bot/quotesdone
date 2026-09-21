@@ -31,7 +31,7 @@ const COPY = {
     open: (n: number) => `${n} open point${n === 1 ? '' : 's'}`, tracked: 'Each stays open until you answer it.',
     adjustment: 'Adjustment', clarification: 'Clarification', choice: 'Your choice', line: (n: number) => `Your line ${n}`, boq: (n: number) => `BOQ line ${n}`,
     closed: 'This conversation is closed.', submitted: 'Submitted to the job. The customer sees your quotation without your name until they reveal it.',
-    download: 'Download', pdf: 'Open the standardised quotation (PDF)', loading: 'Opening the conversation…', err: 'Something went wrong. Please try again.',
+    download: 'Download', pdf: 'Open the standardised quotation (PDF)', pdfEn: 'Open the quotation in English (PDF)', pdfAr: 'Open the quotation in Arabic (PDF)', loading: 'Opening the conversation…', err: 'Something went wrong. Please try again.',
     fileTip: 'PDF with text, Excel, Word, CSV or email — up to 10 MB.', label: 'Message to the sales engineer', log: 'Conversation with the sales engineer',
   },
   ar: {
@@ -42,7 +42,7 @@ const COPY = {
     open: (n: number) => (n === 1 ? 'نقطة واحدة مفتوحة' : n === 2 ? 'نقطتان مفتوحتان' : `${n} نقاط مفتوحة`), tracked: 'تبقى كل نقطة مفتوحة إلى أن تجيب عنها.',
     adjustment: 'تعديل', clarification: 'استيضاح', choice: 'اختيارك', line: (n: number) => `بندك ${n}`, boq: (n: number) => `البند ${n} من الجدول`,
     closed: 'أُغلقت هذه المحادثة.', submitted: 'قُدّم العرض إلى الطلب. يرى العميل عرضك دون اسمك إلى أن يكشف عنه.',
-    download: 'تنزيل', pdf: 'افتح العرض الموحّد (PDF)', loading: 'جارٍ فتح المحادثة…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
+    download: 'تنزيل', pdf: 'افتح العرض الموحّد (PDF)', pdfEn: 'افتح العرض بالإنجليزية (PDF)', pdfAr: 'افتح العرض بالعربية (PDF)', loading: 'جارٍ فتح المحادثة…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
     fileTip: 'PDF نصي أو Excel أو Word أو CSV أو بريد إلكتروني — حتى 10 ميغابايت.', label: 'رسالة إلى مهندس المبيعات', log: 'المحادثة مع مهندس المبيعات',
   },
 };
@@ -97,9 +97,9 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
   // An engineer's review is "header\n\n1. …\n2. …\n\nfooter"; the points render as a list from `issues`.
   const parts = eng && m.issues && m.issues.length ? body.split('\n\n') : null;
   const [opening, setOpening] = useState(false);
-  const openPdf = async (quoteId: string) => {
+  const openPdf = async (quoteId: string, docLang: Lang = lang) => {
     setOpening(true);
-    const j = await qr.quotePdf(token, quoteId, lang).catch(() => null);
+    const j = await qr.quotePdf(token, quoteId, docLang).catch(() => null);
     setOpening(false);
     const u = safeUrl(j && j.url ? String(j.url) : null);
     if (u) window.open(u, '_blank', 'noopener');
@@ -122,7 +122,7 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
             <span aria-hidden className="rounded-sm border border-[var(--line2)] px-1.5 py-0.5 font-mono text-[10.5px] uppercase text-muted-foreground">{(a.name.split('.').pop() || 'file').slice(0, 4)}</span>
             <span className="min-w-0 truncate text-[12.5px] text-foreground"><Ltr>{a.name}</Ltr></span>
             {a.kind === 'quotation_file' && safeUrl(a.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={safeUrl(a.url)!} target="_blank" rel="noopener noreferrer">{t.download}</a> : null}
-            {a.kind === 'standard_quote' && a.quote_id ? <Button size="sm" variant="outline" disabled={opening} onClick={() => openPdf(a.quote_id!)}>{t.pdf}</Button> : null}
+            {a.kind === 'standard_quote' && a.quote_id ? <Button size="sm" variant="outline" disabled={opening} onClick={() => openPdf(a.quote_id!, a.lang ?? lang)}>{a.lang === 'ar' ? t.pdfAr : a.lang === 'en' ? t.pdfEn : t.pdf}</Button> : null}
           </div>
         ))}
       </div>

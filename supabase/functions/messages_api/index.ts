@@ -13,6 +13,8 @@ import { observe } from '../_shared/observe.ts';
 import { isCustomerCorrespondence } from '../_shared/customer_mail.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
+// The supplier's alias on this job is the same one its own quotation prints (audit 21 Sep 2026, finding 29).
+import { jobAlias } from '../_shared/quote_labels.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -137,7 +139,6 @@ function stripContact(raw: unknown, names: unknown[] = []): string {
   for (const n of names) s = scrubName(s, n);
   return s.trim();
 }
-const letterOf = (i: number) => 'Supplier ' + (i >= 0 && i < 26 ? String.fromCharCode(65 + i) : String(i + 1));
 type Res = { status: number; body: Record<string, unknown> };
 const R = (status: number, body: Record<string, unknown>): Res => ({ status, body });
 
@@ -186,7 +187,7 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     const source = b.source === 'rfq_flag' ? 'rfq_flag' : 'portal';
     const { data: ins, error } = await admin.from('rfq_clarification').insert({ inquiry_id, supplier_id: supLead.id, kind: 'question', question: text, source }).select('id').single();
     if (error || !ins) return R(500, { error: 'save_failed' });
-    const label = letterOf(order.indexOf(Number(supLead.id)));
+    const label = jobAlias(order, Number(supLead.id));
     try {
       const { data: c } = await admin.from('customers').select('email,full_name,locale').eq('id', inq.customer_id).maybeSingle();
       if (c?.email && /@/.test(c.email)) {
@@ -208,7 +209,7 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     const visible = (rows || []).filter((r: any) => isOwner || r.kind === 'note' || Number(r.supplier_id) === Number(supLead?.id) || r.answered_at);
     const items = visible.map((r: any) => ({
       id: r.id, kind: r.kind, question: r.question ?? null, answer: r.answer ?? null, asked_at: r.asked_at, answered_at: r.answered_at ?? null,
-      supplier_label: r.supplier_id == null ? null : letterOf(order.indexOf(Number(r.supplier_id))),
+      supplier_label: r.supplier_id == null ? null : jobAlias(order, Number(r.supplier_id)),
       mine: !isOwner && Number(r.supplier_id) === Number(supLead?.id),
     }));
     return R(200, { ok: true, role: isOwner ? 'customer' : 'supplier', items });

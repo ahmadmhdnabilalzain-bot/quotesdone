@@ -2518,6 +2518,8 @@
         "npm:motion@^12.42.2",
         "npm:next-intl@4.13.4",
         "npm:next@16.2.11",
+        "npm:pdfjs-dist@^4.10.38",
+        "npm:playwright@^1.49.1",
         "npm:postcss@8.5.22",
         "npm:react-dom@19.2.8",
         "npm:react@19.2.8",
@@ -2528,8 +2530,10 @@
         "npm:tailwind-merge@2.5.2",
         "npm:tailwindcss-animate@1.0.7",
         "npm:tailwindcss@3.4.7",
+        "npm:tesseract.js@7.0.0",
         "npm:three@0.180",
         "npm:typescript@5.5.4",
+        "npm:utif@3.1.0",
         "npm:wavesurfer.js@7.8.6"
       ]
     }
