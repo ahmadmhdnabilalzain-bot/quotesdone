@@ -1,0 +1,1 @@
+pure probe, no DDL: run with node scripts/qsql.mjs after the change file scripts/sql/the_suppliers_annual_listing_fee_keeps_what_was_paid.sql is applied; it answers PROBE FAILED until then.

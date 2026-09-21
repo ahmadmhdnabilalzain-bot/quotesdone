@@ -319,6 +319,11 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           const n = (settled || []).length;
           if (n === 0) { await logRun('ok', { kind: 'supplier_registration', duplicate: true, supplier_id: supId }, 'Duplicate Stripe delivery for supplier registration ignored - that supplier was already marked paid.'); }
           else {
+            // What the supplier's invoice and receipt print (supplier_payment_documents.ts, 22 Sep 2026):
+            // the amount and the payment reference. A SEPARATE, best-effort write so a missing column
+            // (scripts/sql/the_suppliers_annual_listing_fee_keeps_what_was_paid.sql not yet applied) can
+            // never undo the settlement above.
+            try { await admin.from('leads').update({ registration_payment_ref: payRef, registration_amount_aed: paidAmount }).eq('id', supId); } catch (_e) { /* the settlement stands */ }
             try {
               await admin.rpc('fn_seat_handoff', { p_from: 'accountant', p_to: 'sales_engineer', p_type: 'payment.received',
                 p_subject_table: 'leads', p_subject_id: payRef,
