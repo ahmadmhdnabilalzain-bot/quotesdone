@@ -246,8 +246,13 @@ export async function journeySuppliers(ctx) {
   const matchedIds = new Set(matched.map((r) => String(r.supplier_id)));
   const direct = fx.suppliers.filter((s) => !matchedIds.has(String(s.leadId)));
   for (const s of direct) await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (${q(inquiryId)}, ${s.leadId}, 'e2e harness: direct invitation') on conflict do nothing`, 'e2e invitation');
-  rep.step(J, 'routing invited the demo suppliers', direct.length === 0 ? 'PASS' : 'SKIP',
-    `${fx.suppliers.length - direct.length}/${fx.suppliers.length} matched by the product; ${direct.length} invited directly by the harness`);
+  // FAIL, not SKIP (22 Sep 2026). The fixtures now state their services the way a real supplier does
+  // (fixtures.mjs stateServices), so the product's own routing must pick every one of them. A miss is
+  // a routing regression or a fixture a real supplier could not be; either way this step proves it.
+  // The inquiry's routing record says why the matcher chose what it chose.
+  const routing = direct.length ? (await read(`select routing from public.inquiries where id = ${q(inquiryId)}`))[0]?.routing : null;
+  rep.step(J, 'routing invited the demo suppliers', direct.length === 0 ? 'PASS' : 'FAIL',
+    `${fx.suppliers.length - direct.length}/${fx.suppliers.length} matched by the product; ${direct.length} invited directly by the harness${routing ? ' — routing ' + JSON.stringify({ outcome: routing.outcome, fanout: routing.fanout, verdict: routing.router_verdict, note: routing.note, trades: routing.trades, error: routing.error }).slice(0, 300) : ''}`);
 
   const identity = [fx.customer.fullName, fx.customer.email, fx.customer.phone, fx.customer.phone.replace('+', '')];
   // The supplier portal, once signed in, opens in leads.locale (PR #629), so each pass registers
