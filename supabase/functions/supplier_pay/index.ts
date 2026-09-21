@@ -92,9 +92,10 @@ Deno.serve(observe('supplier_pay', async (req) => {
       f.set('line_items[0][price_data][unit_amount]', String(Math.round(fee * 100)));
       f.set('line_items[0][price_data][product_data][name]', 'QuotesDone supplier registration');
       f.set('line_items[0][price_data][product_data][description]', 'One year of supplier registration on QuotesDone');
-      f.set('invoice_creation[enabled]', 'true');
-      f.set('invoice_creation[invoice_data][description]', 'QuotesDone supplier registration — annual listing fee');
-      f.set('invoice_creation[invoice_data][footer]', 'QuotesDone Technologies · DET Dubai Trader License No. 1633275 · not registered for VAT');
+      // NO STRIPE INVOICE (22 Sep 2026; founder instructions 568, 569: no third-party PDF is sent as
+      // ours). The supplier's invoice and receipt are OURS, on the template:
+      // _shared/supplier_payment_documents.ts via supplier_api receipt_pdf. Prevented by
+      // scripts/checks/every_pdf_we_issue_is_on_our_template.mjs (check E).
       f.set('metadata[kind]', 'supplier_registration');
       f.set('metadata[supplier_id]', String(lead.id));
       f.set('payment_intent_data[metadata][kind]', 'supplier_registration');
@@ -177,18 +178,12 @@ Deno.serve(observe('supplier_pay', async (req) => {
     // terms - NOT commission. Suppliers keep 100% of the value of jobs they win.
     form.set('line_items[0][price_data][product_data][name]', 'QuotesDone account settlement');
     form.set('line_items[0][price_data][product_data][description]', 'Settlement of ' + ids.length + ' outstanding charge(s): refunded reveal fee, administration fee and any accrued interest');
-    // STRIPE ISSUES THE INVOICE (9 Sep 2026). The founder wants every payment into the company to
-    // produce a document the accountant can file. This one matters most of the three: a supplier
-    // settling a non-response penalty is paying a recovered reveal fee plus AED 250 administration
-    // plus accrued interest, and will need a proper invoice for their own books — a hosted receipt
-    // page is not something a UAE company can file against a debt.
-    form.set('invoice_creation[enabled]', 'true');
-    form.set('invoice_creation[invoice_data][description]',
-      'Settlement of outstanding charges under the QuotesDone supplier terms: refunded reveal fee, administration fee and accrued interest');
-    form.set('invoice_creation[invoice_data][metadata][due_ids]', ids.join(','));
-    form.set('invoice_creation[invoice_data][metadata][supplier_id]', String(lead.id));
-    form.set('invoice_creation[invoice_data][footer]',
-      'QuotesDone Technologies · DET Dubai Trader License No. 1633275 · not registered for VAT');
+    // THE INVOICE IS OURS (22 Sep 2026, replacing "Stripe issues the invoice" of 9 Sep). A supplier
+    // settling charges needs a proper invoice for their own books — and the founder ruled (instructions
+    // 568, 569) that it is QuotesDone's, on the QuotesDone template, never Stripe's PDF. So Stripe
+    // creates no invoice here; the invoice and receipt come from _shared/supplier_payment_documents.ts
+    // (supplier_api receipt_pdf, doc 'invoice' | 'receipt'), grouped by this payment's reference.
+    // Prevented by scripts/checks/every_pdf_we_issue_is_on_our_template.mjs (check E).
 
     form.set('metadata[due_ids]', ids.join(','));
     form.set('metadata[supplier_id]', String(lead.id));

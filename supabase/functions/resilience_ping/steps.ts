@@ -6,7 +6,7 @@
 // nothing anywhere said so. A step that fails is now returned in `failing` and raised as an IT engineer
 // finding by the handler; one step failing never stops the next.
 export type Step = { name: string; run: () => Promise<unknown>; always?: boolean; nested?: boolean };
-export type Failure = { name: string; error: string };
+export type Failure = { name: string; error: string; carried?: boolean };
 
 // What counts as a failed step: it threw, it answered {ok:false, error}, or its HTTP call answered 4xx/5xx.
 // A seat answering {ok:false} WITHOUT an error string has already reported its own partial failure
@@ -73,4 +73,23 @@ export function stepRows(ranMs: Record<string, number>, failing: Failure[], defe
     .map(([step, ms]) => ({ step, ms, ok: !bad.has(step) }));
   for (const step of deferred) rows.push({ step, deferred: true });
   return rows;
+}
+
+// A STEP THAT FAILED STAYS FAILED UNTIL IT RUNS AGAIN (22 Sep 2026, it_engineer). The heartbeat duty is
+// settled every tick with the failures of THIS tick, and fn_it_duty_settle closes every open
+// duty:heartbeat key not in that list. A step on a 6-hour cadence (backupVerify) therefore had its
+// finding closed 15 minutes after each failure, on a tick where it simply was not due: MEASURED 21 Sep,
+// duty:heartbeat:backupVerify raised 17:16Z ("canceling statement due to statement timeout"), closed
+// 17:31Z "the heartbeat duty no longer finds it", while resilience_step still read last_ok_at 20 Sep
+// 03:31Z. So the ledger said healthy for 23 of every 24 ticks of a check that had not passed in 38 hours.
+// A step whose last attempt is newer than its last success, and which did not run this tick, is carried
+// as still failing, with `carried` so fn_it_duty_settle holds the open finding instead of re-seeing it.
+export type StepState = { step: string; last_started_at: string | null; last_ok_at: string | null };
+export function carriedFailures(state: StepState[], ranMs: Record<string, number>, failing: Failure[]): Failure[] {
+  const named = new Set(failing.map((f) => f.name.split('.')[0]));
+  return state
+    .filter((s) => !(s.step in ranMs) && !named.has(s.step) && s.last_started_at !== null
+      && (s.last_ok_at === null || Date.parse(s.last_ok_at) < Date.parse(s.last_started_at)))
+    .map((s) => ({ name: s.step, error: 'its last run at ' + s.last_started_at + ' failed and it has not passed since (last ok: '
+      + (s.last_ok_at ?? 'never') + ')', carried: true }));
 }

@@ -87,6 +87,19 @@ const APP_SHELLS = ['/me', '/portal'];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // OUR MAIL LINKS TO OUR OWN DOMAIN (22 Sep 2026, customer_support; founder instructions 633/635).
+  // mail-tester.com scored the supplier invitation 9.6/10; the only point lost was SpamAssassin
+  // URI_NOVOWEL (-0.5), fired by the project host "htdblwldjkcgjvmqkbeh.supabase.co" in the unsubscribe
+  // link and the logo URL. These two proxies let the mail name quotesdone.com instead. The query string
+  // and the method pass through, so the RFC 8058 one-click POST still reaches the unsubscribe function,
+  // and its relative form action ("?e=…") resolves against /u/unsubscribe.
+  async rewrites() {
+    const origin = `https://${SUPA}`;
+    return [
+      { source: '/u/unsubscribe', destination: `${origin}/functions/v1/unsubscribe` },
+      { source: '/m/brand/:path*', destination: `${origin}/storage/v1/object/public/brand/:path*` },
+    ];
+  },
   async headers() {
     return [
       { source: '/:path*', headers: SECURITY_HEADERS },

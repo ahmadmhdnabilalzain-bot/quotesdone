@@ -7,7 +7,7 @@
 // external monitor can wire it with just the URL.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { type Failure, failureOf, runSteps, type Step, stepRows } from './steps.ts';
+import { carriedFailures, type Failure, failureOf, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
@@ -200,6 +200,18 @@ async function supplierOutreachTick(): Promise<unknown> {
 async function deliveryCanaryTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_delivery_feedback_canary_tick');
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE SEAT CLOCKS (22 Sep 2026, ceo; founder instruction 583). Complaint deadlines, requests short of
+// 3 quotes, the 7-day reveal outcome check and time to first support reply, each on its owning seat
+// (complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql). It queues mail, so it must
+// run before the outbox drain, which is place=last.
+async function seatClocksTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_clocks_tick');
     if (error) return { ok: false, error: error.message };
     return data;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
@@ -1130,6 +1142,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   specoffer: { run: specOfferTick },
   supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
+  seatClocks: { run: seatClocksTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.
@@ -1174,7 +1187,7 @@ async function settleFailures(failing: Failure[]): Promise<unknown> {
   const items = failing.map((f) => ({
     item: f.name, title: 'resilience_ping step ' + f.name + ' failed: ' + f.error,
     owner_seat: 'it_engineer', subject: 'resilience_ping', blast: 'agent_facing', affected: 1,
-    evidence: { step: f.name, error: f.error },
+    evidence: { step: f.name, error: f.error }, ...(f.carried ? { carried: true } : {}),
   }));
   try {
     const { data, error } = await admin.rpc('fn_it_duty_settle', { p_duty: 'heartbeat', p_items: items });
@@ -1273,6 +1286,12 @@ Deno.serve(observe('resilience_ping', async (req) => {
       const f = failureOf(page);
       if (f) failing.push({ name: 'page', error: f });
     }
+    // A step that failed on an earlier tick and was not due on this one is still failing (steps.ts,
+    // carriedFailures). Read AFTER the record above, so this tick's own results are already stamped.
+    try {
+      const { data: st } = await admin.from('resilience_step').select('step,last_started_at,last_ok_at');
+      if (Array.isArray(st)) failing.push(...carriedFailures(st as StepState[], stepMs, failing));
+    } catch (_e) { /* a failed read carries nothing; this tick's own failures are still settled */ }
     const heartbeat = await settleFailures(failing);
     const failed = failing.map((f) => f.name);
     // `tick` is the whole schedule decision in one field: what ran, what was held for a beat, how long
