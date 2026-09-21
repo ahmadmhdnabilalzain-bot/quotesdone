@@ -66,6 +66,28 @@ function drawingOcr(body: any): Record<string, unknown> {
   if (body?.symbol_counts && typeof body.symbol_counts === 'object') out.symbol_counts = body.symbol_counts;
   return out;
 }
+// The portal's SCHEDULE READ (ocrClient.ocrSchedules, 21 Sep 2026, founder instruction 580): the ruled
+// tables found on each page (_shared/table_grid.ts) with every cell OCR'd on its own, row/column
+// structure kept. Untrusted browser output, so it is rebuilt here to the exact shape and caps the
+// portal produces — 40 tables x 80 rows x 24 columns, 120 characters a cell, strings and numbers only —
+// and anything else is dropped rather than passed on. Page numbers are bounded by MAX_DRAWING_PAGES.
+const MAX_DRAWING_PAGES = 20; // = src/components/me/pdfRaster.ts PDF_MAX_PAGES
+function scheduleTables(body: any): Record<string, unknown> {
+  if (!Array.isArray(body?.schedule_tables)) return {};
+  const num = (v: unknown, lo: number, hi: number) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : lo; };
+  const out: unknown[] = [];
+  for (const t of body.schedule_tables.slice(0, 40)) {
+    if (!t || typeof t !== 'object' || !Array.isArray(t.rows)) continue;
+    const page = Math.round(Number(t.page));
+    if (!Number.isInteger(page) || page < 1 || page > MAX_DRAWING_PAGES) continue;
+    const b = t.bbox || {};
+    const rows = t.rows.slice(0, 80).filter(Array.isArray).map((r: unknown[]) => r.slice(0, 24).map((s) => (typeof s === 'string' ? s.slice(0, 120) : '')));
+    if (!rows.length) continue;
+    const conf = rows.map((r: string[], i: number) => r.map((_, j) => num(Array.isArray(t.conf) && Array.isArray(t.conf[i]) ? t.conf[i][j] : 0, 0, 100)));
+    out.push({ page, bbox: { x: num(b.x, 0, 1), y: num(b.y, 0, 1), w: num(b.w, 0, 1), h: num(b.h, 0, 1) }, rows, conf });
+  }
+  return out.length ? { schedule_tables: out } : {};
+}
 function labelize(s: string): string { return String(s || '').replace(/[-_]/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()); }
 // 29 Jul 2026 - ANONYMITY. The scrubber lived only in supplier_api's portal READ path, so every
 // write path out of here shipped the customer's raw words straight to suppliers: the new-inquiry
@@ -717,7 +739,7 @@ Deno.serve(observe('customer_api', async (req) => {
     }
 
     if (action === 'analyze_drawing') {
-      let images: any[] = Array.isArray(body.images) ? body.images.slice(0, 10) : [];
+      let images: any[] = Array.isArray(body.images) ? body.images.slice(0, MAX_DRAWING_PAGES) : [];
       const name = String(body.drawing_file_name || 'drawing').slice(0, 180);
       const mime = String(body.mime || 'application/octet-stream');
       const hint = String(body.hint || '').slice(0, 400);
@@ -725,7 +747,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const secret = await getSecret('cred_fn_customer_api');
       const isCad = /\.(dwg|dxf)$/i.test(name) || /dwg|dxf|autocad|acad/i.test(mime);
       if (!images.length && isCad && body.original_b64) {
-        try { const cr = await fetch(`${SUPABASE_URL}/functions/v1/cad_convert`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, b64: body.original_b64, filename: name }) }); const cj = await cr.json(); if (cj?.ok && Array.isArray(cj.images) && cj.images.length) images = cj.images.slice(0, 10); } catch (_e) { /* */ }
+        try { const cr = await fetch(`${SUPABASE_URL}/functions/v1/cad_convert`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, b64: body.original_b64, filename: name }) }); const cj = await cr.json(); if (cj?.ok && Array.isArray(cj.images) && cj.images.length) images = cj.images.slice(0, MAX_DRAWING_PAGES); } catch (_e) { /* */ }
       }
       // WHY THE NOTE IS SPECIFIC NOW (11 Aug 2026). Spec #7 §3 names "a customer uploads a ZIP file
       // instead of a PDF" and "a PDF is corrupted" as two of its sixteen exception scenarios.
@@ -790,7 +812,7 @@ Deno.serve(observe('customer_api', async (req) => {
           return await r.json();
         };
         // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
-        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body) }) });
+        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body), ...scheduleTables(body) }) });
         let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
         // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
         // under the hold) — the portal opens the customer's box editor on exactly that signal.

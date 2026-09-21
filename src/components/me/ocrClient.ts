@@ -215,3 +215,128 @@ export async function ocrImages(
     await worker.terminate();
   }
 }
+
+// ── SCHEDULES, CELL BY CELL (21 Sep 2026, sales_engineer, founder instruction 580) ───────────────────
+// A drawing set's countable content sits in its schedules (RTU-1..3, EF-1..10, WC/L-1, FD-1...). On
+// the two real US bid sets measured today they were raster images or vector strokes with no text
+// layer, and ocrImages read the whole 36x24 sheet at ~72 dpi: 0 of 49 answer-key items, 4 invented BOQ
+// lines. This renders EVERY page (up to PDF_MAX_PAGES) at reading resolution, finds the ruled tables
+// (supabase/functions/_shared/table_grid.ts, pure, tested on a synthetic schedule and a floor plan),
+// and OCRs each non-empty cell on its own, so the row/column structure survives: rows[r][c] is the
+// text of grid cell (r, c), header rows included; a merged cell's text sits in its top-left grid cell
+// and the cells it covers are ''. Grid columns and rows that came out empty everywhere are dropped.
+//
+// SETTINGS are measured on both real sets in a real browser; the numbers are at SCHEDULE_DPI and
+// SCHEDULE_PSM. 'eng' only: every schedule on a drawing is Latin-script, and 'ara' only adds Arabic
+// noise to a Latin page. Self-hosted paths exactly as ocrImages.
+//
+// CAPS (the server validates the same): 40 tables, 80 rows, 24 columns, 120 characters a cell.
+export type ScheduleTable = {
+  page: number; // 1-based
+  bbox: { x: number; y: number; w: number; h: number }; // 0..1 of the displayed page, top-left origin
+  rows: string[][];
+  conf: number[][]; // 0-100 per cell; 0 for an empty cell
+};
+export const SCHEDULE_CAPS = { tables: 40, rows: 80, cols: 24, cell: 120 } as const;
+export const SCHEDULE_DPI = 200;
+// PSM 6 (a block) for every cell. MEASURED against 'auto' (PSM 7, one line, for a cell no taller than
+// 1.6 rows): a tag or model printed on two lines in one cell ("RTU / 1", "UNISEX RR / 104") read as
+// "RIV", "RH", "UNSEX RR" under PSM 7 and correctly under PSM 6, for +10 % time (54 s vs 49 s).
+export const SCHEDULE_PSM: 'auto' | 6 | 7 = 6;
+
+function cleanCell(s: string): string {
+  // a rule remnant at a cell's edge reads as | [ ] or _ ; inside the text it is kept
+  return String(s || '').replace(/\s+/g, ' ').replace(/^[\s|_[\]]+|[\s|_[\]]+$/g, '').slice(0, SCHEDULE_CAPS.cell);
+}
+
+export async function ocrSchedules(
+  pdfBytes: Uint8Array,
+  opts?: { onProgress?: (p: number) => void; dpi?: number; psm?: 'auto' | 6 | 7; maxPages?: number },
+): Promise<{ schedule_tables: ScheduleTable[]; pages: number; ms: number }> {
+  const t0 = Date.now();
+  const raster = await import('./pdfRaster');
+  const tg = await import('../../../supabase/functions/_shared/table_grid');
+  const pdf = await raster.openPdf(pdfBytes);
+  const nPages = Math.min(pdf.numPages, opts?.maxPages ?? raster.PDF_MAX_PAGES);
+  const dpi = opts?.dpi ?? SCHEDULE_DPI;
+  const psmMode = opts?.psm ?? SCHEDULE_PSM;
+  const { createWorker } = await import('tesseract.js');
+  const worker = await createWorker('eng', 1 /* LSTM only */, { workerPath: ocrUrl('worker.min.js'), corePath: ocrUrl('core'), langPath: ocrUrl('lang'), workerBlobURL: false });
+  const out: ScheduleTable[] = [];
+  const canvas = document.createElement('canvas');
+  const cx = canvas.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+  let psmNow = -1;
+  const setPsm = async (m: number) => {
+    if (m === psmNow) return;
+    // deno-lint-ignore no-explicit-any
+    await worker.setParameters({ tessedit_pageseg_mode: String(m) as any, user_defined_dpi: String(Math.round(dpi)) } as any);
+    psmNow = m;
+  };
+  try {
+    for (let p = 1; p <= nPages && out.length < SCHEDULE_CAPS.tables; p++) {
+      const g = await raster.renderPageGray(pdf, p, dpi);
+      const tables = tg.detectTables(g).slice(0, SCHEDULE_CAPS.tables - out.length);
+      const inset = Math.max(4, Math.round(Math.max(g.w, g.h) * 0.0007));
+      const todo = tables.map((t) => t.cells.filter((c) => !tg.isEmptyCell(g, c, inset)));
+      const total = todo.reduce((n, a) => n + a.length, 0) || 1;
+      let done = 0;
+      for (let ti = 0; ti < tables.length; ti++) {
+        const t = tables[ti];
+        const R = t.rowsY.length - 1, C = t.colsX.length - 1;
+        const text: string[][] = Array.from({ length: R }, () => Array(C).fill(''));
+        const conf: number[][] = Array.from({ length: R }, () => Array(C).fill(0));
+        const rowH = t.rowsY.slice(1).map((y, i) => y - t.rowsY[i]).sort((a, b) => a - b)[Math.floor(R / 2)];
+        for (const cell of todo[ti]) {
+          const x0 = Math.round(cell.x + inset), y0 = Math.round(cell.y + inset);
+          const w = Math.round(cell.w - 2 * inset), h = Math.round(cell.h - 2 * inset);
+          done++;
+          if (w < 4 || h < 4) continue;
+          const pad = 12;
+          canvas.width = w + 2 * pad; canvas.height = h + 2 * pad;
+          const id = cx.createImageData(canvas.width, canvas.height);
+          id.data.fill(255);
+          // A horizontal ink run longer than half a row is not a letter stroke: it is an underline under a
+          // tag (P-0.01 underlines every tag, and "FD-1" read "FDA", "WC/L-1" read "WCIL-1" with it) or
+          // a rule remnant the inset missed. It is whitened before the cell is read.
+          const maxRun = Math.max(12, Math.round(rowH * 0.5));
+          for (let y = 0; y < h; y++) {
+            const src = (y0 + y) * g.w + x0;
+            const rowOut = ((y + pad) * canvas.width + pad) * 4;
+            let run = 0;
+            for (let x = 0; x <= w; x++) {
+              const v = x < w ? g.data[src + x] : 255;
+              if (v < 170) { run++; continue; }
+              const lo = x - run, erase = run >= maxRun;
+              for (let k = lo; k < x; k++) { const u = erase ? 255 : g.data[src + k]; const o = rowOut + k * 4; id.data[o] = u; id.data[o + 1] = u; id.data[o + 2] = u; }
+              run = 0;
+              if (x < w) { const o = rowOut + x * 4; id.data[o] = v; id.data[o + 1] = v; id.data[o + 2] = v; }
+            }
+          }
+          cx.putImageData(id, 0, 0);
+          await setPsm(psmMode === 'auto' ? (cell.h <= 1.6 * rowH ? 7 : 6) : psmMode);
+          const { data } = await worker.recognize(canvas);
+          const s = cleanCell(data.text);
+          text[cell.r][cell.c] = s;
+          conf[cell.r][cell.c] = s ? Math.round(data.confidence) : 0;
+          opts?.onProgress?.((p - 1 + done / total) / nPages);
+        }
+        // Drop grid columns and rows that are empty everywhere (spacer columns, the ruled blank rows a
+        // schedule leaves for additions), then cap.
+        const keepC = [...Array(C).keys()].filter((c) => text.some((row) => row[c])).slice(0, SCHEDULE_CAPS.cols);
+        const keepR = [...Array(R).keys()].filter((r) => text[r].some((s) => s)).slice(0, SCHEDULE_CAPS.rows);
+        if (!keepR.length) continue;
+        out.push({
+          page: p,
+          bbox: { x: t.bbox.x / g.w, y: t.bbox.y / g.h, w: t.bbox.w / g.w, h: t.bbox.h / g.h },
+          rows: keepR.map((r) => keepC.map((c) => text[r][c])),
+          conf: keepR.map((r) => keepC.map((c) => conf[r][c])),
+        });
+      }
+      opts?.onProgress?.(p / nPages);
+    }
+  } finally {
+    await worker.terminate();
+    canvas.width = canvas.height = 0;
+  }
+  return { schedule_tables: out, pages: nPages, ms: Date.now() - t0 };
+}

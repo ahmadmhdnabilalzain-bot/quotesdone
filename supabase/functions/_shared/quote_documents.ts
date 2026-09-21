@@ -49,6 +49,10 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   // The placeholder follows the script of the text it sits in, not the page: an Arabic placeholder
   // inside an English supplier note turned the whole note right-to-left and scrambled its order.
   const H = HIDDEN[/[؀-ۿ]/.test(t) ? 'ar' : /[A-Za-z]/.test(t) ? 'en' : lang];
+  // _shared/anonymise paints what it removes as '█'. No brand font carries that glyph: measured 21 Sep 2026
+  // (drawing_boq/drawing_chain.test.ts) the inquiry PDF dropped it — 6 characters in English, 5 in Arabic —
+  // so a scrubbed BOQ line printed "call  on  or ," with nothing saying something was taken out.
+  t = t.replace(/█+/g, H);
   t = t.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, H);
   t = t.replace(/\b(?:https?:\/\/|www\.)\S+/gi, H);
   t = t.replace(/\b[\w-]+\.(?:com|ae|net|org|co)(?:\.[a-z]{2})?\b/gi, H);
@@ -756,7 +760,25 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
 // and its reveal gate — so nothing here reads the inquiry itself; contacts are masked once more on
 // the way to the page, the way every other document does it.
 /** One customer-authored BOQ line as the inbox serves it (quote_review.ts BoqRow). */
-export type RequestLine = { section?: string | null; description?: string | null; qty?: number | string | null; unit?: string | null };
+export type RequestLine = { section?: string | null; description?: string | null; qty?: number | string | null; unit?: string | null; qty_status?: string | null };
+// WHERE A QUANTITY CAME FROM, as the supplier must read it (21 Sep 2026, sales_engineer; founder instruction
+// 580: the BOQ PDF we send suppliers must be perfect). MEASURED on drawing_boq/drawing_chain.test.ts: a
+// reader line with qty_status 'to_confirm' reached this page as a bare "12 nos", indistinguishable from a
+// quantity printed on the drawing — the supplier could not tell OUR take-off estimate from the customer's
+// own number, and the CSV beside it dropped the status too. Every status the chain writes
+// (drawing_boq readers, boq_open_lines.settleLines, drawing_boq/confirm.ts) now prints as words, EN + AR.
+// An unknown status is shown as "to confirm": a quantity whose origin we cannot state is never presented as read.
+export function qtyBasis(l: RequestLine): { en: string; ar: string; open: boolean } | null {
+  const st = String(l.qty_status ?? '').trim();
+  if (l.qty == null || l.qty === '') return { en: 'Not counted: take off from the drawing', ar: 'لم تُعدّ: احسبها من المخطط', open: true };
+  if (!st) return null;
+  if (st === 'read') return { en: 'Read from the drawing', ar: 'مقروءة من المخطط', open: false };
+  if (st === 'check_confirmed') return { en: 'Counted from the drawing, cross-checked', ar: 'معدودة من المخطط ومُتحقَّق منها', open: false };
+  if (st === 'customer_confirmed') return { en: 'Our count, confirmed by the customer', ar: 'عددنا، وأكّده العميل', open: false };
+  if (st === 'customer_stated') return { en: 'Stated by the customer', ar: 'حدّدها العميل', open: false };
+  // to_confirm, estimated, estimated_supplier_to_verify — and any status this list does not know.
+  return { en: 'To confirm: our estimate, verify the take-off', ar: 'للتأكيد: تقديرنا، يُرجى التحقق من الحصر', open: true };
+}
 export type InquiryDocRow = {
   id: string; category?: string | null; emirate?: string | null; summary?: string | null; budget?: string | null;
   scope_type?: string | null; urgency?: string | null; created_at?: string | null;
@@ -825,14 +847,21 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
     const hasSection = rows.some((r) => r.section && String(r.section).trim());
     const head: Cell[] = ['#']; const widths = [0.05]; const align = ['c'];
     if (hasSection) { head.push(T('Section', 'القسم')); widths.push(0.16); align.push('s'); }
-    head.push(T('Description', 'الوصف'), T('Qty', 'الكمية'), T('Unit', 'الوحدة')); widths.push(hasSection ? 0.59 : 0.75, 0.10, 0.10); align.push('s', 'e', 'c');
+    // The basis column appears whenever any line carries a status (or has no quantity); a BOQ the customer
+    // typed with plain numbers keeps the four columns it always had.
+    const bases = rows.map(qtyBasis); const hasBasis = bases.some(Boolean);
+    head.push(T('Description', 'الوصف'), T('Qty', 'الكمية'), T('Unit', 'الوحدة')); widths.push(hasSection ? (hasBasis ? 0.39 : 0.59) : (hasBasis ? 0.55 : 0.75), 0.10, 0.10); align.push('s', 'e', 'c');
+    if (hasBasis) { head.push(T('Quantity basis', 'أساس الكمية')); widths.push(0.20); align.push('s'); }
     const body = rows.slice(0, 120).map((r, idx) => {
       const c: Cell[] = [String(idx + 1)];
       if (hasSection) c.push(k.cell(r.section, 60));
       c.push(k.cell(r.description, 240), r.qty == null || r.qty === '' ? '—' : String(r.qty), (ar ? (arUnit(r.unit) ?? k.loc(r.unit).text) : String(r.unit || '')) || '—');
+      if (hasBasis) { const b = bases[idx]; c.push(b ? { text: T(b.en, b.ar), ...(b.open ? { flag: 'missing' as const } : {}) } : '—'); }
       return c;
     });
     blocks.push({ t: 'table', head, rows: body, widths, align, zebra: true });
+    const open = bases.filter((b) => b?.open).length;
+    if (open) blocks.push({ t: 'note', text: T(`${open} line${open === 1 ? ' is' : 's are'} marked "To confirm" or "Not counted": the quantity is our take-off estimate from the drawing, not the customer's figure. Measure it, and state the quantity you priced on your quotation.`, `${open} من البنود معلّمة «للتأكيد» أو «لم تُعدّ»: الكمية تقديرنا من المخطط وليست رقم العميل. تحقّق منها واذكر الكمية التي سعّرتها في عرضك.`) });
     if (rows.length > 120) blocks.push({ t: 'note', text: T(`${rows.length - 120} further lines are in the BOQ file.`, `يوجد ${rows.length - 120} بندًا إضافيًا في ملف جدول الكميات.`) });
   } else blocks.push({ t: 'note', text: T('No bill of quantities was attached. Price from the scope and the drawings.', 'لم يُرفق جدول كميات. سعّر من النطاق والمخططات.') });
 
