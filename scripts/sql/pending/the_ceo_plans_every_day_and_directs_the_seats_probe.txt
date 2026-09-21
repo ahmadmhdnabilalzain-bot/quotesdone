@@ -1,0 +1,3 @@
+Pure probe for the CEO's daily plan; run after the_ceo_plans_every_day_and_directs_the_seats.sql is applied: node scripts/qsql.mjs scripts/sql/the_ceo_plans_every_day_and_directs_the_seats_probe.sql. Must answer PROBE OK. Then append it to the END of MANIFEST.txt and delete this note.
+
+22 Sep 2026 — ceo.

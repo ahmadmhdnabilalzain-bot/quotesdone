@@ -1,0 +1,9 @@
+The CEO's daily plan, directives and model slot (instruction 638). Not applied: the coordinator serialises applies. Order, each with --apply --ddl:
+  1. deploy resilience_ping (adds the ceoPlan runner; harmless until the step row exists)
+  2. re-apply scripts/sql/the_weekly_report_arrives_and_the_rules_decide.sql (evaluator names the three new rules)
+  3. apply this file, then append it to the END of MANIFEST.txt and delete this note
+  4. re-apply scripts/sql/the_founder_brief_says_seven_things_in_plain_words.sql (item 7 reads fn_ceo_plan_brief_lines)
+  5. run the probe (see its own note).
+Rehearsed rolled back 22 Sep 2026 with steps 2-4 in one aborted transaction: PROBE OK, fn_ceo_decisions_evaluate ok=true.
+
+22 Sep 2026 — ceo.

@@ -405,6 +405,11 @@ begin
     when 'structure' then
       v_state := 'founder_specified'; v_detail := 'the founder specifies the seats; the CEO decides nothing here';
 
+    when 'seat_directive', 'constraint_stalled', 'plan_review' then
+      -- 22 Sep 2026 (ceo): decided by the daily plan on its own heartbeat step (fn_ceo_plan_tick, step
+      -- ceoPlan), which writes these rows with their evidence. Named here so they are not no_evaluator.
+      v_state := 'decided_by_the_plan'; v_detail := 'fn_ceo_plan_tick (the_ceo_plans_every_day_and_directs_the_seats.sql)';
+
     else
       v_state := 'no_evaluator'; v_missing := v_missing || d.decision_key;
     end case;
