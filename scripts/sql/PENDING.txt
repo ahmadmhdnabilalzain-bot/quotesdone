@@ -15,4 +15,5 @@
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
 #
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
-scripts/sql/the_open_account_facts_of_21_september_are_recorded.sql :: accountant + it_engineer, 21 Sep: records the measured Resend cap, the founder's two budgets as "needs his dashboard", the .ae expiry from the Tasjeel invoice, the 7 templates waiting at Twilio and closes instruction 494. Data only; the coordinator applies it, then moves this line to the end of MANIFEST.txt.
+#
+# 21 Sep 2026 — registration-day surge review (it_engineer).
