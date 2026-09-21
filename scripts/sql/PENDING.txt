@@ -11,10 +11,5 @@
 # 21 Sep 2026 — the IT failures of 18–21 Sep (docs/it/IT_FAILURES_18_21_SEP_2026.md). Applies are
 # serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the
 # END of MANIFEST.txt (a file cannot be in both): each carries a PROBE row and was executed rolled-back.
-scripts/sql/the_it_detector_reads_agent_runs_once_and_no_subject_can_flood_it.sql :: awaiting the coordinator's serialised apply (1 of 5); moves to MANIFEST when applied
-scripts/sql/the_liveness_check_reads_the_scheduler_not_the_detector.sql :: awaiting the coordinator's serialised apply (2 of 5); moves to MANIFEST when applied
-scripts/sql/the_ceo_answers_the_report_families_it_had_no_answer_for.sql :: awaiting the coordinator's serialised apply (3 of 5); moves to MANIFEST when applied
-scripts/sql/a_backup_of_a_source_that_no_longer_exists_is_abandoned_not_refiled_for_ever.sql :: awaiting the coordinator's serialised apply (4 of 5); moves to MANIFEST when applied
-scripts/sql/the_slow_statement_duty_does_not_page_about_an_operators_session.sql :: awaiting the coordinator's serialised apply (5 of 5); moves to MANIFEST when applied
 
 
