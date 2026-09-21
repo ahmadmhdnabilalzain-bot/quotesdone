@@ -27,24 +27,36 @@ const pdfStr = (s) => String(s).replace(/([()\\])/g, '\\$1');
  * opts.mediaBox — [w, h] in points (default A4 portrait); opts.content — an extra content-stream
  * string (path and text operators) written before the lines, for callers that draw.
  */
-export function demoPdf(lines, { mediaBox = [595, 842], content = '' } = {}) {
-  let y = 760;
-  let text = content;
-  if (lines.length) {
+export function demoPdf(lines, opts = {}) {
+  return demoPdfPages([lines], opts);
+}
+
+/** Several pages, each [text, fontSize][] top to bottom (21 Sep 2026: the ZZ DEMO catalogue fixture). */
+export function demoPdfPages(pages, { mediaBox = [595, 842], content = '' } = {}) {
+  const stream = (lines) => {
+    let y = 760;
+    let text = content;
+    if (!lines.length) return text;
     text += 'BT\n';
     for (const [line, size] of lines) {
       text += `/F1 ${size} Tf\n1 0 0 1 60 ${y} Tm\n(${pdfStr(line)}) Tj\n`;
       y -= size + 10;
     }
-    text += 'ET\n';
-  }
+    return text + 'ET\n';
+  };
+  // 1 catalog, 2 pages, 3 font, then a page and its content stream per page.
+  const n = pages.length;
+  const kids = pages.map((_, i) => `${4 + 2 * i} 0 R`).join(' ');
   const objs = [
     '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${mediaBox[0]} ${mediaBox[1]}] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>`,
-    `<< /Length ${text.length} >>\nstream\n${text}endstream`,
+    `<< /Type /Pages /Kids [${kids}] /Count ${n} >>`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
   ];
+  pages.forEach((lines, i) => {
+    const text = stream(lines);
+    objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${mediaBox[0]} ${mediaBox[1]}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + 2 * i} 0 R >>`);
+    objs.push(`<< /Length ${text.length} >>\nstream\n${text}endstream`);
+  });
   let pdf = '%PDF-1.4\n';
   const offsets = [];
   objs.forEach((o, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });

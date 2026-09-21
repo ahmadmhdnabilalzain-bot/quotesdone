@@ -30,6 +30,12 @@
 import { capabilityConfirm, capabilityState, tradeCode } from './supplier_capability.ts';
 import { impliedServices, rewriteServices, tidy, type Implication, type ServiceTerm } from './service_rewrite.ts';
 import type { TradeTerm } from './trade_words.ts';
+import { readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
+import { meaningCandidates, parseVec, proposeByMeaning, type MeaningProposal, type MeaningService } from './service_meaning.ts';
+import { embedLine } from './gte_embed.ts';
+import { readWithModel } from './catalogue_model.ts';
+import { allText, type DocEvidence } from './supplier_doc_trades.ts';
+import { readDocument } from './doc_read/index.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -263,11 +269,54 @@ export type ImpliedOut = {
 
 /** The preview. `text` is the supplier's own words; `removed` the implied keys it has already
  *  unticked in this session, so a re-run does not silently put them back. Nothing is saved here. */
+/** The supplier's most recent readable catalogue: its text layer, or the text its browser read from the
+ *  photo / scan (stored beside it as <path>.ocr.txt by supplier_catalog_ingest). */
+async function latestCatalogueText(admin: Admin, supplierId: number): Promise<{ name: string; text: string; source: 'document_text' | 'photo_text' } | null> {
+  const { data } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
+  const docs = Array.isArray(data?.source_docs?.docs) ? data!.source_docs.docs as DocEvidence[] : [];
+  const doc = docs.filter((d) => d.kind === 'catalogue' && d.status === 'read').sort((a, b) => String(b.read_at).localeCompare(String(a.read_at)))[0];
+  if (!doc) return null;
+  const want = doc.source === 'photo_text' ? `${doc.path}.ocr.txt` : doc.path;
+  const { data: blob } = await admin.storage.from('supplier-docs').download(want);
+  if (!blob) return null;
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  if (doc.source === 'photo_text') return { name: doc.name, text: new TextDecoder().decode(bytes), source: 'photo_text' };
+  const r = await readDocument(bytes, doc.name, '', 0, { textOnly: true });
+  return r.ok ? { name: doc.name, text: allText(r), source: 'document_text' } : null;
+}
+
+/** The meaning layer over the lines the word rules left unnamed (service_meaning.ts). Never throws;
+ *  says which state it is in, so the supplier and the sales engineer can tell "understood nothing"
+ *  from "could not run". */
+async function meaningFor(admin: Admin, lines: string[], stated: string[], supplyOnly: boolean) {
+  if (!lines.some((l) => l.trim().length >= 3)) return { state: 'nothing_to_read', proposals: [] as MeaningProposal[] };
+  const { data, error } = await admin.from('taxonomy_trade_service')
+    .select('trade_code,code,label_en,label_ar,aliases,embedding_gte').eq('active', true);
+  const services = error ? [] : (data || []).map((s: Record<string, unknown>) => ({ ...s, vec: parseVec(s.embedding_gte) })) as MeaningService[];
+  if (!services.some((s) => s.vec)) return { state: 'service_vectors_missing', proposals: [] as MeaningProposal[] };
+  const todo = meaningCandidates(lines, services);
+  const vecs = await Promise.all(todo.map((t) => embedLine(t)));
+  if (!vecs.some(Boolean)) return { state: 'embedding_unavailable', proposals: [] as MeaningProposal[] };
+  const proposals = proposeByMeaning(todo.map((text, i) => ({ text, vec: vecs[i] })), services, { stated, supplyOnly });
+  return { state: 'on', proposals };
+}
+
 export async function servicesRewrite(admin: Admin, supplierId: number, body: Record<string, unknown>): Promise<[number, Record<string, unknown>]> {
-  const raw = String(body.text ?? '').slice(0, RAW_TEXT_MAX);
-  if (raw.trim().length < 2) return [400, { error: 'empty_text', code: 'services_empty_text' }];
+  // TWO INPUTS, ONE READER. The supplier's own words (typed or dictated, up to RAW_TEXT_MAX), or — with
+  // from_catalogue — its latest uploaded catalogue, read whole by _shared/catalogue_read.ts (21 Sep 2026).
+  const fromCatalogue = body.from_catalogue === true;
+  const cat = fromCatalogue ? await latestCatalogueText(admin, supplierId) : null;
+  if (fromCatalogue && !cat) return [404, { error: 'no_catalogue', code: 'services_no_catalogue' }];
+  const raw = fromCatalogue ? '' : String(body.text ?? '').slice(0, RAW_TEXT_MAX);
+  if (!fromCatalogue && raw.trim().length < 2) return [400, { error: 'empty_text', code: 'services_empty_text' }];
   const [services, trades, map] = await Promise.all([serviceVocab(admin), tradeVocab(admin), implicationMap(admin)]);
-  const rw = rewriteServices(raw, services, trades);
+  // SUPPLY ONLY is proposed by the words, and the supplier's own answer overrides it (supply_only true /
+  // false in the request, from "we also install" on the tab).
+  const override = typeof body.supply_only === 'boolean' ? body.supply_only as boolean : undefined;
+  const read = cat ? readCatalogue(cat.text, services, trades, override) : null;
+  const supply = read ? read.supply : supplyOnlyOf(raw);
+  const supplyOnly = override ?? supply.supply_only;
+  const rw = read ? read.rewrite : rewriteServices(raw, services, trades, { supplyOnly });
 
   // WHAT THE STATED SERVICES ALSO COVER. The sources are the stated service keys, the trades those
   // services belong to (stating "decoration" states interior_fitout too), and any trade a phrase named
@@ -287,17 +336,30 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
     const s = byKey.get(code);
     return s ? { en: s.label_en, ar: s.label_ar } : { en: code.replace(/[._]/g, ' '), ar: code.replace(/[._]/g, ' ') };
   };
-  const implied: ImpliedOut[] = impliedServices(sources, map, rw.service_keys, removed).map((i) => {
+  // A supply-only company gets every implication back already struck out (service_rewrite.ts says why).
+  const implied: ImpliedOut[] = impliedServices(sources, map, rw.service_keys, removed, supplyOnly).map((i) => {
     const l = label(i.key);
     return {
       key: i.key, label_en: l.en, label_ar: l.ar, trade: i.key.split('.')[0], removed: i.removed,
       because: i.because.map((b) => ({ from: b.from, from_label_en: label(b.from).en, from_label_ar: label(b.from).ar, en: b.en, ar: b.ar })),
     };
   });
+  // WHAT THE WORDS LEFT UNNAMED, read for meaning: whole lines the rules named nothing in, and — from a
+  // catalogue — its sentences about the company. Never its spec rows (catalogue_read.ts drops those).
+  const unnamed = rw.items.filter((i) => i.kind === 'unmatched').map((i) => i.text);
+  const meaning = await meaningFor(admin, [...unnamed, ...(read ? read.lines.statements : [])], rw.service_keys, supplyOnly);
+  // CODE READ NOTHING: the model path, which answers honestly that it is switched off.
+  const model = (!rw.service_keys.length && !meaning.proposals.length)
+    ? await readWithModel(admin, 'text', { text: cat ? cat.text : raw }, new Set(byKey.keys()))
+    : null;
   return [200, {
     ok: true, raw_text: raw, items: rw.items, service_keys: rw.service_keys, own_words: rw.own_words,
     summary_en: rw.summary_en, summary_ar: rw.summary_ar, implied,
     pending_taxonomy: rw.items.filter((i) => i.kind === 'unmatched').map((i) => i.text),
+    supply_only: { proposed: supply.supply_only, applied: supplyOnly, supply_words: supply.supply_words, install_words: supply.install_words },
+    meaning: { state: meaning.state, proposals: meaning.proposals },
+    source: cat ? { kind: 'catalogue', name: cat.name, read_from: cat.source } : { kind: 'typed' },
+    ...(model ? { model } : {}),
   }];
 }
 

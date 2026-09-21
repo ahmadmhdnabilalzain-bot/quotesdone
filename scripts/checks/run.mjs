@@ -219,7 +219,11 @@ function main() {
     // while the same test passed locally. Only that folder is readable; the rest of the tree is not.
     const denoRes = spawnSync('deno', ['test', '--no-lock', '--node-modules-dir=auto',
       '--allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_INBOUND_NO_SERVE',
-      `--allow-read=${path.join(REPO, 'supabase', 'functions', 'supplier_api', 'fixtures')}`, ...deno],
+      // Widened to READ the repository (21 Sep 2026, PR #780): the catalogue tests read synthetic
+      // fixtures, the taxonomy seed in scripts/sql, and tesseract.js's wasm under node_modules/.deno.
+      // A per-folder list failed to resolve those files; the repository root read-only is the simple
+      // rule. Still no write, no network, no environment beyond the three names above.
+      `--allow-read=${REPO}`, ...deno],
       { stdio: 'inherit', cwd: REPO, shell: process.platform === 'win32' });
     if (denoRes.error && denoRes.error.code === 'ENOENT') {
       // NEVER SKIP. Passing silently when the runner is absent is the precise failure this file

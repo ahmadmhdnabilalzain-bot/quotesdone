@@ -33,7 +33,7 @@ const EXPORT_PAGES = 4177;            // §8: the full copy of 2026-09-18, 11,92
 const SIZE_BEFORE_MB = 9313;          // §8, measured 21 Sep 2026 09:18 UTC
 // id slice for the census, EVERY kind (21 Sep 2026): the census hit the management API gateway's 524
 // (~100 s). 100k ids is ~85k rows at today's density, well under it. Measured before: 200k ids ≈ 12 s.
-const CENSUS_SLICE = 100000;
+const CENSUS_SLICE = 20000;
 
 function token() {
   if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
@@ -146,7 +146,7 @@ step('census (verdict per source_kind × category, written to kb_purge_ledger be
     }
     console.log('   census verified: every source_kind sums to its live count, one SIZE row');
   }
-  const plan = await sql(`select verdict, clause, sum(rows)::bigint as rows,
+  const plan = await sql(`select verdict, clause, sum(kind_rows)::bigint as rows,
                                  string_agg(source_kind || ' ' || kind_rows, ', ' order by kind_rows desc) as by_kind
                             from (select verdict, clause, source_kind, sum(rows) as kind_rows
                                     from public.kb_purge_ledger where batch_no is null and verdict <> 'SIZE'
