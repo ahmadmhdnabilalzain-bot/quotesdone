@@ -31,6 +31,10 @@ import { assessQuote, readDelivery, readInstallation, readWarranty, requirements
 import { normText, VAGUE } from '../_shared/line_specs/model.ts';
 import { OPTION_HEAD } from '../_shared/line_specs/options.ts';
 import { readVat, type VatTreatment } from '../_shared/line_specs/vat.ts';
+import { arDuration, jobNoOf } from '../_shared/quote_documents.ts';
+// A period the supplier typed, read back in Arabic where the glossary knows it (audit 21 Sep 2026, finding 26:
+// the Arabic acknowledgement said "الصلاحية 30 days"). A period it does not know stays in the supplier's words.
+const arPeriod = (v: unknown) => arDuration(v) ?? String(v ?? '');
 import { maskIdentityNumbers } from '../_shared/identity_numbers.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 import type { Proposal } from '../quote_extract/quote_from_document.ts';
@@ -91,8 +95,15 @@ export type Review = { approved: boolean; issues: Issue[]; price_ex_vat: number 
 
 /** The key that tracks one request across reviews: the same missing detail is the same request. */
 export const issueKey = (i: Pick<Issue, 'code' | 'line_no' | 'boq_line' | 'attr'>) => `${i.code}|${i.line_no ?? ''}|${i.boq_line ?? ''}|${i.attr ?? ''}`;
-/** The job number every supplier-facing surface prints — the same 8 characters the hold notices use. */
-export const jobNo = (inquiryId: string) => String(inquiryId || '').slice(0, 8).toUpperCase();
+/**
+ * The job number every surface prints: inquiries.rfq_no, the same number the customer portal shows
+ * and every notice carries ('RFQ-151767'). Measured 21 Sep 2026 (audit finding 7): this printed the
+ * first 8 characters of the uuid (D958E1EA) while the customer read 151767 for the same job, so
+ * neither side could quote the other's number. The uuid prefix remains only as a fallback for a row
+ * read without rfq_no, which the column's NOT NULL makes a caller's omission rather than a state.
+ */
+export const jobNo = (inq: { rfq_no?: number | string | null; id?: string | null } | string) =>
+  jobNoOf(typeof inq === 'string' ? { id: inq } : inq);
 
 // ---------------------------------------------------------------------------------------------
 // Reading a quotation file's proposal (quote_extract/quote_from_document.ts) into the working quote.
@@ -726,8 +737,8 @@ export function tookSaid(cs: Correction[]): Said | null {
   if (!cs.length) return null;
   const en: string[] = [], ar: string[] = [];
   for (const c of cs) {
-    if (c.field === 'validity') { en.push(`validity ${c.value}`); ar.push(`الصلاحية ${c.value}`); }
-    else if (c.field === 'lead_time') { en.push(`lead time ${c.value}`); ar.push(`مدة التسليم ${c.value}`); }
+    if (c.field === 'validity') { en.push(`validity ${c.value}`); ar.push(`الصلاحية ${arPeriod(c.value)}`); }
+    else if (c.field === 'lead_time') { en.push(`lead time ${c.value}`); ar.push(`مدة التسليم ${arPeriod(c.value)}`); }
     else if (c.field === 'price_ex_vat') { en.push(`price excluding VAT AED ${fmt(c.value)}`); ar.push(`السعر غير شامل الضريبة ${fmt(c.value)} درهم`); }
     else if (c.field === 'vat_treatment') {
       // Every treatment readVat can return is worded here — a value with no wording would have been
@@ -740,7 +751,7 @@ export function tookSaid(cs: Correction[]): Said | null {
       };
       const x = m[c.value]; en.push(x[0]); ar.push(x[1]);
     }
-    else if (c.field === 'warranty_terms') { en.push(`warranty ${[c.period, c.coverage].filter(Boolean).join(', ')}`); ar.push(`الضمان ${[c.period, c.coverage].filter(Boolean).join('، ')}`); }
+    else if (c.field === 'warranty_terms') { en.push(`warranty ${[c.period, c.coverage].filter(Boolean).join(', ')}`); ar.push(`الضمان ${[c.period ? arPeriod(c.period) : null, c.coverage].filter(Boolean).join('، ')}`); }
     else if (c.field === 'installation') { en.push(c.included === 'yes' ? `installation included${c.detail ? ` (${c.detail})` : ''}` : 'supply only, no installation'); ar.push(c.included === 'yes' ? `التركيب مشمول${c.detail ? ` (${c.detail})` : ''}` : 'توريد فقط دون تركيب'); }
     else if (c.field === 'aed') { en.push('all prices in AED'); ar.push('كل الأسعار بالدرهم'); }
     else if (c.field === 'boq_excluded') { en.push(`BOQ line ${c.boq_line} excluded${c.value ? ` (${c.value})` : ''}`); ar.push(`البند ${c.boq_line} مستثنى${c.value ? ` (${c.value})` : ''}`); }

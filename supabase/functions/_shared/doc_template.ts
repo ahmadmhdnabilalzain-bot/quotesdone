@@ -56,7 +56,11 @@ export const FALLBACK: DocIdentity = {
   city: 'Dubai, United Arab Emirates',
   email: 'management@quotesdone.com',
   phone: '+971 50 931 9355',
-  web: 'quotesdone.com',
+  // 21 Sep 2026 (customer audit, finding 12): the documents print the TDRA-permitted host the company
+  // trades under in the UAE (NOL-26-100000665 is issued for www.quotesdone.ae; UAE visitors are served
+  // there). The email stays management@quotesdone.com: measured 21 Sep 2026, it is the one address
+  // the site publishes (src/content/company.json, legal.json) and company_registration.registered_email.
+  web: 'quotesdone.ae',
   signer: 'Ahmad Alzain',
   title: 'Founder & Managing Director',
   permit: 'TDRA NOL-26-100000665',

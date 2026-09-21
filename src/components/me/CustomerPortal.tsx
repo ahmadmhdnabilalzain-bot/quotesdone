@@ -108,7 +108,7 @@ import { motion, useReducedMotion } from 'motion/react';
 // The customer portal is the page a paying customer uses. Its Supabase target was an inline
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
 // LIVE database. supaEnv resolves it once and warns on fallback; see the note there.
-import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { signupEmailProblem } from '@/lib/signupEmail';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
@@ -123,7 +123,7 @@ const tokenAlive = (t) => {
   try { return (JSON.parse(atob(String(t).split('.')[1])).exp || 0) > (Date.now() / 1000) + 60; }
   catch (_e) { return true; } // unparseable: let the endpoint be the judge, do not lock anyone out
 };
-async function call(path, body, token) { const r = await fetch(FN + '/' + path, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
+async function call(path, body, token) { const r = await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
 // The five reads the dashboard makes on its first render, started beside the kyc gate rather than
 // behind it — see prefetch.ts for the measurement. Keys are what Dashboard and DecisionSupport take.
 import { warm, take, drop } from './prefetch';
@@ -1556,7 +1556,7 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
       <div className="flex flex-wrap items-center gap-2"><Badge variant="revealed" dot className="!text-accent font-mono uppercase tracking-caps">{t(lang, 'q_unlocked')}</Badge><div className="min-w-0 font-head text-[16px] font-semibold tracking-snug"><OpenSeal play={play}>{s.company_name || t(lang, 'c_supplier')}</OpenSeal></div></div>
       {q && q.revealed_at ? <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_revealed_on', { d: date(q.revealed_at) })}</div> : null}
       {won ? <div className="mt-0.5 text-[12px] font-bold text-primary">🏆 {t(lang, 'c_hired_badge')}</div> : null}
-      <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_paid', { fee: aed(q.reveal_fee) })}</div>
+      <div className={cn(S.sub, 'mt-0.5')}>{tf(lang, 'c_paid', { fee: aed(q.total_charged ?? q.reveal_fee) })}</div>
       <div className="mt-1.5 flex flex-wrap gap-3.5">
         {s.phone && <a href={'tel:' + s.phone} className="font-semibold text-primary">📞 <bdi dir="ltr">{s.phone}</bdi></a>}
         {s.whatsapp && <a href={'https://wa.me/' + String(s.whatsapp).replace(/[^0-9]/g, '')} target="_blank" rel="noopener" className="font-semibold text-primary">WhatsApp</a>}
@@ -1611,6 +1611,11 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
 // was charged.
 function ReceiptNote({ receipt, inqs, lang, onClose }) {
   const reduce = useReducedMotion();
+  // 21 Sep 2026 (customer audit, finding 17): "Payment received" never went away. The amount is
+  // stated on the request card too (c_paid), so the receipt leaves by itself after 15 seconds.
+  // Armed once on mount: the parent passes a fresh arrow each render, and re-arming on every render would never let it fire.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { const id = setTimeout(onClose, 15000); return () => clearTimeout(id); }, []);
   const all = inqs.flatMap((i) => [i, ...(i.children || [])]);
   const q = receipt.quoteId ? all.flatMap((i) => i.quotes || []).find((x) => x.id === receipt.quoteId) : null;
   const paid = receipt.kind === 'paid';
@@ -1622,7 +1627,7 @@ function ReceiptNote({ receipt, inqs, lang, onClose }) {
     </motion.span>
     <div className="min-w-0 flex-1">
       {paid
-        ? <><div className="font-head text-[15px] font-bold text-foreground">{t(lang, 'rcpt_title')}</div><p className="mt-0.5 text-[13px] text-muted-foreground">{q ? tf(lang, 'rcpt_body', { fee: aed(q.reveal_fee) }) : t(lang, 'payment_confirmed')}</p></>
+        ? <><div className="font-head text-[15px] font-bold text-foreground">{t(lang, 'rcpt_title')}</div><p className="mt-0.5 text-[13px] text-muted-foreground">{q ? tf(lang, 'rcpt_body', { fee: aed(q.total_charged ?? q.reveal_fee) }) : t(lang, 'payment_confirmed')}</p></>
         : <p className="text-[13px] text-foreground">{t(lang, 'rcpt_cancelled')}</p>}
     </div>
     <button type="button" onClick={onClose} aria-label={t(lang, 'close')} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" aria-hidden /></button>

@@ -28,7 +28,7 @@ export const MAX_B64 = Math.ceil(MAX_FILE / 3) * 4 + 64;
 
 const boqRows = (i: Json): BoqRow[] => (Array.isArray(i?.boq?.boq) ? i.boq.boq : []);
 export const safeInquiry = (i: Json): SafeInquiry => ({
-  id: String(i.id), job_no: jobNo(String(i.id)), category: i.category ?? null, emirate: i.emirate ?? null, spec: i.spec ?? null,
+  id: String(i.id), job_no: jobNo(i), category: i.category ?? null, emirate: i.emirate ?? null, spec: i.spec ?? null,
   boq_rows: boqRows(i), boq_withheld: !!i.boq_withheld, concluded: !!i.concluded, revealed: !!i.revealed,
 });
 /**
@@ -48,7 +48,7 @@ const extOf = (url: string) => { const m = String(url).split('?')[0].match(/\.([
  * PDF prints is the list the portal downloads.
  */
 export function inquiryDocuments(i: Json): { job: string; documents: Json[]; boq_withheld: boolean; drawing_pages_expected: number; drawing_pages_failed: number } {
-  const job = jobNo(String(i.id));
+  const job = jobNo(i);
   const documents: Json[] = (i.drawing_pages || []).map((u: string, k: number) => ({ kind: 'drawing_page', name: `Job_${job}_drawing_p${String(k + 1).padStart(2, '0')}${extOf(u)}`, url: u, expires_in: 3600 }));
   const rows = boqRows(i);
   if (rows.length && !i.boq_withheld) documents.push({ kind: 'boq_csv', name: `Job_${job}_BOQ.csv`, mime: 'text/csv', content: boqCsv(rows), lines: rows.length });
@@ -77,7 +77,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
     const inquiries = (j.inquiries || []).map((i: Json) => {
       const qs: Json[] = Array.isArray(i.quotes) ? i.quotes : (i.quote ? [i.quote] : []);
       return {
-        id: i.id, job_no: jobNo(String(i.id)), category: i.category ?? null, emirate: i.emirate ?? null, created_at: i.created_at, status: i.status,
+        id: i.id, job_no: jobNo(i), category: i.category ?? null, emirate: i.emirate ?? null, created_at: i.created_at, status: i.status,
         concluded: !!i.concluded, revealed: !!i.revealed, you_won: !!i.you_won, summary: i.summary ? String(i.summary).slice(0, 220) : null,
         boq_lines: boqRows(i).length, boq_withheld: !!i.boq_withheld, drawing_pages: (i.drawing_pages || []).length,
         // What the inquiry HAS versus what could be signed. Without both, a row reading "2 drawing
@@ -94,8 +94,8 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
   if (action === 'inquiry_detail') {
     const i = await one(body.inquiry_id); if (!i) return { status: 404, json: { error: 'not_found', code: 'not_found' } };
     return { status: 200, json: { ok: true, inquiry: {
-      id: i.id, job_no: jobNo(String(i.id)), category: i.category ?? null, emirate: i.emirate ?? null, created_at: i.created_at, status: i.status,
-      concluded: !!i.concluded, revealed: !!i.revealed, you_won: !!i.you_won, summary: i.summary ?? null, budget: i.budget ?? null,
+      id: i.id, job_no: jobNo(i), category: i.category ?? null, emirate: i.emirate ?? null, created_at: i.created_at, status: i.status,
+      concluded: !!i.concluded, revealed: !!i.revealed, you_won: !!i.you_won, summary: i.summary ?? null, summary_ar: i.summary_ar ?? null, budget: i.budget ?? null,
       scope_type: i.scope_type ?? null, spec: i.spec ?? null, requested: i.spec?.customer_requirements?.display ?? null,
       boq: i.boq ?? null, boq_withheld: !!i.boq_withheld, boq_confidence: i.boq_confidence ?? null, drawing_pages: i.drawing_pages || [],
       drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),

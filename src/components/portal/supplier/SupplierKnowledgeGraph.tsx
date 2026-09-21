@@ -14,10 +14,16 @@
 // similarity score. Pairs below five are not drawn at all — two companies overlapping is a
 // coincidence, and a line for it would be decoration.
 import React, { useEffect, useState } from 'react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { categoryLabel } from '@/lib/categoryLabel';
 
 type Lang = 'en' | 'ar';
-type Cat = { slug: string; label: string | null; companies: number | null; primary?: boolean | null };
+// label_ar and source since 21 Sep 2026: my_categories is the confirmed trades (supplier_capabilities)
+// plus the scraped lead_category rows, so a supplier with confirmed trades is never "not listed".
+type Cat = {
+  slug: string; label: string | null; label_ar?: string | null; companies: number | null;
+  primary?: boolean | null; source?: 'lead_category' | 'confirmed_trade' | string;
+};
 type Adj = { slug: string; label: string | null; shared_companies: number | null; companies: number | null };
 type Graph = {
   lead_id?: number; basis?: string;
@@ -25,11 +31,10 @@ type Graph = {
   population?: { category_nodes?: number; adjacency_edges?: number; listed_companies?: number };
 };
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),
@@ -40,9 +45,9 @@ async function call(path: string, body: unknown, token?: string | null) {
 const T = {
   en: {
     title: 'Your market neighbourhood', loading: 'Reading the knowledge graph…',
-    mine: 'You are listed in', adjacent: 'Your competitors also serve',
-    companies: 'companies', shared: 'shared with you', primary: 'primary',
-    none: 'You are not listed in any category yet, so there is no neighbourhood to draw.',
+    mine: 'Your trades and categories', adjacent: 'Your competitors also serve',
+    companies: 'companies', shared: 'shared with you', primary: 'primary', confirmed: 'confirmed',
+    none: 'You have no confirmed trade and no category yet. Confirm what you quote for on the My scope tab and your neighbourhood appears here.',
     noneAdj: 'No adjacent category reaches the five-company floor yet.',
     basisNote: 'Two categories are adjacent when at least five of the same companies serve both.',
     graphOf: 'graph of',
@@ -50,9 +55,9 @@ const T = {
   },
   ar: {
     title: 'محيط سوقك', loading: 'جارٍ قراءة شبكة المعرفة…',
-    mine: 'أنت مُدرج في', adjacent: 'منافسوك يخدمون أيضًا',
-    companies: 'شركة', shared: 'مشتركة معك', primary: 'أساسي',
-    none: 'لست مُدرجًا في أي فئة بعد، لذا لا يوجد محيط لعرضه.',
+    mine: 'تخصصاتك وفئاتك', adjacent: 'منافسوك يخدمون أيضًا',
+    companies: 'شركة', shared: 'مشتركة معك', primary: 'أساسي', confirmed: 'مؤكَّد',
+    none: 'لا يوجد لديك تخصص مؤكَّد ولا فئة بعد. أكّد ما تسعّره من تبويب «نطاق عملي» وسيظهر محيطك هنا.',
     noneAdj: 'لا توجد فئة مجاورة تبلغ حد الخمس شركات بعد.',
     basisNote: 'تُعدّ الفئتان متجاورتين عندما تخدمهما خمس شركات على الأقل.',
     graphOf: 'شبكة من',
@@ -96,7 +101,7 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
   const p = g.population || {};
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
@@ -119,9 +124,10 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
                       ? 'border-ok/30 bg-ok/[0.08] text-ok-fg'
                       : 'border-white/12 bg-white/[0.03] opacity-80')}
                 >
-                  {c.label || c.slug}
+                  {(lang === 'ar' && c.label_ar) || categoryLabel(c.label || c.slug, lang)}
                   {c.companies != null && <span className="opacity-55 ms-1.5 tabular-nums">{c.companies.toLocaleString()}</span>}
                   {c.primary ? <span className="opacity-50 ms-1">· {t(lang, 'primary')}</span> : null}
+                  {c.source === 'confirmed_trade' ? <span className="opacity-50 ms-1">· {t(lang, 'confirmed')}</span> : null}
                 </span>
               ))}
             </div>
@@ -139,7 +145,7 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
               {adj.map((a) => (
                 <div key={a.slug}>
                   <div className="flex justify-between items-baseline gap-3 text-[12px]">
-                    <span className="truncate pe-2">{a.label || a.slug}</span>
+                    <span className="truncate pe-2">{categoryLabel(a.label || a.slug, lang)}</span>
                     <span className="shrink-0 tabular-nums opacity-60">
                       {(a.shared_companies ?? 0).toLocaleString()} {t(lang, 'shared')}
                       <span className="opacity-45"> / {(a.companies ?? 0).toLocaleString()} {t(lang, 'companies')}</span>

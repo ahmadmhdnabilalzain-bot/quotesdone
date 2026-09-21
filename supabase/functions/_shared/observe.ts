@@ -121,6 +121,24 @@ function pathOf(req: Request): string {
   try { return new URL(req.url).pathname.slice(0, 120); } catch (_e) { return ''; }
 }
 
+/**
+ * Which Supabase edge region served this run. The platform routes a call to the region nearest the
+ * CALLER, while the database is in ap-southeast-1, so the same request costs ~1s from ap-south-1 and
+ * ~3.3s from us-east-1/2 (supplier_portal POST, 21 Sep 2026: p50 967ms ap-south-1, 3,556ms us-east-1,
+ * 3,336ms us-east-2 — function_edge_logs). The US calls were the post-deploy E2E smoke on GitHub's
+ * runners. Without the region in the row, a smoke run reads as the function getting slower; with it,
+ * a latency baseline can compare a region with its own history. SB_REGION is set by the platform;
+ * a missing env permission (deno test) or an unset variable gives null.
+ */
+export function edgeRegion(): string | null {
+  try { return Deno.env.get('SB_REGION') || null; } catch (_e) { return null; }
+}
+
+/** The counts every observed run carries. `region` is passed in by tests; production reads it. */
+export function baseCounts(req: Request, http: number, region: string | null = edgeRegion()) {
+  return { http, method: req.method, path: pathOf(req), region };
+}
+
 /** Read a failed response's body WITHOUT disturbing the one being returned. */
 async function bodyOf(res: Response): Promise<string> {
   try {
@@ -155,13 +173,13 @@ export function observe(
       res = await handler(req);
     } catch (e) {
       const msg = String((e as Error)?.message || e);
-      background(record(slug, 'error', { http: 500, method: req.method, path: pathOf(req), threw: true },
+      background(record(slug, 'error', { ...baseCounts(req, 500), threw: true },
         'threw before any response: ' + msg, t0));
       throw e;                       // the caller sees exactly what it saw before
     }
     const ms = Date.now() - t0;
     const http = res.status;
-    const base = { http, method: req.method, path: pathOf(req) };
+    const base = baseCounts(req, http);
     if (http >= 400) {
       const status = classify(http);
       const cloned = bodyOf(res);    // clone NOW, read in the background

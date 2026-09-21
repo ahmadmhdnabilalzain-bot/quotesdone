@@ -21,18 +21,17 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { scaleLinear } from 'd3-scale';
 import { line as d3line, curveMonotoneX } from 'd3-shape';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Lang = 'en' | 'ar';
 type Metric = { key: string; label: string; value: number | null; note?: string };
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 const LIVE_MS = 60_000;
 
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),
