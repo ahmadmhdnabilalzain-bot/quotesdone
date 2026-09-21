@@ -41,7 +41,7 @@ begin
   -- These two storage rows belong to this probe and are rolled back with everything else, so no real
   -- supplier's document is pointed at or re-registered.
   insert into storage.objects (bucket_id, name) values ('supplier-docs', v_lic), ('supplier-docs', v_prof)
-  on conflict (bucket_id, name) do nothing;
+  on conflict do nothing;  -- no target: since Supabase storage versioning (measured 22 Sep 2026) the (bucket_id, name) uniques are partial indexes, which a column list cannot name (42P10)
 
   insert into public.leads (company_name, email, emirate, sector, phone, owner_phone_verified,
                             owner_email_verified, license_doc_path, company_profile_doc_path,

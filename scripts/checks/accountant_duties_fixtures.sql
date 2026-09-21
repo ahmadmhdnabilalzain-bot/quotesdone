@@ -246,7 +246,7 @@ begin
   insert into storage.objects (bucket_id, name)
   values ('supplier-docs', 'zz-demo/accountant-duties-1001-licence.pdf'),
          ('supplier-docs', 'zz-demo/accountant-duties-1001-profile.pdf')
-  on conflict (bucket_id, name) do nothing;   -- two runs at once would otherwise serialize on (bucket_id, name)
+  on conflict do nothing;   -- any unique index: storage.objects has only partial ones on (bucket_id, name) since Supabase versioning (22 Sep 2026)
   insert into public.leads (company_name, email, claimed_by, claimed, phone, owner_phone_verified,
                             owner_email_verified, license_doc_path, company_profile_doc_path,
                             signed_terms_path, verified, approval_status, registration_submitted_at)

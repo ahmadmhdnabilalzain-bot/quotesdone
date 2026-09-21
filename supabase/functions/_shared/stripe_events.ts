@@ -20,6 +20,19 @@ export const INVOICE_EVENTS = ['invoice.finalized', 'invoice.paid'] as const;
 // Unhandled, Stripe closes an unanswered dispute as lost.
 export const DISPUTE_EVENTS = ['charge.dispute.created', 'charge.dispute.updated', 'charge.dispute.closed',
   'charge.dispute.funds_withdrawn', 'charge.dispute.funds_reinstated'] as const;
+// WHERE A REFUND EVENT'S REFUNDS ARE (22 Sep 2026, it_engineer). refund.* carries the refund itself.
+// charge.refunded carries the Charge, and on current Stripe API versions the Charge no longer embeds
+// its `refunds` list. MEASURED 21 Sep 2026: all 3 charge.refunded deliveries (17:09, 17:57, 21:11Z)
+// arrived without it, were logged 'REFUND EVENT WITH NO REFUND OBJECT' at error level and quarantined,
+// while the refund.created of the same second had already settled the refund. 'lookup' means: ask
+// Stripe for the charge's refunds (GET /v1/refunds?charge=) rather than call a well-formed event broken.
+// deno-lint-ignore no-explicit-any
+export function refundsInEvent(type: string, o: any): { refunds: any[] } | { lookup: string } | { none: true } {
+  if (Array.isArray(o?.refunds?.data) && o.refunds.data.length) return { refunds: o.refunds.data };
+  if (o?.object === 'refund') return { refunds: [o] };
+  if (type === 'charge.refunded' && o?.object === 'charge' && typeof o?.id === 'string' && o.id) return { lookup: o.id };
+  return { none: true };
+}
 export const HANDLED_STRIPE_EVENTS: readonly string[] = [...CHECKOUT_EVENTS, ...FAILED_CHECKOUT_EVENTS, ...REFUND_EVENTS, ...INVOICE_EVENTS, ...DISPUTE_EVENTS];
 
 // WHICH SIGNING SECRET MAY VERIFY AN EVENT (14 Sep 2026, agent: accountant). Stripe signs `livemode`

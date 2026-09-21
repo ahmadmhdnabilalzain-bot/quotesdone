@@ -57,3 +57,21 @@ Deno.test('a nested step that threw, or failed before it had sub-results, is sti
     { name: 'partial.email_cron', error: 'HTTP 500' },
   ], 'each failure is named once, at the level it happened');
 });
+
+// 21 Sep 2026: duty:heartbeat:backupVerify was closed 15 minutes after each failure because the step
+// (every 6 h) was not due on the next tick. Replays that state: it must stay failing until it passes.
+import { carriedFailures } from './steps.ts';
+Deno.test('a failed step that was not due this tick is still failing, until a run passes', () => {
+  const state = [
+    { step: 'backupVerify', last_started_at: '2026-09-21T17:16:11Z', last_ok_at: '2026-09-20T03:31:10Z' },
+    { step: 'outbox', last_started_at: '2026-09-21T17:31:00Z', last_ok_at: '2026-09-21T17:31:00Z' },
+    { step: 'weekly', last_started_at: '2026-09-21T15:00:00Z', last_ok_at: null },
+    { step: 'never', last_started_at: null, last_ok_at: null },
+  ];
+  const c = carriedFailures(state, { outbox: 900 }, []);
+  eq(c.map((f) => f.name), ['backupVerify', 'weekly'], 'the two whose last attempt failed');
+  eq(c.every((f) => f.carried === true), true, 'marked carried');
+  eq(carriedFailures(state, { backupVerify: 9000 }, []).map((f) => f.name), ['weekly'], 'a step that ran this tick is judged by this tick');
+  eq(carriedFailures(state, {}, [{ name: 'weekly.x', error: 'e' }]).map((f) => f.name), ['backupVerify'], 'not named twice');
+  eq(carriedFailures([{ step: 'backupVerify', last_started_at: '2026-09-21T23:16:00Z', last_ok_at: '2026-09-21T23:16:00Z' }], {}, []), [], 'closes once a run passes');
+});

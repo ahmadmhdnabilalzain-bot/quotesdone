@@ -73,9 +73,14 @@ test('no secret value is ever logged', () => {
   assert.doesNotMatch(src, /logRun\([^)]*\bsk\b/, 'a Stripe API key is passed into a log line');
 });
 
+// 22 Sep 2026 (PR #810): the shape reading moved into _shared/stripe_events.ts refundsInEvent, because
+// Stripe's charge.refunded no longer embeds its refunds list; a charge without it is looked up, never
+// quarantined. The webhook must USE the shared reader, and the reader must handle all three shapes.
 test('the webhook reads both refund payload shapes', () => {
-  assert.match(src, /refunds\?\.data/, 'the charge.refunded array shape is not read');
-  assert.match(src, /object === 'refund'/, 'the bare refund object shape is not read');
+  assert.match(src, /refundsInEvent\(/, 'stripe_webhook does not read refunds through refundsInEvent');
+  assert.match(shared, /refunds\?\.data/, 'the charge.refunded array shape is not read');
+  assert.match(shared, /object === 'refund'/, 'the bare refund object shape is not read');
+  assert.match(shared, /lookup/, 'a charge.refunded without its refunds list is not looked up');
 });
 
 test('the webhook passes every field the settlement function needs', () => {

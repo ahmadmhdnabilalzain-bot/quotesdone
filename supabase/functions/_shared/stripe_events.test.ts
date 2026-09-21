@@ -26,3 +26,15 @@ Deno.test('a mode whose secret is not configured gets an empty secret, never the
   assertEquals(signingSecretFor('test', { live: 'whsec_LIVE', test: '' }), '');
   assertEquals(signingSecretFor('live', { live: '', test: 'whsec_TEST' }), '');
 });
+
+// 21 Sep 2026: charge.refunded arrived three times without an embedded refunds list and was logged as
+// a broken event while its refund had already settled. The Charge is asked about, never quarantined.
+import { refundsInEvent } from './stripe_events.ts';
+Deno.test('a charge.refunded without an embedded refunds list is looked up by charge, not called broken', () => {
+  assertEquals(refundsInEvent('charge.refunded', { object: 'charge', id: 'ch_3UIAi0C45SqX5pVb1qWg9DHH', refunded: true }),
+    { lookup: 'ch_3UIAi0C45SqX5pVb1qWg9DHH' });
+  assertEquals(refundsInEvent('charge.refunded', { object: 'charge', id: 'ch_1', refunds: { data: [{ id: 're_1' }] } }),
+    { refunds: [{ id: 're_1' }] });
+  assertEquals(refundsInEvent('refund.created', { object: 'refund', id: 're_2' }), { refunds: [{ object: 'refund', id: 're_2' }] });
+  assertEquals(refundsInEvent('refund.updated', { object: 'charge' }), { none: true });
+});
