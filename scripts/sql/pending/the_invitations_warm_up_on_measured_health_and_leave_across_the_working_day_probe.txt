@@ -1,1 +1,0 @@
-pure probe, no DDL: run with node scripts/qsql.mjs after scripts/sql/the_invitations_warm_up_on_measured_health_and_leave_across_the_working_day.sql is applied; it answers PROBE FAILED until then (measured 22 Sep 2026).

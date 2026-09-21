@@ -1,1 +1,0 @@
-pure probe, no DDL: run with node scripts/qsql.mjs after scripts/sql/a_supplier_reply_reaches_a_mailbox_that_is_read.sql is applied; it answers PROBE FAILED until then (measured 22 Sep 2026).
