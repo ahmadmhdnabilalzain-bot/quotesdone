@@ -11,6 +11,5 @@
 # 21 Sep 2026 — the IT failures of 18–21 Sep (docs/it/IT_FAILURES_18_21_SEP_2026.md). Applies are
 # serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the
 # END of MANIFEST.txt (a file cannot be in both): each carries a PROBE row and was executed rolled-back.
-scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql :: founder instructions 525/526/527 - drops fn_supplier_negotiation, fn_supplier_network_map, fn_negotiation_guidance, v_supplier_doc_score and leads.iban_doc_path/iban_doc_name, rewrites the 6 routines and the leads trigger that named them, removes IBAN from 3 FAQ rows; dry-run passed 21 Sep. Moves to the END of MANIFEST.txt when the coordinator applies it (no deploy dependency)
 
 
