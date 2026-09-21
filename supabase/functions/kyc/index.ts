@@ -9,6 +9,7 @@ import { codeEmail } from '../_shared/code_email.ts';
 import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
+import { blocksTransactional } from '../_shared/suppression_policy.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -80,7 +81,8 @@ async function sendEmail(to: string, subject: string, html: string) { const key 
 // shape of refusal and the same agent_runs note as login_otp, so there is one mechanism and not two.
 // Fails OPEN on a lookup error - a suppression-table outage must not block account completion.
 async function isSuppressed(email: string): Promise<boolean> {
-  try { const { data } = await admin.from('email_suppressions').select('email').eq('email', email).maybeSingle(); return !!data; }
+  // 22 Sep 2026: an 'unsubscribe' row is a marketing opt-out and never refuses a code (_shared/suppression_policy.ts).
+  try { const { data } = await admin.from('email_suppressions').select('reason').eq('email', email).maybeSingle(); return !!data && blocksTransactional(data.reason); }
   catch (_e) { return false; }
 }
 
@@ -215,7 +217,7 @@ Deno.serve(observe('kyc', async (req) => {
     if (action === 'send_email') {
       // Checked BEFORE the row is inserted so we never mint a code that cannot be delivered.
       if (await isSuppressed(email)) {
-        await logRun('error', { action, kind, suppressed: 1, channel: 'email' }, 'kyc refused to email a verification code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or unsubscribe). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
+        await logRun('error', { action, kind, suppressed: 1, channel: 'email' }, 'kyc refused to email a verification code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or a guardrail block - an unsubscribe never refuses a code). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
         return J({ error: 'We cannot email this address - it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.', suppressed: true }, 403);
       }
       // The same 8-an-hour ceiling login_otp puts on sign-in codes; this branch had none (21 Sep 2026).

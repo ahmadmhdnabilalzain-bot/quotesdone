@@ -17,6 +17,7 @@ Deno.env.set('SUPABASE_URL', 'http://stub.invalid');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'zz-demo-key');
 Deno.env.set('RESEND_INBOUND_NO_SERVE', '1');
 
+const INVITES_SENT = { n: 0 };
 type Call = { url: string; method: string; body: string; prefer: string };
 const calls: Call[] = [];
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
@@ -32,6 +33,10 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
     return json({ source_ref: p.p_source_ref, lines: p.p_lines.length, new_lines: p.p_lines.length, state: p.p_lines.length ? 'parsed' : 'unreadable' });
   }
   if (u.pathname.startsWith('/rest/v1/rpc/')) return json({ ok: true });
+  // "have we ever sent this address an invitation?" -- a HEAD count; INVITES_SENT decides the answer
+  if (u.pathname === '/rest/v1/notifications' && req.method === 'HEAD') {
+    return new Response(null, { status: 200, headers: { 'Content-Range': '*/' + INVITES_SENT.n } });
+  }
   const one = (req.headers.get('Accept') || '').includes('vnd.pgrst.object');
   let row: Record<string, unknown> = { id: 1 };
   if (u.pathname === '/rest/v1/app_secrets') {
@@ -139,10 +144,35 @@ async function signed(data: Record<string, unknown>): Promise<Request> {
 }
 const suppressions = () => calls.filter((c) => c.url.includes('/rest/v1/email_suppressions') && c.method === 'POST');
 
+// What SES writes at the top of a mail it authenticated (shape measured on a real inbound mail, 21 Sep 2026).
+const SES = (dom: string) => ({ 'authentication-results': `amazonses.com; spf=pass (spfCheck) envelope-from=b@${dom}; dkim=pass header.i=@${dom}; dmarc=pass header.from=${dom};` });
+const unsubMail = (from: string, headers?: Record<string, string>) => signed({ email_id: 'zz-demo-unsub-x', from,
+  to: ['unsubscribe@mail.quotesdone.com'], subject: 'unsubscribe', text: 'This is a long enough body to skip the fetch.', ...(headers ? { headers } : {}) });
+const reviewRows = () => calls.filter((c) => c.url.includes('/rest/v1/inbound_messages') && c.method === 'POST' && /UNSUBSCRIBE REQUEST NOT APPLIED/.test(c.body));
+
+Deno.test({ name: 'a forged From naming an admin or our own domain suppresses nothing and is kept for review', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  INVITES_SENT.n = 5;
+  for (const from of ['management@example.invalid', 'management@quotesdone.com', 'ZZ DEMO Founder <' + FOUNDER + '>']) {
+    calls.length = 0;
+    const out = await (await handler(await unsubMail(from, SES(from.replace(/.*@|>/g, ''))))).json();
+    assertEquals([out.unsubscribe, out.suppressed], [true, false], from);
+    assertEquals(suppressions().length, 0, from);
+    assertEquals(reviewRows().length, 1, from);
+  }
+} });
+
+Deno.test({ name: 'an unauthenticated From, or an address we never invited, suppresses nothing', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  INVITES_SENT.n = 5; calls.length = 0;
+  let out = await (await handler(await unsubMail('victim@example.invalid'))).json();                       // no SES verdict
+  assertEquals([out.suppressed, suppressions().length, reviewRows().length], [false, 0, 1]);
+  INVITES_SENT.n = 0; calls.length = 0;
+  out = await (await handler(await unsubMail('stranger@example.invalid', SES('example.invalid')))).json();  // authenticated, never mailed
+  assertEquals([out.suppressed, suppressions().length, reviewRows().length], [false, 0, 1]);
+} });
+
 Deno.test({ name: 'an email to the unsubscribe mailbox suppresses its sender and keeps an existing bounce record', sanitizeOps: false, sanitizeResources: false, fn: async () => {
-  calls.length = 0;
-  const out = await (await handler(await signed({ email_id: 'zz-demo-unsub-1', from: 'ZZ DEMO Supplier <Supplier.Owner@example.invalid>',
-    to: ['unsubscribe@mail.quotesdone.com'], subject: 'unsubscribe', text: 'This is a long enough body to skip the fetch.' }))).json();
+  calls.length = 0; INVITES_SENT.n = 1;
+  const out = await (await handler(await unsubMail('ZZ DEMO Supplier <Supplier.Owner@example.invalid>', SES('example.invalid')))).json();
   assertEquals([out.unsubscribe, out.suppressed], [true, true]);
   const [s] = suppressions();
   const row = JSON.parse(s.body);

@@ -9,7 +9,9 @@
 // mail.quotesdone.com is Resend's inbound domain (MX inbound-smtp.us-east-1.amazonaws.com) and every
 // address on it reaches resend_inbound -- proved the same evening: a message to UNSUBSCRIBE_MAILBOX
 // arrived as inbound_messages#154. So the mail frame now names UNSUBSCRIBE_MAILBOX, the header's mailto
-// points at it, and resend_inbound suppresses the sender of anything that isUnsubscribeRequest() accepts.
+// points at it, and resend_inbound suppresses the sender of what isUnsubscribeRequest() accepts -- only after
+// the gates in _shared/suppression_policy.ts (protected addresses, an authenticated From domain, and an
+// address we actually sent an invitation or reminder to).
 //
 // Pure, so unsubscribe_mailbox.test.ts replays each case without a network.
 
