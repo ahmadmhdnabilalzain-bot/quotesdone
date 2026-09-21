@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T15:16:57.241Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T15:32:33.166Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -36617,13 +36617,34 @@ CREATE OR REPLACE FUNCTION public.fn_it_platform_ingest(p_r jsonb)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_items jsonb := '[]'::jsonb; v_out jsonb := '{}'::jsonb;
+declare v_items jsonb := '[]'::jsonb; v_out jsonb := '{}'::jsonb; v_pitr_decision text;
 begin
   if jsonb_typeof(p_r) is distinct from 'object' then raise exception 'fn_it_platform_ingest takes the platform readings object'; end if;
   if p_r->'backups'->>'basis' = 'measured' then
     if not coalesce((p_r->'backups'->>'pitr_enabled')::boolean, false) then
-      v_items := v_items || jsonb_build_object('item', 'pitr', 'owner_seat', 'ceo', 'subject', 'database',
-        'title', 'Point-in-time recovery is not enabled on the database', 'blast', 'agent_facing', 'affected', 1, 'evidence', p_r->'backups');
+      select split_part(d.decision_key, ':', 2) into v_pitr_decision
+        from public.company_policy_decision d
+       where d.decision_key in ('supabase_pitr_addon:declined', 'supabase_pitr_addon:approved')
+       order by d.recorded_at desc limit 1;
+      if v_pitr_decision is null then
+        v_items := v_items || jsonb_build_object('item', 'pitr', 'owner_seat', 'ceo', 'subject', 'database',
+          'title', 'Point-in-time recovery is off: a paid Supabase add-on (from ~$100/month) awaiting the founder''s decision',
+          'blast', 'agent_facing', 'affected', 1, 'config', true,
+          'evidence', coalesce(p_r->'backups', '{}'::jsonb) || jsonb_build_object(
+            'awaiting', 'founder decision on a paid add-on',
+            'price_usd_per_month', jsonb_build_object('7_days', 100, '14_days', 200, '28_days', 400),
+            'price_usd_per_hour', jsonb_build_object('7_days', 0.137, '14_days', 0.274, '28_days', 0.55),
+            'requires', 'Pro plan or above and at least the Small compute add-on; not covered by the Spend Cap',
+            'source', 'https://supabase.com/docs/guides/platform/backups (read 2026-09-21)',
+            'decide_with', 'insert into public.company_policy_decision (decision_key, decided_on, decision_text) values (''supabase_pitr_addon:declined'' or ''supabase_pitr_addon:approved'', current_date, ''<his words>'')'));
+      elsif v_pitr_decision = 'approved' then
+        v_items := v_items || jsonb_build_object('item', 'pitr', 'owner_seat', 'ceo', 'subject', 'database',
+          'title', 'Point-in-time recovery is still off although the founder approved the add-on',
+          'blast', 'agent_facing', 'affected', 1,
+          'evidence', coalesce(p_r->'backups', '{}'::jsonb) || jsonb_build_object('decision', 'supabase_pitr_addon:approved'));
+      end if;
+      -- 'declined': no item. fn_it_duty_settle closes duty:db_backup:pitr as no longer found, and
+      -- the decision row is where the reason lives.
     end if;
     if (p_r->'backups'->>'latest_backup_at') is null or (p_r->'backups'->>'latest_backup_at')::timestamptz < now() - interval '26 hours' then
       v_items := v_items || jsonb_build_object('item', 'daily_backup', 'owner_seat', 'ceo', 'subject', 'database',
@@ -40661,6 +40682,18 @@ declare
   v_refused  int := 0;
   v_raised   int := 0;
   v_t0       timestamptz := clock_timestamp();
+  v_qlx      text[];
+  v_faq_id   bigint;
+  v_faq_q    text;
+  v_faq_a    text;
+  v_cov_q    numeric;
+  v_cov_f    numeric;
+  v_lead     record;
+  v_rev      record;
+  v_agg      record;
+  v_lic      text;
+  v_decision text;
+  v_tracked  boolean;
 begin
   for r in
     select o.*
@@ -40669,7 +40702,12 @@ begin
        and (p_task_id is null or o.id = p_task_id)
        and (p_task_id is not null
             or o.last_run_at is null
-            or o.last_run_at < now() - make_interval(mins => (15 * power(2, least(o.attempts, 6)))::int))
+            or o.last_run_at < now() - make_interval(mins => (15 * power(2, least(o.attempts, 6)))::int)
+            -- A BACK-OFF EARNED UNDER OTHER HANDLERS DOES NOT BIND THESE. Measured on apply,
+            -- 21 Sep 2026: the first v2 tick scanned 0 of 8 assigned rows, because every one was
+            -- inside a 4h/16h window earned from a v1 "not_yet" -- a verdict v2 no longer gives.
+            -- A row whose last verdict came from an older consumer version is retried at once.
+            or coalesce(o.result->'consumer'->>'version', '') <> 'v2')
      order by (o.last_run_at is null) desc, o.priority desc, o.id
      limit greatest(1, least(coalesce(p_limit, 4), 25))
      -- TWO TICKS MUST NOT PICK THE SAME ROW. The 15-minute cron can double-fire or retry, and a
@@ -40688,6 +40726,7 @@ begin
     v_gap_status := null;
     v_handler := null;
     v_close  := null;
+    v_tracked := false;
 
     -- ONE BAD ROW MUST NOT TAKE THE BATCH, AND MUST NOT TAKE THE FINDING. Everything from routing
     -- to the close runs inside this block, so a handler that raises -- a ::date cast on a captured
@@ -40761,14 +40800,51 @@ begin
           v_basis := jsonb_build_object('answered_by', 'fn_price_guidance', 'price_guidance', v_pg);
 
         else
-          -- 2. the corpus the writer named. Arabic-aware, read-only, public rows only.
-          select s.src, s.src_id, s.title, s.content, s.citation, s.rank
-            into v_best
-            from public.fn_support_corpus_search(v_q, true, 3) s
-           order by s.rank desc
-           limit 1;
+          -- 2. company_faq by LEXEMES, both directions. Measured 21 Sep 2026: real duplicates cover
+          --    1.00/1.00, the 9 live unanswered questions at most 0.33, so 0.75 both ways sits in an
+          --    empty band. Public approved rows only: these questions came from customers.
+          v_qlx := array(select t.lexeme from unnest(to_tsvector(
+                     (case when v_q ~ '[؀-ۿ]' then 'arabic' else 'english' end)::regconfig, v_q)) t);
+          v_faq_id := null;
+          if cardinality(v_qlx) > 0 then
+            select s.id, s.question, s.answer, s.cov_q, s.cov_f into v_faq_id, v_faq_q, v_faq_a, v_cov_q, v_cov_f
+              from (select f.id, f.question, f.answer,
+                           (select count(*) from unnest(v_qlx) x where x = any (fl.lx))::numeric
+                             / cardinality(v_qlx) as cov_q,
+                           (select count(*) from unnest(fl.lx) x where x = any (v_qlx))::numeric
+                             / greatest(cardinality(fl.lx), 1) as cov_f
+                      from public.company_faq f
+                      cross join lateral (select array(select t.lexeme from unnest(to_tsvector(
+                             (case when f.question ~ '[؀-ۿ]' then 'arabic' else 'english' end)::regconfig,
+                             f.question)) t) as lx) fl
+                     where f.public and f.status = 'approved') s
+             where s.cov_q >= 0.75 and s.cov_f >= 0.75
+             order by s.cov_q + s.cov_f desc, s.id
+             limit 1;
+          end if;
 
-          if found and v_best.rank >= 1.5 then
+          -- 3. the corpus the writer named. Arabic-aware, read-only, public rows only.
+          if v_faq_id is null then
+            select s.src, s.src_id, s.title, s.content, s.citation, s.rank
+              into v_best
+              from public.fn_support_corpus_search(v_q, true, 3) s
+             order by s.rank desc
+             limit 1;
+          end if;
+
+          if v_faq_id is not null then
+            v_handler := 'company_faq';
+            v_deliv := 'ANSWERED TODAY by an approved public company_faq entry whose question carries '
+              || 'the same lexemes as the one asked (' || round(v_cov_q * 100) || '% of the question, '
+              || round(v_cov_f * 100) || '% of the FAQ question; floor 75% both ways).'
+              || E'\n\nQUESTION: ' || v_q
+              || E'\n\nSOURCE: company_faq #' || v_faq_id || ' -- ' || v_faq_q
+              || E'\n\nANSWER: ' || left(coalesce(v_faq_a, ''), 4000);
+            v_basis := jsonb_build_object('answered_by', 'company_faq', 'company_faq_id', v_faq_id,
+                                          'coverage_question', round(v_cov_q, 3),
+                                          'coverage_faq', round(v_cov_f, 3));
+
+          elsif v_best.rank is not null and v_best.rank >= 1.5 then
             v_handler := 'fn_support_corpus_search';
             v_deliv := 'ANSWERED TODAY by public.fn_support_corpus_search over v_support_corpus '
               || '(company_faq + support_knowledge + ops_knowledge) -- the corpus this task names.'
@@ -40781,17 +40857,38 @@ begin
               'answered_by', 'fn_support_corpus_search',
               'src', v_best.src, 'src_id', v_best.src_id, 'rank', round(v_best.rank::numeric, 4));
           else
-            v_handler := 'fn_price_guidance + fn_support_corpus_search';
-            v_reason  := 'still unanswered: fn_price_guidance returned '
+            -- 4. NOTHING ANSWERS: CLOSE AS A TRACKED GAP. Re-asking every few hours cannot create
+            --    knowledge; it only kept a duplicate of the gap ledger in the queue and paged about
+            --    it. The gap row IS the seat's record of the unanswered question (the writers bump
+            --    its asks on every repeat and reuse this task), so the task ends by citing it and
+            --    the row stays 'open' -- it is NOT marked knowledge_added.
+            v_handler := 'sales_knowledge_gap';
+            v_tracked := true;
+            if v_gap_id is null and not p_dry_run then
+              insert into public.sales_knowledge_gap (question_norm, question, refusal, nearest_corpus, task_id)
+              values (lower(btrim(v_q)), v_q, 'consumer_tracked_gap', 'support_corpus', r.id)
+              on conflict (question_norm) do nothing;
+              select g.id, g.status into v_gap_id, v_gap_status
+                from public.sales_knowledge_gap g where g.question_norm = lower(btrim(v_q));
+            end if;
+            v_deliv := 'NOT ANSWERED -- FILED AS A TRACKED KNOWLEDGE GAP. No corpus answers this today: '
+              || 'fn_price_guidance returned '
               || coalesce(nullif(v_pg->>'reason', ''),
                           case when coalesce((v_pg->>'ok')::boolean, false)
                                then 'a trade-level match with unmatched terms '
                                     || coalesce(v_pg->'unmatched_terms', '[]'::jsonb)::text
                                else 'nothing' end)
-              || ', and the best company-knowledge hit ranked '
-              || coalesce(round(v_best.rank::numeric, 3)::text, 'nothing') || ' against a floor of 1.5. '
-              || 'The knowledge does not exist yet -- this needs a person to write it into a corpus, '
-              || 'not another search.';
+              || ', no approved public company_faq question shares 75% of its lexemes, and the best '
+              || 'company-knowledge hit ranked ' || coalesce(round(v_best.rank::numeric, 3)::text, 'nothing')
+              || ' against a floor of 1.5.'
+              || E'\n\nQUESTION: ' || v_q
+              || E'\n\nTRACKED AT: public.sales_knowledge_gap #' || coalesce(v_gap_id::text, '(filed on the live run)')
+              || ', status ' || coalesce(v_gap_status, 'open') || ', owned by the ' || coalesce(r.assigned_agent, '?')
+              || ' seat. It stays open until the answer is written into company_faq or support_knowledge; '
+              || 'this task closes because re-running the same search cannot produce that answer.';
+            v_basis := jsonb_build_object('answered_by', 'none', 'outcome', 'tracked_gap',
+                                          'sales_knowledge_gap_id', v_gap_id,
+                                          'best_corpus_rank', round(v_best.rank::numeric, 4));
           end if;
         end if;
       end if;
@@ -40883,6 +40980,95 @@ begin
         end if;
       end if;
 
+    -- ── routine_operational_decision / supplier_registered (fn_founder_mail_route) ─────────────
+    -- The task announces a decision already taken ("Decision: approved. No action needed; this is
+    -- a record."). The decider checks the record against public.leads and closes on the match.
+    elsif r.action_class = 'routine_operational_decision'
+          and coalesce(r.result->'founder_mail'->>'kind', '') = 'supplier_registered' then
+      v_handler  := 'leads';
+      v_vendor   := substring(r.detail from 'New supplier "([^"]+)"');
+      v_lic      := btrim(substring(r.detail from 'Licence ([^,]+),'));
+      v_decision := lower(substring(r.detail from 'Decision: ([A-Za-z_]+)'));
+
+      select l.id, l.company_name, l.trade_license_no, l.approval_status, l.approval_decided_by,
+             l.approved_at, coalesce(l.banned, false) as banned, l.license_expiry, l.is_demo
+        into v_lead
+        from public.leads l
+       where l.trade_license_no = v_lic and l.company_name = v_vendor
+       order by l.id limit 1;
+
+      if v_vendor is null or v_lic is null or v_decision is null then
+        v_reason := 'the task does not carry the supplier name, licence and decision in the form '
+          || 'fn_founder_mail_route writes them, so the record cannot be checked';
+      elsif not found then
+        v_reason := 'no public.leads row has licence ' || v_lic || ' and name "' || v_vendor
+          || '": the announcement names a supplier the register does not hold';
+      elsif v_lead.approval_status is distinct from v_decision or v_lead.banned then
+        v_reason := 'the register disagrees with the announcement: leads #' || v_lead.id
+          || ' has approval_status ' || coalesce(v_lead.approval_status, 'null')
+          || case when v_lead.banned then ' and is BANNED' else '' end
+          || ' while the task announced "' || v_decision || '". That is the seat''s to reconcile.';
+      else
+        v_deliv := 'RECORD CONFIRMED -- NO DECISION WAS PENDING. The task announced supplier "'
+          || v_vendor || '" (licence ' || v_lic || ') as ' || v_decision || '. public.leads #'
+          || v_lead.id || ' agrees: approval_status ' || v_lead.approval_status || ' by '
+          || coalesce(v_lead.approval_decided_by, '?') || ' at ' || coalesce(v_lead.approved_at::text, '?')
+          || ', licence expires ' || coalesce(v_lead.license_expiry::text, '?') || ', not banned.'
+          || E'\n\nThe task''s own words are "No action needed; this is a record": the record exists '
+          || 'and matches, so it closes on that fact.';
+        v_basis := jsonb_build_object('answered_by', 'leads', 'lead_id', v_lead.id,
+                                      'approval_status', v_lead.approval_status, 'is_demo', v_lead.is_demo);
+      end if;
+
+    -- ── routine_operational_decision / sales_rating (the rating trigger's task) ────────────────
+    -- The judgement asked: does this rating change the supplier's standing, capability or
+    -- eligibility? Deterministic rule: a rating of 3-5 changes none of them (the aggregate already
+    -- carries it). A rating of 1-2 is a standing judgement with no written policy, so it stays
+    -- queued with that reason rather than having a suspension rule invented here.
+    elsif r.action_class = 'routine_operational_decision' and r.result ? 'sales_rating' then
+      v_handler := 'reviews + leads';
+      select rv.id, rv.rating, rv.supplier_id into v_rev
+        from public.reviews rv
+       where rv.id = nullif(r.result->'sales_rating'->>'review_id', '')::bigint;
+
+      if not found then
+        v_deliv := 'THE CONDITION IS GONE. Review #' || coalesce(r.result->'sales_rating'->>'review_id', '?')
+          || ' no longer exists in public.reviews, so there is no rating left to incorporate into the '
+          || 'supplier record.';
+        v_basis := jsonb_build_object('answered_by', 'reviews', 'review_present', false);
+      else
+        select round(avg(x.rating)::numeric, 2) as avg_rating, count(*)::int as n
+          into v_agg from public.reviews x where x.supplier_id = v_rev.supplier_id;
+        select l.id, l.company_name, l.app_rating, l.app_reviews into v_lead
+          from public.leads l where l.id = v_rev.supplier_id;
+
+        if not found then
+          v_reason := 'review #' || v_rev.id || ' names supplier ' || v_rev.supplier_id
+            || ' and public.leads has no such row';
+        elsif v_lead.app_rating is distinct from v_agg.avg_rating
+              or v_lead.app_reviews is distinct from v_agg.n then
+          v_reason := 'the supplier aggregate is stale: leads #' || v_lead.id || ' shows '
+            || coalesce(v_lead.app_rating::text, 'null') || ' over ' || coalesce(v_lead.app_reviews::text, 'null')
+            || ' review(s) but public.reviews holds ' || coalesce(v_agg.avg_rating::text, 'null') || ' over '
+            || v_agg.n || '. recompute_supplier_rating did not run, which is a defect, not a decision.';
+        elsif v_rev.rating >= 3 then
+          v_deliv := 'DECIDED: NO CHANGE TO STANDING, CAPABILITY OR ELIGIBILITY. Review #' || v_rev.id
+            || ' rates ' || v_lead.company_name || ' ' || v_rev.rating || '/5. The supplier aggregate '
+            || 'already carries it (' || v_lead.app_rating || ' over ' || v_lead.app_reviews
+            || ' review(s), equal to public.reviews). Rule applied: a rating of 3 to 5 does not change a '
+            || 'supplier''s standing, declared capability or trade eligibility; only a rating of 1 or 2 '
+            || 'is held for the seat''s judgement.';
+          v_basis := jsonb_build_object('answered_by', 'reviews', 'review_id', v_rev.id,
+                                        'rating', v_rev.rating, 'supplier_id', v_rev.supplier_id,
+                                        'app_rating', v_lead.app_rating, 'app_reviews', v_lead.app_reviews,
+                                        'rule', 'rating >= 3 => no change to standing');
+        else
+          v_reason := 'review #' || v_rev.id || ' rates the supplier ' || v_rev.rating || '/5. A rating '
+            || 'of 1 or 2 may change the supplier''s standing and no written policy decides that, so it '
+            || 'stays with the ' || coalesce(r.assigned_agent, '?') || ' seat.';
+        end if;
+      end if;
+
     else
       v_handler := 'none';
       v_reason  := 'no handler is mapped for action_class ' || coalesce(r.action_class, '(null)')
@@ -40918,7 +41104,8 @@ begin
         -- reason and the row falls through to the queued path, where it is stamped and backs off.
         if coalesce((v_close->>'ok')::boolean, false) then
           -- what both writers asked for in words, done in one place at last
-          if r.action_class = 'knowledge_gap' then
+          -- (a tracked-gap close answered nothing, so its gap row stays 'open')
+          if r.action_class = 'knowledge_gap' and not v_tracked then
             update public.sales_knowledge_gap
                set status = 'knowledge_added', closed_at = now()
              where task_id = r.id and status = 'open'
@@ -40968,7 +41155,7 @@ begin
                updated_at  = now(),
                result      = coalesce(result, '{}'::jsonb) || jsonb_build_object(
                  'consumer', jsonb_build_object(
-                   'at', now(), 'handler', v_handler, 'verdict', 'not_yet', 'reason', v_reason,
+                   'at', now(), 'version', 'v2', 'handler', v_handler, 'verdict', 'not_yet', 'reason', v_reason,
                    'attempts', coalesce(r.attempts, 0) + 1, 'next_attempt_after', now() + v_back))
          where id = r.id;
 
