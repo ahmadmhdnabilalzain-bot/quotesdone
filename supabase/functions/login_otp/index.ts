@@ -3,6 +3,7 @@ import { observe } from '../_shared/observe.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
+import { resendWithRetry } from '../_shared/resend_send.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 import { sendWhatsAppFirst, type VerifySent } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
@@ -53,7 +54,10 @@ function eqConstantTime(a: string, b: string): boolean {
   return diff === 0;
 }
 async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const secret = await sec('twilio_api_key_secret'); const va = await sec('twilio_verify_service_sid'); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
-async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; try { const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, subject, html }) }); return r.ok; } catch { return false; } }
+// ONE RETRY ON 429 (21 Sep 2026). Resend allows 10 requests a second per team, shared with send_outbox
+// draining a campaign on the same key; a code refused for a busy second is retried once rather than lost.
+// The call lives in _shared/resend_send.ts so login_otp and kyc cannot drift apart.
+async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; return await resendWithRetry(key, { from, to, subject, html }); }
 
 // SUPPRESSION BYPASS 27 Jul 2026 ----------------------------------------------------------------
 // send_outbox was the ONLY sender in the codebase that consulted email_suppressions. sendEmail()
@@ -217,7 +221,13 @@ Deno.serve(observe('login_otp', async (req) => {
         const c = code6();
         await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'login', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
         const codeAr = (await registeredLocale(admin, { role: kind, email }, body.lang)) === 'ar';
-        const mail = codeEmail('signin', c, codeAr); await sendEmail(email, mail.subject, mail.html);
+        const mail = codeEmail('signin', c, codeAr);
+        // A code that did not leave is not "sent" (21 Sep 2026). The result was discarded, so a Resend
+        // refusal answered ok:true and the person waited on a code screen for an email that never came.
+        if (!(await sendEmail(email, mail.subject, mail.html))) {
+          await logRun('error', { channel: 'email', not_sent: 1 }, 'login_otp could not hand a sign-in code to Resend (refused after one retry, or the key is missing). The caller was told to try again.');
+          return J({ error: 'Could not send the email code. Please try again in a minute.', code: 'email_not_sent' }, 502);
+        }
         return J({ ok: true, channel: 'email', identifier: email });
       }
       const e164 = toE164(idRaw);
