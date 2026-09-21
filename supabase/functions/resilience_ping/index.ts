@@ -35,11 +35,37 @@ const GATEWAY = { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY };
 // minutes is correct: it returns fired:false until the configured local time and then generates
 // exactly one report for that local date. A failure here is logged and swallowed — the digest is
 // informational and must never take the watchdog down with it.
+// 21 Sep 2026 (instruction 587): a day with new customers carries their names and mobiles AS A PDF.
+// Postgres cannot draw one, so the tick hands back pdf_blocks, this renders them on the template
+// (pdf_native) and fn_ceo_daily_digest_attach_pdf sends the brief with the file. A render failure is
+// passed back as p_error and the brief waits for the next tick -- never sent without its document.
 async function digestTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_ceo_daily_digest_tick');
     if (error) return { ok: false, error: error.message };
-    return data;
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.pdf_pending || !t?.pdf_blocks || !t?.id) return t;
+    let path: string | null = null, err: string | null = null;
+    try {
+      const r = await fetch(FN + '/pdf_native', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          __secret: await sec('cred_fn_resilience_ping'), title: t.pdf_title, blocks: t.pdf_blocks,
+          bucket: 'agent-docs', folder: 'ceo/daily_brief',
+          name: String(t.report_key || 'daily_brief').replace(/[^\w.-]+/g, '_') + '_customers',
+          options: { letterhead: true, strict_glyphs: true },
+        }), signal: AbortSignal.timeout(55000),
+      });
+      const j = await r.json().catch(() => null);
+      if (r.ok && j?.ok && j?.path) path = j.path;
+      else err = 'pdf_native ' + r.status + ': ' + JSON.stringify(j ?? {}).slice(0, 400);
+    } catch (e) { err = 'pdf_native unreachable: ' + String((e as Error)?.message || e); }
+    const { data: att, error: aerr } = await admin.rpc('fn_ceo_daily_digest_attach_pdf', {
+      p_id: t.id, p_bucket: 'agent-docs', p_path: path, p_error: err,
+    });
+    if (aerr) return { ...t, pdf_blocks: undefined, ok: false, error: 'attach: ' + aerr.message };
+    return { ...t, pdf_blocks: undefined, delivery: att, ...(err ? { ok: false, error: err } : {}) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
