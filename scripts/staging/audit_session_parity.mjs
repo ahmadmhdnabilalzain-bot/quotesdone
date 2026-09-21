@@ -17,9 +17,9 @@ const H = { Authorization: 'Bearer ' + token };
 
 // Everything this session created or changed, by name.
 const ROUTINES = [
-  'fn_supplier_twin', 'fn_supplier_products', 'fn_supplier_advisor', 'fn_supplier_network_map',
+  'fn_supplier_twin', 'fn_supplier_products', 'fn_supplier_advisor',
   'fn_supplier_market', 'fn_supplier_workspaces', 'fn_supplier_quality', 'fn_supplier_score_refresh',
-  'fn_supplier_opportunities', 'fn_supplier_tier', 'fn_supplier_negotiation',
+  'fn_supplier_opportunities', 'fn_supplier_tier',
   'fn_supplier_certifications', 'fn_supplier_product_match', 'fn_supplier_risk_monitor',
   'fn_rating_due', 'fn_lead_time_interval',
   // Part 4: §11's quote builder and §16/§4's document impact.
