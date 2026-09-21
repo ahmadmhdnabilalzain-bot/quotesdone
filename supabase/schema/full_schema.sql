@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-18T07:29:53.768Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T09:17:48.500Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -180,6 +180,7 @@ CREATE SEQUENCE IF NOT EXISTS public.support_ceo_report_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_document_intake_intake_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_identity_challenge_challenge_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_notification_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.table_export_change_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.target_contract_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.target_driver_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.target_verdict_id_seq;
@@ -191,7 +192,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (524) =====
+-- ===== TABLES (525) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3728,11 +3729,6 @@ CREATE TABLE IF NOT EXISTS public.kb_chunks (
   embed_claimed_at timestamp with time zone
 );
 
-CREATE TABLE IF NOT EXISTS public.kb_chunks_export_change (
-  id bigint NOT NULL,
-  changed_at timestamp with time zone DEFAULT now() NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS public.kb_embed_inflight (
   request_id bigint NOT NULL,
   chunk_id bigint NOT NULL,
@@ -6849,6 +6845,22 @@ CREATE TABLE IF NOT EXISTS public.support_public_override (
   decided_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.table_export_change (
+  id bigint DEFAULT nextval('table_export_change_id_seq'::regclass) NOT NULL,
+  table_name text NOT NULL,
+  row_key text NOT NULL,
+  deleted boolean DEFAULT false NOT NULL,
+  changed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.table_export_change_tracked (
+  table_name text NOT NULL,
+  pk_column text NOT NULL,
+  projection text DEFAULT ''::text NOT NULL,
+  tracking_since timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+  bytes_at_registration bigint
+);
+
 CREATE TABLE IF NOT EXISTS public.table_export_run (
   stamp date NOT NULL,
   kind text DEFAULT 'full'::text NOT NULL,
@@ -7788,6 +7800,8 @@ ALTER TABLE public.support_identity_challenge ADD CONSTRAINT support_identity_ch
 ALTER TABLE public.support_knowledge ADD CONSTRAINT support_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_pkey PRIMARY KEY (id);
 ALTER TABLE public.support_public_override ADD CONSTRAINT support_public_override_pkey PRIMARY KEY (src, src_id);
+ALTER TABLE public.table_export_change ADD CONSTRAINT table_export_change_pkey PRIMARY KEY (id);
+ALTER TABLE public.table_export_change_tracked ADD CONSTRAINT table_export_change_tracked_pkey PRIMARY KEY (table_name);
 ALTER TABLE public.table_export_run ADD CONSTRAINT table_export_run_pkey PRIMARY KEY (stamp);
 ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_pkey PRIMARY KEY (id);
 ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_pkey PRIMARY KEY (id);
@@ -8309,6 +8323,8 @@ ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_atta
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_channel_ck CHECK ((channel = ANY (ARRAY['whatsapp'::text, 'email'::text])));
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_scanned_ck CHECK (((anonymity_checked_at IS NOT NULL) AND (anonymity_result IS NOT NULL) AND ((anonymity_result ->> 'safe'::text) = 'true'::text)));
 ALTER TABLE public.support_notification ADD CONSTRAINT support_notification_state_ck CHECK ((state = ANY (ARRAY['queued'::text, 'sending'::text, 'sent'::text, 'delivered'::text, 'read'::text, 'failed'::text, 'suppressed'::text, 'unknown'::text])));
+ALTER TABLE public.table_export_change_tracked ADD CONSTRAINT table_export_change_tracked_pk_column_check CHECK ((pk_column ~ '^[a-z_][a-z0-9_]*$'::text));
+ALTER TABLE public.table_export_change_tracked ADD CONSTRAINT table_export_change_tracked_table_name_check CHECK ((table_name ~ '^[a-z_][a-z0-9_]*$'::text));
 ALTER TABLE public.table_export_run ADD CONSTRAINT table_export_run_check CHECK (((kind = 'full'::text) = (since IS NULL)));
 ALTER TABLE public.table_export_run ADD CONSTRAINT table_export_run_kind_check CHECK ((kind = ANY (ARRAY['full'::text, 'incremental'::text])));
 ALTER TABLE public.table_export_run ADD CONSTRAINT table_export_run_status_check CHECK ((status = ANY (ARRAY['running'::text, 'done'::text, 'failed'::text])));
@@ -8862,7 +8878,6 @@ CREATE INDEX kb_chunks_category_norm_idx ON public.kb_chunks USING btree (catego
 CREATE UNIQUE INDEX kb_chunks_company_faq_source_id ON public.kb_chunks USING btree (source_id) WHERE (source_kind = 'company_faq'::text);
 CREATE INDEX kb_chunks_created_at_desc_idx ON public.kb_chunks USING btree (created_at DESC);
 CREATE INDEX kb_chunks_emb_hnsw ON public.kb_chunks USING hnsw (embedding_gte vector_cosine_ops);
-CREATE INDEX kb_chunks_export_change_changed_at_idx ON public.kb_chunks_export_change USING btree (changed_at, id);
 CREATE INDEX kb_chunks_fts ON public.kb_chunks USING gin (fts);
 CREATE UNIQUE INDEX kb_chunks_qdkb_source_uidx ON public.kb_chunks USING btree (source_id) WHERE (source_kind = 'qd_kb_pack'::text);
 CREATE INDEX kb_chunks_source_id_idx ON public.kb_chunks USING btree (source_id);
@@ -9021,6 +9036,7 @@ CREATE INDEX support_knowledge_kind_idx ON public.support_knowledge USING btree 
 CREATE INDEX support_knowledge_search_idx ON public.support_knowledge USING gin (search);
 CREATE INDEX support_notification_pending_idx ON public.support_notification USING btree (state, queued_at) WHERE (state = ANY (ARRAY['queued'::text, 'failed'::text]));
 CREATE INDEX support_notification_unbridged_idx ON public.support_notification USING btree (queued_at) WHERE (bridged_at IS NULL);
+CREATE INDEX table_export_change_table_changed_idx ON public.table_export_change USING btree (table_name, changed_at, row_key);
 CREATE UNIQUE INDEX target_contract_key_version ON public.target_contract USING btree (contract_key, version);
 CREATE UNIQUE INDEX target_contract_one_active_per_key ON public.target_contract USING btree (contract_key) WHERE (status = 'active'::text);
 CREATE INDEX target_contract_owner ON public.target_contract USING btree (accountable_owner);
@@ -36679,9 +36695,10 @@ CREATE OR REPLACE FUNCTION public.fn_it_restore_table_pick()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_newest text; v_manifest jsonb; v_tab text; v_prev timestamptz;
+declare
+  v_newest text; v_manifest jsonb; v_tab text; v_prev timestamptz;
+  v_full date; v_chain_tab text; v_chain jsonb;
 begin
-  -- A previous pick with no recorded drill after it: the edge tick died between the two.
   select max(started_at) into v_prev from public.agent_runs
    where agent = 'it_engineer' and counts->>'job' = 'restore_table_pick';
   if v_prev is not null and v_prev < now() - interval '1 hour'
@@ -36703,6 +36720,34 @@ begin
     select max(split_part(o.name, '/', 1)) into v_newest
       from storage.objects o where o.bucket_id = 'backups' and o.name ~ '^\d{4}-\d{2}-\d{2}/';
   end if;
+
+  -- ── the incremental chain, when there is one ──
+  select max(r.stamp) into v_full from public.table_export_run r where r.kind = 'full' and r.status = 'done';
+  if v_full is not null then
+    select x.table_name into v_chain_tab
+      from public.table_export_change_tracked x
+      join storage.objects o on o.bucket_id = 'backups'
+                           and o.name = to_char(v_full, 'YYYY-MM-DD') || '/' || x.table_name || '/page_0000.json'
+     order by random() limit 1;
+  end if;
+  if v_chain_tab is not null then
+    select jsonb_build_object(
+      'table', v_chain_tab,
+      'full_day', to_char(v_full, 'YYYY-MM-DD'),
+      'base', to_char(v_full, 'YYYY-MM-DD') || '/' || v_chain_tab || '/page_0000.json',
+      'increments', coalesce((select jsonb_agg(o.name order by o.name)
+                                from public.table_export_run r
+                                join storage.objects o on o.bucket_id = 'backups'
+                                 and o.name like r.stamp::text || '/' || v_chain_tab || '/page\_%.json'
+                               where r.status = 'done' and r.stamp > v_full), '[]'::jsonb),
+      'changes', coalesce((select jsonb_agg(o.name order by o.name)
+                             from public.table_export_run r
+                             join storage.objects o on o.bucket_id = 'backups'
+                              and o.name like r.stamp::text || '/table_export_change/page\_%.json'
+                            where r.status = 'done' and r.stamp > v_full), '[]'::jsonb))
+      into v_chain;
+  end if;
+
   select t.table_name into v_tab
     from public.it_restore_drill_table t
     join storage.objects o on o.bucket_id = 'backups' and o.name = v_newest || '/' || t.table_name || '/page_0000.json'
@@ -36710,11 +36755,10 @@ begin
    where v_manifest is null
       or (v_manifest->'tables' ? t.table_name
           and coalesce(v_manifest->'tables'->t.table_name->>'mode', 'full') not like 'changes_since%')
-   -- A table with rows first: the first live drill (14 Sep 2026) drew supplier_dues, empty, and had
-   -- nothing to compare.
    order by (coalesce(pc.reltuples, 0) > 0) desc, random() limit 1;
   return jsonb_build_object('newest_export_day', v_newest,
     'sample_rows', coalesce(public.fn_it_threshold('restore_table_sample_rows'), 50),
+    'chain', v_chain,
     'table', case when v_tab is not null
                   then jsonb_build_object('table', v_tab, 'path', v_newest || '/' || v_tab || '/page_0000.json', 'day', v_newest) end);
 end $function$
@@ -36730,6 +36774,7 @@ declare
   t jsonb := p->'table'; v_items jsonb := '[]'::jsonb; v_key text; v_tab text := p->'table'->>'table';
   n_rest int := 0; n_match int := 0; n_changed int := 0; n_missing int := 0; v_err text; v_age int; v_max int;
   v_ok boolean; v_detail jsonb; v_out jsonb; v_drop text[]; v_full date; v_last date; v_gaps text; v_live_empty boolean;
+  c jsonb := p->'chain'; v_rebuild jsonb; v_rebuild_ok boolean := true;
 begin
   if jsonb_typeof(p) is distinct from 'object' then
     raise exception 'fn_it_restore_table_record takes the drill reading from _shared/it_restore_drill.ts';
@@ -36747,13 +36792,13 @@ begin
         'writer', 'supabase/functions/backup, claimed by resilience_ping through fn_table_export_due'));
   end if;
 
-  -- ── THE kb_chunks CHAIN: the latest full day plus every day after it ──
+  -- ── THE CHAIN: the latest full day plus every day after it ──
   if exists (select 1 from public.table_export_run) then
     select max(stamp) into v_full from public.table_export_run where kind = 'full' and status = 'done';
     select max(stamp) into v_last from public.table_export_run where status = 'done';
     if v_full is null or v_full < current_date - 7 then
       v_items := v_items || jsonb_build_object('item', 'full_copy_stale', 'owner_seat', 'ceo', 'subject', 'table_backup',
-        'title', 'kb_chunks has no finished full copy in the last 7 days' || coalesce(' (the last is ' || v_full || ')', ''),
+        'title', 'the change-tracked tables have no finished full copy in the last 7 days' || coalesce(' (the last is ' || v_full || ')', ''),
         'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('last_full_day', v_full));
     else
       select string_agg(d::date::text, ', ' order by d) into v_gaps
@@ -36761,14 +36806,43 @@ begin
        where not exists (select 1 from public.table_export_run r where r.stamp = d::date and r.status = 'done');
       if v_gaps is not null then
         v_items := v_items || jsonb_build_object('item', 'chain_broken', 'owner_seat', 'ceo', 'subject', 'table_backup',
-          'title', 'kb_chunks restores only from the full copy of ' || v_full || ' plus every later day, and ' || v_gaps || ' did not finish',
+          'title', 'a change-tracked table restores only from the full copy of ' || v_full || ' plus every later day, and ' || v_gaps || ' did not finish',
           'blast', 'agent_facing', 'affected', 1,
           'evidence', jsonb_build_object('last_full_day', v_full, 'last_done_day', v_last, 'missing_or_failed', v_gaps));
       end if;
     end if;
   end if;
 
-  -- ── THE RESTORE INTO SCRATCH ──
+  -- ── THE REBUILD FROM BASE + INCREMENTS + DELETES ──
+  if c is not null and jsonb_typeof(c) = 'object' then
+    if c->>'error' is not null then
+      v_rebuild := jsonb_build_object('table', c->>'table', 'error', c->>'error');
+      v_rebuild_ok := false;
+    else
+      begin
+        v_rebuild := public.fn_table_export_replay(c->>'table', coalesce(c->'base_rows', '[]'::jsonb),
+                                                   coalesce(c->'increment_rows', '[]'::jsonb),
+                                                   coalesce(c->'change_rows', '[]'::jsonb));
+      exception when others then
+        v_rebuild := jsonb_build_object('table', c->>'table', 'error', 'the rebuild failed: ' || sqlerrm);
+      end;
+      v_rebuild_ok := coalesce((v_rebuild->>'rebuilt')::int, 0) > 0
+                  and coalesce((v_rebuild->>'lost_rows')::int, 1) = 0
+                  and v_rebuild->>'error' is null;
+    end if;
+    v_rebuild := v_rebuild || jsonb_build_object('full_day', c->>'full_day', 'base', c->>'base',
+                                                 'increment_files', c->'increments', 'change_files', c->'changes');
+    if not v_rebuild_ok then
+      v_items := v_items || jsonb_build_object('item', 'rebuild', 'owner_seat', 'ceo', 'subject', 'table_backup',
+        'title', 'The restore drill could not rebuild ' || coalesce(c->>'table', 'a change-tracked table')
+                 || ' from its full copy of ' || coalesce(c->>'full_day', '?') || ' plus the later days'
+                 || coalesce(': ' || (v_rebuild->>'error'),
+                      ' (' || coalesce(v_rebuild->>'lost_rows', '?') || ' live row(s) in the rebuilt key window are in no backup file)'),
+        'blast', 'agent_facing', 'affected', 1, 'evidence', v_rebuild);
+    end if;
+  end if;
+
+  -- ── THE SINGLE FULL PAGE RESTORED INTO SCRATCH ──
   select key_column into v_key from public.it_restore_drill_table where table_name = v_tab;
   if t is null or v_tab is null then
     v_err := 'no full-copy page_0000.json of any table in it_restore_drill_table in the newest finished export';
@@ -36777,11 +36851,10 @@ begin
   elsif t->>'error' is not null then
     v_err := t->>'error';
   else
-    -- Only the columns the export carries are compared: vector columns are stripped at export.
-    select coalesce(array_agg(c.column_name::text), '{}') into v_drop
-      from information_schema.columns c
-     where c.table_schema = 'public' and c.table_name = v_tab
-       and not (coalesce(t->'rows'->0, '{}'::jsonb) ? c.column_name);
+    select coalesce(array_agg(c2.column_name::text), '{}') into v_drop
+      from information_schema.columns c2
+     where c2.table_schema = 'public' and c2.table_name = v_tab
+       and not (coalesce(t->'rows'->0, '{}'::jsonb) ? c2.column_name);
     begin
       execute format('create temp table it_restore_scratch (like public.%I) on commit drop', v_tab);
       execute format('insert into it_restore_scratch select * from jsonb_populate_recordset(null::public.%I, $1)', v_tab)
@@ -36797,9 +36870,6 @@ begin
     exception when others then v_err := 'restore into scratch failed: ' || sqlerrm;
     end;
   end if;
-  -- An empty restore passes only when the EXPORT says the table was empty (rows_in_file is the whole
-  -- file's count, taken before the sample) AND the table is empty live. Review of e820d64: judged on the
-  -- live table alone, an export that lost its rows would pass as soon as the table was emptied too.
   if v_err is null and n_rest = 0 and v_key is not null then
     if coalesce((t->>'rows_in_file')::int, -1) = 0 then
       execute format('select not exists (select 1 from public.%I)', v_tab) into v_live_empty;
@@ -36812,9 +36882,9 @@ begin
                                  'identical_to_live', n_match, 'changed_since_export', n_changed, 'gone_from_live', n_missing,
                                  'not_compared', to_jsonb(v_drop), 'error', v_err,
                                  'newest_export_day', p->>'newest_export_day', 'age_days', v_age,
-                                 'last_full_day', v_full, 'chain_gaps', v_gaps);
+                                 'last_full_day', v_full, 'chain_gaps', v_gaps, 'rebuild', v_rebuild);
   insert into public.it_restore_drill_result (subject, ok, detail)
-  values (coalesce(v_tab, 'no table') || coalesce(' from ' || (t->>'path'), ''), v_ok and jsonb_array_length(v_items) = 0, v_detail);
+  values (coalesce(v_tab, 'no table') || coalesce(' from ' || (t->>'path'), ''), v_ok and v_rebuild_ok and jsonb_array_length(v_items) = 0, v_detail);
   if not v_ok then
     v_items := v_items || jsonb_build_object('item', 'restore', 'owner_seat', 'ceo', 'subject', 'table_backup',
       'title', 'The monthly restore drill could not restore a table sample' || coalesce(' of ' || v_tab, '') || ': '
@@ -43800,6 +43870,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -43970,16 +44050,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -54571,6 +54641,107 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_table_export_change_tracking(p_apply boolean DEFAULT true)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_min bigint := coalesce(public.fn_it_threshold('export_incremental_min_bytes'), 67108864)::bigint;
+  v_added text[] := '{}'; v_removed text[] := '{}'; v_refreshed text[] := '{}'; v_reasons jsonb := '{}'::jsonb;
+  r record; v_pk text; v_npk integer; v_bytes bigint; v_proj text; v_have text; v_want boolean;
+begin
+  for r in select x.table_name as t from public.fn_table_export_list() x
+            where x.table_name <> 'table_export_change'
+  loop
+    if to_regclass(format('public.%I', r.t)) is null then continue; end if;
+    v_bytes := pg_total_relation_size(format('public.%I', r.t)::regclass);
+    select count(*), min(a.attname::text) into v_npk, v_pk
+      from pg_index i
+      cross join lateral unnest(i.indkey) with ordinality k(attnum, ord)
+      join pg_attribute a on a.attrelid = i.indrelid and a.attnum = k.attnum
+     where i.indrelid = format('public.%I', r.t)::regclass and i.indisprimary;
+
+    if v_bytes >= v_min and coalesce(v_npk, 0) <> 1 then
+      -- Named out loud rather than silently left full: this table is big and CANNOT report changes.
+      v_reasons := v_reasons || jsonb_build_object(r.t,
+        format('%s bytes, at or over the threshold, but its primary key has %s columns, so it stays a full copy every day',
+               v_bytes, coalesce(v_npk, 0)));
+    end if;
+
+    -- The exported projection, as the update trigger compares it. A column added to a tracked table
+    -- later changes this string, and the branch below rebuilds the triggers with the new list -- a
+    -- stale list would make a change to the new column invisible.
+    select coalesce(string_agg(quote_ident(a.attname), ',' order by a.attnum), '') into v_proj
+      from pg_attribute a
+     where a.attrelid = format('public.%I', r.t)::regclass and a.attnum > 0 and not a.attisdropped
+       and format_type(a.atttypid, a.atttypmod) not like 'vector%';
+    select x.projection into v_have from public.table_export_change_tracked x where x.table_name = r.t;
+    v_want := v_bytes >= v_min and coalesce(v_npk, 0) = 1;
+
+    if v_want and (v_have is null or v_have is distinct from v_proj) then
+      if p_apply then
+        execute format('drop trigger if exists %I on public.%I', 'z90_' || r.t || '_export_change_ins', r.t);
+        execute format('create trigger %I after insert on public.%I referencing new table as new_rows
+                        for each statement execute function public.trg_table_export_change(%L, %L)',
+                       'z90_' || r.t || '_export_change_ins', r.t, v_pk, v_proj);
+        execute format('drop trigger if exists %I on public.%I', 'z90_' || r.t || '_export_change_upd', r.t);
+        execute format('create trigger %I after update on public.%I referencing old table as old_rows new table as new_rows
+                        for each statement execute function public.trg_table_export_change(%L, %L)',
+                       'z90_' || r.t || '_export_change_upd', r.t, v_pk, v_proj);
+        execute format('drop trigger if exists %I on public.%I', 'z90_' || r.t || '_export_change_del', r.t);
+        execute format('create trigger %I after delete on public.%I referencing old table as old_rows
+                        for each statement execute function public.trg_table_export_change(%L, %L)',
+                       'z90_' || r.t || '_export_change_del', r.t, v_pk, v_proj);
+        execute format('drop trigger if exists %I on public.%I', 'z90_' || r.t || '_export_change_trunc', r.t);
+        execute format('create trigger %I after truncate on public.%I
+                        for each statement execute function public.trg_table_export_change(%L, %L)',
+                       'z90_' || r.t || '_export_change_trunc', r.t, v_pk, v_proj);
+        insert into public.table_export_change_tracked (table_name, pk_column, projection, bytes_at_registration)
+        values (r.t, v_pk, v_proj, v_bytes)
+        on conflict (table_name) do update set pk_column = excluded.pk_column, projection = excluded.projection,
+                                               bytes_at_registration = excluded.bytes_at_registration;
+      end if;
+      if v_have is null then v_added := v_added || r.t; else v_refreshed := v_refreshed || r.t; end if;
+    elsif not v_want and v_have is not null then
+      if p_apply then
+        execute format('drop trigger if exists %I on public.%I', 'z90_' || r.t || '_export_change_ins', r.t);
+        execute format('drop trigger if exists %I on public.%I', 'z90_' || r.t || '_export_change_upd', r.t);
+        execute format('drop trigger if exists %I on public.%I', 'z90_' || r.t || '_export_change_del', r.t);
+        execute format('drop trigger if exists %I on public.%I', 'z90_' || r.t || '_export_change_trunc', r.t);
+        delete from public.table_export_change_tracked x where x.table_name = r.t;
+        delete from public.table_export_change c where c.table_name = r.t;
+      end if;
+      v_removed := v_removed || r.t;
+    end if;
+  end loop;
+  return jsonb_build_object('threshold_bytes', v_min, 'added', to_jsonb(v_added), 'removed', to_jsonb(v_removed),
+                            'triggers_refreshed', to_jsonb(v_refreshed),
+                            'stays_full_and_why', v_reasons, 'applied', p_apply,
+                            'tracked', (select coalesce(jsonb_object_agg(x.table_name, x.pk_column), '{}'::jsonb)
+                                          from public.table_export_change_tracked x));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_table_export_demo_ids()
+ RETURNS TABLE(dc text[], dl text[], di text[], dq text[])
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  select coalesce(array_agg(c.id::text), '{}') into dc from public.customers c
+   where coalesce(c.is_demo, false) or coalesce(c.email, '') ~* 'example\.invalid' or coalesce(c.full_name, '') ~* 'zz[_ -]?demo';
+  select coalesce(array_agg(l.id::text), '{}') into dl from public.leads l
+   where coalesce(l.is_demo, false) or coalesce(l.email, '') ~* 'example\.invalid' or coalesce(l.company_name, '') ~* 'zz[_ -]?demo';
+  select coalesce(array_agg(i.id::text), '{}') into di from public.inquiries i where i.customer_id::text = any(dc);
+  select coalesce(array_agg(q.id::text), '{}') into dq from public.quotes q
+   where q.supplier_id::text = any(dl) or q.inquiry_id::text = any(di);
+  return next;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_table_export_due()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -54581,7 +54752,7 @@ declare
   v_local timestamp := now() at time zone 'Asia/Dubai';
   v_stamp date := (now() at time zone 'Asia/Dubai')::date;
   v_run public.table_export_run;
-  v_kind text; v_since timestamptz;
+  v_kind text; v_since timestamptz; v_full_at timestamptz;
   v_resume jsonb;
 begin
   if v_local::time < time '03:00' then
@@ -54589,11 +54760,17 @@ begin
   end if;
   select * into v_run from public.table_export_run r where r.stamp = v_stamp for update;
   if not found then
+    perform public.fn_table_export_change_tracking(true);
     select r.started_at - interval '6 hours' into v_since
       from public.table_export_run r where r.status = 'done' and r.stamp < v_stamp order by r.stamp desc limit 1;
+    select max(r.started_at) into v_full_at
+      from public.table_export_run r where r.status = 'done' and r.kind = 'full' and r.stamp < v_stamp;
     v_kind := case when extract(isodow from v_local) = 5 or v_since is null
                      or not exists (select 1 from public.table_export_run r
                                      where r.status = 'done' and r.kind = 'full' and r.stamp >= v_stamp - 7 and r.stamp < v_stamp)
+                     -- a table that became change-tracked after the last full copy has no base yet
+                     or exists (select 1 from public.table_export_change_tracked x
+                                 where v_full_at is null or x.tracking_since > v_full_at)
                    then 'full' else 'incremental' end;
     if v_kind = 'full' then v_since := null; end if;
     insert into public.table_export_run (stamp, kind, since) values (v_stamp, v_kind, v_since) on conflict (stamp) do nothing;
@@ -54615,29 +54792,6 @@ begin
          and jsonb_array_length(v_run.state->'queue') > 0
          and (v_run.state->'errors') ? (v_run.state->'queue'->0->>'t') then v_run.state
   end;
-
-  -- A 'running' day past the heartbeat window is a chain that died without saving. Say so, loudly.
-  if v_run.status = 'running' then
-    begin
-      perform public.fn_it_engineer_finding_upsert(
-        'duty:table_export:chain_stalled',
-        left(format('The daily table export %s stalled on %s at page %s: no heartbeat for %s min, resumed as attempt %s',
-                    v_stamp, coalesce(v_run.state->'queue'->0->>'t', '(no table saved)'),
-                    coalesce(v_run.state->'queue'->0->>'page', '?'),
-                    floor(extract(epoch from now() - v_run.heartbeat_at) / 60), v_run.attempts), 300),
-        'IT engineer duty: table_export', 'agent_facing', 1,
-        jsonb_build_object('duty', 'table_export', 'owner_seat', 'it_engineer', 'subject', 'table_backup', 'demo', false,
-                           'stamp', v_stamp, 'cause', 'internal',
-                           'table', v_run.state->'queue'->0->>'t', 'page', v_run.state->'queue'->0->'page',
-                           'after', v_run.state->'queue'->0->'after', 'hop', v_run.state->'hop',
-                           'heartbeat_at', v_run.heartbeat_at, 'attempt', v_run.attempts,
-                           'why', 'a hop died without saving (CPU or memory kill, crash, or a deploy killing the worker); no code in the hop could report it'),
-        '{}'::text[], '{}'::text[], 'it_engineer.table_export');
-    exception when others then
-      raise warning 'fn_table_export_due: could not raise duty:table_export:chain_stalled: %', sqlerrm;
-    end;
-  end if;
-
   update public.table_export_run r
      set attempts = r.attempts + case when r.status = 'failed' then 1 else 0 end,
          status = 'running', heartbeat_at = now(),
@@ -54645,8 +54799,35 @@ begin
    where r.stamp = v_stamp;
   return jsonb_build_object('due', true, 'stamp', v_stamp,
     'attempt', v_run.attempts + case when v_run.status = 'failed' then 1 else 0 end,
-    'resume', v_resume, 'stalled', v_run.status = 'running',
+    'resume', v_resume,
     'kind', v_run.kind, 'since', v_run.since);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_table_export_filter(p_table text)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_rel regclass := to_regclass(format('public.%I', p_table));
+  v_where text;
+begin
+  if v_rel is null then raise exception 'fn_table_export_filter: public.% does not exist', p_table; end if;
+  select format('(to_jsonb(t) - %L::text[])::text !~* %L', public.fn_table_export_stripped(p_table), 'zz[_ -]?demo|example\.invalid')
+         || coalesce(string_agg(case a.attname
+              when 'is_demo'     then ' and not coalesce(t.is_demo, false)'
+              when 'customer_id' then ' and not coalesce(t.customer_id::text = any($1), false)'
+              when 'supplier_id' then ' and not coalesce(t.supplier_id::text = any($2), false)'
+              when 'lead_id'     then ' and not coalesce(t.lead_id::text = any($2), false)'
+              when 'inquiry_id'  then ' and not coalesce(t.inquiry_id::text = any($3), false)'
+              when 'quote_id'    then ' and not coalesce(t.quote_id::text = any($4), false)' end, ''), '')
+    into v_where
+    from pg_attribute a
+   where a.attrelid = v_rel and a.attnum > 0 and not a.attisdropped
+     and a.attname in ('is_demo', 'customer_id', 'supplier_id', 'lead_id', 'inquiry_id', 'quote_id');
+  return v_where;
 end $function$
 
 
@@ -54658,7 +54839,7 @@ CREATE OR REPLACE FUNCTION public.fn_table_export_finish(p_stamp date, p_manifes
 AS $function$
 declare
   v_day text := to_char(p_stamp, 'YYYY-MM-DD');
-  v_bad text; v_queued integer; v_pruned integer := 0; v_run public.table_export_run; v_kick jsonb;
+  v_bad text; v_queued integer; v_pruned integer := 0; v_run public.table_export_run;
 begin
   select * into v_run from public.table_export_run r where r.stamp = p_stamp;
   if not found then return jsonb_build_object('ok', false, 'stamp', p_stamp, 'error', 'no table_export_run row for this day'); end if;
@@ -54684,31 +54865,22 @@ begin
    where r.stamp = p_stamp;
   -- a full copy holds every row, so changes logged well before it started are no longer needed
   if v_run.kind = 'full' then
-    delete from public.kb_chunks_export_change cl where cl.changed_at < v_run.started_at - interval '1 day';
+    delete from public.table_export_change cl where cl.changed_at < v_run.started_at - interval '1 day';
     get diagnostics v_pruned = row_count;
   end if;
   v_queued := public.fn_enqueue_doc_backups();
-  -- start the upload now; the 15-minute tick (fn_dropbox_backup_due) stays the fallback
-  if v_queued > 0 then
-    begin
-      v_kick := public.fn_backup_kick('table_export_finished:' || v_day, 'process_only');
-    exception when others then
-      v_kick := jsonb_build_object('kicked', false, 'reason', left(sqlerrm, 200));
-      raise warning 'fn_table_export_finish: could not kick dropbox_backup: %', sqlerrm;
-    end;
-  end if;
-  return jsonb_build_object('ok', true, 'stamp', p_stamp, 'kind', v_run.kind, 'queued_for_dropbox', v_queued,
-                            'change_log_pruned', v_pruned, 'dropbox_kick', v_kick);
+  return jsonb_build_object('ok', true, 'stamp', p_stamp, 'kind', v_run.kind, 'queued_for_dropbox', v_queued, 'change_log_pruned', v_pruned);
 end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_table_export_list()
  RETURNS TABLE(table_name text, subject text, change_log text)
  LANGUAGE sql
- IMMUTABLE
+ STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select v.t, v.s, case when v.t = 'kb_chunks' then 'kb_chunks_export_change' end
+  select v.t, v.s,
+         (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
     ('customers','customer'), ('customer_preference','customer'), ('customer_calls','customer'), ('projects','customer'),
     ('leads','supplier'), ('lead_category','supplier'), ('lead_subcategory','supplier'), ('supplier_capabilities','supplier'),
@@ -54742,7 +54914,8 @@ AS $function$
     ('founder_instruction','decision'), ('company_policy_decision','decision'),
     ('kb_chunks','knowledge'), ('dept_library','knowledge'), ('ops_knowledge','knowledge'), ('agent_knowledge','knowledge'),
     ('sales_knowledge','knowledge'), ('ceo_knowledge','knowledge'), ('support_knowledge','knowledge'),
-    ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge')
+    ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge'),
+    ('table_export_change','backup')
   ) v(t, s)
 $function$
 
@@ -54754,10 +54927,10 @@ CREATE OR REPLACE FUNCTION public.fn_table_export_page(p_table text, p_after jso
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  v_rel regclass; v_cols text; v_keyvals text; v_after text := 'true'; v_where text; v_log text;
+  v_rel regclass; v_cols text; v_keyvals text; v_after text := 'true'; v_where text; v_log text; v_pk text; v_pktype text;
   v_strip text[]; v_lim integer := greatest(1, least(coalesce(p_limit, 1000), 1000));
-  v_dc text[]; v_dl text[]; v_di text[]; v_dq text[];
   v_rows jsonb; v_n integer; v_last jsonb;
+  v_dc text[]; v_dl text[]; v_di text[]; v_dq text[];   -- $1..$4, the positions fn_table_export_filter names
 begin
   select x.change_log into v_log from public.fn_table_export_list() x where x.table_name = p_table;
   if not found then raise exception 'fn_table_export_page: % is not in fn_table_export_list()', p_table; end if;
@@ -54765,8 +54938,9 @@ begin
   if v_rel is null then raise exception 'fn_table_export_page: public.% does not exist', p_table; end if;
 
   select string_agg(format('t.%I', a.attname), ', ' order by k.ord),
-         string_agg(format('(($1->>%s)::%s)', k.ord - 1, format_type(a.atttypid, a.atttypmod)), ', ' order by k.ord)
-    into v_cols, v_keyvals
+         string_agg(format('(($5->>%s)::%s)', k.ord - 1, format_type(a.atttypid, a.atttypmod)), ', ' order by k.ord),
+         min(a.attname::text), min(format_type(a.atttypid, a.atttypmod))
+    into v_cols, v_keyvals, v_pk, v_pktype
     from pg_index i
     cross join lateral unnest(i.indkey) with ordinality k(attnum, ord)
     join pg_attribute a on a.attrelid = i.indrelid and a.attnum = k.attnum
@@ -54774,45 +54948,160 @@ begin
   if v_cols is null then raise exception 'fn_table_export_page: public.% has no primary key to page on', p_table; end if;
   if p_after is not null then v_after := format('(%s) > (%s)', v_cols, v_keyvals); end if;
 
-  select coalesce(array_agg(a.attname::text), '{}') into v_strip
-    from pg_attribute a
-   where a.attrelid = v_rel and a.attnum > 0 and not a.attisdropped and format_type(a.atttypid, a.atttypmod) like 'vector%';
-
-  select coalesce(array_agg(c.id::text), '{}') into v_dc from public.customers c
-   where coalesce(c.is_demo, false) or coalesce(c.email, '') ~* 'example\.invalid' or coalesce(c.full_name, '') ~* 'zz[_ -]?demo';
-  select coalesce(array_agg(l.id::text), '{}') into v_dl from public.leads l
-   where coalesce(l.is_demo, false) or coalesce(l.email, '') ~* 'example\.invalid' or coalesce(l.company_name, '') ~* 'zz[_ -]?demo';
-  select coalesce(array_agg(i.id::text), '{}') into v_di from public.inquiries i where i.customer_id::text = any(v_dc);
-  select coalesce(array_agg(q.id::text), '{}') into v_dq from public.quotes q
-   where q.supplier_id::text = any(v_dl) or q.inquiry_id::text = any(v_di);
-
-  select format('(to_jsonb(t) - $2)::text !~* %L', 'zz[_ -]?demo|example\.invalid')
-         || coalesce(string_agg(case a.attname
-              when 'is_demo'     then ' and not coalesce(t.is_demo, false)'
-              when 'customer_id' then ' and not coalesce(t.customer_id::text = any($3), false)'
-              when 'supplier_id' then ' and not coalesce(t.supplier_id::text = any($4), false)'
-              when 'lead_id'     then ' and not coalesce(t.lead_id::text = any($4), false)'
-              when 'inquiry_id'  then ' and not coalesce(t.inquiry_id::text = any($5), false)'
-              when 'quote_id'    then ' and not coalesce(t.quote_id::text = any($6), false)' end, ''), '')
-    into v_where
-    from pg_attribute a
-   where a.attrelid = v_rel and a.attnum > 0 and not a.attisdropped
-     and a.attname in ('is_demo', 'customer_id', 'supplier_id', 'lead_id', 'inquiry_id', 'quote_id');
+  v_strip := public.fn_table_export_stripped(p_table);
+  v_where := public.fn_table_export_filter(p_table);
+  select d.dc, d.dl, d.di, d.dq into v_dc, v_dl, v_di, v_dq from public.fn_table_export_demo_ids() d;
   if p_since is not null and v_log is not null then
-    v_where := v_where || format(' and t.id in (select cl.id from public.%I cl where cl.changed_at >= $7)', v_log);
+    -- THE CAST GOES ON THE LOG, NEVER ON THE TABLE. Measured 18 Sep 2026: with `t.id::text in (...)`
+    -- this statement outlived the management API gateway (524) on kb_chunks -- casting the primary key
+    -- makes the index on it unusable and turns an incremental page into a sequential scan of 2.69 M
+    -- rows over 9 GB, every page, every night. row_key was written from this very column, so casting it
+    -- back is exact.
+    v_where := v_where || format(
+      ' and t.%I in (select cl.row_key::%s from public.table_export_change cl
+                      where cl.table_name = %L and cl.changed_at >= $7 and not cl.deleted)',
+      v_pk, v_pktype, p_table);
   end if;
 
   execute format(
     'select coalesce(jsonb_agg(y.j order by y.ord), ''[]''::jsonb), count(*)::int, (array_agg(y.k order by y.ord desc))[1]
        from (select row_number() over () as ord, x.k, x.j
-               from (select jsonb_build_array(%1$s) as k, to_jsonb(t) - $2 as j
+               from (select jsonb_build_array(%1$s) as k, to_jsonb(t) - $6 as j
                        from public.%2$I t where %3$s and %4$s order by %1$s limit %5$s) x) y',
     v_cols, p_table, v_after, v_where, v_lim)
     into v_rows, v_n, v_last
-    using p_after, v_strip, v_dc, v_dl, v_di, v_dq, p_since;
+    using v_dc, v_dl, v_di, v_dq, p_after, v_strip, p_since;
 
   return jsonb_build_object('table', p_table, 'rows', v_rows, 'n', v_n, 'last', v_last, 'done', v_n < v_lim,
                             'mode', case when p_since is not null and v_log is not null then 'changes_since' else 'full' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_table_export_replay(p_table text, p_base jsonb, p_increments jsonb DEFAULT '[]'::jsonb, p_changes jsonb DEFAULT '[]'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_pk text; v_pktype text; v_npk integer; v_strip text[]; v_where text; v_proj text;
+  v_dc text[]; v_dl text[]; v_di text[]; v_dq text[];   -- $1..$4, the positions fn_table_export_filter names
+  v_lo text; v_hi text; v_inc jsonb; v_n integer;
+  n_base integer := 0; n_upserted integer := 0; n_deleted integer := 0; n_rebuilt integer := 0;
+  n_match integer := 0; n_changed integer := 0; n_gone integer := 0; n_lost integer := 0;
+  v_lost_keys jsonb;
+begin
+  if to_regclass(format('public.%I', p_table)) is null then
+    raise exception 'fn_table_export_replay: public.% does not exist', p_table;
+  end if;
+  if not exists (select 1 from public.fn_table_export_list() x where x.table_name = p_table) then
+    raise exception 'fn_table_export_replay: % is not in fn_table_export_list()', p_table;
+  end if;
+  select count(*), min(a.attname::text), min(format_type(a.atttypid, a.atttypmod))
+    into v_npk, v_pk, v_pktype
+    from pg_index i
+    cross join lateral unnest(i.indkey) with ordinality k(attnum, ord)
+    join pg_attribute a on a.attrelid = i.indrelid and a.attnum = k.attnum
+   where i.indrelid = format('public.%I', p_table)::regclass and i.indisprimary;
+  if coalesce(v_npk, 0) <> 1 then
+    raise exception 'fn_table_export_replay: public.% has a %-column primary key; only a single-column key is rebuilt', p_table, coalesce(v_npk, 0);
+  end if;
+  v_strip := public.fn_table_export_stripped(p_table);
+  v_where := public.fn_table_export_filter(p_table);
+  select d.dc, d.dl, d.di, d.dq into v_dc, v_dl, v_di, v_dq from public.fn_table_export_demo_ids() d;
+  -- The exported projection, named column by column, for the same reason the trigger names it: a
+  -- to_jsonb() of the whole row would serialise a 768-dimension embedding on both sides of every
+  -- comparison only to subtract it again.
+  select coalesce(string_agg(quote_ident(a.attname), ',' order by a.attnum), '') into v_proj
+    from pg_attribute a
+   where a.attrelid = format('public.%I', p_table)::regclass and a.attnum > 0 and not a.attisdropped
+     and format_type(a.atttypid, a.atttypmod) not like 'vector%';
+
+  execute format('create temp table it_replay_scratch (like public.%I) on commit drop', p_table);
+  execute format('insert into it_replay_scratch select * from jsonb_populate_recordset(null::public.%I, $1)', p_table)
+    using coalesce(p_base, '[]'::jsonb);
+  get diagnostics n_base = row_count;
+  if n_base = 0 then
+    execute 'drop table it_replay_scratch';
+    return jsonb_build_object('table', p_table, 'rebuilt', 0, 'lost_rows', -1,
+                              'error', 'the base page carried no rows, so there is nothing to rebuild from');
+  end if;
+  -- The window is the base page's own key range, IN THE KEY'S OWN TYPE. Comparing keys as text would
+  -- sort bigint 10 before 9 and silently rebuild the wrong window.
+  execute format('select min(s.%1$I)::text, max(s.%1$I)::text from it_replay_scratch s', v_pk) into v_lo, v_hi;
+
+  -- every later day, in order: its rows replace the keys they carry (an update is that row again), and
+  -- anything it carries outside the base page's window is dropped, so the comparison stays bounded.
+  for v_inc in select value from jsonb_array_elements(coalesce(p_increments, '[]'::jsonb)) loop
+    execute format('delete from it_replay_scratch s where s.%1$I in
+                      (select (r->>%2$L)::%3$s from jsonb_array_elements($1) r)', v_pk, v_pk, v_pktype)
+      using coalesce(v_inc, '[]'::jsonb);
+    execute format('insert into it_replay_scratch select * from jsonb_populate_recordset(null::public.%I, $1)', p_table)
+      using coalesce(v_inc, '[]'::jsonb);
+    get diagnostics v_n = row_count;
+    n_upserted := n_upserted + v_n;
+    execute format('delete from it_replay_scratch s where s.%1$I < ($1)::%2$s or s.%1$I > ($2)::%2$s', v_pk, v_pktype)
+      using v_lo, v_hi;
+  end loop;
+
+  -- then the deletions the change log recorded, newest wins: a key whose LAST entry is a delete is gone
+  execute format(
+    'delete from it_replay_scratch s where s.%1$I in (
+       select d.row_key::%2$s from (
+         select distinct on (c->>''row_key'') c->>''row_key'' as row_key, (c->>''deleted'')::boolean as deleted
+           from jsonb_array_elements($1) c
+          where c->>''table_name'' = $2
+          order by c->>''row_key'', (c->>''changed_at'') desc) d
+        where d.deleted)', v_pk, v_pktype)
+    using coalesce(p_changes, '[]'::jsonb), p_table;
+  get diagnostics n_deleted = row_count;
+  execute 'select count(*) from it_replay_scratch' into n_rebuilt;
+
+  -- compared with live over the columns the export carries (the vector columns are stripped at export)
+  execute format(
+    'select count(*) filter (where l.%1$I is not null and not ((%3$s) is distinct from (%4$s))),
+            count(*) filter (where l.%1$I is not null and ((%3$s) is distinct from (%4$s))),
+            count(*) filter (where l.%1$I is null)
+       from it_replay_scratch s left join public.%2$I l on l.%1$I = s.%1$I',
+    v_pk, p_table, 'l.' || replace(v_proj, ',', ', l.'), 's.' || replace(v_proj, ',', ', s.'))
+    into n_match, n_changed, n_gone;
+
+  -- THE ONE THAT FAILS THE DRILL: live rows inside the window that the rebuild does not hold and that
+  -- no change-log entry names either. A row created after the last export IS named (its insert is
+  -- logged), so this counts only rows the backup genuinely cannot give back. The demo rule is the
+  -- export's own (fn_table_export_filter), or every demo row would read as a row the rebuild lost.
+-- The excuse is the LATEST log entry, not any entry. Review finding, 18 Sep 2026: "any entry names it"
+-- also excused a key whose last entry is a DELETE and which is nonetheless live today -- exactly the
+-- shape a trigger-bypassing write leaves (session_replication_role=replica, ALTER TABLE ... DISABLE
+-- TRIGGER, a raw restore, the truncate-and-reload path). That row is in no backup file and no log entry
+-- claims it is, so it must count as lost.
+  execute format(
+    'create temp table it_replay_lost on commit drop as
+       with latest as (
+         select distinct on (c->>''row_key'') c->>''row_key'' as row_key, (c->>''deleted'')::boolean as deleted
+           from jsonb_array_elements($7) c
+          where c->>''table_name'' = $8
+          order by c->>''row_key'', (c->>''changed_at'') desc)
+       select t.%1$I::text as key
+         from public.%2$I t
+        where %3$s
+          and t.%1$I >= ($5)::%4$s and t.%1$I <= ($6)::%4$s
+          and not exists (select 1 from it_replay_scratch s where s.%1$I = t.%1$I)
+          and not exists (select 1 from latest l where l.row_key = t.%1$I::text and not l.deleted)',
+    v_pk, p_table, v_where, v_pktype)
+    using v_dc, v_dl, v_di, v_dq, v_lo, v_hi, coalesce(p_changes, '[]'::jsonb), p_table;
+  -- EXECUTE, not static SQL: a plpgsql plan cached against a temp table created in this call would
+  -- point at a dead OID on the next one.
+  execute 'select count(*)::int from it_replay_lost' into n_lost;
+  execute 'select coalesce(jsonb_agg(k.key), ''[]''::jsonb) from (select key from it_replay_lost order by key limit 10) k'
+    into v_lost_keys;
+  execute 'drop table it_replay_lost';
+
+  execute 'drop table it_replay_scratch';
+  return jsonb_build_object('table', p_table, 'key_column', v_pk, 'key_lo', v_lo, 'key_hi', v_hi,
+    'base_rows', n_base, 'increment_rows', n_upserted, 'deletes_applied', n_deleted, 'rebuilt', n_rebuilt,
+    'identical_to_live', n_match, 'changed_since_export', n_changed, 'gone_from_live', n_gone,
+    'lost_rows', n_lost, 'lost_keys_first_10', v_lost_keys, 'not_compared', to_jsonb(v_strip));
 end $function$
 
 
@@ -54825,6 +55114,19 @@ AS $function$
   update public.table_export_run r set state = p_state, heartbeat_at = now()
    where r.stamp = p_stamp and r.status = 'running'
   returning true;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_table_export_stripped(p_table text)
+ RETURNS text[]
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(array_agg(a.attname::text), '{}')
+    from pg_attribute a
+   where a.attrelid = to_regclass(format('public.%I', p_table)) and a.attnum > 0 and not a.attisdropped
+     and format_type(a.atttypid, a.atttypmod) like 'vector%';
 $function$
 
 
@@ -61778,27 +62080,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.trg_kb_chunks_export_change()
- RETURNS trigger
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-begin
-  if tg_op = 'INSERT' then
-    insert into public.kb_chunks_export_change (id) select nr.id from new_rows nr;
-  else
-    -- a text column changed; embedding_gte, embed_claimed_at and fts (derived) do not count
-    insert into public.kb_chunks_export_change (id)
-    select nr.id from new_rows nr join old_rows orw on orw.id = nr.id
-     where (nr.source_kind, nr.source_id, nr.category, nr.title, nr.content, nr.citation, nr.effective_date, nr.category_norm)
-           is distinct from
-           (orw.source_kind, orw.source_id, orw.category, orw.title, orw.content, orw.citation, orw.effective_date, orw.category_norm);
-  end if;
-  return null;
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.trg_learn_customer_preference()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -62301,6 +62582,47 @@ AS $function$
 begin raise exception 'inquiry_supplier_brief is append-only: freeze a new version instead of editing version %', OLD.version; end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_table_export_change()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_pk text := tg_argv[0];
+  v_proj text := coalesce(tg_argv[1], '');
+begin
+  if tg_op = 'TRUNCATE' then
+    update public.table_export_change_tracked x set tracking_since = clock_timestamp() where x.table_name = tg_table_name;
+    insert into public.table_export_change (table_name, row_key, deleted)
+    values (tg_table_name, '(truncate: no row-level record is possible; the next export day is a full copy)', true);
+    return null;
+  end if;
+  if tg_op = 'INSERT' then
+    execute format(
+      'insert into public.table_export_change (table_name, row_key, deleted) select %L, n.%I::text, false from new_rows n',
+      tg_table_name, v_pk);
+  elsif tg_op = 'DELETE' then
+    execute format(
+      'insert into public.table_export_change (table_name, row_key, deleted) select %L, o.%I::text, true from old_rows o',
+      tg_table_name, v_pk);
+  elsif v_proj = '' then
+    -- no projection recorded: log every touched row rather than guess that nothing changed
+    execute format(
+      'insert into public.table_export_change (table_name, row_key, deleted) select %L, n.%I::text, false from new_rows n',
+      tg_table_name, v_pk);
+  else
+    execute format(
+      'insert into public.table_export_change (table_name, row_key, deleted)
+         select %1$L, n.%2$I::text, false from new_rows n join old_rows o on o.%2$I = n.%2$I
+          where (%3$s) is distinct from (%4$s)',
+      tg_table_name, v_pk,
+      'n.' || replace(v_proj, ',', ', n.'), 'o.' || replace(v_proj, ',', ', o.'));
+  end if;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_terms_pins_sync()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -62464,30 +62786,30 @@ CREATE TRIGGER a00_append_only BEFORE DELETE OR UPDATE ON public.accountant_issu
 CREATE TRIGGER a10_accountant_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.accountant_knowledge FOR EACH ROW EXECUTE FUNCTION fn_accountant_knowledge_search_vector();
 CREATE TRIGGER t10_action_execution_set_author BEFORE INSERT ON public.action_execution FOR EACH ROW EXECUTE FUNCTION fn_action_execution_set_author();
 CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
-CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
+CREATE TRIGGER z61_handoff_only_originator_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_handoff_only_originator_closes();
+CREATE TRIGGER z60_backup_refile_only_it_engineer_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_backup_refile_only_it_engineer_closes();
+CREATE TRIGGER trg_sales_engineer_tells_customer_invoice_ready AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_sales_engineer_tells_customer_invoice_ready();
+CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
+CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
 CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
-CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
-CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
-CREATE TRIGGER trg_sales_engineer_tells_customer_invoice_ready AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_sales_engineer_tells_customer_invoice_ready();
-CREATE TRIGGER z60_backup_refile_only_it_engineer_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_backup_refile_only_it_engineer_closes();
-CREATE TRIGGER z61_handoff_only_originator_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_handoff_only_originator_closes();
-CREATE TRIGGER z62_new_bug_closes_with_learning BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_new_bug_closes_with_learning();
+CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
 CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
-CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
+CREATE TRIGGER z62_new_bug_closes_with_learning BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_new_bug_closes_with_learning();
 CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
+CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
 CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
-CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_ai_cost_attribute BEFORE INSERT ON public.ai_cost_log FOR EACH ROW EXECUTE FUNCTION trg_ai_cost_attribute();
 CREATE TRIGGER trg_quality_snapshot_resolve_agent BEFORE INSERT ON public.ai_quality_snapshots FOR EACH ROW EXECUTE FUNCTION fn_quality_snapshot_resolve_agent();
 CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
 CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received();
-CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
-CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
-CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
 CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
+CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
+CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER z_report_pdf_enqueue AFTER INSERT ON public.board_reports FOR EACH ROW EXECUTE FUNCTION fn_report_pdf_enqueue();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
@@ -62503,14 +62825,14 @@ CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_
 CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
-CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
+CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
-CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
+CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
 CREATE TRIGGER a00_decision_trace_immutable BEFORE UPDATE ON public.decision_trace FOR EACH ROW EXECUTE FUNCTION fn_decision_trace_immutable();
@@ -62533,16 +62855,16 @@ CREATE TRIGGER trg_audit_gl_settings AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.handoff_contract FOR EACH ROW EXECUTE FUNCTION fn_handoff_contract_guard();
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
-CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
-CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
-CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
 CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
+CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
 CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
+CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
 CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -62555,96 +62877,102 @@ CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON p
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
 CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER a10_it_engineer_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_it_engineer_knowledge_search_vector();
-CREATE TRIGGER kb_chunks_export_change_upd AFTER UPDATE ON public.kb_chunks REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_kb_chunks_export_change();
-CREATE TRIGGER kb_chunks_export_change_ins AFTER INSERT ON public.kb_chunks REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_kb_chunks_export_change();
-CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
-CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
-CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
-CREATE TRIGGER z21_sign_supplier_on_acceptance AFTER UPDATE OF accepted_terms_at ON public.leads FOR EACH ROW WHEN (((new.accepted_terms_at IS NOT NULL) AND (new.accepted_terms_at IS DISTINCT FROM old.accepted_terms_at) AND (new.claimed_by IS NOT NULL) AND (NOT ((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL))))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER a01_leads_sanctioned_identity_cannot_re_register BEFORE INSERT OR UPDATE OF company_name, trade_license_no, claimed_by, email ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_identity_cannot_re_register();
-CREATE TRIGGER a00_leads_sanctioned_row_is_never_deleted BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, iban_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER z20_leads_mandatory_item_landed_reverifies AFTER UPDATE OF company_name, phone, phone_e164, owner_phone_verified, owner_email_verified, license_doc_path, license_expiry, company_profile_doc_path, signed_terms_path ON public.leads FOR EACH ROW WHEN (((new.approval_status = ANY (ARRAY['action_required'::text, 'pending'::text])) AND (pg_trigger_depth() < 1))) EXECUTE FUNCTION fn_leads_mandatory_item_landed_reverifies();
-CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
-CREATE TRIGGER trg_leads_e0_mandatory_six_gate BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW WHEN (((new.approval_status = 'approved'::text) OR new.verified)) EXECUTE FUNCTION fn_leads_mandatory_six_gate();
+CREATE TRIGGER z90_kb_chunks_export_change_del AFTER DELETE ON public.kb_chunks REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
+CREATE TRIGGER z90_kb_chunks_export_change_trunc AFTER TRUNCATE ON public.kb_chunks FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
+CREATE TRIGGER z90_kb_chunks_export_change_ins AFTER INSERT ON public.kb_chunks REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
+CREATE TRIGGER z90_kb_chunks_export_change_upd AFTER UPDATE ON public.kb_chunks REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
 CREATE TRIGGER quote_reviews_follow_owner AFTER UPDATE OF claimed_by ON public.leads FOR EACH ROW WHEN ((old.claimed_by IS DISTINCT FROM new.claimed_by)) EXECUTE FUNCTION fn_quote_reviews_follow_owner();
 CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
-CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
-CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
+CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
+CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
+CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
+CREATE TRIGGER a00_leads_sanctioned_row_is_never_deleted BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
+CREATE TRIGGER a01_leads_sanctioned_identity_cannot_re_register BEFORE INSERT OR UPDATE OF company_name, trade_license_no, claimed_by, email ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_identity_cannot_re_register();
+CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
+CREATE TRIGGER z21_sign_supplier_on_acceptance AFTER UPDATE OF accepted_terms_at ON public.leads FOR EACH ROW WHEN (((new.accepted_terms_at IS NOT NULL) AND (new.accepted_terms_at IS DISTINCT FROM old.accepted_terms_at) AND (new.claimed_by IS NOT NULL) AND (NOT ((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL))))) EXECUTE FUNCTION qd_sign_supplier();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
+CREATE TRIGGER z20_leads_mandatory_item_landed_reverifies AFTER UPDATE OF company_name, phone, phone_e164, owner_phone_verified, owner_email_verified, license_doc_path, license_expiry, company_profile_doc_path, signed_terms_path ON public.leads FOR EACH ROW WHEN (((new.approval_status = ANY (ARRAY['action_required'::text, 'pending'::text])) AND (pg_trigger_depth() < 1))) EXECUTE FUNCTION fn_leads_mandatory_item_landed_reverifies();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, iban_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER zzz_leads_sanctioned_ban_is_permanent BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
+CREATE TRIGGER trg_leads_e0_mandatory_six_gate BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW WHEN (((new.approval_status = 'approved'::text) OR new.verified)) EXECUTE FUNCTION fn_leads_mandatory_six_gate();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
-CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
+CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
 CREATE TRIGGER a02_notifications_never_reach_a_sanctioned_party BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_never_reach_a_sanctioned_party();
 CREATE TRIGGER a03_notifications_whatsapp_goes_to_a_confirmed_number BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_whatsapp_goes_to_a_confirmed_number();
 CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
 CREATE TRIGGER a06_notifications_supplier_notice_follows_the_accepted_agreemen BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_supplier_notice_follows_the_accepted_agreement();
 CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
-CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
+CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
 CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
 CREATE TRIGGER z06_supplier_notice_whatsapp_twin_under_v11 AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_supplier_notice_whatsapp_twin_under_v11();
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
 CREATE TRIGGER z90_every_send_is_tracked AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_customer_support_adopts_untracked_send();
 CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER zzzz_notifications_demo_capture BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_demo_capture();
+CREATE TRIGGER z90_ops_knowledge_export_change_upd AFTER UPDATE ON public.ops_knowledge REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
+CREATE TRIGGER z90_ops_knowledge_export_change_trunc AFTER TRUNCATE ON public.ops_knowledge FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
+CREATE TRIGGER z90_ops_knowledge_export_change_ins AFTER INSERT ON public.ops_knowledge REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
+CREATE TRIGGER z90_ops_knowledge_export_change_del AFTER DELETE ON public.ops_knowledge REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
-CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
+CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
+CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
+CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
+CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
 CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
 CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
-CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
-CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
-CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
-CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
+CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
 CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
-CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
 CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
+CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER otp_served_country_lifts_blocks AFTER INSERT OR UPDATE OF prefix ON public.otp_served_country FOR EACH ROW EXECUTE FUNCTION trg_otp_served_country_lifts_blocks();
-CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
+CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER trg_po_orders_link BEFORE INSERT OR UPDATE OF quote_id, inquiry_id, customer_id, project_id ON public.po_orders FOR EACH ROW EXECUTE FUNCTION fn_po_orders_link();
 CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER z10_hold_answered_resets_the_run AFTER UPDATE OF state ON public.quote_spec_hold FOR EACH ROW EXECUTE FUNCTION trg_hold_answered_resets_the_run();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
-CREATE TRIGGER a01_quote_demo_and_real_never_pair BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_demo_and_real_never_pair();
-CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
-CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
 CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
-CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
-CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
-CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
-CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
 CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
-CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
+CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
+CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
+CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
+CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
+CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
+CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
+CREATE TRIGGER a01_quote_demo_and_real_never_pair BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_demo_and_real_never_pair();
 CREATE TRIGGER z20_refund_case_approval_checks_the_process BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
+CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
+CREATE TRIGGER a01_refunds_never_return_more_than_was_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_never_return_more_than_was_paid();
+CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
+CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
+CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
 CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
+CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
 CREATE TRIGGER z30_refund_request_hands_to_accountant AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_request_hands_to_accountant();
 CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
 CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
-CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
-CREATE TRIGGER a01_refunds_never_return_more_than_was_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_never_return_more_than_was_paid();
-CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
-CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
-CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
-CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
 CREATE TRIGGER trg_emit_customer_complaint_review AFTER INSERT OR UPDATE OF rating ON public.reviews FOR EACH ROW WHEN (((new.rating IS NOT NULL) AND (new.rating <= 2))) EXECUTE FUNCTION fn_emit_customer_complaint_from_review();
+CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER z10_it_judge_routine_change AFTER INSERT ON public.routine_change_log FOR EACH ROW EXECUTE FUNCTION trg_it_judge_routine_change();
@@ -62658,18 +62986,18 @@ CREATE TRIGGER trg_sec_audit_immutable BEFORE DELETE OR UPDATE ON public.securit
 CREATE TRIGGER trg_event_selfreview AFTER INSERT ON public.self_review FOR EACH ROW EXECUTE FUNCTION fn_emit_event('self_review', 'process.repeated_failure');
 CREATE TRIGGER trg_ensure_category_agent AFTER INSERT ON public.seo_categories FOR EACH ROW EXECUTE FUNCTION ensure_category_agent();
 CREATE TRIGGER a10_supplier_collaboration_event_append_only BEFORE DELETE OR UPDATE ON public.supplier_collaboration_event FOR EACH ROW EXECUTE FUNCTION fn_supplier_collaboration_event_append_only();
-CREATE TRIGGER a00_hit_is_never_truncated BEFORE TRUNCATE ON public.supplier_screening_hit FOR EACH STATEMENT EXECUTE FUNCTION fn_screening_record_is_never_deleted();
 CREATE TRIGGER a00_hit_is_never_deleted BEFORE DELETE ON public.supplier_screening_hit FOR EACH ROW EXECUTE FUNCTION fn_screening_record_is_never_deleted();
+CREATE TRIGGER a00_hit_is_never_truncated BEFORE TRUNCATE ON public.supplier_screening_hit FOR EACH STATEMENT EXECUTE FUNCTION fn_screening_record_is_never_deleted();
 CREATE TRIGGER a10_support_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_support_knowledge_search_vector();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
-CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
-CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
-CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
-CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
 CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
 CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
+CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
+CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
+CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
+CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
 
@@ -62952,7 +63280,6 @@ ALTER TABLE public.kb_category_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_category_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_chunk_quarantine ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_chunks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.kb_chunks_export_change ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_embed_inflight ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_embed_priority ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_operational_alias ENABLE ROW LEVEL SECURITY;
@@ -63169,6 +63496,8 @@ ALTER TABLE public.support_identity_challenge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_notification ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_public_override ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.table_export_change ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.table_export_change_tracked ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.table_export_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_contract ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_driver ENABLE ROW LEVEL SECURITY;
@@ -63247,7 +63576,6 @@ CREATE POLICY it_table_size_daily_service_role_only ON public.it_table_size_dail
 CREATE POLICY it_threshold_service_role_only ON public.it_threshold AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_chunk_quarantine_service_role_only ON public.kb_chunk_quarantine AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.kb_chunks AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
-CREATE POLICY kb_chunks_export_change_service_role_only ON public.kb_chunks_export_change AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
@@ -63285,6 +63613,8 @@ CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collab
 CREATE POLICY supplier_collaboration_event_service_role_only ON public.supplier_collaboration_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_voice_note_service_role_only ON public.supplier_voice_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY table_export_change_service_role_only ON public.table_export_change AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY table_export_change_tracked_service_role_only ON public.table_export_change_tracked AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_run_service_role_only ON public.table_export_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY taxonomy_trade_proposal_service_role_only ON public.taxonomy_trade_proposal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY taxonomy_trade_service_service_role_only ON public.taxonomy_trade_service AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
