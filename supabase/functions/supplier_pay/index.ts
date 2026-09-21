@@ -108,7 +108,14 @@ Deno.serve(observe('supplier_pay', async (req) => {
 
     // Interest on an outstanding charge is recomputed from the refund record before it is shown or
     // billed (fn_supplier_dues_accrue_interest is absolute, so this changes nothing twice).
-    try { await admin.rpc('fn_supplier_dues_accrue_interest', { p_as_of: null }); } catch (_e) { /* the stored figure stands */ }
+    // ONLY WHEN THIS SUPPLIER OWES SOMETHING (21 Sep 2026, campaign registration walk). The accrual is
+    // absolute and covers EVERY supplier, and it ran on every Billing view: a brand-new supplier with
+    // nothing owed waited 5.2 s for `list` (measured on production, EN and AR, 390 px), and a campaign
+    // day of new suppliers opening Billing would have run the whole-book recompute once per view.
+    // Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs.
+    const { count: openDues } = await admin.from('supplier_dues').select('id', { count: 'exact', head: true })
+      .eq('supplier_id', lead.id).not('status', 'in', '("paid","settled","waived","cancelled")').is('paid_at', null);
+    if (openDues !== 0) { try { await admin.rpc('fn_supplier_dues_accrue_interest', { p_as_of: null }); } catch (_e) { /* the stored figure stands */ } }
 
     const { data: dues, error: dErr } = await admin.from('supplier_dues')
       .select('id,amount_due,admin_fee,interest_amount,fine_amount,currency,status,due_date,paid_at,quote_id,reveal_date,legal_stage')
