@@ -1,0 +1,1 @@
+pure probe, no DDL: run with node scripts/qsql.mjs after scripts/sql/a_supplier_reply_reaches_a_mailbox_that_is_read.sql is applied; before that it errors (fn_reply_asks_to_stop does not exist), which is its failing answer.

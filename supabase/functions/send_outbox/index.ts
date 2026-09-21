@@ -11,6 +11,7 @@ import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { ownsChannel, selectQueue } from './channels.ts';
+import { ownDomain, resendPayload } from './payload.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
@@ -118,6 +119,10 @@ Deno.serve(observe('send_outbox', async (req) => {
     const replyDocs = (await sec('email_reply_supplier_docs')) || 'docs@mail.quotesdone.com';
     const replyInfo = (await sec('email_reply_info')) || 'info@quotesdone.com';
     const logo = (await sec('email_logo_url')) || '';
+    // OUR OWN DOMAIN IN THE MAIL (22 Sep 2026, payload.ts ownDomain): set once quotesdone.com serves the
+    // /u/unsubscribe and /m/brand proxies (next.config.mjs). Unset = the project host, as before.
+    const unsubBase = (await sec('unsubscribe_public_base')) || `${FN_BASE}/unsubscribe`;
+    const assetBase = (await sec('email_asset_public_base')) || '';
     const sigName = (await sec('email_signature_name')) || 'Ahmad Alzain';
     // The founder's name in Arabic script for Arabic mail (instruction 586): a Latin name under an Arabic letter reads as a translation.
     const sigNameAr = (await sec('email_signature_name_ar')) || 'أحمد الزين';
@@ -174,7 +179,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       if (sent >= remaining) break;
       const from = supplierSide ? fromSup : fromInfo;
       const reply = supplierSide ? (docReq ? replyDocs : replySup) : replyInfo;
-      const unsub = (supplierSide && unsubKey) ? `${FN_BASE}/unsubscribe?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
+      const unsub = (supplierSide && unsubKey) ? `${unsubBase}?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
       // NO UNSUBSCRIBE, NO SUPPLIER MARKETING (21 Sep 2026). The link and the RFC 8058 headers are only
       // built when unsubscribe_signing_key reads back; when it did not, supplier mail used to go out with
       // neither. A licence/document request is transactional and still goes; everything else waits.
@@ -188,7 +193,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       // mixed message the rule forbids.
       const arMail = !internal && n.lang === 'ar';
       const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'QuotesDone Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
-      const htmlBody = arMail ? arabicFrame(htmlBody0) : htmlBody0;
+      const htmlBody = ownDomain(arMail ? arabicFrame(htmlBody0) : htmlBody0, Deno.env.get('SUPABASE_URL') || '', assetBase);
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the
       // founder would read "here is this week's report", find no report, and have no way to tell
@@ -203,10 +208,10 @@ Deno.serve(observe('send_outbox', async (req) => {
       try {
         // The text/plain part is written, not left to be derived from the dark HTML frame: it carries
         // the body, the footer and the unsubscribe URL in the recipient's language.
-        const mail: Record<string, unknown> = { from, to: [n.to_email], reply_to: reply, subject: n.subject || 'QuotesDone', html: htmlBody,
-          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }) };
+        // payload.ts builds it (22 Sep 2026) so the exact message can be rendered and inbox-linted offline.
+        const mail: Record<string, unknown> = resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
+          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }), unsub, unsubMailto: reply });
         if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
-        if (unsub) mail.headers = { 'List-Unsubscribe': `<${unsub}>, <mailto:${reply}?subject=unsubscribe>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' };
         const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(mail) });
         // KEEP THE PROVIDER'S OWN NAME FOR THE MESSAGE. status='sent' only ever meant "Resend
         // answered 2xx"; without the id, that claim could never be taken back to the provider and
