@@ -14,7 +14,7 @@ import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
-import { quoteDocument, compareDocument, compareTable, toCsv, clipCell, quoteRef, type Item } from '../_shared/quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, completenessOf, itemsOfRows, toCsv, clipCell, quoteRef, type Item } from '../_shared/quote_documents.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { accountMissing } from '../_shared/account_rule.ts';
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
@@ -445,13 +445,17 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   let items: Item[] = [];
   try {
     const { data: qi } = await admin.from('quote_items').select('*').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60);
-    items = (qi || []).map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || ''),
-      unit_price: b.unit_price == null ? null : Number(b.unit_price), amount: b.amount == null ? null : Number(b.amount),
-      brand: b.brand ?? null, model: b.model ?? null, specification: b.specification ?? null,
-      specs: (b.specs && typeof b.specs === 'object' && !Array.isArray(b.specs)) ? b.specs : null })).filter((x: any) => x.desc);
+    items = itemsOfRows(qi);
   } catch (_e) { items = []; }
+  // The completeness checks and the per-line specs are the hold desk's own reading (completenessOf,
+  // audit 21 Sep 2026, finding 4) — the same reader that approved the quote, so the page cannot
+  // contradict the review. The intake answers are read for the checks only.
+  let inqSpec: unknown = null;
+  try { const { data: s } = await admin.from('inquiries').select('spec').eq('id', String(q.inquiry_id)).maybeSingle(); inqSpec = s?.spec ?? null; } catch (_e) { /* the checks then apply the trade's standard alone */ }
+  const done = completenessOf(q, items, inq?.category ?? null, inqSpec);
+  items = done.items;
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
-  const quoteRow = { ...q, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
+  const quoteRow = { ...done.quote, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
   const { body, ref } = quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, maskNames: await supplierIdentities([q.supplier_id]), requestUrl: portalLink(lang, inq.id, q.id) });
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });

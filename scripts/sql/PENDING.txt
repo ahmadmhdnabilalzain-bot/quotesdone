@@ -12,3 +12,11 @@
 #   2. scripts/sql/the_arabic_visitor_asking_how_long_gets_the_same_answer_as_the_english_one.sql (one Arabic FAQ row; already in MANIFEST)
 
 
+#
+# 21 Sep 2026 — the IT failures of 18–21 Sep (docs/it/IT_FAILURES_18_21_SEP_2026.md). Applies are
+# serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the
+# END of MANIFEST.txt (a file cannot be in both): each carries a PROBE row and was executed rolled-back.
+#
+# 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+#
+# 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).

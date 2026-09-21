@@ -7,7 +7,17 @@
 //   npm test        (the repository runner discovers *.test.mjs anywhere in the tree)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { countByCategory, spreadByCategory, summariseHistory } from './stats.ts';
+import { countByCategory, spreadByCategory, summariseHistory, monthLabel } from './stats.ts';
+
+test('one month of history is "single", never "rising" (audit 21 Sep 2026)', () => {
+  assert.equal(summariseHistory(twelve([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2])).direction, 'single');
+  assert.equal(summariseHistory(twelve([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2])).direction, 'rising');
+});
+test('the RPC month label reads in Arabic on an Arabic page and untouched otherwise', () => {
+  assert.equal(monthLabel('Sep 26', 'en'), 'Sep 26');
+  assert.match(monthLabel('Sep 26', 'ar'), /سبتمبر/);
+  assert.equal(monthLabel('M3', 'ar'), 'M3');
+});
 
 const twelve = (counts) => counts.map((c, i) => ({ month: 'M' + i, inquiries: c }));
 

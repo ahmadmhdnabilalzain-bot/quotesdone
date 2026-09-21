@@ -51,7 +51,7 @@ import { documentCount, isChannelThread, linkDocuments, threadKey, type ThreadDo
 
 // ---- words --------------------------------------------------------------------------------------
 const EN = {
-  title: 'Communication center',
+  title: 'Communication centre',
   sub: 'Every conversation with a supplier, and the documents that belong to it, on the request they are about.',
   carries_h: 'What this inbox carries',
   carries_chat: 'Your in-portal chat with suppliers you have revealed, on the request it belongs to.',
@@ -95,7 +95,7 @@ const EN = {
   docs_supplier: 'From this supplier',
   docs_none: 'No document has been filed against this request, and this supplier has none on file.',
   unlinked_h: 'Also in your vault',
-  unlinked_b: 'quotation file(s) we cannot attach to a conversation — a quotation is filed against the quote, and the quote does not name the request it answers in what this page can read. They are all in your document vault.',
+  unlinked_b: 'quotation file(s) are filed against a quote rather than a conversation, so they are not shown here. Every one of them is in your document vault.',
   ask_h: 'Ask this supplier a question',
   ask_b: 'Your QuotesDone sales engineer answers most questions instantly. If yours genuinely needs the supplier, it opens a direct chat for review.',
   ask_ph: 'What would you like to ask?',
@@ -157,7 +157,7 @@ const AR: typeof EN = {
   docs_supplier: 'من هذا المورّد',
   docs_none: 'لم يُرفق أي مستند بهذا الطلب، ولا يوجد لهذا المورّد مستند مسجّل.',
   unlinked_h: 'أيضًا في خزانتك',
-  unlinked_b: 'ملف عرض سعر لا يمكننا ربطه بمحادثة — يُؤرشف عرض السعر على العرض نفسه، والعرض لا يذكر الطلب الذي يجيب عنه ضمن ما تقرؤه هذه الصفحة. جميعها في خزانة مستنداتك.',
+  unlinked_b: 'ملف عرض سعر مؤرشف على العرض نفسه لا على محادثة، لذا لا يظهر هنا. جميعها في خزانة مستنداتك.',
   ask_h: 'اسأل هذا المورّد',
   ask_b: 'يجيب مهندس مبيعات QuotesDone عن معظم الأسئلة فورًا. وإن كان سؤالك يحتاج المورّد فعلًا، يفتح محادثة مباشرة للمراجعة.',
   ask_ph: 'ما الذي تودّ سؤاله؟',

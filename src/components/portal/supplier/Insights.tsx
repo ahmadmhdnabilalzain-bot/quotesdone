@@ -6,7 +6,12 @@
 // 375px phone and buried the journey. supplier_portal's `insights` action asks every panel routine
 // once and answers available true/false per panel (rule stated there). Only available panels are
 // listed; the rest are counted, never shown with invented numbers. Each panel is loaded on demand so
-// neither the 3D scene nor the charts reach a supplier who never opens them.
+// the charts do not reach a supplier who never opens them.
+//
+// 21 Sep 2026 (founder instructions 525/526): the 3D company environment (SupplierEnvironment), the
+// 3D supplier network map (SupplierNetworkMap) and the negotiation panel (SupplierNegotiation) were
+// removed — "its useless remove it". The twin panel keeps the health board; the network panel keeps
+// the knowledge graph.
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, useReducedMotion } from 'motion/react';
@@ -18,9 +23,7 @@ const lazy = (f: () => Promise<any>) => dynamic(f, { ssr: false, loading: () => 
 const C: Record<string, any> = {
   SupplierTwin: lazy(() => import('./SupplierTwin')),
   SupplierInsightBoard: lazy(() => import('./SupplierInsightBoard')),
-  SupplierEnvironment: lazy(() => import('./SupplierEnvironment')),
   MarketIntelligence: lazy(() => import('./MarketIntelligence')),
-  SupplierNetworkMap: lazy(() => import('./SupplierNetworkMap')),
   SupplierKnowledgeGraph: lazy(() => import('./SupplierKnowledgeGraph')),
   CollaborationWorkspace: lazy(() => import('./CollaborationWorkspace')),
   SupplierOpportunities: lazy(() => import('./SupplierOpportunities')),
@@ -30,20 +33,18 @@ const C: Record<string, any> = {
   ProductIntelligence: lazy(() => import('./ProductIntelligence')),
   SupplierInventory: lazy(() => import('./SupplierInventory')),
   SupplierAdvisor: lazy(() => import('./SupplierAdvisor')),
-  SupplierNegotiation: lazy(() => import('./SupplierNegotiation')),
 };
 const Summary: any = lazy(() => import('./SupplierInsightsSummary'));
 const PANELS: Record<string, { en: string; ar: string; parts: string[] }> = {
   recommended:    { en: 'Recommended for you', ar: 'موصى به لك',        parts: ['SupplierOpportunities', 'SupplierQuoteBuilder'] },
-  twin:           { en: 'Company health',      ar: 'صحة الشركة',        parts: ['SupplierTwin', 'SupplierInsightBoard', 'SupplierEnvironment'] },
+  twin:           { en: 'Company health',      ar: 'صحة الشركة',        parts: ['SupplierTwin', 'SupplierInsightBoard'] },
   market:         { en: 'Market',              ar: 'السوق',             parts: ['MarketIntelligence'] },
-  network:        { en: 'Network',             ar: 'الشبكة',            parts: ['SupplierNetworkMap', 'SupplierKnowledgeGraph'] },
+  network:        { en: 'Network',             ar: 'الشبكة',            parts: ['SupplierKnowledgeGraph'] },
   ranking:        { en: 'Supplier score',      ar: 'تصنيف المورّد',      parts: ['SupplierTier'] },
   certifications: { en: 'Certifications',      ar: 'الشهادات',          parts: ['SupplierCertifications'] },
   products:       { en: 'Products',            ar: 'المنتجات',          parts: ['ProductIntelligence', 'SupplierInventory'] },
   workspaces:     { en: 'Workspaces',          ar: 'مساحات العمل',      parts: ['CollaborationWorkspace'] },
   assistant:      { en: 'Sales engineer',      ar: 'مهندس المبيعات',         parts: ['SupplierAdvisor'] },
-  negotiation:    { en: 'Negotiation',         ar: 'التفاوض',           parts: ['SupplierNegotiation'] },
 };
 export const INSIGHT_PANELS = Object.keys(PANELS);
 

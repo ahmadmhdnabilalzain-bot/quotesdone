@@ -81,7 +81,10 @@ export function BriefBox() {
           <textarea
             id={id}
             ref={field}
-            dir="auto"
+            // dir=auto on an EMPTY textarea let the browser lay the Arabic placeholder out around
+            // "SPC" left-to-right (public audit 21 Sep 2026, item 26); the page locale decides
+            // until there is text to decide from.
+            dir={text ? 'auto' : locale === 'ar' ? 'rtl' : 'ltr'}
             rows={2}
             value={text}
             maxLength={1000}

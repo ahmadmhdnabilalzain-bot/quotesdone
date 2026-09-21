@@ -36,6 +36,7 @@ import {
   num,
   spreadByCategory,
   summariseHistory,
+  monthLabel,
   type HistoryPoint,
   type PortalInquiry,
   type PortalQuote,
@@ -74,6 +75,7 @@ const T = {
     dir_rising: 'rising over the year',
     dir_falling: 'falling over the year',
     dir_steady: 'steady over the year',
+    dir_single: 'all in a single month so far',
     cat_title: 'Requests by category',
     cat_note: 'How your requests split across trades.',
     cat_empty: 'You have no requests yet, so there is nothing to break down by category.',
@@ -107,6 +109,7 @@ const T = {
     dir_rising: 'في ارتفاع خلال العام',
     dir_falling: 'في انخفاض خلال العام',
     dir_steady: 'مستقر خلال العام',
+    dir_single: 'كلها في شهر واحد حتى الآن',
     cat_title: 'الطلبات حسب الفئة',
     cat_note: 'كيف تتوزع طلباتك على التخصصات.',
     cat_empty: 'لا توجد لديك طلبات بعد، لذلك لا يوجد ما يمكن تصنيفه حسب الفئة.',
@@ -215,22 +218,22 @@ export function RequestTrendChart({
   }
 
   const dir =
-    summary.direction === 'rising' ? t.dir_rising : summary.direction === 'falling' ? t.dir_falling : t.dir_steady;
-  const months = summary.points.map((p) => `${p.month} ${p.inquiries}`).join(', ');
+    summary.direction === 'rising' ? t.dir_rising : summary.direction === 'falling' ? t.dir_falling : summary.direction === 'single' ? t.dir_single : t.dir_steady;
+  const months = summary.points.map((p) => `${monthLabel(p.month, lang)} ${p.inquiries}`).join(', ');
   const config = { inquiries: { label: t.k_requests, color: 'hsl(var(--chart-1))' } } satisfies ChartConfig;
 
   return (
     <Panel
       title={t.trend_title}
       note={t.trend_note}
-      caption={t.trend_alt(summary.total, dir, summary.peak.month, summary.peak.inquiries, months)}
+      caption={t.trend_alt(summary.total, dir, monthLabel(summary.peak.month, lang), summary.peak.inquiries, months)}
       captionId={capId}
       className={className}
     >
       <ChartContainer config={config} className="aspect-auto h-[210px] w-full" role="img" aria-labelledby={capId}>
         <AreaChart data={summary.points} margin={{ left: 4, right: 8, top: 6, bottom: 0 }}>
           <CartesianGrid vertical={false} />
-          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
+          <XAxis dataKey="month" tickFormatter={(m) => monthLabel(String(m), lang)} tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
           <YAxis width={26} allowDecimals={false} tickLine={false} axisLine={false} />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Area

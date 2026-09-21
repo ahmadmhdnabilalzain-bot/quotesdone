@@ -52,7 +52,9 @@ export type TrendSummary = {
   points: { month: string; inquiries: number }[];
   total: number;
   /** 'rising' | 'falling' | 'steady', comparing the later half of the year against the earlier. */
-  direction: 'rising' | 'falling' | 'steady';
+  /** `single`: every request fell in ONE month — a trend needs two (audit 21 Sep 2026, item 18:
+   *  "rising over the year" was said of a customer whose whole history was this month). */
+  direction: 'rising' | 'falling' | 'steady' | 'single';
   peak: { month: string; inquiries: number };
 };
 
@@ -74,9 +76,20 @@ export function summariseHistory(history: readonly HistoryPoint[] | null | undef
   return {
     points,
     total,
-    direction: late > early ? 'rising' : late < early ? 'falling' : 'steady',
+    direction: points.filter((p) => p.inquiries > 0).length < 2 ? 'single' : late > early ? 'rising' : late < early ? 'falling' : 'steady',
     peak: points.reduce((best, p) => (p.inquiries > best.inquiries ? p : best), points[0]),
   };
+}
+
+/** The RPC pre-formats `month` as English 'Mon YY'; an Arabic reader gets the same month in Arabic
+ *  (audit 21 Sep 2026, item 23). Anything that does not parse is returned as served. */
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+export function monthLabel(month: string, lang: string): string {
+  if (lang !== 'ar') return month;
+  const m = /^([A-Za-z]{3})\s+(\d{2})$/.exec(String(month || '').trim());
+  const i = m ? MONTHS.indexOf(m[1].toLowerCase()) : -1;
+  if (!m || i < 0) return month;
+  return new Date(Date.UTC(2000 + Number(m[2]), i, 1)).toLocaleDateString('ar-AE', { month: 'short', year: '2-digit', timeZone: 'UTC' });
 }
 
 /** Requests per category, biggest first. */
