@@ -1195,6 +1195,7 @@ function OpenSeal({ play, children }) {
 
 // A window opened after an await is a popup: see src/lib/openDocument.ts (shared with the supplier portal).
 import { openDocument } from '@/lib/openDocument';
+import DocActions from '@/components/portal/DocActions';
 // THIS quote's own PDF, by id, in the customer's language — and the other language one click away:
 // the English document always exists and the Arabic one is always offered (founder, 14 Sep 2026).
 function QuotePdfLink({ q, token, lang }) {
@@ -1264,8 +1265,13 @@ function DetailFacts({ inq, lang }) {
   if (Number.isFinite(conf) && inq.boq && inq.boq.boq) rows.push([lang === 'ar' ? 'دقة قراءة الرسم' : 'Drawing read confidence', Math.round(conf <= 1 ? conf * 100 : conf) + '%']);
   // my_inquiries signs a URL to the customer's OWN uploaded drawing on every call. Nothing read it,
   // so the one person entitled to that file could not open it — only the suppliers could.
+  // The four actions (instruction 524). The drawing was sent to suppliers with the request, so
+  // Replace / Remove say so rather than acting: what they quoted on stays what they quoted on.
   const drawing = inq.drawing_file_url
-    ? (<div className="mt-1.5"><a href={inq.drawing_file_url} target="_blank" rel="noopener" className="text-primary font-semibold text-[12.5px]">{lang === 'ar' ? '📐 افتح الرسم الذي رفعته' : '📐 Open the drawing you uploaded'}{inq.drawing_file_name ? ' (' + inq.drawing_file_name + ')' : ''}</a></div>)
+    ? (<div className="mt-1.5">
+        <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? '📐 الرسم الذي رفعته' : '📐 The drawing you uploaded'}{inq.drawing_file_name ? <> (<bdi>{inq.drawing_file_name}</bdi>)</> : null}</div>
+        <DocActions lang={lang} name={inq.drawing_file_name} url={inq.drawing_file_url} sealed="sent_to_suppliers" />
+      </div>)
     : null;
   if (!rows.length && !drawing) return null;
   return (<div className="rounded-lg border border-border bg-secondary/20 p-3"><div className={cn(S.sub, 'font-semibold mb-1.5 text-foreground')}>{lang === 'ar' ? 'تفاصيل الطلب' : 'Request details'}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">{rows.slice(0, 14).map((r, i) => (<div key={i} className={S.sub}><span className="capitalize text-muted-foreground">{r[0]}: </span><span className="text-foreground">{r[1]}</span></div>))}</div>{drawing}</div>);
@@ -1511,7 +1517,11 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
         {s.email && <a href={'mailto:' + s.email} className="font-semibold text-primary">✉ <bdi dir="ltr">{s.email}</bdi></a>}
         {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_website')}</a>}
       </div>
-      {c.file_url && <div className="mt-1.5"><a href={c.file_url} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</a></div>}
+      {/* The supplier's own quotation file: View / Download; Replace / Remove say it is the supplier's (instruction 524). */}
+      {c.file_url && <div className="mt-1.5">
+        <div className={cn(S.sub, 'mb-1')}>{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</div>
+        <DocActions lang={lang} name={c.file_name} url={c.file_url} sealed="suppliers_file" />
+      </div>}
       <div className="mt-2.5 flex flex-wrap items-center gap-4">
         {/* A11Y (5 Aug 2026): real buttons carrying their value, in a labelled group. */}
         {!rated ? <span role="group" aria-label={t(lang, 'c_rate_group')} aria-busy={(act.busy && act.key === 'rate') || undefined} className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" disabled={act.pending} onClick={() => rate(n)} aria-label={tf(lang, 'c_rate_n', { n })} className={cn('cursor-pointer border-0 bg-transparent p-0 leading-none disabled:cursor-progress', n <= rating && 'text-amber-400')}>★</button>)}</span> : <span className={S.sub}>{t(lang, 'c_rated')}</span>}
