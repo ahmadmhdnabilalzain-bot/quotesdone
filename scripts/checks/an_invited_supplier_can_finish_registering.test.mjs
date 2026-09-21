@@ -42,6 +42,14 @@ test('a supplier whose first certificate failed can still finish (reg_terms asks
   assert.ok(bail > heal, 'the certificate must be requested BEFORE save() gives up on a missing_required answer');
 });
 
+test('a supplier who owes nothing does not trigger the whole-book interest recompute on Billing', () => {
+  const pay = readFileSync(new URL('../../supabase/functions/supplier_pay/index.ts', import.meta.url), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, ' ');
+  const call = pay.indexOf("admin.rpc('fn_supplier_dues_accrue_interest'");
+  assert.ok(call > 0, 'the accrual call moved — update this check with it');
+  assert.match(pay.slice(Math.max(0, call - 120), call), /if \(openDues !== 0\)/, 'the accrual must be gated on this supplier having open dues');
+});
+
 test('the establishment card is not called a green-building certificate', () => {
   assert.doesNotMatch(SRC, /Emirates Green Building|المباني الخضراء/);
 });

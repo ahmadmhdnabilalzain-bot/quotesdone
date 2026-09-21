@@ -26,7 +26,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 import { observe } from '../_shared/observe.ts';
-import { certFields, identityRows } from './cert_rows.ts';
+import { certFields, certLang, certificate, type Lang } from './certificate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -37,10 +37,8 @@ const TENYRS = 10 * 365 * 24 * 3600;
 
 async function sec(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 async function authed(req: Request, body: any) { if ((await requireInternal(admin, body?.__secret, 'compliance_archive')).ok) return true; const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''); const { data: { user } } = await admin.auth.getUser(jwt); const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean); return !!(user?.email && allow.includes(user.email.toLowerCase())); }
-function esc(s: any) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function safeName(s: string) { return String(s || '').replace(/[^\w.\- ]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'record'; }
 async function sha256hex(s: string) { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join(''); }
-function gst(iso: string) { try { return new Date(iso).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (GST)'; } catch { return iso; } }
 
 async function dbxToken(): Promise<string | null> {
   const key = await sec('dropbox_app_key'), secret = await sec('dropbox_app_secret'), refresh = await sec('dropbox_refresh_token');
@@ -61,17 +59,11 @@ async function dbxUpload(token: string, path: string, bytes: Uint8Array): Promis
   } catch { return false; }
 }
 
-async function renderCert(fields: Record<string, string>, kind: string, hash: string, name: string, termsUrl: string): Promise<{ path: string; url: string } | null> {
-  const rows: [string, string][] = identityRows(fields, kind);
-  if (fields.dob) rows.push(['Date of birth', fields.dob]);
-  rows.push(['Mobile', fields.phone], ['Email', fields.email], ['Account type', kind === 'supplier' ? 'Supplier' : 'Customer'], ['Terms accepted', fields.terms_label], ['Accepted at (UTC)', fields.accepted_utc], ['Accepted at (local)', gst(fields.accepted_iso)], ['IP address', fields.ip || 'Not recorded'], ['Method', 'Click-to-accept checkbox at registration'], ['Document integrity (SHA-256)', hash]);
-  const trs = rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('');
-  const clauses = kind === 'supplier' ? '<ul><li>No-circumvention: no off-platform dealing with a customer introduced through the Platform for 24 months.</li><li>Confidentiality: no copying, reuse or disclosure of platform leads, customer data, pricing or anonymised scopes.</li><li>No replication or competing use of the Platform&#39;s software, matching logic or outputs.</li></ul>' : '<ul><li>No use of the Platform to build, benchmark or assist a competing product or service.</li><li>No scraping, copying or reuse of supplier data, pricing or platform content.</li><li>No reverse-engineering or replication of the Platform&#39;s software, matching logic or outputs.</li></ul>';
-  const penalties = kind === 'supplier' ? 'Breach of the no-circumvention obligation entitles QuotesDone to liquidated compensation of AED 15,000 per incident, or three (3) times the avoided fee, whichever is higher, in addition to the unpaid fee. Breach of the confidentiality or data-reuse obligation entitles QuotesDone to AED 20,000 per incident. In every case QuotesDone is also entitled to injunctive relief to stop the ongoing breach and to recover any further proven losses.' : 'Any breach of the above obligations entitles QuotesDone to liquidated compensation of AED 10,000 per incident, immediate suspension or termination of the account, recovery of any further proven losses, and injunctive relief to stop the ongoing breach. The parties agree these amounts are a genuine pre-estimate of loss under the laws of the United Arab Emirates.';
-  const body_html = `<p>This certificate records the electronic acceptance of the QuotesDone ${kind === 'supplier' ? 'Supplier Agreement &amp; Platform Terms' : 'Customer Terms &amp; Conditions'} by the party identified below. Acceptance was given by ticking the &quot;I accept&quot; box during registration on the QuotesDone platform, which under the laws of the United Arab Emirates (including the Electronic Transactions and Trust Services Law) constitutes a valid and binding electronic acceptance.</p><table><thead><tr><th>Field</th><th>Detail</th></tr></thead><tbody>${trs}</tbody></table><h3>Terms accepted</h3><p>By registering, the party accepted the QuotesDone ${kind === 'supplier' ? 'Supplier Agreement &amp; Platform Terms' : 'Customer Terms &amp; Conditions'} (${fields.terms_label}), published in full at ${termsUrl}. The key binding obligations accepted include:</p>${clauses}<h3>Penalties for breach</h3><p>${penalties}</p><p>The SHA-256 value above is a cryptographic fingerprint of the exact Terms text that was accepted. Any later change to that text produces a different fingerprint, allowing the accepted version to be independently verified.</p><p>This is a system-generated record issued by QuotesDone Technologies and is valid without a handwritten signature.</p>`;
+async function renderCert(fields: Record<string, string>, kind: string, hash: string, name: string, termsUrl: string, lang: Lang = 'en'): Promise<{ path: string; url: string } | null> {
+  const { title, body_html } = certificate(fields, kind, hash, termsUrl, lang);
   try {
     const secret = await sec('cred_fn_to_pdf_native');
-    const pr = await fetch(`${URL_}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, title: 'Certificate of Acceptance — Terms & Conditions', body_html, name, bucket: BUCKET, folder: (kind === 'supplier' ? 'suppliers' : 'customers'), options: { letterhead: true, sign: true, stamp: true } }) });
+    const pr = await fetch(`${URL_}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, title, lang, body_html, name, bucket: BUCKET, folder: (kind === 'supplier' ? 'suppliers' : 'customers'), options: { letterhead: true, sign: true, stamp: true } }) });
     const pj = await pr.json(); if (pj?.ok && pj.path) return { path: pj.path, url: pj.url }; return null;
   } catch { return null; }
 }
@@ -179,7 +171,7 @@ Deno.serve(observe('compliance_archive', async (req) => {
       const fields: Record<string, string> = { ...certFields(rec, kind), company: rec.company_name || '', dob: (kind === 'supplier' ? rec.owner_dob : rec.date_of_birth) || '', phone: rec.phone || '', email: rec.email || rec.claimed_by || keyEmail, terms_label: termsLabel, accepted_utc: acceptedIso.slice(0, 19).replace('T', ' ') + ' UTC', accepted_iso: acceptedIso, ip };
       const nm = safeName((kind === 'supplier' ? fields.company : fields.full_name) || fields.email).replace(/\s+/g, '_') + '_TnC-Acceptance';
       const termsUrl = kind === 'supplier' ? 'https://quotesdone.com/supplier-agreement' : 'https://quotesdone.com/terms';
-      const cert = await renderCert(fields, kind, hash, nm, termsUrl);
+      const cert = await renderCert(fields, kind, hash, nm, termsUrl, certLang(rec));
       if (!cert) return J({ error: 'cert_render_failed' }, 502);
       const nowIso = new Date().toISOString();
       let certUrl = cert.url; try { const { data: lu } = await admin.storage.from(BUCKET).createSignedUrl(cert.path, TENYRS); if (lu?.signedUrl) certUrl = lu.signedUrl; } catch (_e) { }
