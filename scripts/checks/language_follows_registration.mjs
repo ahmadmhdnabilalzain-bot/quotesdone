@@ -170,7 +170,8 @@ ok(!/tmpl\[key\]\.en/.test(src(F + 'send_whatsapp/index.ts')) && /n\.lang === 'a
 ok(/n\.lang === 'ar'/.test(src(F + 'send_outbox/index.ts')), 'send_outbox: the email frame must follow notifications.lang');
 for (const fn of ['login_otp', 'kyc', 'mobile_otp']) ok(/Locale: /.test(src(F + fn + '/index.ts')), `${fn}: the SMS / voice code must carry Locale`);
 const rinv = src(F + 'reveal_invoice/index.ts');
-ok(/preferReceipt: ar/.test(rinv) && !/lang: 'en'/.test(rinv), 'reveal_invoice: an Arabic customer must get the receipt in Arabic');
+// 21 Sep 2026: the invoice and receipt are both QuotesDone documents in either language; the registered one is the default.
+ok(/registeredLocale\(admin, \{ role: 'customer'/.test(rinv) && !/lang: 'en'/.test(rinv), 'reveal_invoice: an unspecified language must come from the registered customer');
 ok(/form\.set\('locale'/.test(src(F + 'stripe_checkout/index.ts')), 'stripe_checkout: the hosted page must be pinned to the registered language');
 ok(/locale: lang === 'ar' \? 'ar' : 'en'/.test(src('src/components/me/RevealPayment.tsx')), 'RevealPayment: the Payment Element must take the portal language');
 // Every customers insert is a registration and must record the language.

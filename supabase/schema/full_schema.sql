@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T14:57:36.958Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T15:16:57.241Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -12708,7 +12708,8 @@ begin
           || coalesce(' for "' || left(x.summary, 60) || '"', '') || ': you paid AED ' || coalesce(x.total_charged, x.reveal_fee)
           || case when x.total_charged is not null and x.total_charged > coalesce(x.reveal_fee, 0)
                   then ' (reveal fee AED ' || x.reveal_fee || ' + card processing AED ' || (x.total_charged - x.reveal_fee) || ')' else '' end
-          || '. Invoice ' || coalesce(x.stripe_invoice_number, 'not yet issued') || coalesce(' — ' || x.stripe_invoice_hosted_url, '')
+          || '. Invoice ' || coalesce(x.stripe_invoice_number, 'not yet issued')
+          || ' (the invoice and the receipt, as QuotesDone PDFs in English and Arabic, are on the revealed quote in the customer portal)'
           || '. Refund: ' || case when x.refund_status in ('refunded', 'succeeded') then 'AED ' || coalesce(x.refund_amount_aed::text, '?') || ' returned'
                                   when x.refund_status = 'requested' then 'requested and under review'
                                   when x.refund_status = 'rejected' then 'declined'
