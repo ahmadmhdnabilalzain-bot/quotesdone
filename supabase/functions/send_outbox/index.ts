@@ -119,6 +119,8 @@ Deno.serve(observe('send_outbox', async (req) => {
     const replyInfo = (await sec('email_reply_info')) || 'info@quotesdone.com';
     const logo = (await sec('email_logo_url')) || '';
     const sigName = (await sec('email_signature_name')) || 'Ahmad Alzain';
+    // The founder's name in Arabic script for Arabic mail (instruction 586): a Latin name under an Arabic letter reads as a translation.
+    const sigNameAr = (await sec('email_signature_name_ar')) || 'أحمد الزين';
     const sigTitle = (await sec('email_signature_title')) || 'Founder';
     const tplSup = await tmplRow('email_supplier'); const tplCust = await tmplRow('email_customer');
     const cap = parseInt((await sec('daily_send_cap')) || '80', 10);
@@ -185,7 +187,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       // the registered language; an Arabic body inside an English signature and footer is exactly the
       // mixed message the rule forbids.
       const arMail = !internal && n.lang === 'ar';
-      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'QuotesDone Sales Engineer') : sigName, title: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
+      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'QuotesDone Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
       const htmlBody = arMail ? arabicFrame(htmlBody0) : htmlBody0;
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the

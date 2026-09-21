@@ -1,5 +1,6 @@
 // Recurrence guards for the supplier campaign's send-time rules (21 Sep 2026, customer_support).
-//   deno test --allow-read supabase/functions/send_outbox/supplier_mail.test.ts
+//   deno test supabase/functions/send_outbox/supplier_mail.test.ts   (pure; the source-wiring half is
+//   scripts/checks/the_supplier_campaign_honours_unsubscribe.test.mjs, because CI runs deno without --allow-read)
 import { assert, assertEquals, assertMatch, assertStringIncludes } from 'jsr:@std/assert@1';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { tmpl } from './render.ts';
@@ -10,7 +11,7 @@ const UNSUB = 'https://x.supabase.co/functions/v1/unsubscribe?e=a%40b.ae&t=abc';
 // The shape of templates.email_supplier as measured on 21 Sep 2026: {{BODY}} inside a pre-wrap div,
 // the licence footer, then {{UNSUB}}.
 const WRAPPER = '<!doctype html><html><head></head><body>{{LOGO}}<div dir="auto">{{BODY}}</div>'
-  + '<div>{{NAME}} {{TITLE}} {{REPLY}}</div><div>QuotesDone &middot; Dubai, UAE &middot; Dubai DET E-Trader Licence 1633275{{UNSUB}}</div></body></html>';
+  + '<div>{{NAME}}</div><div>{{TITLE}}, QuotesDone</div><div>{{REPLY}}</div><div>QuotesDone &middot; Dubai, UAE &middot; Dubai DET E-Trader Licence 1633275{{UNSUB}}</div></body></html>';
 
 Deno.test('an unsubscribed address with a capital letter is still recognised', () => {
   const suppressed = new Set(['buyer@acme.ae'].map(foldEmail));
@@ -40,25 +41,12 @@ Deno.test('the rendered invitation has a clickable portal link and the unsubscri
     channelEmail: 'supplier@quotesdone.com', unsub: UNSUB, wrapper: WRAPPER, internal: false });
   assertStringIncludes(html, `<a href="${LINK}"`);
   assertStringIncludes(html, `<a href="${UNSUB}"`);
-  const ar = arabicFrame(tmpl({ body: 'السادة\n\n' + LINK.replace('/en/', '/ar/'), logo: '', name: 'N', title: 'T',
+  const ar = arabicFrame(tmpl({ body: 'السادة\n\n' + LINK.replace('/en/', '/ar/'), logo: '', name: 'أحمد الزين', title: 'المؤسس',
     channelEmail: 'supplier@quotesdone.com', unsub: UNSUB, wrapper: WRAPPER, internal: false }));
   assertMatch(ar, /<html dir="rtl" lang="ar"/);
   assertStringIncludes(ar, '>إلغاء الاشتراك</a>');
   assertStringIncludes(ar, 'href="https://quotesdone.com/ar/portal?t=');
   assert(!ar.includes('>Unsubscribe</a>'));
-});
-
-Deno.test('send_outbox wires the rules in: folded suppression, the hold before the provider call, a text part', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
-  assertMatch(src, /supSet\.has\(foldEmail\(n\.to_email\)\)/, 'suppression lookup is no longer case-folded');
-  const hold = src.indexOf('holdForNoUnsubscribe(supplierSide, docReq, unsub)');
-  const call = src.indexOf("fetch('https://api.resend.com/emails'");
-  assert(hold > 0 && call > 0 && hold < call, 'the no-unsubscribe hold must run before the Resend call');
-  assertMatch(src, /text: plainTextPart\(/, 'the Resend payload lost its text/plain part');
-});
-
-Deno.test('a hard bounce reaches the lead whatever the case of its stored email', async () => {
-  const src = await Deno.readTextFile(new URL('../resend_webhook/index.ts', import.meta.url));
-  assertMatch(src, /from\('leads'\)\.update\(\{ invite_status: 'bounced' \}\)\.ilike\('email', /,
-    'resend_webhook marks the bounced lead by an exact-case match again, so capitalised lead emails are never marked bounced');
+  assertStringIncludes(ar, '<div>المؤسس، QuotesDone</div>');
+  assertStringIncludes(ar, 'أو الرد على هذه الرسالة لإزالة عنوانكم من القائمة');
 });
