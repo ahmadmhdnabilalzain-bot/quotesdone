@@ -43,11 +43,20 @@ function attachmentNames(a: unknown): string[] {
   return [];
 }
 
-export function dubaiTime(iso: string): string {
+// Dubai time as "14 Sep 2026, 12:05" / "14 سبتمبر 2026، 12:05", built from numeric parts. The locale's
+// own short month printed "Sept" (en-GB, current ICU) on BOTH pages, English on the Arabic one (audit of
+// every document we issue, 22 Sep 2026, finding 5). Prevented by document.test.ts.
+const MON_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MON_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+export function dubaiTime(iso: string, lang: 'en' | 'ar' = 'en'): string {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return String(iso || '');
-  return d.toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+    .formatToParts(d).map((x) => [x.type, x.value]));
+  const mon = (lang === 'ar' ? MON_AR : MON_EN)[Number(p.month) - 1];
+  return `${p.day} ${mon} ${p.year}${lang === 'ar' ? '،' : ','} ${p.hour}:${p.minute}`;
 }
+const CHANNEL_AR: Record<string, string> = { email: 'البريد الإلكتروني', whatsapp: 'واتساب', sms: 'رسالة نصية', chat: 'المحادثة', portal: 'البوابة', voice: 'مكالمة صوتية' };
 
 // deno-lint-ignore no-explicit-any
 export function conversationDocument(r: ConversationRow): Record<string, any> {
@@ -56,7 +65,7 @@ export function conversationDocument(r: ConversationRow): Record<string, any> {
   const L = ar ? AR : EN;
   const pairs: [string, string][] = [
     [L.from, r.from_addr || '-'], [L.to, r.to_addr || '-'],
-    [L.date, dubaiTime(r.occurred_at)], [L.channel, r.channel + ' - ' + (r.direction === 'out' ? L.out : L.in)],
+    [L.date, dubaiTime(r.occurred_at, ar ? 'ar' : 'en')], [L.channel, (ar ? (CHANNEL_AR[String(r.channel).toLowerCase()] ?? r.channel) : r.channel) + ' - ' + (r.direction === 'out' ? L.out : L.in)],
   ];
   if (r.cc) pairs.push([L.cc, r.cc]);
   pairs.push([L.ref, `${r.source_table}:${r.source_id}`]);
@@ -76,10 +85,11 @@ export function conversationDocument(r: ConversationRow): Record<string, any> {
     lang: ar ? 'ar' : 'en',
     title: String(r.subject || (r.channel + ' ' + r.direction)).slice(0, 140),
     ref: `${r.source_table}:${r.source_id}`,
-    date: dubaiTime(r.occurred_at),
-    date_ar: dubaiTime(r.occurred_at),
-    control: 'Correspondence archive',
+    date: dubaiTime(r.occurred_at, 'en'),
+    date_ar: dubaiTime(r.occurred_at, 'ar'),
+    control: ar ? 'أرشيف المراسلات' : 'Correspondence archive',
     blocks,
-    options: { strict_glyphs: false },
+    // The letterhead is what prints the issuer's licence line (audit 22 Sep 2026, finding 5).
+    options: { letterhead: true, strict_glyphs: false },
   };
 }

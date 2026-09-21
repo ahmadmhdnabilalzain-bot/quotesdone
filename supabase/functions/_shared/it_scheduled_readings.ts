@@ -148,16 +148,32 @@ async function sender(sec: Sec) {
                          : unavailable('Twilio Senders answered ' + (g.status || g.error) + (g.ok ? ' without our number' : ''));
   }
   const templates: unknown[] = [];
-  let parsed: Record<string, any> = {};
-  try { parsed = JSON.parse(map || '{}'); } catch { parsed = {}; }
-  for (const [name, v] of Object.entries(parsed)) {
-    const sid = typeof v === 'string' ? v : v?.sid;
+  for (const { name, sid } of templateEntries(map)) {
     if (!auth || !sid) { templates.push({ name, ...unavailable('no Twilio key or template sid') }); continue; }
     const g = await get(`https://content.twilio.com/v1/Content/${sid}/ApprovalRequests`, { headers: { Authorization: auth } });
-    templates.push(g.ok ? { name, basis: 'measured', status: g.json?.whatsapp?.status ?? 'unknown' }
-                        : { name, ...unavailable('Twilio Content answered ' + (g.status || g.error)) });
+    const w = g.json?.whatsapp ?? {};
+    templates.push(g.ok ? { name, sid, basis: 'measured', status: w.status ?? 'unknown', category: w.category ?? null,
+                            meta_name: w.name ?? null, rejection_reason: w.rejection_reason || null }
+                        : { name, sid, ...unavailable('Twilio Content answered ' + (g.status || g.error)) });
   }
   return { dns, blocklists, resend, whatsapp, templates };
+}
+
+// app_secrets.wa_template_sids is {key: {lang: sid}} — the shape send_whatsapp reads. Until 22 Sep
+// 2026 this reading took each key's value as a SID string or {sid}, found neither, and reported every
+// template 'unavailable'; the approval rule in fn_it_duties_scheduled only fires on 'measured', so
+// seven templates sat unapproved at Meta for up to eight days with no finding. One entry per language.
+export function templateEntries(map: string | undefined): { name: string; sid: string | null }[] {
+  let parsed: Record<string, unknown> = {};
+  try { parsed = JSON.parse(map || '{}') ?? {}; } catch { return [{ name: 'wa_template_sids', sid: null }]; }
+  const out: { name: string; sid: string | null }[] = [];
+  for (const [key, v] of Object.entries(parsed)) {
+    if (typeof v === 'string') { out.push({ name: key, sid: v }); continue; }
+    const langs = Object.entries((v ?? {}) as Record<string, unknown>);
+    if (!langs.length) out.push({ name: key, sid: null });
+    for (const [lang, sid] of langs) out.push({ name: `${key}_${lang}`, sid: typeof sid === 'string' ? sid : null });
+  }
+  return out;
 }
 
 // ── 11. Spend: yesterday per provider we can read ─────────────────────────────────────────────────

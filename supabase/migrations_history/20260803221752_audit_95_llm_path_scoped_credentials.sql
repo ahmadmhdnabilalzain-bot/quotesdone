@@ -46,7 +46,11 @@ declare
     -- estate's last chat/completions call outside ai_gateway. Its credential is issued at runtime by
     -- scripts/sql/the_inbound_classifier_uses_the_one_door.sql; named here for the same reason as
     -- the two above.
-    'resend_inbound'];
+    'resend_inbound',
+    -- ceo_agent added 22 Sep 2026: the CEO's judgement (plan A/B, off until app_secrets.ceo_model_slot
+    -- = 'on') runs in its own function. The live widening is in
+    -- scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql; named here for a rebuilt database.
+    'ceo_agent'];
   c text; v jsonb; v_id bigint; v_has_secret boolean;
   n_widened int := 0; n_issued int := 0; n_rotated int := 0; n_noop int := 0; n_missing int;
 begin
