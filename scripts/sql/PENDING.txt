@@ -7,5 +7,6 @@
 # an entry with no reason — so "committed and not applied" is a stated fact rather than an absence.
 #
 # Format: <path> :: <reason, and what would move it>
+scripts/sql/the_inquiry_and_the_suppliers_own_quotation_are_cached_as_documents.sql :: sales_engineer, 21 Sep 2026 -- the supplier_document_cache table behind supplier_api inquiry_pdf / quote_pdf; the coordinator applies it (node scripts/apply_sql.mjs <file> --apply --ddl) before deploying supplier_api, then moves this line to the END of MANIFEST.txt
 
 
