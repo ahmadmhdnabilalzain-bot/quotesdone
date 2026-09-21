@@ -127,3 +127,17 @@ test('a different number is never stored without its WhatsApp code (suppliers an
   assert.match(send, /'twilio:'/);
   assert.doesNotMatch(ui, /mode !== 'settings' && <Button[^>]*onClick=\{later\}/, 'sign-up has no skip button');
 });
+
+// Audit 21 Sep 2026, finding 31: a refusal code kyc can send that this list does not know hides the
+// server's reason behind "Something went wrong". Read every code the WhatsApp path can answer.
+test('every refusal code kyc and the fixture guard can answer on the WhatsApp path has its own words', () => {
+  const kyc = readFileSync(join(HERE, '../../../supabase/functions/kyc/index.ts'), 'utf8');
+  const demo = readFileSync(join(HERE, '../../../supabase/functions/_shared/demo_identity.ts'), 'utf8');
+  const codes = new Set([...kyc.matchAll(/code: '([a-z_]+)'/g), ...demo.matchAll(/code: '([a-z_]+)'/g)].map((m) => m[1]));
+  // Not refusals a supplier can meet on this screen: 'twilio' is a stored marker, 'no_terms_version' a
+  // server misconfiguration (500), 'whatsapp_unanswered' is the terms gate on the customer side.
+  for (const c of ['twilio', 'no_terms_version', 'whatsapp_unanswered']) codes.delete(c);
+  const missing = [...codes].filter((c) => !WA_ERROR_CODES.includes(c));
+  assert.deepEqual(missing, [], 'codes kyc can answer with no words on screen: ' + missing.join(', '));
+  assert.equal(waErrorKey({ ok: false, code: 'fixture_number', error: 'This is a reserved test number.' }), 'err_fixture_number');
+});

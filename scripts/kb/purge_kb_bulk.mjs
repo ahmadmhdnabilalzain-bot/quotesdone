@@ -146,7 +146,7 @@ step('census (verdict per source_kind × category, written to kb_purge_ledger be
     }
     console.log('   census verified: every source_kind sums to its live count, one SIZE row');
   }
-  const plan = await sql(`select verdict, clause, sum(rows)::bigint as rows,
+  const plan = await sql(`select verdict, clause, sum(kind_rows)::bigint as rows,
                                  string_agg(source_kind || ' ' || kind_rows, ', ' order by kind_rows desc) as by_kind
                             from (select verdict, clause, source_kind, sum(rows) as kind_rows
                                     from public.kb_purge_ledger where batch_no is null and verdict <> 'SIZE'
