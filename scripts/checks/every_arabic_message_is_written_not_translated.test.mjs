@@ -100,7 +100,9 @@ function walk(dir, out) {
 function sqlAfterAnchor() {
   const lines = fs.readFileSync(path.join(ROOT, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim());
   const at = lines.indexOf(ANCHOR);
-  if (at < 0) return [];
+  // Until the coordinator applies it, the anchor is pending (scripts/sql/pending/) and not yet a
+  // MANIFEST line; it is scanned on its own until then.
+  if (at < 0) return [ANCHOR];
   return lines.slice(at).filter((l) => l.endsWith('.sql') && !l.startsWith('#') && !l.startsWith('--'));
 }
 
@@ -175,8 +177,10 @@ if (MAIN && process.argv.includes('--write')) {
     assert.deepEqual(unreviewed, [], `read each line against the register in this file's header, then run\n  node scripts/checks/every_arabic_message_is_written_not_translated.test.mjs --write\n${unreviewed.slice(0, 40).join('\n')}${unreviewed.length > 40 ? `\n... and ${unreviewed.length - 40} more` : ''}`);
   });
 
-  test('the SQL anchor is in MANIFEST, so new SQL files are scanned', () => {
+  test('the SQL anchor is in MANIFEST or pending, so new SQL files are scanned', () => {
     const m = fs.readFileSync(path.join(ROOT, 'scripts/sql/MANIFEST.txt'), 'utf8');
-    assert.ok(m.split(/\r?\n/).map((l) => l.trim()).includes(ANCHOR), `${ANCHOR} must be a MANIFEST line`);
+    const listed = m.split(/\r?\n/).map((l) => l.trim()).includes(ANCHOR);
+    const pending = fs.existsSync(path.join(ROOT, 'scripts/sql/pending', path.basename(ANCHOR, '.sql') + '.txt'));
+    assert.ok(fs.existsSync(path.join(ROOT, ANCHOR)) && (listed || pending), `${ANCHOR} must exist and be a MANIFEST line (or a pending note until applied)`);
   });
 }

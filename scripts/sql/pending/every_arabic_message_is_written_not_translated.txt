@@ -7,4 +7,4 @@ CHK<<stale: ...>> — re-derive that routine from live, do not force.
 Apply: node scripts/apply_sql.mjs scripts/sql/every_arabic_message_is_written_not_translated.sql --apply --ddl
 The file ends in a read-only verdict row: expect PROBE OK. Dry run passed 22 Sep.
 No edge function in this change needs SQL first; the SQL and the functions are independent.
-After apply: regenerate the schema mirror, delete this note. The MANIFEST line is already appended.
+After apply: append the filename to the END of scripts/sql/MANIFEST.txt (the Arabic check scans every SQL file listed after it), regenerate the schema mirror, delete this note.
