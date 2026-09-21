@@ -19,6 +19,7 @@ import { emirateLabel, srvMsg } from './serverCopy';
 import { ws } from './workspaceCopy';
 import { BoqTable, ClarifyThread, DrawingGallery, RequestedTerms, WithheldCustomer } from './RfqParts';
 import { failed, openPdf, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { Ltr } from '@/lib/Ltr';
 
 const COPY = {
   en: {
@@ -46,7 +47,6 @@ const COPY = {
     budget: 'الميزانية', open: 'افتح', close: 'أغلق',
   },
 };
-const Ltr = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr">{children}</bdi>;
 const day = (d: string, lang: Lang) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const aed = (n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 // deno-style loose shape the legacy quote form reads (SupplierPortal QuoteForm): the inquiry and its quotes.

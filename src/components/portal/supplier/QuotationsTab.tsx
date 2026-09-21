@@ -14,6 +14,7 @@ import { emirateLabel, srvMsg } from './serverCopy';
 import { SpecHoldPanel } from './SpecHold';
 import { QuoteReviewChat } from './QuoteReviewChat';
 import { failed, openPdf, qr, REVIEW_STATE, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { Ltr } from '@/lib/Ltr';
 
 const COPY = {
   en: {
@@ -33,8 +34,7 @@ const COPY = {
     qst: { draft: 'محجوز — لم يُرسل بعد', submitted: 'أُرسل إلى العميل', accepted: 'كشف العميل عن عرضك', withdrawn: 'مسحوب', expired: 'منتهي الصلاحية' } as Record<string, string>,
   },
 };
-const Ltr = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr">{children}</bdi>;
-const aed = (n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
+const aed =(n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 
 // THE SUPPLIER SEES THE QUOTATION ISSUED IN ITS NAME (21 Sep 2026). Measured: quote_pdf existed in
 // supplier_api and was reachable only from one attachment button inside the review chat; the
