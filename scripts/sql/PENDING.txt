@@ -33,3 +33,8 @@
 # with their probe on 21 Sep 2026 (PROBE OK); against the unchanged database the probes answer PROBE FAILED.
 scripts/sql/one_job_number_on_every_portal_document_and_notice_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED until then.
 scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED (Sharjah returned) until then.
+# 21 Sep 2026 — sales_engineer, audit gaps #1 and #2 (daily invitations, registration follow-up, 24-hour clock).
+# Needs PR #787's campaign file applied first (it is). Rehearsed in a rolled-back transaction: PROBE OK.
+# Apply outside a campaign hour (it adds a nullable column to leads, lock_timeout 3 s), THEN deploy
+# resilience_ping and claim_lookup. Gates invite_enabled / supplier_outreach_golive stay 'false'.
+scripts/sql/the_invitations_go_out_every_day_and_a_started_registration_is_followed.sql
