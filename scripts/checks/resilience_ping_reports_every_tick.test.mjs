@@ -12,7 +12,7 @@
 //   node --test scripts/checks/resilience_ping_reports_every_tick.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const src = readFileSync(fileURLToPath(new URL('../../supabase/functions/resilience_ping/index.ts', import.meta.url)), 'utf8');
@@ -27,8 +27,15 @@ const src = readFileSync(fileURLToPath(new URL('../../supabase/functions/resilie
 //
 // Verified before re-anchoring, so this is a moved anchor and not a softened assertion: 25 ticks
 // defined, 25 listed in STEP_RUN, 0 missing, and the live table holds the same 25 rows.
-const SEED = readFileSync(fileURLToPath(new URL(
-  '../../scripts/sql/the_tick_runs_what_is_stalest_not_what_is_first_in_the_list.sql', import.meta.url)), 'utf8');
+// 21 Sep 2026 (sales_engineer): a step's row may be seeded by the file that builds the step, as
+// supplierOutreach is (the_invitations_go_out_every_day_and_a_started_registration_is_followed.sql), so the
+// seed is every scripts/sql file that inserts into public.resilience_step — the same rows, read from where
+// they are written. every_tick_step_is_scheduled.mjs still checks the live table.
+const SQL_DIR = fileURLToPath(new URL('../../scripts/sql/', import.meta.url));
+const SEED = readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))
+  .map((f) => readFileSync(SQL_DIR + f, 'utf8'))
+  .filter((s) => s.includes('insert into public.resilience_step'))
+  .join('\n');
 const stepRun = () => {
   const open = src.indexOf("const STEP_RUN: Record<string, Omit<Step, 'name'>> = {");
   assert.ok(open > 0, 'the STEP_RUN map was not found in resilience_ping/index.ts');
