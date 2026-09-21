@@ -185,9 +185,11 @@ export const isInstallWork = (t: Pick<ServiceTerm, 'label_en' | 'code'>): boolea
 // fresh index; each regex is reset before use below, so sharing them is safe); (2) an alias's RegExp is
 // built only when the phrase contains the alias's first word — every pattern termPattern builds holds
 // that word literally (English: the whole alias; Arabic: the first word after an optional proclitic),
-// so the pre-check can only skip patterns that cannot match. Old and new agreed on all 16,756 test
-// phrases built from production's vocabulary (every alias and label, cased, pluralised, with proclitics).
-// Held by supplier_api/review_cpu_budget.test.ts.
+// so the pre-check can only skip patterns that cannot match. HELD BY service_rewrite_equivalence.test.ts:
+// an eager reference (every alias compiled, no pre-check) and this matcher must return the same keys on
+// 2,850 phrases covering every alias of service_aliases.json (cased, pluralised, hyphenated, with Arabic
+// proclitics and ال on later words); keying the pre-check on the whole alias makes 618 of them differ.
+// The CPU budget and the build-once behaviour are held by supplier_api/review_cpu_budget.test.ts.
 // ponytail: the pre-check lower-cases with toLowerCase while the pattern folds case with /iu; the two
 // differ only on characters no alias uses (the long s, the Kelvin sign). Use a real case fold if one does.
 const COMPILED = new WeakMap<ServiceTerm[], Compiled[]>();
