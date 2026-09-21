@@ -236,7 +236,7 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
     if ([...match.values()].includes(j)) return;   // already raised against its BOQ line
     issues.push(I('line_unpriced', 'adjustment', j + 1, null, null,
       `Your line ${j + 1} (${cut(l.description)}) has a quantity but no price. Add its price.`,
-      `بندكم ${j + 1} (${cut(l.description)}) مذكورة كميته دون سعر. يُرجى إضافة سعره.`));
+      `بندكم ${j + 1} (${cut(l.description)}) ذُكرت كميته دون سعر. يُرجى إضافة سعره.`));
   });
 
   // 5. Currency.

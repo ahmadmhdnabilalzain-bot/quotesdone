@@ -1312,7 +1312,7 @@ function DetailFacts({ inq, lang }) {
   // Replace / Remove say so rather than acting: what they quoted on stays what they quoted on.
   const drawing = inq.drawing_file_url
     ? (<div className="mt-1.5">
-        <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? '📐 المخطط الذي حمّلته' : '📐 The drawing you uploaded'}{inq.drawing_file_name ? <> (<bdi>{inq.drawing_file_name}</bdi>)</> : null}</div>
+        <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? '📐 المخطط الذي رفعته' : '📐 The drawing you uploaded'}{inq.drawing_file_name ? <> (<bdi>{inq.drawing_file_name}</bdi>)</> : null}</div>
         <DocActions lang={lang} name={inq.drawing_file_name} url={inq.drawing_file_url} sealed="sent_to_suppliers" />
       </div>)
     : null;

@@ -185,7 +185,7 @@ Deno.serve(observe('customer_portal', async (req) => {
       const top = alerts.slice().sort((x, y) => (RANK[y.severity] || 0) - (RANK[x.severity] || 0))[0];
       const headline = !alerts.length
         ? (ar ? 'لا شيء يحتاج انتباهك الآن.' : 'Nothing needs your attention right now.')
-        : (ar ? (top.title + (alerts.length === 2 ? ' — إضافةً إلى بند آخر.' : alerts.length > 2 ? ' — إضافةً إلى ' + (alerts.length - 1) + ' بنود أخرى.' : '.'))
+        : (ar ? (top.title + (alerts.length === 2 ? ' — إضافةً إلى بند آخر.' : alerts.length === 3 ? ' — إضافةً إلى بندين آخرين.' : alerts.length > 3 && alerts.length <= 11 ? ' — إضافةً إلى ' + (alerts.length - 1) + ' بنود أخرى.' : alerts.length > 11 ? ' — إضافةً إلى ' + (alerts.length - 1) + ' بندًا آخر.' : '.'))
               : (top.title + (alerts.length > 1 ? ' — and ' + (alerts.length - 1) + ' other item' + (alerts.length > 2 ? 's' : '') + '.' : '.')));
 
       // ── §2 THE TWIN ───────────────────────────────────────────────────────────────────────────

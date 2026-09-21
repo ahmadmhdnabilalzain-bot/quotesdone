@@ -84,6 +84,22 @@ begin
   if md5((select prosrc from pg_proc where oid = 'public.fn_supplier_notice(bigint,text,text,text,text,text,uuid,uuid)'::regprocedure)) is distinct from '91f38603e7aefe813e6dcc5455fa17bb' then
     raise exception 'CHK<<stale: fn_supplier_notice changed since this file was written; re-derive>>';
   end if;
+  -- notification_copy: all 13 rows must still hold the body measured on 22 Sep, or nothing changes.
+  if (select count(*) from public.notification_copy c
+        join (values ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4'), ('billing_answer', '10d471b75e6591867f455244324feefb'), ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0'), ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7'), ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776'), ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26'), ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b'), ('new_inquiry', '32f4bc8b74905d7970a01db887a07124'), ('new_message', '0cfb3faeea5af2767a17102ece6a8e44'), ('new_quote', '265cbdb9f0c3489cf564a097425478b6'), ('quote_coaching', 'e7f1e2306275b59e3d30e16044655980'), ('quote_requirements_changed', 'c89578fc05b0b94a91e00344f60dc152'), ('rfq_addendum', '3510278336b9210178922d810181f9e8')) v(type, old_md5)
+          on v.type = c.type and md5(c.body_ar) = v.old_md5) <> 13 then
+    raise exception 'CHK<<stale: notification_copy changed since this file was written (rows: %); re-derive>>',
+      (select string_agg(v.type, ', ') from (values ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4'), ('billing_answer', '10d471b75e6591867f455244324feefb'), ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0'), ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7'), ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776'), ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26'), ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b'), ('new_inquiry', '32f4bc8b74905d7970a01db887a07124'), ('new_message', '0cfb3faeea5af2767a17102ece6a8e44'), ('new_quote', '265cbdb9f0c3489cf564a097425478b6'), ('quote_coaching', 'e7f1e2306275b59e3d30e16044655980'), ('quote_requirements_changed', 'c89578fc05b0b94a91e00344f60dc152'), ('rfq_addendum', '3510278336b9210178922d810181f9e8')) v(type, old_md5)
+        where not exists (select 1 from public.notification_copy c where c.type = v.type and md5(c.body_ar) = v.old_md5));
+  end if;
+  -- notification_copy: all 13 rows must still hold the body measured on 22 Sep, or nothing changes.
+  if (select count(*) from public.notification_copy c
+        join (values ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4'), ('billing_answer', '10d471b75e6591867f455244324feefb'), ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0'), ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7'), ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776'), ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26'), ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b'), ('new_inquiry', '32f4bc8b74905d7970a01db887a07124'), ('new_message', '0cfb3faeea5af2767a17102ece6a8e44'), ('new_quote', '265cbdb9f0c3489cf564a097425478b6'), ('quote_coaching', 'e7f1e2306275b59e3d30e16044655980'), ('quote_requirements_changed', 'c89578fc05b0b94a91e00344f60dc152'), ('rfq_addendum', '3510278336b9210178922d810181f9e8')) v(type, old_md5)
+          on v.type = c.type and md5(c.body_ar) = v.old_md5) <> 13 then
+    raise exception 'CHK<<stale: notification_copy changed since this file was written (rows: %); re-derive>>',
+      (select string_agg(v.type, ', ') from (values ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4'), ('billing_answer', '10d471b75e6591867f455244324feefb'), ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0'), ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7'), ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776'), ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26'), ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b'), ('new_inquiry', '32f4bc8b74905d7970a01db887a07124'), ('new_message', '0cfb3faeea5af2767a17102ece6a8e44'), ('new_quote', '265cbdb9f0c3489cf564a097425478b6'), ('quote_coaching', 'e7f1e2306275b59e3d30e16044655980'), ('quote_requirements_changed', 'c89578fc05b0b94a91e00344f60dc152'), ('rfq_addendum', '3510278336b9210178922d810181f9e8')) v(type, old_md5)
+        where not exists (select 1 from public.notification_copy c where c.type = v.type and md5(c.body_ar) = v.old_md5));
+  end if;
 end $guard$;
 
 -- 2. The routines. Each body is the live pg_get_functiondef text with only Arabic literals rewritten;
@@ -137,8 +153,8 @@ begin
           || 'Banks usually take ' || v_min || '-' || v_max || ' working days to show a refund. You can also open the request and Report an issue at any time.',
         'اكتمل الكشف — ' || coalesce(v_sup.company_name, 'المورّد'),
         'أصبحت بيانات التواصل مع ' || coalesce(v_sup.company_name, 'المورّد') || ' متاحة لكم الآن، ويمكنكم مراسلته مباشرة من التطبيق. '
-          || 'نتابع هذا الكشف منذ لحظة الدفع: إن لم يردّ المورّد خلال ' || v_chase::text || ' أيام عمل تواصلنا معه نيابةً عنكم مع نسخة إليكم، '
-          || 'وإن لم يردّ حتى يوم العمل ' || v_window::text || ' يبتّ رئيسنا التنفيذي في الحالة، وإن لم يردّ المورّد إطلاقًا رددنا إليكم كامل المبلغ المدفوع.',
+          || 'نتابع هذا الكشف منذ لحظة الدفع: إن لم يردّ المورّد خلال ' || v_chase::text || ' أيام عمل فسنتواصل معه نيابةً عنكم مع نسخة إليكم، '
+          || 'وإن لم يردّ حتى يوم العمل ' || v_window::text || ' فسيبتّ رئيسنا التنفيذي في الحالة، وإن لم يردّ المورّد إطلاقًا فسنردّ إليكم كامل المبلغ المدفوع.',
         '{}', 'reveal_receipt:' || (d->>'subject_id'), null, jsonb_build_object('transaction_id', d->>'subject_id'));
     end if;
     if coalesce(v_sup.email, '') like '%@%' then
@@ -152,7 +168,7 @@ begin
           || ' our chief executive decides the case, the customer is refunded, and the amount refunded plus an AED 250 administrative fee and 9% p.a. interest is recovered from your account.',
         'كشف أحد العملاء عن عرضكم على QuotesDone',
         'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم بشأن: ' || coalesce(v_inq, '') || '. نرجو المبادرة بالرد، إذ تُلزم اتفاقية المورّد بالرد خلال '
-          || v_window::text || ' أيام عمل من تاريخ الكشف، وإلا رُدّ إلى العميل ما دفعه واستُرد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا.',
+          || v_window::text || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا.',
         '{}', 'quote_accepted:' || (d->>'subject_id'), null, jsonb_build_object('transaction_id', d->>'subject_id'));
     end if;
     return jsonb_build_object('customer_reachable', v_cust.email is not null,
@@ -195,7 +211,7 @@ begin
         || v_amt || ', the reveal fee and the card processing part together, to the card you paid with. Banks usually take ' || v_min || '–' || v_max || ' working days to show it.' || E'\n\n'
         || 'If you have an email thread with the supplier, keep it: it is the proof we rely on.',
       'استلمنا طلب الاسترداد',
-      'استلمنا طلبكم استرداد رسوم الكشف. نتحقق أولًا من ردّ المورّد، ثم يبتّ رئيسنا التنفيذي في الطلب، فإن ثبت استحقاق الاسترداد أُعيد إليكم كامل المبلغ المدفوع إلى البطاقة نفسها خلال '
+      'استلمنا طلبكم استرداد رسوم الكشف. نتحقق أولًا من ردّ المورّد، ثم يبتّ رئيسنا التنفيذي في الطلب، فإن ثبت استحقاق الاسترداد فسيُعاد إليكم كامل المبلغ المدفوع إلى البطاقة نفسها خلال '
         || v_min || '–' || v_max || ' يوم عمل بحسب البنك.',
       '{}', 'refund_request_received:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req, 'money_ok', d->'money_ok');
@@ -432,15 +448,15 @@ begin
     'فتحنا حالة الاسترداد QD-RF-' || v_id,
     'فتحنا حالة الاسترداد QD-RF-' || v_id || ' بشأن المورّد الذي كشفتم عنه في ' || coalesce(v_paid, 'تاريخ الدفع') || '. لا يلزمكم أي إجراء آخر.' || E'\n\n'
       || 'أمام المورّد حتى ' || coalesce(v_decide, 'يوم العمل الخامس بعد الدفع') || ' للرد، وسنتابعه في يوم العمل الثالث مع نسخة إليكم، '
-      || 'فإن لم يردّ، وجّه إليه رئيسنا التنفيذي نداءً أخيرًا ثم بتّ في حالتكم استنادًا إلى السجل. '
-      || 'وإن ثبت استحقاق الاسترداد، رُدّ إليكم كامل ما دفعتموه (' || v_amt || ' درهم) إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.',
+      || 'فإن لم يردّ، فسيوجّه إليه رئيسنا التنفيذي نداءً أخيرًا ثم يبتّ في حالتكم استنادًا إلى السجل. '
+      || 'وإن ثبت استحقاق الاسترداد، فسيُردّ إليكم كامل ما دفعتموه (' || v_amt || ' درهم) إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.',
     '{}', 'refund_request_received:' || t.id, null,
     jsonb_build_object('step', 'customer_request', 'transaction_id', t.id, 'refund_id', v_id));
 
   return jsonb_build_object('ok', true, 'refund_id', v_id, 'status', 'requested', 'locale', v_locale,
     'decision_after', t.refund_deadline, 'delivery_request', v_req,
     'message_en', 'Refund case QD-RF-' || v_id || ' is open. Our chief executive decides it after ' || coalesce(v_decide, 'the fifth working day') || ', and if it is due everything you paid is refunded. We have emailed you the details.',
-    'message_ar', 'فتحنا حالة الاسترداد QD-RF-' || v_id || '، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن ثبت استحقاق الاسترداد رُدّ إليكم كامل ما دفعتموه. وقد أرسلنا إليكم التفاصيل بالبريد الإلكتروني.');
+    'message_ar', 'فتحنا حالة الاسترداد QD-RF-' || v_id || '، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن ثبت استحقاق الاسترداد فسيُردّ إليكم كامل ما دفعتموه. وقد أرسلنا إليكم التفاصيل بالبريد الإلكتروني.');
 end $function$;
 
 revoke execute on function public.fn_refund_open_from_customer(uuid,text,text) from public, anon, authenticated;
@@ -470,7 +486,7 @@ AS $function$
   ),
   gaps as (
     select g.* from (
-      select 'trade_licence' as key, 'Upload your trade licence' as action, 'حمّل الرخصة التجارية' as action_ar,
+      select 'trade_licence' as key, 'Upload your trade licence' as action, 'ارفع الرخصة التجارية' as action_ar,
              'You cannot be matched to any opportunity without a current trade licence.' as why,
              'لا يمكن مطابقتكم مع أي فرصة دون رخصة تجارية سارية.' as why_ar,
              'high' as severity, 'documents' as goes_to, 1 as sort
@@ -483,7 +499,7 @@ AS $function$
       from l where (select path from home where key = 'trade_licence') is not null
                 and l.license_expiry is not null and l.license_expiry < current_date
       union all
-      select 'iso_certificate', 'Upload an ISO certificate', 'حمّل شهادة ISO',
+      select 'iso_certificate', 'Upload an ISO certificate', 'ارفع شهادة ISO',
              'Buyers filter on ISO 9001 and 14001. Adding one opens the projects that require it.',
              'يفرز العملاء المورّدين بحسب شهادتي ISO 9001 و14001، وإضافتها تتيح لكم المشاريع التي تشترطها.',
              'medium', 'documents', 3
@@ -510,7 +526,7 @@ AS $function$
              'high', 'services', 6
       where (select confirmed_at from cap) is null
       union all
-      select 'no_products', 'Upload a product catalogue', 'حمّل كتالوج المنتجات',
+      select 'no_products', 'Upload a product catalogue', 'ارفع كتالوج المنتجات',
              'Your catalogue is what buyers search. Without it you compete on company name alone.',
              'يبحث العملاء في الكتالوج، ومن دونه تنافسون باسم الشركة وحده.',
              'medium', 'products', 7
@@ -721,8 +737,8 @@ begin
         || 'If you have already been in touch with this customer, reply here and we will close this off.',
       'إجراء مطلوب: عميل بانتظار ردّكم — QuotesDone',
       'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم بتاريخ ' || v_when || ' ولم يتلقَّ منكم ردًّا بعد مرور ' || v_chase || ' أيام عمل، والعميل مُدرَج في نسخة هذه الرسالة. '
-        || 'وتُلزم اتفاقية المورّد بالرد خلال ' || v_window || ' أيام عمل من تاريخ الكشف، وإلا رُدّ إلى العميل كامل ما دفعه (' || v_amt
-        || ' درهم) واستُرد من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا حتى السداد. وإن كنتم قد تواصلتم مع العميل، فيُرجى الرد على هذه الرسالة.',
+        || 'وتُلزم اتفاقية المورّد بالرد خلال ' || v_window || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه (' || v_amt
+        || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا حتى السداد. وإن كنتم قد تواصلتم مع العميل، فيُرجى الرد على هذه الرسالة.',
       array_remove(array[cust.email], null), v_key, v_watch, v_extra);
 
   elsif p_step = 'final_call' then
@@ -737,8 +753,8 @@ begin
         || 'Reply to this email, message the customer in your portal, or answer us on WhatsApp — any of them stops this.',
       'نداء أخير: عميل لا يزال بانتظار ردّكم — QuotesDone',
       'هذا نداؤنا الأخير بشأن العميل الذي كشف عن بيانات التواصل معكم بتاريخ ' || v_when || '، وقد انقضت أيام العمل المحددة دون ردّ منكم. '
-        || 'فإن لم يصلنا ردّكم حتى ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY') || ' رُدّ إلى العميل كامل ما دفعه (' || v_amt
-        || ' درهم) واستُرد من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا. ويكفي أي ردّ منكم عبر البريد الإلكتروني أو البوابة أو واتساب لإيقاف ذلك.',
+        || 'فإن لم يصلنا ردّكم حتى ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY') || ' فسيُردّ إلى العميل كامل ما دفعه (' || v_amt
+        || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا. ويكفي أي ردّ منكم عبر البريد الإلكتروني أو البوابة أو واتساب لإيقاف ذلك.',
       array_remove(array[cust.email], null), v_key, v_watch, v_extra);
 
   elsif p_step = 'customer_proof' then
@@ -1138,7 +1154,7 @@ QuotesDone sales engineer$en$,
 
 في آخر طلبين، عُلّق عرضكم لنقص بعض التفاصيل التي يحتاجها العميل ليقارن العروض بإنصاف (مثل المواصفات الدقيقة للمواد أو موعد التسليم أو التركيب أو الضمان)، واتخذ العميل قراره قبل وصول هذه التفاصيل. فاكتمال التفاصيل يساعد العملاء على الاختيار بثقة، ويمنح عرضكم أفضل فرصة للفوز.
 
-وعند تعليق أي عرض، يمكنكم استكمال التفاصيل الناقصة مباشرة من بوابة المورّدين (ونُعدّ لكم العرض بالصيغة الموحّدة لاعتماده)، أو تحميل عرض معدّل، ولا يستغرق ذلك سوى دقائق.
+وعند تعليق أي عرض، يمكنكم استكمال التفاصيل الناقصة مباشرة من بوابة المورّدين (ونُعدّ لكم العرض بالصيغة الموحّدة لاعتماده)، أو رفع عرض معدّل، ولا يستغرق ذلك سوى دقائق.
 
 وحرصًا على عدالة المطابقة للعملاء، إذا بقي عرض ثالث على التوالي معلّقًا عند اتخاذ العميل قراره، فسنوقف مؤقتًا إرسال الطلبات الجديدة إلى شركتكم إلى حين التحدث معكم. ونحرص كثيرًا على استمرار تعاوننا، فلا تترددوا في التواصل معنا إن كان هناك ما يصعّب عليكم الرد.
 
@@ -1174,7 +1190,7 @@ QuotesDone sales engineer$en$,
 
 نشكركم على وقتكم في QuotesDone. في آخر ثلاثة طلبات متتالية، كان عرضكم لا يزال معلّقًا لنقص في التفاصيل عندما اتخذ العميل قراره؛ لذلك، وكما أشرنا في رسالتنا السابقة، أوقفنا مؤقتًا إرسال الطلبات الجديدة إلى شركتكم. ولا يتأثر بذلك حسابكم ولا عروضكم الحالية ولا الأعمال التي كُشف عنها.
 
-سيتواصل معكم فريقنا للوقوف على ما حدث والنظر في تيسير الرد عليكم، ويسعدنا أن تردّوا على هذه الرسالة في أي وقت.
+سيتواصل معكم فريقنا للوقوف على ما حدث وبحث سبل تيسير ردّكم على الطلبات، ويسعدنا أن تردّوا على هذه الرسالة في أي وقت.
 
 وتفضلوا بقبول فائق الاحترام والتقدير،
 مهندس المبيعات في QuotesDone$ar$,
@@ -1281,7 +1297,7 @@ begin
       || 'If you have already been in touch with this customer, reply here and we will close this off.',
     'بانتظار ردّكم — QuotesDone',
     'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم ولم يتلقَّ ردًّا بعد، والعميل مُدرَج في نسخة هذه الرسالة. ويتعيّن الرد خلال ' || v_window
-      || ' أيام عمل من تاريخ الكشف، وإلا رُدّ إلى العميل كامل ما دفعه (' || v_amt || ' درهم) واستُرد من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا.',
+      || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه (' || v_amt || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا.',
     array_remove(array[cust_email], null), 'customer_notice:' || t.id, null,
     jsonb_build_object('step', 'customer_notice', 'transaction_id', t.id));
 
@@ -1390,7 +1406,7 @@ update public.notification_copy
 
 update public.notification_copy
    set subject_ar = 'تذكير أخير: أحد مستنداتكم على وشك الانتهاء',
-       body_ar = 'تقترب صلاحية أحد مستنداتكم المسجّلة لدى QuotesDone من الانتهاء. يُرجى تحميل النسخة المجدّدة من تبويب المستندات في بوابة المورّد، أو الرد على هذه الرسالة مرفقةً بها.',
+       body_ar = 'تقترب صلاحية أحد مستنداتكم المسجّلة لدى QuotesDone من الانتهاء. يُرجى رفع النسخة المجدّدة من تبويب المستندات في بوابة المورّد، أو الرد على هذه الرسالة مرفقةً بها.',
        updated_at = now()
  where type = 'doc_final_notice' and md5(body_ar) = '492498367ec26964fe2a856b515dc3d7';
 
@@ -1402,7 +1418,7 @@ update public.notification_copy
 
 update public.notification_copy
    set subject_ar = 'إيقاف مؤقت لحسابكم في QuotesDone — انتهت صلاحية أحد المستندات',
-       body_ar = 'انتهت صلاحية أحد مستنداتكم المسجّلة، فأُوقف حسابكم مؤقتًا ولن تصلكم طلبات جديدة حتى تجديده. يُرجى تحميل النسخة المجدّدة من تبويب المستندات في بوابة المورّد، أو الرد على هذه الرسالة مرفقةً بها، ويُعاد تفعيل حسابكم تلقائيًا ودون أي رسوم.',
+       body_ar = 'انتهت صلاحية أحد مستنداتكم المسجّلة، فأُوقف حسابكم مؤقتًا ولن تصلكم طلبات جديدة حتى تجديده. يُرجى رفع النسخة المجدّدة من تبويب المستندات في بوابة المورّد، أو الرد على هذه الرسالة مرفقةً بها، ويُعاد تفعيل حسابكم تلقائيًا ودون أي رسوم.',
        updated_at = now()
  where type = 'doc_suspended' and md5(body_ar) = '5527a0918ac0e4b4df60a9e8a0489c26';
 
@@ -1466,5 +1482,33 @@ select case when true
       and position(convert_from(decode('d8a8d8a7d986d8aad8b8d8a7d8b120d8b1d8afd991d98320e280942051756f746573446f6e65', 'hex'), 'UTF8') in (select prosrc from pg_proc where oid = 'public.fn_notify_supplier(uuid,text)'::regprocedure)) = 0
       and position(convert_from(decode('d981d8a7d8aad988d8b1d8aad98320d8acd8a7d987d8b2d8a9', 'hex'), 'UTF8') in (select prosrc from pg_proc where oid = 'public.fn_sales_engineer_tells_customer_invoice_ready()'::regprocedure)) = 0
       and position(convert_from(decode('d8b4d8b1d98ad983d986d8a7', 'hex'), 'UTF8') in (select prosrc from pg_proc where oid = 'public.fn_supplier_notice(bigint,text,text,text,text,text,uuid,uuid)'::regprocedure)) = 0
-      and (select count(*) from public.notification_copy where md5(body_ar) in ('4d82815baf9b0ea4619449efaa971887', '62af313c46c83e0baa204884a68d097f', 'ff5d9a84a7d107e40c90d3261403e4fc', '9e5300ee6d415b0612d870ee2a63d492', 'e4ff1d97b38c512d349b916ea2242c35', '598d46c20c58fa1f2a9b2f562f1f9647', 'f534e4cb45ee3bb4a01f9f950bea81f3', '9061f35b14fe645374ad4300e3834809', '14fba5ad8bb230a2806ac4ecbee8551a', '597fa5c221b2dcef12ff1b51ef311120', '6ebc5c1e435923ccac222f95a68196fb', '5fc32ac6e1d4ae12c183761f6f1e7509', '3c129a8bc19e93bc266c4e6dc4aa7bb6')) = 13
-  then 'PROBE OK' else 'PROBE FAILED' end as verdict;
+      and (select count(*) from public.notification_copy c join (values
+    ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4', '4d82815baf9b0ea4619449efaa971887'),
+    ('billing_answer', '10d471b75e6591867f455244324feefb', '62af313c46c83e0baa204884a68d097f'),
+    ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0', 'ff5d9a84a7d107e40c90d3261403e4fc'),
+    ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7', '03e279e896dc883e69504b5dcbb0e2e7'),
+    ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776', 'e4ff1d97b38c512d349b916ea2242c35'),
+    ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26', 'c79863d61909860ddfe3da0cff7112aa'),
+    ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b', 'f534e4cb45ee3bb4a01f9f950bea81f3'),
+    ('new_inquiry', '32f4bc8b74905d7970a01db887a07124', '9061f35b14fe645374ad4300e3834809'),
+    ('new_message', '0cfb3faeea5af2767a17102ece6a8e44', '14fba5ad8bb230a2806ac4ecbee8551a'),
+    ('new_quote', '265cbdb9f0c3489cf564a097425478b6', '597fa5c221b2dcef12ff1b51ef311120'),
+    ('quote_coaching', 'e7f1e2306275b59e3d30e16044655980', '6ebc5c1e435923ccac222f95a68196fb'),
+    ('quote_requirements_changed', 'c89578fc05b0b94a91e00344f60dc152', '5fc32ac6e1d4ae12c183761f6f1e7509'),
+    ('rfq_addendum', '3510278336b9210178922d810181f9e8', '3c129a8bc19e93bc266c4e6dc4aa7bb6')) v(type, old_md5, new_md5) on v.type = c.type and md5(c.body_ar) = v.new_md5) = 13
+  then 'PROBE OK' else 'PROBE FAILED' end as verdict,
+  (select string_agg(v.type, ', ') from (values
+    ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4', '4d82815baf9b0ea4619449efaa971887'),
+    ('billing_answer', '10d471b75e6591867f455244324feefb', '62af313c46c83e0baa204884a68d097f'),
+    ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0', 'ff5d9a84a7d107e40c90d3261403e4fc'),
+    ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7', '03e279e896dc883e69504b5dcbb0e2e7'),
+    ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776', 'e4ff1d97b38c512d349b916ea2242c35'),
+    ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26', 'c79863d61909860ddfe3da0cff7112aa'),
+    ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b', 'f534e4cb45ee3bb4a01f9f950bea81f3'),
+    ('new_inquiry', '32f4bc8b74905d7970a01db887a07124', '9061f35b14fe645374ad4300e3834809'),
+    ('new_message', '0cfb3faeea5af2767a17102ece6a8e44', '14fba5ad8bb230a2806ac4ecbee8551a'),
+    ('new_quote', '265cbdb9f0c3489cf564a097425478b6', '597fa5c221b2dcef12ff1b51ef311120'),
+    ('quote_coaching', 'e7f1e2306275b59e3d30e16044655980', '6ebc5c1e435923ccac222f95a68196fb'),
+    ('quote_requirements_changed', 'c89578fc05b0b94a91e00344f60dc152', '5fc32ac6e1d4ae12c183761f6f1e7509'),
+    ('rfq_addendum', '3510278336b9210178922d810181f9e8', '3c129a8bc19e93bc266c4e6dc4aa7bb6')) v(type, old_md5, new_md5)
+    where not exists (select 1 from public.notification_copy c where c.type = v.type and md5(c.body_ar) = v.new_md5)) as notification_copy_not_rewritten;

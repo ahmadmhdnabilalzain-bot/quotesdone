@@ -80,7 +80,7 @@ function arWords(v: string): string {
 }
 const ref = (rfqNo: number | string | null | undefined, lang: Lang) => rfqNo == null ? '' : (lang === 'ar' ? ` رقم ${arNum(rfqNo)}` : ` #${rfqNo}`);
 const suppliersEn = (n: number) => n === 1 ? '1 supplier' : `${n} suppliers`;
-const suppliersAr = (n: number) => n === 1 ? 'مورّد واحد' : n === 2 ? 'مورّدان' : (n <= 10 ? (n <= 10 ? `${arNum(n)} مورّدين` : `${arNum(n)} مورّدًا`) : `${arNum(n)} مورّدًا`);
+const suppliersAr = (n: number) => n === 1 ? 'مورّد واحد' : n === 2 ? 'مورّدان' : (n <= 10 ? `${arNum(n)} مورّدين` : `${arNum(n)} مورّدًا`);
 
 function optionLines(o: OfferForText, lang: Lang): string {
   return o.alternatives.map((a, i) => lang === 'ar'

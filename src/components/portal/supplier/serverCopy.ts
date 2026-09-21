@@ -91,7 +91,7 @@ const COPY: Record<string, Entry> = {
   // ── Documents tab hints (supplier_portal DOC_KINDS) ─────────────────────────────────────────────
   doc_hint_license: s('Required. Your current DED / free-zone trade licence.', 'مطلوب. رخصتكم التجارية السارية الصادرة عن دائرة التنمية الاقتصادية أو المنطقة الحرة.'),
   doc_hint_profile: s('Required. Your company introduction deck or PDF. Shown to customers after a reveal.', 'مطلوب. العرض التعريفي لشركتكم أو ملف PDF، ويطّلع عليه العملاء بعد الكشف.'),
-  doc_hint_catalogs: s('Product or project catalogues. Upload as many as you like — new files are added, never replaced.', 'كتالوجات المنتجات أو المشاريع. حمّلوا منها ما تشاؤون؛ تُضاف الملفات الجديدة دون أن تحلّ محل السابقة.'),
+  doc_hint_catalogs: s('Product or project catalogues. Upload as many as you like — new files are added, never replaced.', 'كتالوجات المنتجات أو المشاريع. ارفعوا منها ما تشاؤون؛ تُضاف الملفات الجديدة دون أن تحلّ محل السابقة.'),
   doc_hint_vat: s('Your TRN certificate. Needed before you can invoice with VAT.', 'شهادة التسجيل الضريبي (TRN)، وهي مطلوبة قبل إصدار فواتير تتضمن ضريبة القيمة المضافة.'),
   doc_hint_insurance: s('Public liability or contractor all-risk cover.', 'تأمين المسؤولية العامة أو تأمين جميع أخطار المقاول.'),
   doc_hint_iso: s('Any ISO certificate you hold. Strengthens your capability score.', 'أي شهادة ISO تحملونها، وهي تعزّز تقييم قدراتكم.'),
@@ -102,7 +102,7 @@ const COPY: Record<string, Entry> = {
   doc_expiry_title: s((p) => `${p.doc} ${p.expired ? 'has expired' : 'expires soon'}`, (p) => `${p.expired ? 'انتهت صلاحية' : 'قاربت صلاحية'} ${docAr(p.doc)}${p.expired ? '' : ' على الانتهاء'}`),
   doc_expiry_detail: s(
     (p) => `Expiry ${p.expiry} — ${p.days_left < 0 ? `overdue by ${Math.abs(p.days_left)} days` : `${p.days_left} days left`}. Upload a renewed copy to stay eligible.`,
-    (p) => `تاريخ الانتهاء ${p.expiry} — ${p.days_left < 0 ? `انقضى على انتهائها ${Math.abs(p.days_left)} يومًا` : `المتبقي ${p.days_left} يومًا`}. حمّلوا نسخة مجدّدة لتبقوا ضمن المورّدين المؤهّلين.`),
+    (p) => `تاريخ الانتهاء ${p.expiry} — ${p.days_left < 0 ? `انقضى على انتهائها ${Math.abs(p.days_left)} يومًا` : `المتبقي ${p.days_left} يومًا`}. ارفعوا نسخة مجدّدة لتبقوا ضمن المورّدين المؤهّلين.`),
   // `total` (audit 21 Sep 2026, finding 6): the bell said "1 new RFQ" beside "Inquiries received (3)";
   // both were true (two were already quoted) but neither said so. The count now names what it is out of.
   new_rfq_title: s((p) => `${p.count} new RFQ${p.count > 1 ? 's' : ''} waiting for your quote` + (p.total > p.count ? ` (of ${p.total} received)` : ''), (p) => `${p.count} ${plural(p.count, 'طلب تسعير جديد ينتظر', 'طلبات تسعير جديدة تنتظر')} عرضكم` + (p.total > p.count ? ` (من أصل ${p.total})` : '')),
@@ -132,10 +132,10 @@ const COPY: Record<string, Entry> = {
   banned_detail: s('Suspended accounts are excluded from all matching. Contact us to resolve it.', 'الحسابات الموقوفة مستبعدة من جميع عمليات المطابقة. يُرجى التواصل معنا لمعالجة الأمر.'),
   licence_expired_title: s('Your account is paused — trade licence expired', 'حسابكم متوقف مؤقتًا — انتهت صلاحية الرخصة التجارية'),
   licence_expired_detail: s((p) => `Your trade licence expired on ${p.date || 'an earlier date'}. Upload a valid copy and your account is restored automatically, usually within a day. There is no fee.`,
-    (p) => `انتهت صلاحية رخصتكم التجارية في ${p.date || 'تاريخ سابق'}. حمّلوا نسخة سارية وسيُعاد تفعيل حسابكم تلقائيًا، خلال يوم واحد عادةً، ودون أي رسوم.`),
+    (p) => `انتهت صلاحية رخصتكم التجارية في ${p.date || 'تاريخ سابق'}. ارفعوا نسخة سارية وسيُعاد تفعيل حسابكم تلقائيًا، خلال يوم واحد عادةً، ودون أي رسوم.`),
   insurance_expired_title: s('Your account is paused — insurance expired', 'حسابكم متوقف مؤقتًا — انتهت صلاحية التأمين'),
   insurance_expired_detail: s((p) => `Your insurance certificate expired on ${p.date || 'an earlier date'}. Upload a valid copy and your account is restored automatically. There is no fee.`,
-    (p) => `انتهت صلاحية شهادة التأمين في ${p.date || 'تاريخ سابق'}. حمّلوا نسخة سارية وسيُعاد تفعيل حسابكم تلقائيًا دون أي رسوم.`),
+    (p) => `انتهت صلاحية شهادة التأمين في ${p.date || 'تاريخ سابق'}. ارفعوا نسخة سارية وسيُعاد تفعيل حسابكم تلقائيًا دون أي رسوم.`),
   matching_blocked_title: s('Matching is switched off for your account', 'المطابقة معطّلة لحسابكم'),
   matching_blocked_detail: s('This was set by our team rather than automatically. Contact us to have it reviewed.', 'عطّلها فريقنا يدويًا، ولم تتعطّل تلقائيًا. يُرجى التواصل معنا لمراجعة ذلك.'),
   not_registered_title: s('Your registration is not submitted', 'لم يُرسَل تسجيلكم بعد'),
@@ -154,7 +154,7 @@ const COPY: Record<string, Entry> = {
   empty_detail: s('Each keyword found here raises your match score. Empty fields cannot match anything.', 'كل كلمة مفتاحية هنا ترفع تقييم مطابقتكم، أما الحقول الفارغة فلا تطابق أي طلب.'),
   no_emirate_title: s('Set your home emirate', 'حدّدوا إمارة مقرّكم'),
   no_emirate_detail: s('You receive requests from the whole UAE either way. Your emirate is used only to break a tie between equally good matches.', 'تصلكم الطلبات من جميع إمارات الدولة في كل الأحوال، ولا تُستخدم إمارتكم إلا للترجيح بين مطابقتين متساويتين.'),
-  no_licence_title: s('Upload your trade licence', 'حمّلوا رخصتكم التجارية'),
+  no_licence_title: s('Upload your trade licence', 'ارفعوا رخصتكم التجارية'),
   no_licence_detail: s('Required before your account can be approved.', 'مطلوبة قبل اعتماد حسابكم.'),
   confirm_scope_title: s('Confirm what your company does', 'أكّدوا طبيعة نشاط شركتكم'),
   confirm_scope_detail: s(
@@ -162,7 +162,7 @@ const COPY: Record<string, Entry> = {
     (p) => `تذكر مستنداتكم تخصصات لم تؤكّدوها بعد: ${(p.trades || []).map((c: string) => vocabLabel('ar', 'trade', c, String(c).replace(/_/g, ' '))).join('، ')}. اختاروها في «ما يمكن لشركتكم تسعيره» إن كانت شركتكم تزاول هذا العمل.`),
   expiring_title: s((p) => `Your ${p.doc === 'insurance' ? 'insurance certificate' : 'trade licence'} expires in ${p.days} day${p.days === 1 ? '' : 's'}`,
     (p) => `تنتهي صلاحية ${p.doc === 'insurance' ? 'شهادة التأمين' : 'رخصتكم التجارية'} خلال ${p.days} ${plural(p.days, 'يوم', 'أيام')}`),
-  expiring_detail: s('Once it expires your account is paused automatically and you stop receiving requests. Upload a renewed copy now to avoid that.', 'عند انتهاء صلاحيتها يتوقف حسابكم تلقائيًا ولن تصلكم أي طلبات. حمّلوا نسخة مجدّدة الآن لتفادي ذلك.'),
+  expiring_detail: s('Once it expires your account is paused automatically and you stop receiving requests. Upload a renewed copy now to avoid that.', 'عند انتهاء صلاحيتها يتوقف حسابكم تلقائيًا ولن تصلكم أي طلبات. ارفعوا نسخة مجدّدة الآن لتفادي ذلك.'),
   no_phone_title: s('Add a contact number', 'أضيفوا رقم تواصل'),
   no_phone_detail: s('Customers cannot reach you after a reveal without one.', 'لن يتمكن العملاء من التواصل معكم بعد الكشف من دونه.'),
 
@@ -186,7 +186,7 @@ const COPY: Record<string, Entry> = {
   enter_company: s('Enter your company name.', 'أدخلوا اسم شركتكم.'),
   terms_not_accepted: s('Accept the supplier terms first (Profile tab).', 'يُرجى الموافقة على شروط المورّد أولًا (من تبويب الملف).'),
   not_verified: s((p) => `Your registration is not verified yet${p.reason ? ': ' + (COPY[p.reason]?.en({}) || p.reason) : ''}. Upload a clear, in-date trade licence in Documents — it is re-checked automatically the moment it is saved.`,
-    (p) => `لم يُتحقَّق من تسجيلكم بعد${p.reason ? ': ' + (COPY[p.reason]?.ar({}) || p.reason) : ''}. حمّلوا رخصة تجارية واضحة وسارية في تبويب المستندات، وسيُعاد فحصها تلقائيًا فور حفظها.`),
+    (p) => `لم يُتحقَّق من تسجيلكم بعد${p.reason ? ': ' + (COPY[p.reason]?.ar({}) || p.reason) : ''}. ارفعوا رخصة تجارية واضحة وسارية في تبويب المستندات، وسيُعاد فحصها تلقائيًا فور حفظها.`),
   registration_due: s((p) => `Your ${p.currency || 'AED'} ${p.fee} yearly registration is due. Pay it in Billing to send quotes.`, (p) => `رسوم التسجيل السنوية (${p.fee} ${p.currency === 'AED' || !p.currency ? 'درهم' : p.currency}) مستحقة. يُرجى سدادها من تبويب الفواتير لتتمكّنوا من إرسال العروض.`),
   registration_state_unavailable: s('We could not confirm your registration status. Please try again shortly.', 'تعذّر التحقق من حالة تسجيلكم. يُرجى المحاولة بعد قليل.'),
   inquiry_concluded: s('This request has been concluded — the customer has already selected a supplier. Best of luck on the next one.', 'أُغلق هذا الطلب بعد أن اختار العميل مورّدًا. نتمنى لكم التوفيق في الطلبات القادمة.'),
@@ -205,7 +205,7 @@ const COPY: Record<string, Entry> = {
   reg_not_due: s('There is nothing to pay. The yearly fee applies only from the 1,001st registration.', 'لا يوجد ما تدفعونه. تُطبَّق الرسوم السنوية اعتبارًا من التسجيل رقم 1,001 فقط.'),
   reg_paid: s((p) => `Your registration is paid${p.until ? ' until ' + p.until : ''}.`, (p) => `رسوم تسجيلكم مدفوعة${p.until ? ' حتى ' + p.until : ''}.`),
   // ── The sales engineer's hold desk (14 Sep 2026) ────────────────────────────────────────────────
-  spec_hold: s('Your quote is on hold until the exact details listed are stated. Fill them in here or upload a revised quote.', 'عرضكم معلّق إلى حين ذكر التفاصيل الدقيقة المبيّنة. أكملوها هنا أو حمّلوا عرضًا معدّلًا.'),
+  spec_hold: s('Your quote is on hold until the exact details listed are stated. Fill them in here or upload a revised quote.', 'عرضكم معلّق إلى حين ذكر التفاصيل الدقيقة المبيّنة. أكملوها هنا أو ارفعوا عرضًا معدّلًا.'),
   options_split: s((p) => `Your submission carried ${p.count} options; each is now its own quotation.`, (p) => `تضمّن عرضكم ${p.count} خيارات، وأصبح كل خيار منها عرضًا مستقلًا.`),
   option_total_missing: s((p) => `Enter the total for option ${p.option}.`, (p) => `أدخلوا الإجمالي للخيار ${p.option}.`),
   too_many_options: s('A quote can carry at most 20 options.', 'يمكن أن يتضمن العرض 20 خيارًا كحدّ أقصى.'),

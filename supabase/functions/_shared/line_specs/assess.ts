@@ -165,7 +165,7 @@ export function componentAttr(m: Material, _trade: string | null, base: Attr[]):
 // ---------------------------------------------------------------------------------------------
 const MONTHS = 'jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر';
 const DATE_RE = new RegExp(`\\b(\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[\\/.\\-]\\d{1,2}[\\/.\\-]\\d{2,4}|\\d{1,2}\\s+(?:${MONTHS})\\s*,?\\s*\\d{0,4}|(?:${MONTHS})\\s+\\d{1,2}(?:,\\s*\\d{4})?)`, 'i');
-const DUR_RE = /(\d+(?:\.\d+)?)\s*(?:-\s*\d+\s*)?(working\s*days?|business\s*days?|days?|weeks?|months?|wks?|يوم عمل|أيام عمل|يوم|أيام|يوما|يوماً|أسبوع|أسابيع|اسبوع|اسابيع|شهر|أشهر|شهور)/i;
+const DUR_RE = /(\d+(?:\.\d+)?)\s*(?:-\s*\d+\s*)?(working\s*days?|business\s*days?|days?|weeks?|months?|wks?|يوم عمل|أيام عمل|يوم|أيام|يوما|يومًا|أسبوع|أسابيع|اسبوع|اسابيع|شهر|أشهر|شهور)/i;
 const IMMEDIATE = /\b(ex[\s-]?stock|from\s*stock|immediate(?:ly)?|same\s*day|next\s*day)\b|من المخزون|فوري|فورا|فوراً/i;
 
 export function readDelivery(text: string): { value: string; days: number | null; date: string | null } | null {
