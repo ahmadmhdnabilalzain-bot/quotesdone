@@ -27,9 +27,26 @@ Deno.serve(observe('project_api', async (req) => {
     if (!cust) return J({ error: 'unauthorized' }, 401);
     const action = String(body.action || '');
 
+    // 21 Sep 2026 (customer audit, finding 19): a project with a revealed AED 25,920 quote showed
+    // "pipeline AED 0" and "no cost recorded". Nothing writes inquiries.expected_value, so the view's
+    // sum was always 0. The cost of an RFQ is expected_value when set, else the quote the customer
+    // paid to reveal (transactions.quote_amount; the latest reveal when there are several).
+    const revealedValueByInquiry = async (): Promise<Record<string, number>> => {
+      const { data } = await admin.from('transactions').select('inquiry_id,quote_amount,revealed_at').eq('customer_id', cust.id).order('revealed_at', { ascending: true });
+      const out: Record<string, number> = {};
+      for (const t of data || []) { const a = Number((t as any).quote_amount); if (a > 0) out[String((t as any).inquiry_id)] = a; }
+      return out;
+    };
+
     if (action === 'list') {
-      const { data } = await admin.from('project_summary').select('*').eq('customer_id', cust.id).order('created_at', { ascending: false });
-      return J({ ok: true, projects: data || [] });
+      const [{ data }, rv, { data: inqRows }] = await Promise.all([
+        admin.from('project_summary').select('*').eq('customer_id', cust.id).order('created_at', { ascending: false }),
+        revealedValueByInquiry(),
+        admin.from('inquiries').select('id,project_id,expected_value').eq('customer_id', cust.id).not('project_id', 'is', null),
+      ]);
+      const pipeline: Record<string, number> = {};
+      for (const i of inqRows || []) { const v = Number((i as any).expected_value) || rv[String((i as any).id)] || 0; pipeline[String((i as any).project_id)] = (pipeline[String((i as any).project_id)] || 0) + v; }
+      return J({ ok: true, projects: (data || []).map((p: any) => ({ ...p, pipeline_value: Math.round(pipeline[String(p.project_id)] || 0) })) });
     }
 
     if (action === 'dashboard') {
@@ -112,9 +129,9 @@ Deno.serve(observe('project_api', async (req) => {
       // detail returned the raw row only, so a caller that opened one project saw fewer numbers than
       // the list it came from. timeline_pct is null when the project has no target open date — a
       // project with no deadline has no timeline completion and must not be drawn as 0%.
-      const { data: summary } = await admin.from('project_summary').select('*').eq('project_id', id).maybeSingle();
+      const [{ data: summary }, rv] = await Promise.all([admin.from('project_summary').select('*').eq('project_id', id).maybeSingle(), revealedValueByInquiry()]);
       return J({
-        ok: true, project: p, summary: summary || null, rfqs: rfqs || [],
+        ok: true, project: p, summary: summary || null, rfqs: (rfqs || []).map((r: any) => ({ ...r, revealed_value: rv[String(r.id)] ?? null })),
         trade_breakdown: summary?.trade_breakdown ?? [],
         supplier_count: summary?.supplier_count ?? 0,
         timeline_pct: summary?.timeline_pct ?? null,

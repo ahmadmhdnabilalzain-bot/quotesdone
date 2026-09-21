@@ -97,9 +97,13 @@ jobs:
           cache: npm
       - run: npm ci
 
+      # PINNED (21 Sep 2026). `version: latest` asks the GitHub API which release is newest, without a
+      # token, so a busy hour fails the deploy before it starts: PR #785 run 35627998129, "Failed to
+      # resolve latest Supabase CLI release: rate limit exceeded". A pinned version downloads directly.
+      # Raise it deliberately; scripts/checks/the_function_deploy_pins_its_supabase_cli.test.mjs refuses `latest`.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.117.0
 
       - uses: denoland/setup-deno@v2
         with:

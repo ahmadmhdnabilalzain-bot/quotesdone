@@ -157,7 +157,11 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const ocr = async (images) => { try { const { ocrImages } = await import('./ocrClient'); return (await ocrImages(images)).text || ''; } catch (_e) { return ''; } };
   // source 'boq' when the customer attached a BOQ (sheet or PDF): create_inquiry tells suppliers so.
   const adopt = (res, name, source = 'drawing') => {
-    const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || name, drawing_redacted_paths: (res && res.drawing_redacted_paths) || null, boq: (res && res.boq) || null, brief_source: source };
+    // A HELD DRAWING (audit 21 Sep 2026, finding 9). customer_api says drawing_held when not every page
+    // came back verified; nothing of the drawing is then offered for suppliers (no paths, and
+    // share_redacted:false, which create_inquiry honours), and the card above Send says so.
+    const held = !!(res && res.drawing_file_path && res.drawing_held === true);
+    const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || name, drawing_redacted_paths: held ? null : ((res && res.drawing_redacted_paths) || null), boq: (res && res.boq) || null, brief_source: source, ...(held ? { held: true, share_redacted: false } : {}) };
     setDrawing(dr);
     return dr;
   };
@@ -188,14 +192,15 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // TELL THE TRUTH ABOUT THE DRAWING. A drawing that is not fully redacted is NOT sent to
       // suppliers (customer_api drops the paths, create_inquiry refuses unrecorded ones), so this
       // never says "attached" unless redaction_complete says every page came back.
-      const pagesIn = Number((res && res.redaction_pages_in) || 0), pagesOut = Number((res && res.redaction_pages_out) || 0);
+      // A partial run shares nothing either (customer_api drawing_hold): held is all-or-nothing.
+      const pagesIn = Number((res && res.redaction_pages_in) || 0);
       const attached = pagesIn > 0 && res.redaction_complete === true;
       const partial = pagesIn > 0 && !attached;
       let text;
       if (n >= 1) {
         const cat = res.boq.category ? ' (' + res.boq.category + ')' : '';
         text = tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, cat })
-          + (partial ? (pagesOut ? tf(lang, 'nr_partial_some', { out: pagesOut, in: pagesIn }) : t(lang, 'nr_partial_none')) : '')
+          + (partial ? t(lang, 'nr_partial_none') : '')
           + t(lang, 'nr_add_or_send');
       } else if (res && res.advice && !p.images.length) {
         text = res.advice; // customer_api names the real reason (CAD not converted, archive, unreadable)
@@ -436,6 +441,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 </fieldset>
               ) : null}
               {brief.plausibility && brief.plausibility.note ? <div className="mt-2 text-[12.5px] text-warn-fg">{t(lang, 'nr_note')} {brief.plausibility.note}</div> : null}
+              {drawing && drawing.held ? <div className="mt-2 text-[12.5px] font-semibold text-warn-fg" role="status">{tf(lang, 'nr_drawing_held', { name: drawing.drawing_file_name || '' })}</div> : null}
               <Button size="lg" className="mt-3.5 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
               <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
             </motion.div>

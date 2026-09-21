@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
-import { urlLocale, applyDocumentLocale, adoptLocale } from '@/lib/documentLocale';
+import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
 import { supaClient } from '@/lib/supaClient';
 import { takeAuthFragment } from '@/lib/authFragment';
 import { signupEmailProblem } from '@/lib/signupEmail';
@@ -283,8 +283,8 @@ const T = {
     
     
     pf_company:'Company', pf_emirates:'Emirates you serve', pf_contact:'Contact & owner', contact_name:'Contact name', mobile:'Mobile',
-    mobile_verified:'✓ Mobile verified', verify_my_mobile:'Verify my mobile →', sms_code:'6-digit SMS code', verify:'Verify',
-    email_verified:'✓ E-mail verified', email_unverified:'e-mail not yet verified',
+    mobile_verified:'Mobile verified', verify_my_mobile:'Verify my mobile →', sms_code:'6-digit SMS code', verify:'Verify',
+    email_verified:'E-mail verified', email_unverified:'e-mail not yet verified',
     reg_rest_optional:'Attach these two and you are done. Everything else is optional and can wait until you are inside.', verify_first:'Please verify your mobile number first.',
     accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation — PDF, photo, Excel, Word, e-mail, CAD or ZIP — and we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', back:'← Back', send:'Send', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no.', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
     lic_uploaded_type:'Licence uploaded. If the number did not fill in, type it below — automatic reading is optional.', lic_upload_failed:'We could not store your licence file. Please try again with a PDF or a clear photo.',
@@ -293,7 +293,7 @@ const T = {
     required:'Required', optional:'Optional', mobile_format:'Enter a UAE mobile number, e.g. 050 123 4567 or +971 50 123 4567.', change_mobile:'Use a different number',
     terms_cert_failed:'Your details were saved, but we could not issue your signed acceptance certificate. Please press the button again to retry.',
     catalogs_limit:'Up to 5 catalogues here; add more later from Documents.', catalogs_cut:'Only the first 5 catalogues were kept. Add the rest from Documents after you register.',
-    doc_insurance:'Insurance', doc_manufacturer:'Manufacturer authorisation letter', doc_egr:'EGR (Emirates Green Building) certificate',
+    doc_insurance:'Insurance', doc_manufacturer:'Manufacturer authorisation letter', doc_egr:'Establishment card (EGR)',
     
     le_too_many:'Too many code requests. Please try again later.', le_bad_id:'Enter a valid email address or UAE mobile number.', le_suppressed:'We cannot email this address — mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.',
     le_ambiguous:'More than one account uses this mobile number. Please sign in with your email address instead.', le_signup_email:'Please sign up with your email address; you can add your mobile straight afterwards.',
@@ -317,8 +317,8 @@ const T = {
     
     
     pf_company:'الشركة', pf_emirates:'الإمارات التي تخدمها', pf_contact:'جهة الاتصال والمالك', contact_name:'اسم جهة الاتصال', mobile:'الجوال',
-    mobile_verified:'✓ تم التحقق من الجوال', verify_my_mobile:'تحقّق من جوالي ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تحقّق',
-    email_verified:'✓ تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
+    mobile_verified:'تم التحقق من الجوال', verify_my_mobile:'تحقّق من جوالي ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تحقّق',
+    email_verified:'تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
     reg_rest_optional:'أرفق هذين الملفين وانتهيت. كل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.', verify_first:'يُرجى التحقق من رقم جوالك أولًا.',
     accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر — PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP — وسنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', back:'→ رجوع', send:'إرسال', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
     lic_uploaded_type:'تم رفع الرخصة. إن لم يظهر الرقم تلقائيًا فاكتبه أدناه — القراءة التلقائية اختيارية.', lic_upload_failed:'تعذّر حفظ ملف الرخصة. يُرجى المحاولة مرة أخرى بملف PDF أو صورة واضحة.',
@@ -327,7 +327,7 @@ const T = {
     required:'مطلوب', optional:'اختياري', mobile_format:'أدخل رقم جوال إماراتي، مثل 050 123 4567 أو ‎+971 50 123 4567.', change_mobile:'استخدم رقمًا آخر',
     terms_cert_failed:'حُفظت بياناتك، لكن تعذّر إصدار شهادة قبولك الموقّعة. يُرجى الضغط على الزر مرة أخرى لإعادة المحاولة.',
     catalogs_limit:'حتى 5 كتالوجات هنا؛ ويمكنك إضافة المزيد لاحقًا من تبويب المستندات.', catalogs_cut:'احتفظنا بأول 5 كتالوجات فقط. أضف الباقي من تبويب المستندات بعد التسجيل.',
-    doc_insurance:'التأمين', doc_manufacturer:'خطاب تفويض الشركة المصنّعة', doc_egr:'شهادة المباني الخضراء (EGR)',
+    doc_insurance:'التأمين', doc_manufacturer:'خطاب تفويض الشركة المصنّعة', doc_egr:'بطاقة المنشأة (EGR)',
     
     le_too_many:'طلبات رموز كثيرة. يُرجى المحاولة لاحقًا.', le_bad_id:'أدخل بريدًا إلكترونيًا صحيحًا أو رقم جوال إماراتي.', le_suppressed:'لا يمكننا مراسلة هذا البريد — ارتدّت إليه الرسائل أو أُلغي الاشتراك. يُرجى التواصل مع info@quotesdone.com وسنعيد تفعيله.',
     le_ambiguous:'أكثر من حساب يستخدم رقم الجوال هذا. يُرجى تسجيل الدخول ببريدك الإلكتروني.', le_signup_email:'يُرجى التسجيل ببريدك الإلكتروني؛ ويمكنك إضافة جوالك مباشرة بعد ذلك.',
@@ -460,7 +460,9 @@ export function SupplierPortal() {
     return () => { try { sub && sub.data && sub.data.subscription && sub.data.subscription.unsubscribe(); } catch (_e) {} };
   }, []);
   // The root element, not only this div, carries the language: it is what a screen reader reads.
-  useEffect(() => { applyDocumentLocale(lang); }, [lang]);
+  // Audit 21 Sep 2026, finding 41: the <title> and skip link are written once by the server layout,
+  // so a client-side switch left an English tab title over an Arabic portal until a reload.
+  useEffect(() => { applyDocumentLocale(lang); applyShellChrome(lang, 'portal'); }, [lang]);
   // Light/dark is a per-device choice, the same key and the same .osx[data-theme] palette as the
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
@@ -722,19 +724,37 @@ function NotificationBell({ ov, lang, go }) {
     holds ? { k: 'h', tab: 'quotes', text: ar ? `${holds} ${holds === 1 ? 'عرض محجوز' : 'عروض محجوزة'} بانتظار تفاصيل دقيقة` : `${holds} quote${holds > 1 ? 's' : ''} held for exact details` } : null,
     ...alerts.map((a, i) => ({ k: 'a' + i, tab: a.action === 'documents' ? 'documents' : a.kind === 'draft_quote' ? 'quotes' : 'rfqs', text: itemCopy(lang, a).title })),
   ].filter(Boolean);
-  const label = ar ? `الإشعارات (${items.length})` : `Notifications (${items.length})`;
+  // WHAT THE ESTATE TOLD THIS SUPPLIER (audit 21 Sep 2026, finding 6): a customer revealing this
+  // supplier's quote changed nothing on the bell. Every notice carries a SUPPLIER-portal tab, never a
+  // URL (finding 5: the only link a supplier had was the e-mail's, which opened the customer portal),
+  // and a notice counts on the badge until the bell is opened once (the newest id seen is remembered).
+  const notices = (n.notices || []).filter((x) => MAIN_TABS.includes(x.tab)).slice(0, 8);
+  const [seen, setSeen] = useState(() => { try { return Number(localStorage.getItem('qd-sup-notice-seen') || 0); } catch (_e) { return 0; } });
+  const fresh = notices.filter((x) => x.id > seen).length;
+  const markSeen = () => { const top = notices.length ? notices[0].id : 0; if (top > seen) { setSeen(top); try { localStorage.setItem('qd-sup-notice-seen', String(top)); } catch (_e) {} } };
+  const badge = items.length + fresh;
+  const label = ar ? `الإشعارات (${badge})` : `Notifications (${badge})`;
   const ref = useDismissablePopover();
+  const when = (at) => { try { return new Date(at).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }); } catch (_e) { return ''; } };
   return (
-    <details ref={ref} className="relative">
+    <details ref={ref} className="relative" onToggle={(e) => { if (e.currentTarget.open) markSeen(); }}>
       <summary aria-label={label} title={label} className="relative inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
         <Bell aria-hidden className="h-[18px] w-[18px]" />
-        {items.length ? <span aria-hidden className="absolute -top-1 -end-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{items.length}</span> : null}
+        {badge ? <span aria-hidden className="absolute -top-1 -end-1 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground tabular-nums">{badge}</span> : null}
       </summary>
       <div className="qd-panel absolute end-0 z-20 mt-2 w-[min(320px,calc(100vw-32px))] p-1.5">
         {items.length ? <ul>{items.map((it) => (
           <li key={it.k}><button type="button" className="flex min-h-11 w-full items-center rounded-md px-3 py-2.5 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(it.tab); }}>{it.text}</button></li>))}</ul>
-          : <div className="px-3 py-2.5 text-[13px] text-muted-foreground">{ar ? 'لا شيء جديد.' : 'Nothing new.'}</div>}
+          : (fresh ? null : <div className="px-3 py-2.5 text-[13px] text-muted-foreground">{ar ? 'لا شيء جديد.' : 'Nothing new.'}</div>)}
+        {notices.length ? <div className="mt-1 border-t border-border pt-1">
+          <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{ar ? 'آخر الإشعارات' : 'Recent notices'}</div>
+          <ul>{notices.map((x) => (
+            <li key={'n' + x.id}><button type="button" className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-[13px] text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={(e) => { const d = e.currentTarget.closest('details'); if (d) d.open = false; go(x.tab); }}>
+              <span className={x.id > seen ? 'font-semibold' : ''}>{srvText(lang, 'notice_' + x.type, {}, srvText(lang, 'notice_quote', {}, ''))}</span>
+              <span className="shrink-0 text-[11px] text-muted-foreground">{when(x.at)}</span></button></li>))}</ul>
+        </div> : null}
       </div>
     </details>
   );
@@ -904,7 +924,7 @@ function Dashboard({ token, lang, onExpired }) {
         <div className="mt-4"><SupplierSupportingDocuments token={token} lang={lang} /></div>
       </>}
       {shownTab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
-      {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} onSaved={load} />}
+      {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} />}
       {shownTab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} />}
       {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={(l) => adoptLocale(l, setLang)} />}
       </div>
@@ -1082,6 +1102,10 @@ function QuoteCheck({ chk, lang }) {
 function Documents({ token, lang, onSaved = null }) {
   const [data, setData] = useState(null); const [busy, setBusy] = useState('');
   const load = () => call('supplier_portal', { action: 'documents' }, token).then((j) => { setData(j); return j; });
+  // ONE READ AFTER EVERY WRITE (audit 21 Sep 2026, finding 16): save_documents, remove_document and
+  // set_expiry answer with the fresh list, so the card, the counter and the unlock panel are painted
+  // from the row as it is NOW. A second `documents` round trip used to race the write.
+  const take = (j) => { if (j && Array.isArray(j.documents)) setData({ ok: true, documents: j.documents, expiries: j.expiries || [], summary: j.summary }); else load(); };
   useEffect(() => { load(); }, [token]);
   // `err` is a string or, for an Arabic per-file failure, a small JSX fragment; it is only rendered.
   const [err, setErr] = useState('');
@@ -1103,21 +1127,21 @@ function Documents({ token, lang, onSaved = null }) {
     // 2026). The server's specific reason is kept after it, isolated left-to-right.
     if (failed.length) { const why = failed.map((f) => f.reason).filter(Boolean).join('; '); setErr(lang === 'ar' ? <>تعذّر حفظ الملف. يُرجى رفع نسخة PDF أو صورة واضحة للمستند كاملًا، ثم المحاولة مرة أخرى.{why ? <> السبب: <Ltr>{why}</Ltr></> : null}</> : 'Upload failed: ' + why); }
     else if (j && (j.error || j._http)) setErr(srvMsg(lang, j, lang === 'ar' ? 'تعذّر حفظ الملف. يُرجى المحاولة مرة أخرى.' : 'We could not save that file. Please try again.'));
-    load();
+    take(j);
     if (j && j.ok && onSaved) onSaved();
   };
   // REMOVE hides, never destroys; the server refuses a sealed record with a sentence in this language.
   const remove = async (kind, path) => {
     setErr('');
     const j = await call('supplier_portal', { action: 'remove_document', kind, path, lang }, token);
-    if (j && j.ok) { setReads((o) => { const n = { ...o }; delete n[kind]; return n; }); load(); if (onSaved) onSaved(); return { ok: true }; }
+    if (j && j.ok) { setReads((o) => { const n = { ...o }; delete n[kind]; return n; }); take(j); if (onSaved) onSaved(); return { ok: true }; }
     return { ok: false, message: (j && j.message) || srvMsg(lang, j, lang === 'ar' ? 'تعذّرت الإزالة. يُرجى المحاولة مرة أخرى.' : 'Could not remove. Please try again.') };
   };
   // The supplier confirms (or corrects) the date the document was read to say.
   const confirmExpiry = async (kind, expiry) => {
     setErr('');
     const j = await call('supplier_portal', { action: 'set_expiry', kind, expiry }, token);
-    if (j && j.ok) { setReads((o) => { const n = { ...o }; delete n[kind]; return n; }); load(); return true; }
+    if (j && j.ok) { setReads((o) => { const n = { ...o }; delete n[kind]; return n; }); take(j); if (onSaved) onSaved(); return true; }
     setErr(srvMsg(lang, j, lang === 'ar' ? 'تعذّر حفظ التاريخ.' : 'Could not save the date.')); return false;
   };
   if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading_docs')}</Card>;
@@ -1166,7 +1190,7 @@ function Documents({ token, lang, onSaved = null }) {
           {g.note && <div className={cn(S.sub, 'mt-1')}>{g.note(lang)}</div>}
         </div>
         <div className={S.list}>
-          {rows.map((d) => <DocRow key={d.key} d={d} lang={lang} busy={busy === d.key} onUpload={upload} onRemove={remove} onConfirmExpiry={confirmExpiry} read={reads[d.key] || null} />)}
+          {rows.map((d) => <DocRow key={d.key + '|' + (d.path || '') + '|' + (d.expiry || '')} d={d} lang={lang} busy={busy === d.key} onUpload={upload} onRemove={remove} onConfirmExpiry={confirmExpiry} read={reads[d.key] || null} />)}
         </div>
       </div>;
     })}
@@ -1259,7 +1283,11 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
         {/* The four actions every document offers (instruction 524): View / Download / Replace / Remove.
             Replace re-runs the reading and keeps the previous version; Remove hides, never destroys, and
             the server refuses it on a mandatory document of an approved supplier, in this language. */}
-        {!isCat && d.path && <DocActions lang={lang} name={cleanName(d.name)} url={d.url} versions={d.versions || 0} className="mt-2"
+        {/* ONE HOME PER SUBJECT (finding 17): a certificate filed under Supporting documents counts here
+            too. It is managed where it was filed, so this row says so instead of offering a Remove that
+            would find nothing in this slot. */}
+        {!isCat && d.path && d.source === 'supporting' && <div className={cn(S.sub, 'mt-1.5')} role="note">{ar ? 'مرفوع ضمن «المستندات الداعمة» — يُدار من هناك.' : 'Filed under Supporting documents — manage it there.'}</div>}
+        {!isCat && d.path && d.source !== 'supporting' && <DocActions lang={lang} name={cleanName(d.name)} url={d.url} versions={d.versions || 0} className="mt-2"
           onReplace={(f) => onUpload(d.key, f, '')} onRemove={() => onRemove(d.key)} />}
         {isCat && (items.length
           ? <ul className="mt-1.5 flex flex-col gap-2">{items.map((c, i) => <li key={c.path || i} className={S.sub}>
@@ -1357,10 +1385,11 @@ function Projects({ token, lang, openChat }) {
 // Profile tab for an established supplier. Reuses ProfileForm rather than duplicating it, so the
 // same validation, terms handling and save_profile call apply whether the supplier is registering
 // for the first time or correcting a detail two years later.
-function ProfilePanel({ token, lang, onSaved }) {
-  const [me, setMe] = useState(undefined);
+function ProfilePanel({ token, lang, onSaved, initial = null }) {
+  // Audit 21 Sep 2026, finding 34: the tab re-read `me` the portal had already read, and waited for it.
+  const [me, setMe] = useState(initial || undefined);
   const load = () => call('supplier_api', { action: 'me' }, token).then((j) => setMe(j.supplier || null)).catch(() => setMe(null));
-  useEffect(() => { load(); }, [token]);
+  useEffect(() => { if (!initial) load(); }, [token]);
   if (me === undefined) return <Card className="qd-panel p-5">{t(lang, 'loading')}</Card>;
   if (!me) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div></Card>;
   return <div className={S.list}>
@@ -1438,6 +1467,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
   // wa: kyc's `whatsapp` answer. Registration waits for it (founder, 15 Sep 2026: "It's in the sign
   // up"): save() lists it as missing and supplier_api save_profile refuses without it (reg_whatsapp).
   const [wa, setWa] = useState(undefined);
+  const [saved, setSaved] = useState(false);
   const loadKyc = () => call('kyc', { action: 'state' }, token).then((k) => { if (k && k.phone_verified) setPhoneVerified(true); if (k && k.email_verified) setEmailVerified(true); setWa(k ? k.whatsapp : undefined); });
   useEffect(() => { loadKyc(); }, []);
   const sendSms = async () => { const e164 = uaeMobile(f.phone); if (!e164) { setMsg(t(lang, 'mobile_format')); return; } if (e164 !== f.phone) set('phone', e164); setVbusy(true); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone: e164 }, token); setVbusy(false); if (j && j.ok) setSmsSent(true); else setMsg(srvMsg(lang, j, t(lang, 'could_not_sms'))); };
@@ -1513,10 +1543,15 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         const k = await call('kyc', { action: 'accept_terms' }, token).catch(() => null);
         if (!(k && k.ok)) { setBusy(false); setMsg(t(lang, 'terms_cert_failed')); return; }
       }
-      setBusy(false); onSaved();
+      setBusy(false);
+      // Audit 21 Sep 2026, finding 32: Save closed with nothing on screen to say it worked.
+      if (isEdit) { setSaved(true); setTimeout(() => setSaved(false), 6000); }
+      onSaved();
     } catch (_e) { setBusy(false); setMsg(t(lang, 'save_error')); }
   };
-  const ok = (on) => (on ? <span aria-hidden className="text-primary">✓</span> : null);
+  // Audit 21 Sep 2026, finding 48: "✓ Trade licence" put the state inside the heading's name (a screen
+  // reader read "check mark trade licence"). The state is a badge after the name, in words.
+  const ok = (on) => (on ? <Badge variant="ok" className="ms-2 align-middle">{ar ? 'مكتمل' : 'Done'}</Badge> : null);
   return (<Card className="qd-panel p-5">
     <h2 className={S.h2}>{t(lang, 'pf_company')}</h2>
     {/* The form registers a new supplier AND is where an existing one corrects a detail; it says which. */}
@@ -1533,18 +1568,18 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         terms; everything else optional (memory: supplier-verification-mandatory-six). The 8 Aug
         "five things" note (licence, profile, catalogue, mobile, e-mail) is superseded: the catalogue is
         optional. Contact name, products and services stay on the Profile tab, asked once inside. */}
-    <h3 className={cn(S.h2, 'mt-4')}>{ok(licOnFile || !!String(f.trade_license_no || '').trim())} {t(lang, 'h_trade')}{!isEdit && <Need lang={lang} req />}</h3>
+    <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'h_trade')}{ok(licOnFile || !!String(f.trade_license_no || '').trim())}{!isEdit && <Need lang={lang} req />}</h3>
     {!isEdit && <>
       <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'trade_sub')}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><FilePick lang={lang} accept="image/*,application/pdf" onPick={(fl) => fl && upLicense(fl)} />{uploading && <span className={S.sub} role="status">{t(lang, 'reading_lic')}</span>}</div>
       {licNote && <div role="status" className={cn(S.sub, 'font-semibold text-primary')}>{licNote}</div>}
     </>}
     <div className={S.frow}>
-      <Lbl className="flex-1 min-w-[180px]" need={isEdit ? null : 'opt'} lang={lang} text={t(lang, 'lic_no')}><Input dir="ltr" placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /></Lbl>
-      <Lbl className="flex-1 min-w-[180px]" need={isEdit ? null : 'opt'} lang={lang} text={t(lang, 'authority')}><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></Lbl>
+      <Lbl className="flex-1 min-w-[180px]" visible need={isEdit ? null : 'opt'} lang={lang} text={t(lang, 'lic_no')}><Input dir="ltr" placeholder={t(lang, 'lic_no')} value={f.trade_license_no} onChange={(e) => set('trade_license_no', e.target.value)} /></Lbl>
+      <Lbl className="flex-1 min-w-[180px]" visible need={isEdit ? null : 'opt'} lang={lang} text={t(lang, 'authority')}><Input placeholder={t(lang, 'authority')} value={f.license_authority} onChange={(e) => set('license_authority', e.target.value)} /></Lbl>
     </div>
 
-    <h3 className={cn(S.h2, 'mt-4')}>{ok(phoneVerified && emailVerified)} {t(lang, 'pf_contact')}{!isEdit && <Need lang={lang} req />}</h3>
+    <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'pf_contact')}{ok(phoneVerified && emailVerified)}{!isEdit && <Need lang={lang} req />}</h3>
     {/* E-mail is shown with its state, never asked for again: the supplier signed in with it. */}
     <div className={cn(S.sub, 'mb-1.5')}>
       <span dir="ltr">{me.claimed_by || ''}</span>
@@ -1576,7 +1611,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       <Lbl text={t(lang, 'desc_ph')}><textarea className={S.area} rows={3} placeholder={t(lang, 'desc_ph')} value={f.description} onChange={(e) => set('description', e.target.value)} /></Lbl>
     </>}
     {!isEdit && <>
-      <h3 className={cn(S.h2, 'mt-4')}>{ok(!!profileFile || !!me.company_profile_doc_path)} {t(lang, 'doc_profile')}<Need lang={lang} req /></h3>
+      <h3 className={cn(S.h2, 'mt-4')}>{t(lang, 'doc_profile')}{ok(!!profileFile || !!me.company_profile_doc_path)}<Need lang={lang} req /></h3>
       <div className={cn(S.sub, 'mb-1')}>{ar ? 'الملف التعريفي مطلوب؛ الكتالوجات اختيارية ويمكن إضافتها لاحقًا من تبويب المستندات.' : 'The company profile is required; catalogues are optional and can be added later from Documents.'}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'company_profile_pdf')}</span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" onPick={(fl) => { setProfileFile(fl); setDocsSent(false); }} />{profileFile && <span className={S.sub}>{profileFile.name}</span>}</div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5"><span className={S.sub}>{t(lang, 'catalogs_ph')}<Need lang={lang} /></span><FilePick lang={lang} accept=".pdf,.jpg,.jpeg,.png" multiple onPick={(a) => { const all = a || []; setCatalogFiles(all.slice(0, 5)); setCatCut(all.length > 5); setDocsSent(false); }} />{catalogFiles.length ? <span className={S.sub}>{catalogFiles.length} {t(lang, 'selected')}</span> : null}</div>
@@ -1591,5 +1626,6 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
             : isEdit ? (ar ? 'حفظ التغييرات' : 'Save changes') : t(lang, 'submit_approval')}
     </Button>
     {msg && <div role="alert" className={S.err}>{msg}</div>}
+    {saved && !msg && <div role="status" className={cn(S.sub, 'mt-2 font-semibold text-primary')}>{ar ? 'تم حفظ التغييرات.' : 'Changes saved.'}</div>}
   </Card>);
 }

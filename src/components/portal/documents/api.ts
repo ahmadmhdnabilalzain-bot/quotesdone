@@ -135,8 +135,8 @@ export const listDocuments = (token: string, kind?: string | null, limit = 100) 
  * filenames in this table look like 1784642800192_catalogue-….pdf and a LIKE would match none of
  * them, and it widens the recall through the customer's OWN RFQs and quotes.
  */
-export const askDocuments = (token: string, q: string, kind?: string | null, limit = 50) =>
-  documentsApi<VaultSearchResponse>(token, { action: 'search', q, kind: kind || null, limit });
+export const askDocuments = (token: string, q: string, kind?: string | null, limit = 50, lang: Lang = 'en') =>
+  documentsApi<VaultSearchResponse>(token, { action: 'search', q, kind: kind || null, limit, lang });
 
 /** One document plus a signed download URL, valid for file_url_expires_in seconds. */
 export const getDocument = (token: string, id: number) =>

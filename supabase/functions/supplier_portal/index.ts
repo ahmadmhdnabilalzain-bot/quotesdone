@@ -17,6 +17,7 @@ import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
 import { readExpiry, type ExpiryRead } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
+import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 // The model path (license_extract → ai_gateway) is OFF unless app_secrets.document_expiry_ai is
 // 'on'. OpenRouter is on hold; a closed door must not be knocked on for every upload.
 async function flagOn(key: string): Promise<boolean> { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return /^(on|true|1)$/i.test(String(data?.value || '').trim()); }
@@ -49,19 +50,97 @@ const DOC_KINDS: Record<string, { pathCol: string; nameCol?: string; expCol: str
   insurance:    { pathCol:'insurance_doc_path',                                     expCol:'insurance_expiry',          label:'Insurance',                  folder:'certs',     hint:'Public liability or contractor all-risk cover.' },
   iso:          { pathCol:'iso_doc_path',                                           expCol:'iso_expiry',                label:'ISO certification',          folder:'certs',     hint:'Any ISO certificate you hold. Strengthens your capability score.' },
   manufacturer: { pathCol:'manufacturer_auth_doc_path',                             expCol:'manufacturer_auth_expiry',  label:'Manufacturer authorisation', folder:'certs',     hint:'Authorised-dealer letters from the brands you carry.' },
-  egr:          { pathCol:'egr_doc_path',               nameCol:'egr_doc_name',     expCol:null,                        label:'Establishment card',         folder:'certs',     hint:'Your immigration establishment card (EGR).' },
+  // ONE NAME FOR THE EGR (audit 21 Sep 2026, finding 18): the establishment card issued with the
+  // trade licence — the profile's "Economic Register (EGR) no." is its number. It was "Establishment
+  // card" here, "EGR (Emirates Green Building) certificate" in the portal and "immigration
+  // establishment card" in the hint; fn_supplier_certifications and the portal now say the same.
+  egr:          { pathCol:'egr_doc_path',               nameCol:'egr_doc_name',     expCol:null,                        label:'Establishment card (EGR)',   folder:'certs',     hint:'Your establishment card (EGR), issued with your trade licence.' },
 };
 // `iban` (a bank letter) was a document type here until 21 Sep 2026. Money moves both directions through
 // Stripe, so the estate never holds a supplier's bank details — founder instruction 527.
 const DOC_ORDER = ['license','profile','catalogs','vat','insurance','iso','manufacturer','egr'];
+// The supporting-document subject that can stand in for a fixed kind (fn_supplier_document_home).
+const HOME_KEY: Record<string, string> = { license: 'trade_licence', profile: 'company_profile', insurance: 'insurance', iso: 'iso', manufacturer: 'manufacturer_auth', egr: 'establishment' };
+
+// THE DOCUMENTS LIST — the one builder every read and every write answers with (finding 16), and the
+// one home for each subject (finding 17): a certificate a supplier uploaded as a SUPPORTING document
+// (ISO 9001 under "Supporting documents") is on file here too, marked source 'supporting', the same
+// way fn_supplier_certifications, fn_supplier_document_impact and fn_supplier_twin now see it.
+async function listDocuments(supId: number) {
+  // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
+  const cols = new Set<string>(['catalog_doc_paths']);
+  for (const k of Object.values(DOC_KINDS)) { cols.add(k.pathCol); if (k.nameCol) cols.add(k.nameCol); if (k.expCol) cols.add(k.expCol); }
+  const [{ data: l }, { data: homeRows }, { data: vers }, expiries] = await Promise.all([
+    admin.from('leads').select([...cols].join(',')).eq('id', supId).maybeSingle(),
+    admin.rpc('fn_supplier_document_home', { p_lead_id: supId }),
+    // Previous versions (replaced or removed files) per kind, from doc_versions — the supplier
+    // sees "2 earlier versions kept" beside a document, and Remove can say what was hidden.
+    admin.from('doc_versions').select('entity_id,version,snapshot,created_at')
+      .eq('entity_type', 'supplier_document').like('entity_id', `${supId}:%`).order('version', { ascending: false }).limit(200),
+    admin.rpc('fn_supplier_expiries', { p_supplier_id: supId }),
+  ]);
+  const row = (l || {}) as Record<string, unknown>;
+  const home = new Map<string, { path: string | null; name: string | null; source: string | null }>();
+  for (const h of ((homeRows || []) as { key: string; path: string | null; name: string | null; source: string | null }[])) home.set(h.key, h);
+
+  const cats: string[] = Array.isArray(row.catalog_doc_paths) ? (row.catalog_doc_paths as string[]) : [];
+  const catalogues: { path: string; name: string; url: string | null }[] = [];
+  for (const p of cats.slice(0, 20)) {
+    catalogues.push({ path: p, name: String(p).split('/').pop() || 'Catalogue', url: await sign('supplier-docs', p) });
+  }
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const docs: Record<string, unknown>[] = [];
+  for (const key of DOC_ORDER) {
+    if (key === 'catalogs') {
+      docs.push({ key:'catalogs', label:'Catalogues', hint_code:'doc_hint_catalogs', hint:'Product or project catalogues. Upload as many as you like - new files are added, never replaced.',
+        path: cats.length ? 'catalogs' : null, expiry:null, url:null, name:null, required:false,
+        count: cats.length, urls: catalogues.map((c) => c.url).filter(Boolean), items: catalogues,
+        status: cats.length ? 'on_file' : 'missing' });
+      continue;
+    }
+    const k = DOC_KINDS[key]; if (!k) continue;
+    const own = (row[k.pathCol] as string) || null;
+    const stand = !own && HOME_KEY[key] ? home.get(HOME_KEY[key]) : undefined;
+    const path = own || (stand && stand.path) || null;
+    const source = own ? 'leads' : (stand && stand.path ? 'supporting' : null);
+    const expiry = own && k.expCol ? ((row[k.expCol] as string) || null) : null;
+    // Filename falls back to the stored path's tail so the supplier always sees which file is on record.
+    const name = (own && k.nameCol ? (row[k.nameCol] as string) : null) || (stand && stand.path ? stand.name : null) || (path ? String(path).split('/').pop() : null) || null;
+    let status = 'missing';
+    if (path) {
+      status = 'on_file';
+      if (expiry) {
+        const d = Math.round((new Date(expiry).getTime() - today.getTime()) / 864e5);
+        status = d < 0 ? 'expired' : d <= 30 ? 'expiring' : 'valid';
+      }
+    }
+    docs.push({ key, label: k.label, hint: k.hint, path, name, expiry, has_expiry: !!k.expCol, source,
+      // The mandatory six (_shared/supplier_registration.ts): licence AND company profile. This
+      // said `key === 'license'` while the same tab's heading listed three required documents.
+      required: REQUIRED_DOC_KEYS.includes(key), hint_code: 'doc_hint_' + key, status, url: await sign('supplier-docs', path) });
+  }
+
+  const required = docs.filter((d) => d.required);
+  const complete = docs.filter((d) => d.status !== 'missing').length;
+  for (const d of docs) {
+    const mine = ((vers || []) as { entity_id: string; snapshot: VersionSnapshot; created_at: string }[]).filter((v) => v.entity_id === `${supId}:${d.key}`);
+    d.versions = mine.length;
+    d.last_version = mine[0] ? { event: mine[0].snapshot?.event, name: mine[0].snapshot?.name, at: mine[0].created_at } : null;
+  }
+  return { ok:true, documents: docs, expiries: expiries.data || [],
+    summary: { total: docs.length, on_file: complete, missing: docs.length - complete,
+      required_missing: required.filter((d) => d.status === 'missing').length,
+      attention: docs.filter((d) => d.status === 'expired' || d.status === 'expiring').length } };
+}
 
 Deno.serve(observe('supplier_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
-    const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
-    const { data: { user } } = await admin.auth.getUser(jwt);
-    if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
-    const email = user.email.toLowerCase();
+    // Local refusal first, a bounded auth call, and 503 (not 401) when auth is down — _shared/signed_in_user.ts.
+    const who = await signedInUser(admin, req.headers.get('Authorization'));
+    if (!who.ok) return J(refusalBody(who), who.status);
+    const { email } = who;
     const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from').eq('claimed_by', email).maybeSingle();
     if (!sup) return J({ error: 'no_company', hint: 'claim your company first' }, 400);
     // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026). One gate, above the
@@ -291,65 +370,11 @@ Deno.serve(observe('supplier_portal', async (req) => {
       return J({ ok: true, panels: out });
     }
 
-    if (action === 'documents') {
-      // Column list is derived from DOC_KINDS so adding a document type here needs no edit below.
-      const cols = new Set<string>(['catalog_doc_paths']);
-      for (const k of Object.values(DOC_KINDS)) { cols.add(k.pathCol); if (k.nameCol) cols.add(k.nameCol); if (k.expCol) cols.add(k.expCol); }
-      const { data: l } = await admin.from('leads').select([...cols].join(',')).eq('id', sup.id).maybeSingle();
-      const row = (l || {}) as Record<string, unknown>;
-
-      const cats: string[] = Array.isArray(row.catalog_doc_paths) ? (row.catalog_doc_paths as string[]) : [];
-      const catalogues: { path: string; name: string; url: string | null }[] = [];
-      for (const p of cats.slice(0, 20)) {
-        catalogues.push({ path: p, name: String(p).split('/').pop() || 'Catalogue', url: await sign('supplier-docs', p) });
-      }
-
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const docs: Record<string, unknown>[] = [];
-      for (const key of DOC_ORDER) {
-        if (key === 'catalogs') {
-          docs.push({ key:'catalogs', label:'Catalogues', hint_code:'doc_hint_catalogs', hint:'Product or project catalogues. Upload as many as you like - new files are added, never replaced.',
-            path: cats.length ? 'catalogs' : null, expiry:null, url:null, name:null, required:false,
-            count: cats.length, urls: catalogues.map((c) => c.url).filter(Boolean), items: catalogues,
-            status: cats.length ? 'on_file' : 'missing' });
-          continue;
-        }
-        const k = DOC_KINDS[key]; if (!k) continue;
-        const path = (row[k.pathCol] as string) || null;
-        const expiry = k.expCol ? ((row[k.expCol] as string) || null) : null;
-        // Filename falls back to the stored path's tail so the supplier always sees which file is on record.
-        const name = (k.nameCol ? (row[k.nameCol] as string) : null) || (path ? String(path).split('/').pop() : null) || null;
-        let status = 'missing';
-        if (path) {
-          status = 'on_file';
-          if (expiry) {
-            const d = Math.round((new Date(expiry).getTime() - today.getTime()) / 864e5);
-            status = d < 0 ? 'expired' : d <= 30 ? 'expiring' : 'valid';
-          }
-        }
-        docs.push({ key, label: k.label, hint: k.hint, path, name, expiry, has_expiry: !!k.expCol,
-          // The mandatory six (_shared/supplier_registration.ts): licence AND company profile. This
-          // said `key === 'license'` while the same tab's heading listed three required documents.
-          required: REQUIRED_DOC_KEYS.includes(key), hint_code: 'doc_hint_' + key, status, url: await sign('supplier-docs', path) });
-      }
-
-      const required = docs.filter((d) => d.required);
-      const complete = docs.filter((d) => d.status !== 'missing').length;
-      // Previous versions (replaced or removed files) per kind, from doc_versions — the supplier
-      // sees "2 earlier versions kept" beside a document, and Remove can say what was hidden.
-      const { data: vers } = await admin.from('doc_versions').select('entity_id,version,snapshot,created_at')
-        .eq('entity_type', 'supplier_document').like('entity_id', `${sup.id}:%`).order('version', { ascending: false }).limit(200);
-      for (const d of docs) {
-        const mine = ((vers || []) as { entity_id: string; snapshot: VersionSnapshot; created_at: string }[]).filter((v) => v.entity_id === `${sup.id}:${d.key}`);
-        d.versions = mine.length;
-        d.last_version = mine[0] ? { event: mine[0].snapshot?.event, name: mine[0].snapshot?.name, at: mine[0].created_at } : null;
-      }
-      const expiries = await admin.rpc('fn_supplier_expiries', { p_supplier_id: sup.id });
-      return J({ ok:true, documents: docs, expiries: expiries.data || [],
-        summary: { total: docs.length, on_file: complete, missing: docs.length - complete,
-          required_missing: required.filter((d) => d.status === 'missing').length,
-          attention: docs.filter((d) => d.status === 'expired' || d.status === 'expiring').length } });
-    }
+    // ONE LIST, READ AFTER EVERY WRITE (audit 21 Sep 2026, finding 16). The Documents tab used to ask
+    // for this list in a second round trip after each upload, and rendered the answer over its own
+    // staged state; save_documents, remove_document and set_expiry now return the fresh list in the
+    // same response, so the card, the counter and the unlock panel are painted from one read.
+    if (action === 'documents') return J(await listDocuments(sup.id));
 
     if (action === 'save_documents') {
       // Capped (15 Sep 2026): every item is malware-scanned and licence/profile/catalogues are now
@@ -520,7 +545,9 @@ Deno.serve(observe('supplier_portal', async (req) => {
         if (!vErr) versioned.push(kindStr); else console.error('save_documents: version row failed —', vErr.message);
       }
       const documents_read = readQueue.length ? await proposeTradesFromDocs(admin, Number(sup.id), readQueue.slice(0, 7)) : undefined;
-      return J({ ok:true, saved, failed, read, versioned, ...(documents_read ? { documents_read } : {}) });
+      // The fresh list rides on the answer (finding 16): what the row holds NOW, not what the tab guessed.
+      const fresh = await listDocuments(Number(sup.id));
+      return J({ ok:true, saved, failed, read, versioned, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary, ...(documents_read ? { documents_read } : {}) });
     }
 
     // REMOVE HIDES, NEVER DESTROYS (instruction 524). The column is cleared and what it held goes to
@@ -558,7 +585,8 @@ Deno.serve(observe('supplier_portal', async (req) => {
         expiry: kind.expCol ? ((row[kind.expCol] as string) || null) : null, at: new Date().toISOString() };
       const { data: v } = await admin.rpc('_next_docver', { p_type: 'supplier_document', p_id: `${sup.id}:${kindStr}` });
       await admin.from('doc_versions').insert(versionRow(Number(sup.id), snap, Number(v || 1)));
-      return J({ ok: true, removed: kindStr });
+      const fresh = await listDocuments(Number(sup.id));
+      return J({ ok: true, removed: kindStr, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary });
     }
 
     // THE SUPPLIER CONFIRMS A DATE THE DOCUMENT WAS READ TO SAY (instruction 524). Only for the kinds
@@ -574,7 +602,8 @@ Deno.serve(observe('supplier_portal', async (req) => {
       if (!(cur as Record<string, unknown> | null)?.[kind.pathCol]) return J({ error: 'nothing_on_file', kind: kindStr }, 409);
       const { error } = await admin.from('leads').update({ [kind.expCol]: expiry, portal_updated_at: new Date().toISOString() }).eq('id', sup.id);
       if (error) return J({ error: 'save_failed', detail: error.message }, 502);
-      return J({ ok: true, kind: kindStr, expiry });
+      const fresh = await listDocuments(Number(sup.id));
+      return J({ ok: true, kind: kindStr, expiry, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary });
     }
 
     // Why am I not being matched? The builder and the reasoning behind every item: ./overview.ts.

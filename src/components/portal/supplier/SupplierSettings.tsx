@@ -100,6 +100,8 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
   const [s, setS] = useState<Settings | null>(null);
   const [locale, setLocale] = useState<Lang>('en');
   const [langTouched, setLangTouched] = useState(false);
+  // The header's EN/عربي switch changes `lang` without a reload; the select follows it (finding 43).
+  useEffect(() => { if (!langTouched) setLocale(lang); }, [lang]);   // eslint-disable-line react-hooks/exhaustive-deps
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -130,7 +132,9 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
       if (j && j.ok) {
         const x: Settings = j.settings || {};
         setS(x);
-        setLocale(x.locale === 'ar' ? 'ar' : x.locale === 'en' ? 'en' : lang);
+        // Audit 21 Sep 2026, finding 43: this showed the STORED locale ("English") while the URL had
+        // put the interface in Arabic. The control names the language on screen; saving it stores it.
+        setLocale(lang);
         setShare(!!x.email_shared);
       } else setErr(t(lang, 'loadErr'));
     }).catch(() => { if (live.current) setErr(t(lang, 'loadErr')); });

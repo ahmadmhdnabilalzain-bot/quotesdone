@@ -1,6 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { resolveSale } from './resolve.ts';
+import { jobNoOf } from '../_shared/quote_documents.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -76,7 +77,7 @@ Deno.serve(observe('reveal_invoice', async (req) => {
       return J({ error: NOT_PAID.code, code: NOT_PAID.code, message_en: NOT_PAID.en, message_ar: NOT_PAID.ar }, 409);
     }
     const { data: cust } = await admin.from('customers').select('email,full_name,phone').eq('email', user.email.toLowerCase()).maybeSingle();
-    const { data: inq } = await admin.from('inquiries').select('summary,category').eq('id', tx.inquiry_id).maybeSingle();
+    const { data: inq } = await admin.from('inquiries').select('summary,category,rfq_no').eq('id', tx.inquiry_id).maybeSingle();
     const fee = Number(tx.reveal_fee || 0), processing = Number(tx.processing_fee || 0);
     const sale: RevealSale = {
       tx_id: String(tx.id), invoice_no: String(tx.stripe_invoice_number || '').trim() || null,
@@ -84,7 +85,7 @@ Deno.serve(observe('reveal_invoice', async (req) => {
       reveal_fee: fee, processing_fee: processing, total_charged: tx.total_charged != null ? Number(tx.total_charged) : fee + processing,
       quote_amount: tx.quote_amount != null ? Number(tx.quote_amount) : null, payment_ref: String(tx.payment_ref || ''),
       customer: { name: cust?.full_name || null, email: cust?.email || user.email, phone: cust?.phone || null },
-      request: { summary: inq?.summary || null, category: inq?.category || null, ref: 'QD-' + String(tx.inquiry_id || '').replace(/-/g, '').slice(0, 8).toUpperCase() },
+      request: { summary: inq?.summary || null, category: inq?.category || null, ref: 'QD-' + jobNoOf({ id: String(tx.inquiry_id || ''), rfq_no: inq?.rfq_no }) },
       card: null, refund: pay.refund,
     };
 

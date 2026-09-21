@@ -36,18 +36,19 @@
 // EVERY PROMISE IS HANDED OUT AT MOST ONCE (prefetch.ts `boot()` deletes it on read) and only to the
 // SAME token that started it. A refresh, a retry, or a different customer asks the server fresh —
 // the same rule prefetch.ts already applies to its own in-flight map.
-import { SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_FN, FN_REGION } from '@/lib/supaEnv';
 
 // The five dashboard keys are prefetch.ts's own ('inq','ov','pd','threads','decision_support');
 // 'kyc' is the gate Authed.load() reads. Keeping the names here identical to the ones the
 // components `take()` is the whole contract — a renamed key silently degrades to no prefetch.
 const lit = (s: string) => JSON.stringify(s).split('<').join('\\u003c').split(String.fromCharCode(0x2028)).join('\\u2028').split(String.fromCharCode(0x2029)).join('\\u2029');
-const BOOT = (fn: string) => `(function(){try{
-var F=${lit(fn)};if(!F||F.indexOf('/functions/v1')<0)return;
+// The region pin is supaEnv.ts fnUrl()'s, so a boot read and the portal's own read land in the same place.
+const BOOT = (fn: string, region: string) => `(function(){try{
+var F=${lit(fn)},R=${lit(region)};if(!F||F.indexOf('/functions/v1')<0)return;
 var t=localStorage.getItem('qd-cust-token')||'';if(!t)return;
 var e=(JSON.parse(atob(t.split('.')[1]))||{}).exp||0;if(!(e>Date.now()/1000+60))return;
 var l=location.pathname.indexOf('/ar')===0?'ar':'en';
-var g=function(p,b){return fetch(F+'/'+p,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify(b)}).then(function(r){return r.json()})};
+var g=function(p,b){return fetch(F+'/'+p+'?forceFunctionRegion='+R,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+t},body:JSON.stringify(b)}).then(function(r){return r.json()})};
 var m={kyc:g('kyc',{action:'state'}),inq:g('customer_api',{action:'my_inquiries'}),ov:g('customer_portal',{action:'overview',lang:l}),pd:g('project_api',{action:'dashboard'}),threads:g('messages_api',{action:'threads'}),decision_support:g('customer_portal',{action:'decision_support',lang:l})};
 for(var k in m){m[k].catch(function(){})}
 window.__qdBoot={token:t,m:m};
@@ -77,5 +78,5 @@ window.__qdBoot={token:t,m:m};
 // warmDashboard's own request, where it does not.
 export function BootPrefetch() {
   if (!SUPA_FN || SUPA_FN.startsWith('/')) return null; // a preview with no Supabase target: nothing to call
-  return <script id="qd-boot-prefetch" dangerouslySetInnerHTML={{ __html: BOOT(SUPA_FN) }} />;
+  return <script id="qd-boot-prefetch" dangerouslySetInnerHTML={{ __html: BOOT(SUPA_FN, FN_REGION) }} />;
 }

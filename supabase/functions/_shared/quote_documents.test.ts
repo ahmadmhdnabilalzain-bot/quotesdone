@@ -16,10 +16,11 @@
 // reachable (`deno test --allow-net`), and the sample renderer in the PR proves the Arabic pages.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { PDFDocument, PDFDict, PDFName } from 'https://esm.sh/pdf-lib@1.17.1';
-import { quoteDocument, compareDocument, compareTable, inquiryDocument, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv } from './quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, inquiryDocument, jobNoOf, quoteRef, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv, type Item } from './quote_documents.ts';
 import { footerLines, footerLinesAr, FALLBACK } from './doc_template.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 import { renderPdf } from '../pdf_native/render.ts';
+import { pdfPages } from './pdf_text_positions.ts';
 import { portalLink } from './site_origins.ts';
 import { latinLeaks } from './trade_glossary_ar.test.ts';
 import * as F from './quote_documents.fixture.ts';
@@ -222,11 +223,56 @@ const cellText = (c: any) => typeof c === 'string' ? c : String(c?.text ?? '');
 Deno.test('the legal footer names the company, the DET licence and the TDRA permit, in both languages', () => {
   const [l1, l2] = footerLines(FALLBACK);
   assertStringIncludes(l1, 'QuotesDone Technologies'); assertStringIncludes(l1, '1633275'); assertStringIncludes(l1, 'TDRA NOL-26-100000665');
-  assertStringIncludes(l2, 'quotesdone.com');
+  // 21 Sep 2026 (customer audit, finding 12): the TDRA-permitted host, and the one address the site
+  // publishes (src/content/company.json + legal.json, measured 21 Sep 2026). Never quotesdone.com.
+  assertEquals(l2.split(' · ').pop(), 'quotesdone.ae'); assertStringIncludes(l2, 'management@quotesdone.com');
   const [a1, a2] = footerLinesAr(FALLBACK);
   assertStringIncludes(a1, 'QuotesDone Technologies'); assertStringIncludes(a1, '1633275'); assertStringIncludes(a1, 'NOL-26-100000665'); assertStringIncludes(a1, 'رخصة');
-  assertStringIncludes(a2, 'quotesdone.com');
+  assertEquals(a2.split(' · ').pop(), 'quotesdone.ae'); assertStringIncludes(a2, 'management@quotesdone.com');
 });
+
+// CUSTOMER AUDIT 21 Sep 2026, FINDING 12 — the audited quotation (two Knauf gypsum lines, AED 25,920)
+// as customer_api now hands it in: the per-line spec read from quote_items.spec, the exclusions with
+// their commas, and a warranty long enough to overrun a key-figure cell.
+const AUDIT_ITEMS: Item[] = [
+  { desc: 'Knauf gypsum false ceiling 12.5mm with cove lighting detail', qty: '180', unit: 'm2', unit_price: 95, amount: 17100, specs: { brand: 'Knauf', thickness_mm: '12.5', board_type: 'Knauf standard gypsum board, 12.5 mm' } },
+  { desc: 'Knauf gypsum cornice 150mm supplied and fixed', qty: '210', unit: 'm', unit_price: 42, amount: 8820, specs: { brand: 'Knauf', thickness_mm: '150' } },
+];
+const AUDIT_QUOTE = { id: 'zz-demo-audit-quote', quote_amount: 25920, price_ex_vat: 25920, lead_time: '4 weeks', validity: '30 days', warranty: '2 years materials and workmanship', payment_terms: '50% advance, 50% on completion', exclusions: 'electrical fittings, painting of walls, scaffolding above 4m' };
+const AUDIT_INQ = { id: 'zz-demo-audit-inq', category: 'fitout', summary: 'ZZ DEMO villa false ceiling', emirate: 'Dubai' };
+for (const lang of ['en', 'ar'] as const) {
+  Deno.test(`quotation (audit 21 Sep, ${lang.toUpperCase()}): specs read as stated, exclusions keep their commas, the key-figure strip does not overlap`, async () => {
+    // deno-lint-ignore no-explicit-any
+    const body: any = quoteDocument({ quote: AUDIT_QUOTE, inquiry: AUDIT_INQ, items: AUDIT_ITEMS, letter: 'A', lang, ...dates(lang) }).body;
+    const checks = blocksOf(body, 'checks')[0].items;
+    assertEquals(checks[0][1].flag, 'match');
+    assertEquals(cellText(checks[0][1]), lang === 'en' ? 'Stated on all 2 lines' : 'مذكورة في جميع البنود (2)');
+    const table = blocksOf(body, 'table')[0];
+    assertStringIncludes(JSON.stringify(table.rows[0][2]), 'Knauf'); assertStringIncludes(JSON.stringify(table.rows[0][2]), '12.5');
+    const excl = blocksOf(body, 'p').find((p: any) => /Exclusions|الاستثناءات/.test(String(p.label)));
+    assert(excl, 'exclusions paragraph');
+    // English: the sentence verbatim. Arabic: the glossary's text is the primary line; the commas
+    // survive in whichever line carries the supplier's words (the primary text or the original line).
+    if (lang === 'en') assertEquals(excl.text, 'electrical fittings, painting of walls, scaffolding above 4m');
+    else assert(/,|،/.test(String(excl.text) + String(excl.sub || '')), 'Arabic exclusions lost their separators: ' + JSON.stringify(excl));
+    // The rendered strip: the warranty value stays inside its own quarter of the strip and never
+    // crosses into the "Valid for" cell beside it (finding 12: it was drawn on one unwrapped line).
+    await assertRenders(body, lang);
+    // Measured on the Helvetica render (the brand fonts embed as subsets whose runs the position
+    // reader cannot decode; the cell geometry is the same with either font). The value's runs sit
+    // on one or two lines inside the third quarter of the strip; none reaches the fourth.
+    if (lang === 'en') {
+      const plain = await renderPdf(body, { fetchBytes: async () => null });
+      assert(plain.ok);
+      const page = (await pdfPages(plain.bytes))[0];
+      const valid = page.runs.find((r) => r.text === '30 days');
+      const warr = page.runs.filter((r) => /workmanship|materials/.test(r.text) && Math.abs(r.y - (valid?.y ?? -1)) < 0.03);
+      assert(valid && warr.length >= 1, 'strip values found: ' + JSON.stringify(page.runs.slice(12, 22)));
+      for (const w of warr) assert(w.x + w.w <= valid!.x, `warranty run overlaps the validity cell: ${JSON.stringify(w)} vs ${JSON.stringify(valid)}`);
+      assert(warr.length <= 2, 'a key figure never takes more than two lines');
+    }
+  });
+}
 
 Deno.test('labels: drafts take no letter, the incomplete quote sorts last, seven live quotes', () => {
   const lab = F.labelled();
@@ -496,3 +542,41 @@ Deno.test('inquiry document renders to a PDF that loads back, both languages', a
     assert(links.some((u) => u.startsWith('https://quotesdone.com/')), 'the portal link is written into the file: ' + JSON.stringify(links));
   }
 });
+
+// ── ONE JOB NUMBER (supplier audit 21 Sep 2026, finding 7) ──────────────────────────────────────────
+// Replays the failing input: job d958e1ea… is rfq 151767; the supplier's documents printed D958E1EA.
+Deno.test('job number: every document prints inquiries.rfq_no, the number the customer portal shows', () => {
+  const inq = { id: 'd958e1ea-0000-4000-8000-000000000000', rfq_no: 151767 };
+  assertEquals(jobNoOf(inq), '151767');
+  assertEquals(quoteRef(inq, 'A'), 'QD-151767-A');
+  // only a row read WITHOUT rfq_no falls back to the uuid prefix
+  assertEquals(jobNoOf({ id: inq.id }), 'D958E1EA');
+  for (const lang of ['en', 'ar'] as Lang[]) {
+    // the attachment names come from inquiryDocuments (quote_review_actions.ts), which names them by the same jobNo
+    const prefix = String(F.REQUEST.id).slice(0, 8).toUpperCase();
+    const documents = F.REQUEST.documents.map((d) => ({ ...d, name: d.name.replace(prefix, '151767') }));
+    const r = inquiryDocument({ inquiry: { ...F.REQUEST, rfq_no: 151767, documents }, lang });
+    assertEquals(r.job, '151767'); assertEquals(r.ref, 'QD-151767-RFQ');
+    assert(!JSON.stringify(r.body).includes(String(F.REQUEST.id).slice(0, 8).toUpperCase()), `${lang}: the uuid prefix is not printed`);
+  }
+});
+
+// ── THE ARABIC INQUIRY BOQ (finding 26) ─────────────────────────────────────────────────────────────
+// The inbox hands the document section_ar / description_ar (_shared/boq_arabic.ts). On the Arabic page a
+// line the glossary alone cannot finish prints the sales engineer's Arabic label, with the customer's
+// words on the secondary line; the English page is unchanged.
+Deno.test('inquiry document: the Arabic page prints the Arabic BOQ section and description, the original under it', () => {
+  const boq = { boq: [{ section: 'Partitions', section_ar: 'القواطع والجدران الداخلية', description: 'Gypsum board partition, 100mm metal stud, both faces, zz-fixture-word', description_ar: 'قواطع ألواح الجبس', qty: 320, unit: 'm2' }] };
+  const table = (lang: Lang) => {
+    // deno-lint-ignore no-explicit-any
+    const t = (inquiryDocument({ inquiry: { ...F.REQUEST, boq }, lang }).body.blocks as any[]).filter((b) => b.t === 'table')[1];
+    return t.rows[0];
+  };
+  const ar = table('ar');
+  assertEquals(ar[1], 'القواطع والجدران الداخلية');
+  assertEquals(ar[2].text, 'قواطع ألواح الجبس');
+  assertStringIncludes(ar[2].sub, 'Gypsum board partition');
+  const en = table('en');
+  assertEquals(cellStr(en[2]), 'Gypsum board partition, 100mm metal stud, both faces, zz-fixture-word');
+});
+

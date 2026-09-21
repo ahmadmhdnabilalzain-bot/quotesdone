@@ -197,7 +197,10 @@ export type QuoteRow = {
    * shows and compares this figure; the 3% fee is taken on it. Absent: quote_amount is ex-VAT. */
   price_ex_vat?: number | null;
 };
-export type InquiryRow = { id: string; category?: string | null; summary?: string | null; emirate?: string | null };
+export type InquiryRow = { id: string; rfq_no?: number | string | null; category?: string | null; summary?: string | null; emirate?: string | null };
+/** The one job number (inquiries.rfq_no) as printed on every document; the uuid prefix only for a row read without it. */
+export const jobNoOf = (inq: { id?: string | null; rfq_no?: number | string | null } | null | undefined) =>
+  inq?.rfq_no != null && String(inq.rfq_no).trim() !== '' ? String(inq.rfq_no) : String(inq?.id || '').slice(0, 8).toUpperCase();
 
 // ── The completeness checks come from the hold desk's own reading ─────────────────────────────
 // MEASURED 21 Sep 2026 (audit, finding 4): the generated quotation said "Material specification:
@@ -260,7 +263,8 @@ export type TechnicalComparison = {
   terms?: { lead_time?: TechTerm | null; installation?: TechTerm | null; warranty?: TechTerm | null } | null;
 };
 
-export function quoteRef(inquiryId: string, letter: string) { return 'QD-' + String(inquiryId || '').slice(0, 8).toUpperCase() + '-' + letter; }
+/** 'QD-<job number>-<letter>' — the job number is inquiries.rfq_no, the same one both portals print (21 Sep 2026, audit finding 7). */
+export function quoteRef(inq: { id?: string | null; rfq_no?: number | string | null }, letter: string) { return 'QD-' + jobNoOf(inq) + '-' + letter; }
 export function clipCell(s: unknown, n: number) { const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; }
 // deno-lint-ignore no-explicit-any
 const arrOf = (x: any) => Array.isArray(x) ? x : [];
@@ -355,15 +359,16 @@ const hasSpecs = (it: Item) => !!((it.specs && Object.values(it.specs).some((v) 
 // ── The quotation ──────────────────────────────────────────────────────────────────────────────
 /** The pdf_native body for ONE quote in ONE language. Pure: the caller fetches the rows. */
 // requestUrl: the portal deep link back to this quote on its request (site_origins portalLink).
-export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string }) {
+/** `partyName`: the supplier's company name once the customer has paid to reveal it; the letter still names the reference. */
+export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string }) {
   const { quote: q, inquiry: inq, letter, lang } = args;
   // A line that is itself VAT ("VAT 5%") is not scope; it never reaches the page.
   const items = (args.items || []).filter((it) => !VAT_RE.test(String(it.desc || '')));
   const exVat = Number(q.price_ex_vat) > 0 ? Number(q.price_ex_vat) : Number(q.quote_amount) || 0;
   const k = kit(lang, args.maskNames || []); const { T, ar } = k;
-  const ref = quoteRef(inq.id, letter);
+  const ref = quoteRef(inq, letter);
   const date = (ar ? args.date_ar : args.date) || k.today();
-  const party = k.label('Supplier ' + letter);
+  const party = args.partyName || k.label('Supplier ' + letter);
   const trade = ar ? (arCategory(inq.category) ?? k.loc(inq.category).text) : enCategory(inq.category);
   const emirate = ar ? (arEmirate(inq.emirate) ?? k.loc(inq.emirate).text) : String(inq.emirate || '');
   const lead = k.dur(q.lead_time), validity = k.dur(q.validity), warranty = k.dur(q.warranty);
@@ -551,7 +556,7 @@ export function toCsv(head: string[], rows: string[][]): string {
 export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang: Lang; maskNames?: string[]; portalUrl?: string; linkFor?: (quoteId: string) => string; date?: string; date_ar?: string }) {
   const { analysis: a, inquiry: inq, lang } = args;
   const k = kit(lang, args.maskNames || []); const { T, ar } = k;
-  const ref = 'QD-' + String(inq?.id || '').slice(0, 8).toUpperCase() + '-CMP';
+  const ref = 'QD-' + jobNoOf(inq) + '-CMP';
   const date = (ar ? args.date_ar : args.date) || k.today();
   const roster = arrOf(a.all_quotes);
   const held = heldLabels(a);
@@ -756,9 +761,9 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
 // and its reveal gate — so nothing here reads the inquiry itself; contacts are masked once more on
 // the way to the page, the way every other document does it.
 /** One customer-authored BOQ line as the inbox serves it (quote_review.ts BoqRow). */
-export type RequestLine = { section?: string | null; description?: string | null; qty?: number | string | null; unit?: string | null };
+export type RequestLine = { section?: string | null; description?: string | null; section_ar?: string | null; description_ar?: string | null; qty?: number | string | null; unit?: string | null };
 export type InquiryDocRow = {
-  id: string; category?: string | null; emirate?: string | null; summary?: string | null; budget?: string | null;
+  id: string; rfq_no?: number | string | null; category?: string | null; emirate?: string | null; summary?: string | null; budget?: string | null;
   scope_type?: string | null; urgency?: string | null; created_at?: string | null;
   /** inquiries.spec after the inbox scrub; `customer_requirements` carries the four intake answers and `required_by`. */
   // deno-lint-ignore no-explicit-any
@@ -772,8 +777,8 @@ const URGENCY: Record<string, [string, string]> = { urgent: ['Urgent', 'عاجل
 export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; portalUrl?: string; date?: string; date_ar?: string }) {
   const { inquiry: i, lang } = args;
   const k = kit(lang); const { T, ar } = k;
-  const job = String(i.id || '').slice(0, 8).toUpperCase();
-  const ref = quoteRef(i.id, 'RFQ');
+  const job = jobNoOf(i);
+  const ref = quoteRef(i, 'RFQ');
   const date = (ar ? args.date_ar : args.date) || k.today();
   const trade = ar ? (arCategory(i.category) ?? k.loc(i.category).text) : enCategory(i.category);
   const emirate = ar ? (arEmirate(i.emirate) ?? k.loc(i.emirate).text) : String(i.emirate || '');
@@ -828,8 +833,12 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
     head.push(T('Description', 'الوصف'), T('Qty', 'الكمية'), T('Unit', 'الوحدة')); widths.push(hasSection ? 0.59 : 0.75, 0.10, 0.10); align.push('s', 'e', 'c');
     const body = rows.slice(0, 120).map((r, idx) => {
       const c: Cell[] = [String(idx + 1)];
-      if (hasSection) c.push(k.cell(r.section, 60));
-      c.push(k.cell(r.description, 240), r.qty == null || r.qty === '' ? '—' : String(r.qty), (ar ? (arUnit(r.unit) ?? k.loc(r.unit).text) : String(r.unit || '')) || '—');
+      // Arabic page: the section and the description the sales engineer's vocabulary names in Arabic
+      // (_shared/boq_arabic.ts, audit 21 Sep 2026 finding 26) where the glossary alone left English; the
+      // customer's original stays on the secondary line, because that is what the supplier prices.
+      if (hasSection) c.push(ar && r.section_ar ? r.section_ar : k.cell(r.section, 60));
+      const dl = k.loc(r.description, 240);
+      c.push(ar && dl.sub && r.description_ar ? { text: r.description_ar, sub: dl.sub } : k.cell(r.description, 240), r.qty == null || r.qty === '' ? '—' : String(r.qty), (ar ? (arUnit(r.unit) ?? k.loc(r.unit).text) : String(r.unit || '')) || '—');
       return c;
     });
     blocks.push({ t: 'table', head, rows: body, widths, align, zebra: true });

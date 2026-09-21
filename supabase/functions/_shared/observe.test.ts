@@ -8,7 +8,7 @@
 //
 // Run: deno test supabase/functions/_shared/observe.test.ts   (or npm test, which discovers it)
 import { assert, assertEquals, assertStrictEquals } from 'jsr:@std/assert@1';
-import { classify, observe, record } from './observe.ts';
+import { baseCounts, classify, edgeRegion, observe, record } from './observe.ts';
 
 const req = (url = 'http://x.test/fn', init?: RequestInit) => new Request(url, init);
 
@@ -83,4 +83,15 @@ Deno.test('healthy runs are sampled but every slow one is kept', async () => {
     assertEquals(await out.text(), 'ok');
   }
   assert(true);
+});
+
+Deno.test('every run row carries the edge region that served it', () => {
+  // 21 Sep 2026: the latency detector read GitHub-runner smoke calls served in us-east (3.3s p50)
+  // against a baseline of calls served in ap-south-1 (~1s) and reported the function as slower.
+  // The region in the row is what lets a baseline compare like with like; this fails if it is dropped.
+  const c = baseCounts(req('http://x.test/functions/v1/supplier_portal', { method: 'POST' }), 200, 'us-east-2');
+  assertEquals(c, { http: 200, method: 'POST', path: '/functions/v1/supplier_portal', region: 'us-east-2' });
+  // Without env permission (this test run) the region is unknown, never a throw.
+  assertStrictEquals(edgeRegion(), null);
+  assertStrictEquals(baseCounts(req(), 204).region, null);
 });

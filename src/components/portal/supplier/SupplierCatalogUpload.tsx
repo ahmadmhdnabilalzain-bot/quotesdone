@@ -22,7 +22,7 @@
 // its own sentence, because a supplier who thinks their catalogue was read will not re-upload it.
 import React, { useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 type DocRead = { status?: string; source?: string; supply_only?: boolean; trades?: { code: string }[] };
@@ -61,7 +61,6 @@ async function imagesOf(file: File): Promise<{ mime: string; data: string }[]> {
   return [];
 }
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 
 // The same call() every sibling component uses. The first version hand-rolled its fetch, which
@@ -70,7 +69,7 @@ const ANON = SUPA_ANON;
 // supplier_catalog_ingest at all. Consistency here is not tidiness — it is how the endpoint stays
 // discoverable from the code that uses it.
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),

@@ -99,7 +99,7 @@ export function DrawingGallery({ pages, lang, failed = 0 }: { pages: string[]; l
 }
 
 // ── Bill of quantities ───────────────────────────────────────────────────────────────────────────
-export type BoqRow = { section?: string; description?: string; qty?: number | null; unit?: string; basis?: string; confidence?: string };
+export type BoqRow = { section?: string; description?: string; section_ar?: string | null; description_ar?: string | null; qty?: number | null; unit?: string; basis?: string; confidence?: string };
 const CONF: Record<string, { en: string; ar: string; cls: string }> = {
   high: { en: 'high', ar: 'عالية', cls: 'bg-primary/15 text-primary border-primary/40' },
   medium: { en: 'medium', ar: 'متوسطة', cls: 'bg-warn/10 text-warn-fg border-warn/30' },
@@ -137,7 +137,9 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
           <thead className="sticky top-0 z-[1] bg-card">
             <tr className="font-mono text-label uppercase tracking-caps text-muted-foreground">
               <th scope="col" className="w-14 px-3 py-2.5 text-start font-medium">#</th>
-              <th scope="col" className="px-3 py-2.5 text-start font-medium">{ar ? 'الوصف' : 'Description'}</th>
+              {/* 21 Sep 2026 (audit finding 27): in RTL the description column collapsed to one word per line
+                  because nothing gave it a width; a minimum width keeps the line readable in either direction. */}
+              <th scope="col" className="w-[55%] min-w-[16rem] px-3 py-2.5 text-start font-medium">{ar ? 'الوصف' : 'Description'}</th>
               <th scope="col" className="px-3 py-2.5 text-end font-medium">{ar ? 'الكمية' : 'Qty'}</th>
               <th scope="col" className="px-3 py-2.5 text-start font-medium">{ar ? 'الوحدة' : 'Unit'}</th>
               <th scope="col" className="hidden px-3 py-2.5 text-start font-medium sm:table-cell">{ar ? 'الثقة' : 'Confidence'}</th>
@@ -146,7 +148,11 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
           <tbody>
             {rows.map((r, i) => {
               const sec = String(r.section || '');
-              const head = sec && sec !== lastSection ? sec : '';
+              // Arabic UI: the section and description derived by the sales engineer's vocabulary
+              // (_shared/boq_arabic.ts); the English original stays under it because it is what the
+              // drawing said and what the supplier prices (audit 21 Sep 2026, finding 26).
+              const secShown = ar && r.section_ar ? r.section_ar : sec;
+              const head = sec && sec !== lastSection ? secShown : '';
               if (head) lastSection = sec;
               const c = CONF[String(r.confidence || '')];
               return [
@@ -154,7 +160,9 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
                 <tr key={i} className="border-t border-[var(--line)] align-top transition-colors hover:bg-white/[.02]">
                   <td className="px-3 py-2.5 font-mono text-label tabular-nums text-primary">{String(i + 1).padStart(3, '0')}</td>
                   <td className="px-3 py-2.5 text-foreground">
-                    <div>{r.description || '—'}</div>
+                    {ar && r.description_ar
+                      ? <><div>{r.description_ar}</div><div dir="ltr" className="mt-0.5 text-start text-[12px] text-muted-foreground">{r.description}</div></>
+                      : <div dir="auto">{r.description || '—'}</div>}
                     {r.basis ? <div className="mt-0.5 text-[11.5px] text-muted-foreground">{r.basis}</div> : null}
                   </td>
                   <td className="tabular px-3 py-2.5 text-end font-mono tabular-nums text-foreground">{r.qty == null ? '—' : nf.format(Number(r.qty))}</td>
