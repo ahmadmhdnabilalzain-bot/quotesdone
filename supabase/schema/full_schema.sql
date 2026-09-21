@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T19:11:01.916Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T19:33:31.539Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -4094,7 +4094,8 @@ CREATE TABLE IF NOT EXISTS public.leads (
   whatsapp_phone text,
   whatsapp_verified_at timestamp with time zone,
   whatsapp_opt text,
-  whatsapp_asked_at timestamp with time zone
+  whatsapp_asked_at timestamp with time zone,
+  invite_clicked_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
@@ -18620,135 +18621,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19264,6 +19136,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -37484,11 +37485,14 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_kb_purge_batch(p_limit integer DEFAULT 50000)
+CREATE OR REPLACE FUNCTION public.fn_kb_purge_batch(p_limit integer DEFAULT 2000)
  RETURNS TABLE(batch_no integer, deleted_count bigint, deleted_bytes bigint, cursor_from bigint, cursor_to bigint, remaining_count bigint)
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
+ SET enable_seqscan TO 'off'
+ SET max_parallel_workers_per_gather TO '0'
+ SET lock_timeout TO '2s'
 AS $function$
 declare
   v_planned bigint;
@@ -37499,11 +37503,14 @@ declare
   v_deleted bigint;
   v_bytes   bigint;
 begin
-  if p_limit is null or p_limit < 1 or p_limit > 200000 then
-    raise exception 'fn_kb_purge_batch: p_limit must be 1..200000 (got %)', p_limit;
+  -- 5,000 measured at 2.4 s and 22.6 MB WAL; the ceiling is the measured safe size, not a guess.
+  if p_limit is null or p_limit < 1 or p_limit > 5000 then
+    raise exception 'fn_kb_purge_batch: p_limit must be 1..5000 (got %) — scripts/sql/the_purge_cannot_take_the_database_down.sql', p_limit;
+  end if;
+  if not pg_try_advisory_xact_lock(hashtext('public.fn_kb_purge_batch')) then
+    raise exception 'fn_kb_purge_batch: another purge batch is running — refusing to overlap it';
   end if;
 
-  -- §6: the audit row per (verdict, source_kind, category) is written FIRST. No census, no delete.
   select sum(l.rows) into v_planned
     from public.kb_purge_ledger l where l.verdict = 'DELETE' and l.clause = 5 and l.batch_no is null;
   if v_planned is null then
@@ -37515,8 +37522,9 @@ begin
     from public.kb_purge_ledger l where l.verdict = 'DELETE' and l.batch_no is not null;
   v_batch := v_batch + 1;
 
-  -- ponytail: id-ordered cursor, so a batch never rescans what an earlier batch already walked;
-  -- the predicate is evaluated on ~p_limit rows per call (~4 s per 50,000), not on the table.
+  -- this transaction's deletes are recorded by range here, not id by id (trg_table_export_change)
+  perform set_config('qd.export_change_bulk', 'kb_chunks', true);
+
   with pick as (
     select k.id
       from public.kb_chunks k
@@ -37576,6 +37584,27 @@ AS $function$
     when p_citation ~* '(\mNFPA\M|\mNEC\M|\mBS ?EN\M|Eurocode|\mIEC\M|\mISO\M|ASHRAE|\mASTM\M|SMACNA|IAPMO|\mUPC\M|\mIPC\M|\mIBC\M|\mICC\M|CIBSE|BS ?7671|AWS ?D1|\mAPI\M|\mASME\M|\mANSI\M|\mUL\M|\mEN ?54\M|\mEN ?12845\M|LPCB|FM ?Global)' then 4
     -- 5. DELETE — foreign bulk
     else 5 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_purge_load()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'wal_bytes',        (select coalesce(sum(w.size), 0)::bigint from pg_ls_waldir() w),
+    'active_others',    (select count(*)::int from pg_stat_activity a
+                          where a.backend_type = 'client backend' and a.state <> 'idle' and a.pid <> pg_backend_pid()),
+    'longest_active_s', (select coalesce(max(extract(epoch from now() - a.query_start)), 0)::int from pg_stat_activity a
+                          where a.backend_type = 'client backend' and a.state = 'active' and a.pid <> pg_backend_pid()
+                            and a.query not ilike '%fn_kb_purge_load%'),
+    'purge_running',    (select count(*)::int from pg_stat_activity a
+                          where a.pid <> pg_backend_pid() and a.state <> 'idle' and a.query ilike '%fn_kb_purge_batch(%'),
+    'export_running',   exists (select 1 from public.table_export_run r
+                                 where r.status = 'running' and r.heartbeat_at > now() - interval '10 minutes'),
+    'dubai_time',       to_char(now() at time zone 'Asia/Dubai', 'HH24:MI'));
 $function$
 
 
@@ -49021,6 +49050,51 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_raises_undecided_submissions(p_include_fixtures boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v jsonb; rep jsonb; v_acted int := 0; v_raised int := 0; v_already int := 0; v_refused jsonb := '[]'::jsonb;
+begin
+  for r in select l.id, l.company_name, l.registration_submitted_at, l.approval_status
+             from public.leads l
+            where l.registration_submitted_at < now() - interval '24 hours'
+              and coalesce(l.approval_status, '') in ('', 'pending')
+              and coalesce(l.banned, false) = false
+              and (p_include_fixtures or not (coalesce(l.is_demo, false) or coalesce(l.company_name, '') ~* '^\s*zz\s*demo'
+                                              or public.fn_is_demo_email(l.email)))
+            order by l.registration_submitted_at loop
+    v := public.fn_sales_engineer_verifies_supplier(r.id, 'submission_24h_clock');
+    if coalesce((v->>'ok')::boolean, false) and coalesce(v->>'approval_status', '') not in ('', 'pending') then
+      v_acted := v_acted + 1;
+      continue;
+    end if;
+    rep := public.fn_support_report_to_ceo(
+      'supplier_submission_undecided:' || r.id || ':' || extract(epoch from r.registration_submitted_at)::bigint,
+      'elevated',
+      'A supplier registration submitted ' || floor(extract(epoch from now() - r.registration_submitted_at) / 3600)::int
+        || ' h ago is still undecided — ' || left(coalesce(r.company_name, 'supplier #' || r.id), 120),
+      jsonb_build_object('supplier_id', r.id, 'submitted_at', r.registration_submitted_at,
+                         'approval_status', coalesce(v->>'approval_status', r.approval_status), 'verification', v),
+      jsonb_build_array('sales_engineer re-ran its verification at the 24-hour mark: '
+                        || coalesce(v->>'approval_status', 'the verification did not complete (' || coalesce(v->>'error', 'no error') || ')')),
+      case when coalesce((v->>'auto_approve')::boolean, true) = false
+           then 'Decide the approval. The six items are complete and pricing_config.auto_approve_suppliers is off, so the sales engineer may not approve alone.'
+           else 'Decide why the verification cannot settle this registration, and settle it.' end,
+      'leads#' || r.id, p_source_agent => 'sales_engineer');
+    if not coalesce((rep->>'ok')::boolean, false) then
+      v_refused := v_refused || jsonb_build_array(jsonb_build_object('supplier_id', r.id, 'reason', rep->>'reason'));
+    elsif coalesce((rep->>'duplicate')::boolean, false) then v_already := v_already + 1;
+    else v_raised := v_raised + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('acted', v_acted, 'raised_to_ceo', v_raised, 'already_raised', v_already, 'refused', v_refused);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_refiles_backup(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -49119,6 +49193,38 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_sends_registration_reminder(p_lead_id bigint, p_stage text, p_step integer, p_last_activity timestamp with time zone)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare l public.leads; v_to text; v_fixture boolean; v_go boolean; m jsonb; v_key text; v_out jsonb;
+begin
+  select * into l from public.leads where id = p_lead_id;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'lead_not_found'); end if;
+  v_to := lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email)));
+  v_fixture := public.fn_is_demo_email(v_to);
+  v_go := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
+          and public.fn_supplier_outreach_golive();
+  if not v_fixture and not v_go then
+    return jsonb_build_object('ok', false, 'held', true, 'reason', 'the supplier campaign is not open (invite_enabled / supplier_outreach_golive)');
+  end if;
+  if not v_fixture and not public.fn_supplier_outreach_reachable(l, v_to) then
+    return jsonb_build_object('ok', false, 'reason', 'not reachable: fixture, banned, screened, closed, bounced, suppressed or unsendable');
+  end if;
+  m := public.fn_supplier_registration_reminder_compose(l, p_stage, p_step);
+  v_key := 'supplier_registration_reminder:' || l.id || ':' || extract(epoch from p_last_activity)::bigint || ':' || p_step;
+  v_out := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+    'type', 'supplier_registration_reminder', 'requested_by', 'sales_engineer', 'channel', 'email',
+    'to_email', v_to, 'to_role', 'supplier', 'lead_id', l.id, 'lang', m->>'lang',
+    'subject', m->>'subject', 'body', m->>'body', 'dedupe_key', v_key)));
+  return jsonb_build_object('ok', true, 'lead_id', l.id, 'stage', p_stage, 'step', p_step, 'lang', m->>'lang', 'fixture', v_fixture,
+                            'delivery', v_out->0);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supplier_documents_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -49207,6 +49313,66 @@ begin
   perform public.fn_it_duty_ran('supplier_docs', v_out);
   return v_out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supplier_outreach_tick(p_force boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_now_dxb timestamp := now() at time zone 'Asia/Dubai';
+  v_go boolean; v_weekend boolean; v_invited int; r record; s jsonb;
+  v_due int := 0; v_sent int := 0; v_failed jsonb := '[]'::jsonb; v_clock jsonb; v_out jsonb; v_why text;
+begin
+  if not p_force then
+    if extract(hour from v_now_dxb) < 9 then return jsonb_build_object('due', false, 'reason', 'before 09:00 Dubai'); end if;
+    if exists (select 1 from public.agent_runs a
+                where a.agent = 'sales_engineer' and a.counts->>'job' = 'supplier_outreach'
+                  and a.started_at > now() - interval '1 day'
+                  and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date) then
+      return jsonb_build_object('due', false, 'reason', 'already ran this Dubai day');
+    end if;
+  end if;
+
+  v_go := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
+          and public.fn_supplier_outreach_golive();
+  v_weekend := extract(isodow from v_now_dxb) in (6, 7);
+  v_why := case when not public.fn_supplier_outreach_golive() then 'supplier_outreach_golive is false'
+                when not v_go then 'invite_enabled is false'
+                when v_weekend then 'it is the UAE weekend' end;
+
+  -- 1. The batch. enqueue_supplier_invites holds itself (gates, weekend, holiday, bounce brake, cap).
+  v_invited := public.enqueue_supplier_invites(null);
+
+  -- 2. Reminders: always counted; written only on an open weekday.
+  for r in select * from public.fn_supplier_registration_reminders_due() loop
+    v_due := v_due + 1;
+    if v_why is not null then continue; end if;
+    s := public.fn_sales_engineer_sends_registration_reminder(r.lead_id, r.stage, r.step, r.last_activity);
+    if coalesce((s->>'ok')::boolean, false) then v_sent := v_sent + 1;
+    else v_failed := v_failed || jsonb_build_array(jsonb_build_object('lead_id', r.lead_id, 'reason', s->>'reason'));
+    end if;
+  end loop;
+
+  -- 3. The 24-hour clock: internal, so not held by the campaign gates.
+  v_clock := public.fn_sales_engineer_raises_undecided_submissions(false);
+
+  v_out := jsonb_build_object('job', 'supplier_outreach', 'dubai_day', v_now_dxb::date, 'held', v_why is not null, 'held_because', v_why,
+    'invites', jsonb_build_object('queued', v_invited),
+    'reminders', jsonb_build_object('due', v_due, 'sent', v_sent, 'failed', v_failed),
+    'submissions', v_clock);
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('sales_engineer', case when jsonb_array_length(v_failed) > 0 then 'warn' else 'ok' end, now(), now(), v_out,
+          case when v_why is not null
+               then 'Supplier outreach HELD (' || v_why || '): ' || v_invited || ' invitation(s) queued, ' || v_due
+                    || ' reminder(s) due and none written; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.'
+               else 'Supplier outreach: ' || v_invited || ' invitation(s) queued, ' || v_sent || ' of ' || v_due
+                    || ' reminder(s) sent; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.' end);
+  return v_out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_tells_customer_invoice_ready()
@@ -52428,6 +52594,26 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_outreach_reachable(p leads, p_to text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(btrim(p_to), '') <> ''
+     and coalesce(p.is_demo, false) = false
+     and coalesce(p.company_name, '') !~* '^\s*zz\s*demo'
+     and not public.fn_is_demo_email(p_to)
+     and not public.fn_is_demo_email(p.email)
+     and coalesce(p.banned, false) = false
+     and coalesce(p.permanently_closed, false) = false
+     and coalesce(p.invite_status, '') <> 'bounced'
+     and not exists (select 1 from public.sanctions_ban b where b.lead_id = p.id)
+     and not exists (select 1 from public.supplier_screening_hit h where h.lead_id = p.id and h.status in ('open', 'confirmed'))
+     and coalesce((public.fn_email_sendable(p_to)->>'ok')::boolean, false)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_product_match(p_inquiry_id uuid, p_lead_id bigint)
  RETURNS jsonb
  LANGUAGE sql
@@ -52866,6 +53052,143 @@ AS $function$
           end,
         'basis', 'six checked signals on your account, the brief and the shape of the competing bids'))
   end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_registration_reminder_compose(p leads, p_stage text, p_step integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_ar boolean := lower(coalesce(p.locale, '')) like 'ar%';
+  v_lang text; v_site text; v_link text; v_name text := nullif(btrim(coalesce(p.company_name, '')), '');
+  v_items_en text; v_items_ar text; v_due_en text; v_due_ar text; v_last boolean := p_step >= 2;
+  v_greet text; v_subj text; v_body text;
+  v_label jsonb := jsonb_build_object(
+    'reg_name',        jsonb_build_array('company name', 'اسم الشركة'),
+    'reg_mobile',      jsonb_build_array('a verified UAE mobile number', 'رقم جوال إماراتي تم التحقق منه'),
+    'reg_email',       jsonb_build_array('a verified e-mail address', 'بريد إلكتروني تم التحقق منه'),
+    'reg_licence',     jsonb_build_array('trade licence', 'الرخصة التجارية'),
+    'reg_profile',     jsonb_build_array('company profile', 'الملف التعريفي للشركة'),
+    'reg_terms',       jsonb_build_array('the signed supplier terms', 'الموافقة الموقّعة على شروط المورِّد'));
+begin
+  if p_stage not in ('clicked', 'started', 'incomplete') or p_step not in (1, 2) then
+    raise exception 'fn_supplier_registration_reminder_compose: unknown stage % or step %', p_stage, p_step;
+  end if;
+  v_lang := case when v_ar then 'ar' else 'en' end;
+  select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
+  v_site := coalesce(v_site, 'https://quotesdone.com');
+  v_link := v_site || '/' || v_lang || '/portal'
+            || case when p_stage = 'clicked' and p.claim_token is not null then '?t=' || p.claim_token::text else '' end;
+
+  if p_stage = 'incomplete' then
+    select string_agg(coalesce(v_label->k->>0, k), ', ' order by o), string_agg(coalesce(v_label->k->>1, k), '، ' order by o)
+      into v_items_en, v_items_ar from unnest(public.fn_supplier_mandatory_six(p)) with ordinality u(k, o);
+    if p.license_expiry is not null and p.license_expiry < current_date then
+      v_items_en := concat_ws(', ', v_items_en, 'a trade licence that is in date');
+      v_items_ar := concat_ws('، ', v_items_ar, 'رخصة تجارية سارية المفعول');
+    end if;
+    v_items_en := coalesce(v_items_en, 'the items shown in your portal');
+    v_items_ar := coalesce(v_items_ar, 'البنود الموضّحة في بوابتكم');
+    v_due_en := to_char(coalesce(p.exception_due_at, now() + interval '14 days') at time zone 'Asia/Dubai', 'DD Mon YYYY');
+    v_due_ar := to_char(coalesce(p.exception_due_at, now() + interval '14 days') at time zone 'Asia/Dubai', 'DD/MM/YYYY');
+  end if;
+
+  if v_ar then
+    v_greet := case when v_name is null then 'السادة الكرام،' else 'السادة/ ' || v_name || ' المحترمين،' end;
+    v_subj := case when v_last then 'تذكير أخير: ' else '' end
+      || case p_stage when 'clicked' then 'دعوتكم للانضمام إلى الموردين المؤسِّسين في QuotesDone'
+                      else 'استكمال تسجيلكم كمورِّد في QuotesDone' end;
+    v_body := v_greet || E'\n\nتحية طيبة وبعد،\n\n'
+      || case p_stage
+           when 'clicked' then
+             'نشكر لكم اطّلاعكم على دعوتنا للانضمام بصفة «مورِّد مؤسِّس» إلى QuotesDone، ونودّ إفادتكم بأن تسجيل شركتكم لم يبدأ بعد. '
+             || 'ولا يستغرق التسجيل سوى دقائق معدودة، وهو مجاني دون أي عمولة على الأعمال التي تُرسى عليكم.'
+             || E'\n\nللتسجيل، يُرجى الدخول إلى بوابة الموردين الخاصة بكم عبر الرابط التالي:\n\n' || v_link
+           when 'started' then
+             'نشكر لكم بدء تسجيل شركتكم مورِّدًا على منصة QuotesDone، ونودّ إفادتكم بأن طلب التسجيل لم يُستكمل بعد. '
+             || 'ولا يستغرق استكماله سوى دقائق معدودة: بيانات الشركة، ورقم جوال وبريد إلكتروني يتم التحقق منهما، والرخصة التجارية، '
+             || 'والملف التعريفي للشركة، والموافقة على شروط المورِّد.'
+             || E'\n\nيمكنكم متابعة التسجيل من حيث توقفتم عبر الرابط التالي:\n\n' || v_link
+           else
+             'نفيدكم بأن طلب تسجيل شركتكم محفوظ لدينا، غير أنه ما زال ينقصه: ' || v_items_ar || '. '
+             || 'ويُرجى استكماله في موعد أقصاه ' || v_due_ar || '، إذ يُغلق طلب التسجيل تلقائيًا بعد هذا التاريخ، ويمكنكم التسجيل من جديد في أي وقت.'
+             || E'\n\nيمكنكم استكمال البنود المطلوبة عبر بوابة الموردين:\n\n' || v_link
+         end
+      || case when v_last then E'\n\nوهذا آخر تذكير نرسله إليكم بهذا الشأن.' else '' end
+      || E'\n\nوفي حال عدم رغبتكم في تلقي هذه التذكيرات، يكفي الرد على هذه الرسالة لإزالة عنوانكم من القائمة.'
+      || E'\n\nوتفضلوا بقبول فائق الاحترام والتقدير،';
+  else
+    v_greet := case when v_name is null then 'Dear Sir or Madam,' else 'Dear ' || v_name || ',' end;
+    v_subj := case when v_last then 'A last reminder: ' else '' end
+      || case p_stage when 'clicked' then 'your invitation to join QuotesDone as a founding supplier'
+                      else 'complete your QuotesDone supplier registration' end;
+    v_body := v_greet || E'\n\n'
+      || case p_stage
+           when 'clicked' then
+             'Thank you for opening our invitation to join QuotesDone as a founding supplier. Your company has not registered yet. '
+             || 'It takes a few minutes, it is free, and there is no commission on the work you win.'
+             || E'\n\nTo register, open your supplier portal here:\n\n' || v_link
+           when 'started' then
+             'Thank you for starting to register your company as a supplier on QuotesDone. The registration is not finished yet. '
+             || 'It takes a few minutes: company details, a verified mobile number and e-mail address, your trade licence, '
+             || 'your company profile and acceptance of the supplier terms.'
+             || E'\n\nContinue where you left off:\n\n' || v_link
+           else
+             'Your registration is saved, but it still needs: ' || v_items_en || '. '
+             || 'Please complete it by ' || v_due_en || '; after that date the registration closes automatically, and you are welcome to start again at any time.'
+             || E'\n\nComplete the missing items in your supplier portal:\n\n' || v_link
+         end
+      || case when v_last then E'\n\nThis is the last reminder we will send about it.' else '' end
+      || E'\n\nIf you would rather not receive these reminders, reply to this e-mail and we will remove your address.';
+  end if;
+  return jsonb_build_object('lang', v_lang, 'subject', v_subj, 'body', v_body, 'link', v_link);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_registration_reminders_due()
+ RETURNS TABLE(lead_id bigint, stage text, step integer, last_activity timestamp with time zone, to_email text, dedupe_key text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with s as (
+    select l.id, lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email))) as to_email,
+           case when coalesce(l.approval_status, '') = 'action_required'
+                     and l.exception_opened_at is not null and l.exception_closed_at is null
+                     and coalesce(l.exception_due_at, 'infinity') > now() then 'incomplete'
+                when coalesce(l.claimed, false) and l.registration_submitted_at is null
+                     and coalesce(l.approval_status, '') not in ('approved', 'rejected', 'pending', 'action_required') then 'started'
+                when not coalesce(l.claimed, false) and l.invite_clicked_at is not null then 'clicked'
+           end as stage,
+           case when coalesce(l.approval_status, '') = 'action_required'
+                  then greatest(l.exception_opened_at, coalesce(l.portal_updated_at, l.exception_opened_at))
+                when coalesce(l.claimed, false)
+                  then coalesce(l.portal_updated_at, l.invite_clicked_at, l.invited_at, l.created_at)
+                else l.invite_clicked_at end as last_activity,
+           l as lead
+      from public.leads l
+     where l.invite_clicked_at is not null or coalesce(l.claimed, false) or l.approval_status = 'action_required'
+  ), d as (
+    select s.*, case when now() >= s.last_activity + interval '6 days' then 2
+                     when now() >= s.last_activity + interval '2 days' then 1 end as step
+      from s
+     where s.stage is not null and s.last_activity is not null
+       and now() < s.last_activity + interval '14 days'
+  )
+  select d.id, d.stage, d.step, d.last_activity, d.to_email,
+         'supplier_registration_reminder:' || d.id || ':' || extract(epoch from d.last_activity)::bigint || ':' || d.step
+    from d
+   where d.step is not null
+     and public.fn_supplier_outreach_reachable(d.lead, d.to_email)
+     and not exists (select 1 from public.agent_actions a
+                      where a.kind = 'handoff' and a.agent = 'customer_support'
+                        and a.target_id = 'delivery.request:supplier_registration_reminder:' || d.id || ':'
+                                          || extract(epoch from d.last_activity)::bigint || ':' || d.step)
+   order by d.id
 $function$
 
 
@@ -62813,6 +63136,12 @@ begin
     update public.table_export_change_tracked x set tracking_since = clock_timestamp() where x.table_name = tg_table_name;
     insert into public.table_export_change (table_name, row_key, deleted)
     values (tg_table_name, '(truncate: no row-level record is possible; the next export day is a full copy)', true);
+    return null;
+  end if;
+  -- A bulk purge marks its own transaction (fn_kb_purge_batch). Its deletions are recorded as id ranges
+  -- in kb_purge_ledger; the export learns them by the next day being a FULL copy, as for a truncate.
+  if tg_op = 'DELETE' and current_setting('qd.export_change_bulk', true) = tg_table_name then
+    update public.table_export_change_tracked x set tracking_since = clock_timestamp() where x.table_name = tg_table_name;
     return null;
   end if;
   if tg_op = 'INSERT' then
