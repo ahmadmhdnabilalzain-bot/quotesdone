@@ -7,6 +7,5 @@
 # an entry with no reason — so "committed and not applied" is a stated fact rather than an absence.
 #
 # Format: <path> :: <reason, and what would move it>
-scripts/sql/the_supplier_ranking_reads_the_suppliers_real_quotes.sql :: PR #761, committed 21 Sep 2026, not yet applied (it redefines fn_supplier_tier, so listing it in MANIFEST before the apply would read as drift); the coordinator applies it with --apply --ddl, then moves this line to the END of MANIFEST.txt
 
 

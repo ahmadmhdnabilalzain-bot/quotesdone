@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T09:17:48.500Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T09:34:18.484Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8255,7 +8255,7 @@ ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_punctuality_check CHECK (((r
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_quality_check CHECK (((r_quality >= 1) AND (r_quality <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_rating_range CHECK (((rating >= 1) AND (rating <= 5))) NOT VALID;
-ALTER TABLE public.reviews ADD CONSTRAINT reviews_reason_required CHECK (((comment IS NOT NULL) AND (length(btrim(comment)) >= 10))) NOT VALID;
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_reason_required CHECK (((comment IS NULL) OR (length(btrim(comment)) >= 10)));
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_kind_check CHECK ((kind = ANY (ARRAY['question'::text, 'note'::text])));
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_shape_ck CHECK ((((kind = 'question'::text) AND (supplier_id IS NOT NULL) AND (question IS NOT NULL)) OR ((kind = 'note'::text) AND (supplier_id IS NULL) AND (answer IS NOT NULL) AND (answered_at IS NOT NULL))));
 ALTER TABLE public.rfq_clarification ADD CONSTRAINT rfq_clarification_source_check CHECK ((source = ANY (ARRAY['portal'::text, 'rfq_flag'::text, 'rfq_note'::text])));
@@ -53050,13 +53050,28 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_tier(p_lead_id bigint)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  with s as (
-    select coalesce(quotes_submitted, 0) submitted, coalesce(quotes_won, 0) won,
-           response_rate, quality_rating, reliability
-      from public.supplier_score where lead_id = p_lead_id
+  with l as (
+    select coalesce(verified, false) verified, rv_response_rate
+      from public.leads where id = p_lead_id
   ),
-  -- ACTIVITY IS THE GATE, and it is checked before the score is consulted. A supplier who has never
-  -- quoted has no performance to measure, and averaging nulls into a number would manufacture one.
+  q as (
+    select count(*)::int submitted,
+           count(*) filter (where status = 'won')::int won_by_status
+      from public.quotes where supplier_id = p_lead_id
+  ),
+  h as (
+    select count(*)::int hired from public.inquiries where hired_supplier_id = p_lead_id
+  ),
+  s as (
+    select (select submitted from q) submitted,
+           greatest((select won_by_status from q), (select hired from h)) won,
+           (select rv_response_rate from l) response_rate,
+           -- NULL until a verified supplier has been reviewed: an unrated supplier is unrated.
+           case when (select verified from l)
+                then (select round(avg(rating)::numeric * 20, 1) from public.reviews where supplier_id = p_lead_id)
+                else null end quality_rating
+  ),
+  -- ACTIVITY IS THE GATE. A supplier who has never quoted has no performance to measure.
   a as (select coalesce((select submitted from s), 0) > 0 active),
   t as (
     select case
@@ -53071,41 +53086,34 @@ AS $function$
     'lead_id', p_lead_id,
     'tier', (select tier from t),
     -- available:false is the difference between "we ranked you low" and "we cannot rank you yet".
-    -- The supplier must never read the first when the second is true.
     'available', (select active from a),
     'basis', case when (select active from a)
-                  then 'quotes won and quality rating, from supplier_score'
+                  then 'quotes won and quality rating, from your quotes and reviews on QuotesDone'
                   else 'no quote has been submitted yet, so there is nothing to rank — this is not a low score' end,
+    'basis_ar', case when (select active from a)
+                  then 'الأعمال الفائزة وتقييم الجودة، من عروضك وتقييماتك على QuotesDone'
+                  else 'لم يُقدَّم أي عرض سعر بعد، فلا يوجد ما يُصنَّف — هذه ليست درجة منخفضة' end,
     'ladder', jsonb_build_array(
-      jsonb_build_object('tier','bronze',  'needs','submit your first quote'),
-      jsonb_build_object('tier','silver',  'needs','win 1 job'),
-      jsonb_build_object('tier','gold',    'needs','win 5 jobs and hold a 70% quality rating'),
-      jsonb_build_object('tier','platinum','needs','win 10 jobs and hold an 85% quality rating')
+      jsonb_build_object('tier','bronze',  'needs','submit your first quote',                              'needs_ar','قدّم عرض السعر الأول'),
+      jsonb_build_object('tier','silver',  'needs','win 1 job',                                            'needs_ar','افز بعمل واحد'),
+      jsonb_build_object('tier','gold',    'needs','win 5 jobs and hold a 70% quality rating',             'needs_ar','افز بخمسة أعمال وحافظ على تقييم جودة 70%'),
+      jsonb_build_object('tier','platinum','needs','win 10 jobs and hold an 85% quality rating',           'needs_ar','افز بعشرة أعمال وحافظ على تقييم جودة 85%')
     ),
     'progress', jsonb_build_object(
       'quotes_submitted', (select submitted from s),
       'quotes_won', (select won from s),
-      -- NULL, not 0. A rating is earned; nobody has earned one, and 0 would read as "rated badly".
       'quality_rating', (select quality_rating from s),
       'response_rate', (select response_rate from s)
     ),
-    -- ── THE TIER DOES NOT AFFECT MATCHING. FOUNDER DECISION, 2026-08-08, VERBATIM: ──────────────
-    --     "no cancel that totally. a tier shouldnt effect a match."
-    --
-    -- §20 asks for a tier that changes RFQ distribution, preferred status and search visibility.
-    -- The founder has refused it, and the refusal is the correct call: a score computed by this
-    -- platform deciding which real companies get sent work would quietly sort suppliers into
-    -- winners and losers on a number none of them agreed to.
-    --
-    -- This field used to say "not YET" — which was a promise, and is now a false one. A supplier
-    -- reading "not yet" waits for an advantage that is never coming and may chase the ladder for
-    -- it. So the payload states the settled position instead, and the three §20 benefit
-    -- requirements stay permanently unmet BY DECISION rather than by omission.
+    -- THE TIER DOES NOT AFFECT MATCHING. Founder, 2026-08-08: "a tier shouldnt effect a match."
     'benefits_active', false,
     'affects_matching', false,
     'benefits_note', 'Your tier never affects which work you are matched to, how you rank in search, '
       || 'or whether you are shown as preferred. Every supplier is matched on fit alone. '
-      || 'This is a record of your track record, not a queue position.'
+      || 'This is a record of your track record, not a queue position.',
+    'benefits_note_ar', 'تصنيفك لا يؤثر أبدًا على الأعمال التي تُطابَق معها، ولا على ترتيبك في البحث، '
+      || 'ولا على عرضك كمورّد مفضّل. كل مورّد يُطابَق على أساس الملاءمة وحدها. '
+      || 'هذا سجل لأدائك، لا موقع في طابور.'
   );
 $function$
 
