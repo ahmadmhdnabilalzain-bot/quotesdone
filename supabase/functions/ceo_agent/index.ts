@@ -22,6 +22,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { makeLlmRich } from '../_shared/llm.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -309,12 +310,39 @@ Deno.serve(observe('ceo_agent', async (req) => {
       return J({ ok: true, seat: 'ceo', review: data });
     }
 
+    // ── JUDGEMENT (plan A/B) ───────────────────────────────────────────────────────────────────
+    // 22 Sep 2026, instruction 643: the CEO will run on a model, not yet chosen. The coded plan (plan C,
+    // fn_ceo_plan_tick) has ALREADY acted when this runs; the heartbeat calls it only when the founder
+    // has set app_secrets.ceo_model_slot = 'on', and it re-checks the slot itself. The request is built
+    // by fn_ceo_judgement_request from measured numbers and code-computed options, and the answer does
+    // nothing until fn_ceo_judgement_accept has validated it against ceo-judgement-v1. The slot is off
+    // today, so this branch has never reached ai_gateway: the first call after the switch is the one
+    // to watch (credential: cred_fn_ceo_agent, scope widened with ai_gateway).
+    if (action === 'judgement') {
+      if (who !== 'ceo') return J({ error: 'only the ceo judges' }, 403);
+      if ((await sec('ceo_model_slot') || 'off') !== 'on') return J({ ok: true, skipped: 'ceo_model_slot is off; plan C stands' });
+      const planId = Number(body.plan_id);
+      const { data: req, error: rerr } = await admin.rpc('fn_ceo_judgement_request', { p_plan_id: planId });
+      if (rerr || !req) return J({ ok: false, error: rerr?.message || 'no plan ' + planId }, 400);
+      // deno-lint-ignore no-explicit-any
+      const q = req as any;
+      const llm = makeLlmRich(undefined, { fn: 'ceo_agent', taskClass: 'ceo_judgement', max: 900, timeoutMs: 25000, temperature: 0.1 });
+      const r = await llm(String(q.system), JSON.stringify({ output_schema: q.output_schema, input: q.input }), 900);
+      // deno-lint-ignore no-explicit-any
+      let out: any = null;
+      try { out = JSON.parse(String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { out = null; }
+      const why = r.error ?? (r.truncated ? 'the answer was truncated' : (out ? null : 'the answer was not JSON'));
+      const { data: acc, error: aerr } = await admin.rpc('fn_ceo_judgement_accept', { p_plan_id: planId, p_output: out, p_error: why });
+      if (aerr) return J({ ok: false, error: 'judgement accept: ' + aerr.message }, 500);
+      return J({ ok: true, seat: 'ceo', accepted: acc });
+    }
+
     // `task` is deliberately open to BOTH seats and carries no guard of its own. whoami returns
     // only 'founder', 'ceo' or null, the null is already refused above, and both remaining seats
     // legitimately touch ceo_task — the CEO working it, the founder unblocking or cancelling work
     // his own command created. A `who !== 'ceo' && who !== 'founder'` check here would be a
     // condition that cannot occur, which reads as protection and provides none.
-    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept'] }, 400);
+    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept', 'judgement'] }, 400);
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }
