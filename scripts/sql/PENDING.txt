@@ -39,4 +39,3 @@ scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :
 # 21 Sep (PROBE OK); each probe answers PROBE FAILED against the unchanged database.
 #
 # 21 Sep 2026 — accountant, instruction 585's receipt loops (PR: the nightly payment test passes again).
-scripts/sql/a_missing_receipt_the_founder_ruled_a_waiting_item_leaves_no_open_handoff.sql :: apply with --apply --ddl, then move this line to the END of MANIFEST.txt. Rehearsed rolled-back 21 Sep: PROBE OK, and fn_it_loop_reverify then closed handoffs 28945, 28946, 39331 (closed=3); against the unchanged database the probe answers PROBE FAILED parked=28945,28946,39331.
