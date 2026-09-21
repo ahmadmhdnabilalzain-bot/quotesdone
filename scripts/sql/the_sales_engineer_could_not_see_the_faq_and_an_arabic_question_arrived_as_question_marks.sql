@@ -1009,9 +1009,11 @@ begin
                          || coalesce((v_hit->'cited')::text, 'null'));
   end if;
   -- when nothing clears it records a gap and opens a task; both are removed, bounded by the ids
-  -- read a moment ago so only the probe's own rows are reachable.
+  -- read a moment ago so only the probe's own rows are reachable. The gap rows go FIRST: since #776
+  -- the org_task consumer files a sales_knowledge_gap row for the probe's task, and deleting the task
+  -- before it failed the first apply (21 Sep 2026) with 23503 on sales_knowledge_gap_task_id_fkey.
+  delete from public.sales_knowledge_gap where id > v_max_gap or task_id > v_max_task;
   delete from public.org_tasks where id > v_max_task;
-  delete from public.sales_knowledge_gap where id > v_max_gap;
 
   -- clean up what both calls left, bounded by id so they can only reach their own rows, and prove it.
   delete from public.sales_decision_log where id > v_max_log;
