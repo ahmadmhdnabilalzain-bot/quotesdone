@@ -64,8 +64,8 @@ export type Lang = 'en' | 'ar';
 export type OfferForText = Pick<SpecOffer, 'item' | 'label_en' | 'label_ar' | 'requested' | 'alternatives'> & { accepted_value?: string | null };
 export type Message = { subject: string; body: string };
 
-const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
-const arNum = (n: number | string) => String(n).replace(/\d/g, (d) => AR_DIGITS[Number(d)]);
+// Western digits, as everywhere else in the estate: one numeral system per message (instruction 586).
+const arNum = (n: number | string) => String(n);
 /**
  * Supplier or customer words on an Arabic message: the glossary's Arabic; what it cannot finish is
  * kept only after the label "كما وردت" (as written), the same convention the comparison report uses
@@ -80,7 +80,7 @@ function arWords(v: string): string {
 }
 const ref = (rfqNo: number | string | null | undefined, lang: Lang) => rfqNo == null ? '' : (lang === 'ar' ? ` رقم ${arNum(rfqNo)}` : ` #${rfqNo}`);
 const suppliersEn = (n: number) => n === 1 ? '1 supplier' : `${n} suppliers`;
-const suppliersAr = (n: number) => n === 1 ? 'مورّد واحد' : n === 2 ? 'مورّدان' : `${arNum(n)} مورّدين`;
+const suppliersAr = (n: number) => n === 1 ? 'مورّد واحد' : n === 2 ? 'مورّدان' : (n <= 10 ? (n <= 10 ? `${arNum(n)} مورّدين` : `${arNum(n)} مورّدًا`) : `${arNum(n)} مورّدًا`);
 
 function optionLines(o: OfferForText, lang: Lang): string {
   return o.alternatives.map((a, i) => lang === 'ar'
@@ -94,16 +94,16 @@ export function offerMessage(o: OfferForText, lang: Lang, opts: { rfqNo?: number
   if (lang === 'ar') {
     const head = r === 0 ? '' : (opts.final ? 'تذكير أخير: ' : 'تذكير: ');
     return {
-      subject: `${head}طلبك${ref(opts.rfqNo, 'ar')}: لم يقدّم أي مورّد المواصفة التي طلبتها تمامًا`,
+      subject: `${head}طلبكم${ref(opts.rfqNo, 'ar')}: لم يقدّم أي مورّد المواصفة المطلوبة بدقة`,
       body: [
-        `${head}لم يتمكّن أي مورّد من تقديم عرض بمواصفتك المطلوبة تمامًا في طلبك${ref(opts.rfqNo, 'ar')}.`,
+        `${head}لم يتمكّن أي مورّد من تقديم عرض مطابق تمامًا للمواصفة التي حددتموها في طلبكم${ref(opts.rfqNo, 'ar')}.`,
         `البند: ${arWords(o.item)} — ${o.label_ar}`,
-        `طلبت: ${arWords(o.requested)}`,
-        'لكن المورّدين قدّموا خيارات مشابهة:',
+        `المواصفة المطلوبة: ${arWords(o.requested)}`,
+        'غير أن المورّدين قدّموا البدائل المماثلة التالية:',
         optionLines(o, 'ar'),
-        'هل ترغب في المتابعة بأحد هذه الخيارات؟ أرسل رقم الخيار، أو أرسل «لا» إن كنت لا ترغب في المتابعة.',
-        ...(opts.portalUrl ? [`يمكنك أيضًا الرد من بوابتك: ${opts.portalUrl}`] : []),
-        ...(opts.final ? ['هذا آخر تذكير؛ إن لم يصلنا ردّك فسنغلق الطلب دون أي رسوم.'] : []),
+        'هل ترغبون في المتابعة بأحد هذه البدائل؟ يُرجى الرد برقم الخيار، أو بكلمة «لا» إن كنتم لا ترغبون في المتابعة.',
+        ...(opts.portalUrl ? [`كما يمكنكم الرد من خلال البوابة: ${opts.portalUrl}`] : []),
+        ...(opts.final ? ['هذا هو التذكير الأخير؛ وفي حال عدم ورود ردّكم سنغلق الطلب دون أي رسوم.'] : []),
       ].join('\n'),
     };
   }
@@ -127,8 +127,8 @@ export function offerMessage(o: OfferForText, lang: Lang, opts: { rfqNo?: number
 export function acceptedMessage(o: OfferForText, lang: Lang, opts: { rfqNo?: number | string | null } = {}): Message {
   const v = String(o.accepted_value || '');
   return lang === 'ar'
-    ? { subject: `طلبك${ref(opts.rfqNo, 'ar')}: سنتابع بالخيار الذي اخترته`,
-        body: `شكرًا لك. سنتابع طلبك${ref(opts.rfqNo, 'ar')} بـ ${arWords(v)} في ${o.label_ar}، وتُقارن العروض التي تقدّمه الآن على أنها مطابقة لطلبك.` }
+    ? { subject: `طلبكم${ref(opts.rfqNo, 'ar')}: سنتابع بالخيار الذي اخترتموه`,
+        body: `شكرًا لكم. سنمضي في طلبكم${ref(opts.rfqNo, 'ar')} باعتماد ${arWords(v)} في ${o.label_ar}، وأصبحت العروض التي تتضمنه تُقارَن بوصفها مطابقة لطلبكم.` }
     : { subject: `Your request${ref(opts.rfqNo, 'en')}: we will proceed with your chosen option`,
         body: `Thank you. We will proceed with ${v} for ${o.label_en} on your request${ref(opts.rfqNo, 'en')}, and quotes offering it are now compared as matching your request.` };
 }
@@ -136,9 +136,9 @@ export function acceptedMessage(o: OfferForText, lang: Lang, opts: { rfqNo?: num
 /** The customer declined, or did not answer after the final reminder. Nothing was revealed, so nothing is charged. */
 export function apologyMessage(o: OfferForText, lang: Lang, why: 'declined' | 'no_reply', opts: { rfqNo?: number | string | null } = {}): Message {
   if (lang === 'ar') {
-    const lead = why === 'declined' ? 'نتفهّم قرارك.' : 'لم يصلنا ردّك على الخيارات التي أرسلناها.';
-    return { subject: `طلبك${ref(opts.rfqNo, 'ar')}: نعتذر عن عدم توفّر مواصفتك المطلوبة`,
-      body: `${lead} نعتذر لأنه لم يتمكّن أي مورّد من تقديم ${o.label_ar} كما طلبت تمامًا. أغلقنا طلبك${ref(opts.rfqNo, 'ar')} دون أي رسوم عليك، ويسعدنا استقبال طلب جديد منك في أي وقت.` };
+    const lead = why === 'declined' ? 'نتفهّم قراركم.' : 'لم يصلنا ردّكم على البدائل التي أرسلناها.';
+    return { subject: `طلبكم${ref(opts.rfqNo, 'ar')}: نعتذر لعدم توفّر المواصفة المطلوبة`,
+      body: `${lead} نعتذر لعدم تمكّن أي مورّد من تقديم ${o.label_ar} وفق ما طلبتم تمامًا. وقد أغلقنا طلبكم${ref(opts.rfqNo, 'ar')} دون أي رسوم عليكم، ويسعدنا استقبال طلباتكم الجديدة في أي وقت.` };
   }
   const lead = why === 'declined' ? 'We understand.' : 'We did not hear back from you about the options we sent.';
   return { subject: `Your request${ref(opts.rfqNo, 'en')}: we are sorry your exact specification was not available`,

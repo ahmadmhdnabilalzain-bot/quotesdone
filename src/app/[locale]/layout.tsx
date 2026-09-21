@@ -34,7 +34,7 @@ const FONTS: Record<'en' | 'ar', string[]> = {
   ar: ['readex-pro-arabic'],
 };
 
-const SKIP = { en: 'Skip to content', ar: 'تخطَّ إلى المحتوى' };
+const SKIP = { en: 'Skip to content', ar: 'انتقل إلى المحتوى الرئيسي' };
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

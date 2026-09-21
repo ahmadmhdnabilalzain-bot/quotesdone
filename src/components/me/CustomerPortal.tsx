@@ -143,7 +143,7 @@ const warmDashboard = (tk, lang) => {
 // so /ar/me opened English and dir=ltr (e2e journey a, 14 Sep 2026). After sign-in the registered
 // language decides (onServedLocale). src/lib/documentLocale.ts.
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
-import { t, tf, errText, emirateName } from './portalText';
+import { t, tf, errText, emirateName, supplierCount } from './portalText';
 // The account rule itself, not a copy: the same function customer_api create_inquiry gates on.
 import { accountMissing } from '../../../supabase/functions/_shared/account_rule';
 import { BrandMark } from '@/components/BrandMark';
@@ -979,7 +979,7 @@ function assistantOffers(lang, inqs, ballOf) {
   const moving = inqs.filter((i) => ballOf(i) === 'moving');
   if (decide.length) {
     const i = decide[0]; const n = (i.quotes || []).length;
-    out.push(ar ? `أي عرض من العروض الـ${n} على طلب ${label(i)} ينبغي أن أختار؟`
+    out.push(ar ? `أيّ العروض الـ${n} على طلب ${label(i)} أختار؟`
                 : `Which of the ${n} quotes on my ${label(i)} request should I choose?`);
     out.push(ar ? 'كم سيكلّفني كشف المورّد صاحب أقل سعر؟' : 'What would it cost me to reveal the cheapest supplier?');
   }
@@ -1076,7 +1076,7 @@ function QuickActions({ lang, onNew, onUpload, onCompare, comparable }) {
   );
 }
 function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, linkQuote }) {
-  if (inq.is_combined && Array.isArray(inq.children)) { return (<Card id={'inq-' + inq.id} className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? (inq.children.length + ' طلب منفصل لموردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} terms={terms} focusQuote={focusQuote} focusInq={focusInq} linkQuote={linkQuote} />)}</div></Card>); }
+  if (inq.is_combined && Array.isArray(inq.children)) { return (<Card id={'inq-' + inq.id} className="p-4 mb-3.5 border-primary/30"><div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">{lang === 'ar' ? 'مشروع متعدد التخصصات' : 'Combined project'}</span><span className={S.sub}>{lang === 'ar' ? ((inq.children.length === 2 ? 'طلبان منفصلان' : inq.children.length + (inq.children.length <= 10 ? ' طلبات منفصلة' : ' طلبًا منفصلًا')) + ' إلى موردين متخصصين') : (inq.children.length + ' separate requests to specialist suppliers')}</span></div>{inq.summary ? <div className={cn(S.sub, 'mb-2')}>{inq.summary}</div> : null}<div className="space-y-2.5">{inq.children.map((c) => <InquiryCard key={c.id} inq={c} token={token} onChange={onChange} lang={lang} terms={terms} focusQuote={focusQuote} focusInq={focusInq} linkQuote={linkQuote} />)}</div></Card>); }
   // Opened by the quote a payment was for (focusQuote) or by any control that asked to open THIS
   // request by id (focusInq — Dashboard's openRfq). The id is the same inquiries.id every caller holds.
   // linkQuote — the quote a /me?request=&quote= link named — scrolls to its own card (QuoteCard), so
@@ -1305,14 +1305,14 @@ function DetailFacts({ inq, lang }) {
   // How confident the reader was about the BOQ it pulled off the customer's drawing. The customer
   // is the only person who can tell us it read the drawing wrong, and they were never shown it.
   const conf = Number(inq.boq_confidence);
-  if (Number.isFinite(conf) && inq.boq && inq.boq.boq) rows.push([lang === 'ar' ? 'دقة قراءة الرسم' : 'Drawing read confidence', Math.round(conf <= 1 ? conf * 100 : conf) + '%']);
+  if (Number.isFinite(conf) && inq.boq && inq.boq.boq) rows.push([lang === 'ar' ? 'دقة قراءة المخطط' : 'Drawing read confidence', Math.round(conf <= 1 ? conf * 100 : conf) + '%']);
   // my_inquiries signs a URL to the customer's OWN uploaded drawing on every call. Nothing read it,
   // so the one person entitled to that file could not open it — only the suppliers could.
   // The four actions (instruction 524). The drawing was sent to suppliers with the request, so
   // Replace / Remove say so rather than acting: what they quoted on stays what they quoted on.
   const drawing = inq.drawing_file_url
     ? (<div className="mt-1.5">
-        <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? '📐 الرسم الذي رفعته' : '📐 The drawing you uploaded'}{inq.drawing_file_name ? <> (<bdi>{inq.drawing_file_name}</bdi>)</> : null}</div>
+        <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? '📐 المخطط الذي حمّلته' : '📐 The drawing you uploaded'}{inq.drawing_file_name ? <> (<bdi>{inq.drawing_file_name}</bdi>)</> : null}</div>
         <DocActions lang={lang} name={inq.drawing_file_name} url={inq.drawing_file_url} sealed="sent_to_suppliers" />
       </div>)
     : null;
@@ -1866,7 +1866,7 @@ function Journey({ idx, lang, matched, revealed = false }) {
   // lit from the reveal itself instead.
   const step = revealed ? JOURNEY.length - 1 : [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
   const label = (k, i) => (i === 2 && Number(matched) > 0)
-    ? (lang === 'ar' ? ('مطابقة مع ' + matched + ' مورّد') : ('Matched to ' + matched + (Number(matched) === 1 ? ' supplier' : ' suppliers')))
+    ? (lang === 'ar' ? ('مطابَق مع ' + supplierCount('ar', matched)) : ('Matched to ' + matched + (Number(matched) === 1 ? ' supplier' : ' suppliers')))
     : t(lang, k);
   return (
     <div className="mt-3">

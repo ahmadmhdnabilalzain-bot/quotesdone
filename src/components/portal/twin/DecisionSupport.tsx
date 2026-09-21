@@ -79,19 +79,19 @@ function Head({ id, onOpen, children }: { id: string; onOpen?: (id: string) => v
 const CHASE_COPY: Record<string, [string, string]> = {
   not_yet_sent: [
     'This has not reached any supplier yet. Open it and check the trade is right — that is what we match on.',
-    'لم يصل هذا إلى أي مورّد بعد. افتحه وتأكد من صحة النشاط، فهو أساس المطابقة.',
+    'لم يصل هذا الطلب إلى أي مورّد بعد. افتحه وتأكد من صحة النشاط المحدد، فعليه تقوم المطابقة.',
   ],
   no_replies: [
     'Suppliers have it and none has quoted yet. Adding a drawing or a target date is what usually unblocks this.',
-    'وصل الطلب إلى الموردين ولم يسعّر أحد بعد. إضافة مخطط أو تاريخ مستهدف هو ما يحرّك هذا عادةً.',
+    'وصل الطلب إلى المورّدين ولم يقدّم أحد سعرًا بعد. وعادةً ما تُسرّع إضافة مخطط أو تاريخ مستهدف وصول العروض.',
   ],
   only_one: [
     'One quote is not a comparison. Widening the trade or the emirate is the quickest way to a second.',
-    'عرض واحد ليس مقارنة. توسيع المهنة أو الإمارة هو أسرع طريق للحصول على عرض ثانٍ.',
+    'عرض واحد لا يكفي للمقارنة، وأسرع طريق للحصول على عرض ثانٍ توسيع نطاق التخصص أو الإمارة.',
   ],
   undecided: [
     'You have quotes waiting and have not chosen. Comparing them is free; you only pay to reveal the one you want.',
-    'لديك عروض تنتظر ولم تختر بعد. المقارنة مجانية، وتدفع فقط للكشف عن العرض الذي تختاره.',
+    'لديك عروض بانتظار قرارك. المقارنة مجانية، ولا تدفع إلا للكشف عن العرض الذي تختاره.',
   ],
 };
 
@@ -168,7 +168,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
         <div className={S.label}>{L(lang, 'Help me decide', 'ساعدني في القرار')}</div>
         <div className={cn(S.sub, 'mt-1')}>
           {L(lang, 'We could not work this out just now. Your requests and quotes are unaffected.',
-                   'تعذّر حساب هذا الآن. طلباتك وعروضك غير متأثرة.')}
+                   'تعذّر إجراء هذا الحساب الآن، ولم تتأثر طلباتك وعروضك.')}
         </div>
       </Card>
     );
@@ -189,11 +189,11 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
               {r.same_quote_wins
                 ? L(lang,
                     `One quote is both the cheapest and the fastest, at ${aed(r.cheapest_price)}. There is no trade-off to weigh here.`,
-                    `أحد العروض هو الأرخص والأسرع معًا بقيمة ${aed(r.cheapest_price)}. لا توجد مفاضلة هنا.`)
+                    `أحد العروض هو الأرخص والأسرع معًا بقيمة ${aed(r.cheapest_price)}، فلا حاجة إلى المفاضلة.`)
                 : (save && sooner)
                   ? L(lang,
                       `The cheapest is ${aed(r.cheapest_price)} and saves you ${save}. The fastest arrives ${sooner} sooner but costs more. Which matters more on this job is your call — those are the only two things separating them.`,
-                      `الأرخص ${aed(r.cheapest_price)} ويوفّر عليك ${save}. والأسرع يصل قبله بـ ${sooner} لكنه أعلى سعرًا. أيّهما أهم في هذا العمل قرارك أنت — وهذان هما الفارقان الوحيدان بينهما.`)
+                      `الأرخص ${aed(r.cheapest_price)} ويوفّر عليك ${save}، أما الأسرع فيصل قبله بـ ${sooner} لكن بسعر أعلى. هذان هما الفارقان الوحيدان بينهما، والقرار لك في أيّهما أهم لهذا العمل.`)
                   : save
                     ? L(lang,
                         `The cheapest is ${aed(r.cheapest_price)}, ${save} below the next one.`,
@@ -230,19 +230,19 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
             {m.price_known
               ? L(lang,
                   `Half of these jobs came in between ${aed(m.p25)} and ${aed(m.p75)}, with ${aed(m.median)} in the middle — from ${m.price_n} quoted jobs on QuotesDone.`,
-                  `نصف هذه الأعمال جاءت بين ${aed(m.p25)} و${aed(m.p75)}، ووسطها ${aed(m.median)} — من ${m.price_n} عملًا مسعّرًا على QuotesDone.`)
+                  `تراوحت أسعار نصف هذه الأعمال بين ${aed(m.p25)} و${aed(m.p75)}، والوسيط ${aed(m.median)}، استنادًا إلى ${m.price_n} عملًا مسعّرًا على QuotesDone.`)
               : L(lang,
                   `No QuotesDone job in this trade has been quoted yet, so we will not print a price — a range from ${m.price_n} quote${m.price_n === 1 ? '' : 's'} would be a guess with a decimal point on it. This fills in on its own once ${minN} are in.`,
-                  `لم يُسعَّر أي عمل في هذه المهنة على QuotesDone بعد، لذا لن نعرض سعرًا — نطاق مبني على ${m.price_n} عرض هو تخمين بصيغة رقمية. سيظهر تلقائيًا عند اكتمال ${minN}.`)}
+                  `لم يُسعَّر أي عمل في هذا التخصص على QuotesDone بعد، لذا لن نعرض سعرًا؛ فأي نطاق مبني على ${m.price_n} عرض لن يكون سوى تخمين في صورة أرقام. سيظهر السعر تلقائيًا عند اكتمال العدد المطلوب (${minN}).`)}
           </div>
           {Number(m.suppliers_covering) > 0 ? (
             <div className={cn(S.sub, 'mt-0.5')}>
               {L(lang,
                 `${m.suppliers_covering} UAE suppliers on our list cover this trade${m.emirate ? ' in ' + m.emirate : ''}.`,
-                `${m.suppliers_covering} مورّدًا في الإمارات ضمن قائمتنا يغطون هذه المهنة${m.emirate ? ' في ' + m.emirate : ''}.`)}
+                `${m.suppliers_covering} مورّدًا في الإمارات ضمن قائمتنا يغطّون هذا التخصص${m.emirate ? ' في ' + m.emirate : ''}.`)}
               {m.avg_days_to_quote != null && Number(m.avg_days_to_quote) >= 1
                 ? L(lang, ` First quotes have taken about ${m.avg_days_to_quote} days.`,
-                          ` استغرق أول عرض نحو ${m.avg_days_to_quote} يومًا.`)
+                          ` واستغرق وصول أول العروض نحو ${m.avg_days_to_quote} يومًا.`)
                 : ''}
             </div>
           ) : null}

@@ -1,0 +1,10 @@
+customer_support, 22 Sep 2026 — founder instruction 586 (Arabic written natively, not translated).
+Redefines 15 live routines with ONLY their Arabic string literals rewritten (a diff of each body with
+every Arabic line removed was identical to live), and updates the 13 rows of public.notification_copy
+(each guarded by the md5 of the body it replaces). Opens with an md5 guard on every routine's live
+prosrc as measured on 22 Sep: if another seat has redefined one since, the file aborts untouched with
+CHK<<stale: ...>> — re-derive that routine from live, do not force.
+Apply: node scripts/apply_sql.mjs scripts/sql/every_arabic_message_is_written_not_translated.sql --apply --ddl
+The file ends in a read-only verdict row: expect PROBE OK. Dry run passed 22 Sep.
+No edge function in this change needs SQL first; the SQL and the functions are independent.
+After apply: regenerate the schema mirror, delete this note. The MANIFEST line is already appended.

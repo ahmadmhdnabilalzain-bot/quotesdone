@@ -49,8 +49,8 @@ const T = {
     emptyHealth: 'No health signal has been earned yet. Ratings come from completed jobs.',
   },
   ar: {
-    title: 'لوحة الرؤى', hint: 'اسحب لإعادة الترتيب. انقر بالزر الأيمن لمزيد من الخيارات.',
-    strength: 'قوة الشركة', health: 'مؤشرات الأداء', reach: 'أين يمكنك الفوز',
+    title: 'لوحة الرؤى', hint: 'اسحبوا البطاقات لإعادة ترتيبها، وانقروا بالزر الأيمن لمزيد من الخيارات.',
+    strength: 'قوة الشركة', health: 'مؤشرات الأداء', reach: 'أين يمكنكم الفوز',
     notRated: 'لم يُقيَّم بعد', noData: 'لا توجد بيانات للرسم بعد', live: 'آخر تحديث',
     pin: 'تثبيت في الأعلى', hide: 'إخفاء البطاقة', open: 'عرض التفاصيل', restore: 'إظهار كل البطاقات',
     close: 'إغلاق', products: 'المنتجات', certs: 'الشهادات', countries: 'الأسواق المخدومة',

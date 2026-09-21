@@ -61,7 +61,7 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
         <div className={S.label}>{L(lang, 'What we have learned about your buying', 'ما تعلّمناه عن مشترياتك')}</div>
         <div className={cn(S.sub, 'mt-1')}>
           {L(lang, 'Nothing yet. This fills in from your own requests, starting with your first one.',
-                   'لا شيء بعد. يمتلئ هذا من طلباتك أنت، ابتداءً من أول طلب.')}
+                   'لا شيء بعد. تُبنى هذه المعلومات من طلباتك، بدءًا من أول طلب.')}
         </div>
       </Card>
     );
@@ -77,7 +77,7 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
         <div className={S.label}>{L(lang, 'What we have learned about your buying', 'ما تعلّمناه عن مشترياتك')}</div>
         {pct !== null ? (
           <div className={S.sub} title={L(lang, 'How much of your profile we actually hold — it is a count of known facts, not a rating of you.',
-                                                'نسبة ما نعرفه فعليًا عن ملفك — عدّ لحقائق معروفة، وليس تقييمًا لك.')}>
+                                                'نسبة ما نعرفه فعلًا عن ملفك، وهي عدٌّ لمعلومات مؤكدة لا تقييم لك.')}>
             {L(lang, 'AI understanding', 'فهم النظام')} <span className="font-bold text-foreground">{pct}%</span>
           </div>
         ) : null}
@@ -88,7 +88,7 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
           {twin.industry || <span className={S.sub}>{L(lang, 'not set', 'غير محدّد')}</span>}
         </Fact>
         <Fact label={L(lang, 'Active projects', 'مشاريع نشطة')}>{twin.projects_active ?? 0}</Fact>
-        <Fact label={L(lang, 'Preferred suppliers', 'موردون مفضّلون')}>{twin.preferred_suppliers ?? 0}</Fact>
+        <Fact label={L(lang, 'Preferred suppliers', 'مورّدون مفضّلون')}>{twin.preferred_suppliers ?? 0}</Fact>
         <Fact label={L(lang, 'Requests', 'الطلبات')}>{twin.rfqs ?? 0}</Fact>
       </div>
 
@@ -113,7 +113,7 @@ export function CompanyTwin({ twin, lang = 'en' }: { twin: Twin | null; lang?: s
               this same window, and sending a customer looking for a Settings page they will never
               find is worse than saying nothing. */}
           {L(lang, 'Set your standing preferences below and every new request carries them to the suppliers we match.',
-                   'حدّد تفضيلاتك الثابتة أدناه، وسيحملها كل طلب جديد إلى الموردين الذين نطابقهم.')}
+                   'حدّد تفضيلاتك الثابتة أدناه، وسينقلها كل طلب جديد إلى المورّدين الذين نطابقهم.')}
         </div>
       ) : null}
     </Card>

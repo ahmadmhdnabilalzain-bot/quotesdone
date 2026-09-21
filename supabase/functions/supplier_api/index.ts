@@ -695,16 +695,16 @@ const handle = async (req: Request): Promise<Response> => {
         const needAr = sixInWords(stillNeeded.filter((c) => c !== 'licence_expired'), 'ar') + (stillNeeded.includes('licence_expired') ? (stillNeeded.length > 1 ? '، ' : '') + 'رخصة تجارية سارية المفعول' : '');
         const days = 14;
         const supplierMail = decision === 'approved'
-          ? (ar ? { subject: 'تم تفعيل حساب المورّد الخاص بكم في QuotesDone', body: `تم تفعيل حساب ${name}، ويمكنكم الآن استلام الطلبات وتقديم عروض الأسعار.` }
+          ? (ar ? { subject: 'أصبح حسابكم على QuotesDone مفعّلًا', body: `فُعِّل حساب ${name} لدى QuotesDone، وبإمكانكم الآن استلام الطلبات وتقديم عروض الأسعار.` }
                 : { subject: 'Your QuotesDone supplier account is active', body: `Your account for ${name} is active — you can now receive inquiries and submit quotes.` })
           : decision === 'pending'
-          ? (ar ? { subject: 'استلمنا تسجيلكم في QuotesDone', body: `شكرًا لتسجيل ${name}. اكتملت البنود الستة المطلوبة، ويراجع مهندس المبيعات تسجيلكم الآن. سنرسل إليكم رسالة فور اعتماده.` }
+          ? (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name}. اكتملت البنود الستة المطلوبة، ويتولّى مهندس المبيعات مراجعة طلب التسجيل حاليًا، وسنوافيكم برسالة فور اعتماده.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. All six required items are in, and our sales engineer is reviewing your registration now. We will e-mail you as soon as it is approved.` })
           : !stillNeeded.length
           // Only the certificate is outstanding and it is on its way: nothing is asked of the supplier.
-          ? (ar ? { subject: 'استلمنا تسجيلكم في QuotesDone', body: `شكرًا لتسجيل ${name}. نُصدر الآن شهادة موافقتكم الموقّعة على شروط المورّد، وسيُفعَّل حسابكم تلقائيًا فور صدورها. لا يلزمكم أي إجراء.` }
+          ? (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name}. نعمل حاليًا على إصدار شهادة موافقتكم الموقّعة على شروط المورّد، وسيُفعَّل حسابكم تلقائيًا فور صدورها، دون أن يلزمكم أي إجراء.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. We are issuing the signed certificate of your acceptance of the supplier terms; your account activates automatically as soon as it is ready. Nothing is needed from you.` })
-          : (ar ? { subject: 'استلمنا تسجيلكم في QuotesDone', body: `شكرًا لتسجيل ${name} في QuotesDone.\n\nلم يُفعَّل حسابكم بعد لأنه ما زال ينقصه: ${needAr}.\n\nيُرجى تسجيل الدخول إلى بوابة المورّد وإكمال ذلك. يُفعَّل حسابكم تلقائيًا فور اكتمال البنود الستة، دون قائمة انتظار ودون مراجعة يدوية.\n\nيُرجى إكمال ذلك خلال ${days} يومًا؛ بعدها يُغلق طلب التسجيل تلقائيًا، ويمكنكم التسجيل من جديد في أي وقت.` }
+          : (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name} لدى QuotesDone.\n\nلم يُفعَّل حسابكم بعد، إذ لا يزال ينقصه ما يلي: ${needAr}.\n\nيُرجى تسجيل الدخول إلى بوابة المورّد واستكمال ذلك، وسيُفعَّل حسابكم تلقائيًا فور اكتمال البنود الستة، دون قائمة انتظار أو مراجعة يدوية.\n\nنرجو استكمال ذلك خلال ${days} يومًا؛ إذ يُغلق طلب التسجيل بعدها تلقائيًا، ويسعدنا تسجيلكم من جديد في أي وقت.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name} with QuotesDone.\n\nYour account is not active yet because it still needs: ${needEn}.\n\nPlease sign in to your supplier portal and complete it. Your account activates automatically as soon as all six required items are in — there is no waiting list and no manual queue.\n\nPlease do this within ${days} days. After that this registration closes automatically, and you are welcome to start again at any time.` });
         await notify([
           { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
@@ -1031,14 +1031,14 @@ const handle = async (req: Request): Promise<Response> => {
         [T('Reveal fee refunded to the customer', 'رسوم الكشف المستردّة للعميل'), money(d.amount_due)],
         [T('Administrative fee', 'الرسوم الإدارية'), money(d.admin_fee)],
         [T('Interest and fines', 'الفوائد والغرامات'), money(Number(d.interest_amount || 0) + Number(d.fine_amount || 0))],
-        [T('Total paid', 'إجمالي المدفوع'), money(total(d))],
+        [T('Total paid', 'إجمالي المبلغ المدفوع'), money(total(d))],
       ];
       const url = await print({ title: T('Payment receipt', 'إيصال دفع'), ref, name: ref, lang, options: { letterhead: true }, blocks: [
         { t: 'kv', pairs: [[T('Receipt', 'رقم الإيصال'), ref], [T('Company', 'الشركة'), String(sup.company_name || '—')], [T('Paid on', 'تاريخ الدفع'), day(d.paid_at)],
           [T('Payment reference', 'مرجع الدفع'), String(d.payment_ref || '—')], [T('Reveal date', 'تاريخ الكشف'), day(d.reveal_date)]] },
         { t: 'table', head: [T('Item', 'البند'), T(`Amount (${cur})`, `المبلغ (${cur === 'AED' ? 'درهم' : cur})`)], rows, widths: [0.7, 0.3] },
         { t: 'note', text: T('QuotesDone recorded this payment when Stripe confirmed it. Stripe emails the invoice for the same payment separately.',
-          'سجّلت QuotesDone هذه الدفعة عند تأكيد Stripe لها. وترسل Stripe فاتورة الدفعة نفسها بالبريد الإلكتروني بشكل منفصل.') },
+          'سجّلت QuotesDone هذه الدفعة فور تأكيد Stripe لها، وتُرسل Stripe فاتورة الدفعة ذاتها بالبريد الإلكتروني على نحو مستقل.') },
       ] });
       return url ? J({ ok: true, url, ref, lang }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
     }

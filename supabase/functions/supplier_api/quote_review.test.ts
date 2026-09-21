@@ -37,7 +37,7 @@ Deno.test('a quotation that meets every rule is approved, in both languages', ()
   assert(r.approved);
   const s = reviewSaid(jobNo(INQ_ID), r);
   assertMatch(s.en, /^Quotation approved for submission\./);
-  assertMatch(s.ar, /^تمت الموافقة على عرض السعر للتقديم\./);
+  assertMatch(s.ar, /^اعتُمد عرض السعر للتقديم\./);
 });
 
 // Each row breaks exactly one rule and names the one code the review must raise for it.

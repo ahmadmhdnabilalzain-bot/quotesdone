@@ -26,7 +26,7 @@ export default function SupplierCommandPalette({ tabs, labels, onGo, lang = 'en'
   }, []);
 
   const L = lang === 'ar'
-    ? { hint: 'اضغط ⌘K للبحث', placeholder: 'انتقل إلى…', empty: 'لا نتائج', go: 'الانتقال' }
+    ? { hint: 'اضغطوا ⌘K للبحث', placeholder: 'الانتقال إلى…', empty: 'لا توجد نتائج', go: 'الانتقال' }
     : { hint: 'Press ⌘K to jump anywhere', placeholder: 'Go to…', empty: 'Nothing matches', go: 'Destinations' };
 
   return (

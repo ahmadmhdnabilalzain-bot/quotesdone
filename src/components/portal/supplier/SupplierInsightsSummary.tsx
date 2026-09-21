@@ -23,7 +23,7 @@ import { call } from './api';
 // (fn_supplier_stats: avg of the digits in quotes.lead_time) — not a measured delivery time.
 // "Average lead time" alone read as a performance figure (audit 21 Sep 2026, finding 38), so the
 // label says what was averaged. Hidden when null, i.e. when no quote carried a lead time.
-const LEAD_LABEL = { en: 'Average lead time you quoted', ar: 'متوسط مدة التوريد في عروضك' } as const;
+const LEAD_LABEL = { en: 'Average lead time you quoted', ar: 'متوسط مدة التوريد في عروضكم' } as const;
 import { ws } from './workspaceCopy';
 
 type Lang = 'en' | 'ar' | string;

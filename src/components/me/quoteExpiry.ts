@@ -63,7 +63,7 @@ export function expiryOf(
     return {
       tone: 'soon',
       text: ar
-        ? `تنتهي صلاحية هذا العرض في ${d} — بقي ${days} يوم.`
+        ? `تنتهي صلاحية هذا العرض في ${d}، ${days === 1 ? 'وبقي يوم واحد' : days === 2 ? 'وبقي يومان' : `وبقيت ${days} أيام`}.`
         : `This quote expires on ${d} — ${days} day${days === 1 ? '' : 's'} left.`,
     };
   }

@@ -48,9 +48,9 @@ const T = {
     status: { valid: 'Valid', expiring: 'Expiring', expired: 'Expired', missing: 'Not uploaded' },
   },
   ar: {
-    title: 'الشهادات', loading: 'جارٍ فحص شهاداتك…',
-    held: 'محفوظة', blocking: 'يمنع اعتمادك', expiresIn: 'تنتهي خلال', days: 'يومًا', daysAgo: 'يومًا مضت',
-    impact: 'الأثر', upload: 'ارفعها من المستندات',
+    title: 'الشهادات', loading: 'جارٍ فحص شهاداتكم…',
+    held: 'محفوظة', blocking: 'يمنع اعتمادكم', expiresIn: 'تنتهي خلال', days: 'يومًا', daysAgo: 'يومًا مضت',
+    impact: 'الأثر', upload: 'رفعها من تبويب المستندات',
     status: { valid: 'سارية', expiring: 'قاربت الانتهاء', expired: 'منتهية', missing: 'غير مرفوعة' },
   },
 };

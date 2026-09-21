@@ -78,7 +78,7 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
       const j = await r.json().catch(() => null);
       // An error is RENDERED, never swallowed into an empty state — "no suppliers found" and "we
       // could not ask" are different answers and the customer must be able to tell them apart.
-      if (!j) setErr(L(lang, 'No response from the matcher.', 'لا استجابة من المطابق.'));
+      if (!j) setErr(L(lang, 'No response from the matcher.', 'لم يصل ردّ من محرك المطابقة.'));
       else if (j.error) setErr(String(j.message || j.error));
       else setRes({ found: Number(j.found) || 0, filters: j.filters || {}, matches: Array.isArray(j.matches) ? j.matches : [], note: j.note, why_empty: j.why_empty || null, unresolved: Array.isArray(j.unresolved) ? j.unresolved : [] });
     } catch (e) {
@@ -90,15 +90,15 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
   const filterChips = f
     ? [
         [L(lang, 'Trades', 'التخصصات'), Array.isArray(f.trades) ? (f.trades as string[]).join(', ') : null],
-        [L(lang, 'Location', 'الموقع'), (f.emirate as string) || L(lang, 'anywhere in the UAE', 'كل الإمارات')],
+        [L(lang, 'Location', 'الموقع'), (f.emirate as string) || L(lang, 'anywhere in the UAE', 'جميع الإمارات')],
         [L(lang, 'Capability', 'القدرة'), (f.need as string) || null],
-        [L(lang, 'Shortlist size', 'حجم القائمة'), f.limit != null ? String(f.limit) : null],
+        [L(lang, 'Shortlist size', 'عدد المرشّحين'), f.limit != null ? String(f.limit) : null],
       ].filter((x) => !!x[1])
     : [];
 
   return (
     <Card className="p-3.5">
-      <div className={S.label}>{L(lang, 'Find suppliers', 'ابحث عن موردين')}</div>
+      <div className={S.label}>{L(lang, 'Find suppliers', 'ابحث عن مورّدين')}</div>
       {/* THE INSTRUCTION AND THE CONTROL HAVE TO AGREE. This read 'Ask for what you need — "marble,
           delivered in Dubai"', and the field beneath it splits on commas into a TRADES LIST with a
           separate emirate dropdown. Typing this screen's own worked example produced
@@ -106,7 +106,7 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
           location left at "anywhere in the UAE". A example that cannot work is worse than none. */}
       <div className={cn(S.sub, 'mt-1')}>
         {L(lang, 'Name the trades you need, separated by commas, and pick the emirate. We run the same matcher a real request would.',
-                 'اذكر التخصصات التي تحتاجها مفصولة بفواصل، واختر الإمارة. نشغّل المطابق نفسه الذي يعمل مع أي طلب حقيقي.')}
+                 'اذكر التخصصات التي تحتاجها مفصولة بفواصل، واختر الإمارة. نستخدم محرك المطابقة نفسه الذي يعمل على الطلبات الفعلية.')}
       </div>
 
       <div className="mt-2 flex flex-wrap gap-2">
@@ -131,14 +131,14 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
           <div className="text-[15px] font-extrabold text-foreground">
             {res.found === 0
               ? L(lang, 'No supplier is shortlisted for this yet', 'لا يوجد مورّد مرشّح لهذا بعد')
-              : `${L(lang, 'Found', 'وُجد')} ${res.found} ${L(lang, res.found === 1 ? 'supplier' : 'suppliers', 'مورّد')}`}
+              : `${L(lang, 'Found', 'عُثر على')} ${res.found} ${L(lang, res.found === 1 ? 'supplier' : 'suppliers', 'مورّد')}`}
           </div>
 
           {/* §9: the applied filters, shown back. They come from the server's own echo of what it
               used, not from the form state — a filter the matcher silently ignored must not appear
               here as one it honoured. */}
           <div className="mt-1.5">
-            <div className={S.label}>{L(lang, 'Applied filters', 'المرشّحات المطبّقة')}</div>
+            <div className={S.label}>{L(lang, 'Applied filters', 'عوامل التصفية المطبّقة')}</div>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {filterChips.map(([k, v]) => (
                 <span key={String(k)} className="rounded-full border border-border bg-secondary/25 px-2 py-0.5 text-[12px] text-foreground">
@@ -172,13 +172,13 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
               {res.why_empty && res.why_empty.reason === 'not_a_trade_we_know'
                 ? L(lang,
                     `We do not have a trade called ${(res.unresolved || []).join(', ')}. Pick one from the list in the box — the matcher only knows those.`,
-                    `لا يوجد لدينا تخصص باسم ${(res.unresolved || []).join('، ')}. اختر واحدًا من القائمة في الحقل — المطابق لا يعرف سواها.`)
+                    `لا يوجد لدينا تخصص باسم ${(res.unresolved || []).join('، ')}. اختر تخصصًا من القائمة في الحقل، فمحرك المطابقة لا يتعرّف إلا عليها.`)
                 : res.why_empty && res.why_empty.reason === 'held_but_unconfirmed'
                 ? L(lang,
                     `${res.why_empty.suppliers_holding_trade} suppliers on QuotesDone list this trade, but matching only shortlists suppliers who have confirmed their own scope — ${res.why_empty.confirmed_total === 1 ? 'one has' : `${res.why_empty.confirmed_total} have`} done so. Sending the request still puts it in front of them as they confirm.`,
-                    `${res.why_empty.suppliers_holding_trade} مورّد لدينا يذكر هذا التخصص، لكن المطابقة تُرشّح فقط من أكّد نطاق عمله بنفسه، وعددهم حتى الآن ${res.why_empty.confirmed_total}. إرسال الطلب يضعه أمامهم فور التأكيد.`)
+                    `يذكر هذا التخصصَ ${res.why_empty.suppliers_holding_trade} من المورّدين لدينا، لكن المطابقة لا تُرشّح إلا من أكّد نطاق عمله بنفسه، وعددهم حتى الآن ${res.why_empty.confirmed_total}. وعند إرسال الطلب يصل إليهم فور تأكيدهم.`)
                 : L(lang, 'No supplier on QuotesDone lists that trade yet. Sending the request anyway still puts it in front of suppliers as they register.',
-                          'لا يوجد مورّد لدينا يذكر هذا التخصص بعد. إرسال الطلب يضعه أمام الموردين فور تسجيلهم.')}
+                          'لا يوجد لدينا بعد مورّد يذكر هذا التخصص، ومع ذلك يصل طلبك إلى المورّدين فور تسجيلهم إن أرسلته.')}
             </div>
           )}
 
@@ -187,7 +187,7 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
           {res.unresolved && res.unresolved.length && res.why_empty?.reason !== 'not_a_trade_we_know' ? (
             <div className={cn(S.sub, 'mt-2')}>
               {L(lang, `Ignored, because it is not a trade we match on: ${res.unresolved.join(', ')}.`,
-                       `تم تجاهلها لأنها ليست تخصصًا نطابق عليه: ${res.unresolved.join('، ')}.`)}
+                       `استُبعدت لأنها ليست من التخصصات التي نطابق عليها: ${res.unresolved.join('، ')}.`)}
             </div>
           ) : null}
           {res.note ? <div className={cn(S.sub, 'mt-2')}>{res.note}</div> : null}

@@ -63,7 +63,7 @@ export function DrawingGallery({ pages, lang, failed = 0 }: { pages: string[]; l
               onClick={(e) => { opener.current = e.currentTarget; setOpen(k); }}
               whileHover={reduce ? undefined : { y: -2 }} transition={{ duration: 0.2 }}
               className="group relative block aspect-[3/4] w-full overflow-hidden rounded-chip border border-[var(--line2)] bg-black/30 shadow-e1 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={(ar ? 'افتح صفحة المخطط ' : 'Open drawing page ') + (k + 1)}>
+              aria-label={(ar ? 'فتح صفحة المخطط ' : 'Open drawing page ') + (k + 1)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={u} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover opacity-90 transition-opacity group-hover:opacity-100" />
               <span className="absolute bottom-1 start-1 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[10.5px] text-white tabular-nums">{ar ? 'ص' : 'p'}{String(k + 1).padStart(2, '0')}</span>
@@ -90,7 +90,7 @@ export function DrawingGallery({ pages, lang, failed = 0 }: { pages: string[]; l
                 className="max-h-full max-w-full rounded-md bg-white object-contain shadow-[var(--lift)]"
                 initial={reduce ? false : { opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35, ease: EASE }} />
             </div>
-            <p className="px-4 pb-3 text-center text-[11.5px] text-white/60">{ar ? 'أُزيلت بيانات العميل والمشروع من المخطط. تنتهي صلاحية الرابط بعد ساعة — أعد فتح التبويب لتحديثه.' : 'Client and project details were removed from this drawing. The link expires after an hour — reopen the tab to refresh it.'}</p>
+            <p className="px-4 pb-3 text-center text-[11.5px] text-white/60">{ar ? 'أُزيلت بيانات العميل والمشروع من المخطط. تنتهي صلاحية الرابط بعد ساعة — أعيدوا فتح التبويب لتحديثه.' : 'Client and project details were removed from this drawing. The link expires after an hour — reopen the tab to refresh it.'}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -124,10 +124,10 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
           <div className="mt-0.5 text-[12px] text-muted-foreground">
             {ar ? `${rows.length} بند` : `${rows.length} line item${rows.length === 1 ? '' : 's'}`}
             {confidence ? (ar ? ` · ثقة ${CONF[confidence]?.ar || confidence}` : ` · ${confidence} confidence`) : ''}
-            {' · '}{ar ? 'حصر أولي من المخطط — تحقّق من الكميات قبل التسعير' : 'draft take-off from the drawing — check quantities before pricing'}
+            {' · '}{ar ? 'حصر أولي من المخطط، يُرجى التحقق من الكميات قبل التسعير' : 'draft take-off from the drawing — check quantities before pricing'}
           </div>
         </div>
-        {onQuote && <Button size="sm" onClick={() => onQuote(rows)}>{ar ? 'قدّم عرضًا على هذا الجدول' : 'Quote against this BOQ'}</Button>}
+        {onQuote && <Button size="sm" onClick={() => onQuote(rows)}>{ar ? 'تقديم عرض سعر على هذا الجدول' : 'Quote against this BOQ'}</Button>}
       </div>
       {/* Kit BOQ language (see BoqShowcase): mono line codes, mono caps header, tabular quantities.
           Kept a real <table> so sections, caption and headers stay announced. */}
@@ -177,7 +177,7 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
       {(assumptions.length > 0 || missing.length > 0) && (
         <div className="grid gap-3 border-t border-[var(--line)] px-4 py-3 text-[12px] text-muted-foreground sm:grid-cols-2">
           {assumptions.length > 0 && <div><div className="mb-1 font-semibold text-foreground/85">{ar ? 'افتراضات' : 'Assumptions'}</div><ul className="list-disc ps-4">{assumptions.slice(0, 8).map((a, i) => <li key={i}>{a}</li>)}</ul></div>}
-          {missing.length > 0 && <div><div className="mb-1 font-semibold text-foreground/85">{ar ? 'معلومات ناقصة' : 'Not on the drawing'}</div><ul className="list-disc ps-4">{missing.slice(0, 8).map((a, i) => <li key={i}>{a}</li>)}</ul></div>}
+          {missing.length > 0 && <div><div className="mb-1 font-semibold text-foreground/85">{ar ? 'غير وارد في المخطط' : 'Not on the drawing'}</div><ul className="list-disc ps-4">{missing.slice(0, 8).map((a, i) => <li key={i}>{a}</li>)}</ul></div>}
         </div>
       )}
     </div>
@@ -195,7 +195,7 @@ export function WithheldCustomer({ lang }: { lang: Lang }) {
       <span className="font-mono uppercase tracking-caps">{ar ? 'العميل' : 'Customer'}</span>
       <span aria-hidden><Seal>{ar ? 'اسم العميل' : 'Customer name'}</Seal></span>
       <span className="sr-only">{ar ? 'هوية العميل محجوبة' : 'customer identity withheld'}</span>
-      <span>{ar ? '— تُكشف الهوية فقط إذا اختارك' : '— identity shared only if they choose you'}</span>
+      <span>{ar ? '— لا تُكشف الهوية إلا إذا اختاركم' : '— identity shared only if they choose you'}</span>
     </span>
   );
 }
@@ -240,7 +240,7 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
     setBusy(true); setMsg('');
     const j = await call('messages_api', { action: 'clarify_ask', inquiry_id: inquiryId, text: q.slice(0, 1000) }, token).catch(() => null);
     setBusy(false);
-    if (j && j.ok) { setText(''); setOpenAsk(false); setMsg(ar ? 'أُرسل سؤالك إلى العميل دون ذكر اسمك. سيظهر الرد هنا لكل المورّدين المطابقين.' : 'Your question was sent to the customer without your name. The answer will appear here for every matched supplier.'); load(); }
+    if (j && j.ok) { setText(''); setOpenAsk(false); setMsg(ar ? 'أُرسل سؤالكم إلى العميل دون ذكر اسمكم، وسيظهر الرد هنا لجميع المورّدين المطابقين.' : 'Your question was sent to the customer without your name. The answer will appear here for every matched supplier.'); load(); }
     else setMsg(ar ? 'تعذّر إرسال السؤال. يُرجى المحاولة مرة أخرى.' : 'Could not send your question. Please try again.');
   };
   const fmt = (d?: string | null) => (d ? new Date(d).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }) : '');
@@ -265,16 +265,16 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
       )}
       {canAsk && (!openAsk
         ? <button type="button" className="mt-2 text-[12.5px] font-semibold text-muted-foreground underline underline-offset-2 hover:text-primary" onClick={() => { setOpenAsk(true); setMsg(''); }}>
-            {ar ? 'النطاق غير واضح؟ اسأل العميل (دون ذكر اسمك)' : 'Scope unclear? Ask the customer (anonymously)'}
+            {ar ? 'هل النطاق غير واضح؟ اسألوا العميل دون ذكر اسمكم' : 'Scope unclear? Ask the customer (anonymously)'}
           </button>
         : <div className="mt-2 flex flex-col gap-2">
             <label className="text-[12.5px] text-muted-foreground">
-              <span>{ar ? 'ما الذي تحتاج إلى معرفته؟ يرى العميل السؤال دون اسمك، ويصل الرد إلى كل المورّدين المطابقين.' : 'What do you need to know? The customer sees the question without your name, and the answer reaches every matched supplier.'}</span>
+              <span>{ar ? 'ما الذي تحتاجون إلى معرفته؟ يرى العميل السؤال دون اسمكم، ويصل الرد إلى جميع المورّدين المطابقين.' : 'What do you need to know? The customer sees the question without your name, and the answer reaches every matched supplier.'}</span>
               <textarea value={text} maxLength={1000} rows={2} onChange={(e) => setText(e.target.value)}
                 className="mt-1.5 flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
             </label>
             <div className="flex gap-2">
-              <Button size="sm" disabled={busy || !text.trim()} onClick={ask}>{busy ? (ar ? 'جارٍ الإرسال…' : 'Sending…') : (ar ? 'أرسل السؤال' : 'Send question')}</Button>
+              <Button size="sm" disabled={busy || !text.trim()} onClick={ask}>{busy ? (ar ? 'جارٍ الإرسال…' : 'Sending…') : (ar ? 'إرسال السؤال' : 'Send question')}</Button>
               <Button size="sm" variant="outline" onClick={() => { setOpenAsk(false); setText(''); }}>{ar ? 'إلغاء' : 'Cancel'}</Button>
             </div>
           </div>)}

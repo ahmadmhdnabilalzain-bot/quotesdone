@@ -48,12 +48,12 @@ const T = {
     expires: 'expires', upload: 'Go to Documents',
   },
   ar: {
-    title: 'ما الذي تفتحه مستنداتك', loading: 'جارٍ فحص أثر كل مستند…',
+    title: 'ما تتيحه لكم مستنداتكم', loading: 'جارٍ فحص أثر كل مستند…',
     onFile: 'مرفوع', missing: 'مفقود', expired: 'منتهٍ',
-    usedFor: 'استُخدم في', rfqsUnlocked: 'طلب تم فتحه حتى الآن',
-    costing: 'رفعه سيؤهلك لـ', moreOpportunities: 'فرصة إضافية',
+    usedFor: 'أتاح لكم', rfqsUnlocked: 'من الطلبات حتى الآن',
+    costing: 'برفعه تُتاح لكم', moreOpportunities: 'من الفرص الإضافية',
     allGood: 'لا شيء معطّل بسبب مستند مفقود.',
-    expires: 'ينتهي في', upload: 'اذهب إلى المستندات',
+    expires: 'ينتهي في', upload: 'الانتقال إلى المستندات',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
@@ -70,12 +70,12 @@ const DOC_LABEL: Record<string, [string, string]> = {
 };
 const NOTE: Record<string, [string, string]> = {
   in_force: ['On file and in force.', 'مرفوع وساري المفعول.'],
-  expired_gate: ['Expired. Renewing it reopens every open enquiry in your trade.', 'منتهي الصلاحية. تجديده يعيد فتح كل استفسار مفتوح في مجالك.'],
-  expired: ['Expired. Customers see this as a gap when comparing you.', 'منتهي الصلاحية. يراه العملاء نقصًا عند مقارنتك بغيرك.'],
-  missing_gate: ['Missing. It is the document that decides whether you can be matched at all.', 'مفقود. هذا هو المستند الذي يحدّد إن كان يمكن مطابقتك أصلًا.'],
-  missing: ['Missing. It is optional, but it is what a customer looks for when comparing two similar quotes.', 'مفقود. هو اختياري، لكنه ما يبحث عنه العميل عند المقارنة بين عرضين متقاربين.'],
+  expired_gate: ['Expired. Renewing it reopens every open enquiry in your trade.', 'منتهي الصلاحية، وبتجديده تُتاح لكم مجددًا جميع الاستفسارات المفتوحة في مجالكم.'],
+  expired: ['Expired. Customers see this as a gap when comparing you.', 'منتهي الصلاحية، ويعدّه العملاء نقصًا عند مقارنتكم بغيركم.'],
+  missing_gate: ['Missing. It is the document that decides whether you can be matched at all.', 'مفقود، وهو المستند الذي يحدّد إمكانية مطابقتكم من الأساس.'],
+  missing: ['Missing. It is optional, but it is what a customer looks for when comparing two similar quotes.', 'مفقود. هذا المستند اختياري، لكنه ما يبحث عنه العميل عند المفاضلة بين عرضين متقاربين.'],
 };
-const BASIS: [string, string] = ['Counted from open enquiries in your trade, and the enquiries you have already priced.', 'محسوب من الاستفسارات المفتوحة في مجالك، والاستفسارات التي سبق أن قدّمت عليها عروض أسعار.'];
+const BASIS: [string, string] = ['Counted from open enquiries in your trade, and the enquiries you have already priced.', 'محسوب من الاستفسارات المفتوحة في مجالكم، ومن الاستفسارات التي سبق أن قدّمتم عليها عروض أسعار.'];
 const pick = (lang: Lang, p: [string, string]) => p[lang === 'ar' ? 1 : 0];
 export const docLabel = (lang: Lang, x: Doc) => (DOC_LABEL[x.key] ? pick(lang, DOC_LABEL[x.key]) : x.label);
 export const docNote = (lang: Lang, x: Doc) => {
