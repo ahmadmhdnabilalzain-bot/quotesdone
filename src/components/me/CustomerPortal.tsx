@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
 import { supaClient } from '@/lib/supaClient';
+import { takeAuthFragment } from '@/lib/authFragment';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -234,8 +235,12 @@ export function CustomerPortal() {
   useEffect(() => {
     setMounted(true);
     try { const l = initLang(); if (l !== 'en') setLangState(l); } catch (_e) {}
-    try { const tk = localStorage.getItem('qd-cust-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
-    try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {}); } catch (_e) {}
+    // A magic-link session in the URL is taken out of it in place and signs in (audit 21 Sep, item 29).
+    // It wins over a stored session, so the stored one is not restored on top of it.
+    const urlSession = takeAuthFragment();
+    if (urlSession) onAuth(urlSession.access_token, urlSession.refresh_token);
+    else try { const tk = localStorage.getItem('qd-cust-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
+    if (!urlSession) try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {}); } catch (_e) {}
     // THE PORTAL SIGNED PEOPLE OUT EVERY HOUR WHILE HOLDING A VALID REFRESH TOKEN (13 Aug 2026).
     //
     // A Supabase access token lives 60 minutes. This client is created with autoRefreshToken:true

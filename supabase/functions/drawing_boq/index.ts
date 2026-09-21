@@ -10,6 +10,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { boqFromPages } from './boq_from_text.ts';
+import { boqFromDrawingSet, type ScheduleTable } from './drawing_set.ts';
 import { boqFromSheet } from './boq_from_sheet.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
@@ -127,7 +128,15 @@ Deno.serve(observe('drawing_boq', async (req) => {
       }
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
-        const out = boqFromPages(await pdfPages(bytes), hint);
+        const pages = await pdfPages(bytes);
+        // 21 Sep 2026 (founder instruction 580): a CAD drawing SET is taken off as a set — tags, air
+        // devices, keyed notes, sizes — with the portal's OCR of its schedules (schedule_tables, bounded
+        // by customer_api) naming make and model. Only when nothing on it is countable does the older
+        // "<qty> <unit>" text reader run.
+        const sched = Array.isArray(body.schedule_tables) ? (body.schedule_tables as ScheduleTable[]).slice(0, 40).filter((t) => t && Array.isArray(t.rows)) : [];
+        const set = boqFromDrawingSet(pages, hint, sched);
+        if (set) return J({ ok: true, boq: { ...set, fallback_reason: why } });
+        const out = boqFromPages(pages, hint);
         return J({ ok: true, boq: { ...out, fallback_reason: why } });
       } catch (_e) { return null; }
     };

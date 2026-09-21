@@ -17,8 +17,12 @@
 // page is clean.
 type Box = { x: number; y: number; w: number; h: number };
 
-export function supplierPageReadable(page: { runs?: unknown[]; rotate?: number } | undefined, rotated = false): boolean {
-  return !!(page && Array.isArray(page.runs) && page.runs.length > 0 && !page.rotate && !rotated);
+// 21 Sep 2026: a ROTATED page is readable now. pdf_text_positions returns runs in the display frame (after
+// /Rotate), the frame pdf.js renders the raster in, so a box lands where the text is shown. Refusing
+// /Rotate held every sheet of both real bid sets measured that day (13 of 13 rotated) and a supplier
+// received no drawing at all. `rotated` is kept for callers that still pass it; it no longer holds a page.
+export function supplierPageReadable(page: { runs?: unknown[]; rotate?: number } | undefined, _rotated = false): boolean {
+  return !!(page && Array.isArray(page.runs) && page.runs.length > 0);
 }
 
 export function supplierBoxes(

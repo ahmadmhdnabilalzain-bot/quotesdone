@@ -24,8 +24,9 @@
 // No seeds at all also holds: we cannot prove the customer's name is absent without knowing it.
 //
 // WHAT IT NEVER DOES, and cannot: read pixels. A page with no text layer (a scan) or a title block
-// drawn as vectors / inside a Form XObject (not followed by pdf_text_positions) yields confidence
-// 'low' — the caller must HOLD unless the customer drew boxes. Logos outside a detected title block,
+// drawn as vectors (pdf_text_positions follows Form XObjects since 21 Sep 2026, so a CAD block is read)
+// yields confidence 'low' — the caller must HOLD. Logos outside the title strip are boxed only when
+// logo-sized; a drawing-sized raster is not read here (see titleBlockBoxes (d)). Logos outside a detected title block,
 // handwriting, and identity in file metadata or CAD layers are not detected. Glyph widths are
 // estimated (0.6 em), so boxes are padded. Seed tokens under 4 characters ("Ali") are only removed
 // as part of the full value. It never deletes BOQ quantities, units or ordinary trade words.
@@ -33,6 +34,7 @@ import type { PdfPage, TextRun } from './pdf_text_positions.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
+import { CONTACT_PATTERNS } from './identity_contacts.ts';
 export type Box = { x: number; y: number; w: number; h: number };
 export type SeedSource = { name?: string; company?: string; email?: string; phone?: string; project?: string; address?: string; plot?: string; makani?: string; extra?: string[] };
 
@@ -139,13 +141,15 @@ const GENERIC_ID: [string, RegExp][] = [
   ['street_ar', /شارع\s+\S+(?:\s+\S+)?/g],
   ['reference_no', /\b(?:(?:project|drawing|dwg|job|file|contract|tender|ref(?:erence)?|premises?|account|plan)\s*(?:no\.?|number|#|ref\.?)|DEWA(?:\s*(?:no\.?|number|#|account|premises?))?|permit(?:\s*(?:no\.?|number|#))?|dwg\.?)\s*[:.#]?\s*(?=[\w\-\/.]*\d)[A-Z0-9][\w\-\/.]*/gi],
   ['reference_no_ar', /رقم\s*(?:المشروع|المخطط|اللوحة|اللوحه|الرخصة|الرخصه|التصريح)\s*[:：]?\s*\S+/g],
+  // Non-UAE contacts (identity_contacts.ts, 21 Sep 2026): US phones, bare web hosts, street addresses, city/ZIP.
+  ...CONTACT_PATTERNS,
   // Residual-only mirrors of what scrubIdentity removes, so the scan can prove they are gone.
   ['email', /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g],
   ['url', /\b(?:https?:\/\/|www\.)\S+/gi],
   ['phone', /(?:\+?971|00971|\b0)[\s-]?\d{1,2}[\s-]?\d{3}[\s-]?\d{4}\b/g],
   ['trn', TRN_LABELLED], ['trn_bare', TRN_BARE], ['licence_no', LICENCE_NO],
 ];
-const REDACT_ONLY_BEFORE_SCRUB = GENERIC_ID.slice(0, 9);
+const REDACT_ONLY_BEFORE_SCRUB = GENERIC_ID.slice(0, GENERIC_ID.findIndex(([n]) => n === 'email'));
 
 // A person or party named after a label: the rest of the line is the value.
 const LABEL_LINE = /(\b(?:client|owner|employer|customer|consultant|contractor|architect|engineer|developer|project\s*(?:name|title)?|location|site\s*address|address|attn|attention|contact)\s*[:：]|\b(?:drawn|checked|approved|designed|prepared|reviewed)(?:\s+by)?\s*[:：]|\b(?:drawn|checked|approved|designed|prepared|reviewed)\s+by\b|(?:المالك|العميل|الاستشاري|المقاول|المشروع|اسم\s*المشروع|الموقع|العنوان|المصمم|رسم\s*بواسطة|تدقيق|اعتماد)\s*[:：])[^\n]*\S/gi;
@@ -196,7 +200,38 @@ export function redactBoq<T>(boq: T, seeds: string[]): { boq: T; held: boolean; 
 }
 
 // ── PDF pages ───────────────────────────────────────────────────────────────────────────────────
+// 21 SEP 2026 (founder instruction 580: "He's able to remove any contact details or anything that would
+// refer to the project details"). MEASURED on two real US bid sets (13 sheets, every one /Rotate 270):
+// every page was HELD — a rotated page returned low confidence here — so a supplier received no drawing
+// at all; and had they not been rotated, the labels below would have boxed 11 and 18 runs per sheet,
+// mostly general-note text ("…ON THIS PROJECT"), and none of the real identity (a US phone, a bare web
+// host, a street address, the project name printed without a "Project:" label, the engineer's stamp).
+// What changed, and why each piece exists:
+//  * Coordinates are in the display frame now (pdf_text_positions), so a rotated page is boxed like any
+//    other instead of held.
+//  * THE TITLE STRIP (titleStrip). CAD sheets put the title block in a strip along the right or bottom
+//    edge, drawn inside a long border line. The strip is found from strong identity evidence (phones,
+//    web hosts, emails, addresses, "PROJECT NO", "DRAWN BY", "REVISIONS", "SEAL") and snapped outward to
+//    the nearest long border line; the WHOLE strip is covered, so a logo, a stamp or a project name with
+//    no label inside it goes with it. It never grows past 35% of the sheet — beyond that it is not a
+//    title block and the page is held instead.
+//  * SEEDS FROM THE STRIP. Names printed in the strip (the project name, the firm) are looked for on the
+//    rest of the sheet, so the same name in a general note is boxed too. A view title ("WASTE AND VENT
+//    PLAN"), a date, a sheet number or a scale is drawing content and is never a seed.
+//  * Images outside the strip that are logo-sized are covered; drawing-sized rasters are left alone and
+//    reported (their pixels are not read here — the portal's OCR proof on the output is what checks them).
+//  * Outside the strip only CONTACT-shaped text is boxed (patterns, seeds, "Client:" labels): a keynote
+//    that says "COORDINATE WITH ARCHITECT" is scope a supplier must read, not an identity.
 const TB_LABEL = /\b(?:client|owner|employer|project|consultant|architect|engineer|contractor|developer|drawn|checked|approved|designed|drawing\s*(?:no|title)|dwg|rev|revision|date|sheet|scale|plot|makani|location|address|title|stamp|seal|key\s*plan)\b|المالك|العميل|المشروع|الاستشاري|المقاول|المهندس|رسم|تدقيق|اعتماد|التاريخ|المقياس|اللوحة|اللوحه|قطعة|قطعه|مكاني|الموقع|العنوان|ختم/i;
+/** Evidence that a region IS a title block: contact shapes and the labels only a title block carries. */
+const TB_STRONG = /\b(?:project\s*(?:no|number|#)|job\s*(?:no|number|#)|drawn\s*by|checked\s*by|approved\s*by|designed\s*by|revisions?|seal|licen[cs]e|sheet\s*(?:no|number|title))\b|رقم\s*المشروع|رسم\s*بواسطة|المالك|العميل|الاستشاري/i;
+// Company suffixes that name a firm on their own. "Architect", "Consultants", "Contracting" are left to
+// the strip: outside it they are usually a keynote talking about a trade ("PROVIDED BY ARCHITECT").
+const FIRM = /\b[\w&.' -]{2,40}\s(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Inc\.?|Corp\.?|Ltd\.?|Establishment|Est\.)(?=\W|$)|شركة|مؤسسة|ذ\.م\.م/i;
+// What makes a strip text DRAWING content: the name of a view or of the sheet, or its issue status. A
+// discipline word alone does not ("DEMO" is in a project called "ZZ DEMO CRIME LAB", a "FLOOR" can be in
+// a building's name), so only the words that name a drawing are here.
+const VIEW_WORDS = /\b(?:PLANS?|SCHEDULES?|DETAILS?|DIAGRAMS?|SECTIONS?|ELEVATIONS?|LEGEND|NOTES|INDEX|SPECIFICATIONS?|ISSUED\s+FOR|PERMIT\s+SET|BID\s+SET|SCALE|SHEET|REVISIONS?|NORTH)\b/i;
 const M = 0.02; // margin, normalised
 const clamp = (b: Box): Box => { const x = Math.max(0, b.x), y = Math.max(0, b.y); return { x, y, w: Math.max(0, Math.min(1, b.x + b.w) - x), h: Math.max(0, Math.min(1, b.y + b.h) - y) }; };
 const around = (rs: TextRun[], pad = M): Box => {
@@ -205,33 +240,97 @@ const around = (rs: TextRun[], pad = M): Box => {
   return clamp({ x: x1 - pad, y: y1 - pad, w: x2 - x1 + 2 * pad, h: y2 - y1 + 2 * pad });
 };
 const sameLine = (p: PdfPage, r: TextRun) => p.runs.filter((o) => Math.abs((o.y + o.h) - (r.y + r.h)) <= Math.max(o.h, r.h) * 0.6);
-const covers = (b: Box, r: TextRun) => r.x >= b.x - 1e-6 && r.y >= b.y - 1e-6 && r.x + r.w <= b.x + b.w + 1e-6 && r.y + r.h <= b.y + b.h + 1e-6;
+const covers = (b: Box, r: { x: number; y: number; w: number; h: number }) => r.x >= b.x - 1e-6 && r.y >= b.y - 1e-6 && r.x + r.w <= b.x + b.w + 1e-6 && r.y + r.h <= b.y + b.h + 1e-6;
+const centreIn = (b: Box, r: { x: number; y: number; w: number; h: number }) => r.x + r.w / 2 >= b.x && r.x + r.w / 2 <= b.x + b.w && r.y + r.h / 2 >= b.y && r.y + r.h / 2 <= b.y + b.h;
+const contactHit = (t: string) => GENERIC_ID.some(([, re]) => new RegExp(re.source, re.flags.replace('g', '')).test(t));
+const isEvidence = (t: string) => contactHit(t) || TB_STRONG.test(t) || FIRM.test(t);
+export const MAX_STRIP = 0.35;
+/** A party / place label standing alone as its own run: "LOCATION:", "CLIENT", "المالك:". */
+const LABEL_ONLY = /^\s*(?:client|owner|employer|customer|consultant|contractor|developer|project(?:\s*(?:name|title|location|address))?|location|site(?:\s*address)?|address|attn|attention|contact|(?:drawn|checked|approved|designed|prepared|reviewed)\s*by|المالك|العميل|الاستشاري|المقاول|المشروع|اسم\s*المشروع|الموقع|العنوان)\s*[:：]?\s*$/i;
 
-export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box[][]; confidence: 'low' | 'medium'; residual: string[] } {
+/** The title-block strip of one sheet (display frame), or null when none is evident. */
+export function titleStrip(p: PdfPage): Box | null {
+  const ev = p.runs.filter((r) => isEvidence(r.text));
+  if (ev.length < 2) return null;
+  const lines = p.lines || [];
+  const cands: Box[] = [];
+  // The evidence hard against the edge, grown inward only while the next piece is within 6% of the
+  // last: a spec sheet's note that happens to say "SEAL" or "REVISIONS" in mid-sheet must not drag
+  // the strip across the drawing (measured 21 Sep 2026: M0.0 and M0.4 of the mechanical set did).
+  const cluster = (vals: number[]) => { const s = [...vals].sort((a, b) => b - a); let edge = s[0]; for (const v of s.slice(1)) { if (edge - v > 0.06) break; edge = v; } return { edge, n: s.filter((v) => v >= edge).length }; };
+  const right = ev.filter((r) => r.x >= 0.6);
+  const rc = right.length ? cluster(right.map((r) => r.x)) : null;
+  if (rc && rc.n >= 2) {
+    const xr = rc.edge;
+    const border = lines.filter((l) => l.x2 - l.x1 < 1e-3 && l.y2 - l.y1 >= 0.5 && l.x1 <= xr + 0.002 && l.x1 >= xr - 0.1).map((l) => l.x1);
+    const x = border.length ? Math.max(...border) - 0.004 : xr - 0.01;
+    if (1 - x <= MAX_STRIP) cands.push({ x, y: 0, w: 1 - x, h: 1 });
+  }
+  const bottom = ev.filter((r) => r.y >= 0.6);
+  const bc = bottom.length ? cluster(bottom.map((r) => r.y)) : null;
+  if (bc && bc.n >= 2) {
+    const yb = bc.edge;
+    const border = lines.filter((l) => l.y2 - l.y1 < 1e-3 && l.x2 - l.x1 >= 0.5 && l.y1 <= yb + 0.002 && l.y1 >= yb - 0.1).map((l) => l.y1);
+    const y = border.length ? Math.max(...border) - 0.004 : yb - 0.01;
+    if (1 - y <= MAX_STRIP) cands.push({ x: 0, y, w: 1, h: 1 - y });
+  }
+  if (!cands.length) return null;
+  // The strip that holds the most evidence; on a tie, the smaller one.
+  const score = (b: Box) => ev.filter((r) => centreIn(b, r)).length;
+  return cands.sort((a, b) => score(b) - score(a) || a.w * a.h - b.w * b.h)[0];
+}
+
+/** Names printed in the strip that are not drawing content: looked for everywhere else on the set. */
+export function stripSeeds(p: PdfPage, strip: Box): string[] {
+  const out = new Set<string>();
+  for (const r of p.runs) {
+    if (!centreIn(strip, r)) continue;
+    const t = r.text.replace(/\s+/g, ' ').trim();
+    if (VIEW_WORDS.test(t) || /^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}$/.test(t) || /^[A-Z]{1,2}-?\d{1,2}\.\d{1,2}[A-Z]?$/.test(t)) continue;
+    const n = norm(t);
+    if (/^[\d ]+$/.test(n)) { if (n.replace(/ /g, '').length >= 6) out.add(n.replace(/ /g, '')); continue; }
+    if (n.length >= 8 && n.includes(' ') && !GENERIC.has(n)) out.add(n);
+  }
+  return [...out];
+}
+
+export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box[][]; confidence: 'low' | 'medium'; residual: string[]; strips: (Box | null)[] } {
   let low = !seeds.length || !pages.length;
   const residual: string[] = [];
-  const hits = (t: string) => residualScan(t, seeds).length > 0 || scrubIdentity(t) !== t.replace(/\s{2,}/g, ' ').trim() || LABEL_TEST.test(t);
+  const strips = pages.map((p) => (p.runs.length ? titleStrip(p) : null));
+  // Seeds from every sheet's strip apply to the whole set: the project name is the same on every sheet.
+  const setSeeds = [...new Set(pages.flatMap((p, i) => (strips[i] ? stripSeeds(p, strips[i]!) : [])))];
+  const allSeeds = [...seeds, ...setSeeds].sort((a, b) => b.length - a.length);
+  // A label written as its own run ("LOCATION:" with "GREELEY, CO" as the next run, measured on the
+  // mechanical cover sheet's design-data table) never matched LABEL_TEST, which wants the value on the
+  // same run. Either shape now takes the values to its right.
+  const isLabel = (t: string) => LABEL_TEST.test(t) || LABEL_ONLY.test(t);
+  const hitsOutside = (t: string) => residualScan(t, allSeeds).length > 0 || isLabel(t) || FIRM.test(t);
   const boxes = pages.map((p, pi) => {
-    // No text (a scan) or a rotated page whose raster no longer shares the PDF's axes: nothing to trust.
-    if (!p.runs.length || p.rotate) { low = true; return []; }
+    // No text at all (a scan): nothing here can see it.
+    if (!p.runs.length) { low = true; return []; }
     const bx: Box[] = [];
-    const hit = p.runs.filter((r) => hits(r.text));
-    // (a) every identifying run; a label also takes the values to its right on the same line.
-    for (const r of hit) bx.push(LABEL_TEST.test(r.text) || TB_LABEL.test(r.text) ? around(sameLine(p, r).filter((o) => o.x >= r.x && o.x <= r.x + r.w + 0.25)) : around([r], 0.01));
-    // (b) the title block: >= 2 title-block labels along the right or bottom edge, their rows and
-    //     everything to the right of them, grown to the sheet edge (logos/stamps/QR inside it).
-    const labels = p.runs.filter((r) => TB_LABEL.test(r.text));
-    let block = false;
-    for (const [zone, edge] of [[labels.filter((r) => r.x >= 0.6), 'right'], [labels.filter((r) => r.y + r.h >= 0.75), 'bottom']] as const) {
-      if (zone.length < 2) continue;
-      const y1 = Math.min(...zone.map((r) => r.y)), y2 = Math.max(...zone.map((r) => r.y + r.h)), x1 = Math.min(...zone.map((r) => r.x));
-      const rows = p.runs.filter((r) => r.y + r.h / 2 >= y1 - M && r.y + r.h / 2 <= y2 + M && r.x + r.w >= x1 - M);
-      const b = around(rows, M * 1.5);
-      bx.push(clamp(edge === 'right' ? { ...b, w: 1 - b.x } : { ...b, h: 1 - b.y }));
-      block = true;
+    const strip = strips[pi];
+    if (strip) bx.push(clamp({ ...strip }));
+    const outside = strip ? p.runs.filter((r) => !centreIn(strip, r)) : p.runs;
+    // (a) every identifying run outside the strip; a label also takes the values to its right on the same line.
+    const hit = outside.filter((r) => hitsOutside(r.text) || (!strip && TB_LABEL.test(r.text) && isEvidence(r.text)));
+    for (const r of hit) bx.push(isLabel(r.text) ? around(sameLine(p, r).filter((o) => o.x >= r.x && o.x <= r.x + r.w + 0.25)) : around([r], 0.01));
+    // (b) no strip found: the older label cluster (>= 2 title-block labels hard against the right or bottom edge).
+    let block = !!strip;
+    if (!strip) {
+      const labels = p.runs.filter((r) => TB_LABEL.test(r.text));
+      for (const [zone, edge] of [[labels.filter((r) => r.x >= 0.6), 'right'], [labels.filter((r) => r.y + r.h >= 0.75), 'bottom']] as const) {
+        if (zone.length < 2) continue;
+        const y1 = Math.min(...zone.map((r) => r.y)), y2 = Math.max(...zone.map((r) => r.y + r.h)), x1 = Math.min(...zone.map((r) => r.x));
+        const rows = p.runs.filter((r) => r.y + r.h / 2 >= y1 - M && r.y + r.h / 2 <= y2 + M && r.x + r.w >= x1 - M);
+        const b = around(rows, M * 1.5);
+        bx.push(clamp(edge === 'right' ? { ...b, w: 1 - b.x } : { ...b, h: 1 - b.y }));
+        block = true;
+      }
     }
     // (c) revision tables: a REV header with DATE/DESCRIPTION beside it, grown over the rows stacked on it.
-    for (const r of p.runs) {
+    for (const r of outside) {
       if (!/\brev(?:ision)?\b/i.test(r.text)) continue;
       const line = sameLine(p, r);
       if (!line.some((o) => /\bdate\b|desc/i.test(o.text))) continue;
@@ -244,13 +343,23 @@ export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box
       bx.push(clamp({ x: x1 - M, y: y1 - M, w: x2 - x1 + 2 * M, h: y2 - y1 + 2 * M }));
       block = true;
     }
-    // A sheet with text but no findable title block most likely has it as vectors or a Form XObject.
+    // (d) logo-sized images outside the strip (a firm's logo or a stamp placed on the drawing).
+    for (const im of p.images || []) {
+      if (strip && centreIn(strip, im)) continue;
+      if (im.w * im.h <= 0.03 && im.px * im.py <= 1_500_000) bx.push(clamp({ x: im.x - 0.005, y: im.y - 0.005, w: im.w + 0.01, h: im.h + 0.01 }));
+    }
+    // A sheet with text but no findable title block most likely has it as vectors or in an image.
     if (!block) low = true;
-    for (const r of hit) if (!bx.some((b) => covers(b, r))) residual.push(`page ${pi + 1}: ${r.text.slice(0, 60)}`);
+    // RESIDUAL: every run not covered by a box is scanned again, with the strip's seeds.
+    for (const r of p.runs) {
+      if (bx.some((b) => covers(b, r))) continue;
+      if (hitsOutside(r.text) || contactHit(r.text)) residual.push(`page ${pi + 1}: ${r.text.slice(0, 60)}`);
+    }
     return bx;
   });
-  return { boxes, confidence: low || residual.length ? 'low' : 'medium', residual };
+  return { boxes, confidence: low || residual.length ? 'low' : 'medium', residual, strips };
 }
+
 
 /** A file name that carries nothing of the customer's: rfq-<8 hex of the id>-drawing-01.jpg */
 export function neutralName(ext: string, id: string, n = 1): string {
