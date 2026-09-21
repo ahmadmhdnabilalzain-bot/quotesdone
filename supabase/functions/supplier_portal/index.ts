@@ -17,6 +17,7 @@ import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
 import { readExpiry, type ExpiryRead } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
+import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 // The model path (license_extract → ai_gateway) is OFF unless app_secrets.document_expiry_ai is
 // 'on'. OpenRouter is on hold; a closed door must not be knocked on for every upload.
 async function flagOn(key: string): Promise<boolean> { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return /^(on|true|1)$/i.test(String(data?.value || '').trim()); }
@@ -136,10 +137,10 @@ async function listDocuments(supId: number) {
 Deno.serve(observe('supplier_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
-    const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
-    const { data: { user } } = await admin.auth.getUser(jwt);
-    if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
-    const email = user.email.toLowerCase();
+    // Local refusal first, a bounded auth call, and 503 (not 401) when auth is down — _shared/signed_in_user.ts.
+    const who = await signedInUser(admin, req.headers.get('Authorization'));
+    if (!who.ok) return J(refusalBody(who), who.status);
+    const { email } = who;
     const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from').eq('claimed_by', email).maybeSingle();
     if (!sup) return J({ error: 'no_company', hint: 'claim your company first' }, 400);
     // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026). One gate, above the

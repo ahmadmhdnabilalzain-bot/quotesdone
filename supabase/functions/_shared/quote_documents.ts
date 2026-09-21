@@ -359,7 +359,8 @@ const hasSpecs = (it: Item) => !!((it.specs && Object.values(it.specs).some((v) 
 // ── The quotation ──────────────────────────────────────────────────────────────────────────────
 /** The pdf_native body for ONE quote in ONE language. Pure: the caller fetches the rows. */
 // requestUrl: the portal deep link back to this quote on its request (site_origins portalLink).
-export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string }) {
+/** `partyName`: the supplier's company name once the customer has paid to reveal it; the letter still names the reference. */
+export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string }) {
   const { quote: q, inquiry: inq, letter, lang } = args;
   // A line that is itself VAT ("VAT 5%") is not scope; it never reaches the page.
   const items = (args.items || []).filter((it) => !VAT_RE.test(String(it.desc || '')));
@@ -367,7 +368,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   const k = kit(lang, args.maskNames || []); const { T, ar } = k;
   const ref = quoteRef(inq, letter);
   const date = (ar ? args.date_ar : args.date) || k.today();
-  const party = k.label('Supplier ' + letter);
+  const party = args.partyName || k.label('Supplier ' + letter);
   const trade = ar ? (arCategory(inq.category) ?? k.loc(inq.category).text) : enCategory(inq.category);
   const emirate = ar ? (arEmirate(inq.emirate) ?? k.loc(inq.emirate).text) : String(inq.emirate || '');
   const lead = k.dur(q.lead_time), validity = k.dur(q.validity), warranty = k.dur(q.warranty);

@@ -20,7 +20,7 @@
 // Chat is GATED on purpose: it unlocks only after a paid reveal, and even then a chat must be
 // requested and approved. `request_chat` may be answered outright by the category agent instead of
 // opening one. That is the product, not a failure, and the surface renders all three outcomes.
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 export type Lang = 'en' | 'ar';
 
@@ -138,7 +138,7 @@ export type CommsResult<T> =
  */
 export async function call<T>(fn: string, body: Record<string, unknown>, token: string): Promise<CommsResult<T>> {
   try {
-    const r = await fetch(`${SUPA_FN}/${fn}`, {
+    const r = await fetch(fnUrl(fn), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
       body: JSON.stringify(body),

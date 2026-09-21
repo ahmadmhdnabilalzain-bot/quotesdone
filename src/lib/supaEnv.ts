@@ -25,6 +25,24 @@ export const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   || (IS_PREVIEW ? '' : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo');
 export const SUPA_FN = `${SUPA_URL}/functions/v1`;
 
+// EDGE FUNCTIONS RUN NEXT TO THE DATABASE, NOT NEXT TO THE CALLER (21 Sep 2026).
+// Supabase runs a function in the edge region nearest the CALLER, but the database is in
+// ap-southeast-1 (Singapore) and every function makes several SERIAL hops to it (auth.getUser,
+// leads, customers, then the action's own reads). function_edge_logs, 24 h to 21 Sep 2026, the six
+// /me overview reads (kyc, customer_api, customer_portal, project_api, messages_api), 200s only,
+// p50 execution_time_ms by region: us-east-1 1,943-3,498, us-west-1 1,458-2,388, ap-south-1 (the
+// region Dubai callers land in) 639-1,271. The nightly journey and post-merge smoke run on US GitHub
+// runners, so every hop crossed the Pacific and "overview data under 2.5 s" failed ~40x per locale
+// although all six calls already START in parallel at ~0.2 s (BootPrefetch.tsx). From Dubai a
+// one-hop anon read (public_site guarantee_terms) took 853-1,084 ms unpinned (ap-south-1) and
+// 286-346 ms pinned (ap-southeast-1), warm. One client-to-Singapore trip costs less than N
+// edge-to-database trips from anywhere else.
+// The QUERY PARAMETER, not the `x-region` header: a custom header needs every function's CORS
+// allow-list to name it, the query string needs no preflight change.
+// Checked by scripts/checks/customer_overview_reads_run_in_the_database_region.test.mjs.
+export const FN_REGION = 'ap-southeast-1';
+export const fnUrl = (name: string) => `${SUPA_FN}/${name}?forceFunctionRegion=${FN_REGION}`;
+
 // A silent fallback is how a staging page ends up writing to production. Say so, loudly, in the
 // one place every consumer now shares.
 if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_SUPABASE_URL) {

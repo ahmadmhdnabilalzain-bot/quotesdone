@@ -2,7 +2,16 @@
 // deno test --no-lock --node-modules-dir=auto supabase/functions/_shared/registered_locale.test.ts
 // ZZ DEMO addresses only; the client is a recorder, so nothing reaches a database or a person.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { asLocale, registeredLocale, LOOKUP_FAILED_ISSUE } from './registered_locale.ts';
+import { asLocale, documentLocale, registeredLocale, LOOKUP_FAILED_ISSUE } from './registered_locale.ts';
+
+// Finding 4 (customer audit, 21 Sep 2026): the Arabic-copy button of an English-registered customer
+// was served the English PDF because quote_pdf read customers.locale only.
+Deno.test('a document asked for in Arabic is Arabic even for an English-registered customer; junk falls back', () => {
+  assertEquals(documentLocale('ar', 'en'), 'ar');
+  assertEquals(documentLocale('en', 'ar'), 'en');
+  assertEquals(documentLocale(undefined, 'ar'), 'ar');
+  assertEquals(documentLocale('fr', 'en'), 'en');
+});
 
 function fake(answer: { data?: unknown; error?: { message: string } } | 'throw') {
   const rpcs: { name: string; args: any }[] = []; const inserts: { table: string; row: any }[] = [];

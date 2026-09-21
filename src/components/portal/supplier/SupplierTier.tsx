@@ -24,7 +24,7 @@
 // therefore permanently unmet BY DECISION, not by omission, and must never be quietly satisfied.
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 type Rung = { tier: string; needs: string; needs_ar?: string };
@@ -35,11 +35,10 @@ type Payload = {
   benefits_active?: boolean; affects_matching?: boolean; benefits_note?: string; benefits_note_ar?: string;
 };
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),
