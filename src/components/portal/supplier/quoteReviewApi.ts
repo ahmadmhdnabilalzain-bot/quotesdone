@@ -72,7 +72,18 @@ export const qr = {
   choose: (token: string, id: string, choice: 'generate' | 'reupload', lang: Lang) => post<ThreadView>({ action: 'review_choose', inquiry_id: id, choice, lang }, token),
   submit: (token: string, id: string, lang: Lang) => post<ThreadView>({ action: 'review_submit', inquiry_id: id, lang }, token),
   quotePdf: (token: string, quoteId: string, lang: Lang) => call('supplier_api', { action: 'quote_pdf', quote_id: quoteId, lang }, token),
+  /** The inquiry as the sales engineer's document (PDF, one language per file), cached server-side. */
+  inquiryPdf: (token: string, inquiryId: string, lang: Lang) => call('supplier_api', { action: 'inquiry_pdf', inquiry_id: inquiryId, lang }, token),
 };
+export type PdfResult = { ok: true; url: string; ref: string; lang: Lang; cached?: boolean } | Failure;
+/** Open a document the server signed. Only https URLs are opened; anything else is treated as a failure. */
+export async function openPdf(fetchIt: () => Promise<unknown>): Promise<boolean> {
+  const j = (await fetchIt().catch(() => null)) as PdfResult | null;
+  const u = j && (j as { url?: unknown }).url; const url = typeof u === 'string' && /^https:\/\//i.test(u) ? u : null;
+  if (!url) return false;
+  window.open(url, '_blank', 'noopener');
+  return true;
+}
 
 /** A File as the base64 the upload action takes — the same body a native app sends. */
 export function fileToBase64(file: File): Promise<string> {

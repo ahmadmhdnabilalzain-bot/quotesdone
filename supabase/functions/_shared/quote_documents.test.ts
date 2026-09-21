@@ -16,7 +16,7 @@
 // reachable (`deno test --allow-net`), and the sample renderer in the PR proves the Arabic pages.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { PDFDocument, PDFDict, PDFName } from 'https://esm.sh/pdf-lib@1.17.1';
-import { quoteDocument, compareDocument, compareTable, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv } from './quote_documents.ts';
+import { quoteDocument, compareDocument, compareTable, inquiryDocument, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv } from './quote_documents.ts';
 import { footerLines, footerLinesAr, FALLBACK } from './doc_template.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 import { renderPdf } from '../pdf_native/render.ts';
@@ -413,3 +413,86 @@ for (const c of ['hvac', 'fitout'] as const) {
     });
   }
 }
+
+// ── THE INQUIRY DOCUMENT (21 Sep 2026; founder instruction 435) ──────────────────────────────────
+// Built from the inbox row the supplier already sees (fixture REQUEST): it must carry the job number,
+// the required-by date, the customer's four answers, EVERY BOQ line with its quantity and unit, and
+// the attached documents by name; it must mask the contact details the summary carries; in Arabic
+// every primary string is Arabic (file names and codes excepted); and it must render and load back.
+const SUPPLIER_PORTAL = 'https://quotesdone.com/portal';
+function inquiryBody(lang: Lang) { return inquiryDocument({ inquiry: F.REQUEST, lang, portalUrl: lang === 'ar' ? 'https://quotesdone.com/ar/portal' : SUPPLIER_PORTAL, ...dates(lang) }).body; }
+const strings = (v: unknown): string[] => typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(strings) : v && typeof v === 'object' ? Object.values(v).flatMap(strings) : [];
+Deno.test('inquiry document: job number, deadline, the four answers, every BOQ line and every attachment — both languages', () => {
+  for (const lang of ['en', 'ar'] as Lang[]) {
+    const body = inquiryBody(lang);
+    const all = JSON.stringify(body);
+    const { ref, job, drawings } = inquiryDocument({ inquiry: F.REQUEST, lang });
+    assertEquals(job, 'ZZD3M0AA'); assertEquals(ref, 'QD-ZZD3M0AA-RFQ'); assertEquals(drawings, 2);
+    assertStringIncludes(all, 'ZZD3M0AA');
+    assertStringIncludes(all, lang === 'ar' ? '14 أكتوبر 2026' : '14 October 2026', 'the required-by date');
+    // deno-lint-ignore no-explicit-any
+    const tables = (body.blocks as any[]).filter((b) => b.t === 'table');
+    assertEquals(tables.length, 3, 'requirements, BOQ, documents');
+    const [reqT, boqT, docT] = tables;
+    assertEquals(reqT.rows.length, 4, 'the four intake answers');
+    assertEquals(boqT.rows.length, F.REQUEST.boq!.boq!.length, 'every BOQ line');
+    for (const [k, r] of F.REQUEST.boq!.boq!.entries()) {
+      const row = boqT.rows[k].map(cellStr);
+      assertEquals(row[0], String(k + 1)); assertEquals(row[3], String(r.qty));
+      assertEquals(row[4], lang === 'ar' ? (arUnit(r.unit) ?? r.unit) : r.unit);
+      if (lang === 'en') assertStringIncludes(row[2], String(r.description));
+    }
+    assertEquals(docT.rows.length, F.REQUEST.documents.length, 'every attachment');
+    for (const d of F.REQUEST.documents) assertStringIncludes(all, d.name);
+    assertStringIncludes(all, lang === 'ar' ? 'تعذّر تقديم 1' : '1 drawing page could not be served');
+    // deno-lint-ignore no-explicit-any
+    const cover = body.cover as any;
+    assertEquals(cover.figures.map((f: string[]) => f[1])[1], '6', 'BOQ lines on the cover');
+    assertStringIncludes(all, lang === 'ar' ? '24 شهرًا على الأقل' : '24 months minimum', 'the warranty the customer asked for, from the machine field');
+    assertNoMachinery(body);
+    // deno-lint-ignore no-explicit-any
+    assert((body.blocks as any[]).some((b) => b.t === 'link' && String(b.link).startsWith('https://quotesdone.com/')), 'the portal link');
+  }
+});
+Deno.test('inquiry document: the customer\'s contact details in the summary never reach the page', () => {
+  for (const lang of ['en', 'ar'] as Lang[]) {
+    const all = JSON.stringify(inquiryBody(lang));
+    for (const c of F.REQUEST_CONTACTS) assert(!all.includes(c), `${lang}: ${c} reached the page`);
+    assert(!/\b0500000099\b|50 000 0099/.test(all), 'the number in another spelling');
+  }
+});
+Deno.test('inquiry document: the Arabic page is Arabic (file names and codes excepted)', () => {
+  const body = inquiryBody('ar');
+  const leaks = primary({ cover: body.cover, blocks: body.blocks, control: body.control, title: body.title })
+    .filter((s) => !/^Job_[A-Z0-9]+_/.test(s))
+    .flatMap((s) => latinLeaks(s).map((w) => `${w}  ←  ${s.slice(0, 90)}`));
+  assertEquals(leaks, [], 'English left in the Arabic primary text');
+  const labels = fixedLabels(body).flatMap((s) => latinLeaks(s).map((w) => `${w}  ←  ${s}`));
+  assertEquals(labels, [], 'English in a fixed Arabic label');
+  // A secondary line on this document is the customer's wording, labelled so — never "from the supplier".
+  const subs = strings(body.blocks).filter((s) => s.startsWith('النص الأصلي'));
+  assert(subs.length >= 1, 'the budget "around 90k" must fall to the original-wording line');
+  for (const s of subs) assert(s.startsWith('النص الأصلي من العميل: '), 'mislabelled secondary line: ' + s);
+});
+Deno.test('inquiry document: a withheld BOQ and no attachments are said, not hidden', () => {
+  const bare = { ...F.REQUEST, boq: null, boq_withheld: true, documents: [], drawing_pages_failed: 0, spec: null };
+  for (const lang of ['en', 'ar'] as Lang[]) {
+    const body = inquiryDocument({ inquiry: bare, lang }).body;
+    const all = JSON.stringify(body);
+    // deno-lint-ignore no-explicit-any
+    assertEquals((body.blocks as any[]).filter((b) => b.t === 'table').length, 0);
+    assertStringIncludes(all, lang === 'ar' ? 'حُجب جدول الكميات' : 'The bill of quantities is held back');
+    assertStringIncludes(all, lang === 'ar' ? 'لم تُرفق مستندات' : 'No documents were attached');
+    assertStringIncludes(all, lang === 'ar' ? 'لم تُسجَّل إجابات العميل' : 'were not recorded');
+    assertStringIncludes(all, lang === 'ar' ? 'غير مذكور' : 'Not stated', 'the deadline when the intake is absent');
+  }
+});
+Deno.test('inquiry document renders to a PDF that loads back, both languages', async () => {
+  for (const lang of ['en', 'ar'] as Lang[]) {
+    const out = await assertRenders(inquiryBody(lang), lang);
+    if (!out) continue;
+    assert(strings(out.meta).length >= 0);
+    const links = await linksIn(out.bytes);
+    assert(links.some((u) => u.startsWith('https://quotesdone.com/')), 'the portal link is written into the file: ' + JSON.stringify(links));
+  }
+});
