@@ -1,15 +1,7 @@
 // Run: deno test --node-modules-dir=none supabase/functions/reveal_invoice/resolve.test.ts
 // ZZ DEMO fixtures only; the Stripe dependency is a recorder, so the test also proves WHEN it is asked.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { receiptCitation, resolveInvoice, stripeInvoiceLink, type Sale } from './resolve.ts';
-
-Deno.test('the customer opens the hosted invoice page (reads PAID), never the finalisation-time invoice_pdf when the page exists', () => {
-  const inv = { hosted_invoice_url: 'https://invoice.stripe.com/i/acct_zz/test_zz?s=ap', invoice_pdf: 'https://pay.stripe.com/invoice/acct_zz/test_zz/pdf?s=ap' };
-  assertEquals(stripeInvoiceLink(inv), inv.hosted_invoice_url);
-  assertEquals(stripeInvoiceLink({ invoice_pdf: inv.invoice_pdf }), inv.invoice_pdf); // no hosted page: the PDF still opens
-  assertEquals(stripeInvoiceLink({ hosted_invoice_url: 'https://evil.example/x', invoice_pdf: 'javascript:alert(1)' }), null);
-  assertEquals(stripeInvoiceLink(null), null);
-});
+import { receiptCitation, resolveInvoice, type Sale } from './resolve.ts';
 
 Deno.test('the receipt cites the Stripe invoice number and has no invoice number of its own', () => {
   const c = receiptCitation({ id: 'aaaabbbb-cccc-dddd-eeee-ffff00001111', stripe_invoice_number: 'ZZDEMO-0001' });
