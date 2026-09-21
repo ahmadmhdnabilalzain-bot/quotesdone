@@ -6,6 +6,7 @@
 // space — not partially, not on a good day, ever. Anything downstream that reads geometry is
 // reading it off a PICTURE with a vision model, with all the error that implies. Nothing here may
 // be described to a customer or a supplier as "DWG support"; it is a preview of a drawing sheet.
+// The DWG READER is _shared/doc_read/dwg.ts (22 Sep 2026): LibreDWG entities into the DXF take-off.
 //
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b, while two callers still called
 // it). See the CONTRACT note in the handler for what changed on the way back in.
