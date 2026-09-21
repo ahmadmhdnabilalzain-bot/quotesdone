@@ -32,7 +32,7 @@ export function CookieConsent() {
       <div className="container-x flex flex-col gap-3 py-3.5 sm:flex-row sm:items-center sm:gap-6 sm:py-2.5">
         <p className="min-w-0 flex-1 text-small leading-snug text-muted">
           <span className="font-semibold text-white">{t('title')}.</span>{' '}{t('text')}{' '}
-          <Link href="/cookie-policy" className="text-teal-light underline underline-offset-2 hover:text-white">{t('policy')}</Link>
+          <Link href="/cookie-policy" prefetch={false} className="text-teal-light underline underline-offset-2 hover:text-white">{t('policy')}</Link>
         </p>
         <div className="flex shrink-0 gap-2">
           <button type="button" onClick={() => choose('essential')} className={`${btn} border border-line3 bg-surf text-paper hover:border-teal hover:text-white`}>

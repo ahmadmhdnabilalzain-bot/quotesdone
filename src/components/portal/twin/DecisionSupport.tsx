@@ -240,7 +240,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
               {L(lang,
                 `${m.suppliers_covering} UAE suppliers on our list cover this trade${m.emirate ? ' in ' + m.emirate : ''}.`,
                 `${m.suppliers_covering} مورّدًا في الإمارات ضمن قائمتنا يغطون هذه المهنة${m.emirate ? ' في ' + m.emirate : ''}.`)}
-              {m.avg_days_to_quote != null
+              {m.avg_days_to_quote != null && Number(m.avg_days_to_quote) >= 1
                 ? L(lang, ` First quotes have taken about ${m.avg_days_to_quote} days.`,
                           ` استغرق أول عرض نحو ${m.avg_days_to_quote} يومًا.`)
                 : ''}
