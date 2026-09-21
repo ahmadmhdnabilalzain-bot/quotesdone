@@ -1040,7 +1040,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   orphans: { run: orphanTick, nested: true },
   orgtasks: { run: orgTaskTick },
   launchpath: { run: launchPathTick },
-  it:{ run: itEngineerAlertTick, always: true },
+  it: { run: itEngineerAlertTick, always: true },
   outbox: { run: outboxTick, always: true },
   // Every conversation message gets its PDF within one beat (founder, 14 Sep 2026: the email is
   // printed to PDF and kept in "supabase and dropbox"). `always` since 18 Sep: it is a delivery step
