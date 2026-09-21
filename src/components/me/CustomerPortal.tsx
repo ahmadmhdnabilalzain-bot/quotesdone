@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client';
 import { useEffect, useState, useRef } from 'react';
-import { urlLocale, applyDocumentLocale, adoptLocale } from '@/lib/documentLocale';
+import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
 import { supaClient } from '@/lib/supaClient';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -110,6 +110,7 @@ import { motion, useReducedMotion } from 'motion/react';
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
 // LIVE database. supaEnv resolves it once and warns on fallback; see the note there.
 import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { signupEmailProblem } from '@/lib/signupEmail';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
 // mount while the Supabase client refreshes asynchronously, so for the first moment after a page
@@ -227,10 +228,12 @@ export function CustomerPortal() {
   // with no light branch anywhere in globals.css, so "dark" was a decision made FOR the customer and
   // there was nothing to switch to. The light palette is a data-theme branch on .osx (globals.css);
   // this is the control that sets it, and the choice is remembered per device.
-  const [theme, setTheme] = useState('dark');
+  // Read the stored choice in the initialiser (audit 21 Sep 2026, item 15: the first press of the
+  // toggle did nothing visible). Nothing renders until `mounted`, so there is no server markup for
+  // this value to disagree with, and the state never starts out contradicting the page.
+  const [theme, setTheme] = useState(() => { try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') return th; } catch (_e) {} return 'dark'; });
   useEffect(() => {
     setMounted(true);
-    try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
     try { const l = initLang(); if (l !== 'en') setLangState(l); } catch (_e) {}
     try { const tk = localStorage.getItem('qd-cust-token'); if (tk) { setToken(tk); setPhase('app'); } } catch (_e) {}
     try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-cust-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-cust-refresh', ss.refresh_token); } catch (_e) {} setPhase('app'); } }).catch(() => {}); } catch (_e) {}
@@ -268,8 +271,10 @@ export function CustomerPortal() {
   // and pronunciation rules, so an Arabic portal was being announced as English. It is also what
   // the browser uses for hyphenation, quotation marks, and the direction of anything that does not
   // carry a dir of its own. The panels keep their local dir; this sets the thing above them.
-  useEffect(() => { applyDocumentLocale(lang); }, [lang]);
-  const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
+  useEffect(() => { applyDocumentLocale(lang); applyShellChrome(lang, 'me'); }, [lang]);
+  // A functional update: the next theme is computed from the state React holds, never from a
+  // closure a child may still be holding from an earlier render.
+  const swapTheme = () => setTheme((cur) => { const next = cur === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} return next; });
   // THE STORED PROFILE LOCALE. customers.locale has existed all along and the portal could not
   // honour it: my_inquiries did not serve it (fixed 5 Aug 2026) and this component decided language
   // from localStorage['qd-lang'] and the NEXT_LOCALE cookie alone. An Arabic customer who set their
@@ -361,8 +366,9 @@ function AuthShell({ lang, children }) {
 function Login({ onAuth, lang }) {
   const [mode, setMode] = useState('signin'); const [step, setStep] = useState('id'); const [id, setId] = useState(''); const [code, setCode] = useState(''); const [ident, setIdent] = useState(''); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const isSignup = mode === 'signup';
-  const looksEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v || '').trim());
-  const send = async () => { const v = id.trim(); if (!v) return; if (isSignup && !looksEmail(v)) { setMsg(t(lang, 'signup_email_only')); return; } setBusy(true); setMsg('');
+  // An empty press says so, and a sign-up address is checked for shape AND for reserved names that
+  // can never receive a code (src/lib/signupEmail.ts; audit 21 Sep 2026, items 26 and 28).
+  const send = async () => { const v = id.trim(); if (!v) { setMsg(t(lang, isSignup ? 'err_need_email' : 'err_need_id')); return; } if (isSignup) { const p = signupEmailProblem(v); if (p) { setMsg(t(lang, p)); return; } } setBusy(true); setMsg('');
     try { const g = await call('role_guard', { user_kind: 'customer', identifier: v }); if (g && g.conflict === 'supplier') { setBusy(false); setMsg(t(lang, 'conflict_supplier')); return; } } catch (_e) {}
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'customer', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_code_send')); return; } setBusy(false); if (j && j.ok) { setIdent(j.identifier || v); setStep('code'); } else setMsg(errText(j, lang, 'err_code_send')); };
   const verify = async () => { if (!code.trim()) return; setBusy(true); setMsg(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'customer', identifier: ident, code: code.trim(), lang }); } catch (_e) { setBusy(false); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(false); setMsg(errText(j, lang, 'err_incorrect')); return; }
@@ -382,8 +388,11 @@ function Login({ onAuth, lang }) {
     <h1 className="font-head text-[22px] font-semibold tracking-snug text-foreground">{isSignup ? t(lang, 'create_account_title') : t(lang, 'welcome_back')}</h1>
     <div className={cn(S.sub, 'mt-1.5')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
     {step === 'id' ? (<><Input className="mt-5 h-12 text-copy" aria-label={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} autoComplete={isSignup ? 'email' : 'username'} placeholder={isSignup ? t(lang, 'email_address') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /><Button size="lg" className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button></>)
-      : (<><Input className="mt-5 h-12 text-center font-mono text-[18px] tracking-[0.3em]" aria-label={t(lang, 'code_label')} inputMode="numeric" autoComplete="one-time-code" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /><div className={S.hint}>{t(lang, 'junk_note')}</div><Button size="lg" className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button><Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button></>)}
-    {msg && <div className={S.err}>{msg}</div>}
+      : (<><Input className="mt-5 h-12 text-center font-mono text-[18px] tracking-[0.3em]" aria-label={t(lang, 'code_label')} inputMode="numeric" autoComplete="one-time-code" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /><div className={S.hint}>{t(lang, 'junk_note')}</div>
+        {/* Two controls in a flex column, not two inline buttons: a screen reader read them as one
+            run of text ("Verify & sign inUse a different email") — audit 21 Sep 2026, item 28. */}
+        <div className="mt-3 flex flex-col items-start gap-2"><Button size="lg" className="w-full" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button><Button variant="link" className="px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button></div></>)}
+    {msg && <div className={S.err} role="alert">{msg}</div>}
   </Card></AuthShell>);
 }
 function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, onServedLocale }) {
@@ -514,7 +523,12 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // assistant's mount can never render it. Every module now opens in a window OVER the dashboard,
   // so the KPIs, the alerts and the assistant stay mounted underneath and no module needs a
   // "back to requests" button to undo a navigation that never happened.
-  const [view, setView] = useState('');
+  // THE SECTION LIVES IN THE URL HASH (audit 21 Sep 2026, item 25): a reload used to land on the
+  // Overview whatever the customer had open, and there was no link to Account or Documents to share
+  // or bookmark. /me#account opens Account; navigating writes the hash back with replaceState so the
+  // history is not littered with one entry per click. Only names in MODULES/GO are honoured.
+  const [view, setView] = useState(() => { try { const h = location.hash.replace(/^#/, ''); return /^[a-z_]+$/.test(h) ? h : ''; } catch (_e) { return ''; } });
+  useEffect(() => { try { const want = view && view !== 'home' ? '#' + view : ''; if (location.hash !== want) history.replaceState(history.state, '', location.pathname + location.search + want); } catch (_e) {} }, [view]);
   const rtl = lang === 'ar';
   // THE UNREAD COUNT MOVED UP ONE LEVEL. It used to be fetched by a badge inside the module bar;
   // the sidebar and the mobile tab bar both need it now, and two components fetching the same
@@ -636,6 +650,11 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // one that matters (a customer comes back to the tab after doing something else); the interval
   // is deliberately slow and only reloads the RFQ list, which is where a quote lands. Both are
   // skipped while the tab is hidden, so a backgrounded portal costs nothing.
+  // The overview's alert cards and headline are written by the server in `lang`, so a language
+  // switch must ask for them again (audit 21 Sep 2026, item 23: the cards stayed in the old language
+  // until a full reload). Skipped on the first render — the boot effect above already loads them.
+  const langLoaded = useRef(lang);
+  useEffect(() => { if (langLoaded.current !== lang) { langLoaded.current = lang; loadOv(); } }, [lang]);
   useEffect(() => {
     const visible = () => typeof document === 'undefined' || document.visibilityState === 'visible';
     const onVis = () => { if (visible()) { loadInq(); loadOv(); } };
@@ -1081,7 +1100,8 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const concluded = ['completed', 'closed', 'cancelled'].includes(String(inq.status));
   const anyRevealed = quotes.some((qq) => qq.revealed);
   const vmap = (() => { const m = {}; if (!quotes.length) return m; const ps = quotes.map((q) => Number(q.price) || 0).filter((p) => p > 0); const minP = ps.length ? Math.min(...ps) : 0, maxP = ps.length ? Math.max(...ps) : 0; for (const q of quotes) { const p = Number(q.price) || 0; const priceScore = (!p || maxP === minP) ? 70 : Math.round(100 - ((p - minP) / (maxP - minP)) * 55); const ratingScore = ratingScoreOf(q.rating); const compScore = Math.min(100, 50 + (q.scope ? 20 : 0) + (q.warranty ? 10 : 0) + (q.lead_time ? 10 : 0) + (q.verified ? 10 : 0)); m[q.id] = ratingScore == null ? Math.round((priceScore * 0.5 + compScore * 0.2) / 0.7) : Math.round(priceScore * 0.5 + ratingScore * 0.3 + compScore * 0.2); } return m; })();
-  const bestId = quotes.length ? quotes.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
+  // "Best value" is a comparison; with one quote there is nothing it beat (audit 21 Sep 2026, item 27).
+  const bestId = quotes.length >= 2 ? quotes.slice().sort((a, b) => (vmap[b.id] || 0) - (vmap[a.id] || 0))[0].id : null;
   const stepIdx = rfqStageIdx(inq, quotes);
   // window.confirm was an English-only browser box (audit 14 Sep 2026); useConfirm is in-page and bilingual.
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
@@ -1454,7 +1474,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     </div>
     <div className="mt-0.5 text-[11.5px] text-muted-foreground">{[q.lead_time ? t(lang, 'q_lead') + ': ' + q.lead_time : '', q.warranty ? t(lang, 'q_warranty') + ': ' + durationLabel(q.warranty, lang) : '', q.payment_terms ? t(lang, 'q_terms') + ': ' + q.payment_terms : '', q.win_rate != null ? t(lang, 'q_win') + ' ' + Math.round(q.win_rate) + '%' : ''].filter(Boolean).join(' · ')}</div>
     {/* W9: anonymous facts about the supplier, served per quote; each badge hides when its value is absent. */}
-    {q.badges ? <div className="mt-1.5"><QuoteBadges f={q.badges} /></div> : null}
+    {q.badges ? <div className="mt-1.5"><QuoteBadges f={q.badges} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
     {q.scope && <div className={cn(S.sub, 'mt-1')}>{q.scope}</div>}
     {q.notes &&<div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_note') + q.notes}</div>}
     {/* What the price does NOT cover is the part that turns a cheap quote into an expensive job. */}
@@ -1554,7 +1574,12 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
       </div>}
       <div className="mt-2.5 flex flex-wrap items-center gap-4">
         {/* A11Y (5 Aug 2026): real buttons carrying their value, in a labelled group. */}
-        {!rated ? <span role="group" aria-label={t(lang, 'c_rate_group')} aria-busy={(act.busy && act.key === 'rate') || undefined} className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" disabled={act.pending} onClick={() => rate(n)} aria-label={tf(lang, 'c_rate_n', { n })} className={cn('cursor-pointer border-0 bg-transparent p-0 leading-none disabled:cursor-progress', n <= rating && 'text-amber-400')}>★</button>)}</span> : <span className={S.sub}>{t(lang, 'c_rated')}</span>}
+        {/* The stars stay after a rating (audit 21 Sep 2026, item 18): rate_supplier upserts the one
+            review row, so pressing another star CHANGES the rating rather than adding a second one.
+            A rating from an earlier visit is a star value this component does not hold, so those
+            stars show empty with "you have rated — press a star to change it" beside them. */}
+        <span role="group" aria-label={t(lang, rated ? 'c_rate_change' : 'c_rate_group')} aria-busy={(act.busy && act.key === 'rate') || undefined} className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" disabled={act.pending} onClick={() => rate(n)} aria-label={tf(lang, 'c_rate_n', { n })} className={cn('cursor-pointer border-0 bg-transparent p-0 leading-none disabled:cursor-progress', n <= rating && 'text-amber-400')}>★</button>)}</span>
+        {rated ? <span className={S.sub}>{t(lang, rating >= 1 ? 'c_rated' : 'c_rate_change')}</span> : null}
         <BusyNote busy={act.busy && act.key === 'rate'}>{t(lang, 'q_wait')}</BusyNote>
         <BusyButton busy={act} act="hire" variant="link" className="h-auto px-0" busyLabel={t(lang, 'q_wait')} onClick={hire}>{t(lang, 'c_hire')}</BusyButton>
         <BusyButton busy={act} act="refund" variant="link" className="h-auto px-0" busyLabel={t(lang, 'q_wait')} onClick={refund}>{t(lang, 'c_refund')}</BusyButton>
@@ -1567,9 +1592,13 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
         <div className="mt-2.5 border-t border-accent/25 pt-2.5">
           <label className="block text-[12px] font-semibold text-muted-foreground" htmlFor={'rv-' + q.id}>{t(lang, 'c_note_h')}</label>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <Input id={'rv-' + q.id} value={note} maxLength={500} aria-describedby={noteErr ? 'rv-err-' + q.id : undefined} aria-invalid={noteErr ? true : undefined} onChange={(e) => { setNote(e.target.value); setNoteErr(''); }} placeholder={t(lang, 'c_note_ph')} className="min-w-0 flex-1" />
-            <BusyButton busy={act} act="note" size="sm" variant="secondary" busyLabel={t(lang, 'q_wait')} disabled={!note.trim()} onClick={saveNote}>{t(lang, 'c_note_save')}</BusyButton>
+            {/* rate_supplier accepts stars alone; a comment, if given, must be 10+ characters
+                (review_comment_too_short). The button waits for that length so the refusal is
+                never seen; the hint says why the button is waiting. */}
+            <Input id={'rv-' + q.id} value={note} maxLength={500} minLength={10} aria-describedby={'rv-hint-' + q.id + (noteErr ? ' rv-err-' + q.id : '')} aria-invalid={noteErr ? true : undefined} onChange={(e) => { setNote(e.target.value); setNoteErr(''); }} placeholder={t(lang, 'c_note_ph')} className="min-w-0 flex-1" />
+            <BusyButton busy={act} act="note" size="sm" variant="secondary" busyLabel={t(lang, 'q_wait')} disabled={note.trim().length < 10} onClick={saveNote}>{t(lang, 'c_note_save')}</BusyButton>
           </div>
+          <div id={'rv-hint-' + q.id} className={S.hint}>{t(lang, 'c_note_min')}</div>
           {noteErr && <div id={'rv-err-' + q.id} className={S.err} role="alert">{noteErr}</div>}
         </div>
       ) : null}
@@ -1702,6 +1731,17 @@ function ModuleWindow({ id, onClose, onOpenRfq, projectId, token, lang, inqs, on
 // and which now clears phone_verified when the number changes. That is the reason the mobile field
 // carries a warning rather than a quiet save: the next load will ask them to verify the new number,
 // and being told that before they press the button is the difference between a feature and a trap.
+// DECLARED ONCE, OUTSIDE THE RENDER (customer-portal audit 21 Sep 2026, item 3). `Row` used to be a
+// const inside AccountSettings, so every keystroke made a NEW component type: React unmounted the
+// old <Row> subtree — the <Input> with it — and mounted a fresh one, which dropped focus to <body>
+// and the rest of the word with it (typing "audit" produced "a"). The WhatsApp row below already
+// wrote its grid out by hand for exactly this reason; the Name/Phone/DOB rows had the same bug.
+const Row = ({ label, children }) => (
+  <div className="grid gap-1 sm:grid-cols-[190px_1fr] sm:items-center sm:gap-3">
+    <div className="text-[12.5px] font-medium text-muted-foreground">{label}</div>
+    <div className="min-w-0">{children}</div>
+  </div>
+);
 function AccountSettings({ token, lang, onChanged }) {
   const [me, setMe] = useState(null); const [err, setErr] = useState('');
   const [name, setName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
@@ -1751,12 +1791,6 @@ function AccountSettings({ token, lang, onChanged }) {
     setBusy('');
     if (j && j.ok) { setMsg(t(lang, 'acct_saved')); load(); } else setMsg(errText(j, lang, 'acct_failed'));
   };
-  const Row = ({ label, children }) => (
-    <div className="grid gap-1 sm:grid-cols-[190px_1fr] sm:items-center sm:gap-3">
-      <div className="text-[12.5px] font-medium text-muted-foreground">{label}</div>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
   return (<div className="flex flex-col gap-4">
     <p className={S.sub}>{t(lang, 'acct_sub')}</p>
     {missing.length ? <Card className="p-4 border-warn-fg/40" role="status">
@@ -1826,7 +1860,7 @@ function Journey({ idx, lang, matched, revealed = false }) {
   // lit from the reveal itself instead.
   const step = revealed ? JOURNEY.length - 1 : [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
   const label = (k, i) => (i === 2 && Number(matched) > 0)
-    ? (lang === 'ar' ? ('مطابقة مع ' + matched + ' مورّد') : ('Matched to ' + matched + ' suppliers'))
+    ? (lang === 'ar' ? ('مطابقة مع ' + matched + ' مورّد') : ('Matched to ' + matched + (Number(matched) === 1 ? ' supplier' : ' suppliers')))
     : t(lang, k);
   return (
     <div className="mt-3">
@@ -1884,7 +1918,7 @@ function QuoteSpread({ quotes, lang }) {
       {!anyRevealed ? (
         <>
           <div className="mt-2.5 text-[15px] font-bold text-foreground">
-            {priced.length + ' ' + t(lang, 'spread_pre') + ' ' + aed(roundK(vals.reduce((a, b) => a + b, 0) / vals.length))}
+            {priced.length + ' ' + t(lang, priced.length === 1 ? 'spread_pre_one' : 'spread_pre') + ' ' + aed(roundK(vals.reduce((a, b) => a + b, 0) / vals.length))}
           </div>
           {/* One band. Not one bar per quote. */}
           <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-secondary/70">

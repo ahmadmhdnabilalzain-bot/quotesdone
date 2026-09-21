@@ -154,6 +154,7 @@ export function ProjectForm({ token, lang = 'en', project = null, onSaved, onCan
             type="number"
             inputMode="decimal"
             min={0}
+            max={1e9}
             step="0.01"
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
