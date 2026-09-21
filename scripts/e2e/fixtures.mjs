@@ -210,8 +210,42 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
       `(accept_terms HTTP ${terms.status}, signed=${row?.signed})`);
   }
   const session = await passwordSession(email, s.password);
-  return { kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token,
+  const services = await stateServices(s.leadId, session.access_token, trade);
+  return { kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token, services,
            newSession: () => passwordSession(email, s.password) };
+}
+
+// THE SERVICES A REAL SUPPLIER STATES (22 Sep 2026, sales_engineer). MEASURED: the portal walk of 21 Sep
+// posted an aluminium request and the product's routing invited 0 of the 3 ZZ DEMO aluminium suppliers;
+// the harness had to write the matches itself, so the step proved nothing about routing. A probe on
+// production found why: fn_match_capability gates on SERVICES when the request names one (a window
+// request resolves to aluminium.windows_doors), and a demo supplier carried a trade with services = '{}'.
+// That gate is the founder's rule, not a defect (instruction 438/439: the CONFIRMED service list drives
+// matching; exact or none) — a real supplier states its services on the Services tab and the sales
+// engineer rewrites them. So the fixture now does exactly that, through the product: its own sentence,
+// services_rewrite, then services_save_rewrite with what the rewrite named. A trade with no sentence
+// here gets no services and says so; the caller that needs routing must add one.
+const SERVICE_WORDS = {
+  aluminium: 'Aluminium windows and doors, curtain wall, ACP cladding, pergolas and louvres',
+  gypsum: 'Gypsum partitions, false ceilings, decorative gypsum and bulkheads',
+  painting: 'Interior painting and exterior painting',
+};
+async function stateServices(leadId, jwt, trade) {
+  const text = SERVICE_WORDS[trade];
+  if (!text) return { stated: [], note: `no service sentence for trade ${trade}` };
+  const rw = await call('supplier_api', jwt, { action: 'services_rewrite', text, removed: [] });
+  const stated = rw.json?.service_keys || [];
+  if (!stated.length) throw new Error(`demo supplier ${leadId}: the sales engineer's rewrite named no service in "${text}" (HTTP ${rw.status} ${rw.text?.slice(0, 200)})`);
+  const implied = (rw.json?.implied || []).filter((i) => !i.removed).map((i) => i.key);
+  const st = await call('supplier_api', jwt, { action: 'services_state' });
+  const sv = await call('supplier_api', jwt, {
+    action: 'services_save_rewrite',
+    trades: [...new Set([trade, ...(st.json?.checklist || []).map((c) => c.code)])],
+    roles: st.json?.capability?.roles?.length ? st.json.capability.roles : ['contractor', 'installer', 'supplier'],
+    services: stated, implied, removed: [], own_words: rw.json?.own_words || [], raw_text: text,
+  });
+  if (sv.json?.ok !== true) throw new Error(`demo supplier ${leadId}: services_save_rewrite failed HTTP ${sv.status} ${sv.text?.slice(0, 200)}`);
+  return { stated, implied };
 }
 
 /** Wait for a condition the product reaches asynchronously (the signed-terms PDF, a notification). */
