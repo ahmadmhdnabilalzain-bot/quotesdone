@@ -8,6 +8,7 @@ import { writeFileSync } from 'node:fs';
 import { call, read, write, waitFor } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE, assertHarnessSignedIn } from './browser.mjs';
 import { makeInquiry } from '../staging/demo_factory.mjs';
+import { journeyAuditButtons } from './journey_audit_buttons.mjs';
 
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
 export const MATRIX = [
@@ -155,6 +156,20 @@ export async function journeyCustomerRequest(ctx) {
     rep.step(J, 'the sales engineer interview reaches ready', status === 'ready' ? 'PASS' : 'FAIL', `${turns} turn(s), status=${status}, readiness=${readiness}`, { shot: await shot(s.page, dir, 'a_intake') });
     if (status === 'ready') {
       const send = s.page.getByRole('button', { name: /Send to suppliers/ }).first();
+      // THE EMPTY STATE MUST NOT FLASH AFTER "Request sent" (recurrence table row 12, #761): the
+      // refresh used to show the stale, empty request list for a moment. This customer had no request
+      // before this one, so the stale list IS the empty state. Watched from the page itself, from the
+      // moment "Request sent" is on screen, for 6 s.
+      await s.page.evaluate(() => {
+        const w = window; w.__qdFlash = []; let sent = false; const t0 = performance.now();
+        const obs = new MutationObserver(() => {
+          const b = document.body.innerText;
+          if (!sent) sent = /Request sent/.test(b);
+          if (sent && /Your first request takes about a minute|No requests yet/.test(b)) w.__qdFlash.push(Math.round(performance.now() - t0));
+        });
+        obs.observe(document.body, { subtree: true, childList: true, characterData: true });
+        setTimeout(() => obs.disconnect(), 90000);
+      }).catch(() => {});
       const [res] = await Promise.all([
         s.page.waitForResponse((r) => r.url().includes('/functions/v1/customer_api') && (r.request().postData() || '').includes('create_inquiry'), { timeout: 90000 }).catch(() => null),
         send.click({ timeout: 20000 }),
@@ -166,6 +181,12 @@ export async function journeyCustomerRequest(ctx) {
       quotable = Array.isArray(j.quotable_ids) && j.quotable_ids.length ? j.quotable_ids.map(String) : (inquiryId ? [String(inquiryId)] : []);
       for (const c of Array.isArray(j.child_ids) ? j.child_ids : []) ctx.run.ids.inquiries.add(String(c));
       rep.step(J, 'request posted from the portal', inquiryId ? 'PASS' : 'FAIL', `HTTP ${res?.status() ?? 0} id=${inquiryId ?? 'none'}${j.split ? ` split into ${quotable.length} (${(j.trades || []).join(', ')})` : ''} ${JSON.stringify(j).slice(0, 160)}`, { shot: await shot(s.page, dir, 'a_posted') });
+      if (inquiryId) {
+        await s.page.waitForTimeout(6000);
+        const flash = await s.page.evaluate(() => window.__qdFlash || null).catch(() => null);
+        rep.step(J, 'no empty-state flash after "Request sent"', Array.isArray(flash) && flash.length === 0 ? 'PASS' : 'FAIL',
+          Array.isArray(flash) ? (flash.length ? `the empty request list showed ${flash.length} time(s) after "Request sent" (first at ${flash[0]} ms)` : 'watched 6 s after "Request sent": the empty state never showed') : 'the page watcher did not run');
+      }
     }
   } catch (e) {
     rep.step(J, 'request posted from the portal', 'FAIL', `UI error: ${String(e.message).slice(0, 200)}`, { shot: await shot(s.page, dir, 'a_error') });
@@ -976,4 +997,5 @@ export async function journeySignupWhatsApp(ctx) {
     st.json?.whatsapp?.opt === 'other' && st.json?.whatsapp?.phone === sOther && st.json?.whatsapp?.verified === true ? 'PASS' : 'FAIL', JSON.stringify(st.json?.whatsapp));
 }
 
-export const JOURNEYS = { a: journeyCustomerRequest, b: journeySuppliers, c: journeyComparison, d: journeyPayment, e: journeyInvoiceRefund, f: journeyCrawl, g: journeySignupWhatsApp };
+// h: what the human browser audits of 21 Sep 2026 pressed (scripts/e2e/journey_audit_buttons.mjs).
+export const JOURNEYS = { a: journeyCustomerRequest, b: journeySuppliers, c: journeyComparison, d: journeyPayment, e: journeyInvoiceRefund, f: journeyCrawl, g: journeySignupWhatsApp, h: journeyAuditButtons };
