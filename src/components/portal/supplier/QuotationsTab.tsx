@@ -13,7 +13,8 @@ import { categoryLabel } from '@/lib/categoryLabel';
 import { emirateLabel, srvMsg } from './serverCopy';
 import { SpecHoldPanel } from './SpecHold';
 import { QuoteReviewChat } from './QuoteReviewChat';
-import { failed, qr, REVIEW_STATE, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { failed, openPdf, qr, REVIEW_STATE, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { Ltr } from '@/lib/Ltr';
 
 const COPY = {
   en: {
@@ -21,6 +22,7 @@ const COPY = {
     empty: 'No inquiries to quote yet', emptySub: 'Each inquiry you receive appears here by its job number, ready for your quotation.',
     job: 'Job No.', notStarted: 'No quotation yet', open: 'Open conversation', close: 'Close', inquiry: 'Read the inquiry',
     option: (n: number) => `Option ${n}`, loading: 'Loading…', err: 'Something went wrong. Please try again.',
+    pdf: 'Your quotation (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfFailed: 'The document could not be prepared. Please try again.',
     qst: { draft: 'Held — not sent yet', submitted: 'Sent to the customer', accepted: 'Customer revealed you', withdrawn: 'Withdrawn', expired: 'Expired' } as Record<string, string>,
   },
   ar: {
@@ -28,11 +30,31 @@ const COPY = {
     empty: 'لا توجد طلبات للتسعير بعد', emptySub: 'يظهر هنا كل طلب يصلك برقمه، جاهزًا لعرض سعرك.',
     job: 'رقم الطلب', notStarted: 'لا يوجد عرض بعد', open: 'افتح المحادثة', close: 'أغلق', inquiry: 'اقرأ الطلب',
     option: (n: number) => `الخيار ${n}`, loading: 'جارٍ التحميل…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
+    pdf: 'عرض سعرك (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
     qst: { draft: 'محجوز — لم يُرسل بعد', submitted: 'أُرسل إلى العميل', accepted: 'كشف العميل عن عرضك', withdrawn: 'مسحوب', expired: 'منتهي الصلاحية' } as Record<string, string>,
   },
 };
-const Ltr = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr">{children}</bdi>;
-const aed = (n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
+const aed =(n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
+
+// THE SUPPLIER SEES THE QUOTATION ISSUED IN ITS NAME (21 Sep 2026). Measured: quote_pdf existed in
+// supplier_api and was reachable only from one attachment button inside the review chat; the
+// "Quotations submitted" list itself offered no document. Each option now offers the standardised
+// quotation in English and in Arabic, from the same supplier_api quote_pdf (cached there). It carries
+// no customer identity — letter 'S', no request text — so it needs no reveal gate.
+function QuotePdf({ token, lang, quoteId, title }: { token: string; lang: Lang; quoteId: string; title: string | null }) {
+  const t = COPY[lang];
+  const [busy, setBusy] = useState<Lang | null>(null);
+  const [err, setErr] = useState(false);
+  const open = async (l: Lang) => { setBusy(l); setErr(false); const ok = await openPdf(() => qr.quotePdf(token, quoteId, l)); setBusy(null); if (!ok) setErr(true); };
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px]">
+      <span className="text-muted-foreground">{title ? `${title} · ` : ''}{t.pdf}</span>
+      <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('en')} lang="en">{busy === 'en' ? t.preparing : t.pdfEn}</Button>
+      <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('ar')} lang="ar">{busy === 'ar' ? t.preparing : t.pdfAr}</Button>
+      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
+    </div>
+  );
+}
 
 export function QuotationsTab({ token, lang, focus = null, onFocused, openInquiry }: { token: string; lang: Lang; focus?: string | null; onFocused?: () => void; openInquiry: (id: string) => void }) {
   const t = COPY[lang];
@@ -93,6 +115,7 @@ export function QuotationsTab({ token, lang, focus = null, onFocused, openInquir
                   <Button size="sm" variant={on ? 'outline' : 'default'} aria-expanded={on} aria-controls={'qd-qt-c-' + i.id} onClick={() => setOpen(on ? null : i.id)}>{on ? t.close : t.open}</Button>
                 </div>
               </div>
+              {i.quotes.map((q) => <QuotePdf key={'pdf-' + q.id} token={token} lang={lang} quoteId={q.id} title={i.quotes.length > 1 ? t.option(q.option_no) : null} />)}
               {i.quotes.filter((q) => q.on_hold).map((q) => (
                 <SpecHoldPanel key={q.id} quoteId={q.id} lang={lang} token={token} onChanged={load} onResubmit={() => setOpen(i.id)} title={i.quotes.length > 1 ? t.option(q.option_no) : null} />
               ))}

@@ -12,6 +12,14 @@ import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trade
 import { buildInsightsSummary } from './insights_summary.ts';
 import { deleteSupporting, listSupporting, saveSupporting, urlSupporting } from './supporting_documents.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/sanctioned.ts';
+// EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
+// instruction 524, 21 Sep 2026). _shared/document_expiry.ts reads the expiry off the bytes by code
+// before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
+import { readExpiry, type ExpiryRead } from '../_shared/document_expiry.ts';
+import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
+// The model path (license_extract → ai_gateway) is OFF unless app_secrets.document_expiry_ai is
+// 'on'. OpenRouter is on hold; a closed door must not be knocked on for every upload.
+async function flagOn(key: string): Promise<boolean> { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return /^(on|true|1)$/i.test(String(data?.value || '').trim()); }
 // SUPPLIER-FACING TEXT CARRIES A CODE (14 Sep 2026). Every sentence below that reaches a supplier
 // (document hints, alerts, eligibility titles/details) now travels with a stable `code` and `params`;
 // the portal renders the EN/AR wording from src/components/portal/supplier/serverCopy.ts and falls
@@ -42,9 +50,10 @@ const DOC_KINDS: Record<string, { pathCol: string; nameCol?: string; expCol: str
   iso:          { pathCol:'iso_doc_path',                                           expCol:'iso_expiry',                label:'ISO certification',          folder:'certs',     hint:'Any ISO certificate you hold. Strengthens your capability score.' },
   manufacturer: { pathCol:'manufacturer_auth_doc_path',                             expCol:'manufacturer_auth_expiry',  label:'Manufacturer authorisation', folder:'certs',     hint:'Authorised-dealer letters from the brands you carry.' },
   egr:          { pathCol:'egr_doc_path',               nameCol:'egr_doc_name',     expCol:null,                        label:'Establishment card',         folder:'certs',     hint:'Your immigration establishment card (EGR).' },
-  iban:         { pathCol:'iban_doc_path',              nameCol:'iban_doc_name',    expCol:null,                        label:'Bank details (IBAN)',        folder:'certs',     hint:'Bank letter confirming your IBAN. Used to pay you.' },
 };
-const DOC_ORDER = ['license','profile','catalogs','vat','insurance','iso','manufacturer','egr','iban'];
+// `iban` (a bank letter) was a document type here until 21 Sep 2026. Money moves both directions through
+// Stripe, so the estate never holds a supplier's bank details — founder instruction 527.
+const DOC_ORDER = ['license','profile','catalogs','vat','insurance','iso','manufacturer','egr'];
 
 Deno.serve(observe('supplier_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -177,12 +186,6 @@ Deno.serve(observe('supplier_portal', async (req) => {
       return J({ ok: true, ...kg });
     }
 
-    if (action === 'network_map') {
-      const { data: map, error } = await admin.rpc('fn_supplier_network_map');
-      if (error) return J({ error: error.message }, 500);
-      return J({ ok: true, ...map });
-    }
-
     // §10 — RANKED OPPORTUNITIES. "Recommended for you", ordered by fit score and never by date.
     //
     // The ranking itself is fn_supplier_opportunities: it is a query over inquiries, leads and
@@ -195,75 +198,10 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // similar project — each carrying whether it applied and, when it could not be asked at all,
     // why. With 0 completed jobs the history reason is unanswerable for EVERY supplier, and it
     // says so rather than reading as "you have no relevant experience".
-    // §12 — THE NEGOTIATION ASSISTANT. Detect a discount request, show the arithmetic, draft a reply.
-    //
-    // Two halves, deliberately split. fn_supplier_negotiation does the ARITHMETIC — quote, app fee,
-    // customer price, reduction scenarios — because it is a query and it must be exact. The DETECTION
-    // is a language problem ("can you sharpen that?", "the other guy is cheaper", "budget is 170")
-    // and goes to the model.
-    //
-    // WHAT THE DRAFT MAY NOT DO IS CONCEDE. QuotesDone does not know what the job costs the supplier,
-    // so any draft that names a discount would be advising a cut against a floor nobody knows. The
-    // prompt forbids proposing a number; the draft acknowledges the request and puts the decision
-    // back to the supplier, who is the only party holding the cost.
-    if (action === 'negotiation') {
-      // quote_id is optional: with none given this analyses the supplier's most recent quote, which
-      // is the one a customer is almost certainly pushing back on. Ownership is enforced either way
-      // — the lookup is always scoped to supId, so a supplier can only ever analyse their own.
-      let quoteId = String(b.quote_id || '');
-      if (quoteId) {
-        const { data: own } = await admin.from('quotes').select('id').eq('id', quoteId).eq('supplier_id', supId).maybeSingle();
-        if (!own) return J({ error: 'not your quote' }, 403);
-      } else {
-        const { data: latest } = await admin.from('quotes').select('id')
-          .eq('supplier_id', supId).order('created_at', { ascending: false }).limit(1).maybeSingle();
-        if (!latest) return J({ ok: true, quote_id: null, population: { customer_messages: 0, note: 'you have not submitted a quote yet, so there is nothing to negotiate' } });
-        quoteId = latest.id;
-      }
+    // §12 (the negotiation assistant) and the 3D network map action were removed 21 Sep 2026 — founder
+    // instructions 525/526. fn_supplier_negotiation and fn_supplier_network_map remain in the database
+    // with no caller.
 
-      const { data: neg, error } = await admin.rpc('fn_supplier_negotiation', { p_quote_id: quoteId });
-      if (error) return J({ error: error.message }, 500);
-
-      const inbound = (neg?.inbound_messages || []) as { body: string }[];
-      let analysis: Record<string, unknown> = {
-        price_pressure_detected: false,
-        detection: 'no customer message to read yet',
-        recommended_response: null,
-      };
-      if (inbound.length) {
-        const { data: keyRow } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
-        if (keyRow?.value) {
-          const SYS = `You read a UAE construction customer's messages to a supplier and classify whether they are asking for a DISCOUNT or applying price pressure.
-Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"signals":[string],"recommended_response":string}
-- price_pressure_detected: true only if they actually push on price — a request to lower it, a competitor comparison, a stated budget below the quote. Asking what something costs is not pressure.
-- detection: one sentence naming what you saw, quoting their words.
-- signals: the exact phrases that made you decide. Empty if none.
-- recommended_response: a short, warm reply the supplier could send. NEVER propose a discount, a percentage or a new price — you do not know what this job costs them. Acknowledge the request, restate the value in their quote (lead time, warranty, scope), and ask what is driving the number. If there is no price pressure, reply to what they actually asked instead.`;
-          try {
-            const r = await fetch(SUPA_URL + '/functions/v1/ai_gateway', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                __secret: keyRow.value, fn: 'supplier_negotiation', max: 700, temperature: 0.2,
-                sys: SYS, response_format: 'json',
-                input: [{ role: 'user', content: inbound.map((m) => m.body).join('\n---\n').slice(0, 6000) }],
-              }),
-            });
-            const d = await r.json();
-            const txt = String(d?.content || '{}');
-            analysis = JSON.parse(txt.match(/\{[\s\S]*\}/)?.[0] || '{}');
-          } catch (e) {
-            // A model failure must not read as "no discount was requested" — that is the one wrong
-            // answer that costs the supplier money.
-            analysis = { price_pressure_detected: null, detection: 'the analysis could not run: ' + String((e as Error)?.message || e), recommended_response: null };
-          }
-        }
-      }
-      return J({ ok: true, ...neg, analysis });
-    }
-
-    // §8 — which of MY products answers this enquiry, and how well. The match_pct on a product card
-    // is computed by fn_supplier_product_match and never in the browser: a percentage the client
-    // invents is a decoration, and the supplier cannot tell the difference by looking.
     if (action === 'product_match') {
       const inquiryId = String(b.inquiry_id || '');
       if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
@@ -332,7 +270,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       const panels: [string, string, Record<string, unknown>][] = [
         ['twin', 'fn_supplier_twin', { p_lead_id: supId }],
         ['market', 'fn_supplier_market', { p_lead_id: supId }],
-        ['network', 'fn_supplier_network_map', {}],
+        ['network', 'fn_supplier_knowledge_graph', { p_lead_id: supId }],
         ['workspaces', 'fn_supplier_workspaces', { p_lead_id: supId }],
         ['recommended', 'fn_supplier_opportunities', { p_lead_id: supId }],
         ['ranking', 'fn_supplier_tier', { p_lead_id: supId }],
@@ -350,9 +288,6 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
           return { key, available: ok, basis: ok ? 'data' : 'empty_population' };
         } catch (_e) { return { key, available: false, basis: 'routine_error' }; }
       }));
-      // Negotiation reads one of this supplier's quotes; with none there is nothing to negotiate.
-      const { count: myQuotes } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', supId);
-      out.push({ key: 'negotiation', available: (myQuotes || 0) > 0, basis: (myQuotes || 0) > 0 ? 'data' : 'no_quotes' });
       return J({ ok: true, panels: out });
     }
 
@@ -400,6 +335,15 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
 
       const required = docs.filter((d) => d.required);
       const complete = docs.filter((d) => d.status !== 'missing').length;
+      // Previous versions (replaced or removed files) per kind, from doc_versions — the supplier
+      // sees "2 earlier versions kept" beside a document, and Remove can say what was hidden.
+      const { data: vers } = await admin.from('doc_versions').select('entity_id,version,snapshot,created_at')
+        .eq('entity_type', 'supplier_document').like('entity_id', `${sup.id}:%`).order('version', { ascending: false }).limit(200);
+      for (const d of docs) {
+        const mine = ((vers || []) as { entity_id: string; snapshot: VersionSnapshot; created_at: string }[]).filter((v) => v.entity_id === `${sup.id}:${d.key}`);
+        d.versions = mine.length;
+        d.last_version = mine[0] ? { event: mine[0].snapshot?.event, name: mine[0].snapshot?.name, at: mine[0].created_at } : null;
+      }
       const expiries = await admin.rpc('fn_supplier_expiries', { p_supplier_id: sup.id });
       return J({ ok:true, documents: docs, expiries: expiries.data || [],
         summary: { total: docs.length, on_file: complete, missing: docs.length - complete,
@@ -417,6 +361,13 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
       const failed: { kind: string; reason: string }[] = [];
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';
+      // What each column holds BEFORE this save: a replaced file becomes a doc_versions row after the
+      // write succeeds (instruction 524 — Replace keeps the previous version).
+      const beforeCols = new Set<string>(); for (const k of Object.values(DOC_KINDS)) { beforeCols.add(k.pathCol); if (k.nameCol) beforeCols.add(k.nameCol); if (k.expCol) beforeCols.add(k.expCol); }
+      const { data: beforeRow } = await admin.from('leads').select([...beforeCols].join(',')).eq('id', sup.id).maybeSingle();
+      const before = (beforeRow || {}) as Record<string, unknown>;
+      const aiOn = await flagOn('document_expiry_ai');
+      const read: Record<string, ExpiryNote> = {};
       let catAppend: string[] = [];
       // Licence, profile and catalogues are also read by code into a trade proposal (15 Sep 2026,
       // _shared/supplier_doc_trades.ts) — the same reading supplier_api.process_docs does.
@@ -444,6 +395,8 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
           continue;
         }
         const kind = DOC_KINDS[kindStr]; if (!kind) continue;
+        // The sanitised bytes, kept for the expiry read below; null when nothing was uploaded.
+        let stored: { bytes: Uint8Array; mime: string } | null = null;
         if (it.original_b64) {
           // Previously any upload failure was swallowed and the kind was still reported as
           // saved, so a supplier could be told their trade licence was on file when the
@@ -464,6 +417,7 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
             if (upErr) { failed.push({ kind: kindStr, reason: upErr.message }); continue; }
             upd[kind.pathCol] = p;
             if (kind.nameCol) upd[kind.nameCol] = clean.slice(0, 200);
+            stored = { bytes: s.bytes, mime: s.mime };
             if (kindStr === 'license' || kindStr === 'profile') readQueue.push({ path: p, name: clean, kind: kindStr === 'license' ? 'licence' : 'profile', bytes: s.bytes, mime: s.mime });
           } catch (e) { failed.push({ kind: kindStr, reason: String((e as Error)?.message || e).slice(0, 200) }); continue; }
         }
@@ -471,7 +425,35 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
         // uploaded document, so the expiry gate can't be bypassed with a self-typed date. The typed
         // value is used only as a fallback when extraction fails or the document has no clear date.
         let licExpiryFromDoc = false;
-        if (kindStr === 'license' && it.original_b64 && INBOUND_SECRET) {
+        // INSTRUCTION 524: code reads the date first. For every kind that carries an expiry the
+        // stored bytes are read by _shared/document_expiry.ts (text-stream PDFs; a scan returns
+        // null and is said so). The licence keeps #86 — a read date is written, a typed one never
+        // is. Insurance / ISO / manufacturer: a typed date is written as before; a date read off
+        // the document is RETURNED for the supplier to confirm (set_expiry) and never written
+        // unconfirmed. Nothing is ever invented.
+        let docRead: ExpiryRead | null = null;
+        if (kind.expCol && stored) { try { docRead = await readExpiry(stored.bytes, stored.mime); } catch (_e) { docRead = null; } }
+        if (kindStr === 'license' && docRead) {
+          upd.license_expiry = docRead.expiry; licExpiryFromDoc = true; upd.doc_extracted_at = new Date().toISOString();
+          read.license = { kind: 'license', expiry: docRead.expiry, source: 'text', needs_confirm: false, typed: null };
+        } else if (kind.expCol && kindStr !== 'license' && stored) {
+          const typed = it.expiry ? String(it.expiry).slice(0, 10) : null;
+          if (docRead) read[kindStr] = { kind: kindStr, expiry: docRead.expiry, source: 'text', needs_confirm: !typed || typed !== docRead.expiry, typed };
+          else if (aiOn && INBOUND_SECRET) {
+            // The model path, only behind the flag: license_extract 'cert' mode already pulls the
+            // governing date off an insurance schedule, ISO certificate or dealer letter.
+            try {
+              const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'cert', file_b64: String(it.original_b64), mime: it.mime, filename: it.filename }) });
+              const jd = await r.json();
+              if (jd?.ok && jd.found_expiry && jd.cert?.expiry_date) read[kindStr] = { kind: kindStr, expiry: String(jd.cert.expiry_date), source: 'ai', needs_confirm: true, typed };
+            } catch (_e) { /* the honest 'unread' note below */ }
+            if (!read[kindStr]) read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true };
+          } else read[kindStr] = { kind: kindStr, expiry: null, source: null, needs_confirm: false, typed, unread: true };
+        }
+        if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && !(aiOn && INBOUND_SECRET)) {
+          read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true };
+        }
+        if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && aiOn && INBOUND_SECRET) {
           try {
             const isImg = /^image\//.test(String(it.mime || ''));
             const payload: Record<string, unknown> = isImg
@@ -481,13 +463,14 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
             const jd = await r.json();
             if (jd?.ok && jd.doc) {
               const d = jd.doc;
-              if (d.expiry_date) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; }
+              if (d.expiry_date) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; read.license = { kind: 'license', expiry: String(d.expiry_date), source: 'ai', needs_confirm: false, typed: null }; }
               if (d.license_number) upd.trade_license_no = d.license_number;
               if (d.license_authority) upd.license_authority = d.license_authority;
               if (d.city) upd.license_city = d.city;
               upd.doc_extracted_at = new Date().toISOString();
             }
           } catch (_e) { /* fall back to the typed value below */ }
+          if (!licExpiryFromDoc) read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true };
         }
         // LICENCE EXPIRY FIX 27 Jul 2026. The fallback above ran whenever extraction had not produced
         // a date - including when NO document was attached at all, since the extraction block requires
@@ -523,8 +506,75 @@ Return STRICT JSON only: {"price_pressure_detected":boolean,"detection":string,"
           return J({ error:'save_failed', detail: updErr.message, saved, failed, message:'Your files were uploaded but could not be attached to your profile. Please try again.' }, 502);
         }
       }
+      // REPLACE KEEPS THE PREVIOUS VERSION. After the row write succeeded, every column that held a
+      // file and now holds another becomes a doc_versions row (entity 'supplier_document',
+      // '<lead>:<kind>'). The old object stays in storage and in the Dropbox backup.
+      const versioned: string[] = [];
+      for (const [kindStr, k] of Object.entries(DOC_KINDS)) {
+        const prev = before[k.pathCol] as string | null;
+        if (!prev || upd[k.pathCol] === undefined || upd[k.pathCol] === prev) continue;
+        const snap: VersionSnapshot = { event: 'replaced', kind: kindStr, path: prev, name: (k.nameCol ? (before[k.nameCol] as string) : null) || prev.split('/').pop() || null,
+          expiry: k.expCol ? ((before[k.expCol] as string) || null) : null, at: new Date().toISOString() };
+        const { data: v } = await admin.rpc('_next_docver', { p_type: 'supplier_document', p_id: `${sup.id}:${kindStr}` });
+        const { error: vErr } = await admin.from('doc_versions').insert(versionRow(Number(sup.id), snap, Number(v || 1)));
+        if (!vErr) versioned.push(kindStr); else console.error('save_documents: version row failed —', vErr.message);
+      }
       const documents_read = readQueue.length ? await proposeTradesFromDocs(admin, Number(sup.id), readQueue.slice(0, 7)) : undefined;
-      return J({ ok:true, saved, failed, ...(documents_read ? { documents_read } : {}) });
+      return J({ ok:true, saved, failed, read, versioned, ...(documents_read ? { documents_read } : {}) });
+    }
+
+    // REMOVE HIDES, NEVER DESTROYS (instruction 524). The column is cleared and what it held goes to
+    // doc_versions; the storage object and its backup stay. Refused, with a readable reason, on a
+    // mandatory-six document of an approved supplier (./document_actions.ts). A sanctioned party is
+    // refused above the switch. Catalogues: one path out of the array, the same way.
+    if (action === 'remove_document') {
+      const kindStr = String(b.kind || '');
+      const ar = String(b.lang || '') === 'ar';
+      if (kindStr === 'catalogs') {
+        const path = String(b.path || '');
+        const { data: cur } = await admin.from('leads').select('catalog_doc_paths').eq('id', sup.id).maybeSingle();
+        const list: string[] = Array.isArray(cur?.catalog_doc_paths) ? (cur!.catalog_doc_paths as string[]) : [];
+        if (!path || !list.includes(path)) { const r = removeRefusal({ kind: kindStr, known: true, onFile: false, required: false, approval_status: sup.approval_status })!; return J({ ok: false, error: 'remove_refused', code: r.code, message: ar ? r.message_ar : r.message }, 409); }
+        const { error } = await admin.from('leads').update({ catalog_doc_paths: list.filter((p) => p !== path), portal_updated_at: new Date().toISOString() }).eq('id', sup.id);
+        if (error) return J({ error: 'remove_failed', detail: error.message }, 502);
+        const snap: VersionSnapshot = { event: 'removed', kind: 'catalogs', path, name: path.split('/').pop() || null, expiry: null, at: new Date().toISOString() };
+        const { data: v } = await admin.rpc('_next_docver', { p_type: 'supplier_document', p_id: `${sup.id}:catalogs` });
+        await admin.from('doc_versions').insert(versionRow(Number(sup.id), snap, Number(v || 1)));
+        return J({ ok: true, removed: 'catalogs', path });
+      }
+      const kind = DOC_KINDS[kindStr];
+      const cols = kind ? [kind.pathCol, kind.nameCol, kind.expCol].filter(Boolean) as string[] : [];
+      const { data: cur } = kind ? await admin.from('leads').select(cols.join(',')).eq('id', sup.id).maybeSingle() : { data: null };
+      const row = (cur || {}) as Record<string, unknown>;
+      const prev = kind ? (row[kind.pathCol] as string | null) : null;
+      const refusal = removeRefusal({ kind: kindStr, known: !!kind, onFile: !!prev, required: REQUIRED_DOC_KEYS.includes(kindStr), approval_status: sup.approval_status });
+      if (refusal || !kind || !prev) { const r = refusal!; return J({ ok: false, error: 'remove_refused', code: r.code, message: ar ? r.message_ar : r.message }, r.code === 'mandatory_of_approved' ? 409 : 400); }
+      const clear: Record<string, unknown> = { [kind.pathCol]: null, portal_updated_at: new Date().toISOString() };
+      if (kind.nameCol) clear[kind.nameCol] = null;
+      if (kind.expCol) clear[kind.expCol] = null;
+      const { error } = await admin.from('leads').update(clear).eq('id', sup.id);
+      if (error) return J({ error: 'remove_failed', detail: error.message }, 502);
+      const snap: VersionSnapshot = { event: 'removed', kind: kindStr, path: prev, name: (kind.nameCol ? (row[kind.nameCol] as string) : null) || prev.split('/').pop() || null,
+        expiry: kind.expCol ? ((row[kind.expCol] as string) || null) : null, at: new Date().toISOString() };
+      const { data: v } = await admin.rpc('_next_docver', { p_type: 'supplier_document', p_id: `${sup.id}:${kindStr}` });
+      await admin.from('doc_versions').insert(versionRow(Number(sup.id), snap, Number(v || 1)));
+      return J({ ok: true, removed: kindStr });
+    }
+
+    // THE SUPPLIER CONFIRMS A DATE THE DOCUMENT WAS READ TO SAY (instruction 524). Only for the kinds
+    // whose expiry a supplier may state — never the licence, whose date is written from the licence
+    // alone (#86). The value is what the portal showed them, or what they corrected it to.
+    if (action === 'set_expiry') {
+      const kindStr = String(b.kind || '');
+      const kind = DOC_KINDS[kindStr];
+      if (!kind || !kind.expCol || kindStr === 'license') return J({ error: 'expiry_not_settable', kind: kindStr }, 400);
+      const expiry = String(b.expiry || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry) || isNaN(Date.parse(expiry))) return J({ error: 'bad_expiry' }, 400);
+      const { data: cur } = await admin.from('leads').select(kind.pathCol).eq('id', sup.id).maybeSingle();
+      if (!(cur as Record<string, unknown> | null)?.[kind.pathCol]) return J({ error: 'nothing_on_file', kind: kindStr }, 409);
+      const { error } = await admin.from('leads').update({ [kind.expCol]: expiry, portal_updated_at: new Date().toISOString() }).eq('id', sup.id);
+      if (error) return J({ error: 'save_failed', detail: error.message }, 502);
+      return J({ ok: true, kind: kindStr, expiry });
     }
 
     // Why am I not being matched? The builder and the reasoning behind every item: ./overview.ts.

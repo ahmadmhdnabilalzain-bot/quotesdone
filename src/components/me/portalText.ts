@@ -98,8 +98,7 @@ export const T = {
     acct_miss_name:'Your full name', acct_miss_date_of_birth:'Your date of birth', acct_miss_age_18_or_over:'You must be 18 or over',
     acct_miss_verified_email_or_mobile:'A verified mobile or email', acct_miss_terms_accepted:'Accepting the Terms', acct_miss_mobile_number:'Your mobile number',
     req_one:'request', req_many:'requests',
-    qa_compare_off:'Needs a request with two or more quotes',
-    q_neg_show:'Negotiation guidance', q_neg_hide:'Hide negotiation guidance' },
+    qa_compare_off:'Needs a request with two or more quotes' },
   ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', signing_out:'جارٍ تسجيل الخروج…', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', create_account_title:'أنشئ حسابك',
     signup_sub:'أدخل بريدك الإلكتروني وسننشئ حسابك فورًا. ستضيف اسمك وتاريخ ميلادك وتتحقق من رقم جوالك في الخطوة التالية.',
@@ -192,8 +191,7 @@ export const T = {
     acct_miss_name:'اسمك الكامل', acct_miss_date_of_birth:'تاريخ ميلادك', acct_miss_age_18_or_over:'يجب أن يكون عمرك 18 عامًا أو أكثر',
     acct_miss_verified_email_or_mobile:'جوال أو بريد إلكتروني موثّق', acct_miss_terms_accepted:'الموافقة على الشروط', acct_miss_mobile_number:'رقم جوالك',
     req_one:'طلب', req_many:'طلبات',
-    qa_compare_off:'يحتاج إلى طلب وردّه عرضان أو أكثر',
-    q_neg_show:'إرشادات التفاوض', q_neg_hide:'إخفاء إرشادات التفاوض' }
+    qa_compare_off:'يحتاج إلى طلب وردّه عرضان أو أكثر' }
 };
 export const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 
@@ -287,6 +285,11 @@ Object.assign(T.en, {
   pay_failed: 'The payment did not go through, and nothing was charged. Please try again or use another card.',
   q_unlocked: 'Unlocked', c_supplier: 'Supplier', c_revealed_on: 'Revealed on {d}', c_hired_badge: 'Hired supplier for this project', c_paid: 'You paid {fee} to reveal this supplier',
   c_website: 'Website', c_download: 'Download their quotation', c_rate_group: 'Rate this supplier', c_rate_n: 'Rate {n} of 5', c_rated: '★ Rated', c_thanks: 'Thanks for rating.', c_rate_fail: 'Could not save rating.',
+  // The stars are the rating; the words are optional and are offered only AFTER the rating is saved,
+  // so nothing a customer chooses not to write can ever stand between them and rating a supplier.
+  c_note_h: 'Add a few words for the next customer (optional)', c_note_ph: 'What were they like to work with?', c_note_save: 'Add comment', c_note_done: 'Thanks — your comment is saved.',
+  err_review_comment: 'A comment is optional — but if you write one, please make it at least 10 characters.',
+  err_rating_range: 'Please choose 1 to 5 stars.',
   c_hire: 'I hired this supplier', c_hire_confirm: 'Mark this supplier as hired for this project?', c_hired: 'Marked as hired.', c_update_fail: 'Could not update.',
   c_refund: 'Request refund', c_refund_confirm: 'Tell us the supplier is not responding? We chase them after {c} working days and the fee is refunded in full if they are still silent after {w}; our chief executive makes the final call on the record. Banks take {bmin}-{bmax} working days to show a refund.',
   c_refund_ok: 'Refund requested — our chief executive decides it on the record, and if it is due everything you paid is refunded.', c_refund_fail: 'Could not request a refund.',
@@ -410,6 +413,12 @@ Object.assign(T.ar, {
   pay_failed: 'لم تتم عملية الدفع ولم يُخصم أي مبلغ. يُرجى المحاولة مرة أخرى أو استخدام بطاقة أخرى.',
   q_unlocked: 'تم الكشف', c_supplier: 'المورّد', c_revealed_on: 'كُشف بتاريخ {d}', c_hired_badge: 'المورّد المتعاقد معه لهذا المشروع', c_paid: 'دفعت {fee} لكشف هذا المورّد',
   c_website: 'الموقع الإلكتروني', c_download: 'تنزيل عرض السعر الخاص به', c_rate_group: 'قيّم هذا المورّد', c_rate_n: 'تقييم {n} من 5', c_rated: '★ تم التقييم', c_thanks: 'شكرًا على تقييمك.', c_rate_fail: 'تعذّر حفظ التقييم.',
+  // Western digits inside Arabic, matching every other string in this file ('تقييم {n} من 5',
+  // '3%', '20 ميغابايت'). Arabic-Indic digits here would put 'تقييم 3 من 5' and 'من ١ إلى ٥' on
+  // the same screen.
+  c_note_h: 'أضف بضع كلمات للعميل التالي (اختياري)', c_note_ph: 'كيف كان التعامل معه؟', c_note_save: 'إضافة تعليق', c_note_done: 'شكرًا على تعليقك — تم حفظه.',
+  err_review_comment: 'التعليق اختياري — لكن إذا كتبت تعليقًا فليكن 10 أحرف على الأقل.',
+  err_rating_range: 'يُرجى اختيار تقييم من 1 إلى 5 نجوم.',
   c_hire: 'تعاقدتُ مع هذا المورّد', c_hire_confirm: 'هل تريد تسجيل هذا المورّد كمتعاقد معه لهذا المشروع؟', c_hired: 'تم التسجيل كمتعاقد معه.', c_update_fail: 'تعذّر التحديث.',
   c_refund: 'طلب استرداد', c_refund_confirm: 'هل تبلغنا بأن المورّد لا يردّ؟ نتابعه بعد {c} أيام عمل، وتُردّ الرسوم بالكامل إذا بقي صامتًا بعد {w}؛ ويتخذ رئيسنا التنفيذي القرار النهائي بناءً على السجل. تستغرق البنوك {bmin}-{bmax} يوم عمل لإظهار الاسترداد.',
   c_refund_ok: 'تم تقديم طلب الاسترداد — يقرر رئيسنا التنفيذي بشأنه بناءً على السجل، وإن كان مستحقًا يُردّ إليك كامل ما دفعته.', c_refund_fail: 'تعذّر تقديم طلب الاسترداد.',
@@ -471,6 +480,9 @@ const CODE_KEY = {
   unauthorized: 'session_expired', 'Not signed in': 'session_expired', text_required: 'err_text_required', inquiry_closed: 'err_closed',
   not_your_inquiry: 'err_not_yours', 'Not your inquiry': 'err_not_yours', already_answered: 'err_already_answered', too_many_questions: 'err_rate',
   too_many_notes: 'err_rate', refund_window_elapsed: 'err_refund_window', not_found: 'err_not_found', forbidden: 'err_not_yours',
+  // customer_api rate_supplier, 17 Sep 2026: a refused rating comes back as a 4xx with a code, never
+  // as the 500 that used to carry a raw constraint name to the customer.
+  review_comment_too_short: 'err_review_comment', rating_out_of_range: 'err_rating_range',
 };
 const MSG_KEY = [
   [/do-not-send/i, 'err_suppressed'], [/create an account from a mobile/i, 'signup_email_only'], [/not linked|No account is registered/i, 'err_mobile_unknown'],

@@ -9,7 +9,7 @@
 // The TechnicalComparison objects stand in for what the spec agent's contract
 // (docs/contracts/technical_comparison.md) will produce: stated value per attribute, per line, per
 // supplier, flagged against the request, plus the lead-time / installation / warranty checks.
-import { supplierLabel, type Item, type TechnicalComparison } from './quote_documents.ts';
+import { supplierLabel, type InquiryDocRow, type Item, type TechnicalComparison } from './quote_documents.ts';
 import type { Labelled } from '../quote_compare/deterministic.ts';
 
 export type FixtureQuote = {
@@ -125,6 +125,41 @@ export const FITOUT_QUOTES: FixtureQuote[] = [
   { id: 'f-4', status: 'submitted', quote_amount: 74500, lead_time: '8 weeks', validity: '30 days', warranty: '2 years', payment_terms: '30% advance, 60% on delivery, 10% retention', scope: 'Supply and installation.', conditions: null, exclusions: 'Appliances.', notes: null, installation_included: true, installation_scope: 'Installation', installation_timeline: null, warranty_coverage: 'Materials and workmanship', supplier: sup(14, 'Timber Works'), completeness: { score: 85, passed: true, missing_mandatory: 0 },
     items: joinery({ ...REQ.w, carcass_material: 'Chipboard' }, REQ.k, { ...REQ.d, fire_rating: null }, [11200, 2800, 2600]) },
 ];
+// ── Case 3: the HVAC request as the supplier's inbox serves it (the inquiry document) ───────────────
+// The row is what supplier_api `inbox` returns AFTER its scrubbers: spec with the intake answers and
+// the derived display rows, the BOQ, and the document list inquiry_documents offers. The summary
+// deliberately carries a phone number and an e-mail, which the document must mask on its own.
+export const REQUEST: InquiryDocRow = {
+  id: INQUIRY.id, category: INQUIRY.category, emirate: INQUIRY.emirate, created_at: '2026-09-14T08:30:00.000Z', scope_type: 'supply_and_install', urgency: 'normal',
+  summary: INQUIRY.summary + ' Site contact for access: +971 50 000 0099, access@zzdemo-owner.example.invalid.',
+  budget: 'around 90k',
+  spec: { customer_requirements: {
+    version: 2, recorded_by: 'sales_engineer', category: 'hvac', recorded_at: '2026-09-14T08:29:00.000Z',
+    installation: { required: 'yes' }, warranty: { required: 'yes', min_months: 24 },
+    materials: [{ component: 'units', label_en: 'AC units', label_ar: 'وحدات التكييف', choice: 'other', choice_en: 'Other: Daikin or Gree', choice_ar: 'أخرى: دايكن أو جري', note: 'Daikin or Gree' }],
+    required_by: { flexible: false, date: '2026-10-14', text: 'Within 1 month' },
+    display: {
+      en: [{ key: 'material.units', label: 'AC units', value: 'Daikin or Gree' }, { key: 'installation', label: 'Installation', value: 'Yes, install it' }, { key: 'warranty', label: 'Warranty', value: 'Yes, at least 2 years' }, { key: 'required_by', label: 'Required by', value: '14 October 2026' }],
+      ar: [{ key: 'material.units', label: 'وحدات التكييف', value: 'دايكن أو جري' }, { key: 'installation', label: 'التركيب', value: 'نعم، مع التركيب' }, { key: 'warranty', label: 'الضمان', value: 'نعم، سنتان على الأقل' }, { key: 'required_by', label: 'مطلوب بحلول', value: '14 أكتوبر 2026' }],
+    },
+  } },
+  boq: { boq: [
+    { section: 'Equipment', description: 'Ducted split unit 5 TR, R410A, inverter', qty: 4, unit: 'Nos' },
+    { section: 'Equipment', description: 'Ducted split unit 2 TR, R410A, inverter', qty: 2, unit: 'Nos' },
+    { section: 'Piping', description: 'Copper piping, insulated, 19 mm', qty: 120, unit: 'LM' },
+    { section: 'Ducting', description: 'GI ductwork with 25mm insulation', qty: 85, unit: 'sqm' },
+    { section: 'Controls', description: 'Programmable wall thermostat', qty: 6, unit: 'Nos' },
+    { section: 'Commissioning', description: 'Testing and commissioning', qty: 1, unit: 'Lot' },
+  ] },
+  boq_withheld: false,
+  documents: [
+    { kind: 'drawing_page', name: 'Job_ZZD3M0AA_drawing_p01.jpg' }, { kind: 'drawing_page', name: 'Job_ZZD3M0AA_drawing_p02.jpg' },
+    { kind: 'boq_csv', name: 'Job_ZZD3M0AA_BOQ.csv', lines: 6 },
+  ],
+  drawing_pages_failed: 1,
+};
+/** The customer's contact details planted in the request: the strings that must never appear on the page. */
+export const REQUEST_CONTACTS = ['+971 50 000 0099', 'access@zzdemo-owner.example.invalid'];
 export function fitoutLive(): FixtureQuote[] { return live(FITOUT_QUOTES); }
 export function fitoutLabelled(): Array<Labelled & { quote_id: string }> { return labelOf(FITOUT_QUOTES); }
 export function fitoutIdentities(): string[] { return idsOf(FITOUT_QUOTES); }

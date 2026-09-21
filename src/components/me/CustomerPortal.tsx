@@ -31,8 +31,7 @@ import { statusLabel as projectStatusLabel } from '@/components/portal/projects/
 import dynamic from 'next/dynamic';
 const SpendingIntelligence = dynamic(() => import('@/components/portal/intelligence/SpendingIntelligence').then((m) => m.SpendingIntelligence), { ssr: false });
 // Every dynamic() below needs a `loading:` fallback: without one, next/dynamic renders NOTHING for
-// the one round trip its chunk takes, so a tab panel opened blank and the negOpen accordion — which
-// starts at 0 height — just snapped its content in (independent review, 14 Sep 2026). ModuleLoading
+// the one round trip its chunk takes, so a tab panel opened blank (independent review, 14 Sep 2026). ModuleLoading
 // is the same Card/pulse skeleton the stat tiles already use (~line 727), so it needs no new pattern,
 // and it is defined once and reused rather than repeated at each call site. It reads
 // document.documentElement.lang (already set by applyDocumentLocale before any of these can mount,
@@ -51,7 +50,7 @@ const ModuleLoading = () => {
 };
 // Spec §22 modules that were written and never mounted, and the five module-agent surfaces below:
 // every one of them renders ONLY behind `id === '<tab>'` (see ~line 1505) inside a panel the
-// customer opens by clicking a tab, or behind the negOpen accordion (NegotiationAssistant) — never
+// customer opens by clicking a tab — never
 // on the initial /me paint — so none of them belongs in the bundle that has to parse before the nav
 // is visible. CompanyTwin and DecisionSupport are NOT in this group: independent review (14 Sep
 // 2026) found they also render on the default 'home' overview, every signed-in customer's landing
@@ -67,8 +66,8 @@ import { RevealPayment } from './RevealPayment';
 const CommunicationCenter = dynamic(() => import('@/components/portal/comms').then((m) => m.CommunicationCenter), { ssr: false, loading: ModuleLoading });
 const OrdersList = dynamic(() => import('@/components/portal/approvals').then((m) => m.OrdersList), { ssr: false, loading: ModuleLoading });
 const PredictiveIntelligence = dynamic(() => import('@/components/portal/predict').then((m) => m.PredictiveIntelligence), { ssr: false, loading: ModuleLoading });
-// NegotiationAssistant only mounts once a quote's negotiation accordion is opened (negOpen, ~line 1378).
-const NegotiationAssistant = dynamic(() => import('@/components/portal/predict').then((m) => m.NegotiationAssistant), { ssr: false, loading: ModuleLoading });
+// The NegotiationAssistant accordion that sat on every quote card was removed 21 Sep 2026 — the
+// founder took negotiations out of both portals (instruction 526).
 // §2 the Company Digital Twin, §9 Supplier Discovery and §17 Customer AI Memory. fn_twin,
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
 // the staff console — so the customer could not see their own profile or correct it.
@@ -533,10 +532,18 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // `first` takes the request Authed already started beside kyc (prefetch.ts); every later call —
   // tab focus, the minute timer, a refresh after a write — asks the server fresh.
   const get = (first, key, path, body) => (first ? take(token, key, () => call(path, body, token)) : call(path, body, token));
+  // `posting` covers the gap between "Request sent" and my_inquiries answering with the new row.
+  // Measured 17 Sep 2026: for 0.3–1.5 s after posting their FIRST request the customer was shown
+  // "you have no requests — post your first request", because `data` still held the previous
+  // (empty) answer while the refresh was in flight. `booting` only guarded the very first load.
+  // `.finally` rather than a second `setPosting(false)` inside `.then`: a failed refresh must not
+  // leave the skeleton up forever, and it does not swallow the rejection either.
+  const [posting, setPosting] = useState(false);
   const loadInq = (first) => get(first, 'inq', 'customer_api', { action: 'my_inquiries' }).then((j) => {
     setData(j);
     if (j && j.locale && onServedLocale) onServedLocale(j.locale);
-  });
+  }).catch(() => { /* the screen reports its own failure; an unhandled rejection hides it */ })
+    .finally(() => setPosting(false));
   const loadOv = (first) => get(first, 'ov', 'customer_portal', { action: 'overview', lang }).then((j) => { if (j && j.ok) setOv(j); else setErr(j ? errText(j, lang, 'load_failed') : ''); });
   // THE ROLLUP THAT WAS COMPUTED AND THROWN AWAY. project_api action='dashboard' recomputes, on
   // every call, this customer's project_summary rows (each carrying rfq_count, rfq_open,
@@ -760,7 +767,12 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     {showNew && <div className="mb-5"><NewRequest token={token} lang={lang} pickFile={pickFile}
       call={async (p, b, tk) => { const r = await call(p, b, tk); if (r && r.error === 'account_incomplete') setView('account'); return r; }} llmAvailable={ov ? ov.llm_available : null} initialText={draft}
       onDone={(r) => {
-        setShowNew(false); setPickFile(false); setDraft(''); refresh();
+        // `call()` has no fetch timeout, so a connection that hangs rather than fails would leave
+        // the skeleton up forever and hide both the list and its error. The ceiling puts the screen
+        // back in the customer's hands after 10s.
+        // ponytail: a fixed ceiling, because the fix belongs in call() — give it an AbortController
+        // and this line goes away.
+        setShowNew(false); setPickFile(false); setDraft(''); setPosting(true); setTimeout(() => setPosting(false), 10000); refresh();
         // The request just posted is opened by its stable id: a split opens its combined parent, which
         // lists one card per trade; the note says how many trades were sent separately.
         const n = r && Array.isArray(r.child_ids) ? r.child_ids.length : 0;
@@ -881,7 +893,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     {/* THE EMPTY STATE THAT TELLS THEM WHAT HAPPENS NEXT. It was one grey sentence in a box; on a
         brand-new account — which is every account on day one — it was the main thing on the screen.
         A first-time customer needs to know what posting a request actually does before they do it. */}
-    {booting ? (
+    {booting || posting ? (
       <div className="mt-3 flex flex-col gap-3" aria-busy="true" aria-label={t(lang, 'loading_requests')}>
         {[0, 1, 2].map((i) => <Card key={i} className="h-[86px] motion-safe:animate-pulse bg-secondary/25" />)}
       </div>
@@ -1118,7 +1130,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
       <Button variant="link" className="px-0 h-auto text-danger" disabled={canceling} onClick={doCancel}>{canceling ? t(lang, 'rc_cancelling') : t(lang, 'rc_cancel')}</Button>
     </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
-    <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} />
+    <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} revealed={anyRevealed} />
     {/* No supplier could quote the exact spec (founder_instruction #321): the customer picks an
         alternative or says no. OUTSIDE the collapsible details on purpose — a question the customer
         has to open the card to find is a question that goes unanswered, and the reply window runs. */}
@@ -1195,6 +1207,7 @@ function OpenSeal({ play, children }) {
 
 // A window opened after an await is a popup: see src/lib/openDocument.ts (shared with the supplier portal).
 import { openDocument } from '@/lib/openDocument';
+import DocActions from '@/components/portal/DocActions';
 // THIS quote's own PDF, by id, in the customer's language — and the other language one click away:
 // the English document always exists and the Arabic one is always offered (founder, 14 Sep 2026).
 function QuotePdfLink({ q, token, lang }) {
@@ -1264,8 +1277,13 @@ function DetailFacts({ inq, lang }) {
   if (Number.isFinite(conf) && inq.boq && inq.boq.boq) rows.push([lang === 'ar' ? 'دقة قراءة الرسم' : 'Drawing read confidence', Math.round(conf <= 1 ? conf * 100 : conf) + '%']);
   // my_inquiries signs a URL to the customer's OWN uploaded drawing on every call. Nothing read it,
   // so the one person entitled to that file could not open it — only the suppliers could.
+  // The four actions (instruction 524). The drawing was sent to suppliers with the request, so
+  // Replace / Remove say so rather than acting: what they quoted on stays what they quoted on.
   const drawing = inq.drawing_file_url
-    ? (<div className="mt-1.5"><a href={inq.drawing_file_url} target="_blank" rel="noopener" className="text-primary font-semibold text-[12.5px]">{lang === 'ar' ? '📐 افتح الرسم الذي رفعته' : '📐 Open the drawing you uploaded'}{inq.drawing_file_name ? ' (' + inq.drawing_file_name + ')' : ''}</a></div>)
+    ? (<div className="mt-1.5">
+        <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? '📐 الرسم الذي رفعته' : '📐 The drawing you uploaded'}{inq.drawing_file_name ? <> (<bdi>{inq.drawing_file_name}</bdi>)</> : null}</div>
+        <DocActions lang={lang} name={inq.drawing_file_name} url={inq.drawing_file_url} sealed="sent_to_suppliers" />
+      </div>)
     : null;
   if (!rows.length && !drawing) return null;
   return (<div className="rounded-lg border border-border bg-secondary/20 p-3"><div className={cn(S.sub, 'font-semibold mb-1.5 text-foreground')}>{lang === 'ar' ? 'تفاصيل الطلب' : 'Request details'}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">{rows.slice(0, 14).map((r, i) => (<div key={i} className={S.sub}><span className="capitalize text-muted-foreground">{r[0]}: </span><span className="text-foreground">{r[1]}</span></div>))}</div>{drawing}</div>);
@@ -1374,7 +1392,6 @@ function ExportComparison({ inqId, token, lang }) {
 function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, terms, focus, highlight }) {
   const [state, setState] = useState(q.revealed ? 'revealed' : 'idle'); const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const [dialog, ask] = useConfirm(lang);
-  const [negOpen, setNegOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   // The Stripe redirect is a navigation, not a request that comes back: `leaving` only changes what
   // the (still busy) button says, so the last thing the customer sees is "Taking you to payment…".
@@ -1449,14 +1466,6 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_why') + q.match_reason}</div>}
     <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1"><QuotePdfLink q={q} token={token} lang={lang} />{revealed ? <InvoicePdfLink q={q} token={token} lang={lang} /> : null}</div>
     <div className="mt-2"><SupplierRelationshipCard quote={q} token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
-    {/* Behind a disclosure: mounted on every quote card, it fired one negotiation_assistant call
-        per quote on every open request, for guidance most customers never looked at. */}
-    <div className="mt-2">
-      <button type="button" aria-expanded={negOpen} onClick={() => setNegOpen((v) => !v)} className="text-[12.5px] font-semibold text-primary">
-        {t(lang, negOpen ? 'q_neg_hide' : 'q_neg_show')}
-      </button>
-      {negOpen ? <div className="mt-2"><NegotiationAssistant token={token} quoteId={q.id} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
-    </div>
     {revealed ? (contact
         ? <RevealMoment play={justRevealed && !reduce}><Contact play={justRevealed && !reduce} c={contact} q={q} token={token} onChange={onChange} lang={lang} terms={terms} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /></RevealMoment>
         : <div className={cn(S.sub, 'mt-2 flex items-center gap-2')}><span className="redact redact-bar" aria-hidden />{t(lang, 'q_loading_contact')}</div>)
@@ -1485,6 +1494,14 @@ function RevealMoment({ play, children }) {
 function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   const s = c.supplier || {};
   const [rating, setRating] = useState(0); const [rated, setRated] = useState(!!(q && q.rated)); const [done, setDone] = useState('');
+  // THE WORDS ARE OPTIONAL AND COME AFTER THE STARS (operator, 17 Sep 2026). Until tonight
+  // `reviews_reason_required` demanded a 10-character comment, this widget sent none, and every
+  // rating since 8 Aug 2026 failed with a 500 — public.reviews held 0 rows. Stars alone are now
+  // enough, so the stars still post on the press with nothing to fill in first. The box is offered
+  // only once that rating is SAVED, and it upserts the same review row (UNIQUE transaction_id), so
+  // a customer who writes nothing has still rated and a customer who writes something is adding to
+  // a rating that is already counted. Nothing here can block a rating.
+  const [note, setNote] = useState(''); const [noteSaved, setNoteSaved] = useState(false); const [noteErr, setNoteErr] = useState('');
   const [dialog, ask] = useConfirm(lang);
   const g = terms || {};
   // The three actions on a revealed supplier are all round trips and none of them said so: the stars
@@ -1494,6 +1511,15 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   // The stars fill optimistically (the press must feel instant), so a failure has to put them BACK.
   // Leaving the attempted rating lit beside a failure message is the screen telling two stories.
   const rate = (n) => { const prev = rating; setRating(n); return act.run('rate', async () => { const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating: n }, token).catch(() => null); if (j && j.ok) { setRated(true); setDone(t(lang, 'c_thanks')); } else { setRating(prev); setDone(errText(j, lang, 'c_rate_fail')); } }); };
+  // Re-sends the star the customer just pressed: the upsert keys on transaction_id, so this is an
+  // UPDATE of their own review, never a second one. Offered only when `rating >= 1` — i.e. they
+  // rated in THIS session — because a rating carried over from a previous visit is a star value
+  // this component does not hold and must not guess at.
+  const saveNote = () => act.run('note', async () => {
+    setNoteErr('');
+    const j = await call('customer_api', { action: 'rate_supplier', quote_id: q.id, rating, comment: note }, token).catch(() => null);
+    if (j && j.ok) { setNoteSaved(true); setDone(t(lang, 'c_note_done')); } else setNoteErr(errText(j, lang, 'c_rate_fail'));
+  });
   const refund = async () => { if (!(await ask(tf(lang, 'c_refund_confirm', { c: g.chase_after_days, w: g.window_days, bmin: g.bank_min_days, bmax: g.bank_max_days }), { title: t(lang, 'c_refund'), confirm: t(lang, 'c_refund') }))) return; await act.run('refund', async () => { const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token).catch(() => null); setDone(j && j.ok ? t(lang, 'c_refund_ok') + (j.refund_ref ? ' ' + tf(lang, 'c_refund_ref', { r: j.refund_ref }) : '') : (j && j.message) || errText(j, lang, 'c_refund_fail')); }); };
   // D4: the refund case and the chief executive's decision reference, from the refunds row itself.
   const gq = q.guarantee || {};
@@ -1511,7 +1537,11 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
         {s.email && <a href={'mailto:' + s.email} className="font-semibold text-primary">✉ <bdi dir="ltr">{s.email}</bdi></a>}
         {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_website')}</a>}
       </div>
-      {c.file_url && <div className="mt-1.5"><a href={c.file_url} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</a></div>}
+      {/* The supplier's own quotation file: View / Download; Replace / Remove say it is the supplier's (instruction 524). */}
+      {c.file_url && <div className="mt-1.5">
+        <div className={cn(S.sub, 'mb-1')}>{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</div>
+        <DocActions lang={lang} name={c.file_name} url={c.file_url} sealed="suppliers_file" />
+      </div>}
       <div className="mt-2.5 flex flex-wrap items-center gap-4">
         {/* A11Y (5 Aug 2026): real buttons carrying their value, in a labelled group. */}
         {!rated ? <span role="group" aria-label={t(lang, 'c_rate_group')} aria-busy={(act.busy && act.key === 'rate') || undefined} className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" disabled={act.pending} onClick={() => rate(n)} aria-label={tf(lang, 'c_rate_n', { n })} className={cn('cursor-pointer border-0 bg-transparent p-0 leading-none disabled:cursor-progress', n <= rating && 'text-amber-400')}>★</button>)}</span> : <span className={S.sub}>{t(lang, 'c_rated')}</span>}
@@ -1520,6 +1550,19 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
         <BusyButton busy={act} act="refund" variant="link" className="h-auto px-0" busyLabel={t(lang, 'q_wait')} onClick={refund}>{t(lang, 'c_refund')}</BusyButton>
       </div>
       {done && <div className={cn(S.sub, 'mt-1.5 text-primary')} role="status">{done}</div>}
+      {/* Offered only after the rating is saved, and only for a star pressed in this session. An
+          `Input` rather than a textarea on purpose: "a few words" is one line, and the kit has no
+          textarea — a new control for one field is a control to maintain for one field. */}
+      {rated && rating >= 1 && !noteSaved ? (
+        <div className="mt-2.5 border-t border-accent/25 pt-2.5">
+          <label className="block text-[12px] font-semibold text-muted-foreground" htmlFor={'rv-' + q.id}>{t(lang, 'c_note_h')}</label>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <Input id={'rv-' + q.id} value={note} maxLength={500} aria-describedby={noteErr ? 'rv-err-' + q.id : undefined} aria-invalid={noteErr ? true : undefined} onChange={(e) => { setNote(e.target.value); setNoteErr(''); }} placeholder={t(lang, 'c_note_ph')} className="min-w-0 flex-1" />
+            <BusyButton busy={act} act="note" size="sm" variant="secondary" busyLabel={t(lang, 'q_wait')} disabled={!note.trim()} onClick={saveNote}>{t(lang, 'c_note_save')}</BusyButton>
+          </div>
+          {noteErr && <div id={'rv-err-' + q.id} className={S.err} role="alert">{noteErr}</div>}
+        </div>
+      ) : null}
       {gq.refund_ref ? <div className={cn(S.sub, 'mt-1.5')}>{tf(lang, 'c_refund_ref', { r: gq.refund_ref })}{' · '}{gq.decision_ref ? tf(lang, 'c_decision_ref', { d: gq.decision_ref }) : t(lang, 'c_decision_wait')}</div> : null}
     </div>
     {/* The clock on the customer's own reveal. Hidden once the fee can no longer be refunded
@@ -1761,10 +1804,17 @@ function AccountSettings({ token, lang, onChanged }) {
 // Horizontal on a desktop, and the labels drop to a single current-stage line under 640px rather
 // than wrapping into three lines of chevrons on a phone.
 const JOURNEY = ['jr_described', 'jr_structured', 'jr_matched', 'jr_quotes', 'jr_compare', 'jr_reveal'];
-function Journey({ idx, lang, matched }) {
+function Journey({ idx, lang, matched, revealed = false }) {
   // rfqStageIdx returns 0..4 over five RFQ stages; the journey the founder asked for has six, with
   // "structured" split out of "sent". Map rather than invent: a stage must never be claimed.
-  const step = [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
+  //
+  // REVEAL IS ITS OWN FACT (production journey, 17 Sep 2026). rfqStageIdx reaches 4 only when a
+  // supplier is HIRED — completed, hired_supplier_id or pipeline_stage 'won' — so a request whose
+  // customer had paid to reveal a supplier still showed 'jr_reveal' greyed out, telling them they
+  // had not done the thing they had just paid for. Revealing is not winning, so rfqStageIdx is left
+  // alone (its index 4 is labelled "Awarded" and must not be claimed for a reveal); the last node is
+  // lit from the reveal itself instead.
+  const step = revealed ? JOURNEY.length - 1 : [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
   const label = (k, i) => (i === 2 && Number(matched) > 0)
     ? (lang === 'ar' ? ('مطابقة مع ' + matched + ' مورّد') : ('Matched to ' + matched + ' suppliers'))
     : t(lang, k);

@@ -200,37 +200,9 @@ try {
   ok('relationship: no shared history returns NULL, never 0', unknown.relationship_score === null && unknown.basis === 'no_shared_history');
   ok('relationship: and says why', /have not worked with/.test(unknown.empty_reason || ''));
 
-  // ── 6. §15 — negotiation guidance ─────────────────────────────────────────────────────────────
-  const stats = (await rows(`select n::text, median::text from public.category_price_stats where category = 'aluminium'`))[0];
-  // >= 4, not = 4: category_price_stats is global, so any other aluminium quote alive on staging
-  // counts too. The claim under test is that the sample now clears the policy's min_sample, not
-  // that this script is the only writer on a shared branch.
-  ok('market: category_price_stats now clears the policy min_sample', Number(stats.n) >= 4, `n=${stats.n} median=${stats.median}`);
-
-  const g = JSON.parse(await one(`select public.fn_negotiation_guidance(${q(ids.customer)}::uuid, ${q(QD)}::uuid)::text`));
-  ok('negotiation: the market median reaches the caller', Number(g.market_median) === Number(stats.median), `median=${g.market_median}`);
-  ok('negotiation: the quote is measured against it', Number(g.delta_vs_median_pct) > 0, `delta=${g.delta_vs_median_pct}%`);
-  ok('negotiation: policy scope is named', g.policy_scope === 'default', `scope=${g.policy_scope}`);
-  ok('negotiation: a recommended action is produced', typeof g.recommended_action === 'string' && g.recommended_action !== 'no_policy', g.recommended_action);
-  ok('negotiation: a target price is produced', Number(g.target_price) > 0, `target=${g.target_price} against a quote of ${g.quote_amount}`);
-  ok('negotiation: the target respects the policy floor',
-     Number(g.target_price) >= Math.round(Number(stats.median) * 0.8), `target=${g.target_price}, floor=${Math.round(Number(stats.median) * 0.8)}`);
-  ok('negotiation: the ask is inside the policy cap', Number(g.ask_discount_pct) > 0 && Number(g.ask_discount_pct) <= 25, `ask=${g.ask_discount_pct}%`);
-  ok('negotiation: a ready-to-send message is drafted', (g.suggested_message || '').length > 150);
-  ok('negotiation: the message quotes the target, not a placeholder',
-     (g.suggested_message || '').includes(String(g.target_price)), (g.suggested_message || '').slice(0, 90));
-  ok('negotiation: an Arabic draft is produced and is Arabic',
-     /[؀-ۿ]/.test(g.suggested_message_ar || ''), (g.suggested_message_ar || '').slice(0, 40));
-
-  const gj = JSON.parse(await one(`select public.fn_negotiation_guidance(${q(ids.customer)}::uuid, ${q(QJ)}::uuid)::text`));
-  ok('negotiation: a category with one quote gets NO benchmark', gj.band === 'insufficient_data', `band=${gj.band} n=${gj.market_sample_n}`);
-  ok('negotiation: and NO target price', gj.target_price === null && gj.ask_discount_pct === null);
-  ok('negotiation: and says why instead', /fewer comparable quotes/.test(gj.empty_reason || ''), (gj.empty_reason || '').slice(0, 80));
-  ok('negotiation: the thin-data message asks for scope, it does not cite a market figure',
-     /inclusions and exclusions/.test(gj.suggested_message || ''), (gj.suggested_message || '').slice(0, 70));
-
-  const foreign = JSON.parse(await one(`select public.fn_negotiation_guidance('00000000-0000-0000-0000-000000000000'::uuid, ${q(QD)}::uuid)::text`));
-  ok('negotiation: another customer quote is refused', foreign.error === 'not_your_quote');
+  // ── 6. §15 — negotiation guidance: RETIRED 21 SEP 2026 ────────────────────────────────────────
+  // The founder removed negotiations from both portals (instruction 527). fn_negotiation_guidance
+  // still exists in the database but no surface calls it, so it is no longer proved here.
 
   // ── 7. §11 — savings, broken down by category ─────────────────────────────────────────────────
   const sav = JSON.parse(await one(`select public.fn_customer_savings(${q(ids.customer)}::uuid)::text`));
@@ -249,7 +221,6 @@ try {
   // A routine the surface cannot reach is not deployed. Each action is called the way a browser
   // would call it, and the response shape asserted is the one the surface agent is told to expect.
   const ci = (b) => call('customer_intelligence', cust.jwt, b);
-  const na = (b) => call('negotiation_assistant', cust.jwt, b);
 
   const eForecast = await ci({ action: 'forecast' });
   ok('endpoint customer_intelligence/forecast: boots and answers 200', eForecast.status === 200, `HTTP ${eForecast.status} ${eForecast.text.slice(0, 90)}`);
@@ -284,27 +255,8 @@ try {
   ok('endpoint customer_intelligence/savings: 200 with a by_category array', eSav.status === 200 && Array.isArray(eSav.json?.by_category),
      `HTTP ${eSav.status}`);
 
-  const eGuid = await na({ action: 'guidance', quote_id: QD });
-  ok('endpoint negotiation_assistant/guidance: boots and answers 200', eGuid.status === 200, `HTTP ${eGuid.status} ${eGuid.text.slice(0, 90)}`);
-  ok('endpoint guidance: serves a recommended action and a target price',
-     !!eGuid.json?.recommended_action && Number(eGuid.json?.target_price) > 0,
-     `${eGuid.json?.recommended_action} @ ${eGuid.json?.target_price}`);
-  ok('endpoint guidance: serves the drafted message', (eGuid.json?.suggested_message || '').length > 150);
-
-  const eMkt = await na({ action: 'market', category: 'aluminium', amount: 900000 });
-  ok('endpoint negotiation_assistant/market: 200 with the market row', eMkt.status === 200 && !!eMkt.json?.category_price_stats,
-     `HTTP ${eMkt.status} n=${eMkt.json?.category_price_stats?.n}`);
-
-  const ePol = await na({ action: 'policy' });
-  ok('endpoint negotiation_assistant/policy: serves the seeded house policy',
-     ePol.status === 200 && ePol.json?.policy?.scope === 'default', `HTTP ${ePol.status}`);
-  ok('endpoint policy: the seeded bounds are readable',
-     Number(ePol.json?.policy?.policy?.min_sample) === 4
-     && Number(ePol.json?.policy?.policy?.bands?.suspiciously_high?.max_ask_discount_pct) === 25,
-     JSON.stringify(ePol.json?.policy?.policy?.bands?.suspiciously_high || {}));
-
-  const eAnon = await call('negotiation_assistant', null, { action: 'policy' });
-  ok('endpoint negotiation_assistant: refuses a call with no customer JWT', eAnon.status === 401, `HTTP ${eAnon.status}`);
+  // The negotiation_assistant endpoint assertions (guidance / market / policy / anon-401) were
+  // removed 21 Sep 2026 with the edge function itself — see section 6 above.
 
   // §5 — the three project figures, on the endpoint a surface actually opens a project through.
   const eDet = await call('project_api', cust.jwt, { action: 'detail', id: P_LIVE });
