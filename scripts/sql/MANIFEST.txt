@@ -1487,7 +1487,6 @@ scripts/sql/the_export_gate_was_red_because_another_session_held_a_lock.sql
 scripts/sql/probe_a_sanctioned_party_is_unreachable.sql
 scripts/sql/a_sanctioned_party_is_banned_for_good_not_deleted.sql
 scripts/sql/the_scheduler_was_never_down_and_the_queue_nobody_counted_was_fine.sql
-scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql
 # 18 SEP 2026 — THE SCREEN RAN FOR THE FIRST TIME AND ABORTED ON ITS OWN RETENTION SWEEP. Canonical for
 # three routines. It SUPERSEDES a_sanctioned_party_is_banned_for_good_not_deleted for
 # fn_supplier_sanctions_screen only, and the_compliance_officer_screens_registered_suppliers_weekly for
@@ -1520,3 +1519,4 @@ scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.
 scripts/sql/a_registration_day_is_not_an_otp_pumping_attack.sql
 scripts/sql/the_open_account_facts_of_21_september_are_recorded.sql
 scripts/sql/the_arabic_visitor_asking_how_long_gets_the_same_answer_as_the_english_one.sql
+scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql
