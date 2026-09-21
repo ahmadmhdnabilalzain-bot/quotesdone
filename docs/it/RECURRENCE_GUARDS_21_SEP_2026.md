@@ -43,3 +43,30 @@ PRs with no defect fix are left out of the table: #762 (skill text), #763 (doctr
 | 38 | CI | main deploy run 35619142770 went red at 62/63 on a jsr.io timeout | no retry for a registry blip | `scripts/lib/retry.test.mjs` (the classifier: the verbatim jsr timeout is transient; TS, bundle and module-not-found errors are not) | yes, ran |
 
 **Counts.** 38 rows (grouped where one guard covers several items). Before today: 19 guarded, 1 partly guarded (row 5, token-only), 1 detection only (row 32), 17 unguarded. Added: 14 guarded by the new checks (rows 3, 4, 7, 11, 20, 21, 23–25, 33–35, 37, 38). Still unguarded: 3 rows (12, 28, 31). All are browser-only UI, and they need a nightly journey step from the owning seat.
+
+## Addendum: the audit's presses, in the nightly journey (it_engineer, 21 Sep 2026, evening)
+
+Journey h (`scripts/e2e/journey_audit_buttons.mjs`, run by `scripts/e2e/run.mjs` after e and before the crawl) presses what the two browser audits of 21 Sep pressed, on ZZ DEMO fixtures only. A failed step reaches the owning seat through `fn_it_journey_ingest`, which reads the first letter of the journey label: `c customer audit` and `b supplier audit` go to the sales_engineer, `e customer documents` to the accountant. Measured on production, run 2026-09-21T17-48-38 (journeys a–e and h, zero leftovers, nothing dispatched):
+
+| Step | Would have caught | Result on 21 Sep |
+|---|---|---|
+| a: no empty-state flash after "Request sent" | row 12 | PASS |
+| quotation / comparison PDF is ours and in en / ar; the Arabic quotation is not the English file | customer item 4 | quotation ar **FAIL** (0% Arabic: still served in English); comparison PASS |
+| rating: a 3-character comment refused with 400; stars only; a 10+ character comment; the review row | the star button's 500 (row 6) | PASS |
+| "Invoice (PDF)" button's tab ends on our PDF | row 31 (empty tab) | PASS |
+| invoice and receipt PDFs, en and ar, on our template | row 30 | PASS |
+| Messages after the reveal: write and send | customer item 6 | PASS |
+| theme on the first press; reload keeps the section; no developer text on any destination | items 15, 25, 22, 24 | PASS |
+| Project room opens with no 4xx or 5xx | customer item 31 | PASS |
+| an absurd project budget is refused | item 16 | **FAIL** (AED 18,000,015,122,026 stored; project_api has no bound) |
+| magic link signs in and leaves no token in the address bar or one Back press away | customer item 29 | **FAIL until this PR's portal change is deployed** |
+| two roles in one browser: the customer tab stays on /me for 20 s | customer item 30 | PASS (not reproduced) |
+| inquiry PDF en/ar ours, right language, no customer contact; documents only under drawings/redacted/; nothing on screen | supplier items 3, 26 | PASS |
+| the auditor's text PDF opens exactly the 5 genuinely missing points | supplier item 1 | PASS |
+| prices typed in the chat close the price points; total 65,960 | supplier item 2 | PASS |
+| bell items and notices keep the supplier in /portal | supplier item 5 | PASS |
+| "Remove this trade" persists after Update and a reload | supplier item 10 | PASS |
+
+Customer items 29–31: **29** fixed at the root (`src/lib/authFragment.ts`; `supaClient` builds with `detectSessionInUrl:false`, because auth-js cleared the fragment with `location.hash = ''`, which pushes a history entry). Prevented by `src/lib/authFragment.test.mjs` and the magic-link step. **30** not reproduced: a supplier magic link opened in a second tab of the same browser left the customer tab on /me for 40 s (repro) and 20 s (journey), and no code path in src/ navigates /me to /portal. Guarded by the two-roles step. **31** not reproduced on a fresh customer or one with a linked project, EN and AR; production edge-function and Vercel logs for 21 Sep hold no 400 on any Project room call (the one customer_api 400, 09:35:11Z, matches the audit's expected rating 400). Guarded by the Project room step.
+
+Still unguarded: customer items 20 and 27, supplier findings 29 and 33 (see rows 28 and 31).
