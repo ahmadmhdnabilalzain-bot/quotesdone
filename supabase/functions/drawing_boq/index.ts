@@ -10,7 +10,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { boqFromPages } from './boq_from_text.ts';
-import { boqFromDrawingSet, type ScheduleTable } from './drawing_set.ts';
+import { boqFromDrawingSet, lengthsForSet, mergeLengths, type ScheduleTable } from './drawing_set.ts';
 import { boqFromSheet } from './boq_from_sheet.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
@@ -89,6 +89,16 @@ Deno.serve(observe('drawing_boq', async (req) => {
       if (!page) { const m = mergeConfirm(lines, null); return J({ ok: true, boq: m.lines, confirm: m.status, confirm_detail: { why: 'redaction_not_verified' } }); }
       return J({ ok: true, ...(await confirmStep(lines, page)) });
     }
+    // 22 Sep 2026. THE LENGTHS, as a second call after the take-off (drawing_set.ts, "THE LENGTHS ARE A SECOND
+    // CALL"): the same PDF read WITH its CAD layers, duct and pipe runs measured at the printed scale, and
+    // merged into the BOQ the first call returned. If this call dies, the caller keeps that BOQ.
+    if (body.mode === 'lengths') {
+      const set = body.boq && typeof body.boq === 'object' && Array.isArray(body.boq.boq) ? body.boq : null;
+      const b64 = String(body.original_b64 || '');
+      if (!set || !/^(data:[^;]+;base64,)?JVBER/.test(b64)) return J({ ok: false, error: 'lengths_need_a_pdf_and_its_boq' }, 400);
+      const bytes = Uint8Array.from(atob(b64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
+      return J({ ok: true, boq: mergeLengths({ ...set, missing_info: Array.isArray(set.missing_info) ? set.missing_info : [] }, lengthsForSet(await pdfPages(bytes))) });
+    }
     if (body.mode === 'sheet') {
       const r = boqFromSheet(String(body.file_b64 || ''), String(body.mime || ''), String(body.filename || ''), hint);
       return r.ok ? J({ ok: true, boq: r.boq }) : J({ ok: false, error: r.error, detail: r.detail }, 422);
@@ -128,7 +138,8 @@ Deno.serve(observe('drawing_boq', async (req) => {
       }
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
-        const pages = await pdfPages(bytes);
+        // Without the CAD layers: the lengths are their own call (mode 'lengths', drawing_set.ts).
+        const pages = await pdfPages(bytes, undefined, { layers: false });
         // 21 Sep 2026 (founder instruction 580): a CAD drawing SET is taken off as a set — tags, air
         // devices, keyed notes, sizes — with the portal's OCR of its schedules (schedule_tables, bounded
         // by customer_api) naming make and model. Only when nothing on it is countable does the older

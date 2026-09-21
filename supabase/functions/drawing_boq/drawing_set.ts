@@ -23,19 +23,24 @@
 //    letter that has that stack beside it is a diffuser; grid bubbles and keynote letters are not.
 //  * (E) existing / (R) relocate / (N) new / (D) demolish prefixes, and demolition sheets.
 //  * KEYED NOTES — "4. DEMO AND REMOVE EXISTING LAV…" in the notes column, and every bubble on the
-//    sheet carrying that number. The bubble count is OUR count, so the line is 'to_confirm'.
-//  * SIZES — duct sizes (28x20, 1" liner) and pipe sizes and services (3" SS, 2" V, (E)4" SS). Their
-//    lengths are not printed and are not measured here: the line says so and asks for measurement.
+//    sheet carrying that number. Since 22 Sep 2026 a bubble is the number INSIDE a drawn outline (a
+//    closed box, hexagon or circle, or four edges drawn one by one); those counts are printed, so 'read'.
+//    A sheet whose bubbles have no outline falls back to the old test and stays 'to_confirm'.
+//  * SIZES AND LENGTHS — duct sizes (28x20, 1" liner) and pipe sizes and services (3" SS, 2" V). When the
+//    PDF carries its CAD layers, drawing_lengths.ts measures each run at the printed scale (22 Sep 2026:
+//    the 7 length items of the 49-item key). Without layers the line keeps asking for the length.
 //  * SCHEDULES — rows read by OCR in the customer's browser (ocrClient.ocrSchedules, cell by cell)
 //    enrich the tag lines with make/model. Anything taken from OCR is 'to_confirm', never 'read'.
 //
-// WHAT IT NEVER DOES: invent a quantity. A line is 'read' only when every unit of it is a tag printed
-// on the drawing; everything else is 'to_confirm' (our count from bubbles or OCR) or has qty null
-// (a length that must be measured). No title-block text ever becomes a line (the title-block strip is
+// WHAT IT NEVER DOES: invent a quantity. A line is 'read' only when every unit of it is printed on the
+// drawing - a tag, an outlined keyed-note bubble - or is a length measured on the system's own CAD layer
+// against a printed size and a printed scale; everything else is 'to_confirm' (our count from unoutlined
+// bubbles or OCR, a single-line duct sized from the nearest label) or has qty null (not measured). No title-block text ever becomes a line (the title-block strip is
 // excluded before anything is read — see _shared/anonymise.ts titleStrip).
 import type { PdfPage, TextRun } from '../_shared/pdf_text_positions.ts';
 import { redactText, stripSeeds, titleStrip, type Box } from '../_shared/anonymise.ts';
 import { scrubIdentity } from './boq_from_text.ts';
+import { feet, MAX_MEASURED_LINES, measureDucts, measurePipes, metres, scaleLabels, tooDense, type Measured } from './drawing_lengths.ts';
 
 export type ScheduleTable = { page: number; bbox?: Box; rows: string[][]; conf?: number[][] };
 export type SheetKind = 'plan' | 'demolition_plan' | 'schedule' | 'other';
@@ -44,6 +49,7 @@ export type Status = 'new' | 'existing' | 'relocate' | 'demolish';
 export type TakeoffLine = {
   section: string; item: string; description: string; qty: number | null; unit: string; basis: string;
   confidence: 'low' | 'medium'; qty_status?: 'read' | 'to_confirm'; estimate?: number | null; type: string;
+  section_ar?: string; description_ar?: string;
   status: Status; sheets: string[];
 };
 export type Diffuser = { letter: string; neck: string; cfm: string; x: number; y: number; inferred?: boolean };
@@ -194,7 +200,7 @@ export function tagsOnSheet(p: PdfPage, pi: number, strip: Box | null, airTypes:
 }
 
 /** Keyed notes of a sheet ("4. DEMO AND REMOVE …", continuation lines joined) and the bubbles carrying each number. */
-export function keyedNotes(p: PdfPage, strip: Box | null, consumed: Consumed): { n: number; text: string; bubbles: number }[] {
+export function keyedNotes(p: PdfPage, strip: Box | null, consumed: Consumed): { n: number; text: string; bubbles: number; outlined: boolean }[] {
   const runs = p.runs.filter((r) => !inBox(r, strip) && !r.vertical);
   const heads = runs.filter((r) => /^\d{1,2}\.$/.test(r.text.trim()));
   if (!heads.length) return [];
@@ -214,17 +220,38 @@ export function keyedNotes(p: PdfPage, strip: Box | null, consumed: Consumed): {
   const colX = Math.min(...[...notes.values()].map((v) => v.x));
   const max = Math.max(...notes.keys());
   const count = new Map<number, number>();
+  // A keyed-note BUBBLE is the number inside a small closed outline (a box, a hexagon, a circle). When
+  // the PDF carries its drawn outlines (CAD layers), only an enclosed number counts. Measured 22 Sep
+  // 2026: without the outline test a room number, a dimension or a tag digit that happens to equal a
+  // note number was counted as a bubble, so every keyed-note line had to stay 'to_confirm'.
+  const marks = (p.marks || []).filter((m) => !inBox({ x: m.x + m.w / 2, y: m.y + m.h / 2, w: 0, h: 0, text: '' }, strip));
+  // The outline is a closed path (a mark) or four straight edges drawn one by one (a box built of lines).
+  const edges = p.lines || [];
+  const boxed = (r: TextRun) => {
+    const x = cx(r), y = cy(r), s = size(r), reach = s * 2.5;
+    const side = (f: (l: typeof edges[number]) => boolean) => edges.some(f);
+    return side((l) => l.x1 === l.x2 && l.x1 < x && x - l.x1 < reach && l.y1 < y && l.y2 > y && l.y2 - l.y1 < s * 5)
+      && side((l) => l.x1 === l.x2 && l.x1 > x && l.x1 - x < reach && l.y1 < y && l.y2 > y && l.y2 - l.y1 < s * 5)
+      && side((l) => l.y1 === l.y2 && l.y1 < y && y - l.y1 < reach && l.x1 < x && l.x2 > x && l.x2 - l.x1 < s * 5)
+      && side((l) => l.y1 === l.y2 && l.y1 > y && l.y1 - y < reach && l.x1 < x && l.x2 > x && l.x2 - l.x1 < s * 5);
+  };
+  const enclosed = (r: TextRun) => marks.some((m) => cx(r) > m.x && cx(r) < m.x + m.w && cy(r) > m.y && cy(r) < m.y + m.h && Math.max(m.w, m.h) < size(r) * 5 && Math.min(m.w, m.h) > size(r) * 0.8) || boxed(r);
+  const candidates = runs.filter((r) => !consumed.has(r) && /^\d{1,2}$/.test(r.text.trim()) && notes.has(Number(r.text.trim())) && r.x < colX - 0.005);
+  // Outlines decide only when the sheet draws them: a sheet whose bubbles are text alone falls back to
+  // the word-beside test below, and its lines stay 'to_confirm'.
+  const outlined = candidates.some(enclosed);
   for (const r of runs) {
     if (consumed.has(r)) continue;
     const t = r.text.trim(); if (!/^\d{1,2}$/.test(t)) continue;
     const n = Number(t); if (!notes.has(n) || n > max) continue;
     if (r.x >= colX - 0.005) continue;                                          // the notes column itself
+    if (outlined) { if (enclosed(r)) count.set(n, (count.get(n) || 0) + 1); continue; }
     // A number with a word right beside it on its line is a dimension or a size, not a bubble.
     const beside = runs.some((o) => o !== r && Math.abs(cy(o) - cy(r)) < r.h * 0.5 && ((o.x > r.x + r.w && o.x - (r.x + r.w) < 0.003) || (o.x + o.w < r.x && r.x - (o.x + o.w) < 0.003)) && !/^\(TYP\)$/i.test(o.text.trim()));
     if (beside) continue;
     count.set(n, (count.get(n) || 0) + 1);
   }
-  return [...notes.entries()].sort((a, b) => a[0] - b[0]).map(([n, v]) => ({ n, text: v.text, bubbles: count.get(n) || 0 }));
+  return [...notes.entries()].sort((a, b) => a[0] - b[0]).map(([n, v]) => ({ n, text: v.text, bubbles: count.get(n) || 0, outlined }));
 }
 
 // A keyed note is scope when it tells someone to do or supply something; "EXISTING … TO REMAIN" is not.
@@ -249,6 +276,8 @@ function sizesOn(p: PdfPage, strip: Box | null, consumed: Consumed) {
   return { duct, pipe, louver };
 }
 
+// Arabic names of the systems, for the measured length lines (22 Sep 2026; every user-facing string EN + AR).
+const SERVICE_AR: Record<string, string> = { SS: 'صرف صحي', V: 'تهوية الصرف', CW: 'مياه باردة', HW: 'مياه ساخنة', HWR: 'راجع المياه الساخنة', G: 'غاز', ST: 'تصريف أمطار', CD: 'تصريف التكثيف', REF: 'تبريد', CHW: 'مياه مبردة', HHW: 'مياه تدفئة', CA: 'هواء مضغوط' };
 const SERVICE: Record<string, string> = { SS: 'sanitary sewer (waste)', SAN: 'sanitary sewer (waste)', V: 'vent', VENT: 'vent', W: 'waste', CW: 'domestic cold water', HW: 'domestic hot water', HWR: 'hot water return', TW: 'tempered water', G: 'gas', GAS: 'gas', ST: 'storm', RD: 'roof drain leader', CD: 'condensate drain' };
 
 /** The whole set. `schedules` are OCR tables from the portal: they enrich lines and never make one 'read'. */
@@ -270,7 +299,8 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
   const ids = new Map<string, { type: string; status: Status; sheets: Set<string>; demoOnly: boolean }>();
   const fixtures = new Map<string, { type: string; status: Status; perSheet: Map<string, number>; demo: boolean }>();
   const diffusers = new Map<string, { n: number; necks: Map<string, number>; cfm: number; cfmKnown: number; sheets: Set<string>; inferred: boolean }>();
-  const notes: { sheet: Sheet; n: number; text: string; bubbles: number }[] = [];
+  const notes: { sheet: Sheet; n: number; text: string; bubbles: number; outlined: boolean }[] = [];
+  const measured: { sheet: Sheet; m: Measured }[] = []; const dense: string[] = [];
   const sizes: { sheet: Sheet; duct: Map<string, number>; pipe: Map<string, { n: number; status: Status }>; louver: Map<string, number> }[] = [];
   pages.forEach((p, i) => {
     const sh = sheets[i];
@@ -299,6 +329,12 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
     }
     for (const n of keyedNotes(p, strips[i], consumed)) notes.push({ sheet: sh, ...n });
     sizes.push({ sheet: sh, ...sizesOn(p, strips[i], consumed) });
+    // Lengths from the CAD layers, new-work plans only (a demolition plan's runs are removals).
+    if (!demoSheet && p.layers) {
+      if (tooDense(p, strips[i])) { dense.push(sh.number); return; }
+      const sc = scaleLabels(p, strips[i]);
+      for (const m of [...measurePipes(p, strips[i], sc), ...measureDucts(p, strips[i], sc)]) measured.push({ sheet: sh, m });
+    }
   });
 
   const specFor = (tag: string) => sched.get(tag.toUpperCase());
@@ -362,17 +398,23 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
     const first = n.text.split(/(?<=\.)\s+/)[0];
     const key = (demo ? 'demo|' : 'note|') + first.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
     const prev = byItem.get(key);
-    if (prev) {
+    // Only the SAME note on ANOTHER sheet merges. Measured 22 Sep 2026: on M1.0 notes 7 and 8 share their
+    // first sentence ("4"Ø RADIANT TUBE HEATER AIR VENT.") but one ends at a sidewall and one at a roof
+    // gooseneck, and notes 1 and 2 are two intakes for two fans; merging them lost an item each.
+    if (prev && !prev.sheets.includes(n.sheet.number)) {
       prev.sheets.push(n.sheet.number);
       prev.basis += `; also keyed note ${n.n} on ${n.sheet.number} (${n.bubbles} bubble(s))`;
-      if (n.bubbles > (prev.qty || 0)) { prev.qty = n.bubbles; prev.estimate = n.bubbles; }
+      if (n.bubbles > (prev.qty || 0)) { prev.qty = n.bubbles; if (prev.qty_status === 'to_confirm') prev.estimate = n.bubbles; }
       continue;
     }
     const line: TakeoffLine = {
       section: demo ? 'Demolition' : 'Keyed notes', type: `note:${n.sheet.number}:${n.n}`, status: demo ? 'demolish' : 'new',
       item: clip(first, 120), description: clip(n.text, 240),
-      qty: n.bubbles, estimate: n.bubbles, unit: 'nos', qty_status: 'to_confirm', confidence: 'low', sheets: [n.sheet.number],
-      basis: `keyed note ${n.n} on ${n.sheet.number}; ${n.bubbles} bubble(s) numbered ${n.n} counted on the sheet — our count, to confirm`,
+      // An outlined bubble is printed on the drawing, so its count is read, one location per bubble.
+      ...(n.outlined
+        ? { qty: n.bubbles, unit: 'nos', qty_status: 'read' as const, confidence: 'medium' as const, basis: `keyed note ${n.n} on ${n.sheet.number}; ${n.bubbles} bubble(s) numbered ${n.n} drawn on the sheet, one per location` }
+        : { qty: n.bubbles, estimate: n.bubbles, unit: 'nos', qty_status: 'to_confirm' as const, confidence: 'low' as const, basis: `keyed note ${n.n} on ${n.sheet.number}; ${n.bubbles} bubble(s) numbered ${n.n} counted on the sheet — our count, to confirm` }),
+      sheets: [n.sheet.number],
     };
     byItem.set(key, line); lines.push(line);
   }
@@ -383,7 +425,12 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
     for (const [k, n] of s.duct) { const g = ductAll.get(k) || { n: 0, sheets: new Set(), scale: s.sheet.scale }; g.n += n; g.sheets.add(s.sheet.number); ductAll.set(k, g); }
     for (const [k, v] of s.pipe) { const g = pipeAll.get(k) || { n: 0, sheets: new Set(), scale: s.sheet.scale, status: v.status }; g.n += v.n; g.sheets.add(s.sheet.number); pipeAll.set(k, g); }
   }
-  if (ductAll.size) {
+  // Lengths measured from the CAD layers replace the "to be measured" lines for what they cover.
+  const measuredDuct = measured.some((x) => x.m.kind === 'duct');
+  const lengthLines = lengthLinesOf(measured);
+  const agg = new Set(lengthLines.map((l) => l.type));
+  lines.push(...lengthLines);
+  if (ductAll.size && !measuredDuct) {
     const ks = [...ductAll.keys()].sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
     const rect = ks.filter((k) => /x/.test(k)), round = ks.filter((k) => /round/.test(k));
     const sc = [...new Set([...ductAll.values()].map((g) => g.scale).filter(Boolean))].join(', ');
@@ -392,7 +439,7 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
     if (round.length) lines.push({ section: 'Ductwork', type: 'duct:round', status: 'new', item: 'Round ductwork', description: `Round ductwork, sizes ${round.join(', ')}`, qty: null, unit: 'm', confidence: 'low', sheets: sh.split(', '), basis: `sizes printed on ${sh}; lengths are not printed — to be measured at ${sc || 'the printed scale'}` });
   }
   for (const [k, g] of [...pipeAll.entries()].sort()) {
-    if (g.status !== 'new') continue;                                           // existing pipe is not scope
+    if (g.status !== 'new' || agg.has('pipe:' + k.split('|')[0])) continue;     // existing pipe is not scope; a measured size has its line
     const [sz, svc] = k.split('|')[0].split(' ');
     lines.push({ section: 'Piping', type: `pipe:${k.split('|')[0]}`, status: 'new', item: `${sz} ${SERVICE[svc] || svc} pipe`, description: `${sz} ${SERVICE[svc] || svc} piping, new`, qty: null, unit: 'm', confidence: 'low', sheets: [...g.sheets], basis: `"${k.split('|')[0]}" labelled ${g.n}x on ${[...g.sheets].join(', ')}; length is not printed — to be measured at ${g.scale || 'the printed scale'}` });
   }
@@ -403,7 +450,41 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
     const t = parseTag(tag); if (!t && !/^[A-Z]$/.test(tag)) continue;
     lines.push({ section: 'From the schedule (not found on a plan)', type: `sched:${tag}`, status: 'new', item: `${tag} ${t ? nameOf(t.type) : 'air device'}`, description: `${tag} — ${spec}`, qty: 1, estimate: 1, unit: 'nos', qty_status: 'to_confirm', confidence: 'low', sheets: [], basis: 'row of a schedule read by OCR; no plan tag carries it — quantity and model to confirm' });
   }
-  return { sheets, lines, strips };
+  return { sheets, lines, strips, dense };
+}
+
+/** Measured runs -> BOQ lines, one per system and size across the set. */
+function lengthLinesOf(measured: { sheet: Sheet; m: Measured }[]): TakeoffLine[] {
+  const out: TakeoffLine[] = [];
+  const agg = new Map<string, { m: Measured; sheets: Set<string>; realIn: number; single: number }>();
+  for (const { sheet, m } of measured) {
+    const k = `${m.kind}:${m.key}`;
+    const g = agg.get(k) || { m, sheets: new Set<string>(), realIn: 0, single: 0 };
+    g.realIn += m.realIn; g.single += m.single || 0; g.sheets.add(sheet.number); agg.set(k, g);
+  }
+  for (const [k, g] of [...agg.entries()].sort((a, b) => a[0].localeCompare(b[0], 'en', { numeric: true }))) {
+    const m = g.m, sh = [...g.sheets], qty = metres(g.realIn);
+    if (qty < 0.3) continue;                                                    // under a foot: a fitting edge, not a run
+    const layers = [...m.layers].join(', ');
+    const where = `measured along layer ${layers} on ${sh.join(', ')} at ${m.scale}: ${feet(g.realIn)} ft (${qty} m) in plan; risers and drops are not in plan and are not included`;
+    if (m.kind === 'pipe') {
+      const [sz, svc] = m.labelled ? m.key.split(' ') : ['', m.svc];
+      const what = `${sz ? sz + ' ' : ''}${SERVICE[svc] || svc} pipe`;
+      out.push({ section: 'Piping', section_ar: 'الأنابيب', type: `pipe:${m.key}`, status: 'new', item: what, description: `${what}, new${m.labelled ? '' : ' (size not labelled on the plan)'}`,
+        description_ar: `أنابيب ${SERVICE_AR[svc] || svc}${sz ? ' مقاس ' + sz : ''}، جديدة${m.labelled ? '' : ' (المقاس غير مكتوب على المخطط)'}`,
+        qty, unit: 'm', ...(m.labelled ? { qty_status: 'read' as const, confidence: 'medium' as const } : { estimate: qty, qty_status: 'to_confirm' as const, confidence: 'low' as const }), sheets: sh, basis: where });
+    } else {
+      // A duct stretch is 'read' when both walls are drawn and the gap matches a printed size; a
+      // single-line run takes its size from the nearest label, so that length is ours to confirm.
+      const sure = m.labelled && g.single === 0;
+      const what = m.labelled ? (/round/.test(m.key) ? `Round ductwork ${m.key.replace(' round', ' dia')}` : `Rectangular ductwork ${m.key}`) : `Ductwork, ${m.key}`;
+      const whatAr = m.labelled ? (/round/.test(m.key) ? `مجاري هواء دائرية قطر ${m.key.replace(' round', '')}` : `مجاري هواء مستطيلة ${m.key.replace(' (1" liner)', ' (بطانة 1 إنش)')}`) : `مجاري هواء، ${m.key.replace(' wide (size not labelled)', ' عرض (المقاس غير مكتوب)').replace('single-line duct (size not labelled)', 'خط مفرد (المقاس غير مكتوب)')}`;
+      out.push({ section: 'Ductwork', section_ar: 'مجاري الهواء', type: `duct:${m.key}`, status: 'new', item: what, description: what, description_ar: whatAr, qty, unit: 'm',
+        ...(sure ? { qty_status: 'read' as const, confidence: 'medium' as const } : { estimate: qty, qty_status: 'to_confirm' as const, confidence: 'low' as const }), sheets: sh,
+        basis: `${where}${g.single ? `; ${feet(g.single)} ft of it is drawn single-line and sized from the nearest label — to confirm` : ''}${m.labelled ? '' : '; no printed size matches this width — to confirm'}` });
+    }
+  }
+  return out;
 }
 
 /** An OCR'd tag cell as the plan writes it. Measured 21 Sep 2026 on the mechanical schedules read cell
@@ -444,9 +525,10 @@ export function scheduleRows(tables: ScheduleTable[]): Map<string, string> {
 
 const HVAC_TYPES = new Set(Object.keys(EQUIPMENT));
 const MISSING_ALWAYS = [
-  'Duct and pipe LENGTHS are not printed on the drawing and were not measured: those lines carry the sizes and ask for the length at the printed scale.',
   'Symbols drawn without a tag (an untagged grille, a valve symbol) are not counted; only tags, keyed-note bubbles and labelled sizes are.',
 ];
+const NO_LENGTHS = 'Duct and pipe LENGTHS are not printed on the drawing and this file carries no CAD layers to measure them from: those lines carry the sizes and ask for the length at the printed scale.';
+const PLAN_LENGTHS = 'Duct and pipe lengths are measured in plan from the drawing\'s CAD layers at its printed scale; vertical risers and drops are not in plan and are not included.';
 
 /** drawing_boq's response shape for a PDF drawing set: the take-off when it finds anything, with every
  *  string scrubbed of the title strip's names and of any contact detail. `null` = nothing drawn to count. */
@@ -462,6 +544,9 @@ export function boqFromDrawingSet(pages: PdfPage[], hint = '', schedules: Schedu
   const plumb = boq.filter((l) => l.section === 'Plumbing fixtures' || l.type.startsWith('pipe')).length;
   const scales = [...new Set(plans.map((s) => s.scale).filter(Boolean))];
   const missing = [...MISSING_ALWAYS];
+  const lengthLines = boq.filter((l) => /^(duct|pipe):/.test(l.type));
+  if (lengthLines.length) missing.unshift(lengthLines.some((l) => l.qty === null) ? NO_LENGTHS : PLAN_LENGTHS);
+  if (t.dense.length) missing.unshift(`Sheet(s) ${t.dense.join(', ')} carry more than ${MAX_MEASURED_LINES.toLocaleString('en')} duct or pipe lines, more than one reading measures; their lengths were not measured and must be taken off by hand.`);
   const noPlan = t.sheets.filter((s) => s.kind === 'schedule');
   if (noPlan.length && !schedules.length) missing.push(`Schedule sheet(s) ${noPlan.map((s) => s.number).join(', ')} were not read (their tables are images); make and model are therefore not on the lines.`);
   if (boq.some((l) => l.qty_status === 'to_confirm')) missing.push('Lines marked "to confirm" are our own count (keyed-note bubbles, a letter continuing a series, or a schedule read by OCR); they are shown to you to confirm before suppliers price them.');
@@ -476,6 +561,48 @@ export function boqFromDrawingSet(pages: PdfPage[], hint = '', schedules: Schedu
     ], missing_info: missing, confidence: 'low' as const, method: 'drawing_set', pages_read: pages.length,
     sheets: t.sheets.map((s) => ({ number: s.number, title: clean(s.title), scale: s.scale, kind: s.kind })),
   };
+}
+
+// ── THE LENGTHS ARE A SECOND CALL (22 Sep 2026) ──────────────────────────────────────────────────────
+// Measured locally, cold process: reading the layers and measuring them adds 0.3-0.5 s of CPU to the
+// take-off (the real 8-sheet mechanical set 0.41 -> 0.69 s; the synthetic 8-sheet stress set 0.70 ->
+// 1.20 s), and the edge kills an isolate past its CPU cap with no answer at all. So drawing_boq's first
+// call reads WITHOUT layers - the take-off production already runs and answers 200 - and the lengths are
+// a separate call (mode 'lengths') whose result is merged in. If that call dies, the customer keeps
+// every counted line and is told in plain words that the lengths were not measured this time.
+
+/** Only the length lines of a set, scrubbed of the title strip's names like every other line. */
+export function lengthsForSet(pages: PdfPage[]): { lines: TakeoffLine[]; dense: string[] } {
+  const index = drawingIndex(pages);
+  const measured: { sheet: Sheet; m: Measured }[] = []; const dense: string[] = [];
+  const seeds: string[] = [];
+  pages.forEach((p, i) => {
+    const strip = titleStrip(p); if (strip) seeds.push(...stripSeeds(p, strip));
+    const sh = sheetOf(p, i, strip, index);
+    if (sh.kind !== 'plan' || !p.layers) return;                              // new-work plans only
+    if (tooDense(p, strip)) { dense.push(sh.number); return; }
+    const sc = scaleLabels(p, strip);
+    for (const m of [...measurePipes(p, strip, sc), ...measureDucts(p, strip, sc)]) measured.push({ sheet: sh, m });
+  });
+  const clean = (s: string) => scrubIdentity(redactText(s, [...new Set(seeds)]).text.replace(/█/g, '').replace(/\s{2,}/g, ' ').trim());
+  return { lines: lengthLinesOf(measured).map((l) => ({ ...l, item: clean(l.item), description: clean(l.description), basis: clean(l.basis) })), dense };
+}
+
+type SetBoq = { boq: TakeoffLine[]; missing_info: string[] } & Record<string, unknown>;
+/** The first call's BOQ with the measured lengths merged in: measured sizes replace the "to be measured"
+ *  lines they cover; `null` (the lengths call failed or was killed) keeps every line and says so. */
+export function mergeLengths<T extends SetBoq>(set: T, lengths: { lines: TakeoffLine[]; dense: string[] } | null): T {
+  const missing = set.missing_info.filter((m) => m !== NO_LENGTHS && m !== PLAN_LENGTHS);
+  const asked = set.boq.filter((l) => /^(duct|pipe):/.test(l.type) && l.qty === null);
+  if (!lengths) {
+    return asked.length ? { ...set, missing_info: ['Duct and pipe lengths could not be measured on this upload (the measuring step did not finish): those lines carry the sizes and ask for the length at the printed scale.', ...missing] } : set;
+  }
+  if (!lengths.lines.length) return { ...set, missing_info: [...(lengths.dense.length ? [`Sheet(s) ${lengths.dense.join(', ')} carry more than ${MAX_MEASURED_LINES.toLocaleString('en')} duct or pipe lines, more than one reading measures; their lengths were not measured and must be taken off by hand.`] : []), ...set.missing_info] };
+  const got = new Set(lengths.lines.map((l) => l.type));
+  const anyDuct = lengths.lines.some((l) => l.type.startsWith('duct:'));
+  const keep = set.boq.filter((l) => !(l.qty === null && ((anyDuct && (l.type === 'duct:rectangular' || l.type === 'duct:round')) || (l.type.startsWith('pipe:') && got.has(l.type)))));
+  const still = keep.some((l) => /^(duct|pipe):/.test(l.type) && l.qty === null);
+  return { ...set, boq: [...keep, ...lengths.lines], missing_info: [still ? NO_LENGTHS : PLAN_LENGTHS, ...(lengths.dense.length ? [`Sheet(s) ${lengths.dense.join(', ')} carry more than ${MAX_MEASURED_LINES.toLocaleString('en')} duct or pipe lines; their lengths were not measured and must be taken off by hand.`] : []), ...missing] };
 }
 
 /** Tag counts that must survive redaction: identical on the original and on what the supplier sees. */
