@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T21:46:29.462Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T22:10:08.646Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -33534,7 +33534,11 @@ begin
   if p_value is not null and p_value <= 0 then raise exception 'a cap must be above zero, or NULL for not recorded'; end if;
   update public.it_threshold
      set value = p_value,
-         basis = left('set by the ' || p_by || ' on ' || to_char(now() at time zone 'Asia/Dubai', 'DD Mon YYYY') || ' from: ' || p_source, 500)
+         basis = left(case when p_value is null
+                           then 'not recorded: ' || p_source || ' (noted by the ' || p_by || ' on '
+                                || to_char(now() at time zone 'Asia/Dubai', 'DD Mon YYYY') || ')'
+                           else 'set by the ' || p_by || ' on ' || to_char(now() at time zone 'Asia/Dubai', 'DD Mon YYYY')
+                                || ' from: ' || p_source end, 500)
    where key = p_key;
   if not found then raise exception 'no cap % in public.it_threshold', p_key; end if;
   return jsonb_build_object('key', p_key, 'value', p_value, 'set_by', p_by);
@@ -35717,6 +35721,14 @@ begin
     end if;
     v_key := 'duty:' || p_duty || ':' || (x->>'item');
     v_keys := v_keys || v_key;
+
+    -- A CARRIED ITEM WAS NOT OBSERVED THIS TICK (22 Sep 2026): its step failed earlier and has not run
+    -- since. An open finding is held exactly as it stands; a closed one falls through and reopens.
+    if coalesce((x->>'carried')::boolean, false) and exists (select 1 from public.it_engineer_finding f
+                                                             where f.issue_key = v_key and f.closed_at is null) then
+      n_held := n_held + 1;
+      continue;
+    end if;
 
     -- A CONFIGURATION GAP IS NOT NEWS ON THE SECOND TICK. Nothing about the running system changed
     -- between one reading and the next; what is missing is a number or a date nobody has entered yet.
