@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T19:06:43.502Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T19:11:01.916Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -22820,6 +22820,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_delivery_undelivered_decide(p_report_id
 AS $function$
 declare
   r public.support_ceo_report; n public.notifications; twin public.notifications; v_receipt text;
+  v_req public.agent_actions; v_subject bigint;
 begin
   select * into r from public.support_ceo_report where id = p_report_id for update;
   if not found or r.status <> 'sent' then return jsonb_build_object('ok', false, 'reason', 'no open report ' || p_report_id); end if;
@@ -22827,6 +22828,22 @@ begin
    where id = coalesce((r.verified_evidence -> 'rechecked' ->> 'notification_id')::bigint,
                        (r.verified_evidence -> 'support_evidence' -> 'notification' ->> 'id')::bigint);
   if n.id is null then
+    -- The report may name the notification only through its request (18 Sep reports did: the
+    -- recheck found "nothing was queued"). A subject that no longer exists cannot be re-checked.
+    select * into v_req from public.agent_actions
+     where id = nullif(r.verified_evidence ->> 'request_id', '')::bigint and kind = 'handoff';
+    v_subject := coalesce(nullif(v_req.detail ->> 'subject_id', '')::bigint,
+                          (r.verified_evidence -> 'rechecked' ->> 'notification_id')::bigint);
+    if v_req.id is not null and v_req.detail ->> 'subject_table' = 'notifications' and v_subject is not null
+       and not exists (select 1 from public.notifications x where x.id = v_subject) then
+      v_receipt := 'ceo: the founder alert this report is about (notification ' || v_subject || ', request '
+                   || v_req.id || ') no longer exists in public.notifications, so its delivery can never be '
+                   || 're-checked and there is nothing left to deliver. Closed on that fact rather than left open for ever.';
+      update public.support_ceo_report
+         set status = 'accepted', accepted_at = now(), acceptance_receipt = v_receipt, owner_role_id = 'ceo'
+       where id = r.id;
+      return jsonb_build_object('ok', true, 'report_id', r.id, 'notification_id', v_subject, 'subject_present', false, 'receipt', v_receipt);
+    end if;
     return jsonb_build_object('ok', false, 'report_id', r.id, 'reason', 'the report names no notification');
   end if;
   -- The email twin fn_notify_founder writes in the same statement as the WhatsApp fan-out.
@@ -33142,11 +33159,11 @@ begin
   if v_window is null then
     raise exception 'fn_it_ceo_silence_watch: seat_handoff_kind names no reply window for it.finding from it_engineer';
   end if;
+  -- 21 Sep 2026: the "no page yet" test used to sit in this WHERE, so a report paged before its
+  -- family had a decider was never offered to the decider again (13 stuck; see this file's header).
   for r in select * from public.support_ceo_report
             where source_agent = 'it_engineer' and status = 'sent'
               and least(next_review_at, created_at + v_window) < now()
-              and not exists (select 1 from public.agent_actions a
-                               where a.kind = 'handoff' and a.target_id = 'delivery.request:' || support_ceo_report.id)
             order by id loop
     -- The CEO's answer comes before the founder's page (21 Sep 2026). A family this dispatcher does
     -- not know answers 'no decider for this family', and that string travels in the page below.
@@ -33157,6 +33174,10 @@ begin
     end;
     select status into v_status from public.support_ceo_report where id = r.id;
     if v_status <> 'sent' then n_answered := n_answered + 1; continue; end if;
+
+    -- the founder hears about a report once; the CEO keeps being asked every tick
+    continue when exists (select 1 from public.agent_actions a
+                           where a.kind = 'handoff' and a.target_id = 'delivery.request:' || r.id);
 
     perform public.fn_seat_handoff('it_engineer', 'customer_support', 'delivery.request', 'support_ceo_report', r.id::text,
       jsonb_build_object('recipient_role', 'founder', 'kind', 'it_new_bug', 'level', 'high',
@@ -40394,7 +40415,7 @@ begin
             -- 21 Sep 2026: the first v2 tick scanned 0 of 8 assigned rows, because every one was
             -- inside a 4h/16h window earned from a v1 "not_yet" -- a verdict v2 no longer gives.
             -- A row whose last verdict came from an older consumer version is retried at once.
-            or coalesce(o.result->'consumer'->>'version', '') <> 'v2')
+            or coalesce(o.result->'consumer'->>'version', '') <> 'v3')
      order by (o.last_run_at is null) desc, o.priority desc, o.id
      limit greatest(1, least(coalesce(p_limit, 4), 25))
      -- TWO TICKS MUST NOT PICK THE SAME ROW. The 15-minute cron can double-fire or retry, and a
@@ -40668,42 +40689,76 @@ begin
       end if;
 
     -- ── routine_operational_decision / supplier_registered (fn_founder_mail_route) ─────────────
-    -- The task announces a decision already taken ("Decision: approved. No action needed; this is
-    -- a record."). The decider checks the record against public.leads and closes on the match.
+    -- The task announces a decision already taken ("... No action needed; this is a record."). The
+    -- decider checks the record against public.leads and closes on it.
+    --
+    -- 21 SEP 2026 — THE LICENCE IS NOT PART OF THE ANNOUNCEMENT'S IDENTITY. Measured on
+    -- htdblwldjkcgjvmqkbeh: org_tasks 579041 and 579076 stayed 'assigned' and re-raised
+    -- duty:org_task_queue:routine_operational_decision:sales_engineer to the founder because v2
+    -- required a "Licence X," line, and supplier_api/index.ts writes that line only when the lead has
+    -- a trade_license_no (its licInfo is '' otherwise). Both announcements named ZZ DEMO registration
+    -- walks whose leads the walk had already deleted, and 579076 announced 'action_required' (the
+    -- terms certificate on its way) -- a record, not a pending decision, which v2 also refused as
+    -- "the register disagrees". Now: the name identifies the lead (the licence narrows it when the
+    -- announcement carries one); a removed ZZ DEMO fixture is a condition that is gone; only a
+    -- 'pending' announcement still waiting on the seat stays queued, because that one IS a decision.
     elsif r.action_class = 'routine_operational_decision'
           and coalesce(r.result->'founder_mail'->>'kind', '') = 'supplier_registered' then
       v_handler  := 'leads';
       v_vendor   := substring(r.detail from 'New supplier "([^"]+)"');
-      v_lic      := btrim(substring(r.detail from 'Licence ([^,]+),'));
+      v_lic      := nullif(btrim(substring(r.detail from 'Licence ([^,]+),')), '');
       v_decision := lower(substring(r.detail from 'Decision: ([A-Za-z_]+)'));
+
+      select count(*)::int into v_matches
+        from public.leads l
+       where l.company_name = v_vendor and (v_lic is null or l.trade_license_no = v_lic);
 
       select l.id, l.company_name, l.trade_license_no, l.approval_status, l.approval_decided_by,
              l.approved_at, coalesce(l.banned, false) as banned, l.license_expiry, l.is_demo
         into v_lead
         from public.leads l
-       where l.trade_license_no = v_lic and l.company_name = v_vendor
-       order by l.id limit 1;
+       where l.company_name = v_vendor and (v_lic is null or l.trade_license_no = v_lic)
+       order by l.id desc limit 1;
 
-      if v_vendor is null or v_lic is null or v_decision is null then
-        v_reason := 'the task does not carry the supplier name, licence and decision in the form '
-          || 'fn_founder_mail_route writes them, so the record cannot be checked';
-      elsif not found then
-        v_reason := 'no public.leads row has licence ' || v_lic || ' and name "' || v_vendor
-          || '": the announcement names a supplier the register does not hold';
-      elsif v_lead.approval_status is distinct from v_decision or v_lead.banned then
+      if v_vendor is null or v_decision is null then
+        v_reason := 'the task does not carry the supplier name and decision in the form '
+          || 'supplier_api writes them ("New supplier \"<name>\" ... Decision: <status>"), so the '
+          || 'record cannot be checked';
+      elsif v_matches = 0 and v_vendor ~ '^ZZ DEMO' then
+        v_deliv := 'THE CONDITION IS GONE. The task announced the ZZ DEMO fixture supplier "' || v_vendor
+          || '" as ' || v_decision || '. public.leads no longer holds it: the rehearsal that registered '
+          || 'it removed its own fixture, so there is no supplier to welcome and no record to reconcile.';
+        v_basis := jsonb_build_object('answered_by', 'leads', 'lead_present', false, 'fixture', true,
+                                      'announced', v_decision);
+      elsif v_matches = 0 then
+        v_reason := 'no public.leads row is named "' || v_vendor || '"'
+          || coalesce(' with licence ' || v_lic, '')
+          || ': the announcement names a supplier the register does not hold';
+      elsif v_matches > 1 then
+        v_reason := v_matches || ' public.leads rows are named "' || v_vendor || '" and the announcement '
+          || 'carries no licence to tell them apart; the seat identifies which one registered';
+      elsif v_lead.banned then
+        v_reason := 'leads #' || v_lead.id || ' is BANNED while the task announced "' || v_decision
+          || '". That is the seat''s to reconcile.';
+      elsif v_decision = 'pending' and coalesce(v_lead.approval_status, 'pending') = 'pending' then
+        v_reason := 'leads #' || v_lead.id || ' is still pending: auto-approve is off and the approval '
+          || 'is the ' || coalesce(r.assigned_agent, '?') || ' seat''s decision, not a record';
+      elsif v_decision = 'approved' and v_lead.approval_status is distinct from 'approved' then
         v_reason := 'the register disagrees with the announcement: leads #' || v_lead.id
           || ' has approval_status ' || coalesce(v_lead.approval_status, 'null')
-          || case when v_lead.banned then ' and is BANNED' else '' end
-          || ' while the task announced "' || v_decision || '". That is the seat''s to reconcile.';
+          || ' while the task announced "approved". That is the seat''s to reconcile.';
       else
         v_deliv := 'RECORD CONFIRMED -- NO DECISION WAS PENDING. The task announced supplier "'
-          || v_vendor || '" (licence ' || v_lic || ') as ' || v_decision || '. public.leads #'
-          || v_lead.id || ' agrees: approval_status ' || v_lead.approval_status || ' by '
-          || coalesce(v_lead.approval_decided_by, '?') || ' at ' || coalesce(v_lead.approved_at::text, '?')
-          || ', licence expires ' || coalesce(v_lead.license_expiry::text, '?') || ', not banned.'
-          || E'\n\nThe task''s own words are "No action needed; this is a record": the record exists '
-          || 'and matches, so it closes on that fact.';
-        v_basis := jsonb_build_object('answered_by', 'leads', 'lead_id', v_lead.id,
+          || v_vendor || '"' || coalesce(' (licence ' || v_lic || ')', '') || ' as ' || v_decision
+          || '. public.leads #' || v_lead.id || ' holds it: approval_status '
+          || coalesce(v_lead.approval_status, 'null') || coalesce(' by ' || v_lead.approval_decided_by, '')
+          || coalesce(' at ' || v_lead.approved_at::text, '')
+          || ', licence ' || coalesce(v_lead.trade_license_no, '(none recorded)')
+          || coalesce(' expiring ' || v_lead.license_expiry::text, '') || ', not banned.'
+          || E'\n\nThe task''s own words are "No action needed; this is a record": the record exists, '
+          || 'so it closes on that fact. What the supplier still owes is on its own registration '
+          || 'email and portal, not on this seat.';
+        v_basis := jsonb_build_object('answered_by', 'leads', 'lead_id', v_lead.id, 'announced', v_decision,
                                       'approval_status', v_lead.approval_status, 'is_demo', v_lead.is_demo);
       end if;
 
@@ -40842,7 +40897,7 @@ begin
                updated_at  = now(),
                result      = coalesce(result, '{}'::jsonb) || jsonb_build_object(
                  'consumer', jsonb_build_object(
-                   'at', now(), 'version', 'v2', 'handler', v_handler, 'verdict', 'not_yet', 'reason', v_reason,
+                   'at', now(), 'version', 'v3', 'handler', v_handler, 'verdict', 'not_yet', 'reason', v_reason,
                    'attempts', coalesce(r.attempts, 0) + 1, 'next_attempt_after', now() + v_back))
          where id = r.id;
 
