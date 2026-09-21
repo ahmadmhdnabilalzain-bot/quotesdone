@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { emirateLabel, srvMsg } from './serverCopy';
 import { ws } from './workspaceCopy';
+import DocActions from '../DocActions';
 import { BoqTable, ClarifyThread, DrawingGallery, RequestedTerms, WithheldCustomer } from './RfqParts';
 import { failed, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
 import { Ltr } from '@/lib/Ltr';
@@ -79,9 +80,11 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
           {d.documents.map((doc, k) => (
             <li key={`${doc.kind}:${doc.name}:${k}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
               <span className="min-w-0 text-[13px] text-foreground">{doc.kind === 'boq_csv' ? t.boqFile(doc.lines) : t.page(k + 1)}<span className="ms-2 font-mono text-[11px] text-muted-foreground"><Ltr>{doc.name}</Ltr></span></span>
+              {/* The four actions (instruction 524). These are the customer's documents: View / Download
+                  work; Replace / Remove say so. A BOQ is inline content, so both open it through saveInline. */}
               {doc.kind === 'drawing_page'
-                ? (/^https:\/\//i.test(doc.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={doc.url} target="_blank" rel="noopener noreferrer" download={doc.name}>{t.download}</a> : null)
-                : <Button size="sm" variant="outline" onClick={() => saveInline(doc.name, doc.content, doc.mime)}>{t.download}</Button>}
+                ? (/^https:\/\//i.test(doc.url) ? <DocActions lang={lang} name={doc.name} url={doc.url} sealed="customers_inquiry" /> : null)
+                : <DocActions lang={lang} name={doc.name} sealed="customers_inquiry" onView={() => saveInline(doc.name, doc.content, doc.mime)} onDownload={() => saveInline(doc.name, doc.content, doc.mime)} />}
             </li>
           ))}
         </ul>
