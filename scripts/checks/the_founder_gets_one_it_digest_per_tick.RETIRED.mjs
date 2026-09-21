@@ -1,3 +1,9 @@
+// RETIRED 22 Sep 2026 WITH ITS SUBJECT (it_engineer, founder instruction 642). It asserted an IT digest
+// every tick, at most one an hour, of kind it_new_bug at level high (email + WhatsApp). The founder ruled
+// that too often: the digest now leaves once a day at 19:00 Dubai, email only, kind it_daily_digest, and
+// no routine may send it_new_bug to him. Guarded by the_founder_hears_from_it_once_a_day.test.mjs.
+// Kept for its history; nothing runs it.
+//
 // THE FOUNDER GETS ONE IT DIGEST PER TICK, NOT ONE EMAIL PER FINDING.
 //
 // Measured 15 Sep 2026: one duty raised ~50 findings in one tick and the founder got 45 separate
