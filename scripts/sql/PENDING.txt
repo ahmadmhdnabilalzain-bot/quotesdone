@@ -34,3 +34,6 @@
 scripts/sql/one_job_number_on_every_portal_document_and_notice_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED until then.
 scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :: pure probe, no DDL: run with node scripts/qsql.mjs after the change file above is applied; it answers PROBE FAILED (Sharjah returned) until then.
 #
+# 21 Sep 2026 — it_engineer, the restore drill and the truncate marker.
+scripts/sql/a_truncate_marker_cannot_break_the_restore_drill.sql :: redefines fn_table_export_replay (full live body + one guard); coordinator applies with --apply --ddl, then moves this line to the END of MANIFEST.txt. Rehearsed rolled-back 21 Sep 2026: PROBE OK; the live body raises 22P02 on the same probe.
+#
