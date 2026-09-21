@@ -11,6 +11,5 @@
 # 21 Sep 2026 — the IT failures of 18–21 Sep (docs/it/IT_FAILURES_18_21_SEP_2026.md). Applies are
 # serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the
 # END of MANIFEST.txt (a file cannot be in both): each carries a PROBE row and was executed rolled-back.
-scripts/sql/every_queued_org_task_class_has_a_deterministic_end.sql :: it_engineer 21 Sep 2026, the two IT emails (notifications 35432, 35568): fn_org_task_consume_tick v2 + fn_it_platform_ingest v2. Executed rolled-back: PROBE OK, 11/11 live assigned rows would close. Moves to MANIFEST when the coordinator applies it with --apply --ddl.
 
 
