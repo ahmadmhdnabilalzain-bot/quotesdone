@@ -74,6 +74,7 @@ async function render(c, lang) {
   const { arabicFrame } = await import(new URL('arabic_frame.ts', base).href);
   const { plainTextPart } = await import(new URL('supplier_mail.ts', base).href);
   const { resendPayload, inboxLint, ownDomain } = await import(new URL('payload.ts', base).href);
+  const { UNSUBSCRIBE_MAILBOX } = await import(new URL('../_shared/unsubscribe_mailbox.ts', base).href);
   const ar = lang === 'ar';
   const reply = c.email_reply_supplier || 'supplier@quotesdone.com';
   const unsub = `${c.unsubscribe_public_base || PROJECT_URL + '/functions/v1/unsubscribe'}?e=zz-demo%40example.invalid&t=render-only`;
@@ -82,7 +83,7 @@ async function render(c, lang) {
   const html0 = tmpl({ body, logo: c.email_logo_url || '', name: ar ? (c.email_signature_name_ar || 'أحمد الزين') : (c.email_signature_name || 'Ahmad Alzain'),
     title: ar ? 'المؤسس' : (c.email_signature_title || 'Founder'), channelEmail: reply, unsub, wrapper: c['tpl:email_supplier'] || '', internal: false, subject });
   const mail = resendPayload({ from: c.email_from_supplier || 'QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply, subject,
-    html: ownDomain(ar ? arabicFrame(html0) : html0, PROJECT_URL, c.email_asset_public_base || ''), text: plainTextPart({ body, unsub, ar, internal: false }), unsub, unsubMailto: reply });
+    html: ownDomain(ar ? arabicFrame(html0) : html0, PROJECT_URL, c.email_asset_public_base || ''), text: plainTextPart({ body, unsub, ar, internal: false }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX });
   return { mail, lint: inboxLint(mail, ['quotesdone.com', `${REF}.supabase.co`]) };
 }
 

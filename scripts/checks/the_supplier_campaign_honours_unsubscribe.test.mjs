@@ -15,7 +15,9 @@ const outbox = readFileSync('supabase/functions/send_outbox/index.ts', 'utf8');
 const webhook = readFileSync('supabase/functions/resend_webhook/index.ts', 'utf8');
 
 test('send_outbox folds case on the suppression lookup', () => {
-  assert.match(outbox, /supSet\.has\(foldEmail\(n\.to_email\)\)/, 'suppression lookup is no longer case-folded');
+  // 22 Sep 2026: the set became a reason map (an unsubscribe stops only invitations); the fold is unchanged.
+  assert.match(outbox, /supReason\.has\(foldEmail\(n\.to_email\)\)/, 'suppression lookup is no longer case-folded');
+  assert.match(outbox, /supReason\.set\(foldEmail\(s\.email\)/, 'stored suppressions are no longer case-folded');
 });
 
 test('send_outbox holds supplier marketing with no unsubscribe link, before the provider call', () => {

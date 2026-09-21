@@ -3,6 +3,7 @@
 // server: render.test.ts renders the real supplier invitation and asserts the unsubscribe link,
 // the clickable portal link and the Arabic frame are all present.
 import { BRAND, lockupImg } from '../_shared/brand.ts';
+import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 export function esc(s: string) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 // BRAND: the founder's kit is on file (public.company_brand). Every colour below is one of its
 // rows, and this file now renders on NAVY, so it uses the on-navy pair throughout. The on-white
@@ -47,7 +48,9 @@ export function tmpl(opts: { body: string; logo: string; name: string; title: st
   // takes a HEIGHT. One helper, so email, UI and PDF cannot drift apart, and one unit, because a
   // width means something different for every asset depending on the padding it was drawn inside.
   const logoTag = logo ? lockupImg({ ground: 'dark', height: BRAND.logoHeight.email }) : '';
-  const unsubLine = unsub ? `<br><a href="${unsub}" style="color:#9ca3af">Unsubscribe</a> &middot; or reply to this email to be removed.` : '';
+  // The second way out names a mailbox that code reads (_shared/unsubscribe_mailbox.ts). Until 21 Sep 2026
+  // it said "reply to this email", and replies went to a Microsoft 365 inbox nothing read.
+  const unsubLine = unsub ? `<br><a href="${unsub}" style="color:#9ca3af">Unsubscribe</a> &middot; or email ${UNSUBSCRIBE_MAILBOX} to be removed.` : '';
   if (wrapper && wrapper.indexOf('{{BODY}}') >= 0) {
     return wrapper.split('{{LOGO}}').join(logoTag).split('{{BODY}}').join(linkify(esc(body))).split('{{NAME}}').join(esc(name)).split('{{TITLE}}').join(esc(title)).split('{{REPLY}}').join(esc(channelEmail)).split('{{UNSUB}}').join(unsubLine);
   }

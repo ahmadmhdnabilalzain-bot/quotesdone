@@ -4,6 +4,7 @@ import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
+import { blocksTransactional } from '../_shared/suppression_policy.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 import { sendWhatsAppFirst, type VerifySent } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
@@ -69,7 +70,8 @@ async function sendEmail(to: string, subject: string, html: string) { const key 
 // say so instead of silently succeeding. Fails OPEN on a lookup error - a suppression-table outage
 // must not lock every user out of sign-in.
 async function isSuppressed(email: string): Promise<boolean> {
-  try { const { data } = await admin.from('email_suppressions').select('email').eq('email', email).maybeSingle(); return !!data; }
+  // 22 Sep 2026: an 'unsubscribe' row is a marketing opt-out and never refuses a code (_shared/suppression_policy.ts).
+  try { const { data } = await admin.from('email_suppressions').select('reason').eq('email', email).maybeSingle(); return !!data && blocksTransactional(data.reason); }
   catch (_e) { return false; }
 }
 
@@ -212,7 +214,7 @@ Deno.serve(observe('login_otp', async (req) => {
         const email = idRaw.toLowerCase();
         // Checked BEFORE the row is inserted so we never mint a code that cannot be delivered.
         if (await isSuppressed(email)) {
-          await logRun('error', { suppressed: 1, channel: 'email' }, 'login_otp refused to email a sign-in code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or unsubscribe). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
+          await logRun('error', { suppressed: 1, channel: 'email' }, 'login_otp refused to email a sign-in code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or a guardrail block - an unsubscribe never refuses a code). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
           return J({ error: 'We cannot email this address - it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.', suppressed: true }, 403);
         }
         const since = new Date(Date.now() - 3600e3).toISOString();

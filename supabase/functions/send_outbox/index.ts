@@ -12,6 +12,8 @@ import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { ownsChannel, selectQueue } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
+import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
+import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
@@ -141,8 +143,11 @@ Deno.serve(observe('send_outbox', async (req) => {
     // resend_webhook, and this lookup used to match the queued address exactly, so a supplier whose
     // lead email carried a capital letter (47 leads, measured) unsubscribed and kept being mailed.
     const toEmails = [...new Set(rows.map((r: any) => foldEmail(r.to_email)).filter(Boolean))];
-    let supSet = new Set<string>();
-    if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email').in('email', toEmails); supSet = new Set((sup || []).map((s: any) => foldEmail(s.email))); }
+    // WHAT A ROW STOPS (22 Sep 2026): a bounce or complaint stops everything; an 'unsubscribe' stops only the
+    // invitation and its reminders (_shared/suppression_policy.ts). Before, an unsubscribe also stopped quote,
+    // reveal and account notices to a registered supplier.
+    const supReason = new Map<string, string>();
+    if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email,reason').in('email', toEmails); for (const s of (sup || []) as any[]) supReason.set(foldEmail(s.email), String(s.reason || '')); }
     let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0;
     const failNote = async (n: any, msg: string) => {
       const att = (Number(n.attempts) || 0) + 1;
@@ -169,7 +174,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       // purpose; refusing before any provider call is the clean skip, and it guarantees production
       // never emails a fixture address.
       if (RESERVED_TEST_DOMAIN.test(n.to_email)) { await admin.from('notifications').update({ status: 'skipped', last_error: 'reserved test domain (RFC 2606): never deliverable, refused before any provider call' }).eq('id', n.id); skipped++; continue; }
-      if (supSet.has(foldEmail(n.to_email))) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
+      if (supReason.has(foldEmail(n.to_email)) && suppressionStops(supReason.get(foldEmail(n.to_email)), n.type)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
       const ageH = (Date.now() - new Date(n.created_at).getTime()) / 3.6e6;
       if (ageH > staleH) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
       const supplierSide = n.to_role === 'supplier';
@@ -210,7 +215,9 @@ Deno.serve(observe('send_outbox', async (req) => {
         // the body, the footer and the unsubscribe URL in the recipient's language.
         // payload.ts builds it (22 Sep 2026) so the exact message can be rendered and inbox-linted offline.
         const mail: Record<string, unknown> = resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
-          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }), unsub, unsubMailto: reply });
+          // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
+          // the reply-to address.
+          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX });
         if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
         const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(mail) });
         // KEEP THE PROVIDER'S OWN NAME FOR THE MESSAGE. status='sent' only ever meant "Resend
