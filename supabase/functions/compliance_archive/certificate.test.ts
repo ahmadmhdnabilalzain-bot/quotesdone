@@ -33,12 +33,15 @@ Deno.test('an Arabic-registered account gets an Arabic certificate; everyone els
 
 Deno.test('the Arabic certificate renders through pdf_native with nothing dropped', async () => {
   const c = certificate(fields, 'supplier', HASH, 'https://quotesdone.com/supplier-agreement', 'ar');
-  const BRAND = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/';
-  const fetchBytes = async (p: string) => { try { const r = await fetch(BRAND + p); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null; } catch { return null; } };
+  // The brand fonts are committed copies of storage brand/qd_*.ttf (IBM Plex Sans Arabic, Sora — both SIL
+  // OFL 1.1). CI runs deno tests with no network (scripts/checks/run.mjs), and a fetch that fell back to
+  // Helvetica made this check fail on PR #796 for the wrong reason. A missing fixture now fails the read
+  // loudly instead of silently rendering without the font this check exists to prove.
+  const BRAND = new URL('../pdf_native/fixtures/brand/', import.meta.url);
+  const fetchBytes = async (p: string) => /.ttf$/.test(p) ? await Deno.readFile(new URL(p, BRAND)) : null;
   const r = await renderPdf({ title: c.title, lang: c.lang, body_html: c.body_html }, { fetchBytes });
   assert(r.ok, JSON.stringify((r as { body?: unknown }).body));
   if (r.ok) {
-    if (Deno.env.get('QD_CERT_OUT')) await Deno.writeFile(Deno.env.get('QD_CERT_OUT')!, r.bytes);
     assertEquals(r.meta.glyphs_dropped, 0);
   }
 });
