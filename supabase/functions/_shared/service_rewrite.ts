@@ -88,7 +88,10 @@ const STOP = new Set([
 export const isStop = (w: string): boolean => {
   const n = arNorm(w).toLowerCase();
   if (n.length < 3) return true;
-  const forms = [n, n.replace(/^و/, ''), n.replace(/^ال/, ''), n.replace(/^وال/, '')];
+  // The Arabic proclitics a word can carry: و/ف, then ب/ل/ك, then ال. "بأعمال" is أعمال with ب in front
+  // — audit 21 Sep 2026 ("نقوم بأعمال الجبس ...") left "نقوم بأعمال" in the sales engineer's queue
+  // because only و / ال / وال were stripped here. Only the STOP test uses this; the matcher has its own.
+  const forms = [n, n.replace(/^و/, ''), n.replace(/^ال/, ''), n.replace(/^وال/, ''), n.replace(/^[وف]?[بلك]?(?:ال)?/, '')];
   return forms.some((f) => STOP.has(f) || f.length < 2);
 };
 

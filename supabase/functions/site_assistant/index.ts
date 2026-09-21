@@ -20,6 +20,7 @@
 //     knowledge gap (fn_support_knowledge_gap) when we cannot answer, and a visibility report to
 //     the CEO when someone asks for a person. assistant_logs now records which seat answered.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { langOf, pickFaq, routeQuestion, type FaqRow } from '../_shared/chat_answers.ts';
 import { observe } from '../_shared/observe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -256,10 +257,30 @@ Deno.serve(observe('site_assistant', async (req) => {
       seatForSurface = typeof s === 'string' ? s : null;
     } catch (_e) { seatForSurface = null; }
 
+    const { data: faqs } = await admin.from('company_faq').select('id,question,answer,tags,language').eq('public', true).eq('status','approved');
+
+    // ── THE QUESTION THAT WAS ASKED IS ANSWERED FIRST (21 Sep 2026, seat customer_support) ──────
+    // Measured in the public audit, 0/3: "how many quotes will I get" -> a supplier-quoting FAQ,
+    // "what does it cost" -> a refusal while FAQ 30 holds the fee, an Arabic timeline question -> a
+    // price guide with "لكل each" in it. Every one of those was a nearest neighbour over answers and
+    // tags. A count, cost or timeline question is decided by the asker's own words and answered by
+    // the FAQ whose QUESTION is that question, in the asker's language, before any other retrieval
+    // and before the gateway — the gateway's level0 shortcut is what matched "what does it cost" to
+    // the company overview. A per-trade price question is not routed here; the price guide owns it.
+    {
+      const qType = routeQuestion(message);
+      const faq = pickFaq(qType, langOf(message, uiLang), (faqs || []) as FaqRow[], audience);
+      if (faq) {
+        const reply = String(faq.answer || '').trim();
+        try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [faq.id], seat: seatForSurface, answered: true, gap_task_id: null, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+        return J({ reply, scope: live ? audience : 'public', routed: qType, faq_id: faq.id });
+      }
+    }
+    // The gateway credential is read only AFTER the deterministic route: a missing or held model key
+    // must never take away an answer that needs no model (measured 21 Sep 2026: the common questions
+    // were refused with circuit_open because they reached ai_gateway at all).
     const key = await sec('cred_fn_ai');
     if (!key) return J({ reply: 'For help, please call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.' });
-
-    const { data: faqs } = await admin.from('company_faq').select('id,question,answer,tags').eq('public', true).eq('status','approved');
     const qtok = tok(message);
     const scored = (faqs||[]).map((f:any)=>{ const hay = tok(f.question+' '+f.answer+' '+((f.tags||[]).join(' '))); let sc=0; for(const t of qtok){ if(hay.includes(t)) sc++; } return { f, sc }; }).sort((a,b)=>b.sc-a.sc).slice(0,8).filter(x=>x.sc>0);
     const ctx0 = scored.map(x=>`Q: ${x.f.question}\nA: ${x.f.answer}`).join('\n\n');
@@ -463,7 +484,16 @@ Deno.serve(observe('site_assistant', async (req) => {
       const moneyAr = (b: any) => {
         const lo = Number(b.low), hi = Number(b.high);
         const unit = b.unit && b.unit !== 'none'
-          ? (String(b.unit) === 'sqm' ? ' للمتر المربع' : String(b.unit) === 'sqft' ? ' للقدم المربع' : ' لكل ' + b.unit)
+          // "لكل each" leaked into an Arabic answer (audit, 21 Sep 2026): the unit is the table's
+          // English token, so the ones the table actually holds are translated and an unknown one
+          // is dropped rather than printed inside an Arabic sentence.
+          ? (String(b.unit) === 'sqm' ? ' للمتر المربع' : String(b.unit) === 'sqft' ? ' للقدم المربع'
+            : String(b.unit) === 'each' || String(b.unit) === 'nos' || String(b.unit) === 'unit' ? ' للقطعة'
+            : String(b.unit) === 'lm' || String(b.unit) === 'm' ? ' للمتر الطولي'
+            : String(b.unit) === 'kg' ? ' للكيلوغرام' : String(b.unit) === 'ton' || String(b.unit) === 'tonne' ? ' للطن'
+            : String(b.unit) === 'day' ? ' لليوم' : String(b.unit) === 'hour' ? ' للساعة' : String(b.unit) === 'point' ? ' للنقطة'
+            : String(b.unit) === 'room' ? ' للغرفة' : String(b.unit) === 'set' ? ' للطقم' : String(b.unit) === 'm3' || String(b.unit) === 'cum' ? ' للمتر المكعب'
+            : '')
           : '';
         const span = (isFinite(lo) && isFinite(hi) && lo !== hi)
           ? `${lo} إلى ${hi} درهم` : `${isFinite(lo) ? lo : hi} درهم`;

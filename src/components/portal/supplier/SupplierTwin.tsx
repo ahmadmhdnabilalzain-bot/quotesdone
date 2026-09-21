@@ -24,6 +24,7 @@
 // bar at all.
 import React, { useEffect, useState } from 'react';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { emirateLabel } from './serverCopy';
 
 // The twin payload as fn_supplier_twin actually returns it. Every numeric field is nullable on
 // purpose: price_index is null on all 20,464 production rows, and a type that pretended otherwise
@@ -34,11 +35,14 @@ type Twin = {
   company_name?: string; verified?: boolean; is_demo?: boolean; matchable?: boolean;
   intelligence_score?: number | null; star_rating?: number | null; company_strength?: number | null;
   product_count?: number | null; established_year?: number | null; employee_count?: number | null;
-  ai_confidence?: number | null; risk_level?: string | null;
+  ai_confidence?: number | null; risk_level?: string | null; risk_basis?: string | null;
   health?: { quality?: number | null; delivery?: number | null; response?: number | null;
              pricing?: number | null; overall?: number | null };
   capabilities?: { name: string; has: boolean }[];
-  certifications?: string[]; best_opportunities?: string[]; countries?: string[];
+  certifications?: string[]; best_opportunities?: string[];
+  // `emirates` since 21 Sep 2026. `countries` is the same value under the old key, read only as a
+  // fallback for a server not yet redeployed; the label on screen is Emirates either way.
+  emirates?: string[]; countries?: string[];
   production_capacity?: { estimated?: number | null; is_estimate?: boolean };
   capability_map?: CapMapShape; documents?: Doc[];
 };
@@ -62,11 +66,13 @@ const T = {
     certifications: 'Certifications', capacity: 'Production Capacity', opportunities: 'Best Opportunities',
     risk: 'Risk Level', quality: 'Quality', delivery: 'Delivery', response: 'Response',
     pricing: 'Pricing', overall: 'Overall', score: 'Supplier Intelligence Score',
-    established: 'Established', employees: 'Employees', countries: 'Countries',
+    established: 'Established', employees: 'Employees', emirates: 'Emirates',
     confidence: 'AI Confidence', map: 'Capability Map', documents: 'Documents',
     notRated: 'not rated yet', estimate: 'estimated', perYear: 'units/year',
     verified: 'Verified Supplier', unverified: 'Not yet verified', demo: 'DEMO FIXTURE — not a real company',
     loading: 'Reading your company intelligence…', none: 'none on file', unknown: 'unknown',
+    notAssessed: 'Not rated yet — no measurement',
+    riskLOW: 'Low', riskMEDIUM: 'Medium', riskHIGH: 'High', riskCRITICAL: 'Critical',
   },
   ar: {
     twin: 'التوأم الرقمي للمورد', health: 'صحة المورد', profile: 'ذكاء الشركة',
@@ -74,15 +80,25 @@ const T = {
     certifications: 'الشهادات', capacity: 'الطاقة الإنتاجية', opportunities: 'أفضل الفرص',
     risk: 'مستوى المخاطر', quality: 'الجودة', delivery: 'التسليم', response: 'الاستجابة',
     pricing: 'التسعير', overall: 'الإجمالي', score: 'مؤشر ذكاء المورد',
-    established: 'تأسست', employees: 'الموظفون', countries: 'الدول',
+    established: 'تأسست', employees: 'الموظفون', emirates: 'الإمارات',
     confidence: 'ثقة الذكاء الاصطناعي', map: 'خريطة القدرات', documents: 'المستندات',
     notRated: 'لم يتم التقييم بعد', estimate: 'تقديري', perYear: 'وحدة/سنة',
     verified: 'مورد موثّق', unverified: 'غير موثّق بعد', demo: 'نموذج تجريبي — ليست شركة حقيقية',
     loading: 'جارٍ قراءة ذكاء شركتك…', none: 'لا يوجد', unknown: 'غير معروف',
+    notAssessed: 'لم يُقيَّم بعد — لا يوجد قياس',
+    riskLOW: 'منخفض', riskMEDIUM: 'متوسط', riskHIGH: 'مرتفع', riskCRITICAL: 'حرج',
   },
 };
 type Lang = 'en' | 'ar';
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
+
+// No measurement, no verdict: a NULL risk_level reads "not rated yet", never a default grade
+// (audit 21 Sep 2026: a supplier with no licence and no history was shown as low risk).
+function riskText(level: string | null | undefined, lang: Lang): string {
+  if (!level) return t(lang, 'notAssessed');
+  const k = ('risk' + String(level).toUpperCase()) as keyof typeof T.en;
+  return k in T.en ? t(lang, k) : String(level);
+}
 
 // §13's bars. THE NULL BRANCH IS THE POINT: a metric with no data renders as "not rated yet" and
 // draws no bar, because a 0%-wide bar is a claim that the supplier scored zero.
@@ -165,9 +181,10 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
   const certs = twin.certifications || [];
   const cap = twin.production_capacity || {};
   const opps = twin.best_opportunities || [];
+  const emirates = twin.emirates ?? twin.countries ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* A fixture must never be presentable as a live account. is_demo comes from the fence itself
           (matching_blocked AND a 'demo' tag), so this banner cannot drift from what it describes. */}
       {twin.is_demo && (
@@ -182,15 +199,15 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
           <div className="min-w-0">
             <div className="text-base font-medium truncate">{twin.company_name}</div>
             <div className="text-[11px] mt-0.5 opacity-70">
-              {twin.verified ? '✓ ' + t(lang, 'verified') : t(lang, 'unverified')}
+              {twin.verified ? t(lang, 'verified') : t(lang, 'unverified')}
               {twin.star_rating != null && (
-                <span className="ml-2" aria-label={`${twin.star_rating} / 5`}>
+                <span className="ms-2" aria-label={`${twin.star_rating} / 5`}>
                   {'★'.repeat(twin.star_rating)}{'☆'.repeat(5 - twin.star_rating)}
                 </span>
               )}
             </div>
           </div>
-          <div className="text-right shrink-0">
+          <div className="text-end shrink-0">
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'score')}</div>
             <div className="text-3xl font-semibold tabular-nums">
               {twin.intelligence_score != null ? twin.intelligence_score : '—'}
@@ -222,7 +239,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
           <Stat label={t(lang, 'products')} value={twin.product_count ?? 0} />
           <Stat
             label={t(lang, 'risk')}
-            value={twin.risk_level || t(lang, 'unknown')}
+            value={riskText(twin.risk_level, lang)}
           />
           <Stat
             label={t(lang, 'capacity')}
@@ -238,7 +255,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
             {caps.length
               ? caps.map((c) => (
                   <span key={c.name} className="rounded-full border border-ok/30 bg-ok/10 px-2 py-0.5 text-[11px]">
-                    ✓ {c.name}
+                    {c.name}
                   </span>
                 ))
               : <span className="text-[11px] opacity-50">{t(lang, 'none')}</span>}
@@ -263,8 +280,10 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
           <Stat label={t(lang, 'established')} value={twin.established_year ?? t(lang, 'unknown')} />
           <Stat label={t(lang, 'employees')} value={twin.employee_count ?? t(lang, 'unknown')} />
           <Stat
-            label={t(lang, 'countries')}
-            value={(twin.countries || []).length ? (twin.countries || []).join(', ') : t(lang, 'unknown')}
+            label={t(lang, 'emirates')}
+            value={emirates.length
+              ? emirates.map((e) => emirateLabel(lang, e)).join(lang === 'ar' ? '، ' : ', ')
+              : t(lang, 'unknown')}
           />
           <Stat
             label={t(lang, 'confidence')}

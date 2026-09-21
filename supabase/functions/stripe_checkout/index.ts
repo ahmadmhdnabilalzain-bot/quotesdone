@@ -1,4 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { jobNoOf } from '../_shared/quote_documents.ts';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
@@ -40,7 +41,7 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     const qid = String(body.quote_id || '');
     const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount').eq('id', qid).maybeSingle();
     if (!q) { await logRun('error', { quote_id: qid }, 'quote not found - customer cannot pay to reveal'); return J({ error: 'Quote not found' }, 404); }
-    const { data: inq } = await admin.from('inquiries').select('id,customer_id').eq('id', q.inquiry_id).maybeSingle();
+    const { data: inq } = await admin.from('inquiries').select('id,customer_id,rfq_no').eq('id', q.inquiry_id).maybeSingle();
     if (!inq || inq.customer_id !== cust.id) { await logRun('error', { quote_id: qid }, 'ownership violation: customer attempted checkout on another customer inquiry'); return J({ error: 'Not your inquiry' }, 403); }
     const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
     if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, ''); return J({ already_revealed: true }); }
@@ -69,7 +70,8 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     const { data: sibs } = await admin.from('quotes').select('id').eq('inquiry_id', q.inquiry_id).neq('status', 'draft').order('quote_amount', { ascending: true });
     const idx = Math.max(0, (sibs || []).findIndex((x: { id: string }) => x.id === q.id));
     const letter = String.fromCharCode(65 + (idx % 26));
-    const requestRef = 'QD-' + String(q.inquiry_id || '').slice(0, 8).toUpperCase();
+    // The job number (inquiries.rfq_no): what the customer's card statement says must match the portal (21 Sep 2026).
+    const requestRef = 'QD-' + jobNoOf({ id: String(q.inquiry_id || ''), rfq_no: inq?.rfq_no });
     // 27 Jul 2026 — two defects fixed here.
     // (1) OPEN REDIRECT. return_url was taken verbatim from the request body, so a crafted call
     //     sent the paying customer to any domain with the Checkout Session id in the query string.

@@ -418,6 +418,13 @@ Deno.serve(observe('messages_api', async (req) => {
       const attachName = clip(body.attachment_name, 180) || (attachOk ? attach.split('/').pop() || 'attachment' : '');
       const { data: m, error } = await admin.from('messages').insert({ inquiry_id, supplier_id, customer_id: rev.customer_id, sender: role, body: text, attachment_path: attachOk ? attach : null, read_by_customer: role === 'customer', read_by_supplier: role === 'supplier' }).select('id,sender,body,created_at,attachment_path').maybeSingle();
       if (error) return J({ error: error.message }, 500);
+      // A supplier who writes to the customer HAS contacted them (Supplier Agreement v9, cl. 11: respond
+      // within 5 working days of the reveal). Measured 21 Sep 2026 (supplier audit, finding 36): sending
+      // left the job "Respond by …" until the supplier also pressed "I have contacted the customer". The
+      // message is the record; the acknowledgement follows it. `rev` is the reveal transaction itself.
+      if (role === 'supplier' && rev?.id) {
+        try { await admin.from('transactions').update({ supplier_ack_at: new Date().toISOString() }).eq('id', rev.id).is('supplier_ack_at', null); } catch (_e) { /* the message is delivered either way */ }
+      }
       // The vault is the index of everything the customer holds, so a file dropped into a chat has
       // to appear there too — otherwise §14's "find the warranty document" cannot find one that
       // arrived by chat. ref_table='messages' is the link documents already models for every other

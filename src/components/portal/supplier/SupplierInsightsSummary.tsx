@@ -18,6 +18,12 @@ import { AlertTriangle, ArrowUpRight, CheckCircle2, Lightbulb } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { call } from './api';
+
+// avg_lead_time_days is the mean of the lead_time this supplier WROTE on its own quotations
+// (fn_supplier_stats: avg of the digits in quotes.lead_time) — not a measured delivery time.
+// "Average lead time" alone read as a performance figure (audit 21 Sep 2026, finding 38), so the
+// label says what was averaged. Hidden when null, i.e. when no quote carried a lead time.
+const LEAD_LABEL = { en: 'Average lead time you quoted', ar: 'متوسط مدة التوريد في عروضك' } as const;
 import { ws } from './workspaceCopy';
 
 type Lang = 'en' | 'ar' | string;
@@ -144,7 +150,7 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
           {rates.some(([, v]) => v != null) && (
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3.5">
               {rates.filter(([, v]) => v != null).map(([k, v]) => (
-                <div key={k} className="flex items-baseline justify-between gap-2"><dt className="text-[12.5px] text-muted-foreground">{ws(lang, k)}</dt><dd className="text-[13px] font-bold text-foreground tabular-nums"><bdi dir="ltr">{v}</bdi></dd></div>
+                <div key={k} className="flex items-baseline justify-between gap-2"><dt className="text-[12.5px] text-muted-foreground">{k === 'r_lead' ? LEAD_LABEL[lang === 'ar' ? 'ar' : 'en'] : ws(lang, k)}</dt><dd className="text-[13px] font-bold text-foreground tabular-nums"><bdi dir="ltr">{v}</bdi></dd></div>
               ))}
             </dl>
           )}

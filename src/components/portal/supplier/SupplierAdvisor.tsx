@@ -19,15 +19,17 @@ import React, { useEffect, useState } from 'react';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 type Rec = {
-  key: string; action: string; why: string;
+  key: string; action: string; why: string; action_ar?: string | null; why_ar?: string | null;
   severity: 'high' | 'medium' | 'low' | string;
   goes_to?: string; impact_rfqs?: number | null;
 };
+// Since 21 Sep 2026 quotes_submitted is counted from public.quotes, not the supplier_score cache
+// (last refreshed 16 Aug), and every sentence carries an Arabic twin (*_ar).
 type Advice = {
-  headline?: string; gap_count?: number; recommendations?: Rec[];
+  headline?: string; headline_ar?: string | null; gap_count?: number; recommendations?: Rec[];
   loss_analysis?: {
-    quotes_submitted?: number; quotes_won?: number; rejections?: number;
-    loss_reasons?: { reason: string; count: number; pct: number }[]; basis?: string;
+    quotes_submitted?: number; quotes_won?: number; rejections?: number; response_rate?: number | null;
+    loss_reasons?: { reason: string; reason_ar?: string | null; count: number; pct: number }[]; basis?: string;
   };
   impact_basis?: { live_inquiries?: number; note?: string };
 };
@@ -50,7 +52,8 @@ const T = {
     lossTitle: 'Lost opportunities', recTitle: 'What to do next',
     noHistory: 'You have not quoted on anything yet, so there is nothing to analyse. '
       + 'Your breakdown appears here after your first quotes.',
-    submitted: 'Quoted', won: 'Won', rejected: 'Rejected',
+    noLosses: 'None of your quotations has been rejected, so there is no loss to explain yet.',
+    submitted: 'Quoted', won: 'Won', rejected: 'Rejected', responseRate: 'Response rate',
     fix: 'Fix this', loading: 'Analysing your account…',
     allGood: 'Nothing to fix.', opportunities: 'live opportunities',
     high: 'blocking', medium: 'limiting', low: 'minor',
@@ -60,7 +63,8 @@ const T = {
     lossTitle: 'الفرص الخاسرة', recTitle: 'الخطوة التالية',
     noHistory: 'لم تقدّم أي عرض سعر بعد، لذا لا يوجد ما يمكن تحليله. '
       + 'يظهر تحليلك هنا بعد أول عروضك.',
-    submitted: 'عروض مقدمة', won: 'فائزة', rejected: 'مرفوضة',
+    noLosses: 'لم يُرفض أي من عروضك، لذا لا توجد خسارة تحتاج تفسيرًا بعد.',
+    submitted: 'عروض مقدمة', won: 'فائزة', rejected: 'مرفوضة', responseRate: 'معدل الاستجابة',
     fix: 'إصلاح', loading: 'جارٍ تحليل حسابك…',
     allGood: 'لا يوجد ما يحتاج إصلاحًا.', opportunities: 'فرص متاحة',
     high: 'يمنع', medium: 'يحدّ', low: 'بسيط',
@@ -94,15 +98,18 @@ export default function SupplierAdvisor({
   if (!a) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
 
   const loss = a.loss_analysis || {};
-  const reasons = loss.loss_reasons || [];
+  // A reason with a zero count is not a loss; "not quoted yet" is said only when nothing was quoted.
+  const reasons = (loss.loss_reasons || []).filter((r) => r.count > 0);
+  const quoted = (loss.quotes_submitted ?? 0) > 0;
   const recs = a.recommendations || [];
+  const ar = lang === 'ar';
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={ar ? 'rtl' : 'ltr'}>
       {/* §4's actionable assistant line: a concrete gap AND a quantified upside, or nothing to fix. */}
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
         <h3 className="text-xs uppercase tracking-wide opacity-60 mb-2">{t(lang, 'title')}</h3>
-        <p className="text-sm leading-relaxed">{a.headline}</p>
+        <p className="text-sm leading-relaxed">{(ar && a.headline_ar) || a.headline}</p>
       </section>
 
       {/* §15 — the loss question, asked in the supplier's own words. */}
@@ -119,10 +126,14 @@ export default function SupplierAdvisor({
         </div>
 
         {/* NO INVENTED BREAKDOWN. The empty state states its own reason. */}
+        {loss.response_rate != null && (
+          <p className="text-[11px] opacity-60 mb-3">
+            {t(lang, 'responseRate')}: <span className="tabular-nums">{Math.round(loss.response_rate)}%</span>
+          </p>
+        )}
         {reasons.length === 0 ? (
           <p className="text-[11px] opacity-60 leading-relaxed border-t border-white/10 pt-3">
-            {t(lang, 'noHistory')}
-            {loss.basis && <span className="opacity-40"> ({loss.basis})</span>}
+            {t(lang, quoted ? 'noLosses' : 'noHistory')}
           </p>
         ) : (
           <div className="border-t border-white/10 pt-3 space-y-2">
@@ -130,7 +141,7 @@ export default function SupplierAdvisor({
             {reasons.map((r) => (
               <div key={r.reason}>
                 <div className="flex justify-between text-[11px] mb-1">
-                  <span className="opacity-70">{r.reason}</span>
+                  <span className="opacity-70">{(ar && r.reason_ar) || r.reason}</span>
                   <span className="tabular-nums">{r.pct}% ({r.count})</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -162,8 +173,8 @@ export default function SupplierAdvisor({
               <li key={r.key} className={`rounded-xl border px-3 py-2.5 ${SEV[r.severity] || SEV.low}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-[12.5px] font-medium">{r.action}</div>
-                    <div className="text-[11px] opacity-75 leading-relaxed mt-0.5">{r.why}</div>
+                    <div className="text-[12.5px] font-medium">{(ar && r.action_ar) || r.action}</div>
+                    <div className="text-[11px] opacity-75 leading-relaxed mt-0.5">{(ar && r.why_ar) || r.why}</div>
                     <div className="text-[10px] uppercase tracking-wide opacity-50 mt-1">
                       {t(lang, (r.severity as 'high' | 'medium' | 'low')) || r.severity}
                     </div>

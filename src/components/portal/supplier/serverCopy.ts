@@ -96,14 +96,29 @@ const COPY: Record<string, Entry> = {
   doc_hint_insurance: s('Public liability or contractor all-risk cover.', 'تأمين المسؤولية العامة أو تأمين جميع أخطار المقاول.'),
   doc_hint_iso: s('Any ISO certificate you hold. Strengthens your capability score.', 'أي شهادة ISO تحملها، وتقوّي تقييم قدراتك.'),
   doc_hint_manufacturer: s('Authorised-dealer letters from the brands you carry.', 'خطابات الوكالة المعتمدة من العلامات التجارية التي تتعامل بها.'),
-  doc_hint_egr: s('Your immigration establishment card (EGR).', 'بطاقة المنشأة الصادرة من الإقامة (EGR).'),
+  doc_hint_egr: s('Your establishment card (EGR), issued with your trade licence.', 'بطاقة المنشأة (EGR) الصادرة مع رخصتك التجارية.'),
 
   // ── Overview alerts (supplier_portal buildAlerts) ───────────────────────────────────────────────
   doc_expiry_title: s((p) => `${p.doc} ${p.expired ? 'has expired' : 'expires soon'}`, (p) => `${docAr(p.doc)} ${p.expired ? 'منتهية الصلاحية' : 'تنتهي قريبًا'}`),
   doc_expiry_detail: s(
     (p) => `Expiry ${p.expiry} — ${p.days_left < 0 ? `overdue by ${Math.abs(p.days_left)} days` : `${p.days_left} days left`}. Upload a renewed copy to stay eligible.`,
     (p) => `تاريخ الانتهاء ${p.expiry} — ${p.days_left < 0 ? `متأخرة ${Math.abs(p.days_left)} يومًا` : `متبقٍ ${p.days_left} يومًا`}. ارفع نسخة مجدّدة لتبقى مؤهّلًا.`),
-  new_rfq_title: s((p) => `${p.count} new RFQ${p.count > 1 ? 's' : ''} waiting for your quote`, (p) => `${p.count} ${plural(p.count, 'طلب تسعير جديد ينتظر', 'طلبات تسعير جديدة تنتظر')} عرضك`),
+  // `total` (audit 21 Sep 2026, finding 6): the bell said "1 new RFQ" beside "Inquiries received (3)";
+  // both were true (two were already quoted) but neither said so. The count now names what it is out of.
+  new_rfq_title: s((p) => `${p.count} new RFQ${p.count > 1 ? 's' : ''} waiting for your quote` + (p.total > p.count ? ` (of ${p.total} received)` : ''), (p) => `${p.count} ${plural(p.count, 'طلب تسعير جديد ينتظر', 'طلبات تسعير جديدة تنتظر')} عرضك` + (p.total > p.count ? ` (من أصل ${p.total})` : '')),
+  // The notices the estate wrote to this supplier (supplier_portal buildNotifications `notices`).
+  notice_quote_accepted: s('A customer revealed your quote — their contact details are in Messages', 'كشف عميل عن عرضك — بيانات التواصل في الرسائل'),
+  notice_new_message: s('New message from a customer', 'رسالة جديدة من عميل'),
+  notice_new_inquiry: s('A new request was matched to you', 'تمت مطابقة طلب جديد معك'),
+  notice_rfq_addendum: s('A customer updated a request you received', 'حدّث عميل طلبًا وصلك'),
+  notice_job_awarded_other: s('A request you quoted was awarded to another supplier', 'تمت ترسية طلب قدّمت عليه عرضًا على مورّد آخر'),
+  notice_rfq_no_supplier: s('A request closed without a supplier', 'أُغلق طلب دون مورّد'),
+  notice_doc_received: s('We received your document', 'استلمنا مستندك'),
+  notice_registration_received: s('We received your registration', 'استلمنا تسجيلك'),
+  notice_quote_spec_hold: s('A quotation is held until its exact details are given', 'عرض سعر محجوز حتى تُذكر تفاصيله الدقيقة'),
+  notice_quote_spec_released: s('A held quotation was released to the customer', 'أُرسل عرض سعر كان محجوزًا إلى العميل'),
+  notice_quote_spec_regenerated: s('A held quotation was regenerated with your details', 'أُعيد إنشاء عرض سعر محجوز بتفاصيلك'),
+  notice_quote: s('An update on one of your quotations', 'تحديث على أحد عروضك'),
   new_rfq_detail: s('Open requests matched to your capabilities that you have not quoted yet.', 'طلبات مفتوحة تطابق قدراتك ولم تقدّم عليها عرضًا بعد.'),
   draft_quote_title: s((p) => `${p.count} draft quote${p.count > 1 ? 's' : ''} to complete`, (p) => `${p.count} ${plural(p.count, 'عرض مسودة يحتاج', 'عروض مسودة تحتاج')} إلى إكمال`),
   draft_quote_detail: s('Add the missing details so we can send them to customers.', 'أضف التفاصيل الناقصة لنرسلها إلى العملاء.'),
