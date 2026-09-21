@@ -42,6 +42,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { sql, PROJECT_REF } from '../lib/db.mjs';
+import { withRetry } from '../lib/retry.mjs';
 
 const arg = (n, d) => { const a = process.argv.find((x) => x.startsWith(`--${n}=`)); return a ? a.slice(n.length + 3) : d; };
 const HOURS = Math.max(1, Math.min(24, Number(arg('hours', 24)) || 24));
@@ -56,7 +57,14 @@ function token() {
   throw new Error('No Supabase access token (SUPABASE_ACCESS_TOKEN or ~/.supabase/access-token).');
 }
 
-async function logs(query) {
+// THREE ATTEMPTS BEFORE "UNREADABLE" (21 Sep 2026). One request to the analytics endpoint was the
+// whole verdict: a single transient miss (a 5xx, a dropped socket) reported the log unreadable, turned
+// the parity job red and emailed the founder. A miss is now retried twice, 2 s then 4 s apart. A log
+// that is STILL unreadable after the third attempt exits 2 exactly as before: the gate is not
+// weakened, a blip just stops counting as an outage. withRetry is tested in scripts/lib/retry.test.mjs.
+const logs = (query) => withRetry(() => logsOnce(query));
+
+async function logsOnce(query) {
   // The window MUST be explicit. Without iso_timestamp_start the endpoint answers over a very short
   // default window and returns [] — which reads exactly like "no attacks" and is not.
   const end = new Date().toISOString();

@@ -183,3 +183,26 @@ Not mechanical, but it belongs here because it cost the same kind of rework.
 - **Before a detector pages the founder, check what it is counting.** A new refusal detector was one
   tick from a CRITICAL page because two guards were enforcing the founder's own rules correctly.
   Exemptions belong in a register that names the rule, never in trusting a log's word for itself.
+
+---
+
+## 9. A fix is not finished until something fails when its cause returns
+
+Founder, 21 Sep 2026 (instruction 573): *"i dont want things to pop up again for the same reasons"*.
+A probe runs once, at apply; a PR description is read once. Neither stops the cause coming back.
+Every fix ships with ONE of these, and it must FAIL on the original input (break it once to see):
+
+- **a unit test replaying the failing input** — `customer_api/rating_input.test.ts` sends a stars-only
+  rating, the exact 17 Sep request that got HTTP 500;
+- **a `scripts/checks` test over the live mirror** (`supabase/schema/full_schema.sql`, kept equal to
+  production on every PR) — `no_routine_names_a_table_alias_after_its_own_record.test.mjs` found
+  `fn_it_backup_recheck` raising 42702 on every call, hours after its own probe printed PROBE OK
+  (the probe read the source text; it never ran the routine — **a probe runs the routine**);
+- **a verdict-row probe** only for what cannot be read offline, and **a nightly journey step** for
+  what only a browser shows (layout, copy, timing).
+
+The PR and the report name it: **"prevented by: <file>"**. No such line = not done.
+Retries are not guards: retry a blip (`scripts/lib/retry.mjs`), never a real failure, and never
+retry a non-idempotent write on a 5xx — a 524 can commit behind the error (21 Sep, mid-run: the
+purge census held 1,178,961 non-standard rows for 589,199 live; it now refuses to plan unless it
+sums to the table). Index of 21 Sep: `docs/it/RECURRENCE_GUARDS_21_SEP_2026.md`.
