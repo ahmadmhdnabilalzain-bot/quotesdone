@@ -37,5 +37,3 @@ scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :
 # 21 Sep 2026 — it_engineer, the IT alerts of 21 Sep fixed at their cause. Independent of each other; apply
 # with --apply --ddl, then move each line to the END of MANIFEST.txt. Each was rehearsed rolled-back on
 # 21 Sep (PROBE OK); each probe answers PROBE FAILED against the unchanged database.
-scripts/sql/a_supplier_registration_record_closes_on_its_lead_not_on_a_licence_line.sql :: committed for the coordinator's serial apply; closes org_tasks 579041/579076 on the next tick and ends duty:org_task_queue:routine_operational_decision:sales_engineer.
-scripts/sql/the_ceo_answers_every_overdue_it_report_even_one_the_founder_was_already_told_about.sql :: committed for the coordinator's serial apply; the next silence-watch tick accepts the 13 delivery_undelivered reports still 'sent' (incl. 2571), pages nothing.
