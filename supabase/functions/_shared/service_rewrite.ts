@@ -85,7 +85,7 @@ const STOP = new Set([
   'دبي', 'ابوظبي', 'الشارقه', 'عجمان', 'الفجيره', 'الخيمه', 'القيوين', 'راس', 'ام', 'الامارات', 'امارات',
 ].map(arNorm));
 
-const isStop = (w: string): boolean => {
+export const isStop = (w: string): boolean => {
   const n = arNorm(w).toLowerCase();
   if (n.length < 3) return true;
   // The Arabic proclitics a word can carry: و/ف, then ب/ل/ك, then ال. "بأعمال" is أعمال with ب in front
@@ -118,12 +118,12 @@ const looksLikeAService = (text: string): boolean => {
  *  The list marker is stripped AFTER the split, not inside it: the line-break branch consumes the
  *  newline first, so a `(?:^|\s)•` branch could never match a bullet at the start of a line
  *  (measured by service_rewrite.test.ts, which read back "• d4" and "2) e5" as phrases). */
-export function splitPhrases(text: string): string[] {
-  return String(text ?? '').slice(0, MAX_TEXT)
+export function splitPhrases(text: string, maxText = MAX_TEXT, maxPhrases = MAX_PHRASES): string[] {
+  return String(text ?? '').slice(0, maxText)
     .split(/\r?\n|[,،;؛|]+|\.\s+/)
     .map((s) => s.replace(/^\s*(?:[•·▪●◦*–—-]|\d{1,2}[.)])\s+/, '').replace(/\s+/g, ' ').trim().slice(0, MATCH_LEN))
     .filter((s) => s.length >= 2)
-    .slice(0, MAX_PHRASES);
+    .slice(0, maxPhrases);
 }
 
 /** The supplier's words, tidied: one space, no stray connector at either end, sentence case in English
@@ -143,14 +143,40 @@ export function tidy(text: string): string {
   return s.slice(0, PHRASE_LEN).trim();
 }
 
+// A SHORT ENGLISH ALIAS IS A WHOLE WORD (21 Sep 2026). The matcher is word-START anchored, which is
+// right for "ducting" -> "ductwork" but wrong for an acronym: "ups" would name UPS systems in "upset"
+// and "pos" would name POS terminals in "position". An English alias of three letters or fewer
+// therefore has to end where the word ends, with an optional plural s ("UPS", "POS", "rugs").
+const SHORT_ALIAS = 3;
+export function servicePattern(alias: string): RegExp | null {
+  const re = termPattern(alias);
+  if (!re) return null;
+  const a = arNorm(alias).trim();
+  const short = !HAS_AR.test(a) && a.replace(/[^\p{L}\p{N}]/gu, '').length <= SHORT_ALIAS;
+  return new RegExp(short ? re.source + '(?:s)?(?![\\p{L}\\p{N}])' : re.source, 'giu');
+}
+
+// WHAT A SUPPLY-ONLY COMPANY IS NOT PROPOSED (21 Sep 2026). An importer, wholesaler or stockist sells
+// the goods; it does not install them. A service whose standard name is installation, contracting or
+// after-sales work is not proposed to such a company, whatever word in its catalogue happened to name
+// it ("Cat 6 Cable" is goods; "Structured cabling" is a service). Read from the service's own English
+// label, so a service added next year is classified the day it is added. A label that also says
+// supply ("Lighting supply & installation") carries the supply half too and stays.
+const INSTALL_WORK = /install|cabling|wiring|contract|fit[-_ ]?out|erection|\bworks?\b|commissioning|construction|maintenance|servic(?:e|es|ing)\b|repair|refurbish|moderni[sz]ation|programming|integration|drawings|approvals|supervision|design/i;
+const SUPPLY_WORD = /supply|sales|\bsale\b/i;
+export const isInstallWork = (t: Pick<ServiceTerm, 'label_en' | 'code'>): boolean => {
+  const s = `${t.label_en} ${String(t.code ?? '').replace(/_/g, ' ')}`;
+  return INSTALL_WORK.test(s) && !SUPPLY_WORD.test(s);
+};
+
 /** The alias index, compiled once per request. A term is an alias; labels are not terms (a label such
  *  as "Maintenance contracts" is too general to be exact). */
 export function compileServices(vocab: ServiceTerm[]): Compiled[] {
   const out: Compiled[] = [];
   for (const term of vocab) {
     for (const a of term.aliases || []) {
-      const re = termPattern(a);
-      if (re) out.push({ key: `${term.trade_code}.${term.code}`, term, re: new RegExp(re.source, 'giu') });
+      const re = servicePattern(a);
+      if (re) out.push({ key: `${term.trade_code}.${term.code}`, term, re });
     }
   }
   return out;
@@ -212,8 +238,11 @@ function wordsItem(text: string, from: string, trades: TradeTerm[]): RewriteItem
 
 /** The whole rewrite. `services` are the active taxonomy_trade_service rows with their aliases;
  *  `trades` the active taxonomy_trade codes with theirs. */
-export function rewriteServices(text: string, services: ServiceTerm[], trades: TradeTerm[]): Rewrite {
-  const index = compileServices(services);
+export type RewriteOptions = { supplyOnly?: boolean; maxText?: number; maxPhrases?: number };
+export function rewriteServices(text: string, services: ServiceTerm[], trades: TradeTerm[], opts: RewriteOptions = {}): Rewrite {
+  // A supply-only company is not proposed installation work: those aliases are left out of its index,
+  // so the words stay the supplier's own and reach the sales engineer rather than naming a service.
+  const index = compileServices(opts.supplyOnly ? services.filter((s) => !isInstallWork(s)) : services);
   const items: RewriteItem[] = [];
   const seenKey = new Set<string>(); const seenWords = new Set<string>(); const seenTrades = new Set<string>();
   const push = (it: RewriteItem | null) => {
@@ -224,7 +253,7 @@ export function rewriteServices(text: string, services: ServiceTerm[], trades: T
     if (it.kind === 'trade') { const tk = [...it.trades].sort().join('+'); if (seenTrades.has(tk)) return; seenTrades.add(tk); }
     seenWords.add(k); items.push(it);
   };
-  for (const phrase of splitPhrases(text)) {
+  for (const phrase of splitPhrases(text, opts.maxText, opts.maxPhrases)) {
     const { norm, at } = foldForMatch(phrase);
     const hits = hitsIn(norm, index);
     if (!hits.length) { push(wordsItem(phrase, phrase, trades)); continue; }
@@ -273,12 +302,18 @@ export const flattenImplications = (groups: { from: string; to: string[]; en: st
 
 /** What `sources` (stated service keys and trade codes) imply, one level, minus what is already stated.
  *  An implied key the supplier unticked is still returned, marked removed, so it can be ticked again. */
-export function impliedServices(sources: string[], map: Implication[], stated: string[], removed: string[] = []): Implied[] {
+//
+// A SUPPLY-ONLY COMPANY (21 Sep 2026, catalogue_read.ts) gets every implication back already struck out.
+// Each row of the map is a works relation — what a firm that PERFORMS X also performs ("CCTV installers
+// fit intruder alarms"); a trader's catalogue lists what it stocks, and implying stock it did not list is
+// a guess. Returned removed (not dropped) so the save stores it in services_removed, fn_services_effective
+// subtracts it at match time, and the supplier can still tick one back.
+export function impliedServices(sources: string[], map: Implication[], stated: string[], removed: string[] = [], supplyOnly = false): Implied[] {
   const src = new Set(sources); const have = new Set(stated); const off = new Set(removed);
   const out = new Map<string, Implied>();
   for (const r of map) {
     if (!src.has(r.from) || have.has(r.to)) continue;
-    const it = out.get(r.to) || { key: r.to, because: [], removed: off.has(r.to) };
+    const it = out.get(r.to) || { key: r.to, because: [], removed: supplyOnly || off.has(r.to) };
     it.because.push({ from: r.from, en: r.en, ar: r.ar });
     out.set(r.to, it);
   }

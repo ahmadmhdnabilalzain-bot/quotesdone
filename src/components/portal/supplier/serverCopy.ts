@@ -42,6 +42,7 @@ const TRADE_AR: Record<string, string> = {
   scaffolding: 'السقالات ومعدات الوصول', cleaning: 'التنظيف وخدمات المرافق', av_it: 'الصوت والصورة والتيار الخفيف',
   interior_fitout: 'التشطيبات والتجهيزات الداخلية', civil_works: 'الأعمال المدنية والإنشائية',
   mep_general: 'الأعمال الكهروميكانيكية المتكاملة (MEP)',
+  office_equipment: 'المعدات المكتبية والطباعة', pos_retail: 'أنظمة نقاط البيع وتقنيات التجزئة',
 };
 const ROLE_AR: Record<string, string> = {
   manufacturer: 'مصنّع', distributor: 'موزّع معتمد', supplier: 'مورّد / تجارة', installer: 'مركّب / منفّذ',
@@ -74,6 +75,7 @@ export const TRADE_EN: Record<string, string> = {
   wallpaper: 'Wallpaper & wall finishes', scaffolding: 'Scaffolding & access', cleaning: 'Cleaning & facility services',
   av_it: 'AV, IT & low current', interior_fitout: 'Interior fit-out', civil_works: 'Civil & construction works',
   mep_general: 'MEP (combined)',
+  office_equipment: 'Office equipment & printing', pos_retail: 'Point-of-sale & retail technology',
 };
 export const TRADE_CODES = Object.keys(TRADE_EN);
 export const tradeLabel = (lang: string, code: string) => vocabLabel(lang, 'trade', code, TRADE_EN[code]);

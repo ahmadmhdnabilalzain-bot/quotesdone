@@ -59,9 +59,14 @@ type RewriteItem =
   | { kind: 'service'; key: string; trade: string; label_en: string; label_ar: string; from: string }
   | { kind: 'trade'; trades: string[]; text: string; from: string }
   | { kind: 'unmatched'; text: string; from: string };
+type MeaningProposal = { key: string; label_en: string; label_ar: string; similarity: number; because: string; word: string | null; lines: string[] };
 type Rewrite = {
   raw_text: string; service_keys: string[]; own_words: string[]; items: RewriteItem[];
   summary_en: string; summary_ar: string; implied: Implied[]; pending_taxonomy: string[];
+  supply_only?: { proposed: boolean; applied: boolean };
+  meaning?: { state: string; proposals: MeaningProposal[] };
+  source?: { kind: 'typed' | 'catalogue'; name?: string };
+  model?: { state: string; message_en?: string; message_ar?: string };
 };
 
 const box = 'mt-0.5 h-5 w-5 shrink-0 rounded border-input accent-[hsl(var(--primary))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -204,18 +209,28 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
   // THE REWRITE. Nothing is saved here — the supplier is shown what we made of its words and either
   // confirms it below or edits the text and asks again.
-  const rewrite = async () => {
+  // `fromCatalogue` reads the supplier's latest uploaded catalogue instead of the text box;
+  // `supplyOnly` is the supplier's own answer to "supply only?" and overrides what the words suggested.
+  const rewrite = async (o: { fromCatalogue?: boolean; supplyOnly?: boolean } = {}) => {
     const text = rawText.trim();
-    if (text.length < 2) return;
+    const fromCatalogue = o.fromCatalogue ?? (rw?.source?.kind === 'catalogue' && o.supplyOnly !== undefined);
+    if (!fromCatalogue && text.length < 2) return;
     setRwBusy(true); setRwMsg(''); setNote(null);
-    const j = await call('supplier_api', { action: 'services_rewrite', text, removed: [...dropped] }, token).catch(() => null);
+    const j = await call('supplier_api', {
+      action: 'services_rewrite', removed: [...dropped],
+      ...(fromCatalogue ? { from_catalogue: true } : { text }),
+      ...(o.supplyOnly !== undefined ? { supply_only: o.supplyOnly } : {}),
+    }, token).catch(() => null);
+    if (j && j.code === 'services_no_catalogue') { setRwBusy(false); setRwMsg(sc(lang, 'no_catalogue')); return; }
     if (!mounted.current) return;
     setRwBusy(false);
     if (j && j.ok) {
       const next = j as Rewrite;
       setRw(next);
       setDropped((s) => new Set([...s, ...next.implied.filter((i) => i.removed).map((i) => i.key)]));
-      if (!next.service_keys.length && !next.own_words.length) setRwMsg(sc(lang, 'rewrite_none'));
+      if (!next.service_keys.length && !next.own_words.length && !(next.meaning?.proposals || []).length) {
+        setRwMsg(next.model?.state === 'off' ? (ar ? next.model.message_ar || '' : next.model.message_en || '') : sc(lang, 'rewrite_none'));
+      }
     } else setRwMsg(srvMsg(lang, j, sc(lang, 'rewrite_failed')));
   };
 
@@ -235,7 +250,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     .filter((w) => !dropped.has(wordKey(w)));
   // A key struck out in the preview is struck out even if the prepared checklist also ticks it —
   // otherwise "Remove" reads as done and the union puts the key straight back (React review, 18 Sep).
-  const statedKeys = [...new Set([...liveTicks, ...rwStated])].filter((k) => !dropped.has(k));
+  // A service the meaning layer proposed, and the supplier kept, is a service it stated.
+  const rwMeaning = (rw?.meaning?.proposals || []).map((p) => p.key).filter((k) => !dropped.has(k));
+  const statedKeys = [...new Set([...liveTicks, ...rwStated, ...rwMeaning])].filter((k) => !dropped.has(k));
   // Removals travel with the save so matching can subtract them: what was already stored, plus
   // whatever was struck out in this preview, minus anything now stated or kept.
   const rwRemoved = [...new Set([...(d.removed_services || []), ...(rw ? rw.implied.map((i) => i.key) : d.implied_services).filter((k) => dropped.has(k))])]
@@ -356,6 +373,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
             <Button type="submit" className="min-h-11" disabled={rwBusy || rawText.trim().length < 2}>
               {rwBusy ? sc(lang, 'rewriting') : sc(lang, 'rewrite')}
             </Button>
+            <Button type="button" variant="outline" className="min-h-11" disabled={rwBusy} onClick={() => rewrite({ fromCatalogue: true })}>
+              {sc(lang, 'read_catalogue')}
+            </Button>
             <Button type="button" variant="outline" className="min-h-11 min-w-11"
                     disabled={!voice.enabled || !canRecord || voxBusy}
                     aria-pressed={recording}
@@ -391,10 +411,44 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       )}
 
       {/* THE SALES ENGINEER'S VERSION — shown before anything is saved. */}
-      {rw && (rw.service_keys.length > 0 || rw.own_words.length > 0 || rw.implied.length > 0) && (
+      {rw && (rw.service_keys.length > 0 || rw.own_words.length > 0 || rw.implied.length > 0 || (rw.meaning?.proposals || []).length > 0) && (
         <section className="mt-5 rounded-md border border-border bg-muted/20 p-4" aria-labelledby={uid + '-rw'}>
           <h3 id={uid + '-rw'} className={h3}>{sc(lang, 'rewrite_title')}</h3>
           <p className={cn(sub, 'mt-0.5')}>{sc(lang, 'rewrite_help')}</p>
+
+          {/* SUPPLY ONLY — proposed by the words, confirmed or corrected by the supplier. */}
+          {rw.supply_only && (rw.supply_only.proposed || rw.supply_only.applied !== rw.supply_only.proposed) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2" role="status">
+              <p className={cn(sub, 'min-w-0 flex-1')}>{sc(lang, rw.supply_only.applied ? 'supply_only_note' : 'supply_install_note')}</p>
+              <Button type="button" variant="outline" className="min-h-11" disabled={rwBusy}
+                      onClick={() => rewrite({ supplyOnly: !rw.supply_only!.applied })}>
+                {sc(lang, rw.supply_only.applied ? 'we_also_install' : 'we_only_supply')}
+              </Button>
+            </div>
+          )}
+
+          {/* UNDERSTOOD, NOT WORD-MATCHED — with the line that supports each. */}
+          {(rw.meaning?.proposals || []).length > 0 && (
+            <div className="mt-3">
+              <h4 className={cn(sub, 'font-semibold')}>{sc(lang, 'meaning_title')}</h4>
+              <p className={cn(sub, 'mt-0.5')}>{sc(lang, 'meaning_help')}</p>
+              <ul className="mt-1.5 flex flex-col gap-1.5">
+                {rw.meaning!.proposals.map((p) => (
+                  <li key={p.key} className={cn(chip, 'items-start', dropped.has(p.key) && 'opacity-60')}>
+                    <div className="flex min-w-0 flex-col">
+                      <span className="font-medium text-foreground" dir="auto">{ar ? p.label_ar : p.label_en}</span>
+                      <span className="text-[12px] text-muted-foreground" dir="auto">{sc(lang, 'meaning_because')} “{p.lines[0]}”</span>
+                    </div>
+                    {dropped.has(p.key) ? <Badge variant="secondary">{sc(lang, 'removed_badge')}</Badge> : null}
+                    <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(p.key)}>
+                      {dropped.has(p.key) ? sc(lang, 'restore') : sc(lang, 'remove')}
+                      <span className="sr-only">: {ar ? p.label_ar : p.label_en}</span>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {rw.service_keys.length > 0 && (
             <div className="mt-3">
