@@ -30,6 +30,7 @@ const SEED: Array<[string, number, number, 'plan' | 'last']> = [
   ['weekly', 7200, 20000, 'plan'],
   ['vat', 3600, 1000, 'plan'],
   ['ceoWeekly', 7200, 1000, 'plan'],
+  ['ceoDecisions', 3600, 1000, 'plan'],
   ['openrouter', 3600, 4000, 'plan'],
   ['ladder', 900, 800, 'plan'],
   ['refunds', 900, 4500, 'plan'],

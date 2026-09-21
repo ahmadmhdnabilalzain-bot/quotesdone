@@ -38,5 +38,6 @@ scripts/sql/a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql :
 # with --apply --ddl, then move each line to the END of MANIFEST.txt. Each was rehearsed rolled-back on
 # 21 Sep (PROBE OK); each probe answers PROBE FAILED against the unchanged database.
 #
-# 21 Sep 2026 — it_engineer, the launch path tested every hour. Apply BEFORE deploying resilience_ping
-# (its STEP_RUN gains `launchpath`) with --apply --ddl, then move its line to the END of MANIFEST.txt.
+# 21 Sep 2026 — ceo, the weekly report arrives and the decision rules decide. Apply with --apply --ddl, move
+# the line to the END of MANIFEST.txt, then deploy resilience_ping AT ONCE (the file seeds resilience_step
+# 'ceoDecisions', which the deployed function must know). Rehearsed rolled-back 21 Sep: PROBE OK.

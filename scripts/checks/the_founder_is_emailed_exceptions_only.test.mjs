@@ -76,6 +76,21 @@ test('routines: every fn_notify_founder call names p_kind, and every literal kin
   }
 });
 
+// 21 Sep 2026 (ceo). fn_notify_founder has returned JSONB since 6 Sep. fn_ceo_weekly_report_deliver kept
+// `v_notif bigint := fn_notify_founder(...)`, every call raised "invalid input syntax for type bigint",
+// its exception block rolled the email back, and the CEO weekly report failed on 14 and 21 Sep without
+// reaching him. A variable that receives the answer must be declared jsonb.
+test('routines: every variable assigned from fn_notify_founder is declared jsonb', { skip: SKIP }, async () => {
+  const r = await rows(`
+    select p.proname, m[1] as var,
+           p.prosrc ~* ('\\m' || m[1] || '\\s+jsonb\\M') as declared_jsonb
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace,
+           regexp_matches(p.prosrc, '(\\w+)\\s*:=\\s*(?:public\\.)?fn_notify_founder\\s*\\(', 'g') m
+     where n.nspname = 'public' and p.proname <> 'fn_notify_founder'`);
+  const bad = r.filter(x => x.declared_jsonb !== true);
+  assert.equal(bad.length, 0, 'these routines store fn_notify_founder\'s jsonb answer in a variable not declared jsonb (the assignment raises and the email is rolled back):\n' + JSON.stringify(bad, null, 1));
+});
+
 test('routines: every literal kind passed to fn_founder_mail_route is registered', { skip: SKIP }, async () => {
   const r = await rows(`
     select distinct m[1] as kind
