@@ -29,7 +29,7 @@ import { Bell } from 'lucide-react';
 // THE DASHBOARD'S FIRST READ STARTS WITH THE TOKEN (15 Sep 2026), the way the customer portal's does
 // (me/prefetch.ts): the moment a token is known the combined `dashboard` call is started, and Dashboard's
 // first load takes that promise instead of asking again. Every later load asks the server fresh.
-import { warm, take } from '@/components/me/prefetch';
+import { warm, take, drop } from '@/components/me/prefetch';
 const DASH_KEY = 'sup_dash';
 const fetchDashboard = (tk) => call('supplier_portal', { action: 'dashboard' }, tk);
 const warmSupplier = (tk) => warm(tk, DASH_KEY, () => fetchDashboard(tk));
@@ -265,7 +265,7 @@ async function fileToImages(file) {
 }
 
 const T = {
-  en: { brand_sub:'Supplier Portal', home:'Home', signout:'Sign out', loading:'Loading…', loading_dash:'Loading your dashboard…',
+  en: { brand_sub:'Supplier Portal', home:'Home', signout:'Sign out', loading:'Loading…', loading_dash:'Loading your dashboard…', claiming_listing:'Attaching your company listing to your account…',
     tab_signin:'Sign in', tab_signup:'Create account', welcome_back:'Welcome back', register_title:'Register as a supplier',
     signup_sub:"Enter your work email and we'll create your account — then you'll register your company and verify your mobile.",
     signin_sub:'Sign in with the email or mobile you registered with.', work_email:'Work email', email_or_mobile:'Email or mobile',
@@ -292,14 +292,14 @@ const T = {
     required:'Required', optional:'Optional', mobile_format:'Enter a UAE mobile number, e.g. 050 123 4567 or +971 50 123 4567.', change_mobile:'Use a different number',
     terms_cert_failed:'Your details were saved, but we could not issue your signed acceptance certificate. Please press the button again to retry.',
     catalogs_limit:'Up to 5 catalogues here; add more later from Documents.', catalogs_cut:'Only the first 5 catalogues were kept. Add the rest from Documents after you register.',
-    doc_insurance:'Insurance', doc_manufacturer:'Manufacturer authorisation letter', doc_egr:'EGR (Emirates Green Building) certificate',
+    doc_insurance:'Insurance', doc_manufacturer:'Manufacturer authorisation letter', doc_egr:'Establishment card (EGR)',
     
     le_too_many:'Too many code requests. Please try again later.', le_bad_id:'Enter a valid email address or UAE mobile number.', le_suppressed:'We cannot email this address — mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.',
     le_ambiguous:'More than one account uses this mobile number. Please sign in with your email address instead.', le_signup_email:'Please sign up with your email address; you can add your mobile straight afterwards.',
     le_no_account:'This mobile number isn’t linked to a QuotesDone account yet. Sign in with your email, or create your account first.', le_sms_off:'SMS codes are not available for this number. Please sign in with your email.',
     le_enter_code:'Enter the code you received.', le_attempts:'Too many attempts. Please request a new code.', le_expired:'That code has expired. Please request a new one.', le_session:'Could not start your session. Please try again.', le_generic:'Something went wrong. Please try again.',
     main_nav:'Supplier portal sections', account:'Account' },
-  ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…',
+  ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…', claiming_listing:'جارٍ ربط سجلّ شركتك بحسابك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', register_title:'سجّل كمورّد',
     signup_sub:'أدخل بريدك الإلكتروني للعمل وسننشئ حسابك — ثم تسجّل شركتك وتتحقق من رقم جوالك.',
     signin_sub:'سجّل الدخول بالبريد الإلكتروني أو رقم الجوال المسجّل.', work_email:'البريد الإلكتروني للعمل', email_or_mobile:'البريد الإلكتروني أو الجوال',
@@ -326,7 +326,7 @@ const T = {
     required:'مطلوب', optional:'اختياري', mobile_format:'أدخل رقم جوال إماراتي، مثل 050 123 4567 أو ‎+971 50 123 4567.', change_mobile:'استخدم رقمًا آخر',
     terms_cert_failed:'حُفظت بياناتك، لكن تعذّر إصدار شهادة قبولك الموقّعة. يُرجى الضغط على الزر مرة أخرى لإعادة المحاولة.',
     catalogs_limit:'حتى 5 كتالوجات هنا؛ ويمكنك إضافة المزيد لاحقًا من تبويب المستندات.', catalogs_cut:'احتفظنا بأول 5 كتالوجات فقط. أضف الباقي من تبويب المستندات بعد التسجيل.',
-    doc_insurance:'التأمين', doc_manufacturer:'خطاب تفويض الشركة المصنّعة', doc_egr:'شهادة المباني الخضراء (EGR)',
+    doc_insurance:'التأمين', doc_manufacturer:'خطاب تفويض الشركة المصنّعة', doc_egr:'بطاقة المنشأة (EGR)',
     
     le_too_many:'طلبات رموز كثيرة. يُرجى المحاولة لاحقًا.', le_bad_id:'أدخل بريدًا إلكترونيًا صحيحًا أو رقم جوال إماراتي.', le_suppressed:'لا يمكننا مراسلة هذا البريد — ارتدّت إليه الرسائل أو أُلغي الاشتراك. يُرجى التواصل مع info@quotesdone.com وسنعيد تفعيله.',
     le_ambiguous:'أكثر من حساب يستخدم رقم الجوال هذا. يُرجى تسجيل الدخول ببريدك الإلكتروني.', le_signup_email:'يُرجى التسجيل ببريدك الإلكتروني؛ ويمكنك إضافة جوالك مباشرة بعد ذلك.',
@@ -403,16 +403,34 @@ export function SupplierPortal() {
   // a stale token cannot attach a later, unrelated sign-in to someone else's company.
   const CLAIM_KEY = 'qd-claim-token';
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const claimIfInvited = async (access) => {
+  // THE DASHBOARD RACED THE CLAIM AND SHOWED AN INVITED SUPPLIER A BLANK FORM (21 Sep 2026, walk of
+  // the campaign registration). The dashboard was warmed and mounted in the same tick the claim was
+  // sent, and the claim takes ~5.8 s (measured on production, lead 126711). The dashboard answered
+  // no_company, Onboarding read `me` before the claim landed, and the supplier who had just been told
+  // "this listing is reserved for your company" was shown an empty "Register your company" form —
+  // nothing re-read once the claim completed. Both mount paths (stored token AND getSession) also
+  // sent the claim, so it went twice. Now: one claim per page, the dashboard waits for it, and the
+  // warm-up it discarded is started again with the claimed company in place.
+  // Prevented by scripts/checks/the_dashboard_waits_for_the_invitation_claim.test.mjs.
+  const [claiming, setClaiming] = useState(false);
+  const claimRun = useRef(null);
+  const claimIfInvited = (access) => {
     let t = '';
     try { t = sessionStorage.getItem(CLAIM_KEY) || ''; } catch (_e) {}
-    if (!UUID_RE.test(t) || !access) return;
-    try {
-      // A failure here must never block the portal: the supplier can still register manually, which
-      // is exactly what everyone has had to do until now.
-      await call('supplier_api', { action: 'claim', t }, access);
-    } catch (_e) { /* claim is an improvement on the flow, not a gate into it */ }
-    try { sessionStorage.removeItem(CLAIM_KEY); } catch (_e) {}
+    if (!UUID_RE.test(t) || !access) return null;
+    if (claimRun.current) return claimRun.current;
+    setClaiming(true);
+    claimRun.current = (async () => {
+      try {
+        // A failure here must never block the portal: the supplier can still register manually, which
+        // is exactly what everyone has had to do until now.
+        await call('supplier_api', { action: 'claim', t }, access);
+      } catch (_e) { /* claim is an improvement on the flow, not a gate into it */ }
+      try { sessionStorage.removeItem(CLAIM_KEY); } catch (_e) {}
+      drop(); warmSupplier(access);   // what was warmed was asked before the company was claimed
+      setClaiming(false);
+    })();
+    return claimRun.current;
   };
   // THE SUPPLIER'S REGISTERED LANGUAGE WINS ONCE SIGNED IN (founder, 14 Sep 2026). The portal took its
   // language from the URL alone, so a supplier registered in Arabic who opened an English link worked
@@ -502,7 +520,9 @@ export function SupplierPortal() {
         {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
         {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
         {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && invite.claimable ? 'signup' : 'signin'} /></div>}
-        {phase === 'app' && <Dashboard token={token} lang={lang} onExpired={onExpired} />}
+        {phase === 'app' && (claiming
+          ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>
+          : <Dashboard token={token} lang={lang} onExpired={onExpired} />)}
       </>)}
       </main>
     </div>
@@ -1557,7 +1577,14 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       {/* The number is read-only while a code is out, so verify_sms checks the number that was texted
           (review of #695); this reopens it. */}
       <Button variant="link" className="px-0 h-auto" onClick={() => { setSmsSent(false); setSmsCode(''); setMsg(''); }}>{t(lang, 'change_mobile')}</Button></>)}
-    {!isEdit && phoneVerified && !waSignupSettled(wa) && <div className="mt-3">
+    {/* NOT `!isEdit` (21 Sep 2026, campaign registration walk). An INVITED supplier claims a listing
+        that already exists, so Onboarding never runs and they finish registering on the Profile tab —
+        edit mode. save() below demands this answer from every supplier not yet approved, and the
+        question was rendered only outside edit mode: "Still needed to register: Your answer on your
+        WhatsApp number" with nothing on screen to answer it, a dead end for every invited supplier.
+        The question now shows exactly when save() would ask for it.
+        Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs. */}
+    {me.approval_status !== 'approved' && phoneVerified && !waSignupSettled(wa) && <div className="mt-3">
       {/* Enforced by save() like the six, so it carries the same Required marker (review of #695). */}
       {/* S.h2 like the other required headers, but not a heading: WhatsAppChoice's own h2 follows. */}
       <div className={cn(S.h2, 'mb-1')}>{srvText(lang, 'reg_whatsapp')}<Need lang={lang} req /></div>

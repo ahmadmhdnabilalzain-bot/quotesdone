@@ -26,6 +26,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
 import { observe } from '../_shared/observe.ts';
+import { certFields, identityRows } from './cert_rows.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
@@ -61,9 +62,7 @@ async function dbxUpload(token: string, path: string, bytes: Uint8Array): Promis
 }
 
 async function renderCert(fields: Record<string, string>, kind: string, hash: string, name: string, termsUrl: string): Promise<{ path: string; url: string } | null> {
-  const rows: [string, string][] = [];
-  rows.push(['Full name', fields.full_name]);
-  if (kind === 'supplier') rows.push(['Company', fields.company], ['Authorised signatory', fields.full_name]);
+  const rows: [string, string][] = identityRows(fields, kind);
   if (fields.dob) rows.push(['Date of birth', fields.dob]);
   rows.push(['Mobile', fields.phone], ['Email', fields.email], ['Account type', kind === 'supplier' ? 'Supplier' : 'Customer'], ['Terms accepted', fields.terms_label], ['Accepted at (UTC)', fields.accepted_utc], ['Accepted at (local)', gst(fields.accepted_iso)], ['IP address', fields.ip || 'Not recorded'], ['Method', 'Click-to-accept checkbox at registration'], ['Document integrity (SHA-256)', hash]);
   const trs = rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('');
@@ -177,7 +176,7 @@ Deno.serve(observe('compliance_archive', async (req) => {
         if (existing) return J({ ok: true, kind, signed_url: existing, filed_by: 'fn_enqueue_doc_backups', register: null, reused: true });
       }
       const ip = (kind === 'supplier' ? rec.accepted_terms_ip : rec.tos_ip) || '';
-      const fields: Record<string, string> = { full_name: rec.full_name || rec.contact_name || rec.signatory_name || '', company: rec.company_name || '', dob: (kind === 'supplier' ? rec.owner_dob : rec.date_of_birth) || '', phone: rec.phone || '', email: rec.email || rec.claimed_by || keyEmail, terms_label: termsLabel, accepted_utc: acceptedIso.slice(0, 19).replace('T', ' ') + ' UTC', accepted_iso: acceptedIso, ip };
+      const fields: Record<string, string> = { ...certFields(rec, kind), company: rec.company_name || '', dob: (kind === 'supplier' ? rec.owner_dob : rec.date_of_birth) || '', phone: rec.phone || '', email: rec.email || rec.claimed_by || keyEmail, terms_label: termsLabel, accepted_utc: acceptedIso.slice(0, 19).replace('T', ' ') + ' UTC', accepted_iso: acceptedIso, ip };
       const nm = safeName((kind === 'supplier' ? fields.company : fields.full_name) || fields.email).replace(/\s+/g, '_') + '_TnC-Acceptance';
       const termsUrl = kind === 'supplier' ? 'https://quotesdone.com/supplier-agreement' : 'https://quotesdone.com/terms';
       const cert = await renderCert(fields, kind, hash, nm, termsUrl);
