@@ -8,7 +8,7 @@ import { asLocale } from '../_shared/registered_locale.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { storedAt } from '../_shared/stored_at.ts';
-import { siteReturnBase } from '../_shared/site_origins.ts';
+import { CANONICAL_ORIGIN, siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
 import { servicesState, servicesResolve, servicesRewrite, servicesSaveRewrite, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
@@ -23,12 +23,12 @@ import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn, LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
-import { quoteDocument, type Item } from '../_shared/quote_documents.ts';
+import { inquiryDocument, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
 // A DRAWING PAGE THAT FAILS TO SIGN IS COUNTED, LOGGED AND RAISED - never silently dropped from the
 // inbox (18 Sep 2026, sales_engineer). See _shared/drawing_pages.ts for the production measurement.
 import { signRedactedDrawings } from '../_shared/drawing_pages.ts';
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
-import { MAX_FILE, REVIEW_ACTIONS, reviewAction } from './quote_review_actions.ts';
+import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction } from './quote_review_actions.ts';
 import { supabaseReviewRepo } from './quote_review_flow.ts';
 import { sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
 import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLeads } from '../_shared/sanctioned.ts';
@@ -978,7 +978,7 @@ const handle = async (req: Request): Promise<Response> => {
     // receipt_pdf list and print the dues this supplier has paid. pdf_native is reached with this
     // function's own scoped credential — fn.supplier_api's scope already holds pdf_native (measured
     // 15 Sep 2026 in internal_credential), so no credential or database change is needed.
-    if (action === 'quote_pdf' || action === 'receipts' || action === 'receipt_pdf') {
+    if (action === 'quote_pdf' || action === 'inquiry_pdf' || action === 'receipts' || action === 'receipt_pdf') {
       const { data: sup } = await admin.from('leads').select('id,company_name').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const lang: 'en' | 'ar' = body.lang === 'ar' ? 'ar' : 'en';
@@ -989,7 +989,29 @@ const handle = async (req: Request): Promise<Response> => {
         const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...doc, folder: 'supplier/' + sup.id, __secret: secret }) });
         const j = await r.json().catch(() => null);
-        return j?.ok && j.url ? String(j.url) : null;
+        return j?.ok && j.url ? { url: String(j.url), bucket: String(j.bucket || 'agent-docs'), path: String(j.path || '') } : null;
+      };
+      // CACHED LIKE quote_pdf (21 Sep 2026, sales_engineer). The customer's quotation is cached in
+      // quote_pdf_cache keyed on (quote_id, lang) and invalidated by quotes.updated_at. The supplier's
+      // two documents cannot share that key (the same quote prints differently for each side: letter
+      // 'S', no request text) and the inquiry has no updated_at at all, so public.supplier_document_cache
+      // keys on (kind, subject, supplier, lang) and carries a hash of the INPUT that produced the file
+      // (scripts/sql/the_inquiry_and_the_suppliers_own_quotation_are_cached_as_documents.sql). An edited
+      // inquiry or quote changes the hash and is printed again; a reveal changes what the inbox serves
+      // and so changes the hash too. The cache row is never read for anything but the file's location.
+      const hashOf = async (input: unknown) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(input))))).map((b) => b.toString(16).padStart(2, '0')).join('');
+      const sign = async (b: string, p: string) => { try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
+      const served = async (kind: 'inquiry' | 'quotation', subject: string, hash: string, build: () => Promise<{ doc: Record<string, unknown>; ref: string } | null>) => {
+        const { data: hit } = await admin.from('supplier_document_cache').select('bucket,path,content_hash').eq('kind', kind).eq('subject_id', subject).eq('supplier_id', sup.id).eq('lang', lang).maybeSingle();
+        if (hit && hit.content_hash === hash) { const url = await sign(hit.bucket, hit.path); if (url) return { url, cached: true }; }
+        // The same per-hour ceiling customer_api holds (PDF_LIMIT_PER_HOUR = 40): a supplier who
+        // regenerates in a loop is told so rather than served a queue of renders.
+        const { count } = await admin.from('supplier_document_cache').select('kind', { count: 'exact', head: true }).eq('supplier_id', sup.id).gte('created_at', new Date(Date.now() - 3600e3).toISOString());
+        if ((count || 0) >= 40) return { error: 'rate_limited' as const };
+        const built = await build(); if (!built) return null;
+        const out = await print(built.doc); if (!out) return null;
+        try { await admin.from('supplier_document_cache').upsert({ kind, subject_id: subject, supplier_id: sup.id, lang, content_hash: hash, bucket: out.bucket, path: out.path, created_at: new Date().toISOString() }, { onConflict: 'kind,subject_id,supplier_id,lang' }); } catch (_e) { /* the file is served either way */ }
+        return { url: out.url, cached: false, ref: built.ref };
       };
       const money = (n: unknown) => Number(n || 0).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const day = (d: unknown) => (d ? String(d).slice(0, 10) : '—');
@@ -1009,9 +1031,34 @@ const handle = async (req: Request): Promise<Response> => {
         // through the inbox's scrubbers, and this document must not become a second, unscrubbed door. The
         // letter is 'S', not the customer's letter — that one is the price rank among competing quotes,
         // which a supplier must never learn.
-        const { body: doc, ref } = quoteDocument({ quote: q as any, inquiry: { id: String(q.inquiry_id), category: inq?.category ?? null, emirate: inq?.emirate ?? null, summary: null }, items, letter: 'S', lang });
-        const url = await print(doc as Record<string, unknown>);
-        return url ? J({ ok: true, url, ref, lang }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
+        const inquiry = { id: String(q.inquiry_id), category: inq?.category ?? null, emirate: inq?.emirate ?? null, summary: null };
+        const ref = quoteRef(String(q.inquiry_id), 'S');
+        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry }), async () => ({ doc: quoteDocument({ quote: q as any, inquiry, items, letter: 'S', lang }).body as Record<string, unknown>, ref }));
+        if (r && 'error' in r) return J({ error: 'You have generated many PDFs recently. Please try again shortly.', code: 'rate_limited' }, 429);
+        return r ? J({ ok: true, url: r.url, ref, lang, cached: r.cached }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
+      }
+
+      // THE INQUIRY AS A DOCUMENT (21 Sep 2026, sales_engineer; founder instruction 435). The job is read
+      // through this function's own `inbox`, in-process with the caller's session, so the document holds
+      // only what the inbox's scrubbers and its reveal gate let this supplier see — and a job this
+      // supplier is not matched to does not exist for them. The attachments it lists are the ones
+      // inquiry_documents offers, from the same list.
+      if (action === 'inquiry_pdf') {
+        const iid = typeof body.inquiry_id === 'string' && UUID_RE.test(body.inquiry_id) ? body.inquiry_id.toLowerCase() : null;
+        if (!iid) return J({ error: 'not_found', code: 'not_found' }, 404);
+        const r0 = await handle(new Request(req.url, { method: 'POST', headers: { Authorization: 'Bearer ' + jwt, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'inbox', inquiry_id: iid }) }));
+        const j0 = await r0.json().catch(() => ({}));
+        const i = (j0.inquiries || []).find((x: any) => String(x.id) === iid);
+        if (!i) return J({ error: 'not_found', code: 'not_found' }, 404);
+        const d = inquiryDocuments(i);
+        const row: InquiryDocRow = { id: String(i.id), category: i.category ?? null, emirate: i.emirate ?? null, summary: i.summary ?? null, budget: i.budget ?? null,
+          scope_type: i.scope_type ?? null, created_at: i.created_at ?? null, spec: i.spec ?? null, boq: i.boq ?? null, boq_withheld: !!i.boq_withheld,
+          documents: d.documents.map((x: any) => ({ kind: x.kind, name: x.name, lines: x.lines })), drawing_pages_failed: d.drawing_pages_failed };
+        const ref = quoteRef(iid, 'RFQ');
+        // The signed drawing URLs are not on the row, so the hash is stable across signings.
+        const r = await served('inquiry', iid, await hashOf(row), async () => ({ doc: inquiryDocument({ inquiry: row, lang, portalUrl: CANONICAL_ORIGIN + (lang === 'ar' ? '/ar/portal' : '/portal') }).body as Record<string, unknown>, ref }));
+        if (r && 'error' in r) return J({ error: 'You have generated many PDFs recently. Please try again shortly.', code: 'rate_limited' }, 429);
+        return r ? J({ ok: true, url: r.url, ref, job_no: d.job, lang, cached: r.cached }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
       }
 
       // A paid due: stripe_webhook is the one writer of paid_at, so a row with it is a payment we recorded.

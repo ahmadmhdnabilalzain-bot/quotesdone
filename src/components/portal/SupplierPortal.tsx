@@ -16,6 +16,7 @@ import { InquiriesTab } from './supplier/InquiriesTab';
 import { QuotationsTab } from './supplier/QuotationsTab';
 import SupplierMailbox from './supplier/SupplierMailbox';
 import SupplierSupportingDocuments from './supplier/SupplierSupportingDocuments';
+import DocActions from './DocActions';
 import { ws } from './supplier/workspaceCopy';
 import ServicesTab from './supplier/ServicesTab';
 import EmirateCheckboxes from './supplier/EmirateCheckboxes';
@@ -208,7 +209,7 @@ function BillingPanel({ token, lang, receipt }) {
 // A supplier's own document as PDF (supplier_api quote_pdf / receipt_pdf, 15 Sep 2026): the portal's
 // language first and the other language one click away, through the same popup-safe door the customer's
 // quotation uses (src/lib/openDocument.ts).
-function PdfLinks({ lang, fetchPdf }) {
+function PdfLinks({ lang, fetchPdf, otherOnly = false }) {
   const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
   const mine = lang === 'ar' ? 'ar' : 'en'; const other = mine === 'ar' ? 'en' : 'ar';
   const open = (docLang) => async (e) => {
@@ -218,7 +219,8 @@ function PdfLinks({ lang, fetchPdf }) {
   };
   const prep = lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…';
   return (<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-    <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(mine)}>{busy === mine ? prep : (mine === 'ar' ? 'تنزيل PDF' : 'Download PDF')}</button>
+    {/* otherOnly: the four-action row (DocActions) already offers the reader's own language. */}
+    {!otherOnly && <button type="button" className="inline-flex min-h-11 items-center text-primary font-semibold text-[12.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(mine)}>{busy === mine ? prep : (mine === 'ar' ? 'تنزيل PDF' : 'Download PDF')}</button>}
     <button type="button" lang={other} className="inline-flex min-h-11 items-center text-muted-foreground underline underline-offset-2 text-[11.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!!busy} onClick={open(other)}>{busy === other ? prep : (other === 'ar' ? 'النسخة العربية' : 'English version')}</button>
     {msg ? <span role="alert" className="text-[12px] text-danger-fg">{msg}</span> : null}
   </span>);
@@ -235,7 +237,13 @@ function Receipts({ token, lang }) {
       <ul className="mt-3 flex flex-col gap-2">{list.map((r) => (
         <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-[13.5px]">
           <span><Ltr className="font-semibold tabular-nums">{aed(r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
-          <PdfLinks lang={lang} fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', due_id: r.id, lang: l }, token)} />
+          {/* A paid receipt is sealed: View / Download work, Replace / Remove say why not (instruction 524).
+              The other-language copy stays one click away beside them. */}
+          <span className="inline-flex flex-wrap items-center gap-3">
+            <DocActions lang={lang} name={'receipt-' + r.id + '.pdf'} sealed="paid_invoice"
+              getUrl={async () => { const j = await call('supplier_api', { action: 'receipt_pdf', due_id: r.id, lang: lang === 'ar' ? 'ar' : 'en' }, token); return j && j.ok && j.url ? j.url : null; }} />
+            <PdfLinks lang={lang} otherOnly fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', due_id: r.id, lang: l }, token)} />
+          </span>
         </li>))}</ul>
     </Card>
   );
@@ -1061,6 +1069,9 @@ function Documents({ token, lang, onSaved = null }) {
   useEffect(() => { load(); }, [token]);
   // `err` is a string or, for an Arabic per-file failure, a small JSX fragment; it is only rendered.
   const [err, setErr] = useState('');
+  // What the server READ off each uploaded file (instruction 524): the expiry it found, or that it
+  // could not find one. Shown to the supplier to confirm; never written for them unconfirmed.
+  const [reads, setReads] = useState({});
   // The server reports per-file failures now. Previously a failed storage write was swallowed and
   // the kind still came back as saved, so a supplier could be told their licence was on file when
   // nothing had been written. Surface it instead of reloading over the top of it.
@@ -1069,6 +1080,7 @@ function Documents({ token, lang, onSaved = null }) {
     const b64 = await fileToB64(file);
     const j = await call('supplier_portal', { action: 'save_documents', items: [{ kind, original_b64: b64, filename: file.name, mime: file.type, expiry }] }, token);
     setBusy('');
+    if (j && j.read) setReads((o) => ({ ...o, ...j.read }));
     const failed = (j && j.failed) || [];
     // The server's per-file reasons are English sentences; an Arabic page says the same thing in Arabic.
     // The Arabic sentence used to REPLACE the reason, so an Arabic supplier never learned why (audit 15 Sep
@@ -1077,6 +1089,20 @@ function Documents({ token, lang, onSaved = null }) {
     else if (j && (j.error || j._http)) setErr(srvMsg(lang, j, lang === 'ar' ? 'تعذّر حفظ الملف. يُرجى المحاولة مرة أخرى.' : 'We could not save that file. Please try again.'));
     load();
     if (j && j.ok && onSaved) onSaved();
+  };
+  // REMOVE hides, never destroys; the server refuses a sealed record with a sentence in this language.
+  const remove = async (kind, path) => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'remove_document', kind, path, lang }, token);
+    if (j && j.ok) { setReads((o) => { const n = { ...o }; delete n[kind]; return n; }); load(); if (onSaved) onSaved(); return { ok: true }; }
+    return { ok: false, message: (j && j.message) || srvMsg(lang, j, lang === 'ar' ? 'تعذّرت الإزالة. يُرجى المحاولة مرة أخرى.' : 'Could not remove. Please try again.') };
+  };
+  // The supplier confirms (or corrects) the date the document was read to say.
+  const confirmExpiry = async (kind, expiry) => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'set_expiry', kind, expiry }, token);
+    if (j && j.ok) { setReads((o) => { const n = { ...o }; delete n[kind]; return n; }); load(); return true; }
+    setErr(srvMsg(lang, j, lang === 'ar' ? 'تعذّر حفظ التاريخ.' : 'Could not save the date.')); return false;
   };
   if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading_docs')}</Card>;
   // Order comes from the server (DOC_ORDER) so adding a document type needs no change here.
@@ -1124,7 +1150,7 @@ function Documents({ token, lang, onSaved = null }) {
           {g.note && <div className={cn(S.sub, 'mt-1')}>{g.note(lang)}</div>}
         </div>
         <div className={S.list}>
-          {rows.map((d) => <DocRow key={d.key} d={d} lang={lang} busy={busy === d.key} onUpload={upload} />)}
+          {rows.map((d) => <DocRow key={d.key} d={d} lang={lang} busy={busy === d.key} onUpload={upload} onRemove={remove} onConfirmExpiry={confirmExpiry} read={reads[d.key] || null} />)}
         </div>
       </div>;
     })}
@@ -1165,7 +1191,27 @@ const DOC_GROUPS = [
 // have a dedicated name column; everything else shows the path tail. Strip the stamp for
 // display so the supplier sees the name they actually uploaded.
 const cleanName = (n) => String(n || '').replace(/^\d{10,}_/, '');
-function DocRow({ d, busy, onUpload, lang }) {
+// What the server read off the file, said back to the supplier (instruction 524). Three shapes:
+// the licence's date (written from the licence, shown as a fact); a certificate's date (shown with
+// Confirm, and a box to correct it — nothing is written until they do); or that nothing could be
+// read, said plainly, in which case the date box below is how the supplier tells us.
+function ExpiryRead({ read, lang, label, onConfirm }) {
+  const ar = lang === 'ar';
+  const [val, setVal] = useState(read && read.expiry ? read.expiry : ''); const [busy, setBusy] = useState(false);
+  if (!read) return null;
+  if (read.unread) return <div className={cn(S.sub, 'mt-2')} role="status">{ar
+    ? `تعذّرت قراءة تاريخ الانتهاء من هذا الملف تلقائيًا (${read.kind === 'license' ? 'ارفع نسخة PDF واضحة للرخصة كاملة' : 'أدخله أدناه وسنحفظه'}).`
+    : `We could not read the expiry date from this file automatically${read.kind === 'license' ? ' — please upload a clear PDF of the full licence' : ' — enter it below and we will save it'}.`}</div>;
+  if (!read.needs_confirm) return <div className={cn(S.sub, 'mt-2')} role="status">{ar ? 'قرأنا من المستند: ينتهي في ' : 'Read from the document: expires '}<Ltr>{fmtDate(read.expiry, lang)}</Ltr>{read.source === 'ai' ? (ar ? ' (قراءة آلية)' : ' (machine-read)') : ''}</div>;
+  const save = async (v) => { setBusy(true); await onConfirm(read.kind, v); setBusy(false); };
+  return <div className="mt-2 flex flex-wrap items-center gap-2" role="status">
+    <span className={S.sub}>{ar ? 'قرأنا من المستند: ينتهي في ' : 'We read from the document: expires '}<Ltr>{fmtDate(read.expiry, lang)}</Ltr>{read.typed && read.typed !== read.expiry ? (ar ? ` (أدخلت ${read.typed})` : ` (you typed ${read.typed})`) : ''} — {ar ? 'هل هذا صحيح؟' : 'is that right?'}</span>
+    <Button size="sm" disabled={busy} onClick={() => save(read.expiry)}>{ar ? 'تأكيد' : 'Confirm'}</Button>
+    <Input type="date" dir="ltr" className="w-auto" value={val} onChange={(e) => setVal(e.target.value)} aria-label={(ar ? 'تصحيح تاريخ انتهاء ' : 'Correct the expiry date for ') + label} />
+    <Button size="sm" variant="outline" disabled={busy || !val || val === read.expiry} onClick={() => save(val)}>{ar ? 'حفظ التصحيح' : 'Save correction'}</Button>
+  </div>;
+}
+function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
   const [exp, setExp] = useState(d.expiry || ''); const [file, setFile] = useState(null);
   const ar = lang === 'ar';
   const label = ({ license: t(lang, 'h_trade'), profile: t(lang, 'doc_profile'), catalogs: t(lang, 'catalogues'), iso: t(lang, 'doc_iso'), insurance: t(lang, 'doc_insurance'), manufacturer: t(lang, 'doc_manufacturer'), egr: t(lang, 'doc_egr') })[d.key] || d.label;
@@ -1193,27 +1239,41 @@ function DocRow({ d, busy, onUpload, lang }) {
         {!isCat && d.path && <div className={cn(S.sub, 'mt-1.5')}>
           <bdi className="text-foreground/80">{cleanName(d.name) || (ar ? 'ملف' : 'File')}</bdi>
           {d.expiry ? <> · {ar ? 'تنتهي ' : 'expires '}<Ltr>{fmtDate(d.expiry, lang)}</Ltr></> : null}
-          {d.url ? <> · <a className="text-primary font-semibold underline-offset-2 hover:underline" href={d.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}
         </div>}
+        {/* The four actions every document offers (instruction 524): View / Download / Replace / Remove.
+            Replace re-runs the reading and keeps the previous version; Remove hides, never destroys, and
+            the server refuses it on a mandatory document of an approved supplier, in this language. */}
+        {!isCat && d.path && <DocActions lang={lang} name={cleanName(d.name)} url={d.url} versions={d.versions || 0} className="mt-2"
+          onReplace={(f) => onUpload(d.key, f, '')} onRemove={() => onRemove(d.key)} />}
         {isCat && (items.length
-          ? <ul className="mt-1.5 flex flex-col gap-1">{items.map((c, i) => <li key={i} className={S.sub}>
+          ? <ul className="mt-1.5 flex flex-col gap-2">{items.map((c, i) => <li key={c.path || i} className={S.sub}>
               <bdi className="text-foreground/80">{cleanName(c.name)}</bdi>
-              {c.url ? <> · <a className="text-primary font-semibold underline-offset-2 hover:underline" href={c.url} target="_blank" rel="noopener">{t(lang, 'view')}</a></> : null}
+              <DocActions lang={lang} name={cleanName(c.name)} url={c.url} className="mt-1"
+                onReplace={async (f) => { const r = await onRemove('catalogs', c.path); if (r && r.ok === false) throw new Error(r.message); await onUpload('catalogs', f, ''); }}
+                onRemove={() => onRemove('catalogs', c.path)} />
             </li>)}</ul>
           : <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>)}
         {!isCat && !d.path && <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>}
+        <ExpiryRead read={read} lang={lang} label={label} onConfirm={onConfirmExpiry} />
       </div>
-      <div className="flex gap-2 items-center flex-wrap shrink-0">
+      {/* First upload (nothing on file) or another catalogue. A file on record is replaced from its own row above. */}
+      {(!d.path || isCat) && <div className="flex gap-2 items-center flex-wrap shrink-0">
         <FilePick lang={lang} onPick={setFile} />
         {file && <span className={cn(S.sub, 'max-w-[180px] truncate')}>{file.name}</span>}
         {/* Not for the trade licence: its expiry is read off the licence itself and save_documents
-            refuses a typed one (the #86 gate), so a date box there was a control that could only fail. */}
+            refuses a typed one (the #86 gate), so a date box there was a control that could only fail.
+            For the others the box is optional now: the date is read off the file first (instruction 524). */}
         {d.has_expiry && d.key !== 'license' && <Input type="date" dir="ltr" className="w-auto" value={exp}
           onChange={(e) => setExp(e.target.value)} aria-label={(ar ? 'تاريخ انتهاء ' : 'Expiry date for ') + label} />}
-        <Button size="sm" disabled={busy || !file} onClick={() => onUpload(d.key, file, d.key === 'license' ? '' : exp)}>
-          {busy ? t(lang, 'uploading') : (d.path && !isCat ? (ar ? 'استبدال' : 'Replace') : t(lang, 'upload'))}
+        <Button size="sm" disabled={busy || !file} onClick={() => { onUpload(d.key, file, d.key === 'license' ? '' : exp); setFile(null); }}>
+          {busy ? t(lang, 'uploading') : t(lang, 'upload')}
         </Button>
-      </div>
+      </div>}
+      {/* A certificate on file whose date is missing or wrong: the same box, without a new file. */}
+      {d.path && !isCat && d.has_expiry && d.key !== 'license' && !read && <div className="flex gap-2 items-center flex-wrap shrink-0">
+        <Input type="date" dir="ltr" className="w-auto" value={exp} onChange={(e) => setExp(e.target.value)} aria-label={(ar ? 'تاريخ انتهاء ' : 'Expiry date for ') + label} />
+        <Button size="sm" variant="outline" disabled={busy || !exp || exp === (d.expiry || '')} onClick={() => onConfirmExpiry(d.key, exp)}>{ar ? 'حفظ التاريخ' : 'Save date'}</Button>
+      </div>}
     </div>
   </Card>;
 }
