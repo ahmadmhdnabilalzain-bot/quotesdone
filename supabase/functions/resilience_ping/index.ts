@@ -178,6 +178,19 @@ async function orgTaskTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE SALES ENGINEER'S DAILY SUPPLIER OUTREACH (21 Sep 2026). enqueue_supplier_invites had no caller
+// after pg_cron went (last plan 7 Sep); fn_sales_engineer_supplier_outreach_tick is its caller now, and
+// adds the day-2/day-6 registration reminders and the 24-hour clock on a submitted registration. The
+// routine gates itself to once per Dubai day and holds — recording the held day — while the campaign
+// gates are off (the_invitations_go_out_every_day_and_a_started_registration_is_followed.sql).
+async function supplierOutreachTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_sales_engineer_supplier_outreach_tick');
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -1020,6 +1033,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   itscheduled: { run: itScheduledTick },
   itlater: { run: itLaterDutiesTick, nested: true },
   specoffer: { run: specOfferTick },
+  supplierOutreach: { run: supplierOutreachTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.

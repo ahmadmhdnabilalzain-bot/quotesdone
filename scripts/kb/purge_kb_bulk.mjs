@@ -6,7 +6,17 @@
 //
 //   node scripts/kb/purge_kb_bulk.mjs            # preflight + census only; prints the plan, deletes nothing
 //   node scripts/kb/purge_kb_bulk.mjs --run      # the purge: batches until remaining = 0, then vacuum / reindex / stats
-//   node scripts/kb/purge_kb_bulk.mjs --run --limit=50000
+//   node scripts/kb/purge_kb_bulk.mjs --run --limit=5000   # 1..5000 (default 2000)
+//   node scripts/kb/purge_kb_bulk.mjs --run --force-hours  # outside 23:00-06:00 Asia/Dubai — do not
+//
+// 21 SEP 2026: THE FIRST --run TOOK PRODUCTION DOWN (restart at 17:44:10 UTC). A 50,000 batch planned a
+// whole-table scan (~210 s), the gateway gave up at ~100 s, and the batch call RETRIED on that 524 while
+// the first backend kept running. scripts/sql/the_purge_cannot_take_the_database_down.sql has the
+// measurements. Since then: batches of 2,000 (max 5,000, the SQL refuses more), each its own committed
+// request, NEVER retried on a 5xx, a PAUSE between batches, the load guard (scripts/kb/purge_guard.mjs)
+// before EVERY batch, UAE night hours only, autovacuum off on kb_chunks until the manual vacuum, and the
+// HNSW/GIN indexes dropped before that vacuum and rebuilt on the ~150 k rows that remain.
+// Prevented by: scripts/kb/the_purge_cannot_take_the_database_down.test.mjs.
 //
 // Every step prints what it measured. It refuses to start unless the 2026-09-18 full export of
 // kb_chunks is complete: 4,177 doc_backups pages, all done + verified (§8). It is resumable — a
@@ -24,10 +34,20 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { censusMismatches } from './purge_census.mjs';
+import { BATCH_DEFAULT, BATCH_MAX, PAUSE_MS, loadVerdict, inNightWindow } from './purge_guard.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const RUN = process.argv.includes('--run');
-const LIMIT = Number((process.argv.find(a => a.startsWith('--limit=')) || '--limit=50000').slice(8));
+const FORCE_HOURS = process.argv.includes('--force-hours');
+const LIMIT = Number((process.argv.find(a => a.startsWith('--limit=')) || `--limit=${BATCH_DEFAULT}`).slice(8));
+if (!Number.isInteger(LIMIT) || LIMIT < 1 || LIMIT > BATCH_MAX) {
+  console.error(`--limit must be 1..${BATCH_MAX} (measured safe size, 21 Sep 2026); got ${LIMIT}`);
+  process.exit(1);
+}
+if (RUN && !FORCE_HOURS && !inNightWindow()) {
+  console.error('refusing: the purge runs only between 23:00 and 06:00 Asia/Dubai (pass --force-hours to override)');
+  process.exit(1);
+}
 const EXPORT_DAY = '2026-09-18';
 const EXPORT_PAGES = 4177;            // §8: the full copy of 2026-09-18, 11,929,993,565 bytes
 const SIZE_BEFORE_MB = 9313;          // §8, measured 21 Sep 2026 09:18 UTC
@@ -62,6 +82,15 @@ async function sql(query, attempt = 0, retry5xx = true) {
   return text ? JSON.parse(text) : [];
 }
 const one = async (q) => (await sql(q))[0];
+// fs_avail_bytes of the database disk, from the management API (not visible from SQL).
+async function diskFree() {
+  try {
+    const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/config/disk/util`, { headers: { Authorization: `Bearer ${token()}` } });
+    if (!res.ok) return null;
+    return Number((await res.json())?.metrics?.fs_avail_bytes) || null;
+  } catch { return null; }
+}
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const isTimeout = (e) => /57014|statement timeout/i.test(String(e.body || e.message));
 const step = (s) => console.log(`\n== ${s}`);
 const t0 = () => Date.now();
@@ -167,17 +196,28 @@ step(`purge in batches of ${LIMIT}`);
 {
   const done = await one(`select coalesce(max(batch_no), 0)::int as n, coalesce(sum(rows), 0)::bigint as rows from public.kb_purge_ledger where batch_no is not null`);
   if (done.n > 0) console.log(`   resuming after batch ${done.n} (${done.rows} rows already deleted)`);
+  // Dead tuples pile up by design until the manual vacuum below; an autovacuum mid-purge would walk the
+  // HNSW and GIN indexes (1.4 GB) under load. Turned back on after that vacuum (step 4).
+  await sql(`alter table public.kb_chunks set (autovacuum_enabled = false)`, 0, false);
   for (;;) {
+    // THE LOAD GUARD, before EVERY batch (scripts/kb/purge_guard.mjs decides).
+    const load = await one(`select public.fn_kb_purge_load() as l`).then(x => x.l, () => null);
+    const v = loadVerdict(load, await diskFree(), { forceHours: FORCE_HOURS });
+    if (v.action === 'stop') { console.error(`   stopping before the next batch: ${v.reason}. Re-run to resume from the ledger.`); process.exit(1); }
+    if (v.action === 'wait') { console.log(`   waiting 60 s: ${v.reason}`); await sleep(60000); continue; }
     const t = t0();
     let r;
     try {
-      r = await one(`set statement_timeout = '10min'; select * from public.fn_kb_purge_batch(${LIMIT})`);
+      // retry5xx=false: a 524 does not stop the backend, and a retry would start a second batch on top of
+      // it — the 21 Sep outage. 30 s is >10x the measured 2.4 s for 5,000 rows and far under the gateway.
+      r = (await sql(`set statement_timeout = '30s'; select * from public.fn_kb_purge_batch(${LIMIT})`, 0, false))[0];
     } catch (e) {
-      console.error(`   batch failed (${ms(t)}): ${e.message}\n   nothing from this batch was kept; re-run to resume from the ledger`);
+      console.error(`   batch failed (${ms(t)}): ${e.message}\n   a batch either committed whole or not at all; re-run to resume from the ledger`);
       process.exit(1);
     }
     console.log(`   batch ${r.batch_no}: deleted ${r.deleted_count} rows (${(Number(r.deleted_bytes) / 1048576).toFixed(0)} MB content), ids ${r.cursor_from}..${r.cursor_to}, remaining ${r.remaining_count}, ${ms(t)}`);
     if (Number(r.deleted_count) === 0) break;
+    await sleep(PAUSE_MS);
   }
   const left = await one(`set statement_timeout = '10min';
     select count(*)::bigint as n from public.kb_chunks k
@@ -191,22 +231,37 @@ step('vacuum / reindex / stats');
 {
   const single = async (label, stmt) => {
     const t = t0();
-    try { await sql(stmt); console.log(`   ${label}: done in ${ms(t)}`); return true; }
+    // never retried on a 5xx: a vacuum or index build keeps running behind a 524, and a retry stacks a second
+    try { await sql(stmt, 0, false); console.log(`   ${label}: done in ${ms(t)}`); return true; }
     catch (e) {
-      if (isTimeout(e)) console.log(`   ${label}: hit the platform 2-minute statement_timeout after ${ms(t)} — run it from a session without the cap:\n      set statement_timeout = 0; ${stmt};`);
-      else console.log(`   ${label}: failed — ${e.message}`);
+      console.log(`   ${label}: ${isTimeout(e) ? 'hit the platform 2-minute statement_timeout' : 'failed'} after ${ms(t)} — ${e.message.slice(0, 200)}
+      run it from a DIRECT session without the cap (psql on the db host, one statement at a time; check pg_stat_activity first that it is not still running):
+      set statement_timeout = 0; ${stmt};`);
       return false;
     }
   };
+  // The two big indexes go BEFORE the vacuum: vacuuming them after 2.47 M deletes means repairing the HNSW
+  // graph and the GIN posting lists for every dead row, while rebuilding them covers only the ~150 k rows
+  // left. DROP/CREATE ... CONCURRENTLY and plain VACUUM never block readers or writers. Between the drop
+  // and the rebuild, search over kb_chunks is a scan of ~150 k rows — at UAE night.
+  const IDX = {
+    kb_chunks_emb_hnsw: 'create index concurrently if not exists kb_chunks_emb_hnsw on public.kb_chunks using hnsw (embedding_gte vector_cosine_ops)',
+    kb_chunks_fts: 'create index concurrently if not exists kb_chunks_fts on public.kb_chunks using gin (fts)',
+  };
+  for (const ix of Object.keys(IDX)) await single(`drop index concurrently ${ix}`, `drop index concurrently if exists public.${ix}`);
   // VACUUM VERBOSE's report is a notice, which the API discards; ANALYZE is what the planner needs.
-  await single('vacuum (verbose, analyze) kb_chunks', `vacuum (verbose, analyze) public.kb_chunks`);
-  for (const ix of ['kb_chunks_fts', 'kb_chunks_emb_hnsw', 'kb_chunks_category_norm_idx']) {
-    const ok = await single(`reindex index concurrently ${ix}`, `reindex index concurrently public.${ix}`);
+  await single('vacuum (analyze) kb_chunks', `vacuum (analyze) public.kb_chunks`);
+  await sql(`alter table public.kb_chunks reset (autovacuum_enabled)`, 0, false);
+  console.log('   autovacuum on kb_chunks: back on');
+  // Measured 21 Sep: HNSW over 150,000 rows did not finish inside 85 s, so expect the printed fallback.
+  for (const [ix, stmt] of Object.entries(IDX)) {
+    const ok = await single(`rebuild ${ix}`, stmt);
     if (!ok) {
       const bad = await sql(`select indexrelid::regclass::text as name from pg_index where not indisvalid and indrelid = 'public.kb_chunks'::regclass`);
-      if (bad.length) console.log(`   invalid index left behind: ${bad.map(b => b.name).join(', ')} — drop it before retrying (drop index concurrently <name>)`);
+      if (bad.length) console.log(`   invalid index left behind: ${bad.map(b => b.name).join(', ')} — drop index concurrently <name>, then run the create again`);
     }
   }
+  await single('reindex index concurrently kb_chunks_category_norm_idx', 'reindex index concurrently public.kb_chunks_category_norm_idx');
   // kb_category_stats: its refresh routine was dropped 7 Sep 2026; refresh it here the way it was defined.
   await sql(`delete from public.kb_category_stats;
              insert into public.kb_category_stats (category, source_kind, chunks, refreshed_at)
@@ -218,7 +273,7 @@ step('vacuum / reindex / stats');
                                   (select n_dead_tup from pg_stat_user_tables where relname = 'kb_chunks') as dead,
                                   (select count(*) from public.kb_chunks) as live`);
   await sql(`insert into public.kb_purge_ledger (verdict, clause, source_kind, category, bytes, note)
-             values ('SIZE', 0, 'kb_chunks', 'pg_total_relation_size', ${after.b}, 'after the purge, vacuum and reindex')`);
+             values ('SIZE', 0, 'kb_chunks', 'pg_total_relation_size', ${after.b}, 'after the purge, vacuum and reindex')`, 0, false);
   const reclaimed = SIZE_BEFORE_MB - Math.round(Number(after.b) / 1048576);
   console.log(`   kb_chunks now: ${after.p} total (heap ${after.heap}, indexes ${after.idx}), ${after.live} live rows, ${after.dead} dead tuples`);
   console.log(`   reclaimed vs §8's ${SIZE_BEFORE_MB} MB: ${reclaimed} MB. A plain VACUUM returns space to the table, not to the disk — the heap and TOAST files only shrink with VACUUM FULL, which needs a session without the 2-minute cap and an exclusive lock.`);
