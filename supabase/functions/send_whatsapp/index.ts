@@ -412,7 +412,16 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         // class of lying counter this version exists to remove.
         if (await tryFallback(n, 'Twilio rejected the WhatsApp send: ' + lastErr)) continue;
       }
-      await admin.from('notifications').update({ status: res.ok?'sent':'failed', sent_at: res.ok?new Date().toISOString():null, last_error: res.ok?null:String(res.error||'').slice(0,500) }).eq('id', n.id);
+      // THE SID IS THE PROOF (21 Sep 2026). Measured: 24 of 24 WhatsApp rows marked 'sent' since 18 Sep
+      // carried provider_message_id NULL, so every founder alert's WhatsApp twin came back to the
+      // delivery watch as 'sent_unconfirmed', was escalated to the CEO as "did not arrive", and reached
+      // the founder as "The CEO has not answered an IT report" — four emails in four days about
+      // messages Twilio had accepted. Twilio returns the message SID on every accepted send; it is
+      // stored where the outbox stores Resend's id, so a WhatsApp send is confirmed or failed, never
+      // unconfirmed.
+      await admin.from('notifications').update({ status: res.ok?'sent':'failed', sent_at: res.ok?new Date().toISOString():null,
+        provider_message_id: res.ok ? (res.sid || null) : null,
+        last_error: res.ok?null:String(res.error||'').slice(0,500) }).eq('id', n.id);
       if (res.ok) { sent++; budget--; } else { failed++; lastErr = String(res.error || '').slice(0, 200); }
     }
     if (capped) await logThrottled('rate_capped', 180, 'ok', { capped, cap: dayCap, per_recipient: perRecip },
