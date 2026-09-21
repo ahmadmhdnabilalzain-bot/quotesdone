@@ -1109,7 +1109,14 @@ set local statement_timeout = '120s';
 select set_config('qd.itdetect_mismatch', (
   select (count(*) filter (where held      is distinct from public.fn_it_run_is_held(agent, started_at, counts, note))
         + count(*) filter (where refused0  is distinct from public.fn_it_run_is_refusal(agent, started_at, counts))
-        + count(*) filter (where rehearsal is distinct from public.fn_rehearsal_window_covers(started_at)))::text
+        + count(*) filter (where rehearsal is distinct from public.fn_rehearsal_window_covers(started_at))
+        -- The 4th flag (review, 21 Sep): D9's policy exemption is not stored on the slice, so the
+        -- EXISTS the routine inlines (anchored in set_forms_present below) is evaluated here, verbatim,
+        -- against fn_it_refusal_is_policy on every row. A change to either side now shows as a mismatch.
+        + count(*) filter (where (exists (select 1 from public.it_refusal_policy p
+                                           where p.subject = regexp_replace(coalesce(agent,''), '^fn:', '')
+                                             and coalesce(counts, '{}'::jsonb) ? p.reason_key))
+                                 is distinct from public.fn_it_refusal_is_policy(agent, counts)))::text
           || '/' || count(*)
     from pg_temp.it_runs7), true) mismatches_over_rows;
 with src as (
@@ -1137,8 +1144,8 @@ select case when detect_ms < 4000 and slice_rows > 0 and split_part(mismatches, 
              and no_per_row_helper_calls and set_forms_present and signature_kept
              and ticks_written_by_the_probe = 0
        then 'PROBE OK: fn_it_detect finished in ' || detect_ms || ' ms under a 4000 ms statement_timeout '
-            || '(PostgREST cancels at 8000) over ' || slice_rows || ' slice rows; its held, refused0 and '
-            || 'rehearsal flags equal the helpers on every row (mismatches ' || mismatches || '); no '
+            || '(PostgREST cancels at 8000) over ' || slice_rows || ' slice rows; its held, refused0, rehearsal and '
+            || 'policy flags equal the helpers on every row (mismatches ' || mismatches || '); no '
             || 'per-row helper call remains in the live definition; 0 ticks written.'
        else 'PROBE FAILED: detect_ms=' || coalesce(detect_ms::text,'null')
             || ' slice_rows=' || coalesce(slice_rows::text,'null')
