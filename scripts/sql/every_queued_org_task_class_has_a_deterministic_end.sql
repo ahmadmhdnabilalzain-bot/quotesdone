@@ -109,7 +109,12 @@ begin
        and (p_task_id is null or o.id = p_task_id)
        and (p_task_id is not null
             or o.last_run_at is null
-            or o.last_run_at < now() - make_interval(mins => (15 * power(2, least(o.attempts, 6)))::int))
+            or o.last_run_at < now() - make_interval(mins => (15 * power(2, least(o.attempts, 6)))::int)
+            -- A BACK-OFF EARNED UNDER OTHER HANDLERS DOES NOT BIND THESE. Measured on apply,
+            -- 21 Sep 2026: the first v2 tick scanned 0 of 8 assigned rows, because every one was
+            -- inside a 4h/16h window earned from a v1 "not_yet" -- a verdict v2 no longer gives.
+            -- A row whose last verdict came from an older consumer version is retried at once.
+            or coalesce(o.result->'consumer'->>'version', '') <> 'v2')
      order by (o.last_run_at is null) desc, o.priority desc, o.id
      limit greatest(1, least(coalesce(p_limit, 4), 25))
      -- TWO TICKS MUST NOT PICK THE SAME ROW. The 15-minute cron can double-fire or retry, and a
@@ -557,7 +562,7 @@ begin
                updated_at  = now(),
                result      = coalesce(result, '{}'::jsonb) || jsonb_build_object(
                  'consumer', jsonb_build_object(
-                   'at', now(), 'handler', v_handler, 'verdict', 'not_yet', 'reason', v_reason,
+                   'at', now(), 'version', 'v2', 'handler', v_handler, 'verdict', 'not_yet', 'reason', v_reason,
                    'attempts', coalesce(r.attempts, 0) + 1, 'next_attempt_after', now() + v_back))
          where id = r.id;
 
@@ -739,6 +744,14 @@ begin
   if v_would_close <> v_assigned then
     v_ok := false; v_notes := v_notes || to_jsonb('dry run: ' || v_would_close || ' of ' || v_assigned || ' would close');
   end if;
+
+  -- (1b) THE BATCH PICKER, the path the scheduled tick takes. Addressing rows by p_task_id skips the
+  -- back-off predicate, which is how v1 back-off hid all 8 rows from the first live tick.
+  v_r := public.fn_org_task_consume_tick(25, null, true);
+  if (v_r->>'scanned')::int <> least(v_assigned, 25) or (v_r->>'closed')::int <> least(v_assigned, 25) then
+    v_ok := false; v_notes := v_notes || jsonb_build_object('batch_picker', v_r - 'done' - 'queued');
+  end if;
+  v_notes := v_notes || jsonb_build_object('batch_scanned', v_r->'scanned', 'batch_closed', v_r->'closed');
 
   begin
     -- (2) LIVE close of an unanswerable ZZ DEMO question: closes as a tracked gap, gap stays open.
