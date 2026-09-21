@@ -11,5 +11,9 @@
 # 21 Sep 2026 — the IT failures of 18–21 Sep (docs/it/IT_FAILURES_18_21_SEP_2026.md). Applies are
 # serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the
 # END of MANIFEST.txt (a file cannot be in both): each carries a PROBE row and was executed rolled-back.
-
-
+#
+# 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+scripts/sql/the_backup_recheck_names_its_table_alias_apart_from_its_record.sql :: fn_it_backup_recheck raises 42702 on every call since the orphan-abandon apply; executed rolled-back (returns closed 3, orphaned_abandoned 1). Apply, move this line to the end of MANIFEST.txt, refresh the schema mirror.
+#
+# 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+scripts/sql/the_backup_recheck_names_its_table_alias_apart_from_its_record.sql :: fn_it_backup_recheck raises 42702 on every call since the orphan-abandon apply; executed rolled-back (returns closed 3, orphaned_abandoned 1). Apply, move this line to the end of MANIFEST.txt, refresh the schema mirror.

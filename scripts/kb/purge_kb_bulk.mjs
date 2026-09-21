@@ -23,6 +23,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { censusMismatches } from './purge_census.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const RUN = process.argv.includes('--run');
@@ -30,7 +31,9 @@ const LIMIT = Number((process.argv.find(a => a.startsWith('--limit=')) || '--lim
 const EXPORT_DAY = '2026-09-18';
 const EXPORT_PAGES = 4177;            // §8: the full copy of 2026-09-18, 11,929,993,565 bytes
 const SIZE_BEFORE_MB = 9313;          // §8, measured 21 Sep 2026 09:18 UTC
-const STANDARD_SLICE = 200000;        // id slice for the `standard` census: ~140k rows ≈ 12 s each
+// id slice for the census, EVERY kind (21 Sep 2026): the census hit the management API gateway's 524
+// (~100 s). 100k ids is ~85k rows at today's density, well under it. Measured before: 200k ids ≈ 12 s.
+const CENSUS_SLICE = 100000;
 
 function token() {
   if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
@@ -38,7 +41,10 @@ function token() {
   if (existsSync(p)) return readFileSync(p, 'utf8').trim();
   throw new Error('No Supabase access token (SUPABASE_ACCESS_TOKEN or ~/.supabase/access-token)');
 }
-async function sql(query, attempt = 0) {
+// retry5xx=false for a NON-IDEMPOTENT write: a 5xx — above all a gateway 524 — does not mean the
+// statement did not run; it can commit behind the error, and a retried INSERT then counts twice.
+// A 429 is refused before execution, so it is always safe to retry.
+async function sql(query, attempt = 0, retry5xx = true) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
@@ -46,11 +52,11 @@ async function sql(query, attempt = 0) {
     signal: AbortSignal.timeout(180000),
   });
   const text = await res.text();
-  if ((res.status === 429 || res.status >= 500) && attempt < 6) {
+  if ((res.status === 429 || (retry5xx && res.status >= 500)) && attempt < 6) {
     const wait = Math.min(2000 * 2 ** attempt, 60000);
     console.error(`   ${res.status}; retrying in ${wait / 1000}s`);
     await new Promise(r => setTimeout(r, wait));
-    return sql(query, attempt + 1);
+    return sql(query, attempt + 1, retry5xx);
   }
   if (!res.ok) { const e = new Error(`HTTP ${res.status}: ${text.slice(0, 400)}`); e.body = text; throw e; }
   return text ? JSON.parse(text) : [];
@@ -98,8 +104,8 @@ step('census (verdict per source_kind × category, written to kb_purge_ledger be
   } else {
     const before = await one(`select pg_total_relation_size('public.kb_chunks')::bigint as b`);
     await sql(`insert into public.kb_purge_ledger (verdict, clause, source_kind, category, bytes, note)
-               values ('SIZE', 0, 'kb_chunks', 'pg_total_relation_size', ${before.b}, 'before the purge')`);
-    // Non-`standard` kinds fit one request (≈21 s measured); `standard` (2.06 M rows) goes by id slice.
+               values ('SIZE', 0, 'kb_chunks', 'pg_total_relation_size', ${before.b}, 'before the purge')`, 0, false);
+    // Every kind goes by id slice, one bounded request each, never retried on a 5xx (see sql()).
     const censusSql = (where) => `
       set statement_timeout = '10min';
       insert into public.kb_purge_ledger (verdict, clause, source_kind, category, rows, note)
@@ -111,14 +117,11 @@ step('census (verdict per source_kind × category, written to kb_purge_ledger be
                 from public.kb_chunks k where ${where}) x
        group by 1, 2, 3, 4`;
     try {
-      let t = t0();
-      await sql(censusSql(`k.source_kind <> 'standard'`));
-      console.log(`   non-standard kinds classified in ${ms(t)}`);
       const range = await one(`select min(id)::bigint as lo, max(id)::bigint as hi from public.kb_chunks`);
-      for (let lo = Number(range.lo); lo <= Number(range.hi); lo += STANDARD_SLICE) {
-        t = t0();
-        await sql(censusSql(`k.source_kind = 'standard' and k.id >= ${lo} and k.id < ${lo + STANDARD_SLICE}`));
-        console.log(`   standard ids ${lo}..${lo + STANDARD_SLICE - 1} classified in ${ms(t)}`);
+      for (let lo = Number(range.lo); lo <= Number(range.hi); lo += CENSUS_SLICE) {
+        const t = t0();
+        await sql(censusSql(`k.id >= ${lo} and k.id < ${lo + CENSUS_SLICE}`), 0, false);
+        console.log(`   ids ${lo}..${lo + CENSUS_SLICE - 1} classified in ${ms(t)}`);
       }
     } catch (e) {
       // A half-written census would make fn_kb_purge_batch plan against a short count, so it goes.
@@ -127,6 +130,21 @@ step('census (verdict per source_kind × category, written to kb_purge_ledger be
       console.error(`   census failed and was removed from the ledger; re-run to start it again: ${e.message}`);
       process.exit(1);
     }
+  }
+  // THE CENSUS MUST BE THE TABLE (scripts/kb/purge_census.mjs). Checked while no batch has run — after
+  // the first delete the live count falls by design and the census stays as the before-record.
+  const started = await one(`select count(*)::int as n from public.kb_purge_ledger where batch_no is not null`);
+  if (started.n === 0) {
+    const bad = censusMismatches(
+      await sql(`select source_kind, sum(rows)::bigint as rows from public.kb_purge_ledger where batch_no is null and note = 'census' group by 1`),
+      await sql(`set statement_timeout = '10min'; select source_kind, count(*)::bigint as n from public.kb_chunks group by 1`),
+      (await one(`select count(*)::int as n from public.kb_purge_ledger where verdict = 'SIZE' and note = 'before the purge'`)).n);
+    if (bad.length) {
+      console.error(`   THE CENSUS IS NOT THE TABLE (${bad.length}):\n     ${bad.join('\n     ')}`);
+      console.error("   refusing. Remove it and re-run: delete from public.kb_purge_ledger where batch_no is null;");
+      process.exit(1);
+    }
+    console.log('   census verified: every source_kind sums to its live count, one SIZE row');
   }
   const plan = await sql(`select verdict, clause, sum(rows)::bigint as rows,
                                  string_agg(source_kind || ' ' || kind_rows, ', ' order by kind_rows desc) as by_kind
