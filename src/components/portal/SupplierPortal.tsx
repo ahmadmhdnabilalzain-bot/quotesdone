@@ -411,7 +411,7 @@ export function SupplierPortal() {
   // nothing re-read once the claim completed. Both mount paths (stored token AND getSession) also
   // sent the claim, so it went twice. Now: one claim per page, the dashboard waits for it, and the
   // warm-up it discarded is started again with the claimed company in place.
-  // Prevented by scripts/checks/the_dashboard_waits_for_the_invitation_claim.test.mjs.
+  // Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs.
   const [claiming, setClaiming] = useState(false);
   const claimRun = useRef(null);
   const claimIfInvited = (access) => {
@@ -1521,7 +1521,18 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
       if (uaeMobile(f.phone)) payload.phone = uaeMobile(f.phone);
       if (String(f.founded_year || '').trim()) payload.founded_year = Number(f.founded_year);
-      const j = await call('supplier_api', payload, token);
+      let j = await call('supplier_api', payload, token);
+      // A CERTIFICATE THAT FAILED ONCE FAILED FOREVER (21 Sep 2026, campaign registration walk). Under
+      // load the first certificate write timed out (compliance_archive: "cert_record_failed … statement
+      // timeout", measured on production). The acceptance was recorded but no signed PDF exists, so every
+      // later save_profile answers missing_required [reg_terms] — and this function returned on that
+      // answer BEFORE the kyc call below, the only thing that issues the certificate. Ticked, saved,
+      // refused, forever. Now the certificate is requested exactly when that is what is missing, and the
+      // save is asked once more. Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs.
+      if (terms && j && j.saved && j.code === 'missing_required' && ((j.params && j.params.missing) || []).includes('reg_terms')) {
+        const k0 = await call('kyc', { action: 'accept_terms' }, token).catch(() => null);
+        if (k0 && k0.ok) j = await call('supplier_api', payload, token);
+      }
       if (!(j && j.ok)) { setBusy(false); setMsg(srvMsg(lang, j, t(lang, 'could_not_save'))); return; }
       // The signed acceptance certificate. Its failure used to be swallowed, so a supplier could finish
       // registration with no certificate on file. The save above stands; pressing again retries both.
