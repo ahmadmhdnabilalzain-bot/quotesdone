@@ -140,6 +140,14 @@ number and the counts are written to the audit ledger before any delete.
    LPCB, FM Global). §4 shows why: NFPA is referenced by the UAE fire code and BS EN 61439 by DEWA,
    so these rows may be admissible through test 2 — the founder decides whether to keep the foreign
    text or re-author the adopted clauses.
+3b. **DELETE — US standards and US laws (founder ruling, 21 Sep 2026, instruction 535:** *"remove
+   anything related to US standards or laws unless its related to UAE"***).** A row whose citation
+   names a US code or law (NFPA, NEC, UPC/IPC/IBC and the other ICC codes, ASHRAE, ASTM, SMACNA, ANSI,
+   UL, ASME, API, AWS, FM Global, CFR, US Code, OSHA, EPA, FDA, FAA, NIST) is deleted unless clause 3
+   already kept it for citing a UAE/GCC authority. Tested in `fn_kb_is_us_code()`. Measured: 15,998
+   `code` rows move from UNSURE to DELETE. Non-US foreign codes (BS EN, Eurocodes, IEC, ISO, EU/WHO
+   GMP, IETF RFCs) stay UNSURE for the founder. Clause 3 also now knows DIFC, ADGM and ADNOC (DIFC
+   Companies Law, 257 rows, is UAE law and is kept).
 5. **DELETE — foreign bulk.** Everything else: `standard`, `reference`, `cert`, `textbook`, `book`,
    `handbook`, `guide`, `manual`, `report`, `paper`, `biography`, `letters`, `syllabus`,
    `framework`, `methodology`, `study` rows with no UAE authority in the citation, whether the

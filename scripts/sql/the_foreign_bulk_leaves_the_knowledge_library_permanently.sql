@@ -23,6 +23,20 @@
 -- generated 1, reference 1). kb_usage_log holds 0 rows; decision_log.sources never mentions
 -- kb_chunks. Clause 2 is joined below as `id in (select … from sales_decision_log, unnest(cited))`.
 --
+-- FOUNDER RULING, 21 Sep 2026 (instruction 535): "remove anything related to US standards or laws
+--   unless its related to UAE". Measured before the change, the UNSURE set's biggest groups were US
+--   codes held by clause 4a/4b: NFPA 70 (NEC) 3,585, NFPA 1 2,485, NFPA 101 2,164, NFPA 13 1,853,
+--   Uniform Plumbing Code 1,529, NFPA 99 1,143, NFPA 30 827, NFPA 54 722, International Plumbing Code
+--   577, NFPA 58 516 (code kind). A US code or US law now goes to DELETE unless the row cites a UAE/GCC
+--   authority (clause 3 runs first). fn_kb_is_us_code() is that test, named once, used by the clause
+--   and the probe. Non-US foreign codes (BS EN / Eurocodes, IEC, ISO, EU and WHO GMP, IETF RFCs) are
+--   not covered by the ruling and stay UNSURE for the founder.
+--   Boundary: "related to UAE" is read from the CITATION string only; a US-code row whose text
+--   discusses the UAE but whose citation does not name it is deleted. The 18 Sep full export holds
+--   every such row.
+-- ALSO FIXED: clause 3 did not know DIFC, ADGM or ADNOC, so "DIFC Companies Law, DIFC Law No. 5 of
+--   2018" (257 rows) was held as UNSURE instead of KEPT as UAE law. Added.
+--
 -- WHAT THIS FILE CREATES (nothing is deleted by applying it):
 --   fn_kb_purge_clause(source_kind, category, citation) — the §6 rule as ONE immutable SQL
 --     function returning the clause number 1..5 (clause 2 is a row-id join, added by the callers).
@@ -45,6 +59,20 @@
 
 begin;
 
+-- ── 0. What counts as a US standard or a US law (founder instruction 535) ─────────────────────
+create or replace function public.fn_kb_is_us_code(p_citation text)
+returns boolean
+language sql
+immutable
+parallel safe
+set search_path to 'public', 'pg_temp'
+as $$
+  select coalesce(p_citation ~* '(\mNFPA\M|National Fire Protection Association|National Electrical Code|Uniform Plumbing Code|Uniform Mechanical Code|\mIAPMO\M|International (Building|Plumbing|Mechanical|Fire|Fuel Gas|Residential|Energy Conservation|Existing Building|Swimming Pool and Spa) Code|International Code Council|ASHRAE|\mASTM\M|SMACNA|\mANSI\M|\mUL ?[0-9]|Underwriters Laboratories|\mASME\M|American Petroleum Institute|\mAPI (RP|Spec|Std|Standard)|\mAPI ?[0-9]{1,4}[A-Z]{0,2}\M|American Welding Society|\mAWS ?D1|FM ?Global|\mCFR\M|Code of Federal Regulations|United States Code|\mUS Code|\mOSHA\M|\mEPA\M|\mFDA\M|\mFAA\M|Federal Register|\mNIST\M|U\.S\. (Army|Navy|Department|Government)|\mUS (Army|Navy|Department|Government|federal))', false)
+$$;
+revoke all on function public.fn_kb_is_us_code(text) from public, anon, authenticated;
+comment on function public.fn_kb_is_us_code(text) is
+  'True when a kb_chunks citation names a US standard or US law (founder instruction 535, 21 Sep 2026). fn_kb_purge_clause calls it AFTER the UAE test, so a US code that cites a UAE authority is still kept.';
+
 -- ── 1. The rule, once ─────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_kb_purge_clause(p_source_kind text, p_category text, p_citation text)
 returns smallint
@@ -60,7 +88,9 @@ as $$
       or p_category like 'cat:%' or p_category like 'exec:%' then 1
     -- 2. KEEP — ever cited: a row-id join, applied by the caller (see fn_kb_purge_batch)
     -- 3. KEEP — cites a UAE/GCC authority
-    when p_citation ~* '(\mUAE\M|United Arab Emirates|Emirat|Dubai|Abu Dhabi|Sharjah|Ajman|Fujairah|Ras Al Khaimah|Umm Al Quwain|\mDEWA\M|\mADDC\M|\mAADC\M|\mSEWA\M|\mFEWA\M|Etihad ?WE|Civil Defen[cs]e|\mSIRA\M|\mESMA\M|\mMOIAT\M|\mGSO\M|\mGCC\M|Trakhees|Municipality|\mADQCC\M|\mRTA\M|\mTDRA\M|Estidama|Sa''fat|Tadweer|\mOSHAD\M|\mDMT\M|\mJAFZA\M|\mDDA\M|\mTECOM\M)' then 3
+    when p_citation ~* '(\mUAE\M|United Arab Emirates|Emirat|Dubai|Abu Dhabi|Sharjah|Ajman|Fujairah|Ras Al Khaimah|Umm Al Quwain|\mDEWA\M|\mADDC\M|\mAADC\M|\mSEWA\M|\mFEWA\M|Etihad ?WE|Civil Defen[cs]e|\mSIRA\M|\mESMA\M|\mMOIAT\M|\mGSO\M|\mGCC\M|Trakhees|Municipality|\mADQCC\M|\mRTA\M|\mTDRA\M|Estidama|Sa''fat|Tadweer|\mOSHAD\M|\mDMT\M|\mJAFZA\M|\mDDA\M|\mTECOM\M|\mDIFC\M|\mADGM\M|\mADNOC\M)' then 3
+    -- 3b. DELETE — a US standard or US law that does not cite the UAE (founder instruction 535)
+    when public.fn_kb_is_us_code(p_citation) then 5
     -- 4a. UNSURE — statute and code text is never deleted on a pattern
     when p_source_kind in ('code','regulation','spec') then 4
     -- 4b. UNSURE — a foreign code a UAE document may adopt. §6 limits this to in-scope trade
@@ -178,30 +208,38 @@ with cited as (
     from public.sales_decision_log s, unnest(s.cited) x where x ~ '^kb_chunks:[0-9]+$'
 ), m as (
   select
-    (select count(*) from public.kb_chunks k where k.source_kind = 'reference'
-       and public.fn_kb_purge_clause(k.source_kind, k.category, k.citation) = 5
-       and k.id not in (select id from cited))                                         as reference_delete,
+    -- reference (265,903 rows) is no longer counted here: with the US test added (instruction 535) the
+    -- two regexes over it plus the rest no longer fit the 2-minute limit (measured: 57014 on 21 Sep).
+    -- purge_kb_bulk.mjs counts every kind in its census, by kind and id slice, before any delete.
+    null::bigint                                                                        as reference_delete,
     (select count(*) from public.kb_chunks k where k.source_kind = 'cert'
        and public.fn_kb_purge_clause(k.source_kind, k.category, k.citation) = 5)        as cert_delete,
     (select count(*) from public.kb_chunks k
       where k.source_kind in ('qd_kb_pack','company_faq','memory','generated','trade','material','document','library','code','regulation','spec')
-        and public.fn_kb_purge_clause(k.source_kind, k.category, k.citation) = 5)       as keep_or_unsure_kinds_hit,
+        and public.fn_kb_purge_clause(k.source_kind, k.category, k.citation) = 5
+        and not (k.source_kind in ('code','regulation','spec') and public.fn_kb_is_us_code(k.citation))) as keep_or_unsure_kinds_hit,
+    (select count(*) from public.kb_chunks k where k.source_kind = 'code'
+       and public.fn_kb_purge_clause(k.source_kind, k.category, k.citation) = 5)        as us_code_rows_deleted,
     (select count(*) from cited)                                                        as cited_ids,
     (select count(*) from public.kb_chunks k join cited c on c.id = k.id
       where public.fn_kb_purge_clause(k.source_kind, k.category, k.citation) = 5)       as cited_saved_by_clause_2,
     (select count(*) from public.kb_purge_ledger)                                       as ledger_rows,
     public.fn_kb_purge_clause('standard', 'x', 'DEWA Regulations 2017')                 as uae_is_3,
     public.fn_kb_purge_clause('standard', 'x', 'QD-KB-0001')                            as qd_is_1,
-    public.fn_kb_purge_clause('textbook', 'x', 'NFPA 72 2019')                          as nfpa_is_4,
-    public.fn_kb_purge_clause('code', 'x', 'US CFR Title 14')                           as code_is_4,
+    public.fn_kb_purge_clause('textbook', 'x', 'NFPA 72 2019')                          as nfpa_is_5,
+    public.fn_kb_purge_clause('code', 'x', 'US CFR Title 14')                           as us_law_is_5,
+    public.fn_kb_purge_clause('code', 'x', 'NFPA 13 as adopted by UAE Civil Defence')   as uae_nfpa_is_3,
+    public.fn_kb_purge_clause('code', 'x', 'BS EN 1992-1-1:2004 Eurocode 2')            as eurocode_is_4,
+    public.fn_kb_purge_clause('regulation', 'x', 'DIFC Companies Law, DIFC Law No. 5 of 2018') as difc_is_3,
     public.fn_kb_purge_clause('reference', 'x', 'PostgreSQL 16 documentation')          as bulk_is_5
 )
 select case
-  when m.reference_delete between 264600 and 265903 and m.cert_delete = 75466
+  when m.cert_delete = 75466
    and m.keep_or_unsure_kinds_hit = 0 and m.cited_ids = 14
-   and m.uae_is_3 = 3 and m.qd_is_1 = 1 and m.nfpa_is_4 = 4 and m.code_is_4 = 4 and m.bulk_is_5 = 5
+   and m.uae_is_3 = 3 and m.qd_is_1 = 1 and m.nfpa_is_5 = 5 and m.us_law_is_5 = 5 and m.bulk_is_5 = 5
+   and m.uae_nfpa_is_3 = 3 and m.eurocode_is_4 = 4 and m.difc_is_3 = 3 and m.us_code_rows_deleted > 10000
   then 'PROBE OK' else 'PROBE FAILED' end
-  || format(': reference_delete=%s (§8 265,903 before clause 2/4b) cert_delete=%s (§8 75,466) keep_or_unsure_kinds_hit=%s cited_ids=%s cited_saved_by_clause_2=%s ledger_rows=%s unit=%s%s%s%s%s',
+  || format(': reference_delete=%s (§8 265,903 before clause 2/4b) cert_delete=%s (§8 75,466) keep_or_unsure_kinds_hit=%s cited_ids=%s cited_saved_by_clause_2=%s ledger_rows=%s us_code_rows_deleted=%s unit=%s%s%s%s%s%s%s%s',
             m.reference_delete, m.cert_delete, m.keep_or_unsure_kinds_hit, m.cited_ids, m.cited_saved_by_clause_2, m.ledger_rows,
-            m.qd_is_1, m.uae_is_3, m.nfpa_is_4, m.code_is_4, m.bulk_is_5) as verdict
+            m.us_code_rows_deleted, m.qd_is_1, m.uae_is_3, m.nfpa_is_5, m.us_law_is_5, m.bulk_is_5, m.uae_nfpa_is_3, m.eurocode_is_4, m.difc_is_3) as verdict
   from m;
