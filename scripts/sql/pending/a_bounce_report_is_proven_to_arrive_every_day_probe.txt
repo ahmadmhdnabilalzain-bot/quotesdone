@@ -1,1 +1,0 @@
-pure probe, no DDL: run with node scripts/qsql.mjs after scripts/sql/a_bounce_report_is_proven_to_arrive_every_day_or_it_is_a_finding.sql is applied; it answers PROBE FAILED until then.
