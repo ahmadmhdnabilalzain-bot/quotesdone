@@ -95,7 +95,6 @@ const COPY: Record<string, Entry> = {
   doc_hint_iso: s('Any ISO certificate you hold. Strengthens your capability score.', 'أي شهادة ISO تحملها، وتقوّي تقييم قدراتك.'),
   doc_hint_manufacturer: s('Authorised-dealer letters from the brands you carry.', 'خطابات الوكالة المعتمدة من العلامات التجارية التي تتعامل بها.'),
   doc_hint_egr: s('Your immigration establishment card (EGR).', 'بطاقة المنشأة الصادرة من الإقامة (EGR).'),
-  doc_hint_iban: s('Bank letter confirming your IBAN.', 'خطاب من البنك يؤكّد رقم الآيبان الخاص بك.'),
 
   // ── Overview alerts (supplier_portal buildAlerts) ───────────────────────────────────────────────
   doc_expiry_title: s((p) => `${p.doc} ${p.expired ? 'has expired' : 'expires soon'}`, (p) => `${docAr(p.doc)} ${p.expired ? 'منتهية الصلاحية' : 'تنتهي قريبًا'}`),

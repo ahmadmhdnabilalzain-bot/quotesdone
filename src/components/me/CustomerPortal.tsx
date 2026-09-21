@@ -31,8 +31,7 @@ import { statusLabel as projectStatusLabel } from '@/components/portal/projects/
 import dynamic from 'next/dynamic';
 const SpendingIntelligence = dynamic(() => import('@/components/portal/intelligence/SpendingIntelligence').then((m) => m.SpendingIntelligence), { ssr: false });
 // Every dynamic() below needs a `loading:` fallback: without one, next/dynamic renders NOTHING for
-// the one round trip its chunk takes, so a tab panel opened blank and the negOpen accordion — which
-// starts at 0 height — just snapped its content in (independent review, 14 Sep 2026). ModuleLoading
+// the one round trip its chunk takes, so a tab panel opened blank (independent review, 14 Sep 2026). ModuleLoading
 // is the same Card/pulse skeleton the stat tiles already use (~line 727), so it needs no new pattern,
 // and it is defined once and reused rather than repeated at each call site. It reads
 // document.documentElement.lang (already set by applyDocumentLocale before any of these can mount,
@@ -51,7 +50,7 @@ const ModuleLoading = () => {
 };
 // Spec §22 modules that were written and never mounted, and the five module-agent surfaces below:
 // every one of them renders ONLY behind `id === '<tab>'` (see ~line 1505) inside a panel the
-// customer opens by clicking a tab, or behind the negOpen accordion (NegotiationAssistant) — never
+// customer opens by clicking a tab — never
 // on the initial /me paint — so none of them belongs in the bundle that has to parse before the nav
 // is visible. CompanyTwin and DecisionSupport are NOT in this group: independent review (14 Sep
 // 2026) found they also render on the default 'home' overview, every signed-in customer's landing
@@ -67,8 +66,8 @@ import { RevealPayment } from './RevealPayment';
 const CommunicationCenter = dynamic(() => import('@/components/portal/comms').then((m) => m.CommunicationCenter), { ssr: false, loading: ModuleLoading });
 const OrdersList = dynamic(() => import('@/components/portal/approvals').then((m) => m.OrdersList), { ssr: false, loading: ModuleLoading });
 const PredictiveIntelligence = dynamic(() => import('@/components/portal/predict').then((m) => m.PredictiveIntelligence), { ssr: false, loading: ModuleLoading });
-// NegotiationAssistant only mounts once a quote's negotiation accordion is opened (negOpen, ~line 1378).
-const NegotiationAssistant = dynamic(() => import('@/components/portal/predict').then((m) => m.NegotiationAssistant), { ssr: false, loading: ModuleLoading });
+// The NegotiationAssistant accordion that sat on every quote card was removed 21 Sep 2026 — the
+// founder took negotiations out of both portals (instruction 526).
 // §2 the Company Digital Twin, §9 Supplier Discovery and §17 Customer AI Memory. fn_twin,
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
 // the staff console — so the customer could not see their own profile or correct it.
@@ -1208,6 +1207,7 @@ function OpenSeal({ play, children }) {
 
 // A window opened after an await is a popup: see src/lib/openDocument.ts (shared with the supplier portal).
 import { openDocument } from '@/lib/openDocument';
+import DocActions from '@/components/portal/DocActions';
 // THIS quote's own PDF, by id, in the customer's language — and the other language one click away:
 // the English document always exists and the Arabic one is always offered (founder, 14 Sep 2026).
 function QuotePdfLink({ q, token, lang }) {
@@ -1277,8 +1277,13 @@ function DetailFacts({ inq, lang }) {
   if (Number.isFinite(conf) && inq.boq && inq.boq.boq) rows.push([lang === 'ar' ? 'دقة قراءة الرسم' : 'Drawing read confidence', Math.round(conf <= 1 ? conf * 100 : conf) + '%']);
   // my_inquiries signs a URL to the customer's OWN uploaded drawing on every call. Nothing read it,
   // so the one person entitled to that file could not open it — only the suppliers could.
+  // The four actions (instruction 524). The drawing was sent to suppliers with the request, so
+  // Replace / Remove say so rather than acting: what they quoted on stays what they quoted on.
   const drawing = inq.drawing_file_url
-    ? (<div className="mt-1.5"><a href={inq.drawing_file_url} target="_blank" rel="noopener" className="text-primary font-semibold text-[12.5px]">{lang === 'ar' ? '📐 افتح الرسم الذي رفعته' : '📐 Open the drawing you uploaded'}{inq.drawing_file_name ? ' (' + inq.drawing_file_name + ')' : ''}</a></div>)
+    ? (<div className="mt-1.5">
+        <div className={cn(S.sub, 'mb-1')}>{lang === 'ar' ? '📐 الرسم الذي رفعته' : '📐 The drawing you uploaded'}{inq.drawing_file_name ? <> (<bdi>{inq.drawing_file_name}</bdi>)</> : null}</div>
+        <DocActions lang={lang} name={inq.drawing_file_name} url={inq.drawing_file_url} sealed="sent_to_suppliers" />
+      </div>)
     : null;
   if (!rows.length && !drawing) return null;
   return (<div className="rounded-lg border border-border bg-secondary/20 p-3"><div className={cn(S.sub, 'font-semibold mb-1.5 text-foreground')}>{lang === 'ar' ? 'تفاصيل الطلب' : 'Request details'}</div><div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">{rows.slice(0, 14).map((r, i) => (<div key={i} className={S.sub}><span className="capitalize text-muted-foreground">{r[0]}: </span><span className="text-foreground">{r[1]}</span></div>))}</div>{drawing}</div>);
@@ -1387,7 +1392,6 @@ function ExportComparison({ inqId, token, lang }) {
 function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, terms, focus, highlight }) {
   const [state, setState] = useState(q.revealed ? 'revealed' : 'idle'); const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const [dialog, ask] = useConfirm(lang);
-  const [negOpen, setNegOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   // The Stripe redirect is a navigation, not a request that comes back: `leaving` only changes what
   // the (still busy) button says, so the last thing the customer sees is "Taking you to payment…".
@@ -1462,14 +1466,6 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_why') + q.match_reason}</div>}
     <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1"><QuotePdfLink q={q} token={token} lang={lang} />{revealed ? <InvoicePdfLink q={q} token={token} lang={lang} /> : null}</div>
     <div className="mt-2"><SupplierRelationshipCard quote={q} token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
-    {/* Behind a disclosure: mounted on every quote card, it fired one negotiation_assistant call
-        per quote on every open request, for guidance most customers never looked at. */}
-    <div className="mt-2">
-      <button type="button" aria-expanded={negOpen} onClick={() => setNegOpen((v) => !v)} className="text-[12.5px] font-semibold text-primary">
-        {t(lang, negOpen ? 'q_neg_hide' : 'q_neg_show')}
-      </button>
-      {negOpen ? <div className="mt-2"><NegotiationAssistant token={token} quoteId={q.id} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
-    </div>
     {revealed ? (contact
         ? <RevealMoment play={justRevealed && !reduce}><Contact play={justRevealed && !reduce} c={contact} q={q} token={token} onChange={onChange} lang={lang} terms={terms} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /></RevealMoment>
         : <div className={cn(S.sub, 'mt-2 flex items-center gap-2')}><span className="redact redact-bar" aria-hidden />{t(lang, 'q_loading_contact')}</div>)
@@ -1541,7 +1537,11 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
         {s.email && <a href={'mailto:' + s.email} className="font-semibold text-primary">✉ <bdi dir="ltr">{s.email}</bdi></a>}
         {s.website && <a href={/^https?:/.test(s.website) ? s.website : 'https://' + s.website} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_website')}</a>}
       </div>
-      {c.file_url && <div className="mt-1.5"><a href={c.file_url} target="_blank" rel="noopener" className="font-semibold text-primary">{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</a></div>}
+      {/* The supplier's own quotation file: View / Download; Replace / Remove say it is the supplier's (instruction 524). */}
+      {c.file_url && <div className="mt-1.5">
+        <div className={cn(S.sub, 'mb-1')}>{t(lang, 'c_download')}{c.file_name ? <> (<bdi>{c.file_name}</bdi>)</> : null}</div>
+        <DocActions lang={lang} name={c.file_name} url={c.file_url} sealed="suppliers_file" />
+      </div>}
       <div className="mt-2.5 flex flex-wrap items-center gap-4">
         {/* A11Y (5 Aug 2026): real buttons carrying their value, in a labelled group. */}
         {!rated ? <span role="group" aria-label={t(lang, 'c_rate_group')} aria-busy={(act.busy && act.key === 'rate') || undefined} className="text-lg tracking-widest text-muted-foreground/50">{[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" disabled={act.pending} onClick={() => rate(n)} aria-label={tf(lang, 'c_rate_n', { n })} className={cn('cursor-pointer border-0 bg-transparent p-0 leading-none disabled:cursor-progress', n <= rating && 'text-amber-400')}>★</button>)}</span> : <span className={S.sub}>{t(lang, 'c_rated')}</span>}

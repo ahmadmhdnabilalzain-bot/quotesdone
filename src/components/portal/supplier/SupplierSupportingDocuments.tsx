@@ -7,10 +7,11 @@
 // (list, save = upload / replace, delete, url = download) a mobile client sends the same way.
 import { useEffect, useRef, useState } from 'react';
 // (useRef also carries the mounted flag below.)
-import { Download, FileText, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { FileText, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import DocActions from '../DocActions';
 import { call } from './api';
 import { ws } from './workspaceCopy';
 
@@ -26,7 +27,6 @@ export default function SupplierSupportingDocuments({ token, lang }: { token: st
   const [list, setList] = useState<List | null>(null);
   const [label, setLabel] = useState(''); const [type, setType] = useState('certificate'); const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState<string>(''); const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
-  const [confirm, setConfirm] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const max = list?.limits.max_documents ?? 30;
   // A tab switch unmounts this; an answer arriving afterwards must not write state.
@@ -53,18 +53,17 @@ export default function SupplierSupportingDocuments({ token, lang }: { token: st
   const remove = async (id: number) => {
     setBusy('rm' + id); setNote(null);
     const j = await call('supplier_portal', { action: 'supporting_document_delete', id }, token).catch(() => null);
-    if (!live.current) return;
-    setBusy(''); setConfirm(null);
+    if (!live.current) return { ok: false as const };
+    setBusy('');
     setNote(j && j.ok ? { ok: true, text: ws(lang, 'sd_removed') } : { ok: false, text: errText(lang, j, max) }); load();
+    return { ok: !!(j && j.ok), message: j && j.ok ? undefined : errText(lang, j, max) };
   };
   // A fresh URL each time: the one in the list expires after an hour. That round trip said nothing
   // (18 Sep 2026) — the press looked ignored until the tab opened — so it takes the same keyed `busy`
   // the replace and remove buttons already use.
-  const download = async (id: number) => {
-    setBusy('d' + id); setNote(null);
+  const freshUrl = async (id: number): Promise<string | null> => {
     const j = await call('supplier_portal', { action: 'supporting_document_url', id }, token).catch(() => null);
-    if (live.current) setBusy('');
-    if (j && j.ok && j.url) window.open(j.url, '_blank', 'noopener,noreferrer'); else if (live.current) setNote({ ok: false, text: errText(lang, j, max) });
+    return j && j.ok && j.url ? String(j.url) : null;
   };
   const docs = list?.documents || [];
   const types = list?.types?.length ? list.types : ['certificate', 'other'];
@@ -111,17 +110,11 @@ export default function SupplierSupportingDocuments({ token, lang }: { token: st
                   <div className="mt-0.5 text-[12px] text-muted-foreground"><bdi>{d.file_name}</bdi> · {ws(lang, 'sd_uploaded', { date: new Date(d.uploaded_at).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) })}</div>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-1.5" aria-live="polite">
-                <Button size="sm" variant="outline" className="min-h-11" disabled={busy === 'd' + d.id} aria-busy={busy === 'd' + d.id || undefined} onClick={() => download(d.id)}><Download aria-hidden className="h-4 w-4" />{busy === 'd' + d.id ? ws(lang, 'sd_opening') : ws(lang, 'sd_download')}</Button>
-                <label className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 text-[13px] font-medium text-foreground focus-within:ring-2 focus-within:ring-ring hover:bg-muted">
-                  <RefreshCw aria-hidden className="h-4 w-4" />{busy === 'r' + d.id ? ws(lang, 'sd_uploading') : ws(lang, 'sd_replace')}
-                  <input type="file" accept={ACCEPT} className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) save({ id: d.id }, f, 'r' + d.id); e.target.value = ''; }} />
-                </label>
-                {confirm === d.id
-                  ? <><Button size="sm" variant="destructive" className="min-h-11" disabled={busy === 'rm' + d.id} onClick={() => remove(d.id)}>{ws(lang, 'sd_remove_confirm')}</Button>
-                     <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setConfirm(null)}>{ws(lang, 'sd_cancel')}</Button></>
-                  : <Button size="sm" variant="ghost" className="min-h-11" onClick={() => setConfirm(d.id)}><Trash2 aria-hidden className="h-4 w-4" />{ws(lang, 'sd_remove')}</Button>}
-              </div>
+              {/* The four actions every document offers (instruction 524): View / Download / Replace / Remove, from
+                  the one shared row. A fresh URL each press — the one in the list expires after an hour. */}
+              <DocActions lang={lang} name={d.file_name} accept={ACCEPT} getUrl={() => freshUrl(d.id)}
+                onReplace={(f: File) => save({ id: d.id }, f, 'r' + d.id)}
+                onRemove={() => remove(d.id)} />
             </li>
           ))}
         </ul>}

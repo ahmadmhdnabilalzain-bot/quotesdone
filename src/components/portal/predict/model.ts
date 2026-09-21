@@ -1,10 +1,8 @@
-// The shape of what supabase/functions/customer_intelligence and negotiation_assistant return, and
-// the pure derivations the two surfaces in this folder share.
+// The shape of what supabase/functions/customer_intelligence returns, and the pure derivations the
+// surface in this folder uses.
 //
 // Every type below is transcribed from what the endpoints ACTUALLY emit — nothing is invented:
 //   customer_intelligence action:'forecast' -> fn_customer_forecast(customer, horizon_days)
-//   negotiation_assistant action:'guidance' -> fn_negotiation_guidance(customer, quote)
-//   negotiation_assistant action:'market'   -> fn_price_confidence + public.category_price_stats
 // If a field is not here, the endpoint does not serve it. Do not add one without adding it there.
 //
 // This module imports nothing, so model.test.mjs can execute the derivations straight off the repo
@@ -71,34 +69,6 @@ export interface Forecast {
   predictions: Prediction[];
 }
 
-/* ── §15 AI Negotiation Assistant ─────────────────────────────────────────────────────────── */
-
-export interface Negotiation {
-  quote_id: string;
-  inquiry_id: string;
-  category: string | null;
-  quote_amount: number | null;
-  supplier_id: number | null;
-  /** null before the supplier is revealed. */
-  supplier_name: string | null;
-  market: Record<string, unknown> | null;
-  market_median: number | null;
-  market_sample_n: number | null;
-  delta_vs_median_pct: number | null;
-  /** insufficient_data | suspiciously_low | ... — the band fn_price_confidence assigned. */
-  band: string | null;
-  policy_scope: string | null;
-  /** The house policy's verdict, e.g. 'negotiate_hard', 'no_benchmark_yet', 'no_policy'. */
-  recommended_action: string | null;
-  ask_discount_pct: number | null;
-  /** null whenever the policy or the sample refuses to name one. */
-  target_price: number | null;
-  headline: string | null;
-  suggested_message: string | null;
-  suggested_message_ar: string | null;
-  empty_reason: string | null;
-}
-
 /* ── derivations ──────────────────────────────────────────────────────────────────────────── */
 
 /** A number, or null. '' , null, undefined and NaN are all "not measured", never 0. */
@@ -106,40 +76,6 @@ export function numOrNull(v: unknown): number | null {
   if (v === null || v === undefined || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
-}
-
-export interface MarketComparison {
-  median: number;
-  sampleN: number;
-  deltaPct: number;
-  direction: 'above' | 'below' | 'level';
-}
-
-/**
- * The §15 headline — "your quote against the market average" — or null when there is no market to
- * compare against.
- *
- * THE NULL IS THE FEATURE. Production holds zero quotes, so category_price_stats is empty and
- * fn_negotiation_guidance answers band='insufficient_data' on every call. It ALSO still returns a
- * median and a delta when a thin sample exists but is below the policy's min_sample — the routine
- * withholds the target price and says why. Rendering "12% above market" off two quotes would be the
- * same defect as the empty state that claimed suppliers had been matched whether or not any were:
- * a confident sentence with nothing behind it. So a band the backend calls insufficient is no
- * comparison here either, and the surface prints the headline sentence instead.
- */
-export function marketComparison(g: Negotiation | null | undefined): MarketComparison | null {
-  if (!g) return null;
-  if (!g.band || g.band === 'insufficient_data') return null;
-  const median = numOrNull(g.market_median);
-  const sampleN = numOrNull(g.market_sample_n);
-  const deltaPct = numOrNull(g.delta_vs_median_pct);
-  if (median === null || median <= 0 || sampleN === null || sampleN <= 0 || deltaPct === null) return null;
-  return {
-    median,
-    sampleN,
-    deltaPct,
-    direction: deltaPct > 0 ? 'above' : deltaPct < 0 ? 'below' : 'level',
-  };
 }
 
 export type Urgency = 'now' | 'soon' | 'planned';
