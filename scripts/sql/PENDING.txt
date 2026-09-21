@@ -15,4 +15,3 @@
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
 #
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
-scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql :: PR #780, not yet applied; the coordinator applies it with --apply --ddl, then moves this line to the END of MANIFEST.txt
