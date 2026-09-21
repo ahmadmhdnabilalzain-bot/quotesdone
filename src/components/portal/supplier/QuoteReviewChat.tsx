@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { srvMsg } from './serverCopy';
 import { failed, fileToBase64, qr, REVIEW_STATE, type Issue, type Lang, type MessageView, type ThreadView } from './quoteReviewApi';
+import { Ltr } from '@/lib/Ltr';
 
 const ACCEPT = 'application/pdf,.pdf,.xlsx,.xls,.csv,.ods,.doc,.docx,.odt,.rtf,.txt,.eml,.msg,.zip';
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -45,7 +46,6 @@ const COPY = {
     fileTip: 'PDF نصي أو Excel أو Word أو CSV أو بريد إلكتروني — حتى 10 ميغابايت.', label: 'رسالة إلى مهندس المبيعات', log: 'المحادثة مع مهندس المبيعات',
   },
 };
-const Ltr = ({ children }: { children: React.ReactNode }) => <bdi dir="ltr">{children}</bdi>;
 /** Only an https link is rendered or opened — never a javascript: or data: URL from a response. */
 const safeUrl = (u: string | null | undefined) => (u && /^https:\/\//i.test(u) ? u : null);
 const time =(d: string, lang: Lang) => new Date(d).toLocaleTimeString(lang === 'ar' ? 'ar-AE' : 'en-GB', { hour: '2-digit', minute: '2-digit' });

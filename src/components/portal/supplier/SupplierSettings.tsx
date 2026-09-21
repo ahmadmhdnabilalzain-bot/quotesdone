@@ -19,6 +19,7 @@ import React, { useEffect, useState } from 'react';
 import { call } from './api';
 import { WhatsAppChoice } from '../WhatsAppChoice';
 import type { WaState } from '../whatsappChoiceText';
+import { Ltr } from '@/lib/Ltr';
 
 type Lang = 'en' | 'ar';
 type Settings = {
@@ -208,9 +209,9 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
         <Fact k={t(lang, 'phone')} tone={tone(s.owner_phone_verified)}><bdi dir="ltr">{s.phone || t(lang, 'none')}</bdi> · {yn(s.owner_phone_verified)}</Fact>
         <Fact k={t(lang, 'approval')}>{stateLabel(lang, s.approval_status)}</Fact>
         <Fact k={t(lang, 'registration')}>{stateLabel(lang, s.registration_status)}</Fact>
-        <Fact k={t(lang, 'licence')}>{s.license_expiry ? <bdi dir="ltr">{date(lang, s.license_expiry)}</bdi> : t(lang, 'none')}</Fact>
+        <Fact k={t(lang, 'licence')}>{s.license_expiry ? <Ltr>{date(lang, s.license_expiry)}</Ltr> : t(lang, 'none')}</Fact>
         <Fact k={t(lang, 'terms')}>{s.accepted_terms_at
-          ? <><bdi dir="ltr">{date(lang, s.accepted_terms_at)}</bdi>{s.accepted_terms_version ? <> · <bdi dir="ltr">v{String(s.accepted_terms_version).replace(/^v/i, '')}</bdi></> : null}</>
+          ? <><Ltr>{date(lang, s.accepted_terms_at)}</Ltr>{s.accepted_terms_version ? <> · <bdi dir="ltr">v{String(s.accepted_terms_version).replace(/^v/i, '')}</bdi></> : null}</>
           : t(lang, 'never')}</Fact>
       </section>
     </div>
