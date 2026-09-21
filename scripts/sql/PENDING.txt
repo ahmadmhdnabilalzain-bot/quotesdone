@@ -15,6 +15,8 @@
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
 #
 # 21 Sep 2026 — recurrence guards (docs/it/RECURRENCE_GUARDS_21_SEP_2026.md).
+#
+# 21 Sep 2026 — registration-day surge review (it_engineer).
 scripts/sql/the_customer_vault_lists_the_quote_pdf_and_reads_the_quotes_warranty.sql :: audit finding 11 (21 Sep 2026); dry run green, awaiting the sales_engineer apply — remove this line when applied.
 
 
