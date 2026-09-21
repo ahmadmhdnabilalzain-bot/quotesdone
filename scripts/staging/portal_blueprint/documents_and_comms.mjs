@@ -1,5 +1,5 @@
-// SPEC FILE #4, sections 14-18 — Document Vault, Negotiation AI, Communication Center, AI Memory,
-// Mobile App. 26 requirements, scored against PRODUCTION.
+// SPEC FILE #4, sections 14-18 — Document Vault, Communication Center, AI Memory, Mobile App.
+// 21 requirements, scored against PRODUCTION (section 15, Negotiation AI, retired 21 Sep 2026).
 //
 // This row is about WHAT THE CUSTOMER SEES, so a capability that is computed server-side and
 // rendered nowhere is MISSING however well the backend works. Half the checks below therefore
@@ -51,7 +51,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-export const EXPECTED = 26;
+export const EXPECTED = 21;   // 26 until 21 Sep 2026; the five §15 neg-* legs retired with the negotiation assistant
 
 // ---- the repository, read once ---------------------------------------------------------------
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -125,7 +125,6 @@ const ROWS = (t) => `(select count(*) from public.${t})`;
 
 export default async function ({ req }) {
   const S14 = '14. Document Intelligence Vault';
-  const S15 = '15. AI Negotiation Assistant';
   const S16 = '16. Communication Center';
   const S17 = '17. Customer AI Memory';
   const S18 = '18. Customer Mobile App';
@@ -303,102 +302,17 @@ export default async function ({ req }) {
            where n.nspname='public' and p.prokind in ('f','p') and p.proname='fn_ws_documents' limit 1),''),
            'no arguments')||') — nothing that names a customer'`);
 
-  // ============ 15. AI NEGOTIATION ASSISTANT ==================================================
+  // ============ 15. AI NEGOTIATION ASSISTANT — RETIRED 21 SEP 2026 ============================
+  // The founder removed negotiations from both portals (instruction 527). NegotiationAssistant.tsx
+  // and the negotiation_assistant edge function are deleted. Its five requirements
+  // (neg-market-average, neg-recommended-action, neg-suggested-message, neg-triggered-on-quote,
+  // neg-customer-ui) retired WITH their subject. They are not scored as missing, because building
+  // them again would contradict the ruling. fn_negotiation_guidance and supplier_negotiation_policy
+  // still exist in the database; no surface calls them.
 
-  // A MARKET AVERAGE IS COMPUTED — that half is true and the evidence says so. category_price_stats
-  // computes median/p25/p75/mean per category over quotes. The requirement lives in the negotiation
-  // section, so the verdict also asks whether that figure can reach the customer looking at the
-  // quote: a customer-authed function that reads the view or the routine built on it.
-  const MKT_VIEW = `(select string_agg(viewname,',') from pg_views where schemaname='public'
-      and definition ~* '\\yquotes\\y' and definition ~* '\\y(avg|percentile_cont|median)\\y'
-      and definition ~* '\\ycategory\\y')`;
-  const mktEdge = custEdge(/category_price_stats|fn_price_confidence/);
-  await req(S15, 'neg-market-average', 'A market average price is computed for the quoted item',
-    `select coalesce(${MKT_VIEW} is not null and ${mktEdge.length > 0}, false)`,
-    `select 'computed by view(s): '||coalesce(${MKT_VIEW},'none')||' (rows: '
-       ||(select count(*)::text from public.category_price_stats)||', over '||${ROWS('quotes')}
-       ||' quote(s) — production holds zero quotes, so the figure is empty by data, not by design)'
-       ||'; SQL readers: '||coalesce((select string_agg(distinct p.proname,',') from pg_proc p
-            join pg_namespace n on n.oid=p.pronamespace
-           where n.nspname='public' and p.prokind in ('f','p')
-             and pg_get_functiondef(p.oid) ~* '\\y(category_price_stats|fn_price_confidence)\\y'),'none')
-       ||'; customer-authed edge readers: '||${lit(String(mktEdge.length))}||' ('
-       ||${lit(mktEdge.join(',') || 'none')}||') of '||${lit(String(CUST.length))}||' customer-authed function(s)'`);
-
-  // A RECOMMENDED ACTION WITH A TARGET PERCENTAGE. supplier_negotiation_policy is the declared
-  // home for it. Three legs, because the table alone is furniture: it must hold policy, something
-  // must read it, and some routine or endpoint must actually emit a target.
-  const negProducers = edge(/supplier_negotiation_policy/)
-    .concat(edge(/negotiat\w*\s*[:=]/)).filter((v, i, a) => a.indexOf(v) === i).sort();
-  await req(S15, 'neg-recommended-action', 'A recommended negotiation action with a target percentage is produced',
-    `select coalesce(${HAS_TBL('supplier_negotiation_policy')}
-       and ${ROWS('supplier_negotiation_policy')} > 0
-       and ${READERS('supplier_negotiation_policy')} > 0
-       and ${negProducers.length > 0}, false)`,
-    `select 'supplier_negotiation_policy exists: '||${HAS_TBL('supplier_negotiation_policy')}
-       ||' with '||${ROWS('supplier_negotiation_policy')}||' policy row(s) over '
-       ||(select count(*)::text from public.leads)||' supplier(s) — not a zero-customer artefact; '
-       ||'non-writing SQL readers: '||${READER_NAMES('supplier_negotiation_policy')}
-       ||'; routines naming negotiation at all: '||coalesce((select string_agg(distinct p.proname,',')
-            from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-           where n.nspname='public' and p.prokind in ('f','p')
-             and pg_get_functiondef(p.oid) ~* 'negotiat'),'none')
-       ||'; edge function(s) producing a negotiation artefact: '||${lit(String(negProducers.length))}
-       ||' ('||${lit(negProducers.join(',') || 'none')}||')'`);
-
-  // A READY-TO-SEND MESSAGE. The transport exists (messages_api action=send takes a body), so this
-  // asks for the DRAFT. A mention is not a drafter: messages_api names negotiation once, inside the
-  // routing prompt that decides whether a chat is needed, and that occurrence is counted and
-  // printed rather than quietly credited or quietly ignored.
-  const drafters = CUST.filter(k => /negotiat/.test(EDGE[k]) &&
-    /(draft|suggest|counter[- ]?offer)/i.test(EDGE[k]) && /supplier_negotiation_policy|negotiat\w*\s*[:=]/.test(EDGE[k]));
-  const negMentions = Object.keys(EDGE).filter(k => /negotiat/i.test(EDGE[k])).sort();
-  const sendsBody = edge(/action === 'send'/)
-    .filter(k => /from\(['"]messages['"]\)/.test(EDGE[k]) && /body\.body/.test(EDGE[k]));
-  await req(S15, 'neg-suggested-message', 'A ready-to-send message to the supplier is drafted',
-    B(drafters.length > 0),
-    `select ${lit(String(drafters.length))}||' customer-authed edge function(s) draft negotiation copy ('
-       ||${lit(drafters.join(',') || 'none')}||'); negotiation is named in '||${lit(String(negMentions.length))}
-       ||' edge function(s) ('||${lit(negMentions.join(',') || 'none')}
-       ||') — mentions, not drafts; the transport exists in '||${lit(String(sendsBody.length))}
-       ||' function(s) that accept a caller-supplied body ('||${lit(sendsBody.join(',') || 'none')}
-       ||'); SQL routines drafting negotiation copy: '||coalesce((select string_agg(distinct p.proname,',')
-            from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-           where n.nspname='public' and p.prokind in ('f','p')
-             and pg_get_functiondef(p.oid) ~* 'negotiat' and pg_get_functiondef(p.oid) ~* '(draft|suggest)'),'none')`);
-
-  // TRIGGERED WHEN A QUOTE ARRIVES. Measured at the call site, not the component: what does the
-  // portal fetch once quotes exist? quote_compare is fetched (guarded by quotes.length >= 2); a
-  // negotiation endpoint is not fetched at all.
+  // The endpoints the customer portal calls, measured at the call site. Used by §18's profile leg.
   const portalCalls = [...portal().matchAll(/call\('([a-z_]+)'/g)].map(m => m[1]);
   const uniqCalls = [...new Set(portalCalls)].sort();
-  const negCalls = uniqCalls.filter(c => /negoti/.test(c));
-  const compareCalls = N(PORTAL, /call\('quote_compare'/g);
-  await req(S15, 'neg-triggered-on-quote', 'Negotiation guidance appears when a quote arrives',
-    B(negCalls.length > 0),
-    `select ${lit(String(negCalls.length))}||' negotiation endpoint(s) among the '
-       ||${lit(String(uniqCalls.length))}||' the customer portal calls ('||${lit(uniqCalls.join(','))}
-       ||'); on the same quote path it calls quote_compare '||${lit(String(compareCalls))}||' time(s)'`);
-
-  // …and the surface itself, measured as a rendered thing rather than a request.
-  // A SPELLING IS NOT A SURFACE. `B(negUi > 0)` was satisfiable by typing the word "Negotiation"
-  // into a heading — this file already refuses that reasoning for doc-store-six-kinds ("a path, not
-  // a spelling") and then accepted it here. The bar is now the one the comparison assistant clears
-  // on the same screen: the portal FETCHES a negotiation payload and RENDERS a value out of it. The
-  // raw word count is printed as the figure the verdict deliberately does not use.
-  const negUi = N(PORTAL, /[Nn]egotiat/g);
-  const negFetch = N(PORTAL, /call\('[a-z_]*negoti[a-z_]*'|action:\s*'[a-z_]*negoti[a-z_]*'/g);
-  const negRender = N(PORTAL, /\{[^{}]{0,140}negoti[^{}]{0,140}\}/gi);
-  const compUi = N(PORTAL, /function Comparison|<Comparison/g);
-  await req(S15, 'neg-customer-ui', 'Negotiation assistant is rendered in the customer portal',
-    B(negFetch > 0 && negRender > 0),
-    `select ${lit(String(negFetch))}||' negotiation fetch(es) and '||${lit(String(negRender))}
-       ||' rendered negotiation value(s) — out of '||${lit(String(negUi))}
-       ||' raw mention(s) of the word, which is not the verdict — in '||${lit(PORTAL_PATH)}
-       ||'; for contrast the comparison assistant is declared and mounted '||${lit(String(compUi))}
-       ||' time(s) in the same file, and supplier_negotiation_policy has '
-       ||${ROWS('supplier_negotiation_policy')}||' row(s) and '
-       ||${READERS('supplier_negotiation_policy')}||' non-writing SQL reader(s)'`);
 
   // ============ 16. COMMUNICATION CENTER ======================================================
 

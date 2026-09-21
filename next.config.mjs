@@ -22,14 +22,13 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 //     Same env var and same production fallback, so a preview pointed at another project is allowed.
 //   · cdnjs.cloudflare.com — pdf.js script + its worker, CustomerPortal.tsx:279 and
 //     SupplierPortal.tsx:93. Being replaced by a self-hosted build; drop it here when that lands.
-//   · cdn.jsdelivr.net — drei <Text> with no `font` prop makes troika-three-text fetch glyph data
-//     from jsdelivr (unicode-font-resolver@v1.0.1). Used by SupplierEnvironment.tsx:107.
 //   (The founder photo on /about is self-hosted at public/brand/founder.jpg, so no photo host is listed.)
-//   · blob: workers — troika builds its worker from a blob URL; three.js loaders do the same.
+//   · blob: workers — three.js loaders build workers from blob URLs (HeroScene on the marketing pages).
 //   · blob:/data: media and images — voice recordings (MediaRecorder) and canvas previews.
-// NOT allowed, on purpose: www.gstatic.com/draco (drei's default decoder host). The one model we
-// ship, public/models/supplier-warehouse.gltf, has 0 KHR_draco/EXT_meshopt extensions, so the decoder
-// is never requested. A compressed model must ship its decoder in /public, not pull it from Google.
+// 21 Sep 2026: cdn.jsdelivr.net left connect-src and `data:` left connect-src with the supplier portal's
+// 3D environment (drei <Text> → troika glyph fetches; the .gltf model's data: buffers). The founder removed
+// that scene and the 3D network map (instruction 525). If a 3D model ever ships again, it must carry its
+// decoder in /public, never pull www.gstatic.com/draco.
 // Stripe Checkout is a top-level navigation to the URL stripe_checkout returns, which CSP does not
 // govern, so no Stripe origin is needed. No Vercel Analytics / Speed Insights package is installed.
 //
@@ -46,8 +45,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 // The ONLY addition is script-src 'wasm-unsafe-eval', which lets the core compile WebAssembly; it
 // permits wasm compilation only, never eval() of JavaScript. cdn.jsdelivr.net is deliberately NOT in
 // script-src or worker-src: it serves anything anyone publishes to npm or GitHub, so trusting it would
-// let any package run on every page. The connect-src jsDelivr entry below predates OCR (troika) and OCR
-// does not use it.
+// let any package run on every page.
 const SUPA = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://htdblwldjkcgjvmqkbeh.supabase.co').host;
 const isDev = process.env.NODE_ENV !== 'production';
 // Vercel injects its feedback toolbar on preview deployments only.
@@ -59,15 +57,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://${SUPA}`,
   "font-src 'self' data:",
-  // `data:` (18 Sep 2026). public/models/supplier-warehouse.gltf, which scripts/gen_warehouse_gltf.mjs
-  // writes, carries its vertex and index buffers as `"uri": "data:application/octet-stream;base64,…"`
-  // inside the .gltf. three.js's GLTFLoader FETCHES those URIs, so with no `data:` here the browser
-  // refused them and the warehouse in Insights > Company health never drew for any supplier — silently,
-  // because the only sign was a console line nobody read. Found by journey f on 18 Sep, the first night
-  // it could reach that panel. A `data:` URL is the document's own bytes: it names no host, so it can
-  // carry nothing out, which is why it is safe here and why img-src, font-src and media-src above
-  // already allow it.
-  `connect-src 'self' data: https://${SUPA} wss://${SUPA} https://cdn.jsdelivr.net${vercelLive}${isDev ? ' ws:' : ''}`,
+  `connect-src 'self' https://${SUPA} wss://${SUPA}${vercelLive}${isDev ? ' ws:' : ''}`,
   `media-src 'self' blob: data: https://${SUPA}`,
   "worker-src 'self' blob: https://cdnjs.cloudflare.com",
   `frame-src 'self'${vercelLive}`,

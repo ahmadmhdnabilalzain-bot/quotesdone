@@ -8,4 +8,6 @@
 #
 # Format: <path> :: <reason, and what would move it>
 
+scripts/sql/the_founder_removed_bank_details_from_the_estate.sql :: committed by it_engineer 21 Sep 2026, not yet applied; the coordinator applies it (then re-applies scripts/sql/fn_supplier_certifications.sql, edited in the same PR) and removes both lines here.
+scripts/sql/the_negotiation_assistant_leaves_the_registers.sql :: committed by it_engineer 21 Sep 2026, not yet applied; the coordinator applies it in the same step as deleting the negotiation_assistant edge function from the project, then removes this line.
 
