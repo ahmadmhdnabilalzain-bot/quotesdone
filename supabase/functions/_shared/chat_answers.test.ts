@@ -33,6 +33,17 @@ Deno.test('the three public questions route to the FAQ that asks them, EN and AR
   assertEquals(routeQuestion('كم تكلفة السقف الجبسي للمتر المربع في دبي'), null);
   // nothing else is routed
   assertEquals(routeQuestion('does a Dubai supplier cover Abu Dhabi as well'), null);
+  // review of PR #783: a fee / duration question about something else is NOT ours to answer
+  for (const q of ['what is the parking fee at Dubai Mall', 'how long is a football match',
+    'كم رسوم ركن السيارة في دبي مول؟', 'كم يستغرق مباراة كرة القدم؟', 'كم تستغرق مباراة كرة القدم؟']) {
+    assertEquals(routeQuestion(q), null, q);
+    assertEquals(pickFaq(routeQuestion(q), langOf(q), FAQS), null, q);
+  }
+  // …while the same words about us still are
+  assertEquals(routeQuestion('what are your fees?'), 'cost');
+  assertEquals(routeQuestion('is the service free?'), 'cost');
+  assertEquals(routeQuestion('how long does a supplier take to quote?'), 'timeline');
+  assertEquals(routeQuestion('هل المنصة مجانية؟'), 'cost');
 });
 
 const QUOTE = {
