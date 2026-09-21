@@ -161,6 +161,26 @@ Deno.test({ name: 'a forged From naming an admin or our own domain suppresses no
   }
 } });
 
+Deno.test({ name: 'a forged second Authentication-Results, in any shape, suppresses nothing; the genuine one does', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  INVITES_SENT.n = 5;
+  const real = 'amazonses.com; spf=fail; dkim=none; dmarc=fail header.from=example.invalid;';
+  const forged = 'amazonses.com; dmarc=pass header.from=example.invalid;';
+  const shapes: unknown[] = [
+    [real, forged],                              // array[2]
+    JSON.stringify([real, forged]),              // how Resend returns a repeated header (measured)
+    real + ' ' + forged,                         // joined string
+    [real + ' ' + forged],                       // first element carrying an injected block
+  ];
+  for (const ar of shapes) {
+    calls.length = 0;
+    const out = await (await handler(await unsubMail('victim@example.invalid', { 'authentication-results': ar as string }))).json();
+    assertEquals([out.suppressed, suppressions().length, reviewRows().length], [false, 0, 1], JSON.stringify(ar));
+  }
+  calls.length = 0;
+  const ok = await (await handler(await unsubMail('victim@example.invalid', SES('example.invalid')))).json();
+  assertEquals([ok.suppressed, suppressions().length], [true, 1]);
+} });
+
 Deno.test({ name: 'an unauthenticated From, or an address we never invited, suppresses nothing', sanitizeOps: false, sanitizeResources: false, fn: async () => {
   INVITES_SENT.n = 5; calls.length = 0;
   let out = await (await handler(await unsubMail('victim@example.invalid'))).json();                       // no SES verdict

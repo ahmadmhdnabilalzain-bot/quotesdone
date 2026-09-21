@@ -40,20 +40,43 @@ export function blocksTransactional(reason: unknown): boolean {
 // receiving MTA (Amazon SES) adds an Authentication-Results header at the top, e.g.
 //   "amazonses.com; spf=pass (...) envelope-from=...@send.quotesdone.com; ...; dkim=pass header.i=@quotesdone.com;
 //    dmarc=pass header.from=quotesdone.com;"
-// Only the FIRST such header counts (a sender can paste their own further down), and only if it is SES's.
+//
+// THE SHAPE OF A REPEATED HEADER, MEASURED (re-review, 22 Sep 2026, on the two real inbound mails):
+// `headers` is an object keyed by lower-case name. A header that occurs ONCE comes back as a plain string.
+// A header that occurs more than once does NOT come back as an array: `received` (3 instances in the raw
+// message) came back as ONE string holding a JSON-encoded array ('["from mail-pj2 ...", ...]'), and
+// `dkim-signature` (2 instances) as a JSON-encoded array of parsed objects. So a sender who adds their own
+// Authentication-Results makes the value a '['-string, and one who hides a second verdict inside a value
+// leaves a second "amazonses.com;" in it. Both are refused here rather than parsed: the verdict is read
+// ONLY from a plain string that is exactly one SES header, clause by clause, and anything else fails closed
+// (the caller keeps the mail for review and suppresses nothing).
 
 const aligned = (d: string, from: string) => d === from || from.endsWith('.' + d) || d.endsWith('.' + from);
 
 /** true when the receiving MTA authenticated the From domain (DMARC pass, or an aligned DKIM/SPF pass). */
 export function fromDomainAuthenticated(authResults: unknown, fromEmail: string): boolean {
-  const first = Array.isArray(authResults) ? authResults[0] : authResults;
-  const ar = String(first ?? '').toLowerCase();
-  const dom = String(fromEmail || '').toLowerCase().split('@')[1] || '';
-  if (!dom || !/^\s*amazonses\.com;/.test(ar)) return false;
-  for (const m of ar.matchAll(/dmarc=pass[^;]*header\.from=([a-z0-9.-]+)/g)) if (aligned(m[1], dom)) return true;
-  for (const m of ar.matchAll(/dkim=pass[^;]*header\.(?:i=@?|d=)([a-z0-9.-]+)/g)) if (aligned(m[1], dom)) return true;
-  const spf = ar.match(/spf=pass[^;]*envelope-from=[^@;\s]*@([a-z0-9.-]+)/);
-  return !!spf && aligned(spf[1], dom);
+  if (typeof authResults !== 'string') return false;                       // missing, or an array: not one header
+  const ar = authResults.trim().toLowerCase();
+  const dom = String(fromEmail || '').trim().toLowerCase().split('@')[1] || '';
+  if (!dom || /[\r\n]/.test(ar)) return false;
+  if (!ar.startsWith('amazonses.com;')) return false;                      // not SES's, or a JSON list of several
+  // Clauses of THIS header only. Comments are dropped first; a property clause (envelope-from=, header.from=)
+  // belongs to the method clause before it, which is how SES writes spf=pass (...) client-ip=...; envelope-from=...
+  const clauses = ar.slice('amazonses.com;'.length).replace(/\([^()]*\)/g, ' ').split(';').map((c) => c.trim()).filter(Boolean);
+  // A second authserv-id clause is a second verdict hidden in the value: ambiguous. (Counted as a CLAUSE, not
+  // as text -- SES's own "helo=a14-56.smtp-out.amazonses.com" is part of a genuine header.)
+  if (clauses.some((c) => /^amazonses\.com\b/.test(c))) return false;
+  let method = '', result = '';
+  for (const c of clauses) {
+    const mr = c.match(/^(spf|dkim|dmarc)=([a-z]+)\b/);
+    if (mr) { method = mr[1]; result = mr[2]; }
+    if (result !== 'pass') continue;
+    const d = method === 'dmarc' ? c.match(/\bheader\.from=([a-z0-9.-]+)/)
+      : method === 'dkim' ? c.match(/\bheader\.(?:i=@?|d=)([a-z0-9.-]+)/)
+      : c.match(/(?:^|\s)envelope-from=[^@\s]*@([a-z0-9.-]+)/);
+    if (d && aligned(d[1], dom)) return true;
+  }
+  return false;
 }
 
 /** Addresses no email may ever suppress: our own domains and the people who run the company. */

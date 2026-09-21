@@ -28,8 +28,17 @@ Deno.test('a forged From is not authenticated; only the receiving server\'s own 
   assert(!fromDomainAuthenticated(undefined, 'owner@example.invalid'));                 // no header at all
   assert(!fromDomainAuthenticated('amazonses.com; spf=fail; dkim=none; dmarc=fail header.from=example.invalid;', 'owner@example.invalid'));
   assert(!fromDomainAuthenticated('mx.attacker.invalid; dmarc=pass header.from=example.invalid;', 'owner@example.invalid'));  // not SES's
-  // a sender-supplied header further down the message never counts: only the first (the receiver's)
-  assert(!fromDomainAuthenticated(['amazonses.com; dmarc=fail header.from=example.invalid;', 'amazonses.com; dmarc=pass header.from=example.invalid;'], 'owner@example.invalid'));
+  // a second, sender-supplied header in ANY shape fails closed (re-review, 22 Sep 2026)
+  const forged = 'amazonses.com; dmarc=pass header.from=example.invalid;';
+  const real = 'amazonses.com; spf=fail; dkim=none; dmarc=fail header.from=example.invalid;';
+  assert(!fromDomainAuthenticated([real, forged], 'owner@example.invalid'));                       // as array[2]
+  assert(!fromDomainAuthenticated(JSON.stringify([real, forged]), 'owner@example.invalid'));       // as Resend returns a repeated header
+  assert(!fromDomainAuthenticated(real + ' ' + forged, 'owner@example.invalid'));                  // joined into one string
+  assert(!fromDomainAuthenticated(real + '\r\nAuthentication-Results: ' + forged, 'owner@example.invalid'));
+  assert(!fromDomainAuthenticated([real + forged], 'owner@example.invalid'));                      // first element carries an injected block
+  assert(!fromDomainAuthenticated('amazonses.com; spf=fail (dmarc=pass header.from=example.invalid) ;', 'owner@example.invalid')); // inside a comment
+  // the genuine single SES header still authenticates, including the SPF clause SES writes after client-ip
+  assert(fromDomainAuthenticated('amazonses.com; spf=pass (spfCheck: x) client-ip=1.2.3.4; envelope-from=b@example.invalid; helo=h; dkim=none; dmarc=none header.from=example.invalid;', 'owner@example.invalid'));
   assert(fromDomainAuthenticated('amazonses.com; spf=none; dkim=pass header.i=@mail.example.invalid; dmarc=none header.from=example.invalid;', 'owner@example.invalid'));
 });
 
