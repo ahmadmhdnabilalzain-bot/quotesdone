@@ -212,7 +212,10 @@ jobs:
           # an hour left to live.
           #
           # ONE REMAINS, and it is the one that must never leave this list: security, not structure.
-          for t in anon_cannot_execute_security_definer; do
+          # 22 SEP 2026 (founder instruction 642): every_alarm_is_quiet_on_a_healthy_day joins it. Its
+          # replay of each alarm on production's quiet hours is what stops a new alarm merging before
+          # it has been shown to stay quiet when nothing is wrong, and that half needs this credential.
+          for t in anon_cannot_execute_security_definer every_alarm_is_quiet_on_a_healthy_day; do
             echo "::group::$t"
             # STREAMED, NOT CAPTURED. 26 Aug 2026: this job failed at its last check and the log
             # carried NOT ONE LINE of that check's output -- in a step that had run for eight minutes.
