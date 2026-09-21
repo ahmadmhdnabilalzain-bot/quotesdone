@@ -26,11 +26,15 @@ import { homedir } from 'node:os';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const RUN = process.argv.includes('--run');
-const LIMIT = Number((process.argv.find(a => a.startsWith('--limit=')) || '--limit=50000').slice(8));
+// 15,000 rows per delete batch by default (21 Sep 2026): the rule now costs two regexes per row, and
+// a batch must finish under the gateway's ~100 s cut like every census slice.
+const LIMIT = Number((process.argv.find(a => a.startsWith('--limit=')) || '--limit=15000').slice(8));
 const EXPORT_DAY = '2026-09-18';
 const EXPORT_PAGES = 4177;            // §8: the full copy of 2026-09-18, 11,929,993,565 bytes
 const SIZE_BEFORE_MB = 9313;          // §8, measured 21 Sep 2026 09:18 UTC
-const STANDARD_SLICE = 200000;        // id slice for the `standard` census: ~140k rows ≈ 12 s each
+// 50,000 ids per slice (21 Sep 2026): with the US test added, a 200,000-id slice took 70.2 s and the
+// next one crossed the gateway's ~100 s cut (HTTP 524). A quarter of that stays well under it.
+const STANDARD_SLICE = 50000;
 
 function token() {
   if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
@@ -97,13 +101,20 @@ step('census (verdict per source_kind × category, written to kb_purge_ledger be
     console.log(`   census already in the ledger (${have.n} rows) — not rewritten; delete batches resume from it`);
   } else {
     const before = await one(`select pg_total_relation_size('public.kb_chunks')::bigint as b`);
-    await sql(`insert into public.kb_purge_ledger (verdict, clause, source_kind, category, bytes, note)
+    await sql(`delete from public.kb_purge_ledger where verdict = 'SIZE' and note = 'before the purge';
+               insert into public.kb_purge_ledger (verdict, clause, source_kind, category, bytes, note)
                values ('SIZE', 0, 'kb_chunks', 'pg_total_relation_size', ${before.b}, 'before the purge')`);
     // Non-`standard` kinds fit one request (≈21 s measured); `standard` (2.06 M rows) goes by id slice.
-    const censusSql = (where) => `
+    // Each slice is written under its own note and REPLACES any earlier write of the same slice
+    // (21 Sep 2026). A gateway 524 does not mean the statement failed: it can commit on the server
+    // after the gateway gives up, and sql() then retries. Measured: the plain insert double-counted —
+    // 2,991,664 rows classified for a 2,615,397-row table. Delete-then-insert per slice makes a retry
+    // harmless, and the total is checked against the table below.
+    const censusSql = (where, tag) => `
       set statement_timeout = '10min';
+      delete from public.kb_purge_ledger where batch_no is null and note = '${tag}';
       insert into public.kb_purge_ledger (verdict, clause, source_kind, category, rows, note)
-      select ${VERDICT}, c, source_kind, category, count(*), 'census'
+      select ${VERDICT}, c, source_kind, category, count(*), '${tag}'
         from (select k.source_kind, k.category,
                      case when ${CLAUSE} = 1 then 1
                           when k.id in ${CITED} then 2
@@ -111,15 +122,20 @@ step('census (verdict per source_kind × category, written to kb_purge_ledger be
                 from public.kb_chunks k where ${where}) x
        group by 1, 2, 3, 4`;
     try {
-      let t = t0();
-      await sql(censusSql(`k.source_kind <> 'standard'`));
-      console.log(`   non-standard kinds classified in ${ms(t)}`);
+      // Every kind goes by id slice (21 Sep 2026). With the US test added (instruction 535) the rule
+      // does two regexes per row, and the single non-`standard` request hit the gateway's 524 at
+      // ~100 s. One slice of every kind stays far under it.
       const range = await one(`select min(id)::bigint as lo, max(id)::bigint as hi from public.kb_chunks`);
       for (let lo = Number(range.lo); lo <= Number(range.hi); lo += STANDARD_SLICE) {
-        t = t0();
-        await sql(censusSql(`k.source_kind = 'standard' and k.id >= ${lo} and k.id < ${lo + STANDARD_SLICE}`));
-        console.log(`   standard ids ${lo}..${lo + STANDARD_SLICE - 1} classified in ${ms(t)}`);
+        const t = t0();
+        await sql(censusSql(`k.id >= ${lo} and k.id < ${lo + STANDARD_SLICE}`, `census ${lo}`));
+        console.log(`   ids ${lo}..${lo + STANDARD_SLICE - 1} classified in ${ms(t)}`);
       }
+      // The census must account for every row once — no more, no less.
+      const tot = await one(`select (select coalesce(sum(rows),0) from public.kb_purge_ledger where batch_no is null and verdict <> 'SIZE')::bigint as classified,
+                                    (select count(*) from public.kb_chunks)::bigint as in_table`);
+      console.log(`   classified ${tot.classified} of ${tot.in_table} rows in the table`);
+      if (Number(tot.classified) !== Number(tot.in_table)) throw new Error(`census total ${tot.classified} != table ${tot.in_table}`);
     } catch (e) {
       // A half-written census would make fn_kb_purge_batch plan against a short count, so it goes.
       await sql(`delete from public.kb_purge_ledger where batch_no is null and verdict <> 'SIZE'`);
