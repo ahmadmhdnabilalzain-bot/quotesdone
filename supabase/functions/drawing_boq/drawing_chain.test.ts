@@ -32,6 +32,8 @@ import { inquiryDocuments, boqCsv } from '../supplier_api/quote_review_actions.t
 import { inquiryDocument, type InquiryDocRow } from '../_shared/quote_documents.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { linesFromRuns, pdfPages } from '../_shared/pdf_text_positions.ts';
+import { boqFromDrawingSet } from './drawing_set.ts';
+import { IDENTITY as SET_IDENTITY, sheetPdf } from './drawing_set.fixtures.ts';
 
 // ── The ZZ DEMO customer: every identity the chain must remove ────────────────────────────────────
 const CUSTOMER = { name: 'ZZ DEMO Rashid Kareem', email: 'rashid.owner@zzdemo-owner.example.invalid', phone: '+971500000017' };
@@ -149,4 +151,23 @@ Deno.test('the inquiry sheet in Arabic carries Arabic headings, the quantities, 
   for (const h of ['جدول الكميات', 'المستندات المرفقة', 'أساس الكمية', 'للتأكيد', 'تقديرنا', 'إخفاء الهوية']) assert(hasAr(text, h), `Arabic heading not read back from the PDF: ${h}\n${text}`);
   for (const q of ['12', '4', '2', '1']) assert(new RegExp(`(^|\\s)${q}(\\s|$)`, 'm').test(text), `quantity ${q} not on the Arabic PDF`);
   for (const f of FORBIDDEN) assert(!text.includes(f), `the Arabic PDF names the customer: "${f}"`);
+});
+
+// ── The whole chain from the READER, not a literal: a synthetic rotated CAD sheet (drawing_set.fixtures.ts)
+// read by pdf_text_positions, taken off by drawing_set.boqFromDrawingSet, ingested and rendered as the
+// supplier's inquiry. Every take-off line reaches the PDF with its quantity, nothing of the title block does.
+Deno.test('the drawing reader\'s own take-off reaches the supplier\'s inquiry PDF intact and anonymous', async () => {
+  const set = boqFromDrawingSet(await pdfPages(sheetPdf()), '')!;
+  assert(set && set.boq.length >= 8, 'the reader produced no take-off');
+  const settled = settleLines(set.boq as Line[], { status: 'unanswered', lines: openLines(set.boq as Line[]) });
+  const gate = redactBoq({ boq: settled, confidence: 'medium' }, seeds);
+  assert(!gate.held, 'create_inquiry HELD the reader\'s BOQ: ' + gate.reasons.join('; '));
+  const hits: string[] = [];
+  const inbox = inboxBoq(gate.boq, CUSTOMER.name, seeds, hits) as { boq: { boq: Line[] } | null; withheld: boolean };
+  assertEquals(inbox.withheld, false);
+  const { text } = await renderAndRead(inquiryDocument({ inquiry: docRow(inboxRow(inbox.boq, false)), lang: 'en', date: '21 September 2026' }).body);
+  const flat = text.replace(/\s+/g, ' ');
+  for (const tag of ['EF-1', 'IRH-1', 'RTU1-2', 'WC/L-1', 'Air device type A', 'Air device type B']) assert(flat.includes(tag), `take-off line missing from the PDF: ${tag}`);
+  assert(/To confirm/.test(flat), 'the reader\'s estimates are not marked on the PDF');
+  for (const s of SET_IDENTITY) assert(!flat.includes(s), `title-block identity reached the supplier PDF: ${s}`);
 });
