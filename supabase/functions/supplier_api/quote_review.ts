@@ -46,7 +46,7 @@ export type Lang = 'en' | 'ar';
 // The shapes the review reads.
 // ---------------------------------------------------------------------------------------------
 /** One row of the job's bill of quantities, as the supplier inbox serves it (already scrubbed). */
-export type BoqRow = { section?: string | null; description?: string | null; qty?: number | string | null; unit?: string | null };
+export type BoqRow = { section?: string | null; description?: string | null; qty?: number | string | null; unit?: string | null; qty_status?: string | null };
 /** The inquiry as this supplier may see it — the output of supplier_api `inbox`, never the raw row. */
 export type SafeInquiry = {
   id: string; job_no: string; category: string | null; emirate: string | null; spec: unknown;

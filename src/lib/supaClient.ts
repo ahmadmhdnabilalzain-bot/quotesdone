@@ -19,7 +19,10 @@ export function supaClient(storageKey: string): SupabaseClient {
   let c = clients.get(storageKey);
   if (!c) {
     if (!SUPA_URL) throw new Error('[qd] this deployment has no database target (NEXT_PUBLIC_SUPABASE_URL is unset on a preview build)');
-    c = createClient(SUPA_URL, SUPA_ANON, { auth: { persistSession: true, autoRefreshToken: true, storageKey } });
+    // detectSessionInUrl OFF (audit 21 Sep 2026, item 29): auth-js clears a magic-link fragment with
+    // `location.hash = ''`, which pushes a history entry and leaves the token one Back press away.
+    // The portals take the fragment themselves, in place — src/lib/authFragment.ts.
+    c = createClient(SUPA_URL, SUPA_ANON, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey } });
     clients.set(storageKey, c);
   }
   return c;

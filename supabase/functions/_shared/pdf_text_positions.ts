@@ -6,27 +6,53 @@
 // block (consultant, client, phone, email, "Drawn by") as REAL TEXT. That text has a position, and a
 // position can be mapped onto the rasterised page and boxed without any model.
 //
-// WHAT IT READS. Page tree order (Catalog -> /Pages -> /Kids, inheriting /MediaBox and /Rotate),
-// each page's /Contents (FlateDecode or raw), object streams (PDF 1.5+ hides page dicts in them), and
-// the text operators BT/ET, Tf, TL, Td, TD, Tm, T*, Tj, TJ, ', " under q/Q/cm.
+// WHAT IT READS. Page tree order (Catalog -> /Pages -> /Kids, inheriting /MediaBox, /Rotate and
+// /Resources), each page's /Contents (FlateDecode or raw), object streams (PDF 1.5+ hides page dicts
+// in them), the text operators BT/ET, Tf, TL, Td, TD, Tm, T*, Tj, TJ, ', " under q/Q/cm, and — since
+// 21 Sep 2026 — FORM XOBJECTS (`Do`), followed recursively with their /Matrix and their own
+// /Resources, plus fonts' /ToUnicode maps (1- and 2-byte codes, Identity-H).
+//
+// 21 SEP 2026 (sales_engineer, founder instruction 580). MEASURED on two real US bid sets (a 36x24
+// mechanical permit set of 8 sheets and a plumbing bid set of 5, every page /Rotate 270): this reader
+// returned 8,005 of 36,949 characters (22 %) and 9,185 of 12,853 (71 %), and ZERO characters on every
+// plan and schedule sheet after the first, because CAD writes each sheet's text inside Form XObjects
+// and the old header named exactly that ceiling ("Text inside Form XObjects is not followed"). A drawing
+// set read that way yields no tags, no scale, no title block — 0 of 49 answer-key items.
+//
+// COORDINATES ARE IN THE DISPLAY FRAME. Runs, images and lines are normalised 0..1 with a top-left
+// origin AS THE PAGE IS SHOWN, i.e. after the page's /Rotate — the same frame pdf.js renders, which is
+// the raster the portal uploads and drawing_redact paints on. Before 21 Sep a rotated page's runs were
+// in the unrotated frame, so every caller had to refuse rotated pages (a box would land a quarter turn
+// out); all 13 sheets of both real sets are rotated, so 0 of 13 pages could ever reach a supplier.
+// `rotate` is still reported, as information. `width`/`height` stay the MediaBox (pdf_measure's paths
+// are in that frame and it reads the page's own content stream, unchanged).
+//
+// A run's box is the bounding box of its glyph quad (text matrix x CTM, 4 corners), so text drawn at
+// any angle gets an honest box. `vertical` marks a run whose baseline is not horizontal as displayed.
 //
 // CEILINGS, stated so nobody treats a box from here as exact:
 //  * Glyph widths are ESTIMATED (0.6 em per character) — no font metrics are read. Callers pad.
-//  * Text inside Form XObjects (`Do`) is not followed. Many CAD title blocks are blocks = forms, so
-//    an empty result is common and means "not found here", never "the page is clean".
-//  * Rotated pages (/Rotate != 0) and CID fonts return runs the caller must not trust for
-//    coordinates; rotated pages are flagged, CID strings fail looksLikeText upstream.
-// ponytail: full-buffer object regex, no xref parsing; fine for a drawing set of a few MB.
+//  * Text drawn as vector strokes (SHX fonts) or inside raster images has no text layer at all; those
+//    are read by OCR in the portal (ocrClient.ocrSchedules), never here.
+//  * A page stops being read after MAX_OPS operators (its `truncated` flag says so), never silently.
+// ponytail: full-buffer object regex, no xref parsing; fine for a drawing set of tens of MB.
 import { inflate, unescapePdfString, hexToString } from './pdf_text.ts';
 
-export type TextRun = { text: string; x: number; y: number; w: number; h: number }; // normalised 0..1, top-left origin
-export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[] };
+export type TextRun = { text: string; x: number; y: number; w: number; h: number; vertical?: boolean }; // display frame, normalised 0..1, top-left origin
+/** An image painted on the page (a logo, a stamp, a scanned schedule): its placement box and pixel size. */
+export type PdfImage = { x: number; y: number; w: number; h: number; px: number; py: number };
+/** A straight stroked or filled edge, display frame, normalised. Only axis-aligned ones are kept. */
+export type PdfLine = { x1: number; y1: number; x2: number; y2: number };
+export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[]; images?: PdfImage[]; lines?: PdfLine[]; truncated?: boolean };
 
 const DEC = new TextDecoder('latin1');
 type Obj = { dict: string; stream: Uint8Array | null };
 type M = [number, number, number, number, number, number];
 const mul = (a: M, b: M): M => [a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3], a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3], a[4] * b[0] + a[5] * b[2] + b[4], a[4] * b[1] + a[5] * b[3] + b[5]];
 const ID: M = [1, 0, 0, 1, 0, 0];
+/** Operators interpreted per page, forms included. A dense A1/ANSI-D CAD sheet measured ~1.5M. */
+export const MAX_OPS = 4_000_000;
+const MAX_FORM_DEPTH = 12;
 
 async function decodeStream(dict: string, body: Uint8Array): Promise<Uint8Array | null> {
   if (/\/FlateDecode\b/.test(dict)) return (await inflate(body, 'deflate')) ?? (await inflate(body, 'deflate-raw'));
@@ -77,23 +103,48 @@ async function readObjects(bytes: Uint8Array): Promise<Map<number, Obj>> {
 const refs = (s: string) => [...s.matchAll(/(\d+)\s+\d+\s+R/g)].map((x) => Number(x[1]));
 const numArr = (s: string | undefined) => (s || '').trim().split(/\s+/).map(Number).filter((n) => Number.isFinite(n));
 
-function pageTree(objs: Map<number, Obj>): { num: number; mb: number[]; rotate: number }[] {
-  const out: { num: number; mb: number[]; rotate: number }[] = [];
+/** The value of `/Key` in a dictionary source: a balanced `<< >>`, an array, a ref (resolved), or a token. */
+function dictValue(objs: Map<number, Obj>, d: string, key: string, resolve = true): string | null {
+  const re = new RegExp('/' + key + '(?![A-Za-z0-9])\\s*');
+  const m = re.exec(d); if (!m) return null;
+  let i = m.index + m[0].length;
+  if (d.startsWith('<<', i)) {
+    let depth = 0, j = i;
+    while (j < d.length) { if (d.startsWith('<<', j)) { depth++; j += 2; continue; } if (d.startsWith('>>', j)) { depth--; j += 2; if (!depth) break; continue; } j++; }
+    return d.slice(i, j);
+  }
+  if (d[i] === '[') { const j = d.indexOf(']', i); return d.slice(i, j < 0 ? d.length : j + 1); }
+  const r = /^(\d+)\s+\d+\s+R/.exec(d.slice(i, i + 40));
+  if (r) { if (!resolve) return r[0]; const o = objs.get(Number(r[1])); return o ? o.dict : null; }
+  const t = /^\/?[^\s\/\[\]<>()]+/.exec(d.slice(i, i + 80)); return t ? t[0] : null;
+}
+/** name -> object number for a resource sub-dictionary (/XObject or /Font). */
+function namedRefs(objs: Map<number, Obj>, res: string, key: string): Map<string, number> {
+  const out = new Map<string, number>();
+  const sub = dictValue(objs, res, key); if (!sub) return out;
+  for (const m of sub.matchAll(/\/([^\s\/\[\]<>()]+)\s+(\d+)\s+\d+\s+R/g)) out.set(m[1], Number(m[2]));
+  return out;
+}
+
+type PageRef = { num: number; mb: number[]; rotate: number; res: string };
+function pageTree(objs: Map<number, Obj>): PageRef[] {
+  const out: PageRef[] = [];
   const cat = [...objs.entries()].find(([, o]) => /\/Type\s*\/Catalog\b/.test(o.dict));
   const rootRef = cat ? refs((cat[1].dict.match(/\/Pages\s+\d+\s+\d+\s+R/) || [''])[0])[0] : undefined;
   const seen = new Set<number>();
-  const walk = (num: number, mb: number[], rot: number) => {
+  const walk = (num: number, mb: number[], rot: number, res: string) => {
     if (seen.has(num)) return; seen.add(num);
     const o = objs.get(num); if (!o) return;
     const d = o.dict;
     const myMb = numArr((d.match(/\/MediaBox\s*\[([^\]]*)\]/) || [])[1]);
     const mbx = myMb.length === 4 ? myMb : mb;
     const r = d.match(/\/Rotate\s+(-?\d+)/); const rr = r ? Number(r[1]) : rot;
-    if (/\/Type\s*\/Pages\b/.test(d)) { for (const k of refs((d.match(/\/Kids\s*\[([^\]]*)\]/) || ['', ''])[1])) walk(k, mbx, rr); }
-    else if (/\/Type\s*\/Page\b/.test(d)) out.push({ num, mb: mbx, rotate: ((rr % 360) + 360) % 360 });
+    const myRes = dictValue(objs, d, 'Resources') ?? res;
+    if (/\/Type\s*\/Pages\b/.test(d)) { for (const k of refs((d.match(/\/Kids\s*\[([^\]]*)\]/) || ['', ''])[1])) walk(k, mbx, rr, myRes); }
+    else if (/\/Type\s*\/Page\b/.test(d)) out.push({ num, mb: mbx, rotate: ((rr % 360) + 360) % 360, res: myRes });
   };
-  if (rootRef !== undefined) walk(rootRef, [0, 0, 612, 792], 0);
-  if (!out.length) for (const [num, o] of objs) if (/\/Type\s*\/Page\b(?!s)/.test(o.dict)) walk(num, [0, 0, 612, 792], 0); // no catalog found: object order
+  if (rootRef !== undefined) walk(rootRef, [0, 0, 612, 792], 0, '');
+  if (!out.length) for (const [num, o] of objs) if (/\/Type\s*\/Page\b(?!s)/.test(o.dict)) walk(num, [0, 0, 612, 792], 0, '');
   return out;
 }
 
@@ -102,7 +153,7 @@ function* tokens(src: string): Generator<{ t: 'num' | 'str' | 'arr' | 'op' | 'na
   let i = 0; const n = src.length;
   while (i < n) {
     const c = src[i];
-    if (/\s/.test(c)) { i++; continue; }
+    if (c === ' ' || c === '\n' || c === '\r' || c === '\t' || c === '\f' || c === '\0') { i++; continue; }
     if (c === '%') { while (i < n && src[i] !== '\n' && src[i] !== '\r') i++; continue; }
     if (c === '(') {
       let depth = 1, j = i + 1, s = '';
@@ -120,56 +171,198 @@ function* tokens(src: string): Generator<{ t: 'num' | 'str' | 'arr' | 'op' | 'na
     let j = i; while (j < n && !/[\s\/\[\]()<>{}%]/.test(src[j])) j++;
     if (j === i) { i++; continue; }
     const w = src.slice(i, j); i = j;
-    yield { t: /^[+-]?(\d+\.?\d*|\.\d+)$/.test(w) ? 'num' : 'op', v: w };
+    const c0 = w.charCodeAt(0);
+    yield { t: (c0 >= 48 && c0 <= 57) || c0 === 45 || c0 === 43 || c0 === 46 ? (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(w) ? 'num' : 'op') : 'op', v: w };
   }
 }
 
-function arrText(a: string): string {
+// ── fonts: /ToUnicode CMaps (bfchar / bfrange), code width from the codespace ─────────────────────
+type Font = { two: boolean; map: Map<number, string> | null };
+const hexCode = (h: string) => parseInt(h, 16);
+const utf16 = (h: string) => { let s = ''; for (let i = 0; i + 3 < h.length; i += 4) s += String.fromCharCode(parseInt(h.slice(i, i + 4), 16)); return s; };
+function parseCMap(src: string): { two: boolean; map: Map<number, string> } {
+  const map = new Map<number, string>();
+  const cs = src.match(/begincodespacerange\s*<([0-9A-Fa-f]+)>/);
+  const two = cs ? cs[1].length >= 4 : false;
+  for (const blk of src.matchAll(/beginbfchar([\s\S]*?)endbfchar/g)) for (const m of blk[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]*)>/g)) map.set(hexCode(m[1]), utf16(m[2]));
+  for (const blk of src.matchAll(/beginbfrange([\s\S]*?)endbfrange/g)) {
+    for (const m of blk[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*(<([0-9A-Fa-f]+)>|\[([^\]]*)\])/g)) {
+      const lo = hexCode(m[1]), hi = Math.min(hexCode(m[2]), lo + 0xffff);
+      if (m[4] !== undefined) { const base = parseInt(m[4].slice(-4) || '0', 16); const pre = utf16(m[4].slice(0, -4)); for (let c = lo; c <= hi; c++) map.set(c, pre + String.fromCharCode(base + (c - lo))); }
+      else { const items = [...(m[5] || '').matchAll(/<([0-9A-Fa-f]*)>/g)].map((x) => utf16(x[1])); for (let c = lo; c <= hi && c - lo < items.length; c++) map.set(c, items[c - lo]); }
+    }
+  }
+  return { two, map };
+}
+
+type Ctx = { objs: Map<number, Obj>; forms: Map<number, string | null>; fonts: Map<number, Font>; ops: number; truncated: boolean };
+async function fontOf(ctx: Ctx, num: number): Promise<Font> {
+  const hit = ctx.fonts.get(num); if (hit) return hit;
+  const o = ctx.objs.get(num); let f: Font = { two: false, map: null };
+  if (o) {
+    const two = /\/Identity-[HV]\b/.test(o.dict) || /\/Subtype\s*\/Type0\b/.test(o.dict);
+    const tu = /\/ToUnicode\s+(\d+)\s+\d+\s+R/.exec(o.dict);
+    const cm = tu ? ctx.objs.get(Number(tu[1])) : null;
+    const dec = cm?.stream ? await decodeStream(cm.dict, cm.stream) : null;
+    if (dec) { const p = parseCMap(DEC.decode(dec)); f = { two: two || p.two, map: p.map.size ? p.map : null }; } else f = { two, map: null };
+  }
+  ctx.fonts.set(num, f); return f;
+}
+function decodeText(f: Font | null, s: string): string {
+  if (!f || (!f.map && !f.two)) return s;
   let out = '';
-  for (const t of tokens(a)) { if (t.t === 'str') out += t.v; else if (t.t === 'num' && Number(t.v) <= -200) out += ' '; }
+  if (f.two) { for (let i = 0; i + 1 < s.length; i += 2) { const c = (s.charCodeAt(i) << 8) | s.charCodeAt(i + 1); out += f.map?.get(c) ?? ''; } return out; }
+  for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); out += f.map!.get(c) ?? s[i]; }
   return out;
 }
 
-function runsFromContent(src: string, mb: number[]): TextRun[] {
-  const [x0, y0, x1, y1] = mb; const W = (x1 - x0) || 1, H = (y1 - y0) || 1;
-  const runs: TextRun[] = [];
-  let ctm: M = ID; const stack: M[] = [];
-  let tm: M = ID, tlm: M = ID; let size = 12, lead = 0;
-  let nums: number[] = []; let pStr: string | undefined; let pArr: string | undefined;
-  const show = (s: string) => {
-    const text = s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
-    const m = mul(tm, ctm);
-    const scale = Math.hypot(m[2], m[3]) || 1;               // vertical scale of the text matrix
-    const hgt = size * scale; const wid = text.length * 0.6 * size * Math.hypot(m[0], m[1]);
-    if (text.trim()) runs.push({ text, x: (m[4] - x0) / W, y: 1 - ((m[5] - y0) + hgt) / H, w: wid / W, h: (hgt * 1.25) / H });
-    tm = mul([1, 0, 0, 1, text.length * 0.6 * size, 0], tm);
+function arrPieces(a: string): { s: string; gap: boolean }[] {
+  const out: { s: string; gap: boolean }[] = [];
+  for (const t of tokens(a)) { if (t.t === 'str') out.push({ s: t.v, gap: false }); else if (t.t === 'num' && Number(t.v) <= -200) out.push({ s: '', gap: true }); }
+  return out;
+}
+
+async function formContent(ctx: Ctx, num: number): Promise<string | null> {
+  if (ctx.forms.has(num)) return ctx.forms.get(num)!;
+  const o = ctx.objs.get(num); let src: string | null = null;
+  if (o?.stream && /\/Subtype\s*\/Form\b/.test(o.dict)) { const d = await decodeStream(o.dict, o.stream); src = d ? DEC.decode(d) : null; }
+  ctx.forms.set(num, src); return src;
+}
+
+/** Interpret one content stream (a page's, or a form's) into runs, images and axis-aligned lines. */
+async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: number, emit: {
+  run: (text: string, m: M, size: number, n: number) => void; image: (m: M, px: number, py: number) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
+}, active: Set<number>): Promise<void> {
+  let ctm: M = ctm0; const stack: M[] = [];
+  let tm: M = ID, tlm: M = ID; let size = 12, lead = 0; let font: Font | null = null;
+  let nums: number[] = []; let pStr: string | undefined; let pArr: string | undefined; let pName: string | undefined;
+  const xobjs = namedRefs(ctx.objs, res, 'XObject');
+  const fontRefs = namedRefs(ctx.objs, res, 'Font');
+  let path: [number, number][][] = []; let curPath: [number, number][] | null = null;
+  const T = (x: number, y: number): [number, number] => [ctm[0] * x + ctm[2] * y + ctm[4], ctm[1] * x + ctm[3] * y + ctm[5]];
+  // `decoded` is already through decodeText (Tj/'/" and each TJ piece are decoded by the caller).
+  // Measured 21 Sep 2026 (sales_engineer, drawing_chain.test.ts): decoding it a SECOND time here
+  // turned every Type0 / Identity-H run into '' — our own inquiry PDF (Sora, Identity-H) read back
+  // as 0 runs on both pages — and remapped 1-byte ToUnicode runs through their map twice.
+  const show = (decoded: string) => {
+    const text = decoded.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
+    const n = text.length;
+    if (text.trim()) emit.run(text, mul(tm, ctm), size, n);
+    tm = mul([1, 0, 0, 1, n * 0.6 * size, 0], tm);
   };
   const newline = (tx: number, ty: number) => { tlm = mul([1, 0, 0, 1, tx, ty], tlm); tm = tlm; };
+  const flushPath = () => {
+    for (const sp of path) for (let i = 1; i < sp.length; i++) emit.seg(sp[i - 1][0], sp[i - 1][1], sp[i][0], sp[i][1]);
+    path = []; curPath = null;
+  };
   for (const tk of tokens(src)) {
     if (tk.t === 'num') { nums.push(Number(tk.v)); continue; }
     if (tk.t === 'str') { pStr = tk.v; continue; }
     if (tk.t === 'arr') { pArr = tk.v; continue; }
-    if (tk.t === 'name') continue;
-    const a = nums; const str = pStr; const arr = pArr;
-    nums = []; pStr = undefined; pArr = undefined;
+    if (tk.t === 'name') { pName = tk.v; continue; }
+    if (++ctx.ops > MAX_OPS) { ctx.truncated = true; return; }
+    const a = nums; const str = pStr; const arr = pArr; const name = pName;
+    nums = []; pStr = undefined; pArr = undefined; pName = undefined;
     switch (tk.v) {
       case 'q': stack.push(ctm); break;
-      case 'Q': ctm = stack.pop() || ID; break;
+      case 'Q': ctm = stack.pop() || ctm0; break;
       case 'cm': if (a.length >= 6) ctm = mul(a.slice(-6) as M, ctm); break;
       case 'BT': tm = ID; tlm = ID; break;
-      case 'Tf': if (a.length) size = a[a.length - 1] || size; break;
+      case 'Tf': {
+        if (a.length) size = a[a.length - 1] || size;
+        const fr = name !== undefined ? fontRefs.get(name) : undefined;
+        font = fr !== undefined ? await fontOf(ctx, fr) : null;
+      } break;
       case 'TL': if (a.length) lead = a[0]; break;
       case 'Td': if (a.length >= 2) newline(a[0], a[1]); break;
       case 'TD': if (a.length >= 2) { lead = -a[1]; newline(a[0], a[1]); } break;
       case 'Tm': if (a.length >= 6) { tlm = a.slice(-6) as M; tm = tlm; } break;
       case 'T*': newline(0, -lead); break;
-      case 'Tj': if (str !== undefined) show(str); break;
-      case "'": newline(0, -lead); if (str !== undefined) show(str); break;
-      case '"': newline(0, -lead); if (str !== undefined) show(str); break;
-      case 'TJ': if (arr !== undefined) show(arrText(arr)); break;
+      case 'Tj': if (str !== undefined) show(decodeText(font, str)); break;
+      case "'": newline(0, -lead); if (str !== undefined) show(decodeText(font, str)); break;
+      case '"': newline(0, -lead); if (str !== undefined) show(decodeText(font, str)); break;
+      case 'TJ': if (arr !== undefined) {
+        // A TJ array is one run unless a large kerning gap splits it into words.
+        let acc = ''; for (const p of arrPieces(arr)) acc += p.gap ? ' ' : decodeText(font, p.s);
+        show(acc);
+      } break;
+      case 'm': if (a.length >= 2) { curPath = [T(a[0], a[1])]; path.push(curPath); } break;
+      case 'l': if (a.length >= 2) { if (!curPath) { curPath = [T(a[0], a[1])]; path.push(curPath); } else curPath.push(T(a[0], a[1])); } break;
+      case 'c': case 'v': case 'y': if (a.length >= 4 && curPath) curPath.push(T(a[a.length - 2], a[a.length - 1])); break; // endpoint only
+      case 're': if (a.length >= 4) { const [x, y, w, h] = a; path.push([T(x, y), T(x + w, y), T(x + w, y + h), T(x, y + h), T(x, y)]); curPath = null; } break;
+      case 'h': if (curPath && curPath.length > 1) curPath.push(curPath[0]); break;
+      case 'S': case 's': case 'f': case 'F': case 'f*': case 'B': case 'B*': case 'b': case 'b*': flushPath(); break;
+      case 'n': path = []; curPath = null; break;
+      case 'Do': {
+        if (name === undefined) break;
+        const num = xobjs.get(name); if (num === undefined) break;
+        const o = ctx.objs.get(num); if (!o) break;
+        if (/\/Subtype\s*\/Image\b/.test(o.dict)) {
+          const px = Number((o.dict.match(/\/Width\s+(\d+)/) || [])[1] || 0), py = Number((o.dict.match(/\/Height\s+(\d+)/) || [])[1] || 0);
+          emit.image(ctm, px, py); break;
+        }
+        if (depth >= MAX_FORM_DEPTH || active.has(num)) break;
+        const fsrc = await formContent(ctx, num); if (fsrc === null) break;
+        const mtx = numArr((o.dict.match(/\/Matrix\s*\[([^\]]*)\]/) || [])[1]);
+        const fres = dictValue(ctx.objs, o.dict, 'Resources') ?? res;
+        active.add(num);
+        await interpret(ctx, fsrc, fres, mul(mtx.length === 6 ? mtx as M : ID, ctm), depth + 1, emit, active);
+        active.delete(num);
+        if (ctx.truncated) return;
+      } break;
     }
   }
-  return runs;
+}
+
+/** Normalised display-frame point from a user-space point, for a page's MediaBox and /Rotate. */
+export function toDisplay(x: number, y: number, mb: number[], rotate: number): [number, number] {
+  const [x0, y0, x1, y1] = mb; const W = (x1 - x0) || 1, H = (y1 - y0) || 1;
+  const u = (x - x0) / W, v = 1 - (y - y0) / H;                       // unrotated, top-left origin
+  switch (rotate) {
+    case 90: return [1 - v, u];
+    case 180: return [1 - u, 1 - v];
+    case 270: return [v, 1 - u];
+    default: return [u, v];
+  }
+}
+
+async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content: string }> {
+  const d = ctx.objs.get(p.num)!.dict;
+  const cm = d.match(/\/Contents\s*(\[[^\]]*\]|\d+\s+\d+\s+R)/);
+  let src = '';
+  // /Contents may name an ARRAY OBJECT ("/Contents 28 0 R" where 28 is "[2 0 R 3 0 R 4 0 R]"). Measured
+  // 21 Sep 2026: that is how pages 2+ of both real bid sets are written, and reading 28 as a stream
+  // read nothing — the other half of why those sheets returned zero characters.
+  const contentRefs = (cm ? refs(cm[1]) : []).flatMap((r) => { const o = ctx.objs.get(r); return o && !o.stream && /^\s*\[/.test(o.dict) ? refs(o.dict) : [r]; });
+  for (const r of contentRefs) {
+    const o = ctx.objs.get(r); if (!o || !o.stream) continue;
+    const dec = await decodeStream(o.dict, o.stream); if (dec) src += DEC.decode(dec) + '\n';
+  }
+  const runs: TextRun[] = []; const images: PdfImage[] = []; const lines: PdfLine[] = [];
+  const D = (x: number, y: number) => toDisplay(x, y, p.mb, p.rotate);
+  const box = (pts: [number, number][]) => {
+    const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+    const x = Math.min(...xs), y = Math.min(...ys); return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+  };
+  ctx.ops = 0; ctx.truncated = false;
+  await interpret(ctx, src, p.res, ID, 0, {
+    run: (text, m, size, n) => {
+      const W = n * 0.6 * size;
+      const at = (tx: number, ty: number) => D(m[0] * tx + m[2] * ty + m[4], m[1] * tx + m[3] * ty + m[5]);
+      const q = [at(0, -0.2 * size), at(W, -0.2 * size), at(W, size), at(0, size)];
+      const b = box(q);
+      const base = [at(0, 0), at(W || 1, 0)];
+      const vertical = (p.rotate % 180 === 0) ? Math.abs(m[1]) > Math.abs(m[0]) : Math.abs(m[0]) > Math.abs(m[1]);
+      runs.push({ text, ...b, ...(vertical ? { vertical: true } : {}) });
+    },
+    image: (m, px, py) => { images.push({ ...box([D(m[4], m[5]), D(m[0] + m[4], m[1] + m[5]), D(m[2] + m[4], m[3] + m[5]), D(m[0] + m[2] + m[4], m[1] + m[3] + m[5])]), px, py }); },
+    seg: (ax, ay, bx, by) => {
+      const [x1, y1] = D(ax, ay), [x2, y2] = D(bx, by);
+      const dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
+      if ((dy < 1e-4 && dx >= 0.004) || (dx < 1e-4 && dy >= 0.004)) lines.push({ x1: Math.min(x1, x2), y1: Math.min(y1, y2), x2: Math.max(x1, x2), y2: Math.max(y1, y2) });
+    },
+  }, new Set());
+  return { page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs, images, lines, ...(ctx.truncated ? { truncated: true } : {}) }, content: src };
 }
 
 /** Pages in order, each with its text runs AND its decoded content stream (for pdf_measure's path
@@ -179,21 +372,13 @@ export async function pdfPageContents(bytes: Uint8Array): Promise<{ page: PdfPag
   const head = DEC.decode(bytes.subarray(0, Math.min(bytes.length, 4096)));
   if (/\/Encrypt\b/.test(head) || /\/Encrypt\b/.test(DEC.decode(bytes.subarray(Math.max(0, bytes.length - 4096))))) return [];
   const objs = await readObjects(bytes);
+  const ctx: Ctx = { objs, forms: new Map(), fonts: new Map(), ops: 0, truncated: false };
   const pages: { page: PdfPage; content: string }[] = [];
-  for (const p of pageTree(objs)) {
-    const d = objs.get(p.num)!.dict;
-    const cm = d.match(/\/Contents\s*(\[[^\]]*\]|\d+\s+\d+\s+R)/);
-    let src = '';
-    for (const r of cm ? refs(cm[1]) : []) {
-      const o = objs.get(r); if (!o || !o.stream) continue;
-      const dec = await decodeStream(o.dict, o.stream); if (dec) src += DEC.decode(dec) + '\n';
-    }
-    pages.push({ page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs: runsFromContent(src, p.mb) }, content: src });
-  }
+  for (const p of pageTree(objs)) pages.push(await readPage(ctx, p));
   return pages;
 }
 
-/** Pages in order, each with its text runs in normalised top-left coordinates. [] when unreadable. */
+/** Pages in order, each with its text runs in normalised top-left display coordinates. [] when unreadable. */
 export async function pdfPages(bytes: Uint8Array): Promise<PdfPage[]> {
   return (await pdfPageContents(bytes)).map((p) => p.page);
 }
@@ -207,7 +392,7 @@ export async function pdfPages(bytes: Uint8Array): Promise<PdfPage[]> {
  */
 export function linesFromRuns(pages: PdfPage[], tolerance = 0.003): string {
   return pages.map((p) => {
-    const runs = [...p.runs].sort((a, b) => a.y - b.y || a.x - b.x);
+    const runs = p.runs.filter((r) => !r.vertical).sort((a, b) => a.y - b.y || a.x - b.x);
     const rows: TextRun[][] = [];
     for (const r of runs) {
       const last = rows[rows.length - 1];
