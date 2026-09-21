@@ -1,3 +1,0 @@
-redefines fn_it_cap_set (a NULL value writes 'not recorded: …') and rewrites the two NULL caps' basis. Coordinator applies with --apply --ddl, deletes this note, appends the file to the END of MANIFEST.txt, then runs node --test scripts/checks/a_configuration_gap_is_recorded_once_not_every_tick.test.mjs scripts/checks/it_engineer_duties_9_to_18.test.mjs (red today on these two rows). Rehearsed rolled-back 22 Sep 2026: PROBE OK.
-
-22 Sep 2026 — it_engineer, the checks that fail with a production token.

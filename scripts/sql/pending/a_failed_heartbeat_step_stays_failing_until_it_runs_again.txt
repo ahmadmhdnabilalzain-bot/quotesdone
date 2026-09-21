@@ -1,3 +1,0 @@
-redefines fn_it_duty_settle (live body, md5 1265b4f769180b0e567c70be45719dbf on 22 Sep 2026, plus one hold for items flagged "carried"). Coordinator applies with --apply --ddl, then deploys resilience_ping, then deletes this note and appends the file to the END of MANIFEST.txt. Rehearsed rolled-back 22 Sep 2026: raised seen=1, carried held seen=1 (title unchanged), closed after a passing tick; nothing left behind.
-
-22 Sep 2026 — it_engineer, the backup check failing since 20 Sep.
