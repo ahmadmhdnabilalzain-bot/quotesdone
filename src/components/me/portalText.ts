@@ -98,8 +98,7 @@ export const T = {
     acct_miss_name:'Your full name', acct_miss_date_of_birth:'Your date of birth', acct_miss_age_18_or_over:'You must be 18 or over',
     acct_miss_verified_email_or_mobile:'A verified mobile or email', acct_miss_terms_accepted:'Accepting the Terms', acct_miss_mobile_number:'Your mobile number',
     req_one:'request', req_many:'requests',
-    qa_compare_off:'Needs a request with two or more quotes',
-    q_neg_show:'Negotiation guidance', q_neg_hide:'Hide negotiation guidance' },
+    qa_compare_off:'Needs a request with two or more quotes' },
   ar: { brand_sub:'طلباتي', home:'الرئيسية', signout:'تسجيل الخروج', signing_out:'جارٍ تسجيل الخروج…', loading:'جارٍ التحميل…', loading_requests:'جارٍ تحميل طلباتك…',
     tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', create_account_title:'أنشئ حسابك',
     signup_sub:'أدخل بريدك الإلكتروني وسننشئ حسابك فورًا. ستضيف اسمك وتاريخ ميلادك وتتحقق من رقم جوالك في الخطوة التالية.',
@@ -192,8 +191,7 @@ export const T = {
     acct_miss_name:'اسمك الكامل', acct_miss_date_of_birth:'تاريخ ميلادك', acct_miss_age_18_or_over:'يجب أن يكون عمرك 18 عامًا أو أكثر',
     acct_miss_verified_email_or_mobile:'جوال أو بريد إلكتروني موثّق', acct_miss_terms_accepted:'الموافقة على الشروط', acct_miss_mobile_number:'رقم جوالك',
     req_one:'طلب', req_many:'طلبات',
-    qa_compare_off:'يحتاج إلى طلب وردّه عرضان أو أكثر',
-    q_neg_show:'إرشادات التفاوض', q_neg_hide:'إخفاء إرشادات التفاوض' }
+    qa_compare_off:'يحتاج إلى طلب وردّه عرضان أو أكثر' }
 };
 export const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 

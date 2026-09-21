@@ -31,8 +31,7 @@ import { statusLabel as projectStatusLabel } from '@/components/portal/projects/
 import dynamic from 'next/dynamic';
 const SpendingIntelligence = dynamic(() => import('@/components/portal/intelligence/SpendingIntelligence').then((m) => m.SpendingIntelligence), { ssr: false });
 // Every dynamic() below needs a `loading:` fallback: without one, next/dynamic renders NOTHING for
-// the one round trip its chunk takes, so a tab panel opened blank and the negOpen accordion — which
-// starts at 0 height — just snapped its content in (independent review, 14 Sep 2026). ModuleLoading
+// the one round trip its chunk takes, so a tab panel opened blank (independent review, 14 Sep 2026). ModuleLoading
 // is the same Card/pulse skeleton the stat tiles already use (~line 727), so it needs no new pattern,
 // and it is defined once and reused rather than repeated at each call site. It reads
 // document.documentElement.lang (already set by applyDocumentLocale before any of these can mount,
@@ -51,7 +50,7 @@ const ModuleLoading = () => {
 };
 // Spec §22 modules that were written and never mounted, and the five module-agent surfaces below:
 // every one of them renders ONLY behind `id === '<tab>'` (see ~line 1505) inside a panel the
-// customer opens by clicking a tab, or behind the negOpen accordion (NegotiationAssistant) — never
+// customer opens by clicking a tab — never
 // on the initial /me paint — so none of them belongs in the bundle that has to parse before the nav
 // is visible. CompanyTwin and DecisionSupport are NOT in this group: independent review (14 Sep
 // 2026) found they also render on the default 'home' overview, every signed-in customer's landing
@@ -67,8 +66,8 @@ import { RevealPayment } from './RevealPayment';
 const CommunicationCenter = dynamic(() => import('@/components/portal/comms').then((m) => m.CommunicationCenter), { ssr: false, loading: ModuleLoading });
 const OrdersList = dynamic(() => import('@/components/portal/approvals').then((m) => m.OrdersList), { ssr: false, loading: ModuleLoading });
 const PredictiveIntelligence = dynamic(() => import('@/components/portal/predict').then((m) => m.PredictiveIntelligence), { ssr: false, loading: ModuleLoading });
-// NegotiationAssistant only mounts once a quote's negotiation accordion is opened (negOpen, ~line 1378).
-const NegotiationAssistant = dynamic(() => import('@/components/portal/predict').then((m) => m.NegotiationAssistant), { ssr: false, loading: ModuleLoading });
+// The NegotiationAssistant accordion that sat on every quote card was removed 21 Sep 2026 — the
+// founder took negotiations out of both portals (instruction 526).
 // §2 the Company Digital Twin, §9 Supplier Discovery and §17 Customer AI Memory. fn_twin,
 // v_digital_twin, customer_score and customer_preference were all built and read only by os_api —
 // the staff console — so the customer could not see their own profile or correct it.
@@ -1393,7 +1392,6 @@ function ExportComparison({ inqId, token, lang }) {
 function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, terms, focus, highlight }) {
   const [state, setState] = useState(q.revealed ? 'revealed' : 'idle'); const [contact, setContact] = useState(null); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const [dialog, ask] = useConfirm(lang);
-  const [negOpen, setNegOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   // The Stripe redirect is a navigation, not a request that comes back: `leaving` only changes what
   // the (still busy) button says, so the last thing the customer sees is "Taking you to payment…".
@@ -1468,14 +1466,6 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_why') + q.match_reason}</div>}
     <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1"><QuotePdfLink q={q} token={token} lang={lang} />{revealed ? <InvoicePdfLink q={q} token={token} lang={lang} /> : null}</div>
     <div className="mt-2"><SupplierRelationshipCard quote={q} token={token} lang={lang === 'ar' ? 'ar' : 'en'} /></div>
-    {/* Behind a disclosure: mounted on every quote card, it fired one negotiation_assistant call
-        per quote on every open request, for guidance most customers never looked at. */}
-    <div className="mt-2">
-      <button type="button" aria-expanded={negOpen} onClick={() => setNegOpen((v) => !v)} className="text-[12.5px] font-semibold text-primary">
-        {t(lang, negOpen ? 'q_neg_hide' : 'q_neg_show')}
-      </button>
-      {negOpen ? <div className="mt-2"><NegotiationAssistant token={token} quoteId={q.id} lang={lang === 'ar' ? 'ar' : 'en'} /></div> : null}
-    </div>
     {revealed ? (contact
         ? <RevealMoment play={justRevealed && !reduce}><Contact play={justRevealed && !reduce} c={contact} q={q} token={token} onChange={onChange} lang={lang} terms={terms} won={hired != null && q.supplier_ref != null && Number(hired) === Number(q.supplier_ref)} /></RevealMoment>
         : <div className={cn(S.sub, 'mt-2 flex items-center gap-2')}><span className="redact redact-bar" aria-hidden />{t(lang, 'q_loading_contact')}</div>)

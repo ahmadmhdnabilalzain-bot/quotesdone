@@ -1,9 +1,9 @@
-// SPEC FILE #5, sections 9-12 — RFQ Intelligence Center, AI Ranking, Quote Builder, Negotiation AI.
+// SPEC FILE #5, sections 9-11 — RFQ Intelligence Center, AI Ranking, Quote Builder.
 //
 //    9. RFQ Intelligence Center (9) — "this is where suppliers make money": the opportunity feed
 //   10. AI RFQ Ranking          (8) — ranked, not listed, and each rank carries its reasons
 //   11. AI Quote Builder        (9) — the supplier does NOT manually create quotes; AI proposes one
-//   12. AI Negotiation Assistant(7) — reads a discount request and drafts the counter
+//   12. AI Negotiation Assistant(0) — RETIRED 21 Sep 2026; founder removed negotiations from both portals
 //
 // ── THE TRAP THIS MODULE IS MOST EXPOSED TO ──────────────────────────────────────────────────────
 // The portal already reaches `extract_quote` and `submit_quote`. Both are about quotes. NEITHER is
@@ -28,11 +28,11 @@ import {
   near, filesNear, fnsNear, delivered, cover, B, Q, READERS_SQL, NROWS_SQL, rpcSources,
 } from '../supplier_checks.mjs';
 
-export const EXPECTED = 33;
+export const EXPECTED = 26;   // 33 until 21 Sep 2026; the seven §12 neg-* legs retired with the negotiation assistant
 
 export default async function (H) {
   const { req, one } = H;
-  const S9 = 'rfq', S10 = 'rank', S11 = 'qb', S12 = 'neg';
+  const S9 = 'rfq', S10 = 'rank', S11 = 'qb';
 
   // ── THE SERVING POPULATION FOLLOWS THE RPC HOP ────────────────────────────────────────────────
   // Already fixed in §13, §7, §15, §14 and §18; §10 and §11 were never updated, and they are the
@@ -288,58 +288,14 @@ export default async function (H) {
     Q(`${writesQuote.length} fn(s) write a quote row [${writesQuote.join(' ') || 'none'}]; ${ESTATE}`));
 
   // ════════════════════════════════════════════════════════════════════════════════════════════════
-  // §12 — AI NEGOTIATION ASSISTANT (7)
+  // §12 — AI NEGOTIATION ASSISTANT — RETIRED 21 SEP 2026
   // ════════════════════════════════════════════════════════════════════════════════════════════════
-  //
-  // §12 is a reader of INBOUND customer messages that produces an outbound draft. The portal has a
-  // messaging thread (`threads`, `thread`, `send`) — messaging is the transport, not the assistant.
-  // Every leg requires the ANALYSIS, and the raw messaging count is printed so the difference shows.
-
-  const msgTok = n(/threads?|messages?|send/i, P);
-
-  const negFiles = filesNear(/negotiat|counter[_ ]?offer|discount[_ ]?request/i, /price|quote|margin/i, 400);
-  await req(S12, 'neg-assistant-surface', 'a negotiation-assistant surface',
-    B(negFiles.length > 0),
-    Q(`${negFiles.length} file(s) pair negotiation with pricing ` +
-      `[${negFiles.map(f => f.split('/').pop()).join(' ') || 'none'}]; ` +
-      `${msgTok} raw messaging token(s) — a message thread is the transport, not the assistant`));
-
-  const detectFn = fnsNear(/reduce[_ ]?price|discount|cheaper|lower[_ ]?price|negotiat/i, /detect|classif|intent|analy/i, 500);
-  await req(S12, 'neg-detects-price-pressure', 'it recognises a discount request in customer correspondence',
-    B(detectFn.length > 0),
-    Q(`${detectFn.length} fn(s) pair discount language with detection [${detectFn.join(' ') || 'none'}]`));
-
-  for (const [id, re, label] of [
-    ['neg-current-margin', /margin/i, 'the current margin'],
-    ['neg-possible-reduction', /possible[_ ]?reduction|max[_ ]?discount|room[_ ]?to[_ ]?move|reduction[_ ]?pct/i, 'the possible reduction'],
-  ]) {
-    const shown = delivered(re);
-    // The rpc hop again: margin and the reduction scenarios are computed in
-    // fn_supplier_negotiation, so an edge-only scan named [kyc login_otp] — two functions that
-    // contain the word 'margin' for reasons of their own — while missing the routine that
-    // actually produces the number.
-    const served = servedBy(re);
-    await req(S12, id, `the analysis shows ${label}`,
-      B(shown && served.length > 0),
-      Q(`${label}: rendered ${shown ? 'yes' : 'NO'}, served by [${served.join(' ') || 'NO fn'}]`));
-  }
-
-  const draftFiles = filesNear(/recommended[_ ]?response|suggested[_ ]?repl|draft[_ ]?(repl|response|message)/i, /discount|price|offer/i, 400);
-  await req(S12, 'neg-recommended-response', 'a recommended response is drafted',
-    B(draftFiles.length > 0),
-    Q(`${draftFiles.length} file(s) pair a drafted reply with pricing ` +
-      `[${draftFiles.map(f => f.split('/').pop()).join(' ') || 'none'}]`));
-
-  // A draft the supplier cannot send is a suggestion, not an assistant. Requires the draft to reach
-  // the send path — scored per file so the draft and the send affordance are genuinely together.
-  const actionable = filesNear(/draft|recommended[_ ]?response|suggested[_ ]?repl/i, /send|submit|apply|use[_ ]?this/i, 400);
-  await req(S12, 'neg-response-actionable', 'the drafted reply can be sent or applied',
-    B(actionable.length > 0),
-    Q(`${actionable.length} file(s) put a draft next to a send/apply affordance ` +
-      `[${actionable.map(f => f.split('/').pop()).join(' ') || 'none'}]`));
-
-  const negFn = fnsNear(/negotiat|discount|counter[_ ]?offer/i, /margin|price|recommend/i, 500);
-  await req(S12, 'neg-routine', 'a server routine produces the negotiation analysis',
-    B(negFn.length > 0),
-    Q(`${negFn.length} fn(s) pair negotiation with pricing analysis [${negFn.join(' ') || 'none'}]`));
+  // The founder removed negotiations from both portals (instruction 527). SupplierNegotiation.tsx
+  // and the supplier_portal 'negotiation' action are deleted. Its seven requirements
+  // (neg-assistant-surface, neg-detects-price-pressure, neg-current-margin, neg-possible-reduction,
+  // neg-recommended-response, neg-response-actionable, neg-routine) retired WITH their subject. They
+  // are not scored as missing, because building them again would contradict the ruling.
+  // fn_supplier_negotiation still exists in the database; no surface calls it. The NEGOT / QB_NEGOT
+  // exclusions in §11 above are kept: they guard the quote-builder legs against that routine's
+  // vocabulary for as long as it remains in the estate.
 }
