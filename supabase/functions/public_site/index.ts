@@ -23,6 +23,7 @@
 // (app_secrets.public_site_ip_hour, default 60) and a GLOBAL daily ceiling
 // (public_site_global_day, default 5000) that does not trust the forgeable X-Forwarded-For.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { documentLine, isPageTopic } from './rules.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -106,10 +107,7 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
 
   const cl = spec.compliance_checklist;
   const list = Array.isArray(cl?.list) ? cl.list : (Array.isArray(cl) ? cl : []);
-  const documents = list.slice(0, 6).map((x: any) => ({
-    item: String(x?.item ?? x ?? '').slice(0, 160),
-    authority: x?.authority ? String(x.authority).slice(0, 80) : null,
-  })).filter((x: any) => x.item);
+  const documents = list.slice(0, 6).map((x: any) => documentLine(x, lang)).filter((x: any) => x.item);
 
   // Counted, never listed. Shown to the visitor only when the matcher found someone — "0 suppliers"
   // on the first screen would be a true number that teaches the wrong lesson, and the audit asked
@@ -174,10 +172,7 @@ Deno.serve(async (req) => {
       .map((f: any) => ({ key: String(f.key || f[`question_plain_${lang}`]), question: String(f[`question_plain_${lang}`]) }));
     const cl = s.compliance_checklist;
     const list = Array.isArray(cl?.list) ? cl.list : (Array.isArray(cl) ? cl : []);
-    const documents = list.slice(0, 6).map((x: any) => ({
-      item: String((lang === 'ar' && x?.item_ar) || x?.item || x || '').slice(0, 160),
-      authority: x?.authority ? String(x.authority).slice(0, 80) : null,
-    })).filter((x: any) => x.item);
+    const documents = list.slice(0, 6).map((x: any) => documentLine(x, lang)).filter((x: any) => x.item);
     return J({ ok: true, category, label: String(s.label || category), questions, documents }, 200,
       { 'Cache-Control': 'public, max-age=3600, s-maxage=86400' });
   }
@@ -210,6 +205,19 @@ Deno.serve(async (req) => {
     return J({ ok: true, terms: { window_days: d.refund_window_working_days ?? null, chase_after_days: d.chase_after_working_days ?? null,
       bank_min_days: d.bank_settlement_working_days_min ?? null, bank_max_days: d.bank_settlement_working_days_max ?? null } },
       200, { 'Cache-Control': 'public, max-age=600, s-maxage=600' });
+  }
+
+  // A service page's own price question (./rules.ts PAGE_TOPICS, measured 22 Sep 2026: 116 of 472
+  // crawled loads answered 429). Published bands for a fixed topic, so it skips the 60/hour visitor
+  // limiter, but keeps a ceiling of its own: 600/hour per IP (app_secrets.public_site_page_ip_hour) is
+  // ten full crawls of every service page in both languages, and still stops a loop hammering them.
+  if (action === 'price_guidance' && isPageTopic(b)) {
+    const pip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+    if (!(await rl('public_site_page_ip:' + pip, await secNum('public_site_page_ip_hour', 600), 3600))) return J({ ok: false, rate_limited: true }, 429);
+    try {
+      const r = await priceGuidance(`How much does ${String(b.topic)} cost per square metre in the UAE?`);
+      return J(r, 200, { 'Cache-Control': 'public, max-age=3600, s-maxage=86400' });
+    } catch (_e) { return J({ ok: false, error: 'internal' }, 500); }
   }
 
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';

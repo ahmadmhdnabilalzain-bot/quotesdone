@@ -279,6 +279,33 @@ async function ceoDecisionsTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE CEO'S DAILY PLAN (22 Sep 2026, ceo, founder instruction 638). fn_ceo_plan_tick measures the live
+// funnel against the twelve-month plan, names the binding constraint, directs the seat that can move it
+// through a ceo.directive handoff, and re-measures and closes every open directive on each call. That is
+// plan C, the coded path, and it has already ACTED before anything below runs.
+// Plan A/B is the model (instruction 643: the CEO will run on one, not yet chosen). It runs in the CEO's
+// own function, ceo_agent action 'judgement', and ONLY when the tick says call_model --
+// app_secrets.ceo_model_slot = 'on', which the founder sets. This heartbeat never imports the model
+// client. The slot is off today, so that branch has never reached the gateway.
+// scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql.
+async function ceoPlanTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_ceo_plan_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.judgement?.call_model || !t?.plan_id) return t;
+    const r = await fetch(FN + '/ceo_agent', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'judgement', plan_id: t.plan_id }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const j = await r.json().catch(() => null);
+    // A rejected answer is plan C working, not a failing step; only an unreachable seat is.
+    return { ...t, judgement: { ...t.judgement, answer: j }, ...(r.ok ? {} : { ok: false, error: 'ceo_agent judgement ' + r.status }) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // Postgres cannot draw a PDF, so a weekly tick hands back its block list and this renders it on the
 // company template (pdf_native, letterhead) and hands the result — or the failure, as p_error — to the
 // report's own attach routine. The report is RETAINED on a failed render and the next tick re-renders.
@@ -1102,6 +1129,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   vat: { run: vatThresholdTick },
   ceoWeekly: { run: ceoWeeklyTick },
   ceoDecisions: { run: ceoDecisionsTick },
+  ceoPlan: { run: ceoPlanTick },
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   refunds: { run: accountantRefundTick },
