@@ -431,8 +431,13 @@ function ConversationView({
           </div>
         ) : null}
 
-        {/* No paperclip. See the file header: `send` accepts a body and nothing else. */}
-        {status === 'open' ? (
+        {/* No paperclip. See the file header: `send` accepts a body and nothing else.
+            NOTHING TO TYPE INTO UNTIL THE THREAD HAS ANSWERED (walk of 22 Sep 2026). A paid reveal's chat
+            opens on the first `thread` read, so the list still says 'none' and this used to render the
+            "Ask" box, then swap it for the composer when the thread answered 'open' — what was typed in
+            between went into a box that no longer existed, and Send stayed disabled. Measured: the
+            journey's send made no request in 30 s; by hand, with the list already 'open', it worked. */}
+        {!data ? null : status === 'open' ? (
           <div className="flex items-end gap-2 border-t border-border px-3 py-2.5">
             <textarea
               rows={1}

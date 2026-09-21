@@ -16,8 +16,12 @@
 // registered supplier's requests for quotation: the agreement charges for non-response, and a supplier who
 // never received the request would be charged for not answering it. So the list is the cold outreach only.
 // A new campaign kind is added HERE, and suppression_policy.test.ts pins the list.
+// 'supplier_rfq_widened_invite' (22 Sep 2026, ceo): a supplier invited only by the short-of-quotes sweep, to a
+// request he was not originally matched to -- cold outreach, so an opt-out stops it. The SQL mirror is
+// public.fn_opt_out_types() (scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql);
+// scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs fails if the two lists differ.
 
-export const OPT_OUT_TYPES: readonly string[] = ['supplier_invite', 'supplier_registration_reminder'];
+export const OPT_OUT_TYPES: readonly string[] = ['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite'];
 
 /** A preference row (the person unsubscribed), as opposed to a deliverability fact. */
 export function isOptOut(reason: unknown): boolean {

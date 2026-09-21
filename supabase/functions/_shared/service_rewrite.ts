@@ -44,7 +44,8 @@ export const PHRASE_LEN = 120;
 // CPU cap that no deadline bounds, and this estate has already lost a job to one.
 export const MATCH_LEN = 300;
 
-type Compiled = { key: string; term: ServiceTerm; re: RegExp };
+/** One alias of the index; `re` is built on first need (compileServices). */
+type Compiled = { key: string; term: ServiceTerm; alias: string; anchor: string; re: RegExp | null };
 type Hit = { c: Compiled; start: number; end: number; len: number };
 
 const WORD = /[\p{L}\p{N}]/u;
@@ -171,27 +172,57 @@ export const isInstallWork = (t: Pick<ServiceTerm, 'label_en' | 'code'>): boolea
 
 /** The alias index, compiled once per request. A term is an alias; labels are not terms (a label such
  *  as "Maintenance contracts" is too general to be exact). */
+//
+// NOT RE-COMPILED ON EVERY CALL, AND NOT COMPILED AT ALL UNTIL NEEDED (22 Sep 2026, sales_engineer).
+// MEASURED: servicesFromText compiled the whole index on every call, and boqWithArabic calls it twice
+// per BOQ line, for every inquiry in the supplier's inbox, on every quotation-review action (they all
+// read the job through `inbox`). With production's 211 services / 1,672 aliases a 3-line BOQ cost
+// 925 ms cold and a 120-line BOQ 1,447 ms, on a developer machine; supplier_api was killed three times
+// in one hour with 546 "CPU Time exceeded" during the portal walk of 21 Sep, and a ZZ DEMO probe with a
+// 120-line BOQ got 546 on review_start and review_upload. Of a cold call, ~460 ms was building the
+// 1,672 RegExps and ~430 ms was V8 compiling each one on its first exec.
+// NOW: (1) the index is kept per vocabulary ARRAY (a request that reads the vocabulary afresh gets a
+// fresh index; each regex is reset before use below, so sharing them is safe); (2) an alias's RegExp is
+// built only when the phrase contains the alias's first word — every pattern termPattern builds holds
+// that word literally (English: the whole alias; Arabic: the first word after an optional proclitic),
+// so the pre-check can only skip patterns that cannot match. HELD BY service_rewrite_equivalence.test.ts:
+// an eager reference (every alias compiled, no pre-check) and this matcher must return the same keys on
+// 2,850 phrases covering every alias of service_aliases.json (cased, pluralised, hyphenated, with Arabic
+// proclitics and ال on later words); keying the pre-check on the whole alias makes 618 of them differ.
+// The CPU budget and the build-once behaviour are held by supplier_api/review_cpu_budget.test.ts.
+// ponytail: the pre-check lower-cases with toLowerCase while the pattern folds case with /iu; the two
+// differ only on characters no alias uses (the long s, the Kelvin sign). Use a real case fold if one does.
+const COMPILED = new WeakMap<ServiceTerm[], Compiled[]>();
 export function compileServices(vocab: ServiceTerm[]): Compiled[] {
+  const hit = COMPILED.get(vocab);
+  if (hit) return hit;
   const out: Compiled[] = [];
   for (const term of vocab) {
-    for (const a of term.aliases || []) {
-      const re = servicePattern(a);
-      if (re) out.push({ key: `${term.trade_code}.${term.code}`, term, re });
+    for (const alias of term.aliases || []) {
+      const folded = arNorm(alias);
+      if (folded.length < 3) continue;            // termPattern's own rule 2: too short to be a term
+      const anchor = folded.trim().toLowerCase().split(' ')[0];
+      out.push({ key: `${term.trade_code}.${term.code}`, term, alias, anchor, re: null });
     }
   }
+  COMPILED.set(vocab, out);
   return out;
 }
 
 /** Rule 2: the hits in one phrase, overlaps resolved longest-first. */
 function hitsIn(norm: string, index: Compiled[]): Hit[] {
   const all: Hit[] = [];
+  const low = norm.toLowerCase();
   for (const c of index) {
-    c.re.lastIndex = 0;
-    for (let m = c.re.exec(norm); m; m = c.re.exec(norm)) {
+    if (!low.includes(c.anchor)) continue;
+    const re = c.re ??= servicePattern(c.alias);
+    if (!re) continue;
+    re.lastIndex = 0;
+    for (let m = re.exec(norm); m; m = re.exec(norm)) {
       let end = m.index + m[0].length;
       while (end < norm.length && WORD.test(norm[end])) end++;   // the rest of the last word ("units")
       all.push({ c, start: m.index, end, len: m[0].length });
-      if (m[0].length === 0) c.re.lastIndex++;
+      if (m[0].length === 0) re.lastIndex++;
     }
   }
   all.sort((a, b) => b.len - a.len || a.start - b.start);

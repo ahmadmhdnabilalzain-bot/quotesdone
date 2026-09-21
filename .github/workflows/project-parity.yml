@@ -73,6 +73,17 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node --test scripts/checks/receipts_never_wait_on_the_founder.test.mjs
+      # 22 SEP 2026 (ceo, founder instruction 583) — the ownership check existed but ran only when somebody
+      # remembered: it reads the live deployment list, so it needs this job's token. Measured that day:
+      # 2 deployed functions with no owner and 11 owner rows for functions that are not deployed.
+      - name: Every deployed function has exactly one owner, and every owner row has a function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/checks/every_deployed_function_has_an_owner.mjs
+      - name: Complaints, short quotes, reveals and support replies each run on a clock (rolled-back rehearsal)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node --test scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs
       - name: One canonical file per routine, and it is what is deployed
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -212,7 +223,10 @@ jobs:
           # an hour left to live.
           #
           # ONE REMAINS, and it is the one that must never leave this list: security, not structure.
-          for t in anon_cannot_execute_security_definer; do
+          # 22 SEP 2026 (founder instruction 642): every_alarm_is_quiet_on_a_healthy_day joins it. Its
+          # replay of each alarm on production's quiet hours is what stops a new alarm merging before
+          # it has been shown to stay quiet when nothing is wrong, and that half needs this credential.
+          for t in anon_cannot_execute_security_definer every_alarm_is_quiet_on_a_healthy_day; do
             echo "::group::$t"
             # STREAMED, NOT CAPTURED. 26 Aug 2026: this job failed at its last check and the log
             # carried NOT ONE LINE of that check's output -- in a step that had run for eight minutes.

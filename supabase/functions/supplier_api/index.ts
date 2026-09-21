@@ -26,6 +26,7 @@ import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn } from '../_shared/identity_numbers.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { DOC_VERSION, completenessOf, inquiryDocument, itemsOfRows, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
+import { duesLines, supplierInvoiceDocument, supplierReceiptDocument, type SupplierPayment } from '../_shared/supplier_payment_documents.ts';
 import { jobAlias } from '../_shared/quote_labels.ts';
 import { deriveLineFields, deriveTermsFromScope } from '../_shared/line_specs/derive.ts';
 // A DRAWING PAGE THAT FAILS TO SIGN IS COUNTED, LOGGED AND RAISED - never silently dropped from the
@@ -925,7 +926,6 @@ const handle = async (req: Request): Promise<Response> => {
       const { data: sup } = await admin.from('leads').select('id,company_name').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const lang: 'en' | 'ar' = body.lang === 'ar' ? 'ar' : 'en';
-      const T = (en: string, arx: string) => (lang === 'ar' ? arx : en);
       const print = async (doc: Record<string, unknown>) => {
         const secret = await secretVal('cred_fn_supplier_api');
         if (!secret) return null;
@@ -956,8 +956,6 @@ const handle = async (req: Request): Promise<Response> => {
         try { await admin.from('supplier_document_cache').upsert({ kind, subject_id: subject, supplier_id: sup.id, lang, content_hash: hash, bucket: out.bucket, path: out.path, created_at: new Date().toISOString() }, { onConflict: 'kind,subject_id,supplier_id,lang' }); } catch (_e) { /* the file is served either way */ }
         return { url: out.url, cached: false, ref: built.ref };
       };
-      const money = (n: unknown) => Number(n || 0).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const day = (d: unknown) => (d ? String(d).slice(0, 10) : '—');
 
       if (action === 'quote_pdf') {
         const { data: q } = await admin.from('quotes').select('*').eq('id', String(body.quote_id || '')).eq('supplier_id', sup.id).maybeSingle();
@@ -1019,28 +1017,41 @@ const handle = async (req: Request): Promise<Response> => {
         const { data, error } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,currency,paid_at')
           .eq('supplier_id', sup.id).in('status', PAID).not('paid_at', 'is', null).order('paid_at', { ascending: false }).limit(50);
         if (error) return J({ error: 'temporarily_unavailable' }, 503);
-        return J({ ok: true, receipts: (data || []).map((d: any) => ({ id: d.id, paid_at: d.paid_at, total: total(d), currency: d.currency || 'AED' })) });
+        const { data: reg } = await admin.from('leads').select('registration_paid_at,registration_amount_aed').eq('id', sup.id).maybeSingle();
+        const regRow = reg?.registration_paid_at && Number(reg.registration_amount_aed) > 0 ? [{ id: null, kind: 'registration', paid_at: reg.registration_paid_at, total: Number(reg.registration_amount_aed), currency: 'AED' }] : [];
+        return J({ ok: true, receipts: [...regRow, ...(data || []).map((d: any) => ({ id: d.id, kind: 'dues', paid_at: d.paid_at, total: total(d), currency: d.currency || 'AED' }))] });
       }
 
-      const { data: d } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,currency,paid_at,reveal_date,payment_ref')
-        .eq('id', Number(body.due_id) || 0).eq('supplier_id', sup.id).in('status', PAID).not('paid_at', 'is', null).maybeSingle();
-      if (!d) return J({ error: 'Receipt not found' }, 404);
-      const ref = 'QD-RC-' + String(d.id);
-      const cur = String(d.currency || 'AED');
-      const rows = [
-        [T('Reveal fee refunded to the customer', 'رسوم الكشف المستردّة للعميل'), money(d.amount_due)],
-        [T('Administrative fee', 'الرسوم الإدارية'), money(d.admin_fee)],
-        [T('Interest and fines', 'الفوائد والغرامات'), money(Number(d.interest_amount || 0) + Number(d.fine_amount || 0))],
-        [T('Total paid', 'إجمالي المبلغ المدفوع'), money(total(d))],
-      ];
-      const url = await print({ title: T('Payment receipt', 'إيصال دفع'), ref, name: ref, lang, options: { letterhead: true }, blocks: [
-        { t: 'kv', pairs: [[T('Receipt', 'رقم الإيصال'), ref], [T('Company', 'الشركة'), String(sup.company_name || '—')], [T('Paid on', 'تاريخ الدفع'), day(d.paid_at)],
-          [T('Payment reference', 'مرجع الدفع'), String(d.payment_ref || '—')], [T('Reveal date', 'تاريخ الكشف'), day(d.reveal_date)]] },
-        { t: 'table', head: [T('Item', 'البند'), T(`Amount (${cur})`, `المبلغ (${cur === 'AED' ? 'درهم' : cur})`)], rows, widths: [0.7, 0.3] },
-        { t: 'note', text: T('QuotesDone recorded this payment when Stripe confirmed it. Stripe emails the invoice for the same payment separately.',
-          'سجّلت QuotesDone هذه الدفعة فور تأكيد Stripe لها، وتُرسل Stripe فاتورة الدفعة ذاتها بالبريد الإلكتروني على نحو مستقل.') },
-      ] });
-      return url ? J({ ok: true, url, ref, lang }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
+      // OUR invoice and receipt for a payment to QuotesDone, on the template (audit 22 Sep 2026, finding 2):
+      // _shared/supplier_payment_documents.ts. doc 'invoice' | 'receipt' (default receipt); kind
+      // 'registration' prints the annual listing fee, otherwise the settled charges of one payment.
+      const docKind: 'invoice' | 'receipt' = body.doc === 'invoice' ? 'invoice' : 'receipt';
+      const build = docKind === 'invoice' ? supplierInvoiceDocument : supplierReceiptDocument;
+      const { data: lead } = await admin.from('leads').select('email,registration_paid_at,subscription_paid_until,registration_payment_ref,registration_amount_aed').eq('id', sup.id).maybeSingle();
+      let pay: SupplierPayment;
+      if (body.kind === 'registration') {
+        if (!lead?.registration_paid_at || !(Number(lead.registration_amount_aed) > 0)) return J({ error: 'Receipt not found' }, 404);
+        const at = String(lead.registration_paid_at);
+        pay = { kind: 'registration', ref: `QD-REG-${sup.id}-${at.slice(0, 4)}`, paid_at: at, payment_ref: String(lead.registration_payment_ref || '—'),
+          supplier: { name: String(sup.company_name || '—'), email: lead.email ?? null },
+          period: lead.subscription_paid_until ? { from: at.slice(0, 10), to: String(lead.subscription_paid_until) } : null,
+          lines: [{ en: 'Annual supplier listing fee', ar: 'رسوم الإدراج السنوية للمورّد', amount: Number(lead.registration_amount_aed) }], total: Number(lead.registration_amount_aed) };
+      } else {
+        const { data: d } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,paid_at,payment_ref')
+          .eq('id', Number(body.due_id) || 0).eq('supplier_id', sup.id).in('status', PAID).not('paid_at', 'is', null).maybeSingle();
+        if (!d) return J({ error: 'Receipt not found' }, 404);
+        // One payment settles every due in its checkout (stripe_webhook writes the same payment_ref on
+        // each), so the document covers the whole payment and its total is what the card was charged.
+        const { data: all } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,paid_at,payment_ref')
+          .eq('supplier_id', sup.id).in('status', PAID).eq('payment_ref', String(d.payment_ref || '')).order('id', { ascending: true });
+        const rowsPaid = d.payment_ref && all?.length ? all : [d];
+        const lines = duesLines(rowsPaid);
+        pay = { kind: 'dues', ref: 'QD-DU-' + String(rowsPaid[0].id), paid_at: String(rowsPaid[0].paid_at), payment_ref: String(d.payment_ref || '—'),
+          supplier: { name: String(sup.company_name || '—'), email: lead?.email ?? null }, lines, total: Math.round(lines.reduce((a, l) => a + l.amount, 0) * 100) / 100 };
+      }
+      const doc = build(pay, lang);
+      const url = await print(doc as unknown as Record<string, unknown>);
+      return url ? J({ ok: true, url: url.url, ref: pay.ref, doc: docKind, lang }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
     }
 
     if (action === 'projects') {
@@ -1143,10 +1154,20 @@ const handle = async (req: Request): Promise<Response> => {
         return J({ ok: true, quote_id: qid, option_no: q.option_no, hold: hold ? { ...hold, pdf_url: await signed(hold.pdf_bucket, hold.pdf_path) } : null, schema: formSchema(a, lines) });
       }
       if (action === 'spec_fill') {
-        // The regenerated quotation is drawn by pdf_native, the existing quote renderer, both languages.
+        // The regenerated quotation is the standard quotation (quoteDocument, via workflow.ts pdfBody) in
+        // the supplier's own language, under the one alias this supplier carries on this job (the rule
+        // quote_pdf above uses). Audit 22 Sep 2026, finding 1: it was a blank page.
         const render: Render = async (rec) => {
           const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null;
-          const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, ...pdfBody(rec, 'Supplier'), bucket: 'quote-files', folder: `quotes/${sup.id}/${q.inquiry_id}/regenerated`, name: `quotation_${String(rec.quote_id).slice(0, 8)}_option${rec.option_no}` }) });
+          const [{ data: safeInq }, { data: matches }] = await Promise.all([
+            admin.from('inquiries_supplier_safe').select('emirate').eq('id', q.inquiry_id).maybeSingle(),
+            admin.from('inquiry_matches').select('id,supplier_id').eq('inquiry_id', q.inquiry_id).order('id', { ascending: true }),
+          ]);
+          const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
+          const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
+          const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
+          const doc = pdfBody(rec, { inquiry: { id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no ?? null, category: inqRow?.category ?? null, emirate: safeInq?.emirate ?? null }, letter, lang });
+          const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, ...doc, bucket: 'quote-files', folder: `quotes/${sup.id}/${q.inquiry_id}/regenerated`, name: `quotation_${String(rec.quote_id).slice(0, 8)}_option${rec.option_no}_${lang}` }) });
           const j = await r.json().catch(() => null);
           return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;
         };

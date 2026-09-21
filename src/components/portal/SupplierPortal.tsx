@@ -237,14 +237,17 @@ function Receipts({ token, lang }) {
     <Card className="qd-panel p-5">
       <div className={S.h2}>{ar ? 'إيصالات الدفع' : 'Payment receipts'}</div>
       <ul className="mt-3 flex flex-col gap-2">{list.map((r) => (
-        <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-[13.5px]">
-          <span><Ltr className="font-semibold tabular-nums">{aed(r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
+        <li key={(r.kind || 'dues') + ':' + (r.id ?? r.paid_at)} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-[13.5px]">
+          <span>{r.kind === 'registration' ? (ar ? 'رسوم الإدراج السنوية · ' : 'Annual listing fee · ') : ''}<Ltr className="font-semibold tabular-nums">{aed(r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
           {/* A paid receipt is sealed: View / Download work, Replace / Remove say why not (instruction 524).
               The other-language copy stays one click away beside them. */}
           <span className="inline-flex flex-wrap items-center gap-3">
-            <DocActions lang={lang} name={'receipt-' + r.id + '.pdf'} sealed="paid_invoice"
-              getUrl={async () => { const j = await call('supplier_api', { action: 'receipt_pdf', due_id: r.id, lang: lang === 'ar' ? 'ar' : 'en' }, token); return j && j.ok && j.url ? j.url : null; }} />
-            <PdfLinks lang={lang} otherOnly fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', due_id: r.id, lang: l }, token)} />
+            <DocActions lang={lang} name={'receipt-' + (r.id ?? 'registration') + '.pdf'} sealed="paid_invoice"
+              getUrl={async () => { const j = await call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: lang === 'ar' ? 'ar' : 'en' }, token); return j && j.ok && j.url ? j.url : null; }} />
+            <PdfLinks lang={lang} otherOnly fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: l }, token)} />
+            {/* OUR invoice for the same payment (audit 22 Sep 2026, finding 2): Stripe issues none. */}
+            <span className="text-[12px] text-muted-foreground">{ar ? 'الفاتورة:' : 'Invoice:'}</span>
+            <PdfLinks lang={lang} fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', doc: 'invoice', kind: r.kind, due_id: r.id, lang: l }, token)} />
           </span>
         </li>))}</ul>
     </Card>

@@ -41,17 +41,10 @@ export function localized(p: Post, locale: string): Body & { lang: 'en' | 'ar' }
   return { title: p.title, excerpt: p.excerpt, meta_desc: p.meta_desc, category: p.category, body_html: p.body_html, lang: 'en' };
 }
 
-// Bidi isolation for Arabic text: a Latin run (AED figures, units, phone numbers, emails, URLs,
-// acronyms) inside RTL text is wrapped in <bdi> so "+971 50 931 9355" keeps its digit groups in
-// order. Runs start at a Latin letter, digit or "+", may contain spaces and the punctuation such
-// runs use, and end at a letter, digit, % or superscript. Only text between tags is touched.
-const LATIN_RUN = /[A-Za-z0-9+][A-Za-z0-9+@.,:;/\\\-–—%²³×&#_' ]*[A-Za-z0-9%²³]/g;
-export function isolateLatin(html: string): string {
-  return html.replace(/(^|>)([^<]+)/g, (_m, lead: string, text: string) =>
-    lead + text.replace(LATIN_RUN, (run) => `<bdi>${run}</bdi>`));
-}
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-export const bidiText = (s: string) => isolateLatin(esc(s));
+// Bidi isolation for Arabic text lives in src/lib/blogBidi.ts, beside its test (22 Sep 2026: it
+// broke character references into visible words such as "mdash" on 24 Arabic posts).
+import { isolateLatin, bidiText } from '@/lib/blogBidi';
+export { isolateLatin, bidiText };
 
 export function blogSlugs(): string[] { return Object.keys(P); }
 

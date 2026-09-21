@@ -37,6 +37,11 @@ export const config = {
     // the Sealed brand book (noindex), 14 Sep 2026
     '/brand', '/(ar|en)/brand',
     '/services/:path*', '/(ar|en)/services/:path*',
+    // Superseded Supplier Agreement versions (/supplier-agreement/v10, /v11) are pages a supplier who
+    // accepted them must be able to read, and the sitemap lists them. Measured 22 Sep 2026: both 404'd
+    // on both hosts without the /ar prefix, because only the bare /supplier-agreement was matched.
+    // Prevented by: scripts/checks/every_page_is_routed_and_every_sitemap_url_is_a_page.test.mjs.
+    '/supplier-agreement/:path*', '/(ar|en)/supplier-agreement/:path*',
     '/blog/:path*', '/(ar|en)/blog/:path*'
   ]
 };
