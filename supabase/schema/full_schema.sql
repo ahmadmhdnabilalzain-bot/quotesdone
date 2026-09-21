@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T10:19:04.163Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-21T14:13:44.452Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -192,7 +192,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (526) =====
+-- ===== TABLES (527) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3786,6 +3786,21 @@ CREATE TABLE IF NOT EXISTS public.kb_operational_route_test (
   expected jsonb,
   last_result jsonb,
   last_run_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.kb_purge_ledger (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  verdict text NOT NULL,
+  clause smallint NOT NULL,
+  source_kind text NOT NULL,
+  category text,
+  rows bigint,
+  bytes bigint,
+  batch_no integer,
+  id_from bigint,
+  id_to bigint,
+  note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.kb_revisions (
@@ -7598,6 +7613,7 @@ ALTER TABLE public.kb_operational_alias ADD CONSTRAINT kb_operational_alias_pkey
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_operational_route_pkey PRIMARY KEY (catalog_num);
 ALTER TABLE public.kb_operational_route_map ADD CONSTRAINT kb_operational_route_map_pkey PRIMARY KEY (catalog_num, package_slug, subcategory_slug);
 ALTER TABLE public.kb_operational_route_test ADD CONSTRAINT kb_operational_route_test_pkey PRIMARY KEY (test_id);
+ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_pkey PRIMARY KEY (id);
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_pkey PRIMARY KEY (catalog_num, trigger_scope);
 ALTER TABLE public.kb_usage_log ADD CONSTRAINT kb_usage_log_pkey PRIMARY KEY (id);
@@ -8119,6 +8135,8 @@ ALTER TABLE public.it_security_baseline ADD CONSTRAINT it_security_baseline_kind
 ALTER TABLE public.it_threshold ADD CONSTRAINT it_threshold_basis_check CHECK ((btrim(basis) <> ''::text));
 ALTER TABLE public.kb_embed_priority ADD CONSTRAINT kb_embed_priority_tier_check CHECK (((tier >= 1) AND (tier <= 4)));
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_route_reg_coverage_chk CHECK ((regulatory_coverage_status = ANY (ARRAY['confirmed_none'::text, 'confirmed_covered'::text, 'incomplete'::text, 'requires_review'::text])));
+ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_clause_check CHECK (((clause >= 0) AND (clause <= 5)));
+ALTER TABLE public.kb_purge_ledger ADD CONSTRAINT kb_purge_ledger_verdict_check CHECK ((verdict = ANY (ARRAY['KEEP'::text, 'UNSURE'::text, 'DELETE'::text, 'SIZE'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_status_check CHECK ((status = ANY (ARRAY['running'::text, 'ok'::text, 'failed'::text, 'rolled_back'::text])));
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_table_name_check CHECK ((table_name = ANY (ARRAY['ops_knowledge'::text, 'agent_training_case'::text])));
@@ -8902,6 +8920,7 @@ CREATE INDEX kb_op_alias_lang_idx ON public.kb_operational_alias USING btree (la
 CREATE INDEX kb_op_alias_norm_idx ON public.kb_operational_alias USING btree (alias_norm);
 CREATE INDEX kb_op_route_map_pkg_idx ON public.kb_operational_route_map USING btree (package_slug, subcategory_slug);
 CREATE INDEX kb_op_route_test_num_idx ON public.kb_operational_route_test USING btree (catalog_num);
+CREATE INDEX kb_purge_ledger_batch_idx ON public.kb_purge_ledger USING btree (batch_no) WHERE (batch_no IS NOT NULL);
 CREATE INDEX kb_usage_log_created ON public.kb_usage_log USING btree (created_at);
 CREATE INDEX knowledge_ingestion_run_pkg ON public.knowledge_ingestion_run USING btree (package_version, generation);
 CREATE INDEX knowledge_ingestion_undo_run ON public.knowledge_ingestion_undo USING btree (run_id);
@@ -18073,6 +18092,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18098,16 +18127,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -37649,6 +37668,96 @@ begin
   end if;
   return jsonb_build_object('error','unsupported_kind', 'kind', p_kind);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_purge_batch(p_limit integer DEFAULT 50000)
+ RETURNS TABLE(batch_no integer, deleted_count bigint, deleted_bytes bigint, cursor_from bigint, cursor_to bigint, remaining_count bigint)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_planned bigint;
+  v_done    bigint;
+  v_from    bigint;
+  v_to      bigint;
+  v_batch   integer;
+  v_deleted bigint;
+  v_bytes   bigint;
+begin
+  if p_limit is null or p_limit < 1 or p_limit > 200000 then
+    raise exception 'fn_kb_purge_batch: p_limit must be 1..200000 (got %)', p_limit;
+  end if;
+
+  -- §6: the audit row per (verdict, source_kind, category) is written FIRST. No census, no delete.
+  select sum(l.rows) into v_planned
+    from public.kb_purge_ledger l where l.verdict = 'DELETE' and l.clause = 5 and l.batch_no is null;
+  if v_planned is null then
+    raise exception 'fn_kb_purge_batch: no census in kb_purge_ledger — run scripts/kb/purge_kb_bulk.mjs, which writes it before the first batch';
+  end if;
+
+  select coalesce(max(l.id_to), 0), coalesce(max(l.batch_no), 0), coalesce(sum(l.rows), 0)
+    into v_from, v_batch, v_done
+    from public.kb_purge_ledger l where l.verdict = 'DELETE' and l.batch_no is not null;
+  v_batch := v_batch + 1;
+
+  -- ponytail: id-ordered cursor, so a batch never rescans what an earlier batch already walked;
+  -- the predicate is evaluated on ~p_limit rows per call (~4 s per 50,000), not on the table.
+  with pick as (
+    select k.id
+      from public.kb_chunks k
+     where k.id > v_from
+       and public.fn_kb_purge_clause(k.source_kind, k.category, k.citation) = 5
+       and k.id not in (select split_part(x, ':', 2)::bigint
+                          from public.sales_decision_log s, unnest(s.cited) x
+                         where x ~ '^kb_chunks:[0-9]+$')            -- clause 2
+     order by k.id
+     limit p_limit
+  ), del as (
+    delete from public.kb_chunks k
+     using pick p
+     where k.id = p.id
+    returning k.id, k.source_kind, k.category, octet_length(k.content) as b
+  ), rec as (
+    insert into public.kb_purge_ledger (verdict, clause, source_kind, category, rows, bytes, batch_no, id_from, id_to)
+    select 'DELETE', 5, d.source_kind, d.category, count(*), sum(d.b), v_batch, v_from, (select max(id) from del)
+      from del d
+     group by d.source_kind, d.category
+    returning rows, bytes, id_to
+  )
+  select coalesce(sum(r.rows), 0), coalesce(sum(r.bytes), 0), coalesce(max(r.id_to), v_from)
+    into v_deleted, v_bytes, v_to
+    from rec r;
+
+  return query select v_batch, v_deleted, v_bytes, v_from, v_to,
+                      greatest(v_planned - v_done - v_deleted, 0);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_purge_clause(p_source_kind text, p_category text, p_citation text)
+ RETURNS smallint
+ LANGUAGE sql
+ IMMUTABLE PARALLEL SAFE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    -- 1. KEEP — QuotesDone-authored
+    when p_source_kind in ('qd_kb_pack','company_faq','memory','generated','trade','material','document','library')
+      or p_citation ilike '%QD-KB%' or p_citation ilike '%quotesdone%'
+      or p_category like 'cat:%' or p_category like 'exec:%' then 1
+    -- 2. KEEP — ever cited: a row-id join, applied by the caller (see fn_kb_purge_batch)
+    -- 3. KEEP — cites a UAE/GCC authority
+    when p_citation ~* '(\mUAE\M|United Arab Emirates|Emirat|Dubai|Abu Dhabi|Sharjah|Ajman|Fujairah|Ras Al Khaimah|Umm Al Quwain|\mDEWA\M|\mADDC\M|\mAADC\M|\mSEWA\M|\mFEWA\M|Etihad ?WE|Civil Defen[cs]e|\mSIRA\M|\mESMA\M|\mMOIAT\M|\mGSO\M|\mGCC\M|Trakhees|Municipality|\mADQCC\M|\mRTA\M|\mTDRA\M|Estidama|Sa''fat|Tadweer|\mOSHAD\M|\mDMT\M|\mJAFZA\M|\mDDA\M|\mTECOM\M)' then 3
+    -- 4a. UNSURE — statute and code text is never deleted on a pattern
+    when p_source_kind in ('code','regulation','spec') then 4
+    -- 4b. UNSURE — a foreign code a UAE document may adopt. §6 limits this to in-scope trade
+    --     families; this file applies it to EVERY category, which only moves rows from DELETE to
+    --     UNSURE (never the other way), so the delete set is a subset of §8's. Measured effect on
+    --     the non-`standard` kinds: 1,013 more rows held (guide 869, paper 144) than §8 shows.
+    when p_citation ~* '(\mNFPA\M|\mNEC\M|\mBS ?EN\M|Eurocode|\mIEC\M|\mISO\M|ASHRAE|\mASTM\M|SMACNA|IAPMO|\mUPC\M|\mIPC\M|\mIBC\M|\mICC\M|CIBSE|BS ?7671|AWS ?D1|\mAPI\M|\mASME\M|\mANSI\M|\mUL\M|\mEN ?54\M|\mEN ?12845\M|LPCB|FM ?Global)' then 4
+    -- 5. DELETE — foreign bulk
+    else 5 end;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_kb_route(p_text text, p_limit integer DEFAULT 5)
@@ -63464,6 +63573,7 @@ ALTER TABLE public.kb_operational_alias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_operational_route ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_operational_route_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_operational_route_test ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kb_purge_ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_revisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_route_scope_trigger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.kb_usage_log ENABLE ROW LEVEL SECURITY;
@@ -63757,6 +63867,7 @@ CREATE POLICY kb_chunk_quarantine_service_role_only ON public.kb_chunk_quarantin
 CREATE POLICY os_owner_admin_read ON public.kb_chunks AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY kb_purge_ledger_service_role_only ON public.kb_purge_ledger AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
