@@ -17,6 +17,7 @@ import { requestDelivery } from '../_shared/deliver.ts';
 import { jobAlias } from '../_shared/quote_labels.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
+import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -237,10 +238,10 @@ Deno.serve(observe('messages_api', async (req) => {
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
   if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
-    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-    const { data: { user } } = await admin.auth.getUser(jwt);
-    if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
-    const email = user.email.toLowerCase();
+    // Local refusal first, a bounded auth call, and 503 (not 401) when auth is down — _shared/signed_in_user.ts.
+    const who = await signedInUser(admin, req.headers.get('Authorization'));
+    if (!who.ok) return J(refusalBody(who), who.status);
+    const { email } = who;
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
 
     const { data: supLead } = await admin.from('leads').select('id,company_name,banned').eq('claimed_by', email).maybeSingle();
@@ -417,6 +418,13 @@ Deno.serve(observe('messages_api', async (req) => {
       const attachName = clip(body.attachment_name, 180) || (attachOk ? attach.split('/').pop() || 'attachment' : '');
       const { data: m, error } = await admin.from('messages').insert({ inquiry_id, supplier_id, customer_id: rev.customer_id, sender: role, body: text, attachment_path: attachOk ? attach : null, read_by_customer: role === 'customer', read_by_supplier: role === 'supplier' }).select('id,sender,body,created_at,attachment_path').maybeSingle();
       if (error) return J({ error: error.message }, 500);
+      // A supplier who writes to the customer HAS contacted them (Supplier Agreement v9, cl. 11: respond
+      // within 5 working days of the reveal). Measured 21 Sep 2026 (supplier audit, finding 36): sending
+      // left the job "Respond by …" until the supplier also pressed "I have contacted the customer". The
+      // message is the record; the acknowledgement follows it. `rev` is the reveal transaction itself.
+      if (role === 'supplier' && rev?.id) {
+        try { await admin.from('transactions').update({ supplier_ack_at: new Date().toISOString() }).eq('id', rev.id).is('supplier_ack_at', null); } catch (_e) { /* the message is delivered either way */ }
+      }
       // The vault is the index of everything the customer holds, so a file dropped into a chat has
       // to appear there too — otherwise §14's "find the warranty document" cannot find one that
       // arrived by chat. ref_table='messages' is the link documents already models for every other

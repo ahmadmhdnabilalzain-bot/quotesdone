@@ -17,7 +17,7 @@
 // enquiry in their trade is currently out of reach. So `would_unlock` gets the accent colour and
 // the count; `unlocked` is stated plainly beside it.
 import React, { useEffect, useState } from 'react';
-import { SUPA_FN, SUPA_ANON } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 type Lang = 'en' | 'ar';
 type Doc = {
@@ -26,11 +26,10 @@ type Doc = {
 };
 type Impact = { open_in_my_trade?: number; basis?: string; documents?: Doc[] };
 
-const FN = SUPA_FN;
 const ANON = SUPA_ANON;
 
 async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(FN + '/' + path, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),

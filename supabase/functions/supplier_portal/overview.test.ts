@@ -5,7 +5,7 @@
 // the dashboard makes, and how many of them wait on another (the wall time over the delay). No
 // network, no environment, no real row — nothing here can reach a person.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { buildAlerts, buildDashboard, buildEligibility, type Supplier } from './overview.ts';
+import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, NOTICE_TAB, type Supplier } from './overview.ts';
 
 const DELAY = 40;
 type Answer = { data?: unknown; count?: number | null; error?: unknown };
@@ -74,7 +74,7 @@ Deno.test('dashboard: one payload carries stats, alerts, eligibility, impact and
   const ms = performance.now() - t0;
   assertEquals(status, 200);
   assertEquals(body.stats, { quotes_total: 3 });
-  assertEquals(body.notifications, { unread_messages: 2, spec_holds: 1 });
+  assertEquals(body.notifications, { unread_messages: 2, spec_holds: 1, notices: [] });
   assertEquals(body.document_impact, { ok: true, documents: [] });
   assertEquals(body.eligibility.ok, true);
   assertEquals(body.supplier.company_name, 'ZZ DEMO — fixture');
@@ -95,4 +95,51 @@ Deno.test('dashboard: a failed impact read is null, never zeros', async () => {
   const admin = fakeAdmin({ 'rpc:fn_supplier_document_impact': { data: null, error: { message: 'x' } } });
   const { body } = await buildDashboard(admin, SUP);
   assertEquals(body.document_impact, null);
+});
+
+// Audit 21 Sep 2026, findings 5 and 6: the reveal reached the supplier as a notification row and the
+// bell never showed it; the only link a supplier had opened the CUSTOMER portal. Every notice must carry
+// a supplier-portal tab (never a URL), and a type with no tab is dropped, not guessed.
+Deno.test('bell: a reveal is a notice on the Messages tab; unknown types are dropped; tabs are portal tabs only', async () => {
+  const admin = fakeAdmin({ 'notifications?to_role="supplier"&lead_id=7': { data: [
+    { id: 9, type: 'quote_accepted', inquiry_id: 'i1', quote_id: 'q1', created_at: '2026-09-21T10:00:00Z' },
+    { id: 8, type: 'quote_coaching', inquiry_id: null, quote_id: null, created_at: '2026-09-21T09:00:00Z' },
+    { id: 7, type: 'new_inquiry', inquiry_id: 'i2', quote_id: null, created_at: '2026-09-20T09:00:00Z' },
+  ] } });
+  const n = await buildNotifications(admin, 7);
+  assertEquals(n.notices.map((x: { id: number; tab: string }) => [x.id, x.tab]), [[9, 'messages'], [7, 'rfqs']]);
+  const PORTAL_TABS = ['services', 'rfqs', 'quotes', 'messages', 'documents', 'insights'];
+  for (const [type, tab] of Object.entries(NOTICE_TAB)) assert(PORTAL_TABS.includes(tab), type + ' -> ' + tab + ' is not a supplier-portal tab');
+});
+
+// Finding 6: "1 new RFQ" beside "Inquiries received (3)" — the count now carries what it is out of.
+Deno.test('alerts: the new-RFQ count names the total received', async () => {
+  const admin = fakeAdmin({
+    'inquiry_matches?supplier_id=7': { data: [{ inquiry_id: 'a' }, { inquiry_id: 'b' }, { inquiry_id: 'c' }] },
+    'quotes?supplier_id=7': { data: [{ inquiry_id: 'a' }, { inquiry_id: 'b' }] },
+    inquiries: { data: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] },
+  });
+  const alerts = await buildAlerts(admin, 7);
+  const rfq = alerts.find((a) => a.kind === 'new_rfq') as { params: { count: number; total: number } };
+  assertEquals(rfq.params, { count: 1, total: 3 });
+});
+
+// Finding 20: "Set your sector", "Add your categories" and "Add your capability summary" sent the
+// supplier to Profile, which has none of the three. A hint may only name a field the supplier can edit.
+Deno.test('eligibility: every ranking hint points at a field the supplier can reach', async () => {
+  const admin = fakeAdmin({ leads: { data: { id: 7, registration_submitted_at: '2026-09-01' } } });
+  const e = await buildEligibility(admin, 7);
+  const codes = (e.improving as { code: string; fix: string }[]).map((i) => i.code);
+  for (const gone of ['no_sector', 'empty_categories', 'empty_capability_summary']) assert(!codes.includes(gone), gone + ' names a field the portal does not have');
+  assert(codes.includes('empty_products') && codes.includes('empty_services'));
+});
+
+// Finding 20: "Set your sector", "Add your categories" and "Add your capability summary" sent the
+// supplier to Profile, which has none of the three. A hint may only name a field the supplier can edit.
+Deno.test('eligibility: every ranking hint points at a field the supplier can reach', async () => {
+  const admin = fakeAdmin({ leads: { data: { id: 7, registration_submitted_at: '2026-09-01' } } });
+  const e = await buildEligibility(admin, 7);
+  const codes = (e.improving as { code: string; fix: string }[]).map((i) => i.code);
+  for (const gone of ['no_sector', 'empty_categories', 'empty_capability_summary']) assert(!codes.includes(gone), gone + ' names a field the portal does not have');
+  assert(codes.includes('empty_products') && codes.includes('empty_services'));
 });

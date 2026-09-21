@@ -220,18 +220,33 @@ function glossEnglish(text: string): string {
   return add;
 }
 
-export function matchOptions(options: string[], text: string): string[] {
+// Words that name no work on their own, so a multiselect option is never picked on one of them.
+const GENERIC_TOKENS = new Set(['not', 'sure', 'other', 'only', 'and', 'the', 'with', 'new', 'supply', 'install', 'points', 'works', 'work', 'system', 'systems', 'services', 'service', 'general', 'type', 'unit', 'units', 'connection', 'standard']);
+/**
+ * `multi` = a multiselect field: a list of works, where every option the customer names is wanted.
+ * Then an option is also matched by its parenthetical ("New wiring (first fix)" ← "first fix") or by
+ * its last specific noun ("Power sockets" ← "60 double sockets"). Measured 21 Sep 2026 (customer
+ * audit, finding 8): "Supply and install 500 m of ... cable ... 3 x 12-way DB boards ... 60 double
+ * sockets" kept only "DB board supply & install"; the cable and the sockets were dropped from scope.
+ */
+export function matchOptions(options: string[], text: string, multi = false): string[] {
   const t = ' ' + String(text || '').toLowerCase() + glossArabic(String(text || '')) + glossEnglish(String(text || '')) + ' ';
   const hits: string[] = [];
+  const word = (w: string) => new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(t);
   for (const o of options) {
     const lo = o.toLowerCase();
     if (/^(yes|no)\b/.test(lo) && lo.length < 5) continue; // yes/no handled by parseYesNo
     const whole = lo.replace(/\s*\(.*?\)\s*/g, ' ').trim();
     if (whole.length > 2 && t.includes(whole)) { hits.push(o); continue; }
     const alts = lo.split(/\s*[\/+]\s*|\s+or\s+/).map((s) => s.replace(/\(.*?\)/g, '').trim()).filter((s) => s.length > 2);
-    if (alts.some((a) => new RegExp(`(^|[^a-z])${a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(t))) { hits.push(o); continue; }
-    const tk = tokens(o).filter((w) => !['not', 'sure', 'other', 'only', 'and', 'the', 'with'].includes(w));
-    if (tk.length && tk.length <= 3 && tk.every((w) => t.includes(w))) hits.push(o);
+    if (alts.some(word)) { hits.push(o); continue; }
+    const tk = tokens(o).filter((w) => !GENERIC_TOKENS.has(w));
+    if (tk.length && tk.length <= 3 && tk.every((w) => t.includes(w))) { hits.push(o); continue; }
+    if (!multi) continue;
+    const paren = (lo.match(/\(([^)]{4,})\)/) || [])[1];
+    if (paren && t.includes(paren.trim())) { hits.push(o); continue; }
+    const last = tk[tk.length - 1];
+    if (last && last.length >= 6 && word(last)) hits.push(o);
   }
   return hits;
 }
@@ -277,7 +292,7 @@ export function parseAnswer(f: SpecField, text: string, targeted: boolean): stri
     // sure" anywhere in the conversation filled every field that offers a Not sure / Recommend option
     // (the generators replay, 14 Sep 2026: "Not sure - advise" about power also answered the
     // automatic-switch question, which was then never asked).
-    const hits = matchOptions(opts, raw).filter((o) => targeted || !/not sure|recommend|advise|unknown|unsure/i.test(o));
+    const hits = matchOptions(opts, raw, f.type === 'multiselect').filter((o) => targeted || !/not sure|recommend|advise|unknown|unsure/i.test(o));
     if (hits.length) return f.type === 'multiselect' ? hits.join(', ') : hits[0];
     if (targeted && isUnknown(raw)) return opts.find((o) => /not sure|recommend|advise|unknown|unsure/i.test(o)) || 'Not sure';
     // A tap question answered with a paragraph that names none of its options is a STATEMENT about
@@ -316,7 +331,13 @@ export function parseAnswer(f: SpecField, text: string, targeted: boolean): stri
       // A targeted multi-part answer ("3 windows, 1200x1500 each") is kept whole; a single bare
       // measure is normalised to "<n> <unit>".
       if (ms.length === 1 && raw.replace(/[\d.,\s]/g, '').length <= 20) return ms[0].text;
-      return raw.slice(0, 300);
+      // A paragraph answers a "how big" question with ONE of its sentences: the first that carries a
+      // number. Measured 21 Sep 2026 (customer audit, finding 8): "It is a 4-bedroom villa, about 450
+      // m2 built-up, 9 rooms. Three-phase supply. As I said: MK Logic or Legrand ... finished by 30
+      // November 2026." was stored whole as property_area and printed as the Quantity.
+      const sentences = raw.split(/(?<=[.!?؟])\s+(?=\S)/);
+      const first = sentences.length > 1 ? sentences.find((s) => /\d/.test(normDigits(s))) || sentences[0] : raw;
+      return first.slice(0, 300);
     }
     // Opportunistic read: only a measure whose unit this field is plainly about.
     const q = `${f.key || ''} ${f.question || ''}`.toLowerCase();
@@ -383,11 +404,19 @@ export function buildBrief(category: string, details: Record<string, string>, al
   const pick = (re: RegExp) => { const k = Object.keys(details).find((x) => re.test(x)); return k ? String(details[k]) : ''; };
   const location = pick(/location|emirate/);
   const em = emirate || parseEmirate(location) || '';
+  // Quantity is a measure ("450 sqm", "40 windows, 1200 x 1500 mm") or empty; the customer's prose
+  // stays in details under its own key and in the summary. Measured 21 Sep 2026 (customer audit,
+  // finding 8): a whole reply about brands and warranty was printed as "Quantity: It is a 4-bedroom
+  // villa...". The summary is the customer's description in full: the 160-character cut of the old
+  // shape truncated the audit request at "3 x 12-way D" and lost the cable, boards and sockets.
+  const qtyText = pick(/area|qty|quantity|size|dimensions|count|stops|capacity|windows|rooms|coverage|scale|building/);
+  const qtyMeasures = parseMeasures(qtyText);
+  const quantity = /^\d/.test(qtyText.trim()) && qtyText.length <= 80 ? qtyText : (qtyMeasures.find((m) => m.unit)?.text || '');
   return {
-    summary: String(firstUserText || allText).replace(/\s+/g, ' ').trim().slice(0, 160),
+    summary: String(firstUserText || allText).replace(/\s+/g, ' ').trim().slice(0, 4000),
     category,
     scope: pick(/^scope|supply_install|scope_mode|installation|engagement|work_type|service/),
-    quantity: pick(/area|qty|quantity|size|dimensions|count|stops|capacity|windows|rooms|coverage|scale|building/),
+    quantity,
     location: location || em,
     emirate: em,
     timeline: pick(/timeline|timing|date|deadline|duration/),

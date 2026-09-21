@@ -30,6 +30,8 @@ import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
 import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
 import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { supplierLabel } from '../_shared/quote_documents.ts';
+import { langOf, notYet, onTopic, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -187,6 +189,50 @@ async function embed(text: string): Promise<string | null> {
   } catch (_e) { return null; }
 }
 
+// THE CUSTOMER'S OWN QUOTES, as chat_answers.quoteAnswer wants them. Scoped through inquiries to
+// the resolved customer; drafts are never a quote the customer can see. The supplier label is the
+// compare table's letter (live quotes by ascending price) unless a transactions row proves the
+// reveal was paid — the same rule customer_api.letterOf applies, so the chat cannot name a
+// supplier the quote PDF would not.
+async function answerFromOwnQuotes(customerId: string, message: string, lang: 'en' | 'ar') {
+  try {
+    const { data: inqs } = await admin.from('inquiries').select('id,rfq_no,category,summary').eq('customer_id', customerId).limit(50);
+    const ids = (inqs || []).map((i: { id: string }) => i.id);
+    if (!ids.length) return null;
+    const [{ data: qs }, { data: tx }] = await Promise.all([
+      admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,status,exclusions,scope,conditions,warranty,lead_time,payment_terms,validity,notes,committed_items,created_at')
+        .in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }).limit(60),
+      admin.from('transactions').select('inquiry_id,supplier_id').eq('customer_id', customerId).not('revealed_at', 'is', null),
+    ]);
+    if (!qs || !qs.length) return null;
+    const revealed = new Set((tx || []).map((t: { inquiry_id: string; supplier_id: number }) => t.inquiry_id + ':' + t.supplier_id));
+    const revealedIds = [...new Set((qs as Array<{ inquiry_id: string; supplier_id: number }>).filter((q) => revealed.has(q.inquiry_id + ':' + q.supplier_id)).map((q) => q.supplier_id))];
+    const names = new Map<number, string>();
+    if (revealedIds.length) {
+      const { data: leads } = await admin.from('leads').select('id,company_name').in('id', revealedIds);
+      for (const l of leads || []) names.set(Number(l.id), String(l.company_name || ''));
+    }
+    const byInq = new Map<string, { rfq_no: string | null; category: string | null; summary: string | null }>((inqs || []).map((i: any) => [i.id, i]));
+    const letterIdx = new Map<string, number>();
+    const quotes: QuoteForAnswer[] = (qs as any[]).map((q) => {
+      const n = letterIdx.get(q.inquiry_id) ?? 0; letterIdx.set(q.inquiry_id, n + 1);
+      const inq = byInq.get(q.inquiry_id);
+      const name = revealed.has(q.inquiry_id + ':' + q.supplier_id) ? names.get(Number(q.supplier_id)) : '';
+      const items = Array.isArray(q.committed_items)
+        ? q.committed_items.map((it: any) => [it?.description ?? it?.item ?? it?.name, it?.spec ?? it?.specification, it?.qty != null ? String(it.qty) + ' ' + String(it?.unit ?? '') : null].filter(Boolean).join(' — ')).join('\n')
+        : null;
+      return {
+        id: String(q.id), rfq_no: inq?.rfq_no ?? null, inquiry_category: inq?.category ?? null, inquiry_summary: inq?.summary ?? null,
+        supplier_label: name || (lang === 'ar' ? 'المورّد ' + supplierLabel(n) : 'Supplier ' + supplierLabel(n)),
+        amount: q.quote_amount == null ? null : Number(q.quote_amount), status: q.status,
+        exclusions: q.exclusions, scope: q.scope, conditions: q.conditions, warranty: q.warranty,
+        lead_time: q.lead_time, payment_terms: q.payment_terms, validity: q.validity, notes: q.notes, items,
+      };
+    });
+    return quoteAnswer(message, quotes, lang);
+  } catch { return null; }   // a read failure falls through to the corpora rather than failing the turn
+}
+
 // EVERY CALL LEAVES A ROW. fn_agents_board LEFT JOINs agent_runs on agent = agent_key, so a seat
 // that never writes one renders with runs24 = 0 — indistinguishable from a seat that is down.
 // Neither existing agent does this; measured 9 Sep, agent_runs holds rows for send_outbox and
@@ -251,8 +297,34 @@ Deno.serve(observe('sales_engineer', async (req) => {
     if (action === 'assist') {
       const message = String(body.message || '').trim();
       if (!message) return J({ error: 'message_required' }, 400);
+      const lang = langOf(message, String(body.lang || ''));
 
-      const vec = await embed(message);
+      // ── A QUESTION ABOUT THE CUSTOMER'S OWN QUOTE IS ANSWERED FROM THAT QUOTE (21 Sep 2026) ──
+      // Measured in the portal audit: "the quote excludes scaffolding above 4 m, but my ceilings
+      // are 3.2 m" was answered with five unrelated FAQs. No corpus holds this customer's quote;
+      // the quotes table does. So the seat reads the caller's own quotes first — scoped in SQL to
+      // inquiries.customer_id = the resolved session — and answers from the quote's own line when
+      // the question shares a word with it or names a field (exclusions, warranty, …). The
+      // supplier is named only where a transactions row proves the reveal was paid; before that it
+      // is the same "Supplier A" letter the compare table prints.
+      if (caller.kind === 'customer') {
+        const qa = await answerFromOwnQuotes(caller.customerId, message, lang);
+        if (qa) {
+          try {
+            await admin.from('assistant_logs').insert({ message, reply: qa.reply, seat: 'sales_engineer', answered: true,
+              audience: 'customer:' + caller.customerId, path: 'portal', gap_task_id: null });
+          } catch { /* the customer already has the answer */ }
+          await run('assist', 'ok', { answered: true, basis: qa.basis, quote_id: qa.quote_id, field: qa.field });
+          return J({ ok: true, seat: 'sales_engineer', answered: true, reply: qa.reply, cited: ['quotes:' + qa.quote_id],
+            basis: 'read from the customer\'s own quote (' + qa.basis + '); no corpus, no model', scope: { customer_id: caller.customerId } });
+        }
+      }
+
+      // THE EMBEDDING IS BOUNDED. Measured 21 Sep 2026: fn_sales_assist answers in 0.09 s without a
+      // vector; the audit's >2 min portal reply was the in-function gte-small session warming up.
+      // A vector adds recall only for rows that ALSO corroborate lexically, so 1.5 s is all it gets;
+      // past that the lexical routes answer alone rather than the customer waiting.
+      const vec = await Promise.race([embed(message), new Promise<null>((r) => setTimeout(() => r(null), 1500))]);
       const { data, error } = await admin.rpc('fn_sales_assist', {
         p_text: message, p_embedding: vec,
         p_min_similarity: Number(body.min_similarity ?? 0.86),
@@ -263,17 +335,31 @@ Deno.serve(observe('sales_engineer', async (req) => {
       if (error) return J({ ok: false, error: 'retrieval_failed', detail: error.message }, 503);
 
       const r = data as Record<string, unknown>;
-      const recs = (r.records || []) as Array<Record<string, unknown>>;
+      // ON TOPIC OR NOT AT ALL (21 Sep 2026). A cited passage must share a substantive word with the
+      // question — the estate's own lens, "a nearest neighbour is always found", applied at the
+      // last step so that a floor slip in any corpus still cannot put an unrelated passage in front
+      // of a customer. What survives is answered; when nothing does, the gap is recorded and the
+      // honest sentence goes out in the asker's language.
+      const recs = ((r.records || []) as Array<Record<string, unknown>>)
+        .filter((x) => onTopic(message, String(x.title || '') + ' ' + String(x.content || '')));
+      let answered = r.answered === true && recs.length > 0;
+      let taskId: number | null = (r.task_id as number | undefined) ?? null;
+      if (!answered && r.answered === true) {
+        // the routine cited something; every citation was off topic, so it recorded no gap. Record it.
+        try {
+          const { data: g } = await admin.rpc('fn_support_knowledge_gap', { p_question: message, p_refusal: 'cited_off_topic', p_surface: 'customer_portal' });
+          taskId = ((g as Record<string, unknown> | null)?.task_id as number | undefined) ?? null;
+        } catch { /* the honest sentence still goes out */ }
+      }
       // Plain text: the widget renders a string, not markdown. Deterministic assembly of the cited
-      // records — no generation step, nothing to hallucinate with. Each passage now names the body
-      // it came from, because a cross-corpus answer that does not say whether it is quoting the
-      // company's own policy or a trade standard is a worse answer than one that does.
-      const reply = r.answered
-        ? recs.map((x) =>
-            String(x.title || '(untitled)') + '\n' +
-            '[' + String(x.corpus) + (x.provenance ? ' · ' + String(x.provenance) : '') + ']\n' +
-            String(x.content)).join('\n\n')
-        : String(r.handoff || 'I do not have that yet.');
+      // records — no generation step, nothing to hallucinate with. NO RAW TAGS: the corpus name and
+      // provenance ("[company_faq · FAQ · Marketplace · en]") were printed on screen in the audit;
+      // they stay in `cited` for the log and the passage is shown as a FAQ entry or a titled note.
+      const reply = answered
+        ? recs.map((x) => (String(x.corpus) === 'company_faq'
+            ? String(x.title || '') + '\n' + String(x.content)
+            : (x.title ? String(x.title) + '\n' : '') + String(x.content))).join('\n\n')
+        : (r.refusal === 'text_lost_its_script' ? String(r.handoff || '') : notYet(lang, taskId, 'sales_engineer'));
 
       // 14 SEP 2026. This exchange was never saved: the customer's question and the answer existed
       // only in the widget. The founder: "all conversations need to be saved and the sales agent
@@ -281,30 +367,31 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // writes; audience 'customer:<id>' is what fn_conversation_party files it under.
       try {
         await admin.from('assistant_logs').insert({
-          message, reply, seat: 'sales_engineer', answered: r.answered === true,
+          message, reply, seat: 'sales_engineer', answered,
           audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind,
-          path: 'portal', gap_task_id: (r.task_id as number | undefined) ?? null,
+          path: 'portal', gap_task_id: taskId,
         });
       } catch { /* the customer already has the answer; a failed log must not take it back */ }
 
       await run('assist', 'ok', {
-        answered: r.answered === true,
-        cited: Array.isArray(r.cited) ? r.cited.length : 0,
-        refusal: r.refusal ?? null,
-        task_id: r.task_id ?? null,
+        answered,
+        cited: recs.length,
+        refusal: r.refusal ?? (answered ? null : 'cited_off_topic'),
+        task_id: taskId,
+        embedded: vec !== null,
       });
 
       return J({
         ok: true,
         seat: 'sales_engineer',
-        answered: r.answered === true,
+        answered,
         reply,
-        cited: r.cited,
+        cited: recs.map((x) => String(x.corpus) + ':' + String(x.record_id)),
         corpora: r.corpora,
         floor: r.floor,
-        refusal: r.refusal ?? null,
+        refusal: r.refusal ?? (answered ? null : 'cited_off_topic'),
         // The fallback is an action now, not a sentence. Surfaced so a caller can show the task.
-        task_id: r.task_id ?? null,
+        task_id: taskId,
         gap_recorded: r.gap_recorded === true,
         // Never claimed, always stated: this seat has no model today.
         basis: 'retrieved across sales_knowledge, ops_knowledge, kb_chunks, agent_knowledge, support_knowledge, category_specs and category_quote_specs under a similarity floor with lexical corroboration (embedded rows) or a stricter lexical-only bar (rows with no embedding); no model was called, so passages are quoted, never fused or restated',

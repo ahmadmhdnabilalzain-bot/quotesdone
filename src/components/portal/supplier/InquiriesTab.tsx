@@ -19,7 +19,7 @@ import { emirateLabel, srvMsg } from './serverCopy';
 import { ws } from './workspaceCopy';
 import DocActions from '../DocActions';
 import { BoqTable, ClarifyThread, DrawingGallery, RequestedTerms, WithheldCustomer } from './RfqParts';
-import { failed, openPdf, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { aedIn, failed, openPdf, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
 import { Ltr } from '@/lib/Ltr';
 
 const COPY = {
@@ -49,7 +49,6 @@ const COPY = {
   },
 };
 const day = (d: string, lang: Lang) => new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-const aed = (n: number | null | undefined) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 // deno-style loose shape the legacy quote form reads (SupplierPortal QuoteForm): the inquiry and its quotes.
 export type LegacyInquiry = { id: string; quote: unknown; quotes: unknown[]; [k: string]: unknown };
 
@@ -137,14 +136,18 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
         <div><dt className="text-muted-foreground">{lang === 'ar' ? 'الإمارة' : 'Emirate'}</dt><dd className="text-foreground">{emirateLabel(lang, d.emirate || '') || '—'}</dd></div>
       </dl>
       <div className="mt-3">{d.you_won ? <span className="text-[13px] font-semibold text-primary">{t.won}</span> : d.concluded ? <span className="text-[13px] text-muted-foreground">{t.concluded}</span> : !d.revealed ? <WithheldCustomer lang={lang} /> : null}</div>
-      {d.summary ? <section className="mt-4"><h3 className="text-[13px] font-semibold text-foreground">{t.scope}</h3><p dir="auto" className="mt-1 max-w-[70ch] text-[13.5px] leading-relaxed text-foreground/90">{d.summary}</p>{d.budget ? <p className="mt-1 text-[12px] text-muted-foreground">{t.budget}: {d.budget}</p> : null}</section> : null}
+      {d.summary ? <section className="mt-4"><h3 className="text-[13px] font-semibold text-foreground">{t.scope}</h3>{lang === 'ar' && d.summary_ar
+        ? <><p className="mt-1 max-w-[70ch] text-[13.5px] leading-relaxed text-foreground/90">{d.summary_ar}</p><p dir="auto" className="mt-1 max-w-[70ch] text-[12px] text-muted-foreground">{d.summary}</p></>
+        : <p dir="auto" className="mt-1 max-w-[70ch] text-[13.5px] leading-relaxed text-foreground/90">{d.summary}</p>}{d.budget ? <p className="mt-1 text-[12px] text-muted-foreground">{t.budget}: {d.budget}</p> : null}</section> : null}
       <RequestedTerms spec={d.spec} lang={lang} />
       <Documents token={token} lang={lang} id={d.id} />
       <DrawingGallery pages={d.drawing_pages} failed={Number(d.drawing_pages_failed || 0)} lang={lang} />
       <BoqTable boq={d.boq} confidence={d.boq_confidence} lang={lang} />
       {d.boq_withheld ? <p className="mt-3 text-[12.5px] text-muted-foreground">{t.boqHeld}</p> : null}
-      <ClarifyThread inquiryId={d.id} token={token} lang={lang} canAsk={canQuote && !q} />
-      {q ? <p className="mt-4 text-[13px] text-foreground">{t.quoted}: <span className="font-mono tabular-nums"><Ltr>{aed(q.quote_amount)}</Ltr></span></p> : null}
+      {/* A question stays possible after a quote exists (audit 21 Sep 2026, finding 30): the answer reaches every
+          matched supplier and a supplier revises its quote on it. Only a concluded or revealed job closes it. */}
+      <ClarifyThread inquiryId={d.id} token={token} lang={lang} canAsk={canQuote} />
+      {q ? <p className="mt-4 text-[13px] text-foreground">{t.quoted}: <span className="font-mono tabular-nums"><Ltr>{aedIn(lang, q.quote_amount)}</Ltr></span></p> : null}
       {canQuote ? (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button onClick={() => onQuote(d.id)}>{t.quote}</Button>
@@ -208,7 +211,7 @@ export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, re
                 </span>
                 <span className="flex flex-col items-end gap-1">
                   {i.you_won ? <Badge variant="ok">{t.won}</Badge> : i.concluded ? <Badge variant="secondary">{lang === 'ar' ? 'منتهٍ' : 'Concluded'}</Badge> : null}
-                  {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : q ? <span className="font-mono text-[12px] tabular-nums text-foreground"><Ltr>{aed(q.quote_amount)}</Ltr></span> : null}
+                  {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : q ? <span className="font-mono text-[12px] tabular-nums text-foreground"><Ltr>{aedIn(lang, q.quote_amount)}</Ltr></span> : null}
                   <span aria-hidden className="text-[11.5px] text-muted-foreground">{on ? t.close : t.open}</span>
                 </span>
               </button>
