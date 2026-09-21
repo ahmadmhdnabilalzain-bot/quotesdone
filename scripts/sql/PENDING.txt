@@ -12,4 +12,6 @@
 # serialised through the coordinator. Apply in THIS order and, as each is applied, move its line to the
 # END of MANIFEST.txt (a file cannot be in both): each carries a PROBE row and was executed rolled-back.
 
+scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql :: sales_engineer, 21 Sep 2026: office_equipment + pos_retail trades and their 10 services, the catalogue aliases, taxonomy_trade_service.embedding_gte, and two model switches seeded OFF. Dry run passed; NOT executed rolled-back (the guard refuses writes). Apply with --apply --ddl, move this line to the end of MANIFEST.txt, then run node scripts/kb/embed_taxonomy_services.mjs --write, then deploy supplier_api, supplier_portal and supplier_catalog_ingest.
+
 

@@ -11,20 +11,33 @@
 
 /** lines: [text, fontSize][] top to bottom. Returns a Buffer holding a valid PDF 1.4 file. */
 export function demoPdf(lines) {
-  let y = 760;
-  let text = 'BT\n';
-  for (const [line, size] of lines) {
-    text += `/F1 ${size} Tf\n1 0 0 1 60 ${y} Tm\n(${String(line).replace(/([()\\])/g, '\\$1')}) Tj\n`;
-    y -= size + 10;
-  }
-  text += 'ET\n';
+  return demoPdfPages([lines]);
+}
+
+/** Several pages, each [text, fontSize][] top to bottom (21 Sep 2026: the ZZ DEMO catalogue fixture). */
+export function demoPdfPages(pages) {
+  const stream = (lines) => {
+    let y = 760;
+    let text = 'BT\n';
+    for (const [line, size] of lines) {
+      text += `/F1 ${size} Tf\n1 0 0 1 60 ${y} Tm\n(${String(line).replace(/([()\\])/g, '\\$1')}) Tj\n`;
+      y -= size + 10;
+    }
+    return text + 'ET\n';
+  };
+  // 1 catalog, 2 pages, 3 font, then a page and its content stream per page.
+  const n = pages.length;
+  const kids = pages.map((_, i) => `${4 + 2 * i} 0 R`).join(' ');
   const objs = [
     '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
-    `<< /Length ${text.length} >>\nstream\n${text}endstream`,
+    `<< /Type /Pages /Kids [${kids}] /Count ${n} >>`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
   ];
+  pages.forEach((lines, i) => {
+    const text = stream(lines);
+    objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + 2 * i} 0 R >>`);
+    objs.push(`<< /Length ${text.length} >>\nstream\n${text}endstream`);
+  });
   let pdf = '%PDF-1.4\n';
   const offsets = [];
   objs.forEach((o, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
