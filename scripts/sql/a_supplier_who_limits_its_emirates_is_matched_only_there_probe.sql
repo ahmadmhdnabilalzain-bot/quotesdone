@@ -35,8 +35,11 @@ begin
     -- 18 Sep 2026): reg_mobile = owner_phone_verified + a ^9715[0-9]{8}$ number, reg_email =
     -- owner_email_verified, reg_licence / reg_profile = the path EXISTS in bucket supplier-docs,
     -- reg_terms = signed_terms_path.
-    insert into storage.objects (bucket_id, name) values ('supplier-docs', v_lic), ('supplier-docs', v_prof)
-    on conflict (bucket_id, name) do nothing;
+    -- storage.objects has no (bucket_id, name) unique constraint on this platform version (22 Sep 2026: the
+    -- ON CONFLICT form failed with 42P10), so insert only what is missing.
+    insert into storage.objects (bucket_id, name)
+      select 'supplier-docs', n from unnest(array[v_lic, v_prof]) n
+       where not exists (select 1 from storage.objects o where o.bucket_id = 'supplier-docs' and o.name = n);
 
     insert into public.leads (company_name, email, emirate, sector, phone, owner_phone_verified,
                               owner_email_verified, license_doc_path, company_profile_doc_path,
