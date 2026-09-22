@@ -31,7 +31,9 @@ export function inUae(fromCountry: string, from: string): boolean {
 
 // Polly.Hala is Twilio's Gulf Arabic neural voice; ar-AE is the locale the founder's market speaks.
 export function twiml(uae: boolean): string {
-  const web = esc(host(uae ? AE_ORIGIN : CANONICAL_ORIGIN));
+  // Escaped once, by esc() on the whole sentence below. Escaping the domain here as well was a
+  // double-escape: harmless on a hostname with no &<> in it, and wrong the day one has.
+  const web = host(uae ? AE_ORIGIN : CANONICAL_ORIGIN);
   return '<?xml version="1.0" encoding="UTF-8"?>'
     + '<Response>'
     + `<Say language="en-US">${esc(sayEn(web))}</Say>`
