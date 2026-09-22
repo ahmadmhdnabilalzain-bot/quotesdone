@@ -10,11 +10,21 @@ Deno.test('each delivery event maps to a status the column accepts', () => {
     assertEquals(!!o && ALLOWED.includes(o.status), true, t);
   }
 });
-Deno.test('a bounce and a complaint are final and carry the provider detail', () => {
+Deno.test('a bounce is final and carries the provider detail', () => {
   assertEquals(deliveryOutcome('email.bounced', 'Permanent'), { status: 'undelivered', code: 'bounce:permanent', onlyIf: null });
-  assertEquals(deliveryOutcome('email.complained', ''), { status: 'delivered', code: 'complained', onlyIf: null });
+  assertEquals(deliveryOutcome('email.bounced', '')?.code, 'bounce:unknown');
 });
-Deno.test('a late delay or delivered never moves a final status backwards', () => {
+Deno.test('no later event can move the row off undelivered', () => {
+  // A complaint after a bounce would otherwise read the address as reachable and overwrite
+  // 'bounce:permanent' with 'complained'. Only a bounce (onlyIf null) writes over anything.
+  for (const t of ['email.delivery_delayed', 'email.delivered', 'email.complained']) {
+    const o = deliveryOutcome(t, '')!;
+    assertEquals(typeof o.onlyIf, 'string', t + ' must be conditional');
+    assertEquals(o.onlyIf!.includes('undelivered'), false, t + ' must not match an undelivered row');
+    assertEquals(o.onlyIf!.includes('provider_status.is.null'), true, t);
+  }
+  assertEquals(deliveryOutcome('email.complained', ''),
+    { status: 'delivered', code: 'complained', onlyIf: 'provider_status.is.null,provider_status.eq.sending,provider_status.eq.delivered' });
   assertEquals(deliveryOutcome('email.delivery_delayed', '')?.onlyIf, 'provider_status.is.null');
   assertEquals(deliveryOutcome('email.delivered', '')?.onlyIf, 'provider_status.is.null,provider_status.eq.sending');
 });

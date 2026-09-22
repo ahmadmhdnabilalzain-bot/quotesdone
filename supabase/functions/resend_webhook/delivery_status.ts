@@ -9,8 +9,12 @@
 //   email.delivered        -> 'delivered'    never over a final status
 //   email.bounced          -> 'undelivered'  final; code 'bounce:<type>'
 //   email.complained       -> 'delivered'    it arrived and the reader marked it spam; code 'complained'
+//                                            but never onto an 'undelivered' row: a complaint landing
+//                                            after a bounce would otherwise read the address as
+//                                            reachable and overwrite 'bounce:permanent'.
 // `onlyIf` is the PostgREST or-filter the update must also match, so a late event never moves a
-// status backwards; null means the event is final and always applies.
+// status backwards; null means the event is final and always applies. A bounce is the one event
+// that overwrites anything: "it did not arrive" is the outcome that decides whether we mail again.
 export type DeliveryOutcome = { status: 'sending' | 'delivered' | 'undelivered'; code: string | null; onlyIf: string | null };
 
 export function deliveryOutcome(type: string, bounceType: string): DeliveryOutcome | null {
@@ -18,6 +22,6 @@ export function deliveryOutcome(type: string, bounceType: string): DeliveryOutco
   if (t === 'email.delivery_delayed') return { status: 'sending', code: null, onlyIf: 'provider_status.is.null' };
   if (t === 'email.delivered') return { status: 'delivered', code: null, onlyIf: 'provider_status.is.null,provider_status.eq.sending' };
   if (t === 'email.bounced') return { status: 'undelivered', code: 'bounce:' + (bounceType.toLowerCase() || 'unknown'), onlyIf: null };
-  if (t === 'email.complained') return { status: 'delivered', code: 'complained', onlyIf: null };
+  if (t === 'email.complained') return { status: 'delivered', code: 'complained', onlyIf: 'provider_status.is.null,provider_status.eq.sending,provider_status.eq.delivered' };
   return null;
 }
