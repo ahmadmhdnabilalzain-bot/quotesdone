@@ -1601,3 +1601,4 @@ scripts/sql/a_fixture_number_is_demo_in_any_form_and_any_phone_column.sql
 scripts/sql/every_founder_mail_from_the_marketing_seat_names_its_kind.sql
 scripts/sql/every_whatsapp_says_whether_it_arrived.sql
 scripts/sql/every_whatsapp_says_whether_it_arrived_probe.sql
+scripts/sql/wa_status_is_owned_by_customer_support.sql
