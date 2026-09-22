@@ -24,6 +24,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { emirateName } from '@/components/me/portalText';
 
 const L = (lang: string, en: string, ar: string) => (lang === 'ar' ? ar : en);
 const S = {
@@ -90,7 +91,7 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
   const filterChips = f
     ? [
         [L(lang, 'Trades', 'التخصصات'), Array.isArray(f.trades) ? (f.trades as string[]).join(', ') : null],
-        [L(lang, 'Location', 'الموقع'), (f.emirate as string) || L(lang, 'anywhere in the UAE', 'جميع الإمارات')],
+        [L(lang, 'Location', 'الموقع'), f.emirate ? emirateName(f.emirate as string, lang) : L(lang, 'anywhere in the UAE', 'جميع الإمارات')],
         [L(lang, 'Capability', 'القدرة'), (f.need as string) || null],
         [L(lang, 'Shortlist size', 'عدد المرشّحين'), f.limit != null ? String(f.limit) : null],
       ].filter((x) => !!x[1])
@@ -119,7 +120,7 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
         <select value={emirate} onChange={(e) => setEmirate(e.target.value)}
                 aria-label={L(lang, 'Emirate', 'الإمارة')}
                 className="h-9 rounded-md border border-border bg-background px-2 text-[13px] text-foreground">
-          {EMIRATES.map((x) => <option key={x || 'any'} value={x}>{x || L(lang, 'Any emirate', 'أي إمارة')}</option>)}
+          {EMIRATES.map((x) => <option key={x || 'any'} value={x}>{x ? emirateName(x, lang) : L(lang, 'Any emirate', 'أي إمارة')}</option>)}
         </select>
         <Button onClick={ask} disabled={busy}>{busy ? L(lang, 'Searching…', 'جارٍ البحث…') : L(lang, 'Ask', 'اسأل')}</Button>
       </div>

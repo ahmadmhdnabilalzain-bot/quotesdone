@@ -13,11 +13,11 @@
 // Cost: one rfq_routing model call, same as verify_matching.mjs --live. Staging only.
 //
 //     node scripts/staging/verify_match_similarity.mjs
-import { mgmtRead } from './qd_guard.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
 import {
   REF, withRun, makeBulkCorpus, makeCustomer, makeInquiry, makeRequirement,
   internalCred, call, q,
-} from './demo_factory.mjs';
+} from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

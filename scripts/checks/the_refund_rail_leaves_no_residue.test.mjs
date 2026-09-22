@@ -17,21 +17,19 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { sql } from '../lib/db.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
-const q = async (query) => {
-  const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, read_only: true }),
-  });
-  const text = await r.text();
-  assert.ok(r.ok, `query failed: ${r.status} ${text}`);
-  return JSON.parse(text);
-};
+// The same backoff-less transport that turned five other checks red on the throttled night of
+// 22 Sep 2026 (see a_reversed_supplier_charge_is_never_owed.test.mjs). This one happened not to be
+// running at the time; the defect is the transport, not the hour, so it is corrected with its
+// siblings. scripts/lib/db.mjs is the estate's one retry policy for this endpoint; `readOnly`
+// keeps the read_only flag this check has always set.
+const q = (query) => sql(query, { readOnly: true });
 const edgeSources = () => readdirSync(join(root, 'supabase', 'functions'), { withFileTypes: true })
   .filter((d) => d.isDirectory())
   .flatMap((d) => readdirSync(join(root, 'supabase', 'functions', d.name))

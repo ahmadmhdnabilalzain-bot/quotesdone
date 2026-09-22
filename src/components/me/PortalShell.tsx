@@ -504,7 +504,7 @@ export function PortalShell({
             {/* Its name is the customer's INITIAL below lg, where the name span is hidden — one
                 letter, for a control that opens Account (a11y review, 18 Sep 2026). */}
             <button type="button" onClick={() => go('account')} aria-label={t('mod_account')}
-              className="flex shrink-0 items-center gap-2 rounded-xl py-1 ps-1 pe-2 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl py-1 ps-1 pe-2 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <span className="grid h-8 w-8 place-items-center rounded-full bg-primary/15 text-[12px] font-bold text-primary">
                 {String(customerName || '?').trim().charAt(0).toUpperCase()}
               </span>
@@ -512,19 +512,20 @@ export function PortalShell({
             </button>
 
             <div className="hidden shrink-0 items-center gap-1 sm:flex">
-              <Button variant="ghost" size="sm" onClick={() => onSetLang(rtl ? 'en' : 'ar')} aria-label={rtl ? 'English' : 'العربية'} title={t('lang_note')}>{rtl ? 'EN' : 'ع'}</Button>
-              <Button variant="ghost" size="sm" onClick={onSwapTheme}
+              {/* h-11 w-11: 44px, the minimum tap target. size="sm" made these 32px (CP-13). */}
+              <Button variant="ghost" size="sm" className="h-11 w-11 px-0" onClick={() => onSetLang(rtl ? 'en' : 'ar')} aria-label={rtl ? 'English' : 'العربية'} title={t('lang_note')}>{rtl ? 'EN' : 'ع'}</Button>
+              <Button variant="ghost" size="sm" className="h-11 w-11 px-0" onClick={onSwapTheme}
                 aria-label={theme === 'dark' ? t('theme_light') : t('theme_dark')}>
                 {theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
               </Button>
-              <Button variant="ghost" size="sm" onClick={onSignOut} aria-label={t('signout')}><LogOut className={cn('h-4 w-4', rtl && 'rotate-180')} aria-hidden /></Button>
+              <Button variant="ghost" size="sm" className="h-11 w-11 px-0" onClick={onSignOut} aria-label={t('signout')}><LogOut className={cn('h-4 w-4', rtl && 'rotate-180')} aria-hidden /></Button>
             </div>
           </div>
         </header>
 
         {/* id="main" — the layout's skip link targets #main; without it the first focusable element
             on the signed-in customer portal did nothing (measured 18 Sep 2026). */}
-        <main id="main" className="min-w-0 flex-1 pb-24 md:pb-8">{children}</main>
+        <main id="main" className="min-w-0 flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">{children}</main>
       </div>
 
       {/* ── MOBILE TAB BAR ────────────────────────────────────────────────────────────────── */}
@@ -532,7 +533,7 @@ export function PortalShell({
           time (the other is display:none), but two landmarks that answer to "Portal navigation"
           is one CSS regression away from being a real defect (a11y review, 18 Sep 2026). */}
       <nav aria-label={t('nav_main_bar')}
-        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card shadow-e2 md:hidden">
+        className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-e2 md:hidden">
         {mobileItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.id);
@@ -571,7 +572,7 @@ export function PortalShell({
           {/* THE SHEET GIVES FULL NAMES, one per row: a two-column grid cut "What you may need
               next" at 375px. */}
           <nav id="qd-nav-more" aria-label={t('nav_more_title')}
-            className="fixed inset-x-0 bottom-[56px] z-40 max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
+            className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-40 max-h-[70vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 motion-safe:animate-in motion-safe:slide-in-from-bottom-6 motion-safe:duration-300 md:hidden">
             {overflowGroups.map((g) => (
               <div key={g.caption} role="group" aria-labelledby={'qd-more-' + g.caption} className="mb-3">
                 <div id={'qd-more-' + g.caption} className="px-1 pb-1 text-[12.5px] font-semibold text-muted-foreground">{t(g.caption)}</div>

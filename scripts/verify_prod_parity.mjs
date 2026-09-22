@@ -13,8 +13,8 @@
 //   - business and telemetry data: leads, agent_runs, ai_cost_log and friends.
 //
 //   node scripts/verify_prod_parity.mjs
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
-import { REF } from './staging/demo_factory.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
+import { REF } from './lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

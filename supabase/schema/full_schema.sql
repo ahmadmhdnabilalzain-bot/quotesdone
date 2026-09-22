@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T16:42:15.218Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T22:42:38.563Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -194,7 +194,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (546) =====
+-- ===== TABLES (547) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3556,7 +3556,8 @@ CREATE TABLE IF NOT EXISTS public.it_credential_rotation (
 CREATE TABLE IF NOT EXISTS public.it_duty_schedule (
   duty text NOT NULL,
   every interval NOT NULL,
-  note text NOT NULL
+  note text NOT NULL,
+  owner_seat text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_engineer_finding (
@@ -4783,7 +4784,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   provider_status text,
   provider_status_at timestamp with time zone,
   provider_error_code text,
-  provider_status_checked_at timestamp with time zone
+  provider_status_checked_at timestamp with time zone,
+  provider_poll_failures integer DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.openrouter_day (
@@ -6116,7 +6118,8 @@ CREATE TABLE IF NOT EXISTS public.resilience_step (
   last_ms integer,
   ewma_ms integer,
   deferrals integer DEFAULT 0 NOT NULL,
-  deferred_since timestamp with time zone
+  deferred_since timestamp with time zone,
+  owner_seat text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.resource_pool (
@@ -6545,6 +6548,17 @@ CREATE TABLE IF NOT EXISTS public.skills_matrix (
   rating integer NOT NULL,
   evidence text,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.sms_messages (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  sms_from text NOT NULL,
+  sms_to text NOT NULL,
+  body text DEFAULT ''::text NOT NULL,
+  message_sid text,
+  verified boolean DEFAULT false NOT NULL,
+  meta jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.social_conversation (
@@ -8110,6 +8124,7 @@ ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
+ALTER TABLE public.sms_messages ADD CONSTRAINT sms_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id);
@@ -8583,7 +8598,7 @@ ALTER TABLE public.model_fallback_chain ADD CONSTRAINT model_fallback_chain_kind
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_scope_check CHECK ((scope = ANY (ARRAY['target_employee'::text, 'current_agent'::text])));
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_tier_check CHECK ((tier = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text, 'xlarge'::text])));
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_lang_is_en_or_ar CHECK (((lang IS NULL) OR (lang = ANY (ARRAY['en'::text, 'ar'::text]))));
-ALTER TABLE public.notifications ADD CONSTRAINT notifications_provider_status_known CHECK (((provider_status IS NULL) OR (provider_status = ANY (ARRAY['accepted'::text, 'scheduled'::text, 'queued'::text, 'sending'::text, 'sent'::text, 'delivered'::text, 'undelivered'::text, 'failed'::text, 'read'::text]))));
+ALTER TABLE public.notifications ADD CONSTRAINT notifications_provider_status_known CHECK (((provider_status IS NULL) OR (provider_status = ANY (ARRAY['accepted'::text, 'scheduled'::text, 'queued'::text, 'sending'::text, 'sent'::text, 'delivered'::text, 'undelivered'::text, 'failed'::text, 'read'::text, 'unrecorded'::text, 'unreadable'::text]))));
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_sender_is_customer_support CHECK (((sender = 'customer_support'::text) OR ((sender = 'platform_otp'::text) AND (type = ANY (ARRAY['login_otp'::text, 'mobile_otp'::text, 'voice_otp'::text, 'email_confirmation_code'::text])))));
 ALTER TABLE public.openrouter_day ADD CONSTRAINT openrouter_day_basis_check CHECK ((authoritative_basis = ANY (ARRAY['measured'::text, 'true zero'::text, 'unknown'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_effort_check CHECK ((effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
@@ -8938,6 +8953,7 @@ ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_cogs_account_fkey FOREIGN 
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_inventory_account_fkey FOREIGN KEY (inventory_account) REFERENCES gl_accounts(code);
 ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_new_id_fkey FOREIGN KEY (new_id) REFERENCES internal_credential(id);
 ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_old_id_fkey FOREIGN KEY (old_id) REFERENCES internal_credential(id);
+ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_owner_seat_fk FOREIGN KEY (owner_seat) REFERENCES org_agents(agent_key);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES agent_actions(id);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_playbook_class_fkey FOREIGN KEY (playbook_class) REFERENCES it_playbook(failure_class);
 ALTER TABLE public.kb_operational_alias ADD CONSTRAINT kb_operational_alias_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
@@ -9018,6 +9034,7 @@ ALTER TABLE public.refunds ADD CONSTRAINT refunds_refund_decision_id_fkey FOREIG
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_topup_of_fkey FOREIGN KEY (topup_of) REFERENCES refunds(id);
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL;
 ALTER TABLE public.regulations ADD CONSTRAINT regulations_supersedes_id_fkey FOREIGN KEY (supersedes_id) REFERENCES regulations(id);
+ALTER TABLE public.resilience_step ADD CONSTRAINT resilience_step_owner_seat_fk FOREIGN KEY (owner_seat) REFERENCES org_agents(agent_key);
 ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_os_key_fkey FOREIGN KEY (os_key) REFERENCES operating_system(os_key);
 ALTER TABLE public.reveal_invoices ADD CONSTRAINT reveal_invoices_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE;
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
@@ -9209,6 +9226,7 @@ CREATE INDEX idx_email_verif_email ON public.email_verifications USING btree (em
 CREATE INDEX idx_email_verif_token ON public.email_verifications USING btree (token);
 CREATE INDEX idx_entity_comments_lookup ON public.entity_comments USING btree (entity, entity_id, created_at DESC);
 CREATE INDEX idx_error_events_created ON public.error_events USING btree (created_at DESC);
+CREATE INDEX idx_error_events_website_age ON public.error_events USING btree (created_at) WHERE (source = 'website'::text);
 CREATE INDEX idx_gl_journal_date ON public.gl_journal USING btree (entry_date);
 CREATE INDEX idx_gl_journal_source ON public.gl_journal USING btree (source, source_ref);
 CREATE INDEX idx_gl_journal_status ON public.gl_journal USING btree (status);
@@ -9486,6 +9504,8 @@ CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseli
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX sms_messages_from_created_idx ON public.sms_messages USING btree (sms_from, created_at DESC);
+CREATE UNIQUE INDEX sms_messages_message_sid_uk ON public.sms_messages USING btree (message_sid) WHERE (message_sid IS NOT NULL);
 CREATE INDEX social_message_conversation_idx ON public.social_message USING btree (conversation_id, created_at DESC);
 CREATE UNIQUE INDEX spec_alternative_offer_one_live_per_attr ON public.spec_alternative_offer USING btree (inquiry_id, line_no, attr) WHERE (state = ANY (ARRAY['open'::text, 'accepted'::text]));
 CREATE INDEX spec_alternative_offer_open_idx ON public.spec_alternative_offer USING btree (state, reply_by) WHERE (state = 'open'::text);
@@ -18549,6 +18569,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18574,16 +18604,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -19295,135 +19315,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19939,6 +19830,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -23584,6 +23604,7 @@ AS $function$
 declare
   d record; x record;
   v_out jsonb := '[]'::jsonb; v_fired int := 0; v_written int := 0; v_missing text[] := '{}';
+  v_blind text[] := '{}';   -- active rules whose MEASURE has no instrument (22 Sep 2026, SEATS-07)
   v_state text; v_detail text; v_reading text;
   v_day date := ((now() at time zone 'Asia/Dubai')::date - 1);   -- the last COMPLETE Dubai day
   v_hold timestamptz := timestamptz '2026-08-15 02:51:33.108565+00';
@@ -23625,16 +23646,22 @@ begin
       select v.* into x from public.target_verdict v join public.target_contract c on c.id = v.contract_id
        where c.status = 'active' and v.binding_stage is not null order by v.run_at desc limit 1;
       if not found then
-        v_detail := 'no feasibility run has named a binding stage (target_verdict.binding_stage is null on every run)';
+        v_detail := 'no feasibility run has named a binding stage (target_verdict.binding_stage is null on every run), so there is nothing to compare the worked stage with';
       else
-        select l.evidence->>'binding_stage' into v_prev from public.ceo_decision_log l
-         where l.decision_key = 'binding_constraint' order by l.decided_at desc limit 1;
+        -- THE STAGE BEING WORKED IS THE PLAN'S, NOT THE LAST LOG LINE'S (22 Sep 2026). The company
+        -- works whatever public.ceo_plan.stage names — fn_ceo_plan_tick writes it every Dubai day
+        -- and directs the seats from it. Reading the last logged decision instead compared the
+        -- verdict with the evaluator's own previous output, which is a loop, not a measurement.
+        select p.stage into v_prev from public.ceo_plan p order by p.plan_date desc, p.id desc limit 1;
+        if v_prev is null then
+          v_detail := 'no CEO plan has named a stage yet (public.ceo_plan is empty), so the stage being worked is unknown';
+        end if;
         if v_prev is distinct from x.binding_stage then
           v_rows := jsonb_build_array(jsonb_build_object('key', 'binding_constraint:verdict:'||x.id, 'outcome', 'decided',
             'decision', format('Work the %s stage next: the feasibility run names it as the binding constraint%s.',
-                               x.binding_stage, case when v_prev is null then '' else ' (previously '||v_prev||')' end),
+                               x.binding_stage, case when v_prev is null then ' and no plan names a stage being worked' else ', and the CEO plan is working '||v_prev end),
             'evidence', jsonb_build_object('verdict_id', x.id, 'run_at', x.run_at, 'binding_stage', x.binding_stage,
-              'binding_reason', x.binding_reason, 'previous_stage', v_prev)));
+              'binding_reason', x.binding_reason, 'stage_being_worked', v_prev, 'stage_read_from', 'ceo_plan.stage')));
         end if;
       end if;
 
@@ -23724,8 +23751,41 @@ begin
           'evidence', jsonb_build_object('day', v_day, 'held_requests', v_n, 'held_by_function', v_ev, 'cost_since_hold_aed', v_m)));
       end if;
 
-    when 'spend_against_constraint', 'risk_owner' then
-      v_state := 'not_instrumented'; v_detail := d.measure;
+    when 'risk_owner' then
+      -- "A risk is raised, or a mitigation passes its review date untested." public.risk_register
+      -- holds the live risks (risk, owner_agent, mitigation, status, review_due). What it CANNOT
+      -- answer is when a mitigation was last actually tested — nothing records a test — so this
+      -- rule fires on the two halves that ARE measurable and says so in its detail.
+      for x in select rr.id, rr.risk, rr.owner_agent, rr.mitigation, rr.review_due, rr.dept_key,
+                      (rr.owner_agent is null or not exists (select 1 from public.org_agents oa
+                         where oa.agent_key = rr.owner_agent and oa.active)) as no_live_owner,
+                      (rr.review_due is not null and rr.review_due < current_date) as review_past
+                 from public.risk_register rr where rr.status = 'open'
+      loop
+        continue when not (x.no_live_owner or x.review_past);
+        v_rows := v_rows || jsonb_build_object(
+          'key', 'risk_owner:risk:'||x.id||':'||case when x.no_live_owner then 'unowned' else 'review_past' end,
+          'outcome', 'needs_judgement',
+          'decision', case when x.no_live_owner
+            then format('Risk %s ("%s") has no live owner (%s): the CEO must name the seat that owns it and the date its mitigation is tested.',
+                        x.id, left(x.risk, 90), coalesce(x.owner_agent, 'nobody named'))
+            else format('Risk %s ("%s") passed its review date (%s) with no recorded test: the CEO must re-date it or retire it.',
+                        x.id, left(x.risk, 90), x.review_due) end,
+          'evidence', jsonb_build_object('risk_id', x.id, 'risk', x.risk, 'owner_agent', x.owner_agent,
+            'owner_is_a_live_seat', not x.no_live_owner, 'mitigation', x.mitigation, 'review_due', x.review_due,
+            'department', x.dept_key,
+            'not_measured', 'no table records when a mitigation was last actually tested; this firing reads ownership and review date only'));
+      end loop;
+      v_detail := 'read from public.risk_register (open risks: owner not a live seat, or review_due past). '
+                  || 'NOT measured: when a mitigation was last actually tested — nothing records it.';
+
+    when 'spend_against_constraint' then
+      -- No instrument, and the evaluator now SAYS SO in ok (22 Sep 2026). Checked this day:
+      -- department_budget, budgets, budget_lines, budget_vs_actual, it_spend_daily,
+      -- marketing_ad_spend_day, accountant_spend_report — not one attributes spend to a funnel
+      -- stage, so "did the money go to the binding constraint" cannot be answered from any row.
+      v_state := 'not_instrumented'; v_blind := v_blind || d.decision_key;
+      v_detail := d.measure || ' [22 Sep 2026: no table attributes spend to a funnel stage. Either add the attribution or set this rule inactive — it is not evaluated today.]';
 
     when 'structure' then
       v_state := 'founder_specified'; v_detail := 'the founder specifies the seats; the CEO decides nothing here';
@@ -23757,10 +23817,31 @@ begin
                                          'detail', v_detail, 'keys', (select jsonb_agg(e->'key') from jsonb_array_elements(v_rows) e));
   end loop;
 
-  return jsonb_build_object('ok', cardinality(v_missing) = 0, 'dry_run', p_dry_run,
-           'fired', v_fired, 'written', v_written, 'rules', v_out)
+  -- ok is the honest answer to "was every active rule actually evaluated". A branch that answers
+  -- 'not_instrumented' did not evaluate anything, so it cannot leave ok true (22 Sep 2026).
+  --
+  -- THE KEY NAME IS LOAD-BEARING, DO NOT "TIDY" IT — AND NO CHECK WILL STOP YOU. The review of
+  -- #852 measured this: renaming `uninstrumented_error` to `error` still passes every assertion in
+  -- the repository. It is caught only OPERATIONALLY, and late: the ceoDecisions step goes
+  -- permanently red on the heartbeat, which is how an estate learns to ignore a red step. The
+  -- reason the name matters is below; treat this paragraph as the check that does not exist.
+  -- resilience_ping's failureOf (steps.ts:14)
+  -- counts a step as FAILED only when it answers ok:false AND a string `error` key; ok:false with
+  -- no `error` is a result that has already reported itself, and is deliberately left alone.
+  -- The missing-evaluator case keeps `error` because it IS a heartbeat failure — a rule nothing
+  -- evaluates is a defect in the code. The uninstrumented case is reported under
+  -- `uninstrumented_error` instead, because it is a standing, known gap the CEO must close by
+  -- instrumenting the measure or deactivating the rule, not a tick that went wrong. Renaming it to
+  -- `error` would turn the ceoDecisions step permanently red and train the estate to ignore it.
+  return jsonb_build_object('ok', cardinality(v_missing) = 0 and cardinality(v_blind) = 0, 'dry_run', p_dry_run,
+           'fired', v_fired, 'written', v_written, 'rules', v_out,
+           'not_instrumented', to_jsonb(v_blind))
       || case when cardinality(v_missing) = 0 then '{}'::jsonb
-              else jsonb_build_object('error', 'active ceo_decision rule(s) with no evaluator: '||array_to_string(v_missing, ', ')) end;
+              else jsonb_build_object('error', 'active ceo_decision rule(s) with no evaluator: '||array_to_string(v_missing, ', ')) end
+      || case when cardinality(v_blind) = 0 then '{}'::jsonb
+              else jsonb_build_object('uninstrumented_error',
+                     'active ceo_decision rule(s) whose measure has no instrument, so they were not evaluated: '
+                     ||array_to_string(v_blind, ', ')) end;
 end $function$
 
 
@@ -28109,17 +28190,16 @@ AS $function$
   select 'inquiries'::text, i.id::text, 'inquiry'::text, null::bigint, null::text, true
     from public.inquiries i join me on i.customer_id = me.id
   union all
-  -- quotation files sent against their RFQs. A draft quote is not shown to the customer by
-  -- customer_api, so its attachment is not shown here either.
-  select 'quotes'::text, q.id::text, 'quote'::text, q.supplier_id,
-         case when t.id is not null then l.company_name end,
-         t.id is not null
+  -- quotation files sent against their RFQs, and ONLY once the customer has paid to reveal that
+  -- quote. A draft quote is not shown to the customer by customer_api, so its attachment is not
+  -- shown here either; nor, since 22 Sep 2026, is an unrevealed one's (CP-02).
+  select 'quotes'::text, q.id::text, 'quote'::text, q.supplier_id, l.company_name, true
     from public.quotes q
     join public.inquiries i on i.id = q.inquiry_id
     join me on i.customer_id = me.id
+    join public.transactions t
+      on t.quote_id = q.id and t.customer_id = me.id and t.revealed_at is not null
     left join public.leads l on l.id = q.supplier_id
-    left join public.transactions t
-           on t.quote_id = q.id and t.customer_id = me.id and t.revealed_at is not null
    where coalesce(q.status, '') <> 'draft'
   union all
   -- supplier documents, and ONLY for a supplier this customer has paid to reveal
@@ -29081,6 +29161,32 @@ begin
       elsif n.id is null and q.evidence ? 'notify' then
         v_result := 'routed';
         v_evidence := v_evidence || jsonb_build_object('notify', q.evidence->'notify');
+      -- 22 SEP 2026 (it_engineer, UNSOLVED-06) — "NOTHING WAS QUEUED" WAS THREE DIFFERENT THINGS.
+      -- MEASURED: support_ceo_report 3075, 3076, 3084 and 3085 each read 'A supplier_invite for the supplier
+      -- did not arrive (not_sent)' with reason 'nothing was queued'. Their requests (agent_actions 42578,
+      -- 42579, 42595, 42596) each carry evidence.queued = true and evidence.notification_id 36988/36989/
+      -- 37002/37003, and NONE of those notification rows exists any more: every one addressed a
+      -- zz-demo-supplier-invite-…@example.invalid fixture and the demo hygiene sweep deleted them between
+      -- being queued at 19:11-19:15Z and the watch tick at 19:30Z on 21 Sep. So support DID queue the
+      -- message; its record was removed afterwards. (The 22 Sep audit read these as invitations held by
+      -- app_secrets.supplier_outreach_golive=false. They are not: the hold path
+      -- (the_invitations_warm_up_on_measured_health_and_leave_across_the_working_day.sql) writes an
+      -- invite_schedule row with status 'pending' and a supplier_invites agent_run, and asks for no
+      -- delivery at all — so a held invitation never reaches this watch.)
+      -- The three cases now answer differently, and only the first is a fault:
+      --   nothing was ever queued and nothing explains it  -> 'not_sent'  (escalates, as before)
+      --   the campaign is held by the founder's own switch  -> 'held'     (recorded, never escalated)
+      --   the row it queued has since been deleted         -> 'record_removed'
+      elsif n.id is null and coalesce(q.detail->>'msg_type', '') like '%invite%'
+            and not public.fn_supplier_outreach_golive() then
+        v_result := 'held';
+        v_evidence := v_evidence || jsonb_build_object('reason',
+          'the supplier campaign is held: app_secrets.supplier_outreach_golive is false, so no invitation is sent. This is the founder''s switch, not a delivery failure.');
+      elsif n.id is null and coalesce((q.evidence->>'notification_id'), '') <> '' then
+        v_result := 'record_removed';
+        v_evidence := v_evidence || jsonb_build_object('reason',
+          'the notification this request queued (id ' || (q.evidence->>'notification_id')
+          || ') no longer exists, so its delivery cannot be read. A queued message whose row was deleted afterwards - the demo hygiene sweep does this to fixture rows - is not a message that was never sent.');
       elsif n.id is null then
         v_result := 'not_sent';
         v_evidence := v_evidence || jsonb_build_object('reason', coalesce(q.evidence->>'reason', 'nothing was queued'));
@@ -30785,7 +30891,8 @@ begin
                           'management@quotesdone.com');
 
       -- The customer must know their edit cost them their quotes, or they will wait for prices
-      -- that are never coming back on their own.
+      -- that are never coming back on their own. The type now has a notification_copy row in both
+      -- languages (above), so a04 states THIS in Arabic rather than the generic fallback (CP-04).
       if v_cust_email is not null then
         insert into notifications(type, to_email, to_role, inquiry_id, channel, subject, body, status)
         values ('inquiry_edit_staled_quotes', v_cust_email, 'customer', p_inquiry, 'email',
@@ -30797,8 +30904,10 @@ begin
                 'QuotesDone', 'queued');
       end if;
 
+      -- THE SALES ENGINEER OWNS AN RFQ WHOSE QUOTES WENT BACK (CP-04). This said 'procurement',
+      -- which is not one of the estate's seats, so the follow-up reached nobody.
       insert into agent_actions(agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-      values ('procurement','requote_required','needs_review','medium',
+      values ('sales_engineer','requote_required','needs_review','medium',
               'Requirements changed after ' || v_stale || ' quote(s) were submitted',
               'Watch that the invited suppliers actually re-quote. If they do not, the customer is left with a request that had prices and now has none.',
               jsonb_build_object('inquiry_id', p_inquiry, 'quotes_staled', v_stale,
@@ -33119,7 +33228,15 @@ begin
   v_plan := v_plan || (
     select jsonb_build_array(case when count(*) = 0 then 'The IT engineer has no open technical problems.'
                                   else 'The IT engineer works on '||count(*)||' open technical problem(s).' end)
-      from public.it_engineer_finding where closed_at is null);
+      -- ONE DEFINITION OF "OPEN", CALLED, NOT COPIED (22 Sep 2026, it_engineer, UNSOLVED-11). This counted
+      -- every unclosed finding, including the ones the IT loop classes as 'warn' and never hands off, so the
+      -- founder's brief said a bigger number than the digest he gets minutes later. MEASURED today: 9
+      -- unclosed findings, of which 1 is 'warn' (watch:run_failure:wa_status) — brief 9, digest 8.
+      -- fn_it_open_findings() is that definition and fn_it_loop_tick selects from the same function
+      -- (the_founder_gets_one_it_digest_per_tick.sql, which must be applied before this file), so there is
+      -- no second copy of the predicate to drift. The loop adds one further condition of its own — has this
+      -- occurrence been handed off yet — which is about what to raise NOW, not about what is open.
+      from public.fn_it_open_findings() f);
 
   -- 22 Sep 2026 (ceo, instruction 638): the CEO's own plan leads item 7 -- the binding constraint, the
   -- directive each seat is working to, and the one decision only the founder can take, if any. This is
@@ -34658,6 +34775,128 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_accepted_report_review(p_dry_run boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  rep public.support_ceo_report;
+  v_family text; v_gone boolean; v_note text;
+  -- HOW a report closed, never collapsed into one number (22 Sep 2026, review of PR #852):
+  --   'measured'     the cause was measured GONE — a provider id, a delivered status, a confirmed
+  --                  twin, coverage ok, a closed handoff.
+  --   'unmeasurable' the cause can never be re-checked because its subject is not there: the
+  --                  report names no notification, or the notification row no longer exists. That
+  --                  is the ABSENCE of evidence, not evidence, and an auditor reading the
+  --                  completion record must be able to tell the two apart.
+  v_kind text;
+  v_closed_measured int := 0; v_closed_unmeasurable int := 0;
+  v_cov jsonb; v_cov_read boolean := false; v_loop_run boolean := false;
+  v_nid bigint; v_notif public.notifications; v_twin public.notifications;
+  v_status text; v_open bigint[] := '{}'; v_closed int := 0; v_due int := 0;
+begin
+  for rep in select * from public.support_ceo_report
+              where status = 'accepted' and next_review_at is not null and next_review_at < now()
+              order by id loop
+    v_due := v_due + 1;
+    v_family := split_part(rep.idempotency_key, ':', 1);
+    v_gone := false; v_note := null; v_kind := null;
+
+    if v_family = 'delivery_undelivered' then
+      v_nid := coalesce((rep.verified_evidence -> 'rechecked' ->> 'notification_id')::bigint,
+                        (rep.verified_evidence -> 'support_evidence' -> 'notification' ->> 'id')::bigint);
+      if v_nid is null then
+        v_gone := true; v_kind := 'unmeasurable';
+        v_note := 'the report names no notification at all, so its delivery can never be re-checked; '
+                  || 'nothing is left to deliver and nothing can recur under this id.';
+      else
+        select * into v_notif from public.notifications where id = v_nid;
+        if v_notif.id is null then
+          v_gone := true; v_kind := 'unmeasurable';
+          v_note := 'notification ' || v_nid || ' no longer exists in public.notifications, so its delivery can never be re-checked.';
+        elsif coalesce(btrim(v_notif.provider_message_id), '') <> ''
+              or v_notif.provider_status in ('delivered', 'read') then
+          v_gone := true; v_kind := 'measured';
+          v_note := 'notification ' || v_nid || ' (' || v_notif.channel || ') now carries provider id '
+                    || coalesce(v_notif.provider_message_id, '-') || ' and provider status '
+                    || coalesce(v_notif.provider_status, '-') || ': the alert reached the founder.';
+        else
+          select * into v_twin from public.notifications t
+           where t.channel = 'email' and t.type = v_notif.type and t.created_at = v_notif.created_at
+             and t.to_role is not distinct from v_notif.to_role and t.id <> v_notif.id and t.status = 'sent'
+           order by t.id limit 1;
+          if v_twin.id is not null and coalesce(btrim(v_twin.provider_message_id), '') <> '' then
+            v_gone := true; v_kind := 'measured';
+            v_note := 'notification ' || v_nid || ' is still unconfirmed on ' || v_notif.channel
+                      || ', but its email twin ' || v_twin.id || ' was sent and confirmed ('
+                      || v_twin.provider_message_id || '): the alert reached the founder.';
+          end if;
+        end if;
+      end if;
+
+    elsif v_family in ('dropbox_backup_escalation', 'dropbox_backup_daily', 'backup_escalation') then
+      if not v_cov_read then
+        -- once per run: this reads the whole backup queue and rolls back its own enqueue probe
+        begin v_cov := public.fn_backup_coverage();
+        exception when others then v_cov := jsonb_build_object('ok', null, 'error', left(sqlerrm, 200)); end;
+        v_cov_read := true;
+      end if;
+      if coalesce((v_cov ->> 'ok')::boolean, false) then
+        v_gone := true; v_kind := 'measured';
+        v_note := 'backup coverage measured ok at review (' || left(v_cov::text, 400) || ').';
+      end if;
+
+    elsif v_family = 'it_loop' then
+      if not p_dry_run and not v_loop_run then
+        begin perform public.fn_it_loop_reverify(); exception when others then null; end;
+        v_loop_run := true;
+      end if;
+      select status into v_status from public.support_ceo_report where id = rep.id;
+      if v_status = 'completed' then v_closed := v_closed + 1; v_closed_measured := v_closed_measured + 1; continue; end if;
+      -- still accepted: its handoff has not closed, so the finding behind it is still open
+    end if;
+
+    if v_gone then
+      v_closed := v_closed + 1;
+      if v_kind = 'unmeasurable' then v_closed_unmeasurable := v_closed_unmeasurable + 1;
+      else v_closed_measured := v_closed_measured + 1; end if;
+      if not p_dry_run then
+        update public.support_ceo_report
+           set status = 'completed', completed_at = now(),
+               completion_note = 'IT engineer reviewed this accepted report at its review date ('
+                 || to_char(now() at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai, closed as ' || v_kind || '): ' || v_note
+         where id = rep.id and status = 'accepted';
+      end if;
+    else
+      v_open := v_open || rep.id;
+      if not p_dry_run then
+        update public.support_ceo_report set next_review_at = now() + interval '24 hours' where id = rep.id;
+      end if;
+    end if;
+  end loop;
+
+  -- ONE finding for everything still unanswered, named by id so the CEO can answer them.
+  if cardinality(v_open) > 0 and not p_dry_run then
+    perform public.fn_it_engineer_finding_upsert(
+      'monitor:ceo_accepted_report_review_overdue',
+      cardinality(v_open) || ' accepted CEO report(s) passed their review date and their cause is still there',
+      'public.support_ceo_report (status accepted, next_review_at past)', 'agent_facing', cardinality(v_open),
+      jsonb_build_object('report_ids', to_jsonb(v_open), 'owner_seat', 'ceo',
+        'measured', 'the cause each report was about was measured at review and is still present; each review date moved 24 h',
+        'fix', 'the CEO answers each report — complete it with what changed, or say what is still being done and why'),
+      '{}'::text[], array['what the CEO intends to do about each report still open'], 'fn_it_accepted_report_review');
+  end if;
+
+  return jsonb_build_object('due', v_due, 'closed', v_closed,
+                            'closed_measured', v_closed_measured, 'closed_unmeasurable', v_closed_unmeasurable,
+                            'still_open', cardinality(v_open),
+                            'open_ids', to_jsonb(v_open), 'dry_run', p_dry_run,
+                            'coverage_read', v_cov_read, 'coverage_ok', v_cov -> 'ok');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_access_accept(p_system text, p_principal text, p_reason text, p_accepted_by text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -35128,21 +35367,16 @@ CREATE OR REPLACE FUNCTION public.fn_it_ceo_silence_watch()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r public.support_ceo_report; n_told int := 0; n_answered int := 0; v_window interval; v_dec jsonb; v_status text;
+        v_review jsonb;
 begin
   select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
-  -- Same fault, same answer as fn_it_loop_reverify above: a hardcoded 4 h fallback here would keep
-  -- policing to a number nobody can see, after the row that is supposed to hold it had gone.
   if v_window is null then
     raise exception 'fn_it_ceo_silence_watch: seat_handoff_kind names no reply window for it.finding from it_engineer';
   end if;
-  -- 21 Sep 2026: the "no page yet" test used to sit in this WHERE, so a report paged before its
-  -- family had a decider was never offered to the decider again (13 stuck; see this file's header).
   for r in select * from public.support_ceo_report
             where source_agent = 'it_engineer' and status = 'sent'
               and least(next_review_at, created_at + v_window) < now()
             order by id loop
-    -- The CEO's answer comes before the founder's page (21 Sep 2026). A family this dispatcher does
-    -- not know answers 'no decider for this family', and that string travels in the page below.
     begin
       v_dec := public.fn_ceo_decide_report(r.id);
     exception when others then
@@ -35167,7 +35401,11 @@ begin
                       || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD')));
     n_told := n_told + 1;
   end loop;
-  return jsonb_build_object('founder_told', n_told, 'ceo_answered_first', n_answered);
+  -- ADDED 22 Sep 2026 (SEATS-01): an ACCEPTED report is reviewed too. Swallowed on purpose — the
+  -- silence watch must keep answering 'sent' reports even if the review pass hits a bad row.
+  begin v_review := public.fn_it_accepted_report_review();
+  exception when others then v_review := jsonb_build_object('error', left(sqlerrm, 300)); end;
+  return jsonb_build_object('founder_told', n_told, 'ceo_answered_first', n_answered, 'accepted_review', v_review);
 end $function$
 
 
@@ -38405,9 +38643,13 @@ CREATE OR REPLACE FUNCTION public.fn_it_loop_tick()
 AS $function$
 declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text; x jsonb;
 begin
-  for f in select q.issue_key, q.started_at from public.it_engineer_finding q
-            where q.closed_at is null and public.fn_it_engineer_severity(q.blast, q.affected, q.started_at) <> 'warn'
-              and not exists (select 1 from public.agent_actions a
+  -- ONE DEFINITION OF OPEN, CALLED, NOT COPIED (22 Sep 2026, it_engineer, UNSOLVED-11). The predicate
+  -- (unclosed, and not 'warn' by fn_it_engineer_severity) now lives in fn_it_open_findings, defined in
+  -- the_founder_gets_one_it_digest_per_tick.sql, which the founder's brief counts as well — the brief used
+  -- to keep its own copy and said 9-10 where this loop said 8. The extra condition below is this loop's own
+  -- and stays here: it is about what to RAISE on this tick, not about what is open.
+  for f in select q.issue_key, q.started_at from public.fn_it_open_findings() q
+            where not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
                                  and a.detail->>'issue_key' = q.issue_key
                                  and (a.detail->>'occurrence_started_at')::timestamptz = q.started_at)
@@ -38458,6 +38700,18 @@ begin
   end loop;
   return o || jsonb_build_object('ok', jsonb_array_length(v_err) = 0, 'errors', v_err);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_open_findings()
+ RETURNS SETOF it_engineer_finding
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select f.* from public.it_engineer_finding f
+   where f.closed_at is null
+     and public.fn_it_engineer_severity(f.blast, f.affected, f.started_at) <> 'warn'
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_otp_unblock(p_prefix text, p_reason text, p_by text)
@@ -39220,7 +39474,13 @@ begin
            count(*) filter (where n.provider_status in ('delivered', 'read')) as delivered,
            count(*) filter (where n.provider_status = 'read') as read,
            count(*) filter (where n.provider_status in ('failed', 'undelivered')) as failed,
-           count(*) filter (where public.fn_twilio_status_rank(n.provider_status) < 4 and n.sent_at < now() - interval '24 hours') as unknown,
+           -- 22 Sep 2026: a message we asked Twilio about c_give_up times and could not read is no longer
+           -- counted as "no report yet" — that read as a message still in flight. It is counted as
+           -- unreadable and raised on its own, so the two causes are never added into one number.
+           count(*) filter (where public.fn_twilio_status_rank(n.provider_status) < 4
+                              and coalesce(n.provider_status, '') <> 'unreadable'
+                              and n.sent_at < now() - interval '24 hours') as unknown,
+           count(*) filter (where n.provider_status = 'unreadable') as unreadable,
            count(*) as accepted
       from public.notifications n
      where n.channel in ('whatsapp', 'sms') and coalesce(btrim(n.provider_message_id), '') <> ''
@@ -39228,7 +39488,13 @@ begin
      group by n.channel
   loop
     v_rates := v_rates || jsonb_build_object(x.channel, jsonb_build_object('accepted', x.accepted, 'delivered', x.delivered,
-      'read', x.read, 'failed', x.failed, 'no_final_status_after_24h', x.unknown,
+      'read', x.read, 'failed', x.failed, 'no_final_status_after_24h', x.unknown, 'unreadable', x.unreadable,
+      -- Sends this estate can NEVER get a status for: no provider_message_id was stored (every send before
+      -- the 21 Sep SID fix). Counted here so the rate above is read against what it actually covers.
+      'sent_without_a_provider_id', (select count(*) from public.notifications m
+                                      where m.channel = x.channel and m.status in ('sent', 'failed')
+                                        and coalesce(btrim(m.provider_message_id), '') = ''
+                                        and m.sent_at > now() - interval '7 days'),
       'errors', (select coalesce(jsonb_object_agg(coalesce(e.code, 'none'),
                                    jsonb_build_object('count', e.c, 'means', public.fn_twilio_error_in_plain_words(e.code))), '{}'::jsonb)
                    from (select m.provider_error_code code, count(*) c from public.notifications m
@@ -39247,6 +39513,13 @@ begin
         'blast', 'customer_facing', 'affected', x.unknown,
         'evidence', (v_rates->x.channel) || jsonb_build_object('why_it_matters',
           'the status callback (wa_status) and its 30-minute backstop poll are both silent, so delivery is unknown'));
+    end if;
+    if x.unreadable > 0 then
+      v_items := v_items || jsonb_build_object('item', 'status_unreadable:' || x.channel, 'owner_seat', 'customer_support', 'subject', 'wa_status',
+        'title', x.unreadable || ' ' || x.channel || ' message(s) were asked of Twilio until the poll gave up: their delivery is unknown',
+        'blast', 'customer_facing', 'affected', x.unreadable,
+        'evidence', (v_rates->x.channel) || jsonb_build_object('why_it_matters',
+          'the backstop poll could not read Twilio for these messages (notifications.last_error carries the HTTP status and Twilio code of the last attempt), so no delivery can be claimed for them'));
     end if;
   end loop;
   v_out := jsonb_build_object('settled', public.fn_it_duty_settle('whatsapp_delivery', v_items), 'rates', v_rates);
@@ -43694,7 +43967,9 @@ begin
     -- decider checks the record against public.leads and closes on it.
     --
     -- 21 SEP 2026 — THE LICENCE IS NOT PART OF THE ANNOUNCEMENT'S IDENTITY. Measured on
-    -- htdblwldjkcgjvmqkbeh: org_tasks 579041 and 579076 stayed 'assigned' and re-raised
+    -- production (the project ref used to be spelled here; it made the schema export unportable, and a
+    -- routine body is not the place to name one database — 23 Sep 2026): org_tasks 579041 and 579076
+    -- stayed 'assigned' and re-raised
     -- duty:org_task_queue:routine_operational_decision:sales_engineer to the founder because v2
     -- required a "Licence X," line, and supplier_api/index.ts writes that line only when the lead has
     -- a trade_license_no (its licInfo is '' otherwise). Both announcements named ZZ DEMO registration
@@ -45103,7 +45378,10 @@ begin
   elsif v_result = 'delivered' and n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> ''
         and (coalesce(n.channel, 'email') not in ('whatsapp', 'sms') or n.provider_status in ('delivered', 'read')) then
     v_verdict := 'confirmed';
-  elsif v_result in ('routed', 'stubbed', 'digested', 'cancelled') then
+  -- 'held' and 'record_removed' close here (22 Sep 2026, UNSOLVED-06): a message the founder's own switch
+  -- holds, and a queued row that was deleted afterwards, are both recorded rather than retried on the other
+  -- channel and escalated to the CEO. Neither is a delivery the seat can correct.
+  elsif v_result in ('routed', 'stubbed', 'digested', 'cancelled', 'held', 'record_removed') then
     v_verdict := v_result;
   end if;
 
@@ -47704,6 +47982,34 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_prune_website_error_events(p_limit integer DEFAULT 2000)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_deleted int;
+begin
+  if p_limit is null or p_limit < 1 or p_limit > 5000 then
+    raise exception 'fn_prune_website_error_events: p_limit must be between 1 and 5000, got %', p_limit;
+  end if;
+  with doomed as (
+    select id from public.error_events
+     where source = 'website'
+       and created_at < now() - interval '8 days'           -- nothing younger can be expired
+       and ((kind = 'site_report_ready' and created_at < now() - interval '8 days')
+         or (kind is distinct from 'site_report_ready' and created_at < now() - interval '14 days'))
+     order by created_at                                    -- oldest first: walks the index and stops
+     limit p_limit)
+  delete from public.error_events e using doomed d where e.id = d.id;
+  get diagnostics v_deleted = row_count;
+  -- No count of what is LEFT: that was an unconditional count(*) over every website row on every
+  -- tick — an unbounded read to produce a number nobody reads (review of #852). `more` is what the
+  -- caller needs, and it costs nothing.
+  return jsonb_build_object('deleted', v_deleted, 'limit', p_limit, 'more', v_deleted = p_limit);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_public_site_counters()
  RETURNS jsonb
  LANGUAGE sql
@@ -50125,7 +50431,18 @@ AS $function$
     -- reporting. A gate that opens only when a key is present and wrong is a gate that a deleted key
     -- switches off silently.
     'email_cron',   coalesce((select value from public.app_secrets where key = 'email_enabled'), '') is distinct from 'true',
-    'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true',
+
+    -- THE FLAG ARM, unchanged: an estate that has never had an approved set polls until it does.
+    -- THE WORK ARM, added 22 Sep 2026: something is still pending and nobody has asked about it
+    -- today. 'received' is Twilio's word for submitted-and-undecided; anything that is neither
+    -- approved nor rejected is undecided, so the condition is written as the absence of a verdict
+    -- rather than as a list of the words Twilio currently uses for waiting.
+    'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true'
+      or exists (
+        select 1 from public.messaging_template
+         where channel = 'whatsapp'
+           and status not in ('approved', 'rejected')
+           and (last_checked_at is null or last_checked_at < now() - interval '20 hours')),
 
     -- The queue is the gate. No flag, because nothing here costs a model call and a queued SMS has a
     -- person at the end of it.
@@ -50252,7 +50569,22 @@ AS $function$
              / greatest(extract(epoch from every), 1) as ratio
       from public.resilience_step
      where place = 'plan'
-       and (last_started_at is null or now() - last_started_at >= every)
+       -- A TICK IS NEVER EXACTLY ON THE BEAT, SO THE DUE TEST HAS TWO MINUTES OF TOLERANCE
+       -- (22 Sep 2026, it_engineer, SEATS-04). `now() - last_started_at >= every` asks for the full
+       -- interval to have elapsed at the moment the tick looks. Ticks jitter by seconds, so a 30-minute
+       -- step whose last attempt was 29 min 58 s ago is not due on this tick and waits for the next one:
+       -- its real cadence becomes one tick longer, and measured across the estate the scheduled steps
+       -- were running about 1.5x their declared interval.
+       -- SAID PRECISELY, because the loose version of this sentence was wrong: the effective floor is
+       -- `every - 2 min`, so a 15-minute step can now run as often as every 13 minutes and TWICE inside
+       -- some 15-minute windows. That is the intended trade — two runs 13 minutes apart cost one extra
+       -- pass of a step that already gates itself, where a missed beat costs a whole interval — and it is
+       -- not a lock: nothing here reserves a step. `last_started_at` is stamped by
+       -- fn_resilience_step_record when the tick REPORTS, i.e. at the end, so two ticks overlapping in
+       -- time can both plan the same step. That was already true before this change; the tolerance does
+       -- not create it and does not fix it. Each step's own `fn_*_due` gate and claim-style queries are
+       -- what make a double run harmless.
+       and (last_started_at is null or now() - last_started_at >= every - interval '2 minutes')
   ), ranked as (
     select *, row_number() over (order by ratio desc, step) as rn from due
   ), filled as (
@@ -60412,13 +60744,47 @@ begin
   update public.notifications u set provider_status_checked_at = now()
    where u.id in (select c.id from public.notifications c
                    where c.channel in ('whatsapp', 'sms') and coalesce(btrim(c.provider_message_id), '') <> ''
-                     and c.sent_at < now() - interval '30 minutes' and c.sent_at > now() - interval '7 days'
+                     and c.sent_at < now() - interval '30 minutes'
                      and public.fn_twilio_status_rank(c.provider_status) < 4
+                     and coalesce(c.provider_status, '') <> 'unreadable'
                      and (c.provider_status_checked_at is null or c.provider_status_checked_at < now() - interval '30 minutes')
                    order by coalesce(c.provider_status_checked_at, c.sent_at)
                    limit least(greatest(coalesce(p_limit, 20), 1), 50)
                    for update skip locked)
   returning u.id, u.provider_message_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_twilio_status_poll_failed(p_notification_id bigint, p_http integer DEFAULT NULL::integer, p_code text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c_give_up constant int := 5;   -- 5 x 30 minutes: 2.5 hours of trying before we stop asking.
+  n public.notifications; v_fails int; v_gave_up boolean;
+begin
+  select * into n from public.notifications where id = p_notification_id for update;
+  if n.id is null then return jsonb_build_object('matched', false); end if;
+  if public.fn_twilio_status_rank(n.provider_status) >= 4 then
+    return jsonb_build_object('matched', true, 'applied', false, 'reason', 'already final: ' || n.provider_status);
+  end if;
+  v_fails := coalesce(n.provider_poll_failures, 0) + 1;
+  v_gave_up := v_fails >= c_give_up;
+  update public.notifications
+     set provider_poll_failures = v_fails,
+         provider_status = case when v_gave_up then 'unreadable' else provider_status end,
+         provider_status_at = case when v_gave_up then now() else provider_status_at end,
+         provider_error_code = coalesce(nullif(btrim(coalesce(p_code, '')), ''), provider_error_code),
+         last_error = left('Twilio could not be read for this message: '
+                           || coalesce('HTTP ' || p_http::text, 'no HTTP response')
+                           || coalesce(', Twilio code ' || nullif(btrim(coalesce(p_code, '')), ''), '')
+                           || ' (attempt ' || v_fails || ' of ' || c_give_up || ')'
+                           || case when v_gave_up then ' — given up: the delivery of this message is unknown.' else '' end, 500)
+   where id = n.id;
+  return jsonb_build_object('matched', true, 'applied', true, 'failures', v_fails, 'gave_up', v_gave_up,
+                            'give_up_after', c_give_up, 'http', p_http, 'code', nullif(btrim(coalesce(p_code, '')), ''));
 end $function$
 
 
@@ -68083,6 +68449,7 @@ ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_implication ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sms_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_conversation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_posts ENABLE ROW LEVEL SECURITY;
@@ -68180,6 +68547,7 @@ CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SE
    FROM fn_customer_document_refs() r(ref_table, ref_id, source, supplier_id, supplier_name, revealed)
   WHERE ((r.ref_table = documents.ref_table) AND (r.ref_id = documents.ref_id)))));
 CREATE POLICY os_owner_admin_read ON public.edge_health_probe AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY error_events_service_role_only ON public.error_events AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.expenses AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY founder_instruction_service_role_only ON public.founder_instruction AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY founder_mail_policy_history_service_role_only ON public.founder_mail_policy_history AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -68248,6 +68616,7 @@ CREATE POLICY routine_change_log_service_role_only ON public.routine_change_log 
 CREATE POLICY sanctions_ban_service_role_only ON public.sanctions_ban AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY sms_messages_service_role_only ON public.sms_messages AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_conversation_service_role_only ON public.social_conversation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_message_service_role_only ON public.social_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_reply_library_service_role_only ON public.social_reply_library AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -68306,7 +68675,6 @@ $CRON$);
 --   content_secret
 --   cos_frozen
 --   cred_action_invoker
---   cred_cron_ads_autopilot
 --   cred_cron_agents
 --   cred_cron_backup
 --   cred_cron_compliance
@@ -68430,7 +68798,6 @@ $CRON$);
 --   founding_free_limit
 --   github_token
 --   inbound_secret
---   inbound_secret_rotated_from_20260719
 --   inbound_webhook_secret
 --   internal_credential_hmac_key
 --   invite_body
@@ -68447,11 +68814,10 @@ $CRON$);
 --   marketing_golive
 --   meta_access_token
 --   meta_ad_account_id
+--   meta_app_id
 --   meta_app_secret
 --   meta_autospend_golive
---   meta_campaign_filter
 --   meta_daily_budget_cap_aed
---   meta_sync_enabled
 --   meta_webhook_verify_token
 --   min_job_value_aed
 --   openrouter_api_key
@@ -68463,7 +68829,6 @@ $CRON$);
 --   project_ref
 --   public_site_url
 --   qa_customer_email
---   qa_customer_password
 --   qa_mint_enabled
 --   rating_request_days_after_reveal
 --   require_structured_quotes
@@ -68477,7 +68842,9 @@ $CRON$);
 --   site_assistant_global_day
 --   site_assistant_ip_hour
 --   sla_quote_hours
+--   social_model_enabled
 --   social_posts_per_week
+--   social_send_enabled
 --   stripe_publishable_key
 --   stripe_publishable_key_test
 --   stripe_secret_key

@@ -25,7 +25,7 @@
 //   node scripts/gen_knowledge_workspace_shows_what_was_used.mjs
 //   node scripts/apply_sql.mjs scripts/sql/knowledge_workspace_shows_what_was_used.sql --promote
 import { writeFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const ANCHOR = `    'recent', coalesce((select jsonb_agg(`;
 

@@ -20,8 +20,8 @@
 //
 //     node scripts/staging/verify_constraints.mjs
 //     node scripts/staging/verify_constraints.mjs --apply
-import { mgmtRead, mgmtWrite, PROD_REF } from './qd_guard.mjs';
-import { REF } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF } from '../lib/demo_factory.mjs';
 
 const APPLY = process.argv.includes('--apply');
 

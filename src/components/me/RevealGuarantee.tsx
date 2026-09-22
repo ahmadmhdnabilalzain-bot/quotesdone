@@ -15,6 +15,15 @@ import { cn } from '@/lib/utils';
 import { t, tf } from './portalText';
 import { guaranteeClock } from './workingDays';
 
+// transactions.refund_status is an English enum and it was printed straight into the Arabic
+// sentence: an Arabic customer read 'حالة الاسترداد: requested.' (string audit 22 Sep 2026,
+// CP-I18N-02). A value the dictionary does not know falls back to the code itself rather than to a
+// guess, so a status the server starts writing tomorrow is visible rather than quietly mislabelled.
+const refundStatus = (lang, v) => {
+  const k = 'refund_st_' + String(v || '').toLowerCase();
+  const s = t(lang, k);
+  return s === k ? String(v || '') : s;
+};
 export function RevealGuarantee({ lang, fee, terms, facts = null, compact = false }) {
   const reduce = useReducedMotion();
   const w = terms && terms.window_days, c = terms && terms.chase_after_days;
@@ -31,7 +40,7 @@ export function RevealGuarantee({ lang, fee, terms, facts = null, compact = fals
     ...(bmin && bmax ? [{ icon: Landmark, text: tf(lang, 'g_step_bank', { bmin, bmax }) }] : []),
   ];
   const pct = clock ? Math.round((clock.day / clock.of) * 100) : 0;
-  const phaseText = clock && ({ waiting: t(lang, 'g_ph_waiting'), chased: t(lang, 'g_ph_chased'), final_call: t(lang, 'g_ph_final'), acknowledged: t(lang, 'g_ph_ack'), refund: tf(lang, 'g_ph_refund', { status: facts.refund_status }) })[clock.phase];
+  const phaseText = clock && ({ waiting: t(lang, 'g_ph_waiting'), chased: t(lang, 'g_ph_chased'), final_call: t(lang, 'g_ph_final'), acknowledged: t(lang, 'g_ph_ack'), refund: tf(lang, 'g_ph_refund', { status: refundStatus(lang, facts.refund_status) }) })[clock.phase];
   return (
     <section className={cn('qd-panel overflow-hidden', compact ? 'p-4' : 'p-5')} aria-label={t(lang, 'g_title')}>
       <div className="flex items-start gap-3">

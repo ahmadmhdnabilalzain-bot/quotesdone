@@ -40,13 +40,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedFlag } from '@/components/ui/busy';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
+import { emirateName } from '@/components/me/portalText';
 import {
   buildModel, chainLegs, docsForRfq, elapsedPct, fmtDate, money,
   NO_INQUIRIES, STAGE_COLOR, STAGE_LABEL,
   type CustomerOrder, type Lang, type PackageStage, type PortalInquiry,
   type SpatialPackage, type SpatialProject, type SpatialRfq, type VaultDoc,
 } from './model';
-import { tx } from './strings';
+import { tx, txf } from './strings';
+import { countPhrase } from '@/lib/countedNoun';
 
 export interface ProjectRoomProps {
   project: SpatialProject | null;
@@ -412,14 +414,14 @@ function PackageDetail({ pkg, project, documents, inquiries, lang, onOpenRfq }: 
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Facet title={tx(lang, 'sel_rfqs')}>
           <div className="text-[12.5px] text-foreground">{pkg.summary || '—'}</div>
-          <div className="mt-0.5 text-[11.5px] text-muted-foreground">{pkg.emirate || '—'}</div>
+          <div className="mt-0.5 text-[11.5px] text-muted-foreground">{pkg.emirate ? emirateName(pkg.emirate, lang) : '—'}</div>
         </Facet>
 
         <Facet title={tx(lang, 'sel_suppliers')}>
           {quotes == null ? <Muted>{tx(lang, 'quotes_unknown')}</Muted>
             : quotes.length === 0 ? <Muted>{tx(lang, 'quotes_none')}</Muted>
               : (<>
-                <div className="text-[12.5px] text-foreground">{quotes.length} {tx(lang, 'quotes_n')}</div>
+                <div className="text-[12.5px] text-foreground">{txf(lang, 'quotes_n', { c: countPhrase(lang, quotes.length, 'quote') })}</div>
                 {revealed.length
                   ? <div className="mt-0.5 text-[11.5px] text-foreground/85">{revealed.map((q) => q.supplier).join(', ')}</div>
                   : <Muted>{tx(lang, 'sup_hidden')}</Muted>}
