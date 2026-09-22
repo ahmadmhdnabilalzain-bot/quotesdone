@@ -5,8 +5,15 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
 
 // A compact bottom bar, not a card over the hero: one line at desktop width (≤72px tall), a slim
-// sheet on a phone. "Essential only" is the same size and weight as "Accept all" — declining is
-// never the harder click. Storage keys and values are unchanged (qd-cookie-consent: all|essential).
+// sheet on a phone.
+//
+// ONE BUTTON, BECAUSE THERE IS NOTHING TO CHOOSE (WEB-14, 22 Sep 2026). The bar offered "Accept all"
+// and "Essential only" over a sentence promising "optional analytics cookies" — and the platform sets
+// no analytics cookie at all: measured on production, the only keys written are the session, the
+// consent record itself and the portal tokens. Asking for consent to something that does not exist is
+// a false statement to the visitor and, under the PDPL, consent obtained for nothing. The notice now
+// says essential cookies only and is acknowledged; the cookie policy §2–§5 says the same. The stored
+// value stays 'essential' (qd-cookie-consent), so an older 'all' from before today is still read.
 export function CookieConsent() {
   const t = useTranslations('cookie');
   const locale = useLocale();
@@ -35,11 +42,8 @@ export function CookieConsent() {
           <Link href="/cookie-policy" prefetch={false} className="text-teal-light underline underline-offset-2 hover:text-white">{t('policy')}</Link>
         </p>
         <div className="flex shrink-0 gap-2">
-          <button type="button" onClick={() => choose('essential')} className={`${btn} border border-line3 bg-surf text-paper hover:border-teal hover:text-white`}>
-            {t('decline')}
-          </button>
-          <button type="button" onClick={() => choose('all')} className={`${btn} bg-teal text-on-teal hover:bg-[#1ED0BC]`}>
-            {t('accept')}
+          <button type="button" onClick={() => choose('essential')} className={`${btn} bg-teal text-on-teal hover:bg-[#1ED0BC]`}>
+            {t('ok')}
           </button>
         </div>
       </div>

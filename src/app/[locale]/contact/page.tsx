@@ -2,8 +2,7 @@ import { setRequestLocale } from 'next-intl/server';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { ContactInner } from '@/components/ContactInner';
-import mk from '@/content/marketing.json';
-import { buildMeta, textFromHtml } from '@/lib/seo';
+import { mkMeta } from '@/components/MarketingDoc';
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const params = await props.params;
 
@@ -11,9 +10,9 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     locale
   } = params;
 
-  const e = (mk as any).contact;const d = e[locale] || e.en;
-  return buildMeta({ locale, path: '/contact', title: d.title,
-    description: textFromHtml(d.html).replace(d.title, '').trim() });
+  // mkMeta drops the breadcrumb before taking the description: this read "Home · Contact Contact
+  // QuotesDone…" in both languages (WEB-03).
+  return mkMeta('contact', locale);
 }
 export default async function Page(props: { params: Promise<{ locale: string }> }) {
   const params = await props.params;

@@ -16,7 +16,11 @@ export function mkMeta(slug: string, locale: string) {
   const e = M[slug];
   const d = e ? ((e as any)[locale] || e.en) : null;
   if (!d) return { title: 'QuotesDone' };
-  const body = textFromHtml(d.html).replace(d.title, '').trim();
+  // The breadcrumb is navigation, not prose: /contact's description read "Home · Contact Contact
+  // QuotesDone…" (WEB-03). Drop the crumb, then take the opening copy.
+  const crumb = takeByClass(d.html, 'crumb');
+  const prose = crumb ? crumb.before + crumb.after : d.html;
+  const body = textFromHtml(prose).replace(d.title, '').trim();
   return buildMeta({ locale, path: '/' + slug, title: d.title, description: body });
 }
 

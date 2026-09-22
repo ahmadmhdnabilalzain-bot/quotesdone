@@ -5,7 +5,6 @@ import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { EmiratesMap } from '@/components/visual/slots';
 import { PageHero, CtaPanel } from '@/components/DocFrame';
-import { DrawingToBoq } from '@/components/visual/product';
 import { Kicker, LedgerList, SealedCard, SectionHead, Stamp, Stepper } from '@/components/ui/sealed';
 import { Button } from '@/components/ui/button';
 
@@ -14,7 +13,10 @@ import { Button } from '@/components/ui/button';
 // the app stays at /portal. Every figure below is the FAQ's (src/content/marketing.json, checked
 // 14 Sep 2026): no commission; registration free permanently for the first 1,000 suppliers, AED
 // 1,000/year from the 1,001st; the non-response charge; verification within 3 working days.
-// The drawing in the hero frame (DrawingToBoq) is illustrative and carries the visible sample label.
+// THE PRODUCT VISUAL IS GONE (founder instruction 70, 14 Sep 2026: "i dont like the product visuals at
+// all. cancel that idea"). The hero carried a drawing-to-BOQ mock-up (DrawingToBoq) whose title block
+// printed CLIENT / PROJECT / TEL / EMAIL in English on /ar/supplier too; it was removed 22 Sep 2026
+// with src/components/visual/product.tsx.
 type KV = { k: string; v: string };
 type Step = { title: string; body: string };
 
@@ -55,9 +57,6 @@ export default async function SupplierLanding(props: { params: Promise<{ locale:
             <Button asChild size="xl" className="qd-magnet"><Link href="/portal">{t('cta')}</Link></Button>
             <Button asChild size="xl" variant="secondary"><Link href="/how-it-works">{t('cta2')}</Link></Button>
           </>}
-          // What the supplier sees before a reveal: the drawing with the customer blacked out, and
-          // the quantities read from it. The job, never the buyer.
-          aside={<DrawingToBoq locale={lang} />}
         />
 
         <section className="container-x py-beat-s md:py-beat">

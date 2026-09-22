@@ -30,6 +30,7 @@
   "0f1bbc0d77b5",
   "0f28f4f9fb4b",
   "0f2dd6e60c8d",
+  "11f8340b63a6",
   "127551aed079",
   "12b83b1d61a0",
   "12f82a5ef7bc",
@@ -116,7 +117,6 @@
   "52129deda121",
   "525800c0e16f",
   "52f7be3fb6b3",
-  "530d510d325a",
   "53474f02279d",
   "536a78cb6785",
   "53eedc0f9b14",
@@ -156,7 +156,6 @@
   "6901ab259363",
   "6a81c49538b5",
   "6ab3971601b8",
-  "6b46d3a9d400",
   "6b61514ff405",
   "6b7b449abc5c",
   "6cd365b41e7a",
@@ -299,6 +298,7 @@
   "c193655cc7f4",
   "c289821a62f9",
   "c28aae843ea4",
+  "c57d40279bc2",
   "c5ed4520c071",
   "c99a08620bdd",
   "c9aa98d5a264",
@@ -374,7 +374,6 @@
   "f7d06dc2d6b6",
   "f8c311bcc121",
   "f8e5b88fd5eb",
-  "f966dfd9c2b9",
   "f995a7f1e58e",
   "faaaf27c8698",
   "fbff3973024d",
@@ -743,7 +742,8 @@
   "1085098eb87e"
  ],
  "src/components/LegalDoc.tsx": [
-  "28fd1b25a6a1"
+  "28fd1b25a6a1",
+  "af5b64b29683"
  ],
  "src/components/MarketingDoc.tsx": [
   "493ce5b65112",
@@ -2343,22 +2343,6 @@
   "4aeed5637090",
   "f34468617380"
  ],
- "src/components/visual/CompareLevelling.tsx": [
-  "58ce525d33df",
-  "83feabecc8fd",
-  "e66a6c2062bf"
- ],
- "src/components/visual/DrawingScan.tsx": [
-  "065d7eb843c1",
-  "5b1fb4c87380",
-  "65579b375a32",
-  "885ca0e94a7e",
-  "aaec34bcf330",
-  "b021cdba3e3d",
-  "d9f69ce19f71",
-  "da0d32090a15",
-  "eac3d0835183"
- ],
  "src/components/visual/EmiratesMap.tsx": [
   "159742f4d3e6",
   "43227cdf0df6",
@@ -3183,9 +3167,8 @@
  ],
  "supabase/functions/site_assistant/index.ts": [
   "0216fce59446",
-  "1fd3dde27a22",
+  "0e0329c97c49",
   "32f673f57030",
-  "473454172ad9",
   "488eec99c14e",
   "4c6a9cec02c0",
   "524c3be9b432",
@@ -3198,11 +3181,12 @@
   "9a84f622dd82",
   "9ce520c3750e",
   "a0464b0bd27b",
-  "a688085e300e",
   "ad4119107cfd",
   "ad996ed439d2",
   "af3e20773443",
+  "c183c419054d",
   "c4356c2c80ac",
+  "c94d66d845db",
   "d13175d02298",
   "dbd6352d03bc",
   "dbf6dbc61869",
@@ -3422,7 +3406,6 @@
   "91e8cc5ab105",
   "92478aa8fc99",
   "93b1be2560cb",
-  "98c0925a3c6c",
   "9db6c1ec03dc",
   "9dcf907cb500",
   "a1523ed2efbe",
@@ -3442,6 +3425,7 @@
   "e332bdbfcc71",
   "e3d8cf33b4c4",
   "ed6ffb116fb9",
+  "f015f5ba7006",
   "f1e0a31d8277",
   "fe741877988e"
  ],

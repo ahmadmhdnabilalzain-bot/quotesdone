@@ -7,7 +7,13 @@ import { createNavigation } from 'next-intl/navigation';
 export const routing = defineRouting({
   locales: ['en', 'ar'],
   defaultLocale: 'en',
-  localePrefix: 'as-needed'
+  localePrefix: 'as-needed',
+  // A REQUESTED URL IS THE ANSWER (WEB-15). Measured 22 Sep 2026: with next-intl's default
+  // localeDetection, a browser sending Accept-Language: ar was 307'd from /terms to /ar/terms, so the
+  // English legal page could not be opened — and a shared /terms link showed a different document to
+  // different people. The language is chosen by the URL (and the LangSwitch, which writes the cookie),
+  // never guessed from the browser.
+  localeDetection: false
 });
 
 const nav = createNavigation(routing);
