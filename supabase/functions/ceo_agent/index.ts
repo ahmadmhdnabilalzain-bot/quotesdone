@@ -326,8 +326,15 @@ Deno.serve(observe('ceo_agent', async (req) => {
       if (rerr || !req) return J({ ok: false, error: rerr?.message || 'no plan ' + planId }, 400);
       // deno-lint-ignore no-explicit-any
       const q = req as any;
-      const llm = makeLlmRich(undefined, { fn: 'ceo_agent', taskClass: 'ceo_judgement', max: 900, timeoutMs: 25000, temperature: 0.1 });
-      const r = await llm(String(q.system), JSON.stringify({ output_schema: q.output_schema, input: q.input }), 900);
+      // 2000, NOT 900 (it_engineer, 23 Sep 2026). ai_gateway takes min(body.max, route.max_tokens),
+      // and `ceo_judgement` had NO model_policy row at all, so fn_ai_route fell back to
+      // general_drafting — ~anthropic/claude-haiku-latest at 900 tokens. The CEO's judgements on
+      // refunds and exceptions were being drafted on the cheapest model in the fleet with a ceiling
+      // inside the answer's natural range. every_seat_gets_the_model_its_own_work_needs.sql adds the
+      // class on anthropic/claude-opus-5.5 with 2000; this side has to ask for 2000 or the clamp
+      // keeps the old ceiling with a better model behind it.
+      const llm = makeLlmRich(undefined, { fn: 'ceo_agent', taskClass: 'ceo_judgement', max: 2000, timeoutMs: 25000, temperature: 0.1 });
+      const r = await llm(String(q.system), JSON.stringify({ output_schema: q.output_schema, input: q.input }), 2000);
       // deno-lint-ignore no-explicit-any
       let out: any = null;
       try { out = JSON.parse(String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { out = null; }

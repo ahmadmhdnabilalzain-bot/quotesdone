@@ -1,0 +1,15 @@
+model_policy routing per seat (the founder's ruling of 23 Sep 2026: reasoning quality first, cost
+second), one new class ceo_judgement, one new class identity_redaction_verify, fn_task_class rows for
+the three functions that call ai_gateway without one, dept_key for the four that had no department,
+and a trigger that refuses an active policy naming a model absent from model_registry or
+llm_route_health. Written by it_engineer, who is not permitted to apply.
+
+APPLY SECOND, after the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql
+- this file names anthropic/claude-opus-5.5, google/gemini-3.8-flash and openai/gpt-6-luna, and its
+own trigger refuses them until the catalogue file has added their registry and health rows.
+
+  node scripts/apply_sql.mjs scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql --apply --ddl
+
+It prints one ROUTE row per seat class from fn_ai_route itself, then a verdict. Expect PROBE OK and
+put the ROUTE rows in the PR body. Then delete this note and append the file as the LAST line of
+scripts/sql/MANIFEST.txt in the same commit.

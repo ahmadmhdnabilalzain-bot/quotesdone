@@ -1,0 +1,16 @@
+Six department_budget rows (department_budget held ZERO, so fn_ai_route's degrade and halt branches
+could never fire) with the arithmetic in the file's header, plus a trigger that refuses to leave the
+table empty while any active model_policy row still routes to a model. Written by it_engineer, who is
+not permitted to apply.
+
+APPLY THIRD, after every_seat_gets_the_model_its_own_work_needs.sql - its probe asserts that every one
+of the 19 functions that reach ai_gateway resolves to a department that has a ceiling, and four of
+those only get their dept_key in the file before it.
+
+  node scripts/apply_sql.mjs scripts/sql/a_ceiling_exists_before_the_door_is_opened.sql --apply --ddl
+
+Expect a PROBE OK verdict row naming the ceiling quote_compare resolves to. Then delete this note and
+append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
+
+This file must be applied BEFORE the founder opens llm_route_health.open_until. Until it is, the
+estate has no spending ceiling of any kind.

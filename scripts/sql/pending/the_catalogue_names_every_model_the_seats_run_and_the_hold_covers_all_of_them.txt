@@ -1,0 +1,12 @@
+model_registry rows and prices (read live from the provider catalogue 23 Sep 2026), llm_route_health
+rows for every registry model carrying the SAME open_until as the rows already there, and one
+CREATE OR REPLACE of fn_llm_preflight so a registered model with no health row is REFUSED instead of
+allowed. Written by it_engineer, who is not permitted to apply. APPLY THIS FIRST of the three files
+in this PR: the trigger in every_seat_gets_the_model_its_own_work_needs.sql refuses a policy naming a
+model this file adds.
+
+  node scripts/apply_sql.mjs scripts/sql/the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql --apply --ddl
+
+Expect a PROBE OK verdict row. It does NOT lift the hold - open_until is copied from the table, never
+typed - and the probe FAILS if any model comes back allowed. Then delete this note and append the
+file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
