@@ -12,8 +12,9 @@
 //   deno test --no-lock --node-modules-dir=auto --allow-read=. \
 //     --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net supabase/functions/_shared/doc_read/dwg_samples.check.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { readDwg } from './dwg.ts';
+import { lastWasmHeapBytes, lowerMemoryFloor, readDwg, WASM_MIN_PAGES } from './dwg.ts';
 import { readDxf } from './cad.ts';
+import { readStored } from '../../../../scripts/cad_read_worker.ts';
 import type { Extracted, ReadResult } from './types.ts';
 
 const BASE = 'https://raw.githubusercontent.com/LibreDWG/libredwg/34f02f54b9aacb5708c1d3d2070efb3e4b2d8c43/test/test-data/';
@@ -70,4 +71,49 @@ Deno.test('example_2018: the absolute figures a QS would read', async () => {
   assertEquals(e.quantities.filter((x) => x.unit === 'nos').map((x) => `${x.description}=${x.qty}`), ['block CIRKLO_PUNKTOJ=8', 'block bloko=2']);
   assertEquals([m.get('layer Tavolo 3 sqm'), m.get('layer Tavolo 3 m'), m.get('layer Tavolo 2 m')], [129.36, 80.56, 12.64]);
   assert(e.notes.some((n) => n.includes('SPLINE x2')), 'unmeasured kinds are named');
+});
+
+// THE 1 GB MEMORY FLOOR (22 Sep 2026). On production every DWG died "Memory limit exceeded": the pinned
+// .wasm declares a 16,384-page (1 GB) minimum. dwg.ts lowers it before compiling. This fails if the
+// pinned build stops carrying that floor in the shape lowerMemoryFloor rewrites, or if reading the
+// 67-entity drawing needs more than 64 MB of WASM heap (measured: 16-46 MB for the LibreDWG samples, 99 MB
+// for the 2.1 MB Dynblocks.dwg, dev machine).
+Deno.test('the pinned LibreDWG wasm asks for 1 GB, is lowered to 16 MB, and reads within 64 MB', async () => {
+  const bin = new Uint8Array(await (await fetch('https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.7.14/wasm/libredwg-web.wasm')).arrayBuffer());
+  assertEquals(lowerMemoryFloor(bin), { from: 16384, to: WASM_MIN_PAGES });
+  good(await readDwg(await get('example_2018.dwg', SAMPLES.example_2018[0]), { filename: 'x.dwg', depth: 0 }));
+  const heap = lastWasmHeapBytes();
+  assert(heap > 0 && heap <= 64 * 1048576, `WASM heap ${heap} bytes`);
+});
+
+// A DWG OF ANY SIZE (22 Sep 2026). 2018/Dynblocks.dwg (2.1 MB) is past the edge ceiling: the edge answers
+// cad_conversion (and customer_api queues it), and the CAD worker's reader reads it in full.
+Deno.test('a DWG past the edge ceiling is queued by the edge and read by the CAD worker', async () => {
+  const b = await get('2018/Dynblocks.dwg', '95cc558d02a2596d');
+  const edge = good(await readDwg(b, { filename: 'x.dwg', depth: 0 }));
+  assertEquals([edge.kind, edge.needs], ['dwg', 'cad_conversion']);
+  const w = good(await readStored(b, 'x.dwg'));
+  assertEquals([w.kind, w.needs], ['dwg', null]);
+  assertEquals(w.notes[0], 'Read from DWG (AutoCAD 2018) by LibreDWG: 121 entities.');
+  assertEquals(w.quantities.length, 62);
+});
+
+// BINARY DXF (22 Sep 2026). LibreDWG's test-data carries the same drawing as binary DXF. example_2000.dxfb
+// is read to the SAME take-off and text as the AutoCAD ASCII DXF. example_2018.dxfb is a smaller file:
+// it holds 43 of the drawing's 89 ENTITIES records (counted in the file itself, which ends in EOF), so
+// its take-off is pinned to what the file holds, not to the ASCII one.
+Deno.test('binary DXF: example_2000.dxfb reads exactly as its ASCII DXF', async () => {
+  const ctx = { filename: 'x.dxf', depth: 0 };
+  const bin = good(await readDxf(await get('example_2000.dxfb', '6630c1c66c5b0713'), ctx));
+  const asc = good(await readDxf(await get('example_2000.dxf', SAMPLES.example_2000[1]), ctx));
+  assertEquals([...byKey(bin)], [...byKey(asc)]);
+  assertEquals(bin.text, asc.text);
+  assert(bin.notes[0].startsWith('Read from binary DXF: '), bin.notes[0]);
+});
+
+Deno.test('binary DXF: example_2018.dxfb is read to its end', async () => {
+  const e = good(await readDxf(await get('example_2018.dxfb', '55505256328ff9bf'), { filename: 'x.dxf', depth: 0 }));
+  const m = byKey(e);
+  assertEquals([m.get('layer Tavolo 3 sqm'), m.get('layer Tavolo 3 m'), m.get('layer Tavolo 2 m')], [126.6, 65.32, 12.64]);
+  assertEquals(e.notes[0], 'Read from binary DXF: 7650 group-code pairs.');
 });

@@ -14,6 +14,7 @@ import { boqFromDrawingSet, lengthsForSet, mergeLengths, type ScheduleTable } fr
 import { boqFromSheet } from './boq_from_sheet.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
+import { cadSupplierBoq } from '../_shared/cad_identity.ts';
 import { empty } from '../_shared/doc_read/types.ts';
 import { drawingInput } from './drawing_input.ts';
 import { CONFIRM_MAX_TOKENS, CONFIRM_ROUTE, CONFIRM_SYS, confirmUserText, mergeConfirm, parseConfirm, redactedPageFor, type ConfirmReply, type RedactedPage, type RedactionRun } from './confirm.ts';
@@ -114,7 +115,10 @@ Deno.serve(observe('drawing_boq', async (req) => {
     if (body.mode === 'document') {
       const r = await readDocument(String(body.file_b64 || ''), String(body.filename || ''), String(body.mime || ''));
       if (!r.ok) return J({ ok: false, error: r.error, detail: r.detail }, 422);
-      return J({ ok: true, boq: boqFromExtracted(r, hint, ocrText, drawing), kind: r.kind, needs: r.needs });
+      // 22 Sep 2026 (redaction audit, #827): nothing a CAD file says about its own job reaches a BOQ line.
+      // Every CAD reader (ASCII and binary DXF, DWG) hands back the DXF text it measured as dxf_text.
+      const boq = boqFromExtracted(r, hint, ocrText, drawing);
+      return J({ ok: true, boq: r.dxf_text !== undefined ? cadSupplierBoq(boq, r.dxf_text) : boq, kind: r.kind, needs: r.needs });
     }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below
     // returned ai_error on every drawing and the customer's file never informed the brief (website
