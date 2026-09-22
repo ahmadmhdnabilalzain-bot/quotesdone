@@ -10,6 +10,17 @@ const AR: Record<string, [string, string, string, string]> = {
   year: ['سنة واحدة', 'سنتان', 'سنوات', 'سنة'],
 };
 
+// A count of days in Arabic with the number agreeing (1, 2, 3-10, 11+). The ONE helper every Arabic
+// day count uses (review of #818: "${n} يومًا" was printed for 1, 2 and 3-10 too).
+// Tested in durationLabel.test.mjs, which also fails on a template that prints a day count by hand.
+export function arDays(n: number | string): string {
+  const k = Math.abs(Math.trunc(Number(n)));
+  const f = AR.day;
+  if (k === 1) return f[0];
+  if (k === 2) return f[1];
+  return `${k} ${k <= 10 ? f[2] : f[3]}`;
+}
+
 export function durationLabel(text: string | null | undefined, lang: string): string {
   const s = String(text ?? '').trim();
   if (lang !== 'ar') return s;

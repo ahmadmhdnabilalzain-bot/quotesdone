@@ -3,12 +3,13 @@
 -- feel much more professional".
 --
 -- MEASURED on htdblwldjkcgjvmqkbeh, 22 Sep 2026: 34 public routines carry Arabic in their source, and
--- public.notification_copy has 13 rows with subject_ar/body_ar. Every Arabic literal in them was read.
+-- public.notification_copy had 13 rows with subject_ar/body_ar; every Arabic literal in them was read. (It now
+-- has 14: licence_renewal, added by #808 after this was measured, is already native and is left as is.)
 --   - 15 routines compose text a customer or supplier reads (mail, WhatsApp, chat replies, portal
 --     payload); 14 of them carried literal-translation artefacts and are redefined here, plus
 --     fn_supplier_notice, whose Arabic fallback name has to fit the new formal greeting.
 --   - Every notification_copy row addressed the reader in the singular masculine (ka), which is wrong
---     for a business; all 13 are rewritten in the formal plural (kum) and start without a greeting
+--     for a business; all 13 of them (13 of the 14 rows now) are rewritten in the formal plural (kum) and start without a greeting
 --     because the email frame supplies it.
 -- WHAT WAS WRONG (named artefacts): the "has been done" passive chain (tamma + masdar) in subjects and
 -- bodies; the emphatic "we" before a verb in the collaboration warning; "on the basis of" stacked like
@@ -83,14 +84,6 @@ begin
   end if;
   if md5((select prosrc from pg_proc where oid = 'public.fn_supplier_notice(bigint,text,text,text,text,text,uuid,uuid)'::regprocedure)) is distinct from '91f38603e7aefe813e6dcc5455fa17bb' then
     raise exception 'CHK<<stale: fn_supplier_notice changed since this file was written; re-derive>>';
-  end if;
-  -- notification_copy: all 13 rows must still hold the body measured on 22 Sep, or nothing changes.
-  if (select count(*) from public.notification_copy c
-        join (values ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4'), ('billing_answer', '10d471b75e6591867f455244324feefb'), ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0'), ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7'), ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776'), ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26'), ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b'), ('new_inquiry', '32f4bc8b74905d7970a01db887a07124'), ('new_message', '0cfb3faeea5af2767a17102ece6a8e44'), ('new_quote', '265cbdb9f0c3489cf564a097425478b6'), ('quote_coaching', 'e7f1e2306275b59e3d30e16044655980'), ('quote_requirements_changed', 'c89578fc05b0b94a91e00344f60dc152'), ('rfq_addendum', '3510278336b9210178922d810181f9e8')) v(type, old_md5)
-          on v.type = c.type and md5(c.body_ar) = v.old_md5) <> 13 then
-    raise exception 'CHK<<stale: notification_copy changed since this file was written (rows: %); re-derive>>',
-      (select string_agg(v.type, ', ') from (values ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4'), ('billing_answer', '10d471b75e6591867f455244324feefb'), ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0'), ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7'), ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776'), ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26'), ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b'), ('new_inquiry', '32f4bc8b74905d7970a01db887a07124'), ('new_message', '0cfb3faeea5af2767a17102ece6a8e44'), ('new_quote', '265cbdb9f0c3489cf564a097425478b6'), ('quote_coaching', 'e7f1e2306275b59e3d30e16044655980'), ('quote_requirements_changed', 'c89578fc05b0b94a91e00344f60dc152'), ('rfq_addendum', '3510278336b9210178922d810181f9e8')) v(type, old_md5)
-        where not exists (select 1 from public.notification_copy c where c.type = v.type and md5(c.body_ar) = v.old_md5));
   end if;
   -- notification_copy: all 13 rows must still hold the body measured on 22 Sep, or nothing changes.
   if (select count(*) from public.notification_copy c
@@ -1406,7 +1399,7 @@ update public.notification_copy
 
 update public.notification_copy
    set subject_ar = 'تذكير أخير: أحد مستنداتكم على وشك الانتهاء',
-       body_ar = 'تقترب صلاحية أحد مستنداتكم المسجّلة لدى QuotesDone من الانتهاء. يُرجى رفع النسخة المجدّدة من تبويب المستندات في بوابة المورّد، أو الرد على هذه الرسالة مرفقةً بها.',
+       body_ar = 'تقترب صلاحية أحد مستنداتكم المسجّلة لدى QuotesDone من الانتهاء. يُرجى رفع النسخة المجدّدة من تبويب المستندات في بوابة المورّد، أو الرد على هذه الرسالة مع إرفاقها.',
        updated_at = now()
  where type = 'doc_final_notice' and md5(body_ar) = '492498367ec26964fe2a856b515dc3d7';
 
@@ -1418,7 +1411,7 @@ update public.notification_copy
 
 update public.notification_copy
    set subject_ar = 'إيقاف مؤقت لحسابكم في QuotesDone — انتهت صلاحية أحد المستندات',
-       body_ar = 'انتهت صلاحية أحد مستنداتكم المسجّلة، فأُوقف حسابكم مؤقتًا ولن تصلكم طلبات جديدة حتى تجديده. يُرجى رفع النسخة المجدّدة من تبويب المستندات في بوابة المورّد، أو الرد على هذه الرسالة مرفقةً بها، ويُعاد تفعيل حسابكم تلقائيًا ودون أي رسوم.',
+       body_ar = 'انتهت صلاحية أحد مستنداتكم المسجّلة، فأُوقف حسابكم مؤقتًا ولن تصلكم طلبات جديدة حتى تجديده. يُرجى رفع النسخة المجدّدة من تبويب المستندات في بوابة المورّد، أو الرد على هذه الرسالة مع إرفاقها، ويُعاد تفعيل حسابكم تلقائيًا ودون أي رسوم.',
        updated_at = now()
  where type = 'doc_suspended' and md5(body_ar) = '5527a0918ac0e4b4df60a9e8a0489c26';
 
@@ -1486,9 +1479,9 @@ select case when true
     ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4', '4d82815baf9b0ea4619449efaa971887'),
     ('billing_answer', '10d471b75e6591867f455244324feefb', '62af313c46c83e0baa204884a68d097f'),
     ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0', 'ff5d9a84a7d107e40c90d3261403e4fc'),
-    ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7', '03e279e896dc883e69504b5dcbb0e2e7'),
+    ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7', 'e48a74674e72573143e902e3454dbbf0'),
     ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776', 'e4ff1d97b38c512d349b916ea2242c35'),
-    ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26', 'c79863d61909860ddfe3da0cff7112aa'),
+    ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26', 'bfe7674f8d74bf3dc6ae93416d8e44de'),
     ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b', 'f534e4cb45ee3bb4a01f9f950bea81f3'),
     ('new_inquiry', '32f4bc8b74905d7970a01db887a07124', '9061f35b14fe645374ad4300e3834809'),
     ('new_message', '0cfb3faeea5af2767a17102ece6a8e44', '14fba5ad8bb230a2806ac4ecbee8551a'),
@@ -1501,9 +1494,9 @@ select case when true
     ('*', '78c1f63ffbd7d8240dd40a323d2d9bf4', '4d82815baf9b0ea4619449efaa971887'),
     ('billing_answer', '10d471b75e6591867f455244324feefb', '62af313c46c83e0baa204884a68d097f'),
     ('cancel_warning', 'a5be12b3f7f12fe5c3eeb2cbb9f64fe0', 'ff5d9a84a7d107e40c90d3261403e4fc'),
-    ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7', '03e279e896dc883e69504b5dcbb0e2e7'),
+    ('doc_final_notice', '492498367ec26964fe2a856b515dc3d7', 'e48a74674e72573143e902e3454dbbf0'),
     ('doc_received', '615035b8d9e57fd576c9c35e9e9fc776', 'e4ff1d97b38c512d349b916ea2242c35'),
-    ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26', 'c79863d61909860ddfe3da0cff7112aa'),
+    ('doc_suspended', '5527a0918ac0e4b4df60a9e8a0489c26', 'bfe7674f8d74bf3dc6ae93416d8e44de'),
     ('job_awarded_other', '3ca91033de6b4ca62007bcb36aca9d2b', 'f534e4cb45ee3bb4a01f9f950bea81f3'),
     ('new_inquiry', '32f4bc8b74905d7970a01db887a07124', '9061f35b14fe645374ad4300e3834809'),
     ('new_message', '0cfb3faeea5af2767a17102ece6a8e44', '14fba5ad8bb230a2806ac4ecbee8551a'),

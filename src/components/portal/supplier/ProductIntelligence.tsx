@@ -19,6 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import SupplierCatalogUpload from './SupplierCatalogUpload';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { arDays } from '@/lib/durationLabel';
 
 type Variant = {
   sku?: string | null; attributes?: Record<string, unknown> | null;
@@ -146,7 +147,7 @@ export function ProductCard({ p, lang }: { p: Product; lang: Lang }) {
           {p.available_units != null
             ? `${Number(p.available_units).toLocaleString()} ${t(lang, 'units')}`
             : t(lang, 'notRecorded')}
-          {lead != null && <span className="opacity-50"> · {t(lang, 'leadTime')} {lead} {t(lang, 'days')}</span>}
+          {lead != null && <span className="opacity-50"> · {t(lang, 'leadTime')} {lang === 'ar' ? arDays(lead) : `${lead} ${t(lang, 'days')}`}</span>}
         </span>
       </footer>
     </article>

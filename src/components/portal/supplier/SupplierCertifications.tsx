@@ -17,6 +17,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { arDays } from '@/lib/durationLabel';
 
 type Lang = 'en' | 'ar';
 type Cert = {
@@ -123,8 +124,8 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
                   {L.status[c.document_status]}
                   {c.expiry && c.days_left != null && (
                     <> · {c.days_left >= 0
-                      ? `${L.expiresIn} ${c.days_left} ${L.days}`
-                      : `${Math.abs(c.days_left)} ${L.daysAgo}`}</>
+                      ? `${L.expiresIn} ${ar ? arDays(c.days_left) : `${c.days_left} ${L.days}`}`
+                      : (ar ? `منذ ${arDays(Math.abs(c.days_left))}` : `${Math.abs(c.days_left)} ${L.daysAgo}`)}</>
                   )}
                 </p>
                 <p className="mt-1 text-[11px] leading-[1.6] text-muted-foreground/75">{(ar && c.impact_why_ar) || c.impact_why}</p>

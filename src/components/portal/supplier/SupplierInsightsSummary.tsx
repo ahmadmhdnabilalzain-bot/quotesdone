@@ -25,6 +25,7 @@ import { call } from './api';
 // label says what was averaged. Hidden when null, i.e. when no quote carried a lead time.
 const LEAD_LABEL = { en: 'Average lead time you quoted', ar: 'متوسط مدة التوريد في عروضكم' } as const;
 import { ws } from './workspaceCopy';
+import { arDays } from '@/lib/durationLabel';
 
 type Lang = 'en' | 'ar' | string;
 type Summary = {
@@ -119,7 +120,7 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
   const anySeries = series.some((p) => p.quotes + p.reveals > 0);
   const rates: [string, string | null][] = [
     ['r_win', r.win_pct != null ? r.win_pct + '%' : null], ['r_reveal', r.reveal_pct != null ? r.reveal_pct + '%' : null],
-    ['r_response', r.response_pct != null ? r.response_pct + '%' : null], ['r_lead', r.avg_lead_time_days != null ? ws(lang, 'days', { n: r.avg_lead_time_days }) : null],
+    ['r_response', r.response_pct != null ? r.response_pct + '%' : null], ['r_lead', r.avg_lead_time_days != null ? (lang === 'ar' ? arDays(r.avg_lead_time_days) : ws(lang, 'days', { n: r.avg_lead_time_days })) : null],
     ['r_lost', r.lost_to_others ? String(r.lost_to_others) : null],
   ];
   return (

@@ -177,6 +177,23 @@ if (MAIN && process.argv.includes('--write')) {
     assert.deepEqual(unreviewed, [], `read each line against the register in this file's header, then run\n  node scripts/checks/every_arabic_message_is_written_not_translated.test.mjs --write\n${unreviewed.slice(0, 40).join('\n')}${unreviewed.length > 40 ? `\n... and ${unreviewed.length - 40} more` : ''}`);
   });
 
+  // Review of #818: "${n} days" in Arabic was printed with one fixed noun, wrong for 1, 2 and 3-10.
+  // A variable count placed straight before the word for day(s) must go through arDays()
+  // (src/lib/durationLabel.ts). Working days (the noun followed by "work") are fixed windows and exempt.
+  const DAY_COUNT_BY_HAND = /(\$\{[^}]*\}|\{[a-z_]+\}) ?(?:يوم(?:ًا|اً)?|أيام)(?![؀-ۿ])(?! عمل)/;
+  test('the day-count pattern catches a hand-written count and passes the helper', () => {
+    assert.ok(DAY_COUNT_BY_HAND.test('`خلال ${d} يومًا`'));
+    assert.ok(DAY_COUNT_BY_HAND.test("'{days} أيام'"));
+    assert.ok(!DAY_COUNT_BY_HAND.test('`خلال ${arDays(d)}`'));
+    assert.ok(!DAY_COUNT_BY_HAND.test("'{w} أيام عمل'"));
+    assert.ok(!DAY_COUNT_BY_HAND.test("'${n} يومان'"));
+  });
+  test('no Arabic template prints a day count without arDays()', () => {
+    const hits = [];
+    for (const f of surfaces()) for (const l of arabicLines(f)) if (DAY_COUNT_BY_HAND.test(l.text)) hits.push(`${f}:${l.line} ${l.text.trim().slice(0, 120)}`);
+    assert.deepEqual(hits, [], 'use arDays() from src/lib/durationLabel.ts');
+  });
+
   test('the SQL anchor is in MANIFEST or pending, so new SQL files are scanned', () => {
     const m = fs.readFileSync(path.join(ROOT, 'scripts/sql/MANIFEST.txt'), 'utf8');
     const listed = m.split(/\r?\n/).map((l) => l.trim()).includes(ANCHOR);

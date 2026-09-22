@@ -28,6 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useDelayedFlag } from '@/components/ui/busy';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
+import { arDays } from '@/lib/durationLabel';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import { take } from '@/components/me/prefetch';
 
@@ -242,7 +243,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
                 `${m.suppliers_covering} مورّدًا في الإمارات ضمن قائمتنا يغطّون هذا التخصص${m.emirate ? ' في ' + m.emirate : ''}.`)}
               {m.avg_days_to_quote != null && Number(m.avg_days_to_quote) >= 1
                 ? L(lang, ` First quotes have taken about ${m.avg_days_to_quote} days.`,
-                          ` واستغرق وصول أول العروض نحو ${m.avg_days_to_quote} يومًا.`)
+                          ` واستغرق وصول أول العروض نحو ${arDays(m.avg_days_to_quote)}.`)
                 : ''}
             </div>
           ) : null}
@@ -260,7 +261,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
               {Math.round(Number(c.age_days)) < 1
                 ? L(lang, 'Posted today. ', 'نُشر اليوم. ')
                 : L(lang, `Posted ${Math.round(Number(c.age_days))} days ago. `,
-                         `نُشر قبل ${Math.round(Number(c.age_days))} يومًا. `)}
+                         `نُشر قبل ${arDays(Math.round(Number(c.age_days)))}. `)}
               {L(lang, copy[0], copy[1])}
             </div>
           </div>

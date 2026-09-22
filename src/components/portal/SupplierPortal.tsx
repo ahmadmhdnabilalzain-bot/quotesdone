@@ -2,6 +2,7 @@
 'use client';
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
 import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
+import { arDays } from '@/lib/durationLabel';
 import { supaClient } from '@/lib/supaClient';
 import { takeAuthFragment } from '@/lib/authFragment';
 import { signupEmailProblem } from '@/lib/signupEmail';
@@ -61,8 +62,7 @@ const SB = () => supaClient('qd-portal-auth');
 // the label visible (audit 15 Sep 2026: no field said which of the mandatory six it was).
 // Arabic number agreement for "N days left" (review of PR #818): 1, 2, 3-10 and 11+ each take their own form.
 function arDaysLeft(n) {
-  const d = n === 1 ? 'يوم واحد متبقٍ' : n === 2 ? 'يومان متبقيان' : n <= 10 ? `${n} أيام متبقية` : `${n} يومًا متبقيًا`;
-  return d + ' لمعالجة ذلك';
+  return `${arDays(n)} ${n === 1 ? 'متبقٍ' : n === 2 ? 'متبقيان' : n <= 10 ? 'متبقية' : 'متبقيًا'} لمعالجة ذلك`;
 }
 
 function Need({ lang, req = false }) {

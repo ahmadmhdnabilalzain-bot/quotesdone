@@ -10,6 +10,7 @@
 // predict because no open project carries a target date. A prediction the portal cannot make must
 // read as an absence, never as "nothing is coming up".
 import type { Lang, Urgency } from './model';
+import { arDays } from '@/lib/durationLabel';
 
 const EN = {
   /* §20 predictive */
@@ -77,7 +78,7 @@ const AR: Translations = {
   empty_no_predictions_body:
     'يتطلب التوقع مشروعًا مفتوحًا له تاريخ افتتاح مستهدف، وتخصصًا سبق أن اشتريته في مشروع آخر. لا يستوفي هذا الحساب الشرطين بعد، لذا لا نعرض أي احتياج؛ فغياب التوقع هنا يعني نقص البيانات لا قلة الطلب.',
 
-  p_within: (d: number) => (d <= 0 ? 'مطلوب الآن' : `خلال ${d} يومًا`),
+  p_within: (d: number) => (d <= 0 ? 'مطلوب الآن' : `خلال ${arDays(d)}`),
   p_for: 'لمشروع',
   p_by: 'يُطرح الطلب قبل',
   p_confidence: 'درجة الثقة',

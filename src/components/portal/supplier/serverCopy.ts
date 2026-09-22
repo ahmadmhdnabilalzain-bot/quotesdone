@@ -8,6 +8,7 @@
 // stays as the fallback, so an older client, an email, or a code this table does not know yet still
 // reads correctly — `srvText` never returns an empty string when the server sent a sentence.
 
+import { arDays } from '@/lib/durationLabel';
 type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
@@ -99,10 +100,10 @@ const COPY: Record<string, Entry> = {
   doc_hint_egr: s('Your establishment card (EGR), issued with your trade licence.', 'بطاقة المنشأة (EGR) الصادرة مع رخصتكم التجارية.'),
 
   // ── Overview alerts (supplier_portal buildAlerts) ───────────────────────────────────────────────
-  doc_expiry_title: s((p) => `${p.doc} ${p.expired ? 'has expired' : 'expires soon'}`, (p) => `${p.expired ? 'انتهت صلاحية' : 'قاربت صلاحية'} ${docAr(p.doc)}${p.expired ? '' : ' على الانتهاء'}`),
+  doc_expiry_title: s((p) => `${p.doc} ${p.expired ? 'has expired' : 'expires soon'}`, (p) => (p.expired ? `انتهت صلاحية ${docAr(p.doc)}` : `أوشكت صلاحية ${docAr(p.doc)} على الانتهاء`)),
   doc_expiry_detail: s(
     (p) => `Expiry ${p.expiry} — ${p.days_left < 0 ? `overdue by ${Math.abs(p.days_left)} days` : `${p.days_left} days left`}. Upload a renewed copy to stay eligible.`,
-    (p) => `تاريخ الانتهاء ${p.expiry} — ${p.days_left < 0 ? `انقضى على انتهائها ${Math.abs(p.days_left)} يومًا` : `المتبقي ${p.days_left} يومًا`}. ارفعوا نسخة مجدّدة لتبقوا ضمن المورّدين المؤهّلين.`),
+    (p) => `تاريخ الانتهاء ${p.expiry} — ${p.days_left < 0 ? `انقضى على انتهائها ${arDays(Math.abs(p.days_left))}` : `المتبقي ${arDays(p.days_left)}`}. ارفعوا نسخة مجدّدة لتبقوا ضمن المورّدين المؤهّلين.`),
   // `total` (audit 21 Sep 2026, finding 6): the bell said "1 new RFQ" beside "Inquiries received (3)";
   // both were true (two were already quoted) but neither said so. The count now names what it is out of.
   new_rfq_title: s((p) => `${p.count} new RFQ${p.count > 1 ? 's' : ''} waiting for your quote` + (p.total > p.count ? ` (of ${p.total} received)` : ''), (p) => `${p.count} ${plural(p.count, 'طلب تسعير جديد ينتظر', 'طلبات تسعير جديدة تنتظر')} عرضكم` + (p.total > p.count ? ` (من أصل ${p.total})` : '')),
@@ -161,7 +162,7 @@ const COPY: Record<string, Entry> = {
     (p) => `Your documents mention trades you have not confirmed: ${(p.trades || []).map((c: string) => vocabLabel('en', 'trade', c, String(c).replace(/_/g, ' '))).join(', ')}. Tick them in "What you can quote for" if your company does this work.`,
     (p) => `تذكر مستنداتكم تخصصات لم تؤكّدوها بعد: ${(p.trades || []).map((c: string) => vocabLabel('ar', 'trade', c, String(c).replace(/_/g, ' '))).join('، ')}. اختاروها في «ما يمكن لشركتكم تسعيره» إن كانت شركتكم تزاول هذا العمل.`),
   expiring_title: s((p) => `Your ${p.doc === 'insurance' ? 'insurance certificate' : 'trade licence'} expires in ${p.days} day${p.days === 1 ? '' : 's'}`,
-    (p) => `تنتهي صلاحية ${p.doc === 'insurance' ? 'شهادة التأمين' : 'رخصتكم التجارية'} خلال ${p.days} ${plural(p.days, 'يوم', 'أيام')}`),
+    (p) => `تنتهي صلاحية ${p.doc === 'insurance' ? 'شهادة التأمين' : 'رخصتكم التجارية'} خلال ${arDays(p.days)}`),
   expiring_detail: s('Once it expires your account is paused automatically and you stop receiving requests. Upload a renewed copy now to avoid that.', 'عند انتهاء صلاحيتها يتوقف حسابكم تلقائيًا ولن تصلكم أي طلبات. ارفعوا نسخة مجدّدة الآن لتفادي ذلك.'),
   no_phone_title: s('Add a contact number', 'أضيفوا رقم تواصل'),
   no_phone_detail: s('Customers cannot reach you after a reveal without one.', 'لن يتمكن العملاء من التواصل معكم بعد الكشف من دونه.'),
