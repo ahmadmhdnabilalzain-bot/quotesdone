@@ -1,9 +1,0 @@
-Committed on PR #854 and deliberately not applied by the author: FIXER_RULES for the 22 Sep 2026 audit
-say the orchestrator applies, merges and deploys serially, and this file redefines three supplier-facing
-routines that the supplier_api deploy in the same PR depends on.
-
-Condition that moves it: the coordinator applies it (node scripts/apply_sql.mjs <this file> --apply),
-then runs scripts/sql/a_supplier_sees_only_the_jobs_it_was_matched_to_probe.sql and sees PROBE OK, then
-deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt.
-
-Seat: sales_engineer. Audit findings SP-N-02, SP-N-03, SP-N-05.
