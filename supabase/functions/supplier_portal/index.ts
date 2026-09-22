@@ -396,7 +396,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
       const items = Array.isArray(b.items) ? b.items.slice(0, 15) : [];
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
-      const failed: { kind: string; reason: string }[] = [];
+      const failedUploads: { kind: string; reason: string }[] = [];  // NOT 'failed' - that name belongs to the module-level refusal helper above, and shadowing it here is how the raw Postgres message stayed in this reply until 22 Sep 2026.
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';
       // What each column holds BEFORE this save: a replaced file becomes a doc_versions row after the
@@ -421,14 +421,14 @@ Deno.serve(observe('supplier_portal', async (req) => {
             try {
               const sc = await sanitizeAndScan({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || 'catalog', allow: SAFE_UPLOAD,
                                                  scan: { source: 'supplier_portal.catalogs', subject: String(sup.id), filename: it.filename, bucket: 'supplier-docs' } });
-              if (!sc.ok) { failed.push({ kind: 'catalogs', reason: String(sc.body.detail || sc.body.error) }); continue; }
+              if (!sc.ok) { failedUploads.push({ kind: 'catalogs', reason: String(sc.body.detail || sc.body.error) }); continue; }
               const s = sc.result;
               const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(it.filename || 'catalog', s.mime)}`;
               const { error: upErr } = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-              if (upErr) { failed.push({ kind: 'catalogs', reason: upErr.message }); continue; }
+              if (upErr) { failedUploads.push({ kind: 'catalogs', reason: upErr.message }); continue; }
               catAppend.push(p); saved.push('catalogs');
               readQueue.push({ path: p, name: String(it.filename || 'catalogue'), kind: 'catalogue', bytes: s.bytes, mime: s.mime });
-            } catch (e) { failed.push({ kind: 'catalogs', reason: String((e as Error)?.message || e).slice(0, 200) }); }
+            } catch (e) { failedUploads.push({ kind: 'catalogs', reason: String((e as Error)?.message || e).slice(0, 200) }); }
           }
           continue;
         }
@@ -447,17 +447,17 @@ Deno.serve(observe('supplier_portal', async (req) => {
             // bytes and the extension is forced to match it.
             const sc = await sanitizeAndScan({ input: String(it.original_b64), declaredMime: it.mime, filename: it.filename || kindStr, allow: SAFE_UPLOAD,
                                                scan: { source: 'supplier_portal.' + kindStr, subject: String(sup.id), filename: it.filename, bucket: 'supplier-docs' } });
-            if (!sc.ok) { failed.push({ kind: kindStr, reason: String(sc.body.detail || sc.body.error) }); continue; }
+            if (!sc.ok) { failedUploads.push({ kind: kindStr, reason: String(sc.body.detail || sc.body.error) }); continue; }
             const s = sc.result;
             const clean = safeFilename(it.filename || kindStr, s.mime);
             const p = `${kind.folder}/${sup.id}/${Date.now()}_${clean}`;
             const { error: upErr } = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-            if (upErr) { failed.push({ kind: kindStr, reason: upErr.message }); continue; }
+            if (upErr) { failedUploads.push({ kind: kindStr, reason: upErr.message }); continue; }
             upd[kind.pathCol] = p;
             if (kind.nameCol) upd[kind.nameCol] = clean.slice(0, 200);
             stored = { bytes: s.bytes, mime: s.mime };
             if (kindStr === 'license' || kindStr === 'profile') readQueue.push({ path: p, name: clean, kind: kindStr === 'license' ? 'licence' : 'profile', bytes: s.bytes, mime: s.mime });
-          } catch (e) { failed.push({ kind: kindStr, reason: String((e as Error)?.message || e).slice(0, 200) }); continue; }
+          } catch (e) { failedUploads.push({ kind: kindStr, reason: String((e as Error)?.message || e).slice(0, 200) }); continue; }
         }
         // #86: read the trade-licence expiry (and licence no / authority) SERVER-SIDE from the
         // uploaded document, so the expiry gate can't be bypassed with a self-typed date. The typed
@@ -520,7 +520,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
         // them is read server-side and none of them is self-asserted against an automatic suspension.
         if (kindStr === 'license') {
           if (!licExpiryFromDoc && it.expiry) {
-            failed.push(it.original_b64
+            failedUploads.push(it.original_b64
               ? { kind: kindStr, reason: 'Your trade licence file was saved, but we could not read the expiry date from it, so the expiry on file is unchanged. Please upload a clear copy of the full licence page (PDF or a sharp photo).' }
               : { kind: kindStr, reason: 'A trade licence document is required. The licence expiry is read from the licence itself and cannot be entered by hand — please attach your current trade licence.' });
             if (!it.original_b64) continue;
@@ -540,8 +540,10 @@ Deno.serve(observe('supplier_portal', async (req) => {
       if (Object.keys(upd).length > 1) {
         const { error: updErr } = await admin.from('leads').update(upd).eq('id', sup.id);
         if (updErr) {
-          console.error('save_documents: leads update failed —', updErr.message);
-          return J({ error:'save_failed', detail: updErr.message, saved, failed, message:'Your files were uploaded but could not be attached to your profile. Please try again.' }, 502);
+          // SP-I-01, the one that survived #858 (review, 22 Sep 2026): this still put the raw
+          // Postgres text in `detail` for the browser. Same treatment as the other thirteen — the
+          // real message goes to the function log, the supplier gets the stable code.
+          return failed('save_documents', 'save_failed', 'Your files were uploaded but could not be attached to your profile. Please try again.', updErr, 502);
         }
       }
       // REPLACE KEEPS THE PREVIOUS VERSION. After the row write succeeded, every column that held a
@@ -560,7 +562,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
       const documents_read = readQueue.length ? await proposeTradesFromDocs(admin, Number(sup.id), readQueue.slice(0, 7)) : undefined;
       // The fresh list rides on the answer (finding 16): what the row holds NOW, not what the tab guessed.
       const fresh = await listDocuments(Number(sup.id));
-      return J({ ok:true, saved, failed, read, versioned, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary, ...(documents_read ? { documents_read } : {}) });
+      return J({ ok:true, saved, failed: failedUploads, read, versioned, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary, ...(documents_read ? { documents_read } : {}) });
     }
 
     // REMOVE HIDES, NEVER DESTROYS (instruction 524). The column is cleared and what it held goes to

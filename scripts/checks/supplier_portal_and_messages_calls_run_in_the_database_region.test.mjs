@@ -22,16 +22,31 @@ const code = (p) => readFileSync(root + p, 'utf8').replace(/\/\*[\s\S]*?\*\//g, 
 const DIRS = ['src/components/portal/supplier', 'src/components/portal/comms'];
 const files = DIRS.flatMap((d) => readdirSync(root + d).filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\./.test(f)).map((f) => `${d}/${f}`));
 
+// THE PINNED CALLERS, BY NAME — AND THERE ARE NOW EXACTLY TWO OF THEM.
+//
+// 22 Sep 2026 (audit SP-C-05). This used to assert `fetchers >= 14`: the twelve panel components
+// that each held a private copy of `call()`, plus supplier/api.ts and comms/api.ts. Those twelve
+// copies are gone — each was `return r.json()` with no timeout, no JSON-parse catch and, in seven
+// of them, no `.catch` at all, so a non-JSON response left the panel on "Loading" for good. Every
+// panel now imports the one shared helper.
+//
+// The floor counted the defect, so consolidating the defect broke the floor. The rule it was
+// reaching for has not changed and is not weakened here — it is TIGHTENED, from "at least 14
+// somewhere" to "these two files and no others". A floor could not have failed on a thirteenth
+// private fetcher appearing; an exact set does, and it still fails if either shared helper loses
+// its pin. The real guard, `doesNotMatch SUPA_FN`, is untouched and runs over every file.
+const PINNED = ['src/components/portal/supplier/api.ts', 'src/components/portal/comms/api.ts'];
+
 test('every functions call in the supplier portal and comms is region-pinned', () => {
-  let fetchers = 0;
+  const fetchers = [];
   for (const f of files) {
     const s = code(f);
     assert.doesNotMatch(s, /\bSUPA_FN\b/, `${f} builds a functions URL without the region pin — use fnUrl()`);
-    if (/fetch\(fnUrl\(/.test(s)) fetchers++;
+    if (/fetch\(fnUrl\(/.test(s)) fetchers.push(f);
   }
-  // 12 components + supplier/api.ts + comms/api.ts on 21 Sep 2026. Fewer means a caller moved
-  // somewhere this check does not look, not that it went away.
-  assert.ok(fetchers >= 14, `expected >= 14 region-pinned fetchers, found ${fetchers}`);
+  assert.deepEqual(fetchers.sort(), [...PINNED].sort(),
+    'the only files that may call a function directly are the two shared helpers. A new name here is '
+    + 'a private copy of call() that will drift; a missing name is a helper that lost its region pin.');
 });
 
 test('the shared callers are the pinned ones', () => {

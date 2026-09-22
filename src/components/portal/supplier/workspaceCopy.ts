@@ -27,15 +27,20 @@ type Forms = readonly [string, string, string, string];
 const INQUIRY: Forms = ['استفسار واحد', 'استفسارين', 'استفسارات', 'استفسارًا'];   // after a preposition (genitive)
 const UNREAD_MSG: Forms = ['رسالة واحدة غير مقروءة', 'رسالتان غير مقروءتين', 'رسائل غير مقروءة', 'رسالة غير مقروءة'];
 const DOCUMENT: Forms = ['مستند واحد', 'مستندان', 'مستندات', 'مستندًا'];
-// Both day counts here follow a preposition («خلال {days}»، «نحو {n}»), so the dual is the genitive
-// «يومين», not durationLabel's nominative «يومان». Same rule, correct case for this position.
+// CASE MATTERS FOR THE DUAL ONLY, and it is decided by what stands before the number.
+// DAY — genitive dual «يومين» — for a count governed by a preposition: «خلال {days}»، «نحو {n}».
 const DAY: Forms = ['يوم واحد', 'يومين', 'أيام', 'يومًا'];
+// DAY_NOM — nominative dual «يومان» — for a count that is the predicate of a nominal sentence with
+// no preposition over it: «متوسط مدة التنفيذ {days}». Reviewer, 22 Sep 2026: hint_lead_time_t took
+// the genitive from DAY although nothing governs it. Same four indices, different dual — pick by
+// the position the placeholder sits in, never by the noun.
+const DAY_NOM: Forms = ['يوم واحد', 'يومان', 'أيام', 'يومًا'];
 
 /** Which {placeholder} of which key is a counted Arabic noun, and the noun's four forms. */
 const AR_COUNTED: Record<string, Record<string, Forms>> = {
   hint_quote_more_t: { unquoted: INQUIRY },
   hint_doc_expiring_t: { days: DAY },
-  hint_lead_time_t: { days: DAY },
+  hint_lead_time_t: { days: DAY_NOM },
   days: { n: DAY },
   mb_unread: { n: UNREAD_MSG },
   sd_err_limit_reached: { max: DOCUMENT },

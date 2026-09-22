@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { call } from './api';
+import { PanelError, panelErrorCode } from './PanelState';
 import { aed } from './money';
 import { srvMsg } from './serverCopy';
 // Amounts, units and codes are left-to-right runs inside Arabic text; src/lib/Ltr.tsx holds the rule.
@@ -61,10 +62,19 @@ export function SpecHoldPanel({ quoteId, lang, token, onChanged, onResubmit, tit
   const [terms, setTerms] = useState<Record<string, string>>({});
   const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const [errs, setErrs] = useState<Record<string, string>>({}); const [confirm, setConfirm] = useState(false);
-  const load = () => call('supplier_api', { action: 'spec_hold', quote_id: quoteId }, token).then(setData);
+  const [err, setErr] = useState('');
+  // `if (data.error)` never matched a resolved `{ ok:false, code:'network' }` or `'timeout'` — those
+  // carry no `error` field — so a dropped connection fell through to `data.hold`, which is undefined,
+  // and the panel RETURNED NULL: the only route a supplier has to supply the exact specifications a
+  // held quote is waiting on simply vanished (review of PR #858, item 3d). `ok` is the whole contract.
+  const load = () => {
+    setErr('');
+    return call('supplier_api', { action: 'spec_hold', quote_id: quoteId }, token)
+      .then((j) => { if (j && j.ok) setData(j); else { setData(null); setErr(panelErrorCode(j)); } });
+  };
   useEffect(() => { load(); }, [quoteId, token]);
+  if (err) return <div className="mt-3"><PanelError lang={ar ? 'ar' : 'en'} code={err} onRetry={load} /></div>;
   if (!data) return <div className="mt-3 text-[13px] text-muted-foreground" aria-busy="true">{t.loading}</div>;
-  if (data.error) return <div className="mt-3 text-[13px] text-muted-foreground">{srvMsg(String(lang), data, t.err)}</div>;
   const hold = data.hold; const schema = data.schema || { lines: [], terms: [] };
   if (!hold || !['open', 'awaiting_approval'].includes(hold.state)) return null;
   const awaiting = hold.state === 'awaiting_approval';

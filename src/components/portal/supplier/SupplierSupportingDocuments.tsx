@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import DocActions from '../DocActions';
 import { call } from './api';
+import { PanelError, panelErrorCode } from './PanelState';
 import { ws } from './workspaceCopy';
 
 type Lang = 'en' | 'ar' | string;
@@ -27,12 +28,23 @@ export default function SupplierSupportingDocuments({ token, lang }: { token: st
   const [list, setList] = useState<List | null>(null);
   const [label, setLabel] = useState(''); const [type, setType] = useState('certificate'); const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState<string>(''); const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const [err, setErr] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const max = list?.limits.max_documents ?? 30;
   // A tab switch unmounts this; an answer arriving afterwards must not write state.
   const live = useRef(true);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
-  const load = () => call('supplier_portal', { action: 'supporting_documents' }, token).then((j) => { if (live.current) setList(j && j.ok ? j : { ok: false, documents: [], types: [], limits: { max_documents: 30, max_bytes: 26214400 } }); });
+  // A FAILED READ IS NOT AN EMPTY SHELF (review of PR #858, item 3c). ./api.ts's `call` resolves on
+  // every failure, so this used to substitute `{ documents: [] }` for a timeout or a dead session and
+  // tell a supplier who has uploaded everything that they have uploaded nothing. The list is left
+  // unknown and the failure is said, with a retry.
+  const load = () => {
+    setErr('');
+    call('supplier_portal', { action: 'supporting_documents' }, token).then((j) => {
+      if (!live.current) return;
+      if (j && j.ok) setList(j); else { setList(null); setErr(panelErrorCode(j)); }
+    });
+  };
   useEffect(() => { load(); }, [token]);
 
   const save = async (req: Record<string, unknown>, f: File | null, key: string) => {
@@ -98,7 +110,8 @@ export default function SupplierSupportingDocuments({ token, lang }: { token: st
       </form>
       {note && <p role={note.ok ? 'status' : 'alert'} className={note.ok ? 'mt-3 text-[13px] text-ok-fg' : 'mt-3 text-[13px] text-danger-fg'}>{note.text}</p>}
 
-      {!list ? <p className="mt-4 text-[13px] text-muted-foreground" aria-busy="true">…</p>
+      {err ? <div className="mt-4"><PanelError lang={lang === 'ar' ? 'ar' : 'en'} code={err} onRetry={load} /></div>
+        : !list ? <p className="mt-4 text-[13px] text-muted-foreground" aria-busy="true">…</p>
         : !docs.length ? <p className="mt-4 text-[13px] text-muted-foreground">{ws(lang, 'sd_empty')}</p>
         : <ul className="mt-4 flex flex-col gap-2.5">
           {docs.map((d) => (

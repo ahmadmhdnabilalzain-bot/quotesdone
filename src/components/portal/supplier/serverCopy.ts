@@ -198,7 +198,11 @@ const COPY: Record<string, Entry> = {
   terms_not_accepted: s('Accept the supplier terms first (Profile tab).', 'يُرجى الموافقة على شروط المورّد أولًا (من تبويب الملف).'),
   not_verified: s((p) => `Your registration is not verified yet${p.reason ? ': ' + (COPY[p.reason]?.en({}) || p.reason) : ''}. Upload a clear, in-date trade licence in Documents — it is re-checked automatically the moment it is saved.`,
     (p) => `لم يُتحقَّق من تسجيلكم بعد${p.reason ? ': ' + (COPY[p.reason]?.ar({}) || p.reason) : ''}. ارفعوا رخصة تجارية واضحة وسارية في تبويب المستندات، وسيُعاد فحصها تلقائيًا فور حفظها.`),
-  registration_due: s((p) => `Your ${p.currency || 'AED'} ${p.fee} yearly registration is due. Pay it in Billing to send quotes.`, (p) => `رسوم التسجيل السنوية (${p.fee} ${p.currency === 'AED' || !p.currency ? 'درهم' : p.currency}) مستحقة. يُرجى سدادها من تبويب الفواتير لتتمكّنوا من إرسال العروض.`),
+  // ONE FEE, ONE NAME (review of #858, 22 Sep 2026). The signed Supplier Agreement v12 clause 2 defines it:
+  // "Subscription Fee — the annual supplier subscription fee described in clause 6" / «رسوم الاشتراك». This entry
+  // said "yearly registration", the tax documents said a third thing again. scripts/checks/one_fee_has_one_name.test.mjs
+  // reads the name out of the agreement itself and refuses any other one here.
+  registration_due: s((p) => `Your ${p.currency || 'AED'} ${p.fee} annual Subscription Fee is due. Pay it in Billing to send quotes.`, (p) => `رسوم الاشتراك السنوية (${p.fee} ${p.currency === 'AED' || !p.currency ? 'درهم' : p.currency}) مستحقة. يُرجى سدادها من تبويب الفواتير لتتمكّنوا من إرسال العروض.`),
   registration_state_unavailable: s('We could not confirm your registration status. Please try again shortly.', 'تعذّر التحقق من حالة تسجيلكم. يُرجى المحاولة بعد قليل.'),
   inquiry_concluded: s('This request has been concluded — the customer has already selected a supplier. Best of luck on the next one.', 'أُغلق هذا الطلب بعد أن اختار العميل مورّدًا. نتمنى لكم التوفيق في الطلبات القادمة.'),
   invalid_amount: s('Enter a valid amount.', 'أدخلوا مبلغًا صحيحًا.'),

@@ -72,9 +72,13 @@ export const docLabel = (lang: Lang, x: Doc) => (DOC_LABEL[x.key] ? pick(lang, D
 export const docKindLabel = (lang: Lang, key: string) =>
   (DOC_LABEL[key] ? pick(lang, DOC_LABEL[key]) : String(key).replace(/_/g, ' '));
 /** The document_status enum fn_supplier_twin returns, as words rather than as its own codes. */
+// MASCULINE, because the subject is «المستند». TWIN: SupplierPortal.tsx renders the same
+// document_status enum and says «سارٍ»، «منتهٍ»، «ينتهي قريبًا» — these were feminine until
+// 22 Sep 2026, so one supplier read both genders for one status on one screen. Change the two
+// together or the disagreement comes straight back.
 const DOC_STATUS: Record<string, [string, string]> = {
-  VALID: ['Valid', 'سارية'], EXPIRED: ['Expired', 'منتهية'],
-  EXPIRING: ['Expiring', 'قاربت الانتهاء'], MISSING: ['Not uploaded', 'غير مرفوعة'],
+  VALID: ['Valid', 'سارٍ'], EXPIRED: ['Expired', 'منتهٍ'],
+  EXPIRING: ['Expiring', 'ينتهي قريبًا'], MISSING: ['Not uploaded', 'غير مرفوع'],
 };
 export const docStatusLabel = (lang: Lang, s: string) =>
   (DOC_STATUS[String(s).toUpperCase()] ? pick(lang, DOC_STATUS[String(s).toUpperCase()]) : String(s));

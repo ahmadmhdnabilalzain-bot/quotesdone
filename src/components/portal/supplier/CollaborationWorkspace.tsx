@@ -25,10 +25,13 @@ import { PanelError, PanelLoading, panelErrorCode, panelErrorText } from './Pane
 // "{n} طلبًا" for every n without this, which is right only from eleven upwards.
 import { arCount, type ArForms } from '@/lib/durationLabel';
 
-const INQUIRY: ArForms = ['طلب واحد', 'طلبان', 'طلبات', 'طلبًا'];
+// «استفسار», not «طلب»: PR #858 settled on one Arabic word for an RFQ across the whole supplier
+// surface (workspaceCopy.ts says الاستفسارات everywhere), and two words for one thing on one screen
+// reads as two different objects. Nominative dual — nothing governs the count in «{n} على المنصة».
+const INQUIRY: ArForms = ['استفسار واحد', 'استفساران', 'استفسارات', 'استفسارًا'];
 // The adjective agrees with the noun it follows, so "matched" cannot be a suffix bolted onto the
 // line above — a dual noun needs a dual adjective and a plural needs a plural.
-const MATCHED: ArForms = ['طلب واحد مطابق لكم', 'طلبان مطابقان لكم', 'طلبات مطابقة لكم', 'طلبًا مطابقًا لكم'];
+const MATCHED: ArForms = ['استفسار واحد مطابق لكم', 'استفساران مطابقان لكم', 'استفسارات مطابقة لكم', 'استفسارًا مطابقًا لكم'];
 
 type FileRow = { name?: string | null; kind?: string | null; category?: string; created_at?: string };
 type Workspace = {

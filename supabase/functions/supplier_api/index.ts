@@ -1032,7 +1032,7 @@ const handle = async (req: Request): Promise<Response> => {
         pay = { kind: 'registration', ref: `QD-REG-${sup.id}-${at.slice(0, 4)}`, paid_at: at, payment_ref: String(lead.registration_payment_ref || '—'),
           supplier: { name: String(sup.company_name || '—'), email: lead.email ?? null },
           period: lead.subscription_paid_until ? { from: at.slice(0, 10), to: String(lead.subscription_paid_until) } : null,
-          lines: [{ en: 'Annual supplier listing fee', ar: 'رسوم الإدراج السنوية للمورّد', amount: Number(lead.registration_amount_aed) }], total: Number(lead.registration_amount_aed) };
+          lines: [{ en: 'Annual supplier Subscription Fee', ar: 'رسوم الاشتراك السنوية للمورّد', amount: Number(lead.registration_amount_aed) }], total: Number(lead.registration_amount_aed) };
       } else {
         const { data: d } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,paid_at,payment_ref')
           .eq('id', Number(body.due_id) || 0).eq('supplier_id', sup.id).in('status', PAID).not('paid_at', 'is', null).maybeSingle();
@@ -1197,7 +1197,7 @@ const handle = async (req: Request): Promise<Response> => {
         const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: sup.id });
         const reg = regSt as any;
         if (regErr || !reg?.ok) return J({ error: 'registration_state_unavailable', code: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found', hint: 'We could not confirm your registration status. Please try again shortly.' }, 503);
-        if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' yearly registration is due. Please complete registration to send quotes.', code: 'registration_due', params: { fee: Number(reg.fee_due || 0), currency: String(reg.currency || 'AED') }, registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
+        if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' annual Subscription Fee is due. Please pay it in Billing to send quotes.', code: 'registration_due', params: { fee: Number(reg.fee_due || 0), currency: String(reg.currency || 'AED') }, registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
       }
       const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', body.inquiry_id).maybeSingle();
       if (inqStat && CONCLUDED.includes(String(inqStat.status))) return J({ error: 'This request has been concluded — the customer has already selected a supplier. Thank you for your interest, and best of luck on the next one.', code: 'inquiry_concluded' }, 409);

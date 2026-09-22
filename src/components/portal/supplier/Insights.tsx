@@ -12,11 +12,16 @@
 // 3D supplier network map (SupplierNetworkMap) and the negotiation panel (SupplierNegotiation) were
 // removed — "its useless remove it". The twin panel keeps the health board; the network panel keeps
 // the knowledge graph.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, useReducedMotion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { call } from './api';
+// `call` resolves on every failure (./api.ts), so a read that FAILED arrives as an object with
+// ok:false — indistinguishable from an empty answer unless `j.ok` is tested. Until 22 Sep 2026 this
+// tab read `(j && j.ok && j.panels) || []` and then rendered "nothing to show" under a promise that
+// says we never show a number we have not measured, and it had no expired-session path at all.
+import { PanelError, panelErrorCode } from './PanelState';
 
 type Lang = 'en' | 'ar' | string;
 const lazy = (f: () => Promise<any>) => dynamic(f, { ssr: false, loading: () => <div className="qd-panel h-40 animate-pulse motion-reduce:animate-none" aria-busy="true" /> });
@@ -51,25 +56,32 @@ export const INSIGHT_PANELS = Object.keys(PANELS);
 export default function Insights({ token, lang, goTo, initial }: { token: string; lang: Lang; goTo: (t: string) => void; initial?: string | null }) {
   const ar = lang === 'ar';
   const reduce = useReducedMotion();
-  const [st, setSt] = useState<{ loading: boolean; avail: string[]; hidden: number }>({ loading: true, avail: [], hidden: 0 });
+  const [st, setSt] = useState<{ loading: boolean; avail: string[]; hidden: number; err: string }>({ loading: true, avail: [], hidden: 0, err: '' });
   const [sel, setSel] = useState<string | null>(initial || null);
-  useEffect(() => {
-    let live = true;
+  const live = useRef(true);
+  useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
+  const load = () => {
+    setSt((s) => ({ ...s, loading: true, err: '' }));
     call('supplier_portal', { action: 'insights' }, token).then((j) => {
-      if (!live) return;
-      const rows: { key: string; available: boolean }[] = (j && j.ok && j.panels) || [];
+      if (!live.current) return;
+      if (!j || !j.ok) { setSt({ loading: false, avail: [], hidden: 0, err: panelErrorCode(j) }); return; }
+      const rows: { key: string; available: boolean }[] = j.panels || [];
       const avail = INSIGHT_PANELS.filter((k) => rows.some((r) => r.key === k && r.available));
-      setSt({ loading: false, avail, hidden: INSIGHT_PANELS.length - avail.length });
+      setSt({ loading: false, avail, hidden: INSIGHT_PANELS.length - avail.length, err: '' });
       setSel((s) => (s && avail.includes(s) ? s : avail[0] || null));
-    }).catch(() => live && setSt({ loading: false, avail: [], hidden: INSIGHT_PANELS.length }));
-    return () => { live = false; };
-  }, [token]);
+    });
+  };
+  useEffect(() => { load(); }, [token]);
 
   // 15 Sep 2026: the tab opens on the supplier's own performance (totals, price position, funnel, trend,
   // hints — ./SupplierInsightsSummary.tsx), which always renders, zeros included. The intelligence panels
   // follow, and only those with real data behind them.
   const summary = <Summary token={token} lang={lang} goTo={goTo} />;
   if (st.loading) return <>{summary}<div className="qd-panel h-32 animate-pulse motion-reduce:animate-none" aria-busy="true" /></>;
+  // The read failed. This tab is not given an `onExpired` route by its parent (SupplierPortal.tsx
+  // renders `<Insights token lang goTo initial />`), so an expired session is said in words here
+  // instead of being silently redrawn as "nothing to show".
+  if (st.err) return <>{summary}<PanelError lang={ar ? 'ar' : 'en'} code={st.err} onRetry={load} /></>;
   if (!st.avail.length) return (
     <>{summary}
     <section className="qd-panel p-5">

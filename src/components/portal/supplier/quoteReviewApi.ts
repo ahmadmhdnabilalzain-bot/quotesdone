@@ -59,8 +59,11 @@ export type Failure = { ok?: false; error: string; code?: string; message?: stri
 export type Result<T> = T | Failure;
 export const failed = <T extends { ok: true }>(r: Result<T> | null | undefined): r is Failure | null | undefined => !r || (r as { ok?: boolean }).ok !== true;
 
+// No `.catch` here: since 22 Sep 2026 ./api.ts's `call` RESOLVES every failure as
+// `{ ok: false, code: 'network' | 'timeout' | 'bad_response' | 'load_failed' }` and never rejects,
+// so a catch on it is unreachable. `failed()` above is the test; do not add one back.
 const post = <T>(body: Record<string, unknown>, token: string): Promise<Result<T>> =>
-  call('supplier_api', body, token).catch(() => ({ error: 'network', code: 'network' }));
+  call('supplier_api', body, token);
 
 export const qr = {
   inquiries: (token: string) => post<InquiriesList>({ action: 'inquiries_list' }, token),

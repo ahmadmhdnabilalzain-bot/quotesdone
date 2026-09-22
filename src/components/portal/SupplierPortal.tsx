@@ -88,7 +88,18 @@ function Lbl({ text, children, className = '', visible = false, need = null, lan
 // A SESSION THAT HAS ENDED IS NOT AN EMPTY PANEL. Every read in this file routes its failure through
 // here: an expired token goes to the dashboard's own `onExpired` (refresh once, then sign in again),
 // anything else stays with the panel's own message.
-const wentExpired = (j, onExpired) => { if (!isExpired(j)) return false; if (onExpired) onExpired(); return true; };
+//
+// `onErr` IS NOT OPTIONAL POLISH (review of #858). `onExpired` no longer always signs out — a
+// single 401 during a GoTrue outage now leaves the session in place (see onExpired below). A caller
+// that returns early on the strength of that would render a blank panel and no explanation, which
+// is the very defect this helper was added to end. So every caller that HAS an error state is
+// handed one here; the panel shows "your session has ended" and a retry that can actually succeed.
+const wentExpired = (j, onExpired, onErr = null) => {
+  if (!isExpired(j)) return false;
+  if (onErr) onErr('session_expired');
+  if (onExpired) onExpired();
+  return true;
+};
 // Amounts, phone numbers, e-mails and reference codes are left-to-right runs. Inside the Arabic
 // portal an unisolated "AED 12,500" or "+971 50 …" is reordered by the bidi algorithm around the
 // Arabic text beside it (portal audit 14 Sep 2026); <Ltr> keeps each one whole.
@@ -172,7 +183,7 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
     if (j && j.ok) { setSt({ loading: false, dues: j.dues || [], total: Number(j.total_owed || 0), err: '' }); return; }
     // "Nothing to pay" and "we could not read your balance" must never look the same to someone who
     // owes money and is accruing interest on it (SP-C-08).
-    if (wentExpired(j, onExpired)) return;
+    if (wentExpired(j, onExpired, (c) => setSt({ loading: false, dues: [], total: 0, err: c }))) return;
     setSt({ loading: false, dues: [], total: 0, err: (j && (j.code || j.error)) || 'load_err' });
   };
   useEffect(() => { load(); }, [token]);
@@ -371,7 +382,7 @@ const T = {
     mobile_verified:'تم التحقق من الجوال', verify_my_mobile:'تأكيد رقم الجوال ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تأكيد',
     email_verified:'تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
     reg_rest_optional:'بإرفاق هذين الملفين يكتمل التسجيل، وكل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.', verify_first:'يُرجى تأكيد رقم جوالكم أولًا.',
-    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' في منصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل الاستفسارات…', no_rfqs_h:'لا توجد استفسارات مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتكم، يظهر هنا.', request_w:'طلب', you_won:' · فزتم بالطلب', concluded:' · مُغلق', quoted:'قدّمتم عرضًا: ', close:'إغلاق', quote:'تقديم عرض', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفعوا عرض السعر (PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP) وسنتولّى قراءته:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'يُرجى إدخال مبلغ صحيح.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ العرض كمسودة، ويُرجى إضافة التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضكم', line_items:'بند', read_quote_post:'. يُرجى مراجعته ثم إرساله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'يُرجى رفع المستندات المجدَّدة قبل انتهاء صلاحيتها؛ سنذكّركم هنا، وتتوقف المطابقة إذا انتهت صلاحية مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضكم ويتعاقد معكم، يظهر المشروع هنا.', project_w:'مشروع', back:'→ رجوع', send:'إرسال', ask_placeholder:'اكتبوا سؤالكم، وسيجيب مساعدنا فورًا أو يفتح محادثة مباشرة عند الحاجة.', ask_request:'سؤال أو طلب محادثة', assistant_pre:'المساعد: ', sent_review:'أُرسل للمراجعة، وسنُعلمكم إذا فُتحت محادثة.', sent:'أُرسل.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحَّح وفق رخصتكم)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفعوا الرخصة التجارية وسنقرأ منها تلقائيًا رقمها والجهة المُصدِرة وتاريخ الانتهاء ورقم التسجيل الضريبي.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية', authority:'جهة الترخيص (الدائرة الاقتصادية أو سلطة المنطقة الحرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'رقم التسجيل الضريبي (TRN)', h_egr:'بطاقة المنشأة', egr_no:'رقم بطاقة المنشأة (EGR)', egr_cert:'بطاقة المنشأة (EGR):', h_offer:'ما تقدّمونه', products_ph:'المنتجات التي تورّدونها (افصلوا بينها بفاصلة)', services_ph:'الخدمات التي تقدّمونها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', add_contact_phone:'يُرجى إضافة اسم جهة الاتصال ورقم الهاتف.', add_license:'يُرجى إضافة رقم الرخصة التجارية، أو رفع الرخصة لتعبئته تلقائيًا.', could_not_save:'تعذّر حفظ ملف الشركة.', save_error:'حدث خطأ أثناء حفظ ملف الشركة. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتكم', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'متبقية لمعالجة ذلك', ar_overdue:'تجاوز الموعد — قد يُعلَّق حسابكم', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
+    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' في منصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل الاستفسارات…', no_rfqs_h:'لا توجد استفسارات مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتكم، يظهر هنا.', request_w:'طلب', you_won:' · فزتم بالطلب', concluded:' · مُغلق', quoted:'قدّمتم عرضًا: ', close:'إغلاق', quote:'تقديم عرض', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفعوا عرض السعر (PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP) وسنتولّى قراءته:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'يُرجى إدخال مبلغ صحيح.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ العرض كمسودة، ويُرجى إضافة التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضكم', line_items:'بند', read_quote_post:'. يُرجى مراجعته ثم إرساله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'يُرجى رفع المستندات المجدَّدة قبل انتهاء صلاحيتها؛ سنذكّركم هنا، وتتوقف المطابقة إذا انتهت صلاحية مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضكم ويتعاقد معكم، يظهر المشروع هنا.', project_w:'مشروع', back:'→ رجوع', send:'إرسال', ask_placeholder:'اكتبوا سؤالكم، وسيجيب مساعدنا فورًا أو يفتح محادثة مباشرة عند الحاجة.', ask_request:'سؤال أو طلب محادثة', assistant_pre:'المساعد: ', sent_review:'أُرسل للمراجعة، وسنُعلمكم إذا فُتحت محادثة.', sent:'أُرسل.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحَّح وفق رخصتكم)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفعوا الرخصة التجارية وسنقرأ منها تلقائيًا رقمها والجهة المُصدِرة وتاريخ الانتهاء ورقم التسجيل الضريبي.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية', authority:'جهة الترخيص (الدائرة الاقتصادية أو سلطة المنطقة الحرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'رقم التسجيل الضريبي (TRN)', h_egr:'بطاقة المنشأة', egr_no:'رقم بطاقة المنشأة (EGR)', egr_cert:'بطاقة المنشأة (EGR):', h_offer:'ما تقدّمونه', products_ph:'المنتجات التي تورّدونها (افصلوا بينها بفاصلة)', services_ph:'الخدمات التي تقدّمونها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', add_contact_phone:'يُرجى إضافة اسم جهة الاتصال ورقم الهاتف.', add_license:'يُرجى إضافة رقم الرخصة التجارية، أو رفع الرخصة لتعبئته تلقائيًا.', could_not_save:'تعذّر حفظ ملف الشركة.', save_error:'حدث خطأ أثناء حفظ ملف الشركة. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتكم', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', /* no ar_days_left: Arabic goes through arDaysLeft(), which agrees with the number; a key here could only ever hold one of the four forms. */ ar_overdue:'تجاوز الموعد — قد يُعلَّق حسابكم', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
     lic_uploaded_type:'تم رفع الرخصة. إن لم يظهر الرقم تلقائيًا فيُرجى كتابته أدناه، فالقراءة التلقائية اختيارية.', lic_upload_failed:'تعذّر حفظ ملف الرخصة. يُرجى المحاولة مرة أخرى بملف PDF أو صورة واضحة.',
     verify_my_email:'تأكيد البريد الإلكتروني ←', email_code:'رمز البريد (6 أرقام)', email_sent:'أرسلنا إليكم رمزًا من 6 أرقام بالبريد الإلكتروني.', could_not_email:'تعذّر إرسال رمز البريد.',
     trade_label:'التخصص الرئيسي', trade_ph:'اختاروا التخصص', trade_not_listed:'تخصصنا غير مدرج', trade_other_ph:'اكتبوا التخصص', trade_help:'نرحّب بجميع التخصصات. إن لم يكن تخصصكم مدرجًا فاختاروا «تخصصنا غير مدرج» واكتبوه، وسنراجعه ونضيفه.',
@@ -588,11 +599,40 @@ export function SupplierPortal() {
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
   const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
-  // A 401 from the dashboard: try the stored refresh token once, and only if that fails send the
-  // supplier back to sign-in — never leave them on a retry button that cannot succeed.
+  // A 401: try the stored refresh token once, and only then decide whether to sign the supplier out.
+  //
+  // SIGNING SOMEONE OUT IS NOT A SAFE DEFAULT (review of #858, 22 Sep 2026). Until this PR only the
+  // dashboard reached here. `_expired` is now set on ANY 401, so Projects, Documents, Profile,
+  // Onboarding, Receipts, Billing and `me` all route into it — and supplier_api, supplier_pay and
+  // kyc still call `admin.auth.getUser` raw, which returned bare 401s throughout the ~35 s GoTrue
+  // outages of 18 and 21 Sep 2026. During an outage the refresh fails too, because it is the same
+  // service, so the old code would have thrown a working supplier out mid-form on every one of
+  // those 401s at once. The exposure grew; the remedy had to grow with it.
+  //
+  // So the two cases are separated, because they are genuinely different:
+  //   - the refresh token is EXPLICITLY rejected (invalid_grant / "Invalid Refresh Token" / 400 or
+  //     403 from the refresh itself) — that is certain. Sign out now.
+  //   - anything else (network, 5xx, 429, no detail) — that is an outage, not an expiry. Leave the
+  //     session alone and let the panel show its retry. Only a SECOND consecutive such 401 signs
+  //     out, so a single blip costs a retry press and not the supplier's half-filled registration.
+  // A successful read resets the counter (`onAuth` -> `expiredRuns.current = 0`).
+  //
+  // The proper fix is upstream: #854 moves supplier_pay to `signedInUser`, which answers a genuine
+  // expiry and a GoTrue outage differently. supplier_api and kyc still need the same move, and when
+  // all three are done the counter below can go.
+  const expiredRuns = useRef(0);
   const onExpired = async () => {
-    try { const { data } = await SB().auth.refreshSession(); const ss = data && data.session; if (ss && ss.access_token) { onAuth(ss.access_token, ss.refresh_token); return; } } catch (_e) {}
-    doSignOut();
+    let refusedOutright = false;
+    try {
+      const { data, error } = await SB().auth.refreshSession();
+      const ss = data && data.session;
+      if (ss && ss.access_token) { expiredRuns.current = 0; onAuth(ss.access_token, ss.refresh_token); return; }
+      const msg = String((error && (error.message || error.code)) || '');
+      const st = Number((error && error.status) || 0);
+      refusedOutright = /invalid[_ ]?(grant|refresh)|refresh[_ ]?token[_ ]?not[_ ]?found|already used/i.test(msg) || st === 400 || st === 403;
+    } catch (_e) { refusedOutright = false; }
+    expiredRuns.current += 1;
+    if (refusedOutright || expiredRuns.current >= 2) { expiredRuns.current = 0; doSignOut(); }
   };
   const rtl = lang === 'ar';
   if (!mounted) return null;
@@ -1496,7 +1536,7 @@ function Projects({ token, lang, openChat, onExpired }) {
   // A 401 has no `error` field of its own, so `data.error` below was false and the list rendered
   // empty: "No won projects yet" to a supplier with revealed jobs and a 5-working-day clock running
   // on each of them (SP-C-08).
-  const load = () => call('supplier_api', { action: 'projects' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setData(j); });
+  const load = () => call('supplier_api', { action: 'projects' }, token).then((j) => { if (wentExpired(j, onExpired, (c) => setData({ ok: false, code: c }))) return; setData(j); });
   useEffect(() => { load(); }, [token]);
   const ack = async (id) => {
     setBusy(id); setMsg('');
@@ -1505,6 +1545,7 @@ function Projects({ token, lang, openChat, onExpired }) {
     if (j && j.ok) load(); else setMsg(srvMsg(lang, j, ar ? 'تعذّر تسجيل ذلك. يُرجى المحاولة مرة أخرى.' : 'We could not record that. Please try again.'));
   };
   if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
+  if (data.code === 'session_expired') return <Card role="alert" className="qd-panel p-5">{panelErrorText(lang, 'session_expired')}</Card>;
   if (data.error || data.ok !== true) return <Card role="alert" className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
   const list = data.projects || [];
   const rule = ar

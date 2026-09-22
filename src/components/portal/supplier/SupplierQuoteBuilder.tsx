@@ -19,9 +19,9 @@
 // "Use these terms" posts to supplier_api submit_quote, the same endpoint the form posts to, with
 // the same approval gate, the same registration gate and the same identity scrubbing. A supplier
 // cannot reach a quote the platform would otherwise refuse by coming through this door instead.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { call, callShared } from './api';
-import { panelErrorCode, panelErrorText } from './PanelState';
+import { PanelError, panelErrorCode, panelErrorText } from './PanelState';
 // The one money formatter. `price` is the market-price variant: an em dash for a figure the
 // platform has not computed, rounded to the dirham, and the routine's own currency.
 import { price as aed } from './money';
@@ -117,23 +117,31 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState('');
   const [err, setErr] = useState('');
+  const [oppsErr, setOppsErr] = useState('');
   const [demo, setDemo] = useState(false);
+  // A tab switch unmounts this; an answer arriving afterwards must not write state.
+  const live = useRef(true);
 
-  useEffect(() => {
-    let live = true;
-    // Shares the one flight with SupplierOpportunities, which sits in the same Insights panel.
-    // The catch is not decoration: the old private `call` used a bare r.json(), so a non-JSON
-    // answer rejected here with nothing listening, and this panel simply stayed empty for ever
-    // with no trace. ./api.ts's call resolves that case to { ok:false }; this covers the rest.
+  // Shares the one flight with SupplierOpportunities, which sits in the same Insights panel.
+  // `j.ok` is the whole contract (./api.ts resolves every failure as an object): without it a failed
+  // read fell through to `|| []` and the chooser said "there is no open request you can quote right
+  // now" to a supplier whose trades are full of them (review of PR #858, item 3b).
+  const loadOpps = () => {
+    setOppsErr('');
     callShared('supplier_portal', { action: 'opportunities' }, token).then((j) => {
-      if (!live || !j) return;
+      if (!live.current) return;
+      if (!j || !j.ok) { setOpps(null); setOppsErr(panelErrorCode(j)); return; }
       const list: Opp[] = j.opportunities || j.items || j.rows || [];
       setOpps(Array.isArray(list) ? list : []);
-    }).catch(() => { if (live) setOpps([]); });
+    });
+  };
+  useEffect(() => {
+    live.current = true;
+    loadOpps();
     // The demo banner is driven by the same routine that partitions the population, so the two can
     // never disagree about which market this supplier is being shown.
-    call('supplier_portal', { action: 'market' }, token).then((j) => { if (live && j) setDemo(j.population === 'demo'); });
-    return () => { live = false; };
+    call('supplier_portal', { action: 'market' }, token).then((j) => { if (live.current && j && j.ok) setDemo(j.population === 'demo'); });
+    return () => { live.current = false; };
   }, [token]);
 
   const oid = (o: Opp) => String(o.inquiry_id || '');
@@ -210,6 +218,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
           value={intent}
           onChange={(e) => setIntent(e.target.value)}
         />
+        {oppsErr ? <div className="mt-3"><PanelError lang={lang} code={oppsErr} onRetry={loadOpps} /></div> : null}
         <div className="mt-3 space-y-1.5 max-h-64 overflow-y-auto">
           {/* Audit 21 Sep 2026, finding 38: "Nothing matches that yet" printed before anything was
               typed, beside "Choose a project above" with nothing above. Each line now needs its own

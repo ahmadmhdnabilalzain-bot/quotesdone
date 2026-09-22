@@ -180,6 +180,13 @@ Deno.serve(observe('kyc', async (req) => {
     if (action === 'save_customer') {
       const full_name = String(b.full_name || '').trim().slice(0, 120); const phone = String(b.phone || '').trim().slice(0, 40); const dob = String(b.dob || '').trim();
       if (full_name.length < 2) return J({ error: 'Please enter your name.', code: 'enter_name' }, 400);
+      // SP-A-05, the third door nobody named (review of #858, 22 Sep 2026). This action has no `kind`
+      // gate, so a SUPPLIER session can post here and write a customers row keyed by their own email
+      // carrying any 7+ digit number. That row is not cosmetic: login_otp's resolveEmailByPhone maps
+      // an incoming number back to an account, so a junk or foreign number saved here resolves a
+      // phone sign-in to the supplier's address. Customers keep the loose rule for the documented
+      // Dubai landline fallback (+9714…, verified by voice call, 12 Aug 2026).
+      if (kind === 'supplier' && !uaeMobile(phone)) return J({ error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
       if (phone.replace(/\D/g, '').length < 7) return J({ error: 'Please enter a valid mobile number.', code: 'bad_mobile' }, 400);
       // DATE OF BIRTH IS REQUIRED AND UNDER-18 IS REFUSED (founder's account rule, 14 Sep 2026 — see
       // _shared/account_rule.ts). This used to keep an 18-120 date and silently DROP anything else, so
@@ -310,7 +317,15 @@ Deno.serve(observe('kyc', async (req) => {
       return J({ ok: true, channel });
     }
     if (action === 'verify_sms') {
-      const phone = toE164(String(b.phone || '')); const code = String(b.code || '').replace(/\D/g, '');
+      // SP-A-05 WAS ONLY HALF CLOSED (review of #858, 22 Sep 2026). send_sms applied the UAE-mobile
+      // rule; THIS action did not, and this is the one that writes. A caller could post
+      // whatsapp_send_code with +447700900000 (Verify happily sends to it), then verify_sms with the
+      // code, and line below wrote leads.phone = that number with owner_phone_verified = true — a
+      // supplier record carrying a verified non-UAE mobile, exactly what the rule exists to prevent.
+      // Customers keep toE164 for the documented Dubai landline fallback (+9714…, 12 Aug 2026).
+      const phone = kind === 'supplier' ? uaeMobile(b.phone) : toE164(String(b.phone || ''));
+      const code = String(b.code || '').replace(/\D/g, '');
+      if (kind === 'supplier' && !phone) return J({ error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
       if (!phone || !code) return J({ error: 'Enter the 6-digit code.', code: 'enter_code' }, 400);
       const tw = await twilioAuth(); if (!tw) { await logRun('error', { action, kind }, 'SMS not configured: missing twilio credentials'); return J({ error: 'SMS is not configured.', code: 'sms_unavailable' }, 500); }
       if (!(await verifyCheck(tw, phone, code))) return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
@@ -342,7 +357,11 @@ Deno.serve(observe('kyc', async (req) => {
     // ever held the marker 'twilio'; no reader compares it), so the day WhatsApp starts delivering shows
     // up in the table with no code change.
     if (action === 'whatsapp_send_code') {
-      const phone = toE164(String(b.phone || ''));
+      // SP-A-05, the same hole as verify_sms above (review of #858, 22 Sep 2026): this action sent a
+      // billable Verify code to ANY 8+ digit number for a supplier, which is the first half of the
+      // bypass that ended with a verified non-UAE number on the supplier record.
+      const phone = kind === 'supplier' ? uaeMobile(b.phone) : toE164(String(b.phone || ''));
+      if (kind === 'supplier' && !phone) return J({ ok: false, error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
       if (!phone) return J({ ok: false, error: 'bad_phone', code: 'bad_phone' }, 400);
       // A reserved fixture number never reaches this line: the shared guard above (isDemoPhone, #681)
       // refuses it first, reading the phone exactly as `phone` is read here, so the number it checks is
@@ -366,7 +385,12 @@ Deno.serve(observe('kyc', async (req) => {
       return J({ ok: true, channel: res.channel });
     }
     if (action === 'whatsapp_verify') {
-      const phone = toE164(String(b.phone || '')); const code = String(b.code || '').replace(/\D/g, '');
+      // SP-A-05. The reviewer named send_code and verify_sms; THIS action writes too — it puts the
+      // number in leads.whatsapp_phone with whatsapp_verified_at set, so without the rule a supplier
+      // record ends up with a verified non-UAE WhatsApp number even when leads.phone is clean.
+      const phone = kind === 'supplier' ? uaeMobile(b.phone) : toE164(String(b.phone || ''));
+      const code = String(b.code || '').replace(/\D/g, '');
+      if (kind === 'supplier' && !phone) return J({ ok: false, error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
       if (!phone) return J({ ok: false, error: 'bad_phone', code: 'bad_phone' }, 400);
       if (!code) return J({ ok: false, error: 'wrong_code', code: 'wrong_code' }, 400);
       const tw = await twilioAuth();

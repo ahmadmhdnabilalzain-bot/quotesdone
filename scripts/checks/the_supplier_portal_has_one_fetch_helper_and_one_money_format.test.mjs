@@ -31,11 +31,28 @@ import { fileURLToPath } from 'node:url';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DIR = path.join(REPO, 'src', 'components', 'portal', 'supplier');
-const OWNER = 'api.ts';        // the one file allowed to define call()
-const MONEY = 'money.ts';      // the one file allowed to define the AED format
+const OWNER = 'src/components/portal/supplier/api.ts';   // the one file allowed to define call()
+const MONEY = 'src/components/portal/supplier/money.ts'; // the one file allowed to define the AED format
 
-const files = () => fs.readdirSync(DIR).filter((f) => /\.(ts|tsx)$/.test(f) && !f.endsWith('.test.ts'));
-const read = (f) => fs.readFileSync(path.join(DIR, f), 'utf8');
+// SupplierPortal.tsx IS THE FILE THIS CHECK MOST NEEDED TO COVER, AND THE FIRST DRAFT MISSED IT.
+// It sits one directory up from the panels, and it is where `aed()` and the hard-coded 'AED ' + n
+// lived — so scoping to the panel folder alone left the biggest offender unguarded. Scanned by its
+// full path alongside the folder.
+const EXTRA = [path.join(REPO, 'src', 'components', 'portal', 'SupplierPortal.tsx')];
+const files = () => [
+  ...fs.readdirSync(DIR).filter((f) => /\.(ts|tsx)$/.test(f) && !f.endsWith('.test.ts')).map((f) => path.join(DIR, f)),
+  ...EXTRA.filter((p) => fs.existsSync(p)),
+].map((p) => path.relative(REPO, p).split(path.sep).join('/'));
+
+// COMMENTS ARE STRIPPED BEFORE MATCHING. A check that greps source matches the comment explaining
+// it, and the first draft of this one matched the very sentences below that describe the defect —
+// the repository has been caught by that exact trap before (see
+// supplier_portal_and_messages_calls_run_in_the_database_region.test.mjs, which strips for the
+// same reason). Block comments, line comments and JSX comments all go.
+const strip = (s) => s
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+const read = (f) => strip(fs.readFileSync(path.join(REPO, f), 'utf8'));
 
 // `function call(` / `const call = ` / `let call = `, however it is declared, async or not.
 const DEFINES_CALL = /(?:^|\n)\s*(?:export\s+)?(?:async\s+)?function\s+call\s*\(|(?:^|\n)\s*(?:export\s+)?(?:const|let)\s+call\s*(?::[^=\n]*)?=/;
