@@ -18,8 +18,12 @@
 //        - the emphatic "we" in front of a first-person verb, an English subject habit
 //        - a Latin comma, semicolon or question mark typed straight after an Arabic letter
 //        - the brand transliterated into Arabic letters (the brand stays Latin: logo and site)
-//      The patterns are written as \u escapes so this file, and any comment quoting it, can never
-//      match its own scan (a check that greps source once failed on the comment explaining it).
+//      The patterns are written as \u escapes so that reading them does not put the forbidden text
+//      into this file (a check that greps source once failed on the comment explaining it). That is a
+//      convenience, NOT an immunity, and the review of 22 Sep 2026 was right to say so: line 89 and
+//      the fixtures below spell several shapes out literally, and what actually keeps this file out
+//      of its own scan is that scripts/ is not a scanned surface. If scripts/ ever becomes one, the
+//      fixtures must move to a data file first.
 //
 //   2. REVIEWED LIST. Every Arabic line on these surfaces has a 12-hex SHA-1 of its trimmed text in
 //      scripts/checks/arabic_reviewed_strings.json. A new or edited Arabic line that is not in the

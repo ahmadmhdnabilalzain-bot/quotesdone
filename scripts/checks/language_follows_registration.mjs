@@ -121,8 +121,21 @@ begin
                     where public.fn_language_mismatch('ar', f->>'question_plain_ar', array['Teams', 'Zoom']) is not null));
 end $walk$;`;
 
+// 22 Sep 2026 (review of PR #857). This used to be one all-or-nothing gate: with no management token
+// the whole file failed, so run.mjs could only run it where a token exists — and CI's checks job has
+// none, which meant "registered but never enforced". The file has three parts and only the first two
+// need production. Part 3 reads SOURCE, and part 3 is what had been wrong on main since 14 Sep while
+// nothing ran it. So the parts are now separable: with no token the walk and the intake questions are
+// NOT VERIFIED and say so by name, and the source assertions still run and still fail the check.
+// This is not a softening — nothing that used to be asserted has stopped being asserted; a part that
+// could not run before is now the part that CI enforces.
+const NOT_VERIFIED = [];
 if (!TOKEN) {
-  fails.push('no Supabase token (SUPABASE_ACCESS_TOKEN or ~/.supabase/access-token): the walk reads production and cannot be skipped');
+  NOT_VERIFIED.push('the production walk (4 demo recipients, one rolled-back transaction)');
+  NOT_VERIFIED.push('the 396 Arabic intake questions');
+  console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL — no SUPABASE_ACCESS_TOKEN and no ~/.supabase/access-token.');
+  console.log('  Parts 1 and 2 read production and are NOT asserted in this run. Part 3 (the documents,');
+  console.log('  the edge functions and the portals) runs below and still fails this check.');
 } else {
   const r = await sql(WALK);
   let msg = r.text; try { const j = JSON.parse(r.text); msg = String(j.message || j.error || r.text); } catch (_e) { /* raw */ }
@@ -206,9 +219,41 @@ const sp = src('src/components/portal/SupplierPortal.tsx');
 ok(/action: 'settings' \}, token\)\.then\(\(j\) => \{\s*const l = [^\n]*settings\.locale[\s\S]{0,200}?adoptLocale\(l, setLang\)/.test(sp), 'SupplierPortal: the supplier\'s registered language must open the portal');
 ok(/action: 'save_settings', locale: l/.test(sp), 'SupplierPortal: switching language while signed in must save leads.locale');
 
+// THE DEPLOY-ORDER BRIDGE IN arabic_frame.ts REMOVES ITSELF (22 Sep 2026, review of PR #857).
+// DL-06 corrected the supplier footer in templates.email_supplier and in arabic_frame.ts, which
+// translates the English footer words at send time. The function deploys on push and the template is
+// applied separately, so for the minutes in between the frame must still recognise the OLD wording —
+// an untranslated English line inside an Arabic mail is worse than one the next apply corrects. That
+// bridge is temporary, and a temporary thing with nothing watching it becomes permanent. This asserts
+// the pair: once no template carries the old wording, the bridge must be gone.
+{
+  const frame = src(F + 'send_outbox/arabic_frame.ts');
+  const bridged = /Dubai DET E-Trader Licence/.test(frame);
+  if (TOKEN) {
+    const r = await sql(`select count(*)::int n from public.templates where content like '%Dubai DET E-Trader Licence%'`);
+    let live = null; try { live = JSON.parse(r.text)?.[0]?.n ?? null; } catch (_e) { /* reported below */ }
+    ok(live !== null, 'arabic_frame bridge: could not read templates (HTTP ' + r.status + ')');
+    if (live === 0) {
+      ok(!bridged, 'arabic_frame.ts still carries the pre-DL-06 footer mapping, and no template holds that wording any more: delete the bridge');
+    } else {
+      console.log(`arabic_frame bridge: ${live} template(s) still carry the pre-DL-06 footer, so the mapping is still needed`);
+      ok(bridged, 'arabic_frame.ts dropped the pre-DL-06 footer mapping while a template still carries that wording: an Arabic mail would print an English licence line');
+    }
+  } else {
+    NOT_VERIFIED.push('whether the arabic_frame.ts deploy-order bridge is still needed (reads templates)');
+  }
+}
+
 if (fails.length) {
   console.error(`\nlanguage_follows_registration: ${fails.length} failure(s)`);
   for (const f of fails) console.error('  - ' + f);
   process.exit(1);
 }
-console.log('\nlanguage_follows_registration: every touchpoint speaks the registered language');
+// NAMED, NEVER SILENT: a pass that could not measure everything says what it did not measure.
+if (NOT_VERIFIED.length) {
+  console.log(`\nlanguage_follows_registration: the source side passes; ${NOT_VERIFIED.length} part(s) NOT VERIFIED here:`);
+  for (const n of NOT_VERIFIED) console.log('  - ' + n);
+  console.log('  Run this file where a management token exists to assert them.');
+} else {
+  console.log('\nlanguage_follows_registration: every touchpoint speaks the registered language');
+}

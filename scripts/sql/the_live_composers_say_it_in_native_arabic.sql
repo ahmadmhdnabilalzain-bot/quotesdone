@@ -319,8 +319,11 @@ end $fn$;
 revoke execute on function public.fn_supplier_collaboration_incident(bigint, uuid, uuid, bigint) from public, anon, authenticated;
 
 -- 4. the stored invitation body ---------------------------------------------------------------------
--- The needle is BUILT, never spelled: a check that greps for a pattern matches the line that repairs
--- it (apply discipline §7 — twice in one session a check failed on the comment explaining the fix).
+-- The needle in this STATEMENT is built from halves rather than spelled, because an executable line
+-- is scanned (apply discipline §7: a check that greps for a pattern matches the line repairing it).
+-- The header above DOES spell the shapes in full, on purpose — a reader has to see what was wrong —
+-- and what keeps those lines out of the scan is that they are comments: arabicLines() drops a line
+-- whose first non-space characters are a SQL comment marker. That is the filter, not this note.
 update public.app_secrets
    set value = replace(value, 'بوابة الموردين ' || 'الخاصة' || ' بكم', 'بوابة الموردين')
  where key = 'invite_body_ar' and value like '%' || 'الخاصة' || ' بكم%';
@@ -346,7 +349,8 @@ begin
   v := public.fn_supplier_registration_reminder_compose(l, 'started', 2);
   b := b || ' ' || (v->>'subject') || ' ' || (v->>'body');
 
-  -- Every needle is BUILT from two halves, so this file cannot match its own scan (apply discipline §7).
+  -- Every needle is built from two halves, so this executable line cannot match its own scan
+  -- (apply discipline §7). The header spells the same shapes; it is comment text and is filtered out.
   foreach s in array array['الخاص' || ' بك', 'الخاصة' || ' بك', 'سوف' || ' يتم', 'لقد' || ' تم',
                            'بوا' || 'سطة', 'يرجى' || ' ملاحظة', 'يُرجى' || ' ملاحظة', 'نحن' || ' ن',
                            'تمّت' || ' مطابقة', 'يتم' || ' التحقق منهما', 'السيد' || '/ة']

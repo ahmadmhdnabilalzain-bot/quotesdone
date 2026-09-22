@@ -669,4 +669,9 @@ fn_supplier_network_map :: dropped 21 Sep 2026; the supplier network map whose p
 fn_negotiation_guidance :: dropped 21 Sep 2026; the customer negotiation guidance whose portal panel and edge function were removed. Measured on production before the drop: 0 other routine bodies, 0 views, 0 triggers, 0 cron commands, 0 policies name it; the table it read, supplier_negotiation_policy, stays because fn_customer_savings reads it :: none
 # 22 Sep 2026 — the_report_pdf_enqueue_had_no_consumer.sql (documents-language audit DL-13). An enqueue
 # whose consumer is not deployed: the trigger fired into a queue nothing reads.
+# The one caller that reads back what this trigger used to write: scripts/brand/publish_brand_guide.mjs
+# (its header describes the enqueue, and lines 65-66 poll action_execution for
+# 'report_pdf:board:<id>'). Its insert still lands and the board_reports row is still created; the poll
+# will now always print null. It is named here rather than edited because the script is the caller a
+# future report composer has to satisfy, and this is the register that says why it finds nothing.
 fn_report_pdf_enqueue :: dropped 22 Sep 2026; the AFTER INSERT enqueue on board_reports / exec_reports / finance_reports that queued action_class report.pdf. Measured on production before the drop: report_pdf is absent from the 74 ACTIVE edge functions and has no source in this repository; action_execution holds 0 rows of class report.pdf, ever; org_action_executor holds no report.pdf row; its only callers were the 3 z_report_pdf_enqueue triggers, dropped in the same file :: what reports still need is a composer that hands pdf_native a document — pdf_native renders what its caller composes and cannot serve the {source,id} payload, so nothing was re-pointed at it. The 22 existing PDFs, the pdf_path / pdf_generated_at columns and the reports bucket are untouched
