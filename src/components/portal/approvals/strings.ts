@@ -33,7 +33,18 @@ const EN = {
   date_unknown: 'Not set',
   no_lines: 'This order has no line items recorded.',
   linked_project: 'Project',
-  linked_rfq: 'From RFQ',
+  linked_rfq: 'From request',
+
+  /* purchase_orders.status, said in words. The raw enum was rendered on the Orders row and on the
+     supply-chain map (CP-I18N-04, 22 Sep 2026); ORDER_TONE in OrdersList.tsx colours these same
+     seven values. */
+  ost_draft: 'Draft',
+  ost_sent: 'Sent',
+  ost_open: 'Open',
+  ost_approved: 'Approved',
+  ost_received: 'Received',
+  ost_closed: 'Closed',
+  ost_cancelled: 'Cancelled',
   approved_on: 'Approved',
   qty_of: (got: string, ordered: string) => `${got} of ${ordered} received`,
 } as const;
@@ -53,32 +64,46 @@ const AR: Translations = {
   retry: 'إعادة المحاولة',
   err_session: 'انتهت الجلسة. يُرجى تسجيل الدخول مجددًا.',
 
-  orders: 'الطلبات',
-  orders_sub: 'أوامر الشراء الصادرة بناءً على العروض التي رسّيتها.',
-  loading_orders: 'جارٍ تحميل طلباتك…',
-  err_load_orders: 'تعذّر تحميل طلباتك.',
-  empty_orders_title: 'لا توجد لديك طلبات بعد',
+  orders: 'أوامر الشراء',
+  orders_sub: 'أوامر الشراء الصادرة بناءً على العروض التي أرسيتَها.',
+  loading_orders: 'جارٍ تحميل أوامر الشراء…',
+  err_load_orders: 'تعذّر تحميل أوامر الشراء.',
+  empty_orders_title: 'لا توجد لديك أوامر شراء بعد',
   empty_orders_body:
-    'يظهر الطلب هنا فور صدور أمر شراء على عرض رسّيته. لم يصدر أي أمر على هذا الحساب حتى الآن، فلا شيء قيد المتابعة، ولم يُطلب أو يُسلَّم أو يُفوتر أي شيء باسمك.',
+    'يظهر أمر الشراء هنا فور إصداره على عرض أرسيتَه. لم يصدر أي أمر شراء على هذا الحساب حتى الآن، فلا شيء قيد المتابعة، ولم يُطلب أو يُسلَّم أو يُفوتر أي شيء باسمك.',
   k_ordered: 'تاريخ الطلب',
   k_expected: 'التسليم المتوقع',
-  k_value: 'قيمة الطلب',
+  k_value: 'قيمة أمر الشراء',
   k_status: 'الحالة',
   k_lines: 'البنود',
   k_received: 'المستلم',
   value_unknown: 'غير مُسعّر',
-  value_unknown_note: 'لا يتضمن هذا الطلب مبلغًا إجماليًا، وبعض بنوده غير مُسعّرة، لذا لا تُعرض له قيمة.',
+  value_unknown_note: 'لا يتضمن أمر الشراء هذا مبلغًا إجماليًا، وبعض بنوده غير مُسعّرة، لذا لا تُعرض له قيمة.',
   received_unknown: 'لم يُسجَّل أي استلام',
   date_unknown: 'غير محدّد',
-  no_lines: 'لا توجد بنود مسجّلة على هذا الطلب.',
+  no_lines: 'لا توجد بنود مسجّلة على أمر الشراء هذا.',
   linked_project: 'المشروع',
   linked_rfq: 'من الطلب',
+
+  ost_draft: 'مسودة',
+  ost_sent: 'مُرسَل',
+  ost_open: 'مفتوح',
+  ost_approved: 'معتمد',
+  ost_received: 'مُستلَم',
+  ost_closed: 'مغلق',
+  ost_cancelled: 'ملغى',
   approved_on: 'تاريخ الاعتماد',
   qty_of: (got: string, ordered: string) => `تم استلام ${got} من ${ordered}`,
 };
 
 export function tr<K extends Key>(lang: Lang, key: K): Widen<(typeof EN)[K]> {
   return ((lang === 'ar' ? AR[key] : undefined) ?? EN[key]) as Widen<(typeof EN)[K]>;
+}
+
+/** purchase_orders.status in the reader's language; an unknown value is shown as it came. */
+export function orderStatus(lang: Lang, status: string | null | undefined): string {
+  const k = ('ost_' + String(status || '').toLowerCase()) as Key;
+  return (k in EN ? (tr(lang, k) as string) : String(status || ''));
 }
 
 /** Error codes the endpoint actually emits. Anything else is shown verbatim, never dressed up. */

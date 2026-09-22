@@ -31,6 +31,7 @@ import { Card } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
+import { arCount, AR_NOUN } from '@/lib/countedNoun';
 import {
   countByCategory,
   num,
@@ -105,7 +106,7 @@ const T = {
     trend_missing: 'لم يُحمَّل سجل الاثني عشر شهرًا بعد.',
     trend_empty: 'لم تنشر أي طلب خلال آخر 12 شهرًا، فلا اتجاه يُعرض بعد. يبدأ الرسم البياني بالامتلاء مع أول طلب تنشره.',
     trend_alt: (total: number, dir: string, peak: string, peakN: number, months: string) =>
-      `${total} طلب خلال آخر 12 شهرًا، ${dir}. أنشط الأشهر ${peak} بعدد ${peakN}. التوزيع الشهري: ${months}.`,
+      `${arCount(total, AR_NOUN.request)} خلال آخر 12 شهرًا، ${dir}. أنشط الأشهر ${peak} بعدد ${peakN}. التوزيع الشهري: ${months}.`,
     dir_rising: 'في ارتفاع خلال العام',
     dir_falling: 'في انخفاض خلال العام',
     dir_steady: 'مستقر خلال العام',
@@ -123,10 +124,10 @@ const T = {
     gap_empty_thin:
       'لم يتلقَّ أي من طلباتك عرضين أو أكثر حتى الآن. ويتطلب قياس الفارق عرضين على الأقل للطلب نفسه، لذا لا شيء للعرض.',
     gap_alt: (pairs: string, total: string, n: number) =>
-      `الفارق بين أعلى عرض وأدناه حسب الفئة: ${pairs}. الإجمالي ${total} في ${n} طلب تلقّى عرضين أو أكثر.`,
-    gap_total: (v: string, n: number) => `إجمالي الفارق في ${n} طلب: ${v}`,
+      `الفارق بين أعلى عرض وأدناه حسب الفئة: ${pairs}. الإجمالي ${total} في ${arCount(n, AR_NOUN.request, { oblique: true })} تلقّى عرضين أو أكثر.`,
+    gap_total: (v: string, n: number) => `إجمالي الفارق في ${arCount(n, AR_NOUN.request, { oblique: true })}: ${v}`,
     uncategorised: 'غير مصنّف',
-    more: (n: number) => `${n} فئة أصغر لا تظهر في الرسم، وجميعها واردة في الملخص أعلاه.`,
+    more: (n: number) => `${arCount(n, AR_NOUN.category)} أصغر لا تظهر في الرسم، وجميعها واردة في الملخص أعلاه.`,
     k_requests: 'الطلبات',
     k_spread: 'الفارق',
     recent_note: 'يشمل أحدث 25 طلبًا، وهي ما تعرضه البوابة.',

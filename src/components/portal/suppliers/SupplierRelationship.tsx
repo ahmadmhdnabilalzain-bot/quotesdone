@@ -29,6 +29,9 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { categoryLabel } from '@/lib/categoryLabel';
+import { emirateName } from '@/components/me/portalText';
+import { arCount, countPhrase, AR_NOUN } from '@/lib/countedNoun';
 
 /* ---------------------------------------------------------------- types --- */
 
@@ -260,8 +263,8 @@ export function SupplierRelationshipCard({
                 typeof score.avg_response_hours === 'number'
                   ? ar(
                       lang,
-                      `متوسط زمن الردّ ${Math.round(score.avg_response_hours)} ساعة`,
-                      `Replies in ~${Math.round(score.avg_response_hours)}h on average`,
+                      `متوسط زمن الردّ ${arCount(Math.round(score.avg_response_hours), AR_NOUN.hour)}`,
+                      `Replies in about ${countPhrase('en', Math.round(score.avg_response_hours), 'hour')} on average`,
                     )
                   : undefined
               }
@@ -449,7 +452,7 @@ export function SupplierHistoryPanel({
       <div className={cn(S.sub, 'mt-0.5')}>
         {[
           sup.company_type,
-          sup.emirate,
+          sup.emirate ? emirateName(sup.emirate, lang) : null,
           sup.founded_year ? ar(lang, `تأسست ${sup.founded_year}`, `Founded ${sup.founded_year}`) : null,
         ]
           .filter(Boolean)
@@ -485,15 +488,15 @@ export function SupplierHistoryPanel({
         <div className="mt-2.5">
           <div className={S.h2}>{ar(lang, 'تعاملك مع هذا المورّد', 'Your history with this supplier')}</div>
           <div className="mt-1.5 grid gap-2 grid-cols-2 sm:grid-cols-4">
-            <Stat label={ar(lang, 'طلبات أُرسلت إليه', 'Your RFQs sent to them')} value={String(data.relationship.rfqs_sent ?? 0)} />
+            <Stat label={ar(lang, 'طلبات أُرسلت إليه', 'Your requests sent to them')} value={String(data.relationship.rfqs_sent ?? 0)} />
             <Stat label={ar(lang, 'عروض ردّ بها', 'Quotes they returned')} value={String(data.relationship.quotes_returned ?? 0)} />
             <Stat label={ar(lang, 'نسبة الردّ', 'Response rate')} value={data.relationship.response_rate_pct == null ? null : data.relationship.response_rate_pct + '%'} />
             <Stat label={ar(lang, 'مشاريع مكشوفة', 'Revealed projects')} value={String(data.relationship.orders ?? 0)} />
           </div>
           {typeof data.relationship.rfqs_sent_platform_wide === 'number' ? (
             <div className={cn(S.note, 'mt-1')}>
-              {ar(lang, `على مستوى المنصة: أُرسل إلى هذا المورّد ${data.relationship.rfqs_sent_platform_wide} طلبًا.`,
-                `Across the whole platform: ${data.relationship.rfqs_sent_platform_wide} RFQs sent to this supplier.`)}
+              {ar(lang, `على مستوى المنصة: أُرسل إلى هذا المورّد ${arCount(data.relationship.rfqs_sent_platform_wide, AR_NOUN.request, { oblique: true })}.`,
+                `Across the whole platform: ${countPhrase('en', data.relationship.rfqs_sent_platform_wide, 'request')} sent to this supplier.`)}
             </div>
           ) : null}
         </div>
@@ -520,7 +523,7 @@ export function SupplierHistoryPanel({
                     'نعرض آخر 20 مشروعًا، وقد توجد مشاريع أخرى.',
                     'Showing the 20 most recent — there may be more.',
                   )
-                : ar(lang, `${count} مشروعاً مسجّلاً.`, `${count} recorded ${count === 1 ? 'project' : 'projects'}.`)}
+                : ar(lang, `${arCount(count, AR_NOUN.project)} مسجّلة.`, `${countPhrase('en', count, 'project')} recorded.`)}
             </div>
 
             {categories.length ? (
@@ -552,8 +555,8 @@ export function SupplierHistoryPanel({
                 aria-label={ar(lang, 'مشاريع سابقة لهذا المورّد', 'Past projects for this supplier')}>
               {projects.map((p, i) => (
                 <li key={i} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-md border border-border/50 bg-secondary/10 px-2 py-1.5">
-                  <span className="font-semibold text-foreground">{p.category || '—'}</span>
-                  <span className="text-muted-foreground">{p.emirate || '—'}</span>
+                  <span className="font-semibold text-foreground">{p.category ? categoryLabel(p.category, lang) : '—'}</span>
+                  <span className="text-muted-foreground">{p.emirate ? emirateName(p.emirate, lang) : '—'}</span>
                   <span className="text-muted-foreground">·</span>
                   <span className="text-muted-foreground">{p.month || '—'}</span>
                   <span className="ms-auto text-foreground">{p.value_band || '—'}</span>
@@ -614,7 +617,7 @@ export function DiscoveryReachPanel({ inquiry, lang = 'en' }: DiscoveryReachPane
   return (
     <Card className="p-3.5">
       <div className={S.h2}>
-        {ar(lang, `وصل طلبك إلى ${reached} مورّداً`, `Your request reached ${reached} supplier${reached === 1 ? '' : 's'}`)}
+        {ar(lang, `وصل طلبك إلى ${arCount(reached, AR_NOUN.supplier, { oblique: true })}`, `Your request reached ${countPhrase('en', reached, 'supplier')}`)}
       </div>
       <div className={cn(S.sub, 'mt-1')}>
         {quotes === 0
