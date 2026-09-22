@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T12:13:32.493Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T12:20:26.788Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -41061,7 +41061,8 @@ declare v_listed int; v_res jsonb; v_delivery jsonb;
 begin
   select count(*) into v_listed from public.marketing_outreach_message where id = any (p_ids) and status = 'listed' and not is_demo;
   if public.fn_marketing_publishing_live() and v_listed > 0 then
-    v_res := public.fn_notify_founder(p_subject, p_body, 'normal', 'marketing_outreach_list', 'marketing_outreach_list:' || p_day);
+    v_res := public.fn_notify_founder(p_event => p_subject, p_detail => p_body, p_level => 'normal',
+                                      p_kind => 'marketing_outreach_list', p_dedupe_key => 'marketing_outreach_list:' || p_day);
     v_delivery := jsonb_build_object('mode', 'emailed', 'at', now(), 'notify', v_res);
   else
     v_delivery := jsonb_build_object('mode', 'dry_run', 'at', now(),
@@ -41440,9 +41441,12 @@ begin
 
   return jsonb_build_object('ok', true, 'notified', true, 'notify',
     public.fn_notify_founder(
-      'Someone on ' || initcap(c.platform) || ' asked to speak with you' || coalesce(' (' || nullif(c.handle, '') || ')', ''),
-      v_detail, 'high', 'social_human_request',
-      'social_human:' || c.id || ':' || (c.handoff_count + 1), 'marketing'));
+      p_event       => 'Someone on ' || initcap(c.platform) || ' asked to speak with you' || coalesce(' (' || nullif(c.handle, '') || ')', ''),
+      p_detail      => v_detail,
+      p_level       => 'high',
+      p_kind        => 'social_human_request',
+      p_dedupe_key  => 'social_human:' || c.id || ':' || (c.handoff_count + 1),
+      p_owner_agent => 'marketing'));
 end
 $function$
 
