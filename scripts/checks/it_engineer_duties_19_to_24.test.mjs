@@ -166,7 +166,10 @@ if (!OVERDUE_SKIP) {
 async function probe(body) {
   try { await sql(`do $p$ ${body} $p$;`); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
-    if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));
+    // The payload arrives JSON-escaped inside the error text: unescape it as one JSON string first, so a
+    // nested value that itself carries quotes survives (the crude \" replace broke on fn_it_usage_watch's
+    // 'unjudged' object, 22 Sep 2026).
+    if (m) { try { return JSON.parse(JSON.parse('"' + m[1] + '"')); } catch { return JSON.parse(m[1].replace(/\\"/g, '"')); } }
     throw e;
   }
   throw new Error('probe committed instead of rolling back');
