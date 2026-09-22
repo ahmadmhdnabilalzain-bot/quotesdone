@@ -102,6 +102,9 @@ export function saveInline(name: string, content: string, mime: string) {
   const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+// `aedIn(lang, n)` lived here until 22 Sep 2026 (audit SP-I-10). It was the second of three money
+// formatters on the same supplier's screen; ./money.ts `aed(lang, n, decimals)` is now the only one,
+// and its two importers here (InquiriesTab, QuotationsTab) call that instead.
 export const REVIEW_STATE: Record<ReviewState, { en: string; ar: string; tone: 'ok' | 'warn' | 'secondary' | 'outline' }> = {
   none: { en: 'Not started', ar: 'لم يبدأ', tone: 'outline' },
   open: { en: 'Waiting for your file', ar: 'بانتظار ملفكم', tone: 'outline' },
@@ -113,6 +116,3 @@ export const REVIEW_STATE: Record<ReviewState, { en: string; ar: string; tone: '
   submitted: { en: 'Submitted', ar: 'تم التقديم', tone: 'ok' },
   closed: { en: 'Closed', ar: 'مغلق', tone: 'secondary' },
 };
-
-/** A price in the UI language: 'AED 30,400' / '30,400 د.إ'. Digits stay Latin (wrap in <Ltr>). Audit 21 Sep 2026, finding 26. */
-export const aedIn = (lang: Lang, n: number | null | undefined) => { const v = Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 }); return lang === 'ar' ? v + ' د.إ' : 'AED ' + v; };

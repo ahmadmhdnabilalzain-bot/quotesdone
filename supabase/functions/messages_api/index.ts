@@ -390,8 +390,8 @@ Deno.serve(observe('messages_api', async (req) => {
 
     // Kept for callers that still ask first: the answer is simply the thread's state.
     if (action === 'request_chat') {
-      if (banned) return J({ error: 'Your account is suspended.' }, 403);
-      if (status === 'banned') return J({ error: 'This chat is closed due to a policy violation.' }, 403);
+      if (banned) return J({ error: 'Your account is suspended.', code: 'account_suspended' }, 403);
+      if (status === 'banned') return J({ error: 'This chat is closed due to a policy violation.', code: 'chat_banned' }, 403);
       return J({ ok: true, status: 'open', note: 'Chat is open.' });
     }
 
@@ -405,9 +405,9 @@ Deno.serve(observe('messages_api', async (req) => {
     }
 
     if (action === 'send') {
-      if (banned) return J({ error: 'Your account is suspended for sharing contact details off-platform.' }, 403);
-      if (status !== 'open') return J({ error: 'Chat is not open. Request a chat first.', chat_status: status }, 403);
-      const text = clip(body.body, 2000); if (!text) return J({ error: 'empty' }, 400);
+      if (banned) return J({ error: 'Your account is suspended for sharing contact details off-platform.', code: 'suspended_offplatform' }, 403);
+      if (status !== 'open') return J({ error: 'Chat is not open. Request a chat first.', code: 'chat_not_open', chat_status: status }, 403);
+      const text = clip(body.body, 2000); if (!text) return J({ error: 'empty', code: 'empty_message' }, 400);
 
       // §16 A DOCUMENT INSIDE THE CONVERSATION. The path is a storage path the caller already
       // uploaded through the same buckets the rest of the portal uses; only its SHAPE is trusted
@@ -417,7 +417,7 @@ Deno.serve(observe('messages_api', async (req) => {
       const attachOk = attach.length > 0 && /^[A-Za-z0-9][A-Za-z0-9/_.-]{2,}$/.test(attach) && !attach.includes('..');
       const attachName = clip(body.attachment_name, 180) || (attachOk ? attach.split('/').pop() || 'attachment' : '');
       const { data: m, error } = await admin.from('messages').insert({ inquiry_id, supplier_id, customer_id: rev.customer_id, sender: role, body: text, attachment_path: attachOk ? attach : null, read_by_customer: role === 'customer', read_by_supplier: role === 'supplier' }).select('id,sender,body,created_at,attachment_path').maybeSingle();
-      if (error) return J({ error: error.message }, 500);
+      if (error) { console.error('messages_api: send insert failed —', error.message); return J({ error: 'We could not send that message. Please try again.', code: 'message_send_failed' }, 500); }
       // A supplier who writes to the customer HAS contacted them (Supplier Agreement v9, cl. 11: respond
       // within 5 working days of the reveal). Measured 21 Sep 2026 (supplier audit, finding 36): sending
       // left the job "Respond by …" until the supplier also pressed "I have contacted the customer". The
@@ -444,5 +444,5 @@ Deno.serve(observe('messages_api', async (req) => {
     }
 
     return J({ error: 'unknown action' }, 400);
-  } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
+  } catch (e) { console.error('messages_api: unhandled —', String((e as Error)?.message || e)); return J({ error: 'Something went wrong. Please try again.', code: 'unexpected_error' }, 500); }
 }));

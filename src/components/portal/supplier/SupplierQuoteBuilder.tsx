@@ -21,6 +21,10 @@
 // cannot reach a quote the platform would otherwise refuse by coming through this door instead.
 import React, { useEffect, useMemo, useState } from 'react';
 import { call, callShared } from './api';
+import { panelErrorCode, panelErrorText } from './PanelState';
+// The one money formatter. `price` is the market-price variant: an em dash for a figure the
+// platform has not computed, rounded to the dirham, and the routine's own currency.
+import { price as aed } from './money';
 import { Button } from '@/components/ui/button';
 
 type Lang = 'en' | 'ar';
@@ -85,9 +89,6 @@ const T = {
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
-
-const aed = (n?: number | null, cur = 'AED') =>
-  n === null || n === undefined ? '—' : cur + ' ' + Math.round(n).toLocaleString('en-US');
 
 const RISK_TONE: Record<string, string> = {
   low: 'text-ok-fg border-ok/25 bg-ok/[0.06]',
@@ -157,7 +158,9 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
     setBusy(true); setErr(''); setSent(''); setRec(null); setChosen(inquiryId);
     const j = await call('supplier_portal', { action: 'quote_recommend', inquiry_id: inquiryId }, token);
     setBusy(false);
-    if (j && j.ok) setRec(j); else setErr((j && (j.error || j.hint)) || 'load_err');
+    // SP-I-01: this stored the server's own English — on a 500 the raw Postgres message — and the
+    // panel printed it. It stores the stable code and the panel translates it.
+    if (j && j.ok) setRec(j); else setErr(panelErrorCode(j));
   };
 
   // Accepting posts through supplier_api submit_quote — the same endpoint, gates and scrubbing the
@@ -177,7 +180,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
       source: 'form',
     }, token);
     setBusy(false);
-    if (j && j.ok) setSent(t(lang, 'created')); else setErr((j && (j.error || j.hint)) || 'submit_err');
+    if (j && j.ok) setSent(t(lang, 'created')); else setErr(panelErrorCode(j));
   };
 
   const loaded = opps !== null;
@@ -224,7 +227,8 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
               <span className="block truncate font-medium">{otitle(o)}</span>
               <span className="mt-0.5 block font-mono text-[11px] text-muted-foreground">
                 {[o.category, o.emirate].filter(Boolean).join(' · ')}
-                {typeof o.match_pct === 'number' ? ' · ' + o.match_pct + '% match' : ''}
+                {/* SP-I-02: "% match" was English on /ar too. */}
+                {typeof o.match_pct === 'number' ? ' · ' + o.match_pct + '% ' + (lang === 'ar' ? 'ملاءمة' : 'match') : ''}
               </span>
             </button>
           ))}
@@ -232,7 +236,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
       </section>
 
       {busy && <p className="text-xs opacity-60 px-1">{t(lang, 'building')}</p>}
-      {err && <p className="text-xs text-danger-fg/90 px-1">{err}</p>}
+      {err && <p role="alert" className="text-xs text-danger-fg/90 px-1">{panelErrorText(lang, err)}</p>}
       {sent && <p className="text-xs text-ok-fg/90 px-1">{sent}</p>}
       {!chosen && !busy && matches.length > 0 && <p className="text-xs opacity-50 px-1">{t(lang, 'pickOne')}</p>}
 
@@ -250,10 +254,10 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
           {/* The suggested price. The spread comes with it: a supplier deciding whether to sit
               under the middle needs to see how much room there is. */}
           <Suggested label={t(lang, 'recPrice')} foot={<>{t(lang, 'whyThis')}: {price?.basis}</>}>
-            <div className="qd-figure font-head text-[clamp(30px,6vw,40px)] font-semibold">{aed(price?.value, price?.currency)}</div>
+            <div className="qd-figure font-head text-[clamp(30px,6vw,40px)] font-semibold">{aed(lang, price?.value, price?.currency)}</div>
             <div className="mt-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
-              <div>{t(lang, 'middleHalf')}: <span className="tabular-nums">{aed(price?.p25, price?.currency)} – {aed(price?.p75, price?.currency)}</span></div>
-              <div className="opacity-75">{t(lang, 'range')}: <span className="tabular-nums">{aed(price?.low, price?.currency)} – {aed(price?.high, price?.currency)}</span></div>
+              <div>{t(lang, 'middleHalf')}: <span className="tabular-nums">{aed(lang, price?.p25, price?.currency)} – {aed(lang, price?.p75, price?.currency)}</span></div>
+              <div className="opacity-75">{t(lang, 'range')}: <span className="tabular-nums">{aed(lang, price?.low, price?.currency)} – {aed(lang, price?.high, price?.currency)}</span></div>
             </div>
           </Suggested>
 

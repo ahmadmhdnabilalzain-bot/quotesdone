@@ -18,7 +18,12 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { srvMsg } from './serverCopy';
 import { failed, fileToBase64, qr, REVIEW_STATE, type Issue, type Lang, type MessageView, type ThreadView } from './quoteReviewApi';
+import { arCount, type ArForms } from '@/lib/durationLabel';
 import { Ltr } from '@/lib/Ltr';
+
+// Audit 22 Sep 2026 (SP-I-04): the open-point count handled 1 and 2 by hand and then printed
+// "11 نقاط مفتوحة" for everything above ten, where Arabic takes the accusative singular.
+const OPEN_POINT: ArForms = ['نقطة واحدة مفتوحة', 'نقطتان مفتوحتان', 'نقاط مفتوحة', 'نقطة مفتوحة'];
 
 const ACCEPT = 'application/pdf,.pdf,.xlsx,.xls,.csv,.ods,.doc,.docx,.odt,.rtf,.txt,.eml,.msg,.zip';
 const EASE = [0.16, 1, 0.3, 1] as const;
@@ -39,7 +44,7 @@ const COPY = {
     placeholder: 'اكتبوا ردّكم إلى مهندس المبيعات، مثل: «الصلاحية 30 يومًا» أو «البند 3 مستثنى — يتولاه الغير»',
     reviewing: 'جارٍ مراجعة عرض سعركم، يُرجى الانتظار…', reviewingSub: 'أراجع كل بند في جدول الكميات من حيث الكمية والسعر بالدرهم والضريبة، إضافةً إلى الصلاحية والتسليم والمواصفات.',
     generate: 'أعدّه لي', reupload: 'سأرفع نسخة جديدة', submit: (job: string) => `تقديم العرض إلى الطلب ${job}`, submitting: 'جارٍ التقديم…',
-    open: (n: number) => (n === 1 ? 'نقطة واحدة مفتوحة' : n === 2 ? 'نقطتان مفتوحتان' : `${n} نقاط مفتوحة`), tracked: 'تبقى كل نقطة مفتوحة إلى أن تجيبوا عنها.',
+    open: (n: number) => arCount(n, OPEN_POINT), tracked: 'تبقى كل نقطة مفتوحة إلى أن تجيبوا عنها.',
     adjustment: 'تعديل', clarification: 'استيضاح', choice: 'اختياركم', line: (n: number) => `بندكم ${n}`, boq: (n: number) => `البند ${n} من الجدول`,
     closed: 'أُغلقت هذه المحادثة.', submitted: 'قُدّم العرض إلى الطلب. يطّلع العميل على عرضكم دون أن يظهر اسمكم إلى أن يكشف عنه.',
     download: 'تنزيل', pdf: 'فتح العرض الموحّد (PDF)', pdfEn: 'فتح العرض بالإنجليزية (PDF)', pdfAr: 'فتح العرض بالعربية (PDF)', loading: 'جارٍ فتح المحادثة…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',

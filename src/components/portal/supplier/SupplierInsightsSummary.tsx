@@ -18,6 +18,8 @@ import { AlertTriangle, ArrowUpRight, CheckCircle2, Lightbulb } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { call } from './api';
+// One money format for the portal: /ar reads "1,200 د.إ", /en "AED 1,200".
+import { aed } from './money';
 
 // avg_lead_time_days is the mean of the lead_time this supplier WROTE on its own quotations
 // (fn_supplier_stats: avg of the digits in quotes.lead_time) — not a measured delivery time.
@@ -133,7 +135,7 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
         <Tile label={ws(lang, 'tot_received')} value={nf(t.inquiries_received)} />
         <Tile label={ws(lang, 'tot_quoted')} value={nf(t.quotations_submitted)} />
         <Tile label={ws(lang, 'tot_won')} value={nf(t.jobs_won)} />
-        <Tile label={ws(lang, 'tot_revenue')} value={'AED ' + nf(t.revenue_aed)} />
+        <Tile label={ws(lang, 'tot_revenue')} value={aed(lang, t.revenue_aed)} />
       </div>
       {!s.has_data && <p className="rounded-md border border-dashed border-border px-3.5 py-2.5 text-[12.5px] text-muted-foreground">{ws(lang, 'in_empty_note')}</p>}
 

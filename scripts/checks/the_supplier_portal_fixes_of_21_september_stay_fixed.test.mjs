@@ -89,6 +89,10 @@ test('finding 26/27: the Arabic BOQ reads the sales engineer vocabulary and its 
   const qd = code(read('supabase', 'functions', '_shared', 'quote_documents.ts'));
   assert.match(qd, /r\.description_ar/, 'the inquiry PDF prints the Arabic description on an Arabic page');
   for (const f of ['InquiriesTab.tsx', 'QuotationsTab.tsx']) {
-    assert.doesNotMatch(code(read('src', 'components', 'portal', 'supplier', f)), /'AED ' \+/, `${f}: prices go through aedIn(lang, …)`);
+    // 22 Sep 2026: `aedIn` was folded into supplier/money.ts as `aed(lang, …)` — the audit found the
+    // same amount written three ways on one screen (SP-I-10). The assertion is unchanged; only the
+    // function this message names moved, and a message naming a function that no longer exists
+    // sends the next reader to a file that is not there.
+    assert.doesNotMatch(code(read('src', 'components', 'portal', 'supplier', f)), /'AED ' \+/, `${f}: prices go through aed(lang, …) from ./money`);
   }
 });

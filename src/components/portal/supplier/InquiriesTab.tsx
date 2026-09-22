@@ -19,8 +19,16 @@ import { emirateLabel, srvMsg } from './serverCopy';
 import { ws } from './workspaceCopy';
 import DocActions from '../DocActions';
 import { BoqTable, ClarifyThread, DrawingGallery, RequestedTerms, WithheldCustomer } from './RfqParts';
-import { aedIn, failed, openPdf, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { failed, openPdf, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { aed } from './money';
+import { arCount, type ArForms } from '@/lib/durationLabel';
 import { Ltr } from '@/lib/Ltr';
+
+// ARABIC NUMBER AGREEMENT FOR THE TWO THINGS AN INQUIRY IS COUNTED IN (audit 22 Sep 2026, SP-I-04).
+// "1 بند" and "2 بند" are both wrong; so is "15 بنود". The four forms are the ones arCount selects
+// between: [1, 2, 3–10, 11+].
+const BOQ_LINE: ArForms = ['بند واحد', 'بندان', 'بنود', 'بندًا'];
+const DRAWING_PAGE: ArForms = ['صفحة مخطط واحدة', 'صفحتا مخطط', 'صفحات مخطط', 'صفحة مخطط'];
 
 const COPY = {
   en: {
@@ -38,9 +46,9 @@ const COPY = {
   ar: {
     title: 'الاستفسارات الواردة', sub: 'جميع الطلبات المطابقة لشركتكم مع أرقامها. افتحوا أيًّا منها لقراءته كما أعدّه مهندس المبيعات.',
     empty: 'لا توجد طلبات بعد', emptySub: 'عندما يطابق طلبُ عميلٍ تخصصكم وإمارتكم، يصل إلى هنا برقم الطلب والنطاق والمخططات وجدول الكميات.',
-    job: 'رقم الطلب', received: 'تاريخ الاستلام', boq: (n: number) => `جدول الكميات: ${n} بند`, drawings: (n: number) => `${n} صفحة مخطط`,
+    job: 'رقم الطلب', received: 'تاريخ الاستلام', boq: (n: number) => `جدول الكميات: ${arCount(n, BOQ_LINE)}`, drawings: (n: number) => arCount(n, DRAWING_PAGE),
     scope: 'النطاق', documents: 'المستندات', download: 'تنزيل', noDocs: 'لم تُرفق مستندات بهذا الطلب.',
-    boqFile: (n: number) => `جدول الكميات (${n} بندًا، CSV)`, page: (n: number) => `صفحة المخطط ${n} (بعد إخفاء الهوية)`,
+    boqFile: (n: number) => `جدول الكميات (${arCount(n, BOQ_LINE)}، CSV)`, page: (n: number) => `صفحة المخطط ${n} (بعد إخفاء الهوية)`,
     inqPdf: 'مستند الاستفسار (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
     quote: 'إرسال عرض السعر إلى مهندس المبيعات', form: 'أو أدخلوه في نموذج العرض', closeForm: 'إغلاق النموذج', sentOk: 'قُدّم عرض سعركم.', sentHeld: 'حُفظ عرض سعركم معلّقًا، وتوضّح البطاقة أدناه ما يلزم لاستكماله.',
     concluded: 'انتهى — اختار العميل.', won: 'فزتم بهذا الطلب.', quoted: 'عرضكم', loading: 'جارٍ تحميل الطلبات…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.', retry: 'إعادة المحاولة',
@@ -148,7 +156,7 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
       {/* A question stays possible after a quote exists (audit 21 Sep 2026, finding 30): the answer reaches every
           matched supplier and a supplier revises its quote on it. Only a concluded or revealed job closes it. */}
       <ClarifyThread inquiryId={d.id} token={token} lang={lang} canAsk={canQuote} />
-      {q ? <p className="mt-4 text-[13px] text-foreground">{t.quoted}: <span className="font-mono tabular-nums"><Ltr>{aedIn(lang, q.quote_amount)}</Ltr></span></p> : null}
+      {q ? <p className="mt-4 text-[13px] text-foreground">{t.quoted}: <span className="font-mono tabular-nums"><Ltr>{aed(lang, q.quote_amount)}</Ltr></span></p> : null}
       {canQuote ? (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button onClick={() => onQuote(d.id)}>{t.quote}</Button>
@@ -212,7 +220,7 @@ export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, re
                 </span>
                 <span className="flex flex-col items-end gap-1">
                   {i.you_won ? <Badge variant="ok">{t.won}</Badge> : i.concluded ? <Badge variant="secondary">{lang === 'ar' ? 'منتهٍ' : 'Concluded'}</Badge> : null}
-                  {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : q ? <span className="font-mono text-[12px] tabular-nums text-foreground"><Ltr>{aedIn(lang, q.quote_amount)}</Ltr></span> : null}
+                  {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : q ? <span className="font-mono text-[12px] tabular-nums text-foreground"><Ltr>{aed(lang, q.quote_amount)}</Ltr></span> : null}
                   <span aria-hidden className="text-[11.5px] text-muted-foreground">{on ? t.close : t.open}</span>
                 </span>
               </button>

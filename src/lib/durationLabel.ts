@@ -17,11 +17,29 @@ const AR: Record<string, [string, string, string, string]> = {
 // fails on a template that prints a day count by hand.
 export function arDays(n: number | string): string {
   const k = Math.abs(Math.trunc(Number(n)));
-  const f = AR.day;
   if (k === 0) return 'اليوم'; // "0 days left" reads as today
-  if (k === 1) return f[0];
-  if (k === 2) return f[1];
-  return `${k} ${k <= 10 ? f[2] : f[3]}`;
+  return arCount(k, AR.day);
+}
+
+/**
+ * ARABIC NUMBER AGREEMENT FOR ANY COUNTED NOUN, NOT JUST DAYS.
+ *
+ * Audit 22 Sep 2026 (SP-I-04): the supplier portal printed "{n} استفسارًا" for every n, so one
+ * inquiry read "1 استفسارًا" instead of "استفسار واحد" and two read "2 استفسارًا" instead of
+ * "استفساران"; the same in InquiriesTab (bill-of-quantities lines, drawing pages) and in
+ * QuoteReviewChat's open-point count. The four forms are the ones Arabic actually distinguishes,
+ * and they are the same four `arDays` has always used — this is that rule, lifted out so a second
+ * counted noun does not start a second, wrong, rule.
+ *
+ * forms = [singular (1), dual (2), plural genitive (3–10), accusative singular (11+)].
+ * 1 and 2 return the noun WITHOUT a digit, because Arabic does not write one.
+ */
+export type ArForms = readonly [string, string, string, string];
+export function arCount(n: number | string, forms: ArForms): string {
+  const k = Math.abs(Math.trunc(Number(n)));
+  if (k === 1) return forms[0];
+  if (k === 2) return forms[1];
+  return `${k} ${k <= 10 ? forms[2] : forms[3]}`;
 }
 
 export function durationLabel(text: string | null | undefined, lang: string): string {

@@ -16,8 +16,9 @@
 // one with an expired licence needs to know, in the strongest terms the screen has, that every open
 // enquiry in their trade is currently out of reach. So `would_unlock` gets the accent colour and
 // the count; `unlocked` is stated plainly beside it.
-import React, { useEffect, useState } from 'react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import React, { useCallback, useEffect, useState } from 'react';
+import { call } from './api';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 
 type Lang = 'en' | 'ar';
 type Doc = {
@@ -25,17 +26,6 @@ type Doc = {
   unlocked: number; would_unlock: number; note: string;
 };
 type Impact = { open_in_my_trade?: number; basis?: string; documents?: Doc[] };
-
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
@@ -78,6 +68,16 @@ const NOTE: Record<string, [string, string]> = {
 const BASIS: [string, string] = ['Counted from open enquiries in your trade, and the enquiries you have already priced.', 'محسوب من الاستفسارات المفتوحة في مجالكم، ومن الاستفسارات التي سبق أن قدّمتم عليها عروض أسعار.'];
 const pick = (lang: Lang, p: [string, string]) => p[lang === 'ar' ? 1 : 0];
 export const docLabel = (lang: Lang, x: Doc) => (DOC_LABEL[x.key] ? pick(lang, DOC_LABEL[x.key]) : x.label);
+/** The same names, for a caller that holds only the key (SupplierTwin's documents list). */
+export const docKindLabel = (lang: Lang, key: string) =>
+  (DOC_LABEL[key] ? pick(lang, DOC_LABEL[key]) : String(key).replace(/_/g, ' '));
+/** The document_status enum fn_supplier_twin returns, as words rather than as its own codes. */
+const DOC_STATUS: Record<string, [string, string]> = {
+  VALID: ['Valid', 'سارية'], EXPIRED: ['Expired', 'منتهية'],
+  EXPIRING: ['Expiring', 'قاربت الانتهاء'], MISSING: ['Not uploaded', 'غير مرفوعة'],
+};
+export const docStatusLabel = (lang: Lang, s: string) =>
+  (DOC_STATUS[String(s).toUpperCase()] ? pick(lang, DOC_STATUS[String(s).toUpperCase()]) : String(s));
 export const docNote = (lang: Lang, x: Doc) => {
   const gate = x.key === 'trade_licence';
   const k = x.on_file && !x.expired ? 'in_force' : x.expired ? (gate ? 'expired_gate' : 'expired') : (gate ? 'missing_gate' : 'missing');
@@ -91,19 +91,17 @@ export default function SupplierDocumentImpact({ token, lang = 'en', goTo, initi
   const [d, setD] = useState<Impact | null>(initial);
   const [err, setErr] = useState('');
 
-  useEffect(() => { if (initial) setD(initial); }, [initial]);
-  useEffect(() => {
-    if (initial) return;
-    let live = true;
-    call('supplier_portal', { action: 'document_impact' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok) setD(j); else setErr((j && (j.error || j.hint)) || 'load_err');
-    });
-    return () => { live = false; };
-  }, [token, initial]);
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'document_impact' }, token);
+    if (j && j.ok) setD(j); else setErr(panelErrorCode(j));
+  }, [token]);
 
-  if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
-  if (!d) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
+  useEffect(() => { if (initial) setD(initial); }, [initial]);
+  useEffect(() => { if (!initial) void load(); }, [initial, load]);
+
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!d) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
 
   const docs = d.documents || [];
   const blocking = docs.filter((x) => x.would_unlock > 0);

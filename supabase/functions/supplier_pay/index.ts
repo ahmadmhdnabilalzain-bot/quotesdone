@@ -46,7 +46,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
-    if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
+    if (!user || !user.email) return J({ error: 'Not signed in', code: 'not_signed_in' }, 401);
     const email = user.email.toLowerCase();
     // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026; security review the
     // same day found this function authenticated a supplier by leads.claimed_by and asked
@@ -56,7 +56,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
     // public.sanctions_ban rather than leads.banned; a sanctions ban is not a debt to be cleared.
 
     const { data: lead } = await admin.from('leads').select('id,company_name,email').eq('claimed_by', email).maybeSingle();
-    if (!lead) { await logRun('error', { authorised: 0 }, 'supplier_pay called by ' + email + ' but no lead is claimed by that address, so their balance could not be looked up. If this is a real supplier they cannot pay - check leads.claimed_by.'); return J({ error: 'No supplier profile for this account' }, 403); }
+    if (!lead) { await logRun('error', { authorised: 0 }, 'supplier_pay called by ' + email + ' but no lead is claimed by that address, so their balance could not be looked up. If this is a real supplier they cannot pay - check leads.claimed_by.'); return J({ error: 'No supplier profile for this account', code: 'no_company' }, 403); }
 
     const body = await req.json().catch(() => ({} as any));
     const action = String(body.action || 'list');
@@ -70,7 +70,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
       const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: lead.id });
       // deno-lint-ignore no-explicit-any
       const reg = regSt as any;
-      if (regErr || !reg?.ok) return J({ error: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found' }, 503);
+      if (regErr || !reg?.ok) { console.error('supplier_pay: registration state unavailable —', String(regErr?.message || 'lead_not_found')); return J({ error: 'registration_state_unavailable', code: 'registration_state_unavailable' }, 503); }
       if (reg.status === 'paid') return J({ ok: true, already_paid: true, paid_until: reg.paid_until, code: 'reg_paid', params: { until: reg.paid_until || null } });
       if (reg.status === 'exempt') return J({ ok: true, exempt: true, founding_rank: reg.founding_rank, code: 'reg_exempt', params: { rank: reg.founding_rank }, message: 'Your registration is permanently free - you are supplier number ' + reg.founding_rank + ', inside the founding cohort. There is no fee to pay, now or in future.' });
       if (reg.status === 'not_due') return J({ ok: true, nothing_to_pay: true, charging_starts: reg.charging_starts, code: reg.charging_starts ? null : 'reg_not_due', message: 'There is nothing to pay yet. ' + (reg.charging_starts ? 'The yearly registration fee starts on ' + reg.charging_starts + '.' : (reg.reason ? reg.reason.charAt(0).toUpperCase() + reg.reason.slice(1) + '.' : 'The yearly registration fee applies from the registration after the free count; there is no calendar start date.')) });
@@ -102,7 +102,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
       f.set('payment_intent_data[metadata][supplier_id]', String(lead.id));
       const rr = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + skReg, 'Content-Type': 'application/x-www-form-urlencoded' }, body: f.toString() });
       const rj = await rr.json();
-      if (!rr.ok) { await logRun('error', { supplier_id: lead.id, fee, http: rr.status }, 'registration session create failed: ' + String(rj?.error?.message || '').slice(0, 200)); return J({ error: 'stripe_error', detail: String(rj?.error?.message || '').slice(0, 300) }, 502); }
+      if (!rr.ok) { await logRun('error', { supplier_id: lead.id, fee, http: rr.status }, 'registration session create failed: ' + String(rj?.error?.message || '').slice(0, 200)); return J({ error: 'stripe_error', code: 'payment_failed' }, 502); }
       await logRun('ok', { supplier_id: lead.id, registration_fee: fee, session: String(rj?.id || '') }, '');
       return J({ ok: true, url: rj.url, amount: fee, currency: 'AED' });
     }
@@ -124,7 +124,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
       .not('status', 'in', '("paid","settled","waived","cancelled")')
       .is('paid_at', null)
       .order('due_date', { ascending: true });
-    if (dErr) { await logRun('error', { supplier_id: lead.id }, 'supplier_pay could not read supplier_dues (' + String(dErr.message).slice(0,140) + '). The supplier was shown no outstanding balance, which looks identical to owing nothing - they may believe they are settled when they are not, and keep accruing interest.'); return J({ error: 'temporarily_unavailable' }, 503); }
+    if (dErr) { await logRun('error', { supplier_id: lead.id }, 'supplier_pay could not read supplier_dues (' + String(dErr.message).slice(0,140) + '). The supplier was shown no outstanding balance, which looks identical to owing nothing - they may believe they are settled when they are not, and keep accruing interest.'); return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503); }
 
     const outstanding = (dues || []).filter((d) => owed(d) > 0);
     const totalOwed = Math.round(outstanding.reduce((s, d) => s + owed(d), 0) * 100) / 100;
@@ -149,7 +149,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
       if (selected.length !== want.size) {
         await logRun('error', { supplier_id: lead.id, requested: want.size, allowed: selected.length }, 'supplier_pay was asked to bill due ids that are not outstanding for this supplier. Only their own unpaid dues were included. This is the shape of a caller trying to pay (or probe) another supplier balance.');
       }
-      if (!selected.length) return J({ error: 'no payable dues in selection' }, 400);
+      if (!selected.length) return J({ error: 'no payable dues in selection', code: 'no_payable_dues' }, 400);
     }
 
     const amount = Math.round(selected.reduce((s, d) => s + owed(d), 0) * 100) / 100;
@@ -159,7 +159,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
     const { data: paused } = await admin.rpc('fn_refunds_paused');
     if (paused === true) { await logRun('ok', { supplier_id: lead.id, amount, held: true }, 'checkout held: refunds and supplier charges are paused while the CEO resolves a mismatch'); return J({ error: 'charges_paused', code: 'payment_unavailable' }, 503); }
     const sk = await secret('stripe_secret_key');
-    if (!sk) { await logRun('error', { supplier_id: lead.id, amount }, 'SUPPLIER PAYMENT BLOCKED - stripe_secret_key missing from app_secrets, so no supplier can settle. Balances will keep accruing interest and ageing toward the 90-day ban for a configuration reason, not because the supplier refused to pay.'); return J({ error: 'stripe_not_configured' }, 503); }
+    if (!sk) { await logRun('error', { supplier_id: lead.id, amount }, 'SUPPLIER PAYMENT BLOCKED - stripe_secret_key missing from app_secrets, so no supplier can settle. Balances will keep accruing interest and ageing toward the 90-day ban for a configuration reason, not because the supplier refused to pay.'); return J({ error: 'stripe_not_configured', code: 'payment_unavailable' }, 503); }
 
     const ids = selected.map((d) => Number(d.id));
     const fils = Math.round(amount * 100);
@@ -193,7 +193,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
 
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
     const sj = await r.json();
-    if (!r.ok) { await logRun('error', { supplier_id: lead.id, amount, http: r.status }, 'Stripe session create failed for a supplier trying to settle: ' + String(sj?.error?.message || '').slice(0, 200) + '. The supplier cannot pay right now and interest keeps accruing.'); return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502); }
+    if (!r.ok) { await logRun('error', { supplier_id: lead.id, amount, http: r.status }, 'Stripe session create failed for a supplier trying to settle: ' + String(sj?.error?.message || '').slice(0, 200) + '. The supplier cannot pay right now and interest keeps accruing.'); return J({ error: 'stripe_error', code: 'payment_failed' }, 502); }
 
     try { await admin.from('supplier_dues').update({ stripe_session_id: String(sj.id) }).in('id', ids); } catch (_e) { /* non-fatal */ }
 

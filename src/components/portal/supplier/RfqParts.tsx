@@ -18,6 +18,7 @@ import { Seal } from '@/components/ui/sealed';
 import { cn } from '@/lib/utils';
 import { boqNote } from '@/lib/boqNotes';
 import { call } from './api';
+import { PanelError, panelErrorCode } from './PanelState';
 import { ws } from './workspaceCopy';
 
 type Lang = 'en' | 'ar' | string;
@@ -232,9 +233,14 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [openAsk, setOpenAsk] = useState(false);
+  // SP-C-08, 22 Sep 2026: a failed read — an expired token above all — fell into the same `[]` as
+  // "nobody has asked anything", so the thread rendered as an empty tab and the supplier had no way
+  // to know their session had ended. A failure now says which failure it was, in their language.
+  const [err, setErr] = useState('');
   const load = useCallback(async () => {
-    const j = await call('messages_api', { action: 'clarify_list', inquiry_id: inquiryId }, token).catch(() => null);
-    setItems(j && j.ok && Array.isArray(j.items) ? j.items : []);
+    const j = await call('messages_api', { action: 'clarify_list', inquiry_id: inquiryId }, token);
+    if (j && j.ok && Array.isArray(j.items)) { setErr(''); setItems(j.items); }
+    else { setErr(panelErrorCode(j)); setItems([]); }
   }, [inquiryId, token]);
   useEffect(() => { load(); }, [load]);
   const ask = async () => {
@@ -247,6 +253,7 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
   };
   const fmt = (d?: string | null) => (d ? new Date(d).toLocaleDateString(ar ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short' }) : '');
   const list = items || [];
+  if (err) return <div className="mt-3"><PanelError lang={lang === 'ar' ? 'ar' : 'en'} code={err} onRetry={() => { void load(); }} /></div>;
   return (
     <div className="mt-3">
       {list.length > 0 && (
@@ -266,7 +273,7 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
         </div>
       )}
       {canAsk && (!openAsk
-        ? <button type="button" className="mt-2 text-[12.5px] font-semibold text-muted-foreground underline underline-offset-2 hover:text-primary" onClick={() => { setOpenAsk(true); setMsg(''); }}>
+        ? <button type="button" className="mt-2 inline-flex min-h-11 items-center text-[12.5px] font-semibold text-muted-foreground underline underline-offset-2 hover:text-primary" onClick={() => { setOpenAsk(true); setMsg(''); }}>
             {ar ? 'هل النطاق غير واضح؟ اسألوا العميل دون ذكر اسمكم' : 'Scope unclear? Ask the customer (anonymously)'}
           </button>
         : <div className="mt-2 flex flex-col gap-2">

@@ -22,14 +22,17 @@
 // its own sentence, because a supplier who thinks their catalogue was read will not re-upload it.
 import React, { useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { call } from './api';
+import { panelErrorCode, panelErrorText } from './PanelState';
 
 type Lang = 'en' | 'ar';
 type DocRead = { status?: string; source?: string; supply_only?: boolean; trades?: { code: string }[] };
 type Result = {
   ok?: boolean; catalog_id?: string | null; format?: string;
   products_created?: number; products_found?: number; note?: string;
-  status?: string; why?: string; error?: string;
+  // `code` is what is SHOWN (translated by PanelState); `error` stays the server's own English and
+  // is never printed — a supplier on /ar was reading "upload failed" and a raw Postgres message.
+  status?: string; why?: string; error?: string; code?: string;
   documents_read?: { ok?: boolean; docs?: DocRead[] };
   vision?: { state?: string; message_en?: string; message_ar?: string };
 };
@@ -61,21 +64,10 @@ async function imagesOf(file: File): Promise<{ mime: string; data: string }[]> {
   return [];
 }
 
-const ANON = SUPA_ANON;
-
-// The same call() every sibling component uses. The first version hand-rolled its fetch, which
-// worked and was still wrong: the endpoint name never appeared as a literal next to `call(` or
-// `functions/v1/`, so nothing scanning this surface could tell that the portal reaches
-// supplier_catalog_ingest at all. Consistency here is not tidiness — it is how the endpoint stays
-// discoverable from the code that uses it.
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
+// THE SHARED call() (./api.ts), NOT A PRIVATE COPY. This file carried one of twelve byte-identical
+// copies whose whole body was `return r.json()`: no timeout, and a rejection rather than a result on
+// a non-JSON answer. The endpoint name still appears as a literal beside `call(`, which is how
+// supplier_catalog_ingest stays discoverable from the code that reaches it.
 
 // Every format the ingester can route. Kept here as one list so the accept attribute and the help
 // text can never disagree about what the supplier may upload.
@@ -123,11 +115,11 @@ export default function SupplierCatalogUpload({ token, lang = 'en', onDone }:
       fr.onerror = () => reject(new Error('read failed'));
       fr.readAsDataURL(file);
     }).catch(() => '');
-    if (!data) { setBusy(false); setRes({ error: 'could not read that file' }); return; }
+    if (!data) { setBusy(false); setRes({ code: 'bad_response' }); return; }
     // A photo's words are read before the upload; a PDF's only if the server finds no text layer in it.
     const ocr_text = file.type.startsWith('image/') ? await photoText(await imagesOf(file)) : '';
-    let r: Result = await call('supplier_catalog_ingest', { file_name: file.name, data, ...(ocr_text ? { ocr_text } : {}) }, token)
-      .catch(() => ({ error: 'upload failed' }));
+    const first = await call('supplier_catalog_ingest', { file_name: file.name, data, ...(ocr_text ? { ocr_text } : {}) }, token);
+    let r: Result = first && first.ok ? first : { code: panelErrorCode(first) };
     const scanned = file.type === 'application/pdf' && r?.catalog_id != null
       && (r.documents_read?.docs || []).some((d) => d.status === 'needs_ocr');
     if (scanned) {
@@ -153,7 +145,7 @@ export default function SupplierCatalogUpload({ token, lang = 'en', onDone }:
         ref={fileRef} type="file" accept={ACCEPT} className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = ''; }}
       />
-      <button type="button" className="qd-btn mt-3" disabled={busy} onClick={() => fileRef.current?.click()}>
+      <button type="button" className="qd-btn mt-3 min-h-11 min-w-11" disabled={busy} onClick={() => fileRef.current?.click()}>
         {busy ? t(lang, 'working') : t(lang, 'choose')}
       </button>
 
@@ -173,7 +165,7 @@ export default function SupplierCatalogUpload({ token, lang = 'en', onDone }:
             <p className="text-warn-fg/90">{t(lang, 'unsupported')} <span className="text-muted-foreground">{res.why}</span></p>
           )}
           {status === 'extraction_failed' && <p className="text-warn-fg/90">{t(lang, 'failed')} <span className="text-muted-foreground">{res.why}</span></p>}
-          {res.error && <p className="text-warn-fg/90">{res.error}</p>}
+          {res.code && <p role="alert" className="text-warn-fg/90">{panelErrorText(lang, res.code)}</p>}
           {(res.documents_read?.docs || []).some((d) => d.source === 'photo_text') && (
             <p className="mt-1 text-[12px] text-muted-foreground">{t(lang, 'photo_text')}</p>
           )}

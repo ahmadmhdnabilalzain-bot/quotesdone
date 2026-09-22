@@ -15,9 +15,10 @@
 // "previous similar project" cannot be true for anybody, so it reads "no completed work has been
 // recorded on QuotesDone yet, for anyone" — never "you have no relevant experience", which is a
 // statement about the supplier that the platform is in no position to make.
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { callShared } from './api';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 
 type Lang = 'en' | 'ar';
 type Reason = { key: string; applies: boolean; available?: boolean; text: string; similar_jobs?: number };
@@ -78,17 +79,16 @@ export default function SupplierOpportunities({ token, lang = 'en' }:
   const [d, setD] = useState<Payload | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    callShared('supplier_portal', { action: 'opportunities' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok) setD(j); else setErr((j && (j.error || j.hint)) || 'load_err');
-    }).catch(() => { if (live) setErr('load_err'); });
-    return () => { live = false; };
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await callShared('supplier_portal', { action: 'opportunities' }, token);
+    if (j && j.ok) setD(j); else setErr(panelErrorCode(j));
   }, [token]);
 
-  if (err) return <div className="p-4 text-xs opacity-60">{err}</div>;
-  if (!d) return <div className="p-4 text-xs opacity-60">{t(lang, 'loading')}</div>;
+  useEffect(() => { void load(); }, [load]);
+
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!d) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
 
   const list = d.opportunities || [];
 

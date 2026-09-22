@@ -407,7 +407,7 @@ const handle = async (req: Request): Promise<Response> => {
       // storage holds the object - otherwise the supplier sees success for a file that is not there
       // and the backup queues a document it can never copy.
       const own = async (p: unknown, folder: string) => { const s = String(p); return s.startsWith(`${folder}/${sup.id}/`) && !s.includes('..') && await storedAt(admin, 'supplier-docs', s); };
-      const notStored = (what: string) => J({ error: 'document_not_found', message: `We could not find your ${what} in our records. Please upload it again.` }, 400);
+      const notStored = (what: string) => J({ error: 'document_not_found', code: 'document_not_found', message: `We could not find your ${what} in our records. Please upload it again.` }, 400);
       if (lic.path) { if (!(await own(lic.path, 'licenses'))) return notStored('trade licence'); upd.license_doc_path = String(lic.path); readQueue.push({ path: String(lic.path), name: String(lic.path).split('/').pop() || 'licence', kind: 'licence' }); }
       // AUDIT 9.1 (3 Aug 2026). The trade licence upload. Three defects in one line:
       //   * no type check at all - the bytes went to storage as whatever the caller declared,
@@ -425,7 +425,7 @@ const handle = async (req: Request): Promise<Response> => {
         const s = sc.result;
         const p = `licenses/${sup.id}/${Date.now()}_${safeFilename(lic.filename || 'license', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your trade licence. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your trade licence. Please try again.' }, 502);
         upd.license_doc_path = p;
         readQueue.push({ path: p, name: String(lic.filename || 'licence'), kind: 'licence', bytes: s.bytes, mime: s.mime });
       }
@@ -442,7 +442,7 @@ const handle = async (req: Request): Promise<Response> => {
             upd.doc_extracted_at = new Date().toISOString();
             const legal = String(d.legal_name || '').trim(); const cur = String(sup.company_name || '').trim();
             if (legal && legal.toLowerCase() !== cur.toLowerCase()) { upd.name_corrected_from = cur; upd.company_name = legal; }
-            out.license = { legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city, expiry: d.expiry_date, emirate: d.emirate, name_corrected: !!upd.name_corrected_from, confidence: d.confidence };
+            out.license = { legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city, expiry: d.expiry_date, emirate: d.emirate, trn: d.trn, name_corrected: !!upd.name_corrected_from, confidence: d.confidence };
           } else out.license_error = jd?.error || 'extract_failed';
         } catch (e) { out.license_error = String((e as Error)?.message || e); }
       }
@@ -460,7 +460,7 @@ const handle = async (req: Request): Promise<Response> => {
         const s = sc.result;
         const p = `profiles/${sup.id}/${Date.now()}_${safeFilename(prof.filename || 'profile', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
         readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime });
       }
@@ -477,7 +477,7 @@ const handle = async (req: Request): Promise<Response> => {
           const s = sc.result;
           const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(c.filename || 'catalog', s.mime)}`;
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store one of your catalogue files. Please try again.' }, 502);
+          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store one of your catalogue files. Please try again.' }, 502);
           catPaths.push(p);
           readQueue.push({ path: p, name: String(c.filename || 'catalogue'), kind: 'catalogue', bytes: s.bytes, mime: s.mime });
         }
@@ -520,7 +520,7 @@ const handle = async (req: Request): Promise<Response> => {
       const { error: updErr } = await admin.from('leads').update(upd).eq('id', sup.id);
       if (updErr) {
         console.error('process_docs: leads update failed —', updErr.message);
-        return J({ error: 'save_failed', detail: updErr.message, message: 'We read your documents but could not save them to your profile. Please try again.' }, 502);
+        return J({ error: 'save_failed', code: 'save_failed', message: 'We read your documents but could not save them to your profile. Please try again.' }, 502);
       }
       // After the row write, so only documents now on the supplier's row are read. A reading failure
       // is reported beside the result and never fails the upload the supplier just made.
@@ -956,7 +956,7 @@ const handle = async (req: Request): Promise<Response> => {
 
       if (action === 'quote_pdf') {
         const { data: q } = await admin.from('quotes').select('*').eq('id', String(body.quote_id || '')).eq('supplier_id', sup.id).maybeSingle();
-        if (!q) return J({ error: 'Quote not found' }, 404);
+        if (!q) return J({ error: 'Quote not found', code: 'not_found' }, 404);
         const [{ data: inq }, { data: qi }, { data: spec }, { data: matches }] = await Promise.all([
           admin.from('inquiries_supplier_safe').select('id,category,emirate').eq('id', q.inquiry_id).maybeSingle(),
           admin.from('quote_items').select('*').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60),
@@ -1013,7 +1013,7 @@ const handle = async (req: Request): Promise<Response> => {
       if (action === 'receipts') {
         const { data, error } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,currency,paid_at')
           .eq('supplier_id', sup.id).in('status', PAID).not('paid_at', 'is', null).order('paid_at', { ascending: false }).limit(50);
-        if (error) return J({ error: 'temporarily_unavailable' }, 503);
+        if (error) return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503);
         const { data: reg } = await admin.from('leads').select('registration_paid_at,registration_amount_aed').eq('id', sup.id).maybeSingle();
         const regRow = reg?.registration_paid_at && Number(reg.registration_amount_aed) > 0 ? [{ id: null, kind: 'registration', paid_at: reg.registration_paid_at, total: Number(reg.registration_amount_aed), currency: 'AED' }] : [];
         return J({ ok: true, receipts: [...regRow, ...(data || []).map((d: any) => ({ id: d.id, kind: 'dues', paid_at: d.paid_at, total: total(d), currency: d.currency || 'AED' }))] });
@@ -1027,7 +1027,7 @@ const handle = async (req: Request): Promise<Response> => {
       const { data: lead } = await admin.from('leads').select('email,registration_paid_at,subscription_paid_until,registration_payment_ref,registration_amount_aed').eq('id', sup.id).maybeSingle();
       let pay: SupplierPayment;
       if (body.kind === 'registration') {
-        if (!lead?.registration_paid_at || !(Number(lead.registration_amount_aed) > 0)) return J({ error: 'Receipt not found' }, 404);
+        if (!lead?.registration_paid_at || !(Number(lead.registration_amount_aed) > 0)) return J({ error: 'Receipt not found', code: 'receipt_not_found' }, 404);
         const at = String(lead.registration_paid_at);
         pay = { kind: 'registration', ref: `QD-REG-${sup.id}-${at.slice(0, 4)}`, paid_at: at, payment_ref: String(lead.registration_payment_ref || '—'),
           supplier: { name: String(sup.company_name || '—'), email: lead.email ?? null },
@@ -1036,7 +1036,7 @@ const handle = async (req: Request): Promise<Response> => {
       } else {
         const { data: d } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,paid_at,payment_ref')
           .eq('id', Number(body.due_id) || 0).eq('supplier_id', sup.id).in('status', PAID).not('paid_at', 'is', null).maybeSingle();
-        if (!d) return J({ error: 'Receipt not found' }, 404);
+        if (!d) return J({ error: 'Receipt not found', code: 'receipt_not_found' }, 404);
         // One payment settles every due in its checkout (stripe_webhook writes the same payment_ref on
         // each), so the document covers the whole payment and its total is what the card was charged.
         const { data: all } = await admin.from('supplier_dues').select('id,amount_due,admin_fee,interest_amount,fine_amount,paid_at,payment_ref')
@@ -1114,7 +1114,7 @@ const handle = async (req: Request): Promise<Response> => {
         original_file_name = safeFilename(orig.filename || 'quotation', s.mime);
         original_file_path = `quotes/${sup.id}/${inquiry_id}/${Date.now()}_${original_file_name}`;
         const up = await admin.storage.from('quote-files').upload(original_file_path, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error) return J({ error: 'upload_failed', detail: up.error.message, message: 'We could not store your quotation file. Please try again.' }, 502);
+        if (up.error) return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your quotation file. Please try again.' }, 502);
       }
       const { data: inq } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
       const secret = await secretVal('cred_fn_supplier_api');

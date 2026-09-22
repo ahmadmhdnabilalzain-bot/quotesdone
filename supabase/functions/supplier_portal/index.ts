@@ -27,6 +27,19 @@ async function flagOn(key: string): Promise<boolean> { const { data } = await ad
 // back to the English here, which is kept verbatim for emails and older clients.
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
+// A POSTGRES ERROR IS NOT A SENTENCE FOR A SUPPLIER (audit 22 Sep 2026, SP-I-01; agent:
+// customer_support). Thirteen reads answered `{ error: error.message }`, which put raw Postgres text
+// ("function fn_supplier_twin(p_lead_id => bigint) does not exist", column names, constraint names)
+// straight into the browser — a schema leak, and untranslatable, so the Arabic portal printed English
+// database prose. The real message now goes to the function log, the supplier gets a stable `code`
+// src/components/portal/supplier/serverCopy.ts renders in their language, and `error` keeps a plain
+// English sentence as the fallback for an older client.
+const failed = (where: string, code: string, english: string, error: { message?: string } | null, status = 500) => {
+  console.error('supplier_portal: ' + where + ' failed —', String(error?.message || 'unknown'));
+  return J({ error: english, code }, status);
+};
+const loadFailed = (where: string, error: { message?: string } | null) =>
+  failed(where, 'load_failed', 'Could not load this section. Please try again.', error);
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 function b64ToBytes(b64:string){ const bin=atob(String(b64).replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
@@ -44,7 +57,7 @@ async function sign(bucket:string, path:string|null){ if(!path) return null; try
 //
 // `folder` keeps storage tidy and mirrors what save_profile already writes.
 const DOC_KINDS: Record<string, { pathCol: string; nameCol?: string; expCol: string | null; label: string; folder: string; hint: string }> = {
-  license:      { pathCol:'license_doc_path',           nameCol:'license_doc_name', expCol:'license_expiry',            label:'Trade licence',              folder:'licence',   hint:'Required. Your current DED / free-zone trade licence.' },
+  license:      { pathCol:'license_doc_path',           nameCol:'license_doc_name', expCol:'license_expiry',            label:'Trade licence',              folder:'licence',   hint:'Required. Your current trade licence from your licensing authority (Economic Department or free-zone authority).' },
   profile:      { pathCol:'company_profile_doc_path',                               expCol:null,                        label:'Company profile',            folder:'profile',   hint:'Required. Your company introduction deck or PDF. Shown to customers after a reveal.' },
   vat:          { pathCol:'vat_doc_path',                                           expCol:null,                        label:'VAT certificate',            folder:'certs',     hint:'Your TRN certificate. Needed before you can invoice with VAT.' },
   insurance:    { pathCol:'insurance_doc_path',                                     expCol:'insurance_expiry',          label:'Insurance',                  folder:'certs',     hint:'Public liability or contractor all-risk cover.' },
@@ -165,7 +178,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
         admin.from('inquiry_matches').select('id', { count:'exact', head:true }).eq('supplier_id', supId),
         buildAlerts(admin, supId),
       ]);
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok:true, supplier: supplierCard(sup as Supplier), stats, active_matches: activeMatches || 0, alerts, alerts_count: alerts.length });
     }
 
@@ -180,7 +193,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // are the numbers the database computed rather than a second derivation that can drift from it.
     if (action === 'twin') {
       const { data: twin, error } = await admin.rpc('fn_supplier_twin', { p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       // A demo fixture must never be presentable as a live account. fn_supplier_twin sets is_demo
       // from the fence itself (matching_blocked AND a 'demo' tag), so the flag cannot drift from
       // the thing it describes, and the UI can label the row rather than passing it off as real.
@@ -223,13 +236,13 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // into row #2's separately-measured event backbone for that row's next run to subtract.
     if (action === 'workspaces') {
       const { data: ws, error } = await admin.rpc('fn_supplier_workspaces', { p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...ws });
     }
 
     if (action === 'market') {
       const { data: mkt, error } = await admin.rpc('fn_supplier_market', { p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...mkt });
     }
 
@@ -243,14 +256,14 @@ Deno.serve(observe('supplier_portal', async (req) => {
       if (!inqId) return J({ error: 'inquiry_id required' }, 400);
       const { data: rec, error } = await admin.rpc('fn_supplier_quote_recommend',
         { p_lead_id: supId, p_inquiry_id: inqId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...rec });
     }
 
     // ROW #5 §16 §4 — WHAT EACH DOCUMENT IS EARNING, AND WHAT THE MISSING ONE IS COSTING.
     if (action === 'document_impact') {
       const { data: di, error } = await admin.rpc('fn_supplier_document_impact', { p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...di });
     }
 
@@ -261,7 +274,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // routine never selects them — a supplier is not an audience for our reporting lines.
     if (action === 'knowledge_graph') {
       const { data: kg, error } = await admin.rpc('fn_supplier_knowledge_graph', { p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...kg });
     }
 
@@ -286,33 +299,33 @@ Deno.serve(observe('supplier_portal', async (req) => {
       if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
       const { data: pm, error } = await admin.rpc('fn_supplier_product_match',
         { p_inquiry_id: inquiryId, p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...pm });
     }
 
     // §16 §24 — every certificate with its validity status and what it gates.
     if (action === 'certifications') {
       const { data: certs, error } = await admin.rpc('fn_supplier_certifications', { p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...certs });
     }
 
     // §20 — the QuotesDone supplier tier and the ladder above it.
     if (action === 'tier') {
       const { data: tier, error } = await admin.rpc('fn_supplier_tier', { p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...tier });
     }
 
     if (action === 'opportunities') {
       const { data: opps, error } = await admin.rpc('fn_supplier_opportunities', { p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...opps });
     }
 
     if (action === 'advisor') {
       const { data: advice, error } = await admin.rpc('fn_supplier_advisor', { p_lead_id: supId });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...advice });
     }
 
@@ -321,7 +334,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
         p_lead_id: supId,
         p_query: typeof b.q === 'string' && b.q.trim() ? b.q.trim().slice(0, 120) : null,
       });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return loadFailed(String(action), error);
       return J({ ok: true, ...prods });
     }
 
@@ -563,7 +576,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
         const list: string[] = Array.isArray(cur?.catalog_doc_paths) ? (cur!.catalog_doc_paths as string[]) : [];
         if (!path || !list.includes(path)) { const r = removeRefusal({ kind: kindStr, known: true, onFile: false, required: false, approval_status: sup.approval_status })!; return J({ ok: false, error: 'remove_refused', code: r.code, message: ar ? r.message_ar : r.message }, 409); }
         const { error } = await admin.from('leads').update({ catalog_doc_paths: list.filter((p) => p !== path), portal_updated_at: new Date().toISOString() }).eq('id', sup.id);
-        if (error) return J({ error: 'remove_failed', detail: error.message }, 502);
+        if (error) return failed('remove_document', 'remove_failed', 'We could not remove that document. Please try again.', error, 502);
         const snap: VersionSnapshot = { event: 'removed', kind: 'catalogs', path, name: path.split('/').pop() || null, expiry: null, at: new Date().toISOString() };
         const { data: v } = await admin.rpc('_next_docver', { p_type: 'supplier_document', p_id: `${sup.id}:catalogs` });
         await admin.from('doc_versions').insert(versionRow(Number(sup.id), snap, Number(v || 1)));
@@ -580,7 +593,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
       if (kind.nameCol) clear[kind.nameCol] = null;
       if (kind.expCol) clear[kind.expCol] = null;
       const { error } = await admin.from('leads').update(clear).eq('id', sup.id);
-      if (error) return J({ error: 'remove_failed', detail: error.message }, 502);
+      if (error) return failed('remove_document', 'remove_failed', 'We could not remove that document. Please try again.', error, 502);
       const snap: VersionSnapshot = { event: 'removed', kind: kindStr, path: prev, name: (kind.nameCol ? (row[kind.nameCol] as string) : null) || prev.split('/').pop() || null,
         expiry: kind.expCol ? ((row[kind.expCol] as string) || null) : null, at: new Date().toISOString() };
       const { data: v } = await admin.rpc('_next_docver', { p_type: 'supplier_document', p_id: `${sup.id}:${kindStr}` });
@@ -601,7 +614,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
       const { data: cur } = await admin.from('leads').select(kind.pathCol).eq('id', sup.id).maybeSingle();
       if (!(cur as Record<string, unknown> | null)?.[kind.pathCol]) return J({ error: 'nothing_on_file', kind: kindStr }, 409);
       const { error } = await admin.from('leads').update({ [kind.expCol]: expiry, portal_updated_at: new Date().toISOString() }).eq('id', sup.id);
-      if (error) return J({ error: 'save_failed', detail: error.message }, 502);
+      if (error) return failed('set_expiry', 'expiry_save_failed', 'We could not save that expiry date. Please try again.', error, 502);
       const fresh = await listDocuments(Number(sup.id));
       return J({ ok: true, kind: kindStr, expiry, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary });
     }
@@ -640,5 +653,5 @@ Deno.serve(observe('supplier_portal', async (req) => {
     }
 
     return J({ error: 'unknown_action', action }, 400);
-  } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
+  } catch (e) { return failed('request', 'unexpected_error', 'Something went wrong. Please try again.', e as Error); }
 }));
