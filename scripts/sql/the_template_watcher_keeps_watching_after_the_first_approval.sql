@@ -2,7 +2,10 @@
 -- (customer_support, 22 Sep 2026, finding INT-02)
 --
 -- WHAT WAS MEASURED, 22 Sep 2026.
---   * public.messaging_template holds SEVEN WhatsApp templates still in Twilio's 'received' state:
+--   * public.messaging_template holds NINE WhatsApp templates still in Twilio's 'received' state
+--     against 11 approved (counted 22 Sep 2026: select status, count(*) ... where channel='whatsapp'
+--     group by status -> received 9, approved 11; an earlier draft of this file said seven, which
+--     was the count of the rows named below and not the count the database returns):
 --     quotesdone_login_code_en/_ar and quotesdone_supplier_account_notice_en/_ar (submitted 18 Sep,
 --     last_checked_at 18 Sep 04:05), the three UTILITY re-submissions from 14 Sep (last_checked_at
 --     14 Sep, the moment they were created) and quotesdone_supplier_quote_accepted_en/_ar from
@@ -112,4 +115,4 @@ $fn$;
 revoke execute on function public.fn_resilience_orphan_steps_due() from public, anon, authenticated;
 
 comment on function public.fn_resilience_orphan_steps_due() is
-  'Which of the six orphaned jobs the resilience tick should call this beat. Each gate is the WORK, not a schedule string. wa_templates gained its second arm on 22 Sep 2026: gated on app_secrets.wa_templates_ready alone, the watcher switched itself off the day the first batch was approved and seven templates submitted afterwards were never re-checked.';
+  'Which of the six orphaned jobs the resilience tick should call this beat. Each gate is the WORK, not a schedule string. wa_templates gained its second arm on 22 Sep 2026: gated on app_secrets.wa_templates_ready alone, the watcher switched itself off the day the first batch was approved and the nine templates still awaiting Meta on 22 Sep were never re-checked.';

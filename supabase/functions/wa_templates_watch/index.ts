@@ -41,7 +41,7 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     // `if (wa_templates_ready === 'true') return already_ready`. That flag is written ONCE, by the
     // run that first saw every tracked template approved, and nothing ever writes it back — so the
     // watcher switched itself off the day the first batch landed and never polled again. Measured
-    // 22 Sep: SEVEN templates sat in Twilio's 'received' state (login_code en/ar and
+    // 22 Sep: NINE templates sat in Twilio's 'received' state against 11 approved (login_code en/ar and
     // supplier_account_notice en/ar from 18 Sep, three UTILITY re-submissions from 14 Sep,
     // supplier_quote_accepted en/ar from 6 Sep), four of them already named in wa_template_sids,
     // while wa_templates_ready said 'true'. The same stale flag also gated the scheduler

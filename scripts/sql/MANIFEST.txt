@@ -1615,3 +1615,4 @@ scripts/sql/the_sms_line_writes_down_what_it_receives.sql
 scripts/sql/the_social_switches_exist_before_the_code_reads_them.sql
 scripts/sql/five_dead_secrets_leave_the_store.sql
 scripts/sql/the_template_watcher_keeps_watching_after_the_first_approval.sql
+scripts/sql/the_registers_stop_calling_voice_otp_a_dead_surface.sql

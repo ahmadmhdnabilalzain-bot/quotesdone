@@ -21,22 +21,22 @@
 // "<Say>This service is unavailable.</Say>" to anyone who DIALLED our published Twilio number -
 // the same number we print on WhatsApp invitations - and the comment above it blamed a missing
 // twilio_auth_token, which has been in app_secrets since 7 Sep. Both were wrong: the token is
-// there, and the person on the line is a customer or a supplier, not a broken integration. They
-// now hear, in English and then in Arabic, where to reach us.
+// there, and the person on the line is a customer or a supplier, not a broken integration.
+//
+// The sentences, and which domain a UAE caller hears, are in ./twiml.ts with their own test.
 //
 // NO SECRET IS READ AND NOTHING IS WRITTEN, so this needs no signature check: the response is the
-// same fixed sentence for every caller, which is why it is safe to serve unauthenticated.
-const SAY_EN = 'Thank you for calling QuotesDone. This number is for WhatsApp messages only. '
-  + 'Please message us on WhatsApp or visit quotesdone.com.';
-const SAY_AR = 'شكرًا لاتصالكم بـ QuotesDone. هذا الرقم مخصص لرسائل واتساب فقط، '
-  + 'يُرجى مراسلتنا عبر واتساب أو زيارة موقعنا quotesdone.com.';
+// same fixed sentence for every caller, which is why it is safe to serve unauthenticated. It is
+// also why there is nothing here to rate-limit - a flood costs one string concatenation.
+import { inUae, twiml } from './twiml.ts';
 
-// Polly.Hala is Twilio's Gulf Arabic neural voice; ar-AE is the locale the founder's market speaks.
-const TWIML = '<?xml version="1.0" encoding="UTF-8"?>'
-  + '<Response>'
-  + `<Say language="en-US">${SAY_EN}</Say>`
-  + `<Say language="ar-AE" voice="Polly.Hala">${SAY_AR}</Say>`
-  + '<Hangup/>'
-  + '</Response>';
-
-Deno.serve(() => new Response(TWIML, { status: 200, headers: { 'Content-Type': 'text/xml' } }));
+Deno.serve(async (req: Request) => {
+  let p: Record<string, string> = {};
+  try {
+    if (req.method === 'POST') p = Object.fromEntries((await req.formData()).entries()) as Record<string, string>;
+    else p = Object.fromEntries(new URL(req.url).searchParams.entries());
+  } catch (_e) { /* unreadable params: answer on .com, which redirects a UAE visitor itself */ }
+  return new Response(twiml(inUae(p.FromCountry || '', p.From || '')), {
+    status: 200, headers: { 'Content-Type': 'text/xml' },
+  });
+});

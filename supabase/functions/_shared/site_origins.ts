@@ -12,6 +12,16 @@
 
 export const CANONICAL_ORIGIN = 'https://quotesdone.com';
 
+/**
+ * The host the company trades under in the UAE. TDRA NOL-26-100000665 is issued for
+ * www.quotesdone.ae and the founder's rule of 14 Sep is that a UAE visitor is served there.
+ * Same constant as AE_ORIGIN in src/lib/domains.ts; the printed documents use the bare host
+ * (_shared/doc_template.ts `web`). Use it where the AUDIENCE is known to be in the UAE and no
+ * browser session is involved — a phone call, a printed page. A link in mail or WhatsApp still
+ * goes to CANONICAL_ORIGIN, which redirects UAE visitors here itself.
+ */
+export const AE_ORIGIN = 'https://quotesdone.ae';
+
 export const SITE_ORIGINS: readonly string[] = [
   'https://quotesdone.com',
   'https://www.quotesdone.com',

@@ -43,9 +43,14 @@ create index if not exists sms_messages_from_created_idx
   on public.sms_messages (sms_from, created_at desc);
 
 alter table public.sms_messages enable row level security;
+-- RLS on with NO policy is indistinguishable from somebody meaning to write one and forgetting, so
+-- the deliberate service-role-only posture is stated in the schema. service_role bypasses RLS, so
+-- the seats keep full access. Same shape as every other table in this estate (pg_policies guard so
+-- a re-apply is a no-op).
 do $$ begin
-  if not exists (select 1 from pg_policy p join pg_class c on c.oid = p.polrelid
-                  where c.relname = 'sms_messages' and p.polname = 'sms_messages_service_role_only') then
+  if not exists (select 1 from pg_policies
+                  where schemaname = 'public' and tablename = 'sms_messages'
+                    and policyname = 'sms_messages_service_role_only') then
     create policy sms_messages_service_role_only on public.sms_messages
       as permissive for all to public using (false) with check (false);
   end if;

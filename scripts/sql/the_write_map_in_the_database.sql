@@ -461,6 +461,13 @@ insert into public.phase_c_edge_function_writes (edge_function, table_name, writ
 ('uptime_check','app_secrets','upsert',false),
 ('uptime_check','founder_alerts','insert',false),
 ('video_produce','agent_runs','insert',false),
+-- 22 Sep 2026 (customer_support, INT-03): the new SMS webhook. Three writes, all bounded — the
+-- insert is capped by fn_rate_limit at 40/hour per sender before it is reached, the alert is
+-- throttled to one per 30 minutes, and agent_runs is one row per accepted or refused webhook.
+('sms_inbound','sms_messages','insert',false),
+('sms_inbound','agent_runs','insert',false),
+('sms_inbound','founder_alerts','insert',false),
+('sms_inbound','ai_rate_limit','rpc:fn_rate_limit',false),
 ('voice_otp_capture','agent_runs','insert',false),
 ('vt_scan','agent_actions','insert',false),
 ('vt_scan','agent_runs','insert+update',false),
