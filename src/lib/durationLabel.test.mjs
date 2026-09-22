@@ -14,3 +14,9 @@ test('arDays gives the form Arabic requires for each count', () => {
 test('durationLabel and arDays agree on days', () => {
   for (const n of [1, 2, 3, 10, 11, 15, 100]) assert.equal(durationLabel(`${n} days`, 'ar'), arDays(n));
 });
+
+// CP-I18N-06: after خلال / قبل / نحو the dual is genitive. Nothing else moves.
+test('arDays genitive changes the dual only', () => {
+  assert.equal(arDays(2, { genitive: true }), 'يومين');
+  for (const n of [0, 1, 3, 10, 11, 15, 100]) assert.equal(arDays(n, { genitive: true }), arDays(n), String(n));
+});

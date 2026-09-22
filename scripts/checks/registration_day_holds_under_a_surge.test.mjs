@@ -36,7 +36,7 @@ test('a verification email that did not leave is not answered as sent (kyc send_
 
 test('both code senders retry a busy second through the one shared helper', () => {
   for (const [name, s] of [['kyc', kyc], ['login_otp', login]]) {
-    assert.match(s, /return await resendWithRetry\(key, \{ from, to, subject, html \}\)/, name + ' sendEmail must use resendWithRetry');
+    assert.match(s, /return await resendWithRetry\(key, \{ from, to, subject, html, reply_to \}\)/, name + ' sendEmail must use resendWithRetry');
     assert.doesNotMatch(s, /fetch\('https:\/\/api\.resend\.com\/emails'/, name + ' must not POST to Resend directly');
   }
   const helper = code(read('supabase/functions/_shared/resend_send.ts'));
