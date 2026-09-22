@@ -1,7 +1,7 @@
 // identity_scrub — the supplier inbox's identity scrubbers, moved out of index.ts unchanged (21 Sep 2026,
 // sales_engineer) so the drawing chain test (drawing_boq/drawing_chain.test.ts) runs the SAME code the inbox
 // runs on a BOQ before a supplier sees it, rather than a copy. Behaviour is byte-for-byte what index.ts had.
-import { redactBoq } from '../_shared/anonymise.ts';
+import { redactBoq, redactText } from '../_shared/anonymise.ts';
 import { neutraliseCadLines } from '../_shared/cad_identity.ts';
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 // ANONYMITY FIX 27 Jul 2026 -------------------------------------------------------------------
@@ -72,6 +72,20 @@ export function scrubDeep(v: unknown, ownName: unknown, hits: string[]): unknown
   if (typeof v === 'string') return scrubIdentity(v, ownName, hits);
   if (Array.isArray(v)) return v.map((x) => scrubDeep(x, ownName, hits));
   if (v && typeof v === 'object') { const o: Record<string, unknown> = {}; for (const k of Object.keys(v as Record<string, unknown>)) o[k] = scrubDeep((v as Record<string, unknown>)[k], ownName, hits); return o; }
+  return v;
+}
+// THE PROJECT NAME IS NOT A PATTERN (audit 22 Sep 2026, finding SP-F-04). scrubDeep above removes what a
+// regular expression can recognise — a contact, a URL, a company suffix — plus the buyer's own name, which
+// is passed in because nothing about it is recognisable. The customer's PROJECT NAME is in exactly that
+// class and was NOT passed in: summary (index.ts inbox line 893) and the BOQ (inboxBoq, via redactBoq) ran
+// the seed list over their text, spec and budget did not, so "Marsa Heights Villa 7" left the estate inside
+// the structured brief and inside an 80-character free-text budget box while the one-line summary beside it
+// was clean. This is scrubDeep with the seed list, so every customer-authored field the inbox serves passes
+// the same two layers. The inquiry PDF prints those fields from the inbox's own output, so it is fixed here too.
+export function scrubDeepSeeded(v: unknown, ownName: unknown, seeds: string[], hits: string[]): unknown {
+  if (typeof v === 'string') { const s = scrubIdentity(v, ownName, hits); return s == null ? s : redactText(s, seeds).text; }
+  if (Array.isArray(v)) return v.map((x) => scrubDeepSeeded(x, ownName, seeds, hits));
+  if (v && typeof v === 'object') { const o: Record<string, unknown> = {}; for (const k of Object.keys(v as Record<string, unknown>)) o[k] = scrubDeepSeeded((v as Record<string, unknown>)[k], ownName, seeds, hits); return o; }
   return v;
 }
 /**

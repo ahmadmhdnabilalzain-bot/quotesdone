@@ -34,9 +34,9 @@ import { deriveLineFields, deriveTermsFromScope } from '../_shared/line_specs/de
 // inbox (18 Sep 2026, sales_engineer). See _shared/drawing_pages.ts for the production measurement.
 import { drawingWithheld, signRedactedDrawings } from '../_shared/drawing_pages.ts';
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
-import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction } from './quote_review_actions.ts';
+import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction, safeInquiry } from './quote_review_actions.ts';
 import { supabaseReviewRepo } from './quote_review_flow.ts';
-import { jobNo, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
+import { foreignCurrency, jobNo, reviewQuotation, sanitizeSpec, sanitizeTermsSpec, type WLine, type Working } from './quote_review.ts';
 import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLeads } from '../_shared/sanctioned.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
@@ -65,11 +65,46 @@ const CONCLUDED = ['completed','closed','cancelled'];
 // Same derivation as auth_api line 9 so the two paths produce comparable records.
 function clientIp(req: Request): string { return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || ''; }
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
-// The identity scrubbers (scrubIdentity, scrubDeep, inboxBoq) live in ./identity_scrub.ts.
-import { inboxBoq, scrubDeep, scrubIdentity } from './identity_scrub.ts';
+// The identity scrubbers (scrubIdentity, scrubDeepSeeded, inboxBoq) live in ./identity_scrub.ts.
+import { inboxBoq, scrubDeepSeeded, scrubIdentity } from './identity_scrub.ts';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
+// A SUPPLIER ACTS ONLY ON A JOB IT WAS MATCHED TO (audit 22 Sep 2026, finding SP-N-03).
+//
+// `inbox` has always been scoped to public.inquiry_matches, and the quotation-review actions reach the job
+// only through it — but submit_quote and extract_quote took body.inquiry_id and never asked. Any approved
+// supplier could therefore price, and store a quotation file against, any enquiry in the estate whose uuid
+// it held; fn_supplier_opportunities handed out those uuids for every open enquiry, its own reason line
+// reading "Outside your registered trade". One row in inquiry_matches is the platform's record that this
+// enquiry was sent to this company, so that row is the question both doors now ask.
+//
+// It answers with the id or with null, and the caller returns 404 — not 403. A 403 would confirm that the
+// uuid names a real enquiry; a job this supplier was not matched to must not exist for them. It FAILS
+// CLOSED: an unreadable inquiry_matches is null, which refuses, rather than an assumed match.
+async function matchedInquiry(supplierId: number, raw: unknown): Promise<string | null> {
+  const id = typeof raw === 'string' && UUID_RE.test(raw) ? raw.toLowerCase() : null;
+  if (!id) return null;
+  const { data, error } = await admin.from('inquiry_matches').select('id').eq('inquiry_id', id).eq('supplier_id', supplierId).limit(1);
+  if (error || !data || !data.length) return null;
+  return id;
+}
+// A QUOTATION FILE LIVES UNDER ITS OWN SUPPLIER'S PREFIX (audit 22 Sep 2026, finding SP-N-04). Both doors
+// took original_file_path verbatim from the request and wrote it onto the quote row, so a supplier could
+// attach ANY object in the quote-files bucket — another supplier's quotation — to its own quote and have
+// the platform serve it back.
+//
+// TWO PREFIXES, BOTH MEASURED, because one would have broken the main door. extract_quote writes
+// `quotes/<supplier id>/<inquiry>/…` and the quotation review writes `review/<supplier id>/<inquiry>/…`
+// (quote_review_flow.ts line 270) — production on 22 Sep 2026 holds two quotes with an original file and
+// BOTH are `review/126512/…`, so a rule naming only `quotes/` would have refused every quotation the
+// chat submits. Either prefix, and the supplier id in it must be the caller's. '..' is refused with them
+// because a stored path is later signed, not resolved.
+const ownQuoteFile = (p: unknown, supplierId: number): boolean => {
+  const s = String(p ?? '');
+  return (s.startsWith(`quotes/${supplierId}/`) || s.startsWith(`review/${supplierId}/`)) && !s.includes('..');
+};
+const NOT_MY_FILE = { error: 'file_not_yours', code: 'file_not_yours', message: 'That file is not one of yours. Please attach your quotation again.' };
 function b64ToBytes(b64:string){ const bin=atob(String(b64).replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
 // AUDIT 4.2 (3 Aug 2026) ------------------------------------------------------------------
 // This function used to decide the registration state itself, from registered_supplier_count()
@@ -891,7 +926,10 @@ const handle = async (req: Request): Promise<Response> => {
         const owner = custRow[ownerOf[String(i.id)] || ''] || {};
         const seeds = seedTerms({ name: buyerName || '', email: owner.email || '', phone: owner.phone || '', project: projName[projectOf[String(i.id)] || ''] || '' });
         const sSummary = revealed ? i.summary : (ownerResolved ? (redactText(String(scrubIdentity(i.summary ?? null, buyerName, hits) ?? ''), seeds).text || null) : null);
-        const sSpec = revealed ? i.spec : (ownerResolved ? scrubDeep(i.spec, buyerName, hits) : null);
+        // The seed list (the buyer's name, e-mail, phone and PROJECT NAME) is applied to the structured
+        // brief too — audit 22 Sep 2026, finding SP-F-04: it was applied to summary and to the BOQ and not
+        // to spec, so the project name left the estate inside the brief. identity_scrub.ts scrubDeepSeeded.
+        const sSpec = revealed ? i.spec : (ownerResolved ? scrubDeepSeeded(i.spec, buyerName, seeds, hits) : null);
         // THE LAST GATE before a supplier sees a BOQ. redactBoq removes the buyer's seed terms and the
         // generic identifiers, then residual-scans; anything still identifying HOLDS the BOQ (null,
         // boq_withheld:true). It never fails open: a BOQ we cannot prove clean is not shown.
@@ -907,7 +945,9 @@ const handle = async (req: Request): Promise<Response> => {
         // 250k, call Ahmad on 050 123 4567"), and it was the one customer-authored field on this
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
         // through the same scrubIdentity as summary, behind the same reveal gate.
-        const sBudget = revealed ? i.budget : (ownerResolved ? scrubIdentity(i.budget ?? null, buyerName, hits) : null);
+        // 22 Sep 2026 (finding SP-F-04): and through the seed list, for the same reason. "around 250k for
+        // the Marsa Heights villa" named the project in the one box a customer types freely.
+        const sBudget = revealed ? i.budget : (ownerResolved ? (scrubDeepSeeded(i.budget ?? null, buyerName, seeds, hits) as string | null) : null);
         out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_ar: sSummaryAr, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
@@ -1092,7 +1132,10 @@ const handle = async (req: Request): Promise<Response> => {
     if (action === 'extract_quote') {
       const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,accepted_terms_at').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      const inquiry_id = body.inquiry_id;
+      // The enquiry must be one this supplier was matched to (finding SP-N-03). This also makes
+      // inquiry_id a validated uuid before it is put into the storage path below, which it was not.
+      const inquiry_id = await matchedInquiry(Number(sup.id), body.inquiry_id);
+      if (!inquiry_id) return J({ error: 'not_found', code: 'not_found' }, 404);
       const images = Array.isArray(body.images) ? body.images : [];
       const orig = body.original || {};
       // 14 Sep 2026: a Word, Excel, email or zip quotation has no page images, but quote_extract can
@@ -1104,6 +1147,8 @@ const handle = async (req: Request): Promise<Response> => {
       // and defaulted to application/octet-stream, and the failure was swallowed - so a rejected or
       // failed upload silently produced a quote with no attached document.
       if (orig.path) {
+        // Finding SP-N-04: a path the caller supplies is accepted only under this supplier's own prefix.
+        if (!ownQuoteFile(orig.path, Number(sup.id))) return J(NOT_MY_FILE, 400);
         original_file_path = String(orig.path);
         original_file_name = safeFilename(orig.filename || 'quotation', 'application/pdf');
       } else if (orig.b64) {
@@ -1180,6 +1225,10 @@ const handle = async (req: Request): Promise<Response> => {
     if (action === 'submit_quote') {
       const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      // FIRST, AND BEFORE ANYTHING ELSE IS SAID ABOUT THIS ACCOUNT: is this enquiry one we sent them?
+      // (finding SP-N-03 — this door never asked.) Every read below is keyed on this id, not on the body's.
+      const inquiryId = await matchedInquiry(Number(sup.id), body.inquiry_id);
+      if (!inquiryId) return J({ error: 'not_found', code: 'not_found' }, 404);
       if (!sup.accepted_terms_at) return J({ error: 'accept the supplier terms first', code: 'terms_not_accepted' }, 400);
       // 3 SEP 2026 (MASTER_PLAN #11): there is no admin queue and never was - approval is the automatic
       // licence gate on save. Say what actually blocked it and what unblocks it, instead of promising a
@@ -1199,7 +1248,7 @@ const handle = async (req: Request): Promise<Response> => {
         if (regErr || !reg?.ok) return J({ error: 'registration_state_unavailable', code: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found', hint: 'We could not confirm your registration status. Please try again shortly.' }, 503);
         if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' yearly registration is due. Please complete registration to send quotes.', code: 'registration_due', params: { fee: Number(reg.fee_due || 0), currency: String(reg.currency || 'AED') }, registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
       }
-      const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', body.inquiry_id).maybeSingle();
+      const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', inquiryId).maybeSingle();
       if (inqStat && CONCLUDED.includes(String(inqStat.status))) return J({ error: 'This request has been concluded — the customer has already selected a supplier. Thank you for your interest, and best of luck on the next one.', code: 'inquiry_concluded' }, 409);
       const amt = Number(body.amount); if (!(amt > 0)) return J({ error: 'invalid amount', code: 'invalid_amount' }, 400);
       const isUpload = body.source === 'upload';
@@ -1221,7 +1270,7 @@ const handle = async (req: Request): Promise<Response> => {
       const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions || fromScope.exclusions || '', 2000);
       const priorMasked: string[] = Array.isArray(body.masked_terms) ? body.masked_terms.map((x: unknown) => String(x)) : [];
       const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
-      const { data: inqRow } = await admin.from('inquiries').select('category,spec,rfq_no').eq('id', body.inquiry_id).maybeSingle();
+      const { data: inqRow } = await admin.from('inquiries').select('category,spec,rfq_no').eq('id', inquiryId).maybeSingle();
       // deno-lint-ignore no-explicit-any
       const requirements = requirementsOf(inqRow?.spec);
       const category = inqRow?.category ?? null;
@@ -1240,33 +1289,98 @@ const handle = async (req: Request): Promise<Response> => {
       const normItems = items.map((it: any) => ({ ...it, description: String(it?.description ?? ''), amount: numOrNull(it?.amount) ?? (((numOrNull(it?.qty) || 0) * (numOrNull(it?.unit_price) || 0)) || null) }));
       const opts = splitOptions(normItems, body.option_totals && typeof body.option_totals === 'object' ? body.option_totals : {});
       const multi = opts.length > 1;
-      const { data: mine } = await admin.from('quotes').select('id,option_no,status').eq('inquiry_id', body.inquiry_id).eq('supplier_id', sup.id);
+      const { data: mine } = await admin.from('quotes').select('id,option_no,status').eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
       const maxOpt = Math.max(0, ...(mine || []).map((r: any) => Number(r.option_no) || 1));
       const single = Number(body.option_no) >= 1 ? Math.floor(Number(body.option_no)) : (body.new_option === true ? maxOpt + 1 : 1);
       const plan = multi ? opts.map((o) => ({ option_no: o.option_no, lines: o.lines, amount: optionAmount(o) })) : [{ option_no: single, lines: opts[0]?.lines ?? normItems, amount: amt as number | null }];
       if (plan.some((p) => p.option_no > 20)) return J({ error: 'A quote can carry at most 20 options.', code: 'too_many_options' }, 400);
       const noTotal = plan.find((p) => !(Number(p.amount) > 0));
       if (noTotal) return J({ error: 'Enter the total for option ' + noTotal.option_no + '.', code: 'option_total_missing', params: { option: noTotal.option_no } }, 400);
+      // Finding SP-N-04: the attached quotation file must be one of this supplier's own objects.
+      const origPath = body.original_file_path == null || String(body.original_file_path) === '' ? null : String(body.original_file_path);
+      if (origPath && !ownQuoteFile(origPath, Number(sup.id))) return J(NOT_MY_FILE, 400);
+
+      // ── THE QUOTATION REVIEW RUNS AT THE ONE DOOR (audit 22 Sep 2026, finding SP-F-02) ───────────
+      // The founder, 15 Sep 2026: the review is "the most important part in the whole supplier portal".
+      // Its rules live in quote_review.ts reviewQuotation — every BOQ line priced, quantities and units
+      // matching the BOQ, prices in AED, the VAT basis stated, the lines adding up to the total, a
+      // concrete validity — and until now they ran ONLY inside the chat. Two portal doors post to
+      // submit_quote directly (InquiriesTab → QuoteForm, and the Quote Builder's one-click accept), so a
+      // quotation that failed any of those rules reached the customer through them with only the hold
+      // gate's exact-specs assessment run against it. The gate is here because here is where every door
+      // arrives — and BEFORE the first write, so a refused quotation leaves nothing behind.
+      //
+      // WHAT THE SUPPLIER ALREADY EXPLAINED STILL COUNTS. A BOQ line the chat recorded as excluded, or a
+      // quantity the supplier explained, lives in quote_reviews.working — written by the engineer, not by
+      // the caller — so it is read from the row and never from the request body. A supplier posting
+      // straight to this endpoint has no such row, and every rule applies to them in full.
+      const confirmedTerms = sanitizeTermsSpec(body.terms_spec);
+      const reviewRow = await supabaseReviewRepo(admin).review(inquiryId, Number(sup.id)).catch(() => null);
+      {
+        const rInbox = await handle(new Request(req.url, { method: 'POST', headers: { Authorization: 'Bearer ' + jwt, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'inbox', inquiry_id: inquiryId }) }));
+        const jInbox = await rInbox.json().catch(() => ({}));
+        // deno-lint-ignore no-explicit-any
+        const row = (jInbox.inquiries || []).find((x: any) => String(x.id) === inquiryId);
+        if (!row) return J({ error: 'not_found', code: 'not_found' }, 404);
+        const w: Working = {
+          // deno-lint-ignore no-explicit-any
+          lines: normItems.map((it: any): WLine => ({ description: String(it.description ?? ''), qty: it.qty == null ? '' : String(it.qty), unit: String(it.unit ?? ''), unit_price: numOrNull(it.unit_price), amount: numOrNull(it.amount), ...(it.specification ? { specification: String(it.specification) } : {}), ...(it.spec && typeof it.spec === 'object' ? { spec: it.spec } : {}) })),
+          amount: amt, subtotal: numOrNull(body.subtotal), vat_amount: numOrNull(body.vat_amount),
+          vat_treatment: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: numOrNull(body.price_ex_vat), trn,
+          lead_time: String(clip(body.lead_time, 200) ?? ''), validity: String(clip(body.validity, 200) ?? ''),
+          payment_terms: String(clip(body.payment_terms, 400) ?? ''), warranty: String(clip(body.warranty, 200) ?? ''),
+          scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? ''), notes: String(sNotes ?? ''),
+          terms_spec: confirmedTerms || {}, masked_terms: allMasked, option_totals: body.option_totals && typeof body.option_totals === 'object' ? body.option_totals : {},
+          foreign_currency: foreignCurrency(vatText),
+          boq_excluded: reviewRow?.working?.boq_excluded || {}, qty_explained: reviewRow?.working?.qty_explained || {}, corrections: [],
+        };
+        const rv = reviewQuotation(safeInquiry(row), w);
+        if (!rv.approved) {
+          const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
+          return J({ error: 'quote_review_changes', code: 'quote_review_changes', accepted: false, held: false,
+            issues: rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar })),
+            message: rv.issues.slice(0, 3).map((i) => (lang === 'ar' ? i.ar : i.en)).join(' ') }, 400);
+        }
+      }
       const submission_id = crypto.randomUUID();
       const repo = supabaseRepo(admin, { dispatch: kickDelivery });
       const supplier = supplierOf(sup, email);
-      const ref = jobNo({ id: String(body.inquiry_id), rfq_no: inqRow?.rfq_no });
+      const ref = jobNo({ id: String(inquiryId), rfq_no: inqRow?.rfq_no });
       const multiOption = multi || single > 1 || (mine || []).length > 1;
       const results: any[] = [];
       let anyAccepted = false;
       for (const p of plan) {
         const vat = readVat({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
           stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat) });
-        const det = { inquiry_id: body.inquiry_id, supplier_id: sup.id, option_no: p.option_no, submission_id, quote_amount: vat.price_ex_vat ?? p.amount, price_ex_vat: vat.price_ex_vat, vat_treatment: vat.treatment, vat_amount: vat.vat_amount, supplier_trn: trn, amount_as_stated: p.amount,
-          notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', anonymized: true, original_file_path: body.original_file_path || null, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
+        const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, quote_amount: vat.price_ex_vat ?? p.amount, price_ex_vat: vat.price_ex_vat, vat_treatment: vat.treatment, vat_amount: vat.vat_amount, supplier_trn: trn, amount_as_stated: p.amount,
+          notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
         // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
-        const confirmedTerms = sanitizeTermsSpec(body.terms_spec);
         if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;
         // Capture the status BEFORE the write. A new row is created as a draft, never in the
         // 'submitted' column default: a dry_run preflight or a held quote must not be visible to the
         // customer even for a moment (caught by a demo walkthrough on 21 Jul 2026).
         const prior = (mine || []).find((r: any) => (Number(r.option_no) || 1) === p.option_no) || null;
+        // A DRY RUN LEAVES THE ESTATE AS IT FOUND IT (audit 22 Sep 2026, finding SP-C-02). "Check before
+        // sending" reached the dry-run branch AFTER the writes below: it updated the prior quote row with
+        // whatever was on screen, deleted its lines and re-inserted the new ones, and then restored only
+        // `status`. A check run on a reopened quote that had already been sent therefore REWROTE the sent
+        // quotation — amount, terms and every line — and a check on a new option left a draft behind. The
+        // scorer, the accept rule and the hold assessment all read the row by id, so the row must exist
+        // while they run; what must not survive is the change. The row and its lines are snapshotted here
+        // and put back below, and a snapshot we could not take refuses the check rather than risking it.
+        const dryRun = body.dry_run === true;
+        const snapCols = [...Object.keys(det), 'status', 'submittable'].join(',');
+        let snapRow: Record<string, unknown> | null = null;
+        let snapLines: Record<string, unknown>[] = [];
+        if (dryRun && prior) {
+          const [{ data: sr, error: se }, { data: sl, error: sle }] = await Promise.all([
+            admin.from('quotes').select(snapCols).eq('id', prior.id).maybeSingle(),
+            admin.from('quote_items').select('*').eq('quote_id', prior.id),
+          ]);
+          if (se || sle || !sr) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
+          snapRow = sr as unknown as Record<string, unknown>; snapLines = (sl || []) as unknown as Record<string, unknown>[];
+        }
         let qid: string;
         if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return J({ error: error.message }, 500); qid = String(prior.id); }
         else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
@@ -1285,11 +1399,26 @@ const handle = async (req: Request): Promise<Response> => {
         } catch (_e) { /* */ }
         // Preflight (dry_run). Runs the real scorer, the real accept rule and the real hold gate's
         // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
-        if (body.dry_run === true) {
+        if (dryRun) {
           const acc = await acceptRule(qid);
           const a = assessQuote({ category, lines: await repo.lines(qid), terms: (await repo.quote(qid))!, requirements });
-          try { await admin.from('quotes').update({ status: prior?.status || 'draft' }).eq('id', qid); } catch (_e) { /* */ }
-          results.push({ quote_id: qid, option_no: p.option_no, dry_run: true, submittable: acc.submittable, would_accept: acc.accept && !a.held, status_after: prior?.status || 'draft',
+          // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
+          // own ids, so anything that references a line still does). A row this check CREATED is removed.
+          let restored = true;
+          try {
+            if (prior && snapRow) {
+              const u = await admin.from('quotes').update(snapRow).eq('id', qid);
+              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+              const i2 = snapLines.length ? await admin.from('quote_items').insert(snapLines) : { error: null };
+              restored = !u.error && !d.error && !i2.error;
+            } else {
+              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+              const dq = await admin.from('quotes').delete().eq('id', qid);
+              restored = !d.error && !dq.error;
+            }
+          } catch (_e) { restored = false; }
+          if (!restored) console.error('submit_quote dry_run: could not restore quote', qid);
+          results.push({ quote_id: qid, option_no: p.option_no, dry_run: true, accepted: false, restored, submittable: acc.submittable, would_accept: acc.accept && !a.held, status_after: prior?.status ?? null,
             accept_via: acc.submittable ? 'structured_score' : (acc.formComplete ? 'form_complete' : (!acc.requireStructured ? 'structured_not_required' : null)),
             require_structured: acc.requireStructured, priced_items: acc.priced, total_items: p.lines.length, score: acc.score, spec_missing: a.missing, would_hold: a.held });
           continue;
@@ -1298,11 +1427,11 @@ const handle = async (req: Request): Promise<Response> => {
         // every required detail exactly, records which line and which detail, and tells the supplier.
         const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption });
         if (g.held) { results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
-        const live = await acceptLive(qid, String(body.inquiry_id), false);
+        const live = await acceptLive(qid, String(inquiryId), false);
         if (live.accepted) anyAccepted = true;
         results.push({ quote_id: qid, option_no: p.option_no, held: false, ...live });
       }
-      if (anyAccepted) await notifyNewQuote(String(body.inquiry_id));
+      if (anyAccepted) await notifyNewQuote(String(inquiryId));
       if (multi) return J({ ok: true, options: results, submission_id, accepted: results.some((r) => r.accepted), held: results.some((r) => r.held), dry_run: body.dry_run === true, code: 'options_split', params: { count: results.length } });
       const r0 = results[0];
       const q = { id: r0.quote_id, option_no: r0.option_no, status: r0.accepted ? 'submitted' : 'draft' };
