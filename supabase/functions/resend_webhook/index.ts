@@ -17,6 +17,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { inviteStatusFor } from './invite_status.ts';
+import { deliveryOutcome } from './delivery_status.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -118,7 +119,22 @@ Deno.serve(observe('resend_webhook', async (req) => {
       }
       try { await admin.from('error_events').insert({ source: 'resend_webhook', kind: reason, severity: 'low', detail: { emails, type } }); } catch (_e) {}
     }
-    await logRun('ok', { authorised: 1, type, suppressed, signature_verified: 1 }, suppressed > 0 ? ('Verified Resend event "' + type + '" suppressed ' + suppressed + ' address(es) so we stop mailing them.') : ('Verified Resend event "' + type + '" required no suppression.'));
+    // THE OUTCOME GOES BACK ONTO THE ROW (22 Sep 2026, it_engineer): see delivery_status.ts.
+    let recorded = 0;
+    const outcome = deliveryOutcome(type, bounceType);
+    const emailId = typeof data?.email_id === 'string' ? data.email_id : '';
+    if (outcome && emailId) {
+      const now = new Date().toISOString();
+      const at = Number.isFinite(Date.parse(body?.created_at)) ? new Date(body.created_at).toISOString() : now;
+      const patch: Record<string, unknown> = { provider_status: outcome.status, provider_status_at: at, provider_status_checked_at: now };
+      if (outcome.code) patch.provider_error_code = outcome.code;
+      let q = admin.from('notifications').update(patch).eq('provider_message_id', emailId).eq('channel', 'email');
+      if (outcome.onlyIf) q = q.or(outcome.onlyIf);
+      const { data: rows, error } = await q.select('id');
+      if (error) await logRun('error', { stage: 'provider_status', type }, 'resend_webhook could not record "' + type + '" on the notification for Resend email ' + emailId + ': ' + String(error.message).slice(0, 200));
+      recorded = rows?.length || 0;
+    }
+    await logRun('ok', { authorised: 1, type, suppressed, recorded, signature_verified: 1 }, suppressed > 0 ? ('Verified Resend event "' + type + '" suppressed ' + suppressed + ' address(es) so we stop mailing them.') : ('Verified Resend event "' + type + '" required no suppression.'));
     return J({ ok: true, type, suppressed });
   } catch (e) {
     await logRun('error', { unhandled_exception: 1 }, 'resend_webhook threw an unhandled exception: ' + String((e as Error)?.message || e).slice(0, 200) + ' - a bounce or complaint may not have been suppressed, so we could keep emailing a dead address and damage sender reputation.');

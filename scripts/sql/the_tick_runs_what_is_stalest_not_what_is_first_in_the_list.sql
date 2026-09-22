@@ -160,7 +160,22 @@ as $fn$
              / greatest(extract(epoch from every), 1) as ratio
       from public.resilience_step
      where place = 'plan'
-       and (last_started_at is null or now() - last_started_at >= every)
+       -- A TICK IS NEVER EXACTLY ON THE BEAT, SO THE DUE TEST HAS TWO MINUTES OF TOLERANCE
+       -- (22 Sep 2026, it_engineer, SEATS-04). `now() - last_started_at >= every` asks for the full
+       -- interval to have elapsed at the moment the tick looks. Ticks jitter by seconds, so a 30-minute
+       -- step whose last attempt was 29 min 58 s ago is not due on this tick and waits for the next one:
+       -- its real cadence becomes one tick longer, and measured across the estate the scheduled steps
+       -- were running about 1.5x their declared interval.
+       -- SAID PRECISELY, because the loose version of this sentence was wrong: the effective floor is
+       -- `every - 2 min`, so a 15-minute step can now run as often as every 13 minutes and TWICE inside
+       -- some 15-minute windows. That is the intended trade — two runs 13 minutes apart cost one extra
+       -- pass of a step that already gates itself, where a missed beat costs a whole interval — and it is
+       -- not a lock: nothing here reserves a step. `last_started_at` is stamped by
+       -- fn_resilience_step_record when the tick REPORTS, i.e. at the end, so two ticks overlapping in
+       -- time can both plan the same step. That was already true before this change; the tolerance does
+       -- not create it and does not fix it. Each step's own `fn_*_due` gate and claim-style queries are
+       -- what make a double run harmless.
+       and (last_started_at is null or now() - last_started_at >= every - interval '2 minutes')
   ), ranked as (
     select *, row_number() over (order by ratio desc, step) as rn from due
   ), filled as (

@@ -31,6 +31,8 @@ import { categoryLabel } from '@/lib/categoryLabel';
 import { arDays } from '@/lib/durationLabel';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import { take } from '@/components/me/prefetch';
+import { emirateName } from '@/components/me/portalText';
+import { arCount, AR_NOUN } from '@/lib/countedNoun';
 
 const L = (lang: string, en: string, ar: string) => (lang === 'ar' ? ar : en);
 const S = {
@@ -81,7 +83,7 @@ function Head({ id, onOpen, children }: { id: string; onOpen?: (id: string) => v
 const CHASE_COPY: Record<string, [string, string]> = {
   not_yet_sent: [
     'This has not reached any supplier yet. Open it and check the trade is right — that is what we match on.',
-    'لم يصل هذا الطلب إلى أي مورّد بعد. افتحه وتأكد من صحة النشاط المحدد، فعليه تقوم المطابقة.',
+    'لم يصل هذا الطلب إلى أي مورّد بعد. افتحه وتأكد من صحة التخصص المحدد، فعليه تقوم المطابقة.',
   ],
   no_replies: [
     'Suppliers have it and none has quoted yet. Adding a drawing or a target date is what usually unblocks this.',
@@ -202,7 +204,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
                         `الأرخص ${aed(r.cheapest_price)}، أي أقل بـ ${save} من العرض التالي.`)
                     : L(lang,
                         `You have ${r.quotes} quotes, the lowest at ${aed(r.cheapest_price)}.`,
-                        `لديك ${r.quotes} عروض، أدناها ${aed(r.cheapest_price)}.`)}
+                        `لديك ${arCount(r.quotes, AR_NOUN.quote)}، ${Number(r.quotes) === 2 ? 'أدناهما' : 'أدناها'} ${aed(r.cheapest_price)}.`)}
             </div>
             {/* Said plainly rather than hidden: we cannot rank on speed what nobody stated a
                 lead time for. */}
@@ -210,7 +212,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
               <div className={cn(S.sub, 'mt-0.5 text-muted-foreground/70')}>
                 {L(lang,
                   `${r.lead_times_stated} of ${r.quotes} quotes gave a lead time, so speed is compared only across those.`,
-                  `${r.lead_times_stated} من ${r.quotes} عروض ذكرت مدة التنفيذ، لذا تُقارن السرعة بينها فقط.`)}
+                  `${r.lead_times_stated} من ${arCount(r.quotes, AR_NOUN.quote, { oblique: true })} ذكرت مدة التنفيذ، لذا تُقارن السرعة بينها فقط.`)}
               </div>
             ) : null}
           </div>
@@ -225,8 +227,8 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
               the Arabic half of one L() call empty, which is not a translation. */}
           <div className={cn(S.head, 'first-letter:uppercase')}>
             {L(lang,
-               `What ${categoryLabel(m.category || '', 'en')} jobs cost${m.emirate ? ' in ' + m.emirate : ' in the UAE'}`,
-               `كم تكلّف أعمال ${categoryLabel(m.category || '', 'ar')}${m.emirate ? ' في ' + m.emirate : ' في الإمارات'}`)}
+               `What ${categoryLabel(m.category || '', 'en')} jobs cost${m.emirate ? ' in ' + emirateName(m.emirate, 'en') : ' in the UAE'}`,
+               `كم تكلّف أعمال ${categoryLabel(m.category || '', 'ar')}${m.emirate ? ' في ' + emirateName(m.emirate, 'ar') : ' في الإمارات'}`)}
           </div>
           <div className={cn(S.sub, 'mt-1')}>
             {m.price_known
@@ -241,10 +243,10 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
             <div className={cn(S.sub, 'mt-0.5')}>
               {L(lang,
                 `${m.suppliers_covering} UAE suppliers on our list cover this trade${m.emirate ? ' in ' + m.emirate : ''}.`,
-                `${m.suppliers_covering} مورّدًا في الإمارات ضمن قائمتنا يغطّون هذا التخصص${m.emirate ? ' في ' + m.emirate : ''}.`)}
+                `${arCount(m.suppliers_covering, AR_NOUN.supplier)} في الإمارات ضمن قائمتنا يغطّون هذا التخصص${m.emirate ? ' في ' + emirateName(m.emirate, 'ar') : ''}.`)}
               {m.avg_days_to_quote != null && Number(m.avg_days_to_quote) >= 1
                 ? L(lang, ` First quotes have taken about ${m.avg_days_to_quote} days.`,
-                          ` واستغرق وصول أول العروض نحو ${arDays(m.avg_days_to_quote)}.`)
+                          ` واستغرق وصول أول العروض نحو ${arDays(m.avg_days_to_quote, { genitive: true })}.`)
                 : ''}
             </div>
           ) : null}
@@ -262,7 +264,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
               {Math.round(Number(c.age_days)) < 1
                 ? L(lang, 'Posted today. ', 'نُشر اليوم. ')
                 : L(lang, `Posted ${Math.round(Number(c.age_days))} days ago. `,
-                         `نُشر قبل ${arDays(Math.round(Number(c.age_days)))}. `)}
+                         `نُشر قبل ${arDays(Math.round(Number(c.age_days)), { genitive: true })}. `)}
               {L(lang, copy[0], copy[1])}
             </div>
           </div>

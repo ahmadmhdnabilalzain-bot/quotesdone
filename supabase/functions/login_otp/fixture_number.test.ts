@@ -75,3 +75,22 @@ Deno.test('login_otp control: a real-looking address is NOT marked fixture', asy
   assert(row.includes('"http":'), 'no telemetry row was written, so this control proves nothing: ' + row);
   assert(!row.includes('fixture'), 'a real address was marked as harness traffic: ' + row);
 });
+
+// UNSOLVED-04 (22 Sep 2026): every row, both the telemetry row and login_otp's own semantic row, names its
+// caller class, so "was a person refused" is answerable from agent_runs alone.
+const semRow = (calls: { url: string; body: string }[]) =>
+  calls.filter((c) => c.url.includes('/rest/v1/agent_runs') && c.body.includes('"login_otp"') && !c.body.includes('"fn:login_otp"')).map((c) => c.body).join('\n');
+
+Deno.test('login_otp: a real-looking refusal is stamped caller:person on both rows', async () => {
+  const r = await invoke(await fn(), {}, { action: 'send', user_kind: 'customer', identifier: REAL_LOOKING, allow_signup: true });
+  assertEquals(r.status, 404);
+  assert(fnRow(r.calls).includes('"caller":"person"'), fnRow(r.calls));
+  assert(semRow(r.calls).includes('"caller":"person"'), 'the semantic row has no caller class: ' + semRow(r.calls));
+});
+
+Deno.test('login_otp: a fixture refusal is stamped caller:fixture on both rows', async () => {
+  const r = await invoke(await fn(), {}, { action: 'send', user_kind: 'customer', identifier: FIXTURE, allow_signup: true });
+  assertEquals(r.status, 404);
+  assert(fnRow(r.calls).includes('"caller":"fixture"'), fnRow(r.calls));
+  assert(semRow(r.calls).includes('"caller":"fixture"') && semRow(r.calls).includes('"fixture":1'), semRow(r.calls));
+});

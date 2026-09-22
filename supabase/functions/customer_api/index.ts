@@ -26,6 +26,9 @@ import { revealCharge } from '../_shared/reveal_fee.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/sanctioned.ts';
+// One door decides whether a supplier may be revealed, and one predicate decides whether a quote is
+// complete enough to be listed, ranked or revealed (customer-portal audit CP-01 / CP-09).
+import { canReveal, heldQuoteIds, itemsByQuote } from '../_shared/reveal_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -33,6 +36,25 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 const INQUIRY_LIMIT_PER_HOUR = 20;
 const PDF_LIMIT_PER_HOUR = 40;
+// A DATABASE MESSAGE IS NOT AN ANSWER TO A CUSTOMER (customer-portal audit CP-17, 22 Sep 2026).
+// create_inquiry answered a failed insert with `error: e1.message`, so a constraint name, a column
+// name or a driver string was printed on the customer's screen where a sentence belongs. The class
+// decides the status — class 23 is the database REFUSING the row (a 4xx), anything else is ours —
+// and the real message goes to the log, where an engineer reads it.
+// deno-lint-ignore no-explicit-any
+function inquiryNotSaved(err: any): [Record<string, unknown>, number] {
+  const sqlstate = String(err?.code || '');
+  console.error('create_inquiry insert refused', JSON.stringify({ sqlstate, message: String(err?.message || '').slice(0, 300) }));
+  const refused = sqlstate.startsWith('23');
+  return [{ ok: false, error: refused ? 'request_refused' : 'request_not_saved', code: refused ? 'request_refused' : 'request_not_saved',
+    message: refused ? 'We could not accept that request. Please check what you entered and try again.' : 'We could not save your request just now. Nothing was sent — please try again in a moment.',
+    message_ar: refused ? 'تعذّر قبول هذا الطلب. يُرجى مراجعة ما أدخلته والمحاولة مرة أخرى.' : 'تعذّر حفظ طلبك الآن. لم يُرسل شيء — يُرجى المحاولة بعد لحظات.' },
+    refused ? 400 : 500];
+}
+// THE EDIT WINDOW, ONCE. public.fn_edit_inquiry refuses an edit more than one hour after the request
+// was created; this constant is what the portal is told, so the button and the routine agree
+// (customer-portal audit CP-06, 22 Sep 2026 — the portal said 24 hours).
+const EDIT_WINDOW_MS = 60 * 60e3;
 // Anonymised quote labels must stay alphabetic beyond 26 quotes. String.fromCharCode(65 + i)
 // emits '[', '\\', ']' from the 27th, so a customer with 30 quotes saw "Supplier [" and the
 // comparison report referenced a label that did not exist in their list.
@@ -764,7 +786,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const b64 = String(body.file_b64 || '');
       if (!b64) return J({ ok: false, error: 'empty_upload' }, 400);
       // 5 MB of bytes is about 6.7 MB of base64: refused here before anything is decoded or forwarded.
-      if (b64.length > 7 * 1024 * 1024) return J({ ok: false, error: 'file_too_large' });
+      if (b64.length > 7 * 1024 * 1024) return J({ ok: false, error: 'file_too_large', code: 'file_too_large', message: 'That file is too large. Please upload a smaller version.', message_ar: 'هذا الملف كبير جدًا. يُرجى رفع نسخة أصغر.' }, 413);
       const hint = String(body.hint || '').slice(0, 400);
       const secret = await getSecret('cred_fn_customer_api');
       let jd: any = null;
@@ -786,7 +808,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const mime = String(body.mime || '');
       const b64 = String(body.file_b64 || '');
       if (!b64) return J({ ok: false, error: 'empty_upload' }, 400);
-      if (b64.length > 27 * 1024 * 1024) return J({ ok: false, error: 'file_too_large' });
+      if (b64.length > 27 * 1024 * 1024) return J({ ok: false, error: 'file_too_large', code: 'file_too_large', message: 'That file is too large. Please upload a smaller version.', message_ar: 'هذا الملف كبير جدًا. يُرجى رفع نسخة أصغر.' }, 413);
       const hint = String(body.hint || '').slice(0, 400);
       const secret = await getSecret('cred_fn_customer_api');
       let jd: any = null; let st = 0;
@@ -957,7 +979,9 @@ Deno.serve(observe('customer_api', async (req) => {
           const job = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: cadWhy });
           if (job) return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, note: 'cad_queued', cad_job_id: job });
         }
-        if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 200);
+        // A REFUSAL IS A REFUSAL, WITH A STATUS (audit CP-03 / CP-10). This answered HTTP 200 with
+        // ok:false and an English code, so every log, probe and proxy read it as a success.
+        if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', code: 'analysis_failed', message: 'We could not read that drawing. Your file is saved — please describe the job in your own words and we will carry on.', message_ar: 'تعذّر علينا قراءة هذا المخطط. ملفك محفوظ — يُرجى وصف العمل بكلماتك ونكمل معك.', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 502);
         // THE CONFIRM STEP RUNS ONLY NOW, after redaction has finished and every page came back
         // (review of #642: it used to run in parallel and could see the original page). drawing_boq
         // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
@@ -1231,7 +1255,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (wantTurnkey) {
         const tkKeywords = Array.from(new Set([...keywords, 'fitout', 'fit out', 'fit-out', 'turnkey', 'interior', 'renovation', 'decoration', ...distinctTrades])).slice(0, 40);
         const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
-        if (e1) return J({ error: e1.message }, 500);
+        if (e1) return J(...inquiryNotSaved(e1));
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
         const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
@@ -1240,7 +1264,7 @@ Deno.serve(observe('customer_api', async (req) => {
       }
 
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
-      if (e1) return J({ error: e1.message }, 500);
+      if (e1) return J(...inquiryNotSaved(e1));
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
       const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, summary, budget, extra: extra + supplierLine(reqStored) });
@@ -1317,12 +1341,36 @@ Deno.serve(observe('customer_api', async (req) => {
       if (ids.length && txRes.error) console.error('my_inquiries: transactions read failed —', txRes.error.message);
       const txIds = txs.map((t) => t.id);
       const [qsRes, msRes, sosRes, rfsRes] = await Promise.all([
-        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }) : null,
+        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,price_ex_vat,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }) : null,
         ids.length ? admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids) : null,
         ids.length ? admin.from('spec_alternative_offer').select('id,inquiry_id,line_no,item,attr,label_en,label_ar,requested,alternatives,state,reply_by').in('inquiry_id', ids).eq('customer_id', cust.id).eq('state', 'open').order('opened_at', { ascending: true }) : null,
         txIds.length ? admin.from('refunds').select('id,transaction_id,refund_decision_id').in('transaction_id', txIds) : null,
       ]);
-      const quotes: Record<string, any>[] = qsRes?.data || [];
+      const allQuotes: Record<string, any>[] = qsRes?.data || [];
+      // WHAT THE PORTAL MAY LIST IS WHAT THE COMPARISON MAY RANK (customer-portal audit CP-01 and
+      // CP-15, 22 Sep 2026). This action filtered on status <> 'draft' alone, so two kinds of quote
+      // reached the customer's screen that no other surface will act on:
+      //   * a quote ON HOLD for missing details — quote_compare withholds it from the ranking and
+      //     both tables (the founder's hold rule, 14 Sep 2026), yet it was listed here with a
+      //     Reveal button, so the customer could pay 3% for the one quote we refuse to stand behind.
+      //   * a quote from a SANCTIONED supplier — never shown to a customer (instruction 516). The
+      //     ban lands after the quote was submitted, so the row survives the matcher.
+      // Both are now excluded from the list and the held ones are COUNTED (`on_hold` per request),
+      // because a quote that vanished with no explanation is its own defect. A quote the customer
+      // has already paid to reveal is never withdrawn: that disclosure is theirs.
+      const paidQuoteIds = new Set(txs.map((t) => String(t.quote_id)));
+      const sanctionedSup = await sanctionedLeads(admin, [...new Set(allQuotes.map((q) => q.supplier_id).filter((x) => x != null))] as (string | number)[]);
+      const inqById = new Map<string, any>([...(tops || []), ...kids].map((i: any) => [String(i.id), i]));
+      const itemsOf = await itemsByQuote(admin, allQuotes.map((q) => String(q.id)));
+      const heldIds = new Set<string>();
+      for (const [iid, row] of inqById) {
+        const mine = allQuotes.filter((q) => String(q.inquiry_id) === iid && !paidQuoteIds.has(String(q.id)));
+        if (!mine.length) continue;
+        for (const id of heldQuoteIds(mine.map((q) => ({ quote: q, items: itemsOf[String(q.id)] || [] })), row.category ?? null, row.spec)) heldIds.add(id);
+      }
+      const onHoldByInq: Record<string, number> = {};
+      for (const q of allQuotes) if (heldIds.has(String(q.id))) onHoldByInq[String(q.inquiry_id)] = (onHoldByInq[String(q.inquiry_id)] || 0) + 1;
+      const quotes: Record<string, any>[] = allQuotes.filter((q) => !heldIds.has(String(q.id)) && !sanctionedSup.has(String(q.supplier_id)));
       // How many suppliers the request actually reached. Without this the portal cannot tell
       // "waiting for quotes" apart from "this reached nobody", and shows hope either way.
       const matchedBy: Record<string, number> = {};
@@ -1407,7 +1455,13 @@ Deno.serve(observe('customer_api', async (req) => {
         applied_filters: appliedFilters(i.routing),
         // §6/§7: the floor this RFQ is scoped to, and the delivery window the assistant extracted.
         floor: i.floor ?? null, required_by: i.required_by ?? null, delivery_window: i.delivery_window ?? null,
-        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null, editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < 24*3600e3), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((60*60e3 - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
+        project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null,
+        // ONE EDIT WINDOW, ONE NUMBER (customer-portal audit CP-06, 22 Sep 2026). This said 24 hours
+        // while fn_edit_inquiry refuses after 1 hour and the minutes counter beside it counted down
+        // from 60, so the portal offered an Edit button for 23 hours that the server always refused.
+        editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < EDIT_WINDOW_MS), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((EDIT_WINDOW_MS - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0,
+        // How many quotes are on hold for missing details and are therefore not in the list below.
+        on_hold: onHoldByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
           // W9 badges: only measured facts, null when absent. Pre-reveal the response rate is floored
           // to a 10% band and the rating stays out (the banded rating above already shows it), so a
           // badge can never be an exact fingerprint of one company.
@@ -1488,7 +1542,9 @@ Deno.serve(observe('customer_api', async (req) => {
       let analysis: any = null;
       try {
         const got = await fetchCompareAnalysis(iid, lang);
-        if (got.analysis) analysis = got.analysis; else return J({ error: got.error }, 200);
+        // A DOCUMENT THAT COULD NOT BE BUILT IS NOT AN HTTP 200 (audit CP-10). 409: the comparison
+        // itself is unavailable (too few complete quotes, or the model is down), not the request.
+        if (got.analysis) analysis = got.analysis; else return J({ ok: false, error: got.error, code: got.error, message: 'The comparison report is not available yet. Your quotes are unaffected.', message_ar: 'تقرير المقارنة غير متاح بعد. عروضك لم تتأثر.' }, 409);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       try {
         const { j, ref } = await buildComparePdf(analysis, inq, lang);
@@ -1511,10 +1567,10 @@ Deno.serve(observe('customer_api', async (req) => {
       let analysis: any = null;
       try {
         const got = await fetchCompareAnalysis(iid, lang);
-        if (got.analysis) analysis = got.analysis; else return J({ error: got.error }, 200);
+        if (got.analysis) analysis = got.analysis; else return J({ ok: false, error: got.error, code: got.error, message: 'The comparison is not available yet. Your quotes are unaffected.', message_ar: 'المقارنة غير متاحة بعد. عروضك لم تتأثر.' }, 409);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       const side = compareTable(analysis, lang === 'ar');
-      if (!side) return J({ error: 'comparison_unavailable' }, 200);
+      if (!side) return J({ ok: false, error: 'comparison_unavailable', code: 'comparison_unavailable', message: 'The comparison is not available yet. Your quotes are unaffected.', message_ar: 'المقارنة غير متاحة بعد. عروضك لم تتأثر.' }, 409);
       return J({ ok: true, csv: toCsv(side.head, side.rows), filename: 'QD-' + jobNoOf(inq) + (lang === 'ar' ? '-مقارنة' : '-comparison') + '.csv' });
     }
 
@@ -1576,17 +1632,14 @@ Deno.serve(observe('customer_api', async (req) => {
 
     if (action === 'reveal') {
       const cfg = await getCfg(); const qid = String(body.quote_id || '');
-      const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,original_file_path,original_file_name').eq('id', qid).maybeSingle();
-      if (!q) return J({ error: 'Quote not found' }, 404);
-      // NEVER SHOWN TO A CUSTOMER (founder instruction 516, 18 Sep 2026). A sanctions ban lands
-      // after the quote was already submitted, so the row survives the matcher that would have
-      // excluded it. The refusal belongs BEFORE the charge, not after: a customer must not pay to
-      // be handed the contact details of a sanctioned party.
-      if (await sanctionedLead(admin, q.supplier_id)) return J(SANCTIONED_REFUSAL, 403);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id').eq('id', q.inquiry_id).maybeSingle();
-      if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
-      const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
-      if (existing) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
+      // ONE GUARD FOR EVERY REVEAL DOOR (_shared/reveal_guard.ts, audit CP-01 / CP-09). Ownership,
+      // the quote's own status, the request's status, the sanctions ban (instruction 516 — a
+      // customer must never pay to be handed a permanently closed party) and the completeness hold
+      // are decided there, so stripe_checkout and stripe_confirm cannot check something different.
+      const gate = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });
+      if (!gate.ok) return J({ ok: false, error: gate.error, code: gate.code, message: gate.message, message_ar: gate.message_ar }, gate.status);
+      const q = gate.quote;
+      if (gate.already_revealed) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
       // The breakdown the confirm dialog prints is the one stripe_checkout charges: one module.
       const ch = revealCharge(Number(q.quote_amount), Number(cfg.standard_reveal_rate));
       return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: ch.base_fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
@@ -1662,11 +1715,25 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'complete_inquiry') {
       const qid = String(body.quote_id || '');
       const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
-      const { data: inq } = await admin.from('inquiries').select('id,customer_id,summary').eq('id', q.inquiry_id).maybeSingle();
+      const { data: inq } = await admin.from('inquiries').select('id,customer_id,summary,status,hired_supplier_id').eq('id', q.inquiry_id).maybeSingle();
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle();
       if (!tx) return J({ error: 'Reveal this supplier first.' }, 403);
-      await admin.from('inquiries').update({ status: 'completed', hired_supplier_id: q.supplier_id, completed_at: new Date().toISOString(), outcome: 'hired' }).eq('id', inq.id);
+      // HIRE IS IDEMPOTENT (customer-portal audit CP-11, 22 Sep 2026). Every press of "Hire" wrote
+      // the same row again AND re-ran notifyLosers, so the losing suppliers were emailed "the
+      // customer chose another supplier" once per press. The second press of the same button on
+      // the same supplier now answers ok and sends nothing; a DIFFERENT supplier on a job already
+      // awarded is refused rather than silently re-awarded.
+      if (String(inq.status || '') === 'completed' && inq.hired_supplier_id != null) {
+        const same = Number(inq.hired_supplier_id) === Number(q.supplier_id);
+        return same
+          ? J({ ok: true, already_completed: true })
+          : J({ ok: false, error: 'already_hired', code: 'already_hired', message: 'You have already hired a supplier for this request.', message_ar: 'لقد اخترت مورّدًا لهذا الطلب بالفعل.' }, 409);
+      }
+      // The award itself is the lock: only the press that finds hired_supplier_id still null wins
+      // it, so two presses that arrive together still send one round of notices.
+      const { data: won } = await admin.from('inquiries').update({ status: 'completed', hired_supplier_id: q.supplier_id, completed_at: new Date().toISOString(), outcome: 'hired' }).eq('id', inq.id).is('hired_supplier_id', null).select('id');
+      if (!won || !won.length) return J({ ok: true, already_completed: true });
       await notifyLosers(String(inq.id), inq.summary ?? null, Number(q.supplier_id));
       return J({ ok: true });
     }
@@ -1674,8 +1741,27 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'edit_inquiry') {
       const iid = String(body.inquiry_id || '');
       const patch = (body.patch && typeof body.patch === 'object') ? body.patch : body;
+      // WHAT A CUSTOMER MAY EDIT IN PLACE (customer-portal audit CP-04, 22 Sep 2026). This forwarded
+      // spec, boq, trades, keywords and raw_input straight into fn_edit_inquiry, which writes them
+      // to the row with no anonymity scrub and no requirements check — the two gates create_inquiry
+      // puts every one of those fields through (scrubDeep / redactBoq for the customer's identity,
+      // intake_requirements for the answers suppliers quote against). An edit could therefore put
+      // the customer's own name into a BOQ line the suppliers read, or empty the requirements that
+      // the hold rule measures quotes against.
+      //   Only the three fields that carry no structure are editable here: the summary (scrubbed
+      //   with the same scrubber every supplier-facing text goes through), the budget and the
+      //   emirate. A change to the scope, the BOQ or the trades is a new request — the portal's own
+      //   Edit form offers nothing else.
       const clean: Record<string, unknown> = {};
-      for (const k of ['summary','raw_input','budget','emirate','scope_type','spec','boq','trades','keywords']) if (patch[k] !== undefined) clean[k] = patch[k];
+      for (const k of ['budget', 'emirate']) if (patch[k] !== undefined) clean[k] = patch[k];
+      if (patch.summary !== undefined) {
+        const bn = await buyerNameOf(String(iid));
+        // A name we could not read is a name we cannot scrub: the edit is refused rather than
+        // written unscrubbed (the rule buyerName/scrubIdentity already enforce on every send).
+        if (!bn.resolved) return J({ ok: false, error: 'summary_not_editable', code: 'summary_not_editable', message: 'We could not check this text for your own details just now. Please try again in a moment.', message_ar: 'تعذّر التحقق من خلو النص من بياناتك الآن. يُرجى المحاولة بعد لحظات.' }, 503);
+        clean.summary = scrubIdentity(String(patch.summary).slice(0, 500), bn.name, []) || '';
+      }
+      if (!Object.keys(clean).length) return J({ ok: false, error: 'nothing_editable', code: 'nothing_editable', message: 'Only the description, the budget and the emirate can be changed. For anything else, please post a new request.', message_ar: 'يمكن تعديل الوصف والميزانية والإمارة فقط. لأي تغيير آخر يُرجى إنشاء طلب جديد.' }, 400);
       const { data: r } = await admin.rpc('fn_edit_inquiry', { p_inquiry: iid, p_customer: cust.id, p_patch: clean });
       if (r?.error) return J({ error: r.message || r.error, editable_until: r.editable_until }, r.error === 'not_your_inquiry' ? 403 : 400);
       return J(r || { ok: true });
@@ -1697,7 +1783,11 @@ Deno.serve(observe('customer_api', async (req) => {
       // need q.supplier_id run beside it instead of one after another (14 Sep 2026: four sequential
       // round trips here, then three more below).
       const [{ data: tx }, { data: sup }, { data: projs }, mine, { count: sentAll }] = await Promise.all([
-        admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle(),
+        // PAID MEANS revealed_at, EVERYWHERE (review of #850, 22 Sep 2026). This was the one door
+        // that accepted a transactions row's existence as proof of payment; every other door —
+        // fn_customer_document_refs, the vault, the guard — reads revealed_at. Measured on
+        // production the same day: 0 rows disagree, so this is alignment, not a behaviour change.
+        admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).not('revealed_at', 'is', null).maybeSingle(),
         admin.from('leads').select('id,company_name,emirate,phone,whatsapp,email,website,app_rating,app_reviews,description,capability_summary,founded_year,company_type').eq('id', q.supplier_id).maybeSingle(),
         admin.from('transactions').select('revealed_at,quote_amount,inquiries(category,emirate)').eq('supplier_id', q.supplier_id).order('revealed_at', { ascending: false }).limit(20),
         admin.from('inquiries').select('id').eq('customer_id', cust.id).limit(500),

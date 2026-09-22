@@ -6482,7 +6482,7 @@ quote''s prior status so noth'),
 
 **LLM stack.** Most AI functions call **OpenRouter** with a Sonnet-first ladder: `anthropic/claude-sonnet-5` primary → `anthropic/claude-opus-4.8` fallback, via the shared client **`_shared/llm.ts`** (`makeLlm(LADDER)`, 25s abort timeout). Imported by: agent_act, agent_brain, agents, category_provision, category_reqs, copilot*, email_triage, exec_agents, messages_api*, project_consultant, prompt_gate (*copilot/messages_api are in the portal chapters). Older functions still inline their own OpenRouter helper. **`designer`** is the only function calling OpenAI directly (`gpt-image-1`). Embeddings (`kb_embed`, `kb_search`) use the in-region built-in `Supabase.ai.Session(''gte-small'')` — no external API.
 
-**Disabled / kill-switched surfaces** (present but inert — do not re-enable without review): `voice_otp`, `voice_otp_capture`, `dev_login`, `qa_login`, `src_io` all return HTTP 410; `qa_mint` is live but double-gated behind a `qa_mint_enabled` kill-switch (keep OFF in prod).
+**Disabled / kill-switched surfaces** (present but inert — do not re-enable without review): `voice_otp_capture`, `dev_login`, `qa_login`, `src_io` all return HTTP 410 (`voice_otp` STOPPED being one on 22 Sep 2026: it now answers 200 TwiML telling a caller the line is WhatsApp-only, and it is a live customer-facing surface); `qa_mint` is live but double-gated behind a `qa_mint_enabled` kill-switch (keep OFF in prod).
 
 ---
 
