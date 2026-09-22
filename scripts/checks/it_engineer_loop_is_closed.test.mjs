@@ -196,7 +196,7 @@ test('the detector fits the 8 s statement timeout, and a detector that stops per
 // finding against itself. That test now opens one. This probe now measures only what its own 60 rows do:
 // the detector runs once before they exist and once after, and the attempts it counts must not move inside a
 // window, and must move by exactly 60 outside one (the control), whatever real traffic is doing.
-const REFUSAL_PROBE = (withWindow) => `
+const REFUSAL_PROBE = (withWindow, counts = '{"http":404}') => `
     declare v0 jsonb; v1 jsonb;
     begin
       set local statement_timeout = '60s';
@@ -205,12 +205,14 @@ const REFUSAL_PROBE = (withWindow) => `
       v0 := public.fn_it_detect(null, false);
       ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, started_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', now() - interval '5 minutes');" : ''}
       insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
-      select 'fn:login_otp', 'warn', now() - interval '1 minute', now() - interval '1 minute', '{"http":404}'::jsonb, 'ZZ DEMO'
+      select 'fn:login_otp', 'warn', now() - interval '1 minute', now() - interval '1 minute', '${counts}'::jsonb, 'ZZ DEMO'
         from generate_series(1, 60);
       v1 := public.fn_it_detect(null, false);
       raise exception 'CHK<<%>>', json_build_object(
         'before', coalesce((select (f->'evidence'->>'window_attempts')::int from jsonb_array_elements(v0->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'), 0),
         'after',  coalesce((select (f->'evidence'->>'window_attempts')::int from jsonb_array_elements(v1->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'), 0),
+        'ref_before', coalesce((select (f->'evidence'->>'window_refused')::int from jsonb_array_elements(v0->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'), 0),
+        'ref_after',  coalesce((select (f->'evidence'->>'window_refused')::int from jsonb_array_elements(v1->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'), 0),
         'finding_after', (select count(*) from jsonb_array_elements(v1->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'));
     end`;
 
@@ -225,6 +227,23 @@ test('control: the same refusals outside any rehearsal window are counted and ra
   // before = 0 means production had no finding, so its attempts were not published; then only >= 60 is knowable
   if (r.before > 0) assert.equal(r.after - r.before, 60, `outside a window the attempts moved ${r.before} -> ${r.after}, not by 60`);
   else assert.ok(r.after >= 60, `outside a window the finding counted ${r.after} attempts`);
+});
+
+// 22 Sep 2026: "login_otp turned away 58 of 69 callers (84%)" was, row for row, our own fixture-number traffic
+// (a check run without a window, and resilience_ping's launch-path probe, which never opens one). login_otp now
+// marks such a run `fixture: 1` itself, from the number; D9 must leave it out WITHOUT a window. The control above
+// (same 60 rows, unmarked, outside a window) proves the detector still counts a real person.
+test('refusals the server marked as fixture traffic are not customers turned away, even outside a window', { skip: SKIP }, async () => {
+  const r = await probe(REFUSAL_PROBE(false, '{"http":404,"fixture":1}'));
+  assert.equal(r.after, r.before, `60 fixture-marked refusals outside any window were counted (${r.before} -> ${r.after} attempts)`);
+});
+
+// And the founder's own rules: it_refusal_policy names ambiguous_phone, but the row D9 counts is the telemetry
+// twin, which used to carry no reason, so the register never matched. login_otp now carries the reason onto it.
+// A policy refusal is still an ATTEMPT (it dilutes the share); it must never be a REFUSAL.
+test('a registered policy refusal on the counted telemetry row is not a customer turned away', { skip: SKIP }, async () => {
+  const r = await probe(REFUSAL_PROBE(false, '{"http":409,"ambiguous_phone":1}'));
+  assert.ok(r.ref_after <= r.ref_before, `60 ambiguous_phone refusals were counted as faults (${r.ref_before} -> ${r.ref_after} refused)`);
 });
 
 // 8. THE LEARNING GATE CLOSES WHAT THE PLAYBOOK KNOWS AND STILL REFUSES WHAT NOBODY HAS.

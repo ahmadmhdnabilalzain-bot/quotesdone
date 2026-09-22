@@ -139,6 +139,26 @@ export function baseCounts(req: Request, http: number, region: string | null = e
   return { http, method: req.method, path: pathOf(req), region };
 }
 
+/**
+ * WHAT THE HANDLER KNOWS ABOUT A RESPONSE, CARRIED ONTO ITS RUN ROW (22 Sep 2026, it_engineer).
+ *
+ * The telemetry row is the one fn_it_detect's refusal_rate counts, and it held only http/method/path —
+ * no idea WHO was refused or WHY. Measured 22 Sep: login_otp "turned away 58 of 69 callers (84%)",
+ * and every one of the 58 was our own traffic — a_phone_cannot_select_an_account.test.mjs's six-call
+ * bursts and resilience_ping's hourly launch-path probe, all on the reserved fixture block
+ * +971 50 000 00xx. The two refusals the founder ruled deliberate (ambiguous_phone, sms_signup_refused)
+ * were counted too: it_refusal_policy matches on the semantic row, and D9 drops that row in favour of
+ * this one, so the register never matched a twinned refusal.
+ *
+ * The handler, not the caller, decides these keys: a Response is annotated in server code, and a
+ * request body or header cannot reach this map. Annotated keys never override http/method/path/region.
+ */
+const ANNOTATIONS = new WeakMap<Response, Record<string, unknown>>();
+export function annotate(res: Response, counts: Record<string, unknown>): Response {
+  ANNOTATIONS.set(res, { ...(ANNOTATIONS.get(res) ?? {}), ...counts });
+  return res;
+}
+
 /** Read a failed response's body WITHOUT disturbing the one being returned. */
 async function bodyOf(res: Response): Promise<string> {
   try {
@@ -179,7 +199,7 @@ export function observe(
     }
     const ms = Date.now() - t0;
     const http = res.status;
-    const base = baseCounts(req, http);
+    const base = { ...(ANNOTATIONS.get(res) ?? {}), ...baseCounts(req, http) };
     if (http >= 400) {
       const status = classify(http);
       const cloned = bodyOf(res);    // clone NOW, read in the background
