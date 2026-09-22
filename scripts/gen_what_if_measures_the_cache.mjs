@@ -24,7 +24,7 @@
 //   node scripts/gen_what_if_measures_the_cache.mjs
 //   node scripts/apply_sql.mjs scripts/sql/what_if_measures_the_cache.sql --promote
 import { writeFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const ANCHOR =
   `'mitigation','Model policy already routes by task class; cache adoption is 0%, so caching is the first lever.'`;

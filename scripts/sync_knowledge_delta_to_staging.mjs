@@ -16,8 +16,8 @@
 // it is computed by an embedding call — so it is copied.
 //
 //   node scripts/sync_knowledge_delta_to_staging.mjs [--dry-run]
-import { mgmtRead, mgmtWrite, mgmtWriteData, PROD_REF } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead, mgmtWrite, mgmtWriteData, PROD_REF } from './lib/qd_guard.mjs';
+import { REF as STAGE } from './lib/demo_factory.mjs';
 
 const DRY = process.argv.includes('--dry-run');
 const one = (r) => (r && r[0]) ? Object.values(r[0])[0] : null;

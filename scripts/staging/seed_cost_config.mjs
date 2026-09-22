@@ -27,7 +27,7 @@
 //
 //     node scripts/staging/seed_cost_config.mjs
 //     node scripts/staging/seed_cost_config.mjs --reset-telemetry
-import { resolveStagingRef, mgmtRead, mgmtWrite } from './qd_guard.mjs';
+import { resolveStagingRef, mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
 
 // 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
 // no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it

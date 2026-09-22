@@ -1,6 +1,6 @@
 // SPEC FILE #5 — the SUPPLIER PORTAL, scored against PRODUCTION.
 //
-// 234 requirements across 24 sections, enumerated in docs/sessions/ROW5_REQUIREMENTS.md. The count
+// 234 requirements across 24 sections, enumerated in docs/archive/sessions/ROW5_REQUIREMENTS.md. The count
 // is NOT row #4's 147 and was not derived from it: §23 names fifteen technologies and §24 names
 // nineteen portal modules, and those two sections carry 34 requirements that row #4 had no
 // equivalent for. The runner is row #4's with three changes, and everything else — the helper
@@ -64,8 +64,8 @@
 // hard; qd_guard retries with exponential backoff. Several minutes is normal. It is not a hang.
 import { readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const TARGET = process.argv.includes('--staging') ? STAGE : PROD_REF;
 const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7);

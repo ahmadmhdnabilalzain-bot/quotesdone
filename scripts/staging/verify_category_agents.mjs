@@ -1,6 +1,6 @@
 // SPEC FILE #6 — SUPPLIER CATEGORIES AND THEIR AI AGENTS, scored against PRODUCTION.
 //
-// 283 requirements across 12 sections, enumerated in docs/sessions/ROW6_REQUIREMENTS.md.
+// 283 requirements across 12 sections, enumerated in docs/archive/sessions/ROW6_REQUIREMENTS.md.
 //
 //   node scripts/staging/verify_category_agents.mjs             # read-only, PRODUCTION
 //   node scripts/staging/verify_category_agents.mjs --staging    # same checks against staging
@@ -41,8 +41,8 @@
 // hard; qd_guard retries with exponential backoff. Several minutes is normal. It is not a hang.
 import { readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const TARGET = process.argv.includes('--staging') ? STAGE : PROD_REF;
 const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7);

@@ -7,8 +7,8 @@
 // built in the same change, not after it.
 //
 //   node scripts/staging/verify_review_chain.mjs      # zero spend — fn_challenge is deterministic
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

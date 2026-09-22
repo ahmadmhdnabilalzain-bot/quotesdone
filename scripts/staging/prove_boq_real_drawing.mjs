@@ -16,8 +16,8 @@
 //
 // Refuses production through qd_guard; the customer is a tagged demo row and is torn down.
 import { readFileSync } from 'node:fs';
-import { withRun, makeCustomer, call, REF, q } from './demo_factory.mjs';
-import { mgmtRead } from './qd_guard.mjs';
+import { withRun, makeCustomer, call, REF, q } from '../lib/demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
 
 const pagesFile = process.argv[2];
 const pdfFile = process.argv[3] || null;

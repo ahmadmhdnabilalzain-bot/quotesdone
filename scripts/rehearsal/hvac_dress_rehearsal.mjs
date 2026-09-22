@@ -19,7 +19,7 @@
 // at HTTP 200 for weeks.
 //
 // STATE ON 18 SEPTEMBER 2026 — READ THIS BEFORE RUNNING IT. The supplier half of `seed` is fixed and
-// proven (12 ZZ DEMO HVAC suppliers built by scripts/staging/demo_factory.mjs, all six of the founder's
+// proven (12 ZZ DEMO HVAC suppliers built by scripts/lib/demo_factory.mjs, all six of the founder's
 // mandatory items complete, all approved by fn_sales_engineer_verifies_supplier). Two further drifts
 // were measured on the way and ONE IS STILL OPEN:
 //   * FIXED here: the guard probe demanded a demo recipient come back 'pending' and production now
@@ -38,7 +38,7 @@
 // `seed` writes to the live project through the demo factory, so it needs the factory's explicit
 // production opt-in as well as `arm`:   QD_FIXTURES=1 node scripts/rehearsal/hvac_dress_rehearsal.mjs seed
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { newRun, makeSupplier, teardown as factoryTeardown } from '../staging/demo_factory.mjs';
+import { newRun, makeSupplier, teardown as factoryTeardown } from '../lib/demo_factory.mjs';
 
 const PROD = 'htdblwldjkcgjvmqkbeh';
 // The one run tag this rehearsal's demo suppliers carry, in leads.tags as 'qd_run:hvacdress'. Fixed and
@@ -191,7 +191,7 @@ if (cmd === 'seed') {
   // a verified e-mail (owner_email_verified, never leads.email), a licence and a company profile that
   // storage.objects actually HOLDS, and signed terms.
   //
-  // So the seed no longer hand-rolls a supplier. scripts/staging/demo_factory.mjs is the ONE way this
+  // So the seed no longer hand-rolls a supplier. scripts/lib/demo_factory.mjs is the ONE way this
   // estate makes a demo supplier: it uploads the two real PDFs, signs the agreement through
   // compliance_archive, and has the SALES ENGINEER approve through fn_sales_engineer_verifies_supplier —
   // the production path — instead of writing approval_status. The addresses stay @example.invalid, which

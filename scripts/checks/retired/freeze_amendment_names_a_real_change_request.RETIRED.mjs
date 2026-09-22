@@ -56,7 +56,7 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 // skip below could take effect. It is loaded on first use instead.
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const mgmtRead = async (ref, sql) =>
-  (await import('../../staging/qd_guard.mjs')).mgmtRead(ref, sql);
+  (await import('../../lib/qd_guard.mjs')).mgmtRead(ref, sql);
 
 // The aborted-transaction door. The management endpoint has no transaction handle, so the abort is
 // expressed the only way it can be: the drive lives inside a block that always raises, and the

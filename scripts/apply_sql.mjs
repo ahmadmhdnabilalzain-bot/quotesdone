@@ -22,7 +22,7 @@
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --promote  # accepted alias for --apply (history)
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --apply --ddl   # file also carries schema changes
 import { readFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const file = process.argv[2];
 // --promote is kept as an alias, not as a second mode. It is written into ~20 session briefs, the
