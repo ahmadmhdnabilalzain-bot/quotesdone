@@ -44,6 +44,10 @@
 --     handler only READS and replies. invite_enabled / supplier_outreach_golive / invite_daily_cap stay
 --     the founder's; the CEO names them in the brief when they are the constraint.
 --   * No Meta, ads or social media (instruction 641): buyer acquisition is named as the marketing seat's.
+--     22 Sep 2026, later (instruction 721, the marketing seat exists): the demand stage is now OWNED by marketing,
+--     the plan reads the latest marketing.report into its funnel (funnel.marketing_report), ceo.directive reaches
+--     marketing like every other seat (steering, never an approval), and the founder-text rule is seat-aware: a line
+--     naming a seat reaches him only while that seat is active, so the word 'marketing' is no longer forbidden.
 --   * target_contract / target_verdict / fn_target_feasibility are left as they are.
 
 -- ── 1. THE TWELVE-MONTH PLAN ──────────────────────────────────────────────────────────────────────
@@ -264,7 +268,9 @@ begin
     when 'quotes'         then 'requests reaching 3 quotes'
     when 'reveals'        then 'reveal fees paid'
     else 'every stage on plan' end;
-  v_owner := case v_stage when 'deliverability' then 'customer_support' when 'on_plan' then null else 'sales_engineer' end;
+  -- demand (customer requests posted) is buyer acquisition: the marketing seat's since 22 Sep 2026 (instruction 721).
+  v_owner := case v_stage when 'deliverability' then 'customer_support' when 'demand' then 'marketing'
+                          when 'on_plan' then null else 'sales_engineer' end;
   v_key := case v_stage
     when 'deliverability' then 'bounce_pct_7d' when 'invitations' then 'invitations_delivered'
     when 'registrations' then 'registrations_submitted'
@@ -279,9 +285,6 @@ begin
   if v_stage in ('invitations','registrations') and not (coalesce((g->>'invite_enabled')::boolean,false) and coalesce((g->>'supplier_outreach_golive')::boolean,false)) then
     v_lever := 'founder_reserved';
     v_hold := 'the campaign gate is closed: the founder''s reserved decision, held silently';
-  elsif v_stage = 'demand' then
-    v_lever := 'unowned';
-    v_hold := 'no existing seat owns buyer acquisition: recorded internally until a seat does';
   elsif v_stage = 'invitations' and ceil((p_target->>'invites')::numeric / 22) > v_cap then
     -- the ramp is the sales engineer's and customer support's (warm-up config), so the seat is directed
     -- and the shortfall is recorded -- the founder is not asked about the cap
@@ -391,6 +394,8 @@ begin
       v_duty := 'the RFQ dispatch and the spec-offer duty: widen the match inside the exact trade and chase the suppliers who have not quoted';
     when 'reveals' then
       v_duty := 'the comparison follow-up with the customer; the payment path is the accountant''s nightly test';
+    when 'demand' then
+      v_duty := 'the marketing seat''s duties (supabase/functions/marketing/duties.ts): approved posts, the social inbox and paid reach that bring buyers to post requests; its daily report (marketing.report) says what moved';
     else
       v_duty := 'no standing duty carries this stage'; v_block := 'no owner duty exists';
   end case;
@@ -404,7 +409,7 @@ revoke execute on function public.fn_seat_takes_ceo_directive(bigint) from publi
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
 select 'ceo.directive', 'ceo', s, 'The CEO''s daily plan names the binding constraint this seat can move: reach the target by the deadline. The CEO re-measures and closes it, met or missed.',
        'fn_seat_takes_ceo_directive', interval '1 hour', true, 'scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql'
-  from unnest(array['sales_engineer','customer_support','accountant','it_engineer']) s
+  from unnest(array['sales_engineer','customer_support','accountant','it_engineer','marketing']) s
 on conflict do nothing;
 
 -- ── 7. ACT ON THE DAY'S PLAN ──────────────────────────────────────────────────────────────────────
@@ -544,11 +549,14 @@ revoke execute on function public.fn_ceo_plan_review(timestamptz) from public, a
 -- money, change a supplier or customer record, message anyone, or touch a founder switch: its only
 -- effect is a decision row and ceo.directive handoffs, whose handler only reads.
 -- What the founder is never told by the CEO (instructions 636, 639; 22 Sep 2026): the campaign gate and
--- its switches, the invitation volume, cap and warm-up, subscriptions, and a seat that does not exist.
--- One pattern, read by fn_ceo_judgement_accept, fn_ceo_plan_brief_lines and the recurrence test.
+-- its switches, the invitation volume, cap and warm-up, and subscriptions. One pattern, read by
+-- fn_ceo_judgement_accept, fn_ceo_plan_brief_lines and the recurrence test.
+-- "A seat that does not exist" was enforced here by the word 'marketing' until 22 Sep 2026; the seat exists now
+-- (instruction 721), so that rule is SEAT-AWARE instead: a directive, and so a brief line, may name only a seat
+-- that is active in org_role (fn_ceo_judgement_accept and fn_ceo_plan_brief_lines read org_role).
 create or replace function public.fn_ceo_founder_text_forbidden()
 returns text language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  select '(switched off|switch them|campaign|\mgate\M|go[- ]?live|invite_enabled|\mcaps?\M|ceiling|warm[- ]?up|subscription|marketing)'::text
+  select '(switched off|switch them|campaign|\mgate\M|go[- ]?live|invite_enabled|\mcaps?\M|ceiling|warm[- ]?up|subscription)'::text
 $fn$;
 revoke execute on function public.fn_ceo_founder_text_forbidden() from public, anon, authenticated;
 
@@ -556,13 +564,13 @@ create or replace function public.fn_ceo_judgement_contract()
 returns jsonb language sql immutable set search_path to 'public', 'pg_temp' as $fn$
   select jsonb_build_object(
     'version', 'ceo-judgement-v1',
-    'system', 'You are the chief executive of QuotesDone, a UAE construction-procurement marketplace. Customers post requests; verified suppliers quote; the customer sees a free comparison of the best three technical quotes plus every other quote, and pays a 3% reveal fee (plus card processing) to reveal the supplier they choose. Suppliers pay no commission. The company goal is AED 1,000,000 of reveal-fee revenue by 31 August 2027. You direct four seats: sales_engineer, customer_support, accountant, it_engineer. Decide ONLY from the numbers in the input; never invent one. You may not move money, change a supplier or customer record, message a customer, a supplier or the founder, or touch any founder switch. The supplier invitation campaign (its go, its switches, its daily volume and ramp), subscriptions and seats that do not exist yet are not yours to propose or mention: when a stage is held by them, choose hold_reserved and leave founder_decision null. founder_decision is only for a stage a seat can move that has not moved in 14 days despite directives. Choose exactly one option id from input.options. Give your reasoning in at most eight sentences, citing the input numbers you relied on. Make one measurable prediction. Reply with a single JSON object matching output_schema and nothing else.',
-    'input_fields', jsonb_build_array('date','goal','month_target','funnel','attainment','constraint','open_directives','options','plan_c_choice'),
+    'system', 'You are the chief executive of QuotesDone, a UAE construction-procurement marketplace. Customers post requests; verified suppliers quote; the customer sees a free comparison of the best three technical quotes plus every other quote, and pays a 3% reveal fee (plus card processing) to reveal the supplier they choose. Suppliers pay no commission. The company goal is AED 1,000,000 of reveal-fee revenue by 31 August 2027. You direct five seats: sales_engineer, customer_support, accountant, it_engineer, marketing (marketing owns the demand stage: buyers posting requests). input.marketing is the marketing seat''s latest daily report: read it as the picture of that stage. Decide ONLY from the numbers in the input; never invent one. You may not move money, change a supplier or customer record, message a customer, a supplier or the founder, or touch any founder switch. The supplier invitation campaign (its go, its switches, its daily volume and ramp), subscriptions and seats that do not exist yet are not yours to propose or mention: when a stage is held by them, choose hold_reserved and leave founder_decision null. founder_decision is only for a stage a seat can move that has not moved in 14 days despite directives. Choose exactly one option id from input.options. Give your reasoning in at most eight sentences, citing the input numbers you relied on. Make one measurable prediction. Reply with a single JSON object matching output_schema and nothing else.',
+    'input_fields', jsonb_build_array('date','goal','month_target','funnel','attainment','constraint','open_directives','options','plan_c_choice','marketing'),
     'output_schema', jsonb_build_object(
       'option_id', 'one of input.options[].id',
       'reasoning', 'string, 40-2000 characters, cites input numbers',
       'prediction', jsonb_build_object('measure_key','one of the measure keys in input.funnel','direction','min|max','value','number >= 0','by_date','YYYY-MM-DD, 1-30 days after input.date'),
-      'directives', 'array of at most 3: {seat: sales_engineer|customer_support|accountant|it_engineer, stage, measure_key, direction, target >= 0, due_days 1-14, instruction <= 400 characters}',
+      'directives', 'array of at most 3: {seat: sales_engineer|customer_support|accountant|it_engineer|marketing, stage, measure_key, direction, target >= 0, due_days 1-14, instruction <= 400 characters}',
       'founder_decision', 'null, or <= 300 characters naming the one decision only the founder can take'),
     'plan_c', 'If the slot is off, the call fails, or the answer fails validation, the coded decision already taken stands and the rejection is recorded on the plan.')
 $fn$;
@@ -584,7 +592,9 @@ begin
       'open_directives', (select coalesce(jsonb_agg(jsonb_build_object('seat', a.agent, 'stage', a.detail->>'stage', 'measure_key', a.detail->>'measure_key',
                                    'target', a.detail->'target', 'due_at', a.detail->>'due_at', 'reply', a.evidence)), '[]'::jsonb)
                             from public.agent_actions a where a.kind='handoff' and a.detail->>'type'='ceo.directive' and a.status='pending'),
-      'options', p.decision->'options', 'plan_c_choice', p.decision->>'plan_c_choice'));
+      'options', p.decision->'options', 'plan_c_choice', p.decision->>'plan_c_choice',
+      -- the marketing report the plan read when it was made (fn_ceo_plan_tick), 22 Sep 2026 (instruction 721)
+      'marketing', p.funnel->'marketing_report'));
 end $fn$;
 revoke execute on function public.fn_ceo_judgement_request(bigint) from public, anon, authenticated;
 
@@ -613,7 +623,8 @@ begin
     when jsonb_typeof(coalesce(p_output->'directives','[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_output->'directives','[]'::jsonb)) > 3 then 'directives is not an array of at most 3'
     when exists (select 1 from jsonb_array_elements(coalesce(p_output->'directives','[]'::jsonb)) dd
                   where jsonb_typeof(dd) <> 'object'
-                     or not coalesce(dd->>'seat' = any (array['sales_engineer','customer_support','accountant','it_engineer']), false)
+                     or not coalesce(dd->>'seat' = any (array['sales_engineer','customer_support','accountant','it_engineer','marketing']), false)
+                     or not exists (select 1 from public.org_role r where r.role_id = dd->>'seat' and r.status = 'active')
                      or not coalesce(dd->>'measure_key' = any (v_keys), false) or coalesce(dd->>'direction','') not in ('min','max')
                      or coalesce(dd->>'target','') !~ '^[0-9]+(\.[0-9]+)?$'
                      or case when coalesce(dd->>'due_days','') ~ '^[0-9]{1,3}$' then (dd->>'due_days')::int not between 1 and 14 else true end
@@ -677,6 +688,12 @@ begin
   end if;
 
   v_funnel := public.fn_ceo_plan_funnel(p_at);
+  -- THE CEO READS THE MARKETING PICTURE INTO THE PLAN (instruction 721): the latest marketing.report is kept on the
+  -- day's plan row, read by the judgement request as input.marketing. Informational: it changes no lever.
+  v_funnel := v_funnel || jsonb_build_object('marketing_report',
+    (select jsonb_build_object('report_date', m.report_date, 'no_data_yet', m.no_data_yet, 'headline', m.figures->>'headline',
+                               'measured', m.figures->'measured', 'not_measured', m.figures->'not_measured')
+       from public.marketing_report m where m.report_date <= v_local::date order by m.report_date desc limit 1));
   select to_jsonb(m) into v_target from public.ceo_plan_month m where m.month = date_trunc('month', v_local)::date;
   select to_jsonb(x) into v_prev from public.ceo_plan x where x.plan_date < v_local::date order by x.plan_date desc limit 1;
   v_dec := public.fn_ceo_plan_decide(v_funnel, coalesce(v_target, '{}'::jsonb), v_prev);
@@ -723,7 +740,8 @@ returns jsonb language sql stable security definer set search_path to 'public', 
                                       ||case a.detail->>'direction' when 'max' then ' down to ' else ' to ' end||(a.detail->>'target')
                                       ||' by '||to_char((a.detail->>'due_at')::timestamptz at time zone 'Asia/Dubai','DD Mon')||'.')
                        from public.agent_actions a
-                      where a.kind='handoff' and a.detail->>'type'='ceo.directive' and a.status='pending'), '[]'::jsonb)
+                      where a.kind='handoff' and a.detail->>'type'='ceo.directive' and a.status='pending'
+                        and exists (select 1 from public.org_role r where r.role_id = a.agent and r.status = 'active')), '[]'::jsonb)
         || case when p.founder_line is not null then jsonb_build_array('Waiting on you: '||p.founder_line) else '[]'::jsonb end
       from public.ceo_plan p order by p.plan_date desc limit 1)) x
    where x !~* public.fn_ceo_founder_text_forbidden()), '[]'::jsonb)

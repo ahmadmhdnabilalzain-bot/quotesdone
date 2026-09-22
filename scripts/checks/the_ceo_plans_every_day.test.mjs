@@ -64,6 +64,14 @@ test('D. directives travel the handoff machinery and only the CEO closes them', 
   assert.match(fu, /p_now > \(a\.detail->>'due_at'\)::timestamptz/, 'an overdue directive is no longer closed as missed');
   const handler = fnBody('fn_seat_takes_ceo_directive').replace(/--[^\n]*/g, '');
   assert.doesNotMatch(handler, /\b(insert|update|delete)\b/i, 'the directive handler writes: it must only read and reply');
+  // 22 Sep 2026 (instruction 721): marketing is directed like every other seat, owns the demand stage, and the plan
+  // reads its daily report. Each fails if the marketing seat is dropped from the plan again.
+  assert.match(code, /from unnest\(array\[[^\]]*'marketing'\]\) s/, 'ceo.directive does not reach the marketing seat');
+  assert.match(fnBody('fn_ceo_plan_decide'), /when 'demand' then 'marketing'/, 'the demand stage is not owned by marketing');
+  assert.doesNotMatch(fnBody('fn_ceo_plan_decide'), /v_lever := 'unowned'/, 'the demand stage is unowned again');
+  assert.match(handler, /when 'demand' then/, 'the directive handler names no duty for the demand stage');
+  assert.match(fnBody('fn_ceo_plan_tick'), /'marketing_report',[\s\S]*from public\.marketing_report/, 'the plan no longer reads the marketing report');
+  assert.match(fnBody('fn_ceo_judgement_request'), /'marketing', p\.funnel->'marketing_report'/, 'the model no longer sees the marketing report');
 });
 
 test('E. the model slot is bounded, validated, and second to plan C', () => {
@@ -121,14 +129,19 @@ test('G. the decision names the right lever and escalates a stall (pure, replaye
 //    the campaign go, the invitation switches, caps or warm-up, subscriptions, and is never told about a
 //    seat that does not exist. Replayed live over every lever the decision can take, then every source of
 //    founder-facing text in the repository is scanned for the reserved subjects.
-const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer'];
-const FORBIDDEN = /(switched off|switch them|campaign|\bgate\b|go[- ]?live|invite_enabled|\bcaps?\b|ceiling|warm[- ]?up|subscription|marketing)/i;
+const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
+const FORBIDDEN = /(switched off|switch them|campaign|\bgate\b|go[- ]?live|invite_enabled|\bcaps?\b|ceiling|warm[- ]?up|subscription)/i;
 
 test('H. no founder-facing text raises the campaign, caps, subscriptions or a seat that does not exist', async (t) => {
   // the pattern the database enforces is the pattern this test enforces
   const fbd = fnBody('fn_ceo_founder_text_forbidden');
-  for (const w of ['switched off', 'campaign', 'go[- ]?live', 'caps?', 'warm[- ]?up', 'subscription', 'marketing'])
+  for (const w of ['switched off', 'campaign', 'go[- ]?live', 'caps?', 'warm[- ]?up', 'subscription'])
     assert.ok(fbd.includes(w), `fn_ceo_founder_text_forbidden lost ${w}`);
+  // 22 Sep 2026 (instruction 721): the marketing seat exists, so its name is no longer a reserved word. The rule that
+  // replaced it is seat-aware: only an ACTIVE seat can be directed or named in a brief line.
+  assert.doesNotMatch(fbd, /marketing/, 'the founder-text filter still drops every line that says marketing (rule 641 is superseded by 721)');
+  assert.match(fnBody('fn_ceo_plan_brief_lines'), /r.role_id = a.agent and r.status = 'active'/, 'brief lines may name a seat that is not active');
+  assert.match(fnBody('fn_ceo_judgement_accept'), /r.role_id = dd->>'seat' and r.status = 'active'/, 'the model may direct a seat that is not active');
   assert.match(fnBody('fn_ceo_plan_brief_lines'), /x !~\* public\.fn_ceo_founder_text_forbidden\(\)/, 'brief lines are not filtered');
 
   // static: the founder-facing literals in the brief and in the plan's decision
@@ -155,7 +168,7 @@ test('H. no founder-facing text raises the campaign, caps, subscriptions or a se
   const cases = {
     gate_closed: `${f(false, '2000-01-25', 50, z())}, ${tg}, ${prev('invitations')}`,
     cap_short: `${f(true, '2000-01-25', 50, z())}, ${tg}, ${prev('invitations')}`,
-    demand_unowned: `${f(true, '2000-01-25', 100, z({ i: 5000, r: 500, v: 500 }))}, ${tg}, ${prev('demand')}`,
+    demand_marketing: `${f(true, '2000-01-25', 100, z({ i: 5000, r: 500, v: 500 }))}, ${tg}, ${prev('demand')}`,
     reveals_l3: `${f(true, '2000-01-25', 100, z({ i: 5000, r: 500, v: 500, q: 500 }))}, ${tg}, ${prev('reveals')}`,
   };
   const query = fn + '\nselect ' + Object.entries(cases).map(([k, a]) => `pg_temp.fn_ceo_plan_decide(${a}) as ${k}`).join(', ') + ';';
@@ -167,7 +180,10 @@ test('H. no founder-facing text raises the campaign, caps, subscriptions or a se
   const [d] = rows;
   assert.equal(d.gate_closed.founder_line, null, 'a closed campaign gate reached the founder');
   assert.equal(d.cap_short.founder_line, null, 'the invitation cap reached the founder');
-  assert.equal(d.demand_unowned.lever, 'unowned'); assert.equal(d.demand_unowned.founder_line, null, 'a seat that does not exist reached the founder');
+  // the demand stage is the marketing seat's (instruction 721): a directive to marketing, and a 15-day stall reaches the brief naming it
+  assert.equal(d.demand_marketing.lever, 'seat', 'the demand stage has no owner again');
+  assert.equal(d.demand_marketing.directive.seat, 'marketing', 'the demand stage is not directed to marketing');
+  assert.match(d.demand_marketing.founder_line || '', /marketing was directed/, 'a stalled demand stage does not name its seat to the founder');
   assert.ok(d.reveals_l3.founder_line, 'a seat-movable 15-day stall must still reach the brief');
   for (const [k, v] of Object.entries(d)) {
     const line = v.founder_line || '';

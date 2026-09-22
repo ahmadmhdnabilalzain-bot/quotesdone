@@ -31,3 +31,14 @@ export function heldRun(o: { customerId: string; email: string; sourcePath: stri
     verify_detail: { reason: o.reason },
   };
 }
+
+// A CAD ORIGINAL IS SAID TO BE HELD ON EVERY PATH (22 Sep 2026, sales_engineer). analyze_drawing reads a
+// .dwg / .dxf on two paths. With no pictures of it, drawing_boq reads the file and the answer says
+// 'cad_read_not_pictured'. When cad_convert DID picture it, the same take-off came back through the
+// pictured path, whose answer carried no note (production, sample_2000.dwg, 22 Sep: HTTP 200, 3 lines,
+// no note). A CAD picture has no text layer, so the server cannot box its title block and drawing_redact
+// holds the pages; the answer now names that the same way on both paths. A picture set that WAS fully
+// verified is not held and is not called unpictured.
+export function cadNote(isCad: boolean, hand: { drawing_held: boolean }) {
+  return isCad && hand.drawing_held ? { note: 'cad_read_not_pictured' as const } : {};
+}
