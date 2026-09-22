@@ -1,1 +1,0 @@
-marketing, 22 Sep 2026. A pure rolled-back probe; runs after the_marketing_seat_publishes_measures_and_reports_spend.sql and the seat build are applied. Its verdict must read PROBE OK.
