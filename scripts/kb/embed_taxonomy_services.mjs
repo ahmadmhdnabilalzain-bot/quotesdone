@@ -25,15 +25,20 @@ if (!WRITE || !rows.length) process.exit(0);
 
 const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
 if (!secret) { console.error('no cred_fn_ai in app_secrets'); process.exit(2); }
+// A gte-small failure is a 503 embed_failed (22 Sep 2026, instruction 645; it used to be ok:true with a
+// null vector). A 503 is retried, three attempts in all; anything else fails the row at once, as before.
 async function embedText(text) {
-  const res = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ __secret: secret, fn: 'embed_taxonomy_services', action: 'embed', text }),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const j = await res.json();
-  if (!j.embedding) throw new Error('gateway returned no embedding');
-  return j.embedding;
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, fn: 'embed_taxonomy_services', action: 'embed', text }),
+    });
+    if (res.status === 503 && attempt < 3) { await new Promise((s) => setTimeout(s, 1000 * attempt)); continue; }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const j = await res.json();
+    if (!j.embedding) throw new Error('gateway returned no embedding');
+    return j.embedding;
+  }
 }
 const lit = (v) => "'" + String(v).replace(/'/g, "''") + "'";
 let ok = 0; const failed = [];
