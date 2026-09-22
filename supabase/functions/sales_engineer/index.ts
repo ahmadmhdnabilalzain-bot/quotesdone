@@ -102,18 +102,28 @@ async function specOfferSweep(limit: number) {
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const { data: cands, error: cErr } = await admin.rpc('fn_spec_offer_candidates', { p_limit: limit });
   if (cErr) out.errors.push('candidates: ' + cErr.message);
+  // A FAILED CHECK BACKS OFF (22 Sep 2026). A candidate whose comparison errored was never marked,
+  // so fn_spec_offer_candidates handed it back on every ~15-minute resilience tick, forever.
+  // fn_spec_offer_failed counts the attempt and sets the next one (15 min, doubling); after the
+  // last attempt the inquiry leaves the sweep and sales_engineer is handed it as a finding.
+  const failed = async (inquiryId: string, why: string) => {
+    out.errors.push(`${inquiryId}: ${why}`);
+    try { await admin.rpc('fn_spec_offer_failed', { p_inquiry: inquiryId, p_error: why.slice(0, 300) }); } catch (_e) { /* recorded in errors */ }
+  };
   for (const c of (cands || []) as Array<{ inquiry_id: string; customer_id: string | null }>) {
     try {
-      // The same comparison the customer sees, eligible quotes only. quote_compare runs with verify_jwt,
-      // so the service key passes the gateway and __secret decides the caller (the #630 lesson).
+      // The same technical comparison the customer sees, eligible quotes only. technical_only: the
+      // sweep reads technical_detail alone, which quote_compare computes by code — it never needed
+      // the paid model comparison it used to trigger for every candidate. quote_compare runs with
+      // verify_jwt, so the service key passes the gateway and __secret decides the caller (#630).
       const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/quote_compare', { method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
-        body: JSON.stringify({ __secret: secret, inquiry_id: c.inquiry_id, lang: 'en' }), signal: AbortSignal.timeout(45000) });
+        body: JSON.stringify({ __secret: secret, inquiry_id: c.inquiry_id, lang: 'en', technical_only: true }), signal: AbortSignal.timeout(45000) });
       const j = await r.json().catch(() => null);
-      if (!r.ok || !j) { out.errors.push(`${c.inquiry_id}: quote_compare HTTP ${r.status}`); continue; }
+      if (!r.ok || !j) { await failed(c.inquiry_id, `quote_compare HTTP ${r.status}`); continue; }
       const offers = j.ok && j.analysis ? noExactSpec(j.analysis.technical_detail) : [];
       const { data: opened, error: oErr } = await admin.rpc('fn_spec_offer_open', { p_inquiry: c.inquiry_id, p_offers: offers });
-      if (oErr) { out.errors.push(`${c.inquiry_id}: open ${oErr.message}`); continue; }
+      if (oErr) { await failed(c.inquiry_id, `open ${oErr.message}`); continue; }
       out.checked++; out.offers_opened += (opened || []).length;
       if (!(opened || []).length) continue;
       const cust = await customerContact(c.customer_id);
@@ -126,7 +136,7 @@ async function specOfferSweep(limit: number) {
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'sent', p_notification_ids: ids });
         out.offers_sent++;
       }
-    } catch (e) { out.errors.push(`${c.inquiry_id}: ${String((e as Error)?.message || e).slice(0, 160)}`); }
+    } catch (e) { await failed(c.inquiry_id, String((e as Error)?.message || e).slice(0, 160)); }
   }
   const { data: due, error: dErr } = await admin.rpc('fn_spec_offer_due');
   if (dErr) out.errors.push('due: ' + dErr.message);

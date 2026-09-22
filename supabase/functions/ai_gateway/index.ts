@@ -36,6 +36,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { observe } from '../_shared/observe.ts';
+import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, subjectOf } from '../_shared/spend_guards.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) =>
@@ -376,6 +377,47 @@ Deno.serve(observe('ai_gateway', async (req) => {
                  why: route.why });
     }
 
+    // ---- OUR OWN TRAFFIC NEVER SPENDS (22 Sep 2026, founder instruction 705) ------------------
+    // Nearly all measured demand on the paid routes was our own harness: the post-merge E2E smoke
+    // (94 runs in 30 days) and the nightly journey drive ZZ DEMO / @example.invalid fixtures
+    // through inquiry_intake, quote_compare and the extractors exactly as a customer would. Once
+    // the hold lifts, every merge would have bought model answers for a test.
+    //
+    // The marker is never a flag a client can set. A caller names the SUBJECT it is working on
+    // (inquiry, customer, supplier, verified email or phone) and the DATABASE decides whether that
+    // subject is a fixture (public.fn_ai_subject_is_fixture: is_demo, ZZ DEMO names, the reserved
+    // email domains, the +9715000000xx range). Only this gateway's internal callers can reach it,
+    // and they take the subject from rows they already loaded. Anything short of an explicit "not a
+    // fixture" answers with the stub; so does a calling function that names itself as a probe,
+    // rehearsal, smoke or eval. The stub is the same 503 shape as the founder's hold, so every
+    // caller takes the deterministic path it already takes today — the harness keeps testing
+    // exactly what it tests now, for nothing. Placed after the dry run on purpose: routing and
+    // caching are still verified for free; only the paid call is replaced.
+    {
+      const subject = subjectOf((body as { subject?: unknown }).subject);
+      let ownWork = ownWorkByName(fnName)
+        ? 'the calling function "' + fnName + '" is our own automated work (probe, rehearsal, smoke or eval)' : '';
+      if (!ownWork && subject) {
+        let fx: unknown = null; let fxErr: unknown = null;
+        try { const res = await admin.rpc('fn_ai_subject_is_fixture', { p_subject: subject }); fx = res.data; fxErr = res.error; }
+        catch (e) { fxErr = e; }
+        const v = fixtureVerdict(fx, fxErr);
+        if (v.stub) ownWork = v.why;
+      }
+      if (ownWork) {
+        await rpcSafe('fn_llm_log', {
+          p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+          p_task_class: route.task_class ?? null, p_model: 'none',
+          p_because: route.why + ' | FIXTURE: ' + ownWork + ' — answered with the no-cost stub, no provider call was made',
+          p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
+          p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+        });
+        return J({ ok: false, used_llm: false, outcome: 'fixture_no_spend',
+          error: 'our own test traffic is never sent to a paid model', why: ownWork,
+          task_class: route.task_class, cost_usd: 0 }, 503);
+      }
+    }
+
     // ---- 7. THE CALL --------------------------------------------------------------------
     const key = await sec('openrouter_api_key');
     if (!key) return J({ ok: false, error: 'openrouter_api_key missing' }, 500);
@@ -571,8 +613,19 @@ Deno.serve(observe('ai_gateway', async (req) => {
     // rfq_routing at 300 with 12 candidates, and quote_comparison again at sonnet/3000. Carry the
     // reason out so a too-small budget says so instead of looking like a bad model.
     let finishReason = '';
-    for (const m of ladder) {
-      for (let attempt = 0; attempt < 2; attempt++) {
+    // AT MOST TWO PAID CALLS PER REQUEST, AND NONE THAT CANNOT CHANGE THE ANSWER (22 Sep 2026).
+    // This was `for (m of ladder) for (attempt < 2)`: four provider calls per request on a
+    // two-model ladder, the same model retried after a 401/402/400 that no second asking can
+    // change, and a fall-back to the next model after a 402 (no credit) on the same account.
+    // quote_compare wrapped that in its own two-attempt loop, so one card view could make eight.
+    // attemptPlan bounds the whole ladder at MAX_PAID_CALLS_PER_REQUEST; failureKind decides from
+    // the provider's status whether another attempt is worth money (_shared/spend_guards.ts).
+    const plan = attemptPlan(ladder);
+    let pi = 0;
+    attempts: while (pi >= 0 && pi < plan.length) {
+      const m = plan[pi];
+      let failStatus: number | null = null;
+      {
         // An attempt needs a few seconds to be worth starting at all.
         const msLeft = deadlineAt - Date.now();
         if (msLeft < 4000) { deadlineHit = true; break; }
@@ -646,10 +699,12 @@ Deno.serve(observe('ai_gateway', async (req) => {
               });
             }
             lastErr = 'stream not available: HTTP ' + r.status;
-            continue;
+            failStatus = r.ok ? null : r.status;
+            throw new Error(lastErr);
           }
 
-          const j = await r.json();
+          failStatus = r.ok ? null : r.status;
+          const j = await r.json().catch(() => null);
           const msg = j?.choices?.[0]?.message;
           const c = msg?.content;
           // A tool-calling reply is a SUCCESS with empty content - the answer is in tool_calls.
@@ -667,7 +722,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
             finishReason = String(j?.choices?.[0]?.finish_reason
                                   || j?.choices?.[0]?.native_finish_reason || '');
             await recordAttempt(m, true, Date.now() - attemptStartedAt, '', finishReason, j?.usage);
-            break;
+            break attempts;
           }
           lastErr = JSON.stringify(j?.error || j).slice(0, 200);
           // An empty completion IS a failure even though the HTTP call succeeded. This is exactly
@@ -679,7 +734,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
           await recordAttempt(m, false, Date.now() - attemptStartedAt, lastErr);
         } finally { clearTimeout(to); }
       }
-      if (outMsg || deadlineHit) break;
+      pi = nextAttempt(plan, pi, failureKind(failStatus));
     }
 
     // ---- 8. LOG with real money ---------------------------------------------------------

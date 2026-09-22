@@ -1,0 +1,1 @@
+Written by it_engineer on 22 Sep 2026 (PR it_engineer/no-paid-call-repeats-itself). Not applied: the coordinator serialises applies. Apply this BEFORE deploying ai_gateway. Proved against production inside a rolled-back transaction: the probe returned PROBE OK.

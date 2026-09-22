@@ -93,7 +93,7 @@ Deno.serve(observe('quote_extract', async (req) => {
       // smallest real quotation. parseJson then returned {}, every text field was scrubbed to '',
       // and the function reported ok:true with an empty proposal: the supplier's real price was
       // silently dropped from the customer's comparison. 6000 covers a multi-page quotation.
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'quote_extract', max: 6000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }], client_timeout_ms: 100000 }) });
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'quote_extract', subject: body.subject ?? null, max: 6000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }], client_timeout_ms: 100000 }) });
       const jd = await r.json();
       if (!r.ok || jd?.ok === false) { const d = await detQuote('ai_gateway_refused'); if (d) return d; await logRun('error', { quote_extracted: 0, pages: aiPages, ai_ok: 0 }, 'quote_extract could not read a supplier quotation because the vision model call returned an error (' + String(jd?.detail || jd?.error || ('http ' + r.status)).slice(0, 140) + '). The supplier\'s quotation exists but produced no structured quote, so the customer\'s comparison is missing a real price.'); return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0,300) }, 502); }
       const _rawContent = jd?.content || '{}';
