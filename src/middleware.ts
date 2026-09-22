@@ -8,7 +8,22 @@ const intl = createMiddleware(routing);
 // UAE visitors on quotesdone.com go to quotesdone.ae (TDRA, founder 14 Sep 2026). Gated by
 // AE_DOMAIN_SERVES_SITE in src/lib/domains.ts; every page lives under [locale], so the matcher
 // below already covers every page the rule is meant for.
+// THE SIGNED-IN SHELLS STILL FOLLOW THE REGISTERED LANGUAGE (23 Sep 2026, review of #855).
+// routing.ts turned next-intl's localeDetection off so a requested URL is the answer: an Arabic
+// browser asking for /terms gets /terms (WEB-15). That switch also stopped next-intl reading the
+// NEXT_LOCALE cookie, which src/lib/documentLocale.ts writes at sign-in precisely so /me and /portal
+// are SERVED in the account's language and paint the right direction in the first frame. Detection by
+// header is a guess about a visitor; the cookie is a fact about an account, so only the app shells,
+// and only on their unprefixed paths, follow it. Public pages never do.
+const SHELLS = /^\/(me|portal)(\/|$)/;
+
 export default function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  if (SHELLS.test(pathname) && req.cookies.get('NEXT_LOCALE')?.value === 'ar') {
+    const url = req.nextUrl.clone();
+    url.pathname = '/ar' + pathname;
+    return NextResponse.redirect(url, 307);
+  }
   const to = aeRedirectTarget({
     enabled: AE_DOMAIN_SERVES_SITE,
     host: req.headers.get('host'),

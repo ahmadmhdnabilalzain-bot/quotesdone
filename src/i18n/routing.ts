@@ -12,7 +12,9 @@ export const routing = defineRouting({
   // localeDetection, a browser sending Accept-Language: ar was 307'd from /terms to /ar/terms, so the
   // English legal page could not be opened — and a shared /terms link showed a different document to
   // different people. The language is chosen by the URL (and the LangSwitch, which writes the cookie),
-  // never guessed from the browser.
+  // never guessed from the browser. The NEXT_LOCALE cookie an account writes at sign-in is still read
+  // — by src/middleware.ts, for /me and /portal only, where it is a fact about that account rather
+  // than a guess about a visitor.
   localeDetection: false
 });
 

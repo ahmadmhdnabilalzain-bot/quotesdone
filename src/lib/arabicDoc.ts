@@ -74,7 +74,9 @@ export function docHrefs(html: string): string {
   return html.replace(/href="(\/[^"?#]*[^/?#])\/(?=["?#])/g, 'href="$1');
 }
 
+// arLinks RUNS FIRST, then docHrefs. The other order left href="/ar/" behind: docHrefs keeps the root
+// "/" (there is nothing to trim), and arLinks then turned it into "/ar/", which answers 308 — measured
+// on /ar/services/solar in the review of #855. Prefixing first means the slash trimmer sees "/ar/".
 export function arDoc(html: string, locale: string): string {
-  const html2 = docHrefs(html);
-  return locale === 'ar' ? isolateLatin(arLinks(html2)) : html2;
+  return docHrefs(locale === 'ar' ? isolateLatin(arLinks(html)) : html);
 }

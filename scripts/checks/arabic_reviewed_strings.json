@@ -639,6 +639,20 @@
   "a47a1a80835f",
   "f07872a12ef2"
  ],
+ "scripts/sql/the_working_week_is_monday_to_friday_in_the_database_too.sql": [
+  "010238467fbf",
+  "0f801472cbda",
+  "6bc9dc1285ab",
+  "6ece79da1cbc",
+  "9bf4d77b4f88",
+  "9cc56ceba9de",
+  "9dad2edb1e3e",
+  "d0479646925c",
+  "d5a1002e2f29",
+  "e24997779d68",
+  "f68a7ffaa78f",
+  "f9d904cdc2a1"
+ ],
  "src/app/[locale]/blog/[slug]/opengraph-image.tsx": [
   "4bb69a8b2b4f"
  ],
