@@ -102,7 +102,7 @@ as $function$
   -- The competing bids. A DRAFT IS NOT A BID: a quote that was never sent to the customer is a figure
   -- somebody was still typing, and counting it moved the midpoint a real supplier prices against.
   bids as (
-    select q.quote_amount amt, q.lead_time, q.warranty, q.payment_terms
+    select q.supplier_id, q.quote_amount amt, q.lead_time, q.warranty, q.payment_terms
     from public.quotes q, flag, matched
     where matched.ok
       and q.inquiry_id = p_inquiry_id
@@ -111,31 +111,74 @@ as $function$
       and q.quote_amount is not null and q.quote_amount > 0
       and (coalesce(q.source, '') = 'qd_demo_fixture') = flag.is_demo
   ),
+  -- n IS A COUNT OF COMPANIES, not of rows (review of #854). count(*) let ONE rival submitting three
+  -- priced options clear a three-bid floor by itself, and the median of those three is that rival's
+  -- middle option. lowest and highest are computed for the wide_spread signal only; neither, and no
+  -- percentile, ever leaves this routine.
   stat as (
-    select count(*) n,
-           round(percentile_cont(0.5)  within group (order by amt)) mid,
-           round(percentile_cont(0.25) within group (order by amt)) lo,
-           round(percentile_cont(0.75) within group (order by amt)) hi,
+    select count(distinct supplier_id) n,
+           count(*) n_rows,
+           percentile_cont(0.5) within group (order by amt) mid_raw,
            min(amt) lowest, max(amt) highest
     from bids
+  ),
+  -- THE BRACKET, AND WHY A BRACKET RATHER THAN A FIGURE (review of #854, and one correction on top).
+  --
+  -- The first version published the median with its p25 and p75. For three sorted bids a < b < c that
+  -- is p25 = (a+b)/2 and p75 = (b+c)/2, so a = 2*p25 - median and c = 2*p75 - median: all three bids
+  -- recovered to the fils out of the very payload whose comment promised none of them. An ODD
+  -- population also makes the median itself one company's exact number, so no raw statistic can carry
+  -- the guarantee at all.
+  --
+  -- Rounding the median was the next attempt and it failed on its own probe: the fixtures
+  -- 50000 / 61000 / 72000 have a median of 61000, which is already a multiple of a thousand, so
+  -- "rounded to the nearest AED 1,000" published bid b unchanged. A SYMMETRIC band fails the same way
+  -- for the same reason — its own midpoint is the number it was meant to hide.
+  --
+  -- What leaves this routine is therefore the BRACKET the midpoint falls in: [floor(mid/step)*step,
+  -- +step), step being half an order of magnitude and never less than AED 1,000 (AED 5,000 wide around
+  -- 61,000; AED 50,000 wide around 610,000). A bracket has no centre to invert and states only that
+  -- the middle of the market is somewhere inside it.
+  --
+  -- THE GUARANTEE, STATED AS IT ACTUALLY HOLDS: this routine publishes no statistic of the competing
+  -- bids finer than one bracket. It does not promise that no bid EQUALS a bracket edge — a rival whose
+  -- price happens to be exactly AED 60,000 shares that number with the edge by coincidence, and
+  -- nothing in the payload says which.
+  band as (
+    select lo, lo + step as hi, step
+    from (select floor(mid_raw / step) * step as lo, step
+            from (select mid_raw, greatest(1000, power(10, floor(log(mid_raw)))::numeric / 2) as step
+                    from stat) q) b
   ),
 
   -- The supplier's own habit, measured rather than assumed: across every enquiry they have priced,
   -- where did they sit against the midpoint of that enquiry's other bids? An index of 1.04 means
   -- this company prices 4% above the middle of the market, and it is computed from their own rows.
+  -- ITS OWN FLOOR, AND THE SAME STATUS RULE (review of #854). This index was the leak the headline
+  -- figure no longer is: idx = avg(my price / the median of the others') to three decimal places, with
+  -- your_quotes_measured naming the denominator, so on a single measured enquiry a supplier could
+  -- recover that median to about a tenth of a percent. It is now computed ONLY over enquiries where at
+  -- least three OTHER COMPANIES submitted, rounded to two places, and published only when three or
+  -- more enquiries went into it. The supplier's own drafts are excluded too: the outer query had no
+  -- status filter at all, which contradicted this file's own rule that a draft is not a bid.
   habit as (
-    select round(avg(ratio)::numeric, 3) idx, count(*) n
+    select round(avg(ratio)::numeric, 2) idx, count(*) n
     from (
       select q.quote_amount / nullif((
                select percentile_cont(0.5) within group (order by o.quote_amount)
                from public.quotes o
                where o.inquiry_id = q.inquiry_id and o.supplier_id is distinct from q.supplier_id
-                 and o.status in ('submitted', 'revealed') and o.quote_amount > 0), 0) as ratio
+                 and o.status in ('submitted', 'revealed') and o.quote_amount > 0
+                 and (select count(distinct o2.supplier_id) from public.quotes o2
+                       where o2.inquiry_id = q.inquiry_id and o2.supplier_id is distinct from q.supplier_id
+                         and o2.status in ('submitted', 'revealed') and o2.quote_amount > 0) >= 3), 0) as ratio
       from public.quotes q, flag
       where q.supplier_id = p_lead_id and q.quote_amount > 0
+        and q.status in ('submitted', 'revealed')
         and (coalesce(q.source, '') = 'qd_demo_fixture') = flag.is_demo
     ) r where r.ratio is not null
   ),
+  habit_out as (select case when n >= 3 then idx else null end idx, n from habit),
 
   -- ── DELIVERY, WARRANTY AND TERMS ARE TEXT, SO THEY ARE PICKED, NOT AVERAGED ───────────────────
   -- The average of "8-10 weeks" and "12-14 weeks" is not a promise anybody made.
@@ -196,7 +239,7 @@ as $function$
       -- The spread is computed here and the BOOLEAN leaves the routine; the two bids it is computed
       -- from never do.
       select 'wide_spread',
-             (select case when mid > 0 then (highest - lowest) / mid > 0.4 else false end from stat),
+             (select case when mid_raw > 0 then (highest - lowest) / mid_raw > 0.4 else false end from stat),
              'The other bids disagree by more than 40%, which usually means the scope is being read differently.'
     ) s
   )
@@ -209,15 +252,15 @@ as $function$
         'lead_id', p_lead_id, 'inquiry_id', p_inquiry_id,
         'note', 'this enquiry is not one of yours')
     when (select n from stat) < 3
-      -- THE THIN-MARKET FLOOR, which is the whole of SP-N-02 in one line. With one competing bid the
-      -- median IS that bid; with two, the pair brackets it. Three is the smallest population from
-      -- which a midpoint describes a market rather than a named rival's quotation.
+      -- THE THIN-MARKET FLOOR. With one competing company the midpoint IS its bid; with two, the pair
+      -- brackets it. Three separate COMPANIES is the smallest population from which a rounded band
+      -- describes a market rather than a named rival's quotation.
       then jsonb_build_object(
         'available', false, 'reason', 'thin_market',
         'lead_id', p_lead_id, 'inquiry_id', p_inquiry_id,
         'basis', 'quotes submitted by other suppliers on this enquiry',
         'population', (select n from stat),
-        'note', 'fewer than three other suppliers have submitted a price for this enquiry, so there is '
+        'note', 'fewer than three other companies have submitted a price for this enquiry, so there is '
                 'no market midpoint to recommend against. With one or two, any figure we showed you '
                 'would be their quotation, which is theirs and not ours to share.')
     else jsonb_build_object(
@@ -227,26 +270,31 @@ as $function$
       -- which walked around the inbox entirely (SP-N-02).
       'summary', public.fn_supplier_safe_text(p_inquiry_id, (select summary from inq)),
       'population', (select n from stat),
-      'basis', 'the midpoint of every other supplier''s submitted bid on this enquiry',
+      'basis', 'the bracket the midpoint of every other company''s submitted bid on this enquiry falls in',
 
-      -- The recommended price. No lowest, no highest: each of those is one company's exact number.
+      -- The recommendation, as the bracket the market midpoint falls in. No median, no percentile, no
+      -- lowest and no highest: every one of those is, or reconstructs, a figure a named competitor
+      -- typed. `value` is the bottom of the bracket, because the portal's one-click accept has to send
+      -- a number and that number must be one the routine derived from a bracket, not from a bid.
       'recommended_price', jsonb_build_object(
-        'value', (select mid from stat), 'currency', 'AED',
-        'p25', (select lo from stat), 'p75', (select hi from stat),
-        'basis', 'median of ' || (select n from stat)::text || ' competing bid(s) on this enquiry'),
+        'value', (select lo from band), 'currency', 'AED',
+        'range_low', (select lo from band), 'range_high', (select hi from band),
+        'bracket', (select step from band),
+        'basis', 'the AED ' || (select step from band)::text || ' bracket the middle of '
+                 || (select n from stat)::text || ' competing companies'' bids falls in'),
 
       -- Where that recommendation sits, and where this supplier usually sits.
       'market_position', jsonb_build_object(
         'verdict', 'at the market midpoint',
-        'your_index', (select idx from habit),
-        'your_quotes_measured', (select n from habit),
-        'detail', case when (select idx from habit) is null
+        'your_index', (select idx from habit_out),
+        'your_quotes_measured', (select n from habit_out),
+        'detail', case when (select idx from habit_out) is null
                   then 'You have not priced enough enquiries yet for us to know where you usually sit.'
-                  when (select idx from habit) > 1.02
-                  then 'You normally price about ' || round(((select idx from habit) - 1) * 100)::text
+                  when (select idx from habit_out) > 1.02
+                  then 'You normally price about ' || round(((select idx from habit_out) - 1) * 100)::text
                        || '% above the middle of the market, so this suggestion is lower than your habit.'
-                  when (select idx from habit) < 0.98
-                  then 'You normally price about ' || round((1 - (select idx from habit)) * 100)::text
+                  when (select idx from habit_out) < 0.98
+                  then 'You normally price about ' || round((1 - (select idx from habit_out)) * 100)::text
                        || '% below the middle of the market, so this suggestion is higher than your habit.'
                   else 'You normally price close to the middle of the market, in line with this suggestion.' end),
 
@@ -301,7 +349,7 @@ as $function$
 $function$;
 
 comment on function public.fn_supplier_quote_recommend(bigint, uuid) is
-  'The quote builder''s proposal for ONE enquiry this supplier was matched to. Reads only bids in status submitted/revealed, refuses below three competing bids (with one or two, the median is a named rival''s quotation), never returns the lowest, highest or verbatim observed terms, and reads the summary through inquiries_supplier_safe + fn_supplier_safe_text. Audit 22 Sep 2026, SP-N-02.';
+  'The quote builder''s proposal for ONE enquiry this supplier was matched to. Reads only bids in status submitted/revealed, refuses below three competing COMPANIES, publishes the bracket the midpoint falls in rather than a median or a percentile (three sorted bids are fully recoverable from median + p25 + p75, and an odd-population median IS one company''s bid), never returns the lowest, highest or verbatim observed terms, and reads the summary through inquiries_supplier_safe + fn_supplier_safe_text. Audit 22 Sep 2026, SP-N-02.';
 
 -- ── SP-N-03: the opportunities list is the matcher's output, not the estate's ──────────────────────
 create or replace function public.fn_supplier_opportunities(p_lead_id bigint)
@@ -439,9 +487,11 @@ as $function$
   select jsonb_build_object(
     'lead_id', p_lead_id,
     'count', (select count(*) from rel),
+    -- MATCHED TO ME, and nothing about the estate (review of #854: the same estate-wide count that was
+    -- removed from fn_supplier_opportunities was still published here).
     'population', jsonb_build_object(
-      'inquiries', (select count(*) from public.inquiries),
-      'matches_for_me', (select count(*) from public.inquiry_matches where supplier_id = p_lead_id)
+      'matches_for_me', (select count(*) from public.inquiry_matches where supplier_id = p_lead_id),
+      'messaged_me', (select count(distinct inquiry_id) from public.messages where supplier_id = p_lead_id)
     ),
     'note', case when (select count(*) from rel) = 0
                  then 'no customer relationships yet — nothing has been matched or messaged'

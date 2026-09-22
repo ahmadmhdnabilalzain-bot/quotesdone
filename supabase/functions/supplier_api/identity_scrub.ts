@@ -1,7 +1,7 @@
 // identity_scrub — the supplier inbox's identity scrubbers, moved out of index.ts unchanged (21 Sep 2026,
 // sales_engineer) so the drawing chain test (drawing_boq/drawing_chain.test.ts) runs the SAME code the inbox
 // runs on a BOQ before a supplier sees it, rather than a copy. Behaviour is byte-for-byte what index.ts had.
-import { redactBoq, redactText } from '../_shared/anonymise.ts';
+import { redactBoq } from '../_shared/anonymise.ts';
 import { neutraliseCadLines } from '../_shared/cad_identity.ts';
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 // ANONYMITY FIX 27 Jul 2026 -------------------------------------------------------------------
@@ -74,20 +74,6 @@ export function scrubDeep(v: unknown, ownName: unknown, hits: string[]): unknown
   if (v && typeof v === 'object') { const o: Record<string, unknown> = {}; for (const k of Object.keys(v as Record<string, unknown>)) o[k] = scrubDeep((v as Record<string, unknown>)[k], ownName, hits); return o; }
   return v;
 }
-// THE PROJECT NAME IS NOT A PATTERN (audit 22 Sep 2026, finding SP-F-04). scrubDeep above removes what a
-// regular expression can recognise — a contact, a URL, a company suffix — plus the buyer's own name, which
-// is passed in because nothing about it is recognisable. The customer's PROJECT NAME is in exactly that
-// class and was NOT passed in: summary (index.ts inbox line 893) and the BOQ (inboxBoq, via redactBoq) ran
-// the seed list over their text, spec and budget did not, so "Marsa Heights Villa 7" left the estate inside
-// the structured brief and inside an 80-character free-text budget box while the one-line summary beside it
-// was clean. This is scrubDeep with the seed list, so every customer-authored field the inbox serves passes
-// the same two layers. The inquiry PDF prints those fields from the inbox's own output, so it is fixed here too.
-export function scrubDeepSeeded(v: unknown, ownName: unknown, seeds: string[], hits: string[]): unknown {
-  if (typeof v === 'string') { const s = scrubIdentity(v, ownName, hits); return s == null ? s : redactText(s, seeds).text; }
-  if (Array.isArray(v)) return v.map((x) => scrubDeepSeeded(x, ownName, seeds, hits));
-  if (v && typeof v === 'object') { const o: Record<string, unknown> = {}; for (const k of Object.keys(v as Record<string, unknown>)) o[k] = scrubDeepSeeded((v as Record<string, unknown>)[k], ownName, seeds, hits); return o; }
-  return v;
-}
 /**
  * THE LAST GATE before a supplier sees a BOQ (index.ts inbox). scrubDeep takes out contacts and the buyer's
  * own name; redactBoq removes the buyer's seed terms and the generic identifiers, then residual-scans.
@@ -98,6 +84,26 @@ export function scrubDeepSeeded(v: unknown, ownName: unknown, seeds: string[], h
 // never shows a supplier "linework on layer <consultant>-M-DUCT".
 export function inboxBoq<T>(boq: T | null | undefined, buyerName: string | null, seeds: string[], hits: string[]): { boq: T | null; withheld: boolean } {
   if (!boq) return { boq: null, withheld: false };
-  const r = redactBoq(scrubDeep(neutraliseCadLines(boq), buyerName, hits) as T, seeds);
+  return inboxField(neutraliseCadLines(boq) as T, buyerName, seeds, hits);
+}
+// THE SAME GATE, FOR EVERY OTHER CUSTOMER-AUTHORED FIELD (audit 22 Sep 2026, finding SP-F-04).
+//
+// Only the BOQ ever reached it. `summary` got redactText alone and `spec` and `budget` got neither: they
+// ran scrubDeep / scrubIdentity, which remove what a pattern can recognise and the buyer's own NAME, and
+// nothing removed the customer's PROJECT name — a value no pattern can recognise, which is why the seed
+// list exists at all. So "Marsa Heights Villa 7" left the estate inside the structured brief and inside
+// an 80-character free-text budget box while the one-line summary beside it was clean.
+//
+// WHY redactBoq AND NOT redactText. Review of #854, 22 Sep 2026: redactText matches seeds on WORD
+// BOUNDARIES, so "MarsaHeights Villa 7" becomes "MarsaHeights █" and "re:MarsaHeights" is untouched.
+// redactBoq redacts with redactText and then runs residualScan, which matches the same seeds as BARE
+// SUBSTRINGS — it catches exactly the glued forms redaction cannot — and HOLDS the field when anything
+// is left. It also holds when there are no seeds at all: we cannot prove a customer's name is absent
+// without knowing it. A supplier who is served less can still quote; a name that reached eight
+// strangers cannot be un-sent. inquiry_pdf prints these fields from the inbox's own output, so it is
+// gated by this too.
+export function inboxField<T>(v: T | null | undefined, buyerName: string | null, seeds: string[], hits: string[]): { boq: T | null; withheld: boolean } {
+  if (v == null) return { boq: null, withheld: false };
+  const r = redactBoq(scrubDeep(v, buyerName, hits) as T, seeds);
   return r.held ? { boq: null, withheld: true } : { boq: r.boq, withheld: false };
 }
