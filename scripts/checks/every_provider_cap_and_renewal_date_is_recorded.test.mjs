@@ -16,25 +16,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { sql } from '../lib/db.mjs';
 
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
-const q = async (query, attempt = 0) => {
-  const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-  });
-  const text = await r.text();
-  // The management API throttles after a busy session; a 429 is not a finding.
-  if (r.status === 429 && attempt < 5) {
-    await new Promise((res) => setTimeout(res, 3000 * (attempt + 1)));
-    return q(query, attempt + 1);
-  }
-  assert.ok(r.ok, `query failed: ${r.status} ${text}`);
-  return JSON.parse(text);
-};
+// The management API throttles after a busy session; a 429 is not a finding. This file hand-rolled
+// that backoff — five attempts, LINEAR, no jitter — and it was not enough on 22 Sep 2026. The
+// deterministic schedule is the reason: several checks run against one rate limiter in one job and
+// a fixed ladder makes them collide on the same window over and over (the hazard scripts/lib/db.mjs
+// was given jitter for). db.mjs is the estate's one policy for this endpoint: 7 attempts, jittered
+// exponential to a 60 s cap, and an exhausted throttle throws as infrastructure rather than as a
+// failed query. Strictly more retries and strictly clearer text; the assertions below are untouched.
+const q = (query) => sql(query);
 
 // HELD BY THE FOUNDER. Founder instruction 639, 22 Sep 2026: "Do not ask about Vercel caps or subscriptions;
 // that is on him and he adds when reached. Twilio balance: only raise it if it is actually a blocker."
