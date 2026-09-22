@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
+import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { drawingHandoff, heldRun } from './drawing_hold.ts';
@@ -738,7 +739,11 @@ Deno.serve(observe('customer_api', async (req) => {
       } catch (_e) { /* answered below as document_unreadable */ }
       if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
-      return J({ ok: true, boq: jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
+      // A DXF's take-off carries the file's own names (layers, blocks, title block): cad_identity takes them
+      // out before the customer's portal holds the BOQ it will send (22 Sep 2026). The CAD file itself is
+      // never shared, and the customer is told so (drawing_held, the same notice analyze_drawing gives).
+      const cad = /\.(dxf|dwg)$/i.test(name) || /dxf|dwg/i.test(mime);
+      return J({ ok: true, boq: cad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(b64)) : jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path, ...(cad ? { drawing_held: !!path, share_redacted: false } : {}) });
     }
 
     if (action === 'analyze_drawing') {
@@ -767,7 +772,7 @@ Deno.serve(observe('customer_api', async (req) => {
         let boq: unknown = null;
         try {
           const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: body.original_b64, mime, filename: name, hint }) });
-          const jd = await r.json(); if (jd?.ok) boq = jd.boq;
+          const jd = await r.json(); if (jd?.ok && jd.boq) boq = cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64)));
         } catch (_e) { /* answered below with boq null */ }
         if (boq) return J({ ok: true, boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false, note: 'cad_read_not_pictured' });
       }
@@ -880,7 +885,8 @@ Deno.serve(observe('customer_api', async (req) => {
         // THE CONFIRM STEP RUNS ONLY NOW, after redaction has finished and every page came back
         // (review of #642: it used to run in parallel and could see the original page). drawing_boq
         // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
-        const boqOut = jd.boq;
+        // A CAD take-off loses the file's own names here (cad_identity, 22 Sep 2026); a PDF's is gated below.
+        const boqOut = isCad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64 || ''))) : jd.boq;
         // THE LENGTHS (22 Sep 2026): a drawing set read from a PDF gets its duct and pipe lengths from a SECOND
         // drawing_boq call that reads the CAD layers (drawing_set.ts, "THE LENGTHS ARE A SECOND CALL"). If it
         // fails or is killed, boqOut stands with its counted lines, and the customer is told why no lengths.

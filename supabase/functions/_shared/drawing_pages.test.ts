@@ -4,7 +4,7 @@
 // The storage client is a recorder: nothing reaches production storage, a database or a person.
 // deno-lint-ignore-file no-explicit-any
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { DRAWING_SIGN_ISSUE, signRedactedDrawings } from './drawing_pages.ts';
+import { DRAWING_SIGN_ISSUE, drawingWithheld, signRedactedDrawings } from './drawing_pages.ts';
 
 /** `fails` decides how each path answers: 'ok', 'error' (the shape createSignedUrl really returns), or 'throw'. */
 function fake(fails: (path: string) => 'ok' | 'error' | 'throw' | 'hang') {
@@ -119,4 +119,11 @@ Deno.test('a token-shaped fragment in a storage error never reaches the finding'
   const written = JSON.stringify(f.rpcs[0].args);
   assert(!written.includes('LEAKED-abc123'), 'a token-shaped fragment was recorded: ' + written);
   assert(written.includes('token=[removed]'), 'the message was not recorded at all');
+});
+
+// 22 Sep 2026: a held drawing / a CAD file reached the supplier as nothing at all, with no word that it existed.
+Deno.test('a customer file with no shareable page is reported as withheld, never as absent', () => {
+  assertEquals(drawingWithheld(true, 0), true);    // held drawing, CAD file, BOQ sheet: an original, no pages
+  assertEquals(drawingWithheld(true, 3), false);   // the redacted pages are the drawing
+  assertEquals(drawingWithheld(false, 0), false);  // no file was attached
 });
