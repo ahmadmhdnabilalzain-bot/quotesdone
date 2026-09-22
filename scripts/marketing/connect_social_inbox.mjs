@@ -18,7 +18,7 @@
 //   node scripts/marketing/connect_social_inbox.mjs --check    # d only (reads; writes nothing)
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
-import { PROD_REF } from '../staging/qd_guard.mjs';
+import { PROD_REF } from '../lib/qd_guard.mjs';
 
 const CHECK_ONLY = process.argv.includes('--check');
 const G = 'https://graph.facebook.com/v21.0/';

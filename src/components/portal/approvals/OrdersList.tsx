@@ -31,7 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { call } from './api';
 import { fmtDate, money, numOrNull, orderValue, receivedPct, type CustomerOrder, type Lang } from './model';
-import { errText, tr } from './strings';
+import { errText, orderStatus, tr } from './strings';
 
 /* ── pieces ───────────────────────────────────────────────────────────────────────────────── */
 
@@ -178,7 +178,7 @@ export function OrdersList({ token, lang = 'en', onOpenRfq, className }: OrdersL
                       <h3 className="text-[15px] font-bold text-foreground">{o.po_no || o.id}</h3>
                       {o.memo ? <p className="mt-0.5 text-[12px] text-muted-foreground">{o.memo}</p> : null}
                     </div>
-                    {o.status ? <Badge variant={ORDER_TONE[o.status] ?? 'secondary'}>{o.status}</Badge> : null}
+                    {o.status ? <Badge variant={ORDER_TONE[o.status] ?? 'secondary'}>{orderStatus(lang, o.status)}</Badge> : null}
                   </div>
 
                   <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">

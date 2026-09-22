@@ -29,8 +29,8 @@
 //   QD_FIXTURES=1 node scripts/staging/rehearse_full_funnel.mjs
 import { createHmac, randomUUID, randomBytes } from 'node:crypto';
 import { withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, confirmCapability, capabilityProfile,
-         mkAuthUser, runEmail, call, REF, q, num, RUN_TAG_COL } from './demo_factory.mjs';
-import { mgmtRead, mgmtFixture } from './qd_guard.mjs';
+         mkAuthUser, runEmail, call, REF, q, num, RUN_TAG_COL } from '../lib/demo_factory.mjs';
+import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 
 if (process.env.QD_FIXTURES !== '1') { console.error('refusing: set QD_FIXTURES=1'); process.exit(2); }
 const BASE = `https://${REF}.supabase.co/functions/v1`;

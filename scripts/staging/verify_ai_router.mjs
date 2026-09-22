@@ -1,6 +1,6 @@
 // SPEC FILE #8 — OPENROUTER COST OPTIMIZATION, scored against PRODUCTION.
 //
-// 226 requirements across five parts, enumerated in docs/sessions/ROW8_REQUIREMENTS.md.
+// 226 requirements across five parts, enumerated in docs/archive/sessions/ROW8_REQUIREMENTS.md.
 //
 //   node scripts/staging/verify_ai_router.mjs             # read-only, PRODUCTION
 //   node scripts/staging/verify_ai_router.mjs --staging
@@ -39,8 +39,8 @@
 import { readdirSync, existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const TARGET = process.argv.includes('--staging') ? STAGE : PROD_REF;
 const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7);

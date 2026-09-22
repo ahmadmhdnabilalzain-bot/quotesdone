@@ -23,7 +23,7 @@ import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, write } from './fixtures.mjs';
-import { makeInquiry, uploadObject, q } from '../staging/demo_factory.mjs';
+import { makeInquiry, uploadObject, q } from '../lib/demo_factory.mjs';
 import { demoOfficePlanPng } from '../lib/demo_pdf.mjs';
 import { launch, signedInPage, openPortal, portalUrl, realErrors, fullPageShot, SITE } from './browser.mjs';
 
@@ -194,7 +194,7 @@ let standin = null;
 try {
   if (STANDIN) {
     // The nine actions are served here by the same code over memory; everything else stays production's.
-    const { keys } = await import('../staging/demo_factory.mjs');
+    const { keys } = await import('../lib/demo_factory.mjs');
     const { ANON } = await keys();
     const port = 8787 + (process.pid % 200);
     standin = spawn('deno', ['run', '--allow-net', '--allow-env', '--allow-read', 'scripts/e2e/review_server.ts'],
@@ -223,7 +223,7 @@ try {
   const pdfs = await read(`select bucket_id b, name from storage.objects where name like ${q(`supplier/${Number(supplier.leadId)}/%`)}`);
   for (const o of pdfs) run.ids.storage.push(`${o.b}/${o.name}`);
   report.pdfs_printed = pdfs.length;
-  const { keys, BASE } = await import('../staging/demo_factory.mjs');
+  const { keys, BASE } = await import('../lib/demo_factory.mjs');
   const { SERVICE } = await keys();
   for (const o of pdfs) await fetch(`${BASE}/storage/v1/object/${o.b}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: [o.name] }) });
 } catch (e) {

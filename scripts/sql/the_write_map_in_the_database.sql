@@ -461,6 +461,17 @@ insert into public.phase_c_edge_function_writes (edge_function, table_name, writ
 ('uptime_check','app_secrets','upsert',false),
 ('uptime_check','founder_alerts','insert',false),
 ('video_produce','agent_runs','insert',false),
+-- 22 Sep 2026 (customer_support, INT-03): the new SMS webhook, an unauthenticated public surface.
+-- Every write is behind the SIGNATURE, which is checked first and costs no database call, and then
+-- behind fn_rate_limit: one global bucket at 20/hour for anything that fails the signature (so a
+-- forgery cannot buy an insert by rotating its From), and 40/hour per sender once Twilio has signed
+-- the From that keys it. The alert is throttled to one per 30 minutes; agent_runs is never
+-- throttled, because it is what the IT engine reads, and is bounded by those caps instead. observe()
+-- adds one more agent_runs row per 4xx, which is why a refusal leaves two.
+('sms_inbound','sms_messages','insert',false),
+('sms_inbound','agent_runs','insert',false),
+('sms_inbound','founder_alerts','insert',false),
+('sms_inbound','ai_rate_limit','rpc:fn_rate_limit',false),
 ('voice_otp_capture','agent_runs','insert',false),
 ('vt_scan','agent_actions','insert',false),
 ('vt_scan','agent_runs','insert+update',false),

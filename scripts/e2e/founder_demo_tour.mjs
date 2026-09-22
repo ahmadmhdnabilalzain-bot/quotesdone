@@ -7,7 +7,7 @@
 //
 // WHAT THIS IS NOT. It is not a second demo-data factory. Every identity here is made by
 // scripts/e2e/fixtures.mjs (makeDemoSupplier / makeDemoCustomer), which is itself
-// scripts/staging/demo_factory.mjs — so there stays exactly ONE way to make a demo supplier, one
+// scripts/lib/demo_factory.mjs — so there stays exactly ONE way to make a demo supplier, one
 // teardown that derives its scope from the database, and one set of guards. What this file adds is
 // the CONTENT: services stated in the supplier's own words and rewritten by the sales engineer,
 // inquiries with a BOQ and a redacted drawing, a quotation carried through the review conversation
@@ -37,7 +37,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call } from './fixtures.mjs';
-import { newRun, makeInquiry, uploadObject, keys, q, num } from '../staging/demo_factory.mjs';
+import { newRun, makeInquiry, uploadObject, keys, q, num } from '../lib/demo_factory.mjs';
 import { demoPdf, demoOfficePlanPng } from '../lib/demo_pdf.mjs';
 
 // ONE TAG FOR THE LIFE OF THE DEMO. Not random: the founder's demo is a standing thing, so --link
@@ -55,7 +55,7 @@ const step = (name, ok, detail = '') => console.log(`${ok ? 'PASS' : 'FAIL'}  ${
 const OWN_WORDS = 'we do gypsum partitions, false ceilings and painting';
 
 // EVERY JOB IS IN DUBAI. The demo supplier's stated coverage comes from makeSupplier
-// (scripts/staging/demo_factory.mjs: service_emirates = EMIRATES.slice(0, 1 + variant % 3), which
+// (scripts/lib/demo_factory.mjs: service_emirates = EMIRATES.slice(0, 1 + variant % 3), which
 // always starts with 'Dubai'; measured 21 Sep 2026 on lead 126512: coverage_emirates {Dubai}). A
 // supplier who limited itself is matched only inside its stated emirates (audit finding 25,
 // a_supplier_who_limits_its_emirates_is_matched_only_there.sql), so an Abu Dhabi or Sharjah job would

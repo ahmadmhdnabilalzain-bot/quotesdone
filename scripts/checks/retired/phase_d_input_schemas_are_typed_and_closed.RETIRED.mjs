@@ -74,7 +74,7 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 // skip below could take effect. It is loaded on first use instead.
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const mgmtRead = async (ref, sql) =>
-  (await import('../../staging/qd_guard.mjs')).mgmtRead(ref, sql);
+  (await import('../../lib/qd_guard.mjs')).mgmtRead(ref, sql);
 
 const q = (sql) => mgmtRead(PROD_REF, sql);
 const lit = (o) => `'${JSON.stringify(o).replace(/'/g, "''")}'::jsonb`;

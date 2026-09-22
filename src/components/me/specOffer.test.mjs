@@ -4,7 +4,10 @@
 //   node --test src/components/me/specOffer.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { T, tf, supplierCount } from './portalText.ts';
+import { T, tf } from './portalText.ts';
+// supplierCount() folded into the one counted-noun helper (review of #853); the forms are the same.
+import { countPhrase } from '../../lib/countedNoun.ts';
+const supplierCount = (lang, n) => countPhrase(lang, n, 'supplier');
 
 test('English supplier count', () => {
   assert.equal(supplierCount('en', 1), '1 supplier');

@@ -31,7 +31,7 @@
 // referencing another that has not been created yet.
 import { writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const OUT = 'supabase/migrations/20200101000000_baseline_tables_created_out_of_band.sql';
 // ── THE FOREIGN KEYS GO LAST, IN THEIR OWN MIGRATION, AND THIS WAS LEARNED THE HARD WAY ─────────
