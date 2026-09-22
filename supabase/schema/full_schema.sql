@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T12:20:26.788Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T13:04:37.859Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -4779,7 +4779,11 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   requested_by text,
   sender text DEFAULT 'customer_support'::text NOT NULL,
   lang text,
-  not_before timestamp with time zone
+  not_before timestamp with time zone,
+  provider_status text,
+  provider_status_at timestamp with time zone,
+  provider_error_code text,
+  provider_status_checked_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.openrouter_day (
@@ -8579,6 +8583,7 @@ ALTER TABLE public.model_fallback_chain ADD CONSTRAINT model_fallback_chain_kind
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_scope_check CHECK ((scope = ANY (ARRAY['target_employee'::text, 'current_agent'::text])));
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_tier_check CHECK ((tier = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text, 'xlarge'::text])));
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_lang_is_en_or_ar CHECK (((lang IS NULL) OR (lang = ANY (ARRAY['en'::text, 'ar'::text]))));
+ALTER TABLE public.notifications ADD CONSTRAINT notifications_provider_status_known CHECK (((provider_status IS NULL) OR (provider_status = ANY (ARRAY['accepted'::text, 'scheduled'::text, 'queued'::text, 'sending'::text, 'sent'::text, 'delivered'::text, 'undelivered'::text, 'failed'::text, 'read'::text]))));
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_sender_is_customer_support CHECK (((sender = 'customer_support'::text) OR ((sender = 'platform_otp'::text) AND (type = ANY (ARRAY['login_otp'::text, 'mobile_otp'::text, 'voice_otp'::text, 'email_confirmation_code'::text])))));
 ALTER TABLE public.openrouter_day ADD CONSTRAINT openrouter_day_basis_check CHECK ((authoritative_basis = ANY (ARRAY['measured'::text, 'true zero'::text, 'unknown'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_effort_check CHECK ((effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
@@ -19290,135 +19295,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19934,6 +19810,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -23799,14 +23804,18 @@ begin
      and t.to_role is not distinct from n.to_role and t.id <> n.id and t.status = 'sent'
    order by t.id limit 1;
 
-  if n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> '' then
+  -- 22 Sep 2026 (every_whatsapp_says_whether_it_arrived.sql): for WhatsApp and SMS a SID is only Twilio's
+  -- acceptance; "the provider confirmed" needs Twilio's delivered/read report.
+  if n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> ''
+     and (coalesce(n.channel, 'email') not in ('whatsapp', 'sms') or n.provider_status in ('delivered', 'read')) then
     v_receipt := 'ceo: the provider confirmed notification ' || n.id || ' (' || n.channel || ', message '
                  || n.provider_message_id || ', sent ' || to_char(n.sent_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai)';
   elsif n.status = 'sent' and n.channel = 'whatsapp' and twin.id is not null then
     v_receipt := 'ceo: notification ' || n.id || ' was handed to Twilio at '
-                 || to_char(n.sent_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai without a provider id on record; '
-                 || 'the email twin ' || twin.id || ' was sent and confirmed (' || coalesce(twin.provider_message_id, '?') || '). '
-                 || 'send_whatsapp stores the SID from 21 Sep 2026, so a WhatsApp send is confirmed or failed, never unconfirmed.';
+                 || to_char(n.sent_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai '
+                 || case when coalesce(btrim(n.provider_message_id), '') = '' then 'without a provider id on record; '
+                         else '(message ' || n.provider_message_id || ') and Twilio has not reported it delivered; ' end
+                 || 'the email twin ' || twin.id || ' was sent and confirmed (' || coalesce(twin.provider_message_id, '?') || ').';
   elsif n.status in ('failed', 'skipped', 'suppressed') and twin.id is not null then
     v_receipt := 'ceo: notification ' || n.id || ' (' || n.channel || ') ended ' || n.status
                  || coalesce(' — ' || left(n.last_error, 160), '') || '; the email twin ' || twin.id
@@ -29042,9 +29051,13 @@ begin
       -- ── every other request: one result when the send is terminal ──
       v_evidence := jsonb_build_object('notification', case when n.id is null then null else jsonb_build_object(
                       'id', n.id, 'status', n.status, 'channel', n.channel, 'to_role', n.to_role, 'sent_at', n.sent_at,
-                      'provider_message_id', n.provider_message_id, 'attempts', n.attempts, 'last_error', n.last_error) end,
+                      'provider_message_id', n.provider_message_id, 'attempts', n.attempts, 'last_error', n.last_error,
+                      -- what Twilio reported, and its error in plain words (null for email)
+                      'provider_status', n.provider_status, 'provider_error_code', n.provider_error_code,
+                      'provider_error_explained', public.fn_twilio_error_in_plain_words(n.provider_error_code)) end,
                     'whatsapp', (select coalesce(jsonb_agg(jsonb_build_object('notification_id', w.id, 'status', w.status,
-                                                   'provider_message_id', w.provider_message_id)), '[]'::jsonb)
+                                                   'provider_message_id', w.provider_message_id, 'provider_status', w.provider_status,
+                                                   'provider_error_code', w.provider_error_code)), '[]'::jsonb)
                                    from public.notifications w
                                   where w.id in (select (x)::bigint from jsonb_array_elements_text(coalesce(q.evidence->'whatsapp_ids', '[]'::jsonb)) x)));
       if q.status = 'failed' then
@@ -29058,6 +29071,21 @@ begin
       elsif n.id is null then
         v_result := 'not_sent';
         v_evidence := v_evidence || jsonb_build_object('reason', coalesce(q.evidence->>'reason', 'nothing was queued'));
+      elsif n.status = 'sent' and n.channel in ('whatsapp', 'sms') and coalesce(btrim(n.provider_message_id), '') <> '' then
+        -- 22 SEP 2026: a Twilio SID proves only that Twilio ACCEPTED the message. Meta or the carrier can
+        -- still refuse it, and that arrives later as a status report (wa_status). So a WhatsApp or SMS
+        -- waits for delivered/read; a failure has already turned the row 'failed' (below); and a message
+        -- with no final report 24 hours on is returned as unconfirmed rather than claimed as delivered.
+        if n.provider_status in ('delivered', 'read') then
+          v_result := 'delivered';
+        elsif n.sent_at < now() - interval '24 hours' then
+          v_result := 'sent_unconfirmed';
+          v_evidence := v_evidence || jsonb_build_object('reason',
+            'Twilio accepted it but reported no delivery within 24 hours: neither its status callback nor the backstop poll gave a final status');
+        else
+          v_waiting := v_waiting + 1;
+          continue;
+        end if;
       elsif n.status = 'sent' then
         v_result := case when coalesce(btrim(n.provider_message_id), '') <> '' then 'delivered' else 'sent_unconfirmed' end;
       elsif n.status in ('failed', 'bounced', 'error') then v_result := 'failed';
@@ -39048,6 +39076,57 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_whatsapp_delivery_health()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  x record; v_items jsonb := '[]'::jsonb; v_rates jsonb := '{}'::jsonb; v_out jsonb;
+  v_min numeric := coalesce(public.fn_it_threshold('whatsapp_min_final_7d'), 10);
+  v_max numeric := coalesce(public.fn_it_threshold('whatsapp_failure_rate_max'), 0.05);
+begin
+  for x in
+    select n.channel,
+           count(*) filter (where n.provider_status in ('delivered', 'read')) as delivered,
+           count(*) filter (where n.provider_status = 'read') as read,
+           count(*) filter (where n.provider_status in ('failed', 'undelivered')) as failed,
+           count(*) filter (where public.fn_twilio_status_rank(n.provider_status) < 4 and n.sent_at < now() - interval '24 hours') as unknown,
+           count(*) as accepted
+      from public.notifications n
+     where n.channel in ('whatsapp', 'sms') and coalesce(btrim(n.provider_message_id), '') <> ''
+       and n.sent_at > now() - interval '7 days'
+     group by n.channel
+  loop
+    v_rates := v_rates || jsonb_build_object(x.channel, jsonb_build_object('accepted', x.accepted, 'delivered', x.delivered,
+      'read', x.read, 'failed', x.failed, 'no_final_status_after_24h', x.unknown,
+      'errors', (select coalesce(jsonb_object_agg(coalesce(e.code, 'none'),
+                                   jsonb_build_object('count', e.c, 'means', public.fn_twilio_error_in_plain_words(e.code))), '{}'::jsonb)
+                   from (select m.provider_error_code code, count(*) c from public.notifications m
+                          where m.channel = x.channel and m.provider_status in ('failed', 'undelivered')
+                            and m.sent_at > now() - interval '7 days' group by 1) e)));
+    if x.delivered + x.failed >= v_min and x.failed::numeric / (x.delivered + x.failed) > v_max then
+      v_items := v_items || jsonb_build_object('item', 'failure_rate:' || x.channel, 'owner_seat', 'customer_support', 'subject', 'wa_status',
+        'title', round(100 * x.failed::numeric / (x.delivered + x.failed), 1) || '% of last week''s ' || x.channel
+                 || ' messages were refused after Twilio accepted them',
+        'blast', 'customer_facing', 'affected', x.failed,
+        'evidence', (v_rates->x.channel) || jsonb_build_object('max', v_max, 'min_final', v_min));
+    end if;
+    if x.unknown > 0 then
+      v_items := v_items || jsonb_build_object('item', 'no_final_status:' || x.channel, 'owner_seat', 'customer_support', 'subject', 'wa_status',
+        'title', x.unknown || ' ' || x.channel || ' message(s) sent over 24 hours ago have no delivery report from Twilio',
+        'blast', 'customer_facing', 'affected', x.unknown,
+        'evidence', (v_rates->x.channel) || jsonb_build_object('why_it_matters',
+          'the status callback (wa_status) and its 30-minute backstop poll are both silent, so delivery is unknown'));
+    end if;
+  end loop;
+  v_out := jsonb_build_object('settled', public.fn_it_duty_settle('whatsapp_delivery', v_items), 'rates', v_rates);
+  perform public.fn_it_duty_ran('whatsapp_delivery', v_out);
+  return v_out;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_workflow_heartbeats()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -44886,11 +44965,15 @@ begin
   select * into n from public.notifications
    where id = coalesce((req.detail->>'retry_notification_id')::bigint, (req.evidence->>'notification_id')::bigint);
   v_seen := jsonb_build_object('notification_id', n.id, 'status', n.status, 'channel', n.channel,
-                               'provider_message_id', n.provider_message_id, 'sent_at', n.sent_at, 'checked_at', now());
+                               'provider_message_id', n.provider_message_id, 'sent_at', n.sent_at, 'checked_at', now(),
+                               'provider_status', n.provider_status, 'provider_error_code', n.provider_error_code);
 
   if v_result in ('proof_of_response', 'no_response_confirmation') then
     v_verdict := 'handled_by_the_ladder';
-  elsif v_result = 'delivered' and n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> '' then
+  -- 22 Sep 2026: for WhatsApp and SMS the seat's own re-check also reads Twilio's delivery report; a SID
+  -- alone is only Twilio's acceptance (every_whatsapp_says_whether_it_arrived.sql).
+  elsif v_result = 'delivered' and n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> ''
+        and (coalesce(n.channel, 'email') not in ('whatsapp', 'sms') or n.provider_status in ('delivered', 'read')) then
     v_verdict := 'confirmed';
   elsif v_result in ('routed', 'stubbed', 'digested', 'cancelled') then
     v_verdict := v_result;
@@ -60055,6 +60138,111 @@ begin
   end if;
   return NEW;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_twilio_error_in_plain_words(p_code text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case nullif(btrim(coalesce(p_code, '')), '')
+    when '63016' then 'outside the 24-hour window: the recipient has not messaged us in the last 24 hours, so WhatsApp accepts only an approved template, not free text'
+    when '63024' then 'not a usable WhatsApp account: the number is not on WhatsApp, has not accepted WhatsApp''s terms, or runs an outdated app'
+    when '63003' then 'the number could not be found on WhatsApp: wrong, inactive or not registered'
+    when '63032' then 'WhatsApp will not deliver to this user because of a WhatsApp restriction on the recipient'
+    when '63033' then 'the recipient has opted out of receiving these messages'
+    when '63049' then 'Meta chose not to deliver it (its per-user limit on marketing messages)'
+    when '63050' then 'the recipient has opted out of marketing messages on WhatsApp'
+    when '63013' then 'WhatsApp refused it as a policy violation'
+    when '63018' then 'our WhatsApp sender hit its rate limit, so the message was not delivered'
+    when '63027' then 'the template does not exist at Meta in this language'
+    when '63028' then 'the template was sent with the wrong number of variables'
+    when '63040' then 'Meta rejected the template'
+    when '63041' then 'Meta paused the template (low quality)'
+    when '63042' then 'Meta disabled the template'
+    when '63051' then 'Meta has locked our WhatsApp sender or account'
+    when '63112' then 'Meta has disabled the WhatsApp Business Account behind our sender'
+    when '30003' then 'the phone is unreachable (switched off or out of coverage)'
+    when '30005' then 'the number does not exist or is not assigned to anyone'
+    when '30006' then 'the number is a landline or cannot receive SMS'
+    when '30007' then 'the carrier filtered it as unwanted'
+    when '30008' then 'the carrier reported an unknown delivery error'
+    else case when p_code is null or btrim(p_code) = '' then null
+              else 'Twilio error ' || btrim(p_code) || ' (twilio.com/docs/api/errors/' || btrim(p_code) || ')' end
+  end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_twilio_status_arrived(p_sid text, p_status text, p_error_code text DEFAULT NULL::text, p_source text DEFAULT 'callback'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  n public.notifications; v_status text := lower(btrim(coalesce(p_status, ''))); v_code text := nullif(btrim(coalesce(p_error_code, '')), '');
+  v_final_fail boolean;
+begin
+  if coalesce(btrim(p_sid), '') = '' then return jsonb_build_object('matched', false, 'applied', false, 'reason', 'no MessageSid'); end if;
+  if public.fn_twilio_status_rank(v_status) = 0 then
+    return jsonb_build_object('matched', null, 'applied', false, 'reason', 'not a status this estate records: ' || left(v_status, 40));
+  end if;
+  select * into n from public.notifications
+   where provider_message_id = btrim(p_sid) and channel in ('whatsapp', 'sms')
+   order by id limit 1 for update;
+  if n.id is null then return jsonb_build_object('matched', false, 'applied', false); end if;
+  if public.fn_twilio_status_rank(v_status) <= public.fn_twilio_status_rank(n.provider_status) then
+    return jsonb_build_object('matched', true, 'applied', false, 'notification_id', n.id, 'kept', n.provider_status, 'ignored', v_status);
+  end if;
+  v_final_fail := v_status in ('failed', 'undelivered');
+  update public.notifications
+     set provider_status = v_status, provider_status_at = now(),
+         provider_error_code = coalesce(v_code, provider_error_code),
+         status = case when v_final_fail and status = 'sent' then 'failed' else status end,
+         last_error = case when v_final_fail
+                           then left('Twilio reported ' || v_status || coalesce(' (error ' || v_code || ')', '') || ': '
+                                     || coalesce(public.fn_twilio_error_in_plain_words(v_code), 'no error code was given'), 500)
+                           else last_error end
+   where id = n.id;
+  return jsonb_build_object('matched', true, 'applied', true, 'notification_id', n.id, 'from', n.provider_status, 'to', v_status,
+                            'failed', v_final_fail, 'error_code', v_code, 'source', left(coalesce(p_source, ''), 20));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_twilio_status_poll_claim(p_limit integer DEFAULT 20)
+ RETURNS TABLE(notification_id bigint, sid text)
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return query
+  update public.notifications u set provider_status_checked_at = now()
+   where u.id in (select c.id from public.notifications c
+                   where c.channel in ('whatsapp', 'sms') and coalesce(btrim(c.provider_message_id), '') <> ''
+                     and c.sent_at < now() - interval '30 minutes' and c.sent_at > now() - interval '7 days'
+                     and public.fn_twilio_status_rank(c.provider_status) < 4
+                     and (c.provider_status_checked_at is null or c.provider_status_checked_at < now() - interval '30 minutes')
+                   order by coalesce(c.provider_status_checked_at, c.sent_at)
+                   limit least(greatest(coalesce(p_limit, 20), 1), 50)
+                   for update skip locked)
+  returning u.id, u.provider_message_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_twilio_status_rank(p_status text)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case lower(coalesce(p_status, ''))
+    when 'accepted' then 1 when 'scheduled' then 1 when 'queued' then 1
+    when 'sending' then 2 when 'sent' then 3
+    when 'delivered' then 4 when 'undelivered' then 4 when 'failed' then 4
+    when 'read' then 5 else 0 end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_twin(p_kind text, p_id text DEFAULT NULL::text)

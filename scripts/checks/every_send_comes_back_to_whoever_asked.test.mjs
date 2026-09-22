@@ -95,7 +95,10 @@ const SQL_DIR = join(REPO, 'scripts', 'sql');
 // the_founder_hears_from_it_once_a_day.sql (22 Sep 2026) is the third: it redefines the digest, which
 // still closes every request it tells the founder about with the digest's notification ids.
 const TRACKING_FILES = new Set(['every_send_comes_back_to_whoever_asked.sql', 'the_founder_gets_one_it_digest_per_tick.sql',
-  'the_founder_hears_from_it_once_a_day.sql']);
+  'the_founder_hears_from_it_once_a_day.sql',
+  // 22 Sep 2026: redefines the watch (a WhatsApp waits for Twilio's delivery report); its one marking
+  // routine is the watch's own email retry, carried over unchanged. Asserted below.
+  'every_whatsapp_says_whether_it_arrived.sql']);
 const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
 test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
   const bypass = []; let writers = 0;
@@ -111,6 +114,7 @@ test('no SQL routine can switch off the tracking, and every other row is adopted
   assert.deepEqual(marking('every_send_comes_back_to_whoever_asked.sql'), ['fn_customer_support_acts_on_handoff', 'fn_customer_support_delivery_watch']);
   assert.deepEqual(marking('the_founder_gets_one_it_digest_per_tick.sql'), ['fn_customer_support_acts_on_handoff', 'fn_customer_support_sends_the_it_digest']);
   assert.deepEqual(marking('the_founder_hears_from_it_once_a_day.sql'), ['fn_customer_support_sends_the_it_digest']);
+  assert.deepEqual(marking('every_whatsapp_says_whether_it_arrived.sql'), ['fn_customer_support_delivery_watch']);
   const file = readFileSync(join(SQL_DIR, 'every_send_comes_back_to_whoever_asked.sql'), 'utf8');
   assert.match(file, /create trigger z90_every_send_is_tracked after insert on public\.notifications\s+for each row execute function public\.fn_customer_support_adopts_untracked_send\(\)/);
 });

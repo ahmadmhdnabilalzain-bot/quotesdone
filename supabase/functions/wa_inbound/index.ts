@@ -27,6 +27,7 @@ import { observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
+import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
@@ -393,6 +394,9 @@ async function sendWa(to: string, body: string, mediaUrl?: string | null): Promi
   // WhatsApp caps a media caption at 1,024 characters, well below the 1,200 used for a plain
   // message, so the caller must send the summary here and the substance in the document.
   if (mediaUrl) form.set('MediaUrl', mediaUrl);
+  // 22 Sep 2026: every Twilio send names where Twilio reports what became of it (_shared/twilio_status.ts).
+  // A reply here is recorded in wa_messages, not notifications, so wa_status answers it matched=false.
+  form.set('StatusCallback', statusCallbackUrl());
   try {
     const r = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + sid + '/Messages.json', { method: 'POST', headers: { 'Authorization': 'Basic ' + btoa(kSid + ':' + kSec), 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
     if (r.ok) return { ok: true };
