@@ -31,7 +31,7 @@ function westernDigits(s: string): string {
           .replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06F0));
 }
 // Strip tatweel, diacritics and the alef/ya/ta-marbuta variants so a typed greeting matches however it is written.
-function norm(s: string): string {
+export function norm(s: string): string {
   return String(s || '').toLowerCase()
     .replace(/[ً-ْـ]/g, '')
     .replace(/[آأإ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
@@ -164,10 +164,21 @@ export function welcomeText(lang: Lang, audience: Audience, name: string | null,
   return greetLine(lang, audience, name, salam) + '\n\n' + WELCOME_TAIL[lang];
 }
 
-export const SORRY_LEAD: Record<Lang, string> = {
-  en: 'Sorry, I could not match that to an answer. These are the ways I can help:',
-  ar: 'عذرًا، لم أجد إجابة مناسبة لرسالتكم. يمكنني مساعدتكم في ما يلي:',
-};
+// THE LAST WORD WHEN NOTHING COULD ANSWER (22 Sep 2026). On wa_messages 271 the founder received
+// "I could not reach the company brain ... (agent_brain returned no reply (HTTP 404))" — an internal
+// name, a status code and an admission of a fault, sent to the person who asked. What a person hears
+// instead: thanks, an honest "no confirmed answer yet", that the question is recorded for the team
+// (fn_support_knowledge_gap files it), and the way to a real reply — the "Talk to a person" option is
+// on the menu this line leads. One line: it is Content variable {{1}} of the interactive list. If the
+// question could not be recorded, the line does not say it was.
+// no_internal_text_reaches_a_customer.test.ts scans every reply string for internal wording.
+export function sorryLead(lang: Lang, recorded: boolean): string {
+  return lang === 'ar'
+    ? 'شكرًا لسؤالكم. لا تتوفر لديّ إجابة مؤكدة عنه حتى الآن، وأفضّل ألا أجيب دون تحقق' + (recorded ? '، لذا سجّلته لدى فريقنا' : '') +
+      '. وإن رغبتم في أن يرد عليكم أحد أعضاء الفريق هنا، فاختاروا «التحدث إلى أحد الموظفين» من الخيارات أدناه:'
+    : 'Thank you for your question. I do not have a confirmed answer to it yet and would rather not guess' + (recorded ? ', so I have recorded it for our team' : '') +
+      '. If you would like a member of the team to reply to you here, choose "Talk to a person" below; the other options are here too:';
+}
 
 const SITE = CANONICAL_ORIGIN;
 export function siteUrl(lang: Lang, path: string): string { return SITE + (lang === 'ar' ? '/ar' : '') + path; }
