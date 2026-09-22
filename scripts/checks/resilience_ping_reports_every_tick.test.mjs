@@ -110,7 +110,10 @@ test('the orphan step lifts a body-level failure out of an HTTP 200', () => {
 //
 // Measured 17 Sep 2026: the external watchdog had been red for four days over a healthy system. The
 // GitHub job ran `curl -m 30`, the Vercel route waited `AbortSignal.timeout(30_000)`, and the function
-// declares DEADLINE_MS = 110_000 with sub-timeouts of 55 s inside individual ticks. So neither caller
+// declared DEADLINE_MS = 110_000 with sub-timeouts of 55 s inside individual ticks. So neither caller
+// (110_000 is what it said on 17 Sep; it is 95_000 since 22 Sep 2026, CONN-02, where runSteps also
+// gained a ceiling on how long a step may still be WAITED on. The check below reads the live number
+// out of the file, so it needs no edit when that changes — this sentence is the measurement's date.)
 // could EVER see the answer once one tick ran long: 4/4 workflow failures on 14, 15, 16 and 17 Sep,
 // every one `curl: (28) ... 30002 ms`, against 194 successful function runs in the same 48 hours, and
 // the Vercel cron log permanently 502. This is the one watchdog that exists because an in-cluster

@@ -1,3 +1,4 @@
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS, DISPUTE_EVENTS, stripeEventMode, signingSecretFor, refundsInEvent } from '../_shared/stripe_events.ts';
 import { handleRevealInvoiceEvent } from './invoice_event.ts';
@@ -36,7 +37,7 @@ async function captureInvoice(
   logRun: (s: string, c: Record<string, unknown>, n: string) => Promise<void>,
 ): Promise<void> {
   try {
-    const r = await fetch('https://api.stripe.com/v1/invoices/' + encodeURIComponent(invoiceId),
+    const r = await timedFetch('https://api.stripe.com/v1/invoices/' + encodeURIComponent(invoiceId),
       { headers: { Authorization: 'Bearer ' + sk } });
     const inv = await r.json().catch(() => ({}));
     if (!r.ok || !inv?.id) {
@@ -51,7 +52,7 @@ async function captureInvoice(
     const pdfUrl = String(inv.invoice_pdf || '');
     if (pdfUrl) {
       try {
-        const pr = await fetch(pdfUrl);
+        const pr = await timedFetch(pdfUrl, {}, 20_000);
         const buf = pr.ok ? new Uint8Array(await pr.arrayBuffer()) : null;
         if (buf && buf.length) {
           const day = new Date().toISOString().slice(0, 10);
@@ -100,7 +101,7 @@ async function recordStripeFee(sk: string, txId: string, pi: string,
   logRun: (s: string, c: Record<string, unknown>, n: string) => Promise<void>): Promise<void> {
   if (!/^pi_/.test(pi)) return;
   try {
-    const r = await fetch('https://api.stripe.com/v1/payment_intents/' + encodeURIComponent(pi)
+    const r = await timedFetch('https://api.stripe.com/v1/payment_intents/' + encodeURIComponent(pi)
       + '?expand[]=latest_charge.balance_transaction', { headers: { Authorization: 'Bearer ' + sk } });
     const j = await r.json().catch(() => ({}));
     const bt = j?.latest_charge?.balance_transaction;
@@ -450,7 +451,7 @@ Deno.serve(observe('stripe_webhook', async (req) => {
       // not already do it. recordRevealSale is idempotent on quote_id; the fee is written once.
       if (String(event.type) === 'invoice.paid' && inv?.metadata?.flow === 'element' && inv?.metadata?.quote_id && invKey) {
         const md = inv.metadata;
-        const ip = await fetch('https://api.stripe.com/v1/invoice_payments?invoice=' + encodeURIComponent(String(inv.id)), { headers: { Authorization: 'Bearer ' + invKey } })
+        const ip = await timedFetch('https://api.stripe.com/v1/invoice_payments?invoice=' + encodeURIComponent(String(inv.id)), { headers: { Authorization: 'Bearer ' + invKey } })
           .then((r) => r.json()).catch(() => ({}));
         const pi = String(ip?.data?.[0]?.payment?.payment_intent || '');
         const sale = await recordRevealSale(admin, { quoteId: String(md.quote_id), customerId: md.customer_id || null,
@@ -496,7 +497,7 @@ Deno.serve(observe('stripe_webhook', async (req) => {
         try {
           const sk = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
           if (sk) {
-            const lj = await fetch('https://api.stripe.com/v1/refunds?limit=100&charge=' + encodeURIComponent(where.lookup),
+            const lj = await timedFetch('https://api.stripe.com/v1/refunds?limit=100&charge=' + encodeURIComponent(where.lookup),
               { headers: { Authorization: 'Bearer ' + sk } }).then((r) => r.json()).catch(() => ({}));
             if (Array.isArray(lj?.data)) refunds = lj.data;
           }
@@ -532,7 +533,7 @@ Deno.serve(observe('stripe_webhook', async (req) => {
                 ? (await secret('stripe_secret_key_test')) || ''
                 : await secret('stripe_secret_key');
               if (sk) {
-                const lookup = await fetch('https://api.stripe.com/v1/refunds/' + encodeURIComponent(String(rf.id)),
+                const lookup = await timedFetch('https://api.stripe.com/v1/refunds/' + encodeURIComponent(String(rf.id)),
                   { headers: { Authorization: 'Bearer ' + sk } });
                 const lj = await lookup.json().catch(() => ({}));
                 const n = Number(lj?.amount || 0) || null;

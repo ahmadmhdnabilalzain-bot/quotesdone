@@ -86,3 +86,30 @@ Deno.test('a failed step that was not due this tick is still failing, until a ru
   eq(carriedFailures(state, {}, [{ name: 'weekly.x', error: 'e' }]).map((f) => f.name), ['backupVerify'], 'not named twice');
   eq(carriedFailures([{ step: 'backupVerify', last_started_at: '2026-09-21T23:16:00Z', last_ok_at: '2026-09-21T23:16:00Z' }], {}, []), [], 'closes once a run passes');
 });
+
+import { ALWAYS_FLOOR_MS, stepCapMs } from './steps.ts';
+
+// CONN-02 (22 Sep 2026, it_engineer). The deadline used to be read ONCE, before a step started, so a step
+// admitted at 109.9 s could then wait its own 55 s timeout on top and the tick returned at up to ~165 s
+// against a 150 s platform cap. These two tests pin the arithmetic and the abandonment.
+Deno.test('the cap is what is left of the deadline plus the reserve, with a floor for an always step', () => {
+  eq(stepCapMs(109_000, 95_000, false), 11_000, 'a step starting at 109s of a 95s deadline gets 11s of the 120s ceiling');
+  eq(stepCapMs(10_000, 95_000, false), 110_000, 'an early step is bounded by the ceiling, not by nothing');
+  eq(stepCapMs(140_000, 95_000, false), -20_000, 'past the ceiling a normal step gets nothing (raceCap floors it at 0)');
+  eq(stepCapMs(140_000, 95_000, true), ALWAYS_FLOOR_MS, 'a mail drain past the ceiling still gets its floor, never unbounded');
+});
+
+Deno.test('a never-resolving step started past the deadline is abandoned, not waited on', async () => {
+  // Real time, scaled down by 1000: deadline 200 ms, reserve 100 ms, started at 190 ms => a 110 ms cap.
+  // The step never resolves, so if the cap did not fire this test would hang instead of failing. At the
+  // real numbers this is a step admitted at 109 s being abandoned by 120 s, well inside the 125 s bar.
+  const t0 = Date.now() - 190;
+  const began = Date.now();
+  const { failing, results } = await runSteps(
+    [{ name: 'hangs', run: () => new Promise<never>(() => {}) }], t0, 200, Date.now, 100);
+  const waited = Date.now() - began;
+  if (waited > 800) throw new Error('waited ' + waited + 'ms: the step was not abandoned at its cap');
+  eq(failing.length, 1, 'the abandoned step is a failure, not a silent pass');
+  if (!String(failing[0].error).includes('abandoned')) throw new Error('unexpected error text: ' + failing[0].error);
+  eq((results.hangs as { ok?: boolean })?.ok, false, 'the result records the abandonment');
+});

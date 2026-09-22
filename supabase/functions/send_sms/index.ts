@@ -5,6 +5,7 @@
 // v3: agent_runs instrumentation. Runs every 2 minutes and always returned 200, so 'sms_not_configured'
 //     and Twilio rejections were indistinguishable from a healthy idle flush. Recurring config states are
 //     throttled to one row per hour; idle runs with nothing queued are not logged at all.
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
@@ -42,7 +43,7 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 async function twilioSend(acct: string, ks: string, kk: string, from: string, to: string, body: string){
   const auth = btoa(ks + ':' + kk);
   const form = new URLSearchParams({ To: to, From: from, Body: body, StatusCallback: statusCallbackUrl() });
-  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${acct}/Messages.json`, { method: 'POST', headers: { 'Authorization': 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+  const r = await timedFetch(`https://api.twilio.com/2010-04-01/Accounts/${acct}/Messages.json`, { method: 'POST', headers: { 'Authorization': 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
   const jd = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, sid: jd?.sid || null, error: r.ok ? null : (jd?.message || ('http ' + r.status)) };
 }

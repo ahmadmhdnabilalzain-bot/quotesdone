@@ -1,3 +1,4 @@
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { jobNoOf } from '../_shared/quote_documents.ts';
 import { observe } from '../_shared/observe.ts';
@@ -95,7 +96,7 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     const action = String(body.action || '');
     if (action.startsWith('element_')) {
       const stripe: StripeCall = async (path, form, idem) => {
-        const r = await fetch('https://api.stripe.com/v1/' + path, {
+        const r = await timedFetch('https://api.stripe.com/v1/' + path, {
           method: form ? 'POST' : 'GET',
           headers: { Authorization: 'Bearer ' + sk, ...(form ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}), ...(idem ? { 'Idempotency-Key': idem } : {}) },
           body: form ? form.toString() : undefined,
@@ -216,7 +217,7 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     form.set('metadata[total_charged]', String(ch.total_charged));
     form.set('metadata[quote_amount]', String(q.quote_amount));
     form.set('payment_intent_data[metadata][quote_id]', qid);
-    const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+    const r = await timedFetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
     const sj = await r.json();
     if (!r.ok) { await logRun('error', { quote_id: qid, fee, http: r.status }, 'stripe session create failed: ' + String(sj?.error?.message || '').slice(0, 250)); return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502); }
     await logRun('ok', { quote_id: qid, fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, session: String(sj?.id || '') }, '');

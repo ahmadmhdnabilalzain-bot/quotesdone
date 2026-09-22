@@ -1,0 +1,1 @@
+CONN-09. Committed, NOT applied (see above: the orchestrator applies). qd_sign_customer and qd_sign_supplier; apply AFTER compliance_archive is deployed, because the new 60 s pg_net budget is sized against that function's new 45 s pdf_native timeout. On apply: delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.

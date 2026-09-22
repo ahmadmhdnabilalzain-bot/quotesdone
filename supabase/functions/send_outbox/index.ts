@@ -7,10 +7,11 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { encodeBase64 } from 'jsr:@std/encoding/base64';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
-import { ownsChannel, selectQueue } from './channels.ts';
+import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
@@ -134,8 +135,11 @@ Deno.serve(observe('send_outbox', async (req) => {
     const since = new Date(); since.setUTCHours(0, 0, 0, 0);
     const { count: sentToday } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('status', 'sent').gte('sent_at', since.toISOString());
     const remaining = Math.max(0, cap - (sentToday || 0));
-    const { data: q } = await selectQueue(admin, Number(body.limit) || 40);
-    const rows = q || [];
+    // CLAIMED, NOT READ (22 Sep 2026, it_engineer, CONN-03 — see channels.ts claimQueue).
+    const { data: q, error: qErr } = await claimQueue(admin, Number(body.limit) || 40);
+    if (qErr) { await logThrottled('claim_failed', 10, 'error', {}, 'could not claim the outbox queue: ' + qErr.message); return J({ ok: false, error: qErr.message }, 200); }
+    // deno-lint-ignore no-explicit-any -- the rows were `any` when they came from selectQueue; the loop below reads a dozen columns off them
+    const rows = ((q as any[] | null) || []);
     // Previously a silent ok:true - mail just accumulated with no signal anywhere.
     if (!enabled || !key) { await logThrottled('email_disabled', 60, 'error', { pending: rows.length, email_enabled: enabled, has_resend_key: !!key }, 'EMAIL NOT SENDING - ' + (!enabled ? 'email_enabled is not true' : 'resend_api_key missing') + '; ' + rows.length + ' notification(s) waiting'); return J({ ok: true, pending: rows.length, sent: 0, note: 'email disabled or resend_api_key missing - queued and will flush once enabled' }); }
     if (remaining <= 0) { await logThrottled('cap_reached', 60, 'error', { pending: rows.length, cap, sent_today: sentToday || 0 }, 'daily send cap reached - ' + rows.length + ' notification(s) held until tomorrow'); return J({ ok: true, sent: 0, pending: rows.length, note: 'daily send cap reached', cap, sent_today: sentToday || 0 }); }
@@ -148,7 +152,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     // reveal and account notices to a registered supplier.
     const supReason = new Map<string, string>();
     if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email,reason').in('email', toEmails); for (const s of (sup || []) as any[]) supReason.set(foldEmail(s.email), String(s.reason || '')); }
-    let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0;
+    let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0, unconfirmed = 0;
     const failNote = async (n: any, msg: string) => {
       const att = (Number(n.attempts) || 0) + 1;
       const dead = att >= MAX_ATTEMPTS;
@@ -219,7 +223,12 @@ Deno.serve(observe('send_outbox', async (req) => {
           // the reply-to address.
           text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX });
         if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
-        const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(mail) });
+        // IDEMPOTENCY-KEY AND A DEADLINE (22 Sep 2026, it_engineer, CONN-03). Resend deduplicates on
+        // this header for 24 hours, so the one case a claim cannot prevent — the POST left, the answer
+        // did not come back, the row is retried later — costs a duplicate ACCEPTANCE and not a
+        // duplicate EMAIL. The key is the notification id, which is what "this message" means here.
+        // 15 s: this loop holds up to 40 rows and the whole function answers inside email_cron's 60 s.
+        const r = await timedFetch('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json', 'Idempotency-Key': 'qd-notif-' + n.id }, body: JSON.stringify(mail) }, 15_000);
         // KEEP THE PROVIDER'S OWN NAME FOR THE MESSAGE. status='sent' only ever meant "Resend
         // answered 2xx"; without the id, that claim could never be taken back to the provider and
         // checked. This is what makes "the accountant sent the founder his report" verifiable
@@ -231,15 +240,33 @@ Deno.serve(observe('send_outbox', async (req) => {
           sent++;
         }
         else { const t = await r.text(); lastErr = String(t).slice(0, 200); await failNote(n, t); console.error('resend fail', n.id, t); }
-      } catch (e) { lastErr = String((e as Error)?.message || e).slice(0, 200); await failNote(n, String((e as Error)?.message || e)); console.error(e); }
+      } catch (e) {
+        // A THROW HERE MEANS THE REQUEST LEFT AND THE ANSWER DID NOT (22 Sep 2026, it_engineer, CONN-03).
+        // It used to go to failNote, which puts the row back to 'queued' — so a timeout on a message
+        // Resend had in fact accepted sent it again on the next pass. The row is marked 'sent' with
+        // provider_message_id NULL and the reason in last_error, which is this estate's existing way of
+        // saying UNCONFIRMED: fn_customer_support_delivery_watch returns 'sent_unconfirmed' for exactly
+        // that shape, and fn_originator_checks_delivery refuses to re-send on it. True, never repeated,
+        // and visible to the two routines that judge delivery.
+        lastErr = String((e as Error)?.message || e).slice(0, 200);
+        unconfirmed++;
+        await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: null,
+          last_error: ('the POST to Resend did not return (' + lastErr + '); it may or may not have been accepted, so this row is sent-unconfirmed and will NOT be sent again').slice(0, 500) }).eq('id', n.id);
+        console.error(e);
+      }
     }
+    // A CLAIM THAT WAS NOT RESOLVED IS GIVEN BACK NOW, not in five minutes. The loop `break`s when the
+    // daily cap is reached and `continue`s past a row of another channel, and both leave the row in
+    // 'sending'. The claim's own expiry would recover them, a beat later; this is the same thing at once.
+    const claimedIds = rows.map((n: any) => n.id);
+    if (claimedIds.length) { try { await admin.from("notifications").update({ status: "queued", claimed_at: null }).in("id", claimedIds).eq('status', 'sending'); } catch (_e) { /* the 5-minute claim expiry is the backstop */ } }
     // Only log runs that did something. Idle polls (nothing queued) stay out of agent_runs
     // so a real event is never buried under 720 empty rows a day.
     const didWork = sent || failed || suppressed || held || skipped;
     if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts and will never be delivered. Last error: ' + lastErr);
     else if (failed) await logRun('error', { sent, failed, retried, suppressed, held, skipped, pending: rows.length }, 'Resend rejected ' + failed + ' email(s), will retry. Last error: ' + lastErr);
     else if (didWork) await logRun('ok', { sent, suppressed, held, skipped, pending: rows.length, remaining_today: Math.max(0, remaining - sent) }, held ? (held + ' held (supplier sending gate or stale)') : '');
-    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent) });
+    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent) });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
 }, { okEveryMs: 600000 }));
 const RESERVED_TEST_DOMAIN = /@(?:[a-z0-9_-]+[.])*(?:example[.](?:com|net|org)|test|example|invalid|localhost)$/i;

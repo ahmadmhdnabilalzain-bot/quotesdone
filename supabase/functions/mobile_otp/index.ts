@@ -3,6 +3,7 @@
 // (account uses API keys + a Verify service, not legacy auth_token+from). Twilio manages the OTP code itself.
 // Actions: 'status' (reports sms_enabled + phone), 'send', 'verify', 'diag' (read-only credential check).
 // Authed via the customer's Supabase JWT. verify_jwt=false (validates JWT internally).
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
@@ -26,12 +27,12 @@ function basic(ks: string, kk: string){ return 'Basic ' + btoa(ks + ':' + kk); }
 async function verifySend(svc: string, ks: string, kk: string, to: string, channel: string, locale: string){
   // Locale: the code arrives in the customer's registered language (founder, 14 Sep 2026).
   const form = new URLSearchParams({ To: to, Channel: channel, Locale: asLocale(locale) });
-  const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}/Verifications`, { method:'POST', headers:{ 'Authorization': basic(ks,kk), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
+  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${svc}/Verifications`, { method:'POST', headers:{ 'Authorization': basic(ks,kk), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
   const jd = await r.json().catch(()=>({})); return { ok: r.ok, status: r.status, vstatus: jd?.status || null, error: r.ok ? null : (jd?.message || ('http '+r.status)), code: jd?.code || null };
 }
 async function verifyCheck(svc: string, ks: string, kk: string, to: string, code: string){
   const form = new URLSearchParams({ To: to, Code: code });
-  const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}/VerificationCheck`, { method:'POST', headers:{ 'Authorization': basic(ks,kk), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
+  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${svc}/VerificationCheck`, { method:'POST', headers:{ 'Authorization': basic(ks,kk), 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() });
   const jd = await r.json().catch(()=>({})); return { ok: r.ok, status: r.status, vstatus: jd?.status || null, error: r.ok ? null : (jd?.message || ('http '+r.status)) };
 }
 
@@ -49,7 +50,7 @@ Deno.serve(observe('mobile_otp', async (req) => {
       const __auth = await requireInternal(admin, body?.__secret, 'mobile_otp');
       if (!__auth.ok) return J({ error:'forbidden' }, 403);
       if (!smsEnabled) return J({ ok:false, sms_enabled:false, missing:{ verify_service_sid:!svc, api_key_sid:!ks, api_key_secret:!kk } });
-      const r = await fetch(`https://verify.twilio.com/v2/Services/${svc}`, { headers:{ 'Authorization': basic(ks!,kk!) } });
+      const r = await timedFetch(`https://verify.twilio.com/v2/Services/${svc}`, { headers:{ 'Authorization': basic(ks!,kk!) } });
       const jd = await r.json().catch(()=>({}));
       return J({ ok:r.ok, sms_enabled:true, http:r.status, service_name: jd?.friendly_name || null, auth_ok: r.ok, error: r.ok?null:(jd?.message||('http '+r.status)) });
     }

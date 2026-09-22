@@ -241,12 +241,29 @@ Deno.serve(observe('inquiry_intake', async (req) => {
     let specialistKB = '';
     if (tradeSlugsForChecklist.length && text) {
       const parts: string[] = [];
+      // A BUDGET, AND A MISS THAT IS SAID OUT LOUD (22 Sep 2026, it_engineer, CONN-01). kb_query
+      // seq-scanned 148k rows and cancelled on the statement timeout 379 times in 48 hours; this loop
+      // runs up to twice a turn and its `catch (_e) {}` swallowed every one, so a customer waited up to
+      // 16 s per turn for knowledge that never arrived and nothing anywhere recorded it. The routine is
+      // fixed (scripts/sql/kb_query_reads_the_index_instead_of_scanning_every_chunk.sql); this is the
+      // caller's half — retrieval is an enrichment and a customer never waits more than 3 s for it, and
+      // when it does not arrive the reason is logged instead of vanishing.
       for (const s of tradeSlugsForChecklist.slice(0, 2)) {
+        const t0 = Date.now();
         try {
-          const { data: chunks } = await admin.rpc('kb_query', { p_query: text.slice(0, 500), p_category: s, p_limit: 5 });
+          const chunks = await Promise.race([
+            admin.rpc('kb_query', { p_query: text.slice(0, 500), p_category: s, p_limit: 5 })
+              .then((r: { data: unknown; error: { message: string } | null }) => { if (r.error) throw new Error(r.error.message); return r.data; }),
+            new Promise((_ok, no) => setTimeout(() => no(new Error('kb_query did not answer within 3s')), 3000)),
+          ]);
           const items = ((chunks as any[]) || []).map((c: any) => (c.title ? c.title + ': ' : '') + String(c.snippet || c.content || '').trim()).filter(Boolean);
           if (items.length) parts.push(s + ':\n' + items.join('\n\n'));
-        } catch (_e) { /* retrieval best-effort */ }
+          else console.warn('kb_query returned nothing for category', s, 'in', Date.now() - t0, 'ms');
+        } catch (e) {
+          // Best-effort still, but NAMED: the flat trade brief below is used instead, and the reason
+          // this turn went without cited field knowledge is in the logs.
+          console.error('kb_query miss for category', s, 'after', Date.now() - t0, 'ms:', String((e as Error)?.message || e));
+        }
       }
       specialistKB = parts.join('\n\n').slice(0, 3800);
       if (!specialistKB) {

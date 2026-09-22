@@ -1,3 +1,4 @@
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { resolveSale } from './resolve.ts';
@@ -26,7 +27,7 @@ async function cardOf(paymentRef: string): Promise<RevealSale['card']> {
     const sk = await secret(k);
     if (!sk) continue;
     try {
-      const r = await fetch('https://api.stripe.com/v1/payment_intents/' + paymentRef + '?expand[]=latest_charge', { headers: { Authorization: 'Bearer ' + sk } });
+      const r = await timedFetch('https://api.stripe.com/v1/payment_intents/' + paymentRef + '?expand[]=latest_charge', { headers: { Authorization: 'Bearer ' + sk } });
       if (r.status === 404) continue;
       const j = await r.json().catch(() => ({}));
       const c = j?.latest_charge?.payment_method_details?.card;
@@ -100,8 +101,8 @@ Deno.serve(observe('reveal_invoice', async (req) => {
     sale.card = await cardOf(sale.payment_ref);
     const doc = (kind === 'invoice' ? revealInvoiceDocument : revealReceiptDocument)(sale, docLang);
     const inbound = await secret('cred_fn_reveal_invoice');
-    const pr = await fetch(URL_ + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: inbound, ...doc, folder: 'reveal_invoice/' + String(tx.id).slice(0, 8) }) });
+    const pr = await timedFetch(URL_ + '/functions/v1/pdf_native', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: inbound, ...doc, folder: 'reveal_invoice/' + String(tx.id).slice(0, 8) }) }, 45_000);
     const pj = await pr.json().catch(() => null);
     if (!pj?.ok || !pj.path) { await logRun('error', { quote_id: qid, doc: kind, lang: docLang }, 'pdf_native failed: ' + String(pj?.error || pj?.detail || pr.status).slice(0, 200)); return J({ error: 'pdf_failed' }, 502); }
     const bucket = pj.bucket || 'agent-docs';

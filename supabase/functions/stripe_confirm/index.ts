@@ -1,3 +1,4 @@
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
@@ -39,7 +40,7 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     const sk = await secret(keys.secret);
     if (!sk && keys.mode === 'test') { await logRun('ok', { session_id: sid, mode: 'test' }, 'demo account: stripe test keys are not configured - confirmation refused, live key never used'); return J({ error: 'stripe_test_not_configured', mode: 'test' }, 200); }
     if (!sk) { await logRun('error', { session_id: sid }, 'CONFIRM BLOCKED - stripe_secret_key missing from app_secrets'); return J({ error: 'stripe_not_configured' }, 200); }
-    const r = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(sid), { headers: { 'Authorization': 'Bearer ' + sk } });
+    const r = await timedFetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(sid), { headers: { 'Authorization': 'Bearer ' + sk } });
     const s = await r.json();
     if (!r.ok) { await logRun('error', { session_id: sid, http: r.status }, 'stripe session fetch failed: ' + String(s?.error?.message || '').slice(0, 250)); return J({ error: 'stripe_error', detail: String(s?.error?.message || '').slice(0, 300) }, 502); }
     const md = s.metadata || {};

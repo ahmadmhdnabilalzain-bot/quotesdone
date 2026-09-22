@@ -1,0 +1,1 @@
+CONN-05. Committed, NOT applied (see above: the orchestrator applies). Three CREATE INDEX statements on leads (22,266 rows); needs --ddl. Order does not matter. On apply: delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.

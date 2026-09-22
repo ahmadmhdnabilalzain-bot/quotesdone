@@ -18,6 +18,7 @@
 // MONEY SAFETY: this endpoint only CREATES a Stripe Checkout Session. It never marks anything
 // paid. supplier_dues is settled solely by stripe_webhook once Stripe confirms payment on a
 // signature-verified event, so a supplier cannot clear their own debt by calling the API.
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
@@ -100,7 +101,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
       f.set('metadata[supplier_id]', String(lead.id));
       f.set('payment_intent_data[metadata][kind]', 'supplier_registration');
       f.set('payment_intent_data[metadata][supplier_id]', String(lead.id));
-      const rr = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + skReg, 'Content-Type': 'application/x-www-form-urlencoded' }, body: f.toString() });
+      const rr = await timedFetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + skReg, 'Content-Type': 'application/x-www-form-urlencoded' }, body: f.toString() });
       const rj = await rr.json();
       if (!rr.ok) { await logRun('error', { supplier_id: lead.id, fee, http: rr.status }, 'registration session create failed: ' + String(rj?.error?.message || '').slice(0, 200)); return J({ error: 'stripe_error', detail: String(rj?.error?.message || '').slice(0, 300) }, 502); }
       await logRun('ok', { supplier_id: lead.id, registration_fee: fee, session: String(rj?.id || '') }, '');
@@ -191,7 +192,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
     form.set('payment_intent_data[metadata][due_ids]', ids.join(','));
     form.set('payment_intent_data[metadata][kind]', 'supplier_dues');
 
-    const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+    const r = await timedFetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
     const sj = await r.json();
     if (!r.ok) { await logRun('error', { supplier_id: lead.id, amount, http: r.status }, 'Stripe session create failed for a supplier trying to settle: ' + String(sj?.error?.message || '').slice(0, 200) + '. The supplier cannot pay right now and interest keeps accruing.'); return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502); }
 

@@ -17,6 +17,7 @@
 //      nothing recorded that it had arrived. The same journey by EMAIL has worked for weeks. This
 //      is that path, reused rather than reinvented: same bucket, same sanitiser, same extractor,
 //      same columns, same audit row.
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
@@ -216,11 +217,11 @@ async function retrieveFaq(q: string): Promise<{ ctx: string; ids: number[] }> {
 async function llm(sys: string, user: string, faqText: string, rateKey: string): Promise<any> {
   const secret = await sec('cred_fn_ai'); if (!secret) return null;
   try {
-    const r = await fetch(GATEWAY, {
+    const r = await timedFetch(GATEWAY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: secret, fn: 'wa_inbound', sys, input: user, max: 600, temperature: 0.2, try_faq: true, faq_text: faqText, rate_key: rateKey, rate_limit: 20, rate_window_s: 3600 }),
-    });
+    }, 45_000);
     const j = await r.json().catch(() => null);
     const c = typeof j?.content === 'string' ? j.content.trim() : '';
     if (!c) return null;
@@ -383,7 +384,7 @@ async function sendWa(to: string, body: string, mediaUrl?: string | null, conten
   // A reply here is recorded in wa_messages, not notifications, so wa_status answers it matched=false.
   form.set('StatusCallback', statusCallbackUrl());
   try {
-    const r = await fetch('https://api.twilio.com/2010-04-01/Accounts/' + sid + '/Messages.json', { method: 'POST', headers: { 'Authorization': 'Basic ' + btoa(kSid + ':' + kSec), 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
+    const r = await timedFetch('https://api.twilio.com/2010-04-01/Accounts/' + sid + '/Messages.json', { method: 'POST', headers: { 'Authorization': 'Basic ' + btoa(kSid + ':' + kSec), 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
     if (r.ok) return { ok: true };
     let detail = 'http_' + r.status;
     try { const j = await r.json(); if (j?.code || j?.message) detail = String(j.code || '') + ' ' + String(j.message || ''); } catch (_e) { /* keep status */ }

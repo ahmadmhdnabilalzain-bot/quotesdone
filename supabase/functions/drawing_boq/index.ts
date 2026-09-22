@@ -7,6 +7,7 @@
 // calling it — the buyer got HTTP 200 with ok:false and was told nothing).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { boqFromPages } from './boq_from_text.ts';
@@ -73,6 +74,12 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'drawing_boq');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
+    // TOO BIG TO PARSE IS REFUSED BEFORE IT IS PARSED (22 Sep 2026, it_engineer, CONN-06). This
+    // function decoded whatever base64 arrived and ran a PDF/CAD parse over it; past the edge CPU cap
+    // that is HTTP 546, which kills the isolate — no catch, no row update, no finding. A refusal the
+    // customer can act on is better than a kill nobody sees. See _shared/parse_ceiling.ts.
+    const tooBig = tooLargeToParse([body.original_b64, body.file_b64, body.images]);
+    if (tooBig) return J({ ok: false, ...tooBig }, 413);
     const hint = body.hint ? String(body.hint).slice(0,400) : '';
     // 14 Sep 2026. A BOQ SPREADSHEET the customer attached (customer_api analyze_boq). It is already a
     // table of quantities, so it is read cell by cell with no model and no key, before anything below.
