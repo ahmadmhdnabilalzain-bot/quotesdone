@@ -28,13 +28,13 @@
 --   5. fn_marketing_social_set_status(conversation, status, by): the founder's word hands it back
 --      ('auto') — from the OS or his command channel; an echo from the Meta inbox hands it to him.
 --   6. v_marketing_social_volume — the counts the CEO's marketing report reads, fixtures excluded.
+--   7. v_conversation_message gains a social_message branch, so the sales engineer reads Instagram and
+--      Facebook conversations in the same record as every other channel.
 --
 -- WHAT THIS DOES NOT CHANGE. It does not register the seat 'marketing', the founder mail kind
 -- 'social_human_request' (until that row exists fn_notify_founder ROUTES the notice to an org_task
 -- instead of emailing it), function_owner for marketing_social_inbox, or llm_seat_binding — those belong to
--- the_marketing_seat_exists (branch ceo/the-marketing-seat-exists). It does not add social_message to
--- v_conversation_message; the sales engineer reads the table directly until that view's owner does.
--- It sends nothing: the edge function sends only when app_secrets.social_send_enabled = 'on'.
+-- the_marketing_seat_exists (branch ceo/the-marketing-seat-exists). It sends nothing: the edge function sends only when app_secrets.social_send_enabled = 'on'.
 --
 --   node scripts/apply_sql.mjs scripts/sql/every_social_message_is_answered.sql --apply --ddl
 
@@ -256,3 +256,100 @@ select c.platform,
  where not c.is_demo
  group by c.platform;
 revoke all on public.v_marketing_social_volume from anon, authenticated;
+
+-- ── 7. THE SALES ENGINEER READS SOCIAL CONVERSATIONS WHERE HE READS EVERY OTHER ────────────────
+-- Founder, 14 Sep 2026: "all conversations need to be saved and the sales agent has access to them at any
+-- time". v_conversation_message is that single record. Copied VERBATIM from its MANIFEST-last definition
+-- (the_supplier_and_the_sales_engineer_review_a_quotation_in_one_conversation.sql, section 5); only the
+-- social_message branch at the end is added. Its grants are kept: revoked from public, anon, authenticated.
+create or replace view public.v_conversation_message as
+select 'inbound_messages'::text as source_table, m.id::text as source_id, 'email'::text as channel, 'in'::text as direction,
+       m.created_at as occurred_at, m.from_email as from_addr, m.to_email as to_addr, null::text as cc,
+       m.subject, m.body, m.html, jsonb_build_object('count', coalesce(m.attachments_count, 0)) as attachments,
+       p.party_kind, p.party_id, p.inquiry_id,
+       (coalesce(m.from_email, '') ~* 'example\.invalid' or p.demo) as is_demo
+  from public.inbound_messages m
+  cross join lateral public.fn_conversation_party(m.lead_id, null, null, m.from_email, null) p
+union all
+select 'notifications', n.id::text, coalesce(n.channel, 'email'), 'out',
+       coalesce(n.sent_at, n.created_at), coalesce(n.sender, 'QuotesDone'), coalesce(n.to_email, n.to_phone),
+       array_to_string(n.cc_emails, ', '), n.subject, n.body, n.html, coalesce(n.attachments, '[]'::jsonb),
+       p.party_kind, p.party_id, coalesce(p.inquiry_id, n.inquiry_id::text),
+       (coalesce(n.to_email, '') ~* 'example\.invalid' or coalesce(n.subject, '') ~* 'ZZ DEMO' or p.demo)
+  from public.notifications n
+  cross join lateral public.fn_conversation_party(n.lead_id, null, n.inquiry_id, n.to_email, n.to_phone) p
+ where n.status = 'sent' and coalesce(n.channel, 'email') in ('email', 'whatsapp')
+union all
+select 'wa_messages', w.id::text, 'whatsapp', 'in', w.created_at, w.wa_from, w.wa_to, null,
+       'WhatsApp' || coalesce(' from ' || nullif(w.profile_name, ''), ''),
+       'Received:' || E'\n' || coalesce(w.inbound, '')
+         || case when coalesce(w.reply, '') <> '' then E'\n\n' || 'Replied' || case when w.sent then '' else ' (not delivered)' end || ':' || E'\n' || w.reply else '' end,
+       null, '[]'::jsonb, p.party_kind, p.party_id, p.inquiry_id, p.demo
+  from public.wa_messages w
+  cross join lateral public.fn_conversation_party(null, null, null, null, w.wa_from) p
+union all
+select 'messages', pm.id::text, 'chat', case when pm.sender in ('customer', 'supplier') then 'in' else 'out' end,
+       pm.created_at, pm.sender, null, null, 'Portal chat - ' || coalesce(pm.sender, ''),
+       pm.body || coalesce(E'\n\n' || 'Attachment: ' || pm.attachment_path, ''), null,
+       case when pm.attachment_path is null then '[]'::jsonb else jsonb_build_array(jsonb_build_object('path', pm.attachment_path)) end,
+       p.party_kind, p.party_id, coalesce(p.inquiry_id, pm.inquiry_id::text), p.demo
+  from public.messages pm
+  cross join lateral public.fn_conversation_party(pm.supplier_id, pm.customer_id, pm.inquiry_id, null, null) p
+union all
+select 'rfq_clarification', r.id::text, 'chat', 'in', r.asked_at, 'supplier ' || coalesce(r.supplier_id::text, ''), null, null,
+       'Clarification - ' || coalesce(r.kind, ''),
+       'Question:' || E'\n' || coalesce(r.question, '') || case when r.answer is not null then E'\n\n' || 'Answer:' || E'\n' || r.answer else '' end,
+       null, '[]'::jsonb, p.party_kind, p.party_id, coalesce(p.inquiry_id, r.inquiry_id::text), p.demo
+  from public.rfq_clarification r
+  cross join lateral public.fn_conversation_party(r.supplier_id, null, r.inquiry_id, null, null) p
+union all
+select 'assistant_logs', a.id::text, 'chat', 'in', a.created_at,
+       case when a.audience ~ '^customer:' then 'portal customer' else 'website visitor' end, coalesce(a.seat, 'customer_support'), null,
+       case when a.seat = 'sales_engineer' then 'Portal - sales engineer' else 'Website assistant' end || coalesce(' - ' || a.path, ''),
+       'Asked:' || E'\n' || coalesce(a.message, '') || E'\n\n' || 'Answered:' || E'\n' || coalesce(a.reply, ''),
+       null, '[]'::jsonb, p.party_kind, p.party_id, p.inquiry_id, p.demo
+  from public.assistant_logs a
+  cross join lateral public.fn_conversation_party(null,
+       case when a.audience ~ '^customer:[0-9a-f-]{36}$' then substring(a.audience from 10)::uuid end, null, null, null) p
+union all
+select 'contact_messages', cm.id::text, 'form', 'in', cm.created_at, coalesce(cm.email, cm.phone), null, null,
+       'Contact form' || coalesce(' - ' || cm.name, ''), cm.message, null, '[]'::jsonb,
+       p.party_kind, p.party_id, p.inquiry_id, (coalesce(cm.email, '') ~* 'example\.invalid' or p.demo)
+  from public.contact_messages cm
+  cross join lateral public.fn_conversation_party(null, null, null, cm.email, cm.phone) p
+union all
+select 'complaint_tickets', ct.id::text, 'form', 'in', ct.created_at, ct.email, null, null,
+       'Complaint ' || coalesce(ct.ticket_no, ''),
+       coalesce(ct.message, '') || case when ct.final_response is not null then E'\n\n' || 'Final response:' || E'\n' || ct.final_response else '' end,
+       null, '[]'::jsonb, p.party_kind, p.party_id, p.inquiry_id, (coalesce(ct.email, '') ~* 'example\.invalid' or p.demo)
+  from public.complaint_tickets ct
+  cross join lateral public.fn_conversation_party(null, null, null, ct.email, null) p
+union all
+-- 15 Sep 2026: the supplier's side of a quotation conversation is 'in', the sales engineer's 'out';
+-- the party is the supplier on the review, and a demo supplier's conversation is demo (never archived).
+select 'quote_review_messages', q.id::text, 'chat', case when q.role = 'supplier' then 'in' else 'out' end, q.created_at,
+       case when q.role = 'supplier' then 'supplier ' || coalesce(qr.supplier_id::text, '') else coalesce(q.role, '') end, null, null,
+       'Quotation review - job ' || upper(left(coalesce(qr.inquiry_id::text, ''), 8)) || ' - ' || coalesce(q.role, ''),
+       coalesce(q.body, '') || case when coalesce(q.body_ar, '') <> '' then E'\n\n' || q.body_ar else '' end,
+       null, coalesce(q.attachments, '[]'::jsonb),
+       p.party_kind, p.party_id, coalesce(p.inquiry_id, qr.inquiry_id::text), p.demo
+  from public.quote_review_messages q
+  join public.quote_reviews qr on qr.id = q.review_id
+  -- The lead ONLY: fn_conversation_party prefers an inquiry's customer over the lead, so passing the
+  -- inquiry here filed every supplier's review under the customer (database review, 15 Sep 2026).
+  cross join lateral public.fn_conversation_party(qr.supplier_id, null, null, null, null) p
+union all
+-- 22 Sep 2026 (marketing): Instagram and Facebook, both directions. A social contact is not a customer or a
+-- supplier row, so the party columns are empty; the handle and the platform say who it was.
+select 'social_message', sm.id::text, sc.platform, sm.direction, sm.occurred_at,
+       case when sm.direction = 'in' then coalesce(nullif(sc.handle, ''), sc.user_id)
+            when sm.author = 'human' then 'QuotesDone (team)' else 'QuotesDone (marketing, auto)' end,
+       case when sm.direction = 'in' then 'QuotesDone' else coalesce(nullif(sc.handle, ''), sc.user_id) end, null,
+       initcap(sc.platform) || ' ' || case when sm.channel = 'dm' then 'message' else 'comment' end
+         || ' - ' || coalesce(nullif(sc.handle, ''), sc.user_id),
+       sm.body || case when sm.direction = 'out' and sm.author = 'seat' then E'\n\n' || 'Delivery: ' || coalesce(sm.send_status, 'pending') else '' end,
+       null, '[]'::jsonb, p.party_kind, p.party_id, p.inquiry_id, sc.is_demo
+  from public.social_message sm
+  join public.social_conversation sc on sc.id = sm.conversation_id
+  cross join lateral public.fn_conversation_party(null, null, null, null, null) p;
+revoke all on public.v_conversation_message from public, anon, authenticated;

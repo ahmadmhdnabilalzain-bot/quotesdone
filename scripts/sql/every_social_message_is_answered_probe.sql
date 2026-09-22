@@ -15,14 +15,15 @@
 --   3. the second hand-off does not notify again;
 --   4. the founder's word hands it back: status auto, resumed_by founder;
 --   5. v_marketing_social_volume does not count the fixture;
---   6. the library holds its nine rows, each with English and Arabic.
+--   6. the library holds its nine rows, each with English and Arabic;
+--   7. the fixture message appears in v_conversation_message (the sales engineer's record), marked demo.
 -- Nothing reaches a person: the conversation is a fixture, and the notice rows it causes roll back with
 -- the block before send_outbox could read them.
 create temp table zz_probe_verdict (verdict text, detail text) on commit drop;
 do $probe$
 declare
   v_conv bigint; v_dup boolean := false; r1 jsonb; r2 jsonb; v_status1 text; v_status2 text; v_by text;
-  v_alerts_before int; v_alerts_1 int; v_alerts_2 int; v_detail text; v_view0 int; v_view int; v_lib int; v_err text;
+  v_alerts_before int; v_alerts_1 int; v_alerts_2 int; v_detail text; v_view0 int; v_view int; v_conv_rows int; v_lib int; v_err text;
 begin
   begin
     -- @UNAPPLIED_FILE (a rehearsal before the apply executes the file here; see the report)
@@ -50,6 +51,8 @@ begin
     select status, resumed_by into v_status2, v_by from public.social_conversation where id = v_conv;
 
     select coalesce(sum(conversations), 0) into v_view from public.v_marketing_social_volume;
+    select count(*) into v_conv_rows from public.v_conversation_message
+     where source_table = 'social_message' and is_demo and from_addr = 'ZZ DEMO probe' and channel = 'instagram';
     select count(*) into v_lib from public.social_reply_library where reply_ar ~ '[؀-ۿ]' and length(reply_en) > 20;
     raise exception 'ZZPROBE rollback';
   exception when others then
@@ -60,11 +63,11 @@ begin
                    and v_alerts_1 = v_alerts_before + 1 and v_detail like '%Instagram%' and v_detail like '%ZZ DEMO probe%'
                    and v_detail like '%I want to speak with an agent%' and v_detail like '%business.facebook.com/latest/inbox%'
                    and not (r2->>'notified')::boolean and v_alerts_2 = v_alerts_1
-                   and v_status2 = 'auto' and v_by = 'founder' and v_view = v_view0 and v_lib = 9
+                   and v_status2 = 'auto' and v_by = 'founder' and v_view = v_view0 and v_conv_rows = 1 and v_lib = 9
               then 'PROBE OK' else 'PROBE FAILED' end,
          format('duplicate refused=%s; first handoff notified=%s status=%s alerts %s->%s (notify: %s); second handoff notified=%s alerts=%s; '
-                || 'after hand-back status=%s by=%s; CEO view conversations before/after the fixture=%s/%s; library rows=%s; block ended with: %s',
+                || 'after hand-back status=%s by=%s; CEO view conversations before/after the fixture=%s/%s; sales-engineer view rows for the fixture=%s (want 1); library rows=%s; block ended with: %s',
                 v_dup, r1->>'notified', v_status1, v_alerts_before, v_alerts_1, r1->'notify', r2->>'notified', v_alerts_2,
-                v_status2, v_by, v_view0, v_view, v_lib, v_err);
+                v_status2, v_by, v_view0, v_view, v_conv_rows, v_lib, v_err);
 end $probe$;
 select * from zz_probe_verdict;
