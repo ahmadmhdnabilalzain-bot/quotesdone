@@ -21,7 +21,7 @@
 // the Supabase management token (scripts/lib/db.mjs). Nothing is printed but SIDs.
 import { createHash } from 'node:crypto';
 import { sql, lit } from '../lib/db.mjs';
-import { contentKey, MENU_BUTTON, menuAsText, menuItems, WELCOME_TAIL } from '../../supabase/functions/wa_inbound/menu.ts';
+import { contentKey, greetLine, MENU_BUTTON, menuAsText, menuItems, WELCOME_TAIL } from '../../supabase/functions/wa_inbound/menu.ts';
 
 const APPLY = process.argv.includes('--apply');
 const CONTENT = 'https://content.twilio.com/v1/Content';
@@ -40,7 +40,8 @@ export function definitions() {
         // Where a list cannot be shown, Twilio falls back to this: the same menu as numbered text.
         'twilio/text': { body: menuAsText(lang, audience, '{{1}}') },
       };
-      const sample = lang === 'ar' ? 'أهلًا وسهلًا، مرحبًا بكم في QuotesDone.' : 'Good day, and welcome to QuotesDone.';
+      // The sample Meta and Twilio show for {{1}}: the greeting exactly as greetLine writes it for no name.
+      const sample = greetLine(lang, audience, null);
       const hash = createHash('sha1').update(JSON.stringify(types)).digest('hex').slice(0, 8);
       const key = contentKey(lang, audience);
       out.push({ key, friendly_name: 'quotesdone_' + key + '_' + hash, language: lang, variables: { 1: sample }, types });

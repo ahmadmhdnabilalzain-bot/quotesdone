@@ -20,8 +20,8 @@
 // which never touches the outbox. per_recipient_24h=1 applied here would answer "hi" and then refuse
 // the option they picked from our own list. wa_autoreply_enabled still governs every send.
 import {
-  type Audience, caseConfirm, contentKey, greetLine, isGreeting, isMenuWord, isSalam, type Lang, langOf,
-  MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, welcomeText, WELCOME_TAIL,
+  type Audience, caseClosedNotice, caseConfirm, type CaseResult, contentKey, founderCommand, greetLine, isGreeting, isMenuWord,
+  isSalam, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, welcomeText, WELCOME_TAIL,
 } from './menu.ts';
 
 export type Turn = { route: string | null; await: string | null; lang: Lang | null };
@@ -35,12 +35,18 @@ export type MenuDeps = {
   weWroteRecently(from: string): Promise<boolean>;
   /** fn_wa_menu_context: audience by CONFIRMED number, name, approval, own open requests. */
   context(from: string): Promise<MenuContext>;
-  /** fn_faq_answer: a confident answer from the approved FAQ, or null. */
+  /** fn_faq_answer with the gte-small embedding: a corroborated answer from the approved FAQ, or null. */
   faq(text: string): Promise<string | null>;
-  /** fn_wa_problem_report: opens a support case, returns its reference. */
-  openCase(from: string, text: string, lang: Lang): Promise<string | null>;
-  /** fn_notify_founder, kind whatsapp_human_request. */
+  /** fn_wa_problem_report: opens a support case, or adds to the one this number/account already has open. */
+  openCase(from: string, text: string, lang: Lang): Promise<CaseResult>;
+  /** fn_wa_human_request: hands the conversation to a person (handoff + hold) and alerts the founder. */
   notifyHuman(from: string, ctx: MenuContext, text: string): Promise<boolean>;
+  /** fn_wa_human_hold: true while this number waits for a person, so the seat stays quiet. */
+  humanHold(from: string): Promise<boolean>;
+  /** Founder commands. fn_support_case_close answers the reporter's number and language (or nulls). */
+  closeCase(ref: string, reason: string): Promise<{ ok: boolean; phone?: string | null; lang?: Lang; reason?: string }>;
+  /** fn_wa_human_request_close: how many open requests from that number were closed. */
+  closeHuman(phone: string): Promise<number>;
   contentSid(key: string): Promise<string | null>;
   send(to: string, body: string, content?: Content): Promise<SendResult>;
   record(row: { inbound: string; reply: string; lang: Lang; sent: boolean; route: string; await: string | null;
@@ -82,9 +88,45 @@ async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContex
 }
 
 export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: boolean; route?: string }> {
+  const body = String(inp.body || '').trim();
+
+  // 0a. The founder closes what the menu opened (instruction 763: nothing is one-way). His number only.
+  if (inp.audience === 'founder') {
+    const cmd = founderCommand(body);
+    if (cmd?.kind === 'close_case') {
+      const r = await d.closeCase(cmd.ref, cmd.reason || 'resolved');
+      let notice: { sent: boolean; err?: string } | null = null;
+      if (r.ok && r.phone) {
+        const s = await d.send('whatsapp:+' + r.phone.replace(/[^0-9]/g, ''), caseClosedNotice(r.lang || 'en', cmd.ref, r.reason || cmd.reason));
+        notice = { sent: s.ok, err: s.err };
+      }
+      const txt = !r.ok ? 'No open case ' + cmd.ref + ' was found; nothing was closed.'
+        : 'Case ' + cmd.ref + ' is closed. ' + (!r.phone ? 'The reporter had no WhatsApp number on the case.'
+          : notice?.sent ? 'The reporter was told on WhatsApp.' : 'The WhatsApp notice to the reporter failed (' + (notice?.err || 'unknown') + '); the email on their account, if any, carries it.');
+      await reply(d, inp, 'en', 'founder_close_case', txt, null, { case_ref: cmd.ref, closed: r.ok, reporter_notice: notice });
+      return { handled: true, route: 'founder_close_case' };
+    }
+    if (cmd?.kind === 'close_human') {
+      const n = await d.closeHuman(cmd.phone);
+      await reply(d, inp, 'en', 'founder_close_human', n
+        ? 'Closed. Automatic replies to +' + cmd.phone + ' are back on.'
+        : 'No open request for a person from +' + cmd.phone + ' was found.', null, { phone: cmd.phone, closed: n });
+      return { handled: true, route: 'founder_close_human' };
+    }
+  }
+
+  // 0b. Handed to a person: the seat does not talk over the human (instruction 763). The message is
+  //     recorded for the team and nothing is sent, until the founder closes it or the 23-hour follow-up
+  //     (fn_wa_human_request_tick) hands the conversation back. Never the founder's own number: his
+  //     command channel must keep working while he tests the menu.
+  if (inp.audience !== 'founder' && await d.humanHold(inp.from)) {
+    await d.record({ inbound: body, reply: '', lang: langOf(body), sent: false, route: 'held_for_human', await: null,
+                     send_error: null, extra: { held_for_human: true, has_media: !!inp.hasMedia, autoreply_enabled: await d.autoreplyEnabled() } });
+    return { handled: true, route: 'held_for_human' };
+  }
+
   // A document belongs to document intake, whatever it says in the caption.
   if (inp.hasMedia) return { handled: false };
-  const body = String(inp.body || '').trim();
   const recent = await d.recentTurns(inp.from);
   const last = recent[0] || null;
   const lastWasMenu = !!last?.route && /^menu_(welcome|reoffer)$/.test(last.route);
@@ -95,8 +137,8 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
 
   // 1. The message after "Report a problem" is the problem.
   if (!choice && awaiting === 'problem' && body && !isGreeting(body) && !isMenuWord(body)) {
-    const ref = await d.openCase(inp.from, body, lang);
-    await reply(d, inp, lang, 'menu_case', caseConfirm(lang, ref), null, { case_ref: ref });
+    const c = await d.openCase(inp.from, body, lang);
+    await reply(d, inp, lang, 'menu_case', caseConfirm(lang, c), null, { case_ref: c.ref, case_appended: !!c.appended });
     return { handled: true, route: 'menu_case' };
   }
 
