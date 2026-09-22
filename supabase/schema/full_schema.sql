@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T10:59:49.519Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T11:03:14.960Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -194,7 +194,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (539) =====
+-- ===== TABLES (543) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4407,6 +4407,13 @@ CREATE TABLE IF NOT EXISTS public.marketing_library (
   created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_meta_page (
+  page_id text NOT NULL,
+  ig_id text,
+  page_token text NOT NULL,
+  fetched_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_post (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   ingest_key text NOT NULL,
@@ -6467,6 +6474,45 @@ CREATE TABLE IF NOT EXISTS public.skills_matrix (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.social_conversation (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  platform text NOT NULL,
+  user_id text NOT NULL,
+  account_id text,
+  handle text,
+  owner_seat text DEFAULT 'marketing'::text NOT NULL,
+  status text DEFAULT 'auto'::text NOT NULL,
+  handed_at timestamp with time zone,
+  handed_reason text,
+  handoff_count integer DEFAULT 0 NOT NULL,
+  resumed_at timestamp with time zone,
+  resumed_by text,
+  last_inbound_at timestamp with time zone,
+  is_demo boolean GENERATED ALWAYS AS (((user_id ~* '^ZZDEMO'::text) OR (COALESCE(handle, ''::text) ~* '^ZZ DEMO'::text))) STORED,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.social_message (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  conversation_id bigint NOT NULL,
+  platform text NOT NULL,
+  channel text NOT NULL,
+  direction text NOT NULL,
+  author text NOT NULL,
+  meta_message_id text,
+  parent_id text,
+  in_reply_to bigint,
+  body text NOT NULL,
+  reply_kind text,
+  reply_key text,
+  send_status text,
+  send_error text,
+  sent_at timestamp with time zone,
+  outcome text,
+  occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.social_posts (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
@@ -6483,6 +6529,17 @@ CREATE TABLE IF NOT EXISTS public.social_posts (
   permalink_missing text,
   media_missing text,
   preview_url text
+);
+
+CREATE TABLE IF NOT EXISTS public.social_reply_library (
+  key text NOT NULL,
+  priority integer,
+  match_words text[] DEFAULT '{}'::text[] NOT NULL,
+  reply_en text NOT NULL,
+  reply_ar text NOT NULL,
+  active boolean DEFAULT true NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_by text
 );
 
 CREATE TABLE IF NOT EXISTS public.spec_alternative_offer (
@@ -7824,6 +7881,7 @@ ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connectio
 ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_pkey PRIMARY KEY (duty);
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_pkey PRIMARY KEY (platform, object_id, metric, day);
 ALTER TABLE public.marketing_library ADD CONSTRAINT marketing_library_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_pkey PRIMARY KEY (page_id);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_pkey PRIMARY KEY (report_date);
 ALTER TABLE public.marketing_snapshots ADD CONSTRAINT marketing_snapshots_pkey PRIMARY KEY (id);
@@ -7976,7 +8034,10 @@ ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
+ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_pkey PRIMARY KEY (id);
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id);
+ALTER TABLE public.social_reply_library ADD CONSTRAINT social_reply_library_pkey PRIMARY KEY (key);
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_pkey PRIMARY KEY (id);
 ALTER TABLE public.spec_backlog ADD CONSTRAINT spec_backlog_pkey PRIMARY KEY (id);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_pkey PRIMARY KEY (id);
@@ -8095,6 +8156,7 @@ ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
 ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_requirement_key UNIQUE (requirement);
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_expiry_date_band_channel_key UNIQUE (lead_id, expiry_date, band, channel);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_one_row_per_attempt UNIQUE (request_id, attempt_no);
+ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_ig_id_key UNIQUE (ig_id);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_key UNIQUE (ingest_key);
 ALTER TABLE public.mdm_brands ADD CONSTRAINT mdm_brands_name_key UNIQUE (name);
 ALTER TABLE public.mdm_manufacturers ADD CONSTRAINT mdm_manufacturers_name_key UNIQUE (name);
@@ -8116,6 +8178,8 @@ ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_resource_key UNIQU
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_key UNIQUE (transaction_id);
 ALTER TABLE public.rfq_archives ADD CONSTRAINT rfq_archives_rfq_id_key UNIQUE (rfq_id);
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_question_norm_key UNIQUE (question_norm);
+ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_user_id_key UNIQUE (platform, user_id);
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_platform_meta_message_id_key UNIQUE (platform, meta_message_id);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_category_title_key UNIQUE (category, title);
 ALTER TABLE public.supplier_catalog ADD CONSTRAINT supplier_catalog_supplier_id_source_hash_key UNIQUE (supplier_id, source_hash);
 ALTER TABLE public.supplier_dues ADD CONSTRAINT supplier_dues_transaction_id_key UNIQUE (transaction_id);
@@ -8533,6 +8597,14 @@ ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_it
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_en_check CHECK ((btrim(reason_en) <> ''::text));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
+ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_check CHECK ((platform = ANY (ARRAY['instagram'::text, 'facebook'::text])));
+ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_status_check CHECK ((status = ANY (ARRAY['auto'::text, 'handed_to_human'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_author_check CHECK ((author = ANY (ARRAY['person'::text, 'seat'::text, 'human'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_channel_check CHECK ((channel = ANY (ARRAY['dm'::text, 'comment'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_direction_check CHECK ((direction = ANY (ARRAY['in'::text, 'out'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_platform_check CHECK ((platform = ANY (ARRAY['instagram'::text, 'facebook'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_reply_kind_check CHECK ((reply_kind = ANY (ARRAY['handoff'::text, 'standard'::text, 'faq'::text, 'knowledge'::text, 'unknown'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_send_status_check CHECK ((send_status = ANY (ARRAY['pending'::text, 'held_switch_off'::text, 'held_fixture'::text, 'sent'::text, 'failed'::text])));
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_clickable CHECK ((((image_url IS NOT NULL) OR (media_missing IS NOT NULL)) AND ((NOT ((mode = 'now'::text) AND (status = ANY (ARRAY['sent'::text, 'published'::text])))) OR ((permalinks IS NOT NULL) AND (permalinks <> '{}'::jsonb)) OR (permalink_missing IS NOT NULL))));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_alternatives_shape CHECK (((jsonb_typeof(alternatives) = 'array'::text) AND (jsonb_array_length(alternatives) >= 1) AND (NOT jsonb_path_exists(alternatives, '$[*]?(@.type() != "object")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*].keyvalue()?((@."key" != "option_id" && @."key" != "value") && @."key" != "suppliers")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*]."suppliers"?(@.type() != "number")'::jsonpath))));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_channel_check CHECK (((answer_channel IS NULL) OR (answer_channel = ANY (ARRAY['portal'::text, 'whatsapp'::text, 'email'::text]))));
@@ -8834,6 +8906,8 @@ ALTER TABLE public.sales_qualification_field ADD CONSTRAINT sales_qualification_
 ALTER TABLE public.sanctions_ban ADD CONSTRAINT sanctions_ban_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE CASCADE;
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES social_conversation(id);
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_in_reply_to_fkey FOREIGN KEY (in_reply_to) REFERENCES social_message(id);
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.stripe_dispute ADD CONSTRAINT stripe_dispute_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
@@ -9285,6 +9359,7 @@ CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseli
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX social_message_conversation_idx ON public.social_message USING btree (conversation_id, created_at DESC);
 CREATE UNIQUE INDEX spec_alternative_offer_one_live_per_attr ON public.spec_alternative_offer USING btree (inquiry_id, line_no, attr) WHERE (state = ANY (ARRAY['open'::text, 'accepted'::text]));
 CREATE INDEX spec_alternative_offer_open_idx ON public.spec_alternative_offer USING btree (state, reply_by) WHERE (state = 'open'::text);
 CREATE UNIQUE INDEX spec_backlog_spec_ref_uidx ON public.spec_backlog USING btree (spec_ref) WHERE (spec_ref IS NOT NULL);
@@ -11361,7 +11436,44 @@ UNION ALL
     p.demo AS is_demo
    FROM ((quote_review_messages q
      JOIN quote_reviews qr ON ((qr.id = q.review_id)))
-     CROSS JOIN LATERAL fn_conversation_party(qr.supplier_id, NULL::uuid, NULL::uuid, NULL::text, NULL::text) p(party_kind, party_id, inquiry_id, demo));
+     CROSS JOIN LATERAL fn_conversation_party(qr.supplier_id, NULL::uuid, NULL::uuid, NULL::text, NULL::text) p(party_kind, party_id, inquiry_id, demo))
+UNION ALL
+ SELECT 'social_message'::text AS source_table,
+    (sm.id)::text AS source_id,
+    sc.platform AS channel,
+    sm.direction,
+    sm.occurred_at,
+        CASE
+            WHEN (sm.direction = 'in'::text) THEN COALESCE(NULLIF(sc.handle, ''::text), sc.user_id)
+            WHEN (sm.author = 'human'::text) THEN 'QuotesDone (team)'::text
+            ELSE 'QuotesDone (marketing, auto)'::text
+        END AS from_addr,
+        CASE
+            WHEN (sm.direction = 'in'::text) THEN 'QuotesDone'::text
+            ELSE COALESCE(NULLIF(sc.handle, ''::text), sc.user_id)
+        END AS to_addr,
+    NULL::text AS cc,
+    ((((initcap(sc.platform) || ' '::text) ||
+        CASE
+            WHEN (sm.channel = 'dm'::text) THEN 'message'::text
+            ELSE 'comment'::text
+        END) || ' - '::text) || COALESCE(NULLIF(sc.handle, ''::text), sc.user_id)) AS subject,
+    (sm.body ||
+        CASE
+            WHEN ((sm.direction = 'out'::text) AND (sm.author = 'seat'::text)) THEN (('
+
+'::text || 'Delivery: '::text) || COALESCE(sm.send_status, 'pending'::text))
+            ELSE ''::text
+        END) AS body,
+    NULL::text AS html,
+    '[]'::jsonb AS attachments,
+    p.party_kind,
+    p.party_id,
+    p.inquiry_id,
+    sc.is_demo
+   FROM ((social_message sm
+     JOIN social_conversation sc ON ((sc.id = sm.conversation_id)))
+     CROSS JOIN LATERAL fn_conversation_party(NULL::bigint, NULL::uuid, NULL::uuid, NULL::text, NULL::text) p(party_kind, party_id, inquiry_id, demo));
 
 CREATE OR REPLACE VIEW public.v_critical_capability_tests AS  WITH latest AS (
          SELECT DISTINCT ON (agent_runs.agent) agent_runs.agent,
@@ -11885,6 +11997,23 @@ CREATE OR REPLACE VIEW public.v_legacy_secret_users AS  SELECT function_name,
   WHERE ((reason = 'legacy_secret_used'::text) AND (at > (now() - '7 days'::interval)))
   GROUP BY function_name
   ORDER BY (count(*)) DESC;
+
+CREATE OR REPLACE VIEW public.v_marketing_social_volume AS  SELECT c.platform,
+    count(DISTINCT c.id) AS conversations,
+    count(DISTINCT c.id) FILTER (WHERE (c.status = 'handed_to_human'::text)) AS waiting_for_founder,
+    count(m.id) FILTER (WHERE (m.direction = 'in'::text)) AS inbound_total,
+    count(m.id) FILTER (WHERE ((m.direction = 'in'::text) AND (m.occurred_at > (now() - '1 day'::interval)))) AS inbound_24h,
+    count(m.id) FILTER (WHERE ((m.direction = 'in'::text) AND (m.occurred_at > (now() - '7 days'::interval)))) AS inbound_7d,
+    count(m.id) FILTER (WHERE ((m.author = 'seat'::text) AND (m.send_status = 'sent'::text))) AS auto_replies_sent,
+    count(m.id) FILTER (WHERE ((m.author = 'seat'::text) AND (m.send_status = 'held_switch_off'::text))) AS auto_replies_held_switch_off,
+    count(m.id) FILTER (WHERE ((m.author = 'seat'::text) AND (m.reply_kind = 'handoff'::text))) AS handoffs,
+    count(m.id) FILTER (WHERE ((m.author = 'seat'::text) AND (m.reply_kind = 'unknown'::text))) AS unanswered_gaps,
+    count(m.id) FILTER (WHERE (m.author = 'human'::text)) AS founder_replies,
+    max(m.occurred_at) FILTER (WHERE (m.direction = 'in'::text)) AS last_inbound_at
+   FROM (social_conversation c
+     LEFT JOIN social_message m ON ((m.conversation_id = c.id)))
+  WHERE (NOT c.is_demo)
+  GROUP BY c.platform;
 
 CREATE OR REPLACE VIEW public.v_openrouter_call_log AS  SELECT c.id,
     c.occurred_at,
@@ -18999,6 +19128,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19514,135 +19772,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -40803,6 +40932,74 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_social_hand_to_human(p_conversation_id bigint, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c public.social_conversation%rowtype;
+  v_last text;
+  v_detail text;
+begin
+  select * into c from public.social_conversation where id = p_conversation_id for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no_such_conversation'); end if;
+  -- Already with him: a second "agent" in the same conversation does not email him twice.
+  if c.status = 'handed_to_human' then return jsonb_build_object('ok', true, 'notified', false, 'reason', 'already_handed'); end if;
+
+  update public.social_conversation
+     set status = 'handed_to_human', handed_at = now(), handed_reason = left(coalesce(p_reason, ''), 500),
+         handoff_count = handoff_count + 1
+   where id = c.id;
+
+  select string_agg(to_char(m.occurred_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || '  '
+                    || case m.author when 'person' then coalesce(c.handle, 'them') when 'seat' then 'QuotesDone (auto)' else 'QuotesDone (team)' end
+                    || ': ' || left(m.body, 400), E'\n' order by m.occurred_at)
+    into v_last
+    from (select * from public.social_message where conversation_id = c.id order by occurred_at desc limit 8) m;
+
+  v_detail := 'Someone on ' || initcap(c.platform) || ' asked to speak with a person. The marketing seat has stopped '
+    || 'auto-replying in this conversation and it is waiting for you.' || E'\n\n'
+    || 'Platform: ' || initcap(c.platform) || E'\n'
+    || 'Handle: ' || coalesce(nullif(c.handle, ''), '(not shared by Meta)') || '  (id ' || c.user_id || ')' || E'\n'
+    || 'Conversation: #' || c.id || E'\n\n'
+    || 'Last messages (Dubai time):' || E'\n' || coalesce(v_last, '(none)') || E'\n\n'
+    || 'Continue in the Meta inbox: https://business.facebook.com/latest/inbox/all' || E'\n'
+    || 'When you are done, hand it back to the seat: select public.fn_marketing_social_set_status('
+    || c.id || ', ''auto'', ''founder'');';
+
+  return jsonb_build_object('ok', true, 'notified', true, 'notify',
+    public.fn_notify_founder(
+      'Someone on ' || initcap(c.platform) || ' asked to speak with you' || coalesce(' (' || nullif(c.handle, '') || ')', ''),
+      v_detail, 'high', 'social_human_request',
+      'social_human:' || c.id || ':' || (c.handoff_count + 1), 'marketing'));
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_social_set_status(p_conversation_id bigint, p_status text, p_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if p_status not in ('auto', 'handed_to_human') then
+    return jsonb_build_object('ok', false, 'reason', 'status must be auto or handed_to_human');
+  end if;
+  update public.social_conversation
+     set status = p_status,
+         resumed_at = case when p_status = 'auto' then now() else resumed_at end,
+         resumed_by = case when p_status = 'auto' then left(coalesce(p_by, ''), 120) else resumed_by end,
+         handed_at = case when p_status = 'handed_to_human' and status = 'auto' then now() else handed_at end,
+         handed_reason = case when p_status = 'handed_to_human' and status = 'auto' then left(coalesce(p_by, ''), 500) else handed_reason end
+   where id = p_conversation_id;
+  return jsonb_build_object('ok', found, 'status', p_status);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_studio()
  RETURNS jsonb
  LANGUAGE sql
@@ -46217,16 +46414,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -46397,6 +46584,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -66573,6 +66770,7 @@ ALTER TABLE public.marketing_connection_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_duty_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_insight_day ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_library ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_meta_page ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_post ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_snapshots ENABLE ROW LEVEL SECURITY;
@@ -66725,7 +66923,10 @@ ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_implication ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_conversation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_reply_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.spec_alternative_offer ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.spec_backlog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.strategy_risks ENABLE ROW LEVEL SECURITY;
@@ -66854,6 +67055,7 @@ CREATE POLICY marketing_ad_spend_day_service_role_only ON public.marketing_ad_sp
 CREATE POLICY marketing_connection_check_service_role_only ON public.marketing_connection_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_insight_day_service_role_only ON public.marketing_insight_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_meta_page_service_role_only ON public.marketing_meta_page AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_post_service_role_only ON public.marketing_post AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_report_service_role_only ON public.marketing_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -66883,6 +67085,9 @@ CREATE POLICY routine_change_log_service_role_only ON public.routine_change_log 
 CREATE POLICY sanctions_ban_service_role_only ON public.sanctions_ban AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY social_conversation_service_role_only ON public.social_conversation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY social_message_service_role_only ON public.social_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY social_reply_library_service_role_only ON public.social_reply_library AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY spec_alternative_offer_service_role_only ON public.spec_alternative_offer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_dispute_service_role_only ON public.stripe_dispute AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_payout_service_role_only ON public.stripe_payout AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
