@@ -31,8 +31,8 @@
 // than ten suppliers, 2 have demand and no SEO page, and 21 competitors have a stated weakness at
 // low or medium threat.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { mgmtRead } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const OUT = 'scripts/sql/opportunity_scan_five_questions.sql';
 const one = async (sql) => { const r = await mgmtRead(STAGE, sql); return r[0] ? Object.values(r[0])[0] : null; };

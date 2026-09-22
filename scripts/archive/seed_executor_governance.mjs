@@ -28,7 +28,7 @@
 //
 //   node scripts/seed_executor_governance.mjs <staging-ref>
 //   node scripts/seed_executor_governance.mjs --print-sql
-import { mgmtRead, mgmtWrite, resolveStagingRef } from './staging/qd_guard.mjs';
+import { mgmtRead, mgmtWrite, resolveStagingRef } from '../lib/qd_guard.mjs';
 
 // action_class: [risk_tier, reversible, idempotency_strategy, owner_os, required_authority]
 export const GOV = {

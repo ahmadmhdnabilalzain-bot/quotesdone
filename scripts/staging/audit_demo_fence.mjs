@@ -13,7 +13,9 @@
 // Part 4 added twenty-four fenced quotes. notify_new_quote_sms addresses a CUSTOMER and is gated
 // only by `inq.customer_id is null`, so the quote leg is a real path to a real person's phone.
 // Auditing only the inquiry leg would have watched the door the fixtures do not use.
-import { mgmtRead, PROD_REF } from 'file:///C:/Users/Opera/quotesdone/scripts/staging/qd_guard.mjs';
+// 23 Sep 2026: this imported the guard by absolute file:// url into one person's checkout, so it
+// ran nowhere else and no path-rewriting sweep could see it. Relative, like every other importer.
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 
 const r = await mgmtRead(PROD_REF, `
   with i as (select id from public.inquiries where brief_source='qd_demo_fixture'),

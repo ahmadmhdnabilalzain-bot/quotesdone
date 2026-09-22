@@ -26,7 +26,7 @@
 //
 //   node scripts/seed_category_domain_map.mjs <staging-ref>
 //   node scripts/seed_category_domain_map.mjs --print-sql
-import { mgmtRead, mgmtWrite, resolveStagingRef } from './staging/qd_guard.mjs';
+import { mgmtRead, mgmtWrite, resolveStagingRef } from '../lib/qd_guard.mjs';
 
 export const MAP = {
   'construction-materials-suppliers': 'construction-civil-and-building-materials',

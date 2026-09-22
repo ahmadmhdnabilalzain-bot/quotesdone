@@ -34,8 +34,8 @@
 // The `present < 3` branch is left exactly as it was. It is the more honest sentence when there is
 // nothing to be causal about, and replacing it would be trading a true statement for a longer one.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { mgmtRead } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const OUT = 'scripts/sql/health_note_names_its_cause.sql';
 const one = async (sql) => { const r = await mgmtRead(STAGE, sql); return r[0] ? Object.values(r[0])[0] : null; };

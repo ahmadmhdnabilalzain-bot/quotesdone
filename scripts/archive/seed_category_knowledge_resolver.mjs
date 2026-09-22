@@ -25,7 +25,7 @@
 //
 //   node scripts/seed_category_knowledge_resolver.mjs <staging-ref>
 //   node scripts/seed_category_knowledge_resolver.mjs --print-sql
-import { mgmtRead, mgmtWrite, resolveStagingRef } from './staging/qd_guard.mjs';
+import { mgmtRead, mgmtWrite, resolveStagingRef } from '../lib/qd_guard.mjs';
 
 export const SQL = `create or replace function public.fn_category_knowledge(p_category text)
 returns table(catalog_slug text, topic text, content text, priority integer, layer text)

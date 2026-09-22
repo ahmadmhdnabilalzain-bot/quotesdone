@@ -181,7 +181,7 @@ export function howItIsAllowed(src) {
 test('every seeded approved supplier goes through the factory, the sales engineer, or the evidence', () => {
   const findings = [];
   for (const rel of seedingSurfaces()) {
-    if (rel === 'scripts/staging/demo_factory.mjs') continue;                 // it IS the factory
+    if (rel === 'scripts/lib/demo_factory.mjs') continue;                     // it IS the factory
     if (rel === 'scripts/checks/a_seeded_approved_supplier_carries_the_mandatory_six.test.mjs') continue;
     const raw = readFileSync(join(REPO, rel), 'utf8');
     const src = stripComments(raw, /\.sql$/.test(rel));

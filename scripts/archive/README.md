@@ -16,6 +16,18 @@ by a *document* was left in `scripts/`; the bar for moving was "nothing at all n
 **If one of these is needed again**, move it back with `git mv` and say in the commit what names it
 now. A script in `scripts/` root is one something calls.
 
+**Their imports were repaired, not left to rot.** Moving these files down one level broke every
+relative specifier in them: measured 23 Sep 2026, **42 specifiers in 21 files** no longer resolved.
+38 were repointed at the file that still exists (`./staging/qd_guard.mjs` → `../lib/qd_guard.mjs`,
+`./staging/demo_factory.mjs` → `../lib/demo_factory.mjs`, and `dwg_takeoff.ts`'s reach into
+`supabase/functions/_shared/doc_read/dwg.ts`). Each one was verified to exist on disk afterwards.
+
+The remaining 4 are NOT broken and were deliberately not touched: the three
+`migrate_internal_auth_gates*.mjs` files hold `'../_shared/internal_auth.ts'` inside a string the
+codemod WRITES INTO an edge function. It is correct relative to its destination and was never
+resolvable from `scripts/`. A path in a string is not an import — repointing it would have broken
+the codemod while making a checker happy.
+
 | file | what it did |
 |---|---|
 | `apply_demo_fixture.mjs` | applied one demo-fixture `.sql` to staging and then production with identical text |

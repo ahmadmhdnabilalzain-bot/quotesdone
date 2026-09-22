@@ -8,7 +8,10 @@ document is stale.
 
 Index written 22 Sep 2026 (founder instruction 642). Many documents describe the company
 **before 7 Sep 2026**, when the organisation was cut from ten departments and 90+ agents to a few
-seats (today: ceo, customer_support, sales_engineer, accountant, it_engineer). Those now live under
+seats. **Six today**, measured 22 Sep 2026 against `public.function_owner` and the live deployment
+list: sales_engineer 29 functions, customer_support 18, accountant 10, it_engineer 10, marketing 4,
+ceo 1 — 72 in total. The marketing seat went live on 22 Sep and this line said five until the
+23rd. Documents describing the pre-cut organisation now live under
 `archive/`: kept because they record what was measured and why it changed, not because they
 describe today. **Everything outside `archive/` is meant to be current.** If you find something in
 the list below that is not, move it into `archive/` and say so in the same commit.

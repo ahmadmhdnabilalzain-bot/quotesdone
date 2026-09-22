@@ -33,8 +33,8 @@
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const WRITE = process.argv.includes('--write');
 const MIG = join(process.cwd(), 'supabase', 'migrations');

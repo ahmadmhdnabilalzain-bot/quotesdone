@@ -16,11 +16,19 @@ so. Where a document and the code disagree, the code is right.
 | code shared between functions | `supabase/functions/_shared/*.ts` | the paid-provider gate, the internal-auth gate, attachments, the SSRF guard |
 | the web app | `src/app` (App Router, `en` at `/`, `ar` at `/ar` — `src/i18n/routing.ts:8`), `src/components`, `src/content` | the browser calls edge functions directly; `src/app/api/resilience-ping/route.ts` is the ONLY Next API route |
 | a gate | `scripts/checks/*.mjs`, run by `scripts/checks/run.mjs` | a check retires WITH its subject — renamed `*.RETIRED.mjs` into `scripts/checks/retired/`, never softened |
-| tooling | `scripts/` root (called by something) and `scripts/lib/` (imported) | one-shot scripts that already ran are in `scripts/archive/` with an index |
+| tooling | `scripts/lib/` is what other scripts IMPORT; `scripts/` root and its subject folders (`checks/`, `staging/`, `e2e/`, `sql/`, `kb/`…) are what a person or a workflow RUNS | one-shot scripts that already ran are in `scripts/archive/` with an index |
 | the founder's words | `public.founder_instruction` | verbatim, the moment he says them; a trigger refuses `done` with no evidence |
 | a settled policy | `public.company_policy_decision` + the guard that enforces it | the database enforces it, not a comment |
 | conduct rules | `.claude/skills/*/SKILL.md` | a rule about HOW to work is a skill, not a document |
 | narrative and history | `docs/`, and `docs/archive/` for what the company has left | never the source of truth for behaviour |
+
+What decides a script's home is **who depends on it**, not whether it can be run. `scripts/lib/`
+holds the modules other scripts import, and one of them — `demo_factory.mjs` — also answers a
+command line: `--selftest` is how the fixture factory proves it returns the database to its exact
+baseline. A module carrying its own self-test is a module you can trust; it is still a library,
+because 77 files import it (`qd_guard.mjs`, with 104 importers, has no CLI at all). The inverse is
+the rule that matters: something
+in `scripts/` root that nothing imports and nothing runs belongs in `scripts/archive/`.
 
 ### The four SQL apply tiers
 

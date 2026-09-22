@@ -24,8 +24,8 @@
 // 14 days after the writer changes, not tonight. Back-filling the key into the 12 existing rows
 // would be editing history to turn a gate green, and those snapshots genuinely did not record it.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { mgmtRead } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const OUT = 'scripts/sql/snapshot_carries_customers.sql';
 const one = async (sql) => { const r = await mgmtRead(STAGE, sql); return r[0] ? Object.values(r[0])[0] : null; };

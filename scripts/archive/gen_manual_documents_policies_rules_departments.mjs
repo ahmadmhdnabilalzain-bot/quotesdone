@@ -37,8 +37,8 @@
 // reorder columns; adding UNION ALL branches leaves the column list alone, which is why the change
 // takes this shape rather than editing the select list.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { mgmtRead } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const OUT = 'scripts/sql/manual_documents_policies_rules_departments.sql';
 const one = async (sql) => { const r = await mgmtRead(STAGE, sql); return r[0] ? Object.values(r[0])[0] : null; };

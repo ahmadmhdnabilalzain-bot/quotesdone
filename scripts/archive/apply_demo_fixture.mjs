@@ -22,8 +22,8 @@
 //   · every update must name the fixture marker in the same statement
 //   · no production ref literal, the same check qd_guard makes
 import { readFileSync } from 'node:fs';
-import { mgmtWrite, PROD_REF, assertNoProductionLiteral } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtWrite, PROD_REF, assertNoProductionLiteral } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const file = process.argv[2];
 if (!file) { console.error('usage: node scripts/apply_demo_fixture.mjs <demo_file.sql>'); process.exit(2); }

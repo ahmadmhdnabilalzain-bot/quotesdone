@@ -34,7 +34,7 @@
 //   node scripts/gen_company_map_places_suppliers_and_knowledge.mjs
 //   node scripts/apply_sql.mjs scripts/sql/company_map_places_suppliers_and_knowledge.sql --promote
 import { writeFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 
 const NODE_ANCHOR = `  union all select 'responsibility', responsibility, responsibility from os_responsibility
   on conflict do nothing;`;

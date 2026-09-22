@@ -32,8 +32,8 @@
 // Each block also refuses to re-propose the same trigger inside 30 days. Without that, a weekly
 // cron restates the same four facts every Monday and the proposal queue becomes a newsletter.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { mgmtRead } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const OUT = 'scripts/sql/evolution_asks_structural_questions.sql';
 const one = async (sql) => { const r = await mgmtRead(STAGE, sql); return r[0] ? Object.values(r[0])[0] : null; };

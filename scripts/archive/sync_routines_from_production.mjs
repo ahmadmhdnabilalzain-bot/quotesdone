@@ -23,8 +23,8 @@
 // what qd_guard's assertNoProductionLiteral exists to refuse.
 //
 //   node scripts/sync_routines_from_production.mjs [--dry-run]
-import { mgmtRead, mgmtWrite, PROD_REF } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const DRY = process.argv.includes('--dry-run');
 const ROUTINES = ['enqueue_supplier_invites', 'fn_control_mode_open', 'fn_invite_ramp',

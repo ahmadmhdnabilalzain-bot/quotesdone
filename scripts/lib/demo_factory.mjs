@@ -37,13 +37,13 @@
 //     });                                              // teardown runs even if the body throws
 //
 // Usage as a CLI:
-//     node scripts/staging/demo_factory.mjs --selftest    create, assert, tear down, prove the
-//                                                         database returned to its exact baseline
-//     node scripts/staging/demo_factory.mjs --purge       delete the accumulated litter
-//     node scripts/staging/demo_factory.mjs --purge --dry-run
-//     node scripts/staging/demo_factory.mjs --corpus 100  build a matching corpus (add --keep)
+//     node scripts/lib/demo_factory.mjs --selftest    create, assert, tear down, prove the
+//                                                     database returned to its exact baseline
+//     node scripts/lib/demo_factory.mjs --purge       delete the accumulated litter
+//     node scripts/lib/demo_factory.mjs --purge --dry-run
+//     node scripts/lib/demo_factory.mjs --corpus 100  build a matching corpus (add --keep)
 import { assertNotProduction, mgmtRead, mgmtFixture, PROD_REF } from './qd_guard.mjs';
-import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
+import { demoPdf, demoTradeLicence } from './demo_pdf.mjs';
 import { readFileSync } from 'node:fs';
 import { randomBytes, createHmac } from 'node:crypto';
 

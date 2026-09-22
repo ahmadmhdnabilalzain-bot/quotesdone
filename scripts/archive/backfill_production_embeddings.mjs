@@ -12,8 +12,8 @@
 //
 //   node scripts/backfill_production_embeddings.mjs [--dry-run]
 import { readFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const DRY = process.argv.includes('--dry-run');
 const one = (r) => (r && r[0]) ? Object.values(r[0])[0] : null;

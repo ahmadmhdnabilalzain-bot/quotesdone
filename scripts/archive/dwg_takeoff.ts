@@ -10,7 +10,7 @@
 // THE PLATFORM'S HAND-OFF is scripts/cad_read_worker.ts (22 Sep 2026): customer_api queues a DWG the edge
 // cannot read in public.cad_read_jobs, and .github/workflows/cad-read-worker.yml reads it with this same
 // readDwg and writes the take-off back. This file stays the local, one-drawing tool.
-import { readDwg } from '../supabase/functions/_shared/doc_read/dwg.ts';
+import { readDwg } from '../../supabase/functions/_shared/doc_read/dwg.ts';
 
 const file = Deno.args[0];
 if (!file) { console.error('usage: dwg_takeoff.ts <file.dwg>'); Deno.exit(2); }
