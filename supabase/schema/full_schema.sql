@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T01:47:23.631Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T03:42:48.659Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -34408,6 +34408,18 @@ begin
   for r in select * from public.it_change_revision
             where first_seen_at > now() - interval '30 days' and verdict not in ('on_main', 'merged_pr') loop
     continue when r.verdict = 'pending' and r.first_seen_at > now() - interval '2 hours';
+    -- SETTLED: every change this revision made was re-applied from a reviewed revision or accepted.
+    continue when exists (select 1 from public.routine_change_log c
+                           where substring(c.application_name from '^qd-apply ([0-9a-f]{7,40}) ') = r.rev)
+             and not exists (
+                   select 1 from public.routine_change_log c
+                    where substring(c.application_name from '^qd-apply ([0-9a-f]{7,40}) ') = r.rev
+                      and not exists (select 1 from public.it_change_acceptance a where a.txid = c.txid)
+                      and not exists (select 1 from public.routine_change_log s
+                                        join public.it_change_revision rv
+                                          on rv.rev = substring(s.application_name from '^qd-apply ([0-9a-f]{7,40}) ')
+                                       where s.object_identity = c.object_identity and s.at > c.at
+                                         and rv.verdict in ('on_main', 'merged_pr')));
     v_items := v_items || jsonb_build_object('item', 'rev:' || r.rev, 'owner_seat', 'ceo', 'subject', 'routine_change_log',
       'title', case r.verdict
                  when 'open_pr' then 'Routines were applied to production from ' || r.rev || ', which is in pull request #'
@@ -34420,7 +34432,8 @@ begin
       'evidence', jsonb_build_object('rev', r.rev, 'verdict', r.verdict, 'pr_number', r.pr_number, 'checked_at', r.checked_at,
         'detail', r.detail,
         'objects', (select jsonb_agg(distinct c.command_tag || ' ' || c.object_identity) from public.routine_change_log c
-                     where substring(c.application_name from '^qd-apply ([0-9a-f]{7,40}) ') = r.rev)));
+                     where substring(c.application_name from '^qd-apply ([0-9a-f]{7,40}) ') = r.rev),
+        'close', 'Re-apply each routine from a reviewed revision, or the ceo or the founder accepts its transaction with public.fn_it_change_accept(txid, who, why).'));
   end loop;
   v_rev := public.fn_it_duty_settle('unsigned_revision', v_items);
 
