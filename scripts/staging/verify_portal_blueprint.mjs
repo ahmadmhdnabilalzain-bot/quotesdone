@@ -31,9 +31,9 @@
 // hard; qd_guard retries with exponential backoff. Several minutes is normal. It is not a hang.
 import { readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 import { recordBlueprintRun, printBlueprintDiff } from './blueprint_history.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const TARGET = process.argv.includes('--staging') ? STAGE : PROD_REF;
 const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7);

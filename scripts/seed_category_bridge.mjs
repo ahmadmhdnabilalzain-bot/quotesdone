@@ -28,7 +28,7 @@
 //
 //   node scripts/seed_category_bridge.mjs              # apply to staging, then verify
 //   node scripts/seed_category_bridge.mjs --print-sql  # emit the statement for production
-import { mgmtRead, mgmtWrite, resolveStagingRef } from './staging/qd_guard.mjs';
+import { mgmtRead, mgmtWrite, resolveStagingRef } from './lib/qd_guard.mjs';
 
 const REF = resolveStagingRef(process.argv[2]);
 

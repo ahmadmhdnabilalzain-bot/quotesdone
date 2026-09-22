@@ -11,7 +11,7 @@
 // writes). Before the purge has run it fails by design — 2.4 M rows is the finding, not a flake —
 // and the count of the `standard` kind is walked by id slice because a whole-table classification
 // takes ~210 s against the platform's 2-minute statement_timeout.
-import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 
 const CITED = `(select split_part(x, ':', 2)::bigint from public.sales_decision_log s, unnest(s.cited) x where x ~ '^kb_chunks:[0-9]+$')`;
 const CLAUSE = `public.fn_kb_purge_clause(k.source_kind, k.category, k.citation)`;

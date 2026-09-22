@@ -19,7 +19,7 @@
 // NOTHING HERE CAN REACH A REAL PERSON: identities are ZZ DEMO / @example.invalid / +9715000000xx, and a
 // demo request is never matched to a real supplier (the database's demo guards).
 import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, call, waitFor } from './fixtures.mjs';
-import { runIntake } from '../staging/demo_factory.mjs';
+import { runIntake } from '../lib/demo_factory.mjs';
 
 const results = [];
 const check = (name, ok, detail = '') => { results.push({ name, ok: !!ok, detail }); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' - ' + detail : ''}`); return !!ok; };

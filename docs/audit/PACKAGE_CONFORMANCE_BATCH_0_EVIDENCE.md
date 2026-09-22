@@ -141,7 +141,7 @@ applied migration has a file."* The branch replay disproves the first clause and
 
 Code the scripts call, in both languages the tooling uses:
 
-- `scripts/staging/qd_guard.mjs` — `assertNotProduction()`, `assertNoProductionLiteral()`,
+- `scripts/lib/qd_guard.mjs` — `assertNotProduction()`, `assertNoProductionLiteral()`,
   `mgmtWrite()` (refuses production **and** any statement embedding the production ref),
   `mgmtRead()` (permits production, refuses anything that writes), `resolveStagingRef()`.
 - `knowledge-import/kb_idempotency.py` — same contract for the importer.

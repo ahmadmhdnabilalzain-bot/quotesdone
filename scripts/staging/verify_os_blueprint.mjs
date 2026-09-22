@@ -17,8 +17,8 @@
 //
 // EXPECT IT TO BE SLOW. Every check is a sequential management-API read and the API rate-limits
 // hard; qd_guard retries with exponential backoff. Several minutes is normal. It is not a hang.
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const TARGET = process.argv.includes('--staging') ? STAGE : PROD_REF;
 const ONLY = (process.argv.find(a => a.startsWith('--only=')) || '').slice(7);

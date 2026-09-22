@@ -15,8 +15,8 @@
 // Everything here is SQL. No model calls, nothing created, nothing to tear down.
 //
 //     node scripts/staging/verify_taxonomy.mjs
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
-import { REF } from './demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

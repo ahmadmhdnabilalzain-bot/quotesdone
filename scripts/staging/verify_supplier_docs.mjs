@@ -48,8 +48,8 @@
 //     signed-terms object), and first asserts the run actually created some, so 0 is not vacuous.
 //
 //     QD_FIXTURES=1 node scripts/staging/verify_supplier_docs.mjs      model calls: licence reads only
-import { mgmtRead, mgmtFixture } from './qd_guard.mjs';
-import { REF, call, q, num, withRun, makeSupplier, internalCred } from './demo_factory.mjs';
+import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
+import { REF, call, q, num, withRun, makeSupplier, internalCred } from '../lib/demo_factory.mjs';
 import { VALID_LICENCE, validLicencePdf, illegibleLicencePdf, pdfFromLines } from './fixtures/licence_pdf.mjs';
 
 const checks = [];

@@ -21,7 +21,9 @@ const NOT_YET_CONVERTED = new Set([
   'customer_portal', 'extract_text', 'inquiry_intake', 'it_engineer', 'kyc', 'mobile_otp', 'pdf_native',
   'procurement_api', 'project_api', 'quote_compare', 'refund_flow', 'refunds_api', 'reveal_invoice',
   'sales_engineer', 'site_assistant', 'stripe_checkout', 'stripe_confirm', 'supplier_api',
-  'supplier_catalog_ingest', 'supplier_onboard', 'supplier_pay', 'transcribe',
+  // supplier_pay left this list on 22 Sep 2026 (audit finding SP-N-08): a supplier clearing a debt that
+  // accrues interest was told "Not signed in" whenever the auth server was the thing that timed out.
+  'supplier_catalog_ingest', 'supplier_onboard', 'transcribe',
 ]);
 
 test('no function outside the shrinking list calls auth.getUser inline', () => {

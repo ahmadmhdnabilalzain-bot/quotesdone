@@ -22,7 +22,11 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
 
+// sms_messages joined on 22 Sep 2026 with the sms_inbound function: until then the number's SmsUrl
+// was Twilio's demo responder and no inbound SMS was recorded anywhere. It is a conversation store
+// by the founder's rule, so the no-purge property is enforced here rather than promised in a comment.
 const STORES = ['inbound_messages', 'notifications', 'wa_messages', 'wa_turn', 'wa_conversation', 'messages',
+  'sms_messages',
   'rfq_clarification', 'assistant_logs', 'contact_messages', 'complaint_tickets', 'quote_review_messages',
   'chat_threads', 'agent_chats', 'conversation_archive'];
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
