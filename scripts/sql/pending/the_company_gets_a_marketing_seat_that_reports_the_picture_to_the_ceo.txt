@@ -1,8 +1,0 @@
-Not applied yet: the coordinator applies it (seat ceo, founder instruction 721). Apply BEFORE PR #834's file
-(it replaces fn_accountant_keeps_reported_ad_spend and fn_marketing_notes_ad_spend_booked by MANIFEST order)
-and BEFORE deploying supabase/functions/marketing and resilience_ping (the tick needs cred_fn_marketing and
-resilience_step 'marketing'). Then RE-APPLY scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql, which
-is edited in the same PR (demand owned by marketing, ceo.directive to marketing, the plan reads the marketing report,
-seat-aware founder text); canonical_routine_manifest reports its 8 routines as drift until then. Deploy marketing,
-marketing_channels (#834) and marketing_social_inbox (#835) in the same window, because their owner rows are registered here.
-Rehearsed rolled back on 22 Sep 2026, seat file + CEO-plan file + probe: PROBE OK.

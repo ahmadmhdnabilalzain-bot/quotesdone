@@ -1,2 +1,0 @@
-Pure probe, never applied: run it as one query right after the_company_gets_a_marketing_seat_that_reports_the_picture_to_the_ceo.sql
-is applied; it must return PROBE OK. Then list it in MANIFEST after the seat file, as the other probes are.
