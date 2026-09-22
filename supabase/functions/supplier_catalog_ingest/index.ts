@@ -244,7 +244,11 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
         const z = zipExpansionWithinLimits(bytes, ZIP_CAPS);
         if (!z.ok) return await fail('refused_archive', `${z.error}: ${z.detail}`);
       }
-      const XLSX = await import('https://esm.sh/xlsx@0.18.5');
+      // The vendored SheetJS 0.20.3, not the remote esm.sh copy of xlsx 0.18.5 (22 Sep 2026, UNSOLVED-08): 0.18.5 is the last
+      // npm release and carries CVE-2023-30533, and a supplier's uploaded workbook is exactly the input
+      // that bug is reached through. The same module _shared/doc_read/office.ts and drawing_boq already use.
+      // @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
+      const XLSX = await import('../_shared/vendor/sheetjs-0.20.3/xlsx.mjs');
       const wb = XLSX.read(bytes, { type: 'array' });
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }) as Record<string, unknown>[];
       products = rowsToProducts(rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [String(k).toLowerCase(), v]))));

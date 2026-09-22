@@ -43,7 +43,25 @@ function token() {
 //
 // The waits carry up to 1s of JITTER. Several checks run in one CI job against one rate limiter;
 // deterministic powers of two make them retry in lockstep and collide on the same window again.
-export async function sql(query, { ref = PROJECT_REF, retry = true, retryableBody = null } = {}) {
+//
+// `readOnly` sets the management API's own read_only flag on the statement, so a check that only
+// reads cannot write even by accident. It is a property of the request, not of the retry, and it
+// lives here so a check does not have to hand-roll a second transport to get it — which is exactly
+// how two checks ended up with no backoff at all (measured 22 Sep 2026, below).
+//
+// ON EXHAUSTION THIS SAYS WHICH IT WAS. MEASURED 22 Sep 2026: a throttled night turned six checks
+// on origin/main red, and every one of them reported the throttle in the words of a finding —
+// `query failed: 429`, `the probe left a ZZ DEMO party behind`, `management API 429`. A reviewer
+// reading those has to re-run all six to learn that production was never wrong. The header above
+// has said since the file was written that a bare throttle reads exactly like a broken query; the
+// backoff prevented that while it had attempts left and then threw the same ambiguous text. The
+// final error now names the throttle as infrastructure, in the one place every caller goes through.
+export const THROTTLED = 'INFRASTRUCTURE, NOT A FINDING: the Supabase management API is rate-'
+  + 'limiting this run and the backoff is exhausted. Production was not measured. Re-run it.';
+
+export async function sql(query, {
+  ref = PROJECT_REF, retry = true, retryableBody = null, readOnly = false,
+} = {}) {
   const jitter = () => Math.floor(Math.random() * 1000);
   for (let attempt = 0; ; attempt++) {
     // THE CONNECTION ITSELF WAS THE ONE FAILURE THIS RETRY DID NOT COVER. A 429 and a 5xx were
@@ -64,7 +82,7 @@ export async function sql(query, { ref = PROJECT_REF, retry = true, retryableBod
       res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify(readOnly ? { query, read_only: true } : { query }),
       });
     } catch (err) {
       if (retry && attempt < 5) {
@@ -84,6 +102,11 @@ export async function sql(query, { ref = PROJECT_REF, retry = true, retryableBod
         + ` retry in ${(wait / 1000).toFixed(1)}s (${attempt + 1}/7)\n`);
       await new Promise(r => setTimeout(r, wait));
       continue;
+    }
+    if (res.status === 429) {
+      const e = new Error(`${THROTTLED}\n  HTTP 429: ${text.slice(0, 500)}`);
+      e.status = 429; e.throttled = true;
+      throw e;
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 2000)}`);
     try { return JSON.parse(text); } catch { return text; }
