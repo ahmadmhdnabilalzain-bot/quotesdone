@@ -600,6 +600,18 @@
   "4a41caa50bac",
   "f19c38d9dfce"
  ],
+ "scripts/sql/the_marketing_seat_writes_articles_and_drafts_linkedin_outreach.sql": [
+  "11944e41c9b3",
+  "92ff7992d4f4",
+  "970b8be5a31a",
+  "c7d01c40da27",
+  "f3dc20d0e14d"
+ ],
+ "scripts/sql/the_marketing_seat_writes_articles_and_drafts_linkedin_outreach_probe.sql": [
+  "00d300590c94",
+  "3c96f2625036",
+  "d89298a99de9"
+ ],
  "src/app/[locale]/blog/[slug]/opengraph-image.tsx": [
   "4bb69a8b2b4f"
  ],
