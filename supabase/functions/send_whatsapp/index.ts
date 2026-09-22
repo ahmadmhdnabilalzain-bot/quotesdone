@@ -125,7 +125,9 @@ function tmplKey(type:string):string|null{
   // Document compliance: final notice before suspension, and the suspension itself. Both are
   // transactional notices about the supplier's own account, which is why the Twilio template is
   // registered under the UTILITY category rather than MARKETING.
-  if(['supplier_doc_expiry','doc_final_notice','doc_suspended','doc_expiry'].includes(t)) return 'supplier_doc_expiry';
+  // 22 Sep 2026: licence_renewal is fn_licence_expiry_sweep's T-30/14/7 ask; its WhatsApp twin is fanned
+  // out from the email to the confirmed number and rides the same approved document-expiry template.
+  if(['supplier_doc_expiry','doc_final_notice','doc_suspended','doc_expiry','licence_renewal'].includes(t)) return 'supplier_doc_expiry';
   // 14 Sep 2026: the sales engineer's notices about a supplier's own quotes and account (a quote on
   // hold, the regenerated quote to approve, its release, the collaboration warning, the matching hold
   // and its lifting). Transactional, UTILITY category. Until wa_template_setup registers the SID the

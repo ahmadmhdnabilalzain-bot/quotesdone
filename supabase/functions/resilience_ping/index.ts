@@ -7,7 +7,7 @@
 // external monitor can wire it with just the URL.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { type Failure, failureOf, runSteps, type Step, stepRows } from './steps.ts';
+import { carriedFailures, type Failure, failureOf, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
@@ -205,6 +205,18 @@ async function deliveryCanaryTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE SEAT CLOCKS (22 Sep 2026, ceo; founder instruction 583). Complaint deadlines, requests short of
+// 3 quotes, the 7-day reveal outcome check and time to first support reply, each on its owning seat
+// (complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql). It queues mail, so it must
+// run before the outbox drain, which is place=last.
+async function seatClocksTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_clocks_tick');
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -264,6 +276,33 @@ async function ceoDecisionsTick(): Promise<unknown> {
     const { data, error } = await admin.rpc('fn_ceo_decisions_evaluate', { p_dry_run: false });
     if (error) return { ok: false, error: error.message };
     return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE CEO'S DAILY PLAN (22 Sep 2026, ceo, founder instruction 638). fn_ceo_plan_tick measures the live
+// funnel against the twelve-month plan, names the binding constraint, directs the seat that can move it
+// through a ceo.directive handoff, and re-measures and closes every open directive on each call. That is
+// plan C, the coded path, and it has already ACTED before anything below runs.
+// Plan A/B is the model (instruction 643: the CEO will run on one, not yet chosen). It runs in the CEO's
+// own function, ceo_agent action 'judgement', and ONLY when the tick says call_model --
+// app_secrets.ceo_model_slot = 'on', which the founder sets. This heartbeat never imports the model
+// client. The slot is off today, so that branch has never reached the gateway.
+// scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql.
+async function ceoPlanTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_ceo_plan_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.judgement?.call_model || !t?.plan_id) return t;
+    const r = await fetch(FN + '/ceo_agent', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'judgement', plan_id: t.plan_id }),
+      signal: AbortSignal.timeout(45000),
+    });
+    const j = await r.json().catch(() => null);
+    // A rejected answer is plan C working, not a failing step; only an unreachable seat is.
+    return { ...t, judgement: { ...t.judgement, answer: j }, ...(r.ok ? {} : { ok: false, error: 'ceo_agent judgement ' + r.status }) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -1090,6 +1129,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   vat: { run: vatThresholdTick },
   ceoWeekly: { run: ceoWeeklyTick },
   ceoDecisions: { run: ceoDecisionsTick },
+  ceoPlan: { run: ceoPlanTick },
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   refunds: { run: accountantRefundTick },
@@ -1102,6 +1142,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   specoffer: { run: specOfferTick },
   supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
+  seatClocks: { run: seatClocksTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.
@@ -1146,7 +1187,7 @@ async function settleFailures(failing: Failure[]): Promise<unknown> {
   const items = failing.map((f) => ({
     item: f.name, title: 'resilience_ping step ' + f.name + ' failed: ' + f.error,
     owner_seat: 'it_engineer', subject: 'resilience_ping', blast: 'agent_facing', affected: 1,
-    evidence: { step: f.name, error: f.error },
+    evidence: { step: f.name, error: f.error }, ...(f.carried ? { carried: true } : {}),
   }));
   try {
     const { data, error } = await admin.rpc('fn_it_duty_settle', { p_duty: 'heartbeat', p_items: items });
@@ -1245,6 +1286,12 @@ Deno.serve(observe('resilience_ping', async (req) => {
       const f = failureOf(page);
       if (f) failing.push({ name: 'page', error: f });
     }
+    // A step that failed on an earlier tick and was not due on this one is still failing (steps.ts,
+    // carriedFailures). Read AFTER the record above, so this tick's own results are already stamped.
+    try {
+      const { data: st } = await admin.from('resilience_step').select('step,last_started_at,last_ok_at');
+      if (Array.isArray(st)) failing.push(...carriedFailures(st as StepState[], stepMs, failing));
+    } catch (_e) { /* a failed read carries nothing; this tick's own failures are still settled */ }
     const heartbeat = await settleFailures(failing);
     const failed = failing.map((f) => f.name);
     // `tick` is the whole schedule decision in one field: what ran, what was held for a beat, how long

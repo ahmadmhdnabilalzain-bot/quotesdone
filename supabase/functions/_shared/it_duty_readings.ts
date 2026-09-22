@@ -68,10 +68,13 @@ async function sites() {
 }
 
 // Domain expiry from RDAP (rdap.org forwards to the registry's server); the certificate in service
-// from crt.sh, as the latest not_after of certificates already valid. Duty 20 adds the Meta marketing
-// token (renewals_warn_the_accountant_at_sixty_and_thirty_days.sql): Meta's debug_token gives its expiry
-// (0 = never) when app_secrets.meta_access_token exists. On 14 Sep 2026 it does not.
-async function expiries(sec: Sec) {
+// from crt.sh, as the latest not_after of certificates already valid.
+// The Meta marketing token is NOT read here. Until 22 Sep 2026 duty 20 sent it to Meta's debug_token on
+// every due run to learn its expiry. Founder rule 641 (22 Sep 2026): Meta and social are wired to no agent
+// until the marketing seat exists, so the token is held for that seat, unread, and its renewal date is
+// that seat's to watch. Recorded in public.company_policy_decision 'meta_and_social_held_for_marketing';
+// scripts/checks/meta_and_social_are_held_for_the_marketing_seat.test.mjs fails if a seat's code reads it.
+async function expiries(_sec: Sec) {
   const out: Record<string, unknown> = {};
   await Promise.all(DOMAINS.map(async (dom) => {
     const r = await get(`https://rdap.org/domain/${dom}`);
@@ -87,17 +90,6 @@ async function expiries(sec: Sec) {
     out[`tls:${dom}`] = latest ? { basis: 'measured', expires_on: latest.slice(0, 10) }
                                : unavailable(`crt.sh answered ${c.status || c.error} with no valid certificate`);
   }));
-  const meta = await sec('meta_access_token');
-  if (!meta) {
-    out['token:meta_marketing'] = unavailable('app_secrets.meta_access_token is not set');
-  } else {
-    const g = await get(`https://graph.facebook.com/debug_token?input_token=${encodeURIComponent(meta)}`,
-      { headers: { Authorization: `Bearer ${meta}` } });
-    const exp = Number(J(g)?.data?.expires_at);
-    out['token:meta_marketing'] = g.ok && Number.isFinite(exp)
-      ? { basis: 'measured', expires_on: exp > 0 ? new Date(exp * 1000).toISOString().slice(0, 10) : null, never_expires: exp === 0 }
-      : unavailable(`Meta debug_token answered ${g.status || g.error}`);
-  }
   return out;
 }
 

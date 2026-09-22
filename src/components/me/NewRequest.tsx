@@ -28,6 +28,8 @@ import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren,
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
+import { mergeAttachment } from '@/lib/requestAttachments';
+import { boqNote, confidenceWord } from '@/lib/boqNotes';
 import { t, tf, errText, emirateName } from './portalText';
 import { markupSvg } from './markup';
 import { DEVICE_TYPES } from '../../../supabase/functions/drawing_boq/legend_vocabulary';
@@ -79,7 +81,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [messages, setMessages] = useState([{ role: 'assistant', text: t(lang, 'nr_greeting') }]);
   const [input, setInput] = useState('');
   const [intakeId, setIntakeId] = useState(null);
-  const [drawing, setDrawing] = useState(null);
+  const [drawing, setDrawing] = useState(null); const drawingRef = useRef(null);
   const [marks, setMarks] = useState(null); // { image, width, height, matches } from the symbol counter
   const [pages, setPages] = useState(null); // { images, b64, mime, name } kept for the redaction editor
   const [editor, setEditor] = useState(false);
@@ -182,8 +184,12 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     // share_redacted:false, which create_inquiry honours), and the card above Send says so.
     const held = !!(res && res.drawing_file_path && res.drawing_held === true);
     const dr = { drawing_file_path: (res && res.drawing_file_path) || null, drawing_file_name: (res && res.drawing_file_name) || name, drawing_redacted_paths: held ? null : ((res && res.drawing_redacted_paths) || null), boq: (res && res.boq) || null, brief_source: source, ...(held ? { held: true, share_redacted: false } : {}) };
-    setDrawing(dr);
-    return dr;
+    // A second file ADDS to the request (walk of 22 Sep 2026: a drawing after a BOQ discarded the BOQ).
+    // The ref, not the state, because an upload's handler outlives the render that started it.
+    const merged = mergeAttachment(drawingRef.current, dr);
+    drawingRef.current = merged;
+    setDrawing(merged);
+    return merged;
   };
   const onFile = async (file, source = 'drawing') => {
     if (!file) return; setMsg(''); setAnalyzing(true); setEditor(false);
@@ -209,7 +215,6 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // A line we did not READ (qty null, or our own count to confirm) is never waved through: the
       // sales engineer shows our count and asks (inquiry_intake, _shared/boq_open_lines.ts).
       const open = n ? res.boq.boq.some((l) => l && (l.qty == null || l.qty_status === 'to_confirm' || l.qty_status === 'estimated')) : false;
-      if (n >= 1 && !open) { setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true); }
       // TELL THE TRUTH ABOUT THE DRAWING. A drawing that is not fully redacted is NOT sent to
       // suppliers (customer_api drops the paths, create_inquiry refuses unrecorded ones), so this
       // never says "attached" unless redaction_complete says every page came back.
@@ -234,7 +239,10 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // drawing_redact's contract (intake engine, 14 Sep): needs_manual_boxes is the one signal that
       // automatic detection could not run, so the editor opens on exactly that and nothing else.
       if (res && res.needs_manual_boxes === true && p.images.length) setEditor(true);
-      if (open) await runIntake('', adopted);
+      // SEND IS THE INTAKE'S WORD (walk of 22 Sep 2026: Send was offered after a BOQ and answered 428
+      // intake_required). A read BOQ goes to inquiry_intake, which asks what is still open and says
+      // ready itself; the button appears only then (runIntake is the one place that sets ready).
+      if (n >= 1) await runIntake('', adopted);
     } catch (e) { push({ role: 'assistant', text: t(lang, String(e && e.message).includes('HEIC') ? 'nr_heic_unsupported' : 'nr_file_unreadable') }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };
@@ -254,9 +262,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (!res || !res.ok) push({ role: 'assistant', text: t(lang, BOQ_ERR[res && res.error] || 'nr_boq_err_generic') });
       else if (!rows.length) push({ role: 'assistant', text: t(lang, 'nr_boq_sheet_empty') });
       else {
-        adopt(res, file.name, 'boq');
-        setBrief((b) => b || { category: res.boq.category || '', summary: res.boq.summary || file.name, emirate: '', trades: [] }); setReady(true);
+        const adopted = adopt(res, file.name, 'boq');
         push({ role: 'assistant', text: tf(lang, rows.length === 1 ? 'nr_boq_sheet_one' : 'nr_boq_sheet_many', { n: rows.length }) + t(lang, 'nr_add_or_send') });
+        await runIntake('', adopted);
       }
     } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_generic') }); }
     setAnalyzing(false); reset();
@@ -267,9 +275,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const res = await analyze(pages, boxes).catch(() => null);
     const ok = !!(res && res.redaction_complete === true && Number(res.redaction_pages_in) > 0);
     const dr = adopt(res, pages.name, pages.source);
-    if (res && res.boq && res.boq.boq && res.boq.boq.length && !brief) { setBrief({ category: res.boq.category || '', summary: res.boq.summary || pages.name, emirate: '', trades: [] }); setReady(true); }
-    push({ role: 'assistant', text: ok ? tf(lang, 'rd_done', { n: (dr.drawing_redacted_paths || []).length || Number(res.redaction_pages_out) }) : t(lang, 'rd_failed') });
+    push({ role: 'assistant', text: ok ? tf(lang, 'rd_done', { n: ((res && res.drawing_redacted_paths) || []).length || Number(res.redaction_pages_out) }) : t(lang, 'rd_failed') });
     if (ok) setEditor(false);
+    if (res && res.boq && res.boq.boq && res.boq.boq.length && !ready) await runIntake('', dr);
     return ok;
   };
 
@@ -462,7 +470,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 </fieldset>
               ) : null}
               {brief.plausibility && brief.plausibility.note ? <div className="mt-2 text-[12.5px] text-warn-fg">{t(lang, 'nr_note')} {brief.plausibility.note}</div> : null}
-              {drawing && drawing.held ? <div className="mt-2 text-[12.5px] font-semibold text-warn-fg" role="status">{tf(lang, 'nr_drawing_held', { name: drawing.drawing_file_name || '' })}</div> : null}
+              {drawing && drawing.held ? <div className="mt-2 text-[12.5px] font-semibold text-warn-fg" role="status">{tf(lang, 'nr_drawing_held', { name: drawing.held_name || drawing.drawing_file_name || '' })}</div> : null}
               <Button size="lg" className="mt-3.5 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
               <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
             </motion.div>
@@ -597,9 +605,9 @@ function QuestionChips({ questions, next, left, lang, onPick, reduce }) {
 // say it was read wrong, and they were shown a line count and nothing else.
 function BoqTable({ boq, lang }) {
   const rows = boq.boq.slice(0, 40);
-  const conf = (c) => { const n = Number(c); if (Number.isFinite(n)) return Math.round(n <= 1 ? n * 100 : n) + '%'; return c ? String(c) : '—'; };
+  const conf = (c) => confidenceWord(c, lang);
   const list = (x) => (Array.isArray(x) ? x : x ? [x] : []).map((v) => (typeof v === 'string' ? v : v && (v.text || v.item || v.note || JSON.stringify(v)))).filter(Boolean);
-  const assumptions = list(boq.assumptions), missing = list(boq.missing_info);
+  const assumptions = list(boq.assumptions).map((s) => boqNote(s, lang)), missing = list(boq.missing_info).map((s) => boqNote(s, lang));
   return (
     <div className="rounded-2xl border border-border bg-card/60 p-3.5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">

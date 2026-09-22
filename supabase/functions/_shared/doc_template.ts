@@ -68,6 +68,16 @@ export const FALLBACK: DocIdentity = {
   source: 'fallback',
 };
 
+/**
+ * The licence line in the document's language (22 Sep 2026, audit finding 4). The licence and permit
+ * NUMBERS are codes and stay as written; every word around them is Arabic on an Arabic document.
+ */
+export function licenceLine(id: DocIdentity, lang: 'en' | 'ar'): string {
+  if (lang !== 'ar') return `${id.licence} · ${id.permit}`;
+  const no = (id.licence.match(/\d{5,}/) || [''])[0];
+  return `رخصة تاجر رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات ${id.permit.replace(/^TDRA\s*/, '')}`;
+}
+
 /** The trimmed lockup (1612x180, 98% ink) — the only one that may be sized by height. */
 export const LOCKUP = {
   dark: 'kit/05_Logo_Lockups/horizontal_OnDark_trimmed.png',

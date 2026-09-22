@@ -11,8 +11,10 @@ Deno.test('every conversation is between real seats and listed once', () => {
   assertEquals(new Set(keys).size, keys.length);
   // The one conversation a seat has with itself: support's own notice (a receipt, a contact-form
   // alert) is queued and checked like any other (every_send_comes_back_to_whoever_asked.sql).
+  // The complaint clock (22 Sep 2026, PR #811) is support's own queue too: it holds each complaint as a
+  // complaint.due item until the Complaints Policy's final response is given.
   const selfTalk = (h: { type: string; from: string; to: string }) => h.from === 'customer_support' && h.to === 'customer_support'
-    && (h.type === 'delivery.request' || h.type === 'delivery.result');
+    && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due');
   for (const h of HANDOFF_TYPES) assert(seats.has(h.from) && seats.has(h.to) && (h.from !== h.to || selfTalk(h)), JSON.stringify(h));
 });
 

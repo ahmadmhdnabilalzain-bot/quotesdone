@@ -135,9 +135,10 @@ begin
          coalesce(nullif(max(value) filter (where key='invite_daily_cap'),'')::int, 0)
     into v_on, v_cap from public.app_secrets where key in ('invite_enabled','supplier_outreach_golive','invite_daily_cap');
 
-  v_plan := jsonb_build_array(
-    case when v_on then 'The sales engineer sends up to '||v_cap||' supplier invitations.'
-         else 'No supplier invitations will be sent: invitations are switched off.' end);
+  -- 22 Sep 2026 (ceo, instructions 636/639): the campaign gate is the founder's reserved decision and he
+  -- is never reminded of it. While it is closed the brief says nothing about invitations at all.
+  v_plan := case when v_on then jsonb_build_array('The sales engineer sends up to '||v_cap||' supplier invitations.')
+                 else '[]'::jsonb end;
 
   v_plan := v_plan || (
     select jsonb_build_array(case when count(*) = 0 then 'No customer request is waiting for a quote.'
@@ -165,6 +166,12 @@ begin
     select jsonb_build_array(case when count(*) = 0 then 'The IT engineer has no open technical problems.'
                                   else 'The IT engineer works on '||count(*)||' open technical problem(s).' end)
       from public.it_engineer_finding where closed_at is null);
+
+  -- 22 Sep 2026 (ceo, instruction 638): the CEO's own plan leads item 7 -- the binding constraint, the
+  -- directive each seat is working to, and the one decision only the founder can take, if any. This is
+  -- the ONLY way the daily plan reaches him: no separate email. Defined in
+  -- the_ceo_plans_every_day_and_directs_the_seats.sql, which must be applied before this file.
+  v_plan := public.fn_ceo_plan_brief_lines() || v_plan;
 
   return jsonb_build_object(
     'window_from', p_from, 'window_to', p_to,

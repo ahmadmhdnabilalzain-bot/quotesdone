@@ -10,7 +10,7 @@ Version 1.0 — 6 September 2026. Owner: Growth (brand_mgr, marketing_design). S
 | Files | 58 files (50 PNG, 1 ICO, 4 SVG, 2 vector PDF, WHERE_TO_USE.txt) in the public `brand` storage bucket under `kit/` — indexed in `public.brand_assets` with kind, platform, path, bytes, sha256, pixel size and usage |
 | Rules | `public.company_brand` — colours, gradients, typography, logo rules, voice, imagery, sizes, contrast pairs, sources |
 | Agents | `qd-company:brand` in `ops_knowledge`, rendered every 15 minutes by `fn_company_self_knowledge_sync`; the one-line BRAND fact in every head from `fn_agent_context` |
-| Edge code | `supabase/functions/_shared/brand.ts` (the same hexes for report_pdf and mail); `src/app/globals.css` tokens for the site and the OS |
+| Edge code | `supabase/functions/_shared/brand.ts` (the same hexes for pdf_native and mail); `src/app/globals.css` tokens for the site and the OS |
 | This guide | `docs/brand/QUOTESDONE_BRAND_GUIDE.md`, and the "QuotesDone Brand Guide" PDF in the OS Reports panel (report_type `brand`, published by `scripts/brand/publish_brand_guide.mjs`) |
 | Company | quotesdone technologies — DET Trader Licence no. 1633275, Dubai, UAE (expires 24 June 2027); quotesdone.com |
 
@@ -149,8 +149,7 @@ WCAG 2.1 ratios computed from the hexes above with the relative-luminance formul
 | JetBrains Mono | Figures, codes, tables in the OS (`--font-mono`) | Latin only: never for Arabic |
 | Tajawal 400/500/700/800 | The /ar locale (Arabic file for letters, Latin file for digits) | Arabic headings, body and mono all resolve to Tajawal |
 | Arial, Helvetica, sans-serif | Every transactional email | Web-safe on purpose; no webfont loads in mail |
-| Helvetica / Helvetica-Bold | Reports (report_pdf, pdf-lib standard fonts) | Kept standard so the CI check can read the text back with a plain parser |
-| Sora + Arabic TTF | Quotation and document PDFs (pdf_native; `brand` bucket qd_sora_*.ttf, qd_ar_*.ttf) | Bilingual documents |
+| Sora + Arabic TTF | Every PDF the company issues (pdf_native, the one template; `brand` bucket qd_sora_*.ttf, qd_ar_*.ttf) | English and full Arabic documents |
 
 ### Type scale
 
@@ -182,19 +181,20 @@ Two wrappers live in `public.templates` (`email_customer`, `email_supplier`); `s
 - Signature: name (navy, bold), title + ", QuotesDone", channel address, quotesdone.com. Internal mail carries the INTERNAL badge; every external mail carries the unsubscribe line and "QuotesDone · Dubai, UAE".
 - No images beyond the logo; no webfonts; nothing that needs JavaScript. Say "smart engine", never "AI", in anything a customer or supplier reads.
 
-## PDF layout (reports)
+## PDF layout — the one template (pdf_native)
 
-`report_pdf` renders every board, executive and finance report deterministically (pdf-lib, standard fonts, no model call) into the private `reports` bucket; the OS Reports panel signs the URL on demand.
+Every PDF the company issues is drawn by ONE renderer: `supabase/functions/pdf_native/render.ts` (pdf-lib, no model call), wearing the letterhead in `supabase/functions/_shared/doc_template.ts`. There is no second report renderer: `report_pdf` is not deployed (measured 22 Sep 2026: the project's function list holds `pdf_native` and nothing else with "pdf" or "report" in its name). No third-party PDF — Stripe's invoice or receipt included — is ever sent or shown as a QuotesDone document (founder, instructions 568 and 569). `scripts/checks/every_pdf_we_issue_is_on_our_template.mjs` renders every document type through its real builder and fails on any breach of the rules below.
 
-- A4 portrait, 595 x 842 pt, 48 pt margins.
-- Cover: 260 pt navy band, the OnDark lockup 46 pt high at top-left, a 70 x 2 pt gold rule, "Corporate report", the title in Helvetica-Bold 22 white; below the band the meta block (period, kind, generated at, prepared by, classification) and the summary with a teal marker.
-- Running header on every other page: 40 pt navy band, the OnDark lockup 22 pt high, the document title right-aligned in 9 pt paper-tint.
-- Sections: a 3 x 16 pt teal marker, numbered title 14 pt navy bold; h3 10.5 bold navy; body 9.5 ink; bullets with a teal bullet glyph.
-- Tables: 8.5 pt, navy header row with white text, zebra rows #F6F7F9, totals row under a navy rule; money as AED 1,250.00; a cell that starts with a hex colour draws its swatch.
-- Charts: rectangles only — positive bars teal, negative bars gold, muted axis labels.
-- Footer on every page: a hairline, "Confidential — QuotesDone" left, kind · period · generated centre, "Page x of y" right, and the licence line "quotesdone technologies · DET Trader License no. 1633275 · Dubai, UAE" in 7 pt.
-- A table of contents is inserted when the report has three or more sections.
-- Text is WinAnsi: Arabic strings are replaced by "[Arabic]" in report PDFs; bilingual documents use pdf_native with the Sora + Arabic faces.
+- A4 portrait, 595 x 842 pt, 46 pt margins. English runs left to right; Arabic mirrors completely (start edge on the right, columns right to left).
+- Faces: Sora regular/bold for Latin and the brand Arabic faces for Arabic (`brand` bucket qd_sora_*.ttf, qd_ar_*.ttf), embedded and subset. A character no embedded face can draw is counted; a signed or stamped document with any dropped character is refused, not issued.
+- Colours: navy #0C2330, teal #14B8A6 / #6EE7D4 / #0B8276 and gold #E3C065, read from `_shared/brand.ts` (the edge copy of `public.company_brand`); greys are neutral tints for hairlines, zebra rows and body text only.
+- Cover (customer and supplier documents): a navy band with the OnDark lockup sized by height, the issuer name and licence line top-right, a teal kicker with a gold rule, the title, the subject, a meta row and an optional key-figures strip. `compact` cuts the band for one-page letters, invoices and receipts.
+- Letterhead header (documents without a cover): a 92 pt navy band, gold and teal rules, the lockup, and the issuer name, licence line and contact line — in the document's language.
+- Every page after the first: a 38 pt navy running header with the lockup and "title · reference".
+- Blocks: numbered sections with a navy square and a gold rule, h3, paragraphs, bullets with a teal square, key/value grids, tables (navy head, gold rule, zebra rows, end-aligned figures), totals (navy bar for the grand total), callouts, check tiles and markers drawn as vectors.
+- Footer on every page: a hairline with a gold tick, the legal line (name · DET Trader License No. 1633275 · TDRA NOL-26-100000665), the contact line, the document-control line and "Page x of y" — all in the document's language.
+- The letterhead is the default; a document is issued without it only if it says `letterhead: false` explicitly, and none does.
+- Payment documents (reveal-fee and supplier invoices and receipts) carry the signature and stamp and the line "not registered for VAT; no VAT charged". The company is not VAT-registered, so a document is an "Invoice", never a "Tax Invoice", and prints no TRN.
 
 ## Social
 
