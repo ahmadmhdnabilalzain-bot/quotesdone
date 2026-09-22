@@ -17,6 +17,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { signedInUser } from '../_shared/signed_in_user.ts';
 import { DUTIES } from './duties.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -42,10 +43,10 @@ async function whoami(req: Request, body: Record<string, unknown>): Promise<Call
     const r = await requireInternal(admin, String(body.__secret), 'marketing');
     return r.ok && r.context === 'fn.marketing' ? { kind: 'marketing' } : null;
   }
-  const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-  if (!jwt) return null;
-  const { data } = await admin.auth.getUser(jwt).catch(() => ({ data: { user: null } } as never));
-  const email = String((data as { user?: { email?: string } })?.user?.email || '').toLowerCase();
+  // Local refusal first and a bounded auth call (_shared/signed_in_user.ts), never an inline getUser.
+  const who = await signedInUser(admin, req.headers.get('Authorization'));
+  if (!who.ok) return null;
+  const email = String(who.email || '').toLowerCase();
   const allow = (await sec('admin_emails') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
   return email && allow.includes(email) ? { kind: 'founder' } : null;
 }
