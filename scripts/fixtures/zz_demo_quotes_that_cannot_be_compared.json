@@ -1,0 +1,44 @@
+{
+  "what_this_is": "A ZZ DEMO pair of quotations that genuinely cannot be compared, kept so the refusal can be replayed by a human or by the nightly journey without inventing one at the time. Nothing here can reach a real person: both suppliers are ZZ DEMO and both addresses are @example.invalid.",
+  "why_this_pair_is_not_comparable": "Supplier A prices SUPPLY ONLY of 120 m2 of flooring material for a villa in Al Barsha. Supplier B prices SUPPLY AND INSTALLATION of 300 m2 on a different site, and states no rate per m2. There is no common basis: neither the scope (supply vs supply-and-install), nor the area (120 vs 300 m2), nor the unit (rate vs lump sum) can be reconciled. A cheaper headline number here is not a better quote, it is different work.",
+  "the_failure_this_guards_against": "A model that constructs a common basis anyway and ranks them. That reads as a helpful answer and is a wrong recommendation the customer pays 3% to act on.",
+  "expected": {
+    "not_comparable": true,
+    "top3": [],
+    "best_value_label": null,
+    "cheapest_label": null,
+    "not_comparable_reason_must_name": ["supply only", "installation", "120", "300"]
+  },
+  "inquiry": {
+    "reference": "ZZ DEMO — flooring, Al Barsha villa",
+    "brief": "Supply of porcelain floor tiles for a villa ground floor, approximately 120 m2. Material only; our own contractor lays them.",
+    "emirate": "Dubai",
+    "boq": [
+      { "line_no": 1, "description": "Porcelain floor tile, 600x600, matt finish", "qty": 120, "unit": "m2" }
+    ]
+  },
+  "quotes": [
+    {
+      "label": "Supplier A",
+      "supplier": "ZZ DEMO Alpha Flooring LLC",
+      "email": "zz.demo.alpha@example.invalid",
+      "price": 20400,
+      "scope": "Supply only of porcelain floor tile 600x600 matt, 120 m2 delivered to site. Installation, screed, adhesive and skirting are NOT included.",
+      "lead_time": "7 days",
+      "warranty": "Manufacturer warranty on material only",
+      "items": [
+        { "line": 1, "description": "Porcelain floor tile 600x600 matt", "qty": 120, "unit": "m2", "unit_price": 170, "amount": 20400 }
+      ]
+    },
+    {
+      "label": "Supplier B",
+      "supplier": "ZZ DEMO Beta Interiors LLC",
+      "email": "zz.demo.beta@example.invalid",
+      "price": 96000,
+      "scope": "Supply and full installation of porcelain flooring to the first floor of a commercial unit, approximately 300 m2, including screed levelling, adhesive, grouting and skirting. Lump sum; no rate per m2 stated.",
+      "lead_time": "3 weeks",
+      "warranty": "2 years on workmanship",
+      "items": []
+    }
+  ]
+}
