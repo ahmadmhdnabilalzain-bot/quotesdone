@@ -16,7 +16,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { seedTerms, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
-import { drawingHandoff, heldRun } from './drawing_hold.ts';
+import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 
 const SEEDS = seedTerms({ name: 'ZZ DEMO Customer', email: 'zzdemo@example.invalid', phone: '+971 50 000 0001' });
 const ORIGINAL = 'drawings/00000000-0000-0000-0000-000000000000/1_zz_demo_drawing.pdf';
@@ -74,4 +74,20 @@ Deno.test('4. a complete run passes its paths through and is not held', () => {
 
 Deno.test('no original stored (nothing to hold) is not reported as held', () => {
   assertEquals(drawingHandoff({ redaction_pages_in: 0, redaction_pages_out: 0, redaction_complete: false }, null, []).drawing_held, false);
+});
+
+// 5. A DWG THAT cad_convert PICTURED (production, 22 Sep 2026: sample_2000.dwg answered HTTP 200, 3 lines,
+// no note - the pictured path's answer never said the CAD file was held). Replays that input's outcome:
+// one CAD raster sent, none verified (no text layer, so no server boxes) -> held AND the note.
+Deno.test('5. a pictured CAD original that is held says cad_read_not_pictured, on the pictured path too', async () => {
+  const CAD = 'drawings/00000000-0000-0000-0000-000000000000/1_zz_demo_small.dwg';
+  const hand = drawingHandoff({ redaction_pages_in: 1, redaction_pages_out: 0, redaction_complete: false }, CAD, []);
+  assertEquals({ ...hand, ...cadNote(true, hand) }, { drawing_redacted_paths: [], drawing_held: true, share_redacted: false, note: 'cad_read_not_pictured' });
+  // A PDF is never given the CAD note, and a fully verified picture set is not called unpictured.
+  assertEquals(cadNote(false, hand), {});
+  assertEquals(cadNote(true, drawingHandoff({ redaction_pages_in: 1, redaction_pages_out: 1, redaction_complete: true }, CAD, ['redacted/x/page_p0.jpg'])), {});
+  // The pictured path's final answer must carry it (the call site was what was missing).
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
+  assert(/\.\.\.cadNote\(isCad/.test(finalAnswer), "analyze_drawing's pictured answer does not spread cadNote");
 });
