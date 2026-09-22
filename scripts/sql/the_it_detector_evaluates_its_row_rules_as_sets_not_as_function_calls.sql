@@ -38,6 +38,31 @@
 -- PREVENTED BY the probe at the foot: fn_it_detect(null, false) under statement_timeout 4 s (half
 -- PostgREST's cancel), the helpers' per-row calls absent from the live definition, and the slice's
 -- three flags equal to the helpers' answers row for row.
+--
+-- AMENDED 22 SEP 2026 (it_engineer) — D9 LEAVES OUT A RUN THE SERVER MARKED AS OUR OWN FIXTURE TRAFFIC.
+-- MEASURED: refusal_rate:login_otp read "turned away 58 of 69 callers (84%)". Grouped read-only, every
+-- non-rehearsal login_otp row in the 24 h fell into one of two shapes and nothing else: eleven bursts of
+-- exactly 1x200 + 4x404 + 1x409 in the same second from edge region ap-south-1 (the six calls of
+-- scripts/checks/a_phone_cannot_select_an_account.test.mjs, run by check sessions with no rehearsal window
+-- before #825) = 55 refused + 11 served, and three lone 404s from ap-southeast-1, the database's own
+-- region, each 13-40 s after every fifth resilience_ping tick (its launch-path probe, _shared/launch_path.ts,
+-- asks for a code for +971 50 000 0099 and expects 404). 55 + 3 = 58 of 66 + 3 = 69: the whole finding.
+-- No other shape exists in the window, so no real customer, supplier or the founder was refused.
+-- Two defects made that a finding:
+--   (a) a rehearsal window is a CLOCK, not an identity. It must be remembered by every harness, and while
+--       open it also hides a real person's refusal. login_otp now marks its own run row `fixture: 1` when
+--       the number is in the reserved block (isDemoPhone, decided by the server from the number, never by
+--       a caller's flag); D9 below drops those rows (`a.counts ? 'fixture'`). resilience_ping opened no
+--       window at all, so without this its hourly probe alone is ~24 refusals a day on a public surface.
+--   (b) it_refusal_policy never matched a twinned refusal: the reason key sits on the semantic row, and
+--       D9 drops that row in favour of the telemetry twin, which had no reason. login_otp now carries
+--       ambiguous_phone / sms_signup_refused onto the telemetry row (observe.ts annotate), so the
+--       register this block already reads matches it. No SQL change was needed for (b).
+-- NOT CHANGED: the rehearsal exclusion (kept: other surfaces rely on it), thresholds, floor, window, arms.
+-- PREVENTED BY: set_forms_present in the probe below anchors the fixture clause in the live definition;
+-- scripts/checks/it_engineer_loop_is_closed.test.mjs replays 60 fixture-marked refusals outside any
+-- window (must not move the count) against its unmarked control; login_otp/fixture_number.test.ts pins
+-- that the server marks a fixture number and does not mark a real one.
 --   node scripts/apply_sql.mjs scripts/sql/the_it_detector_evaluates_its_row_rules_as_sets_not_as_function_calls.sql --apply --ddl
 
 CREATE OR REPLACE FUNCTION public.fn_it_detect(p_web jsonb DEFAULT NULL::jsonb, p_persist boolean DEFAULT true)
@@ -917,6 +942,8 @@ end;
 --      seeded burst as much as they are real people, and this engine cannot separate the two. It
 --      reports that a customer-facing surface is turning callers away. Whether those callers were
 --      customers is a question only the surface itself could answer, and it does not record it.
+--      (22 Sep 2026: login_otp now does answer it for the fixture block — counts.fixture, excluded below.
+--      Every other surface still does not.)
 --   3. Anything under 20 logged attempts in 24 hours. customer_api refused 7 of 7 callers today and
 --      sits below that floor, so it is NOT evaluated. The number of subjects skipped for thin
 --      traffic is published in notes.refusals every tick so that silence can never be read as
@@ -938,6 +965,10 @@ for r in
       -- hygiene duty closes any window left open past six hours, which bounds what this can hide.
       -- (the rehearsal flag is computed once per row in D0, as a set; see D0)
       and not a.rehearsal
+      -- 22 Sep 2026: a run the SERVER marked as fixture traffic (login_otp: the number is in the reserved
+      -- block +971 50 000 00xx, which no real person holds) is our harness or a probe, window or no window.
+      -- Measured: all 58 refusals behind "login_otp turned away 58 of 69" carried fixture numbers.
+      and not (a.counts ? 'fixture')
       -- drop the semantic half of a double-logged request; see THE DOUBLE LOG above
       and not (a.agent not like 'fn:%' and exists (
         select 1 from public.agent_runs t
@@ -1133,6 +1164,7 @@ chk as (
         and d not like '%public.fn_it_refusal_is_policy(%' from src)              as no_per_row_helper_calls,
     (select d like '%x.started_at <@ rw.covered%'
         and d like '%and not a.rehearsal%'
+        and d like '%and not (a.counts ? ''fixture'')%'
         and d like '%coalesce(r0.counts, ''{}''::jsonb) ? p.reason_key%' from src)  as set_forms_present,
     (select pg_get_function_identity_arguments(p.oid) = 'p_web jsonb, p_persist boolean'
         and p.proconfig @> array['search_path=public, pg_temp'] and p.prosecdef
