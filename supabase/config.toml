@@ -194,6 +194,9 @@ verify_jwt = false
 [functions.site_error_ingest]
 verify_jwt = false
 
+[functions.sms_inbound]
+verify_jwt = false
+
 [functions.stripe_checkout]
 verify_jwt = false
 

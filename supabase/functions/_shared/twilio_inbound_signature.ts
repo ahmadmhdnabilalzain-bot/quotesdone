@@ -1,5 +1,9 @@
 // Which URL Twilio signed, and whether the signature over it is ours (customer_support, 22 Sep 2026).
 //
+// SHARED, because a second Twilio webhook arrived. This lived in wa_inbound/signature.ts until
+// sms_inbound needed the same check; it moved here rather than being written twice, which is why
+// signedUrlCandidates has always taken the slug as an argument. Both callers pass their own.
+//
 // MEASURED 22 Sep 2026. Only two inbound WhatsApps ever reached wa_messages (10 Sep "Test" and
 // 22 Sep "Hi", both the founder's) and both were refused "signature mismatch", so nothing was ever
 // answered and nobody was told for twelve days. The cause is the URL, not the token:
@@ -17,7 +21,7 @@
 // restored, and the old literal form, are kept as equivalents so a platform change in either
 // direction cannot silence the channel again. A signature is accepted only if it matches one of
 // them exactly — a genuinely bad signature still fails closed.
-import { verifyTwilioSignature } from '../_shared/twilio_status.ts';
+import { verifyTwilioSignature } from './twilio_status.ts';
 
 /** Every URL Twilio could have signed for this request, most likely first, no duplicates. */
 export function signedUrlCandidates(reqUrl: string, headers: Headers, supabaseUrl: string, slug = 'wa_inbound'): string[] {
