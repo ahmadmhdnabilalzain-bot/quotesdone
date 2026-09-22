@@ -170,6 +170,19 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}){
 // connection therefore threw out of the whole drain loop, the row stayed 'queued', and the next run
 // sent it AGAIN — after Twilio had already accepted it. `threw` is the third outcome the caller needs:
 // not accepted, not rejected, UNKNOWN, and a message that may already have gone is never re-sent.
+//
+// NO IDEMPOTENCY KEY, AND THAT IS NOT PARITY WITH EMAIL — SAID PLAINLY (22 Sep 2026, after independent
+// review asked for it). send_outbox sends Resend an `Idempotency-Key`, which Resend honours for 24
+// hours, so a retried email row cannot become a second email. Twilio's Messages.json offers no
+// equivalent, so nothing here can make a repeated POST a no-op at the provider. What closes the gap
+// instead, and exactly how far:
+//   * the claim means two CONCURRENT senders cannot hold the same row at all;
+//   * this request is bounded at 15 s and the claim expires at 5 minutes, so a second sender can never
+//     pick up a row the first is still sending;
+//   * a request that does not return is recorded as sent-unconfirmed and never drained again.
+//   * RESIDUAL, not closed: if the isolate DIES between Twilio accepting the message and the row being
+//     updated, no catch runs, the row stays 'sending', and the claim requeues it after 5 minutes — one
+//     duplicate WhatsApp message. Narrow, real, and unfixable from this side while Twilio has no key.
 type WaSend = { ok: boolean; sid: string | null; error: string | null; threw?: boolean };
 async function twilioSend(acct:string, auth:string, form:URLSearchParams): Promise<WaSend> {
   try {
@@ -208,6 +221,14 @@ async function templateStatus(auth:string, sid:string, key:string, lang:string):
   return { status: st, reason: j?.whatsapp?.rejection_reason || null };
 }
 Deno.serve(observe('send_whatsapp', async (req) => {
+  // A CLAIM THAT WAS NOT RESOLVED IS GIVEN BACK IN A `finally` (22 Sep 2026, CONN-03; the finally,
+  // rather than a block after the loop, after independent review found send_outbox's equivalent
+  // jumped over by two early returns). Most branches below deliberately leave a row for the next run —
+  // capped by the reputation budget, waiting on a template, requeued because Twilio could not be
+  // asked. Those rows were 'queued' before the claim existed and must be 'queued' again when this run
+  // ends, or they wait out the claim's 5-minute expiry for nothing. Rows this run DID resolve are no
+  // longer 'sending', so the status filter makes the release exact rather than a blanket reset.
+  const claimedIds: number[] = [];
   try {
     const body = await req.json().catch(()=>({} as any));
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
@@ -317,6 +338,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     // not-null-handset filter, the created_at order and the limit are all inside the claim.
     const { data: rows, error: claimErr } = await admin.rpc('fn_notifications_claim', { p_channel: 'whatsapp', p_limit: 25 });
     if (claimErr) { await logThrottled('claim_failed', 10, 'error', {}, 'could not claim the WhatsApp queue: ' + claimErr.message); return J({ ok:false, error: claimErr.message }); }
+    for (const n of (rows || []) as WaRow[]) claimedIds.push(n.id);
     const staleH = Number(await sec('wa_stale_hours') || 24);
     let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0, fellBack=0, unconfirmed=0; let lastErr=''; const unmappedTypes = new Set<string>();
     const fallbackOutcomes = new Set<string>();
@@ -460,17 +482,6 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         last_error: res.ok?null:String(res.error||'').slice(0,500) }).eq('id', n.id);
       if (res.ok) { sent++; budget--; } else { failed++; lastErr = String(res.error || '').slice(0, 200); }
     }
-    // A CLAIM THAT WAS NOT RESOLVED IS GIVEN BACK NOW, not in five minutes (22 Sep 2026, CONN-03).
-    // Most branches above deliberately leave a row for the next run — capped by the reputation budget,
-    // waiting on a template, requeued because Twilio could not be asked. Those rows were 'queued'
-    // before the claim existed and must be 'queued' again when this run ends, or they would wait out
-    // the claim's 5-minute expiry for no reason. Rows this run DID resolve are no longer 'sending', so
-    // the `.eq('status','sending')` makes this exact rather than a blanket reset.
-    const claimedIds = (rows || []).map((n: WaRow) => n.id);
-    if (claimedIds.length) {
-      try { await admin.from('notifications').update({ status: 'queued', claimed_at: null }).in('id', claimedIds).eq('status', 'sending'); }
-      catch (_e) { /* the 5-minute claim expiry in fn_notifications_claim is the backstop */ }
-    }
     if (capped) await logThrottled('rate_capped', 180, 'ok', { capped, cap: dayCap, per_recipient: perRecip },
       capped + ' WhatsApp message(s) held this run by the sender-reputation cap (daily ' + dayCap + ', per recipient ' + perRecip + ' / 24h). They stay queued and go out as budget frees up.');
     // A founder alert that WhatsApp could not carry is only acceptable because the email did. Say so
@@ -508,4 +519,10 @@ Deno.serve(observe('send_whatsapp', async (req) => {
                fallback_outcomes: [...fallbackOutcomes], held_founder: heldFounder, held_stale: heldStale,
                cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
+  finally {
+    if (claimedIds.length) {
+      try { await admin.from('notifications').update({ status: 'queued', claimed_at: null }).in('id', claimedIds).eq('status', 'sending'); }
+      catch (_e) { /* the 5-minute claim expiry in fn_notifications_claim is the backstop */ }
+    }
+  }
 }));

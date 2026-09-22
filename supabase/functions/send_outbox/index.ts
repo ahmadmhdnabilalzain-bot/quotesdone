@@ -93,6 +93,14 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 // carry the business signal. The observe() row adds only the HTTP/latency view, so one healthy
 // sample per ten minutes is plenty and 720 rows a day would bury the rows that matter.
 Deno.serve(observe('send_outbox', async (req) => {
+  // A CLAIM THAT WAS NOT RESOLVED IS GIVEN BACK IN A `finally`, NOT AT THE END OF THE LOOP
+  // (corrected 22 Sep 2026 after independent review). The release used to sit after the send loop, and
+  // TWO returns jump over it: `!enabled || !key` and `remaining <= 0`. The daily cap is a NORMAL
+  // recurring state — this polls every 2 minutes — so with the cap reached each poll claimed a fresh 40
+  // rows and abandoned them in 'sending' for the 5-minute expiry, walking the whole queue into
+  // 'sending' in slices. Declared out here and released in the finally below, so every exit takes the
+  // same path, including the exception one.
+  const claimedIds: number[] = [];
   try {
     const body = await req.json().catch(() => ({}));
     // AUDIT 9.5 (3 Aug 2026): the unsubscribe footer and the RFC 8058 List-Unsubscribe headers
@@ -140,6 +148,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     if (qErr) { await logThrottled('claim_failed', 10, 'error', {}, 'could not claim the outbox queue: ' + qErr.message); return J({ ok: false, error: qErr.message }, 200); }
     // deno-lint-ignore no-explicit-any -- the rows were `any` when they came from selectQueue; the loop below reads a dozen columns off them
     const rows = ((q as any[] | null) || []);
+    for (const n of rows) claimedIds.push(n.id);
     // Previously a silent ok:true - mail just accumulated with no signal anywhere.
     if (!enabled || !key) { await logThrottled('email_disabled', 60, 'error', { pending: rows.length, email_enabled: enabled, has_resend_key: !!key }, 'EMAIL NOT SENDING - ' + (!enabled ? 'email_enabled is not true' : 'resend_api_key missing') + '; ' + rows.length + ' notification(s) waiting'); return J({ ok: true, pending: rows.length, sent: 0, note: 'email disabled or resend_api_key missing - queued and will flush once enabled' }); }
     if (remaining <= 0) { await logThrottled('cap_reached', 60, 'error', { pending: rows.length, cap, sent_today: sentToday || 0 }, 'daily send cap reached - ' + rows.length + ' notification(s) held until tomorrow'); return J({ ok: true, sent: 0, pending: rows.length, note: 'daily send cap reached', cap, sent_today: sentToday || 0 }); }
@@ -255,11 +264,6 @@ Deno.serve(observe('send_outbox', async (req) => {
         console.error(e);
       }
     }
-    // A CLAIM THAT WAS NOT RESOLVED IS GIVEN BACK NOW, not in five minutes. The loop `break`s when the
-    // daily cap is reached and `continue`s past a row of another channel, and both leave the row in
-    // 'sending'. The claim's own expiry would recover them, a beat later; this is the same thing at once.
-    const claimedIds = rows.map((n: any) => n.id);
-    if (claimedIds.length) { try { await admin.from("notifications").update({ status: "queued", claimed_at: null }).in("id", claimedIds).eq('status', 'sending'); } catch (_e) { /* the 5-minute claim expiry is the backstop */ } }
     // Only log runs that did something. Idle polls (nothing queued) stay out of agent_runs
     // so a real event is never buried under 720 empty rows a day.
     const didWork = sent || failed || suppressed || held || skipped;
@@ -268,6 +272,15 @@ Deno.serve(observe('send_outbox', async (req) => {
     else if (didWork) await logRun('ok', { sent, suppressed, held, skipped, pending: rows.length, remaining_today: Math.max(0, remaining - sent) }, held ? (held + ' held (supplier sending gate or stale)') : '');
     return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent) });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
+  finally {
+    // Rows this run resolved are no longer 'sending', so the status filter makes this exact: only a
+    // claim nobody finished is handed back. The 5-minute expiry in fn_notifications_claim stays as the
+    // backstop for the case where even this write fails.
+    if (claimedIds.length) {
+      try { await admin.from('notifications').update({ status: 'queued', claimed_at: null }).in('id', claimedIds).eq('status', 'sending'); }
+      catch (_e) { /* the 5-minute claim expiry in fn_notifications_claim is the backstop */ }
+    }
+  }
 }, { okEveryMs: 600000 }));
 const RESERVED_TEST_DOMAIN = /@(?:[a-z0-9_-]+[.])*(?:example[.](?:com|net|org)|test|example|invalid|localhost)$/i;
 function isDocRequest(type: string) { return /licen[cs]e|renew|expir|doc[_-]?request|document[_-]?request|upload[_-]?doc/i.test(String(type || '')); }

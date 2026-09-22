@@ -49,6 +49,9 @@ async function twilioSend(acct: string, ks: string, kk: string, from: string, to
 }
 
 Deno.serve(observe('send_sms', async (req) => {
+  // Claims this run took and did not resolve are handed back in the finally below, so a row is never
+  // parked in 'sending' waiting out the 5-minute expiry for nothing (CONN-03).
+  const claimedIds: number[] = [];
   try {
     const body = await req.json().catch(() => ({} as any));
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
@@ -67,8 +70,14 @@ Deno.serve(observe('send_sms', async (req) => {
       return J({ ok: res.ok, sid: res.sid, error: res.error });
     }
 
-    // Flush queued SMS notifications
-    const { data: rows } = await admin.from('notifications').select('id,to_phone,body').eq('channel', 'sms').eq('status', 'queued').not('to_phone', 'is', null).order('created_at', { ascending: true }).limit(25);
+    // Flush queued SMS notifications. CLAIMED, NOT READ (22 Sep 2026, it_engineer, CONN-03): this was
+    // the third sender still taking its work with a plain SELECT, and fn_notifications_claim already
+    // takes a channel. The claim carries the channel, the not-before window, the not-null-handset test
+    // and the created_at order, so the whole query is one call — and two overlapping runs can no longer
+    // both send the same SMS.
+    const { data: rows, error: claimErr } = await admin.rpc('fn_notifications_claim', { p_channel: 'sms', p_limit: 25 });
+    if (claimErr) { await logRun('error', {}, 'could not claim the SMS queue: ' + claimErr.message); return J({ ok: false, error: claimErr.message }); }
+    for (const n of ((rows || []) as Array<{ id: number }>)) claimedIds.push(n.id);
     let sent = 0, failed = 0, badPhone = 0; let lastErr = '';
     for (const n of (rows || [])) {
       const to = normPhone(String(n.to_phone || '')); if (!to) { await admin.from('notifications').update({ status: 'failed' }).eq('id', n.id); failed++; badPhone++; continue; }
@@ -84,4 +93,10 @@ Deno.serve(observe('send_sms', async (req) => {
     else if (sent) await logRun('ok', { sent, failed }, '');
     return J({ ok: true, sent, failed });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
+  finally {
+    if (claimedIds.length) {
+      try { await admin.from('notifications').update({ status: 'queued', claimed_at: null }).in('id', claimedIds).eq('status', 'sending'); }
+      catch (_e) { /* the 5-minute claim expiry in fn_notifications_claim is the backstop */ }
+    }
+  }
 }));

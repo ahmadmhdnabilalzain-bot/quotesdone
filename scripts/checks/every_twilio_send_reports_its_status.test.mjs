@@ -32,28 +32,58 @@ function tsFiles(dir) {
   return out;
 }
 
-// A POST to .../Messages.json: the fetch URL names Messages.json (no SID path, no query) and the
-// options object that follows says POST.
+// A POST to .../Messages.json. It does NOT name the fetch function: on 22 Sep 2026 the it_engineer
+// wrapped every outbound call in timedFetch() (CONN-04) and this regex, which began `fetch\(`, matched
+// nothing in send_whatsapp any more — the scan found 3 where 4 were expected and only went red because
+// of the `total >= 4` floor below. A guard that is blinded by a rename of the CALLER was asking the
+// wrong question; what matters is that a POST goes to Messages.json, whoever makes it.
 function messagePosts(text) {
   const found = [];
-  const re = /fetch\(([^;]{0,200}?)Messages\.json[`'"]\s*,\s*\{([^}]{0,160})/g;
+  const re = /Messages\.json[`'"]\s*,\s*\{([^}]{0,200})/g;
   let m;
-  while ((m = re.exec(text))) if (/method\s*:\s*['"]POST['"]/.test(m[2])) found.push(m.index);
+  while ((m = re.exec(text))) if (/method\s*:\s*['"]POST['"]/.test(m[1])) found.push(m.index);
   return found;
 }
 
-test('every POST to Twilio Messages.json carries a StatusCallback', () => {
+// THE THING THAT MUST CARRY THE CALLBACK IS THE MESSAGE BODY, NOT THE fetch CALL (22 Sep 2026).
+// Counting StatusCallbacks against fetch SITES stopped meaning anything the moment send_whatsapp put
+// its two sends behind one shared twilioSend(): one POST site, two messages. Twilio's message body is
+// a URLSearchParams carrying To and From, and that is what is counted now — send_sms (1),
+// wa_inbound (1), send_whatsapp template + freeform (2) — so extracting or inlining a helper cannot
+// change the number, and a FIFTH send path has to declare its own callback to pass.
+function messageBodies(text) {
+  const out = [];
+  const re = /new URLSearchParams\(\{([^}]{0,400})\}/g;
+  let m;
+  while ((m = re.exec(text))) {
+    if (!/\bTo\s*:/.test(m[1]) || !/\bFrom\s*:/.test(m[1])) continue;
+    // Either the literal declares it, or the lines just after set it on the built form (wa_inbound
+    // builds its body conditionally — MediaUrl, an interactive Content item — and sets it at the end).
+    const after = text.slice(m.index, m.index + 1400);
+    out.push({ at: m.index, body: m[1],
+      callback: /StatusCallback['"]?\s*[:,]\s*statusCallbackUrl\(\)/.test(m[1])
+             || /\.set\(\s*['"]StatusCallback['"]\s*,\s*statusCallbackUrl\(\)\s*\)/.test(after) });
+  }
+  return out;
+}
+
+test('every Twilio message body carries a StatusCallback', () => {
   let total = 0;
   const bad = [];
+  const senders = [];
   for (const f of tsFiles(FN)) {
     const t = readFileSync(f, 'utf8');
     const posts = messagePosts(t).length;
-    if (!posts) continue;
-    total += posts;
-    const callbacks = (t.match(/StatusCallback['"]?\s*[:,]\s*statusCallbackUrl\(\)/g) || []).length;
-    if (callbacks < posts) bad.push(`${f.slice(REPO.length)}: ${posts} Messages.json POST(s), ${callbacks} StatusCallback`);
+    const bodies = messageBodies(t);
+    // A file that POSTs to Messages.json but builds no recognisable Twilio body is a send path this
+    // check cannot see, which is the same as no check at all for that path.
+    if (posts && !bodies.length) bad.push(`${f.slice(REPO.length)}: ${posts} Messages.json POST(s) and no To/From body this check can read`);
+    if (!bodies.length) continue;
+    senders.push(f.slice(REPO.length));
+    total += bodies.length;
+    for (const b of bodies) if (!b.callback) bad.push(`${f.slice(REPO.length)}: a Twilio message body with no StatusCallback`);
   }
-  assert.ok(total >= 4, `the scan found only ${total} Messages.json POSTs; send_whatsapp (2), send_sms and wa_inbound are expected`);
+  assert.ok(total >= 4, `the scan found only ${total} Twilio message bodies in ${senders.join(', ') || '(nothing)'}; send_whatsapp (2), send_sms and wa_inbound are expected`);
   assert.deepEqual(bad, [], 'a Twilio send that never reports whether it arrived');
 });
 

@@ -8,9 +8,10 @@
 --        set last_used_at = now(), last_function = v_fn, use_count = use_count + 1
 --      where id = c.id;
 --
--- There are a handful of credential rows and they are shared, so those 60,527 UPDATEs land on the same
--- few tuples: every call makes a new row version, every call writes WAL, every call competes for the
--- same page's lock, and autovacuum spends the day cleaning up after a usage stamp. Nothing reads the
+-- public.internal_credential holds 96 rows (measured 22 Sep 2026), and the calling traffic is
+-- concentrated on the few that the scheduled functions present, so those 60,527 UPDATEs land on a
+-- handful of tuples: every call makes a new row version, every call writes WAL, every call competes for
+-- the same page's lock, and autovacuum spends the day cleaning up after a usage stamp. Nothing reads the
 -- stamp at that resolution — fn_it_credential_reverify asks whether the NEW credential has been used
 -- since rotation, and fn_security_detect reports last_used_at and use_count in a finding.
 --
@@ -30,7 +31,12 @@ create or replace function public.fn_internal_auth(p_secret text, p_function tex
 returns jsonb
 language plpgsql
 security definer
-set search_path to 'public', 'extensions'
+-- pg_temp ADDED 22 Sep 2026 (independent review, while the file was open). The live routine was pinned
+-- to 'public', 'extensions' only. For a SECURITY DEFINER routine that is not a harmless omission: with
+-- pg_temp absent from the list Postgres searches it FIRST for functions and operators, so a caller who
+-- can create a temporary object can shadow one this body uses and have it run with the definer's
+-- privileges. Naming pg_temp LAST is what puts it after public and extensions.
+set search_path to 'public', 'extensions', 'pg_temp'
 as $function$
 declare c public.internal_credential%rowtype; v_hash text; v_fn text;
 begin

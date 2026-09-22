@@ -54,11 +54,18 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare v_lim int := greatest(1, least(coalesce(p_limit, 25), 200));
 begin
-  -- A sender that died holding a claim must not hold it forever.
+  -- A sender that died holding a claim must not hold it forever. `claimed_at is null` is in the
+  -- predicate deliberately (added after independent review): notifications has NO check constraint on
+  -- status, so a row in 'sending' with no claimed_at is reachable — a hand-written UPDATE, a restore, a
+  -- future writer — and `claimed_at < now() - interval` is NULL for it, so without this branch such a
+  -- row would sit in 'sending' for ever, drained by nobody and requeued by nobody. A row that says it
+  -- is being sent but cannot say since when is not a claim; it goes back on the queue.
   update public.notifications n
      set status = 'queued', claimed_at = null,
-         last_error = left('a send claim expired after 5 minutes without an outcome; requeued', 500)
-   where n.status = 'sending' and n.claimed_at < now() - interval '5 minutes';
+         last_error = left(case when n.claimed_at is null
+                                then 'status was sending with no claimed_at, which is not a claim; requeued'
+                                else 'a send claim expired after 5 minutes without an outcome; requeued' end, 500)
+   where n.status = 'sending' and (n.claimed_at is null or n.claimed_at < now() - interval '5 minutes');
 
   return query
     update public.notifications n

@@ -250,12 +250,16 @@ Deno.serve(observe('inquiry_intake', async (req) => {
       // when it does not arrive the reason is logged instead of vanishing.
       for (const s of tradeSlugsForChecklist.slice(0, 2)) {
         const t0 = Date.now();
+        // The timer is CLEARED whichever side wins (22 Sep 2026, independent review). Left running, a
+        // 3 s timer per call kept the isolate alive after the handler had answered, and a rejected
+        // promise nobody is awaiting any more is an unhandled rejection in waiting.
+        let budget: ReturnType<typeof setTimeout> | undefined;
         try {
           const chunks = await Promise.race([
             admin.rpc('kb_query', { p_query: text.slice(0, 500), p_category: s, p_limit: 5 })
               .then((r: { data: unknown; error: { message: string } | null }) => { if (r.error) throw new Error(r.error.message); return r.data; }),
-            new Promise((_ok, no) => setTimeout(() => no(new Error('kb_query did not answer within 3s')), 3000)),
-          ]);
+            new Promise((_ok, no) => { budget = setTimeout(() => no(new Error('kb_query did not answer within 3s')), 3000); }),
+          ]).finally(() => clearTimeout(budget));
           const items = ((chunks as any[]) || []).map((c: any) => (c.title ? c.title + ': ' : '') + String(c.snippet || c.content || '').trim()).filter(Boolean);
           if (items.length) parts.push(s + ':\n' + items.join('\n\n'));
           else console.warn('kb_query returned nothing for category', s, 'in', Date.now() - t0, 'ms');

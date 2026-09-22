@@ -87,16 +87,36 @@ Deno.test('a failed step that was not due this tick is still failing, until a ru
   eq(carriedFailures([{ step: 'backupVerify', last_started_at: '2026-09-21T23:16:00Z', last_ok_at: '2026-09-21T23:16:00Z' }], {}, []), [], 'closes once a run passes');
 });
 
-import { ALWAYS_FLOOR_MS, stepCapMs } from './steps.ts';
+import { ALWAYS_FLOOR_POOL_MS, stepCapMs } from './steps.ts';
 
 // CONN-02 (22 Sep 2026, it_engineer). The deadline used to be read ONCE, before a step started, so a step
 // admitted at 109.9 s could then wait its own 55 s timeout on top and the tick returned at up to ~165 s
 // against a 150 s platform cap. These two tests pin the arithmetic and the abandonment.
-Deno.test('the cap is what is left of the deadline plus the reserve, with a floor for an always step', () => {
+Deno.test('the cap is what is left of the deadline plus the reserve, with a shared floor for always steps', () => {
   eq(stepCapMs(109_000, 95_000, false), 11_000, 'a step starting at 109s of a 95s deadline gets 11s of the 120s ceiling');
   eq(stepCapMs(10_000, 95_000, false), 110_000, 'an early step is bounded by the ceiling, not by nothing');
   eq(stepCapMs(140_000, 95_000, false), -20_000, 'past the ceiling a normal step gets nothing (raceCap floors it at 0)');
-  eq(stepCapMs(140_000, 95_000, true), ALWAYS_FLOOR_MS, 'a mail drain past the ceiling still gets its floor, never unbounded');
+  eq(stepCapMs(140_000, 95_000, true), ALWAYS_FLOOR_POOL_MS, 'a mail drain past the ceiling still gets the floor, never unbounded');
+  // THE POOL IS SHARED. Three always steps each granted the full floor would put the worst tick at
+  // 95 + 25 + 10 + 10 + 10 = 150 s, the platform cap exactly.
+  eq(stepCapMs(140_000, 95_000, true, 25_000, 4_000), 4_000, 'the second drain gets only what the first left');
+  eq(stepCapMs(140_000, 95_000, true, 25_000, 0), 0, 'the third drain gets nothing once the pool is spent');
+});
+
+Deno.test('three always steps past the ceiling share one floor, they do not each get one', async () => {
+  // Scaled by 1000 so the test costs milliseconds, not the real 10 s pool: deadline 100 ms, reserve
+  // 20 ms (a 120 ms ceiling), pool 200 ms. All three start already past the ceiling and never resolve,
+  // so each is in floor territory and the pool is the only thing bounding them.
+  const hang = (name: string) => ({ name, always: true, run: () => new Promise<never>(() => {}) });
+  const t0 = Date.now() - 200;
+  const began = Date.now();
+  const { failing } = await runSteps([hang('it'), hang('outbox'), hang('archive')], t0, 100, Date.now, 20, 200);
+  const waited = Date.now() - began;
+  eq(failing.length, 3, 'all three are named as abandoned, none is silently skipped');
+  // The three together cannot exceed the pool. Per-step floors would make this about 3x 200 ms; the
+  // bar is 600 ms so scheduling noise cannot decide the verdict but a per-step grant still fails it.
+  if (waited > 600) throw new Error('three always steps waited ' + waited + 'ms against a shared 200ms floor');
+  if (ALWAYS_FLOOR_POOL_MS !== 10_000) throw new Error('the real pool moved without its comment: ' + ALWAYS_FLOOR_POOL_MS);
 });
 
 Deno.test('a never-resolving step started past the deadline is abandoned, not waited on', async () => {

@@ -1,5 +1,5 @@
 {
-  "max_unbounded_fetches": 75,
+  "max_unbounded_fetches": 72,
   "measured_at": "2026-09-22",
   "note": "The bar for scripts/checks/every_outbound_fetch_has_a_timeout.mjs. It may only ever fall."
 }

@@ -37,7 +37,13 @@ test('nothing has been sitting in the outbox longer than the heartbeat allows', 
     select id, status, subject,
            round(extract(epoch from (now() - created_at))/60)::int as waiting_minutes
       from public.notifications
-     where status in ('pending','queued')
+     -- 'sending' IS IN THIS LIST OR THE CHECK CANNOT SEE ITS OWN FAILURE MODE (22 Sep 2026,
+     -- it_engineer, CONN-03). fn_notifications_claim moves a row to 'sending' while a sender has it,
+     -- and the ONLY thing that requeues an expired claim is that same function — i.e. a sender. So in
+     -- exactly the case this check exists for, a sender that is down, the backlog accumulates in
+     -- 'sending', nothing puts it back to 'queued', and a list of ('pending','queued') reads zero and
+     -- passes. A row legitimately in 'sending' is there for seconds; at 30 minutes it is stuck.
+     where status in ('pending','queued','sending')
        and created_at < now() - interval '30 minutes'
      order by created_at
      limit 10`);

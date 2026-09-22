@@ -767,7 +767,10 @@ async function backupPruneTick(): Promise<unknown> {
 async function whatsappTick(): Promise<unknown> {
   try {
     const { count } = await admin.from('notifications')
-      .select('id', { count: 'exact', head: true }).eq('channel', 'whatsapp').eq('status', 'queued');
+      // 'sending' is counted (22 Sep 2026, CONN-03): a claimed row is mail that has not gone, and only
+      // a sender requeues an expired claim, so counting 'queued' alone would report an empty queue in
+      // the one case that matters — the sender being down.
+      .select('id', { count: 'exact', head: true }).eq('channel', 'whatsapp').in('status', ['queued', 'sending']);
     // A HEARTBEAT THAT BEATS ONLY UNDER LOAD IS NOT A HEARTBEAT (21 Sep 2026). This used to return
     // here when nothing was queued, so send_whatsapp ran only when there was mail: 26 runs in the
     // 3.4 days to 21 Sep against a tick every 15 minutes. fn_it_detect's run_silent arm reads that

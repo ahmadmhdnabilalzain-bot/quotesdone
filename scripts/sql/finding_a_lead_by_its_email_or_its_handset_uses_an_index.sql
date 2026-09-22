@@ -24,6 +24,15 @@
 -- CONCURRENTLY cannot run inside one. On 22,266 rows a plain build takes well under a second and the
 -- ACCESS EXCLUSIVE lock it holds is that long. (kb_chunks, at 148k rows and 8 GB, would not be — this
 -- is a judgement about this table's size, not a general licence.)
+--
+-- AND IT WAITS FOR THE LOCK FOR AT MOST FIVE SECONDS. The reviewer's first probe of this file was
+-- CANCELLED by live traffic holding `leads`, which is the whole risk of a short lock on a busy table:
+-- not the build, but the QUEUE behind a lock request, since every reader arriving after it waits too.
+-- With lock_timeout the apply fails fast and harmlessly instead of stalling the supplier funnel, and it
+-- can simply be run again. The estate has the matching operational rule already — an apply took 75 s and
+-- locked sign-in (21 Sep) — so: DO NOT RUN THIS DURING A CAMPAIGN HOUR, when enqueue_supplier_invites
+-- and the portal are both on `leads`.
+set local lock_timeout = '5s';
 
 create index if not exists leads_email_lower_idx
   on public.leads (lower(email));

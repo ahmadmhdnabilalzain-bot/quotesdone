@@ -30,6 +30,14 @@
 -- The signature and the result columns are unchanged, and CREATE OR REPLACE keeps the existing grants
 -- (this routine is not SECURITY DEFINER; it runs as its caller and always has).
 --
+-- SECOND BEHAVIOUR CHANGE, STATED (independent review, 22 Sep 2026). A query of NOTHING BUT STOP WORDS
+-- ("what is the", "and or") now takes the empty branch and returns the newest chunks of the category,
+-- where the old body returned ZERO ROWS: websearch_to_tsquery gives an empty tsquery, `c.fts @@ ''` is
+-- false for every row, and the old OR's other side was false too because p_query was not ''. Returning
+-- the category's newest passages to a caller who asked in stop words is the better of the two answers —
+-- the caller is inquiry_intake enriching a prompt, and something in the right category beats nothing —
+-- but it IS a different answer and it is written down here rather than discovered later.
+--
 -- BEHAVIOUR CHANGE, STATED. In the empty-query case the old body ranked every row at rank 0 (or 0.4 for
 -- the matching category) and returned whichever 8 the sort happened to surface, which was effectively
 -- arbitrary. The new branch returns the newest chunks of the asked-for category. That is a different

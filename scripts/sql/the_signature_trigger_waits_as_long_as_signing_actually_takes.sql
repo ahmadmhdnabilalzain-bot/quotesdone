@@ -21,7 +21,10 @@
 --
 -- 60_000 ms: the callee's own inner call to pdf_native is bounded at 45 s
 -- (supabase/functions/compliance_archive/index.ts, CONN-04), so 60 s is that plus the upload, and it
--- costs nothing when the call is fast — a timeout is a ceiling, not a wait.
+-- costs nothing when the call is fast — a timeout is a ceiling, not a wait. THERE IS NO ORDERING
+-- REQUIREMENT between this apply and that deploy (corrected 22 Sep 2026 after independent review, which
+-- was right that the earlier note claimed one): the two timeouts bound two different hops and neither
+-- reads the other. 60 s is chosen so that after both land this is not the binding constraint.
 --
 -- Everything else in both triggers is unchanged, including the defensive qd_project_ref() resolution:
 -- a trigger on the Terms path must never refuse the signature.
