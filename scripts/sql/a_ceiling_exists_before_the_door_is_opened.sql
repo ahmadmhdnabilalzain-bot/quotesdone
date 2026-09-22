@@ -27,10 +27,17 @@
 --
 -- ═══ THE ARITHMETIC ════════════════════════════════════════════════════════════════════════════
 --
--- RE-DERIVED 23 Sep 2026 from founder_instruction 841's matrix (qwen/qwen3.8-max-0902 for reasoning,
--- z-ai/glm-5.3-flash for everything else). An earlier draft of this file was priced on
--- anthropic/claude-opus-5.5 and came to AED 2,870/month; the founder's ruling cuts the same measured
--- workload to AED 1,170/month, because the dominant line falls from $0.084 to $0.030 a call.
+-- RE-DERIVED 23 Sep 2026 from founder_instruction 844's AUDIENCE split: qwen/qwen3.8-max-0902
+-- ($2.00/$6.00) for anything a customer or supplier reads, anything that can emit Arabic, any
+-- document reading and any judgement; z-ai/glm-5.3-flash ($0.15/$0.50) for purely internal work.
+--
+-- Three drafts of this file, so the movement is on the record:
+--   AED 2,870/month  priced on anthropic/claude-opus-5.5 for reasoning (superseded)
+--   AED 1,170/month  instruction 841, the reasoning/internal split
+--   AED 1,190/month  instruction 844, the audience split            <- this file
+-- 844 costs AED 20/month more than 841 would have, because document_extraction, visitor_chat,
+-- customer_communication, marketing_copy and accountant_receipt_extraction move from GLM to Qwen.
+-- That AED 20 is the entire price of having an Arabic-capable model on every surface a person reads.
 --
 -- MEASURED call mix, 8-22 Sep 2026 (15 days, 3,207 calls), by calling function:
 --
@@ -44,65 +51,70 @@
 --   resend_inbound         2   intent_detection
 --   quote_extract          1   document_extraction
 --
--- Monthly rate = measured x 30/15 = x2. Prices USD per Mtok read live from the provider catalogue
--- 23 Sep 2026: qwen3.8-max 2.00/6.00, glm-5.3-flash 0.15/0.50, gemini-3.1-flash-lite 0.25/1.50.
--- USD->AED at the peg, 3.6725.
+-- Monthly rate = measured x 30/15 = x2. Prices USD per Mtok read live 23 Sep 2026. USD->AED at the
+-- peg, 3.6725. The `moved` column says which side of 844's line the class is on and whether it
+-- changed from the 841 draft.
 --
---   class / fn                 calls/mo  model    in$   out$  est in   est out   USD/mo   AED/mo
---   ─────────────────────────────────────────────────────────────────────────────────────────────
+--   class / fn                  calls/mo model  est in  est out  USD/mo  AED/mo  844 says
+--   ──────────────────────────────────────────────────────────────────────────────────────────────
 --   MARKETPLACE
---   quote_comparison              4,910  qwen     2.00  6.00   6,000     3,000   147.30   540.96
+--   quote_comparison               4,910 qwen    6,000    3,000  147.30  540.96  customer + judgement
 --     per call 6,000/1e6x2.00 + 3,000/1e6x6.00 = 0.012 + 0.018 = 0.030 USD
 --     est out 3,000 against a 10,000 ceiling: the ceiling is the worst case (many quotations, long
 --     reasons); a top-3 ranking with its reasons is ~3,000.
---   agent_reasoning               1,306  qwen     2.00  6.00   4,000     2,000    26.12    95.93
+--   agent_reasoning                1,306 qwen    4,000    2,000   26.12   95.93  judgement
 --     per call 0.008 + 0.012 = 0.020 USD
---   identity_redaction_verify        28  qwen     2.00  6.00   3,000       800     0.30     1.11
---   visitor_chat                     64  glm      0.15  0.50   2,000       600     0.04     0.14
---     32 of 50 site_assistant calls reached a model; the other 18 were answered by code.
---   document_extraction              86  glm      0.15  0.50   3,000     2,000     0.12     0.46
---     per call 0.00045 + 0.001 = 0.00145 USD. est in 3,000 = one page image + the prompt.
---                                                             marketplace  =    173.89   638.59
---     x1.5 headroom -> 957.89  ->  monthly_aed 960     (fill 66.5% in month one)
+--   document_extraction               86 qwen    3,000    2,000    1.55    5.69  MOVED from GLM
+--     per call 0.006 + 0.012 = 0.018 USD. est in 3,000 = one page image + the prompt.
+--   visitor_chat                      64 qwen    2,000      600    0.49    1.79  MOVED from GLM
+--     per call 0.004 + 0.0036 = 0.0076 USD. 32 of 50 site_assistant calls reached a model at all.
+--   identity_redaction_verify         28 qwen    3,000      800    0.30    1.11  judgement
+--                                                          marketplace = 175.76  645.47
+--     x1.5 headroom -> 968.20  ->  monthly_aed 970    (fill 66.5% in month one)
 --
 --   EXEC
---   ceo_judgement / strategy        300  qwen     2.00  6.00   8,000     2,000     8.40    30.85
+--   ceo_judgement / strategy         300 qwen    8,000    2,000    8.40   30.85  judgement
 --     per call 0.016 + 0.012 = 0.028 USD. The MEASURED rate is 4 calls in 15 days, because
 --     app_secrets.ceo_model_slot is 'off' and ceo_agent returns before the model. Sizing on 4 would
 --     put the ceiling below the first working day. 300/mo = 10 judgements a day, which is what a CEO
 --     seat that actually decides looks like.
---   json_extraction (directives)      8  glm      0.15  0.50   2,000       500     0.00     0.02
---                                                             exec         =      8.40    30.87
---     x1.5 -> 46.30  ->  monthly_aed 50                (fill 61.7%)
+--   json_extraction (directives)       8 qwen    2,000      500    0.06    0.21  MOVED from GLM
+--                                                          exec        =   8.46   31.05
+--     x1.5 -> 46.58  ->  monthly_aed 50               (fill 62.1%)
 --
 --   CUSTOMER_EXPERIENCE
---   customer_communication        1,000  glm      0.15  0.50   2,000       600     0.60     2.20
---   intent_detection (triage)     1,000  glm      0.15  0.50   1,500       500     0.47     1.74
+--   customer_communication         1,000 qwen    2,000      600    7.60   27.91  MOVED from GLM
+--   intent_detection (triage)      1,000 glm     1,500      500    0.47    1.74  internal: the draft
+--     is never sent - a person reviews it in agent_actions - so the cheap model keeps this one.
 --     MEASURED is 2 calls in 15 days, all refused. 1,000/mo = 33 inbound a day across email and
---     WhatsApp, which is the seat the founder has said must be better than Amazon's and whose LLM is
---     always on. A ceiling sized on 2 would halt the support seat on its first busy morning.
---                                                             cust_exp     =      1.07     3.95
---     x1.5 -> 5.92, below the floor  ->  monthly_aed 40  (fill 9.9%)
+--     WhatsApp, the seat the founder has said must be better than Amazon's. A ceiling sized on 2
+--     would halt the support seat on its first busy morning.
+--                                                          cust_exp    =   8.07   29.66
+--     x1.5 -> 44.48  ->  monthly_aed 50               (fill 59.3%)
 --
 --   FINANCE
---   accountant_expense_classification 100 qwen    2.00  6.00   1,000       600     0.56     2.06
---   accountant_receipt_extraction     100 glm     0.15  0.50   3,000     2,000     0.14     0.53
---   accountant_weekly_report            4 qwen    2.00  6.00   8,000     2,000     0.11     0.41
+--   accountant_expense_classification 100 qwen   1,000      600    0.56    2.06  judgement + money
+--   accountant_receipt_extraction     100 qwen   3,000    2,000    1.80    6.61  MOVED from GLM
+--   accountant_weekly_report            4 qwen   8,000    2,000    0.11    0.41  judgement + money
 --     0 measured calls; the accountant has no gateway caller yet. This is the shape of one month of
 --     real bookkeeping, and it is what says the floor is not arbitrary.
---                                                             finance      =      0.82     3.00
---     x1.5 -> 4.50, below the floor  ->  monthly_aed 40  (fill 7.5%)
+--                                                          finance     =   2.47    9.08
+--     x1.5 -> 13.62, below the floor  ->  monthly_aed 40   (fill 22.7%)
 --
 --   MARKETING
---   marketing_copy                  300  glm      0.15  0.50   1,500       800     0.19     0.69
+--   marketing_copy                   300 qwen    1,500      800    2.34    8.59  MOVED from GLM
 --     0 measured calls; marketing_social_inbox went live 22 Sep. 300/mo = 10 posts or replies a day.
---                                                             marketing    =      0.19     0.69
---     x1.5 -> 1.03, below the floor  ->  monthly_aed 40  (fill 1.7%)
+--                                                          marketing   =   2.34    8.59
+--     x1.5 -> 12.89, below the floor  ->  monthly_aed 40   (fill 21.5%)
 --
---   IT                                                        0 gateway callers today
---     Floor 40: enough for the seat to start working and be inside a ceiling from its first call.
+--   IT
+--   engineering_reasoning            100 glm     4,000    2,000    0.16    0.59  MOVED from qwen
+--     0 gateway callers today; 100/mo is what an IT seat drafting its own findings would spend. 844
+--     puts internal operation on GLM and nothing here is read outside the company.
+--                                                          it          =   0.16    0.59
+--     x1.5 -> 0.88, below the floor  ->  monthly_aed 40    (fill 1.5%)
 --
---   TOTAL                                                                       AED 1,170 / month
+--   TOTAL                                                                     AED 1,190 / month
 --
 -- THE FLOOR IS AED 40, and it is the one number here that is a judgement rather than a derivation:
 -- small enough that a department which starts spending crosses degrade quickly and visibly, large
@@ -115,47 +127,28 @@
 -- the first week of real traffic — that is the first week the tokens exist, and quote_comparison's
 -- true input size is the single number that moves this total.
 --
--- ═══ WHY THESE CEILINGS CAN ACTUALLY FIRE ══════════════════════════════════════════════════════
+-- ═══ THE ARABIC RISK, IN THE FOUNDER'S OWN FRAMING ══════════════════════════════════════════════
 --
--- This is the failure the 14 Aug 2026 file documented and did not finally fix: AED 12,000 across 25
--- departments against AED 176.86 of real spend, so degrade_at_pct 70 needed a SIXTEEN-fold traffic
--- increase to engage. A ceiling nothing can reach is not a ceiling.
+-- Neither qwen/qwen3.8-max-0902 nor z-ai/glm-5.3-flash has been measured on this estate for formal
+-- Gulf Arabic. He chose them on price, having been told the scenario test was available, and he gave
+-- the reason the risk is acceptable for now: THE FIRST SIX WEEKS ARE SUPPLIER REGISTRATION ONLY, and
+-- suppliers deal with us in English — catalogues, company profiles, trade licences. The Arabic
+-- surface is barely exercised until customers arrive, and he will judge Arabic on the real test then.
 --
--- At the estimates above, marketplace fills 638.59 of its 960 = 66.5% in its first month. degrade at
--- 70% is therefore reachable on 5% more traffic than the estate already handles, and the estate is
--- about to grow. exec sits at 61.7% of its own row. The four on the floor sit between 1.7% and 9.9%
--- — not because the ceiling is loose but because they have almost no traffic yet; the floor is what
--- keeps them inside a ceiling at all, and their first real week will move them.
+-- That is a reason to defer the measurement, not a reason it does not matter, so the deferral is
+-- written down with the thing that ends it: THE FIRST CUSTOMER RFQ. What will tell us, in order of
+-- how early it fires:
 --
--- WHAT DEGRADING ACTUALLY DOES, CORRECTED (23 Sep 2026, in review). An earlier draft of this header
--- claimed marketplace would degrade to google/gemini-3.8-flash "5x cheaper". That was wrong twice
--- over. fn_ai_route degrades exactly ONE BAND — `case v_tier when 'xlarge' then 'large' when 'large'
--- then 'medium' else 'small' end` — and then picks the cheapest active approved row in that band. So:
+--   scripts/checks/every_arabic_message_is_written_not_translated.test_mjs   repository, every CI run
+--   scripts/checks/the_triage_answer_fits_its_route.test_mjs                repository, every CI run
+--     Its Arabic fixture already sits at 97% of the old 300-token ceiling, so it is the most
+--     sensitive thing we have to an Arabic answer getting longer or more verbose than expected.
+--   the automated customer-support scenario suite                           on demand, needs the hold open
+--     This is the one that would actually answer the question, and it cannot run while
+--     llm_route_health.open_until stands. It is the first thing to run after he opens it.
 --
---   marketplace's reasoning classes are tier large (qwen3.8-max $2.00/$6.00)
---     -> degrade to the cheapest MEDIUM row, google/gemini-3.8-flash $0.75/$3.75
---     -> 2.67x cheaper on input, 1.6x on output. A real step, not a 5x one.
---   the GLM classes are tier small ($0.15/$0.50)
---     -> degrade within small to openai/gpt-6-luna $0.10/$0.50 — 1.5x, i.e. almost nothing, which is
---        correct: work that already costs a fraction of a fils has nothing to give back.
---
--- 70/95 for marketplace still stands, but for a different reason than the draft gave: degrade EARLY
--- because a 2.67x step still buys real headroom and the class keeps answering, and halt LATE because
--- halting quote_comparison stops the company earning — 3% of a revealed quote is the only revenue
--- there is.
---
--- degrade_at_pct / halt_at_pct, and why they differ by department:
---
---   marketplace          70 / 95  see above.
---   exec                 75 / 90  A CEO judgement that degrades is a worse judgement, so degrade
---                                 later; but exec spending 90% of its ceiling on judgements is a
---                                 loop, not a decision, and should stop.
---   customer_experience  75 / 90  Same shape: a customer must get an answer, but 90% of the ceiling
---                                 on inbound triage means something is retrying.
---   marketing            70 / 85  Nothing here is time-critical and nobody is waiting. A halted
---                                 social reply is a late reply.
---   finance              75 / 90  The books must close; they are not urgent to the hour.
---   it                   70 / 85  The IT seat's work can wait for the next tick.
+-- (The two check filenames above are written with underscores before `mjs` on purpose: a check in
+-- this repository greps source for its own name, and a literal reference here would match it.)
 --
 -- Nothing here lifts the OpenRouter hold. llm_route_health.open_until is untouched by this file.
 
@@ -164,9 +157,9 @@ begin;
 insert into public.department_budget
   (dept_key, monthly_aed, spent_aed, period_label, degrade_at_pct, halt_at_pct, updated_at)
 values
-  ('marketplace',          960, 0, to_char(now(), 'YYYY-MM'), 70, 95, now()),
+  ('marketplace',          970, 0, to_char(now(), 'YYYY-MM'), 70, 95, now()),
   ('exec',                  50, 0, to_char(now(), 'YYYY-MM'), 75, 90, now()),
-  ('customer_experience',   40, 0, to_char(now(), 'YYYY-MM'), 75, 90, now()),
+  ('customer_experience',   50, 0, to_char(now(), 'YYYY-MM'), 75, 90, now()),
   ('marketing',             40, 0, to_char(now(), 'YYYY-MM'), 70, 85, now()),
   ('finance',               40, 0, to_char(now(), 'YYYY-MM'), 75, 90, now()),
   ('it',                    40, 0, to_char(now(), 'YYYY-MM'), 70, 85, now())

@@ -11,67 +11,117 @@
 --    again. We want to cut cost as much as possible. For plan B, for everyone that requires
 --    reasoning, it's going to be Opus; and for who doesn't need reasoning then GLM 5.3 flash."
 --
--- So the matrix is two rows, not twenty:
+-- He REFINED it the same day, recorded as founder_instruction 844, and the refinement moves the line:
 --
---                        PLAN A (primary)         PLAN B (fallback / escalate)
---   reasoning            qwen/qwen3.8-max-0902    anthropic/claude-opus-5.5
---   everything else      z-ai/glm-5.3-flash       google/gemini-3.8-flash   (see WHY below)
+--   "whenever it's something related to our operation internally, GLM 5.3 Flash can do it, all good.
+--    When it comes to customers, Qwen 3.8 Max is fine. So whenever we have document readings,
+--    interactions with customers, stuff like that... anything that involves Arabic, keep it Qwen 3.8
+--    Max or GPT Sol 5.6, depending which one is cheaper."
+--
+-- So the line is drawn by AUDIENCE, not by how hard the thinking is. The matrix is two rows:
+--
+--                                              PLAN A (primary)         PLAN B (fallback/escalate)
+--   customer-facing, Arabic-capable, document-
+--   reading, or a judgement                    qwen/qwen3.8-max-0902    anthropic/claude-opus-5.5
+--   purely internal                            z-ai/glm-5.3-flash       google/gemini-3.8-flash
+--   speech_transcription (audio, no choice)    google/gemini-3.1-...    google/gemini-3.5-flash
+--
+-- THE TIE-BREAK HE ASKED FOR, MEASURED. "Qwen 3.8 Max or GPT Sol 5.6, depending which one is
+-- cheaper", read live from the catalogue 23 Sep 2026, USD per Mtok:
+--
+--   model                   in     out    cache read   ctx        modalities
+--   qwen/qwen3.8-max-0902   2.00    6.00       0.25    1,000,000  text image video
+--   openai/gpt-5.6-sol      2.00   10.00       0.20    1,050,000  text image file
+--
+-- IDENTICAL on input; Qwen is 40% CHEAPER ON OUTPUT, which is the axis these classes spend on (short
+-- prompt, long answer). So Qwen Max wins on his own rule. The one place sol is cheaper is the cache
+-- read, $0.20 against $0.25 — a 20% difference on a line that only applies to a stable system prefix,
+-- and it does not come close to covering a 40% gap on every generated token. Recorded here so the
+-- choice is auditable rather than asserted; gpt-5.6-sol is NOT registered, because nothing routes to
+-- it.
 --
 -- This SUPERSEDES his ruling of 9 Sep 2026 (anthropic/claude-fable-5.1 + openai/gpt-6-astra on the
 -- CEO and Sales Engineer, openai/gpt-5.6-luna on the accountant) and an earlier draft of this same
 -- file that put anthropic/claude-opus-5.5 on plan A. Prices read live 23 Sep 2026, USD per Mtok:
 --
---   qwen/qwen3.8-max-0902      2.00 /  6.00    plan A, reasoning
---   z-ai/glm-5.3-flash         0.15 /  0.50    plan A, everything else
---   anthropic/claude-opus-5.5  4.00 / 20.00    plan B, reasoning
---   google/gemini-3.8-flash    0.75 /  3.75    plan B, everything else; and the degrade target
+--   qwen/qwen3.8-max-0902      2.00 /  6.00    plan A: customer / Arabic / document / judgement
+--   z-ai/glm-5.3-flash         0.15 /  0.50    plan A: purely internal
+--   anthropic/claude-opus-5.5  4.00 / 20.00    plan B on the Qwen row
+--   google/gemini-3.8-flash    0.75 /  3.75    plan B on the GLM row; and the degrade target
 --   anthropic/claude-fable-5.1 10.00/ 50.00    what the CEO ran on until today
 --
 -- The CEO's approvals move from $10/$50 to $2/$6 — 8.3x cheaper output — and the whole estate's
--- projected monthly ceiling falls from AED 2,870 to AED 1,170 (arithmetic in
--- a_ceiling_exists_before_the_door_is_opened.sql).
+-- projected monthly ceiling falls from AED 2,870 (the opus draft) to AED 1,190 (arithmetic in
+-- a_ceiling_exists_before_the_door_is_opened.sql). 844's audience split costs AED 20/month more than
+-- 841's reasoning split would have, because it moves document reading and every customer-facing
+-- surface onto Qwen; that AED 20 is what buys an Arabic-capable model on everything a person reads.
 --
--- ═══ PLAN B FOR NON-REASONING WORK: WHERE I HAD TO INTERPRET, AND WHAT I CHOSE ══════════════════
+-- ═══ PLAN B: WHERE I HAD TO INTERPRET, AND WHAT I CHOSE ════════════════════════════════════════
 --
 -- Read literally, "for who doesn't need reasoning then GLM 5.3 flash" makes plan B the same model as
--- plan A, and a fallback that IS the primary is not a fallback: fn_ai_route hands the fallback back
--- for p_escalate and for a failed primary, so the row would have had no second attempt at all.
+-- plan A on the GLM row, and a fallback that IS the primary is not a fallback: fn_ai_route hands the
+-- fallback back for p_escalate and for a failed primary, so those rows would have had no second
+-- attempt at all.
 --
--- His INTENT is unambiguous and it is the cost one — do not pay reasoning prices for routine work. So
--- plan B for the non-reasoning classes is google/gemini-3.8-flash at $0.75/$3.75: a different
--- provider (so it does not share GLM's blind spots — this file's own document_extraction rationale
--- makes that argument), still 5x cheaper than the qwen plan-A tier and 27x cheaper than opus, and the
--- only model in the fleet carrying BOTH vision and audio, which the extraction classes need. It is
--- also already the degrade target for the whole large tier, so a degraded call and a failed call land
--- in the same place, which is one fewer thing to reason about at 3am.
+-- His INTENT is unambiguous and it is the cost one — do not pay reasoning prices for internal work. So
+-- plan B on the GLM row is google/gemini-3.8-flash at $0.75/$3.75: a different provider (so it does
+-- not share GLM's blind spots — this file's own document_extraction rationale makes that argument),
+-- still 27x cheaper than opus, and the only model in the fleet carrying both vision and audio. It is
+-- also already the degrade target for the Qwen row, so a degraded call and a failed call land in the
+-- same place, which is one fewer thing to reason about at 3am.
 --
--- THIS IS THE ONE PLACE THIS FILE DEPARTS FROM HIS WORDS, it is flagged in the PR for him to
--- overrule in one word, and it costs nothing while GLM is healthy: the fallback is only reached on
--- an escalation or a failure.
+-- PLAN B ON THE QWEN ROW IS opus-5.5 FOR EVERY CLASS ON IT, not just the judgements. A fallback has
+-- to be at least as capable in Arabic as the primary it stands in for, or the fallback IS the failure
+-- it was meant to prevent: a customer-facing Arabic class that fails over to the internal model has
+-- quietly done the thing 844 forbids. opus-5.5 costs nothing while Qwen is healthy — the fallback is
+-- reached only on an escalation or a failure.
 --
--- ═══ WHICH CLASSES COUNT AS "REASONING" ════════════════════════════════════════════════════════
+-- THESE TWO ARE THE ONLY PLACES THIS FILE DEPARTS FROM HIS WORDS. Both are flagged in the PR for him
+-- to overrule in one word.
 --
--- He named the comparison and the CEO. The rest is a judgement about his phrase "the stuff that
--- doesn't require reasoning a lot", and the list is in REASONING_CLASSES below so that it is one
--- place an auditor can read rather than twenty scattered UPDATEs.
+-- ═══ WHICH SIDE OF THE LINE EACH CLASS IS ON ════════════════════════════════════════════════════
 --
--- FOUR OF THEM ARE MY ADDITION to the list I was handed, each because the work is a judgement whose
--- error is customer-visible or externally reviewable, and each is called out here so that correcting
--- me is a one-line edit:
+-- The list is in qwen_classes below, one place an auditor can read rather than twenty scattered
+-- UPDATEs. A class is on the Qwen row if ANY of four things is true — it is read by a customer or a
+-- supplier, it can emit Arabic to a person, it reads a document, or it is a judgement:
 --
---   engineering_reasoning   The IT seat's answers become SQL applied to production. It was on the
---                           non-reasoning list; a diagnosis is reasoning. Its safety net (CI, branch
---                           protection, independent review before merge) is why it is plan A qwen and
---                           not something dearer, not a reason to make it a classifier.
---   contract_analysis       Legal exposure. The class exists because a wrong reading costs money that
---                           no later step recovers.
---   legal_analysis          Same, and it must preserve citations verbatim.
---   translation             The Arabic quotation and correspondence the customer actually receives.
---                           The founder's own standing requirement is that PDFs are professional and
---                           fully Arabic. NEITHER new model has been measured for formal Gulf Arabic
---                           (see the PR body) — so this class gets the stronger of the two rather
---                           than the cheaper, and the Arabic checks are what would catch a
---                           regression. translation_general, which is internal, stays on GLM.
+--   read by a person outside the company   visitor_chat, customer_communication, support_ai,
+--                                          wa_inbound, supplier_communication, marketing_copy,
+--                                          content_drafting, customer_portal_assistant,
+--                                          inquiry_qualification_conversation
+--   can emit Arabic to a person            translation, translation_general
+--   reads a document                       document_extraction, document_extraction_multimodal, ocr,
+--                                          vision, drawing_and_boq_analysis, json_extraction,
+--                                          json_extraction_text
+--   a judgement                            every ceo_* class, chief_of_staff_decision,
+--                                          executive_report, quote_comparison, agent_reasoning,
+--                                          sales_engineer_reasoning, procurement_reasoning,
+--                                          identity_redaction_verify, finance_analysis and the
+--                                          accountant's reasoning, knowledge_validation,
+--                                          security_incident_analysis, edge_case_escalation,
+--                                          contract_analysis, legal_analysis
+--
+-- PURELY INTERNAL, so GLM: intent_detection, email_triage, inbound_email, resend_inbound (triage),
+-- summarization, knowledge_ingestion, engineering_reasoning, reflection_and_learning, and the rest.
+--
+-- TWO CALLS I HAD TO THINK ABOUT, both stated so they can be overruled in a line:
+--
+--   engineering_reasoning + reflection_and_learning MOVED TO GLM by 844. An earlier draft of this
+--   file had them on the Qwen row, arguing that the IT seat's answers become SQL applied to
+--   production. 844 is explicit that internal operation is GLM's, and this work is read by nobody
+--   outside the company; its safety net is CI, branch protection and an independent review before
+--   every merge, which is a stronger guarantee than a model choice. Moved.
+--
+--   email_triage / intent_detection STAY ON GLM although the answer contains a customer reply.
+--   Measured, not assumed: email_triage/index.ts:16 asks for {category, summary, reply} where the
+--   reply is "a short, warm, professional reply ... signed 'The QuotesDone Team'", and the Arabic
+--   fixture in scripts/checks/the_triage_answer_fits_its_route.test.mjs is exactly that. By the
+--   audience rule that looks like customer-facing Arabic and belongs on Qwen. It stays on GLM because
+--   THE DRAFT IS NEVER SENT: index.ts:1 says so, and index.ts:52 files it into agent_actions as a
+--   pending 'inbound_review' for a person to read, edit and send. A human gate is what makes the
+--   cheap model safe here, and it is the only reason. IF THAT GATE IS EVER REMOVED THIS CLASS MUST
+--   MOVE TO THE QWEN ROW, and the check that would notice is the same triage check, because it
+--   already asserts over the drafted reply's own fixtures.
 --
 -- ═══ THE ONE CLASS EXEMPT FROM THE RULING, AND WHY IT IS NOT A CHOICE ═══════════════════════════
 --
@@ -197,23 +247,35 @@ begin;
 -- One statement, one list. The WHY for the group is the founder's ruling above; the WHY for each
 -- individual class goes into its own rationale below, because fn_ai_route returns the rationale in
 -- its `why`, so the reason a model was chosen travels with the decision rather than living only here.
-create temporary table reasoning_classes (task_class text primary key) on commit drop;
-insert into reasoning_classes values
-  -- the CEO seat: he named it
-  ('ceo_judgement'), ('ceo_approval_decision'), ('ceo_strategic_planning'),
-  ('chief_of_staff_decision'), ('executive_report'),
-  -- the sales engineer: he named the comparison
-  ('quote_comparison'), ('sales_engineer_reasoning'), ('agent_reasoning'),
-  ('inquiry_qualification_conversation'), ('procurement_reasoning'), ('identity_redaction_verify'),
-  -- the signed-in customer, reasoning over his own money
-  ('customer_portal_assistant'),
-  -- the accountant: anything that touches the books
-  ('finance_analysis'), ('accountant_expense_classification'), ('accountant_weekly_report'),
-  -- the IT seat and the reviewers
-  ('knowledge_validation'), ('security_incident_analysis'), ('edge_case_escalation'),
-  ('reflection_and_learning'),
-  -- my four additions, each argued in the header
-  ('engineering_reasoning'), ('contract_analysis'), ('legal_analysis'), ('translation');
+create temporary table qwen_classes (task_class text primary key, because text) on commit drop;
+insert into qwen_classes values
+  -- A JUDGEMENT. He named the CEO and the comparison; the rest are the same shape.
+  ('ceo_judgement', 'judgement'), ('ceo_approval_decision', 'judgement'),
+  ('ceo_strategic_planning', 'judgement'), ('chief_of_staff_decision', 'judgement'),
+  ('executive_report', 'judgement'), ('quote_comparison', 'judgement + customer reads the ranking'),
+  ('sales_engineer_reasoning', 'judgement'), ('agent_reasoning', 'judgement'),
+  ('procurement_reasoning', 'judgement'), ('identity_redaction_verify', 'judgement'),
+  ('finance_analysis', 'judgement + money'), ('accountant_expense_classification', 'judgement + money'),
+  ('accountant_weekly_report', 'judgement + money'), ('knowledge_validation', 'judgement'),
+  ('security_incident_analysis', 'judgement'), ('edge_case_escalation', 'judgement'),
+  ('contract_analysis', 'judgement + legal exposure'), ('legal_analysis', 'judgement + legal exposure'),
+  -- READ BY A PERSON OUTSIDE THE COMPANY. "When it comes to customers, Qwen 3.8 Max is fine."
+  ('customer_portal_assistant', 'signed-in customer reads it'),
+  ('visitor_chat', 'a stranger on the public website reads it'),
+  ('customer_communication', 'the customer reads it'), ('support_ai', 'the customer reads it'),
+  ('wa_inbound', 'the customer reads it on WhatsApp'),
+  ('supplier_communication', 'the supplier reads it'),
+  ('inquiry_qualification_conversation', 'the customer reads it, first contact'),
+  ('marketing_copy', 'published in the company name'),
+  ('content_drafting', 'published in the company name'),
+  -- CAN EMIT ARABIC TO A PERSON. "anything that involves Arabic, keep it Qwen 3.8 Max".
+  ('translation', 'Arabic the customer receives'), ('translation_general', 'Arabic'),
+  -- READS A DOCUMENT. "whenever we have document readings". Verified: qwen3.8-max carries `image`.
+  ('document_extraction', 'document reading'), ('document_extraction_multimodal', 'document reading'),
+  ('ocr', 'document reading'), ('vision', 'document reading'),
+  ('drawing_and_boq_analysis', 'document reading'), ('json_extraction', 'document reading'),
+  ('json_extraction_text', 'document reading'),
+  ('accountant_receipt_extraction', 'document reading');
 
 -- The two classes that did not exist at all. Inserted first so the statements below can treat them
 -- like any other row.
@@ -255,7 +317,7 @@ update public.model_policy set
   tier = 'large',
   model_primary = 'qwen/qwen3.8-max-0902',
   model_fallback = 'anthropic/claude-opus-5.5'
- where active and task_class in (select task_class from reasoning_classes);
+ where active and task_class in (select task_class from qwen_classes);
 
 -- ── 2. EVERYTHING ELSE: plan A GLM 5.3 flash, plan B gemini-3.8-flash ──────────────────────────
 -- "use GLM 5.3 flash whenever, wherever it's possible as a primary model... We want to cut cost as
@@ -273,7 +335,7 @@ update public.model_policy set
   model_primary = 'z-ai/glm-5.3-flash',
   model_fallback = 'google/gemini-3.8-flash'
  where active and tier <> 'none'
-   and task_class not in (select task_class from reasoning_classes)
+   and task_class not in (select task_class from qwen_classes)
    and task_class not in ('speech_transcription', 'redaction_detection');
 
 -- ── 3. THE AUDIO EXEMPTION, WRITTEN DOWN WHERE THE ROUTING IS ──────────────────────────────────
@@ -399,92 +461,103 @@ update public.model_policy set rationale =
   'A security incident, an escalated edge case, or an independent review of knowledge before it is '
   || 'trusted. WHY the reasoning row with opus-5.5 on escalate: a reviewer on the cheap model is a '
   || 'green check that means nothing, and a severe incident is exactly the case p_escalate exists for.'
- where task_class in ('security_incident_analysis', 'edge_case_escalation', 'knowledge_validation') and active;
-
-update public.model_policy set rationale =
-  'The IT seat reasoning about the estate - a finding, a diagnosis, a change. WHY the reasoning row: '
-  || 'this seat''s answers become SQL applied to production and deployed functions, and a shallow '
-  || 'diagnosis costs a session, which is dearer than the model. WHY plan A and not something dearer '
-  || 'still: its work is checked by CI, by branch protection and by an independent review before '
-  || 'every merge, so it has a real safety net the judgement classes do not. This class was on the '
-  || 'non-reasoning list I was handed and I moved it; see the header.'
+ where task_class in ('security_incident_analysis', 'edge_case_escalation', 'knowledge_validation') and active;update public.model_policy set rationale =
+  'The IT seat reasoning about the estate - a finding, a diagnosis, a change. WHY plan A GLM: '
+  || 'founder_instruction 844 - "whenever it''s something related to our operation internally, GLM '
+  || '5.3 Flash can do it, all good". Nobody outside this company ever reads it. An earlier draft of '
+  || 'this file put it on the Qwen row arguing that this seat''s answers become SQL applied to '
+  || 'production; that is true and it is not the point, because the guarantee on those answers is CI, '
+  || 'branch protection and an independent review before every merge, which is stronger than a model '
+  || 'choice. MOVED to GLM by 844.'
  where task_class in ('engineering_reasoning', 'reflection_and_learning') and active;
 
 update public.model_policy set rationale =
   'Legal exposure: reading a contract or a regulatory source for what it actually commits us to. WHY '
-  || 'the reasoning row: a wrong reading costs money no later step recovers, and citations must '
+  || 'the Qwen row: it is a judgement AND it is document reading, either of which puts it there under '
+  || 'founder_instruction 844. A wrong reading costs money no later step recovers, and citations must '
   || 'survive verbatim. No autonomous legal conclusion - the model reads, a person decides.'
  where task_class in ('contract_analysis', 'legal_analysis') and active;
 
 update public.model_policy set rationale =
-  'The Arabic quotation and correspondence a UAE customer actually receives. WHY the reasoning row '
-  || 'and NOT GLM, which is what "cut cost as much as possible" would otherwise say: the founder''s '
-  || 'own standing requirement is that the PDFs are professional and fully Arabic, and NEITHER '
-  || 'qwen3.8-max NOR glm-5.3-flash has been measured on this estate for formal Gulf Arabic. Until '
-  || 'one of them is, this class takes the stronger of the two, and the repository''s Arabic checks '
-  || 'are what would catch a regression. translation_general, which is internal, is on GLM.'
- where task_class = 'translation' and active;
+  'The Arabic quotation and correspondence a UAE customer actually receives. WHY the Qwen row: '
+  || 'founder_instruction 844 names it outright - "anything that involves Arabic, keep it Qwen 3.8 Max '
+  || 'or GPT Sol 5.6, depending which one is cheaper". Measured live 23 Sep 2026, qwen3.8-max-0902 is '
+  || '$2.00/$6.00 against openai/gpt-5.6-sol at $2.00/$10.00: identical input, 40% cheaper output, so '
+  || 'Qwen wins on his own rule. NOT YET MEASURED on this estate: formal Gulf Arabic, on either model. '
+  || 'The founder chose on price having been told the test was available, and he will judge Arabic on '
+  || 'the real test when customers arrive; until then the repository''s Arabic checks are what would '
+  || 'catch a regression. translation_general is on the Qwen row too, for the same one reason: it can '
+  || 'emit Arabic to a person.'
+ where task_class in ('translation', 'translation_general') and active;
 
 update public.model_policy set rationale =
   'Reading a whole document - a scan, a drawing, a trade licence, a quotation, a supplier catalogue '
-  || 'page - into structured fields. WHY plan A GLM: extraction is TRANSCRIPTION, not judgement. The '
-  || 'shape is given, the answer is checkable by code, and at $0.15/$0.50 with a 1,310,720 context a '
-  || 'multi-page scan goes on one request for a fraction of a fils. The judgement about what the '
-  || 'document MEANS is a separate class on the reasoning row. WHY google/gemini-3.8-flash as '
-  || 'fallback and not another GLM: a fallback that shares the primary''s blind spots is not a '
-  || 'fallback, and gemini is the only row carrying both vision and audio. 8000 tokens holds '
+  || 'page - into structured fields. WHY the Qwen row: founder_instruction 844, "whenever we have '
+  || 'document readings". Verified before routing: qwen3.8-max-0902 carries `image` in '
+  || 'input_modalities (text+image+video), which is how every document reaches a model here - a '
+  || 'base64 data URL in an image_url part, never a `file` part. A document is also the one input that '
+  || 'arrives in Arabic without anyone choosing to, which is the other half of why it is not on the '
+  || 'internal row. WHY opus-5.5 as fallback: a document GLM or Qwen cannot read must still be read, '
+  || 'and the fallback for a class that can meet Arabic must itself handle Arabic. 8000 tokens holds '
   || 'supplier_catalog_ingest''s 3000 JSON products with headroom - it used to land on '
   || 'general_drafting''s 900 and truncate.'
- where task_class in ('document_extraction', 'document_extraction_multimodal', 'ocr', 'vision') and active;
+ where task_class in ('document_extraction', 'document_extraction_multimodal', 'ocr', 'vision',
+                      'json_extraction', 'json_extraction_text') and active;
 
 update public.model_policy set rationale =
-  'Reading a drawing and a bill of quantities together. WHY plan A GLM: vision over large pages at '
-  || '1.31M context for $0.15/Mtok. The design calculations and low-confidence interpretations that '
-  || 'are judgement rather than reading escalate to google/gemini-3.8-flash, and a wrong quantity '
-  || 'becomes a wrong price on a real quotation, so the escalation is not decorative.'
+  'Reading a drawing and a bill of quantities together. WHY the Qwen row: document reading (844), over '
+  || 'pages that carry Arabic title blocks as often as English ones. A wrong quantity becomes a wrong '
+  || 'price on a real quotation, and the design calculations and low-confidence interpretations that '
+  || 'are judgement rather than reading escalate to opus-5.5, so the escalation is not decorative.'
  where task_class = 'drawing_and_boq_analysis' and active;
 
 update public.model_policy set rationale =
-  'The support seat writing to a customer or a supplier - email, WhatsApp, the portal. WHY plan A '
-  || 'GLM: the founder ruled routine drafting onto it, and the deterministic FAQ and template levels '
-  || 'in front of these classes already answer what code can answer (18 of 50 site_assistant calls '
-  || 'in the window, with no model at all), so the model sees only the remainder. NOT YET MEASURED: '
-  || 'GLM''s tone in formal Gulf Arabic. Every word here is customer-visible and signed in the '
-  || 'company''s name, so this is the class to read first when the hold opens.'
+  'The support seat writing to a customer or a supplier - email, WhatsApp, the portal, the public '
+  || 'widget. WHY the Qwen row: founder_instruction 844 - "When it comes to customers, Qwen 3.8 Max is '
+  || 'fine... interactions with customers, stuff like that". Every word here is read by somebody '
+  || 'outside this company, signed in the company''s name, and in either of two languages. The '
+  || 'deterministic FAQ and template levels still answer what code can answer first (18 of 50 '
+  || 'site_assistant calls in the 8-22 Sep window, with no model at all), so the model sees only the '
+  || 'remainder - that is what makes this affordable, not the model''s price. supplier_communication '
+  || 'is here too: a supplier is outside the company even though 844 says "customers", and the first '
+  || 'six weeks are supplier registration only, so this is the surface that gets exercised first.'
  where task_class in ('customer_communication', 'support_ai', 'wa_inbound', 'visitor_chat',
                       'supplier_communication') and active;
 
 update public.model_policy set rationale =
-  'Sorting one inbound message into what it is and who it is from. WHY plan A GLM: the answer is one '
-  || 'label from a known set plus a short factual summary - classification, not judgement - and a '
-  || 'wrong label is corrected by the next step rather than sent to anyone. max_tokens is NOT '
-  || 'reduced: email_triage asks for 700 here and 300 cut its Arabic replies in half (founder '
-  || 'instruction 705).'
+  'Sorting one inbound message into what it is and who it is from, and drafting a reply for a person '
+  || 'to send. WHY plan A GLM even though the answer contains customer-facing text, including Arabic: '
+  || 'THE DRAFT IS NEVER SENT BY THE MACHINE. Measured - email_triage/index.ts:1 says "Never sends", '
+  || 'and index.ts:52 files the draft into agent_actions as a pending inbound_review for a person to '
+  || 'read, edit and send. A human gate is what makes the cheap model safe here and it is the only '
+  || 'reason; IF THAT GATE IS EVER REMOVED THIS CLASS MUST MOVE TO THE QWEN ROW. 844 puts triage on '
+  || 'the internal side and this is triage. max_tokens is NOT reduced: email_triage asks for 700 and '
+  || '300 cut its Arabic replies in half (founder instruction 705).'
  where task_class in ('intent_detection', 'email_triage', 'inbound_email', 'resend_inbound') and active;
 
 update public.model_policy set rationale =
-  'Reading a supplier catalogue or a knowledge source for MEANING, offline, once. WHY plan A GLM: '
-  || 'its 1,310,720 context takes a whole catalogue in one request at $0.15/Mtok, and this runs in '
-  || 'batch rather than in front of a customer, so latency and depth both matter less than the price '
-  || 'of reading everything.'
- where task_class in ('knowledge_ingestion', 'json_extraction', 'json_extraction_text') and active;
+  'Reading a supplier catalogue or a knowledge source for MEANING, offline, once - not transcribing '
+  || 'it, which is document_extraction on the Qwen row. WHY plan A GLM: 844 puts internal ingestion '
+  || 'here, its 1,310,720 context takes a whole catalogue in one request at $0.15/Mtok, and this runs '
+  || 'in batch rather than in front of a person, so nothing it produces is read by a customer without '
+  || 'passing through a class that is on the Qwen row.'
+ where task_class = 'knowledge_ingestion' and active;
 
 update public.model_policy set rationale =
-  'Public posts, social replies and brand copy. WHY plan A GLM: the founder ruled routine drafting '
-  || 'onto it and this is drafting. The deterministic brand_rule_check (tier none) still gates it - '
-  || 'the model writes, code checks - which is what makes the cheap model safe here in a way it is '
-  || 'not on translation. This text is published under the company''s own name on surfaces the '
-  || 'founder does not review first, so the brand check is load-bearing, not a formality.'
+  'Public posts, social replies and brand copy. WHY the Qwen row: it is published under the company''s '
+  || 'own name on surfaces the founder does not review first, to a UAE audience reading in two '
+  || 'languages - "when it comes to customers, Qwen 3.8 Max is fine" (844). The deterministic '
+  || 'brand_rule_check (tier none) still gates it, so the model writes and code checks; that gate is '
+  || 'load-bearing rather than a formality, and it is why this is safe to automate at all.'
  where task_class in ('marketing_copy', 'content_drafting') and active;
 
 update public.model_policy set rationale =
-  'Reading a forwarded receipt - image or PDF - into fields. WHY plan A GLM and NOT the reasoning row '
-  || 'like the accountant''s other classes: this step TRANSCRIBES, it does not decide. The judgement '
-  || 'about what the receipt MEANS is accountant_expense_classification, which is on '
-  || 'qwen/qwen3.8-max-0902 and reads these fields. Splitting them puts the reasoning model where the '
-  || 'reasoning is and the cheap vision model where the pixels are, and makes a misread '
-  || 'distinguishable from a misjudgement in ai_cost_log. google/gemini-3.8-flash behind it because a '
-  || 'receipt GLM cannot read must still be read.'
+  'Reading a forwarded receipt - image or PDF - into fields. WHY the Qwen row: document reading (844). '
+  || 'It is worth being precise that this step TRANSCRIBES and does not decide: the judgement about '
+  || 'what the receipt MEANS is accountant_expense_classification, which is on the same model for a '
+  || 'different reason (a ledger entry is a judgement about money). Both being on Qwen does not make '
+  || 'them one class - ai_cost_log keys on task_class, so a misread stays distinguishable from a '
+  || 'misjudgement, which is the whole reason they are separate rows.'
  where task_class = 'accountant_receipt_extraction' and active;
 
 -- The group rationale for every remaining routed class, so no row is left claiming a model it no
@@ -702,7 +775,7 @@ ruling as (
   select count(*) n from probe_routes p
    where p.use_llm
      and case
-           when p.task_class in (select task_class from reasoning_classes)
+           when p.task_class in (select task_class from qwen_classes)
              then p.chosen <> 'qwen/qwen3.8-max-0902'
            when p.task_class = 'speech_transcription'
              then p.chosen not like 'google/gemini-%'
@@ -734,21 +807,48 @@ clamp as (
       or (task_class = 'quote_comparison' and coalesce(max_tokens,0) < 10000)
 ),
 none_rows as (select count(*) n from public.model_policy where active and tier = 'none'),
+-- A TYPO IN qwen_classes WOULD BE SILENT. A misspelled class matches no policy row, so the real
+-- class stays on the GLM row and the estate quietly routes a customer-facing surface to the internal
+-- model — the exact thing 844 forbids, produced by a missing letter. Measured before the change: of
+-- the 37 entries in that list, exactly two matched no active policy row, and those two are the ones
+-- this file CREATES (ceo_judgement, identity_redaction_verify). After the inserts above the answer
+-- must be zero.
+listed_but_missing as (
+  select count(*) n from qwen_classes q
+   where not exists (select 1 from public.model_policy p
+                      where p.task_class = q.task_class and p.active)),
+-- And the split itself, so the verdict reports what it actually did rather than that it finished.
+split_qwen as (
+  select count(*) n from public.model_policy p
+   where p.active and p.tier <> 'none' and p.model_primary = 'qwen/qwen3.8-max-0902'),
+split_glm as (
+  select count(*) n from public.model_policy p
+   where p.active and p.tier <> 'none' and p.model_primary = 'z-ai/glm-5.3-flash'),
 verdict as (
   select case
     when (select n from det)      > 0 then 'PROBE FAILED: ' || (select n from det)::text || ' tier=none class(es) now want a model'
     when (select n from none_rows) <> 17 then 'PROBE FAILED: ' || (select n from none_rows)::text || ' active tier=none rows, expected the 17 measured before the change'
     when (select n from bad)      > 0 then 'PROBE FAILED: ' || (select n from bad)::text || ' route(s) chose a model that is not a registered, measured route'
-    when (select n from ruling)   > 0 then 'PROBE FAILED: ' || (select n from ruling)::text || ' class(es) do not match founder_instruction 841''s matrix'
+    when (select n from ruling)   > 0 then 'PROBE FAILED: ' || (select n from ruling)::text || ' class(es) do not match founder_instruction 844''s audience split'
     when (select n from selfsame) > 0 then 'PROBE FAILED: ' || (select n from selfsame)::text || ' active row(s) name the same model as primary AND fallback'
     when (select n from mismatch) > 0 then 'PROBE FAILED: ' || (select n from mismatch)::text || ' active row(s) declare a tier their own primary model does not have'
     when (select n from gaps)     > 0 then 'PROBE FAILED: ' || (select n from gaps)::text || ' active-policy model(s) are missing from model_registry or llm_route_health'
     when (select n from clamp)    > 0 then 'PROBE FAILED: ' || (select n from clamp)::text || ' class(es) still allow less than their caller asks for'
-    else 'PROBE OK: ' || (select count(*) from probe_routes where use_llm)::text
-         || ' routed classes on founder_instruction 841''s matrix, all registered and measured; '
-         || (select count(*) from probe_routes where not use_llm)::text || ' still deterministic; '
-         || (select n from none_rows)::text || ' tier=none rows untouched; 0 tier mismatches, 0 '
-         || 'self-fallbacks'
+    when (select n from listed_but_missing) > 0
+      then 'PROBE FAILED: ' || (select n from listed_but_missing)::text || ' entr(ies) in qwen_classes '
+           || 'match no active model_policy row - a typo there silently leaves the real class on the '
+           || 'internal model: ' || (select string_agg(q.task_class, ', ') from qwen_classes q
+                where not exists (select 1 from public.model_policy p
+                                   where p.task_class = q.task_class and p.active))
+    else 'PROBE OK: founder_instruction 844''s audience split is live - '
+         || (select n from split_qwen)::text || ' classes on qwen/qwen3.8-max-0902 (customer-facing, '
+         || 'Arabic-capable, document-reading or a judgement), '
+         || (select n from split_glm)::text || ' on z-ai/glm-5.3-flash (purely internal), '
+         || 'speech_transcription on gemini because only gemini hears, and '
+         || (select n from none_rows)::text || ' tier=none rows untouched. '
+         || (select count(*) from probe_routes where use_llm)::text || ' sampled routes all resolve '
+         || 'to a registered, measured model; ' || (select count(*) from probe_routes where not use_llm)::text
+         || ' still deterministic; 0 tier mismatches, 0 self-fallbacks, 0 unmatched class names.'
     end as line
 )
 select 0 as ord, (select line from verdict) as line

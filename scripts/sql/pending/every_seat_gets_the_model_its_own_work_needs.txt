@@ -1,9 +1,9 @@
-model_policy routing per founder_instruction 841 (23 Sep 2026): plan A qwen/qwen3.8-max-0902 for the
-reasoning classes, plan A z-ai/glm-5.3-flash for everything else, plan B anthropic/claude-opus-5.5 and
-google/gemini-3.8-flash respectively. Two new classes (ceo_judgement, identity_redaction_verify),
-fn_task_class rows for the three functions that call ai_gateway without one, dept_key for the four that
-had no department, a tier/model alignment so no degrade step is a cliff, and a trigger guard. Written by
-it_engineer, who is not permitted to apply.
+model_policy routing per founder_instruction 841 + 844 (23 Sep 2026), the AUDIENCE split: plan A
+qwen/qwen3.8-max-0902 for anything a customer or supplier reads, anything that can emit Arabic, any
+document reading and any judgement (35 classes); plan A z-ai/glm-5.3-flash for purely internal work
+(18 classes); plan B anthropic/claude-opus-5.5 and google/gemini-3.8-flash respectively. Two new
+classes, fn_task_class rows for the three gateway callers that had none, dept_key for the four that
+lacked one, a tier/model alignment so no degrade step is a cliff, and a trigger guard. Written by
 
 APPLY SECOND, after the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql -
 this file names qwen/qwen3.8-max-0902, z-ai/glm-5.3-flash and anthropic/claude-opus-5.5, and its own

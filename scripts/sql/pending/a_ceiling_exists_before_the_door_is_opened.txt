@@ -1,5 +1,5 @@
-Six department_budget rows totalling AED 1,170/month (department_budget held ZERO rows, so fn_ai_route's
-degrade and halt branches could never fire), re-derived from founder_instruction 841's prices with the
+Six department_budget rows totalling AED 1,190/month (department_budget held ZERO rows, so fn_ai_route's
+degrade and halt branches could never fire), re-derived from founder_instruction 844's audience split with the
 arithmetic in the file's header, plus a trigger that refuses to delete the ceiling of any department an
 active fn_task_class row still routes to. Written by it_engineer, who is not permitted to apply.
 
