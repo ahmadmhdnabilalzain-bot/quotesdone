@@ -1,0 +1,1 @@
+Written by the ceo seat on 22 Sep 2026 and not applied: data only, and it needs every_handoff_is_answered_within_its_window.sql live first (its dry run refuses until fn_it_digest_hold_ends exists). Apply with --apply --ddl (the file defines no routine), confirm the VERDICT row reads PROBE OK, then append it to the END of MANIFEST.txt and delete this note.
