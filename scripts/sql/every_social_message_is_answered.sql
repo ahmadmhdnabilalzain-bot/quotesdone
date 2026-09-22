@@ -22,6 +22,7 @@
 --      A row with a priority and match_words is matched on whole words; human_handoff, unknown and
 --      knowledge_suffix are chosen by the code. Seeded with ON CONFLICT DO NOTHING so a re-apply never
 --      overwrites the founder's edits.
+--   3b. marketing_meta_page — the page token / page id / IG id derived from meta_access_token, cached.
 --   4. fn_marketing_social_hand_to_human(conversation, reason): marks it handed_to_human and emails the founder
 --      through fn_notify_founder(p_kind => 'social_human_request') with the platform, handle, the last
 --      messages and where to continue. Only the transition notifies; a repeat ask does not re-email.
@@ -174,6 +175,23 @@ https://quotesdone.com
  'وإن رغبتم في أن يتابع أحد أعضاء فريقنا معكم، فاكتبوا «موظف».',
  'marketing')
 on conflict (key) do nothing;
+
+-- ── 3b. THE PAGE THE SEAT ANSWERS AS ─────────────────────────────────────────────────────────────
+-- Measured 22 Sep 2026 (coordinator, read-only): app_secrets.meta_access_token is a non-expiring system-user
+-- token carrying every messaging scope, and me/accounts lists page QuotesDone with its Instagram account.
+-- So the page token, page id and IG id are DERIVED at runtime and cached here with fetched_at; the edge
+-- function refetches on a Graph 190. The page token is a credential: service role only, like app_secrets.
+create table if not exists public.marketing_meta_page (
+  page_id     text primary key,
+  ig_id       text unique,
+  page_token  text not null,
+  fetched_at  timestamptz not null default now()
+);
+alter table public.marketing_meta_page enable row level security;
+drop policy if exists marketing_meta_page_service_role_only on public.marketing_meta_page;
+create policy marketing_meta_page_service_role_only on public.marketing_meta_page
+  as permissive for all to public using (false) with check (false);
+revoke all on public.marketing_meta_page from anon, authenticated;
 
 -- ── 4. A PERSON IS ASKED FOR ─────────────────────────────────────────────────────────────────────
 create or replace function public.fn_marketing_social_hand_to_human(p_conversation_id bigint, p_reason text)

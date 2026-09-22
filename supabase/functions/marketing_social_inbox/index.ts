@@ -16,21 +16,23 @@
 //   5. Meta's 24-hour window and our own per-person and global rate limits are applied;
 //   6. reply.ts decides the answer without a model; asking for a person hands the conversation to
 //      the founder through fn_marketing_social_hand_to_human -> fn_notify_founder(p_kind 'social_human_request');
-//   7. the reply is SENT only when app_secrets.social_send_enabled = 'on' and a page token exists.
+//   7. the reply is SENT only when app_secrets.social_send_enabled = 'on' and a page token can be derived.
 //      Until the founder's Meta app is connected the reply is stored as held_switch_off — the whole
 //      path runs, nothing reaches anyone.
 //
-// Secrets, by key name in public.app_secrets: meta_app_secret, meta_webhook_verify_token,
-// meta_page_access_token, meta_app_id (optional; recognises our Messenger echoes), social_send_enabled,
+// Secrets, by key name in public.app_secrets: meta_app_secret, meta_webhook_verify_token, meta_access_token
+// (the system-user token; the page token, page id and IG id are derived from it through me/accounts and
+// cached in public.marketing_meta_page, refetched on a Graph 190), meta_app_id (optional; recognises our
+// Messenger echoes), social_send_enabled,
 // social_model_enabled (off: the model is held — OpenRouter is on hold), cred_fn_ai (the gateway key).
 //
-// META APP SETUP (the founder's side). Callback URL:
+// META APP SETUP: scripts/marketing/connect_social_inbox.mjs does all of it once meta_app_secret is stored.
+// Callback URL:
 //   <SUPABASE_URL>/functions/v1/marketing_social_inbox   (the project's own URL; the ref is not written here)
 // Verify token: the value stored in app_secrets.meta_webhook_verify_token. Subscribe: Page -> messages,
 // message_echoes, feed; Instagram -> messages, comments. Permissions: pages_messaging,
 // pages_manage_metadata, pages_read_engagement, pages_manage_engagement, instagram_basic,
-// instagram_manage_messages, instagram_manage_comments. Then store the Page token as
-// meta_page_access_token, the app secret as meta_app_secret, and set social_send_enabled = 'on'.
+// instagram_manage_messages, instagram_manage_comments (all carried by meta_access_token, measured 22 Sep).
 //
 // OTHER PLATFORMS — what their official APIs allow, as documented by the platforms (not tested here;
 // no scraping, ever). LinkedIn: messages to a company Page are not open to third-party apps; comments
@@ -41,7 +43,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import type { FaqRow } from '../_shared/chat_answers.ts';
-import { clip, handshake, maxLen, OUR_METADATA, parseEvents, sendRequest, verifySignature, withinWindow, type InboundEvent } from './meta.ts';
+import { clip, handshake, maxLen, OUR_METADATA, parseEvents, pickPage, sendRequest, tokenExpired, verifySignature, withinWindow, type InboundEvent, type PageAccount } from './meta.ts';
 import { decide, unknown, type CorpusRow, type Decision, type LibraryRow } from './reply.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -125,8 +127,8 @@ async function handle(ev: InboundEvent): Promise<string> {
   if (oErr || !out) throw new Error('reply row: ' + (oErr?.message || 'no row'));
 
   if (d.kind === 'handoff') {
-    const token = await sec('meta_page_access_token');
-    if (!conv.handle && token && !isFixture(ev)) await fillHandle(ev, conv.id, token);
+    const token = isFixture(ev) ? null : await pageToken(ev);
+    if (!conv.handle && token) await fillHandle(ev, conv.id, token);
     await admin.rpc('fn_marketing_social_hand_to_human', { p_conversation_id: conv.id, p_reason: ev.text });
   }
   await send(ev, out.id as number, text);
@@ -198,12 +200,17 @@ async function echo(ev: InboundEvent, convId: number, status: string): Promise<s
 async function send(ev: InboundEvent, outId: number, text: string): Promise<void> {
   const set = (o: Record<string, unknown>) => admin.from('social_message').update(o).eq('id', outId);
   if (isFixture(ev)) { await set({ send_status: 'held_fixture' }); return; }
-  const token = await sec('meta_page_access_token');
-  if ((await sec('social_send_enabled')) !== 'on' || !token) { await set({ send_status: 'held_switch_off' }); return; }
+  if ((await sec('social_send_enabled')) !== 'on') { await set({ send_status: 'held_switch_off' }); return; }
+  let token = await pageToken(ev);
+  if (!token) { await set({ send_status: 'failed', send_error: 'no page we manage matches account ' + ev.accountId }); return; }
   try {
-    const { url, body } = sendRequest(ev, text, token);
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const j = await r.json().catch(() => ({}));
+    const post = async (t: string) => {
+      const { url, body } = sendRequest(ev, text, t);
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      return { r, j: await r.json().catch(() => ({})) as any };
+    };
+    let { r, j } = await post(token);
+    if (!r.ok && tokenExpired(j?.error) && (token = await pageToken(ev, true))) ({ r, j } = await post(token));
     if (r.ok) await set({ send_status: 'sent', sent_at: new Date().toISOString(), meta_message_id: j?.message_id || j?.id || null });
     else await set({ send_status: 'failed', send_error: String(j?.error?.message || r.status).slice(0, 300) });
   } catch (e) { await set({ send_status: 'failed', send_error: String((e as Error)?.message || e).slice(0, 300) }); }
@@ -216,4 +223,26 @@ async function fillHandle(ev: InboundEvent, convId: number, token: string): Prom
     const h = j?.username || j?.name;
     if (r.ok && h) await admin.from('social_conversation').update({ handle: String(h).slice(0, 120) }).eq('id', convId);
   } catch (_e) { /* the founder is told the id instead */ }
+}
+
+// THE PAGE TOKEN, DERIVED — never a typed-in secret. me/accounts with the system-user token lists every
+// page it manages with that page's own token and linked Instagram account; the one matching the webhook
+// entry is cached (marketing_meta_page, fetched_at) and refetched when Graph answers 190.
+async function pageToken(ev: InboundEvent, refresh = false): Promise<string | null> {
+  if (!refresh) {
+    const { data } = await admin.from('marketing_meta_page').select('page_token')
+      .eq(ev.platform === 'facebook' ? 'page_id' : 'ig_id', ev.accountId).maybeSingle();
+    if (data?.page_token) return data.page_token as string;
+  }
+  const sys = await sec('meta_access_token');
+  if (!sys) return null;
+  try {
+    const r = await fetch('https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account&limit=100&access_token=' + encodeURIComponent(sys));
+    const j = await r.json();
+    const page = pickPage((j?.data || []) as PageAccount[], ev.platform, ev.accountId);
+    if (!r.ok || !page) return null;
+    await admin.from('marketing_meta_page').upsert({ page_id: page.id, ig_id: page.instagram_business_account?.id ?? null,
+      page_token: page.access_token, fetched_at: new Date().toISOString() }, { onConflict: 'page_id' });
+    return page.access_token;
+  } catch (_e) { return null; }
 }

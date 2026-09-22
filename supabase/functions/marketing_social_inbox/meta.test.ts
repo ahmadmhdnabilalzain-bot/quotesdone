@@ -2,7 +2,7 @@
 // The Meta webhook contract: signature, handshake, event parsing (echoes and our own comments are
 // never answered), the 24-hour window and the send shape. Mocked payloads only; ZZDEMO ids.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { clip, handshake, maxLen, OUR_METADATA, parseEvents, sendRequest, verifySignature, withinWindow } from './meta.ts';
+import { clip, handshake, maxLen, OUR_METADATA, parseEvents, pickPage, sendRequest, tokenExpired, verifySignature, withinWindow } from './meta.ts';
 
 const SECRET = 'zz-demo-app-secret';
 async function sign(body: string, secret = SECRET): Promise<string> {
@@ -92,6 +92,19 @@ Deno.test('send: DM, Instagram comment and Facebook comment requests go to the r
   assert(sendRequest(igc, 'x', 'T').url.includes('/ic1/replies?'));
   const fbc = { ...igc, platform: 'facebook' as const, messageId: 'c1' };
   assert(sendRequest(fbc, 'x', 'T').url.includes('/c1/comments?'));
+});
+
+Deno.test('page: the webhook entry picks its own page (by page id or by the linked IG id); a stranger picks none', () => {
+  const accounts = [
+    { id: 'ZZDEMO_PAGE_A', access_token: 'tA', instagram_business_account: { id: 'ZZDEMO_IG_A' } },
+    { id: 'ZZDEMO_PAGE_B', access_token: 'tB', instagram_business_account: null },
+  ];
+  assertEquals(pickPage(accounts, 'facebook', 'ZZDEMO_PAGE_B')?.access_token, 'tB');
+  assertEquals(pickPage(accounts, 'instagram', 'ZZDEMO_IG_A')?.access_token, 'tA');
+  assertEquals(pickPage(accounts, 'instagram', 'ZZDEMO_PAGE_A'), null);
+  assertEquals(pickPage(accounts, 'facebook', 'ZZDEMO_OTHER'), null);
+  assert(tokenExpired({ code: 190 }) && tokenExpired({ type: 'OAuthException', code: 10 }));
+  assertEquals(tokenExpired({ code: 613, type: 'GraphMethodException' }), false);
 });
 
 Deno.test('length: replies are clipped under each platform\'s limit', () => {

@@ -123,6 +123,18 @@ export const withinWindow = (at: Date, now = new Date()): boolean => now.getTime
 export const maxLen = (platform: Platform, channel: Channel): number => (channel === 'comment' ? 300 : platform === 'instagram' ? 950 : 1900);
 export const clip = (s: string, n: number): string => (s.length <= n ? s : s.slice(0, n - 1).replace(/\s+\S*$/, '') + '…');
 
+// ── WHICH PAGE ANSWERS ───────────────────────────────────────────────────────────────────────────
+// The page token, page id and Instagram account id are DERIVED from the one system-user token
+// (app_secrets.meta_access_token) through GET me/accounts, never typed in as secrets (coordinator,
+// 22 Sep 2026: the token carries every messaging scope and lists page QuotesDone with its IG account).
+// The webhook entry names the account it is for; only a page we manage, or its IG account, answers.
+export interface PageAccount { id: string; access_token: string; instagram_business_account?: { id: string } | null }
+export function pickPage(accounts: PageAccount[], platform: Platform, accountId: string): PageAccount | null {
+  return accounts.find((a) => (platform === 'facebook' ? a.id === accountId : a.instagram_business_account?.id === accountId)) ?? null;
+}
+// Graph error 190 (or any OAuthException) means the cached page token no longer works: refetch once.
+export const tokenExpired = (err: any): boolean => err?.code === 190 || err?.type === 'OAuthException';
+
 // The marker the seat puts on every Messenger send; its echo comes back carrying it.
 export const OUR_METADATA = 'qd_marketing_seat';
 
