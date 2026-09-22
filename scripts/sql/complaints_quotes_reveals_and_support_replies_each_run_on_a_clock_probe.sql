@@ -13,7 +13,7 @@ do $probe$
 declare
   f text[] := '{}';
   v_fn text; v_n int; v_n2 int; v_before bigint; v_ticket text; v jsonb; v_inq uuid; v_tx uuid; v_q uuid;
-  v_window numeric; v_left int; v_log bigint;
+  v_window numeric; v_left int; v_log bigint; v_lead bigint;
 begin
   -- ── structure ──
   foreach v_fn in array array['public.fn_seat_clocks_tick()', 'public.fn_complaint_clock_tick(boolean)',
@@ -116,8 +116,25 @@ begin
                       and not exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = m.supplier_id))
        and (select count(*) from public.quotes q where q.inquiry_id = i.id) < 3
      order by i.created_at desc limit 1;
+    -- NO LEFTOVER TO BORROW (22 Sep 2026, it_engineer). This used to find its subject only among OTHER
+    -- runs' leftover fixtures: it passed on run 12ddadff's request, and the nightly's sweep of runs that
+    -- are over (scripts/e2e/fixtures.mjs sweepStaleRuns) left none. A probe must not depend on litter.
+    -- When nothing is short of quotes, it makes a request short of quotes here: an open fixture request
+    -- gains one invited ZZ DEMO supplier (@example.invalid) who has not quoted. Both rows exist only
+    -- inside this block, which its own raise rolls back; the zero-residue assertion below still holds.
     if v_inq is null then
-      f := f || text 'no open ZZ DEMO request short of quotes exists to rehearse on';
+      select i.id into v_inq from public.inquiries i join public.customers c on c.id = i.customer_id
+       where i.status in ('sent', 'quoted') and public.fn_seat_clock_customer_is_fixture(c)
+         and (select count(*) from public.quotes q where q.inquiry_id = i.id) < 3
+       order by i.created_at desc limit 1;
+      if v_inq is not null then
+        insert into public.leads (company_name, email) values ('ZZ DEMO clock probe supplier', 'zz.clock.supplier@example.invalid')
+        returning id into v_lead;
+        insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (v_inq, v_lead, 'ZZ DEMO clock probe: invited, not quoted');
+      end if;
+    end if;
+    if v_inq is null then
+      f := f || text 'no open ZZ DEMO request exists to rehearse on';
     else
       select nullif(regexp_replace(coalesce(value, ''), '[^0-9.]', '', 'g'), '')::numeric into v_window
         from public.app_secrets where key = 'sla_quote_hours';
