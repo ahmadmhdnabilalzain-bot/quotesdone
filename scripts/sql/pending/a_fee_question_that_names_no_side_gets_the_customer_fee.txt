@@ -1,1 +1,0 @@
-PR #844 (customer_support): awaiting review and the coordinator's apply. Apply with --apply --ddl, then append the file to the end of MANIFEST.txt, delete this note, and run scripts/checks/whatsapp_understands_a_question_asked_in_other_words.test.mjs against production.
