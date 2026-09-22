@@ -26,10 +26,10 @@ import { readGaeb } from './gaeb.ts';
 type Reader = (bytes: Uint8Array, ctx: ReadContext) => Promise<ReadResult>;
 const needs = (kind: string, need: NonNullable<Extracted['needs']>, note: string): Reader => () => Promise.resolve(ok(empty(kind, [note], need)));
 // 22 Sep 2026. These notes become the BOQ's missing_info the customer reads, so each says what to send
-// instead, in English and Arabic. Reading RVT needs Autodesk's paid Model Derivative service; DGN v7 needs
+// instead, in English here and in Arabic on screen (src/lib/boqNotes.ts). Reading RVT needs Autodesk's paid Model Derivative service; DGN v7 needs
 // GDAL's open DGN driver, which no edge function carries; DGN v8 is OLE2 and is not recognised by bytes.
-export const RVT_NOTE = 'A Revit model (.rvt) cannot be read here yet. Export it from Revit as IFC (File > Export > IFC) or as DWG/DXF and upload that; its quantities are then read directly. / لا يمكن قراءة نموذج ريفيت (.rvt) هنا حالياً. صدّره من ريفيت بصيغة IFC أو DWG/DXF ثم ارفعه، وستُقرأ كمياته مباشرة.';
-export const DGN_NOTE = 'A MicroStation DGN drawing cannot be read here yet. Save it from MicroStation as DWG or DXF and upload that; its quantities are then read directly. / لا يمكن قراءة رسم مايكروستيشن (DGN) هنا حالياً. احفظه من مايكروستيشن بصيغة DWG أو DXF ثم ارفعه، وستُقرأ كمياته مباشرة.';
+export const RVT_NOTE = 'A Revit model (.rvt) cannot be read here yet. Export it from Revit as IFC (File > Export > IFC) or as DWG/DXF and upload that; its quantities are then read directly.';
+export const DGN_NOTE = 'A MicroStation DGN drawing cannot be read here yet. Save it from MicroStation as DWG or DXF and upload that; its quantities are then read directly.';
 const OCR_NOTE = 'A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.';
 
 const READERS: Record<string, Reader> = {

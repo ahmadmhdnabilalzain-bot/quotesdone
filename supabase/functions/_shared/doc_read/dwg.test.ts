@@ -9,6 +9,9 @@ import { dwgToDxf, DWG_MAX_BYTES, readDwg, type DwgDb } from './dwg.ts';
 import { readDxf } from './cad.ts';
 import { readDocument } from './index.ts';
 import type { Extracted, ReadResult } from './types.ts';
+// The notes are English at the source; the customer's and the supplier's screens show them in Arabic through
+// src/lib/boqNotes.ts (founder instruction 586). Asserted here so an ask without its Arabic fails beside the reader.
+import { boqNoteAr } from '../../../../src/lib/boqNotes.ts';
 
 const ctx = { filename: 'plan.dwg', depth: 0 };
 const good = (r: ReadResult): Extracted => { if (!r.ok) throw new Error(r.error); return r; };
@@ -74,7 +77,8 @@ Deno.test('readDwg: not a DWG is refused; past the edge ceiling it says what to 
   const big = new Uint8Array(DWG_MAX_BYTES + 1); big.set(new TextEncoder().encode('AC1032'));
   const e = good(await readDwg(big, ctx));                       // refused before any WASM is loaded
   assertEquals([e.kind, e.needs], ['dwg', 'cad_conversion']);
-  assert(e.notes[0].includes('DXF') && e.notes[0].includes('احفظ الرسم'), e.notes[0]);
+  assert(e.notes.some((n) => n.includes('DXF')), e.notes.join(' | '));
+  for (const n of e.notes) assert(/[؀-ۿ]/.test(boqNoteAr(n) || ''), `no Arabic for: ${n}`);
 });
 
 Deno.test('the npm import and the pinned WASM URL name the same package version', () => {
@@ -89,10 +93,10 @@ Deno.test('a Revit model and a DGN v7 are recognised and told what to export, no
   rvt.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]); rvt.set(utf16('BasicFileInfo'), 1024);
   const r = good(await readDocument(rvt, 'tower.rvt'));
   assertEquals([r.kind, r.needs], ['rvt', 'bim_conversion']);
-  assert(r.notes[0].includes('IFC') && r.notes[0].includes('ريفيت'), r.notes[0]);
+  assert(r.notes[0].includes('IFC') && (boqNoteAr(r.notes[0]) || '').includes('ريفيت'), r.notes[0]);
 
   const dgn = new Uint8Array(2048); dgn.set([0x08, 0x09, 0xfe, 0x02]);
   const g = good(await readDocument(dgn, 'site.dgn'));
   assertEquals([g.kind, g.needs], ['dgn', 'cad_conversion']);
-  assert(g.notes[0].includes('DWG or DXF') && g.notes[0].includes('مايكروستيشن'), g.notes[0]);
+  assert(g.notes[0].includes('DWG or DXF') && (boqNoteAr(g.notes[0]) || '').includes('مايكروستيشن'), g.notes[0]);
 });

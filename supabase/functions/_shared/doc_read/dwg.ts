@@ -134,15 +134,15 @@ async function freshLibreDwg(): Promise<any> {
   return m.LibreDwg.createByWasmInstance(inst);
 }
 
-/** Customer-facing: these become the BOQ's missing_info, so English and Arabic. */
-export const DWG_SEND_DXF = 'Save the drawing as DXF (File > Save As > AutoCAD DXF) or PDF and upload that. / احفظ الرسم بصيغة DXF (ملف > حفظ باسم > AutoCAD DXF) أو PDF ثم ارفعه.';
+/** Customer-facing: these become the BOQ's missing_info. English here; the screens show them in Arabic through src/lib/boqNotes.ts. */
+export const DWG_SEND_DXF = 'Save the drawing as DXF (File > Save As > AutoCAD DXF) or PDF and upload that.';
 
 export async function readDwg(bytes: Uint8Array, ctx: ReadContext, maxBytes = DWG_MAX_BYTES): Promise<ReadResult> {
   const stamp = new TextDecoder('latin1').decode(bytes.subarray(0, 6));
   const release = RELEASE[stamp] ?? stamp;
   if (!/^AC10\d\d$/.test(stamp)) return refuse('dwg_unreadable', 'Not a DWG file (no AC10xx version stamp).');
   if (bytes.length > maxBytes) {
-    return ok(empty('dwg', [`This DWG (${release}, ${Math.round(bytes.length / 1024)} KB) is larger than the ${Math.round(maxBytes / 1024)} KB read directly. / هذا الملف أكبر من الحد المقروء مباشرة. ${DWG_SEND_DXF}`], 'cad_conversion'));
+    return ok(empty('dwg', [`This DWG (${release}, ${Math.round(bytes.length / 1024)} KB) is larger than the ${Math.round(maxBytes / 1024)} KB read directly.`, DWG_SEND_DXF], 'cad_conversion'));
   }
   let db: DwgDb;
   try {
@@ -151,7 +151,7 @@ export async function readDwg(bytes: Uint8Array, ctx: ReadContext, maxBytes = DW
     if (!data) return refuse('dwg_unreadable', `LibreDWG could not open this ${release} file.`);
     try { db = L.convert(data); } finally { L.dwg_free(data); }
   } catch (e) {
-    return ok(empty('dwg', [`The DWG reader could not run (${String((e as Error)?.message || e).slice(0, 120)}). / تعذّر تشغيل قارئ DWG. ${DWG_SEND_DXF}`], 'cad_conversion'));
+    return ok(empty('dwg', [`The DWG reader could not run (${String((e as Error)?.message || e).slice(0, 120)}).`, DWG_SEND_DXF], 'cad_conversion'));
   }
   const { dxf, skipped } = dwgToDxf(db);
   const r = await readDxf(new TextEncoder().encode(dxf), ctx);

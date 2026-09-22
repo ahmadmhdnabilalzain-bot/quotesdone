@@ -10,6 +10,7 @@ import { KW, detect } from './keywords.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { asLocale, documentLocale } from '../_shared/registered_locale.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
+import { LENGTHS_FAILED_NOTE } from '../drawing_boq/length_notes.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
@@ -888,7 +889,7 @@ Deno.serve(observe('customer_api', async (req) => {
             const lr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'lengths', boq: boqOut, original_b64: body.original_b64 }) });
             const lj = await lr.json().catch(() => null);
             if (lj?.ok && lj.boq && Array.isArray(lj.boq.boq)) Object.assign(boqOut, lj.boq);
-            else if (Array.isArray(boqOut.boq) && boqOut.boq.some((l: any) => /^(duct|pipe):/.test(String(l?.type || '')) && l?.qty == null)) boqOut.missing_info = ['Duct and pipe lengths could not be measured on this upload (the measuring step did not finish): those lines carry the sizes and ask for the length at the printed scale.', ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])];
+            else if (Array.isArray(boqOut.boq) && boqOut.boq.some((l: any) => /^(duct|pipe):/.test(String(l?.type || '')) && l?.qty == null)) boqOut.missing_info = [LENGTHS_FAILED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])];
           } catch (_e) { /* the counted take-off stands */ }
         }
         if (boqOut && Array.isArray(boqOut.boq) && boqOut.boq.length) {

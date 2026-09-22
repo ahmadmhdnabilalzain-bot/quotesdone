@@ -40,6 +40,7 @@
 import type { PdfPage, TextRun } from '../_shared/pdf_text_positions.ts';
 import { redactText, stripSeeds, titleStrip, type Box } from '../_shared/anonymise.ts';
 import { scrubIdentity } from './boq_from_text.ts';
+import { DENSE_NOTE, LENGTHS_FAILED_NOTE, NO_LENGTHS_NOTE, PLAN_LENGTHS_NOTE } from './length_notes.ts';
 import { feet, MAX_MEASURED_LINES, measureDucts, measurePipes, metres, scaleLabels, tooDense, type Measured } from './drawing_lengths.ts';
 
 export type ScheduleTable = { page: number; bbox?: Box; rows: string[][]; conf?: number[][] };
@@ -527,8 +528,6 @@ const HVAC_TYPES = new Set(Object.keys(EQUIPMENT));
 const MISSING_ALWAYS = [
   'Symbols drawn without a tag (an untagged grille, a valve symbol) are not counted; only tags, keyed-note bubbles and labelled sizes are.',
 ];
-const NO_LENGTHS = 'Duct and pipe LENGTHS are not printed on the drawing and this file carries no CAD layers to measure them from: those lines carry the sizes and ask for the length at the printed scale.';
-const PLAN_LENGTHS = 'Duct and pipe lengths are measured in plan from the drawing\'s CAD layers at its printed scale; vertical risers and drops are not in plan and are not included.';
 
 /** drawing_boq's response shape for a PDF drawing set: the take-off when it finds anything, with every
  *  string scrubbed of the title strip's names and of any contact detail. `null` = nothing drawn to count. */
@@ -545,8 +544,8 @@ export function boqFromDrawingSet(pages: PdfPage[], hint = '', schedules: Schedu
   const scales = [...new Set(plans.map((s) => s.scale).filter(Boolean))];
   const missing = [...MISSING_ALWAYS];
   const lengthLines = boq.filter((l) => /^(duct|pipe):/.test(l.type));
-  if (lengthLines.length) missing.unshift(lengthLines.some((l) => l.qty === null) ? NO_LENGTHS : PLAN_LENGTHS);
-  if (t.dense.length) missing.unshift(`Sheet(s) ${t.dense.join(', ')} carry more than ${MAX_MEASURED_LINES.toLocaleString('en')} duct or pipe lines, more than one reading measures; their lengths were not measured and must be taken off by hand.`);
+  if (lengthLines.length) missing.unshift(lengthLines.some((l) => l.qty === null) ? NO_LENGTHS_NOTE : PLAN_LENGTHS_NOTE);
+  if (t.dense.length) missing.unshift(DENSE_NOTE(t.dense.join(', '), MAX_MEASURED_LINES.toLocaleString('en')));
   const noPlan = t.sheets.filter((s) => s.kind === 'schedule');
   if (noPlan.length && !schedules.length) missing.push(`Schedule sheet(s) ${noPlan.map((s) => s.number).join(', ')} were not read (their tables are images); make and model are therefore not on the lines.`);
   if (boq.some((l) => l.qty_status === 'to_confirm')) missing.push('Lines marked "to confirm" are our own count (keyed-note bubbles, a letter continuing a series, or a schedule read by OCR); they are shown to you to confirm before suppliers price them.');
@@ -592,17 +591,17 @@ type SetBoq = { boq: TakeoffLine[]; missing_info: string[] } & Record<string, un
 /** The first call's BOQ with the measured lengths merged in: measured sizes replace the "to be measured"
  *  lines they cover; `null` (the lengths call failed or was killed) keeps every line and says so. */
 export function mergeLengths<T extends SetBoq>(set: T, lengths: { lines: TakeoffLine[]; dense: string[] } | null): T {
-  const missing = set.missing_info.filter((m) => m !== NO_LENGTHS && m !== PLAN_LENGTHS);
+  const missing = set.missing_info.filter((m) => m !== NO_LENGTHS_NOTE && m !== PLAN_LENGTHS_NOTE);
   const asked = set.boq.filter((l) => /^(duct|pipe):/.test(l.type) && l.qty === null);
   if (!lengths) {
-    return asked.length ? { ...set, missing_info: ['Duct and pipe lengths could not be measured on this upload (the measuring step did not finish): those lines carry the sizes and ask for the length at the printed scale.', ...missing] } : set;
+    return asked.length ? { ...set, missing_info: [LENGTHS_FAILED_NOTE, ...missing] } : set;
   }
-  if (!lengths.lines.length) return { ...set, missing_info: [...(lengths.dense.length ? [`Sheet(s) ${lengths.dense.join(', ')} carry more than ${MAX_MEASURED_LINES.toLocaleString('en')} duct or pipe lines, more than one reading measures; their lengths were not measured and must be taken off by hand.`] : []), ...set.missing_info] };
+  if (!lengths.lines.length) return { ...set, missing_info: [...(lengths.dense.length ? [DENSE_NOTE(lengths.dense.join(', '), MAX_MEASURED_LINES.toLocaleString('en'))] : []), ...set.missing_info] };
   const got = new Set(lengths.lines.map((l) => l.type));
   const anyDuct = lengths.lines.some((l) => l.type.startsWith('duct:'));
   const keep = set.boq.filter((l) => !(l.qty === null && ((anyDuct && (l.type === 'duct:rectangular' || l.type === 'duct:round')) || (l.type.startsWith('pipe:') && got.has(l.type)))));
   const still = keep.some((l) => /^(duct|pipe):/.test(l.type) && l.qty === null);
-  return { ...set, boq: [...keep, ...lengths.lines], missing_info: [still ? NO_LENGTHS : PLAN_LENGTHS, ...(lengths.dense.length ? [`Sheet(s) ${lengths.dense.join(', ')} carry more than ${MAX_MEASURED_LINES.toLocaleString('en')} duct or pipe lines; their lengths were not measured and must be taken off by hand.`] : []), ...missing] };
+  return { ...set, boq: [...keep, ...lengths.lines], missing_info: [still ? NO_LENGTHS_NOTE : PLAN_LENGTHS_NOTE, ...(lengths.dense.length ? [DENSE_NOTE(lengths.dense.join(', '), MAX_MEASURED_LINES.toLocaleString('en'))] : []), ...missing] };
 }
 
 /** Tag counts that must survive redaction: identical on the original and on what the supplier sees. */
