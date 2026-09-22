@@ -232,6 +232,7 @@ test('SP-N-02: market_position.your_index has its own floor and its own status f
   assert.match(habit, /and q\.status in \('submitted', 'revealed'\)/, 'a draft is not a bid, on this side either');
   assert.match(RECOMMEND, /case when n >= 3 then round\(idx, 1\) else null end idx/, 'one decimal place: two let a supplier difference one enquiry against the next');
   assert.match(RECOMMEND, /'your_quotes_measured', \(select n_band from habit_out\)/, 'the count is a band, not a number');
+  assert.match(RECOMMEND, /case when n < 3 then null\s*\n\s*when n <= 5 then '3-5'/, 'a count below three must not fall through and read "6-10"');
   assert.doesNotMatch(RECOMMEND.slice(RECOMMEND.indexOf("'market_position'")), /from habit\)/, 'the unfloored index must not be published');
 });
 

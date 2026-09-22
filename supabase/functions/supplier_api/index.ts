@@ -1263,8 +1263,8 @@ const handle = async (req: Request): Promise<Response> => {
           // A transient inbox failure is NOT an approval and NOT a silent stranding: the desk stays
           // open with something the supplier can act on (try again), rather than closing on them.
           if (!inqSafe) return { missing: [{ scope: 'quote' as const, line_no: null, description: null, attr: 'review_unavailable', type: 'text' as const,
-            label_en: 'We could not read this job just now, so we have not sent the quotation. Please approve it again in a moment.',
-            label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، فلم نرسل العرض. يُرجى الموافقة عليه مرة أخرى بعد قليل.' }] };
+            label_en: 'We could not read this job just now, so we have not sent your quotation. Please confirm your approval again in a moment.',
+            label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، ولذلك لم نرسل عرضكم. يُرجى تأكيد الموافقة مرة أخرى بعد قليل.' }] };
           const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
           const rvw = reviewQuotation(inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)));
           if (rvw.approved) return null;

@@ -189,8 +189,12 @@ as $function$
   -- remaining way in. One decimal place, and the count as a band rather than a number.
   habit_out as (
     select case when n >= 3 then round(idx, 1) else null end idx,
-           case when n >= 3 and n <= 5 then '3-5' when n <= 10 then '6-10'
-                when n <= 25 then '11-25' when n > 25 then 'more than 25' else null end n_band,
+           -- `when n < 3 then null` FIRST, and it is not decoration: without it a count of 0, 1 or 2
+           -- failed the `n >= 3 and n <= 5` branch, fell through to `n <= 10`, and read "6-10" — a
+           -- supplier with one measured enquiry told they had six to ten (reviewer's guard on #854).
+           case when n < 3 then null
+                when n <= 5 then '3-5' when n <= 10 then '6-10'
+                when n <= 25 then '11-25' else 'more than 25' end n_band,
            n
     from habit
   ),

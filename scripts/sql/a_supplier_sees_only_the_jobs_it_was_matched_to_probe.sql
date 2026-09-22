@@ -4,9 +4,15 @@
 -- Pure probe: no DDL, nothing survives it. Run AFTER a_supplier_sees_only_the_jobs_it_was_matched_to.sql,
 -- as ONE query THROUGH node scripts/qsql.mjs; never applied. `node scripts/apply_sql.mjs` on this file
 -- prints "nothing to do" and exits 0 because it defines no routine — a silent pass, not a result. The
--- only run that means anything is the one that prints the verdict row. Every write happens inside a block that always
--- raises, so all of it is rolled back. The bidders are the reserved ZZ DEMO fixtures 129660 / 129676 /
--- 129775 and the reader is ZZ DEMO supplier 126512 on its own demo enquiry; no real party is touched and
+-- only run that means anything is the one that prints the verdict row.
+--
+-- THE BIDDERS ARE DEMO LEADS BECAUSE THE ESTATE SAYS SO. public.a01_quote_demo_and_real_never_pair
+-- (fn_demo_and_real_never_pair) refuses a quote whose supplier and inquiry disagree about being demo,
+-- so a probe bidding on a ZZ DEMO enquiry must use leads with leads.is_demo = true — 129923 / 130027 /
+-- 130029, none of which any real party owns. Reader 126512 is demo too. Their leads.source is
+-- 'demo_factory', not 'qd_demo_fixture', so the routine's own demo fence is unaffected. Every write happens inside a block that always
+-- raises, so all of it is rolled back. The bidders are the reserved ZZ DEMO fixtures 129923 / 130027 /
+-- 130029 and the reader is ZZ DEMO supplier 126512 on its own demo enquiry; no real party is touched and
 -- nothing here can notify anybody (quotes rows queue nothing, and pg_net sends only committed rows).
 --
 -- VERDICT: PROBE OK only if
@@ -50,23 +56,23 @@ begin
     r_nomatch := public.fn_supplier_quote_recommend(me, nope);
 
     insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status)
-    values (gen_random_uuid(), inq, 129660, 50000, 'form', 9, 'submitted');
+    values (gen_random_uuid(), inq, 129923, 50000, 'form', 9, 'submitted');
     r_thin := public.fn_supplier_quote_recommend(me, inq);
 
     -- THREE OPTIONS FROM ONE COMPANY ARE ONE COMPANY. count(*) would clear a three-bid floor here.
     insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status) values
-      (gen_random_uuid(), inq, 129660, 50500, 'form', 10, 'submitted'),
-      (gen_random_uuid(), inq, 129660, 51000, 'form', 11, 'submitted');
+      (gen_random_uuid(), inq, 129923, 50500, 'form', 10, 'submitted'),
+      (gen_random_uuid(), inq, 129923, 51000, 'form', 11, 'submitted');
     r_oneco := public.fn_supplier_quote_recommend(me, inq);
-    delete from public.quotes where inquiry_id = inq and supplier_id = 129660 and option_no in (10, 11);
+    delete from public.quotes where inquiry_id = inq and supplier_id = 129923 and option_no in (10, 11);
 
     insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status) values
-      (gen_random_uuid(), inq, 129676, 61000, 'form', 9, 'submitted'),
-      (gen_random_uuid(), inq, 129775, 72000, 'form', 9, 'submitted'),
-      (gen_random_uuid(), inq, 129660, 999999, 'form', 8, 'draft');   -- a draft is not a bid
+      (gen_random_uuid(), inq, 130027, 61000, 'form', 9, 'submitted'),
+      (gen_random_uuid(), inq, 130029, 72000, 'form', 9, 'submitted'),
+      (gen_random_uuid(), inq, 129923, 999999, 'form', 8, 'draft');   -- a draft is not a bid
     r_ok   := public.fn_supplier_quote_recommend(me, inq);
     o_me   := public.fn_supplier_opportunities(me);
-    o_none := public.fn_supplier_opportunities(129660);
+    o_none := public.fn_supplier_opportunities(129923);
     ws     := public.fn_supplier_workspaces(me);
 
     -- EVERY BID AMOUNT, looked for in the payload as a bare substring. The guarantee the file states is
