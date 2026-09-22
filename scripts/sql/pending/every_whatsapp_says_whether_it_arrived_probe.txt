@@ -1,0 +1,3 @@
+customer_support, 22 Sep 2026. Pure probe (no DDL, rolls back): run AFTER every_whatsapp_says_whether_it_arrived.sql
+is applied, as ONE query through the Management API; expect PROBE OK. Rehearsed together with the unapplied file in
+one rolled-back transaction on 22 Sep: PROBE OK. On apply delete this note and append the file to MANIFEST.txt.

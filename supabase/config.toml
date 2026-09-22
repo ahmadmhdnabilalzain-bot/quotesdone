@@ -237,6 +237,9 @@ verify_jwt = false
 [functions.wa_inbound]
 verify_jwt = false
 
+[functions.wa_status]
+verify_jwt = false
+
 [functions.wa_template_setup]
 verify_jwt = false
 
