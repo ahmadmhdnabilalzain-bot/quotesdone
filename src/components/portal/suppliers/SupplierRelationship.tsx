@@ -218,14 +218,14 @@ export function SupplierRelationshipCard({
         <div className={S.note}>
           {revealed
             ? ar(lang, 'الملف الكامل مفتوح', 'Full profile unlocked')
-            : ar(lang, 'الهوية مخفية حتى تكشف المورّد', 'Identity hidden until you reveal')}
+            : ar(lang, 'تبقى هوية المورّد مخفية حتى تكشف عنه', 'Identity hidden until you reveal')}
         </div>
       </div>
 
       <div className="mt-2.5 grid gap-2 sm:grid-cols-3">
         <Stat label={ar(lang, 'التقييم', 'Rating')} value={ratingText} hint={ratingHint} />
         <Stat
-          label={ar(lang, 'وظائف فاز بها عبر QuotesDone', 'Jobs won via QuotesDone')}
+          label={ar(lang, 'أعمال فاز بها عبر QuotesDone', 'Jobs won via QuotesDone')}
           value={jobsWon == null ? null : String(jobsWon)}
         />
         <Stat label={ar(lang, 'سنوات النشاط', 'Years active')} value={yearsText} />
@@ -238,7 +238,7 @@ export function SupplierRelationshipCard({
             pct={quote.win_rate}
             hint={ar(
               lang,
-              'حصة عروض هذا المورّد التي انتهت بتعاقد على QuotesDone.',
+              'نسبة عروض هذا المورّد التي انتهت بتعاقد عبر QuotesDone.',
               'Share of this supplier’s quotes that ended in a hire on QuotesDone.',
             )}
           />
@@ -260,7 +260,7 @@ export function SupplierRelationshipCard({
                 typeof score.avg_response_hours === 'number'
                   ? ar(
                       lang,
-                      `متوسط الردّ ${Math.round(score.avg_response_hours)} ساعة`,
+                      `متوسط زمن الردّ ${Math.round(score.avg_response_hours)} ساعة`,
                       `Replies in ~${Math.round(score.avg_response_hours)}h on average`,
                     )
                   : undefined
@@ -273,7 +273,7 @@ export function SupplierRelationshipCard({
               pct={score.reliability}
               hint={ar(
                 lang,
-                'يجمع سرعة الردّ ونسبة الفوز والتوثيق، وتُخصم منه الرفض واسترداد عدم الاستجابة.',
+                'تجمع بين سرعة الردّ ونسبة الفوز والتوثيق، ويُخصم منها الرفض واستردادات عدم الاستجابة.',
                 'Blends response speed, win rate and verification; rejections and non-response refunds subtract.',
               )}
             />
@@ -283,7 +283,7 @@ export function SupplierRelationshipCard({
         <div className={cn(S.note, 'mt-2')}>
           {ar(
             lang,
-            'لا يوجد سجل تسليم لهذا المورّد على QuotesDone بعد — يظهر هنا بعد أول مشروع يُنجزه عبرنا.',
+            'لا يوجد لهذا المورّد سجل تسليم على QuotesDone بعد، وسيظهر هنا بعد أول مشروع يُنجزه عبر المنصة.',
             'No delivery record on QuotesDone for this supplier yet — it appears here after their first job completed through us.',
           )}
         </div>
@@ -312,7 +312,7 @@ export function SupplierRelationshipCard({
         <div className={cn(S.note, 'mt-2.5')}>
           {ar(
             lang,
-            'سجل مشاريع هذا المورّد ومعلومات التواصل تظهر بعد كشفه.',
+            'يظهر سجل مشاريع هذا المورّد وبيانات التواصل معه بعد الكشف عنه.',
             'This supplier’s project history and contact details appear after you reveal them.',
           )}
         </div>
@@ -368,7 +368,7 @@ export function SupplierHistoryPanel({
         if (j && j.ok) setData(j);
         // The server's error is an English sentence; the customer reads their own language.
         else setErr(j && j.error === 'Reveal this supplier first to see their profile.'
-          ? ar(lang, 'اكشف هذا المورّد أولاً لرؤية ملفه وسجل مشاريعه.', 'Reveal this supplier first to see their profile and project history.')
+          ? ar(lang, 'اكشف عن هذا المورّد أولًا للاطلاع على ملفه وسجل مشاريعه.', 'Reveal this supplier first to see their profile and project history.')
           : ar(lang, 'تعذّر تحميل سجل المورّد.', 'Could not load this supplier’s history.'));
       })
       .catch(() => {
@@ -388,7 +388,7 @@ export function SupplierHistoryPanel({
         <div className={cn(S.sub, 'mt-1')}>
           {ar(
             lang,
-            'اكشف هذا المورّد أولاً لرؤية ملفه وسجل مشاريعه.',
+            'اكشف عن هذا المورّد أولًا للاطلاع على ملفه وسجل مشاريعه.',
             'Reveal this supplier first to see their profile and project history.',
           )}
         </div>
@@ -435,7 +435,7 @@ export function SupplierHistoryPanel({
         <div className={cn(S.sub, 'mt-1')}>
           {ar(
             lang,
-            'سجل هذا المورّد غير متاح. تفاصيل التواصل ما زالت في بطاقة العرض.',
+            'سجل هذا المورّد غير متاح، وتجد بيانات التواصل في بطاقة العرض.',
             'This supplier has no profile record. Their contact details are still on the quote card.',
           )}
         </div>
@@ -492,7 +492,7 @@ export function SupplierHistoryPanel({
           </div>
           {typeof data.relationship.rfqs_sent_platform_wide === 'number' ? (
             <div className={cn(S.note, 'mt-1')}>
-              {ar(lang, `على المنصة كلها: ${data.relationship.rfqs_sent_platform_wide} طلبًا أُرسل إلى هذا المورّد.`,
+              {ar(lang, `على مستوى المنصة: أُرسل إلى هذا المورّد ${data.relationship.rfqs_sent_platform_wide} طلبًا.`,
                 `Across the whole platform: ${data.relationship.rfqs_sent_platform_wide} RFQs sent to this supplier.`)}
             </div>
           ) : null}
@@ -507,7 +507,7 @@ export function SupplierHistoryPanel({
           <div className={cn(S.sub, 'mt-1')}>
             {ar(
               lang,
-              'لم يُسجَّل لهذا المورّد أي مشروع عبر QuotesDone حتى الآن. هذا لا يعني أنه بلا خبرة — يعني فقط أننا لم نسجّل له عملاً هنا بعد.',
+              'لم يُسجَّل لهذا المورّد أي مشروع عبر QuotesDone حتى الآن. وهذا لا يعني أنه يفتقر إلى الخبرة، بل يعني فقط أنه لا يوجد له عمل مسجّل لدينا بعد.',
               'No projects recorded for this supplier through QuotesDone yet. That is not a judgement on their experience — it only means we have not recorded work for them here.',
             )}
           </div>
@@ -517,7 +517,7 @@ export function SupplierHistoryPanel({
               {capped
                 ? ar(
                     lang,
-                    'نعرض آخر 20 مشروعاً؛ قد يكون هناك المزيد.',
+                    'نعرض آخر 20 مشروعًا، وقد توجد مشاريع أخرى.',
                     'Showing the 20 most recent — there may be more.',
                   )
                 : ar(lang, `${count} مشروعاً مسجّلاً.`, `${count} recorded ${count === 1 ? 'project' : 'projects'}.`)}
@@ -564,7 +564,7 @@ export function SupplierHistoryPanel({
             <div className={cn(S.note, 'mt-1.5')}>
               {ar(
                 lang,
-                'قيم المشاريع معروضة كنطاقات، وأسماء العملاء لا تُعرض أبداً.',
+                'تُعرض قيم المشاريع في صورة نطاقات، ولا تُعرض أسماء العملاء إطلاقًا.',
                 'Project values are shown as bands, and other customers are never named.',
               )}
             </div>
@@ -603,7 +603,7 @@ export function DiscoveryReachPanel({ inquiry, lang = 'en' }: DiscoveryReachPane
         <div className={cn(S.sub, 'mt-1')}>
           {ar(
             lang,
-            'لم نطابق طلبك مع أي مورّد حتى الآن، لذلك لا تتوقع عروضاً بعد. سنتواصل معك إذا احتجنا تفاصيل إضافية لتوسيع المطابقة.',
+            'لم يُطابَق طلبك مع أي مورّد حتى الآن، لذا لن تصلك عروض بعد. وسنتواصل معك إن احتجنا إلى تفاصيل إضافية لتوسيع نطاق المطابقة.',
             'We have not matched your request to any supplier yet, so no quotes are on their way. We will contact you if we need more detail to widen the match.',
           )}
         </div>
@@ -620,7 +620,7 @@ export function DiscoveryReachPanel({ inquiry, lang = 'en' }: DiscoveryReachPane
         {quotes === 0
           ? ar(
               lang,
-              'لم يصل أي عرض بعد. المورّدون الذين طُوبقوا لم يردّوا حتى الآن.',
+              'لم يصل أي عرض بعد، فالمورّدون الذين طابقناهم لم يردّوا حتى الآن.',
               'No quotes back yet — the matched suppliers have not responded so far.',
             )
           : ar(
@@ -636,7 +636,7 @@ export function DiscoveryReachPanel({ inquiry, lang = 'en' }: DiscoveryReachPane
       <div className={cn(S.note, 'mt-1.5')}>
         {ar(
           lang,
-          'يظهر لك سبب مطابقة أي مورّد بعد كشفه، لأن السبب قد يذكر اسم الشركة.',
+          'يظهر سبب مطابقة المورّد بعد الكشف عنه، لأن السبب قد يتضمن اسم شركته.',
           'You can read why a supplier was matched once you reveal them — the reason can name the company, so it stays sealed until then.',
         )}
       </div>

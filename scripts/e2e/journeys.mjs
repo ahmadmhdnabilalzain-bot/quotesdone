@@ -246,8 +246,27 @@ export async function journeySuppliers(ctx) {
   const matchedIds = new Set(matched.map((r) => String(r.supplier_id)));
   const direct = fx.suppliers.filter((s) => !matchedIds.has(String(s.leadId)));
   for (const s of direct) await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (${q(inquiryId)}, ${s.leadId}, 'e2e harness: direct invitation') on conflict do nothing`, 'e2e invitation');
-  rep.step(J, 'routing invited the demo suppliers', direct.length === 0 ? 'PASS' : 'SKIP',
-    `${fx.suppliers.length - direct.length}/${fx.suppliers.length} matched by the product; ${direct.length} invited directly by the harness`);
+  // FAIL, not SKIP (22 Sep 2026). The fixtures now state their services the way a real supplier does
+  // (fixtures.mjs stateServices), so the product's own routing must pick every one of them. A miss is
+  // a routing regression or a fixture a real supplier could not be; either way this step proves it.
+  // The inquiry's routing record says why the matcher chose what it chose.
+  const routing = direct.length ? (await read(`select routing from public.inquiries where id = ${q(inquiryId)}`))[0]?.routing : null;
+  // WHOSE SUPPLIERS TOOK THE SLOTS (22 Sep 2026). The per-trade cap is 3, so any other run's ZZ DEMO
+  // aluminium suppliers compete with this run's for the same three places. Every match that is not
+  // ours is named with its run tag and whether that run is still open. Another run STILL IN PROGRESS
+  // taking the slots is contention between two harness runs, not a product defect: SKIP, said so. A
+  // run that is over (its window closed) should have been swept by run.mjs; that stays a FAIL because
+  // the sweep missed it, and so does a miss with no other run's fixture to explain it.
+  const others = direct.length ? await read(`select m.supplier_id, substring(x from '^qd_run:(.*)$') tag,
+      exists (select 1 from public.rehearsal_window w where w.run_tag = x and w.ended_at is null) open
+    from public.inquiry_matches m join public.leads l on l.id = m.supplier_id
+    cross join lateral (select x from unnest(coalesce(l.tags,'{}')) x where x like 'qd_run:%' limit 1) t
+    where m.inquiry_id = ${q(inquiryId)} and x <> ${q('qd_run:' + ctx.run.tag)}`) : [];
+  const concurrentOnly = direct.length > 0 && others.length >= direct.length && others.every((o) => o.open);
+  rep.step(J, 'routing invited the demo suppliers', direct.length === 0 ? 'PASS' : concurrentOnly ? 'SKIP' : 'FAIL',
+    `${fx.suppliers.length - direct.length}/${fx.suppliers.length} matched by the product; ${direct.length} invited directly by the harness` +
+    (others.length ? ` — slots taken by other runs' fixtures: ${others.map((o) => `${o.supplier_id}@${o.tag}(${o.open ? 'run in progress' : 'run over, not swept'})`).join(', ')}` : '') +
+    `${routing ? ' — routing ' + JSON.stringify({ outcome: routing.outcome, fanout: routing.fanout, verdict: routing.router_verdict, note: routing.note, trades: routing.trades, error: routing.error }).slice(0, 300) : ''}`);
 
   const identity = [fx.customer.fullName, fx.customer.email, fx.customer.phone, fx.customer.phone.replace('+', '')];
   // The supplier portal, once signed in, opens in leads.locale (PR #629), so each pass registers

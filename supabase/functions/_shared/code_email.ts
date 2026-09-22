@@ -6,11 +6,11 @@ const LOGO = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/
 const COPY = {
   signin: {
     en: { subject: 'Your QuotesDone sign-in code', title: 'Your sign-in code', lead: 'Enter this code to sign in to QuotesDone. It expires in 10 minutes.', ignore: "If you didn't request this, you can ignore this email.", foot: 'QuotesDone Technologies · Dubai, UAE' },
-    ar: { subject: 'رمز تسجيل الدخول إلى QuotesDone', title: 'رمز تسجيل الدخول', lead: 'أدخل هذا الرمز لتسجيل الدخول إلى QuotesDone. تنتهي صلاحيته خلال 10 دقائق.', ignore: 'إن لم تطلب هذا الرمز فتجاهل هذه الرسالة.', foot: 'QuotesDone · دبي، الإمارات العربية المتحدة' },
+    ar: { subject: 'رمز تسجيل الدخول إلى QuotesDone', title: 'رمز تسجيل الدخول', lead: 'يُرجى إدخال هذا الرمز لتسجيل الدخول إلى QuotesDone، علمًا بأن صلاحيته تنتهي خلال 10 دقائق.', ignore: 'إن لم تطلبوا هذا الرمز، يُرجى تجاهل هذه الرسالة.', foot: 'QuotesDone · دبي، الإمارات العربية المتحدة' },
   },
   confirm: {
     en: { subject: 'Confirm your QuotesDone email', title: 'Confirm your email', lead: 'Enter this code to confirm your email on QuotesDone. It expires in 10 minutes.', ignore: '', foot: '' },
-    ar: { subject: 'أكّد بريدك الإلكتروني على QuotesDone', title: 'أكّد بريدك الإلكتروني', lead: 'أدخل هذا الرمز لتأكيد بريدك الإلكتروني على QuotesDone. تنتهي صلاحيته خلال 10 دقائق.', ignore: '', foot: '' },
+    ar: { subject: 'تأكيد بريدكم الإلكتروني لدى QuotesDone', title: 'تأكيد البريد الإلكتروني', lead: 'يُرجى إدخال هذا الرمز لتأكيد بريدكم الإلكتروني لدى QuotesDone، علمًا بأن صلاحيته تنتهي خلال 10 دقائق.', ignore: '', foot: '' },
   },
 } as const;
 

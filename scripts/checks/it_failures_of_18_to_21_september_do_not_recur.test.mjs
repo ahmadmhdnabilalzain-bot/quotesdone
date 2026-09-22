@@ -67,7 +67,10 @@ test('fn_it_detect finishes under 6 s even when one subject floods agent_runs', 
       raise exception 'CHK<<%>>', json_build_object('detect_ms', round(v_ms),
         'slice_basis', v -> 'notes' -> 'slice' ->> 'basis',
         'capped', (v -> 'notes' -> 'slice' ->> 'subjects_capped')::int,
-        'ticks_written', (select count(*) from public.it_watch_tick where ran_at > now() - interval '30 seconds'));
+        -- only ticks THIS transaction could have written: fn_it_detect stamps ran_at with now(), the
+        -- transaction's start. The scheduled tick commits rows of its own, and on 22 Sep 2026 one landing
+        -- inside the old "last 30 s" window read as 1 and failed a probe that had written none.
+        'ticks_written', (select count(*) from public.it_watch_tick where ran_at = now()));
     end`);
   assert.equal(r.slice_basis, 'measured', 'fn_it_detect publishes no notes.slice: the bounded slice is gone');
   assert.ok(r.capped >= 1, 'a 20,000-row subject was not capped');
@@ -80,11 +83,11 @@ test('the CEO decides the delivery_undelivered and dropbox_backup_escalation fam
     declare v_nid bigint; v_tid bigint; v_r1 bigint; v_r2 bigint; v_r3 bigint; d1 jsonb; d2 jsonb; d3 jsonb; s1 text; s2 text; s3 text;
     begin
       insert into public.notifications (type, kind, to_email, to_role, channel, subject, body, status, sent_at, requested_by)
-      values ('founder_alert', 'it_new_bug', 'zz-demo-founder@example.invalid', 'founder', 'email', 'ZZ DEMO', 'ZZ DEMO', 'sent', now(), 'platform')
+      values ('founder_alert', 'platform_down', 'zz-demo-founder@example.invalid', 'founder', 'email', 'ZZ DEMO', 'ZZ DEMO', 'sent', now(), 'platform')
       returning id into v_tid;
       update public.notifications set provider_message_id = 'zz-demo-pmid' where id = v_tid;
       insert into public.notifications (type, kind, to_email, to_role, channel, to_phone, subject, body, status, sent_at, requested_by, created_at)
-      select 'founder_alert', 'it_new_bug', 'zz-demo-founder@example.invalid', 'founder', 'whatsapp', '+971500000099', 'ZZ DEMO', 'ZZ DEMO', 'sent', now(), 'platform', created_at
+      select 'founder_alert', 'platform_down', 'zz-demo-founder@example.invalid', 'founder', 'whatsapp', '+971500000099', 'ZZ DEMO', 'ZZ DEMO', 'sent', now(), 'platform', created_at
         from public.notifications where id = v_tid returning id into v_nid;
       insert into public.support_ceo_report (idempotency_key, source_agent, severity, subject, verified_evidence, attempted_actions, requested_outcome, next_review_at, status, owner_role_id)
       values ('delivery_undelivered:zzprobe' || v_nid, 'it_engineer', 'elevated', 'ZZ DEMO did not arrive',

@@ -66,6 +66,16 @@ jobs:
       # instead of arriving inside a suite of ninety other files.
       - name: The SSRF guard fires on a private address, a file:// URL and a metadata endpoint
         run: node scripts/checks/ssrf_guard_refuses_private_addresses.mjs
+      # 22 SEP 2026 — a DWG is READ, not pictured (founder instructions 31, 63, 64). Nine real DWGs
+      # (R14 to 2018) from LibreDWG's test data, fetched at a pinned commit and checked by hash, must give
+      # the same take-off as the AutoCAD-written DXF of the same drawing. It needs the network (the
+      # drawings are not ours to commit, and the WASM comes from jsDelivr), which the `npm test` Deno
+      # suite does not grant, so it is its own step with --allow-net limited to those two hosts.
+      - name: A DWG is read into the same take-off as its DXF
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read=.
+          --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net
+          supabase/functions/_shared/doc_read/dwg_samples.check.ts
 
   # 8 Aug 2026. Squawk lints migration SQL for operations that take locks on a table with live
   # traffic — an index built without CONCURRENTLY, a NOT NULL column that rewrites the table, a

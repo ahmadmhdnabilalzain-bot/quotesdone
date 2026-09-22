@@ -29,7 +29,7 @@ export type Labelled = {
 };
 
 export const RULES_DISCLAIMER_EN = "This is QuotesDone's impartial recommendation, prepared to make your decision easier. From all the quotes you received, we have shortlisted three, ranked on the price, completeness, lead time, warranty and payment terms each supplier stated, and compared those in detail. You remain completely free to reveal and choose any supplier from your full list of quotes.";
-export const RULES_DISCLAIMER_AR = 'هذه توصية محايدة من QuotesDone أعددناها لتسهيل قرارك. من بين جميع العروض التي استلمتها، اخترنا ثلاثة عروض رُتّبت وفق السعر واكتمال العرض ومدة التنفيذ والضمان وشروط الدفع التي ذكرها كل مورّد، وقارنّاها بالتفصيل. يبقى لك كامل الحرية في كشف واختيار أي مورّد من قائمة عروضك الكاملة.';
+export const RULES_DISCLAIMER_AR = 'هذه توصية محايدة أعدّتها QuotesDone لتيسير قرارك: من بين جميع العروض التي تلقيتها، اخترنا ثلاثة عروض رُتّبت وفق السعر واكتمال العرض ومدة التنفيذ والضمان وشروط الدفع كما ذكرها كل مورّد، وقارنّا بينها بالتفصيل. ولك مطلق الحرية في الكشف عن أي مورّد من قائمة عروضك الكاملة واختياره.';
 
 // The method sentence the rules ranking puts in its bottom line. Exported so the comparison report,
 // which states its method in its own section, can take it out of the bottom line instead of saying
@@ -70,15 +70,17 @@ export function leadTimeDays(s: unknown): number | null {
 // Completeness comes from trg_quote_quality via fn_quote_score_json (0-100). When it is absent
 // the score is rebuilt from the commercial terms the supplier actually stated, so a quote is
 // never rewarded for missing data.
-function qualityScore(q: Labelled): { score: number; why: string } {
+// whyAr: the Arabic score reason printed the English `why` inside Arabic text (instruction 586 review, 22 Sep 2026).
+function qualityScore(q: Labelled): { score: number; why: string; whyAr: string } {
   const c = q.completeness?.score;
+  const kindAr = q.itemised ? 'عرض مفصّل بالبنود' : 'سعر مقطوع';
   if (typeof c === 'number' && Number.isFinite(c)) {
     const base = c >= 85 ? 5 : c >= 70 ? 4 : c >= 50 ? 3 : c >= 30 ? 2 : 1;
     const bump = (q.itemised && stated(q.warranty)) ? 1 : 0;
-    return { score: clamp15(base + bump), why: `completeness ${c}/100${q.itemised ? ', itemised' : ', lump sum'}` };
+    return { score: clamp15(base + bump), why: `completeness ${c}/100${q.itemised ? ', itemised' : ', lump sum'}`, whyAr: `نسبة الاكتمال ${c}/100، ${kindAr}` };
   }
   const n = [q.warranty, q.lead_time, q.payment_terms, q.validity, q.exclusions].filter(stated).length;
-  return { score: clamp15(1 + n * 0.8 + (q.itemised ? 1 : 0)), why: `${n} of 5 commercial terms stated${q.itemised ? ', itemised' : ', lump sum'}` };
+  return { score: clamp15(1 + n * 0.8 + (q.itemised ? 1 : 0)), why: `${n} of 5 commercial terms stated${q.itemised ? ', itemised' : ', lump sum'}`, whyAr: `ذُكر ${n} من أصل 5 شروط تجارية، ${kindAr}` };
 }
 
 // EVERY QUOTE, NOT ONLY THE SHORTLIST (14 Sep 2026, agent: ceo). The analysis — model or rules —
@@ -126,19 +128,19 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     const price_score = spanScore(p, minPrice, maxPrice);
     const d = days[i];
     const delivery_score = spanScore(d, minDays, maxDays);
-    const { score: quality_score, why } = qualityScore(q);
+    const { score: quality_score, why, whyAr } = qualityScore(q);
 
     const flags: string[] = [];
     // Facts only. Before the reveal the customer cannot reach a supplier (founder, 14 Sep 2026), so
     // no flag tells them to ask, confirm with or contact one.
     if (q.expired) flags.push(ar ? 'انتهت صلاحية عرض السعر' : 'This quote has expired.');
-    if (!q.itemised) flags.push(ar ? 'سعر إجمالي بدون تفاصيل' : 'Lump sum with no line items — it cannot be checked item by item.');
+    if (!q.itemised) flags.push(ar ? 'سعر مقطوع دون تفصيل للبنود، فلا يمكن التحقق منه بندًا بندًا.' : 'Lump sum with no line items — it cannot be checked item by item.');
     if (!stated(q.warranty)) flags.push(ar ? 'الضمان غير مذكور' : 'Warranty not stated.');
     if (!stated(q.lead_time)) flags.push(ar ? 'مدة التسليم غير مذكورة' : 'Lead time not stated.');
     if (!stated(q.payment_terms)) flags.push(ar ? 'شروط الدفع غير مذكورة' : 'Payment terms not stated.');
-    if (q.completeness?.passed === false) flags.push(ar ? 'لم يجتز فحص الاكتمال' : 'Failed our automated completeness check.');
+    if (q.completeness?.passed === false) flags.push(ar ? 'لم يجتز الفحص الآلي لاكتمال العرض.' : 'Failed our automated completeness check.');
     if (typeof q.completeness?.missing_mandatory === 'number' && q.completeness.missing_mandatory > 0) {
-      flags.push(ar ? `${q.completeness.missing_mandatory} حقل إلزامي ناقص` : `${q.completeness.missing_mandatory} mandatory field(s) still missing for this trade.`);
+      flags.push(ar ? `حقول إلزامية لا تزال ناقصة لهذا التخصص: ${q.completeness.missing_mandatory}` : `${q.completeness.missing_mandatory} mandatory field(s) still missing for this trade.`);
     }
 
     return {
@@ -146,7 +148,7 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
       price: p, lead_time: q.lead_time ?? null, validity: q.validity ?? null,
       warranty: q.warranty ?? null, payment_terms: q.payment_terms ?? null,
       getting: ar
-        ? `${p === null ? 'سعر غير مذكور' : `${p.toLocaleString('en-US')} درهم`} — ${q.itemised ? 'عرض مفصل بالبنود' : 'سعر إجمالي'}.`
+        ? `${p === null ? 'لم يُذكر السعر' : `${p.toLocaleString('en-US')} درهم`} — ${q.itemised ? 'عرض مفصّل بالبنود' : 'سعر مقطوع'}.`
         : `${p === null ? 'No price stated' : `AED ${p.toLocaleString('en-US')}`} — ${q.itemised ? 'itemised quote' : 'lump sum'}.`,
       includes: [] as string[], excludes: stated(q.exclusions) ? [String(q.exclusions)] : [],
       // Never guessed. Judging a quote against the brief needs reading, which is the model's job.
@@ -154,7 +156,7 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
       track_record_note: '',
       price_score, delivery_score, quality_score,
       score_reason: ar
-        ? `الترتيب محسوب من الأرقام المذكورة فقط (${why}).`
+        ? `احتُسبت النقاط من الأرقام المذكورة وحدها (${whyAr}).`
         : `Scored from the stated figures only (${why}).`,
       flags,
       _composite: price_score * 0.4 + quality_score * 0.4 + delivery_score * 0.2,
@@ -177,7 +179,7 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
   const top3 = short.map((s, i) => ({
     rank: i + 1, label: s.label,
     why: ar
-      ? `أعلى مجموع نقاط على السعر والاكتمال والتسليم (${s.price_score}/${s.quality_score}/${s.delivery_score}).`
+      ? `أعلى مجموع نقاط في السعر والاكتمال ومدة التسليم (${s.price_score}/${s.quality_score}/${s.delivery_score}).`
       : `Highest combined score on price, completeness and delivery (${s.price_score}/${s.quality_score}/${s.delivery_score}).`,
     tradeoff: s.flags.length ? s.flags[0] : '',
   }));
@@ -200,15 +202,15 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     considered: labelled.length,
     shortlist_reason: ar
       // Founder's standing rule: never imply only the shortlist is shown. Every quote is listed.
-      ? `جميع العروض الـ${labelled.length} مدرجة في هذا التقرير، وتُقارن أفضل ${short.length} منها بالتفصيل.`
+      ? `أُدرجت العروض جميعها (${labelled.length}) في هذا التقرير، وتُقارن أفضل ${short.length} منها بالتفصيل.`
       : `All ${labelled.length} quotes are listed in this report; the top ${short.length} are compared in detail.`,
     bottom_line: best
-      ? (ar ? `${best} هو الأعلى نقاطاً. ${note}` : `${best} scores highest overall. ${note}`)
+      ? (ar ? `حصل ${best} على أعلى مجموع نقاط. ${note}` : `${best} scores highest overall. ${note}`)
       : note,
     overview: [
-      minPrice === null ? (ar ? 'لا يوجد سعر مذكور.' : 'No quote states a price.')
-        : (ar ? `أرخص عرض ${minPrice.toLocaleString('en-US')} درهم.` : `Cheapest quote is AED ${minPrice.toLocaleString('en-US')}.`),
-      spread !== null ? (ar ? `الفارق بين الأعلى والأدنى ${spread.toLocaleString('en-US')} درهم.` : `Spread between highest and lowest is AED ${spread.toLocaleString('en-US')}.`) : '',
+      minPrice === null ? (ar ? 'لم يذكر أي عرض سعرًا.' : 'No quote states a price.')
+        : (ar ? `أدنى سعر معروض ${minPrice.toLocaleString('en-US')} درهم.` : `Cheapest quote is AED ${minPrice.toLocaleString('en-US')}.`),
+      spread !== null ? (ar ? `الفارق بين أعلى سعر وأدناه ${spread.toLocaleString('en-US')} درهم.` : `Spread between highest and lowest is AED ${spread.toLocaleString('en-US')}.`) : '',
     ].filter(Boolean).join(' '),
     quotes: short.map(({ _composite, _price, ...rest }) => rest),
     line_findings: [] as Array<{ item: string; finding: string }>,
@@ -216,20 +218,20 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     cheapest_label: cheapest,
     best_value_label: best,
     best_value_reason: ar
-      ? 'أعلى مجموع نقاط على السعر والاكتمال والتسليم من الأرقام المذكورة.'
+      ? 'أعلى مجموع نقاط في السعر والاكتمال ومدة التسليم، استنادًا إلى الأرقام المذكورة.'
       : 'Highest combined score on price, completeness and delivery, from the stated figures.',
     watch_outs: [
       // From the data, not from a flag's wording: rewording the expired flag on 14 Sep 2026 silently
       // switched this watch-out off (deterministic.test.mjs caught it).
       ...(labelled.some((x) => x.expired)
-        ? [ar ? 'أحد العروض منتهي الصلاحية.' : 'At least one quote has expired.'] : []),
+        ? [ar ? 'انتهت صلاحية عرض واحد على الأقل.' : 'At least one quote has expired.'] : []),
       // The method line is said once, in the bottom line; repeating it here read as a warning.
     ],
     // What actually happens, never "confirm it with the supplier": before the reveal the customer
     // cannot reach one (founder, 14 Sep 2026). A quote missing a required detail is held and the
     // sales engineer asks the supplier for it through customer_support until it is filled.
     advice: ar
-      ? 'تُقارن العروض بما ذكره كل مورّد كتابيًا. العرض الذي ينقصه تفصيل إلزامي يبقى معلّقًا ونطلب التفصيل من المورّد، ثم ينضم إلى هذه المقارنة عند الرد.'
+      ? 'تُقارن العروض استنادًا إلى ما ذكره كل مورّد كتابةً. وأي عرض ينقصه تفصيل إلزامي يبقى معلّقًا إلى أن نستوفيه من المورّد، ثم يُضاف إلى هذه المقارنة فور ردّه.'
       : 'Quotes are compared on what each supplier stated in writing. A quote missing a required detail is held and we request it from the supplier; it joins this comparison once they answer.',
   };
 }

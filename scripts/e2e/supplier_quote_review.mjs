@@ -145,7 +145,7 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
     step(name('redacted drawing downloads by signed URL'), !!img && img.ok && /image\/png/.test(img.headers.get('content-type') || ''), href ? new URL(href).pathname.split('/').slice(-2).join('/') : 'no link');
     step(name('no customer identity on the inquiry'), !(await detail.innerText()).includes('ZZ DEMO Customer'));
 
-    await detail.getByRole('button', { name: L('Send your quotation to the sales engineer', 'أرسل عرض سعرك إلى مهندس المبيعات') }).click();
+    await detail.getByRole('button', { name: L('Send your quotation to the sales engineer', 'إرسال عرض السعر إلى مهندس المبيعات') }).click();
     const chat = page.locator(`#qd-qt-c-${inquiryId}`);
     await chat.getByText(L('I am the QuotesDone sales engineer', 'أنا مهندس المبيعات')).waitFor({ timeout: 30000 });
     await shot('03_chat_opened');

@@ -26,7 +26,7 @@ function Ring({ done, total, lang }: { done: number; total: number; lang: Lang }
   const frac = total ? done / total : 0;
   return (
     <div className="relative h-[112px] w-[112px] shrink-0" role="img"
-      aria-label={lang === 'ar' ? `${done} من ${total} خطوات مكتملة` : `${done} of ${total} steps complete`}>
+      aria-label={lang === 'ar' ? `اكتملت ${done} من ${total} خطوات` : `${done} of ${total} steps complete`}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
         <defs>
           <linearGradient id="qd-ring" x1="0" y1="0" x2="1" y2="1">
@@ -75,14 +75,14 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
   const scopeOpen = blocking.some((b) => b.code === 'scope_unconfirmed');
   const steps: Step[] = [
     ...reg.map((r) => ({ code: r.code, label: srvText(lang, r.code, {}, r.code), done: !!r.done, fix: r.fix })),
-    { code: 'scope', label: ar ? 'تأكيد نطاق عملك' : 'Confirm your scope', done: !scopeOpen, fix: 'scope' },
+    { code: 'scope', label: ar ? 'تأكيد نطاق عملكم' : 'Confirm your scope', done: !scopeOpen, fix: 'scope' },
   ];
   const done = steps.filter((s) => s.done).length;
   const next = steps.find((s) => !s.done);
   // Everything else that stops requests (a pause, a suspension, an empty listing) is listed under the
   // checklist; not_registered and scope_unconfirmed are already the checklist itself.
   const otherBlocking = blocking.filter((b) => b.code !== 'scope_unconfirmed' && b.code !== 'not_registered');
-  const fixLabel = (fix: string) => fix === 'documents' ? (ar ? 'إلى المستندات' : 'Go to Documents') : fix === 'scope' ? (ar ? 'تأكيد نطاقي' : 'Confirm my scope') : fix === 'contact' ? '' : (ar ? 'إلى الملف' : 'Go to Profile');
+  const fixLabel = (fix: string) => fix === 'documents' ? (ar ? 'الانتقال إلى المستندات' : 'Go to Documents') : fix === 'scope' ? (ar ? 'تأكيد نطاقي' : 'Confirm my scope') : fix === 'contact' ? '' : (ar ? 'الانتقال إلى الملف' : 'Go to Profile');
 
   return (
     <section aria-labelledby="qd-getmatched-h" className="qd-panel qd-lit mb-4 p-5 sm:p-6">
@@ -130,13 +130,13 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
 
       {otherBlocking.length > 0 && (
         <div className="mt-5">
-          <h3 className="text-[12.5px] font-bold text-danger">{ar ? 'يمنع وصول الطلبات إليك' : 'Stopping requests reaching you'}</h3>
+          <h3 className="text-[12.5px] font-bold text-danger">{ar ? 'ما يمنع وصول الطلبات إليكم' : 'Stopping requests reaching you'}</h3>
           <ul className="mt-2 flex flex-col gap-2.5">{otherBlocking.map((it, i) => <Row key={i} it={it} lang={lang} tone="block" go={go} fixLabel={fixLabel} />)}</ul>
         </div>
       )}
       {improving.length > 0 && (
         <details className="mt-5 group">
-          <summary className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">{ar ? `يرفع ترتيبك (${improving.length})` : `Improves your ranking (${improving.length})`}</summary>
+          <summary className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">{ar ? `ما يرفع ترتيبكم (${improving.length})` : `Improves your ranking (${improving.length})`}</summary>
           <ul className="mt-2 flex flex-col gap-2.5">{improving.slice(0, 8).map((it, i) => <Row key={i} it={it} lang={lang} tone="improve" go={go} fixLabel={fixLabel} />)}</ul>
         </details>
       )}

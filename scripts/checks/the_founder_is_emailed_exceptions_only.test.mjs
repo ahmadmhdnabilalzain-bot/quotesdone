@@ -8,7 +8,8 @@
 // (scripts/sql/the_founder_is_emailed_exceptions_only.sql). This check is what keeps that true.
 //
 //   1. every notifications row addressed to him (to_role founder/admin/owner, or the first admin_emails
-//      address) created in the last 24h, on the email or whatsapp channel, carries a kind the policy allows;
+//      address) created in the last 24h, on the email or whatsapp channel, carries a kind the policy allowed
+//      WHEN IT WAS QUEUED (public.founder_mail_policy_history, written only when allowed_to_email changes);
 //   2. every routine that calls fn_notify_founder names its kind (p_kind =>), and every kind named as a
 //      literal is registered; a non-literal kind (p_kind => r.kind) is data-driven and is covered at run
 //      time by (1) and by the gate, which never emails an unregistered kind;
@@ -43,16 +44,36 @@ test('notifications: every founder-bound email/whatsapp row of the last 24h has 
     with admin as (select lower(split_part(coalesce(value,''),',',1)) as email from public.app_secrets where key = 'admin_emails')
     select n.id, n.type, n.kind, n.status, left(n.subject, 100) as subject, n.created_at
       from public.notifications n, admin
-     -- the window starts at the later of 24h ago and the moment the policy was seeded: a row queued before
-     -- the gate existed is history, not a gap (a check held open by pre-fix rows would only flap once)
-     where n.created_at > greatest(now() - interval '24 hours', (select min(updated_at) from public.founder_mail_policy))
+     where n.created_at > now() - interval '24 hours'
        and coalesce(n.channel, 'email') in ('email', 'whatsapp')
        and (n.to_role in ('founder', 'admin', 'owner') or lower(n.to_email) = admin.email)
        and coalesce(n.to_email, '') !~* '@example[.]invalid$'
-       and not coalesce((select p.allowed_to_email from public.founder_mail_policy p where p.kind = coalesce(n.kind, n.type)), false)
+       -- A row is judged by the allowed_to_email IN FORCE WHEN IT WAS QUEUED, read from
+       -- founder_mail_policy_history (the_founder_mail_policy_keeps_its_history.sql). MEASURED 22 Sep 2026:
+       -- twelve it_new_bug emails of 21 Sep were sent while it_new_bug was allowed; instruction 642 set it false
+       -- at 23:22 UTC, and judging them by today's value kept this red for a day on history. #825 exempted rows
+       -- older than the kind's updated_at instead - but updated_at also moves on a reason / owner_role edit, so
+       -- a cosmetic edit made after a real violation hid it (review of #825). History is written only when
+       -- allowed_to_email changes. NULL = before the kind's first history row: not known, not judged.
+       -- A never-registered kind is false.
+       and public.fn_founder_mail_policy_at(coalesce(n.kind, n.type), n.created_at) is false
      order by n.created_at desc
      limit 50`);
   assert.equal(r.length, 0, 'these founder-bound rows carry a kind founder_mail_policy does not allow (the gate a10_notifications_founder_mail_policy should have routed them):\n' + JSON.stringify(r, null, 1));
+});
+
+// The history above is only as good as its writer: the trigger must be attached and enabled, and every kind's
+// latest history value must equal its current allowed_to_email (a disabled trigger or a writer that bypassed it
+// shows here as drift, before the first check judges an email by a stale value).
+test('founder_mail_policy_history: the trigger is attached and every kind\'s history agrees with the policy', { skip: SKIP }, async () => {
+  const t = await rows(`select tgenabled from pg_trigger where tgrelid = 'public.founder_mail_policy'::regclass and tgname = 'trg_founder_mail_policy_history'`);
+  assert.equal(t.length, 1, 'trg_founder_mail_policy_history is not on public.founder_mail_policy (the_founder_mail_policy_keeps_its_history.sql)');
+  assert.notEqual(t[0].tgenabled, 'D', 'trg_founder_mail_policy_history is disabled: allowed_to_email changes are not being recorded');
+  const drift = await rows(`
+    select p.kind, p.allowed_to_email, public.fn_founder_mail_policy_at(p.kind, 'infinity') as history_says
+      from public.founder_mail_policy p
+     where public.fn_founder_mail_policy_at(p.kind, 'infinity') is distinct from p.allowed_to_email`);
+  assert.equal(drift.length, 0, 'these kinds\' latest founder_mail_policy_history value differs from founder_mail_policy.allowed_to_email:\n' + JSON.stringify(drift, null, 1));
 });
 
 test('routines: every fn_notify_founder call names p_kind, and every literal kind is registered', { skip: SKIP }, async () => {

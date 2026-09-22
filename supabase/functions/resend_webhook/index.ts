@@ -16,6 +16,7 @@
 // pass - the query secret alone is no longer sufficient.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { inviteStatusFor } from './invite_status.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -111,7 +112,9 @@ Deno.serve(observe('resend_webhook', async (req) => {
         // CASE-INSENSITIVE (21 Sep 2026): `e` is lower-cased above and 47 lead emails carry a capital,
         // so an exact match left those leads 'sent' after a hard bounce and the invite bounce brake
         // never counted them. ilike with LIKE's metacharacters escaped is an exact, case-folded match.
-        try { await admin.from('leads').update({ invite_status: 'bounced' }).ilike('email', e.replace(/[\\%_]/g, '\\$&')).or('invite_status.is.null,invite_status.eq.queued,invite_status.eq.sent'); } catch (_e) {}
+        // 22 Sep 2026: a complaint is recorded as 'complained', not 'bounced' (invite_status.ts), so the
+        // complaint rate the warm-up brakes on is measurable at all.
+        try { await admin.from('leads').update({ invite_status: inviteStatusFor(isComplaint, isHardBounce) }).ilike('email', e.replace(/[\\%_]/g, '\\$&')).or('invite_status.is.null,invite_status.eq.queued,invite_status.eq.sent'); } catch (_e) {}
       }
       try { await admin.from('error_events').insert({ source: 'resend_webhook', kind: reason, severity: 'low', detail: { emails, type } }); } catch (_e) {}
     }

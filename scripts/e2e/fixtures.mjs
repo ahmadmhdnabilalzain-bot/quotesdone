@@ -48,6 +48,45 @@ export async function openRun(opts = {}) {
   return run;
 }
 
+// THE PERSISTENT FOUNDER DEMO ACCOUNTS ARE NEVER A LEFTOVER. scripts/e2e/founder_demo_tour.mjs keeps
+// the run tag 'founderdemo' (qd-founderdemo-*) on purpose, and the founder said leave demo records
+// alone (instruction 571). Its tag is spelled here, not imported: that module imports this one.
+const NEVER_SWEPT = new Set(['founderdemo']);
+
+/**
+ * Tags of harness runs that are OVER — every rehearsal window for the tag has ended, the last more
+ * than `graceMinutes` ago — but whose fixtures are still in production. Measured 22 Sep 2026: runs
+ * 7e3a1c99 and 12ddadff (windows ended 20:45Z and 23:45Z on 21 Sep) left three ZZ DEMO aluminium
+ * suppliers each, and at 00:32Z the nightly's request was routed to three of THEM — the matcher's
+ * per-trade cap is 3 — so none of the run's own suppliers was invited and "routing invited the demo
+ * suppliers" failed on a product that had routed correctly. A tag with no window at all is not ours
+ * to judge and is left alone; an open window is a run in progress and is never touched.
+ */
+export async function staleRunTags({ graceMinutes = 60 } = {}) {
+  const rows = await read(`with t as (
+      select distinct substring(x from '^qd_run:([a-z0-9]{4,16})$') tag from public.leads, unnest(coalesce(tags,'{}')) x where x like 'qd_run:%'
+      union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from public.customers where email like 'qd-%@example.invalid'
+      union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from auth.users where email like 'qd-%@example.invalid')
+    select t.tag from t
+     where t.tag is not null
+       and exists (select 1 from public.rehearsal_window w where w.run_tag = 'qd_run:' || t.tag)
+       and not exists (select 1 from public.rehearsal_window w where w.run_tag = 'qd_run:' || t.tag
+                        and (w.ended_at is null or w.ended_at > now() - make_interval(mins => ${Number(graceMinutes) | 0})))
+     order by 1`);
+  return rows.map((r) => r.tag).filter((t) => /^[a-z0-9]{4,16}$/.test(t) && !NEVER_SWEPT.has(t));
+}
+
+/** Remove the fixtures of runs that are over, each with the harness's own teardown by its exact tag. */
+export async function sweepStaleRuns(opts = {}) {
+  const out = [];
+  for (const tag of await staleRunTags(opts)) {
+    if (NEVER_SWEPT.has(tag)) continue;   // belt and braces: never the founder's demo accounts
+    const t = await teardown(newRun({ tag, quiet: true }));
+    out.push({ tag, summary: t.summary });
+  }
+  return out;
+}
+
 /** Tear everything down (unless kept), close the window, and prove nothing was left behind. */
 export async function closeRun(run, { keep = false } = {}) {
   let removed = { summary: 'kept' };
@@ -210,8 +249,42 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
       `(accept_terms HTTP ${terms.status}, signed=${row?.signed})`);
   }
   const session = await passwordSession(email, s.password);
-  return { kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token,
+  const services = await stateServices(s.leadId, session.access_token, trade);
+  return { kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token, services,
            newSession: () => passwordSession(email, s.password) };
+}
+
+// THE SERVICES A REAL SUPPLIER STATES (22 Sep 2026, sales_engineer). MEASURED: the portal walk of 21 Sep
+// posted an aluminium request and the product's routing invited 0 of the 3 ZZ DEMO aluminium suppliers;
+// the harness had to write the matches itself, so the step proved nothing about routing. A probe on
+// production found why: fn_match_capability gates on SERVICES when the request names one (a window
+// request resolves to aluminium.windows_doors), and a demo supplier carried a trade with services = '{}'.
+// That gate is the founder's rule, not a defect (instruction 438/439: the CONFIRMED service list drives
+// matching; exact or none) — a real supplier states its services on the Services tab and the sales
+// engineer rewrites them. So the fixture now does exactly that, through the product: its own sentence,
+// services_rewrite, then services_save_rewrite with what the rewrite named. A trade with no sentence
+// here gets no services and says so; the caller that needs routing must add one.
+const SERVICE_WORDS = {
+  aluminium: 'Aluminium windows and doors, curtain wall, ACP cladding, pergolas and louvres',
+  gypsum: 'Gypsum partitions, false ceilings, decorative gypsum and bulkheads',
+  painting: 'Interior painting and exterior painting',
+};
+async function stateServices(leadId, jwt, trade) {
+  const text = SERVICE_WORDS[trade];
+  if (!text) return { stated: [], note: `no service sentence for trade ${trade}` };
+  const rw = await call('supplier_api', jwt, { action: 'services_rewrite', text, removed: [] });
+  const stated = rw.json?.service_keys || [];
+  if (!stated.length) throw new Error(`demo supplier ${leadId}: the sales engineer's rewrite named no service in "${text}" (HTTP ${rw.status} ${rw.text?.slice(0, 200)})`);
+  const implied = (rw.json?.implied || []).filter((i) => !i.removed).map((i) => i.key);
+  const st = await call('supplier_api', jwt, { action: 'services_state' });
+  const sv = await call('supplier_api', jwt, {
+    action: 'services_save_rewrite',
+    trades: [...new Set([trade, ...(st.json?.checklist || []).map((c) => c.code)])],
+    roles: st.json?.capability?.roles?.length ? st.json.capability.roles : ['contractor', 'installer', 'supplier'],
+    services: stated, implied, removed: [], own_words: rw.json?.own_words || [], raw_text: text,
+  });
+  if (sv.json?.ok !== true) throw new Error(`demo supplier ${leadId}: services_save_rewrite failed HTTP ${sv.status} ${sv.text?.slice(0, 200)}`);
+  return { stated, implied };
 }
 
 /** Wait for a condition the product reaches asynchronously (the signed-terms PDF, a notification). */

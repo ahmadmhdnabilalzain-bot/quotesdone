@@ -15,13 +15,13 @@ const T = {
   en: { title: 'QuotesDone Assistant', sub: 'Powered by the Smart Engine', open: 'Ask QuotesDone', close: 'Close',
         ph: 'Ask about QuotesDone…', send: 'Send', thinking: 'Typing…',
         greet: 'Hi! Ask me what a trade typically costs in the UAE, which documents a supplier will need, or how anonymous quotes work. Try one of these:',
-        chips: ['What does gypsum ceiling cost per sqm in Dubai?', 'Which documents will a fit-out supplier need?', 'كم تكلفة الأرضيات SPC للمتر؟'],
+        chips: ['What does gypsum ceiling cost per sqm in Dubai?', 'Which documents will a fit-out supplier need?', 'كم تكلفة أرضيات SPC للمتر؟'],
         err: 'Sorry — something went wrong. Please try again, or email management@quotesdone.com.' },
   ar: { title: 'مساعد QuotesDone', sub: 'مدعوم بالمحرك الذكي', open: 'اسأل QuotesDone', close: 'إغلاق',
         ph: 'اسأل عن QuotesDone…', send: 'إرسال', thinking: 'يكتب…',
-        greet: 'مرحباً! اسألني عن التكلفة المعتادة لأي نشاط في الإمارات، أو عن المستندات التي يحتاجها المورّد، أو عن طريقة عمل عروض الأسعار المجهولة. جرّب أحد هذه الأسئلة:',
-        chips: ['كم تكلفة السقف الجبسي للمتر المربع في دبي؟', 'ما المستندات التي يحتاجها مورّد التشطيبات؟', 'كم تكلفة الأرضيات SPC للمتر؟'],
-        err: 'عذراً، حدث خطأ. يرجى المحاولة مرة أخرى أو مراسلتنا على management@quotesdone.com.' }
+        greet: 'مرحباً! اسألني عن التكلفة المعتادة لأي نشاط في الإمارات، أو عن المستندات التي يحتاجها المورّد، أو عن طريقة عمل عروض الأسعار السرّية. جرّب أحد هذه الأسئلة:',
+        chips: ['كم تكلفة السقف الجبسي للمتر المربع في دبي؟', 'ما المستندات التي يحتاجها مورّد التشطيبات؟', 'كم تكلفة أرضيات SPC للمتر؟'],
+        err: 'عذراً، حدث خطأ. يُرجى المحاولة مرة أخرى أو مراسلتنا على management@quotesdone.com.' }
 };
 
 // Render text safely: escape, then linkify emails / URLs / internal paths.

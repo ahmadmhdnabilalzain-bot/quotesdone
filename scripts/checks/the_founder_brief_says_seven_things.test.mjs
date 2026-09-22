@@ -11,8 +11,12 @@
 //   C. a count reads a status column instead of its event / delivery record;
 //   D. a count stops excluding demo data (ZZ DEMO / example.invalid / is_demo);
 //   E. the customer PDF path is unhooked from the heartbeat;
-//   F. (live, when a management token is present) the 21 Sep 2026 fixture day stops reading zero on
-//      all six counts while its demo rows are still counted as excluded.
+//   F. (live, when a management token is present) a fixture day stops reading zero on all six counts
+//      while its demo rows are still counted as excluded. The day is 18 Sep 2026, whose demo rows are
+//      the PERSISTENT founder demo accounts (qd-founderdemo-*: 2 customers, 3 requests; kept by
+//      instruction 571). It was 21 Sep, whose demo rows were leftovers of harness runs 7e3a1c99 and
+//      12ddadff; the nightly now sweeps runs that are over (22 Sep 2026, it_engineer), and a check whose
+//      evidence is litter fails the day the litter is cleaned.
 //
 //   node --test scripts/checks/the_founder_brief_says_seven_things.test.mjs
 import { test } from 'node:test';
@@ -111,12 +115,12 @@ test('E. the customer PDF is rendered on the heartbeat and attached, never skipp
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
-test('F. the 21 Sep 2026 fixture day reads zero, with its demo rows counted as excluded', async (t) => {
+test('F. the 18 Sep 2026 fixture day (the founder demo accounts) reads zero, with its demo rows counted as excluded', async (t) => {
   if (!token) { t.skip('no management token, so production cannot be read'); return; }
   const temp = ['fn_founder_brief_figures', 'fn_founder_brief_text']
     .map((n) => fnBody(n).replace('public.' + n, 'pg_temp.' + n)).join('\n');
   const query = temp + `\nselect f, pg_temp.fn_founder_brief_text(f) as body from (select pg_temp.fn_founder_brief_figures(
-      timestamptz '2026-09-21 00:00+04', timestamptz '2026-09-21 20:00+04') f) z;`;
+      timestamptz '2026-09-18 00:00+04', timestamptz '2026-09-18 20:00+04') f) z;`;
   const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
     method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify({ query }),

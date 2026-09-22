@@ -81,11 +81,11 @@ const ANSWER = {
   ar: {
     from: (s: string) => `من ${s}`,
     unrevealed: 'من مورّد لم تكشف عنه بعد',
-    own: 'من رفعك أنت',
+    own: 'مستند رفعته بنفسك',
     expires: (d: string) => `ينتهي في ${d}`,
-    no_expiry: 'لا يوجد تاريخ انتهاء مذكور',
+    no_expiry: 'لم يُذكر تاريخ انتهاء',
     covers: (c: string, src: string | null) => `يغطي ${c}` + (src ? ` (بحسب ${src})` : ''),
-    no_covers: 'لا يوجد ضمان أو تغطية مذكورة',
+    no_covers: 'لم يُذكر ضمان أو نطاق تغطية',
   },
 };
 

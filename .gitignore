@@ -64,3 +64,57 @@ $WT/
 # End-to-end harness reports (scripts/e2e/run.mjs): markdown + screenshots of one run against the
 # live site. Evidence for a PR, never source — they are written outside the repository by default.
 e2e-reports/
+
+# ── THE REPOSITORY ROOT HOLDS ONLY THE PRODUCT (founder instruction 642, 22 Sep 2026) ──────────
+# Measured 22 Sep 2026: the main checkout held 334 untracked root entries — files named `0`, `$TMP`,
+# `1{print`, `NUL`, `%s`, `console.log(OPEN`, left by redirect and quoting accidents, plus ~40
+# PHASE_C_*/PHASE_D_* reports and dozens of *.out/*.json/*.pdf scratch files. One `git add -A`
+# would have committed all of them. repomix-src.xml was listed in this file AND committed anyway,
+# because an ignore rule does not stop a forced add — which is why
+# scripts/checks/the_repository_root_holds_only_the_product.test.mjs also fails CI when a tracked
+# root name is not on this list.
+# Every root entry is ignored unless named below. A new top-level file or folder is added HERE, on
+# purpose, in the same commit that introduces it.
+/*
+!/.agents/
+!/.claude/
+!/.github/
+!/.gitignore
+!/.graphifyignore
+!/.mcp.json
+!/.squawk.toml
+!/CLAUDE.md
+!/QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/
+!/README.md
+!/SKILLS_MANUAL.md
+!/ai-organization/
+!/components.json
+!/deno.lock
+!/docs/
+!/graphify-out/
+!/knowledge-import/
+!/knowledge/
+!/messages/
+!/next-env.d.ts
+!/next.config.mjs
+!/package-lock.json
+!/package.json
+!/postcss.config.mjs
+!/public/
+!/repomix.config.json
+!/scripts/
+!/src/
+!/supabase/
+!/tailwind.config.ts
+!/tools/
+!/tsconfig.json
+!/vercel.json
+
+# graphify copies the previous graph into a dated folder on every rebuild (graphify/export.py,
+# backup_if_protected): 23 folders, 434 MB, committed until 22 Sep 2026. Nothing reads them; the
+# live graph is graphify-out/graph.json and every older one is in git history.
+graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
+
+# V3 certification raw outputs: a 49 MB export of certrun_v3.raw_result (staging run, 14 Aug 2026).
+# The digest stays in V3_CERTIFICATION_RAW_OUTPUTS.sha256; the file is `git show c8d91b1:<this path>`.
+docs/knowledge/certification/V3_CERTIFICATION_RAW_OUTPUTS.jsonl

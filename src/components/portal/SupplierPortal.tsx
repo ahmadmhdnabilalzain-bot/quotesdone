@@ -2,6 +2,7 @@
 'use client';
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
 import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
+import { arDays } from '@/lib/durationLabel';
 import { supaClient } from '@/lib/supaClient';
 import { takeAuthFragment } from '@/lib/authFragment';
 import { signupEmailProblem } from '@/lib/signupEmail';
@@ -59,6 +60,11 @@ const SB = () => supaClient('qd-portal-auth');
 // no accessible name at all). Visually hidden where a placeholder already shows the same words.
 // `need` ('req' | 'opt') marks a registration field Required or Optional in the page's language and makes
 // the label visible (audit 15 Sep 2026: no field said which of the mandatory six it was).
+// Arabic number agreement for "N days left" (review of PR #818): 1, 2, 3-10 and 11+ each take their own form.
+function arDaysLeft(n) {
+  return `${arDays(n)} ${n === 1 ? 'متبقٍ' : n === 2 ? 'متبقيان' : n <= 10 ? 'متبقية' : 'متبقيًا'} لمعالجة ذلك`;
+}
+
 function Need({ lang, req = false }) {
   return <span className={cn('ms-1.5 align-middle text-[11px] font-semibold', req ? 'text-danger-fg' : 'text-muted-foreground')}>{t(lang, req ? 'required' : 'optional')}</span>;
 }
@@ -103,7 +109,7 @@ function ReceiptBanner({ receipt, lang }) {
       <div>
         <div className="text-[14px] font-bold text-foreground">{ar ? (reg ? 'تم استلام رسوم التسجيل' : 'تم استلام الدفعة') : (reg ? 'Registration payment received' : 'Payment received')}</div>
         <div className={S.sub}>{ar
-          ? 'استلمت Stripe دفعتك وسترسل إليك الفاتورة بالبريد الإلكتروني. يتحدّث رصيدك هنا فور تأكيد Stripe لنا، عادةً خلال دقيقة.'
+          ? 'استلمت Stripe دفعتكم وسترسل إليكم الفاتورة بالبريد الإلكتروني، ويُحدَّث رصيدكم هنا فور تأكيد Stripe لنا، وعادةً خلال دقيقة.'
           : 'Stripe has your payment and will email you the invoice. Your balance here updates as soon as Stripe confirms it to us, usually within a minute.'}</div>
         <div className="mt-1 text-[11px] text-muted-foreground" dir="ltr">{(ar ? 'مرجع ' : 'Ref ') + '…' + String(receipt.ref || '').slice(-8)}</div>
       </div>
@@ -130,9 +136,9 @@ function RegistrationFeeCard({ token, lang, base }) {
     <Card className="qd-panel p-5">
       <div className={S.h2}>{ar ? 'رسوم التسجيل السنوية' : 'Yearly registration fee'}</div>
       <div className={cn(S.sub, 'mt-1')}>{ar
-        ? 'التسجيل مجاني بشكل دائم لأول 1,000 مورّد؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم سنويًا. إن كانت رسوم مستحقة عليك تنتقل مباشرة إلى صفحة الدفع الآمنة في Stripe، وإلا نخبرك بالسبب.'
+        ? 'التسجيل مجاني بصفة دائمة لأول 1,000 مورّد، واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم سنويًا. إن كانت عليكم رسوم مستحقة فستنتقلون مباشرة إلى صفحة الدفع الآمنة في Stripe، وإلا فسنوضح لكم السبب.'
         : 'Registration is permanently free for the first 1,000 suppliers; from the 1,001st registration it is AED 1,000 per year. If a fee is due you go straight to Stripe’s secure checkout; if not, we tell you why.'}</div>
-      <Button className="mt-3" variant="outline" disabled={busy} onClick={check}>{busy ? (ar ? 'جارٍ التحقق…' : 'Checking…') : (ar ? 'تحقّق من رسوم تسجيلي' : 'Check my registration fee')}</Button>
+      <Button className="mt-3" variant="outline" disabled={busy} onClick={check}>{busy ? (ar ? 'جارٍ التحقق…' : 'Checking…') : (ar ? 'التحقق من رسوم التسجيل' : 'Check my registration fee')}</Button>
       {res && <div role="status" className={cn('mt-2 text-[13px]', res.ok ? 'text-primary' : 'text-danger-fg')}>{res.text}</div>}
     </Card>
   );
@@ -156,11 +162,11 @@ function BillingPanel({ token, lang, receipt }) {
   // closes the double-press window from ms 0 and carries the ring after 150ms.
   const disp = useBusy();
   const dispute = async (dueId) => {
-    const reason = window.prompt(lang === 'ar' ? 'ما سبب اعتراضك على هذه الرسوم؟' : 'What is wrong with this charge?');
+    const reason = window.prompt(lang === 'ar' ? 'ما سبب اعتراضكم على هذه الرسوم؟' : 'What is wrong with this charge?');
     if (!reason) return;
     const j = await disp.run('d' + dueId, () => call('supplier_api', { action: 'dispute_charge', due_id: dueId, reason }, token));
     window.alert(j && j.ok
-      ? (lang === 'ar' ? 'استلمنا اعتراضك. نراجع الرسوم مقابل سجل الدفع وسنراسلك.' : 'We have your query. We are checking the charge against the payment record and will write back to you.')
+      ? (lang === 'ar' ? 'استلمنا اعتراضكم، ونراجع الرسوم الآن مقابل سجل الدفع وسنوافيكم بالرد.' : 'We have your query. We are checking the charge against the payment record and will write back to you.')
       : t(lang, 'err_generic'));
   };
   const pay = async () => {
@@ -189,7 +195,7 @@ function BillingPanel({ token, lang, receipt }) {
               <button type="button" disabled={disp.pending} aria-busy={(disp.busy && disp.key === 'd' + d.id) || undefined}
                 className="inline-flex items-center gap-1.5 text-[12px] underline text-muted-foreground disabled:opacity-60" onClick={() => dispute(d.id)}>
                 {disp.busy && disp.key === 'd' + d.id
-                  ? <><Spinner />{lang === 'ar' ? 'جارٍ إرسال اعتراضك…' : 'Sending your query…'}</>
+                  ? <><Spinner />{lang === 'ar' ? 'جارٍ إرسال اعتراضكم…' : 'Sending your query…'}</>
                   : (lang === 'ar' ? 'الاعتراض على هذه الرسوم' : 'Dispute this charge')}
               </button>
             </div>
@@ -217,7 +223,7 @@ function PdfLinks({ lang, fetchPdf, otherOnly = false }) {
   const open = (docLang) => async (e) => {
     e.stopPropagation(); setBusy(docLang); setMsg('');
     const ok = await openDocument(lang, async () => { const j = await fetchPdf(docLang); return j && j.ok && j.url ? j.url : null; });
-    setBusy(''); if (!ok) setMsg(lang === 'ar' ? 'تعذّر تجهيز المستند. حاول مرة أخرى.' : 'The document could not be prepared. Please try again.');
+    setBusy(''); if (!ok) setMsg(lang === 'ar' ? 'تعذّر تجهيز المستند. يُرجى المحاولة مرة أخرى.' : 'The document could not be prepared. Please try again.');
   };
   const prep = lang === 'ar' ? 'جارٍ التحضير…' : 'Preparing…';
   return (<span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -237,14 +243,17 @@ function Receipts({ token, lang }) {
     <Card className="qd-panel p-5">
       <div className={S.h2}>{ar ? 'إيصالات الدفع' : 'Payment receipts'}</div>
       <ul className="mt-3 flex flex-col gap-2">{list.map((r) => (
-        <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-[13.5px]">
-          <span><Ltr className="font-semibold tabular-nums">{aed(r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
+        <li key={(r.kind || 'dues') + ':' + (r.id ?? r.paid_at)} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-[13.5px]">
+          <span>{r.kind === 'registration' ? (ar ? 'رسوم الإدراج السنوية · ' : 'Annual listing fee · ') : ''}<Ltr className="font-semibold tabular-nums">{aed(r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
           {/* A paid receipt is sealed: View / Download work, Replace / Remove say why not (instruction 524).
               The other-language copy stays one click away beside them. */}
           <span className="inline-flex flex-wrap items-center gap-3">
-            <DocActions lang={lang} name={'receipt-' + r.id + '.pdf'} sealed="paid_invoice"
-              getUrl={async () => { const j = await call('supplier_api', { action: 'receipt_pdf', due_id: r.id, lang: lang === 'ar' ? 'ar' : 'en' }, token); return j && j.ok && j.url ? j.url : null; }} />
-            <PdfLinks lang={lang} otherOnly fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', due_id: r.id, lang: l }, token)} />
+            <DocActions lang={lang} name={'receipt-' + (r.id ?? 'registration') + '.pdf'} sealed="paid_invoice"
+              getUrl={async () => { const j = await call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: lang === 'ar' ? 'ar' : 'en' }, token); return j && j.ok && j.url ? j.url : null; }} />
+            <PdfLinks lang={lang} otherOnly fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', kind: r.kind, due_id: r.id, lang: l }, token)} />
+            {/* OUR invoice for the same payment (audit 22 Sep 2026, finding 2): Stripe issues none. */}
+            <span className="text-[12px] text-muted-foreground">{ar ? 'الفاتورة:' : 'Invoice:'}</span>
+            <PdfLinks lang={lang} fetchPdf={(l) => call('supplier_api', { action: 'receipt_pdf', doc: 'invoice', kind: r.kind, due_id: r.id, lang: l }, token)} />
           </span>
         </li>))}</ul>
     </Card>
@@ -300,39 +309,39 @@ const T = {
     le_no_account:'This mobile number isn’t linked to a QuotesDone account yet. Sign in with your email, or create your account first.', le_sms_off:'SMS codes are not available for this number. Please sign in with your email.',
     le_enter_code:'Enter the code you received.', le_attempts:'Too many attempts. Please request a new code.', le_expired:'That code has expired. Please request a new one.', le_session:'Could not start your session. Please try again.', le_generic:'Something went wrong. Please try again.',
     main_nav:'Supplier portal sections', account:'Account' },
-  ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحتك…', claiming_listing:'جارٍ ربط سجلّ شركتك بحسابك…',
-    tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'مرحبًا بعودتك', register_title:'سجّل كمورّد',
-    signup_sub:'أدخل بريدك الإلكتروني للعمل وسننشئ حسابك — ثم تسجّل شركتك وتتحقق من رقم جوالك.',
-    signin_sub:'سجّل الدخول بالبريد الإلكتروني أو رقم الجوال المسجّل.', work_email:'البريد الإلكتروني للعمل', email_or_mobile:'البريد الإلكتروني أو الجوال',
-    create_my_account:'إنشاء حسابي', send_code:'أرسل لي رمزًا', sending:'جارٍ الإرسال…', code_placeholder:'رمز من 6 أرقام',
-    verify_continue:'تحقّق وتابع', verify_signin:'تحقّق وسجّل الدخول', verifying:'جارٍ التحقق…', use_diff:'استخدم بريدًا أو رقمًا آخر',
+  ar: { brand_sub:'بوابة المورّدين', home:'الرئيسية', signout:'تسجيل الخروج', loading:'جارٍ التحميل…', loading_dash:'جارٍ تحميل لوحة التحكم…', claiming_listing:'جارٍ ربط سجلّ شركتكم بحسابكم…',
+    tab_signin:'تسجيل الدخول', tab_signup:'إنشاء حساب', welcome_back:'أهلًا بعودتكم', register_title:'التسجيل كمورّد',
+    signup_sub:'أدخلوا بريدكم الإلكتروني للعمل وسننشئ حسابكم، ثم تسجّلون شركتكم وتؤكّدون رقم جوالكم.',
+    signin_sub:'سجّلوا الدخول بالبريد الإلكتروني أو برقم الجوال المسجّل.', work_email:'البريد الإلكتروني للعمل', email_or_mobile:'البريد الإلكتروني أو الجوال',
+    create_my_account:'إنشاء حسابي', send_code:'إرسال الرمز', sending:'جارٍ الإرسال…', code_placeholder:'رمز من 6 أرقام',
+    verify_continue:'تأكيد ومتابعة', verify_signin:'تأكيد وتسجيل الدخول', verifying:'جارٍ التحقق…', use_diff:'استخدام بريد أو رقم آخر',
     junk_note:'قد يستغرق وصول الرمز دقيقة — يُرجى التحقق من مجلد الرسائل غير المرغوب فيها (Spam) أيضًا.', err_code_send:'تعذّر إرسال الرمز.', err_incorrect:'رمز غير صحيح.',
-    signup_email_only:'يُرجى التسجيل ببريدك الإلكتروني للعمل — ستسجّل شركتك وتتحقق من جوالك لاحقًا.',
-    signup_email_reserved:'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريد العمل الحقيقي.', err_need_email:'يُرجى إدخال بريد العمل أولًا.', err_need_id:'يُرجى إدخال بريدك الإلكتروني أو رقم جوالك أولًا.',
+    signup_email_only:'يُرجى التسجيل ببريدكم الإلكتروني للعمل، ثم تسجيل شركتكم وتأكيد رقم جوالكم في الخطوة التالية.',
+    signup_email_reserved:'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريد العمل الحقيقي.', err_need_email:'يُرجى إدخال بريد العمل أولًا.', err_need_id:'يُرجى إدخال بريدكم الإلكتروني أو رقم جوالكم أولًا.',
     conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
-    setup_title:'أنشئ حساب المورّد', setup_sub_company:'سجّل شركتك ثم أكمل ملفك.', setup_sub_profile:'أكمل ملفك لبدء استقبال طلبات التسعير وتقديم العروض.',
-    onboard_title:'سجّل شركتك', onboard_sub:'أدخل اسم شركتك وتخصصك الرئيسي. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'أدخل اسم شركتك.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
-    bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة. لا نأخذ أي عمولة على الأعمال التي تفوز بها.', bill_total:'إجمالي المستحق', bill_pay:'ادفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدك. يرجى المحاولة مرة أخرى.', bill_commission:'استرداد المبلغ المردود للعميل', bill_fine:'رسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'حاول مرة أخرى', bill_secure:'سيتم تحويلك إلى Stripe للدفع بأمان. لا تطّلع QuotesDone على بيانات بطاقتك. تنشأ هذه المبالغ فقط عند استرداد مبلغ للعميل لتعذّر الوصول إليك \u2014 ولا توجد عمولة على الأعمال المنجزة.', t_rfqs:'طلبات التسعير', approved:'معتمد', pending:'قيد المراجعة',
+    setup_title:'إنشاء حساب المورّد', setup_sub_company:'سجّلوا شركتكم ثم أكملوا ملف الشركة.', setup_sub_profile:'أكملوا ملف الشركة لتبدأوا استقبال طلبات التسعير وتقديم عروض الأسعار.',
+    onboard_title:'تسجيل الشركة', onboard_sub:'أدخلوا اسم شركتكم وتخصصها الرئيسي. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'يُرجى إدخال اسم الشركة.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
+    bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة، ولا نتقاضى أي عمولة على الأعمال التي تفوزون بها.', bill_total:'إجمالي المستحق', bill_pay:'الدفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدكم. يُرجى المحاولة مرة أخرى.', bill_commission:'استرداد المبلغ المردود للعميل', bill_fine:'رسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'إعادة المحاولة', bill_secure:'ستنتقلون إلى صفحة الدفع الآمنة في Stripe، ولا تطّلع QuotesDone على بيانات بطاقتكم. ولا تنشأ هذه المبالغ إلا عند ردّ مبلغ إلى العميل لتعذّر التواصل معكم \u2014 ولا عمولة على الأعمال المنجزة.', t_rfqs:'طلبات التسعير', approved:'معتمد', pending:'قيد المراجعة',
     
     
     
-    pf_company:'الشركة', pf_emirates:'الإمارات التي تخدمها', pf_contact:'جهة الاتصال والمالك', contact_name:'اسم جهة الاتصال', mobile:'الجوال',
-    mobile_verified:'تم التحقق من الجوال', verify_my_mobile:'تحقّق من جوالي ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تحقّق',
+    pf_company:'الشركة', pf_emirates:'الإمارات التي تخدمونها', pf_contact:'جهة الاتصال والمالك', contact_name:'اسم جهة الاتصال', mobile:'الجوال',
+    mobile_verified:'تم التحقق من الجوال', verify_my_mobile:'تأكيد رقم الجوال ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تأكيد',
     email_verified:'تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
-    reg_rest_optional:'أرفق هذين الملفين وانتهيت. كل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.', verify_first:'يُرجى التحقق من رقم جوالك أولًا.',
-    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' الخاصة بمنصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتك، سيظهر هنا.', request_w:'طلب', you_won:' · فزت بالطلب', concluded:' · مُغلق', quoted:'قدّمت عرضًا: ', close:'إغلاق', quote:'قدّم عرضًا', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفع عرض السعر — PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP — وسنقرأه:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'أدخل مبلغًا صحيحًا.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ كمسودة — أضف التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضك', line_items:'بند', read_quote_post:'. راجعه وأرسله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'ارفع التجديدات قبل انتهائها — سنذكّرك هنا وسنوقف المطابقة إذا انتهى مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضك ويتعاقد معك، يظهر المشروع هنا.', project_w:'مشروع', back:'→ رجوع', send:'إرسال', ask_placeholder:'اطرح سؤالًا — يجيب مساعدنا فورًا، أو يفتح محادثة مباشرة عند الحاجة فعلًا.', ask_request:'اسأل / اطلب محادثة', assistant_pre:'المساعد: ', sent_review:'أُرسل للمراجعة — سنُعلمك إذا فُتحت محادثة.', sent:'أُرسل.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحّح من رخصتك)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفع رخصتك وسنقرأ الرقم والجهة وتاريخ الانتهاء والرقم الضريبي تلقائيًا.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما الذي تقدّمه', products_ph:'المنتجات التي توردها (مفصولة بفواصل)', services_ph:'الخدمات التي تقدّمها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', add_contact_phone:'أضف اسم جهة الاتصال ورقم الهاتف.', add_license:'أضف رقم رخصتك التجارية (أو ارفع الرخصة لتعبئته تلقائيًا).', could_not_save:'تعذّر حفظ ملفك.', save_error:'حدث خطأ أثناء حفظ ملفك. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتك', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'يوماً متبقياً لمعالجة هذا', ar_overdue:'تجاوز الموعد - قد يُعلَّق حسابك', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
-    lic_uploaded_type:'تم رفع الرخصة. إن لم يظهر الرقم تلقائيًا فاكتبه أدناه — القراءة التلقائية اختيارية.', lic_upload_failed:'تعذّر حفظ ملف الرخصة. يُرجى المحاولة مرة أخرى بملف PDF أو صورة واضحة.',
-    verify_my_email:'تحقّق من بريدي ←', email_code:'رمز البريد (6 أرقام)', email_sent:'أرسلنا إليك رمزًا من 6 أرقام بالبريد الإلكتروني.', could_not_email:'تعذّر إرسال رمز البريد.',
-    trade_label:'تخصصك الرئيسي', trade_ph:'اختر تخصصك', trade_not_listed:'تخصصي غير مدرج', trade_other_ph:'اكتب تخصصك', trade_help:'كل التخصصات مرحّب بها. إن لم يكن تخصصك مدرجًا فاختر «تخصصي غير مدرج» واكتبه — نراجعه ونضيفه.',
-    required:'مطلوب', optional:'اختياري', mobile_format:'أدخل رقم جوال إماراتي، مثل 050 123 4567 أو ‎+971 50 123 4567.', change_mobile:'استخدم رقمًا آخر',
-    terms_cert_failed:'حُفظت بياناتك، لكن تعذّر إصدار شهادة قبولك الموقّعة. يُرجى الضغط على الزر مرة أخرى لإعادة المحاولة.',
-    catalogs_limit:'حتى 5 كتالوجات هنا؛ ويمكنك إضافة المزيد لاحقًا من تبويب المستندات.', catalogs_cut:'احتفظنا بأول 5 كتالوجات فقط. أضف الباقي من تبويب المستندات بعد التسجيل.',
+    reg_rest_optional:'بإرفاق هذين الملفين يكتمل التسجيل، وكل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.', verify_first:'يُرجى تأكيد رقم جوالكم أولًا.',
+    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' في منصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتكم، يظهر هنا.', request_w:'طلب', you_won:' · فزتم بالطلب', concluded:' · مُغلق', quoted:'قدّمتم عرضًا: ', close:'إغلاق', quote:'تقديم عرض', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفعوا عرض السعر (PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP) وسنتولّى قراءته:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'يُرجى إدخال مبلغ صحيح.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ العرض كمسودة، ويُرجى إضافة التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضكم', line_items:'بند', read_quote_post:'. يُرجى مراجعته ثم إرساله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'يُرجى رفع المستندات المجدَّدة قبل انتهاء صلاحيتها؛ سنذكّركم هنا، وتتوقف المطابقة إذا انتهت صلاحية مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضكم ويتعاقد معكم، يظهر المشروع هنا.', project_w:'مشروع', back:'→ رجوع', send:'إرسال', ask_placeholder:'اكتبوا سؤالكم، وسيجيب مساعدنا فورًا أو يفتح محادثة مباشرة عند الحاجة.', ask_request:'سؤال أو طلب محادثة', assistant_pre:'المساعد: ', sent_review:'أُرسل للمراجعة، وسنُعلمكم إذا فُتحت محادثة.', sent:'أُرسل.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحَّح وفق رخصتكم)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفعوا الرخصة التجارية وسنقرأ منها تلقائيًا رقمها والجهة المُصدِرة وتاريخ الانتهاء والرقم الضريبي.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما تقدّمونه', products_ph:'المنتجات التي تورّدونها (افصلوا بينها بفاصلة)', services_ph:'الخدمات التي تقدّمونها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', add_contact_phone:'يُرجى إضافة اسم جهة الاتصال ورقم الهاتف.', add_license:'يُرجى إضافة رقم الرخصة التجارية، أو رفع الرخصة لتعبئته تلقائيًا.', could_not_save:'تعذّر حفظ ملف الشركة.', save_error:'حدث خطأ أثناء حفظ ملف الشركة. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتكم', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'متبقية لمعالجة ذلك', ar_overdue:'تجاوز الموعد — قد يُعلَّق حسابكم', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
+    lic_uploaded_type:'تم رفع الرخصة. إن لم يظهر الرقم تلقائيًا فيُرجى كتابته أدناه، فالقراءة التلقائية اختيارية.', lic_upload_failed:'تعذّر حفظ ملف الرخصة. يُرجى المحاولة مرة أخرى بملف PDF أو صورة واضحة.',
+    verify_my_email:'تأكيد البريد الإلكتروني ←', email_code:'رمز البريد (6 أرقام)', email_sent:'أرسلنا إليكم رمزًا من 6 أرقام بالبريد الإلكتروني.', could_not_email:'تعذّر إرسال رمز البريد.',
+    trade_label:'التخصص الرئيسي', trade_ph:'اختاروا التخصص', trade_not_listed:'تخصصنا غير مدرج', trade_other_ph:'اكتبوا التخصص', trade_help:'نرحّب بجميع التخصصات. إن لم يكن تخصصكم مدرجًا فاختاروا «تخصصنا غير مدرج» واكتبوه، وسنراجعه ونضيفه.',
+    required:'مطلوب', optional:'اختياري', mobile_format:'يُرجى إدخال رقم جوال إماراتي، مثل 050 123 4567 أو ‎+971 50 123 4567.', change_mobile:'استخدام رقم آخر',
+    terms_cert_failed:'حُفظت بياناتكم، لكن تعذّر إصدار شهادة القبول الموقّعة. يُرجى الضغط على الزر مرة أخرى لإعادة المحاولة.',
+    catalogs_limit:'حتى 5 كتالوجات هنا، ويمكنكم إضافة المزيد لاحقًا من تبويب المستندات.', catalogs_cut:'احتفظنا بأول 5 كتالوجات فقط، ويمكنكم إضافة الباقي من تبويب المستندات بعد التسجيل.',
     doc_insurance:'التأمين', doc_manufacturer:'خطاب تفويض الشركة المصنّعة', doc_egr:'بطاقة المنشأة (EGR)',
     
-    le_too_many:'طلبات رموز كثيرة. يُرجى المحاولة لاحقًا.', le_bad_id:'أدخل بريدًا إلكترونيًا صحيحًا أو رقم جوال إماراتي.', le_suppressed:'لا يمكننا مراسلة هذا البريد — ارتدّت إليه الرسائل أو أُلغي الاشتراك. يُرجى التواصل مع info@quotesdone.com وسنعيد تفعيله.',
-    le_ambiguous:'أكثر من حساب يستخدم رقم الجوال هذا. يُرجى تسجيل الدخول ببريدك الإلكتروني.', le_signup_email:'يُرجى التسجيل ببريدك الإلكتروني؛ ويمكنك إضافة جوالك مباشرة بعد ذلك.',
-    le_no_account:'رقم الجوال هذا غير مرتبط بحساب في QuotesDone بعد. سجّل الدخول ببريدك الإلكتروني أو أنشئ حسابك أولًا.', le_sms_off:'رموز الرسائل النصية غير متاحة لهذا الرقم. يُرجى تسجيل الدخول ببريدك الإلكتروني.',
-    le_enter_code:'أدخل الرمز الذي وصلك.', le_attempts:'محاولات كثيرة. يُرجى طلب رمز جديد.', le_expired:'انتهت صلاحية الرمز. يُرجى طلب رمز جديد.', le_session:'تعذّر بدء جلستك. يُرجى المحاولة مرة أخرى.', le_generic:'حدث خطأ. يُرجى المحاولة مرة أخرى.',
+    le_too_many:'تجاوزتم الحد المسموح من طلبات الرموز. يُرجى المحاولة لاحقًا.', le_bad_id:'يُرجى إدخال بريد إلكتروني صحيح أو رقم جوال إماراتي.', le_suppressed:'لا يمكننا مراسلة هذا البريد، فقد ارتدّت الرسائل المرسلة إليه أو أُلغي اشتراكه. يُرجى التواصل مع info@quotesdone.com لإعادة تفعيله.',
+    le_ambiguous:'رقم الجوال هذا مرتبط بأكثر من حساب. يُرجى تسجيل الدخول ببريدكم الإلكتروني.', le_signup_email:'يُرجى التسجيل ببريدكم الإلكتروني، ويمكنكم إضافة رقم الجوال مباشرة بعد ذلك.',
+    le_no_account:'رقم الجوال هذا غير مرتبط بعد بحساب في QuotesDone. يُرجى تسجيل الدخول ببريدكم الإلكتروني أو إنشاء حسابكم أولًا.', le_sms_off:'رموز الرسائل النصية غير متاحة لهذا الرقم. يُرجى تسجيل الدخول ببريدكم الإلكتروني.',
+    le_enter_code:'يُرجى إدخال الرمز الذي وصلكم.', le_attempts:'تجاوزتم عدد المحاولات المسموح. يُرجى طلب رمز جديد.', le_expired:'انتهت صلاحية الرمز. يُرجى طلب رمز جديد.', le_session:'تعذّر بدء الجلسة. يُرجى المحاولة مرة أخرى.', le_generic:'حدث خطأ. يُرجى المحاولة مرة أخرى.',
     main_nav:'أقسام بوابة المورّدين', account:'الحساب' }
 };
 const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
@@ -371,7 +380,7 @@ const S = {
 // ./supplier/ServicesTab.tsx, over supplier_api services_* (docs/api/supplier_portal_services.md). It
 // supersedes CapabilityConfirmPanel, which lived here: same confirm, same ledger, services inside trades.
 
-const LANG_NOTE = { en: 'The portal follows your account language. Switching here updates it (EN/AR).', ar: 'تتبع البوابة لغة حسابك، والتبديل هنا يحدّث لغة الحساب.' };
+const LANG_NOTE = { en: 'The portal follows your account language. Switching here updates it (EN/AR).', ar: 'تتبع البوابة لغة حسابكم، والتبديل هنا يغيّر لغة الحساب.' };
 export function SupplierPortal() {
   const [lang, setLang] = useState('en');
   const [token, setToken] = useState('');
@@ -540,7 +549,7 @@ export function SupplierPortal() {
 // at the end with "This company is already claimed by another account."
 function InviteBanner({ invite, lang, onStart }) {
   const ar = lang === 'ar';
-  const name = invite.company_name || (ar ? 'شركتك' : 'your company');
+  const name = invite.company_name || (ar ? 'شركتكم' : 'your company');
   const taken = !invite.claimable;
   return (
     <section className="mx-auto w-full max-w-3xl px-4 pt-6" dir={ar ? 'rtl' : 'ltr'}>
@@ -554,12 +563,12 @@ function InviteBanner({ invite, lang, onStart }) {
         {invite.emirate ? <div className={cn(S.sub, 'mt-0.5')}>{invite.emirate}</div> : null}
         <div className={cn(S.sub, 'mt-3 max-w-[62ch]')}>
           {taken
-            ? (ar ? 'هذه الشركة مسجّلة بالفعل على QuotesDone. إن كان زميل لك قد سجّلها، اطلب منه إضافتك — أو سجّل الدخول بالبريد الذي استُخدم.'
+            ? (ar ? 'هذه الشركة مسجّلة مسبقًا في QuotesDone. إن كان أحد زملائكم قد سجّلها فيُرجى أن تطلبوا منه إضافتكم، أو سجّلوا الدخول بالبريد الذي استُخدم في التسجيل.'
                   : 'This company is already registered on QuotesDone. If a colleague claimed it, ask them to add you — or sign in with the email they used.')
-            : (ar ? 'هذه القائمة محجوزة لشركتك. بياناتك موجودة لدينا بالفعل من السجل التجاري العام — لا تملأ نموذجًا فارغًا، بل تصحّح ما نعرفه وتؤكّده. أنشئ حسابك للمطالبة بها.'
+            : (ar ? 'هذا السجل محجوز لشركتكم، فبياناتكم متوفرة لدينا من السجل التجاري العام. لن تملؤوا نموذجًا فارغًا، بل تصحّحون ما لدينا وتؤكّدونه. أنشئوا حسابكم للمطالبة به.'
                   : 'This listing is reserved for your company. We already hold your details from the public trade directory — you are not filling in a blank form, you are correcting what we have and confirming it. Create your account to claim it.')}
         </div>
-        {!taken && <Button className="mt-4" onClick={onStart}>{ar ? 'المطالبة بقائمة شركتي' : 'Claim my listing'}</Button>}
+        {!taken && <Button className="mt-4" onClick={onStart}>{ar ? 'المطالبة بسجل الشركة' : 'Claim my listing'}</Button>}
       </Card>
     </section>
   );
@@ -657,7 +666,7 @@ const AGREEMENT_CHANGES = {
       'Our licence is described exactly as DET issued it: Trader License No. 1633275.',
     ],
     ar: [
-      'قد تصلك الإشعارات أيضًا عبر واتساب والرسائل النصية على رقم هاتفك المحمول المسجَّل، إلى جانب البريد الإلكتروني والبوابة (البند 21).',
+      'قد تصلكم الإشعارات أيضًا عبر واتساب والرسائل النصية على رقم هاتفكم المحمول المسجَّل، إلى جانب البريد الإلكتروني والبوابة (البند 21).',
       'النص العربي للاتفاقية هو المعتمد لجميع الأغراض، بما في ذلك أمام المحاكم (البند 22).',
       'رسم عدم الاستجابة مبلغ ثابت متى صدر إشعارنا، والرسم الإداري البالغ 250 درهمًا تعويض متفق عليه وفق قانون المعاملات المدنية (البند 33).',
       'وصف رخصتنا مطابق لما صدر عن دائرة الاقتصاد والسياحة: رخصة تاجر رقم 1633275.',
@@ -665,7 +674,7 @@ const AGREEMENT_CHANGES = {
   },
   12: {
     en: ['WhatsApp notices go to the WhatsApp number you confirm in the portal with a verification code, or to your registered mobile if you confirm it is your WhatsApp. SMS stays on your registered mobile (clause 21).'],
-    ar: ['تصلك إشعارات واتساب على رقم الواتساب الذي تؤكّده في البوابة برمز تحقق، أو على رقم هاتفك المحمول المسجَّل إذا أكّدت أنه رقم الواتساب الخاص بك. وتبقى الرسائل النصية على رقم هاتفك المحمول المسجَّل (البند 21).'],
+    ar: ['تصلكم إشعارات واتساب على رقم الواتساب الذي تؤكّدونه في البوابة برمز تحقق، أو على رقم هاتفكم المحمول المسجَّل إذا أكّدتم أنه رقمكم على واتساب. وتبقى الرسائل النصية على رقم هاتفكم المحمول المسجَّل (البند 21).'],
   },
 };
 export function agreementChanges(accepted, current, ar) {
@@ -695,13 +704,13 @@ function ReacceptTerms({ token, lang, me, onDone }) {
     <div className={S.center}>
       <Card className="qd-panel max-w-[600px] p-5" dir={ar ? 'rtl' : 'ltr'}>
         <div className={S.h2}>{ar ? `تحديث اتفاقية المورّد — الإصدار ${me.terms_current}` : `The Supplier Agreement has been updated — version ${me.terms_current}`}</div>
-        <div className={cn(S.sub, 'mt-2')}>{ar ? `قبلتَ الإصدار ${me.accepted_terms_version || '—'}. يُرجى قراءة الإصدار الجديد وقبوله لمتابعة استخدام البوابة. ما الذي تغيّر:` : `You accepted version ${me.accepted_terms_version || '—'}. Please read the new version and accept it to keep using the portal. What changed:`}</div>
+        <div className={cn(S.sub, 'mt-2')}>{ar ? `قبلتم الإصدار ${me.accepted_terms_version || '—'}. يُرجى قراءة الإصدار الجديد وقبوله لمتابعة استخدام البوابة. ما الذي تغيّر:` : `You accepted version ${me.accepted_terms_version || '—'}. Please read the new version and accept it to keep using the portal. What changed:`}</div>
         <ul className="mt-3 flex list-disc flex-col gap-1.5 ps-5 text-[13px] text-foreground">{changes.map((c) => <li key={c}>{c}</li>)}</ul>
         <div className="mt-3 flex flex-wrap gap-4 text-[13px]">
           <a className="font-medium text-primary underline" href={pre + '/supplier-agreement/'} target="_blank" rel="noopener">{ar ? 'اقرأ الإصدار الجديد' : 'Read the new version'}</a>
-          {prev ? <a className="text-muted-foreground underline" href={pre + '/supplier-agreement/' + prev + '/'} target="_blank" rel="noopener">{ar ? `الإصدار الذي قبلتَه (${prev})` : `The version you accepted (${prev})`}</a> : null}
+          {prev ? <a className="text-muted-foreground underline" href={pre + '/supplier-agreement/' + prev + '/'} target="_blank" rel="noopener">{ar ? `الإصدار الذي قبلتموه (${prev})` : `The version you accepted (${prev})`}</a> : null}
         </div>
-        <label className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} /> {ar ? `قرأتُ اتفاقية المورّد الإصدار ${me.terms_current} وأوافق عليها.` : `I have read and accept Supplier Agreement version ${me.terms_current}.`}</label>
+        <label className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} /> {ar ? `قرأتُ اتفاقية المورّد (الإصدار ${me.terms_current}) وأوافق عليها.` : `I have read and accept Supplier Agreement version ${me.terms_current}.`}</label>
         {msg ? <div className="mt-2 text-[13px] text-destructive" role="alert">{msg}</div> : null}
         <Button className="mt-4" disabled={busy} onClick={accept}>{busy ? t(lang, 'submitting') : (ar ? 'أوافق وأتابع' : 'Accept and continue')}</Button>
       </Card>
@@ -875,7 +884,7 @@ function Dashboard({ token, lang, onExpired }) {
     if (st === 'action_required') {
       const due = ov.supplier.exception_due_at ? new Date(ov.supplier.exception_due_at) : null;
       const days = due ? Math.ceil((due.getTime() - Date.now()) / 864e5) : null;
-      const when = days === null ? '' : (days <= 0 ? ' · ' + t(lang, 'ar_overdue') : ' · ' + days + ' ' + t(lang, 'ar_days_left'));
+      const when = days === null ? '' : (days <= 0 ? ' · ' + t(lang, 'ar_overdue') : ' · ' + (lang === 'ar' ? arDaysLeft(days) : days + ' ' + t(lang, 'ar_days_left')));
       return <Badge variant="destructive">{t(lang, 'action_required') + when}</Badge>;
     }
     return <Badge variant={st === 'approved' ? 'ok' : 'warn'}>{st === 'approved' ? t(lang, 'approved') : t(lang, 'pending')}</Badge>;
@@ -1017,25 +1026,25 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     <div className="flex gap-2.5 flex-wrap">
       <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'الإجمالي أعلاه' : 'The total above'}>
         <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-[13px]" value={vat} onChange={(e) => setVat(e.target.value)}>
-          <option value="">{ar ? 'اختر: هل يشمل ضريبة القيمة المضافة؟' : 'Choose: does it include VAT?'}</option>
+          <option value="">{ar ? 'يُرجى الاختيار: هل يشمل ضريبة القيمة المضافة؟' : 'Choose: does it include VAT?'}</option>
           <option value="exclusive">{ar ? 'غير شامل ضريبة القيمة المضافة' : 'Excludes VAT'}</option>
           <option value="inclusive">{ar ? 'شامل ضريبة القيمة المضافة' : 'Includes VAT'}</option>
           <option value="not_registered">{ar ? 'لسنا مسجلين في ضريبة القيمة المضافة' : 'We are not VAT-registered'}</option>
         </select></Lbl>
       {vat === 'inclusive' ? <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'السعر غير شامل الضريبة (درهم)' : 'Price excluding VAT (AED)'}><Input className="tabular font-mono" inputMode="decimal" value={exVat} onChange={(e) => setExVat(e.target.value)} /></Lbl> : null}
     </div>
-    <div className={S.sub}>{ar ? 'يقارن العميل ويدفع على السعر غير شامل الضريبة، ولا تُعرض عليه تفاصيل الضريبة ولا رقمك الضريبي.' : 'The customer compares and pays on the price excluding VAT; your VAT details and TRN are never shown to them.'}</div>
+    <div className={S.sub}>{ar ? 'يقارن العميل ويدفع على السعر غير شامل الضريبة، ولا تُعرض عليه تفاصيل الضريبة ولا رقمكم الضريبي.' : 'The customer compares and pays on the price excluding VAT; your VAT details and TRN are never shown to them.'}</div>
     <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-[160px]" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
     <div className="border-t border-border pt-4">
       <div className={cn(grp, 'mb-1')}>{ar ? 'بنود العرض' : 'Line items'}</div>
-      <div className={cn(S.sub, 'mb-2')}>{lang === 'ar' ? 'بنود العرض (الوصف، الكمية، السعر) — يجعل عرضك جاهزًا للإرسال' : 'Quote items (description, qty, price) — makes your quote ready to send'}</div>
+      <div className={cn(S.sub, 'mb-2')}>{lang === 'ar' ? 'بنود العرض (الوصف والكمية والسعر)، وبها يصبح عرضكم جاهزًا للإرسال' : 'Quote items (description, qty, price) — makes your quote ready to send'}</div>
       <div className="overflow-x-auto"><div className="min-w-[460px]">
       {items.map((it, ix) => (<div key={ix} className="flex gap-1.5 mb-1.5 items-center">
         <Lbl className="flex-1" text={(lang === 'ar' ? 'الوصف، البند ' : 'Description, line ') + (ix + 1)}><Input placeholder={lang === 'ar' ? 'الوصف' : 'Description'} value={it.description} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, description: e.target.value } : r))} /></Lbl>
         <Lbl text={(lang === 'ar' ? 'الكمية، البند ' : 'Quantity, line ') + (ix + 1)}><Input className="tabular font-mono text-end" style={{ maxWidth: 72 }} inputMode="decimal" placeholder={lang === 'ar' ? 'كمية' : 'Qty'} value={it.qty} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, qty: e.target.value } : r))} /></Lbl>
         <Lbl text={(lang === 'ar' ? 'الوحدة، البند ' : 'Unit, line ') + (ix + 1)}><Input style={{ maxWidth: 72 }} placeholder={lang === 'ar' ? 'وحدة' : 'Unit'} value={it.unit} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit: e.target.value } : r))} /></Lbl>
         <Lbl text={(lang === 'ar' ? 'سعر الوحدة، البند ' : 'Unit price, line ') + (ix + 1)}><Input className="tabular font-mono text-end" style={{ maxWidth: 104 }} inputMode="decimal" placeholder={lang === 'ar' ? 'سعر الوحدة' : 'Unit price'} value={it.unit_price} onChange={(e) => setItems(items.map((r, i) => i === ix ? { ...r, unit_price: e.target.value } : r))} /></Lbl>
-        <Button size="sm" variant="outline" aria-label={(lang === 'ar' ? 'احذف البند ' : 'Remove line ') + (ix + 1)} onClick={() => setItems(items.length > 1 ? items.filter((_, i) => i !== ix) : [{ description: '', qty: '', unit: '', unit_price: '' }])}>×</Button>
+        <Button size="sm" variant="outline" aria-label={(lang === 'ar' ? 'حذف البند ' : 'Remove line ') + (ix + 1)} onClick={() => setItems(items.length > 1 ? items.filter((_, i) => i !== ix) : [{ description: '', qty: '', unit: '', unit_price: '' }])}>×</Button>
       </div>))}
       </div></div>
       <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
@@ -1052,7 +1061,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     {chk && <QuoteCheck chk={chk} lang={lang} />}
     <div className="flex gap-2 items-center flex-wrap justify-end border-t border-border pt-4">
       <Button size="sm" variant="secondary" disabled={checking || busy || reading} onClick={check}>
-        {checking ? (lang === 'ar' ? 'جارٍ الفحص…' : 'Checking…') : (lang === 'ar' ? 'افحص قبل الإرسال' : 'Check before sending')}
+        {checking ? (lang === 'ar' ? 'جارٍ الفحص…' : 'Checking…') : (lang === 'ar' ? 'الفحص قبل الإرسال' : 'Check before sending')}
       </Button>
       <Button size="sm" disabled={busy || reading} onClick={submit}>{busy ? t(lang, 'submitting') : t(lang, 'submit_quote')}</Button>
     </div>
@@ -1093,12 +1102,12 @@ function QuoteCheck({ chk, lang }) {
         ? <div className="mt-2.5">
             <Badge variant={chk.submittable ? 'ok' : 'warn'}>{viaForm ? (ar ? 'سيُرسل إلى العميل — دون علامة الجودة' : 'This will be sent to the customer — below the quality mark') : (ar ? 'سيُرسل إلى العميل' : 'This will be sent to the customer')}</Badge>
             {viaForm && <div className={cn(S.sub, 'mt-1.5')}>{ar
-              ? 'سيُقبل لأن الحقول الأساسية مكتملة، لكنه لم يبلغ علامة الجودة. إضافة ما يلي تجعل عرضك أسهل للمقارنة وأقوى أمام العميل.'
+              ? 'سيُقبل لأن الحقول الأساسية مكتملة، لكنه لم يبلغ علامة الجودة. وإضافة ما يلي تجعل عرضكم أسهل للمقارنة وأقوى أمام العميل.'
               : 'It is accepted because the essential fields are filled, but it has not reached the quality mark. Adding the items below makes your quote easier to compare and stronger against competing bids.'}</div>}
           </div>
         : <div className="mt-2.5">
             <Badge variant="destructive">{ar ? 'سيُحفظ كمسودة' : 'This will be saved as a draft'}</Badge>
-            <div className={cn(S.sub, 'mt-1.5')}>{ar ? 'لن يصل العميل حتى تُكمل ما يلي.' : 'It will not reach the customer until the items below are added.'}</div>
+            <div className={cn(S.sub, 'mt-1.5')}>{ar ? 'لن يصل إلى العميل حتى تُكملوا ما يلي.' : 'It will not reach the customer until the items below are added.'}</div>
           </div>}
 
       {!!missing.length && <ul className="mt-2.5 flex flex-col gap-1">
@@ -1180,7 +1189,7 @@ function Documents({ token, lang, onSaved = null }) {
         <div>
           <div className={S.h2}>{t(lang, 'docs_h')}</div>
           <div className={cn(S.sub, 'mt-1')}>{lang === 'ar'
-            ? 'رخصتك التجارية وملفك التعريفي مطلوبان للتسجيل، ويجب أن تبقى الرخصة سارية لاستمرار استقبال الطلبات. كل ما عدا ذلك اختياري.'
+            ? 'الرخصة التجارية والملف التعريفي للشركة مطلوبان للتسجيل، ويجب أن تبقى الرخصة سارية لتستمر الطلبات في الوصول إليكم. وكل ما عدا ذلك اختياري.'
             : 'Your trade licence and company profile are required to register, and the licence must stay valid to keep receiving requests. Everything else is optional.'}</div>
         </div>
         <div className="text-end shrink-0">
@@ -1232,12 +1241,12 @@ const DOC_GROUPS = [
   { id: 'required', keys: ['license', 'profile'],
     title: (l) => (l === 'ar' ? 'مطلوب للتحقق' : 'Required to get verified'),
     note: (l) => (l === 'ar'
-      ? 'رخصتك التجارية وملفك التعريفي. نقرأ منهما ما تقوم به لنعرف أي الطلبات نرسلها إليك.'
+      ? 'الرخصة التجارية والملف التعريفي للشركة، ونستخلص منهما نشاطكم لنحدد الطلبات التي نرسلها إليكم.'
       : 'Your trade licence and company profile. We read these to work out what work to send you.') },
   { id: 'optional', keys: ['catalogs', 'insurance', 'iso', 'manufacturer', 'egr'],
     title: (l) => (l === 'ar' ? 'اختياري — للحصول على مطابقات أكثر' : 'Optional — get matched to more work'),
     note: (l) => (l === 'ar'
-      ? 'لا شيء من هذه مطلوب للتحقق. كل مستند تضيفه يفتح لك طلبات إضافية — بعض العملاء يشترطون التأمين، وخطاب الوكالة يتيح لنا مطابقتك عندما يطلب العميل علامة تجارية بعينها.'
+      ? 'لا يُشترط أيٌّ منها للتحقق، لكن كل مستند تضيفونه يفتح لكم طلبات إضافية؛ فبعض العملاء يشترطون التأمين، وخطاب الوكالة يتيح لنا مطابقتكم عندما يطلب العميل علامة تجارية بعينها.'
       : 'None of these are needed to be verified. Each one you add opens up more requests — some customers require insurance, and a dealer letter lets us match you when a customer names a brand you carry.') },
 ];
 // Every document type is editable here. The trade licence and company profile used to be
@@ -1260,12 +1269,12 @@ function ExpiryRead({ read, lang, label, onConfirm }) {
   const [val, setVal] = useState(read && read.expiry ? read.expiry : ''); const [busy, setBusy] = useState(false);
   if (!read) return null;
   if (read.unread) return <div className={cn(S.sub, 'mt-2')} role="status">{ar
-    ? `تعذّرت قراءة تاريخ الانتهاء من هذا الملف تلقائيًا (${read.kind === 'license' ? 'ارفع نسخة PDF واضحة للرخصة كاملة' : 'أدخله أدناه وسنحفظه'}).`
+    ? `تعذّرت قراءة تاريخ الانتهاء من هذا الملف تلقائيًا (${read.kind === 'license' ? 'يُرجى رفع نسخة PDF واضحة من الرخصة كاملة' : 'يُرجى إدخاله أدناه وسنحفظه'}).`
     : `We could not read the expiry date from this file automatically${read.kind === 'license' ? ' — please upload a clear PDF of the full licence' : ' — enter it below and we will save it'}.`}</div>;
   if (!read.needs_confirm) return <div className={cn(S.sub, 'mt-2')} role="status">{ar ? 'قرأنا من المستند: ينتهي في ' : 'Read from the document: expires '}<Ltr>{fmtDate(read.expiry, lang)}</Ltr>{read.source === 'ai' ? (ar ? ' (قراءة آلية)' : ' (machine-read)') : ''}</div>;
   const save = async (v) => { setBusy(true); await onConfirm(read.kind, v); setBusy(false); };
   return <div className="mt-2 flex flex-wrap items-center gap-2" role="status">
-    <span className={S.sub}>{ar ? 'قرأنا من المستند: ينتهي في ' : 'We read from the document: expires '}<Ltr>{fmtDate(read.expiry, lang)}</Ltr>{read.typed && read.typed !== read.expiry ? (ar ? ` (أدخلت ${read.typed})` : ` (you typed ${read.typed})`) : ''} — {ar ? 'هل هذا صحيح؟' : 'is that right?'}</span>
+    <span className={S.sub}>{ar ? 'قرأنا من المستند: ينتهي في ' : 'We read from the document: expires '}<Ltr>{fmtDate(read.expiry, lang)}</Ltr>{read.typed && read.typed !== read.expiry ? (ar ? ` (أدخلتم ${read.typed})` : ` (you typed ${read.typed})`) : ''} — {ar ? 'هل هذا صحيح؟' : 'is that right?'}</span>
     <Button size="sm" disabled={busy} onClick={() => save(read.expiry)}>{ar ? 'تأكيد' : 'Confirm'}</Button>
     <Input type="date" dir="ltr" className="w-auto" value={val} onChange={(e) => setVal(e.target.value)} aria-label={(ar ? 'تصحيح تاريخ انتهاء ' : 'Correct the expiry date for ') + label} />
     <Button size="sm" variant="outline" disabled={busy || !val || val === read.expiry} onClick={() => save(val)}>{ar ? 'حفظ التصحيح' : 'Save correction'}</Button>
@@ -1360,7 +1369,7 @@ function Projects({ token, lang, openChat }) {
   if (data.error) return <Card className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
   const list = data.projects || [];
   const rule = ar
-    ? 'عندما يكشف العميل عن عرضك يجب أن تتواصل معه خلال 5 أيام عمل من الكشف. إن لم تتواصل خلال 3 أيام عمل نتابع معك ونُشرك العميل في المراسلة، وإن بقيت دون رد يُردّ إلى العميل كل ما دفعه، وتُستحق عليك رسوم عدم الاستجابة: المبلغ الذي رُدّ إلى العميل بالضبط (رسوم الكشف البالغة 3% مضافًا إليها رسوم معالجة البطاقة)، ورسم إداري قدره 250 درهمًا، وفائدة بسيطة بنسبة 9% سنويًا (أو الحد الأقصى الذي يسمح به القانون) من تاريخ الاستحقاق (البند 33 من اتفاقية المورّد).'
+    ? 'عندما يكشف العميل عن عرضكم يجب أن تتواصلوا معه خلال 5 أيام عمل من تاريخ الكشف. وإن لم تتواصلوا خلال 3 أيام عمل نتابع معكم ونُشرك العميل في المراسلة، وإن لم يصل منكم أي رد يُردّ إلى العميل كل ما دفعه، وتُستحق عليكم رسوم عدم الاستجابة: المبلغ الذي رُدّ إلى العميل بالضبط (رسوم الكشف البالغة 3% مضافًا إليها رسوم معالجة البطاقة)، ورسم إداري قدره 250 درهمًا، وفائدة بسيطة بنسبة 9% سنويًا (أو الحد الأقصى الذي يسمح به القانون) من تاريخ الاستحقاق (البند 33 من اتفاقية المورّد).'
     : 'When a customer reveals your quote you must respond to them within 5 working days of the reveal. If you have not responded within 3 working days we chase you with the customer copied; if you stay silent everything the customer paid is refunded and the non-response charge applies: the exact amount refunded (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date (Supplier Agreement, clause 33).';
   if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_projects_h')}</div><div className={S.sub}>{t(lang, 'no_projects_sub')}</div><div className={cn(S.sub, 'mt-2')}>{rule}</div></Card>;
   const now = Date.now();
@@ -1384,18 +1393,18 @@ function Projects({ token, lang, openChat }) {
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
             {c.phone ? <a className="text-primary font-semibold underline-offset-2 hover:underline" href={'tel:' + String(c.phone).replace(/[^\d+]/g, '')}><Ltr>{c.phone}</Ltr></a> : null}
             {c.email ? <a className="text-primary font-semibold underline-offset-2 hover:underline" href={'mailto:' + c.email}><Ltr>{c.email}</Ltr></a> : null}
-            {!c.phone && !c.email ? <span className={S.sub}>{ar ? 'تواصل عبر الرسائل أدناه.' : 'Use the messages below to reach them.'}</span> : null}
+            {!c.phone && !c.email ? <span className={S.sub}>{ar ? 'يمكنكم التواصل معه عبر الرسائل أدناه.' : 'Use the messages below to reach them.'}</span> : null}
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div className="text-[13px]">
             {p.acknowledged_at
-              ? <Badge variant="ok">{ar ? 'سجّلت أنك تواصلت' : 'You confirmed contact'} · <Ltr>{fmtDate(p.acknowledged_at, lang, false)}</Ltr></Badge>
-              : <Badge variant={late ? 'destructive' : chased ? 'warn' : 'secondary'}>{(late ? (ar ? 'تجاوزت مهلة الرد — ' : 'Response overdue — ') : (ar ? 'ردّ قبل ' : 'Respond by '))}<Ltr>{fmtDate(p.respond_by, lang)}</Ltr></Badge>}
+              ? <Badge variant="ok">{ar ? 'سجّلتم التواصل' : 'You confirmed contact'} · <Ltr>{fmtDate(p.acknowledged_at, lang, false)}</Ltr></Badge>
+              : <Badge variant={late ? 'destructive' : chased ? 'warn' : 'secondary'}>{(late ? (ar ? 'تجاوزتم مهلة الرد — ' : 'Response overdue — ') : (ar ? 'الرد قبل ' : 'Respond by '))}<Ltr>{fmtDate(p.respond_by, lang)}</Ltr></Badge>}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => openChat(p.inquiry_id)}>{ar ? 'راسل العميل' : 'Message the customer'}</Button>
-            {!p.acknowledged_at && <Button size="sm" disabled={busy === p.id} onClick={() => ack(p.id)}>{busy === p.id ? (ar ? 'جارٍ التسجيل…' : 'Saving…') : (ar ? 'تواصلت مع العميل' : 'I have contacted the customer')}</Button>}
+            <Button size="sm" variant="outline" onClick={() => openChat(p.inquiry_id)}>{ar ? 'مراسلة العميل' : 'Message the customer'}</Button>
+            {!p.acknowledged_at && <Button size="sm" disabled={busy === p.id} onClick={() => ack(p.id)}>{busy === p.id ? (ar ? 'جارٍ التسجيل…' : 'Saving…') : (ar ? 'تأكيد التواصل مع العميل' : 'I have contacted the customer')}</Button>}
           </div>
         </div>
       </Card>;
@@ -1416,7 +1425,7 @@ function ProfilePanel({ token, lang, onSaved, initial = null }) {
     <Card className="qd-panel p-5">
       <div className={S.h2}>{lang === 'ar' ? 'ملف الشركة' : 'Company profile'}</div>
       <div className={cn(S.sub, 'mt-1')}>{lang === 'ar'
-        ? 'ما تكتبه هنا يحدّد الطلبات التي تصلك. تُطابَق الطلبات على القطاع والمنتجات والخدمات والفئات — كلما كانت أدق، زادت مطابقتك.'
+        ? 'ما تكتبونه هنا يحدّد الطلبات التي تصلكم؛ إذ تُطابَق الطلبات على القطاع والمنتجات والخدمات والفئات، وكلما كانت أدق زادت فرص مطابقتكم.'
         : 'What you write here decides which requests reach you. Requests are matched on your sector, products, services and categories — the more specific these are, the more you match.'}</div>
     </Card>
     <ProfileForm token={token} me={me} onSaved={() => { load(); if (onSaved) onSaved(); }} lang={lang} mode="edit" />
@@ -1588,7 +1597,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {/* The form registers a new supplier AND is where an existing one corrects a detail; it says which. */}
     <div className={cn(S.sub, 'mb-2')}>
       {isEdit
-        ? (ar ? <>تحرير ملف <b dir="auto">{me.company_name}</b>. ما تكتبه هنا يحدّد الطلبات التي تصلك — احفظ التغييرات في الأسفل.</>
+        ? (ar ? <>تحرير ملف <b dir="auto">{me.company_name}</b>. ما تكتبونه هنا يحدّد الطلبات التي تصلكم، ويُرجى حفظ التغييرات في الأسفل.</>
               : <>Editing the profile for <b dir="auto">{me.company_name}</b>. What you write here decides which requests reach you; save your changes at the bottom.</>)
         : <>{t(lang, 'registering_pre')}<b dir="auto">{me.company_name}</b>{me.name_corrected_from ? t(lang, 'corrected') : ''}{t(lang, 'registering_post')}</>}
     </div>
@@ -1656,7 +1665,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
       {/* Catalogues were cut to 5 silently (audit 15 Sep 2026). The limit is stated, and a cut is announced. */}
       <div role={catCut ? 'status' : undefined} className={cn(S.sub, 'mt-1 text-[12px]', catCut && 'font-semibold text-warn-fg')}>{t(lang, catCut ? 'catalogs_cut' : 'catalogs_limit')}</div>
     </>}
-    {isEdit && <div className={cn(S.sub, 'mt-3 rounded-md border border-border bg-secondary/30 px-3 py-2.5')}>{ar ? 'رخصتك التجارية وملفك التعريفي وكتالوجاتك تُدار من تبويب المستندات — حتى لا يُطلب الملف نفسه في مكانين.' : 'Your trade licence, company profile and catalogues are managed in the Documents tab — so the same file is never asked for in two places.'}</div>}
+    {isEdit && <div className={cn(S.sub, 'mt-3 rounded-md border border-border bg-secondary/30 px-3 py-2.5')}>{ar ? 'تُدار الرخصة التجارية والملف التعريفي والكتالوجات من تبويب المستندات، حتى لا يُطلب الملف نفسه في مكانين.' : 'Your trade licence, company profile and catalogues are managed in the Documents tab — so the same file is never asked for in two places.'}</div>}
 
     <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" aria-required={!isEdit} checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href={(ar ? '/ar' : '') + '/supplier-agreement'} target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}{!isEdit && <Need lang={lang} req />}</label>
     <Button className="w-full mt-3" disabled={busy || uploading} onClick={save}>

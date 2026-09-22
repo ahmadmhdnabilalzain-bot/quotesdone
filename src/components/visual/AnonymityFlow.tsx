@@ -9,8 +9,8 @@ import { prefersReducedMotion, useSceneGate, type SceneProps } from './gate';
 const T = {
   en: { customer: 'Customer', platform: 'QuotesDone', supplier: 'Supplier', hidden: 'identity hidden', revealed: 'name · licence · contact', steps: ['Brief goes out, you stay anonymous', 'Quotes come back, suppliers stay anonymous', 'You reveal one — 3% — both sides see each other'],
     alt: 'Diagram: the customer’s brief passes through QuotesDone to several suppliers without the customer’s identity. Quotes return through QuotesDone without the suppliers’ identities. Only when the customer pays the 3% reveal fee for one quote do that customer and that supplier see each other.' },
-  ar: { customer: 'العميل', platform: 'كوتس دن', supplier: 'المورّد', hidden: 'الهوية مخفية', revealed: 'الاسم · الرخصة · التواصل', steps: ['يُرسل الطلب وتبقى هويتك مخفية', 'تعود العروض وتبقى هوية المورّدين مخفية', 'تكشف عرضًا واحدًا — ٣٪ — فيرى الطرفان بعضهما'],
-    alt: 'مخطط: يمر طلب العميل عبر كوتس دن إلى عدة مورّدين دون هوية العميل، وتعود العروض عبر كوتس دن دون هوية المورّدين. ولا يرى العميل والمورّد بعضهما إلا عند دفع رسوم الكشف ٣٪ لعرض واحد.' },
+  ar: { customer: 'العميل', platform: 'QuotesDone', supplier: 'المورّد', hidden: 'الهوية مخفية', revealed: 'الاسم · الرخصة · التواصل', steps: ['يُرسل الطلب وتبقى هويتك مخفية', 'تعود العروض وتبقى هوية المورّدين مخفية', 'تكشف عرضًا واحدًا مقابل 3%، فيتعرّف الطرفان أحدهما على الآخر'],
+    alt: 'مخطط: يمرّ طلب العميل عبر QuotesDone إلى عدة مورّدين دون هوية العميل، وتعود العروض عبر QuotesDone دون هوية المورّدين. ولا يتعرّف العميل والمورّد أحدهما على الآخر إلا بعد دفع رسوم الكشف البالغة 3% لعرض واحد.' },
 };
 
 const VW = 600;
@@ -105,7 +105,7 @@ export default function AnonymityFlow({ locale }: SceneProps) {
         {revealed && (
           <g>
             <rect x={X(300) - 34} y="72" width="68" height="20" rx="10" fill="#E3C065" />
-            <text x={X(300)} y="86" textAnchor="middle" fill="#2A1F05" fontSize="10" fontWeight={700} fontFamily="var(--font-mono), monospace">{rtl ? 'الكشف ٣٪' : 'Reveal · 3%'}</text>
+            <text x={X(300)} y="86" textAnchor="middle" fill="#2A1F05" fontSize="10" fontWeight={700} fontFamily="var(--font-mono), monospace">{rtl ? 'الكشف · 3%' : 'Reveal · 3%'}</text>
           </g>
         )}
       </svg>

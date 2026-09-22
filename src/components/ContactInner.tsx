@@ -46,15 +46,15 @@ export function ContactInner() {
               // A complaint: show the ticket number and the way to watch it (built with DOM nodes, not html).
               Mg.textContent = ar ? 'تم استلام شكواك. رقم التذكرة: ' : 'Complaint received. Ticket number: ';
               const b = document.createElement('bdi'); b.dir = 'ltr'; b.textContent = String(j.ticket); Mg.append(b);
-              Mg.append(ar ? ' — نؤكد الاستلام خلال يومَي عمل ونرد خلال 10 أيام عمل. ' : ' — we acknowledge within 2 working days and respond within 10 working days. ');
+              Mg.append(ar ? ' — نؤكّد الاستلام خلال يومَي عمل، ونوافيكم بالرد خلال 10 أيام عمل. ' : ' — we acknowledge within 2 working days and respond within 10 working days. ');
               const a = document.createElement('a'); a.href = (ar ? '/ar' : '') + '/complaints/status?t=' + encodeURIComponent(String(j.ticket));
               a.textContent = ar ? 'تابع حالة الشكوى' : 'Track its status'; a.style.textDecoration = 'underline'; Mg.append(a);
             } else Mg.textContent = ar ? 'شكرًا — سنتواصل معك قريبًا.' : 'Thanks — we will be in touch shortly.';
           }
           F.reset();
         }
-        else { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = ar ? 'تعذّر الإرسال. يرجى مراسلتنا على management@quotesdone.com.' : ((j && j.error) || 'Could not send. Please email management@quotesdone.com.'); } }
-      } catch (_e) { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = locale === 'ar' ? 'تعذّر الإرسال. يرجى مراسلتنا على management@quotesdone.com.' : 'Could not send. Please email management@quotesdone.com.'; } }
+        else { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = ar ? 'تعذّر الإرسال. يُرجى مراسلتنا على management@quotesdone.com.' : ((j && j.error) || 'Could not send. Please email management@quotesdone.com.'); } }
+      } catch (_e) { if (Mg) { Mg.style.color = '#ff9a9a'; Mg.textContent = locale === 'ar' ? 'تعذّر الإرسال. يُرجى مراسلتنا على management@quotesdone.com.' : 'Could not send. Please email management@quotesdone.com.'; } }
       finally { setBusy(false); }
     };
     F.addEventListener('submit', onsub);

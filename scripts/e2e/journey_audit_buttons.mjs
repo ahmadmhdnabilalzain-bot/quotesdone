@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { call, read, write } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE } from './browser.mjs';
 import { makeInquiry, keys, BASE } from '../staging/demo_factory.mjs';
+import { pdfFacts, isArabic, languageOf, sameDocument } from './pdf_facts.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_PDF = join(HERE, '..', '..', 'supabase', 'functions', 'supplier_api', 'fixtures', 'ZZDEMO_quotation_D958E1EA.pdf');
@@ -40,27 +41,9 @@ function demoOnly(who) {
 // ---- PDFs: bytes, template, language -----------------------------------------------------------
 // "A real PDF on our template with the right language": %PDF- magic, the Creator pdf_native stamps,
 // and the share of Arabic letters in the first pages' text. An Arabic document is mostly Arabic; an
-// English one is mostly not (a company name or an address in Arabic is allowed).
-export async function pdfFacts(url) {
-  if (!url) return { ok: false, why: 'no url' };
-  const r = await fetch(url).catch((e) => ({ ok: false, status: 0, e }));
-  if (!r.ok) return { ok: false, why: `HTTP ${r.status}` };
-  const bytes = new Uint8Array(await r.arrayBuffer());
-  if (Buffer.from(bytes.subarray(0, 5)).toString() !== '%PDF-') return { ok: false, why: `not a PDF (${Buffer.from(bytes.subarray(0, 12)).toString().replace(/\W+/g, ' ')})` };
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false, verbosity: 0 }).promise;
-  const meta = await doc.getMetadata().catch(() => ({ info: {} }));
-  let text = '';
-  for (let i = 1; i <= Math.min(doc.numPages, 4); i++) text += (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(' ') + '\n';
-  const letters = text.match(/\p{L}/gu) || [];
-  const arabic = letters.filter(isArabic).length;
-  return { ok: true, bytes, creator: String(meta.info?.Creator || ''), pages: doc.numPages, text, arabicShare: letters.length ? arabic / letters.length : 0 };
-}
-// pdf_native shapes Arabic before it draws it, so the text a PDF reader extracts is in the Arabic
-// PRESENTATION FORMS (U+FB50–FDFF, U+FE70–FEFF), not the base block. Measured on the first run
-// (21 Sep 2026): every Arabic document read as 0% Arabic against the base block alone.
-export const isArabic = (ch) => /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(ch);
-export const languageOf = (f) => (f.arabicShare >= 0.3 ? 'ar' : f.arabicShare < 0.2 ? 'en' : 'mixed');
+// English one is mostly not (a company name or an address in Arabic is allowed). The reading lives in
+// ./pdf_facts.mjs so a check can test it without this file's fixtures (and the token they read).
+export { pdfFacts, isArabic, languageOf };
 const pdfVerdict = (f, lang) => f.ok && f.creator === OUR_TEMPLATE && languageOf(f) === lang;
 const pdfDetail = (f, lang) => (f.ok ? `creator="${f.creator}" pages=${f.pages} arabic=${Math.round(f.arabicShare * 100)}% (want ${lang})` : f.why);
 
@@ -93,8 +76,12 @@ async function customerAudit(ctx) {
     const pdfs = {};
     for (const lang of ['en', 'ar']) pdfs[lang] = await assertPdf(ctx, C, `quotation PDF is ours and in ${lang}`, lang,
       await call('customer_api', cust.jwt, { action: 'quote_pdf', quote_id: live[0].id, lang }, 120000));
-    rep.step(C, 'the Arabic quotation is not the English file', pdfs.en?.ok && pdfs.ar?.ok && Buffer.compare(Buffer.from(pdfs.en.bytes), Buffer.from(pdfs.ar.bytes)) !== 0 ? 'PASS' : 'FAIL',
-      pdfs.en?.ok && pdfs.ar?.ok ? 'two different files' : 'one of the two did not open');
+    // Two different documents, and the Arabic one in Arabic. sameDocument refuses an empty side
+    // instead of calling it equal (pdf_facts.mjs: pdfjs used to detach the very bytes compared here).
+    const d = sameDocument(pdfs.en, pdfs.ar);
+    const langs = pdfs.en?.ok && pdfs.ar?.ok ? `en=${languageOf(pdfs.en)} ar=${languageOf(pdfs.ar)}` : 'one of the two did not open';
+    rep.step(C, 'the Arabic quotation is not the English file',
+      d.comparable && d.same === false && pdfs.ar.ok && languageOf(pdfs.ar) === 'ar' && languageOf(pdfs.en) === 'en' ? 'PASS' : 'FAIL', `${d.why}; ${langs}`);
   } else rep.step(C, 'quotation PDF in both languages', 'SKIP', 'no live quote (journey b)');
   // 2. THE COMPARISON IN BOTH LANGUAGES (journey c proves %PDF-; this proves the template and the language).
   if (ctx.inquiryId) {

@@ -85,7 +85,7 @@ try {
     // Poll the whole claim window: the blank company form must NEVER appear.
     const heading = p.getByRole('heading', { name: company });
     for (let i = 0; i < 60 && !(await heading.isVisible().catch(() => false)); i++) {
-      if (await M.getByText(AR(lang) ? 'سجّل شركتك' : 'Register your company', { exact: true }).isVisible().catch(() => false)) blank.hit = true;
+      if (await M.getByText(AR(lang) ? 'تسجيل الشركة' : 'Register your company', { exact: true }).isVisible().catch(() => false)) blank.hit = true;
       await p.waitForTimeout(500);
     }
     step(m, 'the claimed company opens — never a blank "Register your company"', !blank.hit && await heading.isVisible(), `${Date.now() - t1} ms`);

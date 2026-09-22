@@ -385,9 +385,9 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       const remaining = step ? orderFields(checklist, askOrder).filter((o) => o.f.required && !(o.key in step.details)).map((o) => questionText(o.f, lang)) : [];
       const missingReq = remaining.slice(0, 3);
       const plainAsk = ar
-        ? 'صف لنا العمل بكلماتك أنت — ماذا تريد أن تنجز، وفي أي نوع من الأماكن، وما الحجم تقريباً. وإذا كان لديك صورة أو مخطط، أرفقه وسنقرأ منه التفاصيل بدلاً عنك.'
+        ? 'صِف لنا العمل بأسلوبك: ما الذي تريد إنجازه، وفي أي نوع من المواقع، وما حجمه تقريبًا. وإن كانت لديك صورة أو مخطط فأرفقه، وسنستخلص منه التفاصيل نيابةً عنك.'
         : 'Tell me in your own words what you need done — what the job is, what kind of space it is in, and roughly how big. If you have a photo or a drawing, attach it and I will read the details off it for you instead of asking.';
-      const multiMsg = ar ? 'يبدو أن طلبك يشمل أكثر من تخصص. أخبرنا بمزيد من التفاصيل لكل جزء لنرسل طلبك للموردين المناسبين.' : 'It looks like your request covers more than one trade. Tell me a bit more about each part (scope, area/quantity and timeline for each) so I can send it to the right suppliers.';
+      const multiMsg = ar ? 'يبدو أن طلبك يشمل أكثر من تخصص. زوّدنا بمزيد من التفاصيل عن كل جزء (النطاق، والمساحة أو الكمية، والمدة الزمنية لكل منها) لنرسل طلبك إلى المورّدين المناسبين.' : 'It looks like your request covers more than one trade. Tell me a bit more about each part (scope, area/quantity and timeline for each) so I can send it to the right suppliers.';
       const firstUser = String(turns.find((t: any) => t.role === 'user')?.text || allText);
       const score = step && step.readiness.required ? Math.round(100 * step.readiness.filled / step.readiness.required) : 10;
       const provenanceStated = step ? Object.fromEntries(Object.keys(step.details).map((k) => [k, 'stated'])) : {};
@@ -399,13 +399,13 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
         const firstTurn = !prevState.asked_key && turns.filter((t: any) => t.role === 'user').length <= 1;
         const ack = firstTurn
           ? (multi ? multiMsg + ' ' : (ar ? 'فهمت. ' : `Got it — ${catLabel || category} work. `))
-          : (step.filled_now.length ? (ar ? 'تم، شكراً. ' : 'Thanks, noted. ') : '');
+          : (step.filled_now.length ? (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ') : '');
         out = { category, status: 'needs_info', assistant_message: ack + step.next.text, questions: [step.next.text], readiness: Math.min(score, 95), missing: remaining, brief: null, provenance: provenanceStated };
       } else if (step && step.complete) {
-        out = { category, status: 'ready', assistant_message: ar ? 'شكراً — لدينا الآن كل ما يحتاجه الموردون. راجع الملخص أدناه ثم اضغط «إرسال إلى الموردين».' : 'Thank you — that is everything suppliers need. Check the summary below and press Send to suppliers.', questions: [], readiness: 100, missing: [], provenance: provenanceStated, brief: buildBrief(String(category), step.details, allText, emirate, firstUser) };
+        out = { category, status: 'ready', assistant_message: ar ? 'شكرًا لك، اكتمل كل ما يحتاجه المورّدون. راجع الملخص أدناه، ثم اضغط «أرسل إلى الموردين».' : 'Thank you — that is everything suppliers need. Check the summary below and press Send to suppliers.', questions: [], readiness: 100, missing: [], provenance: provenanceStated, brief: buildBrief(String(category), step.details, allText, emirate, firstUser) };
       } else {
         // A category with no checklist rows at all: nothing to ask, so the description is the brief.
-        out = { category, status: 'ready', assistant_message: ar ? 'تم — راجع الملخص أدناه ثم أرسله للموردين.' : "Great — check the summary below and send it to matching suppliers.", questions: [], readiness: 75, missing: [], brief: buildBrief(String(category), {}, allText, emirate, firstUser) };
+        out = { category, status: 'ready', assistant_message: ar ? 'ممتاز، راجع الملخص أدناه، ثم أرسله إلى المورّدين المطابقين.' : "Great — check the summary below and send it to matching suppliers.", questions: [], readiness: 75, missing: [], brief: buildBrief(String(category), {}, allText, emirate, firstUser) };
       }
     }
 
@@ -529,10 +529,10 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       reqAnswers = rs.answers; reqRemaining = rs.remaining; reqProgress = { filled: rs.filled, total: rs.total };
       if (!rs.complete && rs.next) {
         const lead = rs.retry
-          ? (ar ? 'لم أتمكن من مطابقة إجابتك مع أحد الخيارات. اختر خياراً من الأسفل، أو «لست متأكداً». ' : "I couldn't match that to one of the answers. Tap an option below, or Not sure. ")
+          ? (ar ? 'لم أتمكن من مطابقة إجابتك مع أيٍّ من الخيارات. اختر أحد الخيارات أدناه، أو «لست متأكداً». ' : "I couldn't match that to one of the answers. Tap an option below, or Not sure. ")
           : !prevBrief.req_asked
-            ? (ar ? 'تم، شكراً. بقيت أسئلة سريعة عن المواد والتركيب والضمان والموعد، حتى يطابق كل عرض ما تريده تماماً. ' : 'Thanks, noted. A few quick questions about materials, installation, warranty and timing, so every quote matches exactly what you want. ')
-            : (ar ? 'تم، شكراً. ' : 'Thanks, noted. ');
+            ? (ar ? 'شكرًا، دوّنت ذلك. بقيت أسئلة قصيرة عن المواد والتركيب والضمان والموعد، ليأتي كل عرض مطابقًا لما تريده تمامًا. ' : 'Thanks, noted. A few quick questions about materials, installation, warranty and timing, so every quote matches exactly what you want. ')
+            : (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ');
         status = 'needs_info'; out.status = 'needs_info';
         out.assistant_message = lead + rs.next.text;
         out.questions = [rs.next.text];
@@ -575,7 +575,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     const imageOnly = !!drawingBoq && Array.isArray(drawingBoq.kinds) && drawingBoq.kinds.every((k: unknown) => k === 'image') && openBoq.length > 0;
     let cadAsked = prevBrief.cad_asked === true;
     if (imageOnly && !cadAsked) {
-      out.assistant_message = `${out.assistant_message || ''} ${ar ? 'إن كان لديك ملف CAD (DWG أو DXF) أو ملف PDF الأصلي لهذا المخطط فأرفقه، وسنعدّ منه كل جهاز بدقة.' : 'If you have the CAD file (DWG or DXF) or the original PDF of this drawing, attach it and we will count every device from it exactly.'}`.trim();
+      out.assistant_message = `${out.assistant_message || ''} ${ar ? 'إن كان لديك ملف CAD (بصيغة DWG أو DXF) أو ملف PDF الأصلي لهذا المخطط فأرفقه، لنحصي منه كل جهاز بدقة.' : 'If you have the CAD file (DWG or DXF) or the original PDF of this drawing, attach it and we will count every device from it exactly.'}`.trim();
       cadAsked = true;
     }
 

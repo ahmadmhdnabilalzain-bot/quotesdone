@@ -102,13 +102,13 @@ export function saveInline(name: string, content: string, mime: string) {
 }
 export const REVIEW_STATE: Record<ReviewState, { en: string; ar: string; tone: 'ok' | 'warn' | 'secondary' | 'outline' }> = {
   none: { en: 'Not started', ar: 'لم يبدأ', tone: 'outline' },
-  open: { en: 'Waiting for your file', ar: 'بانتظار ملفك', tone: 'outline' },
+  open: { en: 'Waiting for your file', ar: 'بانتظار ملفكم', tone: 'outline' },
   reviewing: { en: 'Being reviewed', ar: 'قيد المراجعة', tone: 'secondary' },
-  changes_requested: { en: 'Changes requested', ar: 'مطلوب تعديلات', tone: 'warn' },
-  awaiting_choice: { en: 'Approved — your choice', ar: 'معتمد — بانتظار اختيارك', tone: 'ok' },
-  awaiting_upload: { en: 'Waiting for your new version', ar: 'بانتظار نسختك الجديدة', tone: 'warn' },
+  changes_requested: { en: 'Changes requested', ar: 'تعديلات مطلوبة', tone: 'warn' },
+  awaiting_choice: { en: 'Approved — your choice', ar: 'معتمد — بانتظار اختياركم', tone: 'ok' },
+  awaiting_upload: { en: 'Waiting for your new version', ar: 'بانتظار نسختكم الجديدة', tone: 'warn' },
   ready_to_submit: { en: 'Approved — ready to submit', ar: 'معتمد — جاهز للتقديم', tone: 'ok' },
-  submitted: { en: 'Submitted', ar: 'مُقدَّم', tone: 'ok' },
+  submitted: { en: 'Submitted', ar: 'تم التقديم', tone: 'ok' },
   closed: { en: 'Closed', ar: 'مغلق', tone: 'secondary' },
 };
 

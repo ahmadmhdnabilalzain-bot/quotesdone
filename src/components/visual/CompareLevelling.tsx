@@ -8,13 +8,13 @@ import { prefersReducedMotion, useSceneGate, type SceneProps } from './gate';
 
 const ITEMS = {
   en: ['Gypsum partitions', 'Ceiling works', 'Paint & finishes', 'Doors & ironmongery', 'MEP first fix'],
-  ar: ['قواطع الجبس', 'أعمال الأسقف', 'الدهانات والتشطيبات', 'الأبواب والإكسسوارات', 'التمديدات الكهروميكانيكية الأولى'],
+  ar: ['قواطع الجبس', 'أعمال الأسقف', 'الدهانات والتشطيبات', 'الأبواب والإكسسوارات', 'التمديدات الكهروميكانيكية الأولية'],
 };
 const T = {
   en: { supplier: 'Supplier', hidden: 'identity hidden', missing: 'Missing item', best: 'Best match', reason: 'Complete scope · strongest verified track record', demo: 'Demonstration — not live data', item: 'Item',
     alt: 'Demonstration: three anonymous quotes are levelled into one table. Supplier C left out MEP first fix, which is flagged as a missing item. Supplier B is marked best match for complete scope and the strongest verified track record.' },
-  ar: { supplier: 'المورّد', hidden: 'الهوية مخفية', missing: 'بند ناقص', best: 'الأنسب', reason: 'نطاق كامل · أقوى سجل موثّق', demo: 'عرض توضيحي — ليست بيانات حيّة', item: 'البند',
-    alt: 'عرض توضيحي: تُوحَّد ثلاثة عروض مجهولة الهوية في جدول واحد. المورّد C أغفل التمديدات الكهروميكانيكية الأولى فظهر كبند ناقص، والمورّد B هو الأنسب لنطاقه الكامل وأقوى سجل موثّق.' },
+  ar: { supplier: 'المورّد', hidden: 'الهوية مخفية', missing: 'بند ناقص', best: 'الأنسب', reason: 'نطاق كامل · أقوى سجل موثّق', demo: 'عرض توضيحي، وليست بيانات فعلية', item: 'البند',
+    alt: 'عرض توضيحي: تُوحَّد ثلاثة عروض مجهولة الهوية في جدول واحد. أغفل المورّد C التمديدات الكهروميكانيكية الأولية فظهرت بندًا ناقصًا، والمورّد B هو الأنسب لنطاقه الكامل وأقوى سجل موثّق.' },
 };
 const SUPPLIERS = ['A', 'B', 'C'];
 const BEST = 1;

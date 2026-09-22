@@ -26,12 +26,12 @@
 export type RemoveRefusal = { code: 'mandatory_of_approved' | 'unknown_kind' | 'nothing_on_file'; message: string; message_ar: string };
 
 export function removeRefusal(a: { kind: string; known: boolean; onFile: boolean; required: boolean; approval_status: string | null | undefined }): RemoveRefusal | null {
-  if (!a.known) return { code: 'unknown_kind', message: 'That document type does not exist.', message_ar: 'نوع المستند هذا غير موجود.' };
-  if (!a.onFile) return { code: 'nothing_on_file', message: 'There is no file on record to remove.', message_ar: 'لا يوجد ملف مسجَّل لإزالته.' };
+  if (!a.known) return { code: 'unknown_kind', message: 'That document type does not exist.', message_ar: 'لا يوجد نوع مستند بهذا الاسم.' };
+  if (!a.onFile) return { code: 'nothing_on_file', message: 'There is no file on record to remove.', message_ar: 'لا يوجد ملف محفوظ يمكن إزالته.' };
   if (a.required && a.approval_status === 'approved') {
     return { code: 'mandatory_of_approved',
       message: 'This document is one of the six your approval rests on. It cannot be removed while your company is approved — upload a replacement instead. If it must come off, contact support and your approval will be paused first.',
-      message_ar: 'هذا المستند أحد المستندات الستة التي تقوم عليها موافقتنا على شركتك. لا يمكن إزالته ما دامت شركتك معتمدة — ارفع بديلاً بدلاً من ذلك. وإذا كان لا بد من إزالته فتواصل مع الدعم وسيُعلَّق الاعتماد أولاً.' };
+      message_ar: 'هذا المستند أحد المستندات الستة التي يقوم عليها اعتماد شركتكم، ولا يمكن إزالته ما دامت الشركة معتمدة؛ ويمكنكم رفع مستند بديل عوضًا عنه. وإن تعيّنت إزالته، فيُرجى التواصل مع فريق الدعم، وسيُعلَّق الاعتماد أولًا.' };
   }
   return null;
 }

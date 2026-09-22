@@ -7,10 +7,11 @@
 // function, so every child is re-sniffed and re-sanitized, and nesting is capped at LIMITS.maxDepth.
 //
 // WHAT NEEDS SOMETHING OUTSIDE THIS FUNCTION is said, not guessed: a photo or a scan comes back with
-// needs:'ocr' (the customer's browser OCRs it for free, see src/components/me/ocrClient.ts), a binary
-// DWG with needs:'cad_conversion', and the reason is in notes.
+// needs:'ocr' (the customer's browser OCRs it for free, see src/components/me/ocrClient.ts), a DWG past
+// dwg.ts's edge-sized ceiling, a Revit model or a MicroStation DGN with needs:'cad_conversion' /
+// 'bim_conversion', and the reason is in notes. A DWG is READ (dwg.ts, LibreDWG) since 22 Sep 2026.
 import { sanitizeUpload, SAFE_DOCS } from '../attachment.ts';
-import { type ReadContext, type ReadResult, LIMITS, empty, ok, refuse } from './types.ts';
+import { type Extracted, type ReadContext, type ReadResult, LIMITS, empty, ok, refuse } from './types.ts';
 import { readPdf } from './pdf.ts';
 import { readZip } from './zip.ts';
 import { readDocx, readOdf, readPptx, readWorkbook } from './office.ts';
@@ -18,11 +19,17 @@ import { readCsv, readRtf, readTxt } from './text.ts';
 import { readDoc, readMsg } from './ole.ts';
 import { readEml } from './email.ts';
 import { readDxf } from './cad.ts';
+import { readDwg } from './dwg.ts';
 import { readIfc } from './ifc.ts';
 import { readGaeb } from './gaeb.ts';
 
 type Reader = (bytes: Uint8Array, ctx: ReadContext) => Promise<ReadResult>;
-const needs = (kind: string, need: 'ocr' | 'cad_conversion', note: string): Reader => () => Promise.resolve(ok(empty(kind, [note], need)));
+const needs = (kind: string, need: NonNullable<Extracted['needs']>, note: string): Reader => () => Promise.resolve(ok(empty(kind, [note], need)));
+// 22 Sep 2026. These notes become the BOQ's missing_info the customer reads, so each says what to send
+// instead, in English here and in Arabic on screen (src/lib/boqNotes.ts). Reading RVT needs Autodesk's paid Model Derivative service; DGN v7 needs
+// GDAL's open DGN driver, which no edge function carries; DGN v8 is OLE2 and is not recognised by bytes.
+export const RVT_NOTE = 'A Revit model (.rvt) cannot be read here yet. Export it from Revit as IFC (File > Export > IFC) or as DWG/DXF and upload that; its quantities are then read directly.';
+export const DGN_NOTE = 'A MicroStation DGN drawing cannot be read here yet. Save it from MicroStation as DWG or DXF and upload that; its quantities are then read directly.';
 const OCR_NOTE = 'A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.';
 
 const READERS: Record<string, Reader> = {
@@ -44,7 +51,9 @@ const READERS: Record<string, Reader> = {
   'application/x-step': readIfc,
   'application/x-gaeb+xml': readGaeb,
   'application/zip': readZip,
-  'image/vnd.dwg': needs('dwg', 'cad_conversion', 'A DWG is a binary CAD format no edge function can open; export it to DXF or PDF, or it is converted by the CAD converter.'),
+  'image/vnd.dwg': readDwg,
+  'application/vnd.autodesk.revit': needs('rvt', 'bim_conversion', RVT_NOTE),
+  'image/vnd.dgn': needs('dgn', 'cad_conversion', DGN_NOTE),
   'image/jpeg': needs('image', 'ocr', OCR_NOTE),
   'image/png': needs('image', 'ocr', OCR_NOTE),
   'image/webp': needs('image', 'ocr', OCR_NOTE),

@@ -53,12 +53,12 @@ type Profile = { install: boolean; warranty: boolean; components: Component[] };
 
 // ── COMPONENTS SHARED BY SEVERAL TRADES ─────────────────────────────────────────────────────────
 const tier = (c: string, en: string, ar: string, field?: string): Component => ({ c, en, ar, field,
-  opts: [['premium', 'Premium brands', 'ماركات فاخرة'], ['mid', 'Mid-range brands', 'ماركات متوسطة'], ['economy', 'Economy', 'اقتصادية']] });
+  opts: [['premium', 'Premium brands', 'ماركات فاخرة'], ['mid', 'Mid-range brands', 'ماركات متوسطة'], ['economy', 'Economy', 'ماركات اقتصادية']] });
 const BOARD: Component = { c: 'board', en: 'Board / carcass', ar: 'الألواح والهيكل', field: 'carcass_material',
   opts: [['mr_mdf', 'Moisture-resistant MDF', 'MDF مقاوم للرطوبة'], ['plywood', 'Plywood', 'خشب رقائقي (بلاي وود)'], ['solid_wood', 'Solid wood', 'خشب طبيعي صلب'], ['particle_board', 'Particle board / chipboard', 'خشب حبيبي (شيبورد)']] };
 const finish = (field?: string): Component => ({ c: 'finish', en: 'Finish', ar: 'التشطيب', field,
   opts: [['laminate', 'Laminate', 'لامينيت'], ['acrylic', 'Acrylic (high gloss)', 'أكريليك لامع'], ['lacquer', 'Lacquer / PU paint', 'دهان لاكر أو بولي يوريثين'], ['veneer', 'Natural wood veneer', 'قشرة خشب طبيعي']] });
-const hardware = (field?: string): Component => ({ c: 'hardware', en: 'Hinges and runners', ar: 'المفصلات والمجاري', field,
+const hardware = (field?: string): Component => ({ c: 'hardware', en: 'Hinges and runners', ar: 'المفصّلات ومجاري الأدراج', field,
   opts: [['branded_soft_close', 'Branded soft-close (Blum, Hettich, Häfele)', 'ماركات بإغلاق هادئ (Blum أو Hettich أو Häfele)'], ['standard', 'Standard', 'عادية']] });
 const PIPES: Component = { c: 'pipes', en: 'Pipes', ar: 'الأنابيب',
   opts: [['ppr', 'PPR', 'أنابيب PPR'], ['copper', 'Copper', 'نحاس'], ['upvc', 'uPVC / CPVC', 'uPVC أو CPVC']] };
@@ -85,7 +85,7 @@ export const PROFILES: Record<string, Profile> = {
   'av-systems': P(true, true, [tier('equipment', 'Equipment brands', 'ماركات الأجهزة')]),
   'blinds-curtains': P(true, true, [
     { c: 'fabric', en: 'Fabric', ar: 'القماش', field: 'fabric', opts: [['blackout', 'Blackout', 'معتم بالكامل'], ['dim_out', 'Dim-out', 'نصف معتم'], ['sheer', 'Sheer', 'شفاف'], ['linen', 'Linen or cotton', 'كتان أو قطن']] },
-    { c: 'mechanism', en: 'Track or mechanism', ar: 'السكة أو آلية التشغيل', field: 'operation', opts: [['manual', 'Manual track', 'سكة يدوية'], ['motorised', 'Motorised', 'كهربائية بمحرك']] }]),
+    { c: 'mechanism', en: 'Track or mechanism', ar: 'السكة أو آلية التشغيل', field: 'operation', opts: [['manual', 'Manual track', 'سكة يدوية'], ['motorised', 'Motorised', 'سكة بمحرك كهربائي']] }]),
   carpentry: P(true, true, [BOARD, finish('material_finish'), hardware()]),
   'carpentry-joinery': P(true, true, [BOARD, finish('finish'), hardware('hardware_level')]),
   carpets: P(true, true, [{ c: 'fibre', en: 'Carpet fibre', ar: 'ألياف السجاد', field: 'fibre', opts: [['nylon', 'Nylon', 'نايلون'], ['polypropylene', 'Polypropylene', 'بولي بروبيلين'], ['wool', 'Wool', 'صوف']] }]),
@@ -132,8 +132,8 @@ export const PROFILES: Record<string, Profile> = {
   movers: P(false, false, []),
   painting: P(false, true, [
     { c: 'brand', en: 'Paint brand', ar: 'ماركة الدهان', opts: [['jotun', 'Jotun', 'جوتن'], ['national', 'National Paints', 'الدهانات الوطنية'], ['asian', 'Asian Paints', 'Asian Paints'], ['other_brand', 'Another brand', 'ماركة أخرى']] },
-    { c: 'finish', en: 'Paint finish', ar: 'لمعة الدهان', field: 'finish', opts: [['matte', 'Matte', 'مطفي'], ['silk', 'Silk / satin', 'نصف لامع'], ['gloss', 'Gloss', 'لامع']] }]),
-  pest: P(false, true, [{ c: 'treatment', en: 'Treatment', ar: 'نوع المعالجة', opts: [['standard', 'Standard', 'عادية'], ['odourless', 'Odourless, safe for children and pets', 'بدون رائحة وآمنة للأطفال والحيوانات'], ['organic', 'Organic / green', 'عضوية وصديقة للبيئة']] }]),
+    { c: 'finish', en: 'Paint finish', ar: 'درجة لمعان الدهان', field: 'finish', opts: [['matte', 'Matte', 'مطفي'], ['silk', 'Silk / satin', 'نصف لامع'], ['gloss', 'Gloss', 'لامع']] }]),
+  pest: P(false, true, [{ c: 'treatment', en: 'Treatment', ar: 'نوع المعالجة', opts: [['standard', 'Standard', 'عادية'], ['odourless', 'Odourless, safe for children and pets', 'بدون رائحة وآمنة للأطفال والحيوانات الأليفة'], ['organic', 'Organic / green', 'عضوية وصديقة للبيئة']] }]),
   plumbing: P(true, true, [PIPES,
     { c: 'fixtures', en: 'Sanitary fixtures', ar: 'الأدوات الصحية', field: 'fixtures_grade', opts: [['premium', 'Premium (Grohe, Duravit, TOTO)', 'فاخرة (Grohe أو Duravit أو TOTO)'], ['mid', 'Mid-range (RAK, Geberit, American Standard)', 'متوسطة (RAK أو Geberit أو American Standard)'], ['economy', 'Economy', 'اقتصادية']] }]),
   roofing: P(true, true, [{ c: 'membrane', en: 'Roof membrane', ar: 'غشاء السطح', opts: [['bitumen', 'Bitumen membrane', 'غشاء بيتومين'], ['pvc_tpo', 'PVC / TPO membrane', 'غشاء PVC أو TPO'], ['liquid', 'Liquid-applied coating', 'طلاء سائل']] }]),
@@ -153,7 +153,7 @@ export const PROFILES: Record<string, Profile> = {
     { c: 'finish', en: 'Pool finish', ar: 'تشطيب المسبح', opts: [['mosaic', 'Glass mosaic tiles', 'موزاييك زجاجي'], ['porcelain', 'Porcelain tiles', 'بلاط بورسلان'], ['plaster', 'Pool plaster', 'لياسة مسابح']] },
     tier('equipment', 'Pumps and filtration brands', 'ماركات المضخات والفلاتر')]),
   'tents-and-shade-structures': P(true, true, [
-    { c: 'fabric', en: 'Fabric', ar: 'القماش', field: 'fabric', opts: [['pvc', 'Standard PVC', 'PVC عادي'], ['pvdf', 'PVDF (long UV life)', 'PVDF (يدوم أطول تحت الشمس)'], ['hdpe', 'HDPE shade mesh', 'شبك تظليل HDPE']] },
+    { c: 'fabric', en: 'Fabric', ar: 'القماش', field: 'fabric', opts: [['pvc', 'Standard PVC', 'PVC عادي'], ['pvdf', 'PVDF (long UV life)', 'PVDF (أطول عمرًا تحت أشعة الشمس)'], ['hdpe', 'HDPE shade mesh', 'شبك تظليل HDPE']] },
     { c: 'frame', en: 'Frame', ar: 'الهيكل', opts: [['aluminium', 'Aluminium', 'ألمنيوم'], ['steel', 'Galvanised steel', 'حديد مجلفن']] }]),
   tiling: P(true, true, [{ c: 'grout', en: 'Grout', ar: 'الترويب', opts: [['cement', 'Cement grout', 'ترويب إسمنتي'], ['epoxy', 'Epoxy grout', 'ترويب إيبوكسي']] }]),
   upholstery: P(true, true, [{ c: 'fabric', en: 'Fabric', ar: 'القماش', field: 'fabric', opts: [['leather', 'Leather', 'جلد'], ['velvet', 'Velvet', 'مخمل'], ['linen', 'Linen or cotton', 'كتان أو قطن']] }]),
@@ -206,12 +206,12 @@ export function requirementQuestions(category: string): ReqQuestion[] {
   const qs: ReqQuestion[] = comps.map((c) => ({
     key: 'material.' + c.c, kind: 'material', label_en: c.en, label_ar: c.ar, field: c.field,
     en: `Any preference for the ${c.en.charAt(0).toLowerCase() + c.en.slice(1)}? Tap one, or type what you have in mind.`,
-    ar: `هل لديك تفضيل بخصوص ${c.ar}؟ اختر أحد الخيارات، أو اكتب ما في ذهنك.`,
+    ar: `هل لديك تفضيل في ${c.ar}؟ اختر أحد الخيارات، أو اكتب ما تفضّله.`,
     options: [...c.opts.map(o), NO_PREFERENCE], free_text: true,
   }));
-  qs.push({ key: 'installation', kind: 'installation', label_en: 'Installation', label_ar: 'التركيب', en: 'Do you need the supplier to install it, or only deliver it?', ar: 'هل تحتاج أن يقوم المورد بالتركيب، أم التوريد فقط؟', options: INSTALL, free_text: false, suggested: p.install ? undefined : 'not_needed' });
-  qs.push({ key: 'warranty', kind: 'warranty', label_en: 'Warranty', label_ar: 'الضمان', en: 'Do you need a warranty, and for how long at least?', ar: 'هل تحتاج ضماناً، وما أقل مدة تقبلها؟', options: WARRANTY, free_text: false, suggested: p.warranty ? undefined : 'not_needed' });
-  qs.push({ key: 'required_by', kind: 'required_by', label_en: 'Needed by', label_ar: 'مطلوب بحلول', en: 'By when do you need it done or delivered? Tap one, or type a date.', ar: 'متى تحتاج إنجاز العمل أو التسليم؟ اختر أحد الخيارات، أو اكتب تاريخاً.', options: WHEN, free_text: false });
+  qs.push({ key: 'installation', kind: 'installation', label_en: 'Installation', label_ar: 'التركيب', en: 'Do you need the supplier to install it, or only deliver it?', ar: 'هل تريد أن يتولّى المورّد التركيب، أم يكفي التوريد فقط؟', options: INSTALL, free_text: false, suggested: p.install ? undefined : 'not_needed' });
+  qs.push({ key: 'warranty', kind: 'warranty', label_en: 'Warranty', label_ar: 'الضمان', en: 'Do you need a warranty, and for how long at least?', ar: 'هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟', options: WARRANTY, free_text: false, suggested: p.warranty ? undefined : 'not_needed' });
+  qs.push({ key: 'required_by', kind: 'required_by', label_en: 'Needed by', label_ar: 'مطلوب بحلول', en: 'By when do you need it done or delivered? Tap one, or type a date.', ar: 'متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.', options: WHEN, free_text: false });
   return qs;
 }
 export const questionIn = (q: ReqQuestion, lang: Lang) => (lang === 'ar' ? q.ar : q.en);
@@ -425,7 +425,7 @@ export function requirementsStep(category: string, prev: Answers, askedKey: stri
     const sLabel = s && isValidAnswer(n, s) ? describe(n, s, lang) : null;
     const options = optionLabels(n, lang);
     if (sLabel && !options.includes(sLabel)) options.unshift(sLabel);
-    const hint = sLabel ? (lang === 'ar' ? ` المقترح لهذا العمل: ${sLabel}. اضغطه للتأكيد، أو اختر غيره.` : ` Suggested for this job: ${sLabel}. Tap it to confirm, or pick another.`) : '';
+    const hint = sLabel ? (lang === 'ar' ? ` الخيار المقترح لهذا العمل: ${sLabel}. اضغط عليه للتأكيد، أو اختر خيارًا آخر.` : ` Suggested for this job: ${sLabel}. Tap it to confirm, or pick another.`) : '';
     next = { key: n.key, text: questionIn(n, lang) + hint, options, suggested: sLabel };
   }
   return {
@@ -446,6 +446,8 @@ export type Stored = {
   display: { en: Row[]; ar: Row[] };
 };
 
+// Arabic number agreement: 1 شهر واحد, 2 شهران, 3-10 أشهر, 11+ شهرًا ("6 شهراً" was ungrammatical).
+const arMonths = (n: number) => n === 1 ? 'شهر واحد' : n === 2 ? 'شهران' : n >= 3 && n <= 10 ? `${n} أشهر` : `${n} شهرًا`;
 function describe(q: ReqQuestion, a: Ans, lang: Lang): string {
   const L = (x: Opt) => (lang === 'ar' ? x.ar : x.en);
   if (q.kind === 'material') {
@@ -457,7 +459,7 @@ function describe(q: ReqQuestion, a: Ans, lang: Lang): string {
     if (a.v === 'yes') {
       const x = WARRANTY.find((y) => y.months === a.min_months);
       if (x) return L(x);
-      return lang === 'ar' ? `نعم، ${a.min_months} شهراً على الأقل` : `Yes, at least ${a.min_months} months`;
+      return lang === 'ar' ? `نعم، ${arMonths(Number(a.min_months))} على الأقل` : `Yes, at least ${a.min_months} months`;
     }
     const x = WARRANTY.find((y) => y.v === a.v); return x ? L(x) : a.v;
   }

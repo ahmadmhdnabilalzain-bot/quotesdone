@@ -195,9 +195,9 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
         // customers.locale through the one helper: 'ar-AE' is Arabic too, which the exact test missed.
         const ar = asLocale(c.locale) === 'ar';
         await notify([{ type: 'clarification_requested', to_email: c.email, to_role: 'customer', inquiry_id, channel: 'email', status: 'queued',
-          subject: ar ? 'لدى أحد الموردين سؤال عن طلبك' : 'A supplier has a question about your request',
+          subject: ar ? 'استفسار من أحد المورّدين بشأن طلبكم' : 'A supplier has a question about your request',
           body: ar
-            ? ('مرحبًا ' + (c.full_name || '') + '،\n\nسأل ' + label.replace('Supplier', 'المورّد') + ' عن طلبك (' + (inq.category || '') + '):\n\n«' + text + '»\n\nافتح طلبك في QuotesDone وأجب هناك — تصل إجابتك إلى جميع الموردين المدعوين دون اسمك أو رقمك.')
+            ? ('حضرة ' + (c.full_name || 'العميل الكريم') + '،\n\nتحية طيبة وبعد،\n\nوردنا من ' + label.replace('Supplier', 'المورّد') + ' استفسار بشأن طلبكم (' + (inq.category || '') + '):\n\n«' + text + '»\n\nيُرجى فتح طلبكم على QuotesDone والرد على الاستفسار من هناك؛ إذ يصل ردّكم إلى جميع المورّدين المدعوّين دون اسمكم أو رقمكم، ليسعّروا جميعًا النطاق نفسه.')
             : ('Hi ' + (c.full_name || 'there') + ',\n\n' + label + ' asked about your ' + (inq.category || '') + ' request:\n\n"' + text + '"\n\nOpen your request on QuotesDone and answer it there. Your answer reaches every invited supplier without your name or number, so they can all quote the same scope.') }]);
       }
     } catch (_e) { /* the question is stored either way; the portal shows it on the next load */ }

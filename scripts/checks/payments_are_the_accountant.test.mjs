@@ -37,10 +37,11 @@ const FILES = ['payments_are_the_accountant_and_the_seats_close_every_refund_tog
   'the_it_engineer_closes_every_loop_it_opens.sql',
   'every_send_comes_back_to_whoever_asked.sql'];
 
-// Every payment function, as function_owner lists them. quote_pdf has an owner row and no directory
-// in this repository (it is not deployed from here); it is checked against production only.
+// Every payment function, as function_owner lists them. quote_pdf left this list on 22 Sep 2026: it is not
+// deployed and has no directory here, and every_deployed_function_has_exactly_one_right_owner.sql (PR #811)
+// removed its stale owner row; the quotation PDF is served by customer_api / supplier_api.
 export const PAYMENT_SLUGS = ['stripe_checkout', 'stripe_confirm', 'stripe_webhook', 'stripe_setup', 'stripe_setup_page',
-  'supplier_pay', 'reveal_invoice', 'quote_pdf', 'refunds_api', 'refund_flow', 'accountant'];
+  'supplier_pay', 'reveal_invoice', 'refunds_api', 'refund_flow', 'accountant'];
 
 const read = (p) => readFileSync(p, 'utf8');
 const walk = (d) => readdirSync(d).flatMap((f) => {
@@ -67,6 +68,15 @@ function kindRows() {
       const handler = named ?? (type === 'it.finding' ? 'fn_seat_answers_it_finding'
         : type === 'delivery.result' ? 'fn_delivery_result_acts' : `fn_${to}_acts_on_handoff`);
       rows.push({ type, from, to, handler });
+    }
+    // 22 Sep 2026: the INSERT ... SELECT 'type', 'from', s, '<meaning>', 'fn_handler' ... FROM unnest(array[...]) s
+    // shape (one kind to several seats) was invisible to the tuple parser above, so the four ceo.directive rows
+    // were live in production and absent from payment_handoffs.ts with this static test green. Read it too.
+    for (const t of m[0].matchAll(/select\s+'([a-z_.]+)',\s*'([a-z_]+)',\s*s,\s*'(?:[^']|'')*'(?:,\s*'(fn_[a-z0-9_]+)')?[\s\S]*?from\s+unnest\(array\[([^\]]*)\]\)\s+s\b/g)) {
+      const [, type, from, named, seats] = t;
+      for (const [, to] of seats.matchAll(/'([a-z_]+)'/g)) {
+        rows.push({ type, from, to, handler: named ?? `fn_${to}_acts_on_handoff` });
+      }
     }
   }
   return rows;
@@ -119,7 +129,9 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       || (type === 'it.finding' && sqlText.includes("fn_seat_handoff('it_engineer', v_owner, 'it.finding'"))
       || new RegExp(`p_from: '${from}', p_to: '${to}', p_type: '${type.replace('.', '\\.')}'`).test(ts)
       || (type === 'refund.remediate' && sqlText.includes("fn_seat_handoff('ceo', x.owner, 'refund.remediate'"))
-      || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"));
+      || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"))
+      // the CEO's daily plan addresses each directive to the seat the plan names
+      || (type === 'ceo.directive' && allSql.includes("fn_seat_handoff('ceo', dr->>'seat', 'ceo.directive'"));
     if (!produced) missing.push(`${k}: nothing starts it`);
   }
   assert.deepEqual(missing, []);

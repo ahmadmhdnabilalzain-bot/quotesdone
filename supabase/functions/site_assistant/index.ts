@@ -53,7 +53,7 @@ async function logLlm(row: Record<string, unknown>) {
 const RL_IP_HOUR_DEFAULT = 10;
 const RL_ACCT_HOUR_DEFAULT = 60;
 const RL_GLOBAL_DAY_DEFAULT = 1500;
-const RL_REPLY = 'I can only take a few questions at a time from each visitor, and you have reached that for now. Please try again a little later, or reach a person directly:\n+971 50 931 9355 (call or WhatsApp, Sun-Thu 9am-6pm GST)\nmanagement@quotesdone.com\nيمكنني الرد على عدد محدود من الأسئلة لكل زائر، وقد وصلت إلى هذا الحد الآن. يرجى المحاولة لاحقاً أو التواصل معنا مباشرة:\n+971 50 931 9355\nmanagement@quotesdone.com';
+const RL_REPLY = 'I can only take a few questions at a time from each visitor, and you have reached that for now. Please try again a little later, or reach a person directly:\n+971 50 931 9355 (call or WhatsApp, Sun-Thu 9am-6pm GST)\nmanagement@quotesdone.com\nأستقبل عددًا محدودًا من الأسئلة من كل زائر، وقد بلغتَ هذا الحد مؤقتًا. يُرجى المحاولة بعد قليل، أو التواصل معنا مباشرة:\n+971 50 931 9355 (اتصال أو واتساب، من الأحد إلى الخميس، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)\nmanagement@quotesdone.com';
 async function secNum(k: string, dflt: number): Promise<number> { const n = Number(await sec(k)); return Number.isFinite(n) && n > 0 ? Math.floor(n) : dflt; }
 async function rl(key: string, limit: number, seconds: number): Promise<boolean> {
   try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
@@ -496,18 +496,18 @@ Deno.serve(observe('site_assistant', async (req) => {
             : '')
           : '';
         const span = (isFinite(lo) && isFinite(hi) && lo !== hi)
-          ? `${lo} إلى ${hi} درهم` : `${isFinite(lo) ? lo : hi} درهم`;
+          ? `من ${lo} إلى ${hi} درهم` : `${isFinite(lo) ? lo : hi} درهم`;
         // The item label stays in English on purpose: it is the text the priced evidence is filed
         // under, and mistranslating a priced line item is worse than showing it as filed.
         return `${b.item}: ${span}${unit}`;
       };
       if (arReply) {
-        reply = 'هذه هي الأسعار الاسترشادية المعتادة لهذا النوع من الأعمال في الإمارات، من أدلة التكلفة المنشورة لدينا:\n\n'
+        reply = 'فيما يلي الأسعار الاسترشادية المعتادة لهذا النوع من الأعمال في الإمارات، وفق أدلة التكلفة التي ننشرها:\n\n'
           + priceBands.bands.slice(0, 4).map(moneyAr).join('\n')
           + (dated ? `\n\n(أرقام استرشادية، آخر مراجعة ${dated}.)` : '\n\n(أرقام استرشادية.)')
-          + (miss.length ? `\n\nلا ننشر نطاق سعر خاصاً بـ ${miss.join(' أو ')}، لذا ما سبق يخص هذا النشاط بشكل عام.` : '')
-          + '\n\nهذه نطاقات استرشادية للتوجيه فقط وليست عرض سعر — QuotesDone لا تسعّر العمل، الموردون هم من يفعل ذلك. '
-          + 'انشر ما تحتاجه وسنجمع لك عروض أسعار مجهولة المصدر من موردين معتمدين في الإمارات لتقارن الأرقام الحقيقية جنباً إلى جنب.';
+          + (miss.length ? `\n\nلا ننشر نطاق سعر خاصًا بـ ${miss.join(' أو ')}، لذا تنطبق الأرقام أعلاه على هذا النشاط عمومًا.` : '')
+          + '\n\nهذه النطاقات للاسترشاد فقط وليست عرض سعر؛ فالتسعير يقدّمه الموردون، لا QuotesDone. '
+          + 'قدّم طلبك، وسنجمع لك عروض أسعار من موردين معتمدين في الإمارات دون الكشف عن هوياتهم، لتقارن الأسعار الفعلية جنبًا إلى جنب.';
       } else {
         reply = 'Here is what this kind of work typically runs at in the UAE, from our published cost guides:\n\n'
           + priceBands.bands.slice(0, 4).map(money).join('\n')
@@ -523,8 +523,8 @@ Deno.serve(observe('site_assistant', async (req) => {
     // no AED figure for them. Saying that plainly beats both a guess and a deflection.
     if (!reply && !live && priceBands && priceBands.reason === 'trade_has_a_recorded_gap') {
       reply = (/[؀-ۿ]/.test(message) || uiLang === 'ar')
-        ? 'لا ننشر دليل أسعار لهذا النشاط، وأفضّل أن أخبرك بذلك على أن أخمّن رقماً. '
-          + 'الطريقة الموثوقة للحصول على رقم حقيقي هي أن تنشر ما تحتاجه — يقدّم الموردون عروضهم بشكل مجهول وتقارن الأسعار الفعلية.'
+        ? 'لا ننشر دليل أسعار لهذا النشاط، ومن الأفضل أن أوضّح لك ذلك بدل أن أخمّن رقمًا. '
+          + 'أدقّ طريقة لمعرفة السعر الفعلي أن تقدّم طلبك، فيرسل الموردون عروضهم دون الكشف عن هوياتهم، وتقارن بين أسعارهم الفعلية.'
         : 'We do not publish a price guide for that trade, and I would rather tell you that than estimate a number. '
           + 'The reliable way to get a real figure is to post what you need — suppliers quote it anonymously and you compare the actual prices.';
       answered = true;
@@ -587,6 +587,10 @@ Deno.serve(observe('site_assistant', async (req) => {
         }
       } catch (_e) { /* the visitor still gets the fallback below; a log write must not eat the turn */ }
     }
+    // An Arabic visitor used to get this last fallback in English only (instruction 586 review).
+    if (!reply && (/[؀-ۿ]/.test(message) || uiLang === 'ar')) reply = live
+      ? 'تعذّر عليّ قراءة بيانات حسابك في هذه اللحظة بسبب خلل من جهتنا. يُرجى إعادة السؤال بعد قليل، وإن تكرر ذلك فتواصل معنا اتصالًا أو عبر واتساب على +971 50 931 9355 (من الأحد إلى الخميس، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)، أو راسلنا على management@quotesdone.com.'
+      : 'يسعدني الرد على أسئلتك حول آلية عمل QuotesDone، والأسعار، وتقديم الطلبات، والانضمام كمورّد. وللتحدث مع أحد فريقنا مباشرة، تواصل معنا اتصالًا أو عبر واتساب على +971 50 931 9355 (من الأحد إلى الخميس، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)، أو راسلنا على management@quotesdone.com.';
     if (!reply) reply = live
       ? 'Something went wrong on my side just now, so I could not read your account. Please ask me again in a moment. If it keeps happening, call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.'
       : 'I can help with questions about how QuotesDone works, pricing, posting a job, or joining as a supplier. To speak with someone directly, call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.';

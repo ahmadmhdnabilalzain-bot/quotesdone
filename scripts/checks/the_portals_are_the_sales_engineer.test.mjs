@@ -10,11 +10,9 @@
 // A reachable slug passes only if it is owned by sales_engineer, OR it is a PAYMENT function owned by
 // the accountant, OR it is a documented PLATFORM SERVICE below. Payments are the accountant's (founder,
 // 14 Sep 2026: "anything related to payment is under the accountant agent"): the portal calls them,
-// they speak to nobody, and anything they need said goes to the sales engineer as a handoff. Sign-in,
-// sessions and access rules are the sales engineer's since 15 Sep 2026 (see PLATFORM_SERVICES below —
-// they were held for a future seat until then), and Support's pipe stays Support's
-// (the standing guard in scripts/sql/the_sales_engineer_owns_both_portals_end_to_end.sql refuses
-// channel slugs on sales_engineer).
+// they speak to nobody, and anything they need said goes to the sales engineer as a handoff. Sign-in
+// codes and access rules are the it_engineer's since 22 Sep 2026, and Support's delivery pipe stays
+// Support's; PLATFORM_SERVICES below names the one owner each must have, and why.
 //
 // Also refused, statically (runs in CI without a token):
 //   * an agent_actions row, a `seat:` or a `p_actor:` literal in a reachable sales-owned function
@@ -39,7 +37,7 @@ const SEAT = 'sales_engineer';
 // engineer, customer_support, the ceo or anyone else.
 export const ACCOUNTANT_SERVICES = ['stripe_checkout', 'stripe_confirm', 'supplier_pay', 'reveal_invoice', 'quote_pdf', 'refunds_api', 'refund_flow'];
 
-// 18 Sep 2026: sign-in, sessions and access rules are NO LONGER carved out here. On 15 Sep the
+// 18 Sep 2026 (SUPERSEDED on 22 Sep, see below): sign-in, sessions and access rules are NO LONGER carved out here. On 15 Sep the
 // estate moved auth_api, login_otp, mobile_otp, voice_otp, voice_otp_capture, role_guard and sup_dob
 // off the ownerless 'website' owner and onto sales_engineer, with the reason recorded in the row's
 // own note and in scripts/sql/the_ceo_decides_every_sales_engineer_report_and_every_sender_closes_
@@ -49,11 +47,30 @@ export const ACCOUNTANT_SERVICES = ['stripe_checkout', 'stripe_confirm', 'suppli
 // and role_guard. They now sit in the sales-owned set, so the check ENFORCES the 15 Sep ownership
 // instead of refusing it: "must not be sales_engineer" became "must be sales_engineer".
 // send_sms stays below because the same file gave it to customer_support, the only sender.
+//
+// 22 Sep 2026: the ceo seat's scripts/sql/every_deployed_function_has_exactly_one_right_owner.sql (PR #811,
+// applied) re-decided three groups, each on a founder ruling it cites, and this check still asserted the
+// 18 Sep map, so it was red on production doing what was decided:
+//   * sign-in codes and roles (login_otp, mobile_otp, voice_otp, voice_otp_capture, role_guard) -> it_engineer.
+//     Founder, 14 Sep 2026: sign-in is a platform service, not agent work. The portal calls them; they speak
+//     to nobody, so the sales engineer still owns every word the portal says.
+//   * ai_gateway -> it_engineer: the model switchboard every seat calls is infrastructure.
+//   * license_extract, doc_extract, extract_text -> sales_engineer: reading a supplier's licence and documents
+//     is supplier verification, the sales engineer's (ruling of 9 Sep 2026). They are no longer Support's
+//     pipe, so they leave this map and join the sales-owned set, where the check requires sales_engineer.
+// Each platform service now names the ONE owner it must have, so the check is stricter than before: it used to
+// assert only "not sales_engineer", which an ownerless or wrongly-seated row passed.
 export const PLATFORM_SERVICES = {
-  send_sms: 'sign-in / OTP (customer_support is the only sender)',
-  transcribe: 'channel (Support pipe)', ai_gateway: 'model gateway (Support pipe)',
-  extract_text: 'channel (Support pipe)', license_extract: 'channel (Support pipe)', doc_extract: 'channel (Support pipe)',
-  send_outbox: 'channel (Support pipe)', send_whatsapp: 'channel (Support pipe)',
+  send_sms: { why: 'sign-in / OTP delivery (customer_support is the only sender)', owner: 'customer_support' },
+  transcribe: { why: 'channel (Support pipe)', owner: 'customer_support' },
+  send_outbox: { why: 'channel (Support pipe)', owner: 'customer_support' },
+  send_whatsapp: { why: 'channel (Support pipe)', owner: 'customer_support' },
+  ai_gateway: { why: 'model gateway (infrastructure)', owner: 'it_engineer' },
+  login_otp: { why: 'sign-in code (platform service)', owner: 'it_engineer' },
+  mobile_otp: { why: 'sign-in code (platform service)', owner: 'it_engineer' },
+  voice_otp: { why: 'sign-in code (platform service)', owner: 'it_engineer' },
+  voice_otp_capture: { why: 'sign-in code (platform service)', owner: 'it_engineer' },
+  role_guard: { why: 'access rules (platform service)', owner: 'it_engineer' },
 };
 
 const slugs = readdirSync(FNS).filter((s) => !s.startsWith('_') && statSync(join(FNS, s)).isDirectory());
@@ -129,7 +146,10 @@ test('production: every reachable slug is owned by the sales engineer or is a pl
     if (owners.get(s) !== SEAT) bad.push(`${s}: owner=${owners.get(s) ?? '(none)'}`);
     if (binds.has(s) && binds.get(s) !== SEAT) bad.push(`${s}: llm_seat_binding=${binds.get(s)}`);
   }
-  for (const s of reach.filter((x) => PLATFORM_SERVICES[x])) if (owners.get(s) === SEAT) bad.push(`${s}: a ${PLATFORM_SERVICES[s]} slug landed on sales_engineer — the guard refuses it`);
+  for (const s of reach.filter((x) => PLATFORM_SERVICES[x])) {
+    const { why, owner } = PLATFORM_SERVICES[s];
+    if (owners.get(s) !== owner) bad.push(`${s}: a ${why} slug owned by ${owners.get(s) ?? '(none)'}, not ${owner}`);
+  }
   for (const s of reach.filter((x) => ACCOUNTANT_SERVICES.includes(x))) {
     if (owners.get(s) !== 'accountant') bad.push(`${s}: a payment function owned by ${owners.get(s) ?? '(none)'}, not the accountant`);
     if (binds.has(s) && binds.get(s) !== 'accountant') bad.push(`${s}: llm_seat_binding=${binds.get(s)}`);
