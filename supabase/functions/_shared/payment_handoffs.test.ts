@@ -50,8 +50,8 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
   assert(has('marketing.report', 'marketing', 'ceo'));
   assert(has('adspend.recorded', 'marketing', 'accountant') && has('adspend.booked', 'accountant', 'marketing'));
   assert(has('delivery.request', 'marketing', 'customer_support') && has('delivery.result', 'customer_support', 'marketing'));
-  // the CEO sends marketing nothing to act on: no approval, no directive (the report is read, not decided)
-  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'ceo' && h.to === 'marketing').length, 0);
+  // the CEO steers marketing with the daily plan's directive (it owns the demand stage) and approves nothing
+  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'ceo' && h.to === 'marketing').map((h) => h.type), ['ceo.directive']);
   // and marketing asks nobody but these three
   for (const h of HANDOFF_TYPES.filter((x) => x.from === 'marketing')) assert(['ceo', 'accountant', 'customer_support'].includes(h.to), JSON.stringify(h));
 });

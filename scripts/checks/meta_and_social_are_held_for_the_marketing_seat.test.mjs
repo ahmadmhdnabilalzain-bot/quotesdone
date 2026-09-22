@@ -21,7 +21,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { join, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
@@ -30,7 +30,9 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const HELD = new RegExp(['meta_' + 'access_token', 'meta_' + 'ad_account_id', 'postiz_' + 'api_key', 'postiz_' + 'publish_key',
   'postiz_' + 'integrations', 'graph\\.' + 'facebook\\.com'].join('|'));
 const MARKETING_ROUTINE = /^fn_(marketing|ads?)_/;   // fn_ad_decision_*, fn_ad_spend_*: the ads autopilot
-const MARKETING_DIR = ['supabase', 'functions', 'marketing'].join(sep);
+// The seat's functions: marketing, and marketing_<name> (22 Sep 2026: marketing_channels, marketing_social_inbox),
+// each registered to owner 'marketing' in function_owner by the seat's file.
+const MARKETING_DIR = /^supabase[\\/]functions[\\/]marketing(_[a-z0-9_]+)?[\\/]/;
 // Frozen. Each reads only whether the key is set, to show "connected" / "awaiting token" on a report.
 const PRESENCE_ONLY = new Set(['fn_company_snapshot', 'fn_ws_marketing']);
 
@@ -49,7 +51,7 @@ export function codeOffenders(repo = REPO) {
   for (const root of [join(repo, 'supabase', 'functions'), join(repo, 'src')]) {
     for (const p of walk(root)) {
       const rel = relative(repo, p);
-      if (rel.startsWith(MARKETING_DIR + sep)) continue;
+      if (MARKETING_DIR.test(rel)) continue;
       if (HELD.test(readFileSync(p, 'utf8'))) out.push(rel);
     }
   }

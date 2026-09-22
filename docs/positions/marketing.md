@@ -33,10 +33,15 @@ The founder, 22 Sep 2026: it "reports to the CEO for the overall picture", not f
 writes that day's report and hands it to the CEO. The CEO's handler, `fn_ceo_reads_marketing_report`,
 stamps a read receipt and closes the handoff. It approves nothing and decides nothing.
 
-The CEO's daily judgement request carries the latest report as `input.marketing`. The CEO's board
-(`fn_ceo_seat_board`) shows the seat's runs, its reports, whether the CEO read them, and the ad spend
-reported. The CEO's plan does not send marketing a `ceo.directive`, because the plan's funnel stages
-belong to other seats.
+The CEO's daily plan keeps the latest report on the day's plan row (`funnel.marketing_report`), and the
+judgement request passes it on as `input.marketing`. The CEO's board (`fn_ceo_seat_board`) shows the seat's
+runs, its reports, whether the CEO read them, and the ad spend reported.
+
+**Marketing owns the plan's demand stage** (customer requests posted). When that stage binds, the CEO sends
+marketing a `ceo.directive`, the same as it does for every other seat: a target, a deadline and a measure.
+This is steering, not an approval. `fn_seat_takes_ceo_directive` answers with the seat's duty, and the CEO
+re-measures and closes the directive. The founder-text rule is seat-aware: a directive, and so a brief line,
+may name only an active seat. The word "marketing" is no longer filtered out of the founder brief.
 
 ## 4. Ad money
 

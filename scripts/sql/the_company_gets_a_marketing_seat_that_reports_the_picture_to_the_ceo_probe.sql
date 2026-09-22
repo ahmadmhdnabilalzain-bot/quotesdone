@@ -14,7 +14,9 @@
 --      it (read_by_ceo_at set) and the handoff is done, nothing approved;
 --   E  a ZZ DEMO social conversation is refused before anything is queued; a real-shaped one opens a
 --      delivery.request to customer_support for the founder, stubbed, and no notification row is written;
---   F  fn_marketing_assist answers with the company block.
+--   F  fn_marketing_assist answers with the company block;
+--   G  (after the CEO-plan file is re-applied) the demand stage binds on marketing, and a ceo.directive to marketing is
+--      answered by fn_seat_takes_ceo_directive with the seat's duty and waits for the CEO to re-measure.
 -- VERDICT: PROBE OK only if every step above holds and no marketing handoff ended 'failed'.
 create temp table zz_probe_verdict (verdict text, detail text) on commit drop;
 do $probe$
@@ -23,7 +25,7 @@ declare
   hA bigint; hB bigint; hC bigint; r public.ad_spend_reported; v_rows_c int; v_a_status text; v_c_status text;
   v_booked_ok boolean; v_rep jsonb; v_m public.marketing_report; v_rep_status text;
   v_demo jsonb; v_demo_rows int; v_real jsonb; v_real_status text; v_notes int; v_before bigint;
-  v_assist jsonb; v_failed int; v_err text; v_close jsonb;
+  v_assist jsonb; v_failed int; v_err text; v_close jsonb; v_dec jsonb; hD bigint; v_dir public.agent_actions;
 begin
   begin
     perform set_config('app.qd_stub_founder_notify', 'on', true);
@@ -58,6 +60,19 @@ begin
 
     v_assist := public.fn_marketing_assist('how do we measure the contribution of organic SEO to reveals');
 
+    -- G. the CEO's plan: the demand stage names marketing, and a ceo.directive reaches it and is answered
+    v_dec := public.fn_ceo_plan_decide(jsonb_build_object('local_date', '2099-01-25', 'day_of_month', 15, 'days_in_month', 31,
+               'gates', jsonb_build_object('invite_enabled', true, 'supplier_outreach_golive', true, 'invite_daily_cap', 100),
+               'month_to_date', jsonb_build_object('invitations_delivered', 5000, 'registrations_submitted', 500, 'registrations_verified', 500,
+                                                   'inquiries_posted', 0, 'quote_coverage_pct', null, 'reveals_paid', 0, 'fee_aed', 0),
+               'last_7_days', jsonb_build_object('inquiries_posted', 0),
+               'state', jsonb_build_object('bounce_pct_7d', 1, 'stranded_submissions', 0)),
+             jsonb_build_object('invites', 2200, 'registered', 90, 'verified', 65, 'inquiries', 70, 'reveals', 30, 'fee_aed', 45000), null);
+    hD := public.fn_seat_handoff('ceo', 'marketing', 'ceo.directive', 'ceo_plan', 'zzprobe:' || v_ref,
+            jsonb_build_object('stage', 'demand', 'measure_key', 'inquiries_posted', 'direction', 'min', 'target', 1,
+                               'due_at', now() + interval '7 days', 'demo', true));
+    select * into v_dir from public.agent_actions where id = hD;
+
     select count(*) into v_failed from public.agent_actions
      where kind = 'handoff' and status = 'failed' and created_at = now()
        and (agent = 'marketing' or detail->>'from' = 'marketing');
@@ -75,12 +90,14 @@ begin
                    and v_real_status = 'done' and v_notes = 0
                    and coalesce((v_assist->>'ok')::boolean, false) and v_assist->'company'->>'block' is not null
                    and v_failed = 0
+                   and v_dec->>'stage' = 'demand' and v_dec->'directive'->>'seat' = 'marketing' and v_dec->>'lever' = 'seat'
+                   and v_dir.agent = 'marketing' and v_dir.status = 'pending' and v_dir.detail ? 'replied_at' and v_dir.evidence->>'duty' like '%marketing%'
               then 'PROBE OK' else 'PROBE FAILED' end,
          format('A booked_verified=%s recorded_status=%s close=%s | B amount=%s revisions=%s aed=%s | C demo_rows=%s status=%s | '
                 || 'D report=%s read_at=%s handoff=%s | E demo=%s demo_rows=%s real=%s real_status=%s notifications=%s | '
-                || 'F assist_ok=%s answered=%s | failed=%s | block ended with: %s',
+                || 'F assist_ok=%s answered=%s | failed=%s | G stage=%s seat=%s lever=%s directive_agent=%s status=%s duty=%s | block ended with: %s',
                 v_booked_ok, v_a_status, v_close, r.amount, r.revisions, r.amount_aed, v_rows_c, v_c_status,
                 v_rep, v_m.read_by_ceo_at, v_rep_status, v_demo, v_demo_rows, v_real, v_real_status, v_notes,
-                v_assist->>'ok', v_assist->>'answered', v_failed, v_err);
+                v_assist->>'ok', v_assist->>'answered', v_failed, v_dec->>'stage', v_dec->'directive'->>'seat', v_dec->>'lever', v_dir.agent, v_dir.status, left(v_dir.evidence->>'duty', 60), v_err);
 end $probe$;
 select * from zz_probe_verdict;

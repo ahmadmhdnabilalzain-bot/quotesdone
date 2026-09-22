@@ -46,8 +46,11 @@
 --      edge function's 'duties' action, which resilience_ping calls every 30 minutes (resilience_step
 --      'marketing'). The TypeScript duty list is empty and real: the publishing, analytics and social-inbox
 --      builds add their duties to supabase/functions/marketing/duties.ts.
---   6. The seat lists: fn_ceo_seat_board, fn_ceo_weekly_figures and fn_it_handoff_sla_items name marketing;
---      the CEO's daily judgement request carries the latest marketing report as input.marketing.
+--   6. The seat lists: fn_ceo_seat_board, fn_ceo_weekly_figures and fn_it_handoff_sla_items name marketing.
+--   7. The CEO's plan (edited in its owning file, the_ceo_plans_every_day_and_directs_the_seats.sql, re-applied after
+--      this file): the demand stage is owned by marketing, ceo.directive reaches marketing (steering, not approval),
+--      the plan keeps the latest marketing.report as funnel.marketing_report (input.marketing for the model), and the
+--      founder-text rule is seat-aware instead of forbidding the word 'marketing'.
 --
 -- WHAT THIS DOES NOT CHANGE
 --   * No post is published, no DM is answered, no ad is bought and no Meta or Postiz call is made here.
@@ -57,9 +60,6 @@
 --     by the expense path; booking the reported figure too would count the same spend twice.
 --   * The accountant's zero-ceiling grant accountant.meta_ads_spend (the CEO approves Meta ad spend) is
 --     untouched. This file grants the marketing seat no spending authority.
---   * No ceo.directive to marketing: the CEO's plan does not direct this seat (its funnel stages are the
---     supplier and reveal stages); fn_ceo_judgement_accept's seat list is therefore unchanged.
---   * fn_ceo_founder_text_forbidden still drops any founder-brief line that says 'marketing'.
 --   * No model call, no OpenRouter route, no tier decision.
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_company_gets_a_marketing_seat_that_reports_the_picture_to_the_ceo.sql --apply --ddl
@@ -159,6 +159,16 @@ values ('marketing', 'marketing',
         'The Marketing seat''s own runtime (founder instruction 721, 22 Sep 2026). The only code allowed to name the '
         'Meta and Postiz credentials (rule 641; scripts/checks/meta_and_social_are_held_for_the_marketing_seat.test.mjs). '
         'Its duty list is supabase/functions/marketing/duties.ts; resilience_ping calls it every 30 minutes.')
+on conflict (function_slug) do update set owner = excluded.owner, note = excluded.note;
+
+-- The seat's two other functions, built in parallel (coordinator, 22 Sep 2026). Registered here, before their
+-- deploys, so the registry is never behind the estate. every_deployed_function_has_an_owner.mjs reads an owned
+-- slug that is not deployed as stale, so these three are deployed in the same window as this apply.
+insert into public.function_owner (function_slug, owner, note) values
+  ('marketing_channels', 'marketing',
+   'The marketing seat''s channels (PR #834): publishing the approved posts through Postiz and Meta, reading the analytics, reporting ad spend through fn_marketing_records_ad_spend.'),
+  ('marketing_social_inbox', 'marketing',
+   'The marketing seat''s social inbox (PR #835): answers DMs and comments from company knowledge, and hands a conversation to the founder through fn_marketing_asks_the_founder_to_take_over (founder_mail_policy social_human_request).')
 on conflict (function_slug) do update set owner = excluded.owner, note = excluded.note;
 
 insert into public.llm_seat_binding (fn, seat, note)
@@ -620,48 +630,9 @@ insert into public.resilience_step (step, every, budget_ms, place, rank, note) v
 on conflict (step) do update set every = excluded.every, budget_ms = excluded.budget_ms, place = excluded.place,
                                 rank = excluded.rank, note = excluded.note;
 
--- ── 17. THE CEO READS THE MARKETING PICTURE IN ITS DAILY JUDGEMENT ────────────────────────────────
--- input.marketing is the latest report. It is information for the plan, not a seat the plan directs.
-create or replace function public.fn_ceo_judgement_contract()
-returns jsonb language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  select jsonb_build_object(
-    'version', 'ceo-judgement-v1',
-    'system', 'You are the chief executive of QuotesDone, a UAE construction-procurement marketplace. Customers post requests; verified suppliers quote; the customer sees a free comparison of the best three technical quotes plus every other quote, and pays a 3% reveal fee (plus card processing) to reveal the supplier they choose. Suppliers pay no commission. The company goal is AED 1,000,000 of reveal-fee revenue by 31 August 2027. You direct four seats: sales_engineer, customer_support, accountant, it_engineer. The marketing seat reports its overall picture to you in input.marketing: read it as information, it is not a seat you direct here. Decide ONLY from the numbers in the input; never invent one. You may not move money, change a supplier or customer record, message a customer, a supplier or the founder, or touch any founder switch. The supplier invitation campaign (its go, its switches, its daily volume and ramp), subscriptions and seats that do not exist yet are not yours to propose or mention: when a stage is held by them, choose hold_reserved and leave founder_decision null. founder_decision is only for a stage a seat can move that has not moved in 14 days despite directives. Choose exactly one option id from input.options. Give your reasoning in at most eight sentences, citing the input numbers you relied on. Make one measurable prediction. Reply with a single JSON object matching output_schema and nothing else.',
-    'input_fields', jsonb_build_array('date','goal','month_target','funnel','attainment','constraint','open_directives','options','plan_c_choice','marketing'),
-    'output_schema', jsonb_build_object(
-      'option_id', 'one of input.options[].id',
-      'reasoning', 'string, 40-2000 characters, cites input numbers',
-      'prediction', jsonb_build_object('measure_key','one of the measure keys in input.funnel','direction','min|max','value','number >= 0','by_date','YYYY-MM-DD, 1-30 days after input.date'),
-      'directives', 'array of at most 3: {seat: sales_engineer|customer_support|accountant|it_engineer, stage, measure_key, direction, target >= 0, due_days 1-14, instruction <= 400 characters}',
-      'founder_decision', 'null, or <= 300 characters naming the one decision only the founder can take'),
-    'plan_c', 'If the slot is off, the call fails, or the answer fails validation, the coded decision already taken stands and the rejection is recorded on the plan.')
-$fn$;
-revoke execute on function public.fn_ceo_judgement_contract() from public, anon, authenticated;
-
-create or replace function public.fn_ceo_judgement_request(p_plan_id bigint)
-returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-declare p public.ceo_plan; c jsonb := public.fn_ceo_judgement_contract();
-begin
-  select * into p from public.ceo_plan where id = p_plan_id;
-  if not found then return null; end if;
-  return jsonb_build_object('contract', c->>'version', 'system', c->>'system', 'output_schema', c->'output_schema',
-    'input', jsonb_build_object(
-      'date', p.plan_date, 'goal', 'AED 1,000,000 cumulative reveal fees by 2027-08-31',
-      'month_target', p.month_target, 'funnel', p.funnel - 'gates' || jsonb_build_object('founder_switches', p.funnel->'gates'),
-      'attainment', p.decision->'attainment',
-      'constraint', jsonb_build_object('stage', p.stage, 'label', p.decision->>'label', 'lever', p.decision->>'lever',
-                                       'since', p.constraint_since, 'days', p.decision->'days_on_constraint', 'stalled', p.decision->'stalled'),
-      'open_directives', (select coalesce(jsonb_agg(jsonb_build_object('seat', a.agent, 'stage', a.detail->>'stage', 'measure_key', a.detail->>'measure_key',
-                                   'target', a.detail->'target', 'due_at', a.detail->>'due_at', 'reply', a.evidence)), '[]'::jsonb)
-                            from public.agent_actions a where a.kind='handoff' and a.detail->>'type'='ceo.directive' and a.status='pending'),
-      'options', p.decision->'options', 'plan_c_choice', p.decision->>'plan_c_choice',
-      -- 22 Sep 2026 (instruction 721): the marketing seat's latest daily report, read not approved.
-      'marketing', (select jsonb_build_object('report_date', m.report_date, 'no_data_yet', m.no_data_yet,
-                                              'headline', m.figures->>'headline', 'measured', m.figures->'measured',
-                                              'not_measured', m.figures->'not_measured')
-                      from public.marketing_report m where m.report_date <= p.plan_date order by m.report_date desc limit 1)));
-end $fn$;
-revoke execute on function public.fn_ceo_judgement_request(bigint) from public, anon, authenticated;
+-- ── 17. THE CEO'S PLAN (demand owned by marketing, ceo.directive to marketing, the report read into the plan,
+-- the seat-aware founder-text rule) lives in its owning file, the_ceo_plans_every_day_and_directs_the_seats.sql,
+-- which is edited in the same PR and re-applied AFTER this one.
 
 -- ── 18. THE SEAT LISTS THAT ARE LITERALS NAME THE SIXTH SEAT ────────────────────────────────────
 -- Copied from the live definitions (22 Sep 2026) with only the seat list changed, plus the marketing
