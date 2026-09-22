@@ -384,6 +384,16 @@
   "ff564000c32a",
   "ffafacc477aa"
  ],
+ "scripts/sql/an_unmatched_question_gets_a_proper_answer.sql": [
+  "5962f01deb2f",
+  "693c2ec882a6",
+  "6cb1c854b0e7",
+  "921c9153c940",
+  "9c93fda187a0",
+  "9d9838265714",
+  "9e64c11d99df",
+  "e46ed30c27c0"
+ ],
  "scripts/sql/every_arabic_message_is_written_not_translated.sql": [
   "031d0af3af9c",
   "03ca1e1afe2a",
