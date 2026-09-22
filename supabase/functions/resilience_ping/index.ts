@@ -7,7 +7,7 @@
 // external monitor can wire it with just the URL.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { carriedFailures, type Failure, failureOf, runSteps, type Step, type StepState, stepRows } from './steps.ts';
+import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
@@ -440,7 +440,7 @@ async function dropboxVerifyTick(): Promise<unknown> {
     });
     const reconcile_run = { status: r.status, result: await r.json().catch(() => null) };
     // deno-lint-ignore no-explicit-any
-    return { ...(data as any), reconcile_run, ...(r.ok ? {} : { ok: false, error: 'dropbox_backup reconcile answered HTTP ' + r.status }) };
+    return { ...(data as any), reconcile_run, ...(r.ok ? {} : { ok: false, error: httpHopError('dropbox_backup reconcile', r.status, reconcile_run.result) }) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 

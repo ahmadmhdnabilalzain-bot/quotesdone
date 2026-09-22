@@ -58,6 +58,17 @@ Deno.test('a nested step that threw, or failed before it had sub-results, is sti
   ], 'each failure is named once, at the level it happened');
 });
 
+// 22 Sep 2026: backupVerify recorded "dropbox_backup reconcile answered HTTP 500" for two days while
+// dropbox_backup's reply carried the cause. Replays that exact reply: the step's error must carry it.
+import { httpHopError } from './steps.ts';
+Deno.test('backupVerify records the error the reconcile answered with, not only its HTTP status', () => {
+  const reply = { ok: false, mode: 'reconcile', error: 'apply canceling statement due to statement timeout' };
+  const e = httpHopError('dropbox_backup reconcile', 500, reply);
+  eq(e, 'dropbox_backup reconcile answered HTTP 500: apply canceling statement due to statement timeout', 'the cause is in the row');
+  eq(failureOf({ ok: false, error: e }), e, 'and the step fails with it');
+  eq(httpHopError('dropbox_backup reconcile', 502, null), 'dropbox_backup reconcile answered HTTP 502', 'a body that is not JSON still names the status');
+});
+
 // 21 Sep 2026: duty:heartbeat:backupVerify was closed 15 minutes after each failure because the step
 // (every 6 h) was not due on the next tick. Replays that state: it must stay failing until it passes.
 import { carriedFailures } from './steps.ts';

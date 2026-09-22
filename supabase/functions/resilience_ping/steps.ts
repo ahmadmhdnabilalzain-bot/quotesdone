@@ -19,6 +19,15 @@ export function failureOf(r: unknown): string | null {
   return null;
 }
 
+// The error a failed HTTP hop records, with the error the callee gave (22 Sep 2026). backupVerify
+// recorded only "dropbox_backup reconcile answered HTTP 500" for two days while the body said
+// "apply canceling statement due to statement timeout" -- the cause was in the reply and not in the row.
+export function httpHopError(what: string, status: number, body: unknown): string {
+  const b = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+  const why = typeof b.error === 'string' ? b.error : typeof b.message === 'string' ? b.message : '';
+  return (what + ' answered HTTP ' + status + (why ? ': ' + why : '')).slice(0, 300);
+}
+
 // Runs every step in order. A step not started by `deadlineMs` after `t0` is skipped and counted as
 // failing, unless it is `always` (the mail drains: skipping them would hold a message a whole beat).
 export async function runSteps(steps: Step[], t0: number, deadlineMs: number, now: () => number = Date.now) {
