@@ -4,7 +4,7 @@ import type { Lang } from './model';
 
 const EN = {
   projects: 'Projects',
-  projects_sub: 'Group your RFQs under the job they belong to.',
+  projects_sub: 'Group your requests under the job they belong to.',
   new_project: 'New project',
   create_project: 'Create project',
   edit_project: 'Edit project',
@@ -24,16 +24,16 @@ const EN = {
 
   empty_title: 'You have no projects yet',
   empty_body:
-    'A project is a container for the RFQs that belong to one job — a tower, a fit-out, a shipment. Create one, then link your requests to it.',
+    'A project is a container for the requests that belong to one job — a tower, a fit-out, a shipment. Create one, then link your requests to it.',
 
-  no_rfqs_title: 'No RFQs are linked to this project yet',
+  no_rfqs_title: 'No requests are linked to this project yet',
   no_rfqs_body:
-    'Nothing has been linked, so the figures below that come from RFQs have nothing to count. Link a request to this project and they will fill in.',
+    'Nothing has been linked, so the figures below that come from requests have nothing to count. Link a request to this project and they will fill in.',
 
   k_budget: 'Budget',
   k_pipeline: 'Pipeline value',
-  k_active_rfqs: 'Active RFQs',
-  k_rfqs: 'RFQs',
+  k_active_rfqs: 'Active requests',
+  k_rfqs: 'Requests',
   k_awarded: 'Awarded',
   k_categories: 'Categories sourced',
   k_suppliers: 'Suppliers awarded',
@@ -46,12 +46,12 @@ const EN = {
   target_date: 'Target date',
   created: 'Created',
   elapsed_note: 'Elapsed since the project was created. This is time, not work completed.',
-  pipeline_note: 'Sum of the expected value of every linked RFQ.',
-  categories_note: 'Taken from the category of each linked RFQ.',
-  suppliers_note: 'Suppliers hired on a linked RFQ.',
+  pipeline_note: 'Sum of the expected value of every linked request.',
+  categories_note: 'Taken from the trade of each linked request.',
+  suppliers_note: 'Suppliers hired on a linked request.',
   no_suppliers_yet: 'No supplier hired yet',
   no_categories_yet: 'No categories yet',
-  not_from_rfqs: 'No linked RFQs',
+  not_from_rfqs: 'No linked requests',
 
   f_name: 'Project name',
   f_name_ph: 'e.g. Dubai Marina tower — fit-out',
@@ -66,8 +66,8 @@ const EN = {
   st_completed: 'Completed',
   st_archived: 'Archived',
 
-  linked_rfqs: 'Linked RFQs',
-  link_rfq: 'Link an RFQ',
+  linked_rfqs: 'Linked requests',
+  link_rfq: 'Link a request',
   link: 'Link',
   linking: 'Linking…',
   unlink: 'Unlink',
@@ -82,7 +82,7 @@ const EN = {
   th_status: 'Status',
   th_created: 'Created',
   th_actions: 'Actions',
-  rfq_table_caption: 'RFQs linked to this project',
+  rfq_table_caption: 'Requests linked to this project',
   open_rfq: 'Open',
   untitled_rfq: 'Untitled request',
   awarded_badge: 'Awarded',
@@ -92,7 +92,7 @@ type Key = keyof typeof EN;
 
 const AR: Partial<Record<Key, string>> = {
   projects: 'المشاريع',
-  projects_sub: 'رتّب طلبات عروض الأسعار حسب المشروع الذي تتبعه.',
+  projects_sub: 'رتّب طلباتك حسب المشروع الذي تتبعه.',
   new_project: 'مشروع جديد',
   create_project: 'إنشاء المشروع',
   edit_project: 'تعديل المشروع',
@@ -111,7 +111,7 @@ const AR: Partial<Record<Key, string>> = {
   err_save: 'تعذّر حفظ هذا المشروع.',
   empty_title: 'لا توجد لديك مشاريع بعد',
   empty_body:
-    'يجمع المشروع طلبات عروض الأسعار لعمل واحد، كبرج أو تجهيز داخلي أو شحنة. أنشئ مشروعًا ثم اربط به طلباتك.',
+    'يجمع المشروع طلباتك لعمل واحد، كبرج أو تجهيز داخلي أو شحنة. أنشئ مشروعًا ثم اربط به طلباتك.',
   no_rfqs_title: 'لا توجد طلبات مرتبطة بهذا المشروع بعد',
   no_rfqs_body:
     'لم يُربط أي طلب بعد، لذا تبقى الأرقام المستمدة من الطلبات أدناه فارغة. اربط طلبًا بهذا المشروع لتظهر القيم.',

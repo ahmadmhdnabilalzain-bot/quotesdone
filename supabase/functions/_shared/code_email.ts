@@ -1,7 +1,10 @@
 // THE ONE-TIME CODE EMAIL, in the person's registered language (14 Sep 2026, agent: customer_support).
 // login_otp (sign-in) and kyc (email confirmation) each carried a near-identical copy of this; one
 // builder now serves both, and code_email.test.ts proves the Arabic version carries no English.
-const LOGO = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/public/brand/icon_192.png';
+// Our own domain, not the project's storage host (22 Sep 2026): a link whose host is a run of
+// consonants scores URI_NOVOWEL in spam filters. quotesdone.com/m/brand serves the same bucket
+// (send_outbox moves its template images the same way); this path answered 200 on 22 Sep.
+const LOGO = 'https://quotesdone.com/m/brand/icon_192.png';
 
 const COPY = {
   signin: {
