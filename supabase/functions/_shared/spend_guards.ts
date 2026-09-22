@@ -73,7 +73,6 @@ export type AiSubject = {
   customer_id?: string | null;
   supplier_id?: string | number | null;
   email?: string | null;
-  phone?: string | null;
 };
 
 /** Keep only the keys the database check reads, as strings; null when nothing is named. */
@@ -81,7 +80,7 @@ export function subjectOf(v: unknown): AiSubject | null {
   if (!v || typeof v !== 'object') return null;
   const s = v as Record<string, unknown>;
   const out: Record<string, string> = {};
-  for (const k of ['inquiry_id', 'customer_id', 'supplier_id', 'email', 'phone']) {
+  for (const k of ['inquiry_id', 'customer_id', 'supplier_id', 'email']) {
     const x = s[k];
     if (x !== null && x !== undefined && String(x).trim() !== '') out[k] = String(x).trim().slice(0, 200);
   }

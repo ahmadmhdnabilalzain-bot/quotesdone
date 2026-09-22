@@ -7,7 +7,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { T, tf } from './portalText.ts';
 
-const KEYS = ['nr_not_prepared', 'nr_partial_none', 'nr_drawing_held'];
+const KEYS = ['nr_not_prepared', 'nr_partial_none', 'nr_drawing_held', 'nr_drawing_held_boq'];
 
 test('every held-drawing string exists in English and Arabic', () => {
   for (const k of KEYS) { assert.ok(T.en[k], k + ' en'); assert.ok(T.ar[k], k + ' ar'); }

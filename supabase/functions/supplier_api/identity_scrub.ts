@@ -2,6 +2,7 @@
 // sales_engineer) so the drawing chain test (drawing_boq/drawing_chain.test.ts) runs the SAME code the inbox
 // runs on a BOQ before a supplier sees it, rather than a copy. Behaviour is byte-for-byte what index.ts had.
 import { redactBoq } from '../_shared/anonymise.ts';
+import { neutraliseCadLines } from '../_shared/cad_identity.ts';
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from '../_shared/identity_numbers.ts';
 // ANONYMITY FIX 27 Jul 2026 -------------------------------------------------------------------
 // submit_quote stored the supplier's typed scope / conditions / exclusions / notes with nothing
@@ -78,8 +79,11 @@ export function scrubDeep(v: unknown, ownName: unknown, hits: string[]): unknown
  * own name; redactBoq removes the buyer's seed terms and the generic identifiers, then residual-scans.
  * Anything still identifying HOLDS the BOQ (boq null, withheld true). It never fails open.
  */
+// 22 Sep 2026: a CAD take-off's layer and block names are neutralised here too (cad_identity rule 2), so a
+// BOQ stored before customer_api scrubbed CAD names — or a DWG's, whose file customer_api cannot read —
+// never shows a supplier "linework on layer <consultant>-M-DUCT".
 export function inboxBoq<T>(boq: T | null | undefined, buyerName: string | null, seeds: string[], hits: string[]): { boq: T | null; withheld: boolean } {
   if (!boq) return { boq: null, withheld: false };
-  const r = redactBoq(scrubDeep(boq, buyerName, hits) as T, seeds);
+  const r = redactBoq(scrubDeep(neutraliseCadLines(boq), buyerName, hits) as T, seeds);
   return r.held ? { boq: null, withheld: true } : { boq: r.boq, withheld: false };
 }

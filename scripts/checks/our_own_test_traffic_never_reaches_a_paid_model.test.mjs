@@ -29,6 +29,14 @@ test('the gateway answers a fixture before it reads the provider key', () => {
   assert.match(gw, /outcome: 'fixture_no_spend'/);
 });
 
+test('the fixture marker is one only the harness can set, never a name, domain or number a user types', () => {
+  const sql = read('scripts/sql/our_own_test_traffic_never_reaches_a_paid_model.sql');
+  const body = sql.slice(sql.indexOf('create or replace function public.fn_ai_subject_is_fixture'), sql.indexOf('comment on function'));
+  assert.match(body, /public\.rehearsal_window/, 'a harness identity must be proved by its rehearsal_window row');
+  for (const typed of ['fn_is_demo_email', 'fn_is_demo_phone', 'is_demo', 'fn_seat_clock_customer_is_fixture', 'fn_seat_clock_lead_is_fixture', 'fn_inquiry_is_demo', 'zz'])
+    assert.ok(!body.toLowerCase().includes(typed.toLowerCase()), `fn_ai_subject_is_fixture must not trust ${typed}: a customer can set it at sign-up`);
+});
+
 // The consumers the post-merge smoke and the nightly journey drive (scripts/e2e/run.mjs journeys a, b, c).
 const NAMES_SUBJECT = {
   'supabase/functions/quote_compare/index.ts': /fn: 'quote_compare', subject: \{ inquiry_id/,
