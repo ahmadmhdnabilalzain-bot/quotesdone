@@ -9,6 +9,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
+import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
@@ -40,7 +41,7 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 
 async function twilioSend(acct: string, ks: string, kk: string, from: string, to: string, body: string){
   const auth = btoa(ks + ':' + kk);
-  const form = new URLSearchParams({ To: to, From: from, Body: body });
+  const form = new URLSearchParams({ To: to, From: from, Body: body, StatusCallback: statusCallbackUrl() });
   const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${acct}/Messages.json`, { method: 'POST', headers: { 'Authorization': 'Basic ' + auth, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
   const jd = await r.json().catch(() => ({}));
   return { ok: r.ok, status: r.status, sid: jd?.sid || null, error: r.ok ? null : (jd?.message || ('http ' + r.status)) };
@@ -72,7 +73,9 @@ Deno.serve(observe('send_sms', async (req) => {
       const to = normPhone(String(n.to_phone || '')); if (!to) { await admin.from('notifications').update({ status: 'failed' }).eq('id', n.id); failed++; badPhone++; continue; }
       if (isDemoPhone(to)) { await admin.from('notifications').update({ status: 'suppressed', last_error: FIXTURE_CAPTURE_NOTE }).eq('id', n.id); continue; }
       const res = await twilioSend(acct, ks, kk, from, to, String(n.body || '').slice(0, 600));
-      await admin.from('notifications').update({ status: res.ok ? 'sent' : 'failed', sent_at: res.ok ? new Date().toISOString() : null, last_error: res.ok ? null : String(res.error).slice(0,300) }).eq('id', n.id);
+      // 22 Sep 2026: the SID is stored, as send_whatsapp does, so wa_status can match Twilio's delivered /
+      // undelivered report to this row. Before this an SMS was 'sent' with nothing to match it by.
+      await admin.from('notifications').update({ status: res.ok ? 'sent' : 'failed', sent_at: res.ok ? new Date().toISOString() : null, provider_message_id: res.ok ? res.sid : null, last_error: res.ok ? null : String(res.error).slice(0,300) }).eq('id', n.id);
       if (res.ok) sent++; else { failed++; lastErr = String(res.error || '').slice(0, 200); }
     }
     // Idle polls (nothing queued) stay out of agent_runs so real events are not buried.

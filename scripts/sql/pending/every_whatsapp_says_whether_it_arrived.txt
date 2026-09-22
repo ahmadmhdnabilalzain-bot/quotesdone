@@ -1,0 +1,6 @@
+customer_support, 22 Sep 2026 (PR customer_support/every-whatsapp-says-whether-it-arrived). Not applied by the
+building session (applies are serialised by the coordinator). Rehearsed on production in a rolled-back
+transaction: verdict row PROBE OK, and every_whatsapp_says_whether_it_arrived_probe.sql PROBE OK.
+Apply order: this file (--apply --ddl, outside a campaign hour: it alters public.notifications), then deploy
+wa_status, send_whatsapp, send_sms, wa_inbound, resilience_ping, then run the probe. On apply delete this note
+and append the file to the END of MANIFEST.txt.

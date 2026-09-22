@@ -781,7 +781,19 @@ async function whatsappTick(): Promise<unknown> {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: secret, limit: 25 }), signal: AbortSignal.timeout(30000),
     });
-    return { queued: count ?? 0, status: r.status, result: await r.json().catch(() => null) };
+    const sent = { queued: count ?? 0, status: r.status, result: await r.json().catch(() => null) };
+    // THE STATUS BACKSTOP (22 Sep 2026). Twilio does not retry a lost status callback, so every tick
+    // wa_status asks Twilio directly about any WhatsApp/SMS sent 30+ minutes ago with no final status
+    // (bounded: 20 a call, each row once per 30 minutes). Its own try, so it can never stop the drain.
+    let backstop: unknown;
+    try {
+      const b = await fetch(FN + '/wa_status', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: secret, poll: true }), signal: AbortSignal.timeout(30000),
+      });
+      backstop = { status: b.status, result: await b.json().catch(() => null) };
+    } catch (e) { backstop = { ok: false, error: String((e as Error)?.message || e) }; }
+    return { ...sent, status_backstop: backstop };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -980,6 +992,12 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('usage')) return { due: false };
     await rpc('fn_it_usage_watch', { p_r: await takeUsageReadings(sec) });
     return { due: true };
+  });
+  // WhatsApp / SMS delivery health (22 Sep 2026): read from what Twilio reported — delivered, read,
+  // failed, undelivered — never from 'sent', which only ever meant Twilio accepted the message.
+  await step('whatsapp_delivery', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('whatsapp_delivery')) return { due: false };
+    return { due: true, result: await rpc('fn_it_whatsapp_delivery_health') };
   });
   // Its own step, never behind fn_it_restore_table_due: a drill that stops completing is a finding.
   await step('restore_overdue', async () => rpc('fn_it_restore_table_overdue'));
