@@ -59,3 +59,19 @@ Deno.test('login_otp: a shared number refusal carries ambiguous_phone onto the c
   const row = fnRow(r.calls);
   assert(row.includes('"ambiguous_phone":1') && !row.includes('fixture'), row);
 });
+
+// 22 Sep 2026: the harness also signs in by reserved-domain email, and those SUCCESSES were counted as customers
+// while its refused phone calls were left out -- tilting refusal_rate's share toward health. Both sides are ours.
+// These two run after earlier successes in this file, so they also fail if observe() goes back to sampling
+// login_otp's successes at one a minute (okEveryMs 0): the row they read would not be written.
+Deno.test('login_otp: a reserved test address is marked fixture on the row refusal_rate counts', async () => {
+  const r = await invoke(await fn(), {}, { action: 'send', user_kind: 'customer', identifier: 'qd-stub-login@example.invalid' });
+  assert(fnRow(r.calls).includes('"fixture":1'), 'a reserved-domain sign-in was counted as a customer: ' + fnRow(r.calls));
+});
+
+Deno.test('login_otp control: a real-looking address is NOT marked fixture', async () => {
+  const r = await invoke(await fn(), {}, { action: 'send', user_kind: 'customer', identifier: 'someone@quotesdone-customer.ae' });
+  const row = fnRow(r.calls);
+  assert(row.includes('"http":'), 'no telemetry row was written, so this control proves nothing: ' + row);
+  assert(!row.includes('fixture'), 'a real address was marked as harness traffic: ' + row);
+});

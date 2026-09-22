@@ -11,9 +11,10 @@ Deno.test('reserved domains are demo, real domains are not', () => {
                    'x@example.com.ae', '', null, undefined]) assertEquals(isDemoEmail(e), false, String(e));
 });
 
-Deno.test('only the +971 50 000 00xx block is a demo mobile', () => {
-  for (const p of ['+971500000001', '+971 50 000 0099', '971500000042', '+971-50-000-00-07']) assertEquals(isDemoPhone(p), true, p);
-  for (const p of ['+971501234567', '+971500000100', '+97150000001', '+9715000000012', '0500000001', '', null])
+// 22 Sep 2026: the local form 050 000 00xx is the same block (0500000097 read as real on customers.is_demo).
+Deno.test('only the +971 50 000 00xx block is a demo mobile, in international or local form', () => {
+  for (const p of ['+971500000001', '+971 50 000 0099', '971500000042', '+971-50-000-00-07', '0500000001', '050 000 0097']) assertEquals(isDemoPhone(p), true, p);
+  for (const p of ['+971501234567', '+971500000100', '+97150000001', '+9715000000012', '0501234567', '050000001', '05000000012', '', null])
     assertEquals(isDemoPhone(p), false, String(p));
 });
 

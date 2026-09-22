@@ -1,0 +1,1 @@
+it_engineer, 22 Sep 2026, PR it_engineer/the-alarms-say-only-what-is-true: not applied by the builder (coordinator serialises applies). Rewrites customers (4 rows) under lock_timeout 3s -- not during a campaign hour. Proved in a rolled-back apply: PROBE OK. Apply with --apply --ddl; then append to MANIFEST.txt and delete this note.

@@ -5,7 +5,7 @@ import { codeEmail } from '../_shared/code_email.ts';
 import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
-import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
+import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
 import { sendWhatsAppFirst, type VerifySent } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -214,7 +214,9 @@ Deno.serve(observe('login_otp', async (req) => {
     const idRaw = String(body.identifier || '').trim();
     const allowSignup = body.allow_signup === true;
     const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
-    fixture = isDemoPhone(toE164(idRaw));
+    // A reserved test address is the harness too (22 Sep 2026): its sign-ins that SUCCEED were still
+    // counted as customers while its refused phone calls were not, which tilts the share toward health.
+    fixture = isDemoPhone(toE164(idRaw)) || isDemoEmail(idRaw);
 
     if (action === 'send') {
       if (emailOk(idRaw)) {
@@ -441,4 +443,8 @@ Deno.serve(observe('login_otp', async (req) => {
 
     return J({ error: 'Unknown action' }, 400);
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
-}));
+// EVERY SIGN-IN IS LOGGED, NOT ONE A MINUTE (22 Sep 2026). observe() samples successes at one per 60 s per
+// isolate and logs every refusal, and refusal_rate divides refusals by the rows it finds -- so on a busy
+// minute the successes it could not see made the share of people turned away read higher than it was.
+// Sign-in traffic is small; the true denominator is worth one row per request.
+}, { okEveryMs: 0 }));
