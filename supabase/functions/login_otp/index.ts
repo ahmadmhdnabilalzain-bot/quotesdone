@@ -203,7 +203,17 @@ Deno.serve(observe('login_otp', async (req) => {
   // OUR OWN TRAFFIC IS MARKED BY THE SERVER, NOT BY THE CALLER (22 Sep 2026). Every harness and probe
   // signs in on the reserved fixture block (+971 50 000 00xx, isDemoPhone), which no real person can
   // hold. This function sees the number, so it tags the run row `fixture: 1` and fn_it_detect's
-  // refusal_rate leaves it out: the 58-of-69 "customers turned away" on 22 Sep were all fixture calls.
+  // refusal_rate leaves it out.
+  // WHAT WAS ACTUALLY MEASURED, re-derived over the whole Dubai day of 22 Sep (21 Sep 20:00Z - 22 Sep
+  // 20:00Z, agent 'fn:login_otp'): 566 runs, 415 status 'warn'. 249 of those warns carry `fixture`; 166 do
+  // NOT — and every one of the 166 is before 06:31:54Z, while the FIRST fixture-marked row is 06:50:31Z,
+  // which is when this marking reached production. Classified: 159 sit in a burst of five or more calls
+  // within 60 s (the 1x200 + 4x404 + 1x409 signature of
+  // scripts/checks/a_phone_cannot_select_an_account.test.mjs, across ap-south-1, eu-central-1 and
+  // ap-southeast-1) and 7 are lone 404s within two minutes of a resilience_ping tick (its launch-path
+  // probe asks for a code for +971 50 000 0099). 0 unexplained. That is a burst heuristic, not an
+  // identity: it says no refusal in the day has a shape a single person could produce, and the marking
+  // below is what answers the question properly from here on.
   // EVERY ROW NAMES ITS CALLER CLASS (22 Sep 2026, UNSOLVED-04). Before, only the telemetry row of a fixture
   // call said so; the semantic row this function writes itself (logRun) carried nothing, so a refusal on
   // the email path or a semantic row without a twin could not be told from a person. `caller` is 'fixture'

@@ -157,11 +157,16 @@ revoke execute on function public.fn_twilio_status_arrived(text, text, text, tex
 -- ── 5. THE BACKSTOP: WHICH MESSAGES TO ASK TWILIO ABOUT ──────────────────────────────────────────
 -- Callbacks can be lost. Claimed rows are stamped before they are returned, so the next call walks the
 -- REMAINING set, never its own last answers, and two overlapping calls never ask twice (skip locked).
--- AMENDED 22 SEP 2026 (UNSOLVED-05): the seven-day lower bound is gone. Measured on production: 35 founder
--- WhatsApps sent 9-21 Sep had provider_status null and only the 3 inside seven days were ever claimed, so
--- "recent" was the whole reason the rest were never asked about. The batch is still bounded the same way
--- (at most 50 a call, one claim per row per 30 minutes, ordered oldest-checked first), which is what keeps
--- the edge function inside its CPU budget: the work per call is capped, not the age of the backlog.
+-- AMENDED 22 SEP 2026 (UNSOLVED-05): the seven-day lower bound is gone, and it is worth being exact about
+-- what that does and does not fix. MEASURED today: rows eligible for the claim are 3 WITH the seven-day
+-- bound and 3 WITHOUT it — removing it recovers nothing right now. The 33 founder WhatsApps of 9-21 Sep
+-- that have no delivery status are excluded by the `provider_message_id <> ''` clause, not by their age:
+-- they predate the 21 Sep SID fix, so there is no message id to ask Twilio about and no poll can ever help
+-- them (they are labelled 'unrecorded' by
+-- the_records_left_behind_by_work_already_finished_are_closed_by_id.sql). The bound comes off because an
+-- age cliff silently abandons any FUTURE backlog older than a week, which is how these three got to a day
+-- old unasked. The batch stays bounded the same way (at most 50 a call, one claim per row per 30 minutes,
+-- oldest-checked first), so the work per call is capped whatever the age of the queue.
 -- A row already given up on ('unreadable') is not claimed again; a late callback can still overwrite it.
 create or replace function public.fn_twilio_status_poll_claim(p_limit int default 20)
 returns table (notification_id bigint, sid text)

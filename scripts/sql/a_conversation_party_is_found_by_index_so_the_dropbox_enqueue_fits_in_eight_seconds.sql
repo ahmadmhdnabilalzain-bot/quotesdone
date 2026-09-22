@@ -95,22 +95,25 @@ begin
   return query select 'company'::text, null::text, null::text, false;
 end $function$;
 
--- AMENDED 22 SEP 2026 (it_engineer, SEATS-05): THE ROUTINE CARRIES ITS OWN TIMEOUT, NOT THE CALLER'S 8 s.
+-- STILL CANCELLED SOMETIMES, AND A FUNCTION-LEVEL TIMEOUT CANNOT FIX IT (22 Sep 2026, it_engineer, SEATS-05).
 -- MEASURED on production today (pg_stat_statements, 266 calls of the PostgREST RPC): mean 298 ms, max
--- 7,379 ms. The index fix above brought the MEAN inside the authenticator's 8 s budget and left the worst
--- case 600 ms short of it, so a slow pass still lost everything: three cancellations — 21 Sep 09:33:20Z and
+-- 7,379 ms. The index fix above brought the MEAN well inside the caller's 8 s budget and left the worst case
+-- 600 ms short of it, so a slow pass still loses everything: three cancellations — 21 Sep 09:33:20Z and
 -- 17:38:44Z, 22 Sep 09:42:22Z — each rolled the whole enqueue back with "canceling statement due to
--- statement timeout" and logged "no new documents are being queued for Dropbox backup". A function-level
--- SET applies to the routine's own statements, so the pass gets 30 s of headroom while the authenticator's
--- 8 s still bounds every OTHER call the same session makes. The work per pass is already bounded (only
--- archive rows with no CONV row, only documents not yet queued), so a longer ceiling cannot become a longer
--- queue — it only stops a 7-second pass being thrown away 600 ms from the end.
+-- statement timeout" and logged "no new documents are being queued for Dropbox backup".
+-- A `SET statement_timeout` on this function was tried and REMOVED the same day: independent review proved
+-- on production that a timeout armed before a statement starts cannot be extended from inside it (3 s armed,
+-- 30 s set locally inside a DO block, pg_sleep(6) still died with 57014). Roles as measured: authenticator
+-- 8 s, authenticated 8 s, anon 3 s, service_role none — PostgREST arms the value before the RPC begins, so
+-- the remedy has to live in the CALLER or the ROLE, or the routine has to fit in 8 s.
+-- THIS FILE DOES NEITHER, AND SAYS SO: the cancellations above are still open work. The honest fix is to
+-- batch this scan behind a watermark so each pass is bounded by rows examined rather than by luck; that is a
+-- change to the four blocks below and belongs in its own file with its own measurement, not in a comment here.
 CREATE OR REPLACE FUNCTION public.fn_enqueue_doc_backups()
  RETURNS integer
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
- SET statement_timeout TO '30s'
 AS $function$
 declare n integer := 0; m integer;
 begin

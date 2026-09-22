@@ -252,15 +252,32 @@ end $fn$;
 revoke execute on function public.fn_customer_support_sends_the_it_digest(interval) from public, anon, authenticated;
 
 -- ── 3. THE TICK SENDS THE DIGEST LAST ─────────────────────────────────────────────────────────────
+-- ── 2b. WHAT "AN OPEN TECHNICAL PROBLEM" MEANS — ONE DEFINITION, TWO READERS ──────────────────────
+-- 22 Sep 2026 (it_engineer, UNSOLVED-11). The founder's brief counted every unclosed it_engineer_finding
+-- while this loop skips the ones its own severity function calls 'warn', so the brief said 9-10 where the
+-- digest he gets minutes later said 8. Copying the predicate into the brief would have made them agree
+-- today and drift again tomorrow — they were already two hand-copies. It is one function now, and both
+-- callers select from it. The loop below adds its OWN extra condition (a finding it has not handed off for
+-- this occurrence yet), because "is this problem open" and "must I raise it on this tick" are different
+-- questions; that condition stays where it belongs and is not part of the shared definition.
+create or replace function public.fn_it_open_findings()
+returns setof public.it_engineer_finding
+language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select f.* from public.it_engineer_finding f
+   where f.closed_at is null
+     and public.fn_it_engineer_severity(f.blast, f.affected, f.started_at) <> 'warn'
+$fn$;
+revoke execute on function public.fn_it_open_findings() from public, anon, authenticated;
+
 -- Called by fn_it_engineer_alert_tick every 15 minutes, after it has pulled the detectors. Each step
 -- is its own sub-transaction so one failing step is REPORTED in the result and does not stop the rest.
 create or replace function public.fn_it_loop_tick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text;
 begin
-  for f in select x.issue_key, x.started_at from public.it_engineer_finding x
-            where x.closed_at is null and public.fn_it_engineer_severity(x.blast, x.affected, x.started_at) <> 'warn'
-              and not exists (select 1 from public.agent_actions a
+  -- The shared definition of open (fn_it_open_findings, above), AND this loop's own extra condition.
+  for f in select x.issue_key, x.started_at from public.fn_it_open_findings() x
+            where not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
                                  and a.detail->>'issue_key' = x.issue_key
                                  and (a.detail->>'occurrence_started_at')::timestamptz = x.started_at)

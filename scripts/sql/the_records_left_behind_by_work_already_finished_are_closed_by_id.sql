@@ -22,10 +22,11 @@
 --    (app_secrets.supplier_outreach_golive = false) has never been lifted, so a 'pending' row for a day
 --    that has passed is not a plan waiting to run — that day is over and its batch will never be sent.
 --    Left as 'pending' it reads as a queue backing up. 'held' says what actually happened.
---    BEFORE: 6 rows with status 'pending' and day < today (2026-09-03, -04, -05, -06, -07 and -21; each
---    planned 50, sent 0).  AFTER: 0 such rows; the same 6 rows read 'held'. TODAY'S row is deliberately
---    NOT touched — the predicate is `day < (now() at time zone 'Asia/Dubai')::date`, so a plan that could
---    still run today keeps its status, and tomorrow's planner writes its own row as it always has.
+--    BEFORE: 6 rows with status 'pending' and a day in the past (2026-09-03, -04, -05, -06, -07 and -21;
+--    each planned 50, sent 0), plus today's 2026-09-22 row which is NOT one of them.  AFTER: those 6 read
+--    'held'. THE SIX DAYS ARE NAMED, not described: a predicate like `day < today` is true of more rows
+--    every day it is not applied, so if this file were applied a week late it would silently close days
+--    nobody measured. A future day that ends held is the planner's business, not this file's.
 --
 -- 3. THE FOUR CEO REPORTS 3075, 3076, 3084 AND 3085 (UNSOLVED-06). Each reads "A supplier_invite for the
 --    supplier did not arrive (not_sent)". Measured: their requests (agent_actions 42578, 42579, 42595,
@@ -40,10 +41,19 @@
 --    written into the completion note. No other report is touched, and no title is matched.
 --    BEFORE: these 4 at status 'sent', completed_at null.  AFTER: 4 'completed' with the note below.
 --
+-- 4. THE 33 WHATSAPPS NOBODY CAN GET A STATUS FOR (UNSOLVED-05). Measured: 33 rows, channel 'whatsapp',
+--    status 'sent', sent 9 Sep 08:00:36Z to 21 Sep 09:34:59Z, `provider_message_id` empty and
+--    provider_status null. They predate the 21 Sep fix that stores Twilio's SID, so there is no id to ask
+--    Twilio about: the backstop poll cannot claim them (it requires a message id) and no callback can ever
+--    match them. Left null they are indistinguishable from a message still on its way. They are marked
+--    'unrecorded' — a value every_whatsapp_says_whether_it_arrived.sql adds to the CHECK vocabulary in the
+--    same apply, ranked 0 so a late report would still overwrite it. This is the ONLY writer of that value,
+--    and that is deliberate: nothing running can produce a new one, because every send since 21 Sep stores
+--    its SID.  BEFORE: 33 with provider_status null.  AFTER: 33 read 'unrecorded'; 0 such rows left null.
+--
 -- ══ NOT DONE HERE ════════════════════════════════════════════════════════════════════════════════
--- Nothing is deleted. No notification, agent_action or finding is back-dated. The 33 WhatsApp rows with
--- no provider_message_id are marked 'unrecorded' by their own subject's file
--- (every_whatsapp_says_whether_it_arrived.sql owns the provider_status vocabulary), not here.
+-- Nothing is deleted. No notification, agent_action or finding is back-dated. No status is invented for a
+-- message: 'unrecorded' says the opposite — that this estate never recorded one and never can.
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_records_left_behind_by_work_already_finished_are_closed_by_id.sql --apply
 
@@ -64,7 +74,8 @@ update public.invite_schedule
                 || '(app_secrets.supplier_outreach_golive = false). Marked held by it_engineer on 22 Sep 2026 '
                 || 'so a finished day stops reading as a batch still waiting to go out.'
  where status = 'pending'
-   and day < (now() at time zone 'Asia/Dubai')::date;
+   and day in (date '2026-09-03', date '2026-09-04', date '2026-09-05', date '2026-09-06',
+               date '2026-09-07', date '2026-09-21');
 
 -- ── 3. THE FOUR FALSE-ALARM CEO REPORTS ──────────────────────────────────────────────────────────
 update public.support_ceo_report
@@ -80,14 +91,33 @@ update public.support_ceo_report
  where id in (3075, 3076, 3084, 3085)
    and status <> 'completed';
 
+-- ── 4. THE SENDS WITH NO PROVIDER MESSAGE ID ─────────────────────────────────────────────────────
+-- Runs AFTER every_whatsapp_says_whether_it_arrived.sql, which admits 'unrecorded' to the CHECK.
+update public.notifications
+   set provider_status = 'unrecorded',
+       provider_status_at = now(),
+       last_error = coalesce(last_error, 'No provider message id was stored for this send (it predates the '
+                    || '21 Sep 2026 fix), so Twilio cannot be asked what became of it and no delivery can be claimed.')
+ where channel in ('whatsapp', 'sms')
+   and status in ('sent', 'failed')
+   and coalesce(btrim(provider_message_id), '') = ''
+   and provider_status is null
+   and sent_at < timestamptz '2026-09-21 12:00:00+00';   -- the SID fix; nothing after it can qualify
+
 -- ══ VERDICT ══════════════════════════════════════════════════════════════════════════════════════
 -- Data only, so the verdict reads the rows back. Each clause names the exact subjects above.
 select case
   when (select count(*) from public.dead_letter where id in (141, 142) and resolved_at is not null) = 2
    and (select count(*) from public.dead_letter where resolved_at is null) = 0
    and (select count(*) from public.invite_schedule
-         where status = 'pending' and day < (now() at time zone 'Asia/Dubai')::date) = 0
+         where status = 'pending'
+           and day in (date '2026-09-03', date '2026-09-04', date '2026-09-05', date '2026-09-06',
+                       date '2026-09-07', date '2026-09-21')) = 0
+   and (select count(*) from public.notifications
+         where channel in ('whatsapp', 'sms') and status in ('sent', 'failed')
+           and coalesce(btrim(provider_message_id), '') = '' and provider_status is null
+           and sent_at < timestamptz '2026-09-21 12:00:00+00') = 0
    and (select count(*) from public.support_ceo_report
          where id in (3075, 3076, 3084, 3085) and status = 'completed' and completed_at is not null) = 4
-  then 'PROBE OK: the two dead letters are resolved, no past day is still a pending invite plan, and the four false-alarm reports are closed by id'
+  then 'PROBE OK: the two dead letters are resolved, the six named days are held, every send with no provider id reads unrecorded, and the four false-alarm reports are closed by id'
   else 'PROBE FAILED: the records this file names are not in the state it describes' end as verdict;

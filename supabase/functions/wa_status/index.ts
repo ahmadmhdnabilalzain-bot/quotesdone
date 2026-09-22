@@ -73,8 +73,18 @@ async function poll(): Promise<Response> {
     failures.push({ id: r.notification_id, http, code });
     // After POLL_GIVE_UP failed reads the row is marked provider_status='unreadable' with that status, so it
     // stops being asked and the IT duty reports it as unreadable rather than as silently undelivered.
-    const { data: f } = await admin.rpc('fn_twilio_status_poll_failed', { p_notification_id: r.notification_id, p_http: http, p_code: code });
-    if ((f as { gave_up?: boolean } | null)?.gave_up) gaveUp++;
+    // THE RPC'S OWN ERROR IS READ (22 Sep 2026). Discarding it hid the whole remedy: until this SQL is
+    // applied the routine does not exist, and writing 'unreadable' is refused by the live CHECK until the
+    // same apply widens it — both come back as `error` with data null, which without this branch reads as
+    // "recorded, nobody gave up" and the poll looks healthy while recording nothing. Deploy order is
+    // therefore: apply every_whatsapp_says_whether_it_arrived.sql FIRST, then deploy this function.
+    const { data: f, error: fe } = await admin.rpc('fn_twilio_status_poll_failed', { p_notification_id: r.notification_id, p_http: http, p_code: code });
+    if (fe) {
+      await logRun('error', { poll: true, notification_id: r.notification_id, http, code },
+        'wa_status could not record a failed status read on notification ' + r.notification_id + ': ' + fe.message
+        + ' — the give-up counter did not move, so this message will be asked again and again. If this says the '
+        + 'function does not exist or the status is not allowed, every_whatsapp_says_whether_it_arrived.sql has not been applied yet.');
+    } else if ((f as { gave_up?: boolean } | null)?.gave_up) gaveUp++;
   }
   // Logged only when it did something, so an idle backstop does not bury the run log.
   if (asked) await logRun(unreadable ? 'error' : 'ok', { poll: true, asked, applied, unreadable, gave_up: gaveUp, failures: failures.slice(0, 20) },
