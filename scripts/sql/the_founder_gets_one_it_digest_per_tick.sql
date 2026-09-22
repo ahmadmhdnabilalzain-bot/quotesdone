@@ -134,169 +134,48 @@ begin
 end $fn$;
 revoke execute on function public.fn_customer_support_acts_on_handoff(bigint) from public, anon, authenticated;
 
--- ── 2. SUPPORT SENDS WHAT IS HELD AS ONE DIGEST ───────────────────────────────────────────────────
--- p_floor: no digest within this long of the last one actually emailed (a stubbed test sends nothing and
--- writes no founder_alerts row, so it never moves the floor). The probe passes interval '0'.
-create or replace function public.fn_customer_support_sends_the_it_digest(p_floor interval default interval '60 minutes')
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare
-  v_stub boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
-  v_ids bigint[]; v_dup bigint[]; v_send bigint[]; v_last timestamptz; v_n int; v_lines int := 0;
-  v_event text; v_detail text; v_key text; v_res jsonb; v_fan jsonb := '[]'::jsonb; v_before bigint; x record;
-begin
-  -- Two ticks at once must not both send: the second waits, then finds nothing pending.
-  perform pg_advisory_xact_lock(hashtext('fn_customer_support_sends_the_it_digest'));
+-- ── 2. SUPPORT SENDS WHAT IS HELD AS ONE DIGEST — OWNED ELSEWHERE SINCE 22 SEP 2026 ─────────────
+-- THE DEFINITION THAT USED TO SIT HERE WAS REMOVED ON 22 SEP 2026 (it_engineer), AND THIS IS WHY.
+-- scripts/sql/the_founder_hears_from_it_once_a_day.sql (later in MANIFEST, so the canonical winner) DROPS
+-- fn_customer_support_sends_the_it_digest(interval) and defines fn_customer_support_sends_the_it_digest(
+-- p_now timestamptz default now()) in its place. Re-applying THIS file on 22 Sep re-created the dropped
+-- overload, and because both carry a default the one call the estate makes -
+-- fn_customer_support_sends_the_it_digest() inside fn_it_loop_tick - became ambiguous: agent_runs at
+-- 2026-09-22 20:01:27Z, "function public.fn_customer_support_sends_the_it_digest() is not unique", so the
+-- founder got no IT digest at all. A superseded definition left in an older file is a live routine waiting
+-- for somebody to re-apply the file, so it is gone from here rather than commented into a corner.
+-- The resurrected overload is dropped by scripts/sql/the_it_digest_has_one_signature_again.sql.
 
-  select coalesce(array_agg(a.id order by a.id), '{}') into v_ids
-    from public.agent_actions a
-   where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'pending'
-     and a.detail->>'type' = 'delivery.request' and a.detail->>'recipient_role' = 'founder'
-     and a.detail->>'kind' = 'it_new_bug' and a.evidence->>'digest' = 'pending';
-  if cardinality(v_ids) = 0 then return jsonb_build_object('sent', false, 'held', 0); end if;
 
-  select max(f.created_at) into v_last from public.founder_alerts f
-   where f.dedupe_key like 'it_new_bug_digest:%' and f.channel = 'email';  -- fn_notify_founder logs the send as 'email'
-  if v_last > now() - p_floor then
-    return jsonb_build_object('sent', false, 'held', cardinality(v_ids), 'next_after', v_last + p_floor);
-  end if;
+-- ── 2b. WHAT "AN OPEN TECHNICAL PROBLEM" MEANS — ONE DEFINITION, EVERY READER ─────────────────────
+-- 22 Sep 2026 (it_engineer, UNSOLVED-11). The founder's brief counted every unclosed it_engineer_finding
+-- while the IT loop skips the ones its own severity function calls 'warn', so the brief said 9-10 where the
+-- digest he gets minutes later said 8. Copying the predicate into the brief would have made them agree
+-- today and drift again tomorrow — they were already two hand-copies. It is one function now, and both
+-- callers select from it: fn_it_loop_tick (in the file named below, which owns the tick) adds its OWN extra
+-- condition — a finding it has not handed off for this occurrence yet — because "is this problem open" and
+-- "must I raise it on this tick" are different questions. That condition stays with the tick.
+-- It is defined HERE, and here is deliberate: this file sorts before every file that reads it
+-- (MANIFEST 1434, against 1451 for the tick and 1532 for the founder's brief).
+create or replace function public.fn_it_open_findings()
+returns setof public.it_engineer_finding
+language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select f.* from public.it_engineer_finding f
+   where f.closed_at is null
+     and public.fn_it_engineer_severity(f.blast, f.affected, f.started_at) <> 'warn'
+$fn$;
+revoke execute on function public.fn_it_open_findings() from public, anon, authenticated;
 
-  -- The per-issue promise fn_notify_founder kept: one message per problem per 24 hours.
-  select coalesce(array_agg(a.id order by a.id) filter (where exists (
-           select 1 from public.founder_alerts f
-            where f.dedupe_key = a.detail->>'dedupe_key' and f.channel in ('email', 'whatsapp', 'digested')
-              and f.created_at > now() - interval '24 hours')), '{}'),
-         coalesce(array_agg(a.id order by a.id) filter (where not exists (
-           select 1 from public.founder_alerts f
-            where f.dedupe_key = a.detail->>'dedupe_key' and f.channel in ('email', 'whatsapp', 'digested')
-              and f.created_at > now() - interval '24 hours')), '{}')
-    into v_dup, v_send
-    from public.agent_actions a where a.id = any(v_ids);
-  v_n := cardinality(v_send);
+-- ── 3. THE TICK — OWNED ELSEWHERE SINCE 22 SEP 2026 ──────────────────────────────────────────────
+-- fn_it_loop_tick was removed from this file for the same reason, and its removal is the more serious of
+-- the two: the canonical winner is
+-- scripts/sql/the_ceo_decides_every_sales_engineer_report_and_every_sender_closes_its_handoff.sql, whose
+-- body runs nine steps (the originators sweep, the CEO sales and accountant sweeps, the silence watch and
+-- the daily line among them). The copy that used to live here predates those steps, so re-applying this
+-- file on 22 Sep did not merely drift the routine - it took those steps OFF production until the winner
+-- was re-applied. The shared open-findings definition this loop now reads stays here (above), because it
+-- is defined before every file that reads it.
 
-  if v_n = 1 then
-    -- One problem reads as it always did.
-    select a.detail->>'event', a.detail->>'detail' into v_event, v_detail from public.agent_actions a where a.id = v_send[1];
-  elsif v_n > 1 then
-    with items as (
-      select a.id,
-             regexp_replace(coalesce(a.detail->>'dedupe_key', 'handoff:' || a.id), '^it_new_bug:', '') as ref,
-             regexp_replace(coalesce(a.detail->>'event', ''), '^New problem the IT engineer could not fix: ', '') as title
-        from public.agent_actions a where a.id = any(v_send)),
-    fam as (
-      select i.*, case when regexp_replace(i.ref, ':[^:]*$', '') ~ ':' then regexp_replace(i.ref, ':[^:]*$', '') else i.ref end as family
-        from items i),
-    g as (
-      select family, count(distinct ref) as n, min(title) as title, min(ref) as ref, min(id) as first_id,
-             row_number() over (order by min(id)) as rn
-        from fam group by family)
-    select count(*)::int,
-           string_agg(case when n = 1 then '- ' || left(title, 140) || ' (reference ' || ref || ')'
-                           else '- ' || n || ' problems of one kind, ' || family || ', e.g. ' || left(title, 110)
-                                || ' (references ' || family || ':...)' end,
-                      E'\n' order by rn) filter (where rn <= 15)
-      into v_lines, v_detail
-      from g;
-    -- ponytail: 15 lines keep the WhatsApp twin readable; the rest is on each handoff in the OS.
-    v_event := v_n || ' new problems the IT engineer could not fix';
-    v_detail := 'Raised since the last message, one line each; problems of one kind raised together are one line with their count.'
-             || E'\n\n' || v_detail
-             || case when v_lines > 15 then E'\n- and ' || (v_lines - 15) || ' more lines, each on its handoff in the OS' else '' end
-             || E'\n\nNothing inside the company fixed these, so each needs a code or configuration change. '
-             || 'Each stays tracked until the IT engineer confirms it is gone.';
-  end if;
-
-  if v_n > 0 then
-    v_key := 'it_new_bug_digest:' || v_send[1] || '-' || v_send[v_n];
-    if v_stub then
-      -- A TEST NEVER REACHES HIM: nothing is queued and nothing is logged as told.
-      v_res := jsonb_build_object('stubbed', true);
-    else
-      select coalesce(max(id), 0) into v_before from public.notifications;
-      perform set_config('app.qd_delivery_tracked', 'on', true);
-      v_res := public.fn_notify_founder(p_event => v_event, p_detail => v_detail, p_level => 'high',
-                                        p_kind => 'it_new_bug', p_dedupe_key => v_key, p_owner_agent => 'customer_support');
-      select coalesce(jsonb_agg(n.id order by n.id), '[]'::jsonb) into v_fan from public.notifications n
-       where n.id > v_before and n.type = 'founder_alert' and n.created_at = now();
-      perform set_config('app.qd_delivery_tracked', 'off', true);
-      -- Each problem is recorded as told, under its own key, so the 24-hour promise holds next tick --
-      -- only when he WAS told: a digest the policy routed elsewhere must not count as telling him.
-      if coalesce((v_res->>'emailed')::boolean, false) then
-        insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
-        select 'high', a.detail->>'event', 'told in ' || v_key, 'digested', a.detail->>'dedupe_key'
-          from public.agent_actions a where a.id = any(v_send);
-      end if;
-    end if;
-  end if;
-  if not v_stub and cardinality(v_dup) > 0 then
-    insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
-    select 'high', a.detail->>'event', a.detail->>'detail', 'deduped', a.detail->>'dedupe_key'
-      from public.agent_actions a where a.id = any(v_dup);
-  end if;
-
-  -- Every held request is completed with what became of it; the delivery watch takes it from there.
-  for x in select a.id, a.evidence from public.agent_actions a where a.id = any(v_ids) order by a.id loop
-    if x.id = any(v_dup) then
-      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'deduped',
-        'notify', jsonb_build_object('emailed', false, 'deduped', true, 'kind', 'it_new_bug')));
-    else
-      perform public.fn_seat_handoff_complete(x.id, (x.evidence - 'waiting') || jsonb_build_object('digest', 'sent',
-        'digest_key', v_key, 'digest_size', v_n, 'notify', v_res, 'notification_ids', v_fan, 'notification_id', v_fan->0)
-        || case when v_stub then jsonb_build_object('stubbed', true) else '{}'::jsonb end);
-    end if;
-  end loop;
-
-  return jsonb_build_object('sent', v_n > 0, 'items', cardinality(v_ids), 'problems', v_n, 'lines', v_lines,
-                            'deduped', cardinality(v_dup), 'digest_key', v_key, 'event', v_event, 'detail', v_detail,
-                            'notify', v_res, 'notification_ids', v_fan, 'stubbed', v_stub);
-end $fn$;
-revoke execute on function public.fn_customer_support_sends_the_it_digest(interval) from public, anon, authenticated;
-
--- ── 3. THE TICK SENDS THE DIGEST LAST ─────────────────────────────────────────────────────────────
--- Called by fn_it_engineer_alert_tick every 15 minutes, after it has pulled the detectors. Each step
--- is its own sub-transaction so one failing step is REPORTED in the result and does not stop the rest.
-create or replace function public.fn_it_loop_tick()
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text;
-begin
-  for f in select x.issue_key, x.started_at from public.it_engineer_finding x
-            where x.closed_at is null and public.fn_it_engineer_severity(x.blast, x.affected, x.started_at) <> 'warn'
-              and not exists (select 1 from public.agent_actions a
-                               where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
-                                 and a.detail->>'issue_key' = x.issue_key
-                                 and (a.detail->>'occurrence_started_at')::timestamptz = x.started_at)
-            order by x.started_at loop
-    begin
-      -- The playbook first: a known remedy runs once per occurrence, and the finding is handed on
-      -- only if it is still open on the next tick.
-      continue when public.fn_it_playbook_first(f.issue_key, f.started_at);
-      perform public.fn_it_loop_open(f.issue_key);
-      n_open := n_open + 1;
-    exception when others then
-      v_err := v_err || jsonb_build_object('step', 'open', 'issue_key', f.issue_key, 'error', sqlerrm);
-    end;
-  end loop;
-  o := o || jsonb_build_object('opened', n_open);
-
-  begin o := o || jsonb_build_object('reverify', public.fn_it_loop_reverify());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'reverify', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('ceo', public.fn_ceo_it_reports_sweep());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
-  -- Last, so everything this tick escalated leaves in the one message.
-  begin o := o || jsonb_build_object('digest', public.fn_customer_support_sends_the_it_digest());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'digest', 'error', sqlerrm); end;
-
-  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily', 'digest'] loop
-    perform public.fn_it_loop_stage(v_step,
-      (select string_agg(coalesce(e->>'issue_key' || ': ', '') || (e->>'error'), '; ')
-         from jsonb_array_elements(v_err) e where e->>'step' = v_step));
-  end loop;
-  return o || jsonb_build_object('ok', jsonb_array_length(v_err) = 0, 'errors', v_err);
-end $fn$;
-revoke execute on function public.fn_it_loop_tick() from public, anon, authenticated;
 
 -- ── 4. THE POLICY SAYS WHAT IT NOW DOES ───────────────────────────────────────────────────────────
 update public.founder_mail_policy

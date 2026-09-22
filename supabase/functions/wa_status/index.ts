@@ -24,6 +24,8 @@ import { statusCallbackUrl, verifyTwilioSignature } from '../_shared/twilio_stat
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const POLL_LIMIT = 20;
+/** What fn_twilio_status_poll_claim returns: one row per message to ask Twilio about. */
+export type PollRow = { notification_id: number; sid: string };
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
   try {
@@ -43,22 +45,53 @@ async function poll(): Promise<Response> {
   if (!acct || !ks || !kk) { await logRun('error', { poll: true }, 'status backstop cannot run: Twilio API key missing'); return J({ ok: false, error: 'twilio_not_configured' }); }
   const { data: due, error } = await admin.rpc('fn_twilio_status_poll_claim', { p_limit: POLL_LIMIT });
   if (error) { await logRun('error', { poll: true }, 'fn_twilio_status_poll_claim: ' + error.message); return J({ ok: false, error: error.message }, 500); }
-  let asked = 0, applied = 0, unreadable = 0;
-  for (const r of (due || []) as Array<{ id: number; provider_message_id: string }>) {
+  let asked = 0, applied = 0, unreadable = 0; let gaveUp = 0;
+  const failures: Array<{ id: number; http: number | null; code: string | null }> = [];
+  // THE CLAIM ANSWERS (notification_id, sid) (22 Sep 2026, INT-01 / SEATS-03). This loop read the
+  // notification table's own column name instead — a field the claim does not return — so every poll asked
+  // Twilio for a URL ending "undefined.json", got 404, discarded the status and called the message
+  // unreadable. Notifications 35433, 35569 and 37899 were polled that way six times; a GET by each of their
+  // real SIDs answered HTTP 200 with status 'read'.
+  for (const r of (due || []) as PollRow[]) {
     asked++;
+    let http: number | null = null; let code: string | null = null;
     try {
-      const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${acct}/Messages/${r.provider_message_id}.json`,
+      const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${acct}/Messages/${r.sid}.json`,
         { headers: { Authorization: 'Basic ' + btoa(ks + ':' + kk) }, signal: AbortSignal.timeout(8000) });
-      if (!res.ok) { unreadable++; continue; }
-      const m = await res.json();
-      const out = await record(r.provider_message_id, String(m?.status || ''), m?.error_code == null ? null : String(m.error_code), 'poll');
-      if (out?.applied) applied++;
-    } catch (_e) { unreadable++; }
+      http = res.status;
+      if (res.ok) {
+        const m = await res.json();
+        const out = await record(r.sid, String(m?.status || ''), m?.error_code == null ? null : String(m.error_code), 'poll');
+        if (out?.applied) applied++;
+        continue;
+      }
+      // Twilio's own error body names a numeric code (20404 not found, 20003 auth); keep it with the HTTP status.
+      const e = await res.json().catch(() => ({}));
+      code = e?.code == null ? null : String(e.code);
+    } catch (e) { code = String((e as Error)?.name || 'fetch_error').slice(0, 40); }
+    unreadable++;
+    failures.push({ id: r.notification_id, http, code });
+    // After POLL_GIVE_UP failed reads the row is marked provider_status='unreadable' with that status, so it
+    // stops being asked and the IT duty reports it as unreadable rather than as silently undelivered.
+    // THE RPC'S OWN ERROR IS READ (22 Sep 2026). Discarding it hid the whole remedy: until this SQL is
+    // applied the routine does not exist, and writing 'unreadable' is refused by the live CHECK until the
+    // same apply widens it — both come back as `error` with data null, which without this branch reads as
+    // "recorded, nobody gave up" and the poll looks healthy while recording nothing. Deploy order is
+    // therefore: apply every_whatsapp_says_whether_it_arrived.sql FIRST, then deploy this function.
+    const { data: f, error: fe } = await admin.rpc('fn_twilio_status_poll_failed', { p_notification_id: r.notification_id, p_http: http, p_code: code });
+    if (fe) {
+      await logRun('error', { poll: true, notification_id: r.notification_id, http, code },
+        'wa_status could not record a failed status read on notification ' + r.notification_id + ': ' + fe.message
+        + ' — the give-up counter did not move, so this message will be asked again and again. If this says the '
+        + 'function does not exist or the status is not allowed, every_whatsapp_says_whether_it_arrived.sql has not been applied yet.');
+    } else if ((f as { gave_up?: boolean } | null)?.gave_up) gaveUp++;
   }
   // Logged only when it did something, so an idle backstop does not bury the run log.
-  if (asked) await logRun(unreadable ? 'error' : 'ok', { poll: true, asked, applied, unreadable },
-    unreadable ? unreadable + ' of ' + asked + ' message statuses could not be read from Twilio; they are asked again in 30 minutes' : '');
-  return J({ ok: true, asked, applied, unreadable });
+  if (asked) await logRun(unreadable ? 'error' : 'ok', { poll: true, asked, applied, unreadable, gave_up: gaveUp, failures: failures.slice(0, 20) },
+    unreadable ? unreadable + ' of ' + asked + ' message statuses could not be read from Twilio (per-message HTTP status and Twilio code in counts.failures); '
+      + (gaveUp ? gaveUp + ' marked unreadable after repeated failures, the rest are ' : 'they are ') + 'asked again in 30 minutes' : '');
+  return J({ ok: true, asked, applied, unreadable, gave_up: gaveUp });
+
 }
 
 Deno.serve(observe('wa_status', async (req) => {

@@ -41,7 +41,7 @@ const EN = {
   sel_costs: 'Costs',
   sel_timeline: 'Timeline',
   sel_open_rfq: 'Open this request',
-  quotes_n: 'quotes received',
+  quotes_n: '{c} received',
   quotes_none: 'No quotes have arrived for this request yet.',
   quotes_unknown: 'Open this request to see its quotes.',
   sup_awarded: 'Awarded supplier',
@@ -68,7 +68,6 @@ const EN = {
   chain_node_site: 'Your site',
   chain_received: 'received',
   chain_expected: 'Expected',
-  chain_lines: 'lines',
   chain_no_qty: 'This order has no quantities listed, so we cannot show how much has arrived.',
 };
 
@@ -104,7 +103,7 @@ const AR: typeof EN = {
   sel_costs: 'التكاليف',
   sel_timeline: 'الجدول الزمني',
   sel_open_rfq: 'افتح هذا الطلب',
-  quotes_n: 'عرض سعر مستلم',
+  quotes_n: 'ورد {c}',
   quotes_none: 'لم تصل أي عروض أسعار لهذا الطلب بعد.',
   quotes_unknown: 'افتح هذا الطلب للاطلاع على عروض الأسعار.',
   sup_awarded: 'المورّد المتعاقد معه',
@@ -130,8 +129,10 @@ const AR: typeof EN = {
   chain_node_site: 'موقعك',
   chain_received: 'مستلم',
   chain_expected: 'متوقع',
-  chain_lines: 'بند',
   chain_no_qty: 'لا يتضمن أمر الشراء هذا كميات، لذا يتعذّر احتساب ما وصل منه.',
 };
 
 export const tx = (lang: Lang, k: keyof typeof EN): string => (lang === 'ar' ? AR : EN)[k];
+/** tx() with {placeholders} filled — used for the counted noun {c} (src/lib/countedNoun.ts). */
+export const txf = (lang: Lang, k: keyof typeof EN, v: Record<string, string | number>): string =>
+  tx(lang, k).replace(/\{(\w+)\}/g, (_m, n) => (v[n] == null ? '' : String(v[n])));

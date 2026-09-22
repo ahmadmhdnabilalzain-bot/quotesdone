@@ -58,6 +58,16 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // request now fails loudly after REQ_TIMEOUT_MS so a hang becomes a retry, not a silence.
 const REQ_TIMEOUT_MS = Number(process.env.QD_REQ_TIMEOUT_MS || 60000);
 
+// THE WAITS CARRY UP TO 1s OF JITTER, and the ladder matches scripts/lib/db.mjs (7 attempts, 60 s
+// cap). MEASURED 22 Sep 2026: the six-attempt, jitter-free ladder below ran out after ~94 s of
+// wall clock inside demo_factory's TEARDOWN, and
+// a_supplier_who_ignores_holds_is_warned_then_held went red with `management API 429` — the check
+// had already proved the warning, the hold and the founder-only lift, and failed while deleting
+// its own fixtures. Deterministic powers of two are the reason it ran out rather than waited:
+// several checks share one rate limiter in one job, so a fixed ladder makes them retry in lockstep
+// and collide on the same window again. db.mjs learned this; this second transport had not.
+const jitter = () => Math.floor(Math.random() * 1000);
+
 async function post(ref, sql, attempt = 0) {
   let r, body;
   try {
@@ -68,11 +78,24 @@ async function post(ref, sql, attempt = 0) {
     body = await r.text();
   } catch (e) {
     // Timeout or transport failure: retry on the same schedule as a 429.
-    if (attempt < 6) { await sleep(1500 * Math.pow(2, attempt)); return post(ref, sql, attempt + 1); }
+    if (attempt < 7) {
+      await sleep(Math.min(1500 * Math.pow(2, attempt), 60000) + jitter());
+      return post(ref, sql, attempt + 1);
+    }
     throw new Error(`transport failed after ${attempt + 1} attempts: ${e.name}: ${e.message}`);
   }
   if (r.status === 429 || r.status === 502 || r.status === 503 || r.status === 504) {
-    if (attempt < 6) { await sleep(1500 * Math.pow(2, attempt)); return post(ref, sql, attempt + 1); }
+    if (attempt < 7) {
+      await sleep(Math.min(1500 * Math.pow(2, attempt), 60000) + jitter());
+      return post(ref, sql, attempt + 1);
+    }
+    if (r.status === 429) {
+      const e = new Error('INFRASTRUCTURE, NOT A FINDING: the Supabase management API is rate-'
+        + 'limiting this run and the backoff is exhausted. Production was not measured. Re-run it.'
+        + `\n  HTTP 429: ${body.slice(0, 300)}`);
+      e.status = 429; e.throttled = true;
+      throw e;
+    }
   }
   if (!r.ok) {
     const e = new Error(`management API ${r.status}: ${body.slice(0, 300)}`);

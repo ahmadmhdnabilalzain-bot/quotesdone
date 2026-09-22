@@ -37,6 +37,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { sql } from '../lib/db.mjs';
 
 const PROJECT = 'htdblwldjkcgjvmqkbeh';
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
@@ -167,16 +168,17 @@ test('A2. the invitation enqueuer selects from the pool it counts', () => {
 test('B. production refuses a confirmed sanctions hit on every surface, and keeps the record', async (t) => {
   if (!mgmtToken) return t.skip('no Supabase management token in this environment');
   const query = src('scripts/sql/probe_a_sanctioned_party_is_unreachable.sql');
-  const r = await fetch(`https://api.supabase.com/v1/projects/${PROJECT}/database/query`, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + mgmtToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-  });
-  const text = await r.text();
-  // The probe ALWAYS ends in a raise, so a 200 means it did not reach its own verdict — that is a
-  // failure, not a pass. A rate limit (429) is infrastructure and is reported as such rather than
-  // being read as a finding.
-  assert.notEqual(r.status, 429, 'the management API rate-limited this run; re-run it, do not read this as a finding');
+  // The probe ALWAYS ends in a raise, so the management API answers 400 carrying the verdict and
+  // scripts/lib/db.mjs throws it. A 200 — sql() returning — means the probe did NOT reach its own
+  // verdict, which is a failure, not a pass.
+  //
+  // This POSTed its own fetch with no backoff until 22 Sep 2026, and asserted `notEqual(429)` when
+  // it was throttled. That turns a rate limit into a red test whose only remedy is a human re-run;
+  // db.mjs retries seven times with jitter first and only then throws, and its message names the
+  // throttle as infrastructure. The assertion on the verdict is unchanged.
+  let text;
+  try { text = JSON.stringify(await sql(query, { ref: PROJECT })); }
+  catch (e) { if (e.throttled) throw e; text = String(e.message); }
   assert.ok(text.includes('CHK<<sanctioned party unreachable:'),
     'the production probe did not return its verdict. Raw answer:\n' + text.slice(0, 4000));
 });
@@ -185,11 +187,15 @@ test('B. production refuses a confirmed sanctions hit on every surface, and keep
 // left nothing behind — the demo party must not exist outside the aborted transaction.
 test('C. the probe leaves nothing behind', async (t) => {
   if (!mgmtToken) return t.skip('no Supabase management token in this environment');
-  const r = await fetch(`https://api.supabase.com/v1/projects/${PROJECT}/database/query`, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + mgmtToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: "select count(*)::int as n from public.leads where company_name like 'ZZ DEMO Sanctioned%' or email like 'zz.demo.sanctioned%';" }),
-  });
-  const rows = JSON.parse(await r.text());
-  assert.equal(rows?.[0]?.n, 0, 'the probe left a ZZ DEMO party behind — it must abort its own transaction');
+  // THE COUNT MUST BE A COUNT. Until 22 Sep 2026 this parsed the raw body without checking the
+  // status, so a throttled run parsed `{"message":"ThrottlerException"}`, read `rows[0].n` as
+  // undefined, and failed with "the probe left a ZZ DEMO party behind" — the residue this check
+  // exists to catch, asserted from a request that never reached the database. Going through
+  // db.mjs makes an unmeasured run throw as infrastructure instead of reporting a false residue.
+  const rows = await sql(
+    "select count(*)::int as n from public.leads"
+    + " where company_name like 'ZZ DEMO Sanctioned%' or email like 'zz.demo.sanctioned%';",
+    { ref: PROJECT, readOnly: true });
+  assert.equal(typeof rows?.[0]?.n, 'number', `the residue count did not come back: ${JSON.stringify(rows).slice(0, 500)}`);
+  assert.equal(rows[0].n, 0, 'the probe left a ZZ DEMO party behind — it must abort its own transaction');
 });
