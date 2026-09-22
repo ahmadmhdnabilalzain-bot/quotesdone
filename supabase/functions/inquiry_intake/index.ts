@@ -27,14 +27,16 @@ async function sec(k: string): Promise<string | null> { const { data } = await a
 // KW, detectCat, detectTrades, detectEmirate, detectUrgency and isArabic live in ./classify.ts (tested there).
 function sanitizeInput(text: string): string { return String(text || '').replace(/\bignore (all |any |previous )?(above|prior|earlier)?\s*(instructions|prompts?|rules?)\b/gi, '[removed]').replace(/\b(system|assistant|developer)\s*:/gi, '$1 -').slice(0, 4000); }
 
-async function llm(messages: any[]): Promise<string | null> {
+// `subject` is the verified session email: ai_gateway answers our own ZZ DEMO / @example.invalid harness
+// with a no-cost stub instead of a paid call (founder instruction 705, _shared/spend_guards.ts).
+async function llm(messages: any[], subject: { email?: string; customer_id?: string | null } = {}): Promise<string | null> {
   const key = await sec('cred_fn_ai'); if (!key) return null;
   // Prompt caching is now applied by ai_gateway on the system prompt it receives.
   const sys = messages.filter((m: any) => m && m.role === 'system').map((m: any) => String(m.content || '')).join('\n\n');
   const input = messages.filter((m: any) => !m || m.role !== 'system');
   {
     try {
-      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'inquiry_intake', sys, input, max: 4000, temperature: 0.1 }) });
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'inquiry_intake', subject, sys, input, max: 4000, temperature: 0.1 }) });
       if (!r.ok) return null; const jd = await r.json(); const c = jd?.content; if (c) return c;
     } catch (_e) { /* fall through to null */ }
   }
@@ -342,7 +344,7 @@ Return STRICT JSON only, no prose, with this shape:
 Only include \"questions\" when status is needs_info or rejected. Only include a full \"brief\" when status is ready (for other statuses set brief to null). Keep questions concise so the whole JSON stays complete.`;
 
     const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
-    const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }]);
+    const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null });
     let out = raw ? parseJson(raw) : null;
     const llmCallOk = raw !== null;
     const llmParseOk = out !== null;
