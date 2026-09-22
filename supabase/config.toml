@@ -113,6 +113,9 @@ verify_jwt = false
 [functions.login_otp]
 verify_jwt = false
 
+[functions.marketing_social_inbox]
+verify_jwt = false
+
 [functions.messages_api]
 verify_jwt = true
 

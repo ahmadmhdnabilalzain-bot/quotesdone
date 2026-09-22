@@ -31,6 +31,7 @@ const HELD = new RegExp(['meta_' + 'access_token', 'meta_' + 'ad_account_id', 'p
   'postiz_' + 'integrations', 'graph\\.' + 'facebook\\.com'].join('|'));
 const MARKETING_ROUTINE = /^fn_(marketing|ads?)_/;   // fn_ad_decision_*, fn_ad_spend_*: the ads autopilot
 const MARKETING_DIR = ['supabase', 'functions', 'marketing'].join(sep);
+const MARKETING_CODE = /^supabase\/functions\/(marketing[a-z_]*\/|_shared\/marketing[a-z_]*\.ts$)/;
 // Frozen. Each reads only whether the key is set, to show "connected" / "awaiting token" on a report.
 const PRESENCE_ONLY = new Set(['fn_company_snapshot', 'fn_ws_marketing']);
 
@@ -50,6 +51,9 @@ export function codeOffenders(repo = REPO) {
     for (const p of walk(root)) {
       const rel = relative(repo, p);
       if (rel.startsWith(MARKETING_DIR + sep)) continue;
+      // The seat's code by NAME, like its routines (fn_marketing_*): an edge function or a shared module
+      // whose own name starts with marketing (marketing_channels/, _shared/marketing_channels.ts). PR #834.
+      if (MARKETING_CODE.test(rel.split(sep).join('/'))) continue;
       if (HELD.test(readFileSync(p, 'utf8'))) out.push(rel);
     }
   }

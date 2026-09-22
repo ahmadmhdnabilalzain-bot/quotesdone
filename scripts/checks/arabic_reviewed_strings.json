@@ -567,6 +567,31 @@
   "fa4b51d2ade2",
   "fffb93cafbf1"
  ],
+ "scripts/sql/every_social_message_is_answered.sql": [
+  "02256d55e97b",
+  "088126501c69",
+  "35e25ee25577",
+  "4c154c99a9fe",
+  "4c41479bc983",
+  "50cdfbe10005",
+  "5c64f007c27f",
+  "5d423d9e3849",
+  "5dd6a5fe54bc",
+  "64522b1a7148",
+  "64a9ebebcc32",
+  "9fa1e811fcc7",
+  "b3201164af15",
+  "b90f5c0bffb3",
+  "c3f921c31c7e",
+  "d122f6a39476",
+  "d72fade4bce7",
+  "dc3f2e9543fc",
+  "e78dcea14391",
+  "ee4a1456561a"
+ ],
+ "scripts/sql/every_social_message_is_answered_probe.sql": [
+  "debfd4865d39"
+ ],
  "src/app/[locale]/blog/[slug]/opengraph-image.tsx": [
   "4bb69a8b2b4f"
  ],
@@ -2992,6 +3017,15 @@
   "ea439701f386",
   "f34c9e970613",
   "f4eafa4902c9"
+ ],
+ "supabase/functions/marketing_social_inbox/reply.ts": [
+  "1ffc273077fc",
+  "26b21d75c666",
+  "2e1ad61c8888",
+  "58ca91fa9353",
+  "77f165da17a6",
+  "87f92710186c",
+  "bd5193070aaa"
  ],
  "supabase/functions/messages_api/index.ts": [
   "2ab8d7bf7b54",
