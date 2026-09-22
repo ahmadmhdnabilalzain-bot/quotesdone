@@ -11,8 +11,8 @@
 //   node scripts/staging/verify_row4_intelligence.mjs
 //
 // Teardown is in a finally and deletes by captured id, so a mid-run throw does not litter staging.
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF, q, num, makeInquiry, makeCustomer, withRun, call } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF, q, num, makeInquiry, makeCustomer, withRun, call } from '../lib/demo_factory.mjs';
 
 const one = async (sql) => { const r = await mgmtRead(REF, sql, 'verify'); return r[0] ? Object.values(r[0])[0] : null; };
 const rows = (sql) => mgmtRead(REF, sql, 'verify');

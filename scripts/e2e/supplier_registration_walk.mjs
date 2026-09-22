@@ -25,7 +25,7 @@
 //   4. every tab, the bell and the account menu settle (no endless "Loading…").
 import { launch, SITE } from './browser.mjs';
 import { openRun, closeRun, read, write, call, BASE } from './fixtures.mjs';
-import { keys, verifyEmailByOtp, mkAuthUser } from '../staging/demo_factory.mjs';
+import { keys, verifyEmailByOtp, mkAuthUser } from '../lib/demo_factory.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';

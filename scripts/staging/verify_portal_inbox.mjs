@@ -1,7 +1,7 @@
 // PROOF BY EXECUTION for §14 the vault, §16 the unified inbox, and the §3 pre-send brief.
 //
 //   node scripts/staging/verify_portal_inbox.mjs
-import { makeCustomer, call, newRun } from './demo_factory.mjs';
+import { makeCustomer, call, newRun } from '../lib/demo_factory.mjs';
 
 const run = newRun();
 const fail = [];

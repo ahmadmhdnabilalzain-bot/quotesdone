@@ -108,3 +108,16 @@ test('resilience_ping runs the status backstop on every tick', () => {
   const tick = rp.slice(i, rp.indexOf('\n}\n', i));
   assert.ok(tick.includes("FN + '/wa_status'") && tick.includes('poll: true'), 'whatsappTick no longer calls the wa_status backstop poll');
 });
+
+// 22 Sep 2026 (INT-01 / SEATS-03): the backstop asked Twilio for a field the claim does not return.
+// fn_twilio_status_poll_claim answers (notification_id, sid); poll() read the notification column name
+// instead, so every call fetched a URL ending in "undefined.json", got 404 and called the message
+// unreadable - six times over notifications 35433, 35569 and 37899, every one of which answered HTTP 200
+// status 'read' when asked by its real SID. deno check could not catch it (the rows come back untyped
+// from rpc), so the field name is pinned here.
+test('the backstop poll asks Twilio by the sid the claim returned', () => {
+  const t = src('supabase/functions/wa_status/index.ts');
+  assert.ok(/Messages\/\$\{r\.sid\}\.json/.test(t), 'wa_status no longer fetches Twilio by r.sid');
+  assert.ok(!/r\.provider_message_id/.test(t), 'wa_status reads a field fn_twilio_status_poll_claim does not return');
+  assert.ok(t.includes('fn_twilio_status_poll_failed'), 'a failed poll no longer records its HTTP status on the message');
+});

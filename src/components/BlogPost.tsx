@@ -5,6 +5,7 @@ import { Link } from '@/i18n/routing';
 import { notFound } from 'next/navigation';
 import { buildMeta, textFromHtml } from '@/lib/seo';
 import { anchorHeadings, ContentsRail, CtaPanel } from '@/components/DocFrame';
+import { docHrefs } from '@/lib/arabicDoc';
 import { Button } from '@/components/ui/button';
 
 type Body = { title: string; excerpt: string | null; meta_desc: string | null; category: string | null; body_html: string };
@@ -79,7 +80,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
   const t = localized(p, locale);
   const rtl = t.lang === 'ar';
   const date = fmt(p.published_at, locale);
-  const { html: body, list } = anchorHeadings(rtl ? isolateLatin(t.body_html) : t.body_html, 'h2', 'part');
+  const { html: body, list } = anchorHeadings(docHrefs(rtl ? isolateLatin(t.body_html) : t.body_html), 'h2', 'part');
   return (
     <>
       <SiteHeader />
@@ -90,7 +91,7 @@ export async function BlogPost({ slug, locale }: { slug: string; locale: string 
             <nav aria-label={T.crumb} className="qd-kicker">
               <Link href="/" className="transition-colors hover:text-white">{T.home}</Link>
               <span aria-hidden className="mx-2 text-faint">/</span>
-              <Link href="/blog/" className="transition-colors hover:text-white">{T.blog}</Link>
+              <Link href="/blog" className="transition-colors hover:text-white">{T.blog}</Link>
             </nav>
             {t.category && (
               <p className="mt-8 font-mono text-label uppercase tracking-caps text-teal-light">{t.category}</p>

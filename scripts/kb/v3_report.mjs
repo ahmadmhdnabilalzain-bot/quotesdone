@@ -4,7 +4,7 @@
 //   node scripts/kb/v3_report.mjs
 import fs from 'node:fs';
 import path from 'node:path';
-import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 
 // staging (pglpqrhvozwepymcuunn) was a second target until its Supabase project was deleted on
 // 15 Aug 2026; the same six measurements now run against production alone.

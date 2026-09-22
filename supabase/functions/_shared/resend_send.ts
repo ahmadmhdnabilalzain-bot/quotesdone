@@ -6,10 +6,23 @@
 // for a busy second. One retry after the Retry-After the response names (default 1 s, capped at 3 s so
 // the caller is never kept waiting) turns that into a delivered code; a second refusal is returned as
 // false and the caller says so rather than claiming the code was sent.
-export type ResendMail = { from: string; to: string; subject: string; html: string };
+//
+// A RESERVED ADDRESS NEVER REACHES RESEND (22 Sep 2026, it_engineer). The harness signs in and
+// confirms email on @example.invalid / ZZ DEMO fixtures; login_otp and kyc minted the code and posted
+// it, and Resend recorded 6 hard bounces against our sending domain. send_outbox has refused these
+// domains since 3 Sep; this is the same rule (isDemoEmail) at the one door both code senders use.
+// The answer is `true` so the harness flow is unchanged: nobody can own a reserved mailbox, so
+// nobody was waiting for the mail. resend_send.test.ts proves no request leaves for one.
+import { isDemoEmail } from './demo_identity.ts';
+
+export type ResendMail = { from: string; to: string; subject: string; html: string; reply_to?: string };
 type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 
 export async function resendWithRetry(key: string, mail: ResendMail, fetchFn: Fetch = fetch, sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))): Promise<boolean> {
+  if (isDemoEmail(mail.to)) {
+    console.log('resend_send: suppressed - reserved test address, never handed to Resend');
+    return true;
+  }
   const post = () => fetchFn('https://api.resend.com/emails', { method: 'POST', headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(mail) });
   try {
     let r = await post();

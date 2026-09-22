@@ -27,6 +27,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { chainLegs, fmtDate, money, CHAIN_LABEL, type ChainStage, type CustomerOrder, type Lang } from './model';
 import { tx } from './strings';
+import { countPhrase } from '@/lib/countedNoun';
+// The Orders surface owns the purchase-order vocabulary; this map prints the same statuses.
+import { orderStatus } from '../approvals/strings';
 
 export interface SupplyChainMapProps {
   orders: CustomerOrder[];
@@ -67,7 +70,8 @@ export function SupplyChainMap({ orders, lang = 'en', onOpenRfq }: SupplyChainMa
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-semibold text-foreground">{o.po_no || `#${o.id}`}</span>
                     <Badge variant="secondary">{CHAIN_LABEL[lang][g.stage]}</Badge>
-                    <span className="text-[11.5px] text-muted-foreground capitalize">{o.status}</span>
+                    {/* CP-I18N-04: the enum, said in words — and `capitalize` was doing nothing for an Arabic reader. */}
+                    <span className="text-[11.5px] text-muted-foreground">{orderStatus(lang, o.status)}</span>
                   </div>
                   <div className="text-[11.5px] text-muted-foreground">
                     {tx(lang, 'chain_expected')}: {fmtDate(o.expected_date, lang)}
@@ -104,7 +108,7 @@ export function SupplyChainMap({ orders, lang = 'en', onOpenRfq }: SupplyChainMa
                   {g.received == null
                     ? <span>{tx(lang, 'chain_no_qty')}</span>
                     : <span className="text-foreground/85">{Math.round(g.received * 100)}% {tx(lang, 'chain_received')}</span>}
-                  <span>{g.lineCount} {tx(lang, 'chain_lines')}</span>
+                  <span>{countPhrase(lang, g.lineCount, 'line')}</span>
                   {o.inquiry_id && onOpenRfq ? (
                     <button className="text-primary font-semibold transition-colors hover:text-primary/80" onClick={() => onOpenRfq(String(o.inquiry_id))}>
                       {tx(lang, 'sel_open_rfq')}

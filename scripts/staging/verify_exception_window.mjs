@@ -18,8 +18,8 @@
 // Zero model calls. Everything is SQL through the deployed functions.
 //
 //     node scripts/staging/verify_exception_window.mjs
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF, withRun, makeLicenceGatedSupplier, num, q } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF, withRun, makeLicenceGatedSupplier, num, q } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

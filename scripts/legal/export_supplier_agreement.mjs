@@ -7,6 +7,15 @@
 // stores the hash only while that secret still names this version, so editing the agreement means:
 // change legal.json, bump the secret, re-run this with the new version, deploy supplier_api.
 // --check exits 1 when the module no longer matches legal.json (for CI or a pre-commit look).
+//
+// A COPY PASS OVER legal.json MUST SKIP THE THREE AGREEMENT DOCUMENTS. 22 Sep 2026: the website
+// audit's Arabic corrections (WEB-06/07 — the supplier's name with its shadda, the legal-centre
+// title) were applied file-wide and reached `supplier-agreement`, `-v11` and `-v10`. Those are the
+// words suppliers signed: the body is hashed here, stored against each acceptance, and asserted word
+// for word by supplier_agreement_v11_is_published_and_reaccepted and
+// supplier_agreement_v12_notices_go_to_the_confirmed_whatsapp, which is exactly what caught it. The
+// three documents were restored byte for byte. Their wording changes only as a NEW version: edit,
+// bump `terms_version`, re-export, deploy supplier_api, and every supplier is asked to accept again.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 

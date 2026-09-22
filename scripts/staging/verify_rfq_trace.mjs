@@ -20,8 +20,8 @@
 // finally, like every other factory fixture.
 //
 //     node scripts/staging/verify_rfq_trace.mjs
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
-import { withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, internalCred, call, REF } from './demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, internalCred, call, REF } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

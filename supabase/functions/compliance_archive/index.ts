@@ -25,7 +25,11 @@
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
+// SheetJS 0.20.3, VENDORED in _shared/vendor (14 Sep 2026). NOT the remote esm.sh copy of xlsx 0.18.5: that npm package
+// stopped at 0.18.5, which carries CVE-2023-30533 (prototype pollution on read), and a remote import makes
+// a third-party CDN a deploy-time dependency of the compliance register. 22 Sep 2026, UNSOLVED-08.
+// @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
+import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 import { observe } from '../_shared/observe.ts';
 import { certFields, certLang, certificate, type Lang } from './certificate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

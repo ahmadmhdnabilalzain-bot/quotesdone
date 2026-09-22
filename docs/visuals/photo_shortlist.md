@@ -6,8 +6,10 @@ Compiled 14 Sep 2026 by the `ceo` agent.
 **Why this exists.** The founder ruled on 14 Sep 2026 that the site uses **no AI-generated people**: no
 generated Emiratis and no generated suited teams. Corporate visuals must be either:
 
-1. **Product-first.** These are real depictions of what the platform does. They are built as
-   components in `src/components/visual/product.tsx`.
+1. **Product-first.** These were real depictions of what the platform does, built as components in
+   `src/components/visual/product.tsx`. **Cancelled** by the founder on 14 Sep 2026 (instruction 70:
+   "i dont like the product visuals at all. cancel that idea"); the file was deleted on 22 Sep 2026,
+   so only option 2 below remains.
 2. **Faceless, real UAE work imagery from properly licensed stock.** Never generated. This file is
    the candidate list for this kind.
 

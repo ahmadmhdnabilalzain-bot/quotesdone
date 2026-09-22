@@ -25,7 +25,7 @@
 //   node scripts/verify_prod_readiness.mjs
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();

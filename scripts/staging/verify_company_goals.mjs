@@ -7,8 +7,8 @@
 // So this gate reads what each measure TOUCHES, not only what it returns.
 //
 //   node scripts/staging/verify_company_goals.mjs      # zero spend
-import { mgmtRead } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

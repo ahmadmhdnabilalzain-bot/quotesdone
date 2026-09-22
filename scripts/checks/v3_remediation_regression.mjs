@@ -22,7 +22,7 @@
 //   node scripts/checks/v3_remediation_regression.mjs --behavioural --trials=3 --area=tools
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
-import { mgmtRead } from '../staging/qd_guard.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
 
 // 15 Aug 2026: was 'pglpqrhvozwepymcuunn', deleted that morning. This makes live agent calls and
 // stays held while every OpenRouter route is open-circuit in llm_route_health.
