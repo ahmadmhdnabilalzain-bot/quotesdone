@@ -13,8 +13,8 @@
 // unparseable model.
 //
 // THIS CHECK FAILS IF:
-//   * a function calls ai_gateway and is not in CALLER_CLASS below - a new caller is unrouted until
-//     someone decides which class it belongs to, which is the decision that was skipped every time;
+//   * a function calls ai_gateway and is not routed at all - a new caller is unrouted until someone
+//     decides which class it belongs to, which is the decision that was skipped every time;
 //   * a caller asks for more tokens than its class allows;
 //   * a ceiling this PR set drifts below what its caller asks for.
 //
@@ -31,33 +31,63 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const OWNING_SQL = 'scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql';
 
-// Every fn label that reaches ai_gateway -> the task_class it resolves to. fn labels, not directory
-// names: wa_inbound sends three (its own, founder_directive, supplier_directive) and drawing_redact
-// sends two. Sources: fn_task_class on production, read 23 Sep 2026, plus the rows the owning SQL
-// file adds (ceo_agent, supplier_catalog_ingest, marketing_social_inbox) and the one it moves
-// (drawing_redact_verify).
-const CALLER_CLASS = {
-  ceo_agent: 'ceo_judgement',                       // passed explicitly at index.ts:329
+// fn LABELS, not directory names: wa_inbound sends three (its own, founder_directive,
+// supplier_directive) and drawing_redact sends two.
+//
+// THE ROWS THAT ALREADY EXISTED on production, read from public.fn_task_class 23 Sep 2026. These are
+// not what this PR changes, so a constant is honest here — and any drift in them shows up as an
+// unrouted caller or a clamp below.
+const CALLER_CLASS_PREEXISTING = {
   doc_extract: 'document_extraction',
   drawing_boq: 'document_extraction',
   drawing_redact: 'document_extraction',
-  drawing_redact_verify: 'identity_redaction_verify',
   email_triage: 'intent_detection',
   extract_text: 'document_extraction',
   founder_directive: 'chief_of_staff_decision',
   inquiry_intake: 'agent_reasoning',
   license_extract: 'document_extraction',
-  marketing_social_inbox: 'marketing_copy',
   quote_compare: 'quote_comparison',
   quote_extract: 'document_extraction',
   resend_inbound: 'intent_detection',
   site_assistant: 'visitor_chat',
-  supplier_catalog_ingest: 'document_extraction',
   supplier_directive: 'agent_reasoning',
   supplier_onboard: 'procurement_reasoning',
   transcribe: 'speech_transcription',
   wa_inbound: 'customer_communication',
 };
+
+// THE ROWS THIS PR ADDS OR MOVES, and they are READ OUT OF THE SQL FILE rather than copied here.
+// This is the whole point of the check (corrected 23 Sep 2026 in review): the original defect was a
+// MISSING fn_task_class row — supplier_catalog_ingest had none, fell to general_drafting, and was
+// clamped 3000 -> 900. With the mapping hardcoded, deleting that row from the SQL again would leave
+// this check passing, so it could not fail on its own original input. Now it reads the rows from the
+// file that writes them, and a deletion there fails here.
+const PR_ROWS_EXPECTED = ['ceo_agent', 'supplier_catalog_ingest', 'marketing_social_inbox', 'drawing_redact_verify'];
+
+const callerClassFromOwningSql = () => {
+  const sql = read(OWNING_SQL);
+  const out = {};
+  // insert into public.fn_task_class as ftc (...) values ('<fn>', '<class>', '<dept>', true, ...)
+  for (const m of sql.matchAll(/\('([a-z0-9_]+)', '([a-z0-9_]+)', '([a-z_]+)', true,/g)) {
+    out[m[1]] = m[2];
+  }
+  // the drawing_redact_verify move: update ... set task_class = '<class>' ... where fn = '<fn>'
+  for (const m of sql.matchAll(
+    /update public\.fn_task_class set\s*\n?\s*task_class = '([a-z0-9_]+)',[\s\S]{0,1200}?where fn = '([a-z0-9_]+)';/g,
+  )) {
+    out[m[2]] = m[1];
+  }
+  const missing = PR_ROWS_EXPECTED.filter((fn) => !(fn in out));
+  assert.deepEqual(missing, [],
+    `${OWNING_SQL} no longer routes ${missing.join(', ')}. That file exists because a gateway caller `
+    + 'with no fn_task_class row falls to general_drafting — haiku at 900 tokens — AND sits outside '
+    + 'every department ceiling, because fn_ai_route finds the budget by fn_task_class.dept_key. '
+    + 'supplier_catalog_ingest was clamped 3000 -> 900 exactly this way and recorded '
+    + '"extraction_failed" about a catalogue nobody had read.');
+  return out;
+};
+
+const callerClass = () => ({ ...CALLER_CLASS_PREEXISTING, ...callerClassFromOwningSql() });
 
 // Ceilings NOT written by the owning SQL file, measured from public.model_policy on 23 Sep 2026.
 const CEILINGS_MEASURED = {
@@ -109,9 +139,14 @@ const requestedMax = () => {
       const fn = /\bfn:\s*['"]([a-z0-9_]+)['"]/.exec(ctx)?.[1] ?? d;
       asks[fn] = Math.max(asks[fn] ?? 0, Number(mx[1]));
     });
-    // every fn label this file sends, whether or not it names a max
-    for (const m of src.matchAll(/\bfn:\s*['"]([a-z0-9_]+)['"]/g)) asks[m[1]] ??= 0;
-    if (!Object.keys(asks).length) asks[d] ??= 0;
+    // Every fn label this file sends, whether or not it names a max.
+    const labels = [...src.matchAll(/\bfn:\s*['"]([a-z0-9_]+)['"]/g)].map((m) => m[1]);
+    for (const l of labels) asks[l] ??= 0;
+    // A caller with no literal `fn:` label sends its directory name. The first draft tested
+    // `if (!Object.keys(asks).length)` — the WHOLE accumulator, not this file's labels — so once any
+    // earlier caller had contributed a key, every later label-less caller was silently skipped and
+    // could never be found unrouted. Test THIS file.
+    if (!labels.length) asks[d] ??= 0;
   }
   assert.ok(files.length >= 15, `only ${files.length} gateway callers found - the walk is broken, not the estate`);
   return asks;
@@ -119,7 +154,8 @@ const requestedMax = () => {
 
 test('every function that calls ai_gateway has a task class decided for it', () => {
   const asks = requestedMax();
-  const unrouted = Object.keys(asks).filter((fn) => !(fn in CALLER_CLASS));
+  const CC = callerClass();
+  const unrouted = Object.keys(asks).filter((fn) => !(fn in CC));
   assert.deepEqual(unrouted, [],
     `these fn labels reach ai_gateway with no task class in this check: ${unrouted.join(', ')}. `
     + 'An unrouted caller falls to general_drafting (haiku, 900 tokens) AND sits outside every '
@@ -129,10 +165,11 @@ test('every function that calls ai_gateway has a task class decided for it', () 
 
 test('no caller asks for more output than its route allows', () => {
   const asks = requestedMax();
+  const CC = callerClass();
   const ceilings = { ...CEILINGS_MEASURED, ...ceilingsFromOwningSql() };
   const clamped = [];
   for (const [fn, max] of Object.entries(asks)) {
-    const cls = CALLER_CLASS[fn];
+    const cls = CC[fn];
     if (!cls || !max) continue;
     const ceiling = ceilings[cls];
     assert.ok(ceiling, `${fn} routes to ${cls}, whose ceiling is in neither this check nor ${OWNING_SQL}`);

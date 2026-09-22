@@ -38,7 +38,7 @@
 --
 -- fn_ai_route SUBSTITUTES when a policy names a model the registry does not hold ("WARNING: policy
 -- model ... is not in model_registry; substituted ..."), so the registry is a gate, not a
--- reference. Two of the models the seats now need were not in it at all, and two context lengths
+-- reference. FOUR of the models the seats now need were not in it at all, and two context lengths
 -- were wrong by 5x.
 --
 -- Prices and context lengths below were read LIVE from https://openrouter.ai/api/v1/models on
@@ -46,6 +46,8 @@
 -- them), USD per million tokens:
 --
 --   model                            in     out    ctx        vision  audio   registry said
+--   qwen/qwen3.8-max-0902            2.00    6.00  1,000,000  yes     no      ABSENT
+--   z-ai/glm-5.3-flash               0.15    0.50  1,310,720  yes     no      ABSENT
 --   anthropic/claude-opus-5.5        4.00   20.00  1,000,000  yes     no      ABSENT
 --   anthropic/claude-sonnet-5        2.00   10.00  1,000,000  yes     no      ctx 200,000  (5x low)
 --   ~anthropic/claude-haiku-latest   1.00    5.00    200,000  yes     no      correct
@@ -55,14 +57,50 @@
 --   google/gemini-3.1-flash-lite     0.25    1.50  1,048,576  yes     YES     correct
 --   openai/gpt-6-luna                0.10    0.50  1,050,000  yes     no      ABSENT
 --
+-- THE FOUNDER'S RULING OF 23 SEP 2026 (instruction 841) NAMES THE FIRST TWO. "The primary model for
+-- the comparison would be Qwen 3.8 max and use GLM 5.3 flash whenever, wherever it's possible as a
+-- primary model. And for the CEO, again, Qwen 3.8 max. So this will be plan A for everyone, except
+-- the stuff that doesn't require reasoning a lot - GLM 5.3 flash again. We want to cut cost as much
+-- as possible. For plan B, for everyone that requires reasoning, it's going to be Opus; and for who
+-- doesn't need reasoning then GLM 5.3 flash."
+--
+-- HE SAID "OPUS 5"; THIS REGISTERS anthropic/claude-opus-5.5 AND THAT IS DELIBERATE. Measured live,
+-- the same day, the two rows side by side:
+--
+--   anthropic/claude-opus-5     5.00  25.00  cache read 0.50  1,000,000 ctx
+--   anthropic/claude-opus-5.5   4.00  20.00  cache read 0.20  1,000,000 ctx
+--
+-- Same family, one version newer, and CHEAPER ON ALL THREE AXES - 20% off input, 20% off output,
+-- 60% off cache reads - with the same context window. So his instruction is honoured at a lower
+-- price than he asked for, which is the direction he asked for. If he wants the literal opus-5 it is
+-- one string away in every_seat_gets_the_model_its_own_work_needs.sql; nothing else would change.
+--
+-- NEITHER NEW MODEL CARRIES `file` IN input_modalities (both are text+image+video). Nothing in the
+-- estate sends a `file` part today - every document reaches a model as an image_url with a base64
+-- data URL (supplier_catalog_ingest:295, drawing_redact:186, drawing_boq) and audio goes to
+-- transcribe - and model_registry has no supports_file column for fn_ai_route's capability branch to
+-- test, so this cannot be caught automatically. It is recorded here because the day something does
+-- send a PDF as a file part, this is the paragraph that explains the provider's refusal.
+--
 -- A context_len 5x below the truth is not cosmetic: it is the number any future "will this prompt
 -- fit" decision would read, and quote_comparison sends every quotation on one request.
 --
--- AUDIO WAS VERIFIED, NOT ASSUMED. speech_transcription keeps google/gemini-3.1-flash-lite
--- primary and google/gemini-3.5-flash fallback because the live catalogue lists "audio" in
--- input_modalities for both (and for gemini-3.8-flash); no anthropic/ or openai/ row in this
--- fleet does. The capability branch in fn_ai_route would refuse the call otherwise, which is the
--- correct behaviour and not one to lean on.
+-- AUDIO WAS VERIFIED, NOT ASSUMED, AND IT IS THE ONE HARD LIMIT ON THE FOUNDER'S RULING.
+-- speech_transcription keeps google/gemini-3.1-flash-lite primary and google/gemini-3.5-flash
+-- fallback. Measured across every candidate in the live catalogue, ONLY the gemini family carries
+-- "audio" in input_modalities:
+--
+--   google/gemini-3.1-flash-lite   text image video file AUDIO
+--   google/gemini-3.5-flash        text image video file AUDIO
+--   google/gemini-3.8-flash        text image video file AUDIO
+--   z-ai/glm-5.3-flash             text image video            <- no audio
+--   qwen/qwen3.8-max-0902          text image video            <- no audio
+--   anthropic/*, openai/*          text image file             <- no audio
+--
+-- So "use GLM 5.3 flash whenever, wherever it's possible" cannot reach this class: the word in his
+-- instruction is "possible", and here it is not. A voice note routed to GLM would be rejected by the
+-- provider, or silently redirected by fn_ai_route's capability branch to a model nobody chose. This
+-- is the only class in the estate exempt from the ruling, and this is the reason.
 --
 -- CACHE COLUMNS ARE LEFT ALONE ON THE GOOGLE ROWS, DELIBERATELY. The live catalogue prices an
 -- implicit cache read for the gemini models, but supports_cache in this table is read by
@@ -73,12 +111,20 @@
 --
 -- ─── 3. WHAT THIS FILE DOES NOT DO ──────────────────────────────────────────────────────────────
 --
--- It does not retire anthropic/claude-fable-5.1, openai/gpt-6-astra or openai/gpt-5.6-luna. They
--- were the founder's own ruling of 9 Sep 2026 for the CEO, Sales Engineer and accountant seats,
--- superseded by his ruling of 23 Sep 2026 (reasoning quality first, cost second) in
--- every_seat_gets_the_model_its_own_work_needs.sql. model_policy_by_identity still carries 120
--- rows naming some of them as role defaults, so the rows stay, active and approved, with a health
--- row each — held, priced correctly, and no longer chosen by any active policy.
+-- It does not retire anthropic/claude-fable-5.1, openai/gpt-6-astra, openai/gpt-5.6-luna,
+-- anthropic/claude-sonnet-5 or anthropic/claude-opus-4.8. The first three were the founder's own
+-- ruling of 9 Sep 2026 for the CEO, Sales Engineer and accountant seats, superseded by instruction
+-- 841 above in every_seat_gets_the_model_its_own_work_needs.sql. model_policy_by_identity still
+-- carries 120 rows naming some of them as role defaults, so the rows stay, active and approved, with
+-- a health row each — held, priced correctly, and no longer chosen by any active policy.
+--
+-- It also does not touch model_policy_by_identity, which names SIX models that are in neither
+-- model_registry nor llm_route_health (deepseek/deepseek-v4-flash, qwen/qwen3.7-flash,
+-- google/gemini-3.5-flash-lite, google/gemini-3.6-flash, anthropic/claude-sonnet-5:batch and one
+-- more). The trigger added in every_seat_gets_the_model_its_own_work_needs.sql covers model_policy
+-- only. That branch of fn_ai_route fires only for a caller unmapped in fn_task_class, and after this
+-- PR every one of the 19 gateway callers is mapped, so it is dead for current traffic — but it is
+-- not dead in principle, and it is being fixed in its own PR.
 
 begin;
 
@@ -88,26 +134,60 @@ insert into public.model_registry
    cache_read_per_mtok_usd, cache_write_per_mtok_usd, supports_cache, supports_streaming,
    context_len, approved, active, quality_score, supports_vision, supports_audio, supports_tools, note)
 values
+  ('qwen/qwen3.8-max-0902', 'qwen', 'large', 2.00, 6.00,
+   0.25, 2.50, true, true, 1000000, true, true, 0.9700, true, false, true,
+   'Founder''s ruling 23 Sep 2026 (instruction 841): PLAN A for every class that reasons - the CEO''s '
+   || 'judgements and approvals, the customer''s top-3 quote comparison, the accountant''s analysis, '
+   || 'the signed-in portal assistant, the identity-redaction verify pass. Live 23 Sep 2026: '
+   || '$2.00/$6.00 per Mtok, 1,000,000 context, cache read $0.25, text+image+video, '
+   || 'structured_outputs and tools both advertised. OUTPUT IS THE NUMBER THAT MATTERS on these '
+   || 'classes - a judgement is short in and long out - and at $6.00 it is 3.3x cheaper out than the '
+   || 'anthropic/claude-opus-5.5 that is now plan B, and 8.3x cheaper than the '
+   || 'anthropic/claude-fable-5.1 it replaces. TIER large, NOT medium, and that is load-bearing: '
+   || 'fn_ai_route degrades exactly one band, so large degrades to the cheapest medium row '
+   || '(google/gemini-3.8-flash, $0.75/$3.75, a 2.67x step). At medium it would degrade to the '
+   || 'cheapest small row and drop 20x in one step, on classes that decide whether a supplier is '
+   || 'verified. NO AUDIO and no `file` modality - see the header.'),
+
+  ('z-ai/glm-5.3-flash', 'z-ai', 'small', 0.15, 0.50,
+   0.05, null, false, true, 1310720, true, true, 0.8500, true, false, true,
+   'Founder''s ruling 23 Sep 2026 (instruction 841): PLAN A everywhere the work does not need deep '
+   || 'reasoning - reading, classifying, triaging and routine drafting. "use GLM 5.3 flash whenever, '
+   || 'wherever it''s possible as a primary model... We want to cut cost as much as possible." Live '
+   || '23 Sep 2026: $0.15/$0.50 per Mtok, 1,310,720 context (the largest window in this fleet), cache '
+   || 'read $0.05, text+image+video, structured_outputs and tools. 13x cheaper input and 7.5x cheaper '
+   || 'output than the qwen row above, and 5x cheaper than google/gemini-3.8-flash on input. '
+   || 'supports_cache is FALSE despite the $0.05 cache read: that column makes ai_gateway send '
+   || 'Anthropic-style cache_control blocks, and cache_write is not even priced here, so the provider '
+   || 'is not being asked to take them. NO AUDIO - which is why speech_transcription stays on a '
+   || 'gemini row - and no `file` modality; see the header.'),
+
   ('anthropic/claude-opus-5.5', 'anthropic', 'xlarge', 4.00, 20.00,
    0.20, 5.00, true, true, 1000000, true, true, 1.0000, true, false, true,
-   'Founder''s ruling 23 Sep 2026: the reasoning model for every judgement the company makes — CEO '
-   || 'approvals and strategy, the customer''s top-3 quote comparison, the signed-in portal '
-   || 'assistant, and anything touching money. Live 23 Sep 2026: $4.00/$20.00 per Mtok, 1M context, '
-   || 'cache read $0.20 (20x cheaper than its own prompt price, so a stable system prefix pays for '
-   || 'itself in five calls). Cheaper on BOTH axes than the anthropic/claude-fable-5.1 + '
-   || 'openai/gpt-6-astra pair it replaces ($10/$50 each) while being the stronger reasoner: this '
-   || 'is not a cost trade, it is the better model at 2.5x less.'),
+   'Founder''s ruling 23 Sep 2026 (instruction 841): PLAN B for every class that reasons - "for plan '
+   || 'B, for everyone that requires reasoning, it''s going to be Opus". He said "Opus 5"; this is '
+   || 'opus-5.5, the same family one version newer and cheaper on ALL THREE axes than a literal '
+   || 'anthropic/claude-opus-5 (4.00/20.00/0.20 against 5.00/25.00/0.50, same 1M context, both read '
+   || 'live 23 Sep 2026), so his instruction is honoured at a lower price than he asked for. A literal '
+   || 'opus-5 is one string away in every_seat_gets_the_model_its_own_work_needs.sql. Because plan B '
+   || 'is DEARER than plan A here, fn_ai_route''s p_escalate path is a genuine upgrade again - under '
+   || 'the superseded 9 Sep matrix the xlarge classes escalated from fable-5.1 to gpt-6-astra at the '
+   || 'same price, i.e. laterally. Cache read $0.20 is 20x cheaper than its own prompt price, so a '
+   || 'stable system prefix pays for itself in five calls.'),
 
   ('google/gemini-3.8-flash', 'google', 'medium', 0.75, 3.75,
    null, null, false, true, 1048576, true, true, 0.9500, true, true, true,
-   'Founder''s ruling 23 Sep 2026: the eyes of the estate — document extraction, drawing reading, '
-   || 'catalogue ingest, email triage. Live 23 Sep 2026: $0.75/$3.75 per Mtok, 1,048,576 context, '
-   || 'input modalities text+image+video+file+AUDIO. Half the price of google/gemini-3.5-flash on '
-   || 'both axes and the same context, so it replaces it as the medium default and becomes the '
-   || 'cheapest medium row — which is also fn_ai_route''s degrade target for the large tier and its '
-   || 'confidence>=0.95 downgrade target. supports_cache is FALSE on purpose: the catalogue prices '
-   || 'an implicit cache read at $0.075/Mtok, but this column makes ai_gateway send Anthropic-style '
-   || 'cache_control blocks, which Google does not accept.'),
+   'The FALLBACK for every non-reasoning class, and the one safe landing place for a degraded or '
+   || 'capability-substituted call. Live 23 Sep 2026: $0.75/$3.75 per Mtok, 1,048,576 context, input '
+   || 'modalities text+image+video+file+AUDIO. Two jobs, and it is the only row in the fleet that can '
+   || 'do both: (1) it is the CHEAPEST MEDIUM row, so it is what fn_ai_route degrades a large-tier '
+   || 'class to - qwen3.8-max $2.00/$6.00 -> $0.75/$3.75, a 2.67x step rather than a cliff - and what '
+   || 'the confidence>=0.95 branch downgrades to; (2) it is the plan-B fallback for the GLM classes, '
+   || 'because plan B for non-reasoning work reads literally as GLM itself and a fallback that IS the '
+   || 'primary is no fallback: a different provider, still cheap, and vision AND audio capable so an '
+   || 'extraction or a voice note that GLM cannot read still gets read. supports_cache is FALSE on '
+   || 'purpose: the catalogue prices an implicit cache read at $0.075/Mtok, but this column makes '
+   || 'ai_gateway send Anthropic-style cache_control blocks, which Google does not accept.'),
 
   ('openai/gpt-6-luna', 'openai', 'small', 0.10, 0.50,
    null, null, false, true, 1050000, true, true, 0.8000, true, false, true,
@@ -187,7 +267,13 @@ create or replace function public.fn_llm_preflight(p_model text)
  returns jsonb
  language sql
  stable security definer
- set search_path to 'public'
+-- search_path gains pg_temp (it was 'public' alone before 23 Sep 2026). A SECURITY DEFINER routine
+-- whose path omits pg_temp resolves unqualified names against the caller's temp schema first, and a
+-- caller who can create a temp table named model_registry or llm_route_health could make this
+-- function read their own rows and answer `allowed: true` with the definer's privileges. That is the
+-- same shadowing hole the pinned search_path exists to close, left half-open on the one routine that
+-- decides whether a paid provider call may happen.
+ set search_path to 'public', 'pg_temp'
 as $function$
   select case
     when p_model is null or p_model in ('none','none/deterministic')

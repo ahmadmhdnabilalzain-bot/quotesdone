@@ -1,32 +1,103 @@
 -- EVERY SEAT GETS THE MODEL ITS OWN WORK NEEDS.
--- it_engineer, 23 September 2026. The founder's ruling: reasoning quality first, cost second.
+-- it_engineer, 23 September 2026.
 --
--- This supersedes his ruling of 9 Sep 2026, which put anthropic/claude-fable-5.1 + openai/gpt-6-astra
--- on the CEO and Sales Engineer seats and openai/gpt-5.6-luna on the accountant. Both pairs cost
--- $10/$50 per Mtok. anthropic/claude-opus-5.5, read live from the catalogue on 23 Sep 2026, is
--- $4.00/$20.00 with a 1M context and a $0.20 cache read — cheaper on BOTH axes than what it
--- replaces AND the stronger reasoner. Nothing here is a cost trade.
+-- ═══ THE RULING THIS FILE IMPLEMENTS ════════════════════════════════════════════════════════════
 --
--- HOW "A MODEL PER SEAT" IS ACTUALLY WRITTEN. llm_seat_binding has no model column: it is
--- attribution, not routing. fn_ai_route reads model_policy keyed on task_class, and reaches
--- task_class either from the caller or from fn_task_class keyed on the calling function. So a seat
--- gets its model by (a) the model_policy rows for the classes that seat's functions use, and (b) an
--- fn_task_class row for every function that calls the gateway — which also carries the dept_key
--- the budget ceiling is found by.
+-- The founder, 23 Sep 2026, recorded as founder_instruction 841, in his own words:
+--
+--   "the primary model for the comparison would be Qwen 3.8 max and use GLM 5.3 flash whenever,
+--    wherever it's possible as a primary model. And for the CEO, again, Qwen 3.8 max. So this will
+--    be plan A for everyone, except the stuff that doesn't require reasoning a lot - GLM 5.3 flash
+--    again. We want to cut cost as much as possible. For plan B, for everyone that requires
+--    reasoning, it's going to be Opus; and for who doesn't need reasoning then GLM 5.3 flash."
+--
+-- So the matrix is two rows, not twenty:
+--
+--                        PLAN A (primary)         PLAN B (fallback / escalate)
+--   reasoning            qwen/qwen3.8-max-0902    anthropic/claude-opus-5.5
+--   everything else      z-ai/glm-5.3-flash       google/gemini-3.8-flash   (see WHY below)
+--
+-- This SUPERSEDES his ruling of 9 Sep 2026 (anthropic/claude-fable-5.1 + openai/gpt-6-astra on the
+-- CEO and Sales Engineer, openai/gpt-5.6-luna on the accountant) and an earlier draft of this same
+-- file that put anthropic/claude-opus-5.5 on plan A. Prices read live 23 Sep 2026, USD per Mtok:
+--
+--   qwen/qwen3.8-max-0902      2.00 /  6.00    plan A, reasoning
+--   z-ai/glm-5.3-flash         0.15 /  0.50    plan A, everything else
+--   anthropic/claude-opus-5.5  4.00 / 20.00    plan B, reasoning
+--   google/gemini-3.8-flash    0.75 /  3.75    plan B, everything else; and the degrade target
+--   anthropic/claude-fable-5.1 10.00/ 50.00    what the CEO ran on until today
+--
+-- The CEO's approvals move from $10/$50 to $2/$6 — 8.3x cheaper output — and the whole estate's
+-- projected monthly ceiling falls from AED 2,870 to AED 1,170 (arithmetic in
+-- a_ceiling_exists_before_the_door_is_opened.sql).
+--
+-- ═══ PLAN B FOR NON-REASONING WORK: WHERE I HAD TO INTERPRET, AND WHAT I CHOSE ══════════════════
+--
+-- Read literally, "for who doesn't need reasoning then GLM 5.3 flash" makes plan B the same model as
+-- plan A, and a fallback that IS the primary is not a fallback: fn_ai_route hands the fallback back
+-- for p_escalate and for a failed primary, so the row would have had no second attempt at all.
+--
+-- His INTENT is unambiguous and it is the cost one — do not pay reasoning prices for routine work. So
+-- plan B for the non-reasoning classes is google/gemini-3.8-flash at $0.75/$3.75: a different
+-- provider (so it does not share GLM's blind spots — this file's own document_extraction rationale
+-- makes that argument), still 5x cheaper than the qwen plan-A tier and 27x cheaper than opus, and the
+-- only model in the fleet carrying BOTH vision and audio, which the extraction classes need. It is
+-- also already the degrade target for the whole large tier, so a degraded call and a failed call land
+-- in the same place, which is one fewer thing to reason about at 3am.
+--
+-- THIS IS THE ONE PLACE THIS FILE DEPARTS FROM HIS WORDS, it is flagged in the PR for him to
+-- overrule in one word, and it costs nothing while GLM is healthy: the fallback is only reached on
+-- an escalation or a failure.
+--
+-- ═══ WHICH CLASSES COUNT AS "REASONING" ════════════════════════════════════════════════════════
+--
+-- He named the comparison and the CEO. The rest is a judgement about his phrase "the stuff that
+-- doesn't require reasoning a lot", and the list is in REASONING_CLASSES below so that it is one
+-- place an auditor can read rather than twenty scattered UPDATEs.
+--
+-- FOUR OF THEM ARE MY ADDITION to the list I was handed, each because the work is a judgement whose
+-- error is customer-visible or externally reviewable, and each is called out here so that correcting
+-- me is a one-line edit:
+--
+--   engineering_reasoning   The IT seat's answers become SQL applied to production. It was on the
+--                           non-reasoning list; a diagnosis is reasoning. Its safety net (CI, branch
+--                           protection, independent review before merge) is why it is plan A qwen and
+--                           not something dearer, not a reason to make it a classifier.
+--   contract_analysis       Legal exposure. The class exists because a wrong reading costs money that
+--                           no later step recovers.
+--   legal_analysis          Same, and it must preserve citations verbatim.
+--   translation             The Arabic quotation and correspondence the customer actually receives.
+--                           The founder's own standing requirement is that PDFs are professional and
+--                           fully Arabic. NEITHER new model has been measured for formal Gulf Arabic
+--                           (see the PR body) — so this class gets the stronger of the two rather
+--                           than the cheaper, and the Arabic checks are what would catch a
+--                           regression. translation_general, which is internal, stays on GLM.
+--
+-- ═══ THE ONE CLASS EXEMPT FROM THE RULING, AND WHY IT IS NOT A CHOICE ═══════════════════════════
+--
+-- speech_transcription stays on google/gemini-3.1-flash-lite with google/gemini-3.5-flash behind it.
+-- Measured in the live catalogue 23 Sep 2026, ONLY the gemini family carries "audio" in
+-- input_modalities: glm-5.3-flash and qwen3.8-max-0902 are text+image+video, every anthropic/ and
+-- openai/ row is text+image+file. His instruction says "whenever, wherever it's POSSIBLE"; here it is
+-- not. A voice note on GLM is rejected by the provider or silently redirected by fn_ai_route's
+-- capability branch to a model nobody chose.
 --
 -- ═══ 1. THE CEO'S DECISIONS WERE GOING TO THE CHEAP TIER ════════════════════════════════════════
 --
--- ceo_agent/index.ts:329 passes taskClass 'ceo_judgement'. There is no model_policy row for it, so
+-- ceo_agent/index.ts:329 passes taskClass 'ceo_judgement'. There was no model_policy row for it, so
 -- fn_ai_route fell through `no policy for "ceo_judgement", fell back to general_drafting` — which is
 -- ~anthropic/claude-haiku-latest at 900 tokens. The CEO's judgements on refunds and exceptions, the
 -- answers fn_ceo_judgement_accept validates against ceo-judgement-v1, were being drafted on the
--- cheapest model in the fleet with a 900-token ceiling.
+-- cheapest model in the fleet with a 900-token ceiling. Measured before the change:
+--
+--   fn_ai_route('ceo_judgement') -> ~anthropic/claude-haiku-latest, 900, medium,
+--                                   why: '... fell back to general_drafting'
 --
 -- I ADD THE CLASS rather than point the caller at ceo_approval_decision. Reasons, in order:
 --
 --   * ai_cost_log keys on task_class. Collapsing the two makes a plan judgement and a refund
---     approval indistinguishable in the cost log and in the per-seat model A/B the founder has
---     next on his plan. A column that cannot separate two decisions cannot evaluate either.
+--     approval indistinguishable in the cost log and in the per-seat model A/B the founder has next
+--     on his plan. A column that cannot separate two decisions cannot evaluate either.
 --   * They are different contracts. ceo_approval_decision answers one approval on the record;
 --     ceo_judgement answers fn_ceo_judgement_request's output_schema against measured numbers and
 --     code-computed options. Different shapes need different token ceilings, which is the whole
@@ -100,342 +171,339 @@
 -- on general_drafting: haiku at 900 tokens. Session 9 pinned it there deliberately to keep it off
 -- google after a 400-token ceiling cut gemini's answer mid-JSON; the diagnosis was wrong (it was
 -- the ceiling, measured: 724 output tokens with no max, parsing correctly) but the conclusion — do
--- not route this to redaction_detection — stands, and this file keeps it off google.
+-- not route this to redaction_detection — stands, and this file keeps it off google on plan A.
 --
--- It now has its own class, identity_redaction_verify: anthropic/claude-sonnet-5 primary,
--- anthropic/claude-opus-5.5 on escalate, 2000 tokens (2.7x the 724 measured). A miss here sends a
--- consultant's name, a client's name and a phone number from the buyer's drawing to a supplier who
--- has not been revealed. It is the only vision call in the estate where the cheap model is the
--- wrong answer, and it keeps failing closed: the function still treats truncation, an unparseable
--- answer and an exception as NOT clean.
+-- It now has its own class, identity_redaction_verify, on the REASONING row of the matrix:
+-- qwen/qwen3.8-max-0902 primary, anthropic/claude-opus-5.5 on escalate, 2000 tokens (2.7x the 724
+-- measured). A miss here sends a consultant's name, a client's name and a phone number from the
+-- buyer's drawing to a supplier who has not been revealed. It is the only vision call in the estate
+-- where the cheap model is the wrong answer, and it keeps failing closed: the function still treats
+-- truncation, an unparseable answer and an exception as NOT clean.
 --
 -- ═══ 5. WHAT STAYS DETERMINISTIC ════════════════════════════════════════════════════════════════
 --
--- All 23 tier='none' rows are untouched. Money, matching, VAT, permissions, approval thresholds,
+-- All 17 tier='none' rows are untouched. Money, matching, VAT, permissions, approval thresholds,
 -- workflow state, scoring and the rest answer from code and keep answering from code.
 --
--- ═══ 6. WHAT STAYS ON AUDIO, VERIFIED FROM THE CATALOGUE ════════════════════════════════════════
---
--- speech_transcription keeps google/gemini-3.1-flash-lite primary and google/gemini-3.5-flash
--- fallback. Both list "audio" in input_modalities in the live catalogue read 23 Sep 2026; no
--- anthropic/ or openai/ row in this fleet does. This was checked, not assumed — swapping in a
--- cheaper non-audio model would have the provider reject the payload, or fn_ai_route's capability
--- branch silently substitute something else.
+-- SEVENTEEN, NOT TWENTY-THREE (corrected 23 Sep 2026 in review; the first draft of this file, its PR
+-- body and its probe all said 23). Measured: `select count(*) from model_policy where tier='none'`
+-- = 17, and `... and active` = 17 — every one of them active, none quietly switched off. Of the 73
+-- rows in model_policy, 72 are active and 55 of those route to a model. A count is not a finding
+-- until you know what you counted, and 23 was not counted from anything.
 
 begin;
 
--- ── 1. THE CEO SEAT: every judgement, approval and strategic class on the reasoning model ───────
+-- ── 1. THE REASONING CLASSES: plan A qwen3.8-max, plan B opus-5.5 ──────────────────────────────
+-- One statement, one list. The WHY for the group is the founder's ruling above; the WHY for each
+-- individual class goes into its own rationale below, because fn_ai_route returns the rationale in
+-- its `why`, so the reason a model was chosen travels with the decision rather than living only here.
+create temporary table reasoning_classes (task_class text primary key) on commit drop;
+insert into reasoning_classes values
+  -- the CEO seat: he named it
+  ('ceo_judgement'), ('ceo_approval_decision'), ('ceo_strategic_planning'),
+  ('chief_of_staff_decision'), ('executive_report'),
+  -- the sales engineer: he named the comparison
+  ('quote_comparison'), ('sales_engineer_reasoning'), ('agent_reasoning'),
+  ('inquiry_qualification_conversation'), ('procurement_reasoning'), ('identity_redaction_verify'),
+  -- the signed-in customer, reasoning over his own money
+  ('customer_portal_assistant'),
+  -- the accountant: anything that touches the books
+  ('finance_analysis'), ('accountant_expense_classification'), ('accountant_weekly_report'),
+  -- the IT seat and the reviewers
+  ('knowledge_validation'), ('security_incident_analysis'), ('edge_case_escalation'),
+  ('reflection_and_learning'),
+  -- my four additions, each argued in the header
+  ('engineering_reasoning'), ('contract_analysis'), ('legal_analysis'), ('translation');
+
+-- The two classes that did not exist at all. Inserted first so the statements below can treat them
+-- like any other row.
 insert into public.model_policy
   (task_class, tier, model_primary, model_fallback, max_tokens, active, rationale)
 values
-  ('ceo_judgement', 'xlarge', 'anthropic/claude-opus-5.5', 'anthropic/claude-sonnet-5', 2000, true,
+  ('ceo_judgement', 'large', 'qwen/qwen3.8-max-0902', 'anthropic/claude-opus-5.5', 2000, true,
    'The CEO judging one plan on the record: ceo_agent/index.ts:329 builds the request from '
    || 'fn_ceo_judgement_request and fn_ceo_judgement_accept validates the answer against '
-   || 'ceo-judgement-v1. WHY opus-5.5: this is the class that decides refunds and exceptions, the '
-   || 'one place in the company where a cheaper answer costs real money and the founder''s '
-   || 'reputation, and until 23 Sep 2026 it had no policy row at all and fell to '
-   || 'general_drafting — haiku at 900 tokens. WHY sonnet-5 as fallback: same family and prompt '
-   || 'behaviour, half the price, and a judgement that arrives on the second-best reasoner is worth '
-   || 'more than one that does not arrive. 2000 tokens is the structured answer plus its reasoning; '
-   || 'the caller''s own max was raised to match, because ai_gateway takes the lower of the two.'),
+   || 'ceo-judgement-v1. WHY it is plan A qwen3.8-max: the founder named the CEO seat for it '
+   || '(instruction 841), and this is the class that decides refunds and exceptions - until 23 Sep '
+   || '2026 it had NO policy row at all and fell to general_drafting, ~anthropic/claude-haiku-latest '
+   || 'at 900 tokens, which is the cheapest model in the fleet. WHY opus-5.5 on escalate: plan B is '
+   || 'DEARER than plan A here, so fn_ai_route''s p_escalate is a real second opinion from a '
+   || 'stronger reasoner rather than a retry of the same one. 2000 tokens is the structured answer '
+   || 'plus its reasoning; the caller''s own max was raised to match, because ai_gateway takes the '
+   || 'lower of the two.'),
 
-  ('identity_redaction_verify', 'large', 'anthropic/claude-sonnet-5', 'anthropic/claude-opus-5.5', 2000, true,
+  ('identity_redaction_verify', 'large', 'qwen/qwen3.8-max-0902', 'anthropic/claude-opus-5.5', 2000, true,
    'The second pass over a REDACTED drawing page, asked whether any identity is still legible '
-   || '(drawing_redact/index.ts:186, fn drawing_redact_verify). WHY the stronger model on the '
-   || 'verify step and not the find step: a false clean here publishes a consultant''s name, a '
-   || 'client''s name, a plot number and a phone number from the buyer''s drawing to a supplier who '
-   || 'has not been revealed, and no later step can unsend it. The find pass may be cheap because a '
-   || 'miss there is caught here; a miss here is caught by nobody. WHY sonnet-5 and not gemini: '
-   || 'measured 13 Aug 2026, routing these calls to redaction_detection on gemini refused two of '
-   || 'three fixtures while naming the planted identifiers as still legible. WHY opus-5.5 on '
-   || 'escalate: the page is refused entirely on an uncertain answer, so the escalation is the '
-   || 'difference between publishing a drawing and refusing a customer''s job. 2000 tokens against '
-   || 'the 724 measured with no ceiling — a ceiling inside the answer''s natural range reads as an '
-   || 'unparseable model, which cost a whole session once. Still fails CLOSED: truncated, '
-   || 'unparseable and exception all mean not clean.')
+   || '(drawing_redact/index.ts:186, fn drawing_redact_verify). WHY the reasoning row of the matrix '
+   || 'and not GLM: a false clean here publishes a consultant''s name, a client''s name, a plot '
+   || 'number and a phone number from the buyer''s drawing to a supplier who has not been revealed, '
+   || 'and no later step can unsend it. The FIND pass may be cheap because a miss there is caught '
+   || 'here; a miss here is caught by nobody. WHY not google: measured 13 Aug 2026, routing these '
+   || 'calls to redaction_detection on gemini refused two of three correctly-redacted fixtures while '
+   || 'naming the planted identifiers as still legible. 2000 tokens against the 724 measured with no '
+   || 'ceiling - a ceiling inside the answer''s natural range reads as an unparseable model, which '
+   || 'cost a whole session once. Still fails CLOSED: truncated, unparseable and exception all mean '
+   || 'not clean.')
 on conflict (task_class) do update set
   tier = excluded.tier, model_primary = excluded.model_primary,
   model_fallback = excluded.model_fallback, max_tokens = excluded.max_tokens,
   active = excluded.active, rationale = excluded.rationale;
 
+-- Plan A / plan B onto every reasoning class. tier 'large' because that is qwen3.8-max's registry
+-- tier and §7b explains why the two must agree.
 update public.model_policy set
-  tier = 'xlarge', model_primary = 'anthropic/claude-opus-5.5', model_fallback = 'anthropic/claude-sonnet-5',
-  rationale = 'The CEO deciding one approval on the record - a refund, an exception, a supplier '
-    || 'removal. WHY opus-5.5 (founder, 23 Sep 2026): every approval in this company is the CEO''s, '
-    || 'refunds included, and nothing reaches the founder, so this row IS the last judgement. '
-    || 'Cheaper AND stronger than the fable-5.1/gpt-6-astra pair it replaces ($4/$20 against '
-    || '$10/$50 on both models). Fallback sonnet-5: an approval that arrives is worth more than one '
-    || 'that waits for the best reasoner to come back.'
+  tier = 'large',
+  model_primary = 'qwen/qwen3.8-max-0902',
+  model_fallback = 'anthropic/claude-opus-5.5'
+ where active and task_class in (select task_class from reasoning_classes);
+
+-- ── 2. EVERYTHING ELSE: plan A GLM 5.3 flash, plan B gemini-3.8-flash ──────────────────────────
+-- "use GLM 5.3 flash whenever, wherever it's possible as a primary model... We want to cut cost as
+-- much as possible." Reading, classifying, triaging and routine drafting. tier 'small' = GLM's
+-- registry tier; a small-tier class degrades within the small band, which is correct for work that
+-- is already the cheapest thing the estate does.
+--
+-- EXCLUSIONS, each for a stated reason and nothing else:
+--   speech_transcription  the only audio-capable models are gemini (header)
+--   the 17 tier='none'    deterministic, and they must stay that way
+--   redaction_detection   has no caller; drawing_redact/index.ts:94 records the measurement that
+--                         stopped it being used, and editing a policy nothing reads is noise
+update public.model_policy set
+  tier = 'small',
+  model_primary = 'z-ai/glm-5.3-flash',
+  model_fallback = 'google/gemini-3.8-flash'
+ where active and tier <> 'none'
+   and task_class not in (select task_class from reasoning_classes)
+   and task_class not in ('speech_transcription', 'redaction_detection');
+
+-- ── 3. THE AUDIO EXEMPTION, WRITTEN DOWN WHERE THE ROUTING IS ──────────────────────────────────
+update public.model_policy set
+  tier = 'small',
+  model_primary = 'google/gemini-3.1-flash-lite',
+  model_fallback = 'google/gemini-3.5-flash',
+  rationale = 'Verbatim speech to text. THE ONE CLASS EXEMPT FROM founder_instruction 841, and not '
+    || 'by choice: measured in the live catalogue 23 Sep 2026, only the gemini family carries '
+    || '"audio" in input_modalities. z-ai/glm-5.3-flash and qwen/qwen3.8-max-0902 are '
+    || 'text+image+video; every anthropic/ and openai/ row is text+image+file. His words are '
+    || '"whenever, wherever it''s POSSIBLE", and here it is not - a voice note on GLM is rejected by '
+    || 'the provider, or silently redirected by fn_ai_route''s capability branch to a model nobody '
+    || 'chose. gemini-3.1-flash-lite at $0.25/$1.50 is the cheapest audio-capable row; '
+    || 'gemini-3.5-flash behind it is also audio-capable, verified the same way.'
+ where task_class = 'speech_transcription' and active;
+
+-- ── 4. THE RATIONALES: why THIS model for THIS work, class by class ───────────────────────────
+-- The model choice is set above; this sets the reason, which fn_ai_route hands back in `why`. Only
+-- the consequential classes get their own paragraph - the rest carry the group rationale at the end.
+update public.model_policy set rationale =
+  'The CEO deciding one approval on the record - a refund, an exception, a supplier removal. WHY '
+  || 'plan A qwen3.8-max (founder, instruction 841, "for the CEO, again, Qwen 3.8 max"): every '
+  || 'approval in this company is the CEO''s, refunds included, and nothing reaches the founder, so '
+  || 'this row IS the last judgement. It replaces anthropic/claude-fable-5.1 at $10/$50 with '
+  || '$2.00/$6.00 - 8.3x cheaper on output, which is the axis a judgement spends on. opus-5.5 on '
+  || 'escalate is the dearer second opinion, which is what an escalation should be.'
  where task_class = 'ceo_approval_decision' and active;
 
-update public.model_policy set
-  tier = 'xlarge', model_primary = 'anthropic/claude-opus-5.5', model_fallback = 'anthropic/claude-sonnet-5',
-  rationale = 'Quarterly priorities and capital allocation against the AED 1M by Aug 2027 target. '
-    || 'WHY opus-5.5: the longest-horizon reasoning the company does, and the one answer that is '
-    || 'wrong for a quarter rather than for a call. 1M context holds the whole plan, the ledger and '
-    || 'the measured KPIs in one request.'
+update public.model_policy set rationale =
+  'Quarterly priorities and capital allocation against the AED 1M by Aug 2027 target. WHY plan A '
+  || 'qwen3.8-max: the longest-horizon reasoning the company does, and the one answer that is wrong '
+  || 'for a quarter rather than for a call; its 1,000,000 context holds the whole plan, the ledger '
+  || 'and the measured KPIs in one request. Runs a handful of times a quarter, so opus-5.5 on '
+  || 'escalate costs almost nothing and is worth having.'
  where task_class = 'ceo_strategic_planning' and active;
 
-update public.model_policy set
-  tier = 'xlarge', model_primary = 'anthropic/claude-opus-5.5', model_fallback = 'anthropic/claude-sonnet-5',
-  rationale = 'Cross-department arbitration against company goals - which seat gives way when two '
-    || 'are both right. WHY opus-5.5: an arbitration is a judgement with no appeal above it, and '
-    || 'the intent_router and founder_directive paths both land here, so a shallow answer '
-    || 'mis-routes the founder''s own instruction.'
+update public.model_policy set rationale =
+  'Cross-department arbitration against company goals - which seat gives way when two are both '
+  || 'right. WHY the reasoning row: an arbitration is a judgement with no appeal above it, and the '
+  || 'intent_router and founder_directive paths both land here, so a shallow answer mis-routes the '
+  || 'founder''s own instruction.'
  where task_class = 'chief_of_staff_decision' and active;
 
-update public.model_policy set
-  tier = 'xlarge', model_primary = 'anthropic/claude-opus-5.5', model_fallback = 'anthropic/claude-sonnet-5',
-  rationale = 'Board-level synthesis for the founder. WHY opus-5.5: this is the report he acts on, '
-    || 'and a plausible-sounding wrong synthesis of correct numbers is worse than no report.'
+update public.model_policy set rationale =
+  'Board-level synthesis for the founder. WHY the reasoning row: this is the report he acts on, and '
+  || 'a plausible-sounding wrong synthesis of correct numbers is worse than no report.'
  where task_class = 'executive_report' and active;
 
--- ── 2. THE SALES ENGINEER: revenue judgement on the reasoning model, eyes on the vision model ───
-update public.model_policy set
-  tier = 'xlarge', model_primary = 'anthropic/claude-opus-5.5', model_fallback = 'anthropic/claude-sonnet-5',
-  max_tokens = 10000,
-  rationale = 'Normalising non-comparable supplier scopes and ranking the customer''s top 3. WHY '
-    || 'opus-5.5: this is the revenue event. The customer pays 3% when he reveals the supplier this '
-    || 'class ranked first, so the ranking IS the product, and it is 2,455 of the 3,207 calls the '
-    || 'estate routed between 8 and 22 Sep 2026 - the most consequential class by volume AND by '
-    || 'money. 1M context (the registry said 200,000 until today) matters here because every '
-    || 'quotation goes on one request. max_tokens stays 10000. Fallback sonnet-5: a ranking that '
-    || 'arrives is revenue; one that waits is not.'
+update public.model_policy set max_tokens = 10000, rationale =
+  'Normalising non-comparable supplier scopes and ranking the customer''s top 3. WHY plan A '
+  || 'qwen3.8-max: the founder named this class first - "the primary model for the comparison would '
+  || 'be Qwen 3.8 max". It is the revenue event: the customer pays 3% when he reveals the supplier '
+  || 'this class ranked first, so the ranking IS the product, and it is 2,455 of the 3,207 calls the '
+  || 'estate routed between 8 and 22 Sep 2026 - the most consequential class by volume AND by money, '
+  || 'and 92% of the projected bill. 1,000,000 context (the registry said 200,000 until today) '
+  || 'matters here because every quotation goes on one request. NOT YET MEASURED on this class: '
+  || 'whether qwen refuses to rank quotes that are genuinely non-comparable rather than inventing a '
+  || 'common basis. That is the first thing to watch when the hold opens; the PR body names the check.'
  where task_class = 'quote_comparison' and active;
 
-update public.model_policy set
-  tier = 'large', model_primary = 'anthropic/claude-sonnet-5', model_fallback = 'anthropic/claude-opus-5.5',
-  rationale = 'An AI employee reasoning over its own context, memory and live estate. WHY sonnet-5 '
-    || 'primary: this is the working tier, 653 calls in the window, and it runs on every seat''s '
-    || 'ordinary turn. WHY opus-5.5 on escalate: fn_ai_route takes the fallback when p_escalate is '
-    || 'true, i.e. after an unsatisfactory cheaper attempt, so the escalation is a real second '
-    || 'opinion from a better reasoner rather than a retry of the same one. opus-5.5 also replaces '
-    || 'opus-4.8 here: $4/$20 against $5/$25, and the stronger model.'
+update public.model_policy set rationale =
+  'An AI employee reasoning over its own context, memory and live estate - 653 calls in the window, '
+  || 'the working turn of every seat. WHY plan A qwen3.8-max: it is reasoning, and at $2.00/$6.00 it '
+  || 'costs less than the anthropic/claude-sonnet-5 it replaces ($2.00/$10.00) on the axis that '
+  || 'dominates here. WHY opus-5.5 on escalate: fn_ai_route takes the fallback when p_escalate is '
+  || 'true, i.e. after an unsatisfactory cheaper attempt, so the escalation is a real second opinion.'
  where task_class = 'agent_reasoning' and active;
 
-update public.model_policy set
-  tier = 'large', model_primary = 'anthropic/claude-sonnet-5', model_fallback = 'anthropic/claude-opus-5.5',
-  rationale = 'The Sales Engineer reasoning over technical scope, supplier capability and what a '
-    || 'line item actually requires. WHY sonnet-5 and not the xlarge pair it used to run '
-    || '(fable-5.1/gpt-6-astra, $10/$50): the judgement that earns money is quote_comparison, which '
-    || 'IS on opus-5.5 above. This class is the working reasoning around it, and opus-5.5 on '
-    || 'escalate gives it the stronger model exactly when a cheaper attempt was not good enough.'
+update public.model_policy set rationale =
+  'The Sales Engineer reasoning over technical scope, supplier capability and what a line item '
+  || 'actually requires. WHY the reasoning row: it sits around quote_comparison, which earns the '
+  || 'money, and it replaces the anthropic/claude-fable-5.1 / openai/gpt-6-astra pair at $10/$50 '
+  || 'with $2.00/$6.00.'
  where task_class = 'sales_engineer_reasoning' and active;
 
-update public.model_policy set
-  tier = 'medium', model_primary = 'anthropic/claude-sonnet-5', model_fallback = 'anthropic/claude-opus-5.5',
-  rationale = 'Qualifying an inbound inquiry in conversation - the model interprets and rephrases, '
-    || 'code controls the state and the questions. WHY sonnet-5: this is the first thing a paying '
-    || 'customer reads, and a qualifying question that misreads his trade sends the RFQ to the '
-    || 'wrong suppliers, which the exact-trade-match rule then cannot repair. opus-5.5 on escalate '
-    || 'for the inquiry nobody can classify.'
+update public.model_policy set rationale =
+  'Qualifying an inbound inquiry in conversation - the model interprets and rephrases, code controls '
+  || 'the state and the questions. WHY the reasoning row and not GLM: this is the first thing a '
+  || 'paying customer reads, and a qualifying question that misreads his trade sends the RFQ to the '
+  || 'wrong suppliers, which the exact-trade-match rule then cannot repair.'
  where task_class = 'inquiry_qualification_conversation' and active;
 
-update public.model_policy set
-  tier = 'medium', model_primary = 'google/gemini-3.8-flash', model_fallback = 'anthropic/claude-sonnet-5',
-  rationale = 'Reading a whole document - a scan, a drawing, a trade licence, a quotation, a '
-    || 'supplier catalogue page - into structured fields. WHY gemini-3.8-flash: it is the eyes of '
-    || 'the estate. Vision, 1,048,576 context so a multi-page scan goes on one request, and '
-    || '$0.75/$3.75 - half the gemini-3.5-flash it replaces on both axes, same context. Extraction '
-    || 'is transcription: the judgement about what the document MEANS is a separate class on a '
-    || 'stronger model. WHY sonnet-5 as fallback and not another gemini: a fallback that shares the '
-    || 'primary''s blind spots is not a fallback. 8000 tokens holds supplier_catalog_ingest''s 3000 '
-    || 'JSON products with headroom - it used to land on general_drafting''s 900 and truncate.'
- where task_class = 'document_extraction' and active;
-
-update public.model_policy set
-  tier = 'medium', model_primary = 'google/gemini-3.8-flash', model_fallback = 'anthropic/claude-sonnet-5',
-  rationale = 'Extract once from an image or PDF, store the structured fields and their source '
-    || 'coordinates. WHY gemini-3.8-flash: vision at half the old price, and the coordinates make '
-    || 'this re-readable by code afterwards, so the model is asked once and never again.'
- where task_class = 'document_extraction_multimodal' and active;
-
-update public.model_policy set
-  tier = 'medium', model_primary = 'google/gemini-3.8-flash', model_fallback = 'anthropic/claude-sonnet-5',
-  rationale = 'Reading a drawing and a bill of quantities together. WHY gemini-3.8-flash: vision '
-    || 'over large pages at 1M context. WHY sonnet-5 as the escalation: design calculations and '
-    || 'low-confidence interpretations are judgement, not reading, and a wrong quantity becomes a '
-    || 'wrong price on a real quotation.'
- where task_class = 'drawing_and_boq_analysis' and active;
-
--- redaction_detection is DELIBERATELY NOT TOUCHED. Its rationale was written for these calls, but
--- drawing_redact's comment block at index.ts:94 records the measurement that stopped it being used:
--- routing the two passes there on staging REFUSED two of three correctly-redacted fixtures and
--- filled verify_detail with identifiers that a look at the published JPGs showed were under solid
--- black. It has no caller, and a policy with no caller is not made better by editing it. The FIND
--- pass stays on document_extraction (gemini-3.8-flash) and the VERIFY pass gets its own class above.
--- The sweep in §7 leaves it alone too: its models are gemini-3.1-flash-lite / gemini-3.5-flash, and
--- the fallback move below would touch it, so it is excluded there by name.
-
-update public.model_policy set
-  tier = 'medium', model_primary = 'anthropic/claude-sonnet-5', model_fallback = 'anthropic/claude-opus-5.5',
-  rationale = 'Trade-off reasoning within one category, and the supplier''s mandatory six - name, '
-    || 'mobile, email, licence, profile, signed T&C. WHY sonnet-5: this class decides whether a '
-    || 'supplier is verified, and one confirmed supplier gates every RFQ, so a wrong answer here '
-    || 'either admits an unverified company to the marketplace or keeps a real one out. opus-5.5 '
-    || 'on escalate for the licence nobody can read.'
+update public.model_policy set rationale =
+  'Trade-off reasoning within one category, and the supplier''s mandatory six - name, mobile, email, '
+  || 'licence, profile, signed T&C. WHY the reasoning row: this class decides whether a supplier is '
+  || 'verified, and one confirmed supplier gates every RFQ, so a wrong answer either admits an '
+  || 'unverified company to the marketplace or keeps a real one out. ALSO WHY ITS TIER IS large: at '
+  || 'medium it would degrade to the cheapest small row and drop 20x in one step - see §7b.'
  where task_class = 'procurement_reasoning' and active;
 
-update public.model_policy set
-  tier = 'medium', model_primary = 'google/gemini-3.8-flash', model_fallback = 'google/gemini-3.5-flash',
-  rationale = 'Reading a supplier catalogue or a knowledge source for MEANING, offline, once. WHY '
-    || 'gemini-3.8-flash: 1M context takes a whole catalogue in one request at $0.75/Mtok, and this '
-    || 'runs in batch rather than in front of a customer, so latency and depth both matter less '
-    || 'than the price of reading everything.'
- where task_class = 'knowledge_ingestion' and active;
-
-update public.model_policy set
-  model_primary = 'google/gemini-3.8-flash', model_fallback = 'openai/gpt-6-luna',
-  rationale = 'Structured extraction from a known shape. WHY gemini-3.8-flash: the shape is given, '
-    || 'so this is reading, not judgement - and it is the same model as document_extraction, so an '
-    || 'extract and its re-extract do not disagree for a reason nobody can find. gpt-6-luna as '
-    || 'fallback at $0.10/$0.50: a known shape that fails validation is retried by code, never '
-    || 'sent, so the cheapest capable model is the right fallback here.'
- where task_class in ('json_extraction', 'json_extraction_text') and active;
-
--- ── 3. CUSTOMER SUPPORT: the signed-in customer gets the reasoner, the public gets the working tier
-update public.model_policy set
-  tier = 'xlarge', model_primary = 'anthropic/claude-opus-5.5', model_fallback = 'anthropic/claude-sonnet-5',
-  rationale = 'The assistant a SIGNED-IN customer or supplier talks to, reasoning over that '
-    || 'person''s own quotes, reveals and invoices. WHY opus-5.5: it is the only class that reads '
-    || 'real money belonging to the person reading the answer, and it answers about state it can '
-    || 'see, so a confident wrong answer about his own reveal is indistinguishable from the truth '
-    || 'to him. Distinct from visitor_chat, which knows nothing about anybody.'
+update public.model_policy set rationale =
+  'The assistant a SIGNED-IN customer or supplier talks to, reasoning over that person''s own '
+  || 'quotes, reveals and invoices. WHY the reasoning row: it is the only class that reads real money '
+  || 'belonging to the person reading the answer, and it answers about state it can see, so a '
+  || 'confident wrong answer about his own reveal is indistinguishable from the truth to him. '
+  || 'Distinct from visitor_chat, which knows nothing about anybody and is on GLM.'
  where task_class = 'customer_portal_assistant' and active;
 
-update public.model_policy set
-  tier = 'large', model_primary = 'anthropic/claude-sonnet-5', model_fallback = 'google/gemini-3.8-flash',
-  rationale = 'The public website chat widget - the support seat talking to a stranger, FAQ first. '
-    || 'WHY sonnet-5 and not the flash-lite it ran on: this is the highest-volume public surface '
-    || 'and the first sentence anyone reads about the company, and the founder''s standard for the '
-    || 'support seat is better than Amazon''s. Volume is served by the deterministic FAQ levels in '
-    || 'front of it (level0_faq_keyword, level0_faq_semantic, level0_template answered 18 of the 50 '
-    || 'site_assistant calls in the window with no model at all), so the model sees only what code '
-    || 'could not answer. WHY gemini-3.8-flash as fallback: a public widget must answer, and at '
-    || '$0.75/Mtok it can absorb a spike the large tier should not.'
- where task_class = 'visitor_chat' and active;
-
-update public.model_policy set
-  tier = 'large', model_primary = 'anthropic/claude-sonnet-5', model_fallback = '~anthropic/claude-haiku-latest',
-  rationale = 'The support seat writing to a customer or a supplier - email, WhatsApp, the portal. '
-    || 'WHY sonnet-5: every word is customer-visible and signed in the company''s name, and tone in '
-    || 'two languages is exactly what the cheap tier gets subtly wrong. haiku-latest as fallback '
-    || 'because a reply that goes out late is a complaint and its cache read is $0.10/Mtok on a '
-    || 'system prompt that never changes.'
- where task_class in ('customer_communication', 'support_ai', 'wa_inbound') and active;
-
-update public.model_policy set
-  tier = 'medium', model_primary = 'google/gemini-3.8-flash', model_fallback = 'openai/gpt-6-luna',
-  rationale = 'Sorting one inbound message into what it is and who it is from. WHY '
-    || 'gemini-3.8-flash: the answer is one label from a known set plus a short factual summary - '
-    || 'classification, not judgement - and a wrong label is corrected by the next step rather than '
-    || 'sent to anyone. WHY gpt-6-luna as fallback at $0.10/$0.50: the cheapest capable model in '
-    || 'the fleet is the right second opinion for a label. max_tokens is NOT reduced: email_triage '
-    || 'asks for 700 here and 300 cut its Arabic replies in half (founder instruction 705).'
- where task_class in ('intent_detection', 'email_triage', 'inbound_email', 'resend_inbound') and active;
-
--- ── 4. THE ACCOUNTANT: anything that touches money reasons on opus-5.5 ─────────────────────────
-update public.model_policy set
-  tier = 'xlarge', model_primary = 'anthropic/claude-opus-5.5', model_fallback = 'anthropic/claude-sonnet-5',
-  max_tokens = 2000,
-  rationale = 'The accountant''s analysis, including the refund recommendation the CEO then '
-    || 'approves. WHY opus-5.5 (founder, 23 Sep 2026 - anything touching money): the books are the '
-    || 'one record with an external reader, and AED 6,905.59 of real bookings already sit in them. '
-    || 'max_tokens 1400 -> 2000 because a recommendation without its arithmetic is not a '
-    || 'recommendation, and this class is read by a person who must be able to check it.'
+update public.model_policy set max_tokens = 2000, rationale =
+  'The accountant''s analysis, including the refund recommendation the CEO then approves. WHY the '
+  || 'reasoning row: the books are the one record with an external reader, and AED 6,905.59 of real '
+  || 'bookings already sit in them. max_tokens 1400 -> 2000 because a recommendation without its '
+  || 'arithmetic is not a recommendation, and this class is read by a person who must be able to '
+  || 'check it.'
  where task_class = 'finance_analysis' and active;
 
-update public.model_policy set
-  tier = 'xlarge', model_primary = 'anthropic/claude-opus-5.5', model_fallback = 'anthropic/claude-sonnet-5',
-  max_tokens = 600,
-  rationale = 'Classifying one expense against the chart of accounts. WHY opus-5.5 even though the '
-    || 'answer is short: the answer is a LEDGER ENTRY. It is cheap to produce and expensive to be '
-    || 'wrong about, it is what a VAT position and a P&L are built from, and at $4/Mtok in on a '
-    || '600-token answer the whole month of expenses costs less than one quote comparison. '
-    || 'max_tokens 400 -> 600 so the account, the reason and the VAT treatment fit together.'
+update public.model_policy set max_tokens = 600, rationale =
+  'Classifying one expense against the chart of accounts. WHY the reasoning row even though the '
+  || 'answer is short: the answer is a LEDGER ENTRY. It is cheap to produce and expensive to be '
+  || 'wrong about, it is what a VAT position and a P&L are built from, and at $2.00/Mtok in on a '
+  || '600-token answer the whole month of expenses costs AED 2.06. max_tokens 400 -> 600 so the '
+  || 'account, the reason and the VAT treatment fit together.'
  where task_class = 'accountant_expense_classification' and active;
 
-update public.model_policy set
-  tier = 'medium', model_primary = 'google/gemini-3.8-flash', model_fallback = 'anthropic/claude-sonnet-5',
-  rationale = 'Reading a forwarded receipt - image or PDF - into fields. WHY gemini-3.8-flash and '
-    || 'NOT opus-5.5 like the rest of the accountant''s classes: this step TRANSCRIBES, it does not '
-    || 'decide. The judgement about what the receipt means is accountant_expense_classification, '
-    || 'which runs on opus-5.5 and reads these fields. Splitting them puts the reasoning model where '
-    || 'the reasoning is and the vision model where the pixels are, and makes a misread '
-    || 'distinguishable from a misjudgement in ai_cost_log. WHY sonnet-5 as fallback: a receipt the '
-    || 'vision model cannot read must still be read.'
- where task_class = 'accountant_receipt_extraction' and active;
-
-update public.model_policy set
-  tier = 'xlarge', model_primary = 'anthropic/claude-opus-5.5', model_fallback = 'anthropic/claude-sonnet-5',
-  max_tokens = 2000,
-  rationale = 'The weekly financial report. WHY opus-5.5: it states the company''s position to the '
-    || 'founder from the ledger, and a report that reads well and totals wrong is worse than none. '
-    || 'Weekly, so the cost of the best model here is one call a week.'
+update public.model_policy set max_tokens = 2000, rationale =
+  'The weekly financial report. WHY the reasoning row: it states the company''s position to the '
+  || 'founder from the ledger, and a report that reads well and totals wrong is worse than none. '
+  || 'Weekly, so the best available model here costs four calls a month.'
  where task_class = 'accountant_weekly_report' and active;
 
--- ── 5. MARKETING: it speaks in the company's name ──────────────────────────────────────────────
-update public.model_policy set
-  tier = 'large', model_primary = 'anthropic/claude-sonnet-5', model_fallback = '~anthropic/claude-haiku-latest',
-  rationale = 'Public posts, social replies and brand copy. WHY sonnet-5: this text is published '
-    || 'under the company''s own name on surfaces the founder does not review first, and a UAE '
-    || 'audience reads it in two languages. The deterministic brand_rule_check (tier none) still '
-    || 'gates it - the model writes, code checks. haiku-latest as fallback so a scheduled post is '
-    || 'not simply missed.'
- where task_class in ('marketing_copy', 'content_drafting', 'supplier_communication') and active;
-
--- ── 6. THE IT ENGINEER: its own drafting and diagnosis ────────────────────────────────────────
-update public.model_policy set
-  tier = 'large', model_primary = 'anthropic/claude-sonnet-5', model_fallback = 'google/gemini-3.8-flash',
-  rationale = 'The IT seat reasoning about the estate - a finding, a diagnosis, a change. WHY '
-    || 'sonnet-5: this seat''s answers become SQL and deployed functions, and the audits it writes '
-    || 'are the reason the estate''s defects get found; a shallow diagnosis costs a session, which '
-    || 'is dearer than the model. Not opus-5.5: its work is checked by CI, by branch protection and '
-    || 'by an independent review before every merge, so it has a real safety net the judgement '
-    || 'classes do not.'
- where task_class in ('engineering_reasoning', 'reflection_and_learning') and active;
-
-update public.model_policy set
-  tier = 'large', model_primary = 'anthropic/claude-sonnet-5', model_fallback = 'anthropic/claude-opus-5.5',
-  rationale = 'A security incident, an escalated edge case, or an independent review of knowledge '
-    || 'before it is trusted. WHY sonnet-5 primary and opus-5.5 on escalate: a reviewer on the '
-    || 'cheap model is a green check that means nothing, and a severe incident is exactly the case '
-    || 'p_escalate exists for.'
+update public.model_policy set rationale =
+  'A security incident, an escalated edge case, or an independent review of knowledge before it is '
+  || 'trusted. WHY the reasoning row with opus-5.5 on escalate: a reviewer on the cheap model is a '
+  || 'green check that means nothing, and a severe incident is exactly the case p_escalate exists for.'
  where task_class in ('security_incident_analysis', 'edge_case_escalation', 'knowledge_validation') and active;
 
--- ── 7. THE SWEEP: nothing expensive or superseded is left named by an active policy ────────────
--- Three blanket moves, each a strict improvement, applied to whatever rows this file did not name
--- one by one. Without them a class nobody edited today keeps a model that is dearer and weaker.
---
---   opus-4.8  -> opus-5.5          $5.00/$25.00 -> $4.00/$20.00, and the better reasoner
---   fable-5.1 -> opus-5.5          $10.00/$50.00 -> $4.00/$20.00 (founder's 9 Sep pair, superseded)
---   gpt-6-astra -> sonnet-5        $10.00/$50.00 -> $2.00/$10.00 as a fallback
---   gemini-3.5-flash -> 3.8-flash  $1.50/$9.00 -> $0.75/$3.75, same 1,048,576 context, same
---                                  modalities INCLUDING audio
--- speech_transcription is excluded from the gemini move: its fallback must stay on a model whose
--- audio support has been read from the catalogue, and moving both rows of an audio pair in one
--- sweep is how a capability quietly disappears.
-update public.model_policy set model_primary = 'anthropic/claude-opus-5.5'
- where active and model_primary in ('anthropic/claude-opus-4.8', 'anthropic/claude-fable-5.1');
-update public.model_policy set model_fallback = 'anthropic/claude-opus-5.5'
- where active and model_fallback = 'anthropic/claude-opus-4.8';
-update public.model_policy set model_fallback = 'anthropic/claude-sonnet-5'
- where active and model_fallback in ('openai/gpt-6-astra', 'anthropic/claude-fable-5.1');
-update public.model_policy set model_primary = 'anthropic/claude-sonnet-5'
- where active and model_primary = 'openai/gpt-6-astra';
-update public.model_policy set model_primary = 'google/gemini-3.8-flash'
- where active and model_primary = 'google/gemini-3.5-flash' and task_class <> 'speech_transcription';
-update public.model_policy set model_fallback = 'google/gemini-3.8-flash'
- where active and model_fallback = 'google/gemini-3.5-flash'
-   and task_class not in ('speech_transcription', 'redaction_detection');
--- The accountant's remaining gpt-5.6-luna rows. gpt-5.6-luna stays in the registry (see the
--- catalogue file) but no active policy names it: money reasons on opus-5.5 now.
-update public.model_policy set model_primary = 'anthropic/claude-opus-5.5'
- where active and model_primary = 'openai/gpt-5.6-luna';
-update public.model_policy set model_fallback = 'anthropic/claude-sonnet-5'
- where active and model_fallback = 'openai/gpt-5.6-luna';
+update public.model_policy set rationale =
+  'The IT seat reasoning about the estate - a finding, a diagnosis, a change. WHY the reasoning row: '
+  || 'this seat''s answers become SQL applied to production and deployed functions, and a shallow '
+  || 'diagnosis costs a session, which is dearer than the model. WHY plan A and not something dearer '
+  || 'still: its work is checked by CI, by branch protection and by an independent review before '
+  || 'every merge, so it has a real safety net the judgement classes do not. This class was on the '
+  || 'non-reasoning list I was handed and I moved it; see the header.'
+ where task_class in ('engineering_reasoning', 'reflection_and_learning') and active;
 
--- ── 8. fn_task_class: the rows the callers need, and the departments the ceiling is found by ───
+update public.model_policy set rationale =
+  'Legal exposure: reading a contract or a regulatory source for what it actually commits us to. WHY '
+  || 'the reasoning row: a wrong reading costs money no later step recovers, and citations must '
+  || 'survive verbatim. No autonomous legal conclusion - the model reads, a person decides.'
+ where task_class in ('contract_analysis', 'legal_analysis') and active;
+
+update public.model_policy set rationale =
+  'The Arabic quotation and correspondence a UAE customer actually receives. WHY the reasoning row '
+  || 'and NOT GLM, which is what "cut cost as much as possible" would otherwise say: the founder''s '
+  || 'own standing requirement is that the PDFs are professional and fully Arabic, and NEITHER '
+  || 'qwen3.8-max NOR glm-5.3-flash has been measured on this estate for formal Gulf Arabic. Until '
+  || 'one of them is, this class takes the stronger of the two, and the repository''s Arabic checks '
+  || 'are what would catch a regression. translation_general, which is internal, is on GLM.'
+ where task_class = 'translation' and active;
+
+update public.model_policy set rationale =
+  'Reading a whole document - a scan, a drawing, a trade licence, a quotation, a supplier catalogue '
+  || 'page - into structured fields. WHY plan A GLM: extraction is TRANSCRIPTION, not judgement. The '
+  || 'shape is given, the answer is checkable by code, and at $0.15/$0.50 with a 1,310,720 context a '
+  || 'multi-page scan goes on one request for a fraction of a fils. The judgement about what the '
+  || 'document MEANS is a separate class on the reasoning row. WHY google/gemini-3.8-flash as '
+  || 'fallback and not another GLM: a fallback that shares the primary''s blind spots is not a '
+  || 'fallback, and gemini is the only row carrying both vision and audio. 8000 tokens holds '
+  || 'supplier_catalog_ingest''s 3000 JSON products with headroom - it used to land on '
+  || 'general_drafting''s 900 and truncate.'
+ where task_class in ('document_extraction', 'document_extraction_multimodal', 'ocr', 'vision') and active;
+
+update public.model_policy set rationale =
+  'Reading a drawing and a bill of quantities together. WHY plan A GLM: vision over large pages at '
+  || '1.31M context for $0.15/Mtok. The design calculations and low-confidence interpretations that '
+  || 'are judgement rather than reading escalate to google/gemini-3.8-flash, and a wrong quantity '
+  || 'becomes a wrong price on a real quotation, so the escalation is not decorative.'
+ where task_class = 'drawing_and_boq_analysis' and active;
+
+update public.model_policy set rationale =
+  'The support seat writing to a customer or a supplier - email, WhatsApp, the portal. WHY plan A '
+  || 'GLM: the founder ruled routine drafting onto it, and the deterministic FAQ and template levels '
+  || 'in front of these classes already answer what code can answer (18 of 50 site_assistant calls '
+  || 'in the window, with no model at all), so the model sees only the remainder. NOT YET MEASURED: '
+  || 'GLM''s tone in formal Gulf Arabic. Every word here is customer-visible and signed in the '
+  || 'company''s name, so this is the class to read first when the hold opens.'
+ where task_class in ('customer_communication', 'support_ai', 'wa_inbound', 'visitor_chat',
+                      'supplier_communication') and active;
+
+update public.model_policy set rationale =
+  'Sorting one inbound message into what it is and who it is from. WHY plan A GLM: the answer is one '
+  || 'label from a known set plus a short factual summary - classification, not judgement - and a '
+  || 'wrong label is corrected by the next step rather than sent to anyone. max_tokens is NOT '
+  || 'reduced: email_triage asks for 700 here and 300 cut its Arabic replies in half (founder '
+  || 'instruction 705).'
+ where task_class in ('intent_detection', 'email_triage', 'inbound_email', 'resend_inbound') and active;
+
+update public.model_policy set rationale =
+  'Reading a supplier catalogue or a knowledge source for MEANING, offline, once. WHY plan A GLM: '
+  || 'its 1,310,720 context takes a whole catalogue in one request at $0.15/Mtok, and this runs in '
+  || 'batch rather than in front of a customer, so latency and depth both matter less than the price '
+  || 'of reading everything.'
+ where task_class in ('knowledge_ingestion', 'json_extraction', 'json_extraction_text') and active;
+
+update public.model_policy set rationale =
+  'Public posts, social replies and brand copy. WHY plan A GLM: the founder ruled routine drafting '
+  || 'onto it and this is drafting. The deterministic brand_rule_check (tier none) still gates it - '
+  || 'the model writes, code checks - which is what makes the cheap model safe here in a way it is '
+  || 'not on translation. This text is published under the company''s own name on surfaces the '
+  || 'founder does not review first, so the brand check is load-bearing, not a formality.'
+ where task_class in ('marketing_copy', 'content_drafting') and active;
+
+update public.model_policy set rationale =
+  'Reading a forwarded receipt - image or PDF - into fields. WHY plan A GLM and NOT the reasoning row '
+  || 'like the accountant''s other classes: this step TRANSCRIBES, it does not decide. The judgement '
+  || 'about what the receipt MEANS is accountant_expense_classification, which is on '
+  || 'qwen/qwen3.8-max-0902 and reads these fields. Splitting them puts the reasoning model where the '
+  || 'reasoning is and the cheap vision model where the pixels are, and makes a misread '
+  || 'distinguishable from a misjudgement in ai_cost_log. google/gemini-3.8-flash behind it because a '
+  || 'receipt GLM cannot read must still be read.'
+ where task_class = 'accountant_receipt_extraction' and active;
+
+-- The group rationale for every remaining routed class, so no row is left claiming a model it no
+-- longer runs. It names the ruling and the date, which is what an auditor needs from a row nobody
+-- wrote a paragraph for. The guard is `%instruction 841%` — every paragraph above either says that
+-- or says "WHY plan A"/"WHY the reasoning row", so this touches only the rows nobody wrote one for.
+update public.model_policy set rationale =
+  'Routed by founder_instruction 841 (23 Sep 2026): plan A z-ai/glm-5.3-flash at $0.15/$0.50, plan B '
+  || 'google/gemini-3.8-flash. "use GLM 5.3 flash whenever, wherever it''s possible as a primary '
+  || 'model... We want to cut cost as much as possible." This class reads, classifies or drafts '
+  || 'routinely: its answer is checkable by code or corrected by the next step, so the cheapest '
+  || 'capable model is the right one. Previous rationale, written for the model this class ran on '
+  || 'before that ruling: ' || coalesce(rationale, '(none)')
+ where active and tier <> 'none'
+   and model_primary = 'z-ai/glm-5.3-flash'
+   and coalesce(rationale, '') not like '%instruction 841%'
+   and coalesce(rationale, '') not like '%WHY plan A%';
+
+-- ── 5. fn_task_class: the rows the callers need, and the departments the ceiling is found by ───
 -- `as ftc` is not decoration: scripts/apply_sql.mjs treats `public.fn_<name>(` as a ROUTINE CALL and
 -- refuses the file for calling a routine the database does not have. fn_task_class is a TABLE whose
 -- name happens to start with fn_, so the alias keeps the column list off the table name.
@@ -452,8 +520,7 @@ values
    || 'fell to general_drafting and ai_gateway clamped 3000 to 900, truncating the JSON and '
    || 'recording extraction_failed. document_extraction allows 8000.'),
   ('marketing_social_inbox', 'marketing_copy', 'marketing', true,
-   'The marketing seat''s only gateway caller - drafting a public social reply. marketing_copy is '
-   || 'on sonnet-5 because this text is published in the company''s name.')
+   'The marketing seat''s only gateway caller - drafting a public social reply.')
 on conflict (fn) do update set
   task_class = excluded.task_class, dept_key = excluded.dept_key,
   active = excluded.active, note = excluded.note, updated_at = now();
@@ -464,7 +531,7 @@ update public.fn_task_class set
   note = 'The VERIFY pass over a redacted drawing page. Pinned to general_drafting by session 9 to '
     || 'keep it off google after a token ceiling cut gemini''s answer mid-JSON; that kept it off '
     || 'google and also put the estate''s only identity-leak check on haiku at 900 tokens. It now '
-    || 'has its own class on sonnet-5 with opus-5.5 on escalate and 2000 tokens.'
+    || 'has its own class on the reasoning row of founder_instruction 841''s matrix, with 2000 tokens.'
  where fn = 'drawing_redact_verify';
 
 -- Four callers that had a class but no department, so fn_ai_route's budget branch could not find a
@@ -474,12 +541,16 @@ update public.fn_task_class set dept_key = 'marketplace', updated_at = now()
 update public.fn_task_class set dept_key = 'customer_experience', updated_at = now()
  where fn = 'email_triage' and dept_key is null;
 
--- ── 9. THE GUARD: an active policy cannot name a model the catalogue or the breaker does not hold
+-- ── 6. THE GUARD: an active policy cannot name a model the catalogue or the breaker does not hold
 -- This is the recurrence guard for the defect this PR fixes. fn_ai_route SUBSTITUTES silently for
 -- an unregistered model (it writes a WARNING into `why` that nobody reads), and before today
 -- fn_llm_preflight ALLOWED an unmeasured one. Both holes were opened the same way: a model was
 -- added to model_policy and the two tables behind it were not updated in the same breath. A
 -- trigger is the only thing that makes those three writes one action.
+--
+-- IT COVERS model_policy ONLY. model_policy_by_identity names six models that are in neither table,
+-- on fn_ai_route's role-default branch; that branch fires only for a caller unmapped in
+-- fn_task_class, and after this PR all 19 gateway callers are mapped. It is being fixed separately.
 create or replace function public.trg_model_policy_names_a_known_route()
 returns trigger
 language plpgsql
@@ -507,6 +578,17 @@ begin
         using errcode = '23514';
     end if;
   end loop;
+  -- A FALLBACK THAT IS THE PRIMARY IS NOT A FALLBACK (added 23 Sep 2026 in review, after the first
+  -- draft set knowledge_ingestion's fallback to a model that a later blanket rewrite turned into its
+  -- own primary). fn_ai_route hands model_fallback back for p_escalate and for a failed primary, so
+  -- an equal pair silently removes the second attempt.
+  if new.model_fallback is not null and new.model_fallback = new.model_primary
+     and new.model_primary not in ('none', 'none/deterministic') then
+    raise exception 'model_policy.% names "%" as BOTH primary and fallback. fn_ai_route returns the '
+      'fallback for an escalation and for a failed primary, so this row has no second attempt at '
+      'all.', new.task_class, new.model_primary
+      using errcode = '23514';
+  end if;
   return new;
 end $fn$;
 
@@ -517,9 +599,65 @@ create trigger trg_model_policy_names_a_known_route
   before insert or update on public.model_policy
   for each row execute function public.trg_model_policy_names_a_known_route();
 
--- ── THE PROBE: the routing every seat now gets, printed, from fn_ai_route itself ───────────────
--- Read-only (fn_ai_route is STABLE) and it cannot reach a person. A verdict row, not a raise:
--- a raise here would roll back the DDL above.
+-- ── 7b. THE TIER MUST AGREE WITH ITS OWN MODEL, OR DEGRADING IS A CLIFF ───────────────────────
+-- Added 23 Sep 2026 in review, and it is the root cause of a class of defect rather than four
+-- instances of it.
+--
+-- model_policy.tier is not a label. fn_ai_route reads it three times, and every one of them picks a
+-- DIFFERENT MODEL from it rather than from the primary:
+--
+--   * the budget degrade branch:  xlarge -> large, large -> medium, anything else -> small, then
+--                                 "cheapest active approved model in that tier"
+--   * the substitution branch:    a policy model missing from the registry is replaced by the
+--                                 cheapest approved model of the POLICY's tier
+--   * the capability branch:      fn_ai_route_tier_rank(v_tier) orders the substitute search, so a
+--                                 vision or audio substitution lands near the declared tier
+--
+-- So a row declaring `medium` while naming a `large` model degrades TWO bands in one step. Measured:
+-- procurement_reasoning was medium with a large model, and medium degrades to small, whose cheapest
+-- approved row is openai/gpt-6-luna at $0.10/$0.50 — a TWENTY-FOLD drop in one step, on the class
+-- that decides whether a supplier is verified against the mandatory six. One confirmed supplier
+-- gates every RFQ, so that cliff admits an unverified company or keeps a real one out, at 80% of a
+-- budget nobody is watching.
+--
+-- Under this file's matrix the bands are chosen so every degrade is ONE step:
+--
+--   reasoning classes   tier large  (qwen3.8-max $2.00/$6.00)
+--                         -> degrade to cheapest medium = google/gemini-3.8-flash $0.75/$3.75, 2.67x
+--   everything else     tier small  (glm-5.3-flash $0.15/$0.50)
+--                         -> degrade within small = openai/gpt-6-luna $0.10/$0.50, 1.5x
+--
+-- Neither is a cliff, and the cheap row barely degrades at all, which is right: work that already
+-- costs a fraction of a fils has nothing to give back.
+--
+-- SEVEN ROWS WERE ALREADY MISMATCHED BEFORE THIS PR (measured 23 Sep 2026): accountant_weekly_report,
+-- finance_analysis, document_extraction_multimodal, knowledge_ingestion and redaction_detection
+-- declared medium while naming a small model; summarization declared small while naming a medium one;
+-- translation declared medium while naming a large one. §1 and §2 fix all but redaction_detection by
+-- setting both together. This statement closes whatever is left, including rows this file never
+-- named — because fixing the instances and leaving the mechanism means writing this comment again in
+-- a month.
+--
+-- WHY IT IS SAFE ON A ROW THIS FILE DID NOT OTHERWISE TOUCH: the tier does not choose the model on
+-- the normal path. v_model comes from model_primary; v_tier is only reported and used by the three
+-- fallback branches above. Aligning it cannot change which model a healthy call uses, only which
+-- model a DEGRADED or SUBSTITUTED call uses, and in every case it makes that choice nearer the
+-- intent. redaction_detection's models and max_tokens stay exactly as they are (§2) — only its tier
+-- label moves, and it has no caller.
+update public.model_policy p set tier = r.tier
+  from public.model_registry r
+ where r.model_id = p.model_primary
+   and p.active and p.tier <> 'none' and p.tier <> r.tier;
+
+-- ── THE PROBE: the routing every seat now gets, printed by fn_ai_route itself ──────────────────
+-- Read-only (fn_ai_route is STABLE) and it cannot reach a person.
+--
+-- ONE RESULT SET, VERDICT FIRST (corrected 23 Sep 2026 in review). The first draft printed the ROUTE
+-- listing as its own select followed by the verdict as a second one — and scripts/apply_sql.mjs
+-- returns only the LAST result set, so the evidence this file exists to produce could never have been
+-- read. The verdict has to come first so the applier's PROBE FAILED scan (it exits 3) still sees it,
+-- and the routes follow in the same set. A verdict row, never `raise notice` (the management API
+-- discards NOTICE) and never `raise exception` (it would roll back the DDL above).
 create temporary table probe_routes (seat text, task_class text, chosen text, fallback text,
                                      max_tokens int, tier text, use_llm boolean) on commit drop;
 
@@ -528,32 +666,28 @@ select s.seat, s.tc,
        r ->> 'model', r ->> 'fallback', (r ->> 'max_tokens')::int, r ->> 'tier',
        (r ->> 'use_llm')::boolean
   from (values
-    ('ceo', 'ceo_judgement'), ('ceo', 'ceo_approval_decision'), ('ceo', 'ceo_strategic_planning'),
-    ('ceo', 'chief_of_staff_decision'), ('ceo', 'executive_report'),
-    ('sales_engineer', 'quote_comparison'), ('sales_engineer', 'agent_reasoning'),
-    ('sales_engineer', 'sales_engineer_reasoning'), ('sales_engineer', 'document_extraction'),
-    ('sales_engineer', 'drawing_and_boq_analysis'), ('sales_engineer', 'redaction_detection'),
-    ('sales_engineer', 'identity_redaction_verify'), ('sales_engineer', 'procurement_reasoning'),
-    ('sales_engineer', 'knowledge_ingestion'), ('sales_engineer', 'json_extraction'),
-    ('sales_engineer', 'speech_transcription'),
-    ('customer_support', 'customer_portal_assistant'), ('customer_support', 'visitor_chat'),
-    ('customer_support', 'customer_communication'), ('customer_support', 'wa_inbound'),
-    ('customer_support', 'intent_detection'), ('customer_support', 'email_triage'),
-    ('accountant', 'finance_analysis'), ('accountant', 'accountant_expense_classification'),
-    ('accountant', 'accountant_receipt_extraction'), ('accountant', 'accountant_weekly_report'),
-    ('accountant', 'money_state_change'),
-    ('marketing', 'marketing_copy'), ('marketing', 'content_drafting'),
-    ('it_engineer', 'engineering_reasoning'), ('it_engineer', 'security_incident_analysis'),
-    ('it_engineer', 'knowledge_validation'),
-    ('deterministic', 'vat_calculation'), ('deterministic', 'supplier_matching'),
-    ('deterministic', 'workflow_state_and_permissions')
+    ('1_ceo', 'ceo_judgement'), ('1_ceo', 'ceo_approval_decision'), ('1_ceo', 'ceo_strategic_planning'),
+    ('1_ceo', 'chief_of_staff_decision'), ('1_ceo', 'executive_report'),
+    ('2_sales_engineer', 'quote_comparison'), ('2_sales_engineer', 'agent_reasoning'),
+    ('2_sales_engineer', 'sales_engineer_reasoning'), ('2_sales_engineer', 'document_extraction'),
+    ('2_sales_engineer', 'drawing_and_boq_analysis'), ('2_sales_engineer', 'redaction_detection'),
+    ('2_sales_engineer', 'identity_redaction_verify'), ('2_sales_engineer', 'procurement_reasoning'),
+    ('2_sales_engineer', 'knowledge_ingestion'), ('2_sales_engineer', 'json_extraction'),
+    ('2_sales_engineer', 'speech_transcription'),
+    ('3_customer_support', 'customer_portal_assistant'), ('3_customer_support', 'visitor_chat'),
+    ('3_customer_support', 'customer_communication'), ('3_customer_support', 'wa_inbound'),
+    ('3_customer_support', 'intent_detection'), ('3_customer_support', 'email_triage'),
+    ('3_customer_support', 'translation'),
+    ('4_accountant', 'finance_analysis'), ('4_accountant', 'accountant_expense_classification'),
+    ('4_accountant', 'accountant_receipt_extraction'), ('4_accountant', 'accountant_weekly_report'),
+    ('4_accountant', 'money_state_change'),
+    ('5_marketing', 'marketing_copy'), ('5_marketing', 'content_drafting'),
+    ('6_it_engineer', 'engineering_reasoning'), ('6_it_engineer', 'security_incident_analysis'),
+    ('6_it_engineer', 'knowledge_validation'),
+    ('7_deterministic', 'vat_calculation'), ('7_deterministic', 'supplier_matching'),
+    ('7_deterministic', 'workflow_state_and_permissions')
   ) s(seat, tc)
   cross join lateral (select public.fn_ai_route(s.tc, null, null, null, false, null, null) r) x;
-
-select 'ROUTE ' || seat || ' / ' || task_class as verdict,
-       coalesce(chosen, '(deterministic)') as model, coalesce(fallback, '-') as fallback,
-       coalesce(max_tokens, 0) as max_tokens, tier
-  from probe_routes order by seat, task_class;
 
 with bad as (
   select count(*) n from probe_routes
@@ -561,12 +695,29 @@ with bad as (
      or not exists (select 1 from public.model_registry r where r.model_id = chosen and r.active)
      or not exists (select 1 from public.llm_route_health h where h.model_id = chosen))
 ),
-det as (select count(*) n from probe_routes where seat = 'deterministic' and use_llm),
-cheap as (
-  -- the defect that started this: a judgement class landing on the general_drafting default
-  select count(*) n from probe_routes
-   where seat in ('ceo', 'accountant') and task_class <> 'accountant_receipt_extraction'
-     and use_llm and chosen <> 'anthropic/claude-opus-5.5'
+det as (select count(*) n from probe_routes where seat = '7_deterministic' and use_llm),
+ruling as (
+  -- founder_instruction 841: every reasoning class on qwen3.8-max, everything else on GLM, and
+  -- speech_transcription on gemini because nothing else can hear.
+  select count(*) n from probe_routes p
+   where p.use_llm
+     and case
+           when p.task_class in (select task_class from reasoning_classes)
+             then p.chosen <> 'qwen/qwen3.8-max-0902'
+           when p.task_class = 'speech_transcription'
+             then p.chosen not like 'google/gemini-%'
+           when p.task_class = 'redaction_detection' then false   -- deliberately untouched, §2
+           else p.chosen <> 'z-ai/glm-5.3-flash'
+         end
+),
+selfsame as (
+  select count(*) n from public.model_policy
+   where active and model_fallback is not null and model_fallback = model_primary
+     and model_primary not in ('none', 'none/deterministic')
+),
+mismatch as (
+  select count(*) n from public.model_policy p join public.model_registry r on r.model_id = p.model_primary
+   where p.active and p.tier <> 'none' and p.tier <> r.tier
 ),
 gaps as (
   select count(*) n from (
@@ -576,22 +727,36 @@ gaps as (
     or not exists (select 1 from public.model_registry r where r.model_id = z.m and r.active)
 ),
 clamp as (
-  -- supplier_catalog_ingest asks 3000 and ceo_agent 2000; both must now fit their route
   select count(*) n from probe_routes
    where (task_class = 'document_extraction' and coalesce(max_tokens,0) < 3000)
       or (task_class = 'ceo_judgement' and coalesce(max_tokens,0) < 2000)
       or (task_class = 'identity_redaction_verify' and coalesce(max_tokens,0) < 2000)
+      or (task_class = 'quote_comparison' and coalesce(max_tokens,0) < 10000)
+),
+none_rows as (select count(*) n from public.model_policy where active and tier = 'none'),
+verdict as (
+  select case
+    when (select n from det)      > 0 then 'PROBE FAILED: ' || (select n from det)::text || ' tier=none class(es) now want a model'
+    when (select n from none_rows) <> 17 then 'PROBE FAILED: ' || (select n from none_rows)::text || ' active tier=none rows, expected the 17 measured before the change'
+    when (select n from bad)      > 0 then 'PROBE FAILED: ' || (select n from bad)::text || ' route(s) chose a model that is not a registered, measured route'
+    when (select n from ruling)   > 0 then 'PROBE FAILED: ' || (select n from ruling)::text || ' class(es) do not match founder_instruction 841''s matrix'
+    when (select n from selfsame) > 0 then 'PROBE FAILED: ' || (select n from selfsame)::text || ' active row(s) name the same model as primary AND fallback'
+    when (select n from mismatch) > 0 then 'PROBE FAILED: ' || (select n from mismatch)::text || ' active row(s) declare a tier their own primary model does not have'
+    when (select n from gaps)     > 0 then 'PROBE FAILED: ' || (select n from gaps)::text || ' active-policy model(s) are missing from model_registry or llm_route_health'
+    when (select n from clamp)    > 0 then 'PROBE FAILED: ' || (select n from clamp)::text || ' class(es) still allow less than their caller asks for'
+    else 'PROBE OK: ' || (select count(*) from probe_routes where use_llm)::text
+         || ' routed classes on founder_instruction 841''s matrix, all registered and measured; '
+         || (select count(*) from probe_routes where not use_llm)::text || ' still deterministic; '
+         || (select n from none_rows)::text || ' tier=none rows untouched; 0 tier mismatches, 0 '
+         || 'self-fallbacks'
+    end as line
 )
-select case
-  when (select n from det)   > 0 then 'PROBE FAILED: ' || (select n from det)::text || ' tier=none class(es) now want a model'
-  when (select n from bad)   > 0 then 'PROBE FAILED: ' || (select n from bad)::text || ' route(s) chose a model that is not a registered, measured route'
-  when (select n from cheap) > 0 then 'PROBE FAILED: ' || (select n from cheap)::text || ' judgement/money class(es) did not land on opus-5.5'
-  when (select n from gaps)  > 0 then 'PROBE FAILED: ' || (select n from gaps)::text || ' active-policy model(s) are missing from model_registry or llm_route_health'
-  when (select n from clamp) > 0 then 'PROBE FAILED: ' || (select n from clamp)::text || ' class(es) still allow less than their caller asks for'
-  else 'PROBE OK: ' || (select count(*) from probe_routes where use_llm)::text || ' routed classes, all on registered and measured models; '
-       || (select count(*) from probe_routes where not use_llm)::text || ' still deterministic; '
-       || (select count(*) from public.model_policy where active and tier = 'none')::text
-       || ' tier=none rows untouched'
-  end as verdict;
+select 0 as ord, (select line from verdict) as line
+union all
+select 1, '  ' || seat || ' / ' || rpad(task_class, 34) || ' -> ' || rpad(coalesce(chosen, '(deterministic)'), 24)
+          || ' fb ' || rpad(coalesce(fallback, '-'), 24) || ' max ' || lpad(coalesce(max_tokens, 0)::text, 5)
+          || '  tier ' || coalesce(tier, '-')
+  from probe_routes
+ order by ord, line;
 
 commit;

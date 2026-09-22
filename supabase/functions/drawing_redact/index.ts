@@ -102,18 +102,24 @@ If you cannot read the image, or you are unsure, answer {"clean": false, "found"
 //
 //                              model                          max_tokens   cache
 //   what ran until 23 Sep 26   ~anthropic/claude-haiku-latest        900    true
-//   redaction_detection        google/gemini-3.8-flash              2000    false
-//   what runs now (verify)     anthropic/claude-sonnet-5            2000    true
+//   redaction_detection        google/gemini-3.1-flash-lite         1200    false
+//     (UNCHANGED. This row is deliberately not touched by the 23 Sep 2026 routing change — it has
+//      no caller, and editing a policy nothing reads is noise. Its fallback is
+//      google/gemini-3.5-flash. Do not read the line below as having moved it.)
+//   what runs now (verify)     qwen/qwen3.8-max-0902                2000    true
 //                              escalates to anthropic/claude-opus-5.5
+//   what runs now (find)       z-ai/glm-5.3-flash                   8000    false
+//                              via fn_task_class drawing_redact -> document_extraction
 //
-// UPDATED 23 Sep 2026 (it_engineer). The conclusion of this block still holds — these calls do not
-// go to redaction_detection, and the verify pass is not on google — but the reason the old routing
-// was wrong was NOT only the model. fn_task_class.drawing_redact_verify now names its own class,
-// `identity_redaction_verify`, on sonnet-5 with opus-5.5 on escalate and 2000 tokens. This is the
-// one place in the estate where a false clean leaks a supplier's and a buyer's identity to someone
-// who has not been revealed, and a miss here is caught by nobody, so it gets the stronger model.
-// The FIND pass (drawing_redact -> document_extraction) stays on google/gemini-3.8-flash: a miss
-// there is caught here. See scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql §4.
+// UPDATED 23 Sep 2026 (it_engineer), under founder_instruction 841. The conclusion of this block
+// still holds — these calls do not go to redaction_detection, and the verify pass is not on google —
+// but the reason the old routing was wrong was NOT only the model. fn_task_class.drawing_redact_verify
+// now names its own class, `identity_redaction_verify`, on the REASONING row of the founder's matrix:
+// qwen/qwen3.8-max-0902 with anthropic/claude-opus-5.5 on escalate and 2000 tokens. This is the one
+// place in the estate where a false clean leaks a supplier's and a buyer's identity to someone who has
+// not been revealed, and a miss here is caught by nobody, so it does not go on the cheap row.
+// The FIND pass stays cheap on purpose: a miss there is caught here.
+// See scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql §4.
 //
 // Passing task_class:'redaction_detection' was tried on staging and measured against the same
 // three fixtures before and after. Before: all three pages cleared the verifier and published.
