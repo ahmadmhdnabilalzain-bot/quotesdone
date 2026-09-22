@@ -1,3 +1,0 @@
-A pure probe (no DDL; everything it writes rolls back), run once AFTER every_social_message_is_answered.sql is applied, as one
-query: node scripts/qsql.mjs scripts/sql/every_social_message_is_answered_probe.sql -> must return PROBE OK. Then this note is
-deleted and the file appended to scripts/sql/MANIFEST.txt after its subject file.

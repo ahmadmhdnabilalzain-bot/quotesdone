@@ -1,5 +1,0 @@
-Committed by the marketing seat on 22 Sep 2026 and not yet applied: PR-only session (no apply). The coordinator applies it with
-  node scripts/apply_sql.mjs scripts/sql/every_social_message_is_answered.sql --apply --ddl
-then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt. It depends on nothing new: fn_notify_founder
-routes kind 'social_human_request' to an org_task until the_marketing_seat_exists registers that kind, and emails it after.
-Proved before the apply by executing this file and every_social_message_is_answered_probe.sql in one rolled-back block: PROBE OK.
