@@ -36,7 +36,7 @@ const C: Record<string, any> = {
 };
 const Summary: any = lazy(() => import('./SupplierInsightsSummary'));
 const PANELS: Record<string, { en: string; ar: string; parts: string[] }> = {
-  recommended:    { en: 'Recommended for you', ar: 'موصى به لك',        parts: ['SupplierOpportunities', 'SupplierQuoteBuilder'] },
+  recommended:    { en: 'Recommended for you', ar: 'مقترح لكم',         parts: ['SupplierOpportunities', 'SupplierQuoteBuilder'] },
   twin:           { en: 'Company health',      ar: 'صحة الشركة',        parts: ['SupplierTwin', 'SupplierInsightBoard'] },
   market:         { en: 'Market',              ar: 'السوق',             parts: ['MarketIntelligence'] },
   network:        { en: 'Network',             ar: 'الشبكة',            parts: ['SupplierKnowledgeGraph'] },
@@ -85,9 +85,9 @@ export default function Insights({ token, lang, goTo, initial }: { token: string
     <section aria-labelledby="qd-insights-h">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <h2 id="qd-insights-h" className="font-head text-h3 tracking-snug text-foreground">{ar ? 'تحليلات إضافية' : 'More analysis'}</h2>
-        {st.hidden > 0 && <span className="font-mono text-[11.5px] text-muted-foreground">{ar ? `${st.hidden} لوحات مخفية حتى تتوفر بيانات` : `${st.hidden} panel${st.hidden === 1 ? '' : 's'} hidden until there is data`}</span>}
+        {st.hidden > 0 && <span className="font-mono text-[11.5px] text-muted-foreground">{ar ? `عدد اللوحات المخفية حتى تتوفر البيانات: ${st.hidden}` : `${st.hidden} panel${st.hidden === 1 ? '' : 's'} hidden until there is data`}</span>}
       </div>
-      <nav aria-label={ar ? 'لوحات الرؤى' : 'Insight panels'} className="mb-4 flex flex-wrap gap-1.5">
+      <nav aria-label={ar ? 'لوحات التحليل' : 'Insight panels'} className="mb-4 flex flex-wrap gap-1.5">
         {st.avail.map((k) => (
           <button key={k} type="button" aria-current={sel === k ? 'page' : undefined} onClick={() => setSel(k)}
             className={cn('rounded-chip border px-3 py-1.5 text-[12.5px] font-medium transition-colors',

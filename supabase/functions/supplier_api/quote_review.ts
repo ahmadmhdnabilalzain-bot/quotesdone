@@ -211,7 +211,7 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
     if (!l || !priced(l)) {
       issues.push(I('boq_line_not_priced', 'adjustment', l ? j! + 1 : null, n, null,
         `BOQ line ${n} (${d}) is not priced in your quotation. Add its price, or tell me it is excluded and why (for example: "BOQ line ${n} excluded — by others").`,
-        `البند ${n} من جدول الكميات (${d}) غير مسعّر في عرضك. أضف سعره، أو أخبرني أنه مستثنى وسبب ذلك (مثال: "البند ${n} مستثنى — من قبل الغير").`));
+        `البند ${n} من جدول الكميات (${d}) غير مسعّر في عرضكم. يُرجى إضافة سعره، أو إفادتي بأنه مستثنى مع ذكر السبب (مثال: «البند ${n} مستثنى — يتولاه الغير»).`));
       return;
     }
     // A quantity and a unit are explained separately ("BOQ line 3 quantity — …" / "… unit — …"): an
@@ -220,13 +220,13 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
     if (!w.qty_explained[String(n)] && bq != null && lq != null && Math.abs(bq - lq) > Math.max(0.01, Math.abs(bq) * 0.01)) {
       issues.push(I('qty_mismatch', 'clarification', j! + 1, n, 'qty',
         `BOQ line ${n} (${d}): your line ${j! + 1} prices ${fmt(lq)} ${l.unit || ''}`.trimEnd() + ` but the BOQ asks for ${fmt(bq)} ${b.unit || ''}`.trimEnd() + `. Price the BOQ quantity, or tell me why yours differs (for example: "BOQ line ${n} quantity — measured on site").`,
-        `البند ${n} من جدول الكميات (${d}): بندك ${j! + 1} يسعّر ${fmt(lq)} ${l.unit || ''}`.trimEnd() + ` بينما يطلب الجدول ${fmt(bq)} ${b.unit || ''}`.trimEnd() + `. سعّر كمية الجدول، أو اذكر سبب الاختلاف (مثال: "البند ${n} الكمية — حسب القياس في الموقع").`));
+        `البند ${n} من جدول الكميات (${d}): يسعّر بندكم ${j! + 1} كمية ${fmt(lq)} ${l.unit || ''}`.trimEnd() + `، في حين يطلب الجدول ${fmt(bq)} ${b.unit || ''}`.trimEnd() + `. يُرجى تسعير كمية الجدول، أو ذكر سبب الاختلاف (مثال: «البند ${n} الكمية — حسب القياس في الموقع»).`));
     }
     const bu = normUnit(b.unit), lu = normUnit(l.unit);
     if (!w.qty_explained[`${n}:unit`] && bu && lu && bu !== lu) {
       issues.push(I('unit_mismatch', 'clarification', j! + 1, n, 'unit',
         `BOQ line ${n} (${d}) is measured in ${b.unit}, your line ${j! + 1} in ${l.unit}. Re-state it in ${b.unit}, or explain the conversion.`,
-        `البند ${n} من جدول الكميات (${d}) مقاس بوحدة ${b.unit}، وبندك ${j! + 1} بوحدة ${l.unit}. أعد ذكره بوحدة ${b.unit} أو وضّح التحويل.`));
+        `البند ${n} من جدول الكميات (${d}) مقيس بوحدة ${b.unit}، بينما بندكم ${j! + 1} بوحدة ${l.unit}. يُرجى إعادة ذكره بوحدة ${b.unit}، أو توضيح طريقة التحويل.`));
     }
   });
 
@@ -236,14 +236,14 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
     if ([...match.values()].includes(j)) return;   // already raised against its BOQ line
     issues.push(I('line_unpriced', 'adjustment', j + 1, null, null,
       `Your line ${j + 1} (${cut(l.description)}) has a quantity but no price. Add its price.`,
-      `بندك ${j + 1} (${cut(l.description)}) فيه كمية دون سعر. أضف سعره.`));
+      `بندكم ${j + 1} (${cut(l.description)}) ذُكرت كميته دون سعر. يُرجى إضافة سعره.`));
   });
 
   // 5. Currency.
   if (w.foreign_currency) {
     issues.push(I('currency_not_aed', 'adjustment', null, null, 'currency',
       `Your quotation shows prices in ${w.foreign_currency}. Every price must be in UAE dirhams (AED): re-state them in AED, or reply "all prices in AED" if they already are.`,
-      `يظهر في عرضك سعر بعملة ${w.foreign_currency}. يجب أن تكون كل الأسعار بالدرهم الإماراتي: أعد ذكرها بالدرهم، أو اكتب "كل الأسعار بالدرهم" إن كانت كذلك.`));
+      `يتضمّن عرضكم أسعارًا بعملة ${w.foreign_currency}، ويجب أن تكون الأسعار كافة بالدرهم الإماراتي. يُرجى إعادة ذكرها بالدرهم، أو كتابة «كل الأسعار بالدرهم» إن كانت كذلك.`));
   }
 
   // 6. The VAT basis. The price the customer compares is the price excluding VAT (vat.ts).
@@ -254,11 +254,11 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
   if (vat.treatment === 'not_stated') {
     issues.push(I('vat_basis', 'adjustment', null, null, 'vat',
       'State whether your total includes VAT, excludes VAT, or that you are not VAT-registered. A business below the AED 375,000 registration threshold is not VAT-registered and needs no TRN — just reply "not VAT registered".',
-      'اذكر هل الإجمالي شامل ضريبة القيمة المضافة أم غير شامل لها، أو أنك غير مسجل في الضريبة. المنشأة التي تقل إيراداتها عن 375,000 درهم غير مسجلة ولا تحتاج رقمًا ضريبيًا — اكتب فقط "غير مسجل في الضريبة".'));
+      'يُرجى بيان ما إذا كان الإجمالي شاملًا ضريبة القيمة المضافة أم غير شامل لها، أو أنكم غير مسجّلين في الضريبة. والمنشأة التي تقل إيراداتها عن حدّ التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي، ويكفي أن تكتبوا «غير مسجل في الضريبة».'));
   } else if (vat.treatment === 'inclusive' && !vat.price_ex_vat) {
     issues.push(I('vat_ex_price', 'adjustment', null, null, 'price_ex_vat',
       'Your total includes VAT, but the VAT amount is not stated. Tell me the total excluding VAT (for example: "price excluding VAT 10,500").',
-      'إجماليك شامل الضريبة لكن مبلغ الضريبة غير مذكور. أخبرني بالإجمالي غير شامل الضريبة (مثال: "السعر غير شامل الضريبة 10,500").'));
+      'إجماليكم شامل الضريبة، لكن مبلغ الضريبة غير مذكور. يُرجى إفادتي بالإجمالي غير شامل الضريبة (مثال: «السعر غير شامل الضريبة 10,500»).'));
   }
   const exVat = vat.price_ex_vat;
 
@@ -268,14 +268,14 @@ export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
   if (sum > 0 && totals.length && !w.qty_explained?.total && Object.keys(w.option_totals || {}).length < 2 && !totals.some((t) => Math.abs(t - sum) <= Math.max(1, t * 0.01))) {
     issues.push(I('total_mismatch', 'clarification', null, null, 'total',
       `Your line amounts add up to AED ${fmt(Math.round(sum * 100) / 100)}, but the quotation's total is AED ${fmt(totals[0])}. Correct the lines or the total, or tell me what the difference is (for example a discount).`,
-      `مجموع مبالغ بنودك ${fmt(Math.round(sum * 100) / 100)} درهم، بينما إجمالي العرض ${fmt(totals[0])} درهم. صحّح البنود أو الإجمالي، أو وضّح سبب الفرق (كخصم مثلًا).`));
+      `مجموع مبالغ بنودكم ${fmt(Math.round(sum * 100) / 100)} درهم، في حين أن إجمالي العرض ${fmt(totals[0])} درهم. يُرجى تصحيح البنود أو الإجمالي، أو توضيح سبب الفرق (كخصم مثلًا).`));
   }
 
   // 7. Validity.
   if (!readDelivery(w.validity)) {
     issues.push(I('validity', 'adjustment', null, null, 'validity',
       'State how long your prices are valid, as a number of days or a date (for example: "validity 30 days").',
-      'اذكر مدة صلاحية أسعارك بعدد الأيام أو بتاريخ (مثال: "الصلاحية 30 يومًا").'));
+      'يُرجى ذكر مدة صلاحية أسعاركم بعدد الأيام أو بتاريخ محدد (مثال: «الصلاحية 30 يومًا»).'));
   }
 
   // 8. The exact-specs rules, exactly as the hold gate reads them.
@@ -294,22 +294,22 @@ export function fromMissing(m: MissingItem): Issue {
     const d = cut(m.description);
     return I('spec', 'adjustment', m.line_no, null, m.attr,
       `Your line ${m.line_no} (${d}): state the exact ${m.label_en.toLowerCase()}${m.unit ? ` (${m.unit})` : ''} (for example: "line ${m.line_no} ${m.label_en.toLowerCase()}: …").`,
-      `بندك ${m.line_no} (${d}): اذكر ${m.label_ar} بدقة${m.unit_ar || m.unit ? ` (${m.unit_ar || m.unit})` : ''} (مثال: "البند ${m.line_no} ${m.label_ar}: …").`);
+      `بندكم ${m.line_no} (${d}): يُرجى ذكر ${m.label_ar} بدقة${m.unit_ar || m.unit ? ` (${m.unit_ar || m.unit})` : ''} (مثال: «البند ${m.line_no} ${m.label_ar}: …»).`);
   }
   // assess.ts types MissingItem.attr as a plain string, so a term added there that nothing here knows
   // would otherwise reach the database as an invalid code. An unknown attribute is asked as a `spec`.
   const code: IssueCode = m.attr.startsWith('component:') ? 'component'
     : (TERM_CODES.has(m.attr as IssueCode) ? m.attr as IssueCode : 'spec');
   const ex: Record<string, [string, string]> = {
-    delivery: [' (for example: "lead time 3 weeks")', ' (مثال: "مدة التسليم 3 أسابيع")'],
-    installation_included: [' (for example: "installation included, 5 working days on site" or "supply only")', ' (مثال: "التركيب مشمول، 5 أيام عمل في الموقع" أو "توريد فقط")'],
-    installation_detail: [' (for example: "installation 5 working days on site")', ' (مثال: "التركيب 5 أيام عمل في الموقع")'],
-    warranty_period: [' (for example: "warranty 2 years")', ' (مثال: "الضمان سنتان")'],
-    warranty_coverage: [' (for example: "warranty covers parts and labour")', ' (مثال: "الضمان يشمل القطع والعمالة")'],
-    price_ex_vat: [' (for example: "price excluding VAT 10,500")', ' (مثال: "السعر غير شامل الضريبة 10,500")'],
+    delivery: [' (for example: "lead time 3 weeks")', ' (مثال: «مدة التسليم 3 أسابيع»)'],
+    installation_included: [' (for example: "installation included, 5 working days on site" or "supply only")', ' (مثال: «التركيب مشمول، 5 أيام عمل في الموقع» أو «توريد فقط»)'],
+    installation_detail: [' (for example: "installation 5 working days on site")', ' (مثال: «التركيب 5 أيام عمل في الموقع»)'],
+    warranty_period: [' (for example: "warranty 2 years")', ' (مثال: «الضمان سنتان»)'],
+    warranty_coverage: [' (for example: "warranty covers parts and labour")', ' (مثال: «الضمان يشمل القطع والعمالة»)'],
+    price_ex_vat: [' (for example: "price excluding VAT 10,500")', ' (مثال: «السعر غير شامل الضريبة 10,500»)'],
   };
   const [en, ar] = ex[m.attr] ?? ['', ''];
-  return I(code, 'adjustment', null, null, m.attr, `State: ${m.label_en}${en}.`, `اذكر: ${m.label_ar}${ar}.`);
+  return I(code, 'adjustment', null, null, m.attr, `State: ${m.label_en}${en}.`, `يُرجى ذكر: ${m.label_ar}${ar}.`);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -319,49 +319,49 @@ export type Said = { en: string; ar: string };
 export function greeting(job: string): Said {
   return {
     en: `Hello — I am the QuotesDone sales engineer for Job ${job}. Attach your quotation here (PDF with text, Excel, Word, CSV or email) and I will review it straight away against the job: every BOQ line priced, quantities and units, AED prices, the VAT basis, validity, delivery, and the exact specifications. Nothing reaches the customer until it is complete.`,
-    ar: `مرحبًا — أنا مهندس المبيعات في QuotesDone للطلب ${job}. أرفق عرض سعرك هنا (PDF نصي أو Excel أو Word أو CSV أو بريد إلكتروني) وسأراجعه فورًا مقابل الطلب: تسعير كل بنود جدول الكميات، والكميات والوحدات، والأسعار بالدرهم، وأساس الضريبة، والصلاحية، والتسليم، والمواصفات الدقيقة. لا يصل شيء إلى العميل قبل اكتماله.`,
+    ar: `أهلًا بكم، معكم مهندس المبيعات في QuotesDone للطلب ${job}. يُرجى إرفاق عرض سعركم هنا (PDF نصي أو Excel أو Word أو CSV أو رسالة بريد إلكتروني)، وسأراجعه فورًا في ضوء متطلبات الطلب: تسعير جميع بنود جدول الكميات، والكميات والوحدات، والأسعار بالدرهم، وأساس احتساب الضريبة، ومدة الصلاحية، والتسليم، والمواصفات الدقيقة. ولن يصل العرض إلى العميل قبل اكتماله.`,
   };
 }
 export function reviewSaid(job: string, r: Review): Said {
   if (r.approved) {
     const boqEn = r.boq_lines ? `all ${r.boq_lines} BOQ line${r.boq_lines === 1 ? ' is' : 's are'} priced with matching quantities and units, ` : '';
-    const boqAr = r.boq_lines ? `كل بنود جدول الكميات (${r.boq_lines}) مسعّرة بكميات ووحدات مطابقة، و` : '';
+    const boqAr = r.boq_lines ? `جميع بنود جدول الكميات (${r.boq_lines}) مسعّرة بكميات ووحدات مطابقة، و` : '';
     return {
       en: `Quotation approved for submission. I checked it against Job ${job}: ${boqEn}prices are in AED, and the VAT basis, validity, delivery and every required specification are stated exactly.`,
-      ar: `تمت الموافقة على عرض السعر للتقديم. راجعته مقابل الطلب ${job}: ${boqAr}الأسعار بالدرهم، وأساس الضريبة والصلاحية والتسليم وكل المواصفات المطلوبة مذكورة بدقة.`,
+      ar: `اعتُمد عرض السعر للتقديم. راجعته في ضوء متطلبات الطلب ${job}: ${boqAr}الأسعار بالدرهم، وأساس احتساب الضريبة والصلاحية والتسليم وجميع المواصفات المطلوبة مذكورة بدقة.`,
     };
   }
   const n = r.issues.length;
   return {
     en: `I reviewed your quotation for Job ${job}. Before it can be submitted I need ${n} thing${n === 1 ? '' : 's'}:\n\n${r.issues.map((x, i) => `${i + 1}. ${x.en}`).join('\n')}\n\nReply here with the details (for example "validity 30 days", "lead time 3 weeks", "prices exclude VAT"), or attach a revised file. Nothing is sent to the customer until everything is complete.`,
-    ar: `راجعت عرض سعرك للطلب ${job}. قبل تقديمه أحتاج إلى ${n} ${n === 1 ? 'أمر' : n === 2 ? 'أمرين' : 'أمور'}:\n\n${r.issues.map((x, i) => `${i + 1}. ${x.ar}`).join('\n')}\n\nاكتب التفاصيل هنا (مثل "الصلاحية 30 يومًا" أو "مدة التسليم 3 أسابيع" أو "الأسعار غير شاملة الضريبة")، أو أرفق ملفًا معدّلًا. لا يُرسل شيء إلى العميل قبل اكتمال كل شيء.`,
+    ar: `راجعت عرض سعركم للطلب ${job}. وقبل تقديمه، يلزم استيفاء ${n === 1 ? 'ما يلي' : n === 2 ? 'الأمرين التاليين' : 'الأمور التالية'}:\n\n${r.issues.map((x, i) => `${i + 1}. ${x.ar}`).join('\n')}\n\nيُرجى كتابة التفاصيل هنا (مثل «الصلاحية 30 يومًا» أو «مدة التسليم 3 أسابيع» أو «الأسعار غير شاملة الضريبة»)، أو إرفاق ملف معدّل. ولن يُرسل شيء إلى العميل قبل استيفاء كل ذلك.`,
   };
 }
 export function choiceSaid(): Said {
   return {
     en: 'One last step: would you like to upload a new version of your quotation yourself, or shall I generate the standardised QuotesDone quotation for you from what we agreed? Reply "upload" or "generate", or use the buttons.',
-    ar: 'خطوة أخيرة: هل تريد رفع نسخة جديدة من عرضك بنفسك، أم أُعدّ لك عرض QuotesDone الموحّد مما اتفقنا عليه؟ اكتب "رفع" أو "إعداد"، أو استخدم الأزرار.',
+    ar: 'تبقّت خطوة أخيرة: هل تودّون رفع نسخة جديدة من عرضكم بأنفسكم، أم أُعدّ لكم عرض QuotesDone الموحّد بناءً على ما اتفقنا عليه؟ اكتبوا «رفع» أو «إعداد»، أو استخدموا الأزرار.',
   };
 }
 export const awaitingUploadSaid = (): Said => ({
   en: 'Please attach the new version of your quotation here. I will review it the moment it arrives.',
-  ar: 'يُرجى إرفاق النسخة الجديدة من عرضك هنا. سأراجعها فور وصولها.',
+  ar: 'يُرجى إرفاق النسخة الجديدة من عرضكم هنا، وسأراجعها فور وصولها.',
 });
 export const readyToSubmitSaid = (job: string): Said => ({
   en: `This version is approved. Press "Submit to Job ${job}" and it goes to the customer's comparison.`,
-  ar: `هذه النسخة معتمدة. اضغط "قدّم إلى الطلب ${job}" لتدخل مقارنة العميل.`,
+  ar: `اعتُمدت هذه النسخة. اضغطوا «تقديم العرض إلى الطلب ${job}» ليُدرج ضمن مقارنة العميل.`,
 });
 export const submittedSaid = (job: string, ref: string | null, generated: boolean): Said => ({
   en: `${generated ? `I generated your standardised quotation${ref ? ` ${ref}` : ''} and submitted` : 'I submitted your quotation'} to Job ${job}. It is now in the customer's comparison; they see it without your name until they choose to reveal it. This conversation is now closed.`,
-  ar: `${generated ? `أعددت عرضك الموحّد${ref ? ` ${ref}` : ''} وقدّمته` : 'قدّمت عرض سعرك'} إلى الطلب ${job}. أصبح الآن ضمن مقارنة العميل، ويراه دون اسمك إلى أن يختار الكشف عنه. أُغلقت هذه المحادثة الآن.`,
+  ar: `${generated ? `أعددت عرضكم الموحّد${ref ? ` ${ref}` : ''} وقدّمته` : 'قدّمت عرض سعركم'} إلى الطلب ${job}، وقد أصبح ضمن مقارنة العميل، ويطّلع عليه دون أن يظهر اسمكم إلى أن يختار الكشف عنه. وبذلك أُغلقت هذه المحادثة.`,
 });
 export const unreadableSaid = (kind: string): Said => kind === 'image'
-  ? { en: 'That is a photo or a scan, and I read quotations by their text. Please attach the quotation as a PDF with text, an Excel or Word file, or a CSV.', ar: 'هذا ملف صورة أو مسح ضوئي، وأنا أقرأ العروض من نصها. يُرجى إرفاق العرض بصيغة PDF نصية أو ملف Excel أو Word أو CSV.' }
-  : { en: 'I could not find a priced list or a total in that file. Please attach the quotation with its line items and total — a PDF with text, an Excel or Word file, or a CSV.', ar: 'لم أجد في هذا الملف بنودًا مسعّرة أو إجماليًا. يُرجى إرفاق العرض ببنوده وإجماليه — PDF نصي أو ملف Excel أو Word أو CSV.' };
+  ? { en: 'That is a photo or a scan, and I read quotations by their text. Please attach the quotation as a PDF with text, an Excel or Word file, or a CSV.', ar: 'هذا الملف صورة أو مسح ضوئي، بينما أقرأ العروض من نصّها. يُرجى إرفاق العرض بصيغة PDF نصية، أو ملف Excel أو Word أو CSV.' }
+  : { en: 'I could not find a priced list or a total in that file. Please attach the quotation with its line items and total — a PDF with text, an Excel or Word file, or a CSV.', ar: 'لم أجد في هذا الملف بنودًا مسعّرة ولا إجماليًا. يُرجى إرفاق العرض ببنوده وإجماليه بصيغة PDF نصية، أو ملف Excel أو Word أو CSV.' };
 export const closedSaid = (): Said => ({
   // Founder, 14 Sep 2026: no customer- or supplier-facing text says a copy is kept.
   en: 'This job is closed — the customer has already chosen, so no further quotation can be submitted to it.',
-  ar: 'أُغلق هذا الطلب — اختار العميل بالفعل، فلا يمكن تقديم عرض آخر إليه.',
+  ar: 'أُغلق هذا الطلب بعد أن حسم العميل اختياره، فلم يعد بالإمكان تقديم عروض أخرى إليه.',
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -747,7 +747,7 @@ export function tookSaid(cs: Correction[]): Said | null {
         exclusive: ['prices exclude VAT', 'الأسعار غير شاملة الضريبة'],
         inclusive: ['prices include VAT', 'الأسعار شاملة الضريبة'],
         not_registered: ['not VAT-registered', 'غير مسجل في الضريبة'],
-        confirmed_on_portal: ['the price excluding VAT as you stated it', 'السعر غير شامل الضريبة كما ذكرته'],
+        confirmed_on_portal: ['the price excluding VAT as you stated it', 'السعر غير شامل الضريبة كما ذكرتموه'],
       };
       const x = m[c.value]; en.push(x[0]); ar.push(x[1]);
     }
@@ -765,39 +765,39 @@ export function tookSaid(cs: Correction[]): Said | null {
     else if (c.field === 'line_price') {
       const parts = [c.unit_price != null ? `AED ${fmt(c.unit_price)} per unit` : '', c.amount != null ? `AED ${fmt(c.amount)}` : ''].filter(Boolean).join(' = ');
       const partsAr = [c.unit_price != null ? `${fmt(c.unit_price)} درهم للوحدة` : '', c.amount != null ? `${fmt(c.amount)} درهم` : ''].filter(Boolean).join(' = ');
-      en.push(`your line ${c.line_no} priced at ${parts}`); ar.push(`سُعّر بندك ${c.line_no}: ${partsAr}`);
+      en.push(`your line ${c.line_no} priced at ${parts}`); ar.push(`سُعّر بندكم ${c.line_no}: ${partsAr}`);
     }
     else if (c.field === 'total') { en.push(`total AED ${fmt(c.value)}`); ar.push(`الإجمالي ${fmt(c.value)} درهم`); }
     else if (c.field === 'total_explained') { en.push(`difference in the total: ${c.value}`); ar.push(`سبب الفرق في الإجمالي: ${c.value}`); }
     else if (c.field === 'component') { en.push(`${c.label_en}: ${c.value}`); ar.push(`${c.label_ar}: ${c.value}`); }
   }
-  return { en: `Thank you — noted: ${en.join('; ')}.`, ar: `شكرًا — سجّلت: ${ar.join('؛ ')}.` };
+  return { en: `Thank you — noted: ${en.join('; ')}.`, ar: `شكرًا لكم، سجّلت ما يلي: ${ar.join('؛ ')}.` };
 }
 
 /** The engineer's answer to a question, from the rules and the job — never a guess. */
 export function answerSaid(topic: Topic, job: string, open: Issue[], boqLines: number): Said {
   const list = (lang: Lang) => open.length
     ? (lang === 'en' ? `Still open for Job ${job}:\n` : `ما زال مطلوبًا للطلب ${job}:\n`) + open.map((x, i) => `${i + 1}. ${lang === 'en' ? x.en : x.ar}`).join('\n')
-    : (lang === 'en' ? `Nothing is outstanding on Job ${job}.` : `لا شيء معلّق على الطلب ${job}.`);
+    : (lang === 'en' ? `Nothing is outstanding on Job ${job}.` : `لا توجد نقاط معلّقة على الطلب ${job}.`);
   switch (topic) {
     case 'vat': return {
       en: 'The customer compares prices excluding VAT and never sees your VAT details or TRN. Tell me whether your total includes VAT, excludes VAT, or that you are not VAT-registered. A business below the AED 375,000 registration threshold is not VAT-registered and does not need a TRN — just reply "not VAT registered".',
-      ar: 'يقارن العميل الأسعار غير شاملة الضريبة ولا يرى تفاصيل ضريبتك ولا رقمك الضريبي. أخبرني هل إجماليك شامل الضريبة أم غير شامل لها، أو أنك غير مسجل. المنشأة التي تقل إيراداتها عن 375,000 درهم غير مسجلة ولا تحتاج رقمًا ضريبيًا — اكتب فقط "غير مسجل في الضريبة".' };
-    case 'validity': return { en: 'Validity is how long your prices hold. State it as a number of days or a date, for example "validity 30 days".', ar: 'الصلاحية هي المدة التي تبقى فيها أسعارك سارية. اذكرها بعدد الأيام أو بتاريخ، مثل "الصلاحية 30 يومًا".' };
-    case 'currency': return { en: 'Every price must be in UAE dirhams (AED). If your file shows another currency, re-state the prices in AED, or reply "all prices in AED" if they already are.', ar: 'يجب أن تكون كل الأسعار بالدرهم الإماراتي. إن ظهرت عملة أخرى في ملفك فأعد ذكر الأسعار بالدرهم، أو اكتب "كل الأسعار بالدرهم" إن كانت كذلك.' };
+      ar: 'يقارن العميل الأسعار غير شاملة الضريبة، ولا يطّلع على بياناتكم الضريبية ولا على رقمكم الضريبي. يُرجى إفادتي بما إذا كان إجماليكم شاملًا الضريبة أم غير شامل لها، أو أنكم غير مسجّلين. والمنشأة التي تقل إيراداتها عن حدّ التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي، ويكفي أن تكتبوا «غير مسجل في الضريبة».' };
+    case 'validity': return { en: 'Validity is how long your prices hold. State it as a number of days or a date, for example "validity 30 days".', ar: 'الصلاحية هي المدة التي تظل فيها أسعاركم سارية. يُرجى ذكرها بعدد الأيام أو بتاريخ محدد، مثل «الصلاحية 30 يومًا».' };
+    case 'currency': return { en: 'Every price must be in UAE dirhams (AED). If your file shows another currency, re-state the prices in AED, or reply "all prices in AED" if they already are.', ar: 'يجب أن تكون الأسعار كافة بالدرهم الإماراتي. فإن تضمّن ملفكم عملة أخرى، يُرجى إعادة ذكر الأسعار بالدرهم، أو كتابة «كل الأسعار بالدرهم» إن كانت كذلك.' };
     case 'boq': return {
       en: `I compare every line of the job's bill of quantities${boqLines ? ` (${boqLines} lines)` : ''} with your quotation: each must be priced, with the same quantity and unit. If a line is excluded, reply "BOQ line 3 excluded — reason". If your quantity differs on purpose, reply "BOQ line 3 quantity — why".`,
-      ar: `أقارن كل بند في جدول كميات الطلب${boqLines ? ` (${boqLines} بندًا)` : ''} بعرضك: يجب أن يكون مسعّرًا بالكمية والوحدة نفسيهما. إن كان بند مستثنى فاكتب "البند 3 مستثنى — السبب"، وإن اختلفت كميتك عمدًا فاكتب "البند 3 الكمية — السبب".` };
+      ar: `أقارن كل بند في جدول كميات الطلب${boqLines ? ` (عدد البنود: ${boqLines})` : ''} بما يقابله في عرضكم، ويجب أن يكون مسعّرًا بالكمية والوحدة ذاتهما. فإن كان أحد البنود مستثنى فاكتبوا «البند 3 مستثنى — السبب»، وإن اختلفت كميتكم عن قصد فاكتبوا «البند 3 الكمية — السبب».` };
     case 'customer': return {
       en: "The customer's identity stays private until they choose to reveal a quotation — that is how QuotesDone works, for them and for you. Keep your own contact details out of the quotation as well; they are removed before the customer sees it.",
-      ar: 'تبقى هوية العميل خاصة إلى أن يختار الكشف عن عرض — هكذا تعمل QuotesDone له ولك. أبقِ بيانات اتصالك خارج العرض أيضًا؛ فهي تُحذف قبل أن يراه العميل.' };
-    case 'delivery': return { en: 'State a concrete delivery date or lead time, for example "lead time 3 weeks" or "delivery 30 Oct 2026".', ar: 'اذكر تاريخ تسليم أو مدة تنفيذ محددة، مثل "مدة التسليم 3 أسابيع" أو "التسليم 30 أكتوبر 2026".' };
-    case 'warranty': return { en: 'State the warranty period and what it covers, for example "warranty 2 years, parts and labour".', ar: 'اذكر مدة الضمان وما يشمله، مثل "الضمان سنتان، القطع والعمالة".' };
-    case 'installation': return { en: 'Tell me whether installation is included and its scope or timeline, for example "installation included, 5 working days on site", or "supply only".', ar: 'أخبرني هل التركيب مشمول ونطاقه أو مدته، مثل "التركيب مشمول، 5 أيام عمل في الموقع"، أو "توريد فقط".' };
+      ar: 'تظل هوية العميل محجوبة إلى أن يختار الكشف عن أحد العروض؛ فهذا هو أسلوب عمل QuotesDone حمايةً له ولكم. ويُرجى كذلك عدم إدراج بيانات التواصل مع شركتكم في العرض، إذ تُحذف قبل أن يطّلع عليه العميل.' };
+    case 'delivery': return { en: 'State a concrete delivery date or lead time, for example "lead time 3 weeks" or "delivery 30 Oct 2026".', ar: 'يُرجى ذكر تاريخ تسليم أو مدة تنفيذ محددة، مثل «مدة التسليم 3 أسابيع» أو «التسليم 30 أكتوبر 2026».' };
+    case 'warranty': return { en: 'State the warranty period and what it covers, for example "warranty 2 years, parts and labour".', ar: 'يُرجى ذكر مدة الضمان وما يشمله، مثل «الضمان سنتان، القطع والعمالة».' };
+    case 'installation': return { en: 'Tell me whether installation is included and its scope or timeline, for example "installation included, 5 working days on site", or "supply only".', ar: 'يُرجى إفادتي بما إذا كان التركيب مشمولًا، مع نطاقه أو مدته، مثل «التركيب مشمول، 5 أيام عمل في الموقع»، أو «توريد فقط».' };
     default: return { en: list('en'), ar: list('ar') };
   }
 }
 export const notUnderstoodSaid = (job: string, open: Issue[]): Said => {
   const a = answerSaid('missing', job, open, 0);
-  return { en: `I could not match that to an open point. ${a.en}`, ar: `لم أتمكن من ربط ذلك بنقطة مفتوحة. ${a.ar}` };
+  return { en: `I could not match that to an open point. ${a.en}`, ar: `لم أتمكن من ربط ردّكم بأي من النقاط المفتوحة. ${a.ar}` };
 };

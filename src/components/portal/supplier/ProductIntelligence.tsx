@@ -19,6 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import SupplierCatalogUpload from './SupplierCatalogUpload';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { arDays } from '@/lib/durationLabel';
 
 type Variant = {
   sku?: string | null; attributes?: Record<string, unknown> | null;
@@ -64,12 +65,12 @@ const T = {
   ar: {
     title: 'ذكاء المنتجات', products: 'المنتجات', categories: 'الفئات',
     specs: 'المواصفات', searchable: 'قابل للبحث', yes: 'نعم', no: 'لا',
-    search: 'ابحث في المنتجات أو العلامات أو المواصفات…', matches: 'مطابق',
+    search: 'البحث في المنتجات أو العلامات التجارية أو المواصفات…', matches: 'مطابق',
     available: 'متوفر', notRecorded: 'غير مسجل', units: 'وحدة',
     compatible: 'المشاريع المناسبة', certs: 'الشهادات', catalogues: 'الكتالوجات',
-    empty: 'لا توجد منتجات بعد. ارفع كتالوجًا وسيتم استخراجه هنا.',
+    empty: 'لا توجد منتجات بعد. ارفعوا كتالوجًا لتظهر هنا المنتجات المستخرجة منه.',
     loading: 'جارٍ قراءة الكتالوج…', leadTime: 'مدة التوريد', days: 'يوم',
-    aiMatch: 'تطابق الذكاء الاصطناعي', noMatch: 'لا توجد فرصة للمطابقة بعد', source: 'المصدر',
+    aiMatch: 'المطابقة بالذكاء الاصطناعي', noMatch: 'لا توجد فرص مطابقة بعد', source: 'المصدر',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
@@ -146,7 +147,7 @@ export function ProductCard({ p, lang }: { p: Product; lang: Lang }) {
           {p.available_units != null
             ? `${Number(p.available_units).toLocaleString()} ${t(lang, 'units')}`
             : t(lang, 'notRecorded')}
-          {lead != null && <span className="opacity-50"> · {t(lang, 'leadTime')} {lead} {t(lang, 'days')}</span>}
+          {lead != null && <span className="opacity-50"> · {t(lang, 'leadTime')} {lang === 'ar' ? arDays(lead) : `${lead} ${t(lang, 'days')}`}</span>}
         </span>
       </footer>
     </article>

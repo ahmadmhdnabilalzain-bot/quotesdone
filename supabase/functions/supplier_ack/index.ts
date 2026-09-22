@@ -15,16 +15,16 @@ type Msg = { title: string; msg: string };
 const COPY: Record<string, { en: Msg; ar: Msg; ok: boolean }> = {
   invalid: { ok: false,
     en: { title: 'Link not valid', msg: 'This confirmation link is incomplete or has expired. Please use the link from your latest QuotesDone reminder email.' },
-    ar: { title: 'الرابط غير صالح', msg: 'رابط التأكيد هذا غير مكتمل أو انتهت صلاحيته. يُرجى استخدام الرابط الموجود في أحدث رسالة تذكير من QuotesDone.' } },
+    ar: { title: 'الرابط غير صالح', msg: 'رابط التأكيد هذا غير مكتمل أو انتهت صلاحيته. يُرجى استخدام الرابط الوارد في أحدث رسالة تذكير تلقيتموها من QuotesDone.' } },
   nomatch: { ok: false,
     en: { title: 'Link not valid', msg: 'We could not match this confirmation link. Please use the link from your latest QuotesDone reminder email.' },
-    ar: { title: 'الرابط غير صالح', msg: 'تعذّر علينا مطابقة رابط التأكيد هذا. يُرجى استخدام الرابط الموجود في أحدث رسالة تذكير من QuotesDone.' } },
+    ar: { title: 'الرابط غير صالح', msg: 'تعذّر التحقق من رابط التأكيد هذا. يُرجى استخدام الرابط الوارد في أحدث رسالة تذكير تلقيتموها من QuotesDone.' } },
   done: { ok: true,
     en: { title: 'Thank you — noted', msg: 'We have recorded that you have contacted this customer. You will not receive further reminders for this request. Please continue the conversation with the customer to win the job.' },
-    ar: { title: 'شكرًا لك — تم التسجيل', msg: 'سجّلنا أنك تواصلت مع هذا العميل، ولن تصلك تذكيرات أخرى بشأن هذا الطلب. يُرجى مواصلة التواصل مع العميل للفوز بالمشروع.' } },
+    ar: { title: 'شكرًا لكم — سُجّل تأكيدكم', msg: 'سجّلنا تواصلكم مع هذا العميل، ولن تصلكم تذكيرات أخرى بشأن هذا الطلب. نرجو مواصلة التواصل معه للظفر بالمشروع.' } },
   error: { ok: false,
     en: { title: 'Something went wrong', msg: 'We could not record your confirmation right now. Please try again shortly, or reply to the reminder email.' },
-    ar: { title: 'حدث خطأ ما', msg: 'تعذّر تسجيل تأكيدك الآن. يُرجى المحاولة بعد قليل، أو الرد على رسالة التذكير.' } },
+    ar: { title: 'تعذّر إتمام العملية', msg: 'تعذّر تسجيل تأكيدكم في الوقت الحالي. يُرجى المحاولة بعد قليل، أو الرد على رسالة التذكير.' } },
 };
 function page(key: keyof typeof COPY) {
   const c = COPY[key];
@@ -38,7 +38,7 @@ function page(key: keyof typeof COPY) {
 a{color:#2DD4BF}</style></head><body><main class="card"><div class="hd"><b>QuotesDone</b></div>
 <div class="bd"><div class="ic" aria-hidden="true">${c.ok ? '✅' : '⚠️'}</div>${block(c.en)}
 <div class="mut">If you have any issue, email <a href="mailto:supplier@quotesdone.com">supplier@quotesdone.com</a>.</div>
-<div class="ar" dir="rtl" lang="ar">${block(c.ar)}<div class="mut">إن واجهت أي مشكلة، راسلنا على <a href="mailto:supplier@quotesdone.com" dir="ltr">supplier@quotesdone.com</a>.</div></div></div></main></body></html>`;
+<div class="ar" dir="rtl" lang="ar">${block(c.ar)}<div class="mut">لأي استفسار، يُرجى مراسلتنا على <a href="mailto:supplier@quotesdone.com" dir="ltr">supplier@quotesdone.com</a>.</div></div></div></main></body></html>`;
 }
 Deno.serve(observe('supplier_ack', async (req) => {
   const url = new URL(req.url);

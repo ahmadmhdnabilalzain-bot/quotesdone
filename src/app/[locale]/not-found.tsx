@@ -11,7 +11,7 @@ import { getLocale } from 'next-intl/server';
 // them before it can render anything, and next-intl's middleware sends unprefixed paths here.
 const T = {
   en: { code: 'Page not found', h: 'That page is not here.', p: 'The link may be out of date, or the address mistyped. These pages are.', home: 'Home', services: 'Services', contact: 'Contact us' },
-  ar: { code: 'الصفحة غير موجودة', h: 'هذه الصفحة ليست هنا.', p: 'قد يكون الرابط قديمًا أو العنوان مكتوبًا بشكل خاطئ. هذه الصفحات موجودة.', home: 'الرئيسية', services: 'الخدمات', contact: 'تواصل معنا' },
+  ar: { code: 'الصفحة غير موجودة', h: 'لم نعثر على هذه الصفحة.', p: 'ربما يكون الرابط قديمًا أو فيه خطأ في الكتابة. يمكنك الانتقال إلى إحدى الصفحات التالية.', home: 'الرئيسية', services: 'الخدمات', contact: 'تواصل معنا' },
 };
 
 export default async function NotFound() {

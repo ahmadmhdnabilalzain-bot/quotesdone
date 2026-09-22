@@ -17,6 +17,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { arDays } from '@/lib/durationLabel';
 
 type Lang = 'en' | 'ar';
 type Cert = {
@@ -48,9 +49,9 @@ const T = {
     status: { valid: 'Valid', expiring: 'Expiring', expired: 'Expired', missing: 'Not uploaded' },
   },
   ar: {
-    title: 'الشهادات', loading: 'جارٍ فحص شهاداتك…',
-    held: 'محفوظة', blocking: 'يمنع اعتمادك', expiresIn: 'تنتهي خلال', days: 'يومًا', daysAgo: 'يومًا مضت',
-    impact: 'الأثر', upload: 'ارفعها من المستندات',
+    title: 'الشهادات', loading: 'جارٍ فحص شهاداتكم…',
+    held: 'محفوظة', blocking: 'يمنع اعتمادكم', expiresIn: 'تنتهي خلال', days: 'يومًا', daysAgo: 'يومًا مضت',
+    impact: 'الأثر', upload: 'رفعها من تبويب المستندات',
     status: { valid: 'سارية', expiring: 'قاربت الانتهاء', expired: 'منتهية', missing: 'غير مرفوعة' },
   },
 };
@@ -123,8 +124,8 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
                   {L.status[c.document_status]}
                   {c.expiry && c.days_left != null && (
                     <> · {c.days_left >= 0
-                      ? `${L.expiresIn} ${c.days_left} ${L.days}`
-                      : `${Math.abs(c.days_left)} ${L.daysAgo}`}</>
+                      ? (ar ? (c.days_left === 0 ? 'تنتهي اليوم' : `${L.expiresIn} ${arDays(c.days_left)}`) : `${L.expiresIn} ${c.days_left} ${L.days}`)
+                      : (ar ? `منذ ${arDays(Math.abs(c.days_left))}` : `${Math.abs(c.days_left)} ${L.daysAgo}`)}</>
                   )}
                 </p>
                 <p className="mt-1 text-[11px] leading-[1.6] text-muted-foreground/75">{(ar && c.impact_why_ar) || c.impact_why}</p>

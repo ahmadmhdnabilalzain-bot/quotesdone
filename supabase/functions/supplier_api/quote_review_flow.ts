@@ -406,7 +406,7 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
     const base = submittedSaid(inq.job_no, pdf.ref, generated);
     const said: Said = heldOpts.length ? {
       en: `${base.en}\n\n${heldOpts.map((o) => `Option ${o.option_no}`).join(', ')} is still held by the hold desk for these exact details — complete them in the hold panel on this job, and it is released when you confirm:\n\n${heldIssues.map((x, i) => `${i + 1}. ${x.en}`).join('\n')}`,
-      ar: `${base.ar}\n\n${heldOpts.map((o) => `الخيار ${o.option_no}`).join('، ')} ما زال معلّقًا لدى مكتب التعليق لهذه التفاصيل الدقيقة — أكملها في لوحة التعليق لهذا الطلب، ويُطلق عند تأكيدك:\n\n${heldIssues.map((x, i) => `${i + 1}. ${x.ar}`).join('\n')}`,
+      ar: `${base.ar}\n\n${heldOpts.map((o) => `الخيار ${o.option_no}`).join('، ')} ما زال معلّقًا إلى حين استكمال التفاصيل الدقيقة التالية — يُرجى استكمالها في بطاقة العرض المعلّق ضمن هذا الطلب، ويُرسل إلى العميل فور تأكيدكم:\n\n${heldIssues.map((x, i) => `${i + 1}. ${x.ar}`).join('\n')}`,
     } : base;
     const sm = await say(repo, r.id, 'submitted', said, { attachments: atts, issues: heldIssues.length ? heldIssues : undefined });
     const left = (await repo.requests(r.id, true)).map((x) => x.id);
@@ -421,7 +421,7 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
     const issues = missing.map(fromMissing);
     const said: Said = {
       en: `The hold desk still needs these exact details before the quotation for Job ${inq.job_no} can reach the customer:\n\n${issues.map((x, i) => `${i + 1}. ${x.en}`).join('\n')}\n\nReply here with them, or attach a revised file.`,
-      ar: `ما زال مكتب التعليق يحتاج إلى هذه التفاصيل الدقيقة قبل أن يصل عرض الطلب ${inq.job_no} إلى العميل:\n\n${issues.map((x, i) => `${i + 1}. ${x.ar}`).join('\n')}\n\nاكتبها هنا، أو أرفق ملفًا معدّلًا.`,
+      ar: `لا تزال التفاصيل الدقيقة التالية مطلوبة قبل أن يصل عرضكم للطلب ${inq.job_no} إلى العميل:\n\n${issues.map((x, i) => `${i + 1}. ${x.ar}`).join('\n')}\n\nيُرجى كتابتها هنا، أو إرفاق ملف معدّل.`,
     };
     const hm = await say(repo, r.id, 'review', said, { issues });
     const have = new Set((await repo.requests(r.id, true)).map((x) => x.key));
@@ -432,13 +432,13 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
   }
   if (j.ok) {
     // Saved as a draft by the commercial accept rule — say what it said, and keep the conversation open.
-    await say(repo, r.id, 'notice', { en: `Your quotation was saved but not yet accepted: ${String(j.message || 'some commercial terms are missing')}. Tell me the missing terms, or attach a revised file.`, ar: `حُفظ عرضك لكنه لم يُقبل بعد: بعض الشروط التجارية ناقصة. اكتب الشروط الناقصة، أو أرفق ملفًا معدّلًا.` });
+    await say(repo, r.id, 'notice', { en: `Your quotation was saved but not yet accepted: ${String(j.message || 'some commercial terms are missing')}. Tell me the missing terms, or attach a revised file.`, ar: `حُفظ عرضكم، لكنه لم يُقبل بعد لنقص بعض الشروط التجارية. يُرجى كتابة الشروط الناقصة هنا، أو إرفاق ملف معدّل.` });
     await repo.updateReview(r.id, { status: 'changes_requested', choice: null, reviewing_since: null });
     return again();
   }
   // Refused before anything was written (terms, verification, registration due, a concluded job).
   const msg = String(j.error || 'The quotation could not be submitted.');
-  await say(repo, r.id, 'notice', { en: `I could not submit the quotation yet: ${msg}`, ar: `تعذّر تقديم العرض بعد: ${msg}` });
+  await say(repo, r.id, 'notice', { en: `I could not submit the quotation yet: ${msg}`, ar: `تعذّر تقديم العرض حتى الآن: ${msg}` });
   await repo.updateReview(r.id, { status: prior, reviewing_since: null });
   return again({ code: String(j.code || 'submit_refused'), message: msg });
 }

@@ -499,7 +499,7 @@ async function buildBriefPdf(inq: any, lang: string) {
     [T('Budget', 'الميزانية'), clipCell(inq?.budget, 40) || '—'] ];
   if (Array.isArray(inq?.trades) && inq.trades.length) kv.push([T('Trades', 'التخصصات'), clipCell(inq.trades.map(trade).join(ar ? '، ' : ', '), 80)]);
   blocks.push({ t: 'kv', pairs: kv });
-  blocks.push({ t: 'h2', text: T('Scope', 'النطاق') });
+  blocks.push({ t: 'h2', text: T('Scope', 'نطاق العمل') });
   blocks.push({ t: 'p', text: String(inq?.summary || '—') });
   const spec = (inq?.spec && typeof inq.spec === 'object' && !Array.isArray(inq.spec)) ? inq.spec : null;
   if (spec) {
@@ -508,7 +508,7 @@ async function buildBriefPdf(inq: any, lang: string) {
       .map(([k, v]) => [clipCell(String(k).replace(/_/g, ' '), 40), clipCell(Array.isArray(v) ? v.join(', ') : v, 160)]);
     if (rows.length) {
       blocks.push({ t: 'h2', text: T('Specification', 'المواصفات') });
-      blocks.push({ t: 'table', head: [T('Item', 'البند'), T('Detail', 'التفصيل')], rows, widths: [0.32, 0.68] });
+      blocks.push({ t: 'table', head: [T('Item', 'البند'), T('Detail', 'التفاصيل')], rows, widths: [0.32, 0.68] });
     }
   }
   // What the customer asked the sales engineer for (docs/contracts/intake_answers.md), from the derived
@@ -528,14 +528,14 @@ async function buildBriefPdf(inq: any, lang: string) {
       blocks.push({ t: 'table', head: ['#', T('Description', 'الوصف'), T('Qty', 'الكمية'), T('Unit', 'الوحدة')], rows, widths: [0.07, 0.68, 0.12, 0.13] });
     }
   }
-  if (inq?.drawing_file_name) blocks.push({ t: 'note', text: T('A drawing is attached to this request and is shared with matched suppliers: ', 'أُرفق مخطط بهذا الطلب ويُشارك مع المورّدين المطابقين: ') + clipCell(inq.drawing_file_name, 80) });
+  if (inq?.drawing_file_name) blocks.push({ t: 'note', text: T('A drawing is attached to this request and is shared with matched suppliers: ', 'أُرفق بهذا الطلب مخطط يطّلع عليه المورّدون المطابقون: ') + clipCell(inq.drawing_file_name, 80) });
   blocks.push({ t: 'space', h: 6 });
   blocks.push({ t: 'note', text: T(
     'This is the anonymised brief QuotesDone sends to matched suppliers. The customer name, company and contact details are never included - suppliers quote on the scope alone, and contact details are exchanged only after the customer reveals a quote.',
-    'هذا هو الملخّص المجهول الذي ترسله QuotesDone إلى المورّدين المطابقين. لا يتضمّن اسم العميل أو شركته أو بيانات التواصل — يقدّم المورّدون عروضهم بناءً على النطاق فقط، وتُتبادل بيانات التواصل فقط بعد أن يكشف العميل عن العرض.') });
+    'هذا ملخّص الطلب كما ترسله QuotesDone إلى المورّدين المطابقين، دون الإفصاح عن هوية العميل؛ فلا يتضمّن اسمه ولا اسم شركته ولا بيانات التواصل معه. يقدّم المورّدون عروضهم استنادًا إلى نطاق العمل وحده، ولا تُتبادل بيانات التواصل إلا بعد أن يكشف العميل عن العرض الذي يختاره.') });
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ __secret: secret, title: T('Supplier brief', 'ملخّص المورّد'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true } }) });
+    body: JSON.stringify({ __secret: secret, title: T('Supplier brief', 'ملخّص الطلب للمورّدين'), ref, name: ref, lang: ar ? 'ar' : 'en', blocks, options: { letterhead: true } }) });
   const j = await r.json();
   return { j, ref };
 }

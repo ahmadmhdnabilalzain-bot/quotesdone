@@ -76,7 +76,7 @@ export function CustomerMemory({ token, lang = 'en' }: { token: string; lang?: s
     setBusy(false);
     if (!j || j.error) { setErr(String(j?.error || L(lang, 'Could not save.', 'تعذّر الحفظ.'))); return; }
     setUpdatedAt(j.updated_at || null);
-    setSaved(L(lang, 'Saved. Future requests use this.', 'تم الحفظ. ستعتمد الطلبات القادمة على ذلك.'));
+    setSaved(L(lang, 'Saved. Future requests use this.', 'تم الحفظ، وستُطبَّق على طلباتك القادمة.'));
   };
 
   const inferredRows = Object.entries(inferred).filter(([, v]) => v != null && String(v) !== '' && String(v) !== '[]');
@@ -86,7 +86,7 @@ export function CustomerMemory({ token, lang = 'en' }: { token: string; lang?: s
       <div className={S.label}>{L(lang, 'What we remember about you', 'ما نتذكّره عنك')}</div>
       <div className={cn(S.sub, 'mt-1')}>
         {L(lang, 'Learned from your past requests, and used automatically on new ones. Anything you type below overrides it.',
-                 'مستخلَص من طلباتك السابقة ويُستخدم تلقائيًا في الطلبات الجديدة. ما تكتبه أدناه يلغيه.')}
+                 'مستخلَص من طلباتك السابقة ويُطبَّق تلقائيًا على الطلبات الجديدة، وما تكتبه أدناه يتقدّم عليه.')}
       </div>
 
       {err ? <div className={cn(S.err, 'mt-2')}>{err}</div> : null}
@@ -106,7 +106,7 @@ export function CustomerMemory({ token, lang = 'en' }: { token: string; lang?: s
       ) : loaded && !err ? (
         // customer_preference held zero rows on 14 Sep 2026, so this is every customer's state.
         <div className={cn(S.sub, 'mt-2.5')}>
-          {L(lang, 'Nothing learned yet. This fills in from your requests.', 'لم نستخلص شيئًا بعد. سيمتلئ هذا من طلباتك.')}
+          {L(lang, 'Nothing learned yet. This fills in from your requests.', 'لم نستخلص شيئًا بعد، وستتكوّن هذه المعلومات من طلباتك.')}
         </div>
       ) : null}
 

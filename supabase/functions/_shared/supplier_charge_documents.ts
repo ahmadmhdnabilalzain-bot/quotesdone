@@ -22,6 +22,7 @@
 // a case record to renderer bodies; the caller (the accountant seat) owns delivery and the ledger.
 import { computeCharge, money, addDays, type Charge } from './supplier_charge.ts';
 import { FALLBACK } from './doc_template.ts';
+import { arDays } from './ar_days.ts';
 
 export type Lang = 'en' | 'ar';
 export const RECOVERY_DOC_VERSION = 'v1.0';
@@ -96,7 +97,7 @@ function breakdown(ch: Charge, lang: Lang, withInterest = true): Block[] {
   const tot: (string | boolean)[][] = [[ar ? 'أصل المبلغ المستحق' : 'Principal due', money(ch.principal, lang), !withInterest]];
   if (ch.paid > 0) tot.push([ar ? 'المسدَّد' : 'Paid', '− ' + money(ch.paid, lang), false]);
   if (withInterest) {
-    tot.push([ar ? `الفائدة (ج) بواقع ${pct(ch.rate_pa)} سنويًا عن ${ch.days_overdue} يومًا حتى ${fmtDate(ch.as_of, 'ar')}` : `Interest (c) at ${pct(ch.rate_pa)} p.a. for ${ch.days_overdue} days to ${fmtDate(ch.as_of, 'en')}`, money(ch.interest, lang), false]);
+    tot.push([ar ? `الفائدة (ج) بواقع ${pct(ch.rate_pa)} سنويًا عن ${arDays(ch.days_overdue)} حتى ${fmtDate(ch.as_of, 'ar')}` : `Interest (c) at ${pct(ch.rate_pa)} p.a. for ${ch.days_overdue} days to ${fmtDate(ch.as_of, 'en')}`, money(ch.interest, lang), false]);
     tot.push([ar ? 'الإجمالي المستحق' : 'Total due', money(ch.total_due, lang), true]);
   }
   return [
@@ -204,7 +205,7 @@ export function finalDemandDocument(c: CaseFile, lang: Lang) {
     { t: 'p', label: 'المطالبات السابقة', text: `أُرسلت إليكم الفاتورة رقم ${c.invoice.number} بتاريخ ${fmtDate(c.invoice.date, 'ar')} واستحقت في ${fmtDate(ch.due_date, 'ar')}، ثم التذكيرات المؤرخة ${c.reminders.map((r) => fmtDate(r.date, 'ar')).join(' و')}، ولم تُسدَّد حتى تاريخه.` },
     { t: 'section', n: 1, text: 'المبلغ المطالب به' }, ...breakdown(ch, lang),
     { t: 'section', n: 2, text: 'التكليف بالوفاء والمهلة' },
-    { t: 'callout', tone: 'gold', title: 'المهلة', text: `نكلّفكم بالوفاء بالمبلغ المذكور وقدره ${money(ch.total_due, 'ar')} مضافًا إليه الفائدة المتفق عليها بواقع ${money(ch.daily_interest, 'ar')} عن كل يوم من تاريخ هذا الإنذار حتى السداد التام، وذلك خلال مدة أقصاها ${LEGAL.final_demand_days} يومًا من تاريخ إعلانكم بهذا الإنذار، أي في موعد أقصاه ${D}.` },
+    { t: 'callout', tone: 'gold', title: 'المهلة', text: `نكلّفكم بالوفاء بالمبلغ المذكور وقدره ${money(ch.total_due, 'ar')} مضافًا إليه الفائدة المتفق عليها بواقع ${money(ch.daily_interest, 'ar')} عن كل يوم من تاريخ هذا الإنذار حتى السداد التام، وذلك خلال مدة أقصاها ${arDays(LEGAL.final_demand_days)} من تاريخ إعلانكم بهذا الإنذار، أي في موعد أقصاه ${D}.` },
     { t: 'p', label: 'الأثر', text: `وفي حال عدم الوفاء خلال المهلة المحددة، ستتقدّم QuotesDone إلى محاكم دبي بطلب استصدار أمر أداء وفقًا لـ${LEGAL.cpl.ar} (${LEGAL.cpl_po_arts.ar})، مطالِبةً بالمبلغ الأصلي والفائدة المتفق عليها حتى السداد التام والرسوم والمصاريف، مع حفظ كافة حقوقها الأخرى.` },
     { t: 'p', label: 'طريقة الإعلان', text: `أُعلن هذا الإنذار بتاريخ ${fmtDate(d.date, 'ar')} على العنوان المعتمد في اتفاقية المورّد (البند 21: الإشعارات) وعن طريق ${d.service_ar}.` },
     { t: 'p', text: 'وتفضلوا بقبول فائق الاحترام،' },
@@ -222,7 +223,7 @@ export function finalDemandDocument(c: CaseFile, lang: Lang) {
   return doc(lang, ref, d.date, ar ? 'إنذار رسمي بالوفاء' : 'Formal Demand for Payment', ar ? 'إنذار — تكليف بالوفاء' : 'Legal notice — demand for payment',
     ar ? `تمهيدًا لطلب استصدار أمر أداء — القضية ${c.case_ref}` : `Before an application for a payment order — case ${c.case_ref}`,
     [[ar ? 'المرجع' : 'Reference', ref], [ar ? 'تاريخ الإنذار' : 'Date', fmtDate(d.date, lang)], [ar ? 'آخر موعد للسداد' : 'Pay by', D]],
-    [[ar ? 'المطالب به' : 'Amount demanded', money(ch.total_due, lang)], [ar ? 'المهلة' : 'Period', ar ? `${LEGAL.final_demand_days} يومًا` : `${LEGAL.final_demand_days} days`]],
+    [[ar ? 'المطالب به' : 'Amount demanded', money(ch.total_due, lang)], [ar ? 'المهلة' : 'Period', ar ? `${arDays(LEGAL.final_demand_days)}` : `${LEGAL.final_demand_days} days`]],
     [...parties(c, lang, ar ? 'المُنذَر إليه' : 'Addressee', ar ? 'المُنذِر' : 'Sender'), ...body, ...signOff(lang)], true);
 }
 
@@ -237,12 +238,12 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     { t: 'section', n: 2, text: 'بيانات المطلوب ضده (المدين)' },
     { t: 'kv', pairs: [['الاسم', s.legal_name_ar], ['الرخصة', `${s.licence_no} — ${s.licence_authority_ar}`], ['العنوان', s.address_ar], ['البريد الإلكتروني', s.email], ['الهاتف', s.mobile]] },
     { t: 'section', n: 3, text: 'الوقائع' }, ...basisBlocks(c, lang),
-    { t: 'p', text: `وأُرسلت إلى المدين الفاتورة رقم ${c.invoice.number} بتاريخ ${fmtDate(c.invoice.date, 'ar')}، والتذكيرات المؤرخة ${c.reminders.map((r) => fmtDate(r.date, 'ar')).join(' و')}، ثم أُعلن بإنذار رسمي بالوفاء بتاريخ ${fmtDate(c.final_demand.date, 'ar')} منحه مهلة ${LEGAL.final_demand_days} يومًا انقضت دون وفاء.` },
+    { t: 'p', text: `وأُرسلت إلى المدين الفاتورة رقم ${c.invoice.number} بتاريخ ${fmtDate(c.invoice.date, 'ar')}، والتذكيرات المؤرخة ${c.reminders.map((r) => fmtDate(r.date, 'ar')).join(' و')}، ثم أُعلن بإنذار رسمي بالوفاء بتاريخ ${fmtDate(c.final_demand.date, 'ar')} منحه مهلة ${arDays(LEGAL.final_demand_days)} انقضت دون وفاء.` },
     { t: 'section', n: 4, text: 'شروط أمر الأداء' },
     { t: 'li', text: 'الدين ثابت بالكتابة: اتفاقية المورّد المقبولة إلكترونيًا (البند 33) وسجلّ القبول وقيمة الاسترداد الموثّقة لدى مزوّد الدفع.' },
     { t: 'li', text: 'الدين معيّن المقدار: يُحسب بمعادلة البند 33 من مبالغ ثابتة في السجلات.' },
     { t: 'li', text: 'الدين حالّ الأداء: استحق بعد سبعة أيام من الإشعار وفق البند 33.' },
-    { t: 'li', text: `كُلّف المدين بالوفاء بإنذار رسمي مُنح فيه مهلة ${LEGAL.final_demand_days} يومًا، وهي تزيد على الحد الأدنى الذي يتطلبه القانون (${LEGAL.demand_days} أيام).` },
+    { t: 'li', text: `كُلّف المدين بالوفاء بإنذار رسمي مُنح فيه مهلة ${arDays(LEGAL.final_demand_days)}، وهي تزيد على الحد الأدنى الذي يتطلبه القانون (${arDays(LEGAL.demand_days)}).` },
     { t: 'section', n: 5, text: 'المبلغ المطالب به' }, ...breakdown(ch, lang),
     { t: 'section', n: 6, text: 'الأساس القانوني' },
     { t: 'li', text: `${LEGAL.cpl.ar}، ${LEGAL.cpl_po_arts.ar} (أمر الأداء).` },

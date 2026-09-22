@@ -165,7 +165,7 @@ export function componentAttr(m: Material, _trade: string | null, base: Attr[]):
 // ---------------------------------------------------------------------------------------------
 const MONTHS = 'jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|يناير|فبراير|مارس|أبريل|ابريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر';
 const DATE_RE = new RegExp(`\\b(\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[\\/.\\-]\\d{1,2}[\\/.\\-]\\d{2,4}|\\d{1,2}\\s+(?:${MONTHS})\\s*,?\\s*\\d{0,4}|(?:${MONTHS})\\s+\\d{1,2}(?:,\\s*\\d{4})?)`, 'i');
-const DUR_RE = /(\d+(?:\.\d+)?)\s*(?:-\s*\d+\s*)?(working\s*days?|business\s*days?|days?|weeks?|months?|wks?|يوم عمل|أيام عمل|يوم|أيام|يوما|يوماً|أسبوع|أسابيع|اسبوع|اسابيع|شهر|أشهر|شهور)/i;
+const DUR_RE = /(\d+(?:\.\d+)?)\s*(?:-\s*\d+\s*)?(working\s*days?|business\s*days?|days?|weeks?|months?|wks?|يوم عمل|أيام عمل|يوم|أيام|يوما|يومًا|أسبوع|أسابيع|اسبوع|اسابيع|شهر|أشهر|شهور)/i;
 const IMMEDIATE = /\b(ex[\s-]?stock|from\s*stock|immediate(?:ly)?|same\s*day|next\s*day)\b|من المخزون|فوري|فورا|فوراً/i;
 
 export function readDelivery(text: string): { value: string; days: number | null; date: string | null } | null {
@@ -221,7 +221,7 @@ export function readWarranty(text: string): { period: string | null; months: num
 }
 
 const TERM_LABEL: Record<string, [string, string, MissingItem['type']]> = {
-  line_items: ['Itemised lines, each with its material specification', 'بنود مفصّلة، لكل بند مواصفات مادته', 'text'],
+  line_items: ['Itemised lines, each with its material specification', 'بنود مفصّلة تتضمن مواصفات المادة لكل بند', 'text'],
   delivery: ['Delivery date or lead time (e.g. 21 days, or 30 Oct 2026)', 'تاريخ التسليم أو مدة التنفيذ (مثل 21 يومًا أو 30 أكتوبر 2026)', 'text'],
   installation_included: ['Is installation included?', 'هل التركيب مشمول؟', 'choice'],
   installation_detail: ['Installation scope or timeline', 'نطاق التركيب أو مدته', 'text'],
@@ -374,20 +374,20 @@ export function holdLines(a: Assessment, lang: 'en' | 'ar'): string[] {
 export function holdNotice(a: Assessment, lang: 'en' | 'ar', ref: string, optionLabel?: string | null): { subject: string; body: string } {
   const ar = lang === 'ar';
   const opt = optionLabel ? ` — ${optionLabel}` : '';
-  const subject = ar ? `عرضك معلّق حتى تُذكر التفاصيل الدقيقة — الطلب ${ref}${opt}` : `Your quote is on hold until the exact details are stated — RFQ ${ref}${opt}`;
+  const subject = ar ? `عرضكم معلّق لحين استكمال التفاصيل الدقيقة — الطلب ${ref}${opt}` : `Your quote is on hold until the exact details are stated — RFQ ${ref}${opt}`;
   const lines = holdLines(a, lang).join('\n');
   const body = ar
-    ? `مرحبًا،\n\nعرضك للطلب ${ref}${opt} معلّق ولن يُعرض على العميل حتى تُذكر التفاصيل الدقيقة التالية:\n\n${lines}\n\nلديك طريقتان:\n1) أكمل التفاصيل الناقصة في بوابة المورّدين، وسنعيد إعداد عرضك بالصيغة الموحّدة لتراجعه وتؤكد أنه صحيح، ثم يُرسل إلى العميل.\n2) أو ارفع عرضًا معدّلًا جديدًا يتضمن هذه التفاصيل.\n\nيبقى العرض محفوظًا ويمكنك إكماله في أي وقت إلى أن يختار العميل عرضًا.\n\n${SEAT_LABEL.ar}`
+    ? `السادة الكرام،\n\nتحية طيبة وبعد،\n\nنودّ إفادتكم بأن عرضكم للطلب ${ref}${opt} معلّق، ولن يُعرض على العميل إلى أن تُستكمل التفاصيل الدقيقة التالية:\n\n${lines}\n\nولرفع التعليق يمكنكم اتباع إحدى الطريقتين:\n1) استكمال التفاصيل الناقصة عبر بوابة المورّدين، وسنعيد إعداد عرضكم بالصيغة الموحّدة لتراجعوه وتؤكدوا صحته، ثم يُرسل إلى العميل.\n2) أو رفع عرض معدّل جديد يتضمن هذه التفاصيل.\n\nيبقى العرض محفوظًا، ويمكنكم استكماله في أي وقت إلى أن يختار العميل أحد العروض.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n${SEAT_LABEL.ar}`
     : `Hello,\n\nYour quote for RFQ ${ref}${opt} is on hold and will not be shown to the customer until the following exact details are stated:\n\n${lines}\n\nYou have two ways to release it:\n1) Fill in the missing details on the supplier portal. We will regenerate your quotation in the standard format for you to check and confirm it is correct, and it is then sent to the customer.\n2) Or upload a new revised quote that states these details.\n\nThe quote stays saved and you can complete it at any time until the customer chooses a quote.\n\n${SEAT_LABEL.en}`;
   return { subject, body };
 }
 export function approvalNotice(lang: 'en' | 'ar', ref: string): { subject: string; body: string } {
   return lang === 'ar'
-    ? { subject: `عرضك المُعاد إعداده جاهز لاعتمادك — الطلب ${ref}`, body: `مرحبًا،\n\nشكرًا لإكمال التفاصيل. أعدنا إعداد عرضك للطلب ${ref} بالصيغة الموحّدة. يُرجى مراجعته في بوابة المورّدين وتأكيد أنه صحيح، ثم يُرسل إلى العميل.\n\n${SEAT_LABEL.ar}` }
+    ? { subject: `عرضكم المُعاد إعداده جاهز لاعتمادكم — الطلب ${ref}`, body: `السادة الكرام،\n\nتحية طيبة وبعد،\n\nنشكركم على استكمال التفاصيل. أعدنا إعداد عرضكم للطلب ${ref} بالصيغة الموحّدة، ونرجو مراجعته عبر بوابة المورّدين وتأكيد صحته، ليُرسل بعد ذلك إلى العميل.\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n${SEAT_LABEL.ar}` }
     : { subject: `Your regenerated quotation is ready for your approval — RFQ ${ref}`, body: `Hello,\n\nThank you for completing the details. We have regenerated your quotation for RFQ ${ref} in the standard format. Please review it on the supplier portal and confirm it is correct, and it will then be sent to the customer.\n\n${SEAT_LABEL.en}` };
 }
 export function releasedNotice(lang: 'en' | 'ar', ref: string, live: boolean): { subject: string; body: string } {
   return lang === 'ar'
-    ? { subject: `تم اعتماد عرضك — الطلب ${ref}`, body: `مرحبًا،\n\nشكرًا لتأكيدك. ${live ? 'أُرسل عرضك إلى العميل.' : 'أُلغي تعليق عرضك، وما زال يحتاج شروطه التجارية قبل إرساله إلى العميل.'}\n\n${SEAT_LABEL.ar}` }
+    ? { subject: `اعتُمد عرضكم — الطلب ${ref}`, body: `السادة الكرام،\n\nتحية طيبة وبعد،\n\nنشكركم على التأكيد. ${live ? 'وقد أُرسل عرضكم إلى العميل.' : 'وقد رُفع التعليق عن عرضكم، غير أنه لا يزال بحاجة إلى استكمال شروطه التجارية قبل إرساله إلى العميل.'}\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\n${SEAT_LABEL.ar}` }
     : { subject: `Your quote is approved — RFQ ${ref}`, body: `Hello,\n\nThank you for confirming. ${live ? 'Your quote is now with the customer.' : 'Your quote is no longer on hold; it still needs its commercial terms before it is sent to the customer.'}\n\n${SEAT_LABEL.en}` };
 }

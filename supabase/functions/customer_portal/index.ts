@@ -20,6 +20,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
+import { arDays } from '../_shared/ar_days.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -64,7 +65,7 @@ Deno.serve(observe('customer_portal', async (req) => {
         const cat = e.category || (ar ? 'طلبك' : 'your request');
         alerts.push({ kind: 'edit_window', severity: 'medium',
           title: ar ? ('ما زال بإمكانك تعديل «' + cat + '»') : ('You can still edit “' + cat + '”'),
-          detail: ar ? ('قابل للتعديل لمدة ' + e.edit_minutes_left + ' دقيقة أخرى، بعدها تُقفل التعديلات ويستمر المورّدون في التسعير على النطاق الأصلي.') : ('Editable for another ' + e.edit_minutes_left + ' minutes. After that, edits are locked and suppliers keep quoting the original scope.'),
+          detail: ar ? ('يمكنك تعديله خلال ' + e.edit_minutes_left + ' دقيقة متبقية، ثم تُقفل التعديلات ويواصل المورّدون التسعير وفق النطاق الأصلي.') : ('Editable for another ' + e.edit_minutes_left + ' minutes. After that, edits are locked and suppliers keep quoting the original scope.'),
           inquiry_id: e.id });
       }
       // 21 Sep 2026 (customer audit, finding 17): a request whose quote the customer already PAID to
@@ -84,8 +85,8 @@ Deno.serve(observe('customer_portal', async (req) => {
         const where = t.emirate ? (ar ? ' في ' : ' in ') + t.emirate : '';
         const n = t.quotes_count;
         alerts.push({ kind: 'quotes_ready', severity: 'low',
-          title: ar ? (n + ' عرض للمراجعة على «' + cat + '»' + where) : (n + ' quote' + (n > 1 ? 's' : '') + ' to review on “' + cat + '”' + where),
-          detail: ar ? ('قارن العروض جنبًا إلى جنب واكشف عن المورّد الذي تريد.') : ('Compare quotes side by side and reveal the supplier you want.'),
+          title: ar ? ((n === 1 ? 'عرض سعر واحد' : n === 2 ? 'عرضا سعر' : n + (n <= 10 ? ' عروض أسعار' : ' عرض سعر')) + ' بانتظار مراجعتك على «' + cat + '»' + where) : (n + ' quote' + (n > 1 ? 's' : '') + ' to review on “' + cat + '”' + where),
+          detail: ar ? ('قارن العروض جنبًا إلى جنب، ثم اكشف عن المورّد الذي تختاره.') : ('Compare quotes side by side and reveal the supplier you want.'),
           inquiry_id: t.id });
       }
 
@@ -125,9 +126,9 @@ Deno.serve(observe('customer_portal', async (req) => {
           if (Math.abs(pct) < 3) continue;
           const up = pct > 0;
           alerts.push({ kind: 'price_move', severity: up ? 'medium' : 'low', category: row.category,
-            title: ar ? (row.category + ': السوق ' + (up ? 'أعلى' : 'أقل') + ' بنسبة ' + Math.abs(pct) + '%')
+            title: ar ? (row.category + ': أسعار السوق ' + (up ? 'أعلى' : 'أقل') + ' بنسبة ' + Math.abs(pct) + '% مما دفعته آخر مرة')
                       : (row.category + ' is quoting ' + Math.abs(pct) + '% ' + (up ? 'above' : 'below') + ' what you last paid'),
-            detail: ar ? ('الوسيط الحالي ' + Math.round(med) + ' درهم عبر ' + row.n + ' عرضًا، مقابل ' + Math.round(paid) + ' دفعتها آخر مرة.')
+            detail: ar ? ('السعر الوسيط حاليًا ' + Math.round(med) + ' درهم من واقع ' + row.n + ' من العروض، مقابل ' + Math.round(paid) + ' درهم دفعتها آخر مرة.')
                        : ('Median now AED ' + Math.round(med) + ' across ' + row.n + ' quotes, against AED ' + Math.round(paid) + ' you last paid.'),
             move_pct: pct, sample: row.n });
         }
@@ -148,8 +149,8 @@ Deno.serve(observe('customer_portal', async (req) => {
             const mid = hrs[Math.floor(hrs.length / 2)];
             const faster = known.filter((s: any) => Number(s.avg_response_hours) < mid).length;
             if (faster > 0) alerts.push({ kind: 'lead_time', severity: 'low',
-              title: ar ? (faster + ' مورّد يردّون أسرع من متوسط قائمتك') : (faster + ' supplier' + (faster > 1 ? 's' : '') + ' on your RFQs respond faster than the rest'),
-              detail: ar ? ('الوسيط ' + Math.round(mid) + ' ساعة عبر ' + known.length + ' مورّدًا لديهم سجل قياس.')
+              title: ar ? ('عدد المورّدين الأسرع استجابةً لطلباتك: ' + faster) : (faster + ' supplier' + (faster > 1 ? 's' : '') + ' on your RFQs respond faster than the rest'),
+              detail: ar ? ('متوسط زمن الاستجابة (الوسيط) ' + Math.round(mid) + ' ساعة، من واقع ' + known.length + ' من المورّدين المطابقين ذوي السجل المُقاس.')
                          : ('Median response is ' + Math.round(mid) + 'h across the ' + known.length + ' matched suppliers that have a measured record.'),
               faster_count: faster, median_hours: Math.round(mid) });
           }
@@ -172,8 +173,8 @@ Deno.serve(observe('customer_portal', async (req) => {
         const days = p.within_days ?? p.horizon_days ?? p.days;
         if (!what) continue;
         alerts.push({ kind: 'forecast_need', severity: 'low', category: what, within_days: days ?? null,
-          title: ar ? ('من المرجّح أن تحتاج ' + what + (days ? ' خلال ' + days + ' يومًا' : '')) : ('You will likely need ' + what + (days ? ' within ' + days + ' days' : '')),
-          detail: ar ? ('بناءً على وتيرة مشاريعك السابقة. ابدأ طلب عروض الآن لتترك وقتًا للتوريد.') : ('Based on the rhythm of your past projects. Starting the RFQ now leaves room for lead time.') });
+          title: ar ? ('من المرجّح أن تحتاج ' + what + (days ? ' خلال ' + arDays(days) : '')) : ('You will likely need ' + what + (days ? ' within ' + days + ' days' : '')),
+          detail: ar ? ('استنادًا إلى وتيرة مشاريعك السابقة. ابدأ طلب عروض الأسعار الآن ليتّسع الوقت للتوريد.') : ('Based on the rhythm of your past projects. Starting the RFQ now leaves room for lead time.') });
       }
 
       // ── §1 THE HEADLINE ───────────────────────────────────────────────────────────────────────
@@ -185,7 +186,7 @@ Deno.serve(observe('customer_portal', async (req) => {
       const top = alerts.slice().sort((x, y) => (RANK[y.severity] || 0) - (RANK[x.severity] || 0))[0];
       const headline = !alerts.length
         ? (ar ? 'لا شيء يحتاج انتباهك الآن.' : 'Nothing needs your attention right now.')
-        : (ar ? (top.title + (alerts.length > 1 ? ' — و' + (alerts.length - 1) + ' بند آخر.' : '.'))
+        : (ar ? (top.title + (alerts.length === 2 ? ' — إضافةً إلى بند آخر.' : alerts.length === 3 ? ' — إضافةً إلى بندين آخرين.' : alerts.length > 3 && alerts.length <= 11 ? ' — إضافةً إلى ' + (alerts.length - 1) + ' بنود أخرى.' : alerts.length > 11 ? ' — إضافةً إلى ' + (alerts.length - 1) + ' بندًا آخر.' : '.'))
               : (top.title + (alerts.length > 1 ? ' — and ' + (alerts.length - 1) + ' other item' + (alerts.length > 2 ? 's' : '') + '.' : '.')));
 
       // ── §2 THE TWIN ───────────────────────────────────────────────────────────────────────────

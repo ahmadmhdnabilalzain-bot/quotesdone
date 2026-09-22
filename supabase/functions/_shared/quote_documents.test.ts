@@ -414,7 +414,7 @@ Deno.test('comparison without a technical comparison says specifications are not
   for (const lang of ['en', 'ar'] as const) {
     const s = JSON.stringify(compareBody('hvac', lang, false));
     assertEquals((s.match(lang === 'en' ? /Specifications are not assessed/g : /لم تُقيَّم المواصفات/g) || []).length, 1, lang);
-    assertStringIncludes(s, lang === 'en' ? 'All 7 quotes are listed in this report; the top 3 are compared in detail.' : 'جميع العروض الـ7 مدرجة في هذا التقرير');
+    assertStringIncludes(s, lang === 'en' ? 'All 7 quotes are listed in this report; the top 3 are compared in detail.' : 'أُدرجت العروض جميعها (7) في هذا التقرير');
   }
 });
 

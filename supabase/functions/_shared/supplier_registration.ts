@@ -20,8 +20,8 @@ type Admin = any;
 
 export const MANDATORY_SIX = [
   { code: 'reg_name',    fix: 'profile',   en: 'company name',                 ar: 'اسم الشركة' },
-  { code: 'reg_mobile',  fix: 'profile',   en: 'a verified UAE mobile number', ar: 'رقم جوال إماراتي تم التحقق منه' },
-  { code: 'reg_email',   fix: 'profile',   en: 'a verified e-mail address',    ar: 'بريد إلكتروني تم التحقق منه' },
+  { code: 'reg_mobile',  fix: 'profile',   en: 'a verified UAE mobile number', ar: 'رقم جوال إماراتي موثَّق' },
+  { code: 'reg_email',   fix: 'profile',   en: 'a verified e-mail address',    ar: 'بريد إلكتروني موثَّق' },
   { code: 'reg_licence', fix: 'documents', en: 'trade licence',                ar: 'الرخصة التجارية' },
   { code: 'reg_profile', fix: 'documents', en: 'company profile',              ar: 'الملف التعريفي للشركة' },
   { code: 'reg_terms',   fix: 'profile',   en: 'the signed supplier terms',    ar: 'الموافقة الموقّعة على شروط المورّد' },

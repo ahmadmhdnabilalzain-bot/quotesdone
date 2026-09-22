@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-21T23:23:59.038Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T01:41:30.991Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -18012,6 +18012,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18037,16 +18047,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -18758,135 +18758,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19402,6 +19273,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -20646,6 +20646,22 @@ begin
     'basis',          'deterministic: nearest ACTIONABLE company knowledge by meaning, corroborated by the step''s own terms; no model call'
   );
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ar_days(p_n integer)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE STRICT
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when abs(p_n) = 0 then 'اليوم'
+    when abs(p_n) = 1 then 'يوم واحد'
+    when abs(p_n) = 2 then 'يومان'
+    when abs(p_n) <= 10 then abs(p_n)::text || ' أيام'
+    else abs(p_n)::text || ' يومًا'
+  end
 $function$
 
 
@@ -40685,9 +40701,9 @@ begin
       || to_char(v_final_at at time zone 'Asia/Dubai', 'DD Mon YYYY') || '. If we have not seen a response by then, our chief executive decides the case and the customer is refunded everything they paid (AED '
       || v_amt || '). Under the supplier terms that amount is then recovered from your account, with an administrative fee of AED 250 and interest at 9% per annum until it is settled, and matching is paused until it is paid.' || E'\n\n'
       || 'If you have already been in touch with this customer, reply here and we will close this off.',
-    'بانتظار ردّك — QuotesDone',
-    'دفع عميل للكشف عن بيانات التواصل معك ولم يتلقَّ ردًّا بعد، والعميل في نسخة هذه الرسالة. يجب الرد خلال ' || v_window
-      || ' أيام عمل من الكشف، وإلا يُردّ للعميل كامل ما دفعه (' || v_amt || ' درهم) ويُسترد من حسابك مع رسوم إدارية 250 درهمًا وفائدة 9% سنويًا.',
+    'بانتظار ردّكم — QuotesDone',
+    'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم ولم يتلقَّ ردًّا بعد، والعميل مُدرَج في نسخة هذه الرسالة. ويتعيّن الرد خلال ' || v_window
+      || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه (' || v_amt || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا.',
     array_remove(array[cust_email], null), 'customer_notice:' || t.id, null,
     jsonb_build_object('step', 'customer_notice', 'transaction_id', t.id));
 
@@ -45262,6 +45278,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -45432,16 +45458,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -47373,7 +47389,7 @@ begin
   select * into t from public.transactions where id = p_transaction_id;
   if not found then
     return jsonb_build_object('ok', false, 'code', 'no_such_transaction', 'locale', 'en', 'can_claim_later', false,
-      'message_en', 'We could not find that reveal on your account.', 'message_ar', 'لم نجد عملية الكشف هذه في حسابك.');
+      'message_en', 'We could not find that reveal on your account.', 'message_ar', 'لم نعثر على عملية الكشف هذه في حسابكم.');
   end if;
   select id, email into c from public.customers where id = t.customer_id;
   v_locale := coalesce(public.fn_registered_locale('customer', t.customer_id, null, c.email), 'en');
@@ -47389,35 +47405,35 @@ begin
   if v_open is not null then
     return jsonb_build_object('ok', true, 'duplicate', true, 'refund_id', v_open, 'locale', v_locale, 'decision_after', t.refund_deadline,
       'message_en', 'Your refund case QD-RF-' || v_open || ' is already open. Our chief executive decides it after ' || coalesce(v_decide, 'the fifth working day') || '; you do not need to do anything else.',
-      'message_ar', 'حالة الاسترداد QD-RF-' || v_open || ' مفتوحة بالفعل. يقرر رئيسنا التنفيذي بشأنها بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، ولا يلزمك أي إجراء آخر.');
+      'message_ar', 'حالة الاسترداد QD-RF-' || v_open || ' مفتوحة بالفعل، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، ولا يلزمكم أي إجراء آخر.');
   end if;
 
   -- THE REFUSALS, each with the reason and whether a claim can come later.
   if t.revealed_at is null then
     v_code := 'not_revealed'; v_later := true;
     v_en := 'This reveal has not completed yet. You can ask for a refund once the payment has gone through and the supplier''s details are shown to you.';
-    v_ar := 'لم تكتمل عملية الكشف بعد. يمكنك طلب الاسترداد بعد إتمام الدفع وظهور بيانات المورّد لك.';
+    v_ar := 'لم تكتمل عملية الكشف بعد. يمكنكم طلب الاسترداد بعد إتمام الدفع وظهور بيانات المورّد لكم.';
   elsif coalesce(btrim(t.payment_ref), '') = '' then
     v_code := 'no_payment'; v_later := true;
     v_en := 'We have no recorded payment for this reveal yet, so there is nothing to refund. If you were charged, reply to your payment receipt and we will match it; you can ask again once it is recorded.';
-    v_ar := 'لا يوجد لدينا دفع مسجّل لعملية الكشف هذه بعد، لذا لا يوجد ما يُسترد. إن خُصم منك مبلغ فردّ على إيصال الدفع وسنطابقه، ويمكنك الطلب مجددًا بعد تسجيله.';
+    v_ar := 'لا يوجد لدينا دفع مسجّل لعملية الكشف هذه حتى الآن، فلا مبلغ يُسترد. وإن خُصم منكم أي مبلغ، فيُرجى الرد على إيصال الدفع لنطابقه، ويمكنكم تقديم الطلب مجددًا بعد تسجيله.';
   elsif coalesce(t.refund_status, '') in ('approved', 'refunded', 'processing', 'succeeded') then
     v_code := 'already_refunded';
     v_en := 'This reveal has already been refunded (AED ' || coalesce(t.refund_amount_aed, v_amt) || '). Banks take 7 to 14 working days to show it.';
-    v_ar := 'تم استرداد رسوم عملية الكشف هذه بالفعل (' || coalesce(t.refund_amount_aed, v_amt) || ' درهم). تستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.';
+    v_ar := 'سبق أن استُردّت رسوم عملية الكشف هذه (' || coalesce(t.refund_amount_aed, v_amt) || ' درهم)، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهار المبلغ.';
   elsif exists (select 1 from public.refunds r where r.transaction_id = t.id and r.status = 'rejected'
                   and lower(coalesce(r.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')) then
     v_code := 'already_declined';
     v_en := 'Our chief executive has already decided this case and declined it; the reason is shown on your refund case. Under section 5 of the Terms a decided case is not reopened by a new request. If you think the record is wrong, reply to the decision email.';
-    v_ar := 'سبق أن قرر رئيسنا التنفيذي في هذه الحالة ورفضها، والسبب مبيّن في حالة الاسترداد. وفق البند 5 من الشروط لا تُعاد فتح حالة مقررة بطلب جديد. إن رأيت أن السجل غير صحيح فردّ على رسالة القرار.';
+    v_ar := 'سبق أن بتّ رئيسنا التنفيذي في هذه الحالة ورفضها، والسبب مبيّن في حالة الاسترداد. ووفق البند 5 من الشروط، لا يُعاد فتح حالة بُتّ فيها بطلب جديد. وإن رأيتم أن السجل غير صحيح، فيُرجى الرد على رسالة القرار.';
   elsif exists (select 1 from public.inquiries i where i.id = t.inquiry_id and i.status in ('completed', 'closed') and i.hired_supplier_id = t.supplier_id) then
     v_code := 'job_completed';
     v_en := 'This job is marked as completed with this supplier, so the supplier responded and the reveal fee is not refundable (Terms, section 5).';
-    v_ar := 'هذا العمل مسجّل كمكتمل مع هذا المورّد، أي أن المورّد استجاب، لذا لا تُسترد رسوم الكشف (الشروط، البند 5).';
+    v_ar := 'هذا العمل مسجّل مكتملًا مع هذا المورّد، ما يعني أنه استجاب، لذا لا تُسترد رسوم الكشف (الشروط، البند 5).';
   elsif exists (select 1 from public.reviews v where v.transaction_id = t.id) then
     v_code := 'supplier_rated';
     v_en := 'You have rated this supplier, which records that you dealt with them, so the reveal fee is not refundable (Terms, section 5).';
-    v_ar := 'لقد قيّمت هذا المورّد، ما يسجّل أنك تعاملت معه، لذا لا تُسترد رسوم الكشف (الشروط، البند 5).';
+    v_ar := 'قيّمتم هذا المورّد، وهو ما يُثبت تعاملكم معه، لذا لا تُسترد رسوم الكشف (الشروط، البند 5).';
   end if;
   if v_code is not null then
     -- Recorded, so a refusal is as visible to the seats as a case: who asked, when, and why not.
@@ -47456,17 +47472,17 @@ begin
       || 'If there is still no response, our chief executive makes a final call and then decides your case on the record. '
       || 'If the refund is due, everything you paid (AED ' || v_amt || ') is returned to your original payment method; banks take 7 to 14 working days to show it.',
     'فتحنا حالة الاسترداد QD-RF-' || v_id,
-    'فتحنا حالة الاسترداد QD-RF-' || v_id || ' بخصوص المورّد الذي كشفت عنه في ' || coalesce(v_paid, 'تاريخ دفعك') || '. لا يلزمك أي إجراء آخر.' || E'\n\n'
-      || 'أمام المورّد حتى ' || coalesce(v_decide, 'يوم العمل الخامس بعد دفعك') || ' للرد. نتابعه في يوم العمل الثالث مع نسخة إليك، '
-      || 'وإن لم يردّ يوجّه رئيسنا التنفيذي نداءً أخيرًا ثم يقرر في حالتك بناءً على السجل. '
-      || 'إن كان الاسترداد مستحقًا يُردّ إليك كامل ما دفعته (' || v_amt || ' درهم) إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.',
+    'فتحنا حالة الاسترداد QD-RF-' || v_id || ' بشأن المورّد الذي كشفتم عنه في ' || coalesce(v_paid, 'تاريخ الدفع') || '. لا يلزمكم أي إجراء آخر.' || E'\n\n'
+      || 'أمام المورّد حتى ' || coalesce(v_decide, 'يوم العمل الخامس بعد الدفع') || ' للرد، وسنتابعه في يوم العمل الثالث مع نسخة إليكم، '
+      || 'فإن لم يردّ، فسيوجّه إليه رئيسنا التنفيذي نداءً أخيرًا ثم يبتّ في حالتكم استنادًا إلى السجل. '
+      || 'وإن ثبت استحقاق الاسترداد، فسيُردّ إليكم كامل ما دفعتموه (' || v_amt || ' درهم) إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.',
     '{}', 'refund_request_received:' || t.id, null,
     jsonb_build_object('step', 'customer_request', 'transaction_id', t.id, 'refund_id', v_id));
 
   return jsonb_build_object('ok', true, 'refund_id', v_id, 'status', 'requested', 'locale', v_locale,
     'decision_after', t.refund_deadline, 'delivery_request', v_req,
     'message_en', 'Refund case QD-RF-' || v_id || ' is open. Our chief executive decides it after ' || coalesce(v_decide, 'the fifth working day') || ', and if it is due everything you paid is refunded. We have emailed you the details.',
-    'message_ar', 'تم فتح حالة الاسترداد QD-RF-' || v_id || '. يقرر رئيسنا التنفيذي بشأنها بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن كان الاسترداد مستحقًا يُردّ إليك كامل ما دفعته. أرسلنا إليك التفاصيل بالبريد.');
+    'message_ar', 'فتحنا حالة الاسترداد QD-RF-' || v_id || '، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن ثبت استحقاق الاسترداد فسيُردّ إليكم كامل ما دفعتموه. وقد أرسلنا إليكم التفاصيل بالبريد الإلكتروني.');
 end $function$
 
 
@@ -49964,10 +49980,10 @@ begin
           || v_chase::text || ' working days we chase them for you and copy you; if there is still no response by working day '
           || v_window::text || ' the case is decided by our chief executive, and if the supplier never responded everything you paid is refunded in full. '
           || 'Banks usually take ' || v_min || '-' || v_max || ' working days to show a refund. You can also open the request and Report an issue at any time.',
-        'تم تأكيد الكشف — ' || coalesce(v_sup.company_name, 'المورّد'),
-        'أصبحت بيانات التواصل مع ' || coalesce(v_sup.company_name, 'المورّد') || ' متاحة لك الآن، ويمكنك مراسلته مباشرة من التطبيق. '
-          || 'نتابع هذا الكشف منذ لحظة الدفع: إن لم يردّ المورّد خلال ' || v_chase::text || ' أيام عمل نتواصل معه نيابةً عنك مع نسخة لك، '
-          || 'وإن لم يردّ حتى يوم العمل ' || v_window::text || ' يقرّر رئيسنا التنفيذي في الحالة، وإن لم يردّ المورّد إطلاقًا نردّ إليك كامل ما دفعته.',
+        'اكتمل الكشف — ' || coalesce(v_sup.company_name, 'المورّد'),
+        'أصبحت بيانات التواصل مع ' || coalesce(v_sup.company_name, 'المورّد') || ' متاحة لكم الآن، ويمكنكم مراسلته مباشرة من التطبيق. '
+          || 'نتابع هذا الكشف منذ لحظة الدفع: إن لم يردّ المورّد خلال ' || v_chase::text || ' أيام عمل فسنتواصل معه نيابةً عنكم مع نسخة إليكم، '
+          || 'وإن لم يردّ حتى يوم العمل ' || v_window::text || ' فسيبتّ رئيسنا التنفيذي في الحالة، وإن لم يردّ المورّد إطلاقًا فسنردّ إليكم كامل المبلغ المدفوع.',
         '{}', 'reveal_receipt:' || (d->>'subject_id'), null, jsonb_build_object('transaction_id', d->>'subject_id'));
     end if;
     if coalesce(v_sup.email, '') like '%@%' then
@@ -49979,9 +49995,9 @@ begin
           || ' working days of the reveal. If you have not responded after ' || v_chase::text
           || ' working days we chase you with the customer copied; if there is still no response on working day ' || v_window::text
           || ' our chief executive decides the case, the customer is refunded, and the amount refunded plus an AED 250 administrative fee and 9% p.a. interest is recovered from your account.',
-        'كشف عميل عن عرضك على QuotesDone',
-        'دفع عميل للكشف عن بيانات التواصل معك بخصوص: ' || coalesce(v_inq, '') || '. يُرجى الرد سريعًا — بموجب اتفاقية المورّد يجب الرد خلال '
-          || v_window::text || ' أيام عمل من الكشف، وإلا يُردّ للعميل ما دفعه ويُسترد المبلغ من حسابك مع رسوم إدارية 250 درهمًا وفائدة 9% سنويًا.',
+        'كشف أحد العملاء عن عرضكم على QuotesDone',
+        'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم بشأن: ' || coalesce(v_inq, '') || '. نرجو المبادرة بالرد، إذ تُلزم اتفاقية المورّد بالرد خلال '
+          || v_window::text || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا.',
         '{}', 'quote_accepted:' || (d->>'subject_id'), null, jsonb_build_object('transaction_id', d->>'subject_id'));
     end if;
     return jsonb_build_object('customer_reachable', v_cust.email is not null,
@@ -49996,8 +50012,8 @@ begin
       'Hello ' || coalesce(nullif(btrim(v_cust.full_name), ''), 'there') || E',\n\n'
         || 'Your payment to unlock the supplier''s contact details did not go through, and nothing was charged to your card.' || E'\n\n'
         || 'You can try again at any time: open the request in your QuotesDone portal and choose Reveal on the quote you picked. If the card was declined, your bank can tell you why, and a different card also works.',
-      'لم تكتمل عملية الدفع للكشف',
-      'لم تنجح عملية الدفع للكشف عن بيانات المورّد، ولم يُخصم أي مبلغ من بطاقتك. يمكنك المحاولة مجددًا في أي وقت من بوابتك في QuotesDone.',
+      'لم يكتمل دفع رسوم الكشف',
+      'تعذّر إتمام دفع رسوم الكشف عن بيانات المورّد، ولم يُخصم أي مبلغ من بطاقتكم. يمكنكم إعادة المحاولة في أي وقت من بوابتكم على QuotesDone.',
       '{}', 'payment_failed:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req);
 
@@ -50008,7 +50024,7 @@ begin
       case when d->>'kind' = 'supplier_registration'
            then 'We have received your registration payment of AED ' || (d->>'amount_aed') || '. Your QuotesDone supplier account is registered for the next 12 months.'
            else 'We have received your payment of AED ' || (d->>'amount_aed') || ' settling ' || coalesce(d->>'items', '1') || ' outstanding charge(s). Your account is now up to date.' end,
-      'تم استلام دفعتك', 'استلمنا دفعتك بقيمة ' || (d->>'amount_aed') || ' درهم. شكرًا لك.',
+      'استلمنا دفعتكم', 'استلمنا دفعتكم البالغة ' || (d->>'amount_aed') || ' درهم، ونشكركم على ذلك.',
       '{}', 'payment_received:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req);
 
@@ -50024,7 +50040,7 @@ begin
         || v_amt || ', the reveal fee and the card processing part together, to the card you paid with. Banks usually take ' || v_min || '–' || v_max || ' working days to show it.' || E'\n\n'
         || 'If you have an email thread with the supplier, keep it: it is the proof we rely on.',
       'استلمنا طلب الاسترداد',
-      'استلمنا طلب استرداد مبلغ الكشف. نتحقق أولًا من ردّ المورّد، ثم يقرّر رئيسنا التنفيذي، وإن كان الاسترداد مستحقًا يعود إليك كامل ما دفعته إلى البطاقة نفسها خلال '
+      'استلمنا طلبكم استرداد رسوم الكشف. نتحقق أولًا من ردّ المورّد، ثم يبتّ رئيسنا التنفيذي في الطلب، فإن ثبت استحقاق الاسترداد فسيُعاد إليكم كامل المبلغ المدفوع إلى البطاقة نفسها خلال '
         || v_min || '–' || v_max || ' يوم عمل بحسب البنك.',
       '{}', 'refund_request_received:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req, 'money_ok', d->'money_ok');
@@ -50041,9 +50057,9 @@ begin
         || 'Banks and card issuers usually take ' || v_min || '–' || v_max || ' working days to show it on your statement. If it has not appeared after '
         || v_max || ' working days, reply to this email and we will trace it with the payment processor.' || E'\n\n'
         || 'You are welcome to post the request again; we will introduce you to another supplier.',
-      'تم إصدار استرداد بقيمة ' || (d->>'amount_aed') || ' درهم',
-      'أصدرنا لك استردادًا بقيمة ' || (d->>'amount_aed') || ' درهم، وهو كامل ما دفعته، إلى وسيلة الدفع الأصلية لأن المورّد لم يردّ خلال '
-        || v_window::text || ' أيام عمل. قد يستغرق ظهوره في كشف حسابك ' || v_min || '–' || v_max || ' يوم عمل.',
+      'أصدرنا استردادًا بقيمة ' || (d->>'amount_aed') || ' درهم',
+      'أصدرنا لكم استردادًا بقيمة ' || (d->>'amount_aed') || ' درهم، أي كامل المبلغ المدفوع، إلى وسيلة الدفع الأصلية، إذ لم يردّ المورّد خلال '
+        || v_window::text || ' أيام عمل. وقد يستغرق ظهوره في كشف حسابكم ' || v_min || '–' || v_max || ' يوم عمل.',
       '{}', 'refund_issued:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req, 'amount_aed', d->'amount_aed');
 
@@ -50056,9 +50072,9 @@ begin
         || 'We looked at your refund request for the reveal on ' || coalesce('"' || left(v_inq, 80) || '"', 'your request') || ' and it was not approved.' || E'\n\n'
         || 'The reason: ' || coalesce(nullif(btrim(d->>'note'), ''), 'the record shows the supplier did respond.') || E'\n\n'
         || 'If you think we have missed something, reply to this email with what you have — an email thread with the supplier, dates, anything — and we will look again.',
-      'بخصوص طلب الاسترداد',
-      'راجعنا طلب الاسترداد ولم تتم الموافقة عليه. السبب: ' || coalesce(nullif(btrim(d->>'note'), ''), 'السجل يُظهر أن المورّد قد ردّ.')
-        || ' إن كان لديك ما يثبت خلاف ذلك فردّ على هذه الرسالة وسنراجع الطلب مجددًا.',
+      'بشأن طلب الاسترداد',
+      'راجعنا طلب الاسترداد وتعذّرت الموافقة عليه. السبب: ' || coalesce(nullif(btrim(d->>'note'), ''), 'يُظهر السجل أن المورّد قد ردّ.')
+        || ' وإن كان لديكم ما يثبت خلاف ذلك، فيسعدنا أن تردّوا على هذه الرسالة لنعيد النظر في الطلب.',
       '{}', 'refund_declined:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req);
 
@@ -50069,8 +50085,8 @@ begin
       'Your refund is being processed',
       'Hello ' || coalesce(nullif(btrim(v_cust.full_name), ''), 'there') || E',\n\n'
         || 'Your refund of AED ' || coalesce(d->>'amount_aed', '') || ' has been approved and is being processed with the payment provider. It has not reached your card yet; we will write again the moment it has.',
-      'استردادك قيد المعالجة',
-      'تمت الموافقة على استردادك وهو قيد المعالجة لدى مزوّد الدفع، ولم يصل إلى بطاقتك بعد. سنراسلك فور وصوله.',
+      'استردادكم قيد المعالجة',
+      'وافقنا على استردادكم، وهو الآن قيد المعالجة لدى مزوّد الدفع ولم يصل إلى بطاقتكم بعد. وسنُعلمكم فور وصوله.',
       '{}', 'refund_in_progress:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req);
 
@@ -50091,9 +50107,9 @@ begin
           || v_lines || E'\n\n'
           || 'Matching is paused until this is settled. You can pay it from the Billing section of your supplier portal. If you believe it is wrong, use "Dispute this charge" there or reply to this email and we will check the figures against the payment record.',
         'رسوم بموجب اتفاقية المورّد',
-        'دفع عميل للكشف عن بيانات التواصل معك ولم يتلقَّ ردًّا خلال ' || v_window::text || ' أيام عمل رغم التذكيرات. بموجب اتفاقية المورّد رُدّ للعميل كامل ما دفعه ويُسترد من حسابك: المبلغ المسترد '
+        'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم ولم يتلقَّ ردًّا خلال ' || v_window::text || ' أيام عمل رغم التذكيرات، فرُدّ إليه كامل ما دفعه بموجب اتفاقية المورّد، ويُسترد من حسابكم ما يلي: المبلغ المسترد '
           || (d->>'refunded_aed') || ' درهم، ورسوم إدارية ' || (d->>'admin_fee_aed') || ' درهم، وفائدة بسيطة ' || round((d->>'interest_apr')::numeric * 100, 2)
-          || '% سنويًا من ' || (d->>'due_date') || ' حتى السداد. يمكنك السداد أو الاعتراض من قسم الفواتير في بوابتك.',
+          || '% سنويًا من ' || (d->>'due_date') || ' حتى السداد. ويمكنكم السداد أو الاعتراض من قسم الفواتير في بوابتكم.',
         '{}', 'nonresponse_charge:' || (d->>'subject_id'));
     else
       -- THE CORRECTION MUST REACH WHOEVER GOT THE ORIGINAL: its To and every Cc, not today's address book.
@@ -50116,8 +50132,8 @@ begin
       'Your QuotesDone annual subscription is due',
       'Dear ' || coalesce(v_sup.company_name, 'there') || E',\n\nYour QuotesDone annual supplier subscription of '
         || coalesce(d->>'currency', 'AED') || ' ' || (d->>'fee') || E' is now due.\n\nYou keep paying no commission on the jobs you win — this is the annual subscription only. You can settle it securely on the supplier portal: https://quotesdone.com/suppliers\n\nIf it is not settled, your profile is paused from receiving new customer requests until it is.\n\nThank you for being part of QuotesDone.',
-      'اشتراكك السنوي في QuotesDone مستحق',
-      'اشتراكك السنوي كمورّد بقيمة ' || (d->>'fee') || ' درهم مستحق الآن. يمكنك السداد بأمان من بوابة المورّد.',
+      'اشتراككم السنوي في QuotesDone مستحق',
+      'حان موعد سداد اشتراككم السنوي كمورّد بقيمة ' || (d->>'fee') || ' درهم، ويمكنكم السداد بأمان من بوابة المورّد.',
       '{}', 'subscription_due:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req);
 
@@ -50314,10 +50330,10 @@ begin
         || '. If there is no response by then, our chief executive decides the case and the customer is refunded everything they paid (AED ' || v_amt
         || '). Under the supplier terms that amount is then recovered from your account with an administrative fee of AED 250 and interest at 9% a year until settled, and matching is paused until it is paid.' || E'\n\n'
         || 'If you have already been in touch with this customer, reply here and we will close this off.',
-      'مطلوب إجراء: عميل ينتظر ردّك — QuotesDone',
-      'دفع عميل للكشف عن بيانات التواصل معك في ' || v_when || ' ولم يتلقَّ ردًّا منك بعد مرور ' || v_chase || ' أيام عمل، والعميل في نسخة هذه الرسالة. '
-        || 'بموجب اتفاقية المورّد يجب الرد خلال ' || v_window || ' أيام عمل من الكشف، وإلا يُردّ للعميل كامل ما دفعه (' || v_amt
-        || ' درهم) ويُسترد من حسابك مع رسوم إدارية 250 درهمًا وفائدة 9% سنويًا حتى السداد. إن كنت قد تواصلت مع العميل فردّ على هذه الرسالة.',
+      'إجراء مطلوب: عميل بانتظار ردّكم — QuotesDone',
+      'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم بتاريخ ' || v_when || ' ولم يتلقَّ منكم ردًّا بعد مرور ' || v_chase || ' أيام عمل، والعميل مُدرَج في نسخة هذه الرسالة. '
+        || 'وتُلزم اتفاقية المورّد بالرد خلال ' || v_window || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه (' || v_amt
+        || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا حتى السداد. وإن كنتم قد تواصلتم مع العميل، فيُرجى الرد على هذه الرسالة.',
       array_remove(array[cust.email], null), v_key, v_watch, v_extra);
 
   elsif p_step = 'final_call' then
@@ -50330,10 +50346,10 @@ begin
         || 'If we do not hear from you by ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY')
         || ', the customer is refunded everything they paid (AED ' || v_amt || ') and that amount is recovered from your account with an administrative fee of AED 250 and interest at 9% a year. '
         || 'Reply to this email, message the customer in your portal, or answer us on WhatsApp — any of them stops this.',
-      'النداء الأخير: عميل ما زال ينتظر — QuotesDone',
-      'هذا نداؤنا الأخير بخصوص العميل الذي كشف عن بيانات التواصل معك في ' || v_when || '. انقضت أيام العمل المسموح بها دون ردّ منك. '
-        || 'إن لم نسمع منك حتى ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY') || ' يُردّ للعميل كامل ما دفعه (' || v_amt
-        || ' درهم) ويُسترد من حسابك مع رسوم إدارية 250 درهمًا وفائدة 9% سنويًا. أي ردّ منك عبر البريد أو البوابة أو واتساب يوقف ذلك.',
+      'نداء أخير: عميل لا يزال بانتظار ردّكم — QuotesDone',
+      'هذا نداؤنا الأخير بشأن العميل الذي كشف عن بيانات التواصل معكم بتاريخ ' || v_when || '، وقد انقضت أيام العمل المحددة دون ردّ منكم. '
+        || 'فإن لم يصلنا ردّكم حتى ' || to_char(v_watch at time zone 'Asia/Dubai', 'DD Mon YYYY') || ' فسيُردّ إلى العميل كامل ما دفعه (' || v_amt
+        || ' درهم)، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا. ويكفي أي ردّ منكم عبر البريد الإلكتروني أو البوابة أو واتساب لإيقاف ذلك.',
       array_remove(array[cust.email], null), v_key, v_watch, v_extra);
 
   elsif p_step = 'customer_proof' then
@@ -50342,8 +50358,8 @@ begin
       'Hello ' || coalesce(nullif(btrim(cust.full_name), ''), 'there') || E',\n\n'
         || 'If you tried to reach the supplier yourself, forwarding that email to supplier@mail.quotesdone.com (or replying to it with that address in copy) puts it on your case and can help us close it faster. '
         || 'It is optional: it is never a condition of the refund, and you do not need to do anything for your case to be decided.',
-      'ما أرسلته إلى المورّد يساعد في حالة استردادك',
-      'إن حاولت التواصل مع المورّد بنفسك فإن إعادة توجيه تلك الرسالة إلى supplier@mail.quotesdone.com (أو الرد عليها مع إضافة هذا العنوان في النسخة) يضيفها إلى حالتك وقد يساعدنا على إغلاقها أسرع. هذا اختياري وليس شرطًا للاسترداد، ولا يلزمك أي إجراء ليُقرَّر في حالتك.',
+      'مراسلاتكم مع المورّد تدعم حالة الاسترداد',
+      'إن سبق أن تواصلتم مع المورّد بأنفسكم، فإن إعادة توجيه تلك الرسالة إلى supplier@mail.quotesdone.com (أو الرد عليها مع إضافة هذا العنوان في النسخة) تضمّها إلى حالتكم، وقد تساعدنا على إنهائها أسرع. هذا اختياري وليس شرطًا للاسترداد، ولا يلزمكم أي إجراء ليُبتّ في حالتكم.',
       '{}', v_key, null, v_extra);
   end if;
   raise exception 'no such ladder step %', p_step;
@@ -50536,8 +50552,8 @@ declare
   v_missing text[]; v_items_en text; v_items_ar text; v_ar boolean; v_to text; v_opened text; v_out jsonb;
   v_label jsonb := jsonb_build_object(
     'reg_name',        jsonb_build_array('company name', 'اسم الشركة'),
-    'reg_mobile',      jsonb_build_array('a verified UAE mobile number', 'رقم جوال إماراتي تم التحقق منه'),
-    'reg_email',       jsonb_build_array('a verified e-mail address', 'بريد إلكتروني تم التحقق منه'),
+    'reg_mobile',      jsonb_build_array('a verified UAE mobile number', 'رقم جوال إماراتي موثَّق'),
+    'reg_email',       jsonb_build_array('a verified e-mail address', 'بريد إلكتروني موثَّق'),
     'reg_licence',     jsonb_build_array('trade licence', 'الرخصة التجارية'),
     'reg_profile',     jsonb_build_array('company profile', 'الملف التعريفي للشركة'),
     'reg_terms',       jsonb_build_array('the signed supplier terms', 'الموافقة الموقّعة على شروط المورّد'),
@@ -50579,15 +50595,15 @@ begin
         'type', 'registration_closed', 'requested_by', 'sales_engineer', 'channel', 'email',
         'to_email', v_to, 'to_role', 'supplier', 'lead_id', r.id, 'lang', case when v_ar then 'ar' else 'en' end,
         'dedupe_key', 'registration_closed:' || r.id || ':' || extract(epoch from r.exception_opened_at)::bigint,
-        'subject', case when v_ar then 'تم إغلاق طلب تسجيلكم كمورّد في QuotesDone'
+        'subject', case when v_ar then 'إغلاق طلب تسجيلكم كمورّد في QuotesDone'
                         else 'Your QuotesDone supplier registration has closed' end,
         'body', case when v_ar then
-            'السادة ' || coalesce(r.company_name, 'المورّد') || '،' || chr(10) || chr(10)
-            || 'فُتح طلب تسجيلكم كمورّد بتاريخ ' || v_opened || '، وما زال ينقصه: ' || v_items_ar || '. '
-            || 'أبلغناكم أننا سنبقي الطلب مفتوحًا ' || public.fn_supplier_exception_days() || ' يومًا، وقد انقضت هذه المدة، لذلك أُغلق طلب التسجيل.' || chr(10) || chr(10)
+            'السادة/ ' || coalesce(r.company_name, 'المورّد') || ' المحترمين،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+            || 'فُتح طلب تسجيلكم كمورّد بتاريخ ' || v_opened || '، ولا يزال ينقصه: ' || v_items_ar || '. '
+            || 'أبلغناكم أننا سنبقي الطلب مفتوحًا ' || public.fn_ar_days(public.fn_supplier_exception_days()) || '، وقد انقضت هذه المدة، لذلك أُغلق طلب التسجيل.' || chr(10) || chr(10)
             || 'يمكنكم التسجيل من جديد في أي وقت عبر https://quotesdone.com/portal، ويُفعَّل حسابكم فور اكتمال البنود الستة: '
-            || 'اسم الشركة، ورقم جوال تم التحقق منه، وبريد إلكتروني تم التحقق منه، والرخصة التجارية، والملف التعريفي للشركة، والموافقة الموقّعة على شروط المورّد.' || chr(10) || chr(10)
-            || 'إذا كنتم ترون أن هذا غير صحيح، يُرجى الرد على هذه الرسالة.'
+            || 'اسم الشركة، ورقم جوال موثَّق، وبريد إلكتروني موثَّق، والرخصة التجارية، والملف التعريفي للشركة، والموافقة الموقّعة على شروط المورّد.' || chr(10) || chr(10)
+            || 'وإن رأيتم أن في ذلك خطأً، فيسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10) || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
           else
             'Dear ' || coalesce(r.company_name, 'supplier') || ',' || chr(10) || chr(10)
             || 'Your supplier registration was opened on ' || v_opened || ' and still needs: ' || v_items_en || '. '
@@ -50696,9 +50712,9 @@ begin
     insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body, lang)
     values ('invoice_ready', c.email, 'customer',
             (new.detail->>'inquiry_id')::uuid, (new.detail->>'quote_id')::uuid,
-            case when v_ar then 'فاتورتك جاهزة' else 'Your invoice is ready' end,
+            case when v_ar then 'فاتورتكم جاهزة' else 'Your invoice is ready' end,
             case when v_ar
-              then 'فاتورة رسوم الكشف التي دفعتها أصبحت في حسابك على QuotesDone. افتحها في أي وقت من زر «الفاتورة» على العرض الذي كشفته، أو من «المستندات» ضمن «الفواتير».'
+              then 'أصبحت فاتورة رسوم الكشف التي سددتموها متاحة في حسابكم على QuotesDone، ويمكنكم فتحها في أي وقت من زر «الفاتورة» على العرض الذي كشفتموه، أو من «المستندات» ضمن «الفواتير».'
               else 'The invoice for the reveal fee you paid is now in your QuotesDone account. Open it any time from the "Invoice (PDF)" button on the quote you revealed, or under Invoices in Documents.'
             end,
             case when v_ar then 'ar' else 'en' end);
@@ -50849,9 +50865,9 @@ begin
     v_body_en := 'Dear ' || coalesce(v_sup.company_name, 'there') || E',\n\nYour annual QuotesDone supplier subscription is paid until '
       || (d->>'paid_until') || '. The renewal of ' || coalesce(d->>'currency', 'AED') || ' ' || (d->>'fee')
       || ' falls due on ' || (d->>'renews_on') || E'.\n\nYou can renew from the Billing section of your supplier portal: https://quotesdone.com/suppliers. Stripe issues the invoice for the payment.\n\nYou keep paying no commission on the jobs you win.';
-    v_sub_ar := 'يتجدد اشتراكك كمورّد في QuotesDone في ' || (d->>'renews_on');
-    v_body_ar := 'اشتراكك السنوي مدفوع حتى ' || (d->>'paid_until') || '، ويستحق التجديد بقيمة ' || (d->>'fee')
-      || ' درهم في ' || (d->>'renews_on') || '. يمكنك التجديد من قسم الفواتير في بوابة المورّد.';
+    v_sub_ar := 'موعد تجديد اشتراككم كمورّد في QuotesDone: ' || (d->>'renews_on');
+    v_body_ar := 'اشتراككم السنوي مدفوع حتى ' || (d->>'paid_until') || '، ويستحق التجديد بقيمة ' || (d->>'fee')
+      || ' درهم في ' || (d->>'renews_on') || '. ويمكنكم التجديد من قسم الفواتير في بوابة المورّد.';
     v_msg := 'subscription_renewal_reminder';
   elsif v_notice = 'subscription_dunning' then
     v_sub_en := 'Reminder ' || (d->>'dunning_no') || ': your QuotesDone subscription is unpaid';
@@ -50859,16 +50875,16 @@ begin
       || coalesce(d->>'currency', 'AED') || ' ' || (d->>'fee') || ' fell due on ' || (d->>'due_on') || ' and is still unpaid ('
       || (d->>'days_overdue') || E' days).\n\nPlease settle it from the Billing section of your supplier portal: https://quotesdone.com/suppliers. '
       || E'Until it is settled your profile does not receive new customer requests.\n\nIf you have already paid, reply to this email and we will check it against the payment record.';
-    v_sub_ar := 'تذكير ' || (d->>'dunning_no') || ': اشتراكك في QuotesDone غير مدفوع';
-    v_body_ar := 'استحق اشتراكك السنوي كمورّد بقيمة ' || (d->>'fee') || ' درهم في ' || (d->>'due_on') || ' ولم يُسدَّد بعد ('
-      || (d->>'days_overdue') || ' يومًا). يُرجى السداد من قسم الفواتير في بوابة المورّد، وحتى السداد لا يتلقى ملفك طلبات جديدة.';
+    v_sub_ar := 'تذكير ' || (d->>'dunning_no') || ': اشتراككم في QuotesDone لم يُسدَّد بعد';
+    v_body_ar := 'استحق اشتراككم السنوي كمورّد بقيمة ' || (d->>'fee') || ' درهم في ' || (d->>'due_on') || ' ولم يُسدَّد بعد ('
+      || public.fn_ar_days((d->>'days_overdue')::int) || '). يُرجى السداد من قسم الفواتير في بوابة المورّد، علمًا بأن ملفكم لن يتلقى طلبات جديدة حتى السداد.';
     v_msg := 'subscription_dunning';
   elsif v_notice = 'subscription_payment_failed' then
     v_sub_en := 'Your QuotesDone subscription payment did not go through';
     v_body_en := 'Dear ' || coalesce(v_sup.company_name, 'there') || E',\n\nYour payment for the annual supplier subscription did not complete, and nothing was charged. '
       || E'You can try again at any time from the Billing section of your supplier portal: https://quotesdone.com/suppliers. If the card was declined, your bank can tell you why, and a different card also works.';
-    v_sub_ar := 'لم تكتمل عملية دفع اشتراكك في QuotesDone';
-    v_body_ar := 'لم تكتمل عملية دفع الاشتراك السنوي ولم يُخصم أي مبلغ. يمكنك المحاولة مجددًا من قسم الفواتير في بوابة المورّد.';
+    v_sub_ar := 'لم يكتمل دفع اشتراككم في QuotesDone';
+    v_body_ar := 'تعذّر إتمام دفع الاشتراك السنوي، ولم يُخصم أي مبلغ. يمكنكم إعادة المحاولة من قسم الفواتير في بوابة المورّد.';
     v_msg := 'subscription_payment_failed';
   else
     raise exception 'fn_sales_engineer_writes_money_notice: no words for notice %', v_notice;
@@ -52820,61 +52836,61 @@ AS $function$
   ),
   gaps as (
     select g.* from (
-      select 'trade_licence' as key, 'Upload your trade licence' as action, 'ارفع رخصتك التجارية' as action_ar,
+      select 'trade_licence' as key, 'Upload your trade licence' as action, 'ارفع الرخصة التجارية' as action_ar,
              'You cannot be matched to any opportunity without a current trade licence.' as why,
-             'لا يمكن مطابقتك مع أي فرصة بدون رخصة تجارية سارية.' as why_ar,
+             'لا يمكن مطابقتكم مع أي فرصة دون رخصة تجارية سارية.' as why_ar,
              'high' as severity, 'documents' as goes_to, 1 as sort
       where (select path from home where key = 'trade_licence') is null
       union all
-      select 'licence_expired', 'Replace your expired trade licence', 'استبدل رخصتك التجارية المنتهية',
+      select 'licence_expired', 'Replace your expired trade licence', 'استبدل الرخصة التجارية المنتهية',
              'Your trade licence expired on ' || to_char(l.license_expiry, 'DD Mon YYYY') || '.',
-             'انتهت رخصتك التجارية في ' || to_char(l.license_expiry, 'DD Mon YYYY') || '.',
+             'انتهت صلاحية رخصتكم التجارية في ' || to_char(l.license_expiry, 'DD Mon YYYY') || '.',
              'high', 'documents', 2
       from l where (select path from home where key = 'trade_licence') is not null
                 and l.license_expiry is not null and l.license_expiry < current_date
       union all
       select 'iso_certificate', 'Upload an ISO certificate', 'ارفع شهادة ISO',
              'Buyers filter on ISO 9001 and 14001. Adding one opens the projects that require it.',
-             'يرشّح المشترون على ISO 9001 و14001. إضافتها تفتح المشاريع التي تشترطها.',
+             'يفرز العملاء المورّدين بحسب شهادتي ISO 9001 و14001، وإضافتها تتيح لكم المشاريع التي تشترطها.',
              'medium', 'documents', 3
       where (select path from home where key = 'iso') is null
       union all
       select 'iso_expired', 'Renew your ISO certificate', 'جدّد شهادة ISO',
              'Your ISO certificate expired on ' || to_char((select expiry from home where key = 'iso'), 'DD Mon YYYY') || '.',
-             'انتهت شهادة ISO في ' || to_char((select expiry from home where key = 'iso'), 'DD Mon YYYY') || '.',
+             'انتهت صلاحية شهادة ISO في ' || to_char((select expiry from home where key = 'iso'), 'DD Mon YYYY') || '.',
              'high', 'documents', 4
       where (select expiry from home where key = 'iso') < current_date
       union all
       select 'not_verified', 'Complete verification', 'أكمل التحقق',
              'Unverified suppliers are excluded from matching entirely.',
-             'المورّدون غير المتحقَّق منهم مستبعدون من المطابقة كليًا.',
+             'لا يدخل المطابقة إلا المورّدون الموثَّقون.',
              'high', 'profile', 5
       from l where not coalesce(l.verified, false)
       union all
       -- The gate matching actually opens on (fn_match_capability: confirmed_at), pointed at the tab
       -- where it is confirmed. This replaced a "capability summary" gap that named a machine-filled
       -- column the supplier has no field for (audit 21 Sep 2026, finding 20).
-      select 'services_unconfirmed', 'Confirm your services', 'أكّد خدماتك',
+      select 'services_unconfirmed', 'Confirm your services', 'أكّد الخدمات المقدَّمة',
              'Requests are matched on the services you confirm. Nothing reaches you until they are confirmed.',
-             'تُطابَق الطلبات على الخدمات التي تؤكّدها. لا يصلك شيء قبل تأكيدها.',
+             'تُطابَق الطلبات مع الخدمات التي تؤكّدونها، ولن يصلكم أي طلب قبل تأكيدها.',
              'high', 'services', 6
       where (select confirmed_at from cap) is null
       union all
       select 'no_products', 'Upload a product catalogue', 'ارفع كتالوج المنتجات',
              'Your catalogue is what buyers search. Without it you compete on company name alone.',
-             'الكتالوج هو ما يبحث فيه المشترون. بدونه تنافس باسم الشركة فقط.',
+             'يبحث العملاء في الكتالوج، ومن دونه تنافسون باسم الشركة وحده.',
              'medium', 'products', 7
       from l where not exists (select 1 from public.supplier_product sp where sp.supplier_id = l.id)
       union all
-      select 'no_service_area', 'Set the emirates you serve', 'حدّد الإمارات التي تخدمها',
+      select 'no_service_area', 'Set the emirates you serve', 'حدّد الإمارات التي تغطيها',
              'Opportunities are filtered by location before anything else is considered.',
-             'تُرشَّح الفرص حسب الموقع قبل أي اعتبار آخر.',
+             'تُفرز الفرص بحسب الموقع قبل أي اعتبار آخر.',
              'medium', 'profile', 8
       from l where coalesce(array_length(l.service_emirates, 1), 0) = 0
       union all
-      select 'slow_response', 'Improve your response time', 'حسّن سرعة استجابتك',
+      select 'slow_response', 'Improve your response time', 'حسّن سرعة الاستجابة',
              'Your response rate is ' || round((select rate from rr))::text || '%. Buyers see it, and it is 55% of your reliability score.',
-             'معدل استجابتك ' || round((select rate from rr))::text || '%. يراه المشترون، وهو 55% من تقييم موثوقيتك.',
+             'معدل استجابتكم ' || round((select rate from rr))::text || '%، وهو ظاهر للعملاء ويشكّل 55% من تقييم موثوقيتكم.',
              'medium', 'twin', 9
       where (select rate from rr) is not null and (select rate from rr) < 60
     ) g
@@ -52923,15 +52939,15 @@ AS $function$
     'headline_ar', (
       select case
         when (select count(*) from gaps) = 0
-          then 'ملفك مكتمل. أنت مؤهّل لكل فرصة يمكننا مطابقتها.'
+          then 'ملفكم مكتمل، وأنتم مؤهَّلون لكل فرصة يمكننا مطابقتها.'
         when (select n from live_inq) = 0
-          then 'لديك ' || (select count(*) from gaps)::text
-               || ' ثغرة (ثغرات) تمنع مطابقتك أصلًا. ابدأ بـ: '
+          then 'عدد النواقص التي تحول دون مطابقتكم: ' || (select count(*) from gaps)::text
+               || '. الخطوة الأولى: '
                || (select g.action_ar from gaps g order by g.sort limit 1)
-               || '. لا توجد فرص حية الآن، فهناك وقت لمعالجتها.'
-        else 'يمكن لملفك التأهّل لـ ' || (select n from live_inq)::text
-             || ' فرصة إضافية إذا أغلقت ' || (select count(*) from gaps)::text
-             || ' ثغرة (ثغرات)، بدءًا بـ: ' || (select g.action_ar from gaps g order by g.sort limit 1) || '.'
+               || '. لا توجد فرص مفتوحة حاليًا، فأمامكم متسع من الوقت لاستكمالها.'
+        else 'يمكن أن يتأهّل ملفكم لعدد ' || (select n from live_inq)::text
+             || ' من الفرص الإضافية إذا استكملتم النواقص (' || (select count(*) from gaps)::text
+             || '). الخطوة الأولى: ' || (select g.action_ar from gaps g order by g.sort limit 1) || '.'
       end
     )
   );
@@ -53086,11 +53102,11 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_certifications(p_lead_id bigint)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   with docs(key, label, label_ar, impact, impact_why, impact_why_ar) as (values
-      ('trade_licence',     'Trade licence',              'الرخصة التجارية',           'critical', 'Approval is impossible without it — the licence gate refuses every profile that has none.', 'لا يمكن اعتماد الحساب بدونها — بوابة الرخصة ترفض كل ملف لا يحملها.'),
-      ('insurance',         'Insurance',                  'التأمين',                   'high',     'Many customers will not award work to an uninsured supplier.', 'كثير من العملاء لا يرسون العمل على مورّد غير مؤمَّن.'),
-      ('iso',               'ISO certification',          'شهادة ISO',                 'medium',   'Strengthens your capability score and unlocks quality-gated requests.', 'تقوّي تقييم قدراتك وتفتح الطلبات المشروطة بالجودة.'),
-      ('manufacturer_auth', 'Manufacturer authorisation', 'تفويض الشركة المصنّعة',     'medium',   'Proves you are authorised for the brands you carry.', 'تثبت أنك معتمد للعلامات التجارية التي تورّدها.'),
-      ('establishment',     'Establishment card (EGR)',   'بطاقة المنشأة (EGR)',       'low',      'Administrative record. Does not gate work.', 'سجل إداري. لا يؤثر في استلام الأعمال.')
+      ('trade_licence',     'Trade licence',              'الرخصة التجارية',           'critical', 'Approval is impossible without it — the licence gate refuses every profile that has none.', 'لا يُعتمد أي حساب من دونها، ويُرفض كل ملف لا يتضمنها.'),
+      ('insurance',         'Insurance',                  'التأمين',                   'high',     'Many customers will not award work to an uninsured supplier.', 'كثير من العملاء لا يُرسون الأعمال على مورّد غير مؤمَّن عليه.'),
+      ('iso',               'ISO certification',          'شهادة ISO',                 'medium',   'Strengthens your capability score and unlocks quality-gated requests.', 'تعزّز تقييم قدراتكم وتتيح لكم الطلبات المشروطة بمعايير الجودة.'),
+      ('manufacturer_auth', 'Manufacturer authorisation', 'تفويض الشركة المصنّعة',     'medium',   'Proves you are authorised for the brands you carry.', 'تُثبت اعتمادكم لدى العلامات التجارية التي تورّدونها.'),
+      ('establishment',     'Establishment card (EGR)',   'بطاقة المنشأة (EGR)',       'low',      'Administrative record. Does not gate work.', 'مستند إداري لا يؤثر في استلام الأعمال.')
   ),
   held as (
     select d.*, h.path, h.expiry, h.source
@@ -53115,7 +53131,7 @@ AS $function$
       order by case h.impact when 'critical' then 0 when 'high' then 1 when 'medium' then 2 else 3 end, h.label)
       from held h), '[]'::jsonb),
     'impact_basis', 'impact_level is a stated QuotesDone policy about what each document gates — not a number derived from your history',
-    'impact_basis_ar', 'مستوى الأثر سياسة معلنة لدى QuotesDone عمّا يفتحه كل مستند — وليس رقمًا مشتقًا من سجلك',
+    'impact_basis_ar', 'يعكس مستوى الأثر سياسة QuotesDone المعلنة بشأن ما يتيحه كل مستند، وليس رقمًا مستخلصًا من سجلكم',
     'summary', jsonb_build_object(
       'held', (select count(*) from held where path is not null),
       'total', (select count(*) from held),
@@ -53209,13 +53225,14 @@ We look forward to working with you.
 With thanks,
 QuotesDone sales engineer$en$,
     'مرحبًا بعودتكم إلى QuotesDone',
-    $ar$عزيزنا {company}،
+    $ar$السادة/ {company} المحترمين،
+تحية طيبة وبعد،
 
-شكرًا لحديثكم معنا. استأنفنا إرسال الطلبات الجديدة إلى شركتكم، وستبدأ طلبات المطابقة بالوصول إليكم مجددًا. وعندما يحتاج أي عرض إلى تفاصيل إضافية، يمكنكم إكمالها من بوابة المورّدين خلال دقائق.
+نشكركم على تواصلكم معنا. وقد استأنفنا إرسال الطلبات الجديدة إلى شركتكم، وستصلكم الطلبات المطابقة مجددًا. وعندما يحتاج أي عرض إلى تفاصيل إضافية، يمكنكم استكمالها من بوابة المورّدين خلال دقائق.
 
 نتطلع إلى العمل معكم.
 
-مع خالص الشكر،
+وتفضلوا بقبول فائق الاحترام والتقدير،
 مهندس المبيعات في QuotesDone$ar$);
   return jsonb_build_object('ok', true, 'lead_id', p_lead, 'founder_instruction', p_founder_instruction, 'consecutive_ignored', v_n);
 end $function$
@@ -53256,18 +53273,19 @@ To keep matching fair for customers, if a third consecutive quotation is still o
 
 With thanks,
 QuotesDone sales engineer$en$,
-      'ملاحظة حول عروضك الأخيرة على QuotesDone',
-      $ar$عزيزنا {company}،
+      'ملاحظة بشأن عروضكم الأخيرة على QuotesDone',
+      $ar$السادة/ {company} المحترمين،
+تحية طيبة وبعد،
 
-شكرًا لتقديمك عروض الأسعار عبر QuotesDone، ونقدّر الوقت الذي تخصصه لكل طلب.
+نشكركم على تقديم عروض الأسعار عبر QuotesDone، ونقدّر الوقت الذي تخصصونه لكل طلب.
 
-في آخر طلبين، عُلّق عرضك لأن بعض التفاصيل التي يحتاجها العميل ليقارن العروض بإنصاف كانت ناقصة (مثل مواصفات المواد الدقيقة أو تاريخ التسليم أو التركيب أو الضمان)، واتخذ العميل قراره قبل وصول هذه التفاصيل. التفاصيل الكاملة تساعد العملاء على الاختيار بثقة، وتمنح عرضك أفضل فرصة للفوز.
+في آخر طلبين، عُلّق عرضكم لنقص بعض التفاصيل التي يحتاجها العميل ليقارن العروض بإنصاف (مثل المواصفات الدقيقة للمواد أو موعد التسليم أو التركيب أو الضمان)، واتخذ العميل قراره قبل وصول هذه التفاصيل. فاكتمال التفاصيل يساعد العملاء على الاختيار بثقة، ويمنح عرضكم أفضل فرصة للفوز.
 
-عندما يُعلَّق أي عرض، يمكنك إكمال التفاصيل الناقصة مباشرة من بوابة المورّدين (ونُعدّ لك العرض بالصيغة الموحّدة لتعتمده)، أو رفع عرض معدّل. لا يستغرق ذلك سوى دقائق.
+وعند تعليق أي عرض، يمكنكم استكمال التفاصيل الناقصة مباشرة من بوابة المورّدين (ونُعدّ لكم العرض بالصيغة الموحّدة لاعتماده)، أو رفع عرض معدّل، ولا يستغرق ذلك سوى دقائق.
 
-وحرصًا على عدالة المطابقة للعملاء، إذا بقي عرض ثالث على التوالي معلّقًا عند اتخاذ العميل قراره، سنوقف إرسال الطلبات الجديدة إلى شركتكم مؤقتًا إلى أن نتحدث معكم. نحن نفضّل كثيرًا أن نستمر في العمل معًا، فلا تتردد في التواصل معنا إن كان هناك ما يصعّب عليك الرد.
+وحرصًا على عدالة المطابقة للعملاء، إذا بقي عرض ثالث على التوالي معلّقًا عند اتخاذ العميل قراره، فسنوقف مؤقتًا إرسال الطلبات الجديدة إلى شركتكم إلى حين التحدث معكم. ونحرص كثيرًا على استمرار تعاوننا، فلا تترددوا في التواصل معنا إن كان هناك ما يصعّب عليكم الرد.
 
-مع خالص الشكر،
+وتفضلوا بقبول فائق الاحترام والتقدير،
 مهندس المبيعات في QuotesDone$ar$,
       p_inquiry, p_quote);
     update public.supplier_collaboration set warned_at = now(), updated_at = now() where lead_id = p_lead;
@@ -53293,14 +53311,15 @@ Our team will be in touch to understand what happened and how we can make respon
 
 With thanks,
 QuotesDone sales engineer$en$,
-        'تم إيقاف إرسال الطلبات الجديدة إلى شركتكم مؤقتًا على QuotesDone',
-        $ar$عزيزنا {company}،
+        'إيقاف مؤقت لإرسال الطلبات الجديدة إلى شركتكم على QuotesDone',
+        $ar$السادة/ {company} المحترمين،
+تحية طيبة وبعد،
 
-شكرًا لوقتك على QuotesDone. في آخر ثلاثة طلبات متتالية، كان عرضك لا يزال معلّقًا بسبب تفاصيل ناقصة عندما اتخذ العميل قراره، ولذلك، كما ذكرنا في رسالتنا السابقة، أوقفنا إرسال الطلبات الجديدة إلى شركتكم في الوقت الحالي. لا يتأثر حسابك ولا عروضك الحالية ولا الأعمال التي كُشف عنها.
+نشكركم على وقتكم في QuotesDone. في آخر ثلاثة طلبات متتالية، كان عرضكم لا يزال معلّقًا لنقص في التفاصيل عندما اتخذ العميل قراره؛ لذلك، وكما أشرنا في رسالتنا السابقة، أوقفنا مؤقتًا إرسال الطلبات الجديدة إلى شركتكم. ولا يتأثر بذلك حسابكم ولا عروضكم الحالية ولا الأعمال التي كُشف عنها.
 
-سيتواصل معكم فريقنا لفهم ما حدث وكيف يمكننا تسهيل الرد، ويسعدنا أن تردّ على هذه الرسالة في أي وقت.
+سيتواصل معكم فريقنا للوقوف على ما حدث وبحث سبل تيسير ردّكم على الطلبات، ويسعدنا أن تردّوا على هذه الرسالة في أي وقت.
 
-مع خالص الشكر،
+وتفضلوا بقبول فائق الاحترام والتقدير،
 مهندس المبيعات في QuotesDone$ar$,
         p_inquiry, p_quote);
       insert into public.supplier_collaboration_event (lead_id, kind, inquiry_id, quote_id, hold_id, consecutive_after, actor, detail)
@@ -53968,7 +53987,7 @@ begin
   v_ar := public.fn_registered_locale('supplier', null, p_lead) = 'ar';
   v_subject := case when v_ar then p_subject_ar else p_subject_en end;
   v_body := replace(case when v_ar then p_body_ar else p_body_en end, '{company}',
-                    coalesce(nullif(btrim(l.company_name), ''), case when v_ar then 'شريكنا' else 'partner' end));
+                    coalesce(nullif(btrim(l.company_name), ''), case when v_ar then 'الشركاء' else 'partner' end));
   if l.mail is not null then
     insert into public.notifications (type, kind, to_email, to_role, lead_id, inquiry_id, quote_id, channel, subject, body, status, requested_by, sender, lang)
     values (p_type, 'sales_engineer_' || p_type, l.mail, 'supplier', p_lead, p_inquiry, p_quote, 'email', v_subject, v_body, 'queued', 'sales_engineer', 'customer_support',
@@ -55231,13 +55250,13 @@ AS $function$
                   then 'quotes won and quality rating, from your quotes and reviews on QuotesDone'
                   else 'no quote has been submitted yet, so there is nothing to rank — this is not a low score' end,
     'basis_ar', case when (select active from a)
-                  then 'الأعمال الفائزة وتقييم الجودة، من عروضك وتقييماتك على QuotesDone'
-                  else 'لم يُقدَّم أي عرض سعر بعد، فلا يوجد ما يُصنَّف — هذه ليست درجة منخفضة' end,
+                  then 'الأعمال التي فزتم بها وتقييم الجودة، استنادًا إلى عروضكم وتقييماتكم على QuotesDone'
+                  else 'لم تُقدَّم أي عروض أسعار بعد، فلا يوجد ما يُصنَّف، وهذا لا يعني تقييمًا منخفضًا' end,
     'ladder', jsonb_build_array(
-      jsonb_build_object('tier','bronze',  'needs','submit your first quote',                              'needs_ar','قدّم عرض السعر الأول'),
-      jsonb_build_object('tier','silver',  'needs','win 1 job',                                            'needs_ar','افز بعمل واحد'),
-      jsonb_build_object('tier','gold',    'needs','win 5 jobs and hold a 70% quality rating',             'needs_ar','افز بخمسة أعمال وحافظ على تقييم جودة 70%'),
-      jsonb_build_object('tier','platinum','needs','win 10 jobs and hold an 85% quality rating',           'needs_ar','افز بعشرة أعمال وحافظ على تقييم جودة 85%')
+      jsonb_build_object('tier','bronze',  'needs','submit your first quote',                              'needs_ar','قدّم أول عرض سعر'),
+      jsonb_build_object('tier','silver',  'needs','win 1 job',                                            'needs_ar','فُز بعمل واحد'),
+      jsonb_build_object('tier','gold',    'needs','win 5 jobs and hold a 70% quality rating',             'needs_ar','فُز بخمسة أعمال مع الحفاظ على تقييم جودة 70%'),
+      jsonb_build_object('tier','platinum','needs','win 10 jobs and hold an 85% quality rating',           'needs_ar','فُز بعشرة أعمال مع الحفاظ على تقييم جودة 85%')
     ),
     'progress', jsonb_build_object(
       'quotes_submitted', (select submitted from s),
@@ -55251,9 +55270,9 @@ AS $function$
     'benefits_note', 'Your tier never affects which work you are matched to, how you rank in search, '
       || 'or whether you are shown as preferred. Every supplier is matched on fit alone. '
       || 'This is a record of your track record, not a queue position.',
-    'benefits_note_ar', 'تصنيفك لا يؤثر أبدًا على الأعمال التي تُطابَق معها، ولا على ترتيبك في البحث، '
-      || 'ولا على عرضك كمورّد مفضّل. كل مورّد يُطابَق على أساس الملاءمة وحدها. '
-      || 'هذا سجل لأدائك، لا موقع في طابور.'
+    'benefits_note_ar', 'لا يؤثر تصنيفكم إطلاقًا في الأعمال التي تُطابَقون معها، ولا في ترتيبكم في نتائج البحث، '
+      || 'ولا في إبرازكم مورّدًا مفضّلًا؛ فكل مورّد يُطابَق وفق مدى الملاءمة وحدها. '
+      || 'إنه سجلّ لأدائكم، لا ترتيب في طابور.'
   );
 $function$
 
@@ -56086,8 +56105,8 @@ begin
       || 'recorded your question exactly as you asked it so it gets answered properly. If you need '
       || 'it now, call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email '
       || 'management@quotesdone.com.',
-    'reply_ar', 'ليس لدي إجابة موثقة على ذلك حتى الآن، ولن أخمّن. لقد سجّلت سؤالك كما كتبته '
-      || 'تماماً ليتم الرد عليه بشكل صحيح. وإذا كنت بحاجة إليه الآن، يمكنك الاتصال أو المراسلة عبر '
+    'reply_ar', 'لا تتوفر لديّ إجابة موثّقة عن ذلك حتى الآن، ولا أودّ التخمين. سجّلتُ سؤالكم كما كتبتموه '
+      || 'تمامًا ليُجاب عنه إجابة دقيقة. وإن احتجتم إلى الإجابة الآن، يمكنكم الاتصال أو المراسلة عبر '
       || 'واتساب:' || E'\n' || '+971 50 931 9355' || E'\n' || 'أو البريد الإلكتروني:' || E'\n'
       || 'management@quotesdone.com');
 end
@@ -58125,9 +58144,9 @@ CREATE OR REPLACE FUNCTION public.fn_text_did_not_survive_reply(p_lang text)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select case when lower(coalesce(p_lang, 'en')) = 'ar' then
-      'وصلتني رسالتك وقد تحوّلت حروفها إلى علامات استفهام، ولا أستطيع قراءة ما سألت عنه. '
-      || 'لا يوجد خطأ في سؤالك — النص لم يصل سليمًا عبر الاتصال. يرجى إرسال رسالتك مرة أخرى. '
-      || 'وإذا تكرر ذلك، يمكنك الاتصال أو المراسلة عبر واتساب:' || E'\n'
+      'وصلتني رسالتكم وقد تحوّلت حروفها إلى علامات استفهام، فتعذّرت عليّ قراءة سؤالكم. '
+      || 'لا خطأ في سؤالكم، وإنما لم يصل النص سليمًا عبر الاتصال. يُرجى إعادة إرسال الرسالة. '
+      || 'وإن تكرر ذلك، يمكنكم الاتصال أو المراسلة عبر واتساب:' || E'\n'
       || E'‎' || '+971 50 931 9355' || E'\n'
       || '(من الأحد إلى الخميس، من 9 صباحًا حتى 6 مساءً بتوقيت الإمارات)' || E'\n'
       || 'أو البريد الإلكتروني:' || E'\n' || 'management@quotesdone.com'

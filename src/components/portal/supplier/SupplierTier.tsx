@@ -55,11 +55,11 @@ const T = {
     benefits: 'What your tier does', notYet: 'It does not affect your matches.',
   },
   ar: {
-    title: 'درجة المورّد والتصنيف', loading: 'جارٍ قراءة درجتك…',
-    yourTier: 'تصنيفك', unranked: 'غير مصنّف', ladder: 'السلّم',
-    progress: 'تقدّمك', submitted: 'عروض مقدَّمة', won: 'أعمال فائزة',
+    title: 'درجة المورّد والتصنيف', loading: 'جارٍ قراءة درجتكم…',
+    yourTier: 'تصنيفكم', unranked: 'غير مصنّف', ladder: 'السلّم',
+    progress: 'تقدّمكم', submitted: 'عروض مقدَّمة', won: 'أعمال فائزة',
     quality: 'تقييم الجودة', response: 'معدل الاستجابة', notRated: 'لم يُقيَّم بعد',
-    benefits: 'ماذا يفعل تصنيفك', notYet: 'لا يؤثر على مطابقاتك.',
+    benefits: 'أثر تصنيفكم', notYet: 'لا يؤثر في مطابقاتكم.',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);

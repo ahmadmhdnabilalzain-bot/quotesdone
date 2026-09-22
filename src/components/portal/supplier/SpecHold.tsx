@@ -35,15 +35,15 @@ const COPY = {
     errs: { vague: 'State the exact value', not_a_number: 'Enter a number', not_concrete: 'State a date or a number of days, weeks or months', choose_yes_or_no: 'Choose yes or no', unknown_attribute: 'Not asked for this line', too_long: 'Too long' } as Record<string, string>,
   },
   ar: {
-    held: 'معلّق — يحتاج مهندس المبيعات في QuotesDone إلى هذه التفاصيل الدقيقة قبل أن يصل هذا العرض إلى العميل:',
-    line: (n: number) => `البند ${n}`, fill: 'أكمل التفاصيل الناقصة', resubmit: 'ارفع عرضًا معدّلًا', cancel: 'إغلاق',
-    save: 'احفظ وأعد إعداد عرضي', saving: 'جارٍ الحفظ…', yes: 'نعم', no: 'لا', choose: 'اختر…',
-    still: 'حُفظ. ما زالت هذه التفاصيل ناقصة:', regenerated: 'أُعيد إعداد عرضك. راجعه أدناه وأكّد أنه صحيح.',
-    review: 'عرضك بعد إعادة الإعداد — راجع كل بند', total: 'الإجمالي غير شامل الضريبة', pdf: 'افتح العرض المُعاد إعداده (PDF)',
-    confirm: 'أؤكد أن هذا العرض المُعاد إعداده صحيح.', approve: 'اعتمده وأرسله إلى العميل', approving: 'جارٍ الإرسال…', change: 'عدّل تفصيلًا',
-    released: 'تم الاعتماد. أُرسل عرضك إلى العميل.', releasedWaiting: 'تم الاعتماد وأُلغي التعليق؛ ما زال العرض يحتاج شروطه التجارية قبل إرساله.',
+    held: 'العرض معلّق — يحتاج مهندس المبيعات في QuotesDone إلى التفاصيل الدقيقة التالية قبل إرسال العرض إلى العميل:',
+    line: (n: number) => `البند ${n}`, fill: 'إكمال التفاصيل الناقصة', resubmit: 'رفع عرض معدّل', cancel: 'إغلاق',
+    save: 'حفظ وإعادة إعداد العرض', saving: 'جارٍ الحفظ…', yes: 'نعم', no: 'لا', choose: 'يُرجى الاختيار…',
+    still: 'تم الحفظ، وما زالت التفاصيل التالية ناقصة:', regenerated: 'أُعيد إعداد عرضكم. يُرجى مراجعته أدناه وتأكيد صحته.',
+    review: 'عرضكم بعد إعادة الإعداد — يُرجى مراجعة كل بند', total: 'الإجمالي غير شامل الضريبة', pdf: 'فتح العرض المُعاد إعداده (PDF)',
+    confirm: 'أؤكد أن هذا العرض المُعاد إعداده صحيح.', approve: 'اعتماد العرض وإرساله إلى العميل', approving: 'جارٍ الإرسال…', change: 'تعديل أحد التفاصيل',
+    released: 'تم الاعتماد، وأُرسل عرضكم إلى العميل.', releasedWaiting: 'تم الاعتماد ورُفع التعليق، غير أن العرض ما زال بحاجة إلى شروطه التجارية قبل إرساله.',
     loading: 'جارٍ التحميل…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.', terms: 'شروط العرض', ex: 'مثال:',
-    errs: { vague: 'اذكر القيمة الدقيقة', not_a_number: 'أدخل رقمًا', not_concrete: 'اذكر تاريخًا أو عددًا من الأيام أو الأسابيع أو الأشهر', choose_yes_or_no: 'اختر نعم أو لا', unknown_attribute: 'غير مطلوب لهذا البند', too_long: 'طويل جدًا' } as Record<string, string>,
+    errs: { vague: 'يُرجى ذكر القيمة الدقيقة', not_a_number: 'يُرجى إدخال رقم', not_concrete: 'يُرجى ذكر تاريخ أو عدد من الأيام أو الأسابيع أو الأشهر', choose_yes_or_no: 'يُرجى اختيار نعم أو لا', unknown_attribute: 'غير مطلوب لهذا البند', too_long: 'طويل جدًا' } as Record<string, string>,
   },
 };
 type Field = { attr: string; label_en: string; label_ar: string; type: string; unit?: string | null; unit_ar?: string | null; options?: string[] | null; missing?: boolean; value?: string | null };

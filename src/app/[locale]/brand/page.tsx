@@ -76,8 +76,8 @@ const RADII: [string, string, string][] = [['chip', '6', 'rounded-chip'], ['btn'
 const AR_SCALE: [string, string, string][] = [
   ['عرض كبير', 'text-display-xl', 'clamp(40–96) / 1.22 / 700 / 0'],
   ['عرض', 'text-display', 'clamp(36–74) / 1.25 / 700 / 0'],
-  ['عنوان ٢', 'text-h2', 'clamp(26–42) / 1.35 / 700 / 0'],
-  ['عنوان ٣', 'text-h3', '21 / 1.5 / 600'],
+  ['عنوان 2', 'text-h2', 'clamp(26–42) / 1.35 / 700 / 0'],
+  ['عنوان 3', 'text-h3', '21 / 1.5 / 600'],
   ['مقدمة', 'text-lead', '18 / 1.8 / 400'],
   ['نص', 'text-copy', '15 / 1.85 / 400'],
 ];
@@ -166,13 +166,13 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
               </div>
             </div>
             <div lang="ar" dir="rtl" className="qd-panel p-6 md:p-8">
-              <div className="flex items-center justify-between"><Kicker>العربية · ريدكس برو</Kicker><Spec k="" v="160–700" /></div>
+              <div className="flex items-center justify-between"><Kicker>العربية · Readex Pro</Kicker><Spec k="" v="160–700" /></div>
               <div className="mt-8 flex flex-col divide-y divide-[var(--line)]">
                 {AR_SCALE.map(([name, cls, spec]) => (
                   <div key={name} className="grid gap-2 py-5 md:grid-cols-[140px_1fr] md:items-baseline">
                     <div className="flex flex-col"><span className="text-small text-white">{name}</span><span dir="ltr" className="text-end"><Spec k="" v={spec} /></span></div>
                     <div className={`${cls} min-w-0 text-balance font-head text-white`}>
-                      {cls.startsWith('text-display') || cls === 'text-h2' ? 'كل عرض مختوم.' : 'صف عملك مرة واحدة، ويقدّم الموردون المرخّصون عروضهم دون أن يعرفوك.'}
+                      {cls.startsWith('text-display') || cls === 'text-h2' ? 'كل عرض مختوم.' : 'صِف عملك مرة واحدة، ويقدّم الموردون المرخّصون عروضهم دون أن يعرفوا هويتك.'}
                     </div>
                   </div>
                 ))}
