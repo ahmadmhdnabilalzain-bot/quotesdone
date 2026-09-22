@@ -40,7 +40,7 @@
 -- ══ PREVENTED BY ════════════════════════════════════════════════════════════════════════════
 --
 -- scripts/sql/the_backup_check_answers_inside_its_budget_probe.sql: runs fn_it_backup_check with a
--- realistic refile (the real never_queued files), rolled back, and returns PROBE FAILED over 4 s.
+-- realistic refile (the real never_queued files), rolled back, and fails its verdict over 4 s (the change file itself returns no verdict).
 -- scripts/checks/the_backup_refile_never_recomputes_the_expected_set.test.mjs: fails if the refile
 -- body (live mirror) reads fn_it_backup_expected* inside its loop again.
 --

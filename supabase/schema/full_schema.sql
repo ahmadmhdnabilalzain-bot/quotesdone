@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T01:41:30.991Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T01:45:23.990Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -34079,7 +34079,19 @@ AS $function$
                                       where pr.stamp = d.day::date and pr.pruned_at is not null) as kept) k on k.kept
     cross join lateral (
       select to_char(d.day, 'YYYY-MM-DD') || '/_manifest.json' as path
+      -- 22 SEP 2026: a FINISHED day expects exactly the pages its own run recorded writing
+      -- (table_export_run.state->'tables': table -> pages), page_0000 .. page_<pages-1>. It used to
+      -- expect page_0000 of every table fn_table_export_list() names TODAY, so a table added to the
+      -- list on 22 Sep (table_export_change) was "never queued" on every earlier day -- seven files
+      -- that never existed, refiled every run. A day with no finished run keeps the whole list.
+      union select to_char(d.day, 'YYYY-MM-DD') || '/' || t.key || '/page_' || lpad(g::text, 4, '0') || '.json'
+              from public.table_export_run r
+              cross join lateral jsonb_each(r.state->'tables') t
+              cross join lateral generate_series(0, coalesce((t.value->>'pages')::int, 1) - 1) g
+             where r.stamp = d.day::date and r.status = 'done' and jsonb_typeof(r.state->'tables') = 'object'
       union select to_char(d.day, 'YYYY-MM-DD') || '/' || x.table_name || '/page_0000.json' from public.fn_table_export_list() x
+             where not exists (select 1 from public.table_export_run r
+                                where r.stamp = d.day::date and r.status = 'done' and jsonb_typeof(r.state->'tables') = 'object')
       union select o.name from storage.objects o where o.bucket_id = 'backups' and o.name like to_char(d.day, 'YYYY-MM-DD') || '/%') f
   )
   select * from base
@@ -50431,7 +50443,18 @@ begin
     if v_row is null then
       -- never queued: the enqueue first, then a row of our own for what it does not cover
       if not v_enq then perform public.fn_enqueue_doc_backups(); v_enq := true; end if;
-      select x.doc_backup_id into v_row from public.fn_it_backup_expected_status() x where x.item_key = s.e->>'item_key';
+      -- 22 SEP 2026: the row for THIS file, by the join rule of the expected-status view, on the file
+      -- in hand. It used to recompute all ~10,600 expected items (2.7 s) once per file, and seven files
+      -- put the IT engineer's daily check past PostgREST's 8 s. See the header.
+      if s.e->>'kind' = 'generated' then
+        select d.id into v_row from public.doc_backups d
+         where d.gen_kind = s.e->>'gen_kind' and d.gen_ref = s.e->>'gen_ref'
+         order by (d.status = 'done') desc, d.id desc limit 1;
+      elsif s.e->>'bucket' is not null then
+        select d.id into v_row from public.doc_backups d
+         where d.bucket = s.e->>'bucket' and d.path = s.e->>'path'
+         order by (d.status = 'done') desc, d.id desc limit 1;
+      end if;
       if v_row is null and s.e->>'bucket' is not null and s.e->>'kind' <> 'conversation' then
         insert into public.doc_backups (entity, entity_id, doc_type, bucket, path, file_name, dropbox_path, source, dedupe_key)
         values (split_part(s.e->>'owner', ':', 1), split_part(s.e->>'owner', ':', 2), 'Refiled', s.e->>'bucket', s.e->>'path',
@@ -57254,7 +57277,11 @@ begin
       using v_lo, v_hi;
   end loop;
 
-  -- then the deletions the change log recorded, newest wins: a key whose LAST entry is a delete is gone
+  -- then the deletions the change log recorded, newest wins: a key whose LAST entry is a delete is gone.
+  -- A row_key that does not parse as the key's own type is skipped (21 Sep 2026): the TRUNCATE branch of
+  -- trg_table_export_change writes a sentence there with deleted = true, and on bigint kb_chunks the cast
+  -- raised 22P02 and failed the whole replay. Measured before the fix. The truncate itself forced the
+  -- next export day FULL, so skipping its marker loses nothing.
   execute format(
     'delete from it_replay_scratch s where s.%1$I in (
        select d.row_key::%2$s from (
@@ -57262,7 +57289,7 @@ begin
            from jsonb_array_elements($1) c
           where c->>''table_name'' = $2
           order by c->>''row_key'', (c->>''changed_at'') desc) d
-        where d.deleted)', v_pk, v_pktype)
+        where d.deleted and pg_input_is_valid(d.row_key, %2$L))', v_pk, v_pktype)
     using coalesce(p_changes, '[]'::jsonb), p_table;
   get diagnostics n_deleted = row_count;
   execute 'select count(*) from it_replay_scratch' into n_rebuilt;
