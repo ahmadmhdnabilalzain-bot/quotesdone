@@ -1,0 +1,1 @@
+PR #844 (customer_support, instruction 777): awaiting review and the coordinator's apply. Apply with --apply --ddl, then append the file to the end of MANIFEST.txt, delete this note, and run scripts/checks/the_public_company_block_carries_no_internal_figures.test.mjs against production.

@@ -24,7 +24,9 @@ import { fileURLToPath } from 'node:url';
 import { sql, PROJECT_REF } from '../lib/db.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const FILE = 'scripts/sql/the_whatsapp_menu_answers_like_a_senior_member_of_staff.sql';
+// The file that defines fn_faq_answer last (22 Sep 2026: a supplier-side record answers only a question
+// that names suppliers; before it, "كم رسومكم" reached the supplier-fee twin #843 added).
+const FILE = 'scripts/sql/a_fee_question_that_names_no_side_gets_the_customer_fee.sql';
 const FLOOR = 0.84;   // wa_inbound's FAQ_MIN_SIMILARITY
 // While the SQL file is still pending (scripts/sql/pending/<name>.txt), production has the old routine,
 // so the check simulates instead of failing on what has not shipped. Once applied it asks production,
@@ -40,9 +42,10 @@ export const CASES = [
   ['how much do you charge', ['What are the platform fees?', 'What is the 3% fee?', 'When is it charged?']],
   ['is it free for suppliers', ['Is there a subscription fee for suppliers?']],
   ['كم رسومكم', ['ما هي رسوم المنصة؟', 'ما هي رسوم الـ 3٪؟', 'متى يتم تحصيل الرسوم؟']],
-  // The Arabic corpus has no supplier-fee record (23 rows, measured): the registration answer is right,
-  // silence (the menu again) is acceptable, a customer-fee answer is not.
-  ['هل التسجيل مجاني للموردين', ['كيف أسجل كمورد؟'], 'or_none'],
+  // Since #843 the Arabic corpus has the supplier-fee twin of FAQ 500: it, or the registration answer, is
+  // right; silence (the menu again) is acceptable; a customer-fee answer is not.
+  ['هل التسجيل مجاني للموردين', ['هل يدفع الموردون رسوم اشتراك أو رسوم تسجيل؟', 'كيف أسجل كمورد؟'], 'or_none'],
+  ['هل يدفع المورد رسوم تسجيل', ['هل يدفع الموردون رسوم اشتراك أو رسوم تسجيل؟']],
   ['what is the weather in paris', null],
   ['ما هو سعر الذهب اليوم', null],
   ['can i trust the suppliers on your site', null],
