@@ -117,6 +117,9 @@ verify_jwt = false
 [functions.marketing]
 verify_jwt = true
 
+[functions.marketing_channels]
+verify_jwt = true
+
 [functions.marketing_social_inbox]
 verify_jwt = false
 
