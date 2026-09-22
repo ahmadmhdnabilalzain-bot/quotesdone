@@ -75,9 +75,3 @@ export function figuresText(f: Figures, lang: Lang): string {
   return head + '\n' + lines(f, lang).join('\n');
 }
 
-/** Not recognised: what can be answered without the model, and how to ask for the figures. No reading. */
-export function founderHelp(lang: Lang): string {
-  return lang === 'ar'
-    ? 'تُرسل الأرقام الداخلية فقط عند كتابة كلمة «أرقام» وحدها في الرسالة: الموردون المسجّلون والموثّقون، وطلبات العملاء، وعروض الأسعار، وعمليات الكشف والرسوم هذا الشهر، وبلاغات الدعم، والملاحظات التقنية المفتوحة، وأرقام التسويق. أما غير ذلك فيحتاج إلى النموذج، وهو موقوف حاليًا، وقد سجّلتُ سؤالكم لدى الفريق.'
-    : 'Internal figures are sent only when you write FIGURES as the whole message: suppliers registered and verified, customer requests, quotes, reveals and fees this month, support cases, open IT findings and marketing. Anything else needs the model, which is on hold, so I have recorded your question for the team.';
-}
