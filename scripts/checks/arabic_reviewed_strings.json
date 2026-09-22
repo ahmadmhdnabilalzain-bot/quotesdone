@@ -2736,6 +2736,28 @@
   "e573aa3f63d9",
   "e66497e30b78"
  ],
+ "supabase/functions/_shared/marketing_outreach.ts": [
+  "014c2b62f916",
+  "1be15600e7ed",
+  "24f505112b9d",
+  "2a7c11371442",
+  "2edbe67f8167",
+  "4880b9751248",
+  "63ebd9147ff8",
+  "6bfbbfceafe3",
+  "74226bfe735e",
+  "796ace0537bc",
+  "86745dfee2db",
+  "879460fe6ff0",
+  "aea91b8895c9",
+  "c61229d4528f",
+  "d0d8c5ebe026",
+  "e20c5cb417e1",
+  "fdacad8a8771"
+ ],
+ "supabase/functions/_shared/marketing_style.ts": [
+  "8a268a74f2b2"
+ ],
  "supabase/functions/_shared/quote_labels.ts": [
   "d59ecf7fd6e7"
  ],
@@ -2992,6 +3014,13 @@
   "ea439701f386",
   "f34c9e970613",
   "f4eafa4902c9"
+ ],
+ "supabase/functions/marketing_outreach/index.ts": [
+  "023f7d608c29",
+  "17defa4a339e",
+  "495ccd05412b",
+  "577fa9aae70e",
+  "d3396e86f6d5"
  ],
  "supabase/functions/messages_api/index.ts": [
   "2ab8d7bf7b54",

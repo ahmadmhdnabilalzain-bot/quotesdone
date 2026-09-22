@@ -1,0 +1,1 @@
+marketing, 22 Sep 2026. Pure probe (ends in raise exception CHK, writes nothing). Run with --apply AFTER the_marketing_seat_writes_articles_and_drafts_linkedin_outreach.sql is applied; the verdict is the first key of the CHK payload. Measured PROBE OK in a rolled-back rehearsal on 22 Sep 2026.
