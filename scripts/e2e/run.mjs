@@ -17,7 +17,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, REF } from './fixtures.mjs';
+import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, sweepStaleRuns, read, REF } from './fixtures.mjs';
 import { launch, SITE, HARNESS_SIGNED_OUT } from './browser.mjs';
 import { JOURNEYS } from './journeys.mjs';
 import { newRun, teardown } from '../staging/demo_factory.mjs';
@@ -101,6 +101,13 @@ let browser = null, closed = null, fatal = null;
 // not about the product". It makes the run INCOMPLETE below, so no finding may be closed on it.
 let harnessDead = null;
 try {
+  // Runs that are OVER still holding fixtures go first, by their exact tags (fixtures.mjs staleRunTags):
+  // on 22 Sep two such runs' ZZ DEMO suppliers took all three routing slots for this run's request.
+  // A sweep that throws is reported and the run goes on; the routing step then names whose fixtures
+  // took the slots.
+  const swept = await sweepStaleRuns().catch((e) => ({ error: String(e.message).slice(0, 200) }));
+  rep.step('fixtures', 'fixtures of runs that are over are removed before this run starts', swept.error ? 'FAIL' : 'PASS',
+    swept.error || (swept.length ? swept.map((s) => `${s.tag}: ${s.summary}`).join(' | ') : 'none left behind'));
   // Identities: one customer, three suppliers (A holds then releases, B quotes two options, C is complete).
   ctx.fx.customer = await makeDemoCustomer(run, { label: 'Customer' });
   const c = ctx.fx.customer.row;

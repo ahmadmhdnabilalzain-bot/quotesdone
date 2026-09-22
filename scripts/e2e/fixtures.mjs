@@ -48,6 +48,45 @@ export async function openRun(opts = {}) {
   return run;
 }
 
+// THE PERSISTENT FOUNDER DEMO ACCOUNTS ARE NEVER A LEFTOVER. scripts/e2e/founder_demo_tour.mjs keeps
+// the run tag 'founderdemo' (qd-founderdemo-*) on purpose, and the founder said leave demo records
+// alone (instruction 571). Its tag is spelled here, not imported: that module imports this one.
+const NEVER_SWEPT = new Set(['founderdemo']);
+
+/**
+ * Tags of harness runs that are OVER — every rehearsal window for the tag has ended, the last more
+ * than `graceMinutes` ago — but whose fixtures are still in production. Measured 22 Sep 2026: runs
+ * 7e3a1c99 and 12ddadff (windows ended 20:45Z and 23:45Z on 21 Sep) left three ZZ DEMO aluminium
+ * suppliers each, and at 00:32Z the nightly's request was routed to three of THEM — the matcher's
+ * per-trade cap is 3 — so none of the run's own suppliers was invited and "routing invited the demo
+ * suppliers" failed on a product that had routed correctly. A tag with no window at all is not ours
+ * to judge and is left alone; an open window is a run in progress and is never touched.
+ */
+export async function staleRunTags({ graceMinutes = 60 } = {}) {
+  const rows = await read(`with t as (
+      select distinct substring(x from '^qd_run:([a-z0-9]{4,16})$') tag from public.leads, unnest(coalesce(tags,'{}')) x where x like 'qd_run:%'
+      union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from public.customers where email like 'qd-%@example.invalid'
+      union select distinct substring(email from '^qd-([a-z0-9]{4,16})-') from auth.users where email like 'qd-%@example.invalid')
+    select t.tag from t
+     where t.tag is not null
+       and exists (select 1 from public.rehearsal_window w where w.run_tag = 'qd_run:' || t.tag)
+       and not exists (select 1 from public.rehearsal_window w where w.run_tag = 'qd_run:' || t.tag
+                        and (w.ended_at is null or w.ended_at > now() - make_interval(mins => ${Number(graceMinutes) | 0})))
+     order by 1`);
+  return rows.map((r) => r.tag).filter((t) => /^[a-z0-9]{4,16}$/.test(t) && !NEVER_SWEPT.has(t));
+}
+
+/** Remove the fixtures of runs that are over, each with the harness's own teardown by its exact tag. */
+export async function sweepStaleRuns(opts = {}) {
+  const out = [];
+  for (const tag of await staleRunTags(opts)) {
+    if (NEVER_SWEPT.has(tag)) continue;   // belt and braces: never the founder's demo accounts
+    const t = await teardown(newRun({ tag, quiet: true }));
+    out.push({ tag, summary: t.summary });
+  }
+  return out;
+}
+
 /** Tear everything down (unless kept), close the window, and prove nothing was left behind. */
 export async function closeRun(run, { keep = false } = {}) {
   let removed = { summary: 'kept' };
