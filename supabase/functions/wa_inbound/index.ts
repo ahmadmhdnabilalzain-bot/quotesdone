@@ -30,7 +30,7 @@ import { registeredLocale } from '../_shared/registered_locale.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 // 22 Sep 2026 (customer_support, instruction 759): the URL Twilio signs, and the welcome + menu.
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from './signature.ts';
-import { answerFromFaq, type Content, type MenuDeps, menuTurn, reofferMenu, type Turn } from './menu_flow.ts';
+import { answerFromFaq, type Content, type MenuDeps, menuTurn, reofferMenu, type Turn, welcomeFirstContact } from './menu_flow.ts';
 import { type Audience, type Lang, langOf, SORRY_LEAD } from './menu.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
@@ -620,6 +620,16 @@ Deno.serve(observe('wa_inbound', async (req) => {
         });
         return !error;
       },
+      // Anything the company sent this number on WhatsApp in 24 hours (price requests, notices): a reply
+      // to it is in-flow, not a first contact. Matched on the last nine digits, as fn_whatsapp_owner does.
+      weWroteRecently: async (from: string) => {
+        const tail = from.replace(/[^0-9]/g, '').slice(-9);
+        if (tail.length < 9) return false;
+        const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+          .eq('channel', 'whatsapp').like('to_phone', '%' + tail)
+          .gte('created_at', new Date(Date.now() - 86400e3).toISOString());
+        return (count || 0) > 0;
+      },
       contentSid: async (key: string) => {
         try { const m = JSON.parse((await sec('wa_menu_content_sids')) || '{}'); return typeof m[key] === 'string' && /^HX[0-9a-f]{32}$/i.test(m[key]) ? m[key] : null; }
         catch (_e) { return null; }
@@ -642,13 +652,14 @@ Deno.serve(observe('wa_inbound', async (req) => {
       },
     };
     const menuIn = { from: From, body: Body, listId: ListId, buttonPayload: ButtonPayload,
-                     audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as Audience };
-    if (!media.length) {
-      const m = await menuTurn(menuDeps, menuIn);
-      if (m.handled) {
-        await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);
-        return TW(200);
-      }
+                     audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as Audience,
+                     hasMedia: media.length > 0 };
+    // Only a menu choice, the problem text after "Report a problem", or an explicit hello/MENU is taken
+    // here. A substantive message goes to its own handler first; welcomeFirstContact runs after them.
+    const m = await menuTurn(menuDeps, menuIn);
+    if (m.handled) {
+      await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);
+      return TW(200);
     }
 
     // ---- THE CONTACT'S TIMELINE, read before anything is composed (14 Sep 2026) ----------------
@@ -1062,6 +1073,13 @@ Deno.serve(observe('wa_inbound', async (req) => {
 
     // THE APPROVED FAQ ANSWERS BEFORE ANY MODEL (22 Sep 2026). fn_faq_answer is the routine the site
     // assistant answers from; a confident match costs nothing and is the same answer every time.
+    // A FIRST CONTACT NO HANDLER CLAIMED gets the welcome (review of #841): placed after the document
+    // intake, the founder channel, the supplier price change and fn_wa_route above, so none of them is
+    // shadowed, and it declines when either side wrote in the last 24 hours.
+    if (await welcomeFirstContact(menuDeps, menuIn)) {
+      await logRun('ok', { audience, route: 'menu_welcome', first_contact: 1, cost_aed: 0 }, 'first contact welcomed with the menu');
+      return TW(200);
+    }
     if (await answerFromFaq(menuDeps, menuIn)) {
       await logRun('ok', { audience, route: 'faq_answer', cost_aed: 0 }, 'answered from the approved FAQ at no cost');
       return TW(200);

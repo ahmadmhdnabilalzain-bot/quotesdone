@@ -5,19 +5,20 @@
 //
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/wa_inbound/menu_flow.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
-import { answerFromFaq, type Content, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn } from './menu_flow.ts';
+import { answerFromFaq, type Content, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn, welcomeFirstContact } from './menu_flow.ts';
 import { type Audience, contentKey, isGreeting, type Lang, MENU_BUTTON, MENU_IDS, menuChoice, type MenuContext, menuItems } from './menu.ts';
 
 const FROM = 'whatsapp:+971500000021'; // reserved ZZ DEMO fixture block
 
 type Sent = { to: string; body: string; content?: Content };
 function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>; contentFails?: boolean; faq?: string | null;
-                      enabled?: boolean; history?: Turn[] } = {}) {
+                      enabled?: boolean; history?: Turn[]; weWrote?: boolean } = {}) {
   const sent: Sent[] = []; const rows: Array<Record<string, unknown>> = []; const cases: string[] = []; const notified: string[] = [];
   const history: Turn[] = [...(o.history || [])];
   const d: MenuDeps = {
     autoreplyEnabled: () => Promise.resolve(o.enabled ?? true),
     recentTurns: () => Promise.resolve([...history]),
+    weWroteRecently: () => Promise.resolve(o.weWrote ?? false),
     context: () => Promise.resolve({ audience: 'unknown', name: null, ...(o.ctx || {}) } as MenuContext),
     faq: () => Promise.resolve(o.faq ?? null),
     openCase: (_f, text) => { cases.push(text); return Promise.resolve('QD-S-ZZ' + cases.length); },
@@ -184,11 +185,48 @@ Deno.test('the founder: "Hi" opens the menu, but a command is left to his comman
   assertEquals((await menuTurn(g.d, msg('send me the weekly report', 'founder'))).handled, false);
 });
 
-Deno.test('first message with a real question: the FAQ answer, then the menu', async () => {
+Deno.test('first contact with a real question: left to the handlers first, then the FAQ answer and the menu', async () => {
   const h = harness({ faq: 'Posting a job is free.' });
-  await menuTurn(h.d, msg('Is posting a job free?'));
+  assertEquals((await menuTurn(h.d, msg('Is posting a job free?'))).handled, false);
+  assertEquals(h.sent.length, 0);
+  assertEquals(await welcomeFirstContact(h.d, msg('Is posting a job free?')), true);
   assertEquals(h.sent.map((s) => s.body.slice(0, 22)), ['Posting a job is free.', h.sent[1].body.slice(0, 22)]);
   assertEquals(h.rows.map((r) => r.route), ['menu_first_answer', 'menu_welcome']);
+});
+
+// Review of #841 (HIGH): a supplier replying to a price request we sent through the outbox was welcomed
+// with the menu instead of reaching fn_supplier_apply_change.
+Deno.test('a supplier replying "12500" to our price request is in-flow: no menu, the price-change handler gets it', async () => {
+  const h = harness({ ctx: { audience: 'supplier' }, weWrote: true });
+  for (const b of ['12500', 'yes, reduce to 9000']) {
+    assertEquals((await menuTurn(h.d, msg(b, 'supplier'))).handled, false, b);
+    assertEquals(await welcomeFirstContact(h.d, msg(b, 'supplier')), false, b);
+  }
+  assertEquals(h.sent.length, 0);
+});
+
+Deno.test('a first message with a document goes to document intake, never the menu', async () => {
+  const h = harness();
+  assertEquals((await menuTurn(h.d, msg('my trade licence', 'unknown', { hasMedia: true }))).handled, false);
+  assertEquals((await menuTurn(h.d, msg('Hi', 'unknown', { hasMedia: true }))).handled, false);
+  assertEquals(await welcomeFirstContact(h.d, msg('', 'unknown', { hasMedia: true })), false);
+  assertEquals(h.sent.length, 0);
+});
+
+Deno.test('an explicit hello after one of our notices still gets the welcome', async () => {
+  const h = harness({ weWrote: true, history: [{ route: 'deterministic', await: null, lang: 'en' }] });
+  assertEquals((await menuTurn(h.d, msg('Hello'))).route, 'menu_welcome');
+  assertEquals(h.sent.length, 1);
+});
+
+Deno.test('in wa_inbound the first-contact welcome runs only after every handler that could claim the message', async () => {
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const at = src.indexOf('await welcomeFirstContact(');
+  assert(at > 0);
+  for (const handler of ["admin.rpc('fn_supplier_apply_change'", "admin.rpc('fn_wa_route'", 'if (media.length) {', "if (audience === 'founder') {"]) {
+    const h = src.indexOf(handler);
+    assert(h > 0 && h < at, handler + ' must come before the first-contact welcome');
+  }
 });
 
 Deno.test('later free text: a confident FAQ answer is sent; with none, the menu is offered again', async () => {

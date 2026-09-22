@@ -580,8 +580,8 @@
     "semantic_hash": "c05bb7006148909ef3b2e15fcadf593a"
   },
   "supabase/functions/wa_inbound/index.ts": {
-    "mtime": 1790080731.0660496,
-    "ast_hash": "2b8362bdca713285921c8764b775af84",
+    "mtime": 1790082074.657972,
+    "ast_hash": "9a83c46c1ef5e95cb1622a8ac42a32dd",
     "semantic_hash": ""
   },
   "supabase/functions/wa_templates_watch/index.ts": {
@@ -21605,13 +21605,13 @@
     "semantic_hash": ""
   },
   "supabase/functions/wa_inbound/menu_flow.test.ts": {
-    "mtime": 1790080846.2888725,
-    "ast_hash": "b58afed9186706732a7841ca34b392dd",
+    "mtime": 1790082111.7541132,
+    "ast_hash": "3d40e5aed885a2696ed15cfbcec3e60b",
     "semantic_hash": ""
   },
   "supabase/functions/wa_inbound/menu_flow.ts": {
-    "mtime": 1790080716.79419,
-    "ast_hash": "5adef94fed8cbe9f1e6c02b43ed738c6",
+    "mtime": 1790082049.6783829,
+    "ast_hash": "52c76857f869fcfad076d7e3f8262ef9",
     "semantic_hash": ""
   },
   "supabase/functions/wa_inbound/signature.test.ts": {

@@ -4,11 +4,14 @@
 // with fakes and index.ts supplies the database and Twilio. menuTurn decides; it never guesses:
 //   - an interactive list reply (ListId / ButtonPayload), a typed option title, or — only right after
 //     we offered the menu — a bare number, selects an option;
-//   - a greeting, MENU / قائمة, or the first message of a conversation (nothing from this number in
-//     24 hours) gets the welcome and the menu;
+//   - a greeting or MENU / قائمة gets the welcome and the menu, whatever came before it;
 //   - the message after "Report a problem" becomes a support case with a reference number;
-//   - anything else returns handled:false and the existing route answers it; if that route has
-//     nothing either, reofferMenu is the last word, never a dead end.
+//   - anything else returns handled:false and the existing handlers answer it FIRST (document intake,
+//     the founder's command channel, the supplier price change, fn_wa_route's intents). Only if none of
+//     them did, and the message is a first contact — nothing from them AND nothing from us to them in
+//     24 hours (review of #841: a supplier answering "12500" to a price request sent through the
+//     outbox is in-flow, not a hello) — does welcomeFirstContact open the welcome; after that,
+//     reofferMenu is the last word, never a dead end.
 //
 // THE CAPS DO NOT APPLY HERE, AND THAT IS DELIBERATE. app_secrets.wa_daily_cap and
 // wa_per_recipient_24h are enforced in send_whatsapp over the notifications outbox — business-initiated
@@ -28,6 +31,8 @@ export type MenuDeps = {
   autoreplyEnabled(): Promise<boolean>;
   /** This number's wa_messages rows in the last 24 hours, newest first, excluding the current message. */
   recentTurns(from: string): Promise<Turn[]>;
+  /** True if WE sent this number anything in the last 24 hours (the notifications outbox). */
+  weWroteRecently(from: string): Promise<boolean>;
   /** fn_wa_menu_context: audience by CONFIRMED number, name, approval, own open requests. */
   context(from: string): Promise<MenuContext>;
   /** fn_faq_answer: a confident answer from the approved FAQ, or null. */
@@ -41,7 +46,7 @@ export type MenuDeps = {
   record(row: { inbound: string; reply: string; lang: Lang; sent: boolean; route: string; await: string | null;
                 send_error: string | null; extra: Record<string, unknown> }): Promise<void>;
 };
-export type MenuInput = { from: string; body: string; listId?: string; buttonPayload?: string; audience: Audience };
+export type MenuInput = { from: string; body: string; listId?: string; buttonPayload?: string; audience: Audience; hasMedia?: boolean };
 
 /** Send `text` (or the interactive `content`, falling back to `fallback`), then record the turn. */
 async function reply(d: MenuDeps, inp: MenuInput, lang: Lang, route: string, text: string, awaitNext: string | null,
@@ -77,6 +82,8 @@ async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContex
 }
 
 export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: boolean; route?: string }> {
+  // A document belongs to document intake, whatever it says in the caption.
+  if (inp.hasMedia) return { handled: false };
   const body = String(inp.body || '').trim();
   const recent = await d.recentTurns(inp.from);
   const last = recent[0] || null;
@@ -104,17 +111,10 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
     return { handled: true, route: 'menu_' + choice };
   }
 
-  // 3. A greeting, the word MENU, or the first message of a conversation. The founder's number is his
-  //    command channel, so for him only a greeting or MENU opens the menu, never "first message".
-  const first = recent.length === 0;
-  if (isGreeting(body) || isMenuWord(body) || (first && inp.audience !== 'founder')) {
-    const ctx = await d.context(inp.from);
-    // A first message with a real question in it gets the answer before the menu, if the FAQ has one.
-    if (first && body && !isGreeting(body) && !isMenuWord(body)) {
-      const ans = await d.faq(body);
-      if (ans) await reply(d, inp, lang, 'menu_first_answer', ans, null, { audience: ctx.audience, faq: true });
-    }
-    await sendMenu(d, inp, lang, ctx, 'menu_welcome', null);
+  // 3. An explicit greeting or the word MENU: the welcome, even mid-conversation — they asked for it.
+  //    Anything substantive is NOT taken here; it goes to its own handler first (welcomeFirstContact).
+  if (isGreeting(body) || isMenuWord(body)) {
+    await sendMenu(d, inp, lang, await d.context(inp.from), 'menu_welcome', null);
     return { handled: true, route: 'menu_welcome' };
   }
 
@@ -127,6 +127,22 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
     }
   }
   return { handled: false };
+}
+
+/** A substantive first contact that no handler claimed: the FAQ answer if confident, then the welcome
+ *  and the menu. Called by index.ts AFTER document intake, the founder channel, the supplier price
+ *  change and fn_wa_route. Not a first contact — they wrote to us, or WE wrote to them (a notice, a
+ *  price request), in the last 24 hours — returns false: the reply is in-flow, not a hello. */
+export async function welcomeFirstContact(d: MenuDeps, inp: MenuInput): Promise<boolean> {
+  if (inp.hasMedia || inp.audience === 'founder') return false;
+  const body = String(inp.body || '').trim();
+  if ((await d.recentTurns(inp.from)).length > 0 || await d.weWroteRecently(inp.from)) return false;
+  const lang = langOf(body);
+  const ctx = await d.context(inp.from);
+  const ans = body ? await d.faq(body) : null;
+  if (ans) await reply(d, inp, lang, 'menu_first_answer', ans, null, { audience: ctx.audience, faq: true });
+  await sendMenu(d, inp, lang, ctx, 'menu_welcome', null);
+  return true;
 }
 
 /** Free text that is not a menu choice: a confident answer from the approved FAQ (the same corpus and
