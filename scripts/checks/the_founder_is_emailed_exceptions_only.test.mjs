@@ -97,6 +97,50 @@ test('routines: every fn_notify_founder call names p_kind, and every literal kin
   }
 });
 
+// 22 Sep 2026 (marketing). The same rule, read from the REPOSITORY, so it fails the pull request instead of
+// production after the apply. #835 and #837 shipped fn_marketing_social_hand_to_human and
+// fn_marketing_outreach_deliver passing the kind positionally; the test above only saw it once they were live.
+// Each routine's LAST definition in scripts/sql wins: MANIFEST.txt order, then the files with a pending note
+// (committed, not yet applied). Needs no token, so it runs in the checks job.
+export function callsWithoutNamedKind(body) {
+  return (body.match(/fn_notify_founder\s*\(/g) || []).length - (body.match(/p_kind\s*=>/g) || []).length;
+}
+
+export function lastDefinitions(files) {
+  const last = new Map();
+  for (const [file, src] of files) {
+    const re = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?"?([a-z0-9_]+)"?\s*\([\s\S]*?\bas\s+(\$[a-z0-9_]*\$)([\s\S]*?)\2/gi;
+    for (const m of src.matchAll(re)) last.set(m[1].toLowerCase(), { file, body: m[3] });
+  }
+  return last;
+}
+
+test('repository: the last definition of every fn_notify_founder caller names p_kind => on every call', async () => {
+  const { readFileSync: read } = await import('node:fs');
+  const { fileURLToPath } = await import('node:url');
+  const { pendingNotes } = await import('../lib/pending_sql.mjs');
+  const repo = fileURLToPath(new URL('../..', import.meta.url));
+  const order = read(join(repo, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  const paths = [...order, ...pendingNotes().keys()].filter(f => f.endsWith('.sql') && existsSync(join(repo, f)));
+  const defs = lastDefinitions(paths.map(f => [f, read(join(repo, f), 'utf8')]));
+  const bad = [...defs].filter(([name, d]) => name !== 'fn_notify_founder' && callsWithoutNamedKind(d.body) > 0)
+    .map(([name, d]) => `${name} (${d.file})`);
+  assert.equal(bad.length, 0, 'these routines call fn_notify_founder without p_kind => on every call (a positional kind is invisible to this rule):\n' + bad.join('\n'));
+});
+
+test('repository rule replays the #837 call that went live positionally', () => {
+  const was = "v_res := public.fn_notify_founder(p_subject, p_body, 'normal', 'marketing_outreach_list', 'marketing_outreach_list:' || p_day);";
+  assert.equal(callsWithoutNamedKind(was), 1);
+  const now = "v_res := public.fn_notify_founder(p_event => p_subject, p_detail => p_body, p_level => 'normal', p_kind => 'marketing_outreach_list');";
+  assert.equal(callsWithoutNamedKind(now), 0);
+  const defs = lastDefinitions([
+    ['a.sql', `create or replace function public.fn_x() returns void language plpgsql as $fn$ begin perform fn_notify_founder('a','b','low','k'); end $fn$;`],
+    ['b.sql', `create or replace function public.fn_x() returns void language plpgsql as $fn$ begin perform fn_notify_founder('a','b', p_kind => 'k'); end $fn$;`],
+  ]);
+  assert.equal(defs.get('fn_x').file, 'b.sql', 'the later file must win');
+  assert.equal(callsWithoutNamedKind(defs.get('fn_x').body), 0);
+});
+
 // 21 Sep 2026 (ceo). fn_notify_founder has returned JSONB since 6 Sep. fn_ceo_weekly_report_deliver kept
 // `v_notif bigint := fn_notify_founder(...)`, every call raised "invalid input syntax for type bigint",
 // its exception block rolled the email back, and the CEO weekly report failed on 14 and 21 Sep without

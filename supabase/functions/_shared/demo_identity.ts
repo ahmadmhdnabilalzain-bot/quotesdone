@@ -21,8 +21,9 @@
 export const RESERVED_TEST_DOMAIN =
   /@(?:[a-z0-9_-]+[.])*(?:example[.](?:com|net|org)|test|example|invalid|localhost)$/i;
 
-/** +971 50 000 00xx in any formatting: 12 digits once non-digits are stripped. */
-export const RESERVED_FIXTURE_MOBILE = /^9715000000\d{2}$/;
+/** +971 50 000 00xx in any formatting: 12 digits once non-digits are stripped, or the local form
+ *  050 000 00xx (10 digits; 22 Sep 2026, public.fn_is_demo_phone answers the same). */
+export const RESERVED_FIXTURE_MOBILE = /^(?:971|0)5000000\d{2}$/;
 
 export function isDemoEmail(email: unknown): boolean {
   return RESERVED_TEST_DOMAIN.test(String(email ?? '').trim());

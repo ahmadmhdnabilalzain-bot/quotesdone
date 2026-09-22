@@ -99,9 +99,13 @@ for (const [label, project] of Object.entries(PROJECTS)) {
     if (!mgmtToken) { t.skip('no management token'); return; }
     // "Unknown" must be measured, not assumed: if any account carries the number, a 200 below would
     // be production answering correctly, and the check would be blaming it for its own fixture.
-    const holders = await q(project, `select 'customers' t, count(*)::int n from public.customers where phone like '%${UNKNOWN.slice(-9)}'
-      union all select 'leads', count(*)::int from public.leads where phone like '%${UNKNOWN.slice(-9)}' or whatsapp_phone like '%${UNKNOWN.slice(-9)}'`);
-    assert.deepEqual(holders.filter((h) => h.n > 0), [], `${UNKNOWN} is held by an account, so it is not an unknown number: ${JSON.stringify(holders)}`);
+    // Ids, the column that matched and the demo marker, so a transient harness row is told from a customer.
+    const tail = UNKNOWN.slice(-9);
+    const holders = await q(project, `select 'customers.phone' col, id::text, is_demo, created_at from public.customers where phone like '%${tail}'
+      union all select 'customers.whatsapp_phone', id::text, is_demo, created_at from public.customers where whatsapp_phone like '%${tail}'
+      union all select 'leads.phone', id::text, is_demo, created_at from public.leads where phone like '%${tail}'
+      union all select 'leads.whatsapp_phone', id::text, is_demo, created_at from public.leads where whatsapp_phone like '%${tail}'`);
+    assert.deepEqual(holders, [], `${UNKNOWN} is held by an account, so it is not an unknown number: ${JSON.stringify(holders)}`);
 
     for (const kind of ['customer', 'supplier', 'admin']) {
       const { status, body } = await send(project, kind, UNKNOWN);
@@ -211,10 +215,17 @@ test('two accounts on one number are refused, not guessed', async (t) => {
   const cleanup = () => q(project, `delete from public.customers where email in ('zz-demo-shared-a@example.invalid','zz-demo-shared-b@example.invalid')`);
 
   await cleanup();
-  const squatters = await q(project, `select count(*)::int n from public.customers where phone = '${SHARED}'`);
-  assert.equal(Number(squatters[0].n), 0,
-    `${SHARED} is carried by a real customers row. This check would then be inserting fixtures `
-    + 'alongside live data and asserting against a mix of the two. Pick another fixture number.');
+  // NAMED, NOT COUNTED (22 Sep 2026). A run reported this number "carried by a real customers row" twice and
+  // a read-only look minutes later found no such row -- most likely another run's fixtures mid-flight. A count
+  // cannot tell those apart; the ids, the column that matched, the demo marker and the creation time can.
+  // No phone or address is printed: the id and the marker are enough to look the row up.
+  const squatters = await q(project, `select id, is_demo, fn_is_demo_email(email) demo_email, created_at,
+      case when phone = '${SHARED}' then 'customers.phone' else 'customers.whatsapp_phone' end col
+      from public.customers where phone = '${SHARED}' or whatsapp_phone = '${SHARED}' order by created_at`);
+  assert.deepEqual(squatters, [],
+    `${SHARED} is carried by ${squatters.length} customers row(s): ${JSON.stringify(squatters)}. If each is_demo `
+    + 'row was created seconds ago it is a concurrent run of this check, not a customer; otherwise this check would '
+    + 'be inserting fixtures alongside live data and asserting against a mix of the two. Pick another fixture number.');
   try {
     await q(project, `insert into public.customers (full_name, email, phone) values
       ('ZZ DEMO - shared handset A','zz-demo-shared-a@example.invalid','${SHARED}'),
