@@ -1,6 +1,6 @@
 // llm_hold — "is the founder's OpenRouter hold on right now?", asked BEFORE the gateway is called.
 //
-// THE HOLD IS A ROW, NOT A FLAG (measured 22 Sep 2026, htdblwldjkcgjvmqkbeh): all 8 rows of
+// THE HOLD IS A ROW, NOT A FLAG (measured 22 Sep 2026 against production): all 8 rows of
 // public.llm_route_health carry open_until = 2126-08-15 and opened_reason 'HELD BY THE FOUNDER
 // 15 Aug 2026: no OpenRouter calls until he releases it. Release with: update llm_route_health
 // set open_until = null;'. ai_gateway reads the same rows and refuses every call with

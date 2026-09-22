@@ -448,15 +448,28 @@ const handle = async (req: Request): Promise<Response> => {
                return { bytes: new Uint8Array(await dl.data.arrayBuffer()), mime: dl.data.type || 'application/pdf' } as { bytes: Uint8Array; mime: string };
              } catch (_e) { return null; }
            })() : null);
+      // What CODE measured off the document. The model below may add what code cannot read
+      // (licence number, authority, legal name) but must never overwrite this date.
+      let codeExpiry: string | null = null;
+      // The supplier reads this note in the portal, so it is written in both languages the
+      // registration speaks (the estate's rule: a document message is English and fully Arabic).
+      const noteBoth = (en: string, ar: string) => { out.license_expiry_note = en; out.license_expiry_note_ar = ar; };
       if (licBytes?.bytes) {
         try {
           const docRead = await readExpiry(licBytes.bytes, licBytes.mime || 'application/pdf');
           if (docRead) {
+            codeExpiry = docRead.expiry;
             upd.license_expiry = docRead.expiry;
             upd.doc_extracted_at = new Date().toISOString();
             out.license = { expiry: docRead.expiry, source: 'text', keyword: docRead.keyword, read_by: 'code' };
-          } else out.license_expiry_note = 'the trade licence has no readable text layer, or prints no date beside an expiry keyword, so no expiry was taken from it';
-        } catch (e) { out.license_expiry_note = String((e as Error)?.message || e).slice(0, 200); }
+          } else {
+            noteBoth('We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.',
+                     'لم نتمكن من قراءة تاريخ انتهاء الرخصة التجارية — قد يكون الملف صورة ممسوحة ضوئياً أو لا يذكر تاريخاً بجانب كلمة الانتهاء. لم نقم بتخمين أي تاريخ.');
+          }
+        } catch (e) {
+          noteBoth('We could not read your trade licence file (' + String((e as Error)?.message || e).slice(0, 120) + '). Nothing was guessed.',
+                   'تعذّرت قراءة ملف الرخصة التجارية. لم نقم بتخمين أي تاريخ.');
+        }
       }
       // The model path — legal name, licence number, authority, emirate, TRN — is behind the same
       // flag the portal uses (app_secrets.document_expiry_ai). With the flag off nothing is asked
@@ -467,13 +480,26 @@ const handle = async (req: Request): Promise<Response> => {
             if (d.license_number) upd.trade_license_no = d.license_number;
             if (d.license_authority) upd.license_authority = d.license_authority;
             if (d.city) upd.license_city = d.city;
-            if (d.expiry_date) upd.license_expiry = d.expiry_date;
+            // CODE FIRST, AND THE MODEL DOES NOT OVERRULE IT (founder: "code first, LLM only where
+            // code can't"). When the document itself printed a date beside an expiry keyword, that
+            // reading stands; the model's date is only recorded beside it, and a disagreement is
+            // returned so a human can see the two rather than being silently resolved.
+            if (d.expiry_date) {
+              if (codeExpiry) {
+                if (String(d.expiry_date) !== codeExpiry) out.license_expiry_model_differs = { code: codeExpiry, model: d.expiry_date };
+              } else upd.license_expiry = d.expiry_date;
+            }
             if (d.emirate) upd.emirate = d.emirate;
             if (d.trn) upd.trn = d.trn;
             upd.doc_extracted_at = new Date().toISOString();
             const legal = String(d.legal_name || '').trim(); const cur = String(sup.company_name || '').trim();
             if (legal && legal.toLowerCase() !== cur.toLowerCase()) { upd.name_corrected_from = cur; upd.company_name = legal; }
-            out.license = { legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city, expiry: d.expiry_date, emirate: d.emirate, name_corrected: !!upd.name_corrected_from, confidence: d.confidence };
+            // Merged, never replaced: out.license may already carry the expiry code measured, and
+            // overwriting it would lose the reading that is actually written to the row.
+            out.license = { ...(out.license as Record<string, unknown> || {}),
+              legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city,
+              expiry: codeExpiry || d.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate,
+              name_corrected: !!upd.name_corrected_from, confidence: d.confidence };
           } else out.license_error = jd?.error || 'extract_failed';
         } catch (e) { out.license_error = String((e as Error)?.message || e); }
       }

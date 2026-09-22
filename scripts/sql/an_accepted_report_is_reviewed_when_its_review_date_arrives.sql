@@ -31,6 +31,11 @@
 --      Cause gone -> status 'completed' with completed_at and a completion_note carrying the
 --      measurement. Cause still there -> next_review_at moves 24 h and the report is named in ONE
 --      aggregate finding for the CEO.
+--      A CLOSE IS NEVER ONE NUMBER: the return splits closed_measured (the cause was measured
+--      gone) from closed_unmeasurable (its subject is not there to re-check — the report names no
+--      notification, or the notification row is gone), and the completion_note says which. On the
+--      dry run of 22 Sep that is 11 measured and 8 unmeasurable, and an auditor reading a
+--      completion record must not be told the absence of evidence was evidence.
 --   2. ONE finding, not one per report: 'monitor:ceo_accepted_report_review_overdue', owner_seat
 --      ceo, listing every report still unanswered. 20 separate findings in a tick is the 15 Sep
 --      alert storm (~50 founder emails) rebuilt by hand.
@@ -50,6 +55,15 @@ returns jsonb language plpgsql security definer set search_path to 'public', 'pg
 declare
   rep public.support_ceo_report;
   v_family text; v_gone boolean; v_note text;
+  -- HOW a report closed, never collapsed into one number (22 Sep 2026, review of PR #852):
+  --   'measured'     the cause was measured GONE — a provider id, a delivered status, a confirmed
+  --                  twin, coverage ok, a closed handoff.
+  --   'unmeasurable' the cause can never be re-checked because its subject is not there: the
+  --                  report names no notification, or the notification row no longer exists. That
+  --                  is the ABSENCE of evidence, not evidence, and an auditor reading the
+  --                  completion record must be able to tell the two apart.
+  v_kind text;
+  v_closed_measured int := 0; v_closed_unmeasurable int := 0;
   v_cov jsonb; v_cov_read boolean := false; v_loop_run boolean := false;
   v_nid bigint; v_notif public.notifications; v_twin public.notifications;
   v_status text; v_open bigint[] := '{}'; v_closed int := 0; v_due int := 0;
@@ -59,23 +73,23 @@ begin
               order by id loop
     v_due := v_due + 1;
     v_family := split_part(rep.idempotency_key, ':', 1);
-    v_gone := false; v_note := null;
+    v_gone := false; v_note := null; v_kind := null;
 
     if v_family = 'delivery_undelivered' then
       v_nid := coalesce((rep.verified_evidence -> 'rechecked' ->> 'notification_id')::bigint,
                         (rep.verified_evidence -> 'support_evidence' -> 'notification' ->> 'id')::bigint);
       if v_nid is null then
-        v_gone := true;
+        v_gone := true; v_kind := 'unmeasurable';
         v_note := 'the report names no notification at all, so its delivery can never be re-checked; '
                   || 'nothing is left to deliver and nothing can recur under this id.';
       else
         select * into v_notif from public.notifications where id = v_nid;
         if v_notif.id is null then
-          v_gone := true;
+          v_gone := true; v_kind := 'unmeasurable';
           v_note := 'notification ' || v_nid || ' no longer exists in public.notifications, so its delivery can never be re-checked.';
         elsif coalesce(btrim(v_notif.provider_message_id), '') <> ''
               or v_notif.provider_status in ('delivered', 'read') then
-          v_gone := true;
+          v_gone := true; v_kind := 'measured';
           v_note := 'notification ' || v_nid || ' (' || v_notif.channel || ') now carries provider id '
                     || coalesce(v_notif.provider_message_id, '-') || ' and provider status '
                     || coalesce(v_notif.provider_status, '-') || ': the alert reached the founder.';
@@ -85,7 +99,7 @@ begin
              and t.to_role is not distinct from v_notif.to_role and t.id <> v_notif.id and t.status = 'sent'
            order by t.id limit 1;
           if v_twin.id is not null and coalesce(btrim(v_twin.provider_message_id), '') <> '' then
-            v_gone := true;
+            v_gone := true; v_kind := 'measured';
             v_note := 'notification ' || v_nid || ' is still unconfirmed on ' || v_notif.channel
                       || ', but its email twin ' || v_twin.id || ' was sent and confirmed ('
                       || v_twin.provider_message_id || '): the alert reached the founder.';
@@ -101,7 +115,7 @@ begin
         v_cov_read := true;
       end if;
       if coalesce((v_cov ->> 'ok')::boolean, false) then
-        v_gone := true;
+        v_gone := true; v_kind := 'measured';
         v_note := 'backup coverage measured ok at review (' || left(v_cov::text, 400) || ').';
       end if;
 
@@ -111,17 +125,19 @@ begin
         v_loop_run := true;
       end if;
       select status into v_status from public.support_ceo_report where id = rep.id;
-      if v_status = 'completed' then v_closed := v_closed + 1; continue; end if;
+      if v_status = 'completed' then v_closed := v_closed + 1; v_closed_measured := v_closed_measured + 1; continue; end if;
       -- still accepted: its handoff has not closed, so the finding behind it is still open
     end if;
 
     if v_gone then
       v_closed := v_closed + 1;
+      if v_kind = 'unmeasurable' then v_closed_unmeasurable := v_closed_unmeasurable + 1;
+      else v_closed_measured := v_closed_measured + 1; end if;
       if not p_dry_run then
         update public.support_ceo_report
            set status = 'completed', completed_at = now(),
                completion_note = 'IT engineer reviewed this accepted report at its review date ('
-                 || to_char(now() at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai): ' || v_note
+                 || to_char(now() at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai, closed as ' || v_kind || '): ' || v_note
          where id = rep.id and status = 'accepted';
       end if;
     else
@@ -144,7 +160,9 @@ begin
       '{}'::text[], array['what the CEO intends to do about each report still open'], 'fn_it_accepted_report_review');
   end if;
 
-  return jsonb_build_object('due', v_due, 'closed', v_closed, 'still_open', cardinality(v_open),
+  return jsonb_build_object('due', v_due, 'closed', v_closed,
+                            'closed_measured', v_closed_measured, 'closed_unmeasurable', v_closed_unmeasurable,
+                            'still_open', cardinality(v_open),
                             'open_ids', to_jsonb(v_open), 'dry_run', p_dry_run,
                             'coverage_read', v_cov_read, 'coverage_ok', v_cov -> 'ok');
 end $fn$;

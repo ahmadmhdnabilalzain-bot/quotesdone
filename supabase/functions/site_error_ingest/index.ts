@@ -17,9 +17,14 @@
 // idle system). So the site also posts kind='site_report_ready' from register() on every cold
 // start, and resilience_ping reports basis:'unavailable' when no such heartbeat arrived in 24 h.
 //
-// SECRET. The site holds SITE_ERROR_INGEST_SECRET (Vercel env) and sends it in x-qd-site-secret;
-// this function compares it with app_secrets.cred_site_error_ingest. Without it anyone could
-// manufacture website faults and page the IT engineer through a public endpoint.
+// SECRET, in three places and each for its own reason. One value:
+//   Vercel env SITE_ERROR_INGEST_SECRET      the site sends it in x-qd-site-secret
+//   function env SITE_ERROR_INGEST_SECRET    this function compares it, without a database read
+//   app_secrets.cred_site_error_ingest       resilience_ping reads THAT ROW only to know whether
+//                                            reporting is configured at all, so the tick can say
+//                                            "not wired up" instead of reporting zero errors
+// Without the secret anyone could manufacture website faults through a public endpoint and page
+// the IT engineer.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -33,12 +38,29 @@ function sameSecret(a: string, b: string): boolean {
   return d === 0;
 }
 
+// THE SECRET IS AN ENV VAR, NOT A QUERY (hardening, 22 Sep 2026 review). This endpoint is public
+// and anonymous: reading app_secrets before the secret is checked would hand every unauthenticated
+// POST a database round trip, which is a free amplifier. SITE_ERROR_INGEST_SECRET is set on the
+// function with the same value as app_secrets.cred_site_error_ingest (the resilience tick reads
+// that row to know whether reporting is configured at all).
+const WANT = (Deno.env.get('SITE_ERROR_INGEST_SECRET') || '').trim();
+
+// A bounded throttle, in this isolate's memory: a site in a crash loop, or a caller who has the
+// secret and a bug, must not be able to write unbounded rows between two prunes. 120 accepted
+// posts a minute is far above any real error rate and far below anything that hurts.
+const LIMIT_PER_MIN = 120;
+let windowAt = 0, windowN = 0;
+function throttled(): boolean {
+  const m = Math.floor(Date.now() / 60_000);
+  if (m !== windowAt) { windowAt = m; windowN = 0; }
+  return ++windowN > LIMIT_PER_MIN;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return J({ error: 'method_not_allowed' }, 405);
-  const { data: row } = await admin.from('app_secrets').select('value').eq('key', 'cred_site_error_ingest').maybeSingle();
-  const want = String(row?.value || '');
-  if (!want) return J({ error: 'not_configured', detail: 'app_secrets.cred_site_error_ingest is empty' }, 503);
-  if (!sameSecret(String(req.headers.get('x-qd-site-secret') || ''), want)) return J({ error: 'unauthorized' }, 401);
+  if (!WANT) return J({ error: 'not_configured', detail: 'SITE_ERROR_INGEST_SECRET is not set on this function' }, 503);
+  if (!sameSecret(String(req.headers.get('x-qd-site-secret') || ''), WANT)) return J({ error: 'unauthorized' }, 401);
+  if (throttled()) return J({ error: 'too_many_reports', detail: 'over ' + LIMIT_PER_MIN + ' reports in this minute' }, 429);
 
   // deno-lint-ignore no-explicit-any
   let b: any = null;

@@ -1111,6 +1111,11 @@ async function siteRuntimeErrors(): Promise<Record<string, unknown>> {
       .select('id', { count: 'exact', head: true })
       .eq('source', 'website').eq('kind', 'runtime_error').gte('created_at', since);
     if (e2) return { basis: 'unavailable', reason: 'public.error_events could not be counted: ' + e2.message };
+    // RETENTION RUNS WHERE THE ROWS ARE READ (22 Sep 2026). Nothing else deletes a website row, and
+    // only the last hour and the last 24 h are ever read. Bounded at 2,000 rows a call by the
+    // routine itself — a 50k batch delete forced a database restart on 21 Sep. Swallowed: a prune
+    // that fails must never cost the tick its reading.
+    try { await admin.rpc('fn_prune_website_error_events', { p_limit: 2000 }); } catch (_e) { /* the next tick prunes */ }
     return { basis: 'measured', count: count ?? 0, window_minutes: RUNTIME_WINDOW_MIN, reported_by: 'src/instrumentation.ts onRequestError -> site_error_ingest' };
   } catch (e) {
     return { basis: 'unavailable', reason: 'the runtime-error reading threw: ' + String((e as Error)?.message || e).slice(0, 200) };

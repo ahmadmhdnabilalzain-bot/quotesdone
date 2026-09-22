@@ -256,6 +256,15 @@ begin
 
   -- ok is the honest answer to "was every active rule actually evaluated". A branch that answers
   -- 'not_instrumented' did not evaluate anything, so it cannot leave ok true (22 Sep 2026).
+  --
+  -- THE KEY NAME IS LOAD-BEARING, DO NOT "TIDY" IT. resilience_ping's failureOf (steps.ts:14)
+  -- counts a step as FAILED only when it answers ok:false AND a string `error` key; ok:false with
+  -- no `error` is a result that has already reported itself, and is deliberately left alone.
+  -- The missing-evaluator case keeps `error` because it IS a heartbeat failure — a rule nothing
+  -- evaluates is a defect in the code. The uninstrumented case is reported under
+  -- `uninstrumented_error` instead, because it is a standing, known gap the CEO must close by
+  -- instrumenting the measure or deactivating the rule, not a tick that went wrong. Renaming it to
+  -- `error` would turn the ceoDecisions step permanently red and train the estate to ignore it.
   return jsonb_build_object('ok', cardinality(v_missing) = 0 and cardinality(v_blind) = 0, 'dry_run', p_dry_run,
            'fired', v_fired, 'written', v_written, 'rules', v_out,
            'not_instrumented', to_jsonb(v_blind))
