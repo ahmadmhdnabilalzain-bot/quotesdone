@@ -384,6 +384,12 @@
   "ff564000c32a",
   "ffafacc477aa"
  ],
+ "scripts/sql/a_fee_question_that_names_no_side_gets_the_customer_fee.sql": [
+  "2fcc300bc0ca",
+  "4c605fe5b5ab",
+  "6190da0bcb51",
+  "ca7ac89e6aaf"
+ ],
  "scripts/sql/an_unmatched_question_gets_a_proper_answer.sql": [
   "5962f01deb2f",
   "693c2ec882a6",
@@ -2828,6 +2834,16 @@
  "supabase/functions/_shared/quote_labels.ts": [
   "d59ecf7fd6e7"
  ],
+ "supabase/functions/_shared/size_question.ts": [
+  "29de6634a5a5",
+  "6179513998c9",
+  "752056d6bfbd",
+  "98ef2d657e6e",
+  "bf7bcead9a00",
+  "f1e0a31d8277",
+  "f1e3efda5ea4",
+  "fb124abd6131"
+ ],
  "supabase/functions/_shared/supplier_agreement.ts": [
   "035170926e9a",
   "36e9ec2d78d6"
@@ -3352,26 +3368,17 @@
   "ebe0e6add637"
  ],
  "supabase/functions/wa_inbound/founder_queries.ts": [
-  "0ca9957ff0bb",
-  "136547e316a5",
-  "194e999ec0d0",
-  "2ce714b7954a",
-  "31028cf3ec49",
-  "4fd2c415fa3a",
-  "51776870296f",
-  "67e296595f3a",
-  "6a91a3a8d284",
-  "7064717e5489",
-  "81c4c369510f",
-  "930546736cac",
-  "93234b45f1e7",
-  "a801d895b328",
-  "be63993de90f",
-  "d42ea9991e7d",
-  "e6fef1814df1",
-  "ef2f351dd506",
-  "f67f2a4b286d",
-  "feb218f08677"
+  "10cff14a7bd4",
+  "5869f3f18dd2",
+  "5b655ee62f9f",
+  "6285916c4a68",
+  "64bdc8dd860b",
+  "690e31308a62",
+  "69db5c367955",
+  "803f2737f998",
+  "8e45f4f4e95a",
+  "cdda50dc07b3",
+  "fe497cb722e6"
  ],
  "supabase/functions/wa_inbound/index.ts": [
   "0c779ad88625",

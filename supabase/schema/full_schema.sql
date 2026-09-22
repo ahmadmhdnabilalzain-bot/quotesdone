@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T15:52:37.826Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T16:42:15.218Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -26356,6 +26356,7 @@ declare
   v_budget   int := greatest(coalesce(p_max_chars, 9000), 4000);
   v_trunc    boolean := false;
   r          record;
+  v_pub      boolean := coalesce(lower(btrim(p_audience)), 'internal') = 'public';
 begin
   select * into v_reg from public.company_registration order by recorded_at desc nulls last limit 1;
   select vision, mission into v_vis from public.company_vision order by id limit 1;
@@ -26416,11 +26417,19 @@ begin
           then ' -- there is NO calendar deadline: charging begins with registration number '
                || (v_freen + 1) || ', whenever that happens (founder ruling, 6 Sep 2026).'
           else ', charged from ' || to_char(v_starts, 'DD Mon YYYY') || '.' end
-  || ' The company is PRE-LAUNCH: no real customer, inquiry, quotation or transaction exists yet, and'
-  || ' that is a fact about the stage, never a reason to answer as if a capability were missing.'
+  -- Internal only (instruction 777): a statement of how many customers exist is a figure.
+  || case when v_pub then '' else
+     ' The company is PRE-LAUNCH: no real customer, inquiry, quotation or transaction exists yet, and'
+  || ' that is a fact about the stage, never a reason to answer as if a capability were missing.' end
   || E'\n\n'
   || '## 3. THE HARD RULES -- the founder''s only rules; no employee may relax them' || E'\n'
-  || public.fn_company_hard_rules() || E'\n'
+  -- The category-opening rule carries an internal supplier threshold (instruction 777); the public
+  -- block states the matching rule as a capability instead.
+  || case when v_pub
+          then regexp_replace(public.fn_company_hard_rules(), '\n5\. CATEGORY OPENING[^\n]*',
+                 E'\n5. MATCHING: every request goes only to verified suppliers of its exact trade, never to a'
+                 || ' neighbouring one, and new trades are welcome.')
+          else public.fn_company_hard_rules() end || E'\n'
   || '## 4. LICENCE, TAX AND AUDIT' || E'\n'
   || 'Licence ' || coalesce(v_reg.license_no, '(none on record)')
   || coalesce(' (' || v_reg.license_type || ')', '')
@@ -26431,13 +26440,17 @@ begin
   || 'VAT: '
   || case when coalesce(v_reg.vat_registered, false)
           then 'REGISTERED' || coalesce(', TRN ' || v_reg.trn, '') || '.'
+          -- The turnover threshold tells a stranger what our revenue is below (instruction 777).
+          when v_pub then 'NOT registered; no invoice carries VAT.'
           else 'NOT registered, and registration is NOT required until taxable turnover reaches the'
                || ' AED ' || coalesce(to_char(v_reg.vat_threshold_aed, 'FM999,999,999'), '375,000')
                || ' threshold. No invoice carries VAT and no agent asks the founder about it again'
                || ' (founder ruling, ' || coalesce(to_char(v_reg.vat_ruling_on, 'DD Mon YYYY'), '6 Sep 2026') || ').' end
   || E'\n'
-  || coalesce('Corporate tax: ' || v_reg.corporate_tax_note || E'\n', '')
-  || coalesce('Auditor: ' || v_reg.auditor || E'\n', '')
+  -- Both notes reason about revenue thresholds and internal roles: internal only (instruction 777).
+  || case when v_pub then '' else
+        coalesce('Corporate tax: ' || v_reg.corporate_tax_note || E'\n', '')
+     || coalesce('Auditor: ' || v_reg.auditor || E'\n', '') end
   || E'\n';
 
   -- A PUBLIC BLOCK STOPS HERE, AND SAYS SO. Silently ending after section 4 would read to a model
@@ -32756,6 +32769,11 @@ begin
                and f.language = case when v_ar then 'ar' else 'en' end
              order by f.embedding_gte <=> p_embedding limit 5) c
      where c.sim >= p_min_similarity
+       -- A SUPPLIER-SIDE record answers only a question that names the supplier side (22 Sep 2026):
+       -- "كم رسومكم" (what are your fees) met the Arabic supplier-fee twin #843 added at 0.883, above
+       -- the customer platform-fee record, and a stranger was told what suppliers pay.
+       and (c.question !~* '(for|as an?) suppliers?|suppliers? pay|do suppliers|كمورد|للموردين|الموردون|يدفع المورد'
+            or p_text ~* 'supplier|vendor|مورد')
        and cardinality(array(select unnest(v_qc) intersect select unnest(public.fn_faq_concepts(c.question, v_ar)))) >= 1
        and cardinality(array(select unnest(v_qc) intersect select unnest(public.fn_faq_concepts(c.question || ' ' || c.answer, v_ar))))
            >= case when v_ar then cardinality(v_qc) when cardinality(v_qc) >= 3 then greatest(2, ceil(cardinality(v_qc) / 2.0)::int)

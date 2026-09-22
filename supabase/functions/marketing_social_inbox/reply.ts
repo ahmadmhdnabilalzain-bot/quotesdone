@@ -20,6 +20,7 @@
 // A price, a promise or a date is never composed here: every sentence the seat sends is a library
 // row, an approved FAQ answer, or a corpus passage, verbatim.
 import { langOf, onTopic, pickFaq, routeQuestion, isArabic, type FaqRow, type Lang } from '../_shared/chat_answers.ts';
+import { capabilityStatement, isSizeQuestion } from '../_shared/size_question.ts';
 import { clip } from './meta.ts';
 
 export interface LibraryRow { key: string; priority: number | null; match_words: string[] | null; reply_en: string; reply_ar: string; active: boolean }
@@ -84,6 +85,8 @@ const byKey = (library: LibraryRow[], key: string) => library.find((r) => r.key 
 export function decide(message: string, library: LibraryRow[], faqs: FaqRow[], corpus: CorpusRow[]): Decision {
   const lang = langOf(message);
   if (wantsHuman(message)) return { kind: 'handoff', key: 'human_handoff', lang, text: pick(byKey(library, 'human_handoff'), lang) };
+  // How big are we: what we do, never a number (instruction 777) — before any library row or FAQ.
+  if (isSizeQuestion(message)) return { kind: 'standard', key: 'capability_answer', lang, text: capabilityStatement(lang) };
 
   const lib = matchLibrary(message, library);
   if (lib) return { kind: 'standard', key: lib.key, lang, text: pick(lib, lang) };
