@@ -121,7 +121,7 @@ test('G. the decision names the right lever and escalates a stall (pure, replaye
 //    the campaign go, the invitation switches, caps or warm-up, subscriptions, and is never told about a
 //    seat that does not exist. Replayed live over every lever the decision can take, then every source of
 //    founder-facing text in the repository is scanned for the reserved subjects.
-const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer'];
+const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
 const FORBIDDEN = /(switched off|switch them|campaign|\bgate\b|go[- ]?live|invite_enabled|\bcaps?\b|ceiling|warm[- ]?up|subscription|marketing)/i;
 
 test('H. no founder-facing text raises the campaign, caps, subscriptions or a seat that does not exist', async (t) => {

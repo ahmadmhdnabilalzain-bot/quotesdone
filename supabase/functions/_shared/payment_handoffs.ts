@@ -15,7 +15,7 @@
 // own voice; the accountant reads and checks the money. The accountant is never named to a customer
 // or a supplier.
 
-export type Seat = 'accountant' | 'sales_engineer' | 'customer_support' | 'ceo' | 'it_engineer';
+export type Seat = 'accountant' | 'sales_engineer' | 'customer_support' | 'ceo' | 'it_engineer' | 'marketing';
 export interface HandoffType { type: string; from: Seat; to: Seat; }
 
 export const HANDOFF_TYPES: readonly HandoffType[] = [
@@ -90,4 +90,13 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'ceo.directive', from: 'ceo', to: 'customer_support' },
   { type: 'ceo.directive', from: 'ceo', to: 'accountant' },
   { type: 'ceo.directive', from: 'ceo', to: 'it_engineer' },
+  // THE MARKETING SEAT (founder instruction 721, 22 Sep 2026; scripts/sql/the_company_gets_a_marketing_seat_that_reports_the_picture_to_the_ceo.sql).
+  // It reports the overall picture to the CEO, who READS it and closes it (never approves); it reports ad spend to
+  // the accountant, who records it and answers; email and WhatsApp still go through customer_support.
+  { type: 'marketing.report', from: 'marketing', to: 'ceo' },
+  { type: 'adspend.recorded', from: 'marketing', to: 'accountant' },
+  { type: 'adspend.booked', from: 'accountant', to: 'marketing' },
+  { type: 'delivery.request', from: 'marketing', to: 'customer_support' },
+  { type: 'delivery.result', from: 'customer_support', to: 'marketing' },
+  { type: 'it.finding', from: 'it_engineer', to: 'marketing' },
 ] as const;

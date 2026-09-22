@@ -1,0 +1,4 @@
+Not applied yet: the coordinator applies it (seat ceo, founder instruction 721). Apply BEFORE PR #834's file
+(it replaces fn_accountant_keeps_reported_ad_spend and fn_marketing_notes_ad_spend_booked by MANIFEST order)
+and BEFORE deploying supabase/functions/marketing and resilience_ping (the tick needs cred_fn_marketing and
+resilience_step 'marketing'). Rehearsed rolled back on 22 Sep 2026 with its probe: PROBE OK.
