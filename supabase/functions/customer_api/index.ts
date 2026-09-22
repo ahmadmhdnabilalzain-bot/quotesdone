@@ -10,6 +10,7 @@ import { KW, detect } from './keywords.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { asLocale, documentLocale } from '../_shared/registered_locale.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
+import { LENGTHS_FAILED_NOTE } from '../drawing_boq/length_notes.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
@@ -760,6 +761,16 @@ Deno.serve(observe('customer_api', async (req) => {
       // it is not a retry: tell the person exactly what to send instead.
       const isArchive = /\.(zip|rar|7z|tar|tgz|gz)$/i.test(name)
         || /(^|[^a-z])(zip|rar|7z|x-7z|x-tar|gzip|compressed)([^a-z]|$)/i.test(mime);
+      if (!images.length && isCad && body.original_b64) {
+        // No picture of the sheet, so nothing a supplier can be shown - but the CAD file itself is still
+        // read for its take-off (doc_read dwg / dxf). The drawing stays held for suppliers.
+        let boq: unknown = null;
+        try {
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: body.original_b64, mime, filename: name, hint }) });
+          const jd = await r.json(); if (jd?.ok) boq = jd.boq;
+        } catch (_e) { /* answered below with boq null */ }
+        if (boq) return J({ ok: true, boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false, note: 'cad_read_not_pictured' });
+      }
       if (!images.length) {
         const note = isCad ? 'cad_not_converted' : (isArchive ? 'archive_not_supported' : 'no_readable_pages');
         const advice = isCad
@@ -781,7 +792,13 @@ Deno.serve(observe('customer_api', async (req) => {
         // written. The customer saw a successful upload with zero redacted pages and no trace.
         // Four pages per call is the measured ceiling with a page in hand; the loop is sequential
         // so two batches never run concurrently against the same budget.
-        const REDACT_BATCH = 4;
+        // 22 SEP 2026 — ONE PAGE PER CALL. Since #794 the portal's pages are kept at 2600 px (a 36x24 sheet
+        // readable to a supplier) and at that size four pages did not survive: on production an 8-sheet set
+        // came back 546 WORKER_RESOURCE_LIMIT on both 4-page calls (12.0 s and 8.9 s), 8 of 8 pages lost,
+        // the drawing held (scripts/e2e/drawing_reaches_suppliers.mjs). drawing_redact now also interprets
+        // only its own pages of the original. Measured per page, see the PR: decode + paint + encode of a
+        // 2600 px sheet plus that one page's text layer.
+        const REDACT_BATCH = 1;
         // CUSTOMER-DRAWN REDACTION (website audit 14 Sep 2026). Under the model hold drawing_redact
         // verifies nothing, so a drawing never reached a supplier. The portal now lets the customer
         // box what must be hidden; drawing_redact applies those boxes deterministically. One entry
@@ -804,7 +821,7 @@ Deno.serve(observe('customer_api', async (req) => {
         if (/pdf/i.test(mime) && body.original_b64) {
           try {
             const bytes = Uint8Array.from(atob(String(body.original_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
-            const tb = titleBlockBoxes(await pdfPages(bytes), seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
+            const tb = titleBlockBoxes(await pdfPages(bytes, undefined, { layers: false }), seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
             serverBoxes = supplierBoxes(tb, manualBoxes, images.length);
           } catch (_e) { serverBoxes = null; }
         }
@@ -814,7 +831,15 @@ Deno.serve(observe('customer_api', async (req) => {
           return await r.json();
         };
         // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
-        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body), ...scheduleTables(body) }) });
+        // A CAD FILE IS READ, NOT PICTURED (22 Sep 2026, sales_engineer; founder instructions 31, 63, 64).
+        // doc_read now opens a DWG (LibreDWG) and runs the DXF take-off, but the portal sends a .dwg here,
+        // to analyze_drawing, and this call gave drawing_boq only the rasterised sheets: the reader had no
+        // way in. The CAD original goes to drawing_boq's 'document' mode for the take-off; cad_convert's
+        // pictures above are still what drawing_redact covers for suppliers.
+        const boqBody = isCad && body.original_b64
+          ? { __secret: secret, mode: 'document', file_b64: body.original_b64, mime, filename: name, hint }
+          : { __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body), ...scheduleTables(body) };
+        const boqP = fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify(boqBody) });
         let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
         // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
         // under the hold) — the portal opens the customer's box editor on exactly that signal.
@@ -856,6 +881,17 @@ Deno.serve(observe('customer_api', async (req) => {
         // (review of #642: it used to run in parallel and could see the original page). drawing_boq
         // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
         const boqOut = jd.boq;
+        // THE LENGTHS (22 Sep 2026): a drawing set read from a PDF gets its duct and pipe lengths from a SECOND
+        // drawing_boq call that reads the CAD layers (drawing_set.ts, "THE LENGTHS ARE A SECOND CALL"). If it
+        // fails or is killed, boqOut stands with its counted lines, and the customer is told why no lengths.
+        if (boqOut && boqOut.method === 'drawing_set' && /pdf/i.test(mime) && body.original_b64) {
+          try {
+            const lr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'lengths', boq: boqOut, original_b64: body.original_b64 }) });
+            const lj = await lr.json().catch(() => null);
+            if (lj?.ok && lj.boq && Array.isArray(lj.boq.boq)) Object.assign(boqOut, lj.boq);
+            else if (Array.isArray(boqOut.boq) && boqOut.boq.some((l: any) => /^(duct|pipe):/.test(String(l?.type || '')) && l?.qty == null)) boqOut.missing_info = [LENGTHS_FAILED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])];
+          } catch (_e) { /* the counted take-off stands */ }
+        }
         if (boqOut && Array.isArray(boqOut.boq) && boqOut.boq.length) {
           try {
             const cr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'confirm', boq: boqOut.boq, redaction_job_id: redMeta.redaction_complete ? redJobs[0] : null }) });

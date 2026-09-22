@@ -142,13 +142,32 @@ export function parseWhen(text: string, now = new Date()): When | null {
 // ── MONEY ───────────────────────────────────────────────────────────────────────────────────────
 export function parseBudget(text: string): string | null {
   const t = normDigits(text);
-  if (!/aed|dhs?\b|dirhams?|درهم|دراهم|budget|ميزانية|\d\s*k\b/i.test(t)) return null;
-  const m = t.match(/(\d+(?:[.,]\d+)*)\s*(k\b|thousand|ألف|الف|m\b|million|مليون)?/i);
-  if (!m) return null;
-  let v = Number(m[1].replace(/,/g, ''));
-  if (!Number.isFinite(v) || v <= 0) return null;
-  if (m[2]) v *= /m\b|million|مليون/i.test(m[2]) ? 1_000_000 : 1000;
-  return `AED ${Math.round(v)}`;
+  if (!/aed|dhs?\b|dirhams?|درهم|دراهم|د\.إ|budget|ميزانية|\d\s*(?:k|m)\b/i.test(t)) return null;
+  // A NUMBER IS A BUDGET ONLY WHEN IT CARRIES A MONEY MARKER ITSELF. Measured 22 Sep 2026 on production
+  // (scripts/e2e/drawing_reaches_suppliers.mjs): "...26x18 supply duct... Budget is open." became budget
+  // "AED 26" - the word "budget" let the text in and the first number anywhere was taken - and 26 fell
+  // below every HVAC supplier's minimum job, so the request matched nobody. Review of #821: the first fix
+  // still read "Budget: not sure, maybe use 26x18 duct" as AED 26. So each number is judged on its own:
+  //  * never when it is part of a dimension: NxN / N×N, or N followed by mm, cm, m, in, inch, ", ', ft;
+  //  * yes when it carries a multiplier (k, thousand, ألف, M, million, مليون), a currency right after it
+  //    (AED, Dhs, dirhams, درهم, د.إ), a currency or "budget" right before it (a few characters, no other
+  //    words), or a thousands separator (250,000).
+  const re = /\d+(?:[.,]\d+)*/g;
+  for (let m: RegExpExecArray | null; (m = re.exec(t)); ) {
+    const raw = m[0], before = t.slice(Math.max(0, m.index - 24), m.index), after = t.slice(m.index + raw.length, m.index + raw.length + 16);
+    if (/[x×*]\s*$/i.test(before) || /^\s*[x×*]\s*\d/i.test(after)) continue;                         // 26x18
+    const mult = after.match(/^\s*(k\b|thousand|ألف|الف|M\b|mn\b|million|مليون)/);
+    if (!mult && /^\s*(?:mm|cm|m|in|inch(?:es)?|ft|feet|metres?|meters?|["'″′])(?![a-z])/i.test(after)) continue;   // 12 m, 8"
+    const curAfter = /^\s*(?:aed|dhs?|dirhams?|درهم|دراهم|د\.إ)(?![a-z])/i.test(after);
+    const curBefore = /(?:aed|dhs?|dirhams?|درهم|دراهم|د\.إ|budget|ميزانية)[\s:~]*(?:(?:is|of|around|about|approx(?:imately|\.)?|roughly|حوالي|تقريبا|تقريبًا)[\s:~]*)?$/i.test(before);
+    const grouped = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(raw);
+    if (!mult && !curAfter && !curBefore && !grouped) continue;
+    let v = Number(raw.replace(/,/g, ''));
+    if (!Number.isFinite(v) || v <= 0) continue;
+    if (mult) v *= /M\b|mn|million|مليون/.test(mult[1]) ? 1_000_000 : 1000;
+    return `AED ${Math.round(v)}`;
+  }
+  return null;
 }
 
 // ── YES / NO / DON'T KNOW ───────────────────────────────────────────────────────────────────────

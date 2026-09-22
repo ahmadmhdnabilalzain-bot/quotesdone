@@ -12,7 +12,7 @@ import { boqNoteAr, boqNote, confidenceWord } from './boqNotes.ts';
 const ROOT = join(import.meta.dirname, '..', '..');
 const FN = join(ROOT, 'supabase', 'functions');
 const READERS = [
-  ...['boq_from_document', 'boq_from_sheet', 'boq_from_text', 'drawing_from_ocr', 'drawing_set'].map((f) => join(FN, 'drawing_boq', f + '.ts')),
+  ...['boq_from_document', 'boq_from_sheet', 'boq_from_text', 'drawing_from_ocr', 'drawing_set', 'length_notes'].map((f) => join(FN, 'drawing_boq', f + '.ts')),
   join(FN, '_shared', 'pdf_measure.ts'),
   ...readdirSync(join(FN, '_shared', 'doc_read')).filter((f) => f.endsWith('.ts') && !/test|fixtures/.test(f)).map((f) => join(FN, '_shared', 'doc_read', f)),
 ];
@@ -20,7 +20,10 @@ const READERS = [
 // Reads the string literals that follow `missing.push(`, `notes.add(`, `assumptions: [`,
 // `MISSING_ALWAYS = [` and the like. A template's ${…} (nested backticks included) becomes a sample
 // value that looks like a file name, which every value-carrying rule accepts.
-const ANCHOR = /\b(?:missing|notes|assumptions|MISSING_ALWAYS)\b(?:\s*:\s*string\[\])?\s*(?:\.(?:push|add)\(|=\s*\[|:\s*\[|=\s*new Set(?:<string>)?\(\[)/g;
+// 22 Sep 2026 (#821): also a note CONSTANT (RVT_NOTE = '...', DENSE_NOTE = (a, b) => template,
+// DWG_SEND_DXF), missing.unshift(, and a reader's own empty('dwg', [ note list - the DWG/DGN/RVT asks
+// and the length notes were written in those shapes and slipped past the first version of this anchor.
+const ANCHOR = /\b(?:missing|notes|assumptions|MISSING_ALWAYS)\b(?:\s*:\s*string\[\])?\s*(?:\.(?:push|add|unshift)\(|=\s*\[|:\s*\[|=\s*new Set(?:<string>)?\(\[)|\b[A-Z][A-Z_]*(?:_NOTE|_SEND_DXF)\s*=\s*(?:\([^)]*\)\s*=>\s*)?|\bempty\('[a-z]+',\s*\[/g;
 function literals(src, at) {
   const out = [];
   let i = at;

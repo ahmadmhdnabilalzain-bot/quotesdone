@@ -66,7 +66,8 @@ function b64ToBytes(b64:string){ const bin=atob(stripB64(b64)); const a=new Uint
 // must survive). The portal already sends 2600 px (pdfRaster MAX_EDGE); it is now kept, not shrunk.
 // Measured locally (deno, imagescript 1.2.17, a real 2600 px sheet): decode 455 ms, paint + encode 270 ms
 // at 2600 against 422 + 279 ms with the resize to 1600 — skipping the resize pays for the bigger encode,
-// so customer_api's 4-pages-per-call batch is unchanged. Not yet measured on the edge runtime itself.
+// so customer_api's 4-pages-per-call batch was kept - and on 22 Sep 2026 the edge killed those calls
+// (546, 8 of 8 pages lost). customer_api now sends ONE page per call (REDACT_BATCH, measured there).
 const MAXW = 2600;
 // MARGIN pads a MODEL's region (a guess). The server's own boxes (anonymise.titleBlockBoxes, sent as
 // manual_boxes by customer_api) are computed from text positions and already padded; a 3% pad on them
@@ -270,7 +271,10 @@ Deno.serve(observe('drawing_redact', async (req) => {
     const pageOffset = Math.max(0, Number(body.page_offset) || 0);
     let pdf: PdfPage[] = [];
     if (body.original_b64 && typeof body.original_b64 === 'string') {
-      try { pdf = await pdfPages(b64ToBytes(body.original_b64)); } catch (_e) { pdf = []; }
+      // Only THIS batch's pages are interpreted (22 Sep 2026): parsing the whole set on every call, on top
+      // of the pixel work, put each 4-page call past the edge CPU cap - HTTP 546, 8 of 8 pages lost, on
+      // production with an 8-sheet 36x24 set at 2600 px (scripts/e2e/drawing_reaches_suppliers.mjs).
+      try { pdf = await pdfPages(b64ToBytes(body.original_b64), [pageOffset, pageOffset + imgs.length], { layers: false }); } catch (_e) { pdf = []; }
     }
     const textBoxes = (i: number) => textLayerBoxes(pdf, pageOffset + i);
     const paintBoxes = (target: any, gs: Array<{x:number;y:number;w:number;h:number}>, pad = SERVER_MARGIN) => {

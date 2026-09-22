@@ -16,6 +16,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Seal } from '@/components/ui/sealed';
 import { cn } from '@/lib/utils';
+import { boqNote } from '@/lib/boqNotes';
 import { call } from './api';
 import { ws } from './workspaceCopy';
 
@@ -110,8 +111,9 @@ export function BoqTable({ boq, confidence, lang, onQuote }: { boq: any; confide
   const rows: BoqRow[] = Array.isArray(boq?.boq) ? boq.boq : [];
   if (!rows.length) return null;
   const nf = new Intl.NumberFormat(ar ? 'ar-AE' : 'en-AE', { maximumFractionDigits: 2 });
-  const assumptions: string[] = Array.isArray(boq?.assumptions) ? boq.assumptions : [];
-  const missing: string[] = Array.isArray(boq?.missing_info) ? boq.missing_info : [];
+  // The readers write these notes in English; the supplier reads them in the portal's language (#821, founder instruction 586).
+  const assumptions: string[] = (Array.isArray(boq?.assumptions) ? boq.assumptions : []).map((s: string) => boqNote(String(s), lang));
+  const missing: string[] = (Array.isArray(boq?.missing_info) ? boq.missing_info : []).map((s: string) => boqNote(String(s), lang));
   let lastSection = '';
   return (
     <div className="qd-panel mt-4 overflow-hidden p-0">
