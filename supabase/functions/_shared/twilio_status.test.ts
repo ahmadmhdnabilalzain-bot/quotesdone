@@ -7,7 +7,7 @@ import { createHmac } from 'node:crypto';
 import { twilioSignature, verifyTwilioSignature } from './twilio_status.ts';
 
 const TOKEN = '12345';
-const URL_ = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/wa_status';
+const URL_ = 'https://project-ref.supabase.co/functions/v1/wa_status';
 const PARAMS = { MessageSid: 'SMZZDEMOPROBE000000000000000000001', MessageStatus: 'undelivered', ErrorCode: '63016',
                  AccountSid: 'ACzz', To: 'whatsapp:+971500000099', From: 'whatsapp:+12183166814' };
 const oracle = (token: string, url: string, p: Record<string, string>) =>
