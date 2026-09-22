@@ -1,6 +1,0 @@
-customer_support, 22 Sep 2026 (founder instruction 763). Committed, not applied: the coordinator serialises applies.
-Apply order: (1) this file with --apply --ddl, (2) deploy wa_inbound, (3) run the _probe file (verdict row PROBE OK),
-(4) node scripts/kb/embed_sales_knowledge.mjs --table=company_faq (fills the 43 missing FAQ vectors, free gte-small),
-(5) node --test scripts/checks/whatsapp_understands_a_question_asked_in_other_words.test.mjs.
-Proved before apply: the file and its probe ran together inside one never-committed transaction on production and
-returned PROBE OK; SIMULATE=1 of the paraphrase check passed. Not during a campaign hour (an apply can lock sign-in).

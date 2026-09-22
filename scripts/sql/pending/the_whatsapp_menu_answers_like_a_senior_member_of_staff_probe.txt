@@ -1,3 +1,0 @@
-customer_support, 22 Sep 2026. Pure verdict-row probe for the_whatsapp_menu_answers_like_a_senior_member_of_staff.sql; run it
-AFTER that file is applied (it writes nothing that survives: every write is inside a block that always raises). Moves to
-MANIFEST.txt with its subject once it has returned PROBE OK against the applied routines.
