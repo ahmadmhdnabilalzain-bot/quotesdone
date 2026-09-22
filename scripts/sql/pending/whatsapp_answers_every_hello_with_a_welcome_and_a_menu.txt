@@ -1,0 +1,8 @@
+customer_support, 22 Sep 2026 (PR customer_support/whatsapp-answers-every-hello). Not applied by the
+building session (applies are serialised by the coordinator). Rehearsed on production in ONE rolled-back
+transaction together with its probe: verdict PROBE OK; afterwards 0 routines, 0 policy rows, 0 cases,
+0 findings and wa_messages max id unchanged (245).
+Apply order: AFTER every_whatsapp_says_whether_it_arrived.sql (#840). This file (--apply --ddl; it adds a
+trigger on public.wa_messages, a sub-second lock), then deploy wa_inbound, then run the probe, then run
+scripts/whatsapp/create_menu_content.mjs --apply. On apply delete this note and append the file to the END
+of MANIFEST.txt.

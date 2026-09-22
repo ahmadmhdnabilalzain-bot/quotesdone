@@ -28,6 +28,10 @@ import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
+// 22 Sep 2026 (customer_support, instruction 759): the URL Twilio signs, and the welcome + menu.
+import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from './signature.ts';
+import { answerFromFaq, type Content, type MenuDeps, menuTurn, reofferMenu, type Turn } from './menu_flow.ts';
+import { type Audience, type Lang, langOf, SORRY_LEAD } from './menu.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
@@ -113,7 +117,11 @@ async function verifyProvenance(messageSid: string, from: string): Promise<{ ver
 // signature is cryptographic proof of origin, strictly stronger than a REST lookup, and skipping
 // saves one Twilio API round trip on every inbound message. Provenance remains the fallback for
 // the no-token case, so the layered defence is preserved.
-async function verifyTwilioSignature(req: Request, params: Record<string, string>): Promise<{ checked: boolean; valid: boolean; reason: string }> {
+//
+// 22 Sep 2026: the URL is no longer rebuilt from req.url alone — see signature.ts. Inside the edge
+// runtime req.url's path is /wa_inbound, Twilio signs /functions/v1/wa_inbound, and every genuine
+// webhook failed here for twelve days.
+async function verifyTwilioSignature(req: Request, params: Record<string, string>): Promise<{ checked: boolean; valid: boolean; reason: string; urls?: string[] }> {
   const authToken = await sec('twilio_auth_token');
   if (!authToken) return { checked: false, valid: false, reason: 'twilio_auth_token not in app_secrets - signature validation unavailable' };
 
@@ -121,24 +129,10 @@ async function verifyTwilioSignature(req: Request, params: Record<string, string
   if (!sig) return { checked: true, valid: false, reason: 'twilio_auth_token is configured but the request carried no X-Twilio-Signature header' };
 
   try {
-    const proto = req.headers.get('x-forwarded-proto') || 'https';
-    const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
-    if (!host) return { checked: true, valid: false, reason: 'could not rebuild the request URL (no forwarded host) so the signature could not be checked' };
-    const fullUrl = proto + '://' + host + new URL(req.url).pathname;
-
-    // Twilio's scheme: full URL, then every POST param appended as key+value in key-sorted order.
-    let data = fullUrl;
-    for (const k of Object.keys(params).sort()) data += k + params[k];
-
-    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(authToken), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
-    const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
-    const expected = btoa(String.fromCharCode(...new Uint8Array(mac)));
-
-    // constant-time comparison - do not early-return on first differing byte
-    if (expected.length !== sig.length) return { checked: true, valid: false, reason: 'signature length mismatch' };
-    let diff = 0;
-    for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ sig.charCodeAt(i);
-    return { checked: true, valid: diff === 0, reason: diff === 0 ? 'signature valid' : 'signature mismatch - payload was altered or not signed by our Twilio account' };
+    const urls = signedUrlCandidates(req.url, req.headers, Deno.env.get('SUPABASE_URL') || '');
+    const r = await verifyInboundSignature(authToken, urls, params, sig);
+    return { checked: true, valid: r.valid, urls,
+             reason: r.valid ? 'signature valid (url form ' + r.url_form + ')' : r.reason + ' - payload altered, not signed by our Twilio account, or signed with a different auth token' };
   } catch (e) {
     // A crypto failure must not silently downgrade to the weaker path.
     return { checked: true, valid: false, reason: 'signature check errored: ' + String((e as Error)?.message || e).slice(0, 120) };
@@ -384,7 +378,7 @@ async function renderReportPdf(title: string, markdown: string): Promise<{ url: 
   } catch (e) { return { url: null, err: String((e as Error)?.message || e).slice(0, 160) }; }
 }
 
-async function sendWa(to: string, body: string, mediaUrl?: string | null): Promise<{ ok: boolean; err?: string }> {
+async function sendWa(to: string, body: string, mediaUrl?: string | null, content?: Content): Promise<{ ok: boolean; err?: string }> {
   // Every reply leaves through here, so this one line covers all of them: a fixture number is never
   // replied to. The caller stores err as send_error in wa_messages, which is the capture record.
   if (isDemoPhone(to)) return { ok: false, err: FIXTURE_CAPTURE_NOTE };
@@ -394,6 +388,9 @@ async function sendWa(to: string, body: string, mediaUrl?: string | null): Promi
   // WhatsApp caps a media caption at 1,024 characters, well below the 1,200 used for a plain
   // message, so the caller must send the summary here and the substance in the document.
   if (mediaUrl) form.set('MediaUrl', mediaUrl);
+  // An in-session interactive menu (twilio/list-picker, created by scripts/whatsapp/create_menu_content.mjs).
+  // The Content item carries its own text, so Body is not sent alongside it.
+  if (content) { form.delete('Body'); form.set('ContentSid', content.sid); form.set('ContentVariables', JSON.stringify(content.variables)); }
   // 22 Sep 2026: every Twilio send names where Twilio reports what became of it (_shared/twilio_status.ts).
   // A reply here is recorded in wa_messages, not notifications, so wa_status answers it matched=false.
   form.set('StatusCallback', statusCallbackUrl());
@@ -410,6 +407,8 @@ Deno.serve(observe('wa_inbound', async (req) => {
   const logRun = mkLog(Date.now());
   try {
     let From = '', Body = '', Profile = '', MessageSid = '';
+    // An interactive list or button reply names the option chosen (the menu, 22 Sep 2026).
+    let ListId = '', ButtonPayload = '';
     const media: { url: string; mime: string }[] = [];
     let trusted = false; // true once we know the request really came from Twilio (or an internal caller)
     // NOT the same as `trusted`: a valid Twilio signature also sets trusted. This is true only for
@@ -434,6 +433,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
         return TW(200);
       }
       From = j.From || ''; Body = j.Body || ''; Profile = j.ProfileName || ''; MessageSid = j.MessageSid || '';
+      ListId = String(j.ListId || ''); ButtonPayload = String(j.ButtonPayload || '');
       for (let i = 0; i < Number(j.NumMedia || 0) && i < 5; i++) {
         if (j['MediaUrl' + i]) media.push({ url: String(j['MediaUrl' + i]), mime: String(j['MediaContentType' + i] || '') });
       }
@@ -441,6 +441,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
     } else {
       const p = new URLSearchParams(await req.text());
       From = p.get('From') || ''; Body = p.get('Body') || ''; Profile = p.get('ProfileName') || ''; MessageSid = p.get('MessageSid') || p.get('SmsMessageSid') || '';
+      ListId = p.get('ListId') || ''; ButtonPayload = p.get('ButtonPayload') || '';
       // Signature validation needs every POST param, not just the four we consume.
       for (const [k, v] of p.entries()) formParams[k] = v;
       for (let i = 0; i < Number(p.get('NumMedia') || 0) && i < 5; i++) {
@@ -452,6 +453,13 @@ Deno.serve(observe('wa_inbound', async (req) => {
     // original guard returned 200 and dropped it, which is the whole of why an attached trade
     // licence achieved nothing even before the media params went unread.
     if (!From || (!Body && !media.length)) return TW(200);
+
+    // AN ECHO IS NOT A CONVERSATION (22 Sep 2026). A message whose sender is our own WhatsApp number is
+    // our own traffic coming back; answering it would have the company talk to itself, once per reply.
+    if (isOwnNumber(From, await sec('twilio_wa_from'))) {
+      await logRun('ok', { echo: 1 }, 'ignored a webhook whose sender is our own WhatsApp number; nothing was answered');
+      return TW(200);
+    }
 
     // IDEMPOTENCY. Twilio redelivers a webhook it believes timed out, and until now nothing here
     // remembered a MessageSid: a redelivery meant a second model call, a second WhatsApp reply and
@@ -474,7 +482,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
       const sig = await verifyTwilioSignature(req, formParams);
       if (sig.checked && !sig.valid) {
         try {
-          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { signature_checked: true, signature_valid: false, signature_reason: sig.reason, message_sid: MessageSid || null, no_autoreply_reason: 'failed X-Twilio-Signature' } });
+          await admin.from('wa_messages').insert({ wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '', lang: 'en', escalated: false, sent: false, meta: { signature_checked: true, signature_valid: false, signature_reason: sig.reason, signature_urls_tried: sig.urls || null, message_sid: MessageSid || null, no_autoreply_reason: 'failed X-Twilio-Signature' } });
         } catch (_e) { /* */ }
         await alertThrottled('wa_bad_signature', 'warn', 'A WhatsApp webhook FAILED X-Twilio-Signature validation and was rejected (' + sig.reason + '). Unlike the provenance path this is cryptographic proof of forgery, not an inconclusive lookup. Throttled to one alert per 30 minutes.');
         await logRun('error', { authorised: 0, path: 'form', signature_checked: 1, signature_valid: 0 }, 'wa_inbound REJECTED a webhook that failed HMAC-SHA1 signature validation: ' + sig.reason + '. No LLM call and no outbound message were made. The payload was stored in wa_messages. A genuine Twilio webhook cannot fail this check, so this is a forgery or a misconfigured auth token.');
@@ -571,6 +579,77 @@ Deno.serve(observe('wa_inbound', async (req) => {
       const { data: idres } = await admin.rpc('fn_identify_contact', { p_phone: From });
       if (idres && idres.audience) { audience = String(idres.audience); known = idres; }
     } catch (_e) { /* fall back to inference */ }
+
+    // ---- THE WELCOME AND THE MENU (22 Sep 2026, founder_instruction 759) ---------------------------
+    // "said hi, got no response. Even without the LLM there should be automatic replies: a professional
+    // welcome message and options." menu_flow.ts decides; this block only wires it to the database and
+    // Twilio. It runs after the no-exact-spec answer (a "2" there is an answer to that offer) and before
+    // the founder's command channel, and it never takes a document (the media branch below owns those).
+    const waFrom = 'whatsapp:' + (await sec('twilio_wa_from'));
+    const menuDeps: MenuDeps = {
+      autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
+      recentTurns: async (from: string): Promise<Turn[]> => {
+        const { data } = await admin.from('wa_messages').select('meta,lang,created_at').eq('wa_from', from)
+          .gte('created_at', new Date(Date.now() - 86400e3).toISOString()).order('created_at', { ascending: false }).limit(5);
+        // A message we refused at the door (bad signature, unverified) was never a conversation we were in.
+        return ((data || []) as Array<{ meta: Record<string, unknown> | null; lang: string | null }>)
+          .filter((r) => !r.meta?.no_autoreply_reason)
+          .map((r) => ({ route: (r.meta?.route as string) || null, await: (r.meta?.menu_await as string) || null,
+                         lang: r.lang === 'ar' ? 'ar' : r.lang === 'en' ? 'en' : null }));
+      },
+      context: async (from: string) => {
+        const { data, error } = await admin.rpc('fn_wa_menu_context', { p_phone: from });
+        if (error || !data) return { audience: audience as Audience, name: (known?.name as string) || null };
+        return data as { audience: Audience; name: string | null };
+      },
+      faq: async (text: string) => {
+        const { data } = await admin.rpc('fn_faq_answer', { p_text: text.slice(0, 1000) });
+        return (data as { answered?: boolean; answer?: string } | null)?.answered ? String((data as { answer: string }).answer) : null;
+      },
+      openCase: async (from: string, text: string, lang: Lang) => {
+        const { data, error } = await admin.rpc('fn_wa_problem_report', { p_phone: from, p_text: text.slice(0, 4000), p_lang: lang });
+        return error ? null : ((data as { case_ref?: string } | null)?.case_ref || null);
+      },
+      notifyHuman: async (from: string, ctx, text: string) => {
+        const { error } = await admin.rpc('fn_notify_founder', {
+          p_event: 'WhatsApp: ' + (ctx.name || Profile || 'a contact') + ' asked to talk to a person',
+          p_detail: 'From ' + from.replace(/^whatsapp:/i, '') + ' (' + ctx.audience + (ctx.name ? ', ' + ctx.name : '') + ', WhatsApp name "' + (Profile || '-') + '"). They chose "Talk to a person" from the WhatsApp menu' + (text ? ' ("' + text.slice(0, 200) + '")' : '') + '. They were told a member of the team will contact them on this number during working hours.',
+          p_level: 'high', p_kind: 'whatsapp_human_request',
+          p_dedupe_key: 'wa_human:' + from.replace(/[^0-9]/g, '') + ':' + new Date().toISOString().slice(0, 10),
+          p_owner_agent: 'customer_support',
+        });
+        return !error;
+      },
+      contentSid: async (key: string) => {
+        try { const m = JSON.parse((await sec('wa_menu_content_sids')) || '{}'); return typeof m[key] === 'string' && /^HX[0-9a-f]{32}$/i.test(m[key]) ? m[key] : null; }
+        catch (_e) { return null; }
+      },
+      send: (to: string, text: string, content?: Content) => sendWa(to, content ? text : bidiSafe(text.slice(0, 1500)), null, content),
+      record: async (row) => {
+        try {
+          await admin.from('wa_messages').insert({
+            wa_from: From, wa_to: waFrom, profile_name: Profile, inbound: row.inbound, reply: row.reply, lang: row.lang,
+            escalated: row.route === 'menu_qd_person', sent: row.sent,
+            meta: { ...row.extra, route: row.route, menu_await: row.await, enabled: row.extra.autoreply_enabled,
+                    send_error: row.send_error, provenance_verified: true, message_sid: MessageSid || null,
+                    list_id: ListId || null, button_payload: ButtonPayload || null },
+          });
+        } catch (_e) { /* the reply already went out */ }
+        try {
+          await admin.rpc('fn_wa_record_turn', { p_phone: From, p_direction: 'in', p_body: row.inbound.slice(0, 4000), p_intent: row.route });
+          await admin.rpc('fn_wa_record_turn', { p_phone: From, p_direction: 'out', p_body: row.reply.slice(0, 4000), p_intent: row.route, p_answered_by: 'deterministic' });
+        } catch (_e) { /* memory is worth less than the reply */ }
+      },
+    };
+    const menuIn = { from: From, body: Body, listId: ListId, buttonPayload: ButtonPayload,
+                     audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as Audience };
+    if (!media.length) {
+      const m = await menuTurn(menuDeps, menuIn);
+      if (m.handled) {
+        await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);
+        return TW(200);
+      }
+    }
 
     // ---- THE CONTACT'S TIMELINE, read before anything is composed (14 Sep 2026) ----------------
     // Founder: "the only agent who uses the whatsapp and email is the customer support agent. so he
@@ -981,6 +1060,13 @@ Deno.serve(observe('wa_inbound', async (req) => {
       return TW(200);
     }
 
+    // THE APPROVED FAQ ANSWERS BEFORE ANY MODEL (22 Sep 2026). fn_faq_answer is the routine the site
+    // assistant answers from; a confident match costs nothing and is the same answer every time.
+    if (await answerFromFaq(menuDeps, menuIn)) {
+      await logRun('ok', { audience, route: 'faq_answer', cost_aed: 0 }, 'answered from the approved FAQ at no cost');
+      return TW(200);
+    }
+
     let audienceBlock: string;
     if (audience === 'supplier') {
       audienceBlock = `AUDIENCE: this number belongs to a REGISTERED SUPPLIER${known?.name ? ' (' + known.name + ')' : ''}${known?.approved ? ', already verified' : ', registration not yet verified'}. Treat them as a supplier. You may naturally acknowledge that they are registered with us, but never recite ANOTHER person's private details. Their OWN record is supplied below and you may state it back to them plainly - that is the point of this channel.`;
@@ -1061,6 +1147,14 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     const escalate = !!out?.escalate || route?.needs_a_person === true;
     const lang = out?.lang === 'ar' ? 'ar' : 'en';
     const audienceFinal = audience !== 'unknown' ? audience : (['customer', 'supplier'].includes(out?.audience) ? out.audience : 'unknown');
+    // NOTHING COULD ANSWER IT, SO THE MENU IS OFFERED AGAIN (22 Sep 2026) — unless it needs a person, in
+    // which case the contact line below is the answer and the escalation still runs.
+    if (!reply && !escalate) {
+      await reofferMenu(menuDeps, menuIn, SORRY_LEAD[langOf(Body)]);
+      await logRun(llmFailed ? 'error' : 'ok', { audience, route: 'menu_reoffer', llm_failed: llmFailed },
+        'no FAQ match and no composed answer, so the menu was offered again');
+      return TW(200);
+    }
     if (!reply) reply = 'Thanks for your message. I can help with how QuotesDone works, posting a job, or registering as a supplier. To speak with someone directly, call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.';
     reply = bidiSafe(reply);
 
