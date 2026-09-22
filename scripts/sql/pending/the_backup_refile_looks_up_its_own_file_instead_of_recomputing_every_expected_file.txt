@@ -1,0 +1,5 @@
+redefines fn_sales_engineer_refiles_backup (full live body; one lookup changed from fn_it_backup_expected_status() per file to a direct indexed doc_backups read). Coordinator: apply with `node scripts/apply_sql.mjs scripts/sql/the_backup_refile_looks_up_its_own_file_instead_of_recomputing_every_expected_file.sql --apply`, append it to the END of MANIFEST.txt, then append scripts/sql/the_backup_check_answers_inside_its_budget_probe.sql after it (pure probe, never applied), run the probe through the query API (expect PROBE OK), regenerate the schema mirror, and delete this note.
+
+Rehearsed rolled back on production 22 Sep 2026: live body -> PROBE FAILED (fn_it_backup_check 21,411 ms, 10-file refile 26,730 ms); with this file -> PROBE OK (2,899 ms, 109 ms). Live body left unchanged (read back after the rehearsal).
+
+22 Sep 2026 — sales_engineer for it_engineer, the Dropbox check that timed out on its own refile.
