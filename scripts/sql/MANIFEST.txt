@@ -1567,3 +1567,4 @@ scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql
 scripts/sql/the_ceo_plans_every_day_and_directs_the_seats_probe.sql
 scripts/sql/the_founder_hears_from_it_once_a_day.sql
 scripts/sql/every_arabic_message_is_written_not_translated.sql
+scripts/sql/a_truncate_marker_cannot_break_the_restore_drill.sql

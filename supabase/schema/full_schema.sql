@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T01:41:30.991Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T01:43:13.361Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -57254,7 +57254,11 @@ begin
       using v_lo, v_hi;
   end loop;
 
-  -- then the deletions the change log recorded, newest wins: a key whose LAST entry is a delete is gone
+  -- then the deletions the change log recorded, newest wins: a key whose LAST entry is a delete is gone.
+  -- A row_key that does not parse as the key's own type is skipped (21 Sep 2026): the TRUNCATE branch of
+  -- trg_table_export_change writes a sentence there with deleted = true, and on bigint kb_chunks the cast
+  -- raised 22P02 and failed the whole replay. Measured before the fix. The truncate itself forced the
+  -- next export day FULL, so skipping its marker loses nothing.
   execute format(
     'delete from it_replay_scratch s where s.%1$I in (
        select d.row_key::%2$s from (
@@ -57262,7 +57266,7 @@ begin
            from jsonb_array_elements($1) c
           where c->>''table_name'' = $2
           order by c->>''row_key'', (c->>''changed_at'') desc) d
-        where d.deleted)', v_pk, v_pktype)
+        where d.deleted and pg_input_is_valid(d.row_key, %2$L))', v_pk, v_pktype)
     using coalesce(p_changes, '[]'::jsonb), p_table;
   get diagnostics n_deleted = row_count;
   execute 'select count(*) from it_replay_scratch' into n_rebuilt;
