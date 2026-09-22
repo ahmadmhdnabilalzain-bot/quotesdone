@@ -65,6 +65,18 @@ export function isolateLatin(html: string): string {
   return out;
 }
 
+// EVERY internal link in the content files is written with a trailing slash ("/terms/"), and the site
+// serves those paths without one. MEASURED 22 SEP 2026 (production crawl): 463 internal links answered
+// 308 before the page loaded — one redirect per click, on the legal, marketing, services and FAQ pages.
+// The words stay as written in the JSON; the renderers normalise the href, so there is one place to fix
+// rather than 1,261 strings. Root "/" keeps its slash, and an external href is left alone.
+export function docHrefs(html: string): string {
+  return html.replace(/href="(\/[^"?#]*[^/?#])\/(?=["?#])/g, 'href="$1');
+}
+
+// arLinks RUNS FIRST, then docHrefs. The other order left href="/ar/" behind: docHrefs keeps the root
+// "/" (there is nothing to trim), and arLinks then turned it into "/ar/", which answers 308 — measured
+// on /ar/services/solar in the review of #855. Prefixing first means the slash trimmer sees "/ar/".
 export function arDoc(html: string, locale: string): string {
-  return locale === 'ar' ? isolateLatin(arLinks(html)) : html;
+  return docHrefs(locale === 'ar' ? isolateLatin(arLinks(html)) : html);
 }
