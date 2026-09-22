@@ -408,6 +408,12 @@ revoke execute on function public.fn_enqueue_doc_backups() from public, anon, au
 
 -- ── 3. fn_enqueue_doc_backups_backfill: LEGACY EXPORTS and the STORAGE SWEEP, on their own call ────
 
+-- STILL CANCELLED SOMETIMES (22 Sep 2026, it_engineer, SEATS-05): the backfill died at the caller's 8 s on
+-- 22 Sep 09:42:22Z ("the storage sweep and pre-7-Sep exports are not [queued]"). A function-level
+-- `SET statement_timeout` was tried and removed — a timeout armed before the statement starts cannot be
+-- extended from inside it (proved on production; see
+-- a_conversation_party_is_found_by_index_so_the_dropbox_enqueue_fits_in_eight_seconds.sql). p_limit bounds
+-- the rows written but not the scan that finds them, which is where the time goes. Open work, stated here.
 create or replace function public.fn_enqueue_doc_backups_backfill(p_limit integer default 200)
 returns integer
 language plpgsql

@@ -753,9 +753,13 @@ create or replace function public.fn_it_loop_tick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text; x jsonb;
 begin
-  for f in select q.issue_key, q.started_at from public.it_engineer_finding q
-            where q.closed_at is null and public.fn_it_engineer_severity(q.blast, q.affected, q.started_at) <> 'warn'
-              and not exists (select 1 from public.agent_actions a
+  -- ONE DEFINITION OF OPEN, CALLED, NOT COPIED (22 Sep 2026, it_engineer, UNSOLVED-11). The predicate
+  -- (unclosed, and not 'warn' by fn_it_engineer_severity) now lives in fn_it_open_findings, defined in
+  -- the_founder_gets_one_it_digest_per_tick.sql, which the founder's brief counts as well — the brief used
+  -- to keep its own copy and said 9-10 where this loop said 8. The extra condition below is this loop's own
+  -- and stays here: it is about what to RAISE on this tick, not about what is open.
+  for f in select q.issue_key, q.started_at from public.fn_it_open_findings() q
+            where not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
                                  and a.detail->>'issue_key' = q.issue_key
                                  and (a.detail->>'occurrence_started_at')::timestamptz = q.started_at)

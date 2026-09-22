@@ -43,13 +43,18 @@ const WITHHOLD = new Map([
   ['twilio_from',               'real SMS/WhatsApp to real numbers'],
   ['twilio_wa_from',            'real SMS/WhatsApp to real numbers'],
   ['twilio_verify_service_sid', 'real SMS/WhatsApp to real numbers'],
-  ['qa_customer_password',      'production QA account credential'],
+  // qa_customer_password was withheld here until 22 Sep 2026, when it was deleted from production
+  // altogether (scripts/sql/five_dead_secrets_leave_the_store.sql): a plaintext account password
+  // nothing read. A withhold list naming a key that no longer exists is an index pointing at
+  // nothing, so the entry goes with it.
 ]);
 
 const FORCE_OFF = {
   email_enabled: 'false', supplier_emails_enabled: 'false',
   wa_autoreply_enabled: 'false', invite_enabled: 'false', bd_outreach_enabled: 'false',
-  marketing_golive: 'false', meta_sync_enabled: 'false', agent_autonomy_enabled: 'false',
+  // meta_sync_enabled left this list on 22 Sep 2026 with the deleted key: it switched an edge
+  // function (meta_sync) that no longer exists. social_send_enabled is the live social switch.
+  marketing_golive: 'false', social_send_enabled: 'off', agent_autonomy_enabled: 'false',
   cos_frozen: 'true', qa_mint_enabled: 'false',
 };
 
