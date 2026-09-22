@@ -26,6 +26,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { isTransientDeployFailure } from './lib/retry.mjs';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { sql } from './lib/db.mjs';
+import { warmable, warmFunctions } from './lib/warm_functions.mjs';
 
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const args = process.argv.slice(2);
@@ -260,4 +261,19 @@ try {
   console.log(`deploy.completed emitted for ${slugs.length} function(s)`);
 } catch (e) {
   console.log(`deploy.completed NOT emitted: ${String(e?.message || e).slice(0, 200)}`);
+}
+
+// A FRESH DEPLOY IS COLD (22 Sep 2026): the first calls to a just-deployed bundle waited ~3 s for it to
+// reach a worker, and the first customer after every merge paid that. Measurements and the rule for
+// which functions may be called are in scripts/lib/warm_functions.mjs. Best-effort: never fails a deploy.
+try {
+  const hot = warmable(slugs, (s) => readFileSync(`supabase/functions/${s}/index.ts`, 'utf8'));
+  if (hot.length) {
+    const anon = (await api('/api-keys')).find((k) => k.name === 'anon')?.api_key;
+    if (!anon) throw new Error('no anon key listed for the project');
+    const w = await warmFunctions({ url: `https://${ref}.supabase.co`, anon, slugs: hot });
+    for (const [s, r] of Object.entries(w)) console.log(`warmed ${s.padEnd(24)} ${r.ok}/${r.calls} answered, slowest per round ${r.slowest_ms.join(' / ')} ms`);
+  }
+} catch (e) {
+  console.log(`warming NOT done: ${String(e?.message || e).slice(0, 200)}`);
 }
