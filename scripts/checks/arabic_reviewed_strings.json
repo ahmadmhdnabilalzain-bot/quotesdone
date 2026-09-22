@@ -384,6 +384,12 @@
   "ff564000c32a",
   "ffafacc477aa"
  ],
+ "scripts/sql/a_fee_question_that_names_no_side_gets_the_customer_fee.sql": [
+  "2fcc300bc0ca",
+  "4c605fe5b5ab",
+  "6190da0bcb51",
+  "ca7ac89e6aaf"
+ ],
  "scripts/sql/an_unmatched_question_gets_a_proper_answer.sql": [
   "5962f01deb2f",
   "693c2ec882a6",
