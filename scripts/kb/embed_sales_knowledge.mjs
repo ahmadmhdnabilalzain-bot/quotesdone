@@ -17,13 +17,20 @@
 // today but there is no reason to leave that as the only thing standing between here and an
 // injection.
 //
+// 22 Sep 2026 (customer_support, instruction 763): company_faq joins, keyed on id with question +
+// answer as the text -- the recipe its existing vectors were built from (measured: re-embedding FAQ 90
+// as question + "\n" + answer reproduces the stored vector at cosine 1.0000). 20 English and all 23
+// Arabic approved FAQ rows had none, the fee answers among them, so WhatsApp and the site could not
+// reach them by meaning.
+//
 //   node scripts/kb/embed_sales_knowledge.mjs [--table=sales_knowledge] [--limit=N]
+//   node scripts/kb/embed_sales_knowledge.mjs --table=company_faq
 
 import { sql, PROJECT_REF } from '../lib/db.mjs';
 
 const arg = (n, d) => (process.argv.find((a) => a.startsWith(`--${n}=`)) || `--${n}=${d}`).split('=').slice(1).join('=');
 const LIMIT = Number(arg('limit', 100000));
-const TABLES = ['sales_knowledge', 'accountant_knowledge', 'it_engineer_knowledge'];
+const TABLES = ['sales_knowledge', 'accountant_knowledge', 'it_engineer_knowledge', 'company_faq'];
 const TABLE = arg('table', 'sales_knowledge');
 if (!TABLES.includes(TABLE)) { console.error(`--table must be one of: ${TABLES.join(', ')}`); process.exit(2); }
 const CONC = 6;
@@ -31,8 +38,11 @@ const CONC = 6;
 const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
 if (!secret) { console.error('no cred_fn_ai in app_secrets'); process.exit(2); }
 
-const rows = await sql(`select record_id, title, content from public.${TABLE}
-                         where embedding_gte is null order by record_id limit ${LIMIT}`);
+// company_faq names its columns differently; the alias keeps one code path.
+const KEY = TABLE === 'company_faq' ? 'id' : 'record_id';
+const COLS = TABLE === 'company_faq' ? 'id as record_id, question as title, answer as content' : 'record_id, title, content';
+const rows = await sql(`select ${COLS} from public.${TABLE}
+                         where embedding_gte is null order by ${KEY} limit ${LIMIT}`);
 console.log(`${rows.length} record(s) without an embedding`);
 if (!rows.length) process.exit(0);
 
@@ -65,7 +75,7 @@ for (let i = 0; i < rows.length; i += 25) {
   if (got.length) {
     const values = got.map(([id, v]) => `(${lit(id)}, ${lit(v)}::vector(384))`).join(',');
     await sql(`update public.${TABLE} k set embedding_gte = v.e
-                 from (values ${values}) as v(id, e) where k.record_id = v.id`);
+                 from (values ${values}) as v(id, e) where k.${KEY}::text = v.id::text`);
   }
   process.stdout.write(`${i + batch.length} `);
 }

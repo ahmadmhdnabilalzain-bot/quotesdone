@@ -14,7 +14,7 @@ Deno.test('every conversation is between real seats and listed once', () => {
   // The complaint clock (22 Sep 2026, PR #811) is support's own queue too: it holds each complaint as a
   // complaint.due item until the Complaints Policy's final response is given.
   const selfTalk = (h: { type: string; from: string; to: string }) => h.from === 'customer_support' && h.to === 'customer_support'
-    && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due');
+    && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due' || h.type === 'support.case_open' || h.type === 'support.human_requested');
   for (const h of HANDOFF_TYPES) assert(seats.has(h.from) && seats.has(h.to) && (h.from !== h.to || selfTalk(h)), JSON.stringify(h));
 });
 

@@ -10,6 +10,8 @@
 // Limits this copy is written to (Twilio twilio/list-picker, WhatsApp interactive list): item title
 // <= 24 characters, description <= 72, button <= 20, at most 10 items. menu.test.ts asserts them.
 
+import { CANONICAL_ORIGIN, portalLink } from '../_shared/site_origins.ts';
+
 export type Lang = 'en' | 'ar';
 export type Audience = 'customer' | 'supplier' | 'unknown' | 'founder';
 export const MENU_IDS = ['qd_new', 'qd_follow', 'qd_supplier', 'qd_general', 'qd_problem', 'qd_person'] as const;
@@ -104,24 +106,51 @@ export function contentKey(lang: Lang, audience: Audience): string {
   return 'menu_' + lang + '_' + (audience === 'supplier' ? 'supplier' : 'general');
 }
 
-/** The one line that changes per person; it is Content variable {{1}}, so it carries no line break. */
-export function greetLine(lang: Lang, audience: Audience, name: string | null, salam = false): string {
-  const who = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 60);
-  if (lang === 'ar') {
-    const open = salam ? 'وعليكم السلام ورحمة الله وبركاته' : 'أهلًا وسهلًا';
-    if (who) return open + ' ' + who + '، يسعدنا تواصلكم مع QuotesDone.';
-    return open + '، مرحبًا بكم في QuotesDone، منصة عروض الأسعار في دولة الإمارات.';
-  }
-  if (who) return 'Good day ' + who + ', and welcome back to QuotesDone.';
-  return audience === 'founder'
-    ? 'Good day, and welcome to QuotesDone.'
-    : "Good day, and welcome to QuotesDone, the UAE's anonymous quotation marketplace.";
+// OUR WORKING HOURS are company knowledge, not copy: src/content/company.json "hours", the line the
+// footer, the contact page and the About page print. An edge function cannot import from src/, so the
+// same words are held here and menu.test.ts fails the moment the two differ (founder, instruction 763:
+// "response times / working hours from company knowledge — don't invent").
+export const HOURS: Record<Lang, string> = {
+  en: 'Sunday to Thursday, 9am to 6pm (GST), excluding UAE public holidays',
+  ar: 'من الأحد إلى الخميس، من 9 صباحًا إلى 6 مساءً (بتوقيت الخليج)، باستثناء العطلات الرسمية في الإمارات',
+};
+
+/** True inside those hours (Dubai, Sunday to Thursday, 09:00 to 18:00). Public holidays are not known here. */
+export function withinHours(now: Date = new Date()): boolean {
+  const d = new Date(now.getTime() + 4 * 3600e3);          // Asia/Dubai is UTC+4 all year
+  const day = d.getUTCDay(); const h = d.getUTCHours();
+  return day >= 0 && day <= 4 && h >= 9 && h < 18;
 }
 
-/** The fixed part of the welcome, signed as QuotesDone. The Content body is greetLine + this. */
+/** A name to greet with, or null. NEVER an address: on 22 Sep the founder was greeted as
+ *  "Good day management@quotesdone.com" because fn_identify_contact returns the founder's admin email
+ *  as his name. fn_wa_menu_context no longer passes one; this is the second lock. */
+export function cleanName(name: string | null | undefined): string | null {
+  const who = String(name || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  if (!who || who.includes('@') || /^\+?[\d\s()-]+$/.test(who) || !/\p{L}/u.test(who)) return null;
+  return who;
+}
+
+/** The one line that changes per person; it is Content variable {{1}}, so it carries no line break. */
+export function greetLine(lang: Lang, _audience: Audience, name: string | null, salam = false): string {
+  const who = cleanName(name);
+  if (lang === 'ar') {
+    const open = salam ? 'وعليكم السلام ورحمة الله وبركاته' : 'حيّاكم الله';
+    return open + (who ? ' ' + who : '') + '، ونشكر لكم تواصلكم مع QuotesDone.';
+  }
+  return who ? 'Good day ' + who + ', and thank you for contacting QuotesDone.'
+             : 'Good day, and thank you for contacting QuotesDone.';
+}
+
+/** The fixed part of the welcome: who we are in one line, what to do, when a person is here, signed.
+ *  The Content body is greetLine + this; a list-picker body may hold 1,024 characters (menu test). */
 export const WELCOME_TAIL: Record<Lang, string> = {
-  en: 'Please choose one of the options below, or simply type your question.\n\nQuotesDone team',
-  ar: 'يُرجى اختيار ما يناسبكم من القائمة أدناه، أو كتابة استفساركم مباشرة.\n\nفريق QuotesDone',
+  en: 'QuotesDone is the UAE construction procurement platform: request quotations and compare verified suppliers, with your identity protected until you choose to reveal one.\n\n' +
+      'Please choose from the options below, or simply type your question and I will answer it straight away. Our team is available ' + HOURS.en + '.\n\n' +
+      'Kind regards,\nQuotesDone Customer Support',
+  ar: 'QuotesDone منصة إماراتية لمشتريات قطاع البناء: اطلبوا عروض الأسعار وقارنوا بين موردين موثّقين، مع حجب هويتكم حتى تختاروا الكشف عن أحدهم.\n\n' +
+      'تفضلوا باختيار ما يناسبكم من الخيارات أدناه، أو اكتبوا استفساركم وسنجيبكم عليه فورًا. فريقنا في خدمتكم ' + HOURS.ar + '.\n\n' +
+      'مع خالص التحية،\nفريق خدمة العملاء في QuotesDone',
 };
 
 /** The same menu as numbered text: the fallback when the interactive list cannot be sent. */
@@ -140,10 +169,20 @@ export const SORRY_LEAD: Record<Lang, string> = {
   ar: 'عذرًا، لم أجد إجابة مناسبة لرسالتكم. يمكنني مساعدتكم في ما يلي:',
 };
 
-const SITE = 'https://quotesdone.com';
+const SITE = CANONICAL_ORIGIN;
 export function siteUrl(lang: Lang, path: string): string { return SITE + (lang === 'ar' ? '/ar' : '') + path; }
 
-export type OwnRequest = { rfq_no: number | null; status: string; created_at: string };
+// WHICH PORTAL (instruction 763). Measured 22 Sep 2026 on https://quotesdone.com: /portal renders
+// SupplierPortal for everyone, signed in or not ("Supplier portal — QuotesDone",
+// src/app/[locale]/portal/page.tsx), and /me renders the customer portal ("My requests"). The menu sent
+// customers to /portal, so "Request a quotation" opened the supplier login. Customers and unknown
+// numbers now go to /me (?new=1 opens the new-request form, CustomerPortal.tsx); only a supplier is sent
+// to /portal, and a company that is not yet a supplier to /supplier, the page that explains joining.
+export function newRequestUrl(lang: Lang): string { return portalLink(lang) + '?new=1'; }
+export function requestUrl(lang: Lang, id: string): string { return portalLink(lang, id); }
+export function supplierPortalUrl(lang: Lang): string { return siteUrl(lang, '/portal'); }
+
+export type OwnRequest = { id?: string; rfq_no: number | null; status: string; created_at: string };
 export type MenuContext = { audience: Audience; name: string | null; approved?: boolean; requests?: OwnRequest[] };
 
 const STATUS: Record<string, [string, string]> = {
@@ -164,51 +203,49 @@ function statusWords(s: string, lang: Lang): string {
 }
 
 /** The reply to an option that needs no further input (everything except report-a-problem's second turn). */
-export function optionReply(id: MenuId, lang: Lang, ctx: MenuContext): string {
+export function optionReply(id: MenuId, lang: Lang, ctx: MenuContext, now: Date = new Date()): string {
   const ar = lang === 'ar';
-  const portal = siteUrl(lang, '/portal');
-  const supplierUrl = siteUrl(lang, '/supplier');
+  const newReq = newRequestUrl(lang);
+  const supplierPortal = supplierPortalUrl(lang);
+  const join = siteUrl(lang, '/supplier');
   switch (id) {
     case 'qd_new':
       return ar
-        ? 'لطلب عرض سعر، يُرجى وصف العمل المطلوب عبر الرابط التالي:\n' + portal + '\nيمكنكم إرفاق صور أو مخططات. نشر الطلب ومقارنة العروض مجاني، وتبقى هويتكم محجوبة حتى تختاروا كشف بيانات أحد الموردين.'
-        : 'To request a quotation, describe the job at ' + portal + ' (text, photos or drawings all work). Posting a request and comparing quotes is free, and your identity stays hidden until you choose to reveal a supplier.';
+        ? 'لطلب عرض سعر، تفضلوا بوصف العمل المطلوب عبر الرابط التالي، ويمكنكم إرفاق صور أو مخططات:\n' + newReq + '\nنشر الطلب ومقارنة العروض مجاني، وتبقى هويتكم محجوبة حتى تختاروا الكشف عن أحد الموردين.'
+        : 'To request a quotation, describe the job here (text, photos or drawings all work):\n' + newReq + '\nPosting a request and comparing quotes is free, and your identity stays hidden until you choose to reveal a supplier.';
     case 'qd_follow': {
-      if (ctx.audience === 'supplier') return optionReply('qd_supplier', lang, ctx);
-      if (ctx.audience !== 'customer' && ctx.audience !== 'founder') {
-        return ar
-          ? 'حرصًا على خصوصيتكم، لا نعرض تفاصيل الطلبات إلا لرقم واتساب مؤكد في حساب على المنصة. يُرجى تسجيل الدخول عبر الرابط التالي لمتابعة طلباتكم، أو تأكيد هذا الرقم في ملفكم الشخصي:\n' + portal
-          : 'To protect your privacy, request details are shared only with a WhatsApp number confirmed on a QuotesDone account. Please sign in at ' + portal + ' to see your requests, or confirm this number in your profile.';
-      }
+      if (ctx.audience === 'supplier') return optionReply('qd_supplier', lang, ctx, now);
       const reqs = (ctx.requests || []).slice(0, 5);
+      // Said plainly (instruction 763): the founder was told "no open requests on your account" and sent
+      // to the supplier portal. Requests are listed only for a CONFIRMED number (fn_wa_menu_context), so
+      // "none" is true of this number and of the account email it is confirmed on.
       if (!reqs.length) {
         return ar
-          ? 'لا توجد طلبات مفتوحة في حسابكم حاليًا. يمكنكم إنشاء طلب جديد عبر الرابط التالي:\n' + portal
-          : 'There are no open requests on your account at the moment. You can start a new one at ' + portal + '.';
+          ? 'لا يوجد طلب مسجّل على رقم الجوال هذا أو على البريد الإلكتروني المرتبط به. إن كنتم قد سجّلتم برقم آخر فتفضلوا بتسجيل الدخول ببريدكم الإلكتروني لمتابعة طلباتكم، ولإنشاء طلب جديد:\n' + newReq
+          : 'There is no request registered under this mobile number (or its email). If you registered with another number, please sign in with your email to see your requests. To start a new request:\n' + newReq;
       }
       const lines = reqs.map((r) => {
         const day = String(r.created_at || '').slice(0, 10);
         const no = r.rfq_no ? (ar ? 'الطلب رقم ' + r.rfq_no : 'Request ' + r.rfq_no) : (ar ? 'طلب' : 'Request');
-        return '• ' + no + ': ' + statusWords(r.status, lang) + (day ? (ar ? ' (' + day + ')' : ' (opened ' + day + ')') : '');
+        const link = r.id ? '\n' + requestUrl(lang, r.id) : '';
+        return '• ' + no + ': ' + statusWords(r.status, lang) + (day ? (ar ? ' (' + day + ')' : ' (opened ' + day + ')') : '') + link;
       });
-      return ar
-        ? 'طلباتكم الحالية:\n' + lines.join('\n') + '\n\nالتفاصيل الكاملة عبر الرابط التالي:\n' + portal
-        : 'Your current requests:\n' + lines.join('\n') + '\n\nFull details: ' + portal;
+      return ar ? 'طلباتكم الحالية:\n' + lines.join('\n') : 'Your current requests:\n' + lines.join('\n');
     }
     case 'qd_supplier': {
       if (ctx.audience === 'supplier') {
-        const co = ctx.name ? (ar ? ' (' + ctx.name + ')' : ' (' + ctx.name + ')') : '';
+        const co = ctx.name ? ' (' + ctx.name + ')' : '';
         return ctx.approved
           ? (ar
-            ? 'حساب المورد' + co + ' موثّق ومفعّل. يمكنكم إدارة طلبات عروض الأسعار وعروضكم عبر الرابط التالي:\n' + supplierUrl
-            : 'Your supplier account' + co + ' is verified. You can manage quotation requests and your quotes at ' + supplierUrl + '.')
+            ? 'حساب المورد' + co + ' موثّق ومفعّل. تفضلوا بإدارة طلبات عروض الأسعار وعروضكم عبر بوابة الموردين:\n' + supplierPortal
+            : 'Your supplier account' + co + ' is verified. You can manage quotation requests and your quotes in the supplier portal:\n' + supplierPortal)
           : (ar
-            ? 'تسجيل حسابكم' + co + ' لم يكتمل التحقق منه بعد. يُرجى استكمال الخطوات المتبقية عبر الرابط التالي، ويستغرق التحقق حتى 3 أيام عمل بعد اكتمال المستندات:\n' + supplierUrl
-            : 'Your registration' + co + ' is not verified yet. Please complete the remaining steps at ' + supplierUrl + '; verification takes up to 3 working days once the documents are complete.');
+            ? 'تسجيل حسابكم' + co + ' لم يكتمل التحقق منه بعد. تفضلوا باستكمال الخطوات المتبقية في بوابة الموردين، ويستغرق التحقق حتى 3 أيام عمل بعد اكتمال المستندات:\n' + supplierPortal
+            : 'Your registration' + co + ' is not verified yet. Please complete the remaining steps in the supplier portal; verification takes up to 3 working days once the documents are complete:\n' + supplierPortal);
       }
       return ar
-        ? 'يسجل الموردون مجانًا برخصة تجارية سارية في دولة الإمارات، دون أي عمولة على الأعمال التي يفوزون بها. للتسجيل:\n' + supplierUrl + '\nيستغرق التحقق حتى 3 أيام عمل.'
-        : 'Suppliers register free with a valid UAE trade licence and pay no commission on the work they win. Register at ' + supplierUrl + '; verification takes up to 3 working days.';
+        ? 'يسجل الموردون مجانًا برخصة تجارية سارية في دولة الإمارات، دون أي عمولة على الأعمال التي يفوزون بها. للتسجيل:\n' + join + '\nيستغرق التحقق حتى 3 أيام عمل.'
+        : 'Suppliers register free with a valid UAE trade licence and pay no commission on the work they win. Register here:\n' + join + '\nVerification takes up to 3 working days.';
     }
     case 'qd_general':
       return ar
@@ -216,24 +253,90 @@ export function optionReply(id: MenuId, lang: Lang, ctx: MenuContext): string {
         : 'Please type your question and I will answer it from our published guidance. You can also read the FAQ at ' + siteUrl(lang, '/faq') + '.';
     case 'qd_problem':
       return ar
-        ? 'نأسف لذلك. يُرجى وصف المشكلة في رسالة واحدة، مع ذكر رقم الطلب إن وُجد، وسنفتح لكم بلاغًا برقم مرجعي.'
+        ? 'نأسف لذلك. تفضلوا بوصف المشكلة في رسالة واحدة، مع ذكر رقم الطلب إن وُجد، وسنفتح لكم بلاغًا برقم مرجعي.'
         : 'Sorry to hear that. Please describe the problem in one message (with the request number if there is one) and I will open a case with a reference number.';
-    case 'qd_person':
+    case 'qd_person': {
+      // Honest timing (instruction 763): the hours are company knowledge (HOURS); outside them the
+      // contact is told the reply comes when the team is back, not "shortly".
+      const who = cleanName(ctx.name);
+      const open = withinHours(now);
       return ar
-        ? 'شكرًا لكم. طلبنا من أحد أعضاء فريقنا التواصل معكم على هذا الرقم خلال ساعات العمل، من الأحد إلى الخميس من 9 صباحًا حتى 6 مساءً بتوقيت الإمارات.'
-        : 'Thank you. I have asked a member of our team to contact you on this number during working hours (Sunday to Thursday, 9am to 6pm UAE time).';
+        ? 'شكرًا لكم' + (who ? ' ' + who : '') + '. أبلغنا فريق خدمة العملاء بطلبكم، وسيتواصل معكم أحد أعضاء الفريق على هذا الرقم. ساعات عملنا ' + HOURS.ar +
+          (open ? '.' : '، وسيصلكم الرد مع بداية يوم العمل التالي.') +
+          '\nتوقفت الردود الآلية في هذه المحادثة حتى يرد عليكم أحد الموظفين، وكل ما تكتبونه هنا يصل إلى الفريق.'
+        : 'Thank you' + (who ? ', ' + who : '') + '. I have passed your request to our customer support team, and a member of the team will reply to you on this number. Our working hours are ' + HOURS.en +
+          (open ? '.' : '; it is outside those hours now, so expect the reply when the team is back.') +
+          '\nAutomatic replies in this chat are paused until a person answers you, and everything you write here reaches the team.';
+    }
   }
 }
 
-export function caseConfirm(lang: Lang, ref: string | null): string {
-  if (!ref) {
-    return lang === 'ar'
+/** What fn_wa_problem_report answered: the reference, whether the report joined a case already open,
+ *  and the first-reply promise in hours (decision_policy support_first_reply_sla_hours). */
+export type CaseResult = { ref: string | null; appended?: boolean; slaHours?: number | null };
+
+export function caseConfirm(lang: Lang, c: CaseResult): string {
+  const ar = lang === 'ar';
+  if (!c.ref) {
+    return ar
       ? 'شكرًا لكم، وصلتنا رسالتكم. تعذّر إصدار الرقم المرجعي الآن، وسيراجع فريق الدعم رسالتكم ويرد عليكم على هذا الرقم.'
       : 'Thank you, your message has reached us. A reference number could not be issued just now; our support team will review it and reply on this number.';
   }
+  const h = c.slaHours && c.slaHours > 0 ? Math.round(c.slaHours) : null;
+  const when = !h ? ''
+    : ar ? ' وسيصلكم ردنا خلال ' + h + ' ساعة (ساعات العمل ' + HOURS.ar + ').'
+    : ' You will have our answer within ' + h + ' hours (our working hours are ' + HOURS.en + ').';
+  if (c.appended) {
+    return ar
+      ? 'شكرًا لكم. لديكم بلاغ مفتوح برقم ' + c.ref + '، فأضفنا رسالتكم إليه بدل فتح بلاغ جديد.' + when
+      : 'Thank you. You already have an open case, ' + c.ref + ', so I have added this message to it rather than opening a new one.' + when;
+  }
+  return ar
+    ? 'شكرًا لكم. الرقم المرجعي لبلاغكم هو ' + c.ref + '، وسيتولى فريق الدعم متابعته.' + when
+    : 'Thank you. Your case reference is ' + c.ref + ', and our support team is on it.' + when;
+}
+
+/** The reporter hears that their case is closed (nothing is one-way). Sent in-session by the founder's
+ *  close command; fn_support_case_closed_tells_the_reporter emails the account address as well. */
+export function caseClosedNotice(lang: Lang, ref: string, reason: string): string {
+  const why = String(reason || '').replace(/\s+/g, ' ').trim().slice(0, 300);
   return lang === 'ar'
-    ? 'شكرًا لكم. الرقم المرجعي لبلاغكم هو ' + ref + '، وسيراجعه فريق الدعم ويرد عليكم على هذا الرقم.'
-    : 'Thank you. Your case reference is ' + ref + '. Our support team will review it and reply on this number.';
+    ? 'نفيدكم بإغلاق البلاغ رقم ' + ref + (why ? '، وملخص المعالجة: ' + why : '') + '.\nإن لم تُحلّ المشكلة فتفضلوا بالرد على هذه الرسالة وسنعيد فتحه.\n\nفريق خدمة العملاء في QuotesDone'
+    : 'Your case ' + ref + ' is now closed' + (why ? ': ' + why : '') + '.\nIf the problem is not solved, just reply to this message and we will reopen it.\n\nQuotesDone Customer Support';
+}
+
+/** The founder's alert when someone asks for a person: who, which side, what they last wrote, a one-tap
+ *  reply link, and how to close it. There is no OS page to link: https://quotesdone.com/os answers 404
+ *  (measured 22 Sep 2026), so the conversation itself is carried in the alert. */
+export function humanAlert(p: { phone: string; name: string | null; profile: string | null; audience: Audience;
+                               lastMessages: string[] }): { event: string; detail: string } {
+  const digits = String(p.phone || '').replace(/[^0-9]/g, '');
+  const who = cleanName(p.name) || cleanName(p.profile) || ('+' + digits);
+  const side = p.audience === 'supplier' ? 'supplier' : p.audience === 'customer' ? 'customer' : p.audience === 'founder' ? 'founder (test)' : 'not yet a registered customer or supplier';
+  const said = p.lastMessages.map((m) => String(m || '').replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 3)
+    .map((m) => '- "' + m.slice(0, 200) + '"');
+  return {
+    event: 'WhatsApp: ' + who + ' asks to talk to a person',
+    detail: [
+      'Who: ' + who + (cleanName(p.profile) && cleanName(p.profile) !== who ? ' (WhatsApp name "' + cleanName(p.profile) + '")' : '') + ', +' + digits,
+      'Side: ' + side,
+      said.length ? 'Last messages:\n' + said.join('\n') : 'Last messages: none besides choosing "Talk to a person".',
+      'Reply now: https://wa.me/' + digits,
+      'They were told a member of the team will reply on this number, working hours ' + HOURS.en + ', and automatic replies to them are paused until you close this or 23 hours pass.',
+      'When you have answered them, send DONE +' + digits + ' to the QuotesDone WhatsApp number to close it.',
+    ].join('\n'),
+  };
+}
+
+/** A command only the founder's number may give: close a support case, or close a human request. */
+export type FounderCommand = { kind: 'close_case'; ref: string; reason: string } | { kind: 'close_human'; phone: string };
+export function founderCommand(body: string): FounderCommand | null {
+  const t = westernDigits(String(body || '')).trim();
+  const c = t.match(/^(?:close|اغلاق|إغلاق)\s+(QD-S-[23456789A-HJ-NP-Z]{6})\b[\s:,-]*([\s\S]*)$/i);
+  if (c) return { kind: 'close_case', ref: c[1].toUpperCase(), reason: c[2].trim() };
+  const h = t.match(/^(?:done|تم)\s+(\+?[\d\s-]{9,20})$/i);
+  if (h) return { kind: 'close_human', phone: h[1].replace(/[^0-9]/g, '') };
+  return null;
 }
 
 export const MENU_HINT: Record<Lang, string> = {

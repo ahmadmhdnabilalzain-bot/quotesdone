@@ -31,8 +31,32 @@ import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 // 22 Sep 2026 (customer_support, instruction 759): the URL Twilio signs, and the welcome + menu.
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from './signature.ts';
 import { answerFromFaq, type Content, type MenuDeps, menuTurn, reofferMenu, type Turn, welcomeFirstContact } from './menu_flow.ts';
-import { type Audience, type Lang, langOf, SORRY_LEAD } from './menu.ts';
+import { type Audience, humanAlert, type Lang, langOf, SORRY_LEAD } from './menu.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+
+// THE QUESTION IS UNDERSTOOD, NOT ONLY MATCHED (instruction 763). Measured 22 Sep 2026: wa_inbound
+// called fn_faq_answer(p_text) with no embedding, so WhatsApp answered only when the stemmed words
+// lined up. The site assistant's path (ai_gateway try_faq) passes a gte-small vector. This is the same
+// model: Supabase.ai in-region, free, never OpenRouter. Module scope so one worker builds one session.
+// If it fails the vector is null and fn_faq_answer answers by keyword alone, exactly as before.
+// deno-lint-ignore no-explicit-any
+let _emb: any = null;
+async function embedQuestion(text: string): Promise<string | null> {
+  try {
+    // deno-lint-ignore no-explicit-any
+    if (_emb === null) _emb = new (globalThis as any).Supabase.ai.Session('gte-small');
+    const v = await _emb.run(String(text).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
+    return Array.isArray(v) && v.length === 384 ? '[' + v.join(',') + ']' : null;
+  } catch (e) {
+    console.error('wa_inbound embed: gte-small failed:', String((e as Error)?.message || e).slice(0, 300));
+    return null;
+  }
+}
+// The cosine floor for a CORROBORATED semantic answer. fn_faq_answer only accepts a neighbour that
+// also shares the asker's own words (see the_whatsapp_menu_answers_like_a_senior_member_of_staff.sql);
+// measured 22 Sep: "how much do you charge" -> "What are the platform fees?" at 0.8516, while the
+// unrelated "what is the weather in paris" peaks at 0.7148 over the whole FAQ.
+const FAQ_MIN_SIMILARITY = 0.84;
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 const TW = (s = 200) => new Response('<Response></Response>', { status: s, headers: { 'Content-Type': 'text/xml' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -603,22 +627,42 @@ Deno.serve(observe('wa_inbound', async (req) => {
         return data as { audience: Audience; name: string | null };
       },
       faq: async (text: string) => {
-        const { data } = await admin.rpc('fn_faq_answer', { p_text: text.slice(0, 1000) });
+        const q = text.slice(0, 1000);
+        const { data } = await admin.rpc('fn_faq_answer', {
+          p_text: q, p_min_rank: 0.15, p_embedding: await embedQuestion(q), p_min_similarity: FAQ_MIN_SIMILARITY,
+        });
         return (data as { answered?: boolean; answer?: string } | null)?.answered ? String((data as { answer: string }).answer) : null;
       },
       openCase: async (from: string, text: string, lang: Lang) => {
         const { data, error } = await admin.rpc('fn_wa_problem_report', { p_phone: from, p_text: text.slice(0, 4000), p_lang: lang });
-        return error ? null : ((data as { case_ref?: string } | null)?.case_ref || null);
+        const r = (error ? null : data) as { case_ref?: string; appended?: boolean; sla_hours?: number } | null;
+        return { ref: r?.case_ref || null, appended: r?.appended === true, slaHours: r?.sla_hours ?? null };
       },
-      notifyHuman: async (from: string, ctx, text: string) => {
-        const { error } = await admin.rpc('fn_notify_founder', {
-          p_event: 'WhatsApp: ' + (ctx.name || Profile || 'a contact') + ' asked to talk to a person',
-          p_detail: 'From ' + from.replace(/^whatsapp:/i, '') + ' (' + ctx.audience + (ctx.name ? ', ' + ctx.name : '') + ', WhatsApp name "' + (Profile || '-') + '"). They chose "Talk to a person" from the WhatsApp menu' + (text ? ' ("' + text.slice(0, 200) + '")' : '') + '. They were told a member of the team will contact them on this number during working hours.',
-          p_level: 'high', p_kind: 'whatsapp_human_request',
-          p_dedupe_key: 'wa_human:' + from.replace(/[^0-9]/g, '') + ':' + new Date().toISOString().slice(0, 10),
-          p_owner_agent: 'customer_support',
+      // The alert is actionable (instruction 763): who, which side, their last messages, a one-tap
+      // wa.me reply and the DONE command. fn_wa_human_request records the handoff and the hold.
+      notifyHuman: async (from: string, ctx, _text: string) => {
+        const { data: last } = await admin.from('wa_messages').select('inbound').eq('wa_from', from)
+          .not('inbound', 'is', null).order('created_at', { ascending: false }).limit(6);
+        const said = ((last || []) as Array<{ inbound: string | null }>).map((r) => String(r.inbound || ''))
+          .filter((m) => m && !/^qd_[a-z]+$/.test(m)).slice(0, 3);
+        const a = humanAlert({ phone: from, name: ctx.name, profile: Profile || null, audience: ctx.audience, lastMessages: said });
+        const { data, error } = await admin.rpc('fn_wa_human_request', {
+          p_phone: from, p_hold: ctx.audience !== 'founder', p_event: a.event, p_detail: a.detail,
         });
-        return !error;
+        return !error && (data as { notified?: boolean } | null)?.notified === true;
+      },
+      humanHold: async (from: string) => {
+        const { data, error } = await admin.rpc('fn_wa_human_hold', { p_phone: from });
+        return !error && data === true;
+      },
+      closeCase: async (ref: string, reason: string) => {
+        const { data, error } = await admin.rpc('fn_support_case_close', { p_ref: ref, p_reason: reason, p_by: 'founder (WhatsApp)' });
+        const r = (error ? null : data) as { ok?: boolean; phone_digits?: string | null; lang?: string; close_reason?: string } | null;
+        return { ok: r?.ok === true, phone: r?.phone_digits || null, lang: r?.lang === 'ar' ? 'ar' : 'en', reason: r?.close_reason || reason };
+      },
+      closeHuman: async (phone: string) => {
+        const { data, error } = await admin.rpc('fn_wa_human_request_close', { p_phone: phone, p_by: 'founder (WhatsApp)', p_note: 'closed by the DONE command' });
+        return error ? 0 : Number((data as { closed?: number } | null)?.closed || 0);
       },
       // Anything the company sent this number on WhatsApp in 24 hours (price requests, notices): a reply
       // to it is in-flow, not a first contact. Matched on the last nine digits, as fn_whatsapp_owner does.

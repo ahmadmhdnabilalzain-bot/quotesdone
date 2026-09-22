@@ -620,6 +620,9 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     loadUnread(true);
     const qs = new URLSearchParams(location.search);
     const dl = parseQuoteLink(location.search); if (dl) setDeepLink(dl);
+    // /me?new=1 opens the new-request form: the link WhatsApp's "Request a quotation" sends
+    // (customer_support, 22 Sep 2026, instruction 763 — it used to send customers to the supplier portal).
+    if (qs.get('new') === '1') openNew(false);
     const sid = qs.get('session_id'); const revealQ = qs.get('reveal') || '';
     // Only drop session_id from the URL once the payment is confirmed — it is the customer's
     // only reference for retrying or chasing a payment that did not go through. A confirmed payment
