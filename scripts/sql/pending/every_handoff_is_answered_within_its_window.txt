@@ -1,1 +1,0 @@
-Written by the ceo seat on 22 Sep 2026 and not applied: the coordinator serialises applies. Apply FIRST with --apply --ddl, then append this file to the END of MANIFEST.txt and delete this note. After that, apply every_parked_it_handoff_of_22_september_is_closed_by_its_exact_id.sql. Proved in a rolled-back transaction against production on 22 Sep 2026.

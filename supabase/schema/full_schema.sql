@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T08:54:00.967Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T09:05:31.036Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -35837,6 +35837,20 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_digest_hold_ends(p_created_at timestamp with time zone)
+ RETURNS timestamp with time zone
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select ((date_trunc('day', (p_created_at + interval '24 hours') at time zone 'Asia/Dubai')
+           + interval '19 hours'
+           + case when ((p_created_at + interval '24 hours') at time zone 'Asia/Dubai')::time > time '19:00'
+                  then interval '1 day' else interval '0' end)
+          at time zone 'Asia/Dubai') + interval '2 hours';
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_dnsbl_listed(p_list text, p_answers jsonb)
  RETURNS boolean
  LANGUAGE sql
@@ -36033,7 +36047,11 @@ begin
   for x in select a.id, a.detail->>'from' frm, a.created_at from public.agent_actions a
             where a.kind = 'handoff' and a.detail->>'type' = 'delivery.request'
               and a.created_at < now() - interval '2 hours' and a.created_at > now() - interval '7 days'
-              and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%' loop
+              and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%'
+              -- 22 Sep 2026: a founder-bound request customer_support holds for the 19:00 Dubai IT digest
+              -- is waiting on a schedule, not lost. It is late only once the digest could have taken it.
+              and not (a.status = 'pending' and a.evidence->>'digest' = 'pending'
+                       and now() < public.fn_it_digest_hold_ends(a.created_at)) loop
     v_items := v_items || jsonb_build_object('item', 'request:' || x.id, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
       'title', 'Delivery request ' || x.id || ' from ' || x.frm || ' has had no confirmed outcome for '
                || round(extract(epoch from now() - x.created_at) / 3600) || ' hours',
@@ -36047,6 +36065,11 @@ begin
       'blast', 'customer_facing', 'affected', 0, 'evidence', jsonb_build_object('notification_id', x.id, 'sent_at', x.sent_at));
   end loop;
   v_out := v_out || jsonb_build_object('delivery', public.fn_it_duty_settle('delivery', v_items));
+
+  -- ── 4b. EVERY HANDOFF IS ANSWERED ──
+  -- Reads: every pending handoff against its seat_handoff_kind.reply_within (every_handoff_is_answered_
+  -- within_its_window.sql). Cannot see: a conversation that was never started -- only one that stalled.
+  v_out := v_out || jsonb_build_object('handoff_sla', public.fn_it_duty_settle('handoff_sla', public.fn_it_handoff_sla_items()));
 
   -- ── 5. PAYMENT RECONCILIATION ──
   -- Reads: Stripe live and test — completed Checkout Sessions and refunds of the last 72 hours, and the
@@ -37266,6 +37289,58 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_handoff_sla_items(p_include_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with h as (
+    select a.id, a.agent, a.created_at, a.detail->>'type' t, a.detail ? 'replied_at' replied,
+           coalesce(k.reply_within, interval '1 hour') w,
+           f.closed_at f_closed,
+           (f.issue_key is null or f.closed_at is not null
+            or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz) cleared
+      from public.agent_actions a
+      left join public.seat_handoff_kind k
+        on k.type = a.detail->>'type' and k.from_seat = a.detail->>'from' and k.to_seat = a.agent
+      left join public.it_engineer_finding f
+        on a.detail->>'type' = 'it.finding' and f.issue_key = a.detail->>'issue_key'
+     where a.kind = 'handoff' and a.status in ('pending', 'failed')
+       and a.detail->>'type' <> 'delivery.request'
+       and (p_include_demo or (a.title not ilike '%ZZ DEMO%' and coalesce(a.detail->>'demo', 'false') <> 'true'))
+  ), late as (
+    select h.*, case
+        when not h.replied and now() > h.created_at + h.w then 'unanswered'
+        when h.replied and h.t = 'it.finding' and h.cleared
+             and now() > greatest(h.created_at, coalesce(h.f_closed, h.created_at)) + h.w then 'unclosed'
+        -- ponytail: other originator-closed types get a flat 24 h past their window, because
+        -- fn_originators_reverify_handoffs escalates them to the CEO at the window first. Per-type
+        -- rules belong in seat_handoff_kind if one of them ever needs a different allowance.
+        when h.replied and h.t <> 'it.finding' and now() > h.created_at + h.w + interval '24 hours' then 'unclosed'
+      end state
+      from h)
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'item', g.t || ':' || g.agent || ':' || g.state,
+           'owner_seat', case when g.state = 'unanswered' and g.agent in ('ceo', 'customer_support', 'sales_engineer', 'accountant')
+                              then g.agent else 'ceo' end,
+           'subject', 'agent_actions',
+           'title', g.n || ' ' || g.t || ' handoff(s) to ' || g.agent
+                    || case g.state when 'unanswered' then ' have had no reply'
+                       else ' were answered but never closed by the seat that sent them' end
+                    || ' past the ' || g.w || ' window; the oldest is #' || g.oldest_id || ' from '
+                    || to_char(g.oldest_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
+           'blast', 'agent_facing', 'affected', g.n,
+           'evidence', jsonb_build_object('state', g.state, 'type', g.t, 'seat', g.agent, 'reply_within', g.w::text,
+                                          'handoff_ids', g.ids, 'oldest_at', g.oldest_at,
+                                          'look_at', 'select id, detail, evidence from public.agent_actions where id in (<handoff_ids>)'))
+           order by g.t, g.agent, g.state), '[]'::jsonb)
+    from (select t, agent, state, min(w) w, count(*) n, min(id) oldest_id, min(created_at) oldest_at,
+                 jsonb_agg(id order by id) ids
+            from late where state is not null group by t, agent, state) g;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_incident_open(p_handoff_id bigint)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -37512,7 +37587,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_loop_reverify()
 AS $function$
 declare
   h public.agent_actions; f public.it_engineer_finding; v_window interval; v_rep jsonb; v_cleared boolean;
-  n_closed int := 0; n_esc int := 0; n_wait int := 0; n_playbook int := 0; v_class text;
+  n_closed int := 0; n_esc int := 0; n_wait int := 0; n_playbook int := 0; v_class text; n_reports int := 0;
 begin
   select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
   -- Review finding, 18 Sep 2026: with no such row v_window is null, `now() > created_at + null` is
@@ -37521,6 +37596,17 @@ begin
   if v_window is null then
     raise exception 'fn_it_loop_reverify: seat_handoff_kind names no reply window for it.finding from it_engineer';
   end if;
+  -- 22 Sep 2026: a handoff closed anywhere but the close branch below -- fn_it_attach_learning is the
+  -- one other door -- left its CEO report 'accepted' for good. The report follows its handoff here.
+  update public.support_ceo_report r
+     set status = 'completed', completed_at = now(),
+         completion_note = 'IT engineer re-verified: handoff ' || a.id || ' is closed ('
+           || coalesce(a.evidence->>'verdict', 'learning recorded by ' || coalesce(a.evidence->>'learning_recorded_by', 'an unnamed recorder')) || ').'
+    from public.agent_actions a
+   where r.status = 'accepted' and r.idempotency_key ~ '^it_loop:[0-9]+$'
+     and a.id = substr(r.idempotency_key, 9)::bigint and a.kind = 'handoff' and a.status = 'done';
+  get diagnostics n_reports = row_count;
+
   for h in select * from public.agent_actions
             where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
               and status in ('pending', 'failed') order by id loop
@@ -37584,7 +37670,8 @@ begin
       n_wait := n_wait + 1;
     end if;
   end loop;
-  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait, 'learned_from_playbook', n_playbook);
+  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait, 'learned_from_playbook', n_playbook,
+                            'reports_completed', n_reports);
 end $function$
 
 
