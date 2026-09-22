@@ -1341,7 +1341,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (ids.length && txRes.error) console.error('my_inquiries: transactions read failed —', txRes.error.message);
       const txIds = txs.map((t) => t.id);
       const [qsRes, msRes, sosRes, rfsRes] = await Promise.all([
-        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }) : null,
+        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,price_ex_vat,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }) : null,
         ids.length ? admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids) : null,
         ids.length ? admin.from('spec_alternative_offer').select('id,inquiry_id,line_no,item,attr,label_en,label_ar,requested,alternatives,state,reply_by').in('inquiry_id', ids).eq('customer_id', cust.id).eq('state', 'open').order('opened_at', { ascending: true }) : null,
         txIds.length ? admin.from('refunds').select('id,transaction_id,refund_decision_id').in('transaction_id', txIds) : null,
@@ -1783,7 +1783,11 @@ Deno.serve(observe('customer_api', async (req) => {
       // need q.supplier_id run beside it instead of one after another (14 Sep 2026: four sequential
       // round trips here, then three more below).
       const [{ data: tx }, { data: sup }, { data: projs }, mine, { count: sentAll }] = await Promise.all([
-        admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle(),
+        // PAID MEANS revealed_at, EVERYWHERE (review of #850, 22 Sep 2026). This was the one door
+        // that accepted a transactions row's existence as proof of payment; every other door —
+        // fn_customer_document_refs, the vault, the guard — reads revealed_at. Measured on
+        // production the same day: 0 rows disagree, so this is alignment, not a behaviour change.
+        admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).not('revealed_at', 'is', null).maybeSingle(),
         admin.from('leads').select('id,company_name,emirate,phone,whatsapp,email,website,app_rating,app_reviews,description,capability_summary,founded_year,company_type').eq('id', q.supplier_id).maybeSingle(),
         admin.from('transactions').select('revealed_at,quote_amount,inquiries(category,emirate)').eq('supplier_id', q.supplier_id).order('revealed_at', { ascending: false }).limit(20),
         admin.from('inquiries').select('id').eq('customer_id', cust.id).limit(500),

@@ -58,13 +58,18 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     // The DISCLOSURE goes through the same guard customer_api and stripe_checkout use
     // (_shared/reveal_guard.ts, audit CP-09). The RECORDING never does: the money has moved, so a
     // ban that lands mid-payment must still leave a transaction to refund against.
-    const supSel = async () => {
+    // THE FILE IS IDENTITY TOO (review of #850, 22 Sep 2026). The contact card was gated and the
+    // signed URL to the supplier's OWN quotation PDF was not, so a refusal handed back nothing but
+    // a one-hour link to the letterhead it had just refused to name. One function now returns the
+    // whole disclosure — contact, file URL and file name — or nothing at all.
+    const disclose = async (): Promise<{ supplier: unknown; original_file_url: string | null; original_file_name: string | null }> => {
       const g = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });
-      if (!g.ok) { await logRun('error', { quote_id: qid, disclosure_refused: g.code }, 'the payment is recorded but the supplier was NOT disclosed (' + g.code + '); the customer must be refunded or told.'); return null; }
-      const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return sup;
+      if (!g.ok) { await logRun('error', { quote_id: qid, disclosure_refused: g.code }, 'the payment is recorded but the supplier was NOT disclosed (' + g.code + '); the customer must be refunded or told.'); return { supplier: null, original_file_url: null, original_file_name: null }; }
+      const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle();
+      return { supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null };
     };
     const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
-    if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, 'already recorded (likely by stripe_webhook)'); return J({ ok: true, already_revealed: true, supplier: await supSel(), original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
+    if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, 'already recorded (likely by stripe_webhook)'); return J({ ok: true, already_revealed: true, ...(await disclose()) }); }
     if (s.payment_status !== 'paid') { await logRun('ok', { quote_id: qid, payment_status: String(s.payment_status || '') }, 'session not paid yet - returned pending'); return J({ ok: false, pending: true }); }
     const { data: cfg } = await admin.from('pricing_config').select('refund_window_working_days').eq('id', 1).maybeSingle();
     const { data: dl } = await admin.rpc('fn_add_working_days', { p_from: new Date().toISOString(), p_days: cfg?.refund_window_working_days ?? 3 });
@@ -83,6 +88,6 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     // the sales engineer, whose words customer_support delivers -- the same door the webhook uses, so a
     // supplier is told once whichever path recorded the payment.
     if (!e2) await logRun('ok', { quote_id: qid, reveal_fee: fee, quote_amount: amount }, 'recorded by stripe_confirm (browser path)');
-    return J({ ok: true, supplier: await supSel(), original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null });
+    return J({ ok: true, ...(await disclose()) });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
 }));

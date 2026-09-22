@@ -36,9 +36,14 @@ export function assessInput(q: QuoteRow, items: ItemRow[]): { lines: Line[]; ter
       unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount,
       notes: it.notes, spec: it.spec ?? null,
     })),
+    // price_ex_vat AND NOTHING ELSE. It is the figure the founder's hold rule names and the figure
+    // the 3% is charged on (line_specs/vat.ts); quote_amount is the supplier's headline total and
+    // may be VAT-inclusive or ambiguous, which is exactly the condition assess.ts holds a quote
+    // for. Falling back to it would silently UN-hold those quotes on all three surfaces — review
+    // of #850, 22 Sep 2026. Null travels as null; a quote with no exact ex-VAT price stays held.
     terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions,
       conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec,
-      price_ex_vat: q.price_ex_vat ?? q.quote_amount ?? null },
+      price_ex_vat: q.price_ex_vat ?? null },
   };
 }
 
@@ -51,14 +56,32 @@ export function heldQuoteIds(
   return new Set(all.map((x) => x.id).filter((id) => !ok.has(id)));
 }
 
-/** quote_items for these quote ids, grouped by quote. One read, whatever the number of quotes. */
+/**
+ * quote_items for these quote ids, grouped by quote.
+ *
+ * PAGED, NOT CAPPED (review of #850, 22 Sep 2026). One read with .limit(2000) across every quote
+ * id at once silently drops the highest line numbers once a customer's requests carry more than
+ * 2000 lines between them — and a dropped line is a line whose missing mandatory spec is never
+ * counted, so an INCOMPLETE quote reads as rankable and becomes revealable. The read is therefore
+ * paged to exhaustion in id chunks; a missing line must never be the reason a quote looks complete.
+ */
 export async function itemsByQuote(admin: Admin, quoteIds: string[]): Promise<Record<string, ItemRow[]>> {
   const out: Record<string, ItemRow[]> = {};
   if (!quoteIds.length) return out;
-  const { data } = await admin.from('quote_items')
-    .select('quote_id,line_no,description,brand,model,specification,qty,unit,unit_price,labour,install,amount,notes,spec')
-    .in('quote_id', quoteIds).order('line_no', { ascending: true }).limit(2000);
-  for (const r of (data || [])) (out[String(r.quote_id)] ||= []).push(r);
+  const COLS = 'quote_id,line_no,description,brand,model,specification,qty,unit,unit_price,labour,install,amount,notes,spec';
+  const CHUNK = 25;     // quote ids per request — keeps the URL short and the page small
+  const PAGE = 1000;    // rows per page; paged until a short page says the chunk is exhausted
+  for (let i = 0; i < quoteIds.length; i += CHUNK) {
+    const ids = quoteIds.slice(i, i + CHUNK);
+    for (let from = 0; ; from += PAGE) {
+      const { data } = await admin.from('quote_items').select(COLS)
+        .in('quote_id', ids).order('quote_id', { ascending: true }).order('line_no', { ascending: true })
+        .range(from, from + PAGE - 1);
+      const rows = data || [];
+      for (const r of rows) (out[String(r.quote_id)] ||= []).push(r);
+      if (rows.length < PAGE) break;
+    }
+  }
   return out;
 }
 

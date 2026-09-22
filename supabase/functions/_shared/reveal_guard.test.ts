@@ -13,14 +13,18 @@ const ITEM = { quote_id: 'q1', line_no: 1, description: 'Wardrobes 18mm MR MDF, 
 
 // deno-lint-ignore no-explicit-any
 type Rows = Record<string, any>;
-/** One read per table; `.in()` returns the list, `.maybeSingle()` the row. */
+/** One read per table; `.in()` returns the list, `.maybeSingle()` the row, `.range()` one page. */
 function fakeAdmin(rows: Rows) {
   const mk = (table: string) => {
+    const all = () => (rows[table] ?? []);
     // deno-lint-ignore no-explicit-any
     const b: any = {
-      select: () => b, eq: () => b, in: () => b, order: () => b, limit: () => (table === 'sanctions_ban' ? { data: rows.sanctions_ban ?? [], error: null } : { data: rows[table] ?? [], error: null }),
+      select: () => b, eq: () => b, in: () => b, not: () => b, order: () => b,
+      limit: () => ({ data: all(), error: null }),
+      // itemsByQuote pages to exhaustion; a page beyond the rows must come back empty or it loops.
+      range: (from: number, to: number) => Promise.resolve({ data: all().slice(from, to + 1), error: null }),
       maybeSingle: () => Promise.resolve({ data: rows[table] ?? null, error: null }),
-      then: (f: (r: { data: unknown; error: null }) => unknown) => Promise.resolve(f({ data: rows[table] ?? [], error: null })),
+      then: (f: (r: { data: unknown; error: null }) => unknown) => Promise.resolve(f({ data: all(), error: null })),
     };
     return b;
   };
@@ -32,6 +36,12 @@ Deno.test('a complete quote is not on hold; the same quote without its ex-VAT pr
   assertEquals([...held], []);
   const noPrice = heldQuoteIds([{ quote: { ...COMPLETE, price_ex_vat: null, quote_amount: null }, items: [ITEM] }], 'joinery', null);
   assertEquals([...noPrice], ['q1']);
+  // THE HEADLINE TOTAL IS NOT THE EX-VAT PRICE (review of #850). Nulling both hid the gap: with a
+  // `?? quote_amount` fallback a quote that states only its VAT-inclusive total read as complete
+  // and became revealable. Only price_ex_vat is nulled here, and the quote must still be held.
+  const headlineOnly = heldQuoteIds([{ quote: { ...COMPLETE, price_ex_vat: null, quote_amount: 6300 }, items: [ITEM] }], 'joinery', null);
+  assertEquals([...headlineOnly], ['q1']);
+  assertEquals(assessInput({ ...COMPLETE, price_ex_vat: null, quote_amount: 6300 }, [ITEM]).terms.price_ex_vat, null);
   // The mapping is what the three callers share: lines and terms, nothing invented.
   const inp = assessInput(COMPLETE, [ITEM]);
   assertEquals([inp.lines.length, inp.terms.price_ex_vat, inp.lines[0].line_no], [1, 6000, 1]);
@@ -55,6 +65,7 @@ Deno.test('canReveal refuses a draft, another customer\'s request, a closed requ
   assertEquals(await code({ ...base, inquiries: { ...base.inquiries, status: 'cancelled' } }), 'inquiry_closed:409');
   assertEquals(await code({ ...base, sanctions_ban: [{ lead_id: 7 }] }), 'account_sanctioned:403');
   assertEquals(await code({ ...base, quotes: { ...COMPLETE, price_ex_vat: null, quote_amount: null } }), 'quote_on_hold:409');
+  assertEquals(await code({ ...base, quotes: { ...COMPLETE, price_ex_vat: null, quote_amount: 6300 } }), 'quote_on_hold:409');
   // A reveal already paid for is disclosed again, and is never re-held.
   const paid = await canReveal(fakeAdmin({ ...base, quotes: { ...COMPLETE, price_ex_vat: null, quote_amount: null }, transactions: { id: 'tx1' } }), { quoteId: 'q1', customerId: 'c1' });
   assertEquals([paid.ok, paid.ok && paid.already_revealed], [true, true]);
