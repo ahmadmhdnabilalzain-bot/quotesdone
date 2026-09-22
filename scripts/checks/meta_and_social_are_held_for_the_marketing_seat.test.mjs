@@ -52,6 +52,8 @@ export function codeOffenders(repo = REPO) {
     for (const p of walk(root)) {
       const rel = relative(repo, p);
       if (MARKETING_DIR.test(rel)) continue;
+      // and the seat's shared modules by name (_shared/marketing_channels.ts, PR #834)
+      if (/^supabase[\\/]functions[\\/]_shared[\\/]marketing[a-z0-9_]*\.ts$/.test(rel)) continue;
       if (HELD.test(readFileSync(p, 'utf8'))) out.push(rel);
     }
   }
