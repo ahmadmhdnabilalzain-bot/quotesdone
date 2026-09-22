@@ -5,18 +5,66 @@
 //
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/wa_inbound/menu_flow.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
-import { answerFromFaq, type Content, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn, welcomeFirstContact } from './menu_flow.ts';
+import { answerFromFaq, type Content, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
+import { coverageIntent, coverageReply, groupedTrades, type Trade, tradeNamed } from './coverage.ts';
 import {
-  type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, isGreeting, type Lang, MENU_BUTTON,
+  type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, isGreeting, type Lang, MENU_BUTTON, sorryLead,
   MENU_IDS, menuChoice, type MenuContext, menuItems, optionReply, WELCOME_TAIL, welcomeText, withinHours,
 } from './menu.ts';
 
 const FROM = 'whatsapp:+971500000021'; // reserved ZZ DEMO fixture block
 
+// public.taxonomy_trade, the 42 active rows read from production on 22 Sep 2026, in sort order as wa_inbound reads
+// them (sort, code). The coverage answer is built from whatever the table holds; this snapshot proves it fits.
+export const TRADES: Trade[] = [
+  {"code":"hvac","label":"HVAC & air conditioning","label_ar":"التكييف والتهوية","aliases":["hvac","air conditioning","air-conditioning","a/c unit","vrf","chiller","ducting","ductwork","ventilation","fcu","ahu","تكييف","مكيف","تهوية","مجاري هواء","تشيلر","شيلر","وحدات مناولة هواء"]},
+  {"code":"electrical","label":"Electrical","label_ar":"الأعمال الكهربائية","aliases":["electrical","electric","wiring","switchgear","db panel","distribution board","cable tray","lighting","busbar","أعمال كهرب","تمديدات كهرب","تركيبات كهرب","مقاولات كهرب","صيانة كهرب","لوحات كهرب","كابلات كهرب","أسلاك كهرب","فني كهرب","إنارة","إنارات","لوحات توزيع","لوحة توزيع","حوامل كابلات"]},
+  {"code":"building_materials","label":"Building & Construction Materials","label_ar":"مواد البناء والتشييد","aliases":["building material","building materials","construction material","construction materials","cement","aggregate","ready mix","blocks and bricks","sanitary ware","مواد بناء","مواد إنشائية","إسمنت","خرسانة جاهزة","طابوق","ركام"]},
+  {"code":"engineering_consultancy","label":"Engineering Consultancy & Architecture","label_ar":"الاستشارات الهندسية والعمارة","aliases":["consultants engineers","consulting engineer","engineering consultant","engineers contractors","architect","architects","architectural","design consultancy","structural engineer","استشارات هندسية","مكتب هندسي","مكاتب هندسية","مكتب استشاري","استشاري هندسي","إشراف هندسي","مهندس معماري","هندسة معمارية","تصميم معماري","مهندس إنشائي"]},
+  {"code":"power_generators","label":"Generators & Power Equipment","label_ar":"المولدات ومعدات الطاقة","aliases":["generator","generators","genset","gen set","power generation","diesel generator","ups system","مولد","جنريتر","جنرتر","توليد طاقة","توليد كهرباء"]},
+  {"code":"heavy_equipment","label":"Heavy Equipment & Plant","label_ar":"المعدات الثقيلة والآليات","aliases":["heavy duty equipment","heavy equipment","earthmoving","excavator","crane hire","forklift","construction equipment","plant hire","معدات ثقيلة","آليات ثقيلة","حفارات","حفارة","رافعات","رافعة","كرين","شيول","بوكلين","جرافة","جرافات","بلدوزر","قلاب","تأجير معدات"]},
+  {"code":"labour_supply","label":"Manpower & Labour Supply","label_ar":"توريد العمالة","aliases":["labour supply","labor supply","manpower supply","manpower service","staffing supply","توريد عمالة","توفير عمالة","تأجير عمالة","توريد أيدي عاملة","توفير أيدي عاملة","تأجير أيدي عاملة","خدمات عمالة"]},
+  {"code":"plumbing","label":"Plumbing & sanitary","label_ar":"السباكة والأدوات الصحية","aliases":["plumbing","plumber","sanitary","sanitaryware","drainage","pipework","water supply","سباك","أدوات صحية","تمديدات صحية","صرف صحي","إمدادات مياه","تمديدات مياه","سخانات مياه","سخان مياه"]},
+  {"code":"safety_equipment","label":"Safety Equipment & PPE","label_ar":"معدات السلامة والوقاية الشخصية","aliases":["safety equipment","personal protective","ppe supplier","safety clothing","fall protection","معدات سلامة","مستلزمات سلامة","معدات وقاية","معدات حماية شخصية","ملابس واقية","ملابس سلامة","أحذية سلامة","حماية من سقوط"]},
+  {"code":"solar","label":"Solar & Renewable Energy","label_ar":"الطاقة الشمسية والمتجددة","aliases":["solar energy","solar panel","solar power","photovoltaic","solar water heater","طاقة شمسية","ألواح شمسية","ألواح طاقة شمسية","خلايا شمسية","سخانات شمسية","سخان شمسي","كهروضوئي"]},
+  {"code":"chemicals","label":"Industrial & Construction Chemicals","label_ar":"الكيماويات الصناعية والإنشائية","aliases":["chemical products","industrial chemical","construction chemical","adhesive and sealant","coating chemical","كيماوي","مواد كيميائية","مواد لاصقة"]},
+  {"code":"plastics_pipes","label":"Plastics, Pipes & Fittings","label_ar":"البلاستيك والأنابيب والتجهيزات","aliases":["plastic products","pipe fitting","pipes and fittings","pvc pipe","hdpe","plastic manufactur","منتجات بلاستيك","أنابيب بلاستيك","مواسير بلاستيك","أنابيب ووصلات","وصلات أنابيب","تصنيع بلاستيك"]},
+  {"code":"oilfield","label":"Oilfield & Industrial Supplies","label_ar":"مستلزمات حقول النفط والصناعة","aliases":["oil field suppl","oilfield","oil and gas suppl","petrochemical suppl","حقول نفط","حقل نفط","نفط وغاز","بترول وغاز","بتروكيماوي"]},
+  {"code":"home_automation","label":"Home & Building Automation","label_ar":"أتمتة المنازل والمباني","aliases":["home automation","building automation","smart home","building management system","bms system","منزل ذكي","منازل ذكية","بيت ذكي","بيوت ذكية","أتمتة منزل","أتمتة منازل","أتمتة مباني","نظام إدارة مباني","أنظمة إدارة مباني"]},
+  {"code":"logistics_moving","label":"Logistics, Movers & Storage","label_ar":"النقل والتخزين والخدمات اللوجستية","aliases":["moving and storage","movers and packers","relocation service","freight forwarding","warehousing service","نقل أثاث","نقل عفش","نقل وتخزين","نقل بضائع","شحن بضائع","وكيل شحن","تخليص جمركي","خدمات لوجستية","لوجستي"]},
+  {"code":"packaging","label":"Packaging & Printing Supplies","label_ar":"مستلزمات التغليف والطباعة","aliases":["packaging company","packaging material","corrugated","printing press","تغليف","مطبعة","مطابع","كرتون مقوى","كرتون مضلع"]},
+  {"code":"marine","label":"Marine & Offshore Supplies","label_ar":"المستلزمات والأعمال البحرية","aliases":["marine supply","marine equipment","ship chandler","offshore supply","معدات بحرية","مستلزمات بحرية","تموين سفن","خدمات بحرية","أعمال بحرية"]},
+  {"code":"fire_fighting","label":"Fire fighting & life safety","label_ar":"مكافحة الحريق وأنظمة السلامة","aliases":["fire fighting","firefighting","fire alarm","fire pump","sprinkler","fire suppression","life safety","fire protection","مكافحة حريق","مكافحة حرائق","إطفاء حريق","إطفاء حرائق","أنظمة إطفاء","إنذار حريق","إنذار حرائق","رشاشات حريق","مضخات حريق","مضخة حريق","حماية من حريق","طفايات","طفاية","كاشف دخان","كواشف دخان","سبرنكلر"]},
+  {"code":"it_services","label":"IT & Network Services","label_ar":"خدمات تقنية المعلومات والشبكات","aliases":["computer support","it services","network support","structured cabling","computer security service","تقنية معلومات","تكنولوجيا معلومات","أمن معلومات","أمن سيبراني","شبكات حاسوب","شبكات حاسب","شبكات كمبيوتر"]},
+  {"code":"office_equipment","label":"Office equipment & printing","label_ar":"المعدات المكتبية والطباعة","aliases":["office equipment","office automation","office machines","photocopier","copier machine","printer","toner","معدات مكتبية","أجهزة مكتبية","طابعات","آلات تصوير","أحبار طابعات"]},
+  {"code":"pos_retail","label":"Point-of-sale & retail technology","label_ar":"أنظمة نقاط البيع وتقنيات التجزئة","aliases":["point of sale","pos system","pos terminal","cash register","barcode scanner","receipt printer","retail technology","نقاط بيع","نقطة بيع","أجهزة كاشير","باركود"]},
+  {"code":"joinery","label":"Joinery & carpentry","label_ar":"النجارة والأعمال الخشبية","aliases":["built in wardrobe","cabinet","carpenter","carpentry","closet","counter top","countertop","countertops","fitted kitchen","joinery","kitchen","kitchen fitting","kitchen unit","kitchens","millwork","vanity","vanity unit","wardrobe","wooden","woodwork","work top","worktop","worktops","نجار","أعمال خشب","خشبي","تفصيل مطابخ","تصنيع مطابخ","تركيب مطابخ","خزائن","خزانة","دواليب","دولاب","كبتات","سطح عمل","أسطح عمل","تصنيع أثاث"]},
+  {"code":"glazing","label":"Glass & glazing","label_ar":"الزجاج والواجهات الزجاجية","aliases":["glass","glazing","glazed","mirror","tempered glass","laminated glass","frameless","زجاج","مرايا","سكوريت","سيكوريت"]},
+  {"code":"aluminium","label":"Aluminium & cladding","label_ar":"الألمنيوم والتكسية","aliases":["aluminium","aluminum","cladding","facade","curtain wall","acp panel","louvre","ألمنيوم","ألومنيوم","ألمونيوم","ألومينيوم","كلادينج","كلادنج","كلادينغ","تكسية واجهات","لوفرات"]},
+  {"code":"steel","label":"Steel & metal fabrication","label_ar":"الحديد وتشكيل المعادن","aliases":["steel","metal fabrication","welding","welded","stainless","mild steel","structural steel","handrail","حديد","فولاذ","ستانلس","ستانليس","استانلس","ستيل","تشكيل معادن","هياكل معدنية","لحام","درابزين","حدادة"]},
+  {"code":"flooring","label":"Flooring","label_ar":"الأرضيات","aliases":["flooring","floor tiles","tiling","vinyl","epoxy floor","carpet","parquet","marble","skirting","أرضيات","تبليط","بلاط أرضيات","بلاط سيراميك","بلاط بورسلين","بلاط رخام","بلاط جدران","فينيل","سجاد","موكيت","باركيه","باركيت","رخام","سيراميك","بورسلين","بورسلان","جرانيت"]},
+  {"code":"painting","label":"Painting & finishes","label_ar":"الدهانات والتشطيبات","aliases":["painting","painter","paint work","coating","protective coating","decoration","دهان","طلاء","بوية","بويات"]},
+  {"code":"gypsum","label":"Gypsum, partitions & ceilings","label_ar":"الجبس والقواطع والأسقف","aliases":["gypsum","partition","partitions","false ceiling","drywall","plasterboard","plastering","bulkhead","جبس","أسقف معلقة","سقف معلق","أسقف مستعارة","سقف مستعار","قواطع جبس","لياسة"]},
+  {"code":"signage","label":"Signage & printing","label_ar":"اللافتات والطباعة","aliases":["signage","signboard","sign board","3d letters","acrylic letters","lightbox","wayfinding","لافتات","لافتة","يافطات","يافطة","لوحات إعلان","لوحات إرشاد","حروف بارزة","حروف أكريليك"]},
+  {"code":"landscaping","label":"Landscaping & pools","label_ar":"تنسيق الحدائق والمسابح","aliases":["landscaping","landscape","softscape","hardscape","irrigation","swimming pool","garden","تنسيق حدائق","صيانة حدائق","تجميل حدائق","زراعة حدائق","لاندسكيب","مشاتل","مشتل","عشب صناعي","نجيل صناعي","أنظمة ري","شبكات ري","مسابح","مسبح","حمامات سباحة"]},
+  {"code":"security_systems","label":"Security systems","label_ar":"الأنظمة الأمنية","aliases":["access control","cctv","gate barrier","intruder alarm","security control equipment","security guard service","security system","surveillance","turnstile","كاميرات مراقبة","أنظمة مراقبة","أنظمة أمن","تحكم بالدخول","تحكم في دخول","إنذار سرقة","حراسة أمنية","خدمات حراسة","بوابات دوارة"]},
+  {"code":"elevators","label":"Elevators & escalators","label_ar":"المصاعد والسلالم المتحركة","aliases":["elevator","elevators","lift installation","escalator","travelator","dumbwaiter","مصعد","مصاعد","سلالم متحركة","سلم متحرك","سلالم كهربائية","سلم كهربائي"]},
+  {"code":"doors","label":"Doors & windows","label_ar":"الأبواب والنوافذ","aliases":["door","doors","window","windows","shutter","automatic door","fire door","ironmongery","أبواب","نوافذ","شبابيك","دريش"]},
+  {"code":"waterproofing","label":"Waterproofing & insulation","label_ar":"العزل المائي والحراري","aliases":["waterproofing","waterproof","insulation","membrane","thermal insulation","acoustic insulation","عزل","عازل","عوازل","ممبرين"]},
+  {"code":"upholstery","label":"Upholstery & soft furnishing","label_ar":"التنجيد والمفروشات","aliases":["upholstery","upholstered","curtain","curtains","blinds","soft furnishing","sofa","تنجيد","منجد","ستائر","ستارة","برادي","مفروشات","كنب","تفصيل مجالس"]},
+  {"code":"wallpaper","label":"Wallpaper & wall finishes","label_ar":"ورق الجدران والتشطيبات الجدارية","aliases":["wallpaper","wall covering","wall panelling","wall cladding","ورق جدران","ورق حائط","ورق حيطان","تكسية جدران","تكسيات جدران"]},
+  {"code":"scaffolding","label":"Scaffolding & access","label_ar":"السقالات ومعدات الوصول","aliases":["scaffolding","scaffold","formwork","shoring","access platform","سقال","سقايل","شدات","قوالب صب"]},
+  {"code":"cleaning","label":"Cleaning & facility services","label_ar":"التنظيف وخدمات المرافق","aliases":["cleaning","facilities management","facility management","handyman","housekeeping","janitorial","pest control","property maintenance","تنظيف","إدارة مرافق","مكافحة حشرات","مكافحة آفات","مكافحة قوارض","رش مبيدات","صيانة عقارات","صيانة مباني"]},
+  {"code":"av_it","label":"AV, IT & low current","label_ar":"الصوت والصورة والتيار الخفيف","aliases":["audio visual","audio-visual","low current","structured cabling","networking","telecom","data cabling","public address","تيار خفيف","صوت وصورة","صوتيات","أنظمة صوتية","كابلات بيانات","إذاعة داخلية"]},
+  {"code":"interior_fitout","label":"Interior fit-out","label_ar":"التشطيبات والتجهيزات الداخلية","aliases":["fit out","fit out contractor","fit-out","fitout","interior decorator","interior design","interior works","refurbishment","turnkey fitout","turnkey interior","تشطيبات داخلية","تشطيب داخلي","تصميم داخلي","ديكور","فيت أوت","فت أوت","تجهيزات داخلية","ترميم"]},
+  {"code":"civil_works","label":"Civil & construction works","label_ar":"الأعمال المدنية والإنشائية","aliases":["blockwork","building contractor","civil","civil contracting","civil work","civil works","concrete","construction","construction company","contracting company","contractors general","demolition","general contracting","masonry","screed","structural","أعمال مدنية","مقاولات عامة","مقاولات بناء","مقاول بناء","إنشاءات","أعمال إنشائية","أعمال خرسان","صب خرسان","أعمال هدم"]},
+  {"code":"mep_general","label":"MEP (combined)","label_ar":"الأعمال الكهروميكانيكية المتكاملة (MEP)","aliases":["building services","contractors electro mechanical","electro mechanical","electromechanical","mechanical electrical plumbing","mep","mep works","كهروميكانيك","إلكتروميكانيك","أعمال ميكانيكية وكهربائية"]},
+];
+
 type Sent = { to: string; body: string; content?: Content };
 function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>; contentFails?: boolean; faq?: string | null;
-                      enabled?: boolean; history?: Turn[]; weWrote?: boolean; held?: boolean; appended?: boolean } = {}) {
-  const sent: Sent[] = []; const rows: Array<Record<string, unknown>> = []; const cases: string[] = []; const notified: string[] = []; const closed: string[] = [];
+                      enabled?: boolean; history?: Turn[]; weWrote?: boolean; held?: boolean; appended?: boolean; gapOk?: boolean } = {}) {
+  const sent: Sent[] = []; const rows: Array<Record<string, unknown>> = []; const cases: string[] = []; const notified: string[] = []; const closed: string[] = []; const gaps: string[] = [];
   const history: Turn[] = [...(o.history || [])];
   const d: MenuDeps = {
     autoreplyEnabled: () => Promise.resolve(o.enabled ?? true),
@@ -24,6 +72,8 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
     weWroteRecently: () => Promise.resolve(o.weWrote ?? false),
     context: () => Promise.resolve({ audience: 'unknown', name: null, ...(o.ctx || {}) } as MenuContext),
     faq: () => Promise.resolve(o.faq ?? null),
+    trades: () => Promise.resolve(TRADES),
+    recordGap: (text, reason) => { gaps.push(reason + ':' + text); return Promise.resolve(o.gapOk ?? true); },
     openCase: (_f, text) => { cases.push(text); return Promise.resolve({ ref: 'QD-S-ZZ' + cases.length, appended: o.appended ?? false, slaHours: 24 }); },
     humanHold: () => Promise.resolve(o.held ?? false),
     closeCase: (ref, reason) => { closed.push(ref + ':' + reason); return Promise.resolve({ ok: true, phone: '971500000041', lang: 'ar' as Lang, reason }); },
@@ -40,7 +90,7 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
       return Promise.resolve();
     },
   };
-  return { d, sent, rows, cases, notified, closed };
+  return { d, sent, rows, cases, notified, closed, gaps };
 }
 const msg = (body: string, audience: Audience = 'unknown', extra: Partial<MenuInput> = {}): MenuInput => ({ from: FROM, body, audience, ...extra });
 
@@ -350,4 +400,115 @@ Deno.test('763/5 wa_inbound asks the FAQ with the gte-small embedding, never tex
   assert(src.includes("new (globalThis as any).Supabase.ai.Session('gte-small')"));
   assertMatch(src, /rpc\('fn_faq_answer', \{\s*p_text: q, p_min_rank: 0\.15, p_embedding: await embedQuestion\(q\), p_min_similarity: FAQ_MIN_SIMILARITY/);
   assert(!/rpc\('fn_faq_answer', \{ p_text: [^}]*\}\)/.test(src), 'a text-only FAQ call is back');
+});
+
+// ---- An unmatched question gets a proper answer (22 Sep 2026, wa_messages 271) -----------------------
+// The founder's exact conversation: MENU, "General question", "What suppliers you have" (answered by the
+// FAQ), then "What sectors you cover", which fell through to agent_brain and came back as an internal
+// error. It must now be answered from the live trade list, and nothing unanswered may carry internal text.
+
+// Wording that must never reach a customer or supplier: internal names, status codes, fault admissions.
+const INTERNAL = /\bHTTP\b|brain|agent_|\bfn_[a-z]|edge function|ai_gateway|supabase|stack trace|exception|undefined|\bnull\b|\b[45]0\d\b|could not reach|returned no reply/i;
+
+Deno.test('271: the founder\'s exact message after the menu gets the grouped coverage answer from the live list', async () => {
+  const h = harness({ ctx: { audience: 'founder' }, history: [{ route: 'menu_answer', await: null, lang: 'en' }] });
+  assertEquals((await menuTurn(h.d, msg('What sectors you cover', 'founder'))).handled, false); // not a menu choice
+  assertEquals(await answerFromFaq(h.d, msg('What sectors you cover', 'founder')), true);
+  const body = h.sent[0].body;
+  assertMatch(body, /^We match quotation requests to verified UAE suppliers in these trades:/);
+  for (const t of TRADES) assert(body.includes(t.label), 'every live trade is listed: ' + t.label);
+  assertMatch(body, /• MEP: HVAC & air conditioning, Electrical/);
+  assertMatch(body, /only to suppliers of that exact trade\. New trades are welcome: https:\/\/quotesdone\.com\/supplier/);
+  assertMatch(body, /Request a quotation: https:\/\/quotesdone\.com\/me\?new=1/);
+  assert(body.length <= 1500, 'fits one WhatsApp message: ' + body.length);
+  assert(!INTERNAL.test(body), 'internal wording: ' + body.match(INTERNAL));
+  assertEquals(h.rows[0].route, 'faq_answer');
+  assertEquals(h.gaps.length, 0);
+});
+
+Deno.test('coverage questions in other words, in English and formal Arabic, and the named-trade answers', () => {
+  for (const q of ['what trades do you cover?', 'Which categories do you support', 'what industries do you serve', 'what services do you offer',
+                   'ما هي القطاعات التي تغطونها', 'ما هي التخصصات التي تغطونها؟', 'ما هي الخدمات التي تقدمونها']) {
+    assertEquals(coverageIntent(q, TRADES)?.kind, 'list', q);
+  }
+  const ar = coverageReply('ما هي القطاعات التي تغطونها', TRADES, 'ar')!;
+  assertMatch(ar, /^نطابق طلبات عروض الأسعار مع موردين موثّقين في الإمارات/);
+  for (const t of TRADES) assert(ar.includes(t.label_ar!), 'every live trade in Arabic: ' + t.label_ar);
+  assertMatch(ar, /\nhttps:\/\/quotesdone\.com\/ar\/supplier\n/); // a link on its own line in RTL text
+  assertMatch(ar, /\nhttps:\/\/quotesdone\.com\/ar\/me\?new=1$/);
+  assert(ar.length <= 1500, 'Arabic fits one WhatsApp message: ' + ar.length);
+
+  const cases: Array<[string, string]> = [['do you do MEP?', 'mep_general'], ['Do you do fit-out', 'interior_fitout'],
+    ['do you cover landscaping', 'landscaping'], ['can you do swimming pools?', 'landscaping'], ['هل تغطون تنسيق الحدائق؟', 'landscaping'],
+    ['هل تقدمون أعمال التكييف', 'hvac']];
+  for (const [q, code] of cases) {
+    assertEquals(coverageIntent(q, TRADES)?.kind, 'trade', q);
+    assertEquals(tradeNamed(q, TRADES)?.code, code, q);
+  }
+  assertMatch(coverageReply('do you do MEP?', TRADES, 'en')!, /^Yes, MEP \(combined\) is one of the trades we match quotation requests to\./);
+  assertMatch(coverageReply('هل تغطون تنسيق الحدائق؟', TRADES, 'ar')!, /^نعم، تنسيق الحدائق والمسابح من التخصصات/);
+});
+
+Deno.test('the exact-trade rule: a trade we do not match is never claimed, and fee or place questions are not coverage', () => {
+  for (const q of ['do you do catering?', 'do you cover Abu Dhabi?', 'do you charge suppliers for marble?', 'what are your fees',
+                   'What suppliers you have', 'هل تغطون دبي؟', 'ما هي رسوم الخدمات', 'hello', 'can you call me']) {
+    assertEquals(coverageReply(q, TRADES, /[؀-ۿ]/.test(q) ? 'ar' : 'en'), null, q);
+  }
+  // "door" is a doors alias; it must not fire inside "outdoor".
+  assertEquals(tradeNamed('do you do outdoor events', TRADES.filter((t) => t.code === 'doors')), null);
+  // A trade registered tomorrow is listed at once, under "Other trades", never dropped.
+  const more = [...TRADES, { code: 'zz_demo_trade', label: 'ZZ DEMO Trade', label_ar: 'تخصص تجريبي', aliases: [] }];
+  assertEquals(groupedTrades(more, 'en').at(-1), { title: 'Other trades', labels: ['ZZ DEMO Trade'] });
+  // Twenty more trades registered: every group still appears, counts replace names, the links survive.
+  const grown = [...TRADES, ...Array.from({ length: 20 }, (_, i) => ({ code: 'zz_demo_' + i, label: 'ZZ DEMO Trade number ' + i, label_ar: 'تخصص تجريبي رقم ' + i, aliases: [] }))];
+  for (const lang of ['en', 'ar'] as Lang[]) {
+    const r = coverageReply(lang === 'ar' ? 'ما هي القطاعات التي تغطونها' : 'what trades do you cover', grown, lang)!;
+    assert(r.length <= 1430, lang + ' grown list overflows: ' + r.length);
+    assertMatch(r, /me\?new=1$/);
+    assertMatch(r, lang === 'ar' ? /تخصصات أخرى: .* و\d+ أخرى/ : /Other trades: .* and \d+ more/);
+  }
+  // No rows readable: no list is invented.
+  assertEquals(coverageReply('What sectors you cover', [], 'en'), null);
+});
+
+Deno.test('an unknown question gets the courteous fallback and the menu, is filed for the team, and carries no internal text', async () => {
+  for (const [body, lang] of [['what is your opinion of the new metro line', 'en'], ['ما رأيكم في مشروع المترو الجديد', 'ar']] as const) {
+    const h = harness({ ctx: { audience: 'founder' } });
+    assertEquals(await answerFromFaq(h.d, msg(body, 'founder')), false);
+    await unanswered(h.d, msg(body, 'founder'), 'no_grounded_answer');
+    assertEquals(h.gaps, ['no_grounded_answer:' + body]);
+    const sent = h.sent[0].body;
+    assertMatch(sent, lang === 'ar' ? /^شكرًا لسؤالكم\. لا تتوفر لديّ إجابة مؤكدة عنه حتى الآن، وأفضّل ألا أجيب دون تحقق، لذا سجّلته لدى فريقنا\./
+                                    : /^Thank you for your question\. I do not have a confirmed answer to it yet and would rather not guess, so I have recorded it for our team\./);
+    assertMatch(sent, lang === 'ar' ? /التحدث إلى أحد الموظفين/ : /Talk to a person/); // the way to a real reply is on the menu
+    assert(!INTERNAL.test(sent), 'internal wording: ' + sent.match(INTERNAL));
+    assertEquals(h.rows[0].route, 'menu_reoffer');
+    assertEquals((h.rows[0].extra as Record<string, unknown>).unanswered_reason, 'no_grounded_answer'); // kept for the team, not shown
+  }
+  // If the question could not be filed, the reply does not say it was.
+  const f = harness({ gapOk: false });
+  await unanswered(f.d, msg('what is your opinion of the new metro line'), 'no_grounded_answer');
+  assert(!/recorded it/.test(f.sent[0].body));
+});
+
+Deno.test('no reply text the menu, the options, the cases or the coverage answer can send carries internal wording', () => {
+  const ctxs: MenuContext[] = [{ audience: 'unknown', name: null }, { audience: 'supplier', name: 'ZZ DEMO Co', approved: false },
+    { audience: 'customer', name: null, requests: [{ id: 'r1', rfq_no: 12, status: 'open', created_at: '2026-09-22' }] }];
+  const texts: string[] = [];
+  for (const lang of ['en', 'ar'] as Lang[]) {
+    for (const c of ctxs) for (const id of MENU_IDS) texts.push(optionReply(id, lang, c));
+    texts.push(welcomeText(lang, 'unknown', null), caseConfirm(lang, { ref: 'QD-S-ZZ2345', slaHours: 24 }), caseConfirm(lang, { ref: null }),
+               sorryLead(lang, true), sorryLead(lang, false), coverageReply(lang === 'ar' ? 'ما هي القطاعات التي تغطونها' : 'what trades do you cover', TRADES, lang)!);
+  }
+  for (const t of texts) assert(!INTERNAL.test(t), 'internal wording in a reply: ' + t.match(INTERNAL) + ' in ' + t.slice(0, 80));
+});
+
+Deno.test('wa_inbound never builds a reply from an internal error, and never calls agent_brain again', async () => {
+  const src = (await Deno.readTextFile(new URL('./index.ts', import.meta.url)))
+    .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');   // comments may name the defect; code may not
+  assert(!/agent_brain|company brain/.test(src), 'agent_brain is back in wa_inbound');
+  assert(!/reply\s*=[^;\n]*(brainErr|\(HTTP|\.status\b)/.test(src), 'a reply is built from an error again');
+  // The Twilio download error names hosts and codes; the supplier hears a plain sentence instead.
+  assert(src.includes("note: 'the file could not be downloaded from WhatsApp — please send it again'"));
+  assert(!src.includes('note: got.err'));
 });

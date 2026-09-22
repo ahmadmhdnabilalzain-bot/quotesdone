@@ -94,9 +94,11 @@ async function setRegistration(leadId: number) {
 }
 // profile_ai and supplier_review were deleted from the repository and from production by the
 // 137-function sweep (182308b, 7 Sep 2026); on 14 Sep get_edge_function answers "Function not found".
-// Their URL now returns a 404 JSON body, which aiReview returned AS IF it were a review — save_profile
-// then wrote a blank ai_review_notes and "AI check: clean" into the registration mail. A non-2xx
-// answer now means "no review", which is the truth. Both stay advisory and never gate registration.
+// Their URL returns a 404 JSON body, which the old review helper returned AS IF it were a review —
+// save_profile then wrote a blank ai_review_notes and "AI check: clean" into the registration mail.
+// 22 SEP 2026: both calls are REMOVED rather than guarded. A call to a function that is not deployed
+// is dead code that looks alive; scripts/checks/no_function_calls_an_undeployed_function.test.mjs now
+// fails the build if one comes back. Both were advisory and never gated registration.
 //
 // EMAIL PROOF (14 Sep 2026). login_otp records proof of e-mail ownership with an UPDATE on
 // leads.claimed_by — but at sign-up no lead is claimed by that address yet (create_company or claim
@@ -106,12 +108,6 @@ async function setRegistration(leadId: number) {
 async function emailProven(email: string) {
   const { data } = await admin.from('email_verifications').select('id').eq('email', email).eq('purpose', 'login').not('used_at', 'is', null).limit(1);
   return !!(data && data.length);
-}
-async function aiSummarize(leadId: number) {
-  try { const { data: lead } = await admin.from('leads').select('id,company_name,sector,emirate,services,products,description,certifications,verified,service_emirates').eq('id', leadId).maybeSingle(); if (!lead) return; const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return; const text = [lead.company_name && ('Company: ' + lead.company_name), lead.sector && ('Trade: ' + lead.sector), lead.services && ('Services: ' + lead.services), lead.products && ('Products: ' + lead.products), lead.description && ('About: ' + lead.description), lead.certifications && ('Certifications: ' + lead.certifications)].filter(Boolean).join('\n'); if (!text) return; const r = await fetch(`${SUPA_URL}/functions/v1/profile_ai`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, company_name: lead.company_name, sector: lead.sector, emirate: lead.emirate, text }) }); if (!r.ok) return; const jd = await r.json(); if (jd?.ok && jd.profile) { const p = jd.profile; const upd: Record<string, unknown> = {}; if (p.capability_summary) upd.capability_summary = p.capability_summary; if (Array.isArray(p.service_emirates) && p.service_emirates.length && !(Array.isArray(lead.service_emirates) && lead.service_emirates.length)) upd.service_emirates = p.service_emirates; if (p.description && !lead.description) upd.description = p.description; if (p.category && !lead.sector) upd.sector = p.category; if (Object.keys(upd).length) await admin.from('leads').update(upd).eq('id', leadId); } } catch (_e) { /* */ }
-}
-async function aiReview(lead: Record<string, unknown>) {
-  try { const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null; const profile: Record<string, unknown> = {}; for (const k of ['company_name','sector','emirate','service_emirates','contact_name','signatory_name','phone','services','products','description','trade_license_no','license_authority','license_expiry','trn','egr_number']) profile[k] = lead[k]; const r = await fetch(`${SUPA_URL}/functions/v1/supplier_review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, profile }) }); if (!r.ok) return null; return await r.json(); } catch (_e) { return null; }
 }
 async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
 
@@ -184,8 +180,8 @@ async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolea
 // 'supplier_services_crosscheck', target_table/target_id = leads/<id>, whole comparison in the
 // jsonb `detail` (verdict, overlap, shared terms, extracted list, declared text, note). No
 // migration is added and no other feature's column is borrowed: every leads JSONB column already
-// has an owner (ai_review_flags is REWRITTEN WHOLESALE by this function's own aiReview on every
-// save, so anything parked there is lost within seconds; machinery / brands_carried /
+// has an owner (ai_review_flags was REWRITTEN WHOLESALE by this function's own review helper on every
+// save until 22 Sep 2026, and still belongs to that review; machinery / brands_carried /
 // client_references / iso_certifications / manufacturer_authorizations belong to capability
 // enrichment) and supplier_capabilities is owned end to end by capability_agent, which upserts
 // whole rows including review_status. agent_actions is the platform's existing durable, queryable
@@ -683,16 +679,12 @@ const handle = async (req: Request): Promise<Response> => {
       // A certificate on its way is not something the supplier still has to do.
       const stillNeeded = (v.missing || []).filter((c) => !(certificatePending && c === 'reg_terms'));
       if (v.licence_expired && !stillNeeded.length && decision === 'action_required') stillNeeded.push('licence_expired');
-      await aiSummarize(sup.id);
       const { data: full } = await admin.from('leads').select('*').eq('id', sup.id).maybeSingle();
-      const review = await aiReview(full || {});
-      if (review) { const notes = (review.summary || '') + (Array.isArray(review.issues) && review.issues.length ? '  Issues: ' + review.issues.map((i: { field: string; note: string }) => `${i.field} — ${i.note}`).join('; ') : ''); await admin.from('leads').update({ ai_review_notes: notes.slice(0, 2000), ai_review_flags: review.issues || [], ai_reviewed_at: new Date().toISOString() }).eq('id', sup.id); }
       if (firstSubmit) {
         const name = full?.company_name || sup.company_name;
         const ar = (full?.locale || sup.locale) === 'ar';
         const mgmt = (await secretVal('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
         const licInfo = full?.trade_license_no ? ` Licence ${full.trade_license_no}${full.license_city ? ', ' + full.license_city : ''}${full.license_expiry ? ', expires ' + full.license_expiry : ''}.` : '';
-        const revLine = review ? ` AI check: ${review.severity || 'clean'} — ${review.summary || ''}` : '';
         const needEn = sixInWords(stillNeeded.filter((c) => c !== 'licence_expired'), 'en') + (stillNeeded.includes('licence_expired') ? (stillNeeded.length > 1 ? ', ' : '') + 'a trade licence that is in date' : '');
         const needAr = sixInWords(stillNeeded.filter((c) => c !== 'licence_expired'), 'ar') + (stillNeeded.includes('licence_expired') ? (stillNeeded.length > 1 ? '، ' : '') + 'رخصة تجارية سارية المفعول' : '');
         const days = 14;
@@ -711,14 +703,14 @@ const handle = async (req: Request): Promise<Response> => {
         await notify([
           { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
             subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? 'New supplier waiting for approval (auto-approve is off)' : 'Supplier registration incomplete',
-            body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}${revLine}` },
+            body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` },
           { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
         ]);
       }
       if (!wasApproved && decision !== 'approved' && stillNeeded.length) {
         return J({ error: 'missing_required', code: 'missing_required', saved: true, approval_status: decision, params: { missing: stillNeeded }, message: 'Saved. Still needed to register: ' + stillNeeded.join(', ') + '.', services_crosscheck: servicesCheck }, 400);
       }
-      return J({ ok: true, approval_status: decision, terms_certificate: certificatePending ? 'pending' : undefined, services_crosscheck: servicesCheck, review: review ? { severity: review.severity, summary: review.summary, issues: review.issues } : null });
+      return J({ ok: true, approval_status: decision, terms_certificate: certificatePending ? 'pending' : undefined, services_crosscheck: servicesCheck });
     }
     // Registration fee - creates a Stripe Checkout Session and nothing else.
     //

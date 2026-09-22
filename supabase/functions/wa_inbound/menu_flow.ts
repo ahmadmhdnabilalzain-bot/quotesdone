@@ -21,8 +21,9 @@
 // the option they picked from our own list. wa_autoreply_enabled still governs every send.
 import {
   type Audience, caseClosedNotice, caseConfirm, type CaseResult, contentKey, founderCommand, greetLine, isGreeting, isMenuWord,
-  isSalam, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, welcomeText, WELCOME_TAIL,
+  isSalam, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
 } from './menu.ts';
+import { coverageReply, mightBeCoverage, type Trade } from './coverage.ts';
 
 export type Turn = { route: string | null; await: string | null; lang: Lang | null };
 export type SendResult = { ok: boolean; err?: string };
@@ -37,6 +38,10 @@ export type MenuDeps = {
   context(from: string): Promise<MenuContext>;
   /** fn_faq_answer with the gte-small embedding: a corroborated answer from the approved FAQ, or null. */
   faq(text: string): Promise<string | null>;
+  /** public.taxonomy_trade, active rows in table order: the list fn_match_capability matches on. */
+  trades(): Promise<Trade[]>;
+  /** fn_support_knowledge_gap: the unanswered question is filed for the team. False if it could not be. */
+  recordGap(text: string, reason: string): Promise<boolean>;
   /** fn_wa_problem_report: opens a support case, or adds to the one this number/account already has open. */
   openCase(from: string, text: string, lang: Lang): Promise<CaseResult>;
   /** fn_wa_human_request: hands the conversation to a person (handoff + hold) and alerts the founder. */
@@ -77,13 +82,24 @@ async function reply(d: MenuDeps, inp: MenuInput, lang: Lang, route: string, tex
                    send_error: err, extra: { ...extra, via, autoreply_enabled: enabled } });
 }
 
-async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContext, route: string, lead: string | null) {
+/** A question's answer: coverage from the live trade list first (it has an exact answer), then the
+ *  approved FAQ. Null when neither has a confident one. */
+async function answerOf(d: MenuDeps, text: string): Promise<string | null> {
+  if (mightBeCoverage(text)) {
+    const cov = coverageReply(text, await d.trades(), langOf(text));
+    if (cov) return cov;
+  }
+  return d.faq(text);
+}
+
+async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContext, route: string, lead: string | null,
+                        more: Record<string, unknown> = {}) {
   const key = contentKey(lang, ctx.audience);
   const sid = await d.contentSid(key);
   // Content body = {{1}} + WELCOME_TAIL, so the text we record is exactly what the list shows.
   const line = lead ?? greetLine(lang, ctx.audience, ctx.name, isSalam(inp.body));
   const shown = lead === null ? welcomeText(lang, ctx.audience, ctx.name, isSalam(inp.body)) : line + '\n\n' + WELCOME_TAIL[lang];
-  await reply(d, inp, lang, route, shown, null, { audience: ctx.audience, content_key: key, content_sid: sid },
+  await reply(d, inp, lang, route, shown, null, { ...more, audience: ctx.audience, content_key: key, content_sid: sid },
     sid ? { sid, variables: { '1': line } } : undefined, menuAsText(lang, ctx.audience, lead === null ? shown : line));
 }
 
@@ -162,7 +178,7 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
 
   // 4. After "General question": a confident FAQ answer; otherwise the normal route answers it.
   if (awaiting === 'question' && body) {
-    const ans = await d.faq(body);
+    const ans = await answerOf(d, body);
     if (ans) {
       await reply(d, inp, lang, 'menu_answer', ans + MENU_HINT[lang], null, { faq: true });
       return { handled: true, route: 'menu_answer' };
@@ -181,7 +197,7 @@ export async function welcomeFirstContact(d: MenuDeps, inp: MenuInput): Promise<
   if ((await d.recentTurns(inp.from)).length > 0 || await d.weWroteRecently(inp.from)) return false;
   const lang = langOf(body);
   const ctx = await d.context(inp.from);
-  const ans = body ? await d.faq(body) : null;
+  const ans = body ? await answerOf(d, body) : null;
   if (ans) await reply(d, inp, lang, 'menu_first_answer', ans, null, { audience: ctx.audience, faq: true });
   await sendMenu(d, inp, lang, ctx, 'menu_welcome', null);
   return true;
@@ -192,7 +208,7 @@ export async function welcomeFirstContact(d: MenuDeps, inp: MenuInput): Promise<
 export async function answerFromFaq(d: MenuDeps, inp: MenuInput): Promise<boolean> {
   const body = String(inp.body || '').trim();
   if (!body) return false;
-  const ans = await d.faq(body);
+  const ans = await answerOf(d, body);
   if (!ans) return false;
   const lang = langOf(body);
   await reply(d, inp, lang, 'faq_answer', ans + MENU_HINT[lang], null, { faq: true, audience: inp.audience });
@@ -202,4 +218,15 @@ export async function answerFromFaq(d: MenuDeps, inp: MenuInput): Promise<boolea
 /** The last word when nothing else could answer: the menu again, in their language. */
 export async function reofferMenu(d: MenuDeps, inp: MenuInput, lead: string): Promise<void> {
   await sendMenu(d, inp, langOf(inp.body), { audience: inp.audience, name: null }, 'menu_reoffer', lead);
+}
+
+/** Nothing could answer the question (22 Sep 2026). It is filed for the team (fn_support_knowledge_gap)
+ *  and the person gets the courteous line and the menu, with "Talk to a person" on it. `reason` is kept
+ *  in the record for the team; it is never shown. */
+export async function unanswered(d: MenuDeps, inp: MenuInput, reason: string): Promise<void> {
+  const body = String(inp.body || '').trim();
+  const recorded = body ? await d.recordGap(body, reason) : false;
+  const lang = langOf(body);
+  await sendMenu(d, inp, lang, { audience: inp.audience, name: null }, 'menu_reoffer', sorryLead(lang, recorded),
+    { unanswered_reason: reason, gap_recorded: recorded });
 }
