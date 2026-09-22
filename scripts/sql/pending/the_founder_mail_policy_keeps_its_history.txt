@@ -1,6 +1,0 @@
-it_engineer, 22 Sep 2026 (review of #825). Not applied yet: the coordinator serialises applies. Apply with
-`node scripts/apply_sql.mjs scripts/sql/the_founder_mail_policy_keeps_its_history.sql --apply --ddl` BEFORE
-merging, because scripts/checks/the_founder_is_emailed_exceptions_only.test.mjs now calls
-public.fn_founder_mail_policy_at, which this file creates. Then run the probe
-(the_founder_mail_policy_keeps_its_history_probe.sql). Rehearsed rolled back on production 22 Sep: PROBE OK,
-71 history rows (69 kinds + the two pre-flip 'true' rows).

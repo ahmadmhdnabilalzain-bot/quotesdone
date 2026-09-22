@@ -1,2 +1,0 @@
-it_engineer, 22 Sep 2026. Pure probe, never applied: run it as ONE query through the Management API AFTER
-the_founder_mail_policy_keeps_its_history.sql is applied; it must answer PROBE OK. Every planted write is rolled back.
