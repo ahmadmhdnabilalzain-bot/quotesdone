@@ -65,6 +65,13 @@ export const norm = (s: string) => normMap(String(s ?? '')).n.trim();
 
 // Generic words and BOQ vocabulary never become a seed on their own (a company called "Marble Tech"
 // must not erase every marble line); the full phrase "marble tech" still does.
+// 22 SEP 2026 — DRAWING VOCABULARY. The customer's FILE NAME is a seed (customer_api passes it as
+// `extra`), and a file name is mostly drawing words. MEASURED on the real Weld mechanical set with the
+// name "M-101 Mechanical Drawings Rev2.pdf": "mechanical" and "drawings" became seeds and 111 runs of
+// drawing content outside the title block were blacked out on the cover sheet (18.1% of the sheet,
+// against 7 runs / 8.6% under a neutral name) — the drawing index, the design data, the legend and
+// every general note that says "drawings". A ZZ DEMO customer's "demo" did the same to every
+// "DEMO AND REMOVE" demolition note. These words name what is drawn, never who it is for.
 const GENERIC = new Set(norm(`villa villas project projects residence residential building buildings tower towers house home
   office company group trading contracting contractor contractors consult consultant consultants consultancy engineering
   engineer engineers architect architects interior interiors design designs general services solutions systems works
@@ -74,6 +81,11 @@ const GENERIC = new Set(norm(`villa villas project projects residence residentia
   tile tiles porcelain ceramic marble granite stone wall walls ceiling paint door doors window windows glass steel wood
   timber gypsum kitchen bath bathroom room rooms living bedroom concrete aluminium aluminum light lights lighting
   electrical plumbing water pool
+  drawing drawings plan plans layout layouts mechanical hvac permit tender issued construction revision revised
+  final draft sheet sheets section sections elevation elevations detail details schedule schedules notes spec specs
+  specification specifications diagram diagrams riser scan scanned copy architectural structural civil landscape
+  fire fighting alarm drainage sanitary ductwork demo demolition existing proposed typical level basement roof
+  mezzanine page document documents file files photo image proposal quotation tender package bill quantities
   فيلا مشروع دبي الشارقة عجمان ابوظبي الامارات امارات شركة مؤسسة شارع منطقة مبنى برج السيد السيدة المهندس الشيخ`).split(' '));
 const PUBLIC_MAIL = /^(?:gmail|googlemail|hotmail|outlook|live|yahoo|icloud|me|msn|aol|proton|protonmail)$/;
 const isArabic = (t: string) => /[؀-ۿ]/.test(t);
