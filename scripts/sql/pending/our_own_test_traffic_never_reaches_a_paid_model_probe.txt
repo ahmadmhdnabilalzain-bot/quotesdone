@@ -1,1 +1,0 @@
-A pure read-only probe. Run it after our_own_test_traffic_never_reaches_a_paid_model.sql is applied, then append both to MANIFEST.txt. It must return PROBE OK.
