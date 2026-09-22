@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T11:03:14.960Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T11:14:07.499Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -194,7 +194,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (543) =====
+-- ===== TABLES (546) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4367,6 +4367,34 @@ CREATE TABLE IF NOT EXISTS public.marketing_ad_spend_day (
   booked_ack_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_article (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  slug text NOT NULL,
+  kind text NOT NULL,
+  title_en text NOT NULL,
+  excerpt_en text NOT NULL,
+  meta_desc_en text NOT NULL,
+  category_en text NOT NULL,
+  body_html_en text NOT NULL,
+  title_ar text NOT NULL,
+  excerpt_ar text NOT NULL,
+  meta_desc_ar text NOT NULL,
+  category_ar text NOT NULL,
+  body_html_ar text NOT NULL,
+  sources jsonb NOT NULL,
+  checks jsonb NOT NULL,
+  ingested_by text NOT NULL,
+  status text DEFAULT 'draft'::text NOT NULL,
+  approved_by text,
+  approved_at timestamp with time zone,
+  released_at timestamp with time zone,
+  live_at timestamp with time zone,
+  linkedin_post_key text NOT NULL,
+  is_demo boolean DEFAULT false NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_connection_check (
   check_key text NOT NULL,
   platform text NOT NULL,
@@ -4414,6 +4442,28 @@ CREATE TABLE IF NOT EXISTS public.marketing_meta_page (
   fetched_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_outreach_message (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  prospect_id bigint NOT NULL,
+  kind text NOT NULL,
+  language text NOT NULL,
+  body text NOT NULL,
+  note text,
+  lint jsonb DEFAULT '[]'::jsonb NOT NULL,
+  reply_class text,
+  listed_on date NOT NULL,
+  status text DEFAULT 'draft'::text NOT NULL,
+  mark_token uuid DEFAULT gen_random_uuid() NOT NULL,
+  reply_text text,
+  delivery jsonb,
+  sent_at timestamp with time zone,
+  replied_at timestamp with time zone,
+  converted_at timestamp with time zone,
+  is_demo boolean DEFAULT false NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_post (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   ingest_key text NOT NULL,
@@ -4433,6 +4483,25 @@ CREATE TABLE IF NOT EXISTS public.marketing_post (
   error text,
   attempts integer DEFAULT 0 NOT NULL,
   published_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_prospect (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  full_name text NOT NULL,
+  role_title text NOT NULL,
+  company text NOT NULL,
+  segment text NOT NULL,
+  emirate text,
+  language text DEFAULT 'en'::text NOT NULL,
+  linkedin_url text,
+  opening_line text,
+  opening_line_url text,
+  source_urls text[] NOT NULL,
+  researched_by text NOT NULL,
+  status text DEFAULT 'new'::text NOT NULL,
+  is_demo boolean DEFAULT false NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -7877,12 +7946,15 @@ ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_pkey PRIMARY
 ALTER TABLE public.llm_seat_binding ADD CONSTRAINT llm_seat_binding_pkey PRIMARY KEY (fn);
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_pkey PRIMARY KEY (account_id, campaign_id, day);
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_pkey PRIMARY KEY (check_key);
 ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_pkey PRIMARY KEY (duty);
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_pkey PRIMARY KEY (platform, object_id, metric, day);
 ALTER TABLE public.marketing_library ADD CONSTRAINT marketing_library_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_pkey PRIMARY KEY (page_id);
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_pkey PRIMARY KEY (report_date);
 ALTER TABLE public.marketing_snapshots ADD CONSTRAINT marketing_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.match_eval_runs ADD CONSTRAINT match_eval_runs_pkey PRIMARY KEY (id);
@@ -8156,7 +8228,9 @@ ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
 ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_requirement_key UNIQUE (requirement);
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_expiry_date_band_channel_key UNIQUE (lead_id, expiry_date, band, channel);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_one_row_per_attempt UNIQUE (request_id, attempt_no);
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_slug_key UNIQUE (slug);
 ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_ig_id_key UNIQUE (ig_id);
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_mark_token_key UNIQUE (mark_token);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_key UNIQUE (ingest_key);
 ALTER TABLE public.mdm_brands ADD CONSTRAINT mdm_brands_name_key UNIQUE (name);
 ALTER TABLE public.mdm_manufacturers ADD CONSTRAINT mdm_manufacturers_name_key UNIQUE (name);
@@ -8432,6 +8506,27 @@ ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_
 ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_currency_check CHECK ((currency ~ '^[A-Z]{3}$'::text));
 ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_demo_is_marked CHECK (((NOT is_demo) OR (campaign_name ~~ 'ZZ DEMO%'::text)));
 ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_spend_check CHECK ((spend >= (0)::numeric));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_approved_by_check CHECK ((approved_by = ANY (ARRAY['founder'::text, 'claude'::text])));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_approved_says_who CHECK (((status = ANY (ARRAY['draft'::text, 'withdrawn'::text])) OR ((approved_by IS NOT NULL) AND (approved_at IS NOT NULL))));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_body_html_ar_check CHECK ((body_html_ar ~ '[؀-ۿ]'::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_body_html_en_check CHECK ((btrim(body_html_en) <> ''::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_category_ar_check CHECK ((category_ar ~ '[؀-ۿ]'::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_category_en_check CHECK ((btrim(category_en) <> ''::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_checks_are_clean CHECK ((((checks -> 'lint'::text) = '[]'::jsonb) AND ((checks -> 'ungrounded'::text) = '[]'::jsonb)));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_demo_is_marked CHECK (((NOT is_demo) OR (title_en ~~ 'ZZ DEMO%'::text)));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_excerpt_ar_check CHECK ((excerpt_ar ~ '[؀-ۿ]'::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_excerpt_en_check CHECK ((btrim(excerpt_en) <> ''::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_ingested_by_check CHECK ((ingested_by = ANY (ARRAY['founder'::text, 'claude'::text])));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_kind_check CHECK ((kind = ANY (ARRAY['how_it_works'::text, 'buyer_guide'::text, 'trade_explainer'::text])));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_live_says_when CHECK (((status <> 'live'::text) OR (live_at IS NOT NULL)));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_meta_desc_ar_check CHECK ((meta_desc_ar ~ '[؀-ۿ]'::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_meta_desc_en_check CHECK ((btrim(meta_desc_en) <> ''::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_released_says_when CHECK (((status <> ALL (ARRAY['released'::text, 'live'::text])) OR (released_at IS NOT NULL)));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_slug_check CHECK (((slug ~ '^[a-z0-9]+(-[a-z0-9]+)+$'::text) AND (length(slug) <= 70)));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_sources_check CHECK (((jsonb_typeof(sources) = 'array'::text) AND (jsonb_array_length(sources) > 0)));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'released'::text, 'live'::text, 'withdrawn'::text])));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_title_ar_check CHECK ((title_ar ~ '[؀-ۿ]'::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_title_en_check CHECK ((btrim(title_en) <> ''::text));
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_check_key_check CHECK ((check_key ~ '^[a-z]+(\.[a-z_]+)+$'::text));
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_failure_names_the_need CHECK ((ok OR (btrim(COALESCE(needs, ''::text)) <> ''::text)));
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_platform_check CHECK ((platform = ANY (ARRAY['postiz'::text, 'meta'::text, 'linkedin'::text])));
@@ -8440,6 +8535,16 @@ ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_me
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_object_id_check CHECK ((btrim(object_id) <> ''::text));
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_object_type_check CHECK ((object_type = ANY (ARRAY['page'::text, 'account'::text, 'post'::text])));
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_platform_check CHECK ((platform = ANY (ARRAY['facebook'::text, 'instagram'::text, 'linkedin'::text, 'x'::text])));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_body_check CHECK (((btrim(body) <> ''::text) AND (length(body) <= 1900)));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_first_has_a_note CHECK (((kind <> 'first'::text) OR (note IS NOT NULL)));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_kind_check CHECK ((kind = ANY (ARRAY['first'::text, 'follow_up'::text])));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_language_check CHECK ((language = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_lint_check CHECK ((lint = '[]'::jsonb));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_note_check CHECK (((note IS NULL) OR (length(note) <= 300)));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_reply_class_check CHECK ((reply_class = ANY (ARRAY['decline'::text, 'later'::text, 'positive'::text, 'question'::text])));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_reply_is_kept CHECK (((status <> 'replied'::text) OR (reply_text IS NOT NULL)));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_reply_text_check CHECK (((reply_text IS NULL) OR (length(reply_text) <= 4000)));
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'listed'::text, 'sent'::text, 'replied'::text, 'converted'::text, 'declined'::text])));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_channels_check CHECK (((cardinality(channels) > 0) AND (channels <@ ARRAY['facebook'::text, 'instagram'::text, 'linkedin'::text, 'x'::text])));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_demo_is_marked CHECK (((NOT is_demo) OR (text_en ~~ 'ZZ DEMO%'::text)));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_failed_says_why CHECK (((status <> 'failed'::text) OR (error IS NOT NULL)));
@@ -8452,6 +8557,19 @@ ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_scheduled_has_a_
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'scheduled'::text, 'publishing'::text, 'published'::text, 'failed'::text, 'cancelled'::text])));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_text_ar_check CHECK ((text_ar ~ '[؀-ۿ]'::text));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_text_en_check CHECK ((btrim(text_en) <> ''::text));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_company_check CHECK ((btrim(company) <> ''::text));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_demo_is_marked CHECK (((NOT is_demo) OR (full_name ~~ 'ZZ DEMO%'::text)));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_emirate_check CHECK ((emirate = ANY (ARRAY['abu_dhabi'::text, 'dubai'::text, 'sharjah'::text, 'ajman'::text, 'umm_al_quwain'::text, 'ras_al_khaimah'::text, 'fujairah'::text])));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_full_name_check CHECK ((btrim(full_name) <> ''::text));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_hook_is_cited CHECK (((opening_line IS NULL) OR (opening_line_url ~ '^https://'::text)));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_language_check CHECK ((language = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_linkedin_url_check CHECK ((linkedin_url ~ '^https://([a-z]{2,3}\.)?linkedin\.com/in/[A-Za-z0-9_%-]+/?$'::text));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_opening_line_check CHECK (((opening_line IS NULL) OR (length(opening_line) <= 200)));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_researched_by_check CHECK ((researched_by = ANY (ARRAY['founder'::text, 'claude'::text, 'marketing'::text])));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_role_title_check CHECK ((btrim(role_title) <> ''::text));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_segment_check CHECK ((segment = ANY (ARRAY['developer'::text, 'contractor_procurement'::text, 'consultant'::text, 'facility_manager'::text])));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_source_urls_check CHECK ((cardinality(source_urls) > 0));
+ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_status_check CHECK ((status = ANY (ARRAY['new'::text, 'listed'::text, 'sent'::text, 'replied'::text, 'converted'::text, 'declined'::text])));
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_check CHECK ((window_to > window_from));
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_figures_check CHECK ((jsonb_typeof(figures) = 'object'::text));
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_check CHECK ((sender = ANY (ARRAY['customer'::text, 'supplier'::text])));
@@ -8831,6 +8949,7 @@ ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_answer
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_key_fkey FOREIGN KEY (class_key) REFERENCES llm_failure_class(class_key);
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_opened_class_fkey FOREIGN KEY (opened_class) REFERENCES llm_failure_class(class_key);
+ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_prospect_id_fkey FOREIGN KEY (prospect_id) REFERENCES marketing_prospect(id);
 ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_document_id_fkey FOREIGN KEY (document_id) REFERENCES documents(id);
 ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
@@ -9262,7 +9381,10 @@ CREATE INDEX llm_cache_emb_idx ON public.llm_cache USING ivfflat (embedding_gte 
 CREATE INDEX llm_cache_expiry_idx ON public.llm_cache USING btree (expires_at);
 CREATE INDEX llm_calls_created_idx ON public.llm_calls USING btree (created_at DESC);
 CREATE INDEX llm_calls_fn_idx ON public.llm_calls USING btree (fn, created_at DESC);
+CREATE INDEX marketing_outreach_message_day_idx ON public.marketing_outreach_message USING btree (listed_on);
+CREATE UNIQUE INDEX marketing_outreach_message_one_first_idx ON public.marketing_outreach_message USING btree (prospect_id) WHERE (kind = 'first'::text);
 CREATE INDEX marketing_post_due_idx ON public.marketing_post USING btree (scheduled_at) WHERE (status = 'scheduled'::text);
+CREATE UNIQUE INDEX marketing_prospect_one_person_idx ON public.marketing_prospect USING btree (lower(full_name), lower(company));
 CREATE UNIQUE INDEX marketing_snap_day ON public.marketing_snapshots USING btree (snapshot_date);
 CREATE INDEX materials_cat ON public.materials USING btree (category);
 CREATE INDEX messages_thread_idx ON public.messages USING btree (inquiry_id, supplier_id, created_at);
@@ -10272,6 +10394,46 @@ CREATE OR REPLACE VIEW public.legal_kpis AS  SELECT ( SELECT count(*) AS count
     ( SELECT count(*) AS count
            FROM legal_reviews
           WHERE ((legal_reviews.risk_level = 'high'::text) AND legal_reviews.needs_licensed_review)) AS high_risk_reviews;
+
+CREATE OR REPLACE VIEW public.marketing_bd_figures AS  SELECT ( SELECT count(*) AS count
+           FROM marketing_prospect
+          WHERE ((marketing_prospect.status = 'new'::text) AND (NOT marketing_prospect.is_demo))) AS prospects_waiting,
+    ( SELECT count(*) AS count
+           FROM marketing_outreach_message
+          WHERE ((marketing_outreach_message.status = 'draft'::text) AND (NOT marketing_outreach_message.is_demo))) AS drafts_held,
+    ( SELECT count(*) AS count
+           FROM marketing_outreach_message
+          WHERE ((marketing_outreach_message.kind = 'first'::text) AND (marketing_outreach_message.status <> 'draft'::text) AND (NOT marketing_outreach_message.is_demo) AND (marketing_outreach_message.listed_on >= (((now() AT TIME ZONE 'Asia/Dubai'::text))::date - 6)))) AS listed_7d,
+    ( SELECT count(*) AS count
+           FROM marketing_outreach_message
+          WHERE ((marketing_outreach_message.sent_at >= (now() - '7 days'::interval)) AND (NOT marketing_outreach_message.is_demo))) AS sent_7d,
+    ( SELECT count(*) AS count
+           FROM marketing_outreach_message
+          WHERE ((marketing_outreach_message.replied_at >= (now() - '7 days'::interval)) AND (NOT marketing_outreach_message.is_demo))) AS replied_7d,
+    ( SELECT count(*) AS count
+           FROM marketing_outreach_message
+          WHERE ((marketing_outreach_message.converted_at >= (now() - '7 days'::interval)) AND (NOT marketing_outreach_message.is_demo))) AS converted_7d,
+    ( SELECT count(*) AS count
+           FROM marketing_prospect
+          WHERE ((marketing_prospect.status = ANY (ARRAY['sent'::text, 'replied'::text, 'converted'::text, 'declined'::text])) AND (NOT marketing_prospect.is_demo))) AS people_contacted,
+    ( SELECT count(*) AS count
+           FROM marketing_prospect
+          WHERE ((marketing_prospect.status = ANY (ARRAY['replied'::text, 'converted'::text])) AND (NOT marketing_prospect.is_demo))) AS people_replied,
+    ( SELECT count(*) AS count
+           FROM marketing_prospect
+          WHERE ((marketing_prospect.status = 'converted'::text) AND (NOT marketing_prospect.is_demo))) AS people_converted,
+    ( SELECT count(*) AS count
+           FROM marketing_article
+          WHERE ((marketing_article.status = 'draft'::text) AND (NOT marketing_article.is_demo))) AS articles_draft,
+    ( SELECT count(*) AS count
+           FROM marketing_article
+          WHERE ((marketing_article.status = 'approved'::text) AND (NOT marketing_article.is_demo))) AS articles_approved,
+    ( SELECT count(*) AS count
+           FROM marketing_article
+          WHERE ((marketing_article.status = ANY (ARRAY['released'::text, 'live'::text])) AND (NOT marketing_article.is_demo))) AS articles_released,
+    ( SELECT count(*) AS count
+           FROM marketing_article
+          WHERE ((marketing_article.live_at >= (now() - '30 days'::interval)) AND (NOT marketing_article.is_demo))) AS articles_live_30d;
 
 CREATE OR REPLACE VIEW public.marketing_category_demand AS  WITH cats AS (
          SELECT DISTINCT COALESCE(NULLIF(inquiries.category, ''::text), 'other'::text) AS c
@@ -18382,16 +18544,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18417,6 +18569,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -19128,135 +19290,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19772,6 +19805,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -40550,6 +40712,113 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_article_approve(p_slug text, p_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint;
+begin
+  if p_by not in ('founder', 'claude') then return jsonb_build_object('ok', false, 'error', 'approver_must_be_founder_or_claude'); end if;
+  update public.marketing_article set status = 'approved', approved_by = p_by, approved_at = now(), updated_at = now()
+   where slug = p_slug and status = 'draft' returning id into v_id;
+  return jsonb_build_object('ok', v_id is not null, 'slug', p_slug,
+    'error', case when v_id is null then 'not_a_draft' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_article_ingest(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_slug text := lower(btrim(coalesce(p->>'slug', '')));
+  v_key text; v_cur public.marketing_article; v_id bigint; v_post jsonb; v_f text;
+begin
+  foreach v_f in array array['title', 'excerpt', 'meta_desc', 'category', 'body_html'] loop
+    if public.fn_text_lost_its_script(p->'ar'->>v_f) then
+      return jsonb_build_object('ok', false, 'error', 'text_lost_its_script', 'field', 'ar.' || v_f);
+    end if;
+  end loop;
+  if coalesce(p->'checks'->'lint', '[]'::jsonb) <> '[]'::jsonb or coalesce(p->'checks'->'ungrounded', '[]'::jsonb) <> '[]'::jsonb then
+    return jsonb_build_object('ok', false, 'error', 'checks_not_clean', 'checks', p->'checks');
+  end if;
+  v_key := 'article-' || v_slug;
+  select * into v_cur from public.marketing_article where slug = v_slug for update;
+  if found and v_cur.status <> 'draft' then
+    return jsonb_build_object('ok', true, 'unchanged', true, 'status', v_cur.status,
+      'message', 'Already ' || v_cur.status || '; an approved article is not edited in place. Withdraw it or ingest a new slug.');
+  end if;
+  insert into public.marketing_article (slug, kind, title_en, excerpt_en, meta_desc_en, category_en, body_html_en,
+      title_ar, excerpt_ar, meta_desc_ar, category_ar, body_html_ar, sources, checks, ingested_by, linkedin_post_key, is_demo)
+  values (v_slug, p->>'kind', p->'en'->>'title', p->'en'->>'excerpt', p->'en'->>'meta_desc', p->'en'->>'category', p->'en'->>'body_html',
+          p->'ar'->>'title', p->'ar'->>'excerpt', p->'ar'->>'meta_desc', p->'ar'->>'category', p->'ar'->>'body_html',
+          p->'sources', p->'checks', coalesce(p->>'ingested_by', 'claude'), v_key, coalesce((p->>'is_demo')::boolean, false))
+  on conflict (slug) do update
+     set kind = excluded.kind, title_en = excluded.title_en, excerpt_en = excluded.excerpt_en, meta_desc_en = excluded.meta_desc_en,
+         category_en = excluded.category_en, body_html_en = excluded.body_html_en, title_ar = excluded.title_ar,
+         excerpt_ar = excluded.excerpt_ar, meta_desc_ar = excluded.meta_desc_ar, category_ar = excluded.category_ar,
+         body_html_ar = excluded.body_html_ar, sources = excluded.sources, checks = excluded.checks,
+         ingested_by = excluded.ingested_by, is_demo = excluded.is_demo, updated_at = now()
+  returning id into v_id;
+  -- Its LinkedIn post, a DRAFT in #834's store: scheduled only by fn_marketing_article_mark_live.
+  v_post := public.fn_marketing_post_ingest(jsonb_build_object('ingest_key', v_key, 'ingested_by', 'marketing',
+              'title', p->'en'->>'title', 'text_en', p->'post'->>'text_en', 'text_ar', p->'post'->>'text_ar',
+              'channels', jsonb_build_array('linkedin'), 'is_demo', coalesce((p->>'is_demo')::boolean, false)));
+  if not coalesce((v_post->>'ok')::boolean, false) then
+    raise exception 'the article''s LinkedIn post was refused: %', v_post;
+  end if;
+  return jsonb_build_object('ok', true, 'id', v_id, 'slug', v_slug, 'status', 'draft', 'linkedin_post', v_post);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_article_mark_live(p_slug text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_a public.marketing_article; v_posts int;
+begin
+  update public.marketing_article set status = 'live', live_at = now(), updated_at = now()
+   where slug = p_slug and status = 'released' returning * into v_a;
+  if v_a.id is null then return jsonb_build_object('ok', false, 'error', 'not_released'); end if;
+  update public.marketing_post set status = 'scheduled', scheduled_at = now() + interval '5 minutes', updated_at = now()
+   where ingest_key = v_a.linkedin_post_key and status = 'draft';
+  get diagnostics v_posts = row_count;
+  return jsonb_build_object('ok', true, 'slug', p_slug, 'linkedin_post_scheduled', v_posts = 1);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_article_release_due()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_now timestamp := now() at time zone 'Asia/Dubai';
+  v_week int; v_today int; v_next public.marketing_article;
+begin
+  select count(*) filter (where released_at at time zone 'Asia/Dubai' >= date_trunc('week', v_now)),
+         count(*) filter (where (released_at at time zone 'Asia/Dubai')::date = v_now::date)
+    into v_week, v_today from public.marketing_article where released_at is not null and not is_demo;
+  if v_week >= greatest(0, public.fn_marketing_policy_int('marketing_articles_per_week', 2)) or v_today > 0 then
+    return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'cadence');
+  end if;
+  select * into v_next from public.marketing_article where status = 'approved' and not is_demo order by approved_at, id limit 1 for update skip locked;
+  if not found then return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'nothing_approved'); end if;
+  if not public.fn_marketing_publishing_live() then
+    return jsonb_build_object('released', null, 'held', true, 'would_release', v_next.slug, 'reason', 'marketing_golive is not true');
+  end if;
+  update public.marketing_article set status = 'released', released_at = now(), updated_at = now() where id = v_next.id;
+  return jsonb_build_object('released', v_next.slug, 'this_week', v_week + 1);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_asks_the_founder_to_take_over(p_platform text, p_thread_ref text, p_handle text, p_last_message text, p_summary text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -40776,6 +41045,148 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_outreach_deliver(p_day date, p_ids bigint[], p_subject text, p_body text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_listed int; v_res jsonb; v_delivery jsonb;
+begin
+  select count(*) into v_listed from public.marketing_outreach_message where id = any (p_ids) and status = 'listed' and not is_demo;
+  if public.fn_marketing_publishing_live() and v_listed > 0 then
+    v_res := public.fn_notify_founder(p_subject, p_body, 'normal', 'marketing_outreach_list', 'marketing_outreach_list:' || p_day);
+    v_delivery := jsonb_build_object('mode', 'emailed', 'at', now(), 'notify', v_res);
+  else
+    v_delivery := jsonb_build_object('mode', 'dry_run', 'at', now(),
+      'why', case when v_listed = 0 then 'nothing listed (held or demo)' else 'marketing_golive is not true' end,
+      'subject', p_subject, 'body', left(p_body, 6000));
+  end if;
+  update public.marketing_outreach_message set delivery = v_delivery, updated_at = now() where id = any (p_ids);
+  return v_delivery - 'body';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_outreach_due(p_include_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with d as (select (now() at time zone 'Asia/Dubai')::date as day, extract(hour from now() at time zone 'Asia/Dubai')::int as hr),
+       n as (select least(3, greatest(0, public.fn_marketing_policy_int('marketing_outreach_per_day', 3))) as want)
+  select jsonb_build_object(
+    'day', d.day, 'want', n.want, 'live', public.fn_marketing_publishing_live(),
+    'due', d.hr >= public.fn_marketing_policy_int('marketing_outreach_list_hour', 7)
+           and not exists (select 1 from public.marketing_outreach_message m
+                            where m.kind = 'first' and m.listed_on = d.day and (p_include_demo or not m.is_demo)),
+    'prospects', coalesce((select jsonb_agg(to_jsonb(x) order by x.created_at, x.id) from (
+        select p.id, p.full_name, p.role_title, p.company, p.segment, p.language, p.linkedin_url, p.opening_line, p.created_at
+          from public.marketing_prospect p
+         where p.status = 'new' and (p_include_demo or not p.is_demo)
+         order by p.created_at, p.id limit n.want) x), '[]'::jsonb))
+  from d, n
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_outreach_mark(p_token uuid, p_status text, p_reply text DEFAULT NULL::text, p_reply_class text DEFAULT NULL::text, p_follow_up text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_m public.marketing_outreach_message; v_follow uuid; v_person text;
+begin
+  select * into v_m from public.marketing_outreach_message where mark_token = p_token for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'unknown_link'); end if;
+  if p_status not in ('sent', 'replied', 'converted', 'declined') then return jsonb_build_object('ok', false, 'error', 'unknown_status'); end if;
+  if p_status = 'replied' and btrim(coalesce(p_reply, '')) = '' then return jsonb_build_object('ok', false, 'error', 'paste_the_reply'); end if;
+
+  update public.marketing_outreach_message
+     set status = p_status,
+         sent_at = coalesce(sent_at, case when p_status in ('sent', 'replied', 'converted') then now() end),
+         replied_at = case when p_status = 'replied' then now() else replied_at end,
+         converted_at = case when p_status = 'converted' then now() else converted_at end,
+         reply_text = case when p_status = 'replied' then left(p_reply, 4000) else reply_text end,
+         reply_class = case when p_status = 'replied' then p_reply_class else reply_class end,
+         updated_at = now()
+   where id = v_m.id;
+
+  v_person := case when p_status = 'declined' or p_reply_class = 'decline' then 'declined' else p_status end;
+  -- a person only moves forward: a late "sent" tap never undoes a reply or a conversion
+  update public.marketing_prospect set status = v_person, updated_at = now()
+   where id = v_m.prospect_id
+     and array_position(array['new', 'listed', 'sent', 'replied', 'converted'], status) <= coalesce(array_position(array['new', 'listed', 'sent', 'replied', 'converted'], v_person), 99)
+     and status <> 'declined';
+
+  if p_status = 'replied' and btrim(coalesce(p_follow_up, '')) <> '' then
+    insert into public.marketing_outreach_message (prospect_id, kind, language, body, lint, listed_on, status, is_demo)
+    values (v_m.prospect_id, 'follow_up', v_m.language, p_follow_up, '[]'::jsonb, (now() at time zone 'Asia/Dubai')::date, 'listed', v_m.is_demo)
+    returning mark_token into v_follow;
+  end if;
+  return jsonb_build_object('ok', true, 'status', p_status, 'person', v_person, 'follow_up_token', v_follow);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_outreach_page(p_token uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('id', m.id, 'kind', m.kind, 'status', m.status, 'language', m.language, 'body', m.body, 'note', m.note,
+           'reply_text', m.reply_text,
+           'prospect', jsonb_build_object('full_name', p.full_name, 'role_title', p.role_title, 'company', p.company,
+                                          'linkedin_url', p.linkedin_url, 'status', p.status),
+           'follow_ups', coalesce((select jsonb_agg(jsonb_build_object('body', f.body, 'token', f.mark_token, 'status', f.status) order by f.id)
+                                     from public.marketing_outreach_message f where f.prospect_id = m.prospect_id and f.kind = 'follow_up' and f.id > m.id), '[]'::jsonb))
+    from public.marketing_outreach_message m join public.marketing_prospect p on p.id = m.prospect_id
+   where m.mark_token = p_token
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_outreach_record(p_day date, p_items jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_live boolean := public.fn_marketing_publishing_live(); v_out jsonb;
+begin
+  with ins as (
+    insert into public.marketing_outreach_message (prospect_id, kind, language, body, note, lint, listed_on, status, is_demo)
+    select (i->>'prospect_id')::bigint, 'first', i->>'language', i->>'body', i->>'note', coalesce(i->'lint', '[]'::jsonb), p_day,
+           case when v_live and not p.is_demo then 'listed' else 'draft' end, p.is_demo
+      from jsonb_array_elements(p_items) i
+      join public.marketing_prospect p on p.id = (i->>'prospect_id')::bigint and p.status = 'new'
+    on conflict (prospect_id) where kind = 'first' do update
+       set language = excluded.language, body = excluded.body, note = excluded.note, lint = excluded.lint,
+           listed_on = excluded.listed_on, status = excluded.status, updated_at = now()
+     where marketing_outreach_message.status = 'draft'
+    returning id, prospect_id, mark_token, status
+  ), used as (
+    update public.marketing_prospect p set status = 'listed', updated_at = now()
+      from ins where ins.prospect_id = p.id and ins.status = 'listed'
+    returning p.id
+  )
+  select jsonb_build_object('live', v_live, 'items',
+           coalesce(jsonb_agg(jsonb_build_object('id', ins.id, 'prospect_id', ins.prospect_id, 'token', ins.mark_token, 'status', ins.status)), '[]'::jsonb),
+           'used', (select count(*) from used))
+    into v_out from ins;
+  return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_policy_int(p_key text, p_default integer)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select (value #>> '{}')::int from public.decision_policy where key = p_key), p_default)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_post_ingest(p jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -40822,6 +41233,57 @@ begin
   return jsonb_build_object('ok', true, 'id', v_id, 'status', case when v_at is null then 'draft' else 'scheduled' end,
                             'updated', v_cur.id is not null);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_prospect_upsert(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_urls text[] := coalesce((select array_agg(btrim(x)) from jsonb_array_elements_text(coalesce(p->'source_urls', '[]'::jsonb)) x), '{}');
+  v_id bigint; v_status text;
+begin
+  if cardinality(v_urls) = 0 or exists (select 1 from unnest(v_urls) u where u !~ '^https?://[^\s/]+\.[^\s]+$') then
+    return jsonb_build_object('ok', false, 'error', 'source_urls_required', 'message', 'Every person needs the public page(s) they were found on.');
+  end if;
+  if exists (select 1 from unnest(v_urls) u where u ~* '^https?://([a-z]{2,3}\.)?linkedin\.com/') and cardinality(v_urls) = 1 then
+    return jsonb_build_object('ok', false, 'error', 'linkedin_is_not_a_source',
+      'message', 'A person must be found on a public page other than LinkedIn (company site, directory, press); the profile URL goes in linkedin_url.');
+  end if;
+  select id, status into v_id, v_status from public.marketing_prospect
+   where lower(full_name) = lower(btrim(p->>'full_name')) and lower(company) = lower(btrim(p->>'company')) for update;
+  if v_id is not null and v_status <> 'new' then
+    return jsonb_build_object('ok', true, 'id', v_id, 'unchanged', true, 'status', v_status);
+  end if;
+  if v_id is null then
+    insert into public.marketing_prospect (full_name, role_title, company, segment, emirate, language, linkedin_url,
+        opening_line, opening_line_url, source_urls, researched_by, is_demo)
+    values (btrim(p->>'full_name'), btrim(p->>'role_title'), btrim(p->>'company'), p->>'segment', nullif(p->>'emirate', ''),
+            coalesce(nullif(p->>'language', ''), 'en'), nullif(btrim(p->>'linkedin_url'), ''), nullif(btrim(p->>'opening_line'), ''),
+            nullif(btrim(p->>'opening_line_url'), ''), v_urls, coalesce(p->>'researched_by', 'claude'), coalesce((p->>'is_demo')::boolean, false))
+    returning id into v_id;
+  else
+    update public.marketing_prospect
+       set role_title = btrim(p->>'role_title'), segment = p->>'segment', emirate = nullif(p->>'emirate', ''),
+           language = coalesce(nullif(p->>'language', ''), 'en'), linkedin_url = nullif(btrim(p->>'linkedin_url'), ''),
+           opening_line = nullif(btrim(p->>'opening_line'), ''), opening_line_url = nullif(btrim(p->>'opening_line_url'), ''),
+           source_urls = v_urls, updated_at = now()
+     where id = v_id;
+  end if;
+  return jsonb_build_object('ok', true, 'id', v_id);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_publishing_live()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'marketing_golive'), false)
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_records_ad_spend(p_platform text, p_spend_date date, p_currency text, p_amount numeric, p_source_ref text, p_campaign_ref text DEFAULT NULL::text, p_test boolean DEFAULT false)
@@ -40891,13 +41353,14 @@ begin
       'conversations_handed_to_founder', v_asked, 'customer_requests_posted', v_inq,
       'insights', v_ins, 'connections_all_ok', v_conn->'all_ok',
       'connections_failing', coalesce((select jsonb_agg(c->'check') from jsonb_array_elements(v_conn->'checks') c where not (c->>'ok')::boolean), '[]'::jsonb),
-      'connections_measured_at', v_conn->'oldest_measurement'),
+      'connections_measured_at', v_conn->'oldest_measurement',
+      'business_development', (select to_jsonb(f) from public.marketing_bd_figures f),
+      'social_inbox', coalesce((select jsonb_agg(to_jsonb(v)) from public.v_marketing_social_volume v), '[]'::jsonb)),
     'not_measured', to_jsonb(array_remove(array[
       case when v_ins_days = 0 then 'followers, reach and engagement per channel: no insight was pulled for the window yet' end,
       case when coalesce((v_conn->>'never_measured')::boolean, true) then 'channel access: the access check has not run yet' end,
-      'social conversations answered: no social inbox record is built yet',
       'search rankings and organic traffic: no SEO reader is built yet'], null)),
-    'basis', 'Posts: marketing_post (published_at in the window; scheduled and held from its status and dry_run). Spend: ad_spend_reported by spend_date (Asia/Dubai), in AED at gl_settings usd_to_aed. Insights: marketing_insight_day, page and account metrics summed over the window. Connections: marketing_connection_check as last measured. Handed to the founder: notifications of kind social_human_request. Customer requests: fn_ceo_plan_measure(inquiries_posted), demo excluded. Window: the 24 hours before the report.');
+    'basis', 'Posts: marketing_post (published_at in the window; scheduled and held from its status and dry_run). Spend: ad_spend_reported by spend_date (Asia/Dubai), in AED at gl_settings usd_to_aed. Insights: marketing_insight_day, page and account metrics summed over the window. Connections: marketing_connection_check as last measured. Handed to the founder: notifications of kind social_human_request. Customer requests: fn_ceo_plan_measure(inquiries_posted), demo excluded. Business development: marketing_bd_figures (7-day counts, ZZ DEMO excluded). Social inbox: v_marketing_social_volume per platform. Window: the 24 hours before the report.');
 end $function$
 
 
@@ -58308,6 +58771,7 @@ AS $function$
     ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge'),
     ('marketing_post','marketing'), ('marketing_connection_check','marketing'), ('marketing_insight_day','marketing'),
     ('marketing_ad_spend_day','marketing'), ('marketing_duty_run','marketing'), ('marketing_report','marketing'),
+    ('marketing_article','marketing'), ('marketing_prospect','marketing'), ('marketing_outreach_message','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
 $function$
@@ -66766,12 +67230,15 @@ ALTER TABLE public.llm_route_health ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_seat_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.market_intel ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_ad_spend_day ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_article ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_connection_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_duty_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_insight_day ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_meta_page ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_outreach_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_post ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_prospect ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_eval_runs ENABLE ROW LEVEL SECURITY;
@@ -67052,11 +67519,14 @@ CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS
 CREATE POLICY kb_purge_ledger_service_role_only ON public.kb_purge_ledger AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY marketing_ad_spend_day_service_role_only ON public.marketing_ad_spend_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_article_service_role_only ON public.marketing_article AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_connection_check_service_role_only ON public.marketing_connection_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_insight_day_service_role_only ON public.marketing_insight_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_meta_page_service_role_only ON public.marketing_meta_page AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_outreach_message_service_role_only ON public.marketing_outreach_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_post_service_role_only ON public.marketing_post AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_prospect_service_role_only ON public.marketing_prospect AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_report_service_role_only ON public.marketing_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
@@ -67203,6 +67673,7 @@ $CRON$);
 --   cred_fn_marketing
 --   cred_fn_marketing_channels
 --   cred_fn_marketing_draft
+--   cred_fn_marketing_outreach
 --   cred_fn_messages_api
 --   cred_fn_os_api
 --   cred_fn_os_pages

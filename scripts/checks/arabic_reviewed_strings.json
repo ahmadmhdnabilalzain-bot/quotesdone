@@ -600,6 +600,18 @@
   "4a41caa50bac",
   "f19c38d9dfce"
  ],
+ "scripts/sql/the_marketing_seat_writes_articles_and_drafts_linkedin_outreach.sql": [
+  "11944e41c9b3",
+  "92ff7992d4f4",
+  "970b8be5a31a",
+  "c7d01c40da27",
+  "f3dc20d0e14d"
+ ],
+ "scripts/sql/the_marketing_seat_writes_articles_and_drafts_linkedin_outreach_probe.sql": [
+  "00d300590c94",
+  "3c96f2625036",
+  "d89298a99de9"
+ ],
  "src/app/[locale]/blog/[slug]/opengraph-image.tsx": [
   "4bb69a8b2b4f"
  ],
@@ -2769,6 +2781,28 @@
   "e573aa3f63d9",
   "e66497e30b78"
  ],
+ "supabase/functions/_shared/marketing_outreach.ts": [
+  "014c2b62f916",
+  "1be15600e7ed",
+  "24f505112b9d",
+  "2a7c11371442",
+  "2edbe67f8167",
+  "4880b9751248",
+  "63ebd9147ff8",
+  "6bfbbfceafe3",
+  "74226bfe735e",
+  "796ace0537bc",
+  "86745dfee2db",
+  "879460fe6ff0",
+  "aea91b8895c9",
+  "c61229d4528f",
+  "d0d8c5ebe026",
+  "e20c5cb417e1",
+  "fdacad8a8771"
+ ],
+ "supabase/functions/_shared/marketing_style.ts": [
+  "8a268a74f2b2"
+ ],
  "supabase/functions/_shared/quote_labels.ts": [
   "d59ecf7fd6e7"
  ],
@@ -3025,6 +3059,13 @@
   "ea439701f386",
   "f34c9e970613",
   "f4eafa4902c9"
+ ],
+ "supabase/functions/marketing_outreach/index.ts": [
+  "023f7d608c29",
+  "17defa4a339e",
+  "495ccd05412b",
+  "577fa9aae70e",
+  "d3396e86f6d5"
  ],
  "supabase/functions/marketing_social_inbox/reply.ts": [
   "1ffc273077fc",

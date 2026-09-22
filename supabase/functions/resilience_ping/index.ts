@@ -461,6 +461,24 @@ async function vatThresholdTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE MARKETING SEAT'S BUSINESS DEVELOPMENT (22 Sep 2026, marketing; founder instruction 722). Every beat:
+// the morning LinkedIn list once a Dubai day (emailed to the founder only while marketing_golive is 'true'),
+// the weekly article cadence and the live check. Under the seat's own credential; the result names only counts.
+async function marketingOutreachTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_marketing_outreach');
+    if (!secret) return { ok: false, error: 'cred_fn_marketing_outreach is not in app_secrets' };
+    const r = await fetch(FN + '/marketing_outreach', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+      body: JSON.stringify({ __secret: secret, action: 'duties' }), signal: AbortSignal.timeout(55000),
+    });
+    // deno-lint-ignore no-explicit-any
+    const j = await r.json().catch(() => null) as any;
+    return { status: r.status, ok: j?.ok ?? null, listed: j?.outreach?.listed ?? null, delivery: j?.outreach?.delivery ?? null,
+             released: j?.articles?.release?.released ?? null, live: j?.articles?.live?.length ?? null };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // The IT engineer's half of the backup (founder, 14 Sep 2026: "i think the IT agent need to check
 // such details yea?"): close verified refiles, run the 48-hour coverage watch, file the daily line
 // to the CEO, and once a Dubai week re-check a random sample of Dropbox files.
@@ -1180,6 +1198,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   itscheduled: { run: itScheduledTick },
   itlater: { run: itLaterDutiesTick, nested: true },
   specoffer: { run: specOfferTick },
+  marketingOutreach: { run: marketingOutreachTick },
   supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
   seatClocks: { run: seatClocksTick },
