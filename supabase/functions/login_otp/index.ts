@@ -58,7 +58,7 @@ async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const
 // ONE RETRY ON 429 (21 Sep 2026). Resend allows 10 requests a second per team, shared with send_outbox
 // draining a campaign on the same key; a code refused for a busy second is retried once rather than lost.
 // The call lives in _shared/resend_send.ts so login_otp and kyc cannot drift apart.
-async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; return await resendWithRetry(key, { from, to, subject, html }); }
+async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; const reply_to = (await sec('email_reply_info')) || 'info@quotesdone.com'; return await resendWithRetry(key, { from, to, subject, html, reply_to }); }
 
 // SUPPRESSION BYPASS 27 Jul 2026 ----------------------------------------------------------------
 // send_outbox was the ONLY sender in the codebase that consulted email_suppressions. sendEmail()
