@@ -1,0 +1,1 @@
+Awaiting the coordinator's apply (marketing, 22 Sep 2026): redefines fn_marketing_social_hand_to_human and fn_marketing_outreach_deliver with named fn_notify_founder arguments so the_founder_is_emailed_exceptions_only goes green on production. After the apply, delete this note and append the file to the END of MANIFEST.txt.
