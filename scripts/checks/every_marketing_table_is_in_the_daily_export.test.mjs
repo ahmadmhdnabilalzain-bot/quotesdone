@@ -38,6 +38,10 @@ test('every marketing table is exported every day', () => {
   // marketing_library and marketing_snapshots are June-era tables the 7 Sep cull left without a writer;
   // they are not the seat's records.
   for (const old of ['marketing_library', 'marketing_snapshots']) created.delete(old);
+  // marketing_meta_page is a cache of the Facebook page ACCESS TOKEN (every_social_message_is_answered.sql),
+  // re-derived from meta_access_token on demand. A credential never goes to the daily export or Dropbox,
+  // and nothing is lost without it. 22 Sep 2026, PR #835.
+  created.delete('marketing_meta_page');
   assert.ok(created.size >= 5, `only ${created.size} marketing tables found; the pattern no longer matches`);
   const missing = [...created].filter((t) => !exported.has(t));
   assert.deepEqual(missing, [], `${winner}: add these to fn_table_export_list: ${missing.join(', ')}`);
