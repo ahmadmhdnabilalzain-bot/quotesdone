@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T16:42:15.218Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T21:30:25.951Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -194,7 +194,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (546) =====
+-- ===== TABLES (547) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4783,7 +4783,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
   provider_status text,
   provider_status_at timestamp with time zone,
   provider_error_code text,
-  provider_status_checked_at timestamp with time zone
+  provider_status_checked_at timestamp with time zone,
+  provider_poll_failures integer DEFAULT 0 NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.openrouter_day (
@@ -6547,6 +6548,17 @@ CREATE TABLE IF NOT EXISTS public.skills_matrix (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.sms_messages (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  sms_from text NOT NULL,
+  sms_to text NOT NULL,
+  body text DEFAULT ''::text NOT NULL,
+  message_sid text,
+  verified boolean DEFAULT false NOT NULL,
+  meta jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.social_conversation (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   platform text NOT NULL,
@@ -8110,6 +8122,7 @@ ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
+ALTER TABLE public.sms_messages ADD CONSTRAINT sms_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id);
@@ -8583,7 +8596,7 @@ ALTER TABLE public.model_fallback_chain ADD CONSTRAINT model_fallback_chain_kind
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_scope_check CHECK ((scope = ANY (ARRAY['target_employee'::text, 'current_agent'::text])));
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_tier_check CHECK ((tier = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text, 'xlarge'::text])));
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_lang_is_en_or_ar CHECK (((lang IS NULL) OR (lang = ANY (ARRAY['en'::text, 'ar'::text]))));
-ALTER TABLE public.notifications ADD CONSTRAINT notifications_provider_status_known CHECK (((provider_status IS NULL) OR (provider_status = ANY (ARRAY['accepted'::text, 'scheduled'::text, 'queued'::text, 'sending'::text, 'sent'::text, 'delivered'::text, 'undelivered'::text, 'failed'::text, 'read'::text]))));
+ALTER TABLE public.notifications ADD CONSTRAINT notifications_provider_status_known CHECK (((provider_status IS NULL) OR (provider_status = ANY (ARRAY['accepted'::text, 'scheduled'::text, 'queued'::text, 'sending'::text, 'sent'::text, 'delivered'::text, 'undelivered'::text, 'failed'::text, 'read'::text, 'unrecorded'::text, 'unreadable'::text]))));
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_sender_is_customer_support CHECK (((sender = 'customer_support'::text) OR ((sender = 'platform_otp'::text) AND (type = ANY (ARRAY['login_otp'::text, 'mobile_otp'::text, 'voice_otp'::text, 'email_confirmation_code'::text])))));
 ALTER TABLE public.openrouter_day ADD CONSTRAINT openrouter_day_basis_check CHECK ((authoritative_basis = ANY (ARRAY['measured'::text, 'true zero'::text, 'unknown'::text])));
 ALTER TABLE public.opportunity ADD CONSTRAINT opportunity_effort_check CHECK ((effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
@@ -9486,6 +9499,8 @@ CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseli
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX sms_messages_from_created_idx ON public.sms_messages USING btree (sms_from, created_at DESC);
+CREATE UNIQUE INDEX sms_messages_message_sid_uk ON public.sms_messages USING btree (message_sid) WHERE (message_sid IS NOT NULL);
 CREATE INDEX social_message_conversation_idx ON public.social_message USING btree (conversation_id, created_at DESC);
 CREATE UNIQUE INDEX spec_alternative_offer_one_live_per_attr ON public.spec_alternative_offer USING btree (inquiry_id, line_no, attr) WHERE (state = ANY (ARRAY['open'::text, 'accepted'::text]));
 CREATE INDEX spec_alternative_offer_open_idx ON public.spec_alternative_offer USING btree (state, reply_by) WHERE (state = 'open'::text);
@@ -28109,17 +28124,16 @@ AS $function$
   select 'inquiries'::text, i.id::text, 'inquiry'::text, null::bigint, null::text, true
     from public.inquiries i join me on i.customer_id = me.id
   union all
-  -- quotation files sent against their RFQs. A draft quote is not shown to the customer by
-  -- customer_api, so its attachment is not shown here either.
-  select 'quotes'::text, q.id::text, 'quote'::text, q.supplier_id,
-         case when t.id is not null then l.company_name end,
-         t.id is not null
+  -- quotation files sent against their RFQs, and ONLY once the customer has paid to reveal that
+  -- quote. A draft quote is not shown to the customer by customer_api, so its attachment is not
+  -- shown here either; nor, since 22 Sep 2026, is an unrevealed one's (CP-02).
+  select 'quotes'::text, q.id::text, 'quote'::text, q.supplier_id, l.company_name, true
     from public.quotes q
     join public.inquiries i on i.id = q.inquiry_id
     join me on i.customer_id = me.id
+    join public.transactions t
+      on t.quote_id = q.id and t.customer_id = me.id and t.revealed_at is not null
     left join public.leads l on l.id = q.supplier_id
-    left join public.transactions t
-           on t.quote_id = q.id and t.customer_id = me.id and t.revealed_at is not null
    where coalesce(q.status, '') <> 'draft'
   union all
   -- supplier documents, and ONLY for a supplier this customer has paid to reveal
@@ -29081,6 +29095,32 @@ begin
       elsif n.id is null and q.evidence ? 'notify' then
         v_result := 'routed';
         v_evidence := v_evidence || jsonb_build_object('notify', q.evidence->'notify');
+      -- 22 SEP 2026 (it_engineer, UNSOLVED-06) — "NOTHING WAS QUEUED" WAS THREE DIFFERENT THINGS.
+      -- MEASURED: support_ceo_report 3075, 3076, 3084 and 3085 each read 'A supplier_invite for the supplier
+      -- did not arrive (not_sent)' with reason 'nothing was queued'. Their requests (agent_actions 42578,
+      -- 42579, 42595, 42596) each carry evidence.queued = true and evidence.notification_id 36988/36989/
+      -- 37002/37003, and NONE of those notification rows exists any more: every one addressed a
+      -- zz-demo-supplier-invite-…@example.invalid fixture and the demo hygiene sweep deleted them between
+      -- being queued at 19:11-19:15Z and the watch tick at 19:30Z on 21 Sep. So support DID queue the
+      -- message; its record was removed afterwards. (The 22 Sep audit read these as invitations held by
+      -- app_secrets.supplier_outreach_golive=false. They are not: the hold path
+      -- (the_invitations_warm_up_on_measured_health_and_leave_across_the_working_day.sql) writes an
+      -- invite_schedule row with status 'pending' and a supplier_invites agent_run, and asks for no
+      -- delivery at all — so a held invitation never reaches this watch.)
+      -- The three cases now answer differently, and only the first is a fault:
+      --   nothing was ever queued and nothing explains it  -> 'not_sent'  (escalates, as before)
+      --   the campaign is held by the founder's own switch  -> 'held'     (recorded, never escalated)
+      --   the row it queued has since been deleted         -> 'record_removed'
+      elsif n.id is null and coalesce(q.detail->>'msg_type', '') like '%invite%'
+            and not public.fn_supplier_outreach_golive() then
+        v_result := 'held';
+        v_evidence := v_evidence || jsonb_build_object('reason',
+          'the supplier campaign is held: app_secrets.supplier_outreach_golive is false, so no invitation is sent. This is the founder''s switch, not a delivery failure.');
+      elsif n.id is null and coalesce((q.evidence->>'notification_id'), '') <> '' then
+        v_result := 'record_removed';
+        v_evidence := v_evidence || jsonb_build_object('reason',
+          'the notification this request queued (id ' || (q.evidence->>'notification_id')
+          || ') no longer exists, so its delivery cannot be read. A queued message whose row was deleted afterwards - the demo hygiene sweep does this to fixture rows - is not a message that was never sent.');
       elsif n.id is null then
         v_result := 'not_sent';
         v_evidence := v_evidence || jsonb_build_object('reason', coalesce(q.evidence->>'reason', 'nothing was queued'));
@@ -30785,7 +30825,8 @@ begin
                           'management@quotesdone.com');
 
       -- The customer must know their edit cost them their quotes, or they will wait for prices
-      -- that are never coming back on their own.
+      -- that are never coming back on their own. The type now has a notification_copy row in both
+      -- languages (above), so a04 states THIS in Arabic rather than the generic fallback (CP-04).
       if v_cust_email is not null then
         insert into notifications(type, to_email, to_role, inquiry_id, channel, subject, body, status)
         values ('inquiry_edit_staled_quotes', v_cust_email, 'customer', p_inquiry, 'email',
@@ -30797,8 +30838,10 @@ begin
                 'QuotesDone', 'queued');
       end if;
 
+      -- THE SALES ENGINEER OWNS AN RFQ WHOSE QUOTES WENT BACK (CP-04). This said 'procurement',
+      -- which is not one of the estate's seats, so the follow-up reached nobody.
       insert into agent_actions(agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-      values ('procurement','requote_required','needs_review','medium',
+      values ('sales_engineer','requote_required','needs_review','medium',
               'Requirements changed after ' || v_stale || ' quote(s) were submitted',
               'Watch that the invited suppliers actually re-quote. If they do not, the customer is left with a request that had prices and now has none.',
               jsonb_build_object('inquiry_id', p_inquiry, 'quotes_staled', v_stale,
@@ -33119,7 +33162,15 @@ begin
   v_plan := v_plan || (
     select jsonb_build_array(case when count(*) = 0 then 'The IT engineer has no open technical problems.'
                                   else 'The IT engineer works on '||count(*)||' open technical problem(s).' end)
-      from public.it_engineer_finding where closed_at is null);
+      -- ONE DEFINITION OF "OPEN", CALLED, NOT COPIED (22 Sep 2026, it_engineer, UNSOLVED-11). This counted
+      -- every unclosed finding, including the ones the IT loop classes as 'warn' and never hands off, so the
+      -- founder's brief said a bigger number than the digest he gets minutes later. MEASURED today: 9
+      -- unclosed findings, of which 1 is 'warn' (watch:run_failure:wa_status) — brief 9, digest 8.
+      -- fn_it_open_findings() is that definition and fn_it_loop_tick selects from the same function
+      -- (the_founder_gets_one_it_digest_per_tick.sql, which must be applied before this file), so there is
+      -- no second copy of the predicate to drift. The loop adds one further condition of its own — has this
+      -- occurrence been handed off yet — which is about what to raise NOW, not about what is open.
+      from public.fn_it_open_findings() f);
 
   -- 22 Sep 2026 (ceo, instruction 638): the CEO's own plan leads item 7 -- the binding constraint, the
   -- directive each seat is working to, and the one decision only the founder can take, if any. This is
@@ -38405,9 +38456,13 @@ CREATE OR REPLACE FUNCTION public.fn_it_loop_tick()
 AS $function$
 declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text; x jsonb;
 begin
-  for f in select q.issue_key, q.started_at from public.it_engineer_finding q
-            where q.closed_at is null and public.fn_it_engineer_severity(q.blast, q.affected, q.started_at) <> 'warn'
-              and not exists (select 1 from public.agent_actions a
+  -- ONE DEFINITION OF OPEN, CALLED, NOT COPIED (22 Sep 2026, it_engineer, UNSOLVED-11). The predicate
+  -- (unclosed, and not 'warn' by fn_it_engineer_severity) now lives in fn_it_open_findings, defined in
+  -- the_founder_gets_one_it_digest_per_tick.sql, which the founder's brief counts as well — the brief used
+  -- to keep its own copy and said 9-10 where this loop said 8. The extra condition below is this loop's own
+  -- and stays here: it is about what to RAISE on this tick, not about what is open.
+  for f in select q.issue_key, q.started_at from public.fn_it_open_findings() q
+            where not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
                                  and a.detail->>'issue_key' = q.issue_key
                                  and (a.detail->>'occurrence_started_at')::timestamptz = q.started_at)
@@ -38458,6 +38513,18 @@ begin
   end loop;
   return o || jsonb_build_object('ok', jsonb_array_length(v_err) = 0, 'errors', v_err);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_open_findings()
+ RETURNS SETOF it_engineer_finding
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select f.* from public.it_engineer_finding f
+   where f.closed_at is null
+     and public.fn_it_engineer_severity(f.blast, f.affected, f.started_at) <> 'warn'
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_otp_unblock(p_prefix text, p_reason text, p_by text)
@@ -39220,7 +39287,13 @@ begin
            count(*) filter (where n.provider_status in ('delivered', 'read')) as delivered,
            count(*) filter (where n.provider_status = 'read') as read,
            count(*) filter (where n.provider_status in ('failed', 'undelivered')) as failed,
-           count(*) filter (where public.fn_twilio_status_rank(n.provider_status) < 4 and n.sent_at < now() - interval '24 hours') as unknown,
+           -- 22 Sep 2026: a message we asked Twilio about c_give_up times and could not read is no longer
+           -- counted as "no report yet" — that read as a message still in flight. It is counted as
+           -- unreadable and raised on its own, so the two causes are never added into one number.
+           count(*) filter (where public.fn_twilio_status_rank(n.provider_status) < 4
+                              and coalesce(n.provider_status, '') <> 'unreadable'
+                              and n.sent_at < now() - interval '24 hours') as unknown,
+           count(*) filter (where n.provider_status = 'unreadable') as unreadable,
            count(*) as accepted
       from public.notifications n
      where n.channel in ('whatsapp', 'sms') and coalesce(btrim(n.provider_message_id), '') <> ''
@@ -39228,7 +39301,13 @@ begin
      group by n.channel
   loop
     v_rates := v_rates || jsonb_build_object(x.channel, jsonb_build_object('accepted', x.accepted, 'delivered', x.delivered,
-      'read', x.read, 'failed', x.failed, 'no_final_status_after_24h', x.unknown,
+      'read', x.read, 'failed', x.failed, 'no_final_status_after_24h', x.unknown, 'unreadable', x.unreadable,
+      -- Sends this estate can NEVER get a status for: no provider_message_id was stored (every send before
+      -- the 21 Sep SID fix). Counted here so the rate above is read against what it actually covers.
+      'sent_without_a_provider_id', (select count(*) from public.notifications m
+                                      where m.channel = x.channel and m.status in ('sent', 'failed')
+                                        and coalesce(btrim(m.provider_message_id), '') = ''
+                                        and m.sent_at > now() - interval '7 days'),
       'errors', (select coalesce(jsonb_object_agg(coalesce(e.code, 'none'),
                                    jsonb_build_object('count', e.c, 'means', public.fn_twilio_error_in_plain_words(e.code))), '{}'::jsonb)
                    from (select m.provider_error_code code, count(*) c from public.notifications m
@@ -39247,6 +39326,13 @@ begin
         'blast', 'customer_facing', 'affected', x.unknown,
         'evidence', (v_rates->x.channel) || jsonb_build_object('why_it_matters',
           'the status callback (wa_status) and its 30-minute backstop poll are both silent, so delivery is unknown'));
+    end if;
+    if x.unreadable > 0 then
+      v_items := v_items || jsonb_build_object('item', 'status_unreadable:' || x.channel, 'owner_seat', 'customer_support', 'subject', 'wa_status',
+        'title', x.unreadable || ' ' || x.channel || ' message(s) were asked of Twilio until the poll gave up: their delivery is unknown',
+        'blast', 'customer_facing', 'affected', x.unreadable,
+        'evidence', (v_rates->x.channel) || jsonb_build_object('why_it_matters',
+          'the backstop poll could not read Twilio for these messages (notifications.last_error carries the HTTP status and Twilio code of the last attempt), so no delivery can be claimed for them'));
     end if;
   end loop;
   v_out := jsonb_build_object('settled', public.fn_it_duty_settle('whatsapp_delivery', v_items), 'rates', v_rates);
@@ -43694,7 +43780,9 @@ begin
     -- decider checks the record against public.leads and closes on it.
     --
     -- 21 SEP 2026 — THE LICENCE IS NOT PART OF THE ANNOUNCEMENT'S IDENTITY. Measured on
-    -- htdblwldjkcgjvmqkbeh: org_tasks 579041 and 579076 stayed 'assigned' and re-raised
+    -- production (the project ref used to be spelled here; it made the schema export unportable, and a
+    -- routine body is not the place to name one database — 23 Sep 2026): org_tasks 579041 and 579076
+    -- stayed 'assigned' and re-raised
     -- duty:org_task_queue:routine_operational_decision:sales_engineer to the founder because v2
     -- required a "Licence X," line, and supplier_api/index.ts writes that line only when the lead has
     -- a trade_license_no (its licInfo is '' otherwise). Both announcements named ZZ DEMO registration
@@ -45103,7 +45191,10 @@ begin
   elsif v_result = 'delivered' and n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> ''
         and (coalesce(n.channel, 'email') not in ('whatsapp', 'sms') or n.provider_status in ('delivered', 'read')) then
     v_verdict := 'confirmed';
-  elsif v_result in ('routed', 'stubbed', 'digested', 'cancelled') then
+  -- 'held' and 'record_removed' close here (22 Sep 2026, UNSOLVED-06): a message the founder's own switch
+  -- holds, and a queued row that was deleted afterwards, are both recorded rather than retried on the other
+  -- channel and escalated to the CEO. Neither is a delivery the seat can correct.
+  elsif v_result in ('routed', 'stubbed', 'digested', 'cancelled', 'held', 'record_removed') then
     v_verdict := v_result;
   end if;
 
@@ -50125,7 +50216,18 @@ AS $function$
     -- reporting. A gate that opens only when a key is present and wrong is a gate that a deleted key
     -- switches off silently.
     'email_cron',   coalesce((select value from public.app_secrets where key = 'email_enabled'), '') is distinct from 'true',
-    'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true',
+
+    -- THE FLAG ARM, unchanged: an estate that has never had an approved set polls until it does.
+    -- THE WORK ARM, added 22 Sep 2026: something is still pending and nobody has asked about it
+    -- today. 'received' is Twilio's word for submitted-and-undecided; anything that is neither
+    -- approved nor rejected is undecided, so the condition is written as the absence of a verdict
+    -- rather than as a list of the words Twilio currently uses for waiting.
+    'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true'
+      or exists (
+        select 1 from public.messaging_template
+         where channel = 'whatsapp'
+           and status not in ('approved', 'rejected')
+           and (last_checked_at is null or last_checked_at < now() - interval '20 hours')),
 
     -- The queue is the gate. No flag, because nothing here costs a model call and a queued SMS has a
     -- person at the end of it.
@@ -50252,7 +50354,22 @@ AS $function$
              / greatest(extract(epoch from every), 1) as ratio
       from public.resilience_step
      where place = 'plan'
-       and (last_started_at is null or now() - last_started_at >= every)
+       -- A TICK IS NEVER EXACTLY ON THE BEAT, SO THE DUE TEST HAS TWO MINUTES OF TOLERANCE
+       -- (22 Sep 2026, it_engineer, SEATS-04). `now() - last_started_at >= every` asks for the full
+       -- interval to have elapsed at the moment the tick looks. Ticks jitter by seconds, so a 30-minute
+       -- step whose last attempt was 29 min 58 s ago is not due on this tick and waits for the next one:
+       -- its real cadence becomes one tick longer, and measured across the estate the scheduled steps
+       -- were running about 1.5x their declared interval.
+       -- SAID PRECISELY, because the loose version of this sentence was wrong: the effective floor is
+       -- `every - 2 min`, so a 15-minute step can now run as often as every 13 minutes and TWICE inside
+       -- some 15-minute windows. That is the intended trade — two runs 13 minutes apart cost one extra
+       -- pass of a step that already gates itself, where a missed beat costs a whole interval — and it is
+       -- not a lock: nothing here reserves a step. `last_started_at` is stamped by
+       -- fn_resilience_step_record when the tick REPORTS, i.e. at the end, so two ticks overlapping in
+       -- time can both plan the same step. That was already true before this change; the tolerance does
+       -- not create it and does not fix it. Each step's own `fn_*_due` gate and claim-style queries are
+       -- what make a double run harmless.
+       and (last_started_at is null or now() - last_started_at >= every - interval '2 minutes')
   ), ranked as (
     select *, row_number() over (order by ratio desc, step) as rn from due
   ), filled as (
@@ -60412,13 +60529,47 @@ begin
   update public.notifications u set provider_status_checked_at = now()
    where u.id in (select c.id from public.notifications c
                    where c.channel in ('whatsapp', 'sms') and coalesce(btrim(c.provider_message_id), '') <> ''
-                     and c.sent_at < now() - interval '30 minutes' and c.sent_at > now() - interval '7 days'
+                     and c.sent_at < now() - interval '30 minutes'
                      and public.fn_twilio_status_rank(c.provider_status) < 4
+                     and coalesce(c.provider_status, '') <> 'unreadable'
                      and (c.provider_status_checked_at is null or c.provider_status_checked_at < now() - interval '30 minutes')
                    order by coalesce(c.provider_status_checked_at, c.sent_at)
                    limit least(greatest(coalesce(p_limit, 20), 1), 50)
                    for update skip locked)
   returning u.id, u.provider_message_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_twilio_status_poll_failed(p_notification_id bigint, p_http integer DEFAULT NULL::integer, p_code text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c_give_up constant int := 5;   -- 5 x 30 minutes: 2.5 hours of trying before we stop asking.
+  n public.notifications; v_fails int; v_gave_up boolean;
+begin
+  select * into n from public.notifications where id = p_notification_id for update;
+  if n.id is null then return jsonb_build_object('matched', false); end if;
+  if public.fn_twilio_status_rank(n.provider_status) >= 4 then
+    return jsonb_build_object('matched', true, 'applied', false, 'reason', 'already final: ' || n.provider_status);
+  end if;
+  v_fails := coalesce(n.provider_poll_failures, 0) + 1;
+  v_gave_up := v_fails >= c_give_up;
+  update public.notifications
+     set provider_poll_failures = v_fails,
+         provider_status = case when v_gave_up then 'unreadable' else provider_status end,
+         provider_status_at = case when v_gave_up then now() else provider_status_at end,
+         provider_error_code = coalesce(nullif(btrim(coalesce(p_code, '')), ''), provider_error_code),
+         last_error = left('Twilio could not be read for this message: '
+                           || coalesce('HTTP ' || p_http::text, 'no HTTP response')
+                           || coalesce(', Twilio code ' || nullif(btrim(coalesce(p_code, '')), ''), '')
+                           || ' (attempt ' || v_fails || ' of ' || c_give_up || ')'
+                           || case when v_gave_up then ' — given up: the delivery of this message is unknown.' else '' end, 500)
+   where id = n.id;
+  return jsonb_build_object('matched', true, 'applied', true, 'failures', v_fails, 'gave_up', v_gave_up,
+                            'give_up_after', c_give_up, 'http', p_http, 'code', nullif(btrim(coalesce(p_code, '')), ''));
 end $function$
 
 
@@ -68083,6 +68234,7 @@ ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_implication ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sms_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_conversation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_posts ENABLE ROW LEVEL SECURITY;
@@ -68248,6 +68400,7 @@ CREATE POLICY routine_change_log_service_role_only ON public.routine_change_log 
 CREATE POLICY sanctions_ban_service_role_only ON public.sanctions_ban AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY sms_messages_service_role_only ON public.sms_messages AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_conversation_service_role_only ON public.social_conversation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_message_service_role_only ON public.social_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_reply_library_service_role_only ON public.social_reply_library AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -68306,7 +68459,6 @@ $CRON$);
 --   content_secret
 --   cos_frozen
 --   cred_action_invoker
---   cred_cron_ads_autopilot
 --   cred_cron_agents
 --   cred_cron_backup
 --   cred_cron_compliance
@@ -68430,7 +68582,6 @@ $CRON$);
 --   founding_free_limit
 --   github_token
 --   inbound_secret
---   inbound_secret_rotated_from_20260719
 --   inbound_webhook_secret
 --   internal_credential_hmac_key
 --   invite_body
@@ -68447,11 +68598,10 @@ $CRON$);
 --   marketing_golive
 --   meta_access_token
 --   meta_ad_account_id
+--   meta_app_id
 --   meta_app_secret
 --   meta_autospend_golive
---   meta_campaign_filter
 --   meta_daily_budget_cap_aed
---   meta_sync_enabled
 --   meta_webhook_verify_token
 --   min_job_value_aed
 --   openrouter_api_key
@@ -68463,7 +68613,6 @@ $CRON$);
 --   project_ref
 --   public_site_url
 --   qa_customer_email
---   qa_customer_password
 --   qa_mint_enabled
 --   rating_request_days_after_reveal
 --   require_structured_quotes
@@ -68477,7 +68626,9 @@ $CRON$);
 --   site_assistant_global_day
 --   site_assistant_ip_hour
 --   sla_quote_hours
+--   social_model_enabled
 --   social_posts_per_week
+--   social_send_enabled
 --   stripe_publishable_key
 --   stripe_publishable_key_test
 --   stripe_secret_key

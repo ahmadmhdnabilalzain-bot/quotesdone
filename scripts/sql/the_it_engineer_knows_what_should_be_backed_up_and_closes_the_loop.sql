@@ -208,6 +208,15 @@ revoke execute on function public.fn_dropbox_reconcile_sample(integer) from publ
 -- ── 4. THE CHECK: three comparisons, ONE handoff ─────────────────────────────────────────────────
 -- p_job 'dropbox_daily_check' (the scheduled run: global scans + the Dropbox results) or 'targeted'
 -- (only the rows named in p_results; never counts as the daily check).
+-- WHAT THE DAILY CHECK ACTUALLY DID, AND WHAT IS STILL OPEN (22 Sep 2026, it_engineer, UNSOLVED-06).
+-- MEASURED: agent_runs it_engineer job dropbox_daily_check ran 19 Sep 21:15:54Z, failed at 21 Sep 23:31:18Z
+-- and 22 Sep 01:10:51Z with "apply canceling statement due to statement timeout", and ran again on
+-- 22 Sep 12:00:59Z (20 read, 20 confirmed) — so it did NOT stop on 19 Sep, as the 22 Sep audit read it.
+-- pg_stat_statements puts the expected-vs-live comparison this routine runs at 5,420 ms and 5,333 ms:
+-- inside the caller's 8 s with no room for a slower moment. A `SET statement_timeout` on this function was
+-- tried and removed — a timeout armed before the statement starts cannot be extended from inside it
+-- (proved on production: 3 s armed, 30 s set locally, pg_sleep(6) cancelled with 57014). Making this fit
+-- means bounding the comparison, which is its own change with its own measurement. Stated, not papered over.
 create or replace function public.fn_it_backup_check(p_results jsonb, p_job text default 'dropbox_daily_check', p_error text default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare

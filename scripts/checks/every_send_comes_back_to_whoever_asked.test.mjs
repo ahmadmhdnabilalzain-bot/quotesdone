@@ -109,12 +109,36 @@ test('no SQL routine can switch off the tracking, and every other row is adopted
   }
   assert.deepEqual(bypass, [], 'these files mark rows as tracked without tracking them');
   assert.ok(writers >= 10, `only ${writers} SQL files write the table: the scan is not reading the routines`);
-  const marking = (f) => [...new Set(readFileSync(join(SQL_DIR, f), 'utf8').split('create or replace function public.').slice(1)
-    .filter((c) => MARK.test(c)).map((c) => c.slice(0, c.indexOf('('))))].sort();
-  assert.deepEqual(marking('every_send_comes_back_to_whoever_asked.sql'), ['fn_customer_support_acts_on_handoff', 'fn_customer_support_delivery_watch']);
-  assert.deepEqual(marking('the_founder_gets_one_it_digest_per_tick.sql'), ['fn_customer_support_acts_on_handoff', 'fn_customer_support_sends_the_it_digest']);
-  assert.deepEqual(marking('the_founder_hears_from_it_once_a_day.sql'), ['fn_customer_support_sends_the_it_digest']);
-  assert.deepEqual(marking('every_whatsapp_says_whether_it_arrived.sql'), ['fn_customer_support_delivery_watch']);
+  // WHICH ROUTINES MAY MARK, AND WHOSE COPY DECIDES (rewritten 23 Sep 2026, it_engineer).
+  // This used to deep-equal a hard-coded pair per file, which asserted the wrong thing twice over: it
+  // broke the moment a routine legitimately moved house (the superseded digest definition was removed
+  // from the_founder_gets_one_it_digest_per_tick.sql on 22 Sep, and this check failed although the
+  // estate was MORE correct afterwards), and it never asked the question that actually matters — the
+  // body that runs is the one in the file that WINS scripts/sql/MANIFEST.txt, and that body is what has
+  // to carry the marking. An older file keeping a marking copy is history and is fine; the winner
+  // losing the marking would be a silent hole, and a winner outside TRACKING_FILES would be a routine
+  // marking rows in a file nobody reviewed for it.
+  const order = readFileSync(join(SQL_DIR, 'MANIFEST.txt'), 'utf8').split(/\r?\n/)
+    .filter((l) => l.trim().endsWith('.sql')).map((l) => l.trim().replace(/^scripts\/sql\//, ''));
+  const defs = (f) => readFileSync(join(SQL_DIR, f), 'utf8').split(/create or replace function public\./i).slice(1)
+    .map((c) => ({ name: c.slice(0, c.indexOf('(')), marks: MARK.test(c.slice(0, c.length)) }));
+  const canonical = new Map();          // routine -> { file, marks } from the LAST file in manifest order
+  const markers = new Set();
+  for (const f of order) {
+    let list; try { list = defs(f); } catch { continue; }   // a manifest line whose file is gone is another check's finding
+    for (const d of list) {
+      canonical.set(d.name, { file: f, marks: d.marks });
+      if (d.marks) markers.add(d.name);
+    }
+  }
+  assert.deepEqual([...markers].sort(),
+    ['fn_customer_support_acts_on_handoff', 'fn_customer_support_delivery_watch', 'fn_customer_support_sends_the_it_digest'],
+    'a routine that marks a send as already tracked was added or removed; every one of them must be reviewed here');
+  for (const r of markers) {
+    const c = canonical.get(r);
+    assert.ok(TRACKING_FILES.has(c.file), `${r}'s canonical file is ${c.file}, which is not one of the reviewed tracking files`);
+    assert.ok(c.marks, `${r}'s canonical file ${c.file} defines it WITHOUT marking the send as tracked, so the deployed body leaves rows to the adoption trigger`);
+  }
   const file = readFileSync(join(SQL_DIR, 'every_send_comes_back_to_whoever_asked.sql'), 'utf8');
   assert.match(file, /create trigger z90_every_send_is_tracked after insert on public\.notifications\s+for each row execute function public\.fn_customer_support_adopts_untracked_send\(\)/);
 });
