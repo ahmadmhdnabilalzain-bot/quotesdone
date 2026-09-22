@@ -3341,6 +3341,28 @@
   "e9d1198b270a",
   "ebe0e6add637"
  ],
+ "supabase/functions/wa_inbound/founder_queries.ts": [
+  "0ca9957ff0bb",
+  "136547e316a5",
+  "194e999ec0d0",
+  "2ce714b7954a",
+  "31028cf3ec49",
+  "4fd2c415fa3a",
+  "51776870296f",
+  "67e296595f3a",
+  "6a91a3a8d284",
+  "7064717e5489",
+  "81c4c369510f",
+  "930546736cac",
+  "93234b45f1e7",
+  "a801d895b328",
+  "be63993de90f",
+  "d42ea9991e7d",
+  "e6fef1814df1",
+  "ef2f351dd506",
+  "f67f2a4b286d",
+  "feb218f08677"
+ ],
  "supabase/functions/wa_inbound/index.ts": [
   "0c779ad88625",
   "5cbb277245b5",

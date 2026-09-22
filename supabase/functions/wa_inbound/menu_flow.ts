@@ -24,6 +24,7 @@ import {
   isSalam, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
 } from './menu.ts';
 import { coverageReply, mightBeCoverage, type Trade } from './coverage.ts';
+import { type Figures, founderAnswer, founderHelp, founderTopics } from './founder_queries.ts';
 
 export type Turn = { route: string | null; await: string | null; lang: Lang | null };
 export type SendResult = { ok: boolean; err?: string };
@@ -42,6 +43,8 @@ export type MenuDeps = {
   trades(): Promise<Trade[]>;
   /** fn_support_knowledge_gap: the unanswered question is filed for the team. False if it could not be. */
   recordGap(text: string, reason: string): Promise<boolean>;
+  /** fn_founder_whatsapp_figures: the founder's readings; {ok:false} for any other number. */
+  founderFigures(from: string): Promise<Figures>;
   /** fn_wa_problem_report: opens a support case, or adds to the one this number/account already has open. */
   openCase(from: string, text: string, lang: Lang): Promise<CaseResult>;
   /** fn_wa_human_request: hands the conversation to a person (handoff + hold) and alerts the founder. */
@@ -218,6 +221,31 @@ export async function answerFromFaq(d: MenuDeps, inp: MenuInput): Promise<boolea
 /** The last word when nothing else could answer: the menu again, in their language. */
 export async function reofferMenu(d: MenuDeps, inp: MenuInput, lead: string): Promise<void> {
   await sendMenu(d, inp, langOf(inp.body), { audience: inp.audience, name: null }, 'menu_reoffer', lead);
+}
+
+/** The founder asks the numbers (22 Sep 2026): recognised topics are answered from the live readings.
+ *  False when the message asks about none of them, or the readings could not be had. index.ts calls
+ *  this only in its founder branch, and fn_founder_whatsapp_figures refuses any other number. */
+export async function answerFounder(d: MenuDeps, inp: MenuInput): Promise<boolean> {
+  if (inp.audience !== 'founder') return false;
+  const body = String(inp.body || '').trim();
+  const topics = founderTopics(body);
+  if (!topics.length) return false;
+  const lang = langOf(body);
+  const text = founderAnswer(topics, await d.founderFigures(inp.from), lang);
+  if (!text) return false;
+  await reply(d, inp, lang, 'founder_figures', text, null, { topics, audience: 'founder' });
+  return true;
+}
+
+/** The founder's question that nothing could answer: the honest list of what can be answered without
+ *  the model, and today's reading. The question is filed for the team. */
+export async function founderUnanswered(d: MenuDeps, inp: MenuInput, reason: string): Promise<void> {
+  const body = String(inp.body || '').trim();
+  const recorded = body ? await d.recordGap(body, reason) : false;
+  const lang = langOf(body);
+  await reply(d, inp, lang, 'founder_help', founderHelp(await d.founderFigures(inp.from), lang), null,
+    { unanswered_reason: reason, gap_recorded: recorded, audience: 'founder' });
 }
 
 /** Nothing could answer the question (22 Sep 2026). It is filed for the team (fn_support_knowledge_gap)

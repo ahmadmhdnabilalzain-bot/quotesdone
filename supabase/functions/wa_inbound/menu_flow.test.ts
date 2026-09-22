@@ -5,7 +5,8 @@
 //
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/wa_inbound/menu_flow.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
-import { answerFromFaq, type Content, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
+import { answerFounder, answerFromFaq, type Content, founderUnanswered, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
+import { type Figures, founderTopics } from './founder_queries.ts';
 import { coverageIntent, coverageReply, groupedTrades, type Trade, tradeNamed } from './coverage.ts';
 import {
   type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, isGreeting, type Lang, MENU_BUTTON, sorryLead,
@@ -73,6 +74,7 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
     context: () => Promise.resolve({ audience: 'unknown', name: null, ...(o.ctx || {}) } as MenuContext),
     faq: () => Promise.resolve(o.faq ?? null),
     trades: () => Promise.resolve(TRADES),
+    founderFigures: () => Promise.resolve({ ok: false } as Figures),
     recordGap: (text, reason) => { gaps.push(reason + ':' + text); return Promise.resolve(o.gapOk ?? true); },
     openCase: (_f, text) => { cases.push(text); return Promise.resolve({ ref: 'QD-S-ZZ' + cases.length, appended: o.appended ?? false, slaHours: 24 }); },
     humanHold: () => Promise.resolve(o.held ?? false),
@@ -511,4 +513,93 @@ Deno.test('wa_inbound never builds a reply from an internal error, and never cal
   // The Twilio download error names hosts and codes; the supplier hears a plain sentence instead.
   assert(src.includes("note: 'the file could not be downloaded from WhatsApp — please send it again'"));
   assert(!src.includes('note: got.err'));
+});
+
+// ---- The founder asks the numbers (review of #843, 22 Sep 2026) ---------------------------------------
+// His free-text business questions went to agent_brain, dead since 7 Sep. They are answered from
+// fn_founder_whatsapp_figures (the probe the_founder_asks_the_numbers_on_whatsapp_and_gets_them_probe.sql
+// proves each reading moves with its own seeded fact and that another number is refused). Every field
+// below carries a different number so a reading answered from the wrong field fails.
+const FIG: Figures = {
+  ok: true, read_at_local: '19:33 on Tue 22 Sep',
+  suppliers: { registered: 11, registered_7d: 12, verified: 13 }, requests: { today: 21, last_7d: 22 },
+  quotes: { total: 31, last_7d: 32 }, reveals_month: { paid: 41, fee_aed: 4200 },
+  support: { open_cases: 51, waiting_for_person: 52 }, it: { open_findings: 61 },
+  marketing_7d: { posts_published: 71, posts_scheduled: 72, ad_spend_aed: 73 }, brief: { local_time: '20:00', sent_today: false },
+};
+function founderHarness(figures: Figures = FIG) {
+  const h = harness({ ctx: { audience: 'founder' } });
+  const asked: string[] = [];
+  h.d.founderFigures = (from) => { asked.push(from); return Promise.resolve(figures); };
+  return { ...h, asked };
+}
+
+Deno.test('each recognised founder question is answered with its own live number and the time of the reading', async () => {
+  const cases: Array<[string, RegExp]> = [
+    ['how many suppliers do we have?', /Suppliers: 11 registered \(12 in the last 7 days\), 13 verified\./],
+    ['any requests today', /Customer requests: 21 today, 22 in the last 7 days\./],
+    ['how many quotes so far', /Quotes: 31 in total, 32 in the last 7 days\./],
+    ['how much revenue this month', /Reveals this month: 41 paid, AED 4,200 in fees\./],
+    ['how many support cases are open', /Support: 51 open case\(s\), 52 waiting for a person\./],
+    ['any IT issues?', /IT: 61 open technical finding\(s\)/],
+    ['marketing numbers', /Marketing \(7 days\): 71 post\(s\) published, 72 scheduled, AED 73 ad spend\./],
+    ['كم عدد الموردين؟', /الموردون: 11 مسجّل \(12 خلال 7 أيام\)، و13 موثّق\./],
+    ['كم طلب اليوم', /طلبات العملاء: 21 اليوم، و22 خلال 7 أيام\./],
+    ['كم الإيرادات هذا الشهر', /الكشف هذا الشهر: 41 مدفوع، بقيمة 4,200 درهم\./],
+  ];
+  for (const [q, want] of cases) {
+    const h = founderHarness();
+    assertEquals(await answerFounder(h.d, msg(q, 'founder')), true, q);
+    assertMatch(h.sent[0].body, want, q);
+    assertMatch(h.sent[0].body, /19:33 on Tue 22 Sep/, q);
+    assertEquals(h.rows[0].route, 'founder_figures');
+    assert(!INTERNAL.test(h.sent[0].body), q + ': internal wording');
+  }
+  // Two topics in one message get both lines.
+  const two = founderHarness();
+  await answerFounder(two.d, msg('how many suppliers and requests this week', 'founder'));
+  assertMatch(two.sent[0].body, /Suppliers: 11[\s\S]*Customer requests: 21/);
+});
+
+Deno.test('a report request gets when the daily brief comes and the reading now', async () => {
+  const h = founderHarness();
+  assertEquals(await answerFounder(h.d, msg('send me the report', 'founder')), true);
+  assertMatch(h.sent[0].body, /^The full daily brief comes today at 20:00 \(UAE time\)\.\n\nReading at 19:33/);
+  for (const n of ['11 registered', '21 today', '31 in total', '41 paid', '51 open', '61 open', '71 post']) assert(h.sent[0].body.includes(n), n);
+  const sent = founderHarness({ ...FIG, brief: { local_time: '20:00', sent_today: true } });
+  await answerFounder(sent.d, msg('ارسل لي التقرير', 'founder'));
+  assertMatch(sent.sent[0].body, /^أُرسل ملخص اليوم، والملخص التالي غدًا الساعة 20:00/);
+});
+
+Deno.test('an unrecognised founder question gets the honest list, today\'s reading, and is filed', async () => {
+  const h = founderHarness();
+  assertEquals(await answerFounder(h.d, msg('should we open in Qatar next year', 'founder')), false);
+  await founderUnanswered(h.d, msg('should we open in Qatar next year', 'founder'), 'no_grounded_answer');
+  assertMatch(h.sent[0].body, /^I can answer these without AI: suppliers registered and verified, customer requests today and this week/);
+  assertMatch(h.sent[0].body, /Anything else needs the model, which is on hold, so I have recorded your question for the team\.\n\nReading at 19:33/);
+  assert(!/\/os\b|dashboard/i.test(h.sent[0].body), 'never sends him to a page that does not exist');
+  assertEquals(h.gaps, ['no_grounded_answer:should we open in Qatar next year']);
+  assertEquals(h.rows[0].route, 'founder_help');
+  // A topic word with no count or status word is not a figures question ("what do suppliers pay").
+  assertEquals(founderTopics('what do suppliers pay'), []);
+});
+
+Deno.test('the founder figures are never reachable from any other number', async () => {
+  for (const aud of ['customer', 'supplier', 'unknown'] as Audience[]) {
+    const h = founderHarness();
+    assertEquals(await answerFounder(h.d, msg('how many suppliers do we have?', aud)), false, aud);
+    assertEquals(h.asked.length, 0, aud + ' must not even read the figures');
+    assertEquals(h.sent.length, 0);
+  }
+  // The routine's own refusal ({ok:false}) is never turned into numbers.
+  const refused = founderHarness({ ok: false });
+  assertEquals(await answerFounder(refused.d, msg('how many suppliers do we have?', 'founder')), false);
+  // In wa_inbound both calls sit inside the founder branch, before any other audience's handler.
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const open = src.indexOf("if (audience === 'founder') {"), end = src.indexOf('// ---- A DOCUMENT ARRIVED');
+  for (const call of ['answerFounder(menuDeps', 'founderUnanswered(menuDeps']) {
+    const at = src.indexOf(call);
+    assert(at > open && at < end, call + ' must sit inside the founder branch');
+    assertEquals(src.indexOf(call, at + 1), -1, call + ' must be called once');
+  }
 });

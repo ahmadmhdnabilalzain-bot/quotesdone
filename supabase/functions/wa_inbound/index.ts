@@ -30,7 +30,8 @@ import { registeredLocale } from '../_shared/registered_locale.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 // 22 Sep 2026 (customer_support, instruction 759): the URL Twilio signs, and the welcome + menu.
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from './signature.ts';
-import { answerFromFaq, type Content, type MenuDeps, menuTurn, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
+import { answerFounder, answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
+import type { Figures } from './founder_queries.ts';
 import { type Audience, humanAlert, type Lang } from './menu.ts';
 import type { Trade } from './coverage.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -603,6 +604,11 @@ Deno.serve(observe('wa_inbound', async (req) => {
         if (error) await itFinding('wa_inbound:trade_list_failed', 'WhatsApp could not read the live trade list', { error: error.message });
         return (data || []) as Trade[];
       },
+      founderFigures: async (from: string): Promise<Figures> => {
+        const { data, error } = await admin.rpc('fn_founder_whatsapp_figures', { p_phone: from });
+        if (error) await itFinding('wa_inbound:founder_figures_failed', "WhatsApp could not read the founder's figures", { error: error.message });
+        return (error || !data ? { ok: false } : data) as Figures;
+      },
       recordGap: async (text: string, reason: string) => {
         const { data, error } = await admin.rpc('fn_support_knowledge_gap', { p_question: text.slice(0, 2000), p_refusal: reason, p_surface: 'whatsapp' });
         if (error) await itFinding('wa_inbound:knowledge_gap_failed', 'WhatsApp could not file an unanswered question', { error: error.message });
@@ -798,15 +804,20 @@ Deno.serve(observe('wa_inbound', async (req) => {
           return;
         }
 
-        // No settings change: the deterministic road. A question the live trade list or the approved FAQ
-        // answers is answered; anything else gets the courteous fallback and is filed for the team.
+        // No settings change: the deterministic road. The numbers he asks for (fn_founder_whatsapp_figures,
+        // his number only), then the live trade list and the approved FAQ; anything else gets the honest
+        // list of what can be answered without the model, today's reading, and is filed for the team.
+        if (await answerFounder(menuDeps, menuIn)) {
+          await logRun('ok', { audience: 'founder', route: 'founder_figures', deferred: 1, cost_aed: 0 }, 'founder question answered from the live figures');
+          return;
+        }
         if (await answerFromFaq(menuDeps, menuIn)) {
           await logRun('ok', { audience: 'founder', route: 'faq_answer', deferred: 1, cost_aed: 0 }, 'founder question answered from the trade list or the approved FAQ');
           return;
         }
-        await unanswered(menuDeps, menuIn, directive?.classifier_error ? 'settings_classifier_failed' : 'no_grounded_answer');
-        await logRun('ok', { audience: 'founder', route: 'menu_reoffer', deferred: 1, cost_aed: 0 },
-          'founder message had no settings change and no grounded answer; courteous fallback sent and the question filed');
+        await founderUnanswered(menuDeps, menuIn, directive?.classifier_error ? 'settings_classifier_failed' : 'no_grounded_answer');
+        await logRun('ok', { audience: 'founder', route: 'founder_help', deferred: 1, cost_aed: 0 },
+          'founder message had no settings change and no grounded answer; the answerable list and the reading were sent, the question filed');
       })();
 
       // waitUntil keeps the isolate alive after the response. Fall back to awaiting inline where it
