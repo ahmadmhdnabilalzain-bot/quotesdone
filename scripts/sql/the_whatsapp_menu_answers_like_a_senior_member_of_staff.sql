@@ -273,8 +273,9 @@ begin
                          'waiting_for', 'a person to answer +' || v_digits || ' on WhatsApp'));
   end if;
   begin
-    perform public.fn_notify_founder(p_event, p_detail, 'high', 'whatsapp_human_request',
-                                     'wa_human:' || v_digits || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD'), 'customer_support');
+    perform public.fn_notify_founder(p_event => p_event, p_detail => p_detail, p_level => 'high', p_kind => 'whatsapp_human_request',
+                                     p_dedupe_key => 'wa_human:' || v_digits || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD'),
+                                     p_owner_agent => 'customer_support');
   exception when others then v_ok := false; v_err := left(sqlerrm, 300);
   end;
   return jsonb_build_object('ok', true, 'handoff_id', v_h, 'held', p_hold, 'notified', v_ok, 'notify_error', v_err);
@@ -339,13 +340,14 @@ begin
       v_sent := v_sent + 1;
     end if;
     begin
-      perform public.fn_notify_founder('WhatsApp: +' || (r.detail ->> 'phone_digits') || ' has waited 23 hours for a person',
-        'Nobody closed the request from +' || (r.detail ->> 'phone_digits') || ' (' || coalesce(r.detail ->> 'event', 'Talk to a person') || ').'
+      perform public.fn_notify_founder(p_event => 'WhatsApp: +' || (r.detail ->> 'phone_digits') || ' has waited 23 hours for a person',
+        p_detail => 'Nobody closed the request from +' || (r.detail ->> 'phone_digits') || ' (' || coalesce(r.detail ->> 'event', 'Talk to a person') || ').'
         || case when v_req is not null then ' They were sent a polite follow-up and automatic replies are back on.'
                 else ' Their WhatsApp window has closed, so no follow-up could be sent; call them or email them.' end
         || E'\nReply now: https://wa.me/' || (r.detail ->> 'phone_digits')
         || E'\nWhen handled, send DONE +' || (r.detail ->> 'phone_digits') || ' to the QuotesDone WhatsApp number.',
-        'high', 'whatsapp_human_request', 'wa_human_followup:' || r.id, 'customer_support');
+        p_level => 'high', p_kind => 'whatsapp_human_request', p_dedupe_key => 'wa_human_followup:' || r.id,
+        p_owner_agent => 'customer_support');
     exception when others then null;   -- the follow-up is recorded below either way
     end;
     update public.agent_actions
