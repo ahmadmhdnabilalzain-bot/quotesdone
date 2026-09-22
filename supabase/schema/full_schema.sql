@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T20:52:11.726Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T21:30:25.951Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -28124,17 +28124,16 @@ AS $function$
   select 'inquiries'::text, i.id::text, 'inquiry'::text, null::bigint, null::text, true
     from public.inquiries i join me on i.customer_id = me.id
   union all
-  -- quotation files sent against their RFQs. A draft quote is not shown to the customer by
-  -- customer_api, so its attachment is not shown here either.
-  select 'quotes'::text, q.id::text, 'quote'::text, q.supplier_id,
-         case when t.id is not null then l.company_name end,
-         t.id is not null
+  -- quotation files sent against their RFQs, and ONLY once the customer has paid to reveal that
+  -- quote. A draft quote is not shown to the customer by customer_api, so its attachment is not
+  -- shown here either; nor, since 22 Sep 2026, is an unrevealed one's (CP-02).
+  select 'quotes'::text, q.id::text, 'quote'::text, q.supplier_id, l.company_name, true
     from public.quotes q
     join public.inquiries i on i.id = q.inquiry_id
     join me on i.customer_id = me.id
+    join public.transactions t
+      on t.quote_id = q.id and t.customer_id = me.id and t.revealed_at is not null
     left join public.leads l on l.id = q.supplier_id
-    left join public.transactions t
-           on t.quote_id = q.id and t.customer_id = me.id and t.revealed_at is not null
    where coalesce(q.status, '') <> 'draft'
   union all
   -- supplier documents, and ONLY for a supplier this customer has paid to reveal
@@ -30826,7 +30825,8 @@ begin
                           'management@quotesdone.com');
 
       -- The customer must know their edit cost them their quotes, or they will wait for prices
-      -- that are never coming back on their own.
+      -- that are never coming back on their own. The type now has a notification_copy row in both
+      -- languages (above), so a04 states THIS in Arabic rather than the generic fallback (CP-04).
       if v_cust_email is not null then
         insert into notifications(type, to_email, to_role, inquiry_id, channel, subject, body, status)
         values ('inquiry_edit_staled_quotes', v_cust_email, 'customer', p_inquiry, 'email',
@@ -30838,8 +30838,10 @@ begin
                 'QuotesDone', 'queued');
       end if;
 
+      -- THE SALES ENGINEER OWNS AN RFQ WHOSE QUOTES WENT BACK (CP-04). This said 'procurement',
+      -- which is not one of the estate's seats, so the follow-up reached nobody.
       insert into agent_actions(agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-      values ('procurement','requote_required','needs_review','medium',
+      values ('sales_engineer','requote_required','needs_review','medium',
               'Requirements changed after ' || v_stale || ' quote(s) were submitted',
               'Watch that the invited suppliers actually re-quote. If they do not, the customer is left with a request that had prices and now has none.',
               jsonb_build_object('inquiry_id', p_inquiry, 'quotes_staled', v_stale,
