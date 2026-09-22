@@ -10,7 +10,7 @@ import { KW, detect } from './keywords.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { asLocale, documentLocale } from '../_shared/registered_locale.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
-import { LENGTHS_FAILED_NOTE } from '../drawing_boq/length_notes.ts';
+import { LENGTHS_FAILED_NOTE, LENGTHS_QUEUED_NOTE } from '../drawing_boq/length_notes.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
 import { sanitizeAndScan } from '../_shared/malware.ts';
@@ -370,6 +370,39 @@ function ratingBand(v: unknown): string | null { const n = Number(v); if (v == n
 function reviewCountBand(v: unknown): string | null { const n = Number(v || 0); if (n >= 50) return '50+'; if (n >= 20) return '20-49'; if (n >= 5) return '5-19'; return n > 0 ? 'under 5' : null; }
 function yearsBand(v: unknown): string | null { if (v == null) return null; const n = Number(v); if (!isFinite(n)) return null; if (n >= 10) return '10+ years'; if (n >= 5) return '5-9 years'; return 'under 5 years'; }
 
+// A CAD DRAWING THE EDGE CANNOT READ IS READ OFF THE REQUEST PATH (22 Sep 2026, sales_engineer; founder:
+// "customer will share cad files or pdf mainly"). MEASURED on production that day: every DWG sent to
+// drawing_boq died 546 "Memory limit exceeded" (fixed in doc_read/dwg.ts), and even fixed, a DWG's cost is
+// not its size (a 562 KB drawing took 1.9 s of CPU against the 2 s cap). drawing_boq is a SEPARATE worker,
+// so its death reaches this function as a 546 answer, not a silent kill. On that answer, or when dwg.ts
+// says the drawing is past its edge ceiling, the stored original is queued in public.cad_read_jobs and the
+// CAD worker (scripts/cad_read_worker.ts on a GitHub runner, the same reader code, no CPU cap) reads it;
+// 'cad_read_status' hands the take-off to the customer's screen. Prevented from regressing by
+// scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
+function cadQueueReason(status: number, jd: any): 'over_edge_ceiling' | 'edge_worker_died' | 'edge_reader_failed' | null {
+  if (jd?.ok) return jd.kind === 'dwg' && jd.needs === 'cad_conversion' ? 'over_edge_ceiling' : null;
+  if (status === 546 || jd?.code === 'WORKER_RESOURCE_LIMIT') return 'edge_worker_died';
+  // A refusal the reader gave for the file itself (not a DWG, damaged) would fail the same way off the
+  // edge, so only a transport failure or a server error is worth a second reading.
+  return status === 0 || status >= 500 ? 'edge_reader_failed' : null;
+}
+async function queueCadRead(o: { customerId: string; email: string; path: string; name: string; mime: string; b64Len: number; why: string; boqIn?: unknown }): Promise<string | null> {
+  const { data, error } = await admin.from('cad_read_jobs').insert({ customer_id: o.customerId, owner_email: o.email, source_path: o.path,
+    file_name: o.name, mime: o.mime, bytes: Math.floor(o.b64Len * 3 / 4), why: o.why, boq_in: o.boqIn ?? null }).select('id').maybeSingle();
+  if (error || !data?.id) { console.warn(`[cad] could not queue ${o.path}: ${error?.message || 'no id'}`); return null; }
+  // Start the worker now; the workflow's own schedule picks the job up if this dispatch is lost.
+  try {
+    const gh = await getSecret('github_token');
+    if (gh) {
+      const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
+        method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
+        body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
+      if (r.status !== 204) console.warn(`[cad] worker dispatch answered ${r.status}; the schedule will pick up job ${data.id}`);
+    }
+  } catch (_e) { /* the schedule is the safety net */ }
+  return String(data.id);
+}
+
 // AUDIT 9.1 (3 Aug 2026). This is the least trusted input in the system: the customer drawing
 // path. Whatever lands here is later rendered, passed to an LLM, and shown to suppliers. It
 // previously took the caller's declared Content-Type and the caller's filename at face value and
@@ -700,6 +733,16 @@ Deno.serve(observe('customer_api', async (req) => {
     // bytes, caps it at 5 MB, refuses macros and encryption, and reads cached cell values with no model.
     // Only a file it accepted is stored, beside drawings, with the same owner ledger row, so pdpl_erase
     // finds it the same way. A PDF BOQ does not come here: analyze_drawing reads its text layer.
+    // THE TAKE-OFF OF A QUEUED CAD DRAWING (22 Sep 2026, see queueCadRead). Only the job's own customer
+    // gets an answer; anyone else's id reads as not found.
+    if (action === 'cad_read_status') {
+      const id = String(body.job_id || '');
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return J({ ok: false, error: 'not_found' }, 404);
+      const { data: job } = await admin.from('cad_read_jobs').select('status, result, finished_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
+      if (!job) return J({ ok: false, error: 'not_found' }, 404);
+      return J({ ok: true, status: job.status, boq: job.status === 'done' ? (job.result as any)?.boq ?? null : null });
+    }
+
     if (action === 'analyze_boq') {
       const name = String(body.file_name || 'boq').slice(0, 180);
       const mime = String(body.mime || '');
@@ -731,11 +774,18 @@ Deno.serve(observe('customer_api', async (req) => {
       if (b64.length > 27 * 1024 * 1024) return J({ ok: false, error: 'file_too_large' });
       const hint = String(body.hint || '').slice(0, 400);
       const secret = await getSecret('cred_fn_customer_api');
-      let jd: any = null;
+      let jd: any = null; let st = 0;
       try {
         const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: b64, mime, filename: name, hint, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body) }) });
-        jd = await r.json();
+        st = r.status; jd = await r.json().catch(() => null);
       } catch (_e) { /* answered below as document_unreadable */ }
+      // A DXF (ASCII or binary) too heavy for the edge is queued for the CAD worker like a DWG (22 Sep 2026).
+      const cadWhy = /\.(dxf|dwg)$/i.test(name) ? cadQueueReason(st, jd) : null;
+      if (cadWhy) {
+        const p = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
+        const job = p ? await queueCadRead({ customerId: cust.id, email, path: p, name, mime, b64Len: b64.length, why: cadWhy }) : null;
+        if (job) return J({ ok: true, boq: null, kind: 'dxf', needs: 'cad_conversion', drawing_file_path: p, drawing_file_name: name, drawing_redacted_paths: [], stored: true, note: 'cad_queued', cad_job_id: job });
+      }
       if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
       return J({ ok: true, boq: jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
@@ -764,11 +814,16 @@ Deno.serve(observe('customer_api', async (req) => {
       if (!images.length && isCad && body.original_b64) {
         // No picture of the sheet, so nothing a supplier can be shown - but the CAD file itself is still
         // read for its take-off (doc_read dwg / dxf). The drawing stays held for suppliers.
-        let boq: unknown = null;
+        let boq: unknown = null; let st = 0; let jd: any = null;
         try {
           const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: body.original_b64, mime, filename: name, hint }) });
-          const jd = await r.json(); if (jd?.ok) boq = jd.boq;
+          st = r.status; jd = await r.json().catch(() => null); if (jd?.ok) boq = jd.boq;
         } catch (_e) { /* answered below with boq null */ }
+        const why = cadQueueReason(st, jd);
+        if (why && path) {
+          const job = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why });
+          if (job) return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: true, share_redacted: false, note: 'cad_queued', cad_job_id: job });
+        }
         if (boq) return J({ ok: true, boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false, note: 'cad_read_not_pictured' });
       }
       if (!images.length) {
@@ -875,12 +930,20 @@ Deno.serve(observe('customer_api', async (req) => {
           try { await admin.from('drawing_redaction_runs').insert(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason })); } catch (_e) { /* the hold stands even if its record fails */ }
         }
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 200);
-        const jd = await boqRes.value.json();
+        const jd = await boqRes.value.json().catch(() => null);
+        // A CAD original the edge could not read (past its ceiling, or its worker died) is read off the
+        // request path; the pictured sheets above still went through redaction for suppliers.
+        const cadWhy = isCad && body.original_b64 ? cadQueueReason(boqRes.value.status, jd) : null;
+        if (cadWhy && path) {
+          const job = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: cadWhy });
+          if (job) return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, note: 'cad_queued', cad_job_id: job });
+        }
         if (!jd?.ok) return J({ ok: false, error: 'analysis_failed', detail: jd?.detail || jd?.error || '', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 200);
         // THE CONFIRM STEP RUNS ONLY NOW, after redaction has finished and every page came back
         // (review of #642: it used to run in parallel and could see the original page). drawing_boq
         // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
         const boqOut = jd.boq;
+        let lengthsJob: string | null = null;
         // THE LENGTHS (22 Sep 2026): a drawing set read from a PDF gets its duct and pipe lengths from a SECOND
         // drawing_boq call that reads the CAD layers (drawing_set.ts, "THE LENGTHS ARE A SECOND CALL"). If it
         // fails or is killed, boqOut stands with its counted lines, and the customer is told why no lengths.
@@ -888,8 +951,14 @@ Deno.serve(observe('customer_api', async (req) => {
           try {
             const lr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'lengths', boq: boqOut, original_b64: body.original_b64 }) });
             const lj = await lr.json().catch(() => null);
+            // A big set's lengths killed the edge worker (measured 22 Sep 2026: 546 at 40 synthetic sheets,
+            // 200 at 20): the counted take-off goes back now, and the CAD worker merges the lengths in.
+            if (lr.status === 546 && path && Array.isArray(boqOut.boq)) {
+              const job = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: 'pdf_lengths_worker_died', boqIn: boqOut });
+              if (job) { lengthsJob = job; boqOut.missing_info = [LENGTHS_QUEUED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])]; }
+            }
             if (lj?.ok && lj.boq && Array.isArray(lj.boq.boq)) Object.assign(boqOut, lj.boq);
-            else if (Array.isArray(boqOut.boq) && boqOut.boq.some((l: any) => /^(duct|pipe):/.test(String(l?.type || '')) && l?.qty == null)) boqOut.missing_info = [LENGTHS_FAILED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])];
+            else if (!lengthsJob && Array.isArray(boqOut.boq) && boqOut.boq.some((l: any) => /^(duct|pipe):/.test(String(l?.type || '')) && l?.qty == null)) boqOut.missing_info = [LENGTHS_FAILED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])];
           } catch (_e) { /* the counted take-off stands */ }
         }
         if (boqOut && Array.isArray(boqOut.boq) && boqOut.boq.length) {
@@ -899,7 +968,7 @@ Deno.serve(observe('customer_api', async (req) => {
             if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
           } catch (_e) { /* the coded result stands */ }
         }
-        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand });
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false }, 200); }
     }
 

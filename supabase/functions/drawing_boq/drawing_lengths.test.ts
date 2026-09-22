@@ -128,3 +128,49 @@ Deno.test('take-off: lengths become lines; bubbles count only inside an outline;
   assertEquals(n(3)?.qty, 1);
   assertEquals(notes.length, 3, 'notes 1 and 2 share a first sentence on the same sheet and are two items');
 });
+
+// -- single-line sizes: the label nearest ALONG the run (22 Sep 2026) -----------------------------------
+// Synthetic sheets at 1/8" = 1'-0" (1.333 real in per pt, 9 pt = 1 ft), built from paper-point geometry.
+// Measured on the real M1.0 before this: a run took the label nearest ANY of its points, so a branch whose
+// end stopped beside a trunk's label took the trunk's size, a roof-curb outline took a "4"Ø" 18 ft away,
+// and a single-line branch beside a double-line wall paired with it into a phantom 25" duct.
+const W8 = 2592, H8 = 1728;
+const sheet8 = (segs: number[][], labels: [string, number, number][]) => ({
+  width: W8, height: H8, rotate: 0,
+  runs: [{ text: 'SCALE: 1/8" = 1\'-0"', x: 0.5, y: 0.95, w: 0.1, h: 0.01 },
+    ...labels.map(([text, x, y]) => ({ text, x: x / W8 - 0.003, y: y / H8 - 0.002, w: 0.006, h: 0.004 }))],
+  layers: { 'M-HVAC-DUCT': segs.flatMap(([ax, ay, bx, by]) => [ax / W8, ay / H8, bx / W8, by / H8]) },
+});
+const ductFt = (p: ReturnType<typeof sheet8>) => {
+  const m = measureDucts(p, null, scaleLabels(p, null));
+  return Object.fromEntries(m.map((g) => [g.key, feet(g.realIn)]));
+};
+
+Deno.test('single-line: a label beside the middle of a long run sizes it, though another run ends nearer the label', () => {
+  // A: 600 pt run, "12x8" 12 pt above its middle. B: a branch whose END stops 12.5 pt from that label, with
+  // its own "6" DIA" 14 pt beside its middle. Nearest-point association gave B the 12x8.
+  const ft = ductFt(sheet8([[400, 500, 1000, 500], [700, 300, 700, 475.5]], [['12x8', 700, 488], ['6" DIA', 714, 390]]));
+  assertEquals(ft['12x8'], 66.7, 'A alone is the 12x8');
+  assertEquals(ft['6" round'], 19.5, 'B takes the label beside it, not the one past its end');
+});
+
+Deno.test('single-line: two branches side by side, each with its own label, are two runs, not one double-line duct', () => {
+  // 15 pt (20") apart, no printed 20" size anywhere: an 8" above, a 10" below.
+  const ft = ductFt(sheet8([[400, 800, 900, 800], [400, 815, 900, 815]], [['8" DIA', 650, 790], ['10" DIA', 650, 825]]));
+  assertEquals(ft['8" round'], 55.6);
+  assertEquals(ft['10" round'], 55.6);
+  assert(!Object.keys(ft).some((k) => /wide/.test(k)), `no phantom double-line duct: ${Object.keys(ft)}`);
+});
+
+Deno.test('single-line: a label used by one run does not size a farther parallel run; too far or too close to call is never guessed', () => {
+  // two parallel runs 50 pt (67") apart, one "8" DIA" 15 pt from the upper and 35 pt from the lower.
+  let ft = ductFt(sheet8([[400, 800, 900, 800], [400, 850, 900, 850]], [['8" DIA', 650, 815]]));
+  assertEquals(ft['8" round'], 55.6, 'the nearer run takes it');
+  assertEquals(ft['single-line duct (size not labelled)'], 55.6, 'the farther parallel run stays unlabelled');
+  // a label 9 ft (81 pt) from the run: past SINGLE_LABEL_FT, not this run's size.
+  ft = ductFt(sheet8([[400, 800, 900, 800]], [['4" DIA', 650, 719]]));
+  assertEquals(Object.keys(ft), ['single-line duct (size not labelled)']);
+  // two different sizes beside it at 10 and 11 pt: ambiguous.
+  ft = ductFt(sheet8([[400, 800, 900, 800]], [['8" DIA', 650, 790], ['10" DIA', 700, 811]]));
+  assertEquals(Object.keys(ft), ['single-line duct (size not labelled)']);
+});

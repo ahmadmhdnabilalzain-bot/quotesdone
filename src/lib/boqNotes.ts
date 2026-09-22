@@ -49,6 +49,7 @@ const RULES: Rule[] = [
   R(/^Duct and pipe LENGTHS are not printed on the drawing and this file carries no CAD layers to measure them from: those lines carry the sizes and ask for the length at the printed scale\.$/, () => 'أطوال مجاري الهواء والأنابيب غير مطبوعة على المخطط، ولا يحتوي هذا الملف على طبقات CAD يمكن قياسها منها: تحمل تلك البنود المقاسات، ويُطلب فيها الطول وفق مقياس الرسم المطبوع.'),
   R(/^Duct and pipe lengths are measured in plan from the drawing's CAD layers at its printed scale; vertical risers and drops are not in plan and are not included\.$/, () => 'قيست أطوال مجاري الهواء والأنابيب في المسقط الأفقي من طبقات CAD في المخطط وفق مقياس الرسم المطبوع؛ ولا تشمل الصواعد والنوازل الرأسية لأنها لا تظهر في المسقط.'),
   R(/^Duct and pipe lengths could not be measured on this upload \(the measuring step did not finish\): those lines carry the sizes and ask for the length at the printed scale\.$/, () => 'تعذّر قياس أطوال مجاري الهواء والأنابيب في هذا الرفع (لم تكتمل خطوة القياس): تحمل تلك البنود المقاسات، ويُطلب فيها الطول وفق مقياس الرسم المطبوع.'),
+  R(/^Duct and pipe lengths for this drawing set are being measured in the background; the lines below carry the sizes until the lengths arrive\.$/, () => 'تجري في الخلفية قراءة أطوال مجاري الهواء والأنابيب لمجموعة المخططات هذه؛ وتحمل البنود أدناه المقاسات إلى أن تصل الأطوال.'),
   R(/^Sheet\(s\) (.+?) carry more than (.+?) duct or pipe lines, more than one reading measures; their lengths were not measured and must be taken off by hand\.$/, (m) => `تتضمن اللوحات ${m[1]} أكثر من ${m[2]} خط لمجاري الهواء أو الأنابيب، وهو أكثر مما تقيسه قراءة واحدة؛ لذا لم تُقَس أطوالها ويجب حصرها يدويًا.`),
   // _shared/doc_read/dwg.ts and index.ts (DWG, binary DXF, RVT, DGN)
   R(/^Save the drawing as DXF \(File > Save As > AutoCAD DXF\) or PDF and upload that\.$/, () => 'يُرجى حفظ المخطط بصيغة DXF (ملف > حفظ باسم > AutoCAD DXF) أو PDF ثم رفعه.'),
@@ -56,9 +57,21 @@ const RULES: Rule[] = [
   R(/^The DWG reader could not run \((.+)\)\.$/, (m) => `تعذّر تشغيل قارئ ملفات DWG (${m[1]}).`),
   R(/^Read from DWG \((.+?)\) by LibreDWG: (.+?) entities\.$/, (m) => `قُرئ من ملف DWG (${m[1]}) بواسطة LibreDWG: ${m[2]} عنصر.`),
   R(/^Not measured \(counted only\): (.+)\.$/, (m) => `لم تُقَس (أُحصيت فقط): ${m[1]}.`),
-  R(/^Binary DXF: it has to be converted to ASCII DXF or PDF before its content can be read\.$/, () => 'ملف DXF ثنائي: يجب تحويله إلى DXF نصي (ASCII) أو PDF قبل أن يمكن قراءة محتواه.'),
-  R(/^A Revit model \(\.rvt\) cannot be read here yet\. Export it from Revit as IFC \(File > Export > IFC\) or as DWG\/DXF and upload that; its quantities are then read directly\.$/, () => 'لا يمكن قراءة نموذج ريفيت (.rvt) هنا حاليًا. يُرجى تصديره من ريفيت بصيغة IFC (ملف > تصدير > IFC) أو بصيغة DWG/DXF ثم رفعه، وعندها تُقرأ كمياته مباشرةً.'),
-  R(/^A MicroStation DGN drawing cannot be read here yet\. Save it from MicroStation as DWG or DXF and upload that; its quantities are then read directly\.$/, () => 'لا يمكن قراءة مخطط مايكروستيشن (DGN) هنا حاليًا. يُرجى حفظه من مايكروستيشن بصيغة DWG أو DXF ثم رفعه، وعندها تُقرأ كمياته مباشرةً.'),
+  // _shared/doc_read/cad.ts: binary DXF (read since 22 Sep 2026)
+  R(/^Read from binary DXF: (.+?) group-code pairs\.$/, (m) => `قُرئ من ملف DXF ثنائي: ${m[1]} زوجًا من رموز المجموعات وقيمها.`),
+  R(/^The binary DXF has more than (.+?) group-code pairs; reading stopped there, so totals are partial\.$/, (m) => `يتضمن ملف DXF الثنائي أكثر من ${m[1]} زوج من رموز المجموعات؛ وتوقفت القراءة عند هذا الحد، لذا المجاميع جزئية.`),
+  // _shared/doc_read/rvt.ts (22 Sep 2026)
+  R(/^This Revit file was saved in Revit (.+?)\.$/, (m) => `حُفظ ملف ريفيت هذا بإصدار ريفيت ${m[1]}.`),
+  R(/^The Revit version could not be read from this file\.$/, () => 'تعذّرت قراءة إصدار ريفيت من هذا الملف.'),
+  R(/^This Revit file is a family \(\.rfa\), not a project model\.$/, () => 'ملف ريفيت هذا عائلة عناصر (.rfa) وليس نموذج مشروع.'),
+  R(/^This Revit model is workshared \(part of a team model\)\.$/, () => 'نموذج ريفيت هذا مشترك العمل (جزء من نموذج فريق).'),
+  R(/^A (.+?) x (.+?) pixel preview image was extracted from the file\.$/, (m) => `استُخرجت من الملف صورة معاينة بأبعاد ${m[1]} × ${m[2]} بكسل.`),
+  R(/^The building elements and quantities inside a Revit file are not read here\. Please export it from Revit as IFC \(File > Export > IFC, then Modify setup, and on the Property Sets tab tick "Export base quantities" so areas and volumes come through\) and upload the \.ifc file; its quantities are then read directly\.$/, () => 'لا تُقرأ هنا عناصر المبنى وكمياته داخل ملف ريفيت. يُرجى تصديره من ريفيت بصيغة IFC (ملف > تصدير > IFC، ثم «تعديل الإعداد» Modify setup، ومن تبويب «مجموعات الخصائص» Property Sets يُرجى تحديد خيار «تصدير الكميات الأساسية» Export base quantities لتظهر المساحات والأحجام)، ثم رفع ملف ‎.ifc، وعندها تُقرأ كمياته مباشرةً.'),
+  R(/^A DWG or DXF export of the plans \(File > Export > CAD Formats\) or a PDF of the drawing sheets can be uploaded instead\.$/, () => 'ويمكن بدلًا من ذلك رفع المساقط مُصدَّرةً بصيغة DWG أو DXF (ملف > تصدير > صيغ CAD) أو رفع لوحات المخطط بصيغة PDF.'),
+  // _shared/doc_read/index.ts: DGN (22 Sep 2026)
+  R(/^This is a MicroStation DGN V8 file\.$/, () => 'هذا ملف مايكروستيشن DGN بإصدار V8.'),
+  R(/^This is a MicroStation DGN V7 \((.+?)\) file\.$/, (m) => `هذا ملف مايكروستيشن DGN بإصدار V7 (${m[1] === '3D' ? 'ثلاثي الأبعاد' : m[1] === '2D' ? 'ثنائي الأبعاد' : m[1]}).`),
+  R(/^A MicroStation DGN drawing cannot be read here yet\. Save it from MicroStation as DWG or DXF \(File > Save As\) or print it to PDF and upload that; its quantities are then read directly\.$/, () => 'لا يمكن قراءة مخطط مايكروستيشن (DGN) هنا حاليًا. يُرجى حفظه من مايكروستيشن بصيغة DWG أو DXF (ملف > حفظ باسم) أو طباعته بصيغة PDF ثم رفعه، وعندها تُقرأ كمياته مباشرةً.'),
   R(/^A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed\.$/, () => 'لا تحتوي الصورة أو المستند الممسوح ضوئيًا على طبقة نص؛ فتُقرأ كلماته بتقنية التعرّف الضوئي على النصوص في متصفحك، أو بنموذج رؤية حين يُسمح بذلك.'),
   R(/^The PDF could not be opened \(encrypted, damaged or not a PDF\)\.$/, () => 'تعذّر فتح ملف PDF (فهو مشفّر أو تالف أو ليس ملف PDF).'),
   // _shared/pdf_measure.ts and _shared/doc_read/pdf.ts

@@ -7,9 +7,9 @@
 //
 //   deno run --no-lock --node-modules-dir=auto --allow-net=cdn.jsdelivr.net --allow-read --allow-env <file.dwg>
 //
-// HAND-OFF NOT BUILT: nothing in the platform dispatches a large upload here yet. That needs a result
-// table and a dispatcher (a GitHub Actions workflow_dispatch that reads the file from storage and writes
-// the result back), which is the coordinator's call. Until then the customer is told to send DXF or PDF.
+// THE PLATFORM'S HAND-OFF is scripts/cad_read_worker.ts (22 Sep 2026): customer_api queues a DWG the edge
+// cannot read in public.cad_read_jobs, and .github/workflows/cad-read-worker.yml reads it with this same
+// readDwg and writes the take-off back. This file stays the local, one-drawing tool.
 import { readDwg } from '../supabase/functions/_shared/doc_read/dwg.ts';
 
 const file = Deno.args[0];

@@ -39,6 +39,13 @@ export type Extracted = {
   needs: null | 'ocr' | 'cad_conversion' | 'bim_conversion';
   /** Honest limits in plain English; they become the BOQ's missing_info. */
   notes: string[];
+  /**
+   * CAD readers only (22 Sep 2026): the ASCII DXF the take-off was measured from - the file itself, a
+   * binary DXF converted, or a DWG's entities written out by dwg.ts. The caller hands it to
+   * _shared/cad_identity.ts cadSupplierBoq so nothing the file says about its own job (title block,
+   * $PROJECTNAME, xref paths, party attributes) reaches a BOQ line. Never serialised to a client.
+   */
+  dxf_text?: string;
 };
 
 export type Refusal = { ok: false; error: string; detail: string };
