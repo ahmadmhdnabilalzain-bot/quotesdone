@@ -137,3 +137,17 @@ Deno.test('neutral file name carries nothing of the customer', () => {
   assertEquals(n, neutralName('jpg', 'Khalid Al Mansouri drawing.pdf', 1), 'deterministic');
   assert(!n.toLowerCase().includes('mansouri'));
 });
+
+// 22 Sep 2026: the customer's FILE NAME and a ZZ DEMO customer's "demo" blacked out drawing content (111 runs
+// on the real Weld mechanical cover sheet under "M-101 Mechanical Drawings Rev2.pdf"; every "DEMO AND
+// REMOVE" note). Drawing words are never a seed; a project name in the file name still is.
+Deno.test('a file name made of drawing words blacks out nothing on the drawing', () => {
+  const seeds = seedTerms({ name: 'ZZ DEMO Rashid Kareem', extra: ['M-101 Mechanical Drawings Rev2 - Permit Set.pdf', 'ZZ Harbour Tower HVAC layout.dwg'] });
+  for (const w of ['mechanical', 'drawings', 'permit', 'demo', 'layout']) assert(!seeds.includes(w), w + ' became a seed');
+  for (const content of ['MECHANICAL DRAWING INDEX', 'DUCT SIZES AS INDICATED ON THE DRAWINGS', 'DEMO AND REMOVE EXISTING LAV.', 'WASTE AND VENT DEMO PLAN']) {
+    assertEquals(redactText(content, seeds).text, content);
+    assertEquals(residualScan(content, seeds), []);
+  }
+  assert(seeds.includes('harbour'), 'a name in the file name is still a seed');
+  assert(!redactText('Supply to ZZ Harbour Tower level 3', seeds).text.includes('Harbour'));
+});

@@ -54,6 +54,8 @@ test('the queue has a worker, the dispatch names it, and the status is the owner
   assert.match(workerTs, /readDwg\(bytes, ctx, Infinity\)/);
   const status = api.slice(api.indexOf("action === 'cad_read_status'"), api.indexOf("action === 'analyze_boq'"));
   assert.match(status, /\.eq\('customer_id', cust\.id\)/);
+  // The queue triggers the worker: a polled job that has not started is dispatched again.
+  assert.match(status, /cadJobNeedsRedispatch\([^)]*\)\) await dispatchCadWorker\(id\)/);
 });
 
 test('a PDF set whose lengths call dies is queued with its counted take-off, and the worker merges them', () => {

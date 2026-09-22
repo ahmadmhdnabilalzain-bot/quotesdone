@@ -23,19 +23,27 @@ const NEW_SQL = new URL('scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_
 
 async function setup() {
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
+  const { withRetry } = await import('../lib/retry.mjs');
   const { serviceEmbedText, proposeByMeaning } = await import(new URL('service_meaning.ts', SHARED).href);
   const { readCatalogue } = await import(new URL('catalogue_read.ts', SHARED).href);
   const { PAGES } = await import(new URL('catalogue_fixtures/make_zz_demo_catalogue.mjs', SHARED).href);
   const ALIASES = JSON.parse(readFileSync(new URL('service_aliases.json', SHARED), 'utf8'));
   const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
   assert.ok(secret, 'no cred_fn_ai in app_secrets');
+  // 22 Sep 2026 (instruction 645): this failed once in a full run with "refused (HTTP 200)" -- the gateway
+  // then answered ok:true over a null vector. It now answers 503 embed_failed, and ONLY a 503 is retried,
+  // three attempts in all; any other status, and a 503 that outlasts the retries, fails as before.
   const embed = async (text) => {
-    const r = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: secret, fn: 'embed_taxonomy_services', action: 'embed', text }),
-    });
-    const j = await r.json();
-    assert.ok(j.embedding, `the free embed path refused (HTTP ${r.status})`);
+    const { r, j } = await withRetry(async () => {
+      const r = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: secret, fn: 'embed_taxonomy_services', action: 'embed', text }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 503 && j.error === 'embed_failed') throw new Error('embed_failed (HTTP 503)');
+      return { r, j };
+    }, 3, 1000);
+    assert.ok(r.status === 200 && j.ok === true && j.embedding, `the free embed path refused (HTTP ${r.status} ${j.error ?? ''})`);
     return JSON.parse(j.embedding);
   };
   // The live services, plus this change's ten if the SQL file is not applied yet (read from the file).

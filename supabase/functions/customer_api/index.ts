@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
+import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { drawingHandoff, heldRun } from './drawing_hold.ts';
@@ -390,17 +391,30 @@ async function queueCadRead(o: { customerId: string; email: string; path: string
   const { data, error } = await admin.from('cad_read_jobs').insert({ customer_id: o.customerId, owner_email: o.email, source_path: o.path,
     file_name: o.name, mime: o.mime, bytes: Math.floor(o.b64Len * 3 / 4), why: o.why, boq_in: o.boqIn ?? null }).select('id').maybeSingle();
   if (error || !data?.id) { console.warn(`[cad] could not queue ${o.path}: ${error?.message || 'no id'}`); return null; }
-  // Start the worker now; the workflow's own schedule picks the job up if this dispatch is lost.
+  await dispatchCadWorker(String(data.id));
+  return String(data.id);
+}
+// THE QUEUE STARTS ITS OWN WORKER. A new job dispatches .github/workflows/cad-read-worker.yml at once, and
+// while the customer's screen polls cad_read_status (every 15 s) a job still waiting - the dispatch was
+// lost - or whose runner went silent is dispatched again (at most once a minute per job). The workflow's
+// 6-hourly schedule is only the last resort for a job nobody is polling: a lost dispatch after the
+// customer closed the page, or a runner that died after the polling stopped.
+async function dispatchCadWorker(jobId: string): Promise<void> {
   try {
     const gh = await getSecret('github_token');
-    if (gh) {
-      const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
-        method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
-        body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
-      if (r.status !== 204) console.warn(`[cad] worker dispatch answered ${r.status}; the schedule will pick up job ${data.id}`);
-    }
-  } catch (_e) { /* the schedule is the safety net */ }
-  return String(data.id);
+    if (!gh) { console.warn(`[cad] no github_token; job ${jobId} waits for the worker's schedule`); return; }
+    const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
+      method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
+      body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
+    if (r.status !== 204) console.warn(`[cad] worker dispatch answered ${r.status} for job ${jobId}`);
+  } catch (_e) { console.warn(`[cad] worker dispatch failed for job ${jobId}`); }
+}
+/** A polled job that should have started by now: queued past 2 minutes, or running with no word for 30. */
+function cadJobNeedsRedispatch(job: { status: string; created_at: string; claimed_at: string | null }, now = Date.now()): boolean {
+  const age = (t: string | null) => (t ? now - Date.parse(t) : 0);
+  const stuck = (job.status === 'queued' && age(job.created_at) > 120_000) || (job.status === 'running' && age(job.claimed_at) > 30 * 60_000);
+  // At most once a minute per job: the 15 s poll lands in the first 15 s of a minute once in four.
+  return stuck && Math.floor(age(job.created_at) / 1000) % 60 < 15;
 }
 
 // AUDIT 9.1 (3 Aug 2026). This is the least trusted input in the system: the customer drawing
@@ -738,8 +752,9 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'cad_read_status') {
       const id = String(body.job_id || '');
       if (!/^[0-9a-f-]{36}$/i.test(id)) return J({ ok: false, error: 'not_found' }, 404);
-      const { data: job } = await admin.from('cad_read_jobs').select('status, result, finished_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
+      const { data: job } = await admin.from('cad_read_jobs').select('status, result, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
+      if (cadJobNeedsRedispatch(job as any)) await dispatchCadWorker(id);
       return J({ ok: true, status: job.status, boq: job.status === 'done' ? (job.result as any)?.boq ?? null : null });
     }
 
@@ -788,7 +803,11 @@ Deno.serve(observe('customer_api', async (req) => {
       }
       if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
-      return J({ ok: true, boq: jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
+      // A DXF's take-off carries the file's own names (layers, blocks, title block): cad_identity takes them
+      // out before the customer's portal holds the BOQ it will send (22 Sep 2026). The CAD file itself is
+      // never shared, and the customer is told so (drawing_held, the same notice analyze_drawing gives).
+      const cad = /\.(dxf|dwg)$/i.test(name) || /dxf|dwg/i.test(mime);
+      return J({ ok: true, boq: cad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(b64)) : jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path, ...(cad ? { drawing_held: !!path, share_redacted: false } : {}) });
     }
 
     if (action === 'analyze_drawing') {
@@ -817,7 +836,7 @@ Deno.serve(observe('customer_api', async (req) => {
         let boq: unknown = null; let st = 0; let jd: any = null;
         try {
           const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'document', file_b64: body.original_b64, mime, filename: name, hint }) });
-          st = r.status; jd = await r.json().catch(() => null); if (jd?.ok) boq = jd.boq;
+          st = r.status; jd = await r.json().catch(() => null); if (jd?.ok && jd.boq) boq = cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64)));
         } catch (_e) { /* answered below with boq null */ }
         const why = cadQueueReason(st, jd);
         if (why && path) {
@@ -942,7 +961,8 @@ Deno.serve(observe('customer_api', async (req) => {
         // THE CONFIRM STEP RUNS ONLY NOW, after redaction has finished and every page came back
         // (review of #642: it used to run in parallel and could see the original page). drawing_boq
         // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
-        const boqOut = jd.boq;
+        // A CAD take-off loses the file's own names here (cad_identity, 22 Sep 2026); a PDF's is gated below.
+        const boqOut = isCad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64 || ''))) : jd.boq;
         let lengthsJob: string | null = null;
         // THE LENGTHS (22 Sep 2026): a drawing set read from a PDF gets its duct and pipe lengths from a SECOND
         // drawing_boq call that reads the CAD layers (drawing_set.ts, "THE LENGTHS ARE A SECOND CALL"). If it

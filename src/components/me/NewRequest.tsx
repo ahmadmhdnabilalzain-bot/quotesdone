@@ -507,7 +507,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 </fieldset>
               ) : null}
               {brief.plausibility && brief.plausibility.note ? <div className="mt-2 text-[12.5px] text-warn-fg">{t(lang, 'nr_note')} {brief.plausibility.note}</div> : null}
-              {drawing && drawing.held ? <div className="mt-2 text-[12.5px] font-semibold text-warn-fg" role="status">{tf(lang, 'nr_drawing_held', { name: drawing.held_name || drawing.drawing_file_name || '' })}</div> : null}
+              {drawing && drawing.held ? <div className="mt-2 text-[12.5px] font-semibold text-warn-fg" role="status">{tf(lang, drawing.boq && Array.isArray(drawing.boq.boq) && drawing.boq.boq.length ? 'nr_drawing_held_boq' : 'nr_drawing_held', { name: drawing.held_name || drawing.drawing_file_name || '' })}</div> : null}
               <Button size="lg" className="mt-3.5 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
               <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
             </motion.div>

@@ -36,6 +36,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { observe } from '../_shared/observe.ts';
+import { embedAnswer } from '../_shared/embed_answer.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) =>
@@ -61,7 +62,13 @@ async function embed(text: string): Promise<string | null> {
   try {
     const v = await embedder().run(String(text).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
     return '[' + v.join(',') + ']';
-  } catch (_e) { return null; }  // embedding is an optimisation; never fail the call for it
+  } catch (e) {
+    // Still null, so the semantic cache never fails the call for it -- but no longer silent (22 Sep
+    // 2026, instruction 645): the gte-small error reaches the edge log, and the embed action below
+    // answers 503 embed_failed instead of ok:true over a missing vector.
+    console.error('ai_gateway embed: gte-small failed:', String((e as Error)?.message || e).slice(0, 300));
+    return null;
+  }
 }
 
 async function sha256(s: string): Promise<string> {
@@ -201,10 +208,15 @@ Deno.serve(observe('ai_gateway', async (req) => {
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
 
     // Utility path: embed text for callers that need a vector (FAQ backfill, semantic search).
-    // Free, so it never touches routing or budget.
+    // Free, so it never touches routing or budget. A missing vector is 503 embed_failed, never
+    // ok:true (embed_answer.ts; guarded by scripts/checks/a_failed_embedding_is_never_answered_as_ok.test.mjs).
     if (body.action === 'embed') {
-      const v = await embed(String(body.text || ''));
-      return J({ ok: true, embedding: v });
+      // One in-process second try before a 503. Measured 22 Sep 2026: the catalogue check met a null
+      // vector in 2 of 3 full runs, each run many embeds, and passed alone -- intermittent, not constant.
+      // Every 503 is an agent_runs 'error' row the failed-runs watcher reads, so a blip is retried here.
+      const text = String(body.text || '');
+      const a = embedAnswer((await embed(text)) ?? (await embed(text)));
+      return J(a.body, a.status);
     }
 
     const fnName = String(body.fn || 'unknown');

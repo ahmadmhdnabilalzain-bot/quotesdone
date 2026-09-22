@@ -237,6 +237,8 @@ Object.assign(T.en, {
   nr_boq_read_one: 'Got it — I read 1 line item from your file{cat}.', nr_boq_read_many: 'Got it — I read {n} line items from your file{cat}.',
   nr_partial_none: ' I could not hide everything that identifies you on the drawing, so the drawing is held and will not go to suppliers — the details below still will.',
   nr_drawing_held: 'Drawing held: {name} will not be sent to suppliers, because I could not hide everything that identifies you on it. Your request goes without it — or press Cancel above.',
+  // 22 Sep 2026: the file is held but its quantities were read — suppliers get those lines (names removed), not the file.
+  nr_drawing_held_boq: 'Drawing held: {name} itself will not be sent to suppliers, because I could not hide everything that identifies you on it. They receive only the quantities I read from it, with every name removed — or press Cancel above.',
   nr_add_or_send: ' Add anything else, or tap Send to suppliers below.',
   nr_markup_caption: 'Our count, numbered on your drawing. Check it at a glance — you never need to count yourself.',
   nr_pages_ready: 'Thanks — I could not pull a bill of quantities out of this file, but I have prepared {n} page(s) of it to share with suppliers. Tell me a little about the job so I can brief them properly.',
@@ -370,6 +372,7 @@ Object.assign(T.ar, {
   nr_boq_read_one: 'تم — قرأتُ بندًا واحدًا من ملفك{cat}.', nr_boq_read_many: 'تم — قرأتُ {n} بندًا من ملفك{cat}.',
   nr_partial_none: ' لم أتمكن من إخفاء كل ما يدل عليك في المخطط، لذلك المخطط محجوز ولن يصل إلى الموردين — أما التفاصيل أدناه فستصل كاملة.',
   nr_drawing_held: 'المخطط محجوز: لن يُرسل {name} إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيُرسل طلبك من دونه — أو اضغط «إلغاء» في الأعلى.',
+  nr_drawing_held_boq: 'المخطط محجوز: لن يُرسل الملف {name} نفسه إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيصلهم فقط جدول الكميات الذي استخرجته منه بعد حذف جميع الأسماء — أو اضغط «إلغاء» في الأعلى.',
   nr_add_or_send: ' أضف أي شيء آخر، أو اضغط «أرسل إلى الموردين» أدناه.',
   nr_markup_caption: 'هذا عدّنا مرقّمًا على مخططك؛ ألقِ عليه نظرة، ولا حاجة إلى أن تعدّ بنفسك.',
   nr_pages_ready: 'شكرًا — لم أتمكن من استخراج جدول كميات من هذا الملف، لكني جهّزتُ {n} صفحة منه لمشاركتها مع الموردين. أخبرني قليلًا عن العمل حتى أصفه لهم بدقة.',

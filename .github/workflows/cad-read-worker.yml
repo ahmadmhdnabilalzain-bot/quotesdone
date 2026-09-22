@@ -2,14 +2,16 @@ name: CAD read worker
 
 # A CAD drawing the edge could not read inside its 2 s CPU / memory caps is read here, with the same
 # reader code (scripts/cad_read_worker.ts, 22 Sep 2026, founder: "customer will share cad files or pdf
-# mainly"). customer_api dispatches this workflow the moment it queues a job in public.cad_read_jobs; the
-# schedule is the safety net for a lost dispatch, and fn_cad_read_claim takes back a job whose runner died.
-# Cost (private repository, ~1 Actions-minute per run): the schedule is 8 runs a day, ~240 minutes a
-# month, plus one run per queued drawing. Owner: sales_engineer.
+# mainly"). THE QUEUE TRIGGERS IT: customer_api dispatches this workflow the moment it queues a job in
+# public.cad_read_jobs, and again while the customer's screen polls a job that has not started (a lost
+# dispatch) or whose runner went silent (fn_cad_read_claim takes such a job back after 30 minutes).
+# The schedule stays ONLY for what nothing else can see: a lost dispatch or a dead runner after the
+# customer closed the page - without it that drawing would never be read. 4 runs a day, ~120 Actions-
+# minutes a month, plus ~1 minute per queued drawing. Owner: sales_engineer.
 
 on:
   schedule:
-    - cron: '17 */3 * * *'
+    - cron: '17 */6 * * *'
   workflow_dispatch: {}
 
 concurrency:
