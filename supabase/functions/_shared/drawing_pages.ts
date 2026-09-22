@@ -48,7 +48,24 @@ const SIGN_TIMEOUT_MS = 8000;
 // it is recorded, so the log can never become the leak (security review, 18 Sep 2026).
 const safeMessage = (m: unknown) => String(m).replace(/(token|jwt|apikey|key|signature)=[^\s&]+/gi, '$1=[removed]').slice(0, 200);
 
+// ── ONLY A REDACTED PAGE IS EVER SIGNED (22 Sep 2026, agent: sales_engineer, finding SP-F-05) ──
+// The drawing-files bucket holds BOTH halves: the customer's ORIGINAL upload at
+// drawings/<customer_id>/<ts>_<name> — title block, client name, address, contacts, project number —
+// and the redacted pages a supplier may see. This helper signed whatever string stood in
+// inquiries.drawing_redacted_paths, so one bad write anywhere upstream (a merge in
+// src/lib/requestAttachments.ts, a repair script, a future writer) would hand every matched supplier
+// the un-anonymised drawing pre-reveal, which is the one thing this product sells.
+// customer_api's resolveRedactedPaths already proves OWNERSHIP at write time; this proves SHAPE at
+// read time, at the single door every signature goes through. Two prefixes are real and both are
+// redaction outputs: drawing_redact writes 'redacted/<uuid>/page_pN.jpg' and the demo/E2E pages are
+// uploaded to 'drawings/redacted/<tag>/...'. Nothing else is signed, and a refusal is counted and
+// raised exactly like a signing failure rather than silently dropped.
+const REDACTED_PREFIX = /^(?:drawings\/)?redacted\//;
+export const isRedactedPath = (p: string): boolean =>
+  REDACTED_PREFIX.test(p) && !p.includes('..') && !p.startsWith('/');
+
 async function signOne(admin: any, path: string): Promise<{ url: string | null; error: string | null }> {
+  if (!isRedactedPath(path)) return { url: null, error: 'refused: not a redacted drawing page (path must be under redacted/ or drawings/redacted/)' };
   let timer: ReturnType<typeof setTimeout> | null = null;
   try {
     const signing = admin.storage.from('drawing-files').createSignedUrl(path, SIGNED_SECONDS);

@@ -11,9 +11,18 @@
 // A line the word rules left unnamed is embedded the same way at request time (gte_embed.ts). The
 // line's nearest ELIGIBLE service is proposed only when:
 //   1. the cosine similarity clears MEANING_FLOOR, and
-//   2. something other than the vector agrees: the line holds a HEAD word of that service's name (the
-//      thing it is — "copiers" for "Photocopiers & copiers", "trays" for "Cable trays") or one of its
-//      aliases; or two separate lines land on the same service, each above the stricter TWO_LINE_FLOOR.
+//   2. A WORD agrees, not another vector: the line holds a HEAD word of that service's name (the
+//      thing it is — "copiers" for "Photocopiers & copiers", "trays" for "Cable trays") or one of
+//      its aliases.
+//
+// THE `two_lines` RULE IS GONE (22 Sep 2026, finding SP-F-06). It accepted a service when two
+// separate lines landed on it above a stricter cosine floor and NO word anywhere agreed — which is
+// still similarity alone, twice. It cannot be otherwise: two lines of one supplier's catalogue are
+// written by the same hand about the same business, so the second line is not an independent
+// witness, it is the same near-neighbour drawn again. The founder's rule is "either exact match or
+// no match", and the estate's own lesson is that a nearest neighbour is always found and has to be
+// corroborated by lexemes. A line that only looks similar is now left to the supplier's own words,
+// where the sales engineer sees it.
 // Eligible: installation, contracting and after-sales services (service_rewrite.isInstallWork) are only
 // candidates for a line that itself speaks of such work — "we distribute printers" is not "we repair
 // printers" — and never for a supply-only company.
@@ -41,12 +50,11 @@ export type MeaningService = ServiceTerm & { vec: Vec | null };
 export type MeaningLine = { text: string; vec: Vec | null };
 export type MeaningProposal = {
   key: string; trade: string; label_en: string; label_ar: string; similarity: number;
-  because: 'head_word' | 'alias' | 'two_lines'; word: string | null; lines: string[];
+  because: 'head_word' | 'alias'; word: string | null; lines: string[];
 };
 
 // Calibrated 21 Sep 2026 on gte-small (numbers above and in service_meaning.test.ts).
 export const MEANING_FLOOR = 0.82;
-export const TWO_LINE_FLOOR = 0.86;
 // Bounded CPU: each line is one gte-small inference inside the edge function (whose CPU cap no deadline
 // bounds). ponytail: 16 lines per request; a longer catalogue's remaining lines are not read by meaning.
 export const MEANING_MAX_LINES = 16;
@@ -130,13 +138,12 @@ export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[
   const out: MeaningProposal[] = [];
   for (const [key, cands] of byKey) {
     const worded = cands.find((c) => c.because);
-    const strong = new Set(cands.filter((c) => c.sim >= TWO_LINE_FLOOR).map((c) => c.line.toLowerCase())).size;
-    if (!worded && strong < 2) continue;   // a nearest neighbour alone is never accepted
-    const top = worded || cands[0];
+    const because = worded?.because;
+    if (!worded || !because) continue;   // a nearest neighbour is never accepted, however many lines find it
     out.push({
-      key, trade: top.s.trade_code, label_en: top.s.label_en, label_ar: top.s.label_ar,
+      key, trade: worded.s.trade_code, label_en: worded.s.label_en, label_ar: worded.s.label_ar,
       similarity: Math.round(Math.max(...cands.map((c) => c.sim)) * 1000) / 1000,
-      because: worded?.because ?? 'two_lines', word: worded?.word ?? null,
+      because, word: worded.word,
       lines: [...new Set(cands.map((c) => c.line))].slice(0, 3),
     });
   }

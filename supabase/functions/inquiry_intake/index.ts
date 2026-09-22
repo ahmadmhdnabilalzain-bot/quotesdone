@@ -11,6 +11,7 @@ import { interviewStep, orderFields, questionText, buildBrief } from './intervie
 import { detectCat, detectTrades, detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
+import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -629,14 +630,24 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       // shown here is the number that will actually be reached — not an estimate of it. It is
       // capped at the dispatch limit rather than reported raw, because "18 suppliers" has to mean
       // eighteen suppliers will get this brief.
+      // AND WITH THE SERVICES, OR IT IS NOT THE SAME CALL (22 Sep 2026, finding SP-F-01). From this
+      // date the dispatch path passes p_services: when the brief names a service, only a supplier
+      // whose confirmed service list covers one of them is invited. A count taken WITHOUT the
+      // services would be a larger number than the fan-out it promises to be — the count and the
+      // dispatch have to ask the same question. The keys are read from the customer's own words
+      // and the drawing's BOQ with the exact-alias matcher (_shared/service_vocabulary.ts); a brief
+      // that names no known service sends '{}' and the count stays trade-level, as before.
       try {
+        const services = serviceKeysOf(allText, drawingBoq?.boq ?? null, await serviceVocab(admin));
         const { data: cand } = await admin.rpc('fn_match_capability', {
           p_trades: (trades.length ? trades : [category]).filter(Boolean),
           p_need: 'executes', p_products: [], p_brands: [],
           p_project_type: null, p_value: null, p_emirate: emirate || null, p_limit: 24,
+          p_services: services,
         });
         brief.supplier_count = Array.isArray(cand) ? cand.length : 0;
-        brief.supplier_count_basis = 'fn_match_capability, the routine dispatch itself uses, over trades [' + (trades.join(',') || category) + ']' + (emirate ? ' in ' + emirate : '');
+        brief.supplier_count_basis = 'fn_match_capability, the routine dispatch itself uses, over trades [' + (trades.join(',') || category) + ']'
+          + (services.length ? ' for services [' + services.join(',') + ']' : '') + (emirate ? ' in ' + emirate : '');
       } catch (_e) { brief.supplier_count = null; brief.supplier_count_basis = 'matcher unavailable at intake time'; }
     }
 

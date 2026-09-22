@@ -10,7 +10,7 @@ import {
   applyCorrections, fromMissing, issueKey, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
   type IssueCode, type SafeInquiry, type Working,
 } from './quote_review.ts';
-import { choose, message, readQuotationFile, start, submit, submitPayload, thread, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
+import { choose, message, readQuotationFile, start, submit, submitPayload, thread, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
 import { boqCsv } from './quote_review_actions.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
 import { completenessOf, itemsOfRows, quoteDocument } from '../_shared/quote_documents.ts';
@@ -180,7 +180,18 @@ Deno.test('the conversation: incomplete file → points raised → answered in t
   assertEquals(t2.open_requests.map((q) => q.kind), ['choice']);
   assert(mem.requests.filter((q) => q.kind !== 'choice').every((q) => q.state === 'answered' && q.answered_message_id));
 
-  const t3 = ok(await choose(mem.repo, deps, ctx, INQ_ID, 'generate'));
+  // UPDATED 22 Sep 2026 (finding SP-F-07). This step used to assert that "generate" SUBMITTED — the
+  // supplier's first sight of the quotation sent in its name was after the customer had it. The
+  // generated quotation is now printed in the thread and waits in ready_to_submit for the
+  // supplier's own Submit, exactly as the reupload road does and as the spec-hold's approve step
+  // does. The check pins the corrected behaviour: printed, nothing sent, then sent on approval.
+  const t2b = ok(await choose(mem.repo, deps, ctx, INQ_ID, 'generate'));
+  assertEquals(t2b.state, 'ready_to_submit'); assert(t2b.can_submit);
+  assertEquals(submitted.length, 0, 'the generated quotation was sent before the supplier saw it');
+  assert(t2b.messages.some((m) => /standardised QuotesDone quotation I have prepared/.test(m.body_en || '') && ARABIC.test(m.body_ar || '')),
+    'the generated quotation was not printed for the supplier');
+
+  const t3 = ok(await submit(mem.repo, deps, ctx, INQ_ID));
   assertEquals(t3.state, 'submitted'); assertEquals(t3.submitted_quote_ids, ['q-1']);
   assertEquals(t3.open_requests, []); assert(!t3.can_write);
   assertEquals(submitted.length, 1);
@@ -207,12 +218,42 @@ Deno.test('the conversation: approved → "upload" → the new version is review
   assertEquals(t4.state, 'submitted'); assertEquals(String((submitted[0] as Record<string, unknown>).original_file_name), 'quote_v2.csv');
 });
 
+// SP-F-03 (22 Sep 2026): the scan's way in. The typed lines go through the SAME parser and the
+// SAME review as an attached file — nothing about the quotation is trusted more for being typed.
+Deno.test('a quotation typed into the chat is read and reviewed exactly like an attached file', async () => {
+  const { mem, deps, submitted, ctx } = harness();
+  await start(mem.repo, deps, ctx, INQ_ID);
+  const t1 = ok(await typed(mem.repo, deps, ctx, INQ_ID, COMPLETE_CSV.replace(/,/g, '  ')));
+  assertEquals(t1.state, 'awaiting_choice', JSON.stringify(t1.open_requests));
+  assert(t1.messages.some((m) => m.role === 'supplier' && /Jotun/.test(m.text || '')), 'the supplier\'s own words are kept in the thread');
+  assertEquals(submitted.length, 0, 'typing a quotation must not submit it');
+
+  // AND THROUGH THE ORDINARY CHAT BOX. A supplier told "type it here" types it into the message
+  // field, which is review_message; it used to answer "attach the new version" a third time.
+  const box = harness();
+  await start(box.mem.repo, box.deps, box.ctx, INQ_ID);
+  const t1b = ok(await message(box.mem.repo, box.deps, box.ctx, INQ_ID, COMPLETE_CSV.replace(/,/g, '  ')));
+  assertEquals(t1b.state, 'awaiting_choice', JSON.stringify(t1b.open_requests));
+
+  // Nothing priced in it: answered in the conversation, never sent to the customer, and the thread
+  // goes back to where it was rather than sitting in 'reviewing'.
+  const empty = harness();
+  await start(empty.mem.repo, empty.deps, empty.ctx, INQ_ID);
+  const t2 = ok(await typed(empty.mem.repo, empty.deps, empty.ctx, INQ_ID, 'we can do this job, call me'));
+  assertEquals(t2.state, 'open');
+  assertMatch(t2.messages.at(-1)!.body_en || '', /could not read a priced item/);
+  assertEquals(((await typed(empty.mem.repo, empty.deps, empty.ctx, INQ_ID, '   ')) as { code?: string }).code, 'text_required');
+});
+
 Deno.test('the hold gate disagreeing reopens the conversation with its own list', async () => {
   const { mem, deps, ctx } = harness();
   deps.submit = () => Promise.resolve({ status: 200, json: { ok: true, held: true, accepted: false, missing: [{ scope: 'quote', line_no: null, description: null, attr: 'delivery', label_en: 'Delivery date or lead time', label_ar: 'تاريخ التسليم', type: 'text' }] } });
   await start(mem.repo, deps, ctx, INQ_ID);
   await upload(mem.repo, deps, ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' });
-  const t = ok(await choose(mem.repo, deps, ctx, INQ_ID, 'generate'));
+  // 22 Sep 2026 (SP-F-07): "generate" now prints the quotation and waits; the hold gate is reached
+  // by the supplier's Submit, and its words still win over the review's.
+  ok(await choose(mem.repo, deps, ctx, INQ_ID, 'generate'));
+  const t = ok(await submit(mem.repo, deps, ctx, INQ_ID));
   assertEquals(t.state, 'changes_requested'); assert(t.open_requests.some((q) => q.code === 'delivery'));
 });
 
@@ -222,6 +263,11 @@ Deno.test('a photo is answered, not guessed; a closed job refuses; another suppl
   const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0, 0, 0, 1, 0, 0, 0, 1, 8, 2, 0, 0, 0, 0x90, 0x77, 0x53, 0xde]);
   const t = ok(await upload(mem.repo, deps, ctx, INQ_ID, { b64: btoa(String.fromCharCode(...png)), filename: 'photo.png', mime: 'image/png' }));
   assertEquals(t.state, 'open'); assertMatch(t.messages.at(-1)!.body_en || '', /photo or a scan/);
+  // AND IT NAMES THE WAY FORWARD (finding SP-F-03, 22 Sep 2026). Under the model hold there is no
+  // OCR, so a supplier whose quotation is a scan used to have nowhere to go but the quote form
+  // outside this conversation — the door that skips the review entirely.
+  assertMatch(t.messages.at(-1)!.body_en || '', /type it here instead/i);
+  assert(ARABIC.test(t.messages.at(-1)!.body_ar || ''));
 
   const shut = harness(inquiry({ concluded: true }));
   assertEquals(((await start(shut.mem.repo, shut.deps, shut.ctx, INQ_ID)) as { code: string }).code, 'inquiry_closed');
@@ -252,7 +298,8 @@ Deno.test('one option accepted and one held: the accepted one is submitted, the 
   ] } });
   await start(mem.repo, deps, ctx, INQ_ID);
   await upload(mem.repo, deps, ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' });
-  const t = ok(await choose(mem.repo, deps, ctx, INQ_ID, 'generate'));
+  ok(await choose(mem.repo, deps, ctx, INQ_ID, 'generate'));   // prints it; the Submit below sends it (SP-F-07)
+  const t = ok(await submit(mem.repo, deps, ctx, INQ_ID));
   assertEquals(t.state, 'submitted'); assertEquals(t.submitted_quote_ids, ['q-1']);
   const last = t.messages.at(-1)!;
   assertMatch(last.body_en || '', /Option 2 is still held/); assert(ARABIC.test(last.body_ar || ''));
@@ -413,8 +460,10 @@ Deno.test('finding 12: a revised file keeps what the chat settled; only what the
   assertEquals(keys, ['spec|3||board_type']);
   const t4 = ok(await message(mem.repo, deps, ctx, ID, 'line 3 board type: standard gypsum board'));
   assertEquals(t4.state, 'awaiting_choice', JSON.stringify(t4.open_requests));
-  // finding 28: "generate" produces the quotation in BOTH languages
-  const t5 = ok(await choose(mem.repo, deps, ctx, ID, 'generate'));
+  // finding 28: "generate" produces the quotation in BOTH languages — printed for the supplier
+  // first (SP-F-07, 22 Sep 2026), and the PDFs attached once the supplier submits it.
+  ok(await choose(mem.repo, deps, ctx, ID, 'generate'));
+  const t5 = ok(await submit(mem.repo, deps, ctx, ID));
   assertEquals(t5.state, 'submitted');
   const atts = t5.messages.find((m) => m.kind === 'submitted')!.attachments;
   assertEquals(atts.map((a) => a.lang), ['en', 'ar']);
@@ -463,7 +512,8 @@ Deno.test('finding 4 + 28: the generated quotation says what the approval said �
   ok(await upload(mem.repo, deps, ctx, GYPSUM_INQ_ID, { b64: b64bytes(await fixture('ZZDEMO_quotation_D958E1EA.pdf')), filename: 'ZZDEMO_quotation_D958E1EA.pdf', mime: 'application/pdf' }));
   const t2 = ok(await message(mem.repo, deps, ctx, GYPSUM_INQ_ID, 'Installation included, 4 weeks on site. Warranty 2 years parts and labour. line 1 thickness: 12.5mm. line 3 board type: standard gypsum board'));
   assertEquals(t2.state, 'awaiting_choice', JSON.stringify(t2.open_requests));
-  ok(await choose(mem.repo, deps, ctx, GYPSUM_INQ_ID, 'generate'));
+  ok(await choose(mem.repo, deps, ctx, GYPSUM_INQ_ID, 'generate'));   // prints it (SP-F-07)
+  ok(await submit(mem.repo, deps, ctx, GYPSUM_INQ_ID));               // the supplier approves, and only then is it sent
   const p = submitted.at(-1)! as Record<string, any>;
   // what submit_quote stores (quotes + quote_items.spec), read back the way both quote_pdf printers read it
   const q = { id: 'q-1', inquiry_id: GYPSUM_INQ_ID, supplier_id: 7, quote_amount: p.amount, price_ex_vat: p.amount, lead_time: p.lead_time, validity: p.validity, payment_terms: p.payment_terms,

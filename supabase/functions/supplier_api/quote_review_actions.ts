@@ -20,7 +20,7 @@ import * as flow from './quote_review_flow.ts';
 // estimate to confirm, in the same words as the inquiry PDF. Before it, qty_status was dropped from the CSV.
 import { qtyBasis } from '../_shared/quote_documents.ts';
 
-export const REVIEW_ACTIONS = new Set(['inquiries_list', 'inquiry_detail', 'inquiry_documents', 'review_thread', 'review_start', 'review_message', 'review_upload', 'review_choose', 'review_submit']);
+export const REVIEW_ACTIONS = new Set(['inquiries_list', 'inquiry_detail', 'inquiry_documents', 'review_thread', 'review_start', 'review_message', 'review_typed', 'review_upload', 'review_choose', 'review_submit']);
 // deno-lint-ignore no-explicit-any
 type Json = any;
 export type Self = (body: Record<string, unknown>) => Promise<{ status: number; json: Json }>;
@@ -133,6 +133,9 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
     : action === 'review_start' ? await flow.start(repo, deps, ctx, id)
     : action === 'review_upload' ? await flow.upload(repo, deps, ctx, id, body.file || {}, body.text)
     : action === 'review_message' ? await flow.message(repo, deps, ctx, id, body.text)
+    // review_typed: the quotation typed into the chat instead of attached (finding SP-F-03) — the
+    // way in for a scan or a photograph while there is no OCR, read by the same parser as a file.
+    : action === 'review_typed' ? await flow.typed(repo, deps, ctx, id, body.text)
     : action === 'review_choose' ? await flow.choose(repo, deps, ctx, id, body.choice)
     : await flow.submit(repo, deps, ctx, id);
   if (res.ok === false) return { status: res.status, json: { error: res.code, code: res.code, message: res.message } };

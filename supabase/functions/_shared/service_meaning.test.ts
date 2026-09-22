@@ -2,7 +2,7 @@
 // real lines is proved against the live model by scripts/checks/a_catalogue_line_is_understood_by_meaning.test.mjs.
 //   deno test -A supabase/functions/_shared/service_meaning.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { headWords, MEANING_FLOOR, parseVec, proposeByMeaning, TWO_LINE_FLOOR, type MeaningService } from './service_meaning.ts';
+import { headWords, MEANING_FLOOR, parseVec, proposeByMeaning, type MeaningService } from './service_meaning.ts';
 
 // Unit vectors on a few axes: cos(a, b) is exactly what the test says it is.
 const v = (...xs: number[]) => { const n = Math.hypot(...xs); return xs.map((x) => x / n); };
@@ -37,10 +37,18 @@ Deno.test('below the floor nothing is proposed, whatever words it shares', () =>
   assertEquals(proposeByMeaning([{ text: 'copiers', vec: at(MEANING_FLOOR - 0.01) }], [COPIERS]), []);
 });
 
-Deno.test('two separate lines agreeing are corroboration only above the stricter floor', () => {
+// REWRITTEN 22 Sep 2026 (finding SP-F-06). This test used to assert the OPPOSITE: that two lines
+// above a stricter cosine floor, with no word agreeing anywhere, were accepted as `two_lines`. That
+// is similarity alone, twice — two lines of one catalogue are the same hand writing about the same
+// business, not an independent witness — and it contradicted the founder's "exact match or no
+// match". The rule was removed; the check now pins the corrected behaviour.
+Deno.test('two lines that only look similar are still not accepted — a word has to agree', () => {
   const lines = (s: number) => [{ text: 'first line about office kit', vec: at(s) }, { text: 'another unrelated wording', vec: at(s) }];
-  assertEquals(proposeByMeaning(lines(TWO_LINE_FLOOR - 0.01), [COPIERS]), []);
-  assertEquals(proposeByMeaning(lines(TWO_LINE_FLOOR + 0.01), [COPIERS]).map((x) => x.because), ['two_lines']);
+  assertEquals(proposeByMeaning(lines(0.85), [COPIERS]), []);
+  assertEquals(proposeByMeaning(lines(0.99), [COPIERS]), []);
+  // The same two lines, one of them naming the head word, are accepted — on the word, not the pair.
+  assertEquals(proposeByMeaning([{ text: 'we sell copiers', vec: at(0.9) }, { text: 'another unrelated wording', vec: at(0.9) }], [COPIERS])
+    .map((x) => x.because), ['head_word']);
 });
 
 Deno.test('installation work is a candidate only for a line that speaks of that work, and never for a supplier of goods', () => {
