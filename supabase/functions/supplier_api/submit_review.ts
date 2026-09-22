@@ -15,8 +15,8 @@
 // are therefore passed in from public.quote_reviews.working, which only the sales engineer writes, and
 // never read off the request body: otherwise a supplier posting straight to the endpoint could declare
 // every BOQ line excluded and walk past the whole review.
-import type { TermsSpec } from '../_shared/line_specs/assess.ts';
-import { foreignCurrency, parseQty, type WLine, type Working } from './quote_review.ts';
+import type { MissingItem, TermsSpec } from '../_shared/line_specs/assess.ts';
+import { foreignCurrency, parseQty, type Issue, type WLine, type Working } from './quote_review.ts';
 
 const num = (v: unknown): number | null => { const n = Number(v); return Number.isFinite(n) && String(v ?? '').trim() !== '' ? n : null; };
 const str = (v: unknown): string => (v == null ? '' : String(v));
@@ -96,6 +96,16 @@ export function workingFromStoredQuote(q: any, rows: any[]): Working {
 /** Apply the engineer's recorded explanations to a working quote. */
 export function withResolved(w: Working, r: Resolved): Working {
   return { ...w, boq_excluded: r.boq_excluded, qty_explained: r.qty_explained };
+}
+
+/**
+ * One review issue in the shape the HOLD DESK stores and renders (assess.ts MissingItem), so a quote
+ * held by the review shows the same card as a quote held for a missing spec. The engineer's sentence
+ * is the label, in both languages; there is nothing to convert because both carry the same thing —
+ * one detail, named, with what to do about it.
+ */
+export function issueAsMissing(i: Issue): MissingItem {
+  return { scope: i.line_no ? 'line' : 'quote', line_no: i.line_no, description: null, attr: i.attr || i.code, type: 'text', label_en: i.en, label_ar: i.ar };
 }
 
 /** One quantity reader, so a caller need not import quote_review.ts for it. */

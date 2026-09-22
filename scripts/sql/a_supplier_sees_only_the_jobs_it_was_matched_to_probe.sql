@@ -15,15 +15,18 @@
 --   2. with ONE competing bid the answer is available=false, reason=thin_market, and that bidder's exact
 --      price appears NOWHERE in the payload (before this change it was the median, the p25, the p75, the
 --      'low' and the 'high', five times over);
---   3. with THREE competing COMPANIES it recommends a band rounded to the nearest AED 1,000 and
+--   3. with THREE competing COMPANIES it recommends the MIDDLE of the bracket the midpoint falls in and
 --      carries no median, no percentile, no 'low', no 'high' and no 'observed' key — every one of
 --      those is, or reconstructs, a figure a named competitor typed. NONE of the three bid amounts
 --      (50000 / 61000 / 72000) may appear anywhere in the payload, and the first version of this probe
 --      would have printed PROBE OK with all three of them recoverable, because it only looked for the
---      draft's 999999;
+--      draft's 999999. The published figure is the bracket's middle, never its bottom edge, which was
+--      up to a whole step low and made the one-click accept under-bid;
 --   4. a DRAFT bid is not counted in the population, and three options from ONE company do not clear
 --      the three-company floor;
---   4b. market_position.your_index is null below three measured enquiries — at three decimal places on
+--   4b. market_position.your_index is null below three measured enquiries, and rounded to ONE decimal
+--      place with your_quotes_measured as a BAND above it: exact values let a supplier difference one
+--      enquiry against the next and recover a median to ~3.5%, finer than a bracket. At three decimals on
 --      one enquiry it recovered the others' median to a tenth of a percent;
 --   5. fn_supplier_opportunities reports only this supplier's own matches and publishes no estate-wide
 --      count of open enquiries; a supplier matched to nothing gets nothing;
@@ -95,6 +98,10 @@ begin
                    and r_oneco->>'available' = 'false' and r_oneco->>'reason' = 'thin_market'
                    and r_ok->>'available' = 'true' and (r_ok->>'population')::int = 3
                    and (r_ok#>>'{recommended_price,range_low}')::numeric = 60000 and (r_ok#>>'{recommended_price,range_high}')::numeric = 65000
+                   and (r_ok#>>'{recommended_price,value}')::numeric = 62500
+                   and r_ok#>>'{market_position,verdict}' not like '%at the market midpoint%'
+                   and (r_ok#>>'{recommended_price,value}')::numeric = 62500
+                   and r_ok#>>'{market_position,verdict}' not like '%at the market midpoint%'
                    and r_ok#>'{recommended_price,low}' is null and r_ok#>'{recommended_price,high}' is null
                    and r_ok#>'{recommended_price,p25}' is null and r_ok#>'{recommended_price,p75}' is null
                    and r_ok#>'{delivery_estimate,observed}' is null

@@ -1,6 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS } from '../_shared/attachment.ts';
-import { seedTerms, redactText } from '../_shared/anonymise.ts';
+import { seedTerms } from '../_shared/anonymise.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { arDays } from '../_shared/ar_days.ts';
 // MALWARE WATCH, 9 Sep 2026. Every file a supplier sends is hashed and looked up before it reaches
@@ -37,7 +37,7 @@ import { drawingWithheld, signRedactedDrawings } from '../_shared/drawing_pages.
 import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction, safeInquiry } from './quote_review_actions.ts';
 import { supabaseReviewRepo } from './quote_review_flow.ts';
 import { jobNo, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
-import { resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from './submit_review.ts';
+import { issueAsMissing, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from './submit_review.ts';
 import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLeads } from '../_shared/sanctioned.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
@@ -938,7 +938,14 @@ const handle = async (req: Request): Promise<Response> => {
         // and the redacted drawings still go out — enough to log in and quote.
         const owner = custRow[ownerOf[String(i.id)] || ''] || {};
         const seeds = seedTerms({ name: buyerName || '', email: owner.email || '', phone: owner.phone || '', project: projName[projectOf[String(i.id)] || ''] || '' });
-        const sSummary = revealed ? i.summary : (ownerResolved ? (redactText(String(scrubIdentity(i.summary ?? null, buyerName, hits) ?? ''), seeds).text || null) : null);
+        // THE SAME GATE FOR THE SUMMARY (re-review of #854). It had redactText and nothing after it, so
+        // it kept the glued forms the residual scan exists to catch: measured, "Fit-out for MarsaHeights
+        // Villa 7" came out as "Fit-out for MarsaHeights █" and "re:MarsaHeights enquiry" came out
+        // unchanged. Of the four customer-authored fields this is the one that is always populated and
+        // always on the card, so it was the widest of the three leaks, not the narrowest.
+        const summaryGate = revealed || !ownerResolved ? null : inboxField<string>(i.summary ?? null, buyerName, seeds, hits);
+        const sSummary = revealed ? i.summary : (summaryGate ? summaryGate.boq : null);
+        const summaryWithheld = summaryGate ? summaryGate.withheld : false;
         // THE BOQ'S OWN GATE, APPLIED TO THE STRUCTURED BRIEF (audit 22 Sep 2026, finding SP-F-04).
         // spec ran scrubDeep alone, so the customer's PROJECT NAME — which no pattern recognises — left
         // the estate inside the brief. inboxField is redactBoq: seed redaction, then the residual scan
@@ -967,7 +974,7 @@ const handle = async (req: Request): Promise<Response> => {
         const budgetGate = revealed || !ownerResolved ? null : inboxField<string>(i.budget ?? null, buyerName, seeds, hits);
         const sBudget = revealed ? i.budget : (budgetGate ? budgetGate.boq : null);
         const budgetWithheld = budgetGate ? budgetGate.withheld : false;
-        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
@@ -1243,14 +1250,26 @@ const handle = async (req: Request): Promise<Response> => {
       // approved here, went out with rules 1-7 never asked. The release now depends on the review of the
       // STORED quote — by then the row, not any request, is the quotation — read through the same
       // scrubbed inbox and with the same engineer-recorded explanations.
-      const out = await approve(repo, qid, supplierOf(sup, email), email, body.confirm, ctx, async (row) => {
-        const inqSafe = await safeInquiryOf(req, jwt, String(row.inquiry_id));
-        if (!inqSafe) return false;
-        const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
-        const rvw = reviewQuotation(inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)));
-        if (!rvw.approved) return false;
-        return (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted;
-      });
+      // IT RUNS AS THE PRECHECK, NOT INSIDE accept (re-review of #854). approve() marks the hold
+      // released before it calls accept, and liveHold() reads only 'open' and 'awaiting_approval', so
+      // a refusal from inside accept left the quote unsent AND the hold desk shut: spec_fill and
+      // spec_approve both answered not_awaiting_approval and the supplier was told only that the quote
+      // "still waits on its commercial terms", naming nothing to do. As a precheck the hold goes back
+      // to 'open' carrying the review's own issues, in the shape the hold surface already renders.
+      const out = await approve(repo, qid, supplierOf(sup, email), email, body.confirm, ctx,
+        async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted,
+        async (row) => {
+          const inqSafe = await safeInquiryOf(req, jwt, String(row.inquiry_id));
+          // A transient inbox failure is NOT an approval and NOT a silent stranding: the desk stays
+          // open with something the supplier can act on (try again), rather than closing on them.
+          if (!inqSafe) return { missing: [{ scope: 'quote' as const, line_no: null, description: null, attr: 'review_unavailable', type: 'text' as const,
+            label_en: 'We could not read this job just now, so we have not sent the quotation. Please approve it again in a moment.',
+            label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، فلم نرسل العرض. يُرجى الموافقة عليه مرة أخرى بعد قليل.' }] };
+          const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
+          const rvw = reviewQuotation(inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)));
+          if (rvw.approved) return null;
+          return { missing: rvw.issues.map(issueAsMissing), issues: rvw.issues };
+        });
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
       return J(out);
     }
@@ -1361,6 +1380,7 @@ const handle = async (req: Request): Promise<Response> => {
         resolvedFrom(reviewRow?.working)));
       const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
       const reviewIssues = rv.approved ? null : rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar }));
+      const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
       const reviewMessage = reviewIssues ? rv.issues.slice(0, 3).map((i) => (lang === 'ar' ? i.ar : i.en)).join(' ') : null;
 
       const submission_id = crypto.randomUUID();
@@ -1453,7 +1473,11 @@ const handle = async (req: Request): Promise<Response> => {
           }
           results.push({ quote_id: qid, option_no: p.option_no, dry_run: true, accepted: false, restored, submittable: acc.submittable, would_accept: acc.accept && !a.held && !reviewIssues, review_issues: reviewIssues, status_after: prior?.status ?? null,
             accept_via: acc.submittable ? 'structured_score' : (acc.formComplete ? 'form_complete' : (!acc.requireStructured ? 'structured_not_required' : null)),
-            require_structured: acc.requireStructured, priced_items: acc.priced, total_items: p.lines.length, score: acc.score, spec_missing: a.missing, would_hold: a.held });
+            require_structured: acc.requireStructured, priced_items: acc.priced, total_items: p.lines.length, score: acc.score,
+            // The preflight card reads spec_missing, so the review's own issues belong in it for the
+            // same reason (re-review of #854) — otherwise "Check before sending" calls a quote that
+            // will be held a complete one.
+            spec_missing: [...a.missing, ...reviewMissing], would_hold: a.held || !!reviewIssues });
           continue;
         }
         // THE HOLD GATE (founder, 14 Sep 2026). The sales engineer holds a quote that does not state
@@ -1466,7 +1490,12 @@ const handle = async (req: Request): Promise<Response> => {
         // The quote stays a draft the supplier can complete or replace; it does not reach the customer.
         if (reviewIssues) {
           try { await admin.from('quotes').update({ status: 'draft' }).eq('id', qid); } catch (_e) { /* the result below already says it was not accepted */ }
-          results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, code: 'quote_review_changes', review_issues: reviewIssues, message: reviewMessage });
+          // THE CARD ALREADY KNOWS HOW TO SHOW THIS (re-review of #854). The portal renders a held
+          // quote from `missing` / `spec_missing` — assess.ts MissingItem — and a review hold carried
+          // neither, so QuoteCheck printed "Nothing missing — this is a complete quote." over a quote
+          // that had just been held. The issues now go out in BOTH shapes: `missing` for every surface
+          // that already reads it, `review_issues` for a client that wants the codes.
+          results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, code: 'quote_review_changes', missing: reviewMissing, review_issues: reviewIssues, message: reviewMessage });
           continue;
         }
         const live = await acceptLive(qid, String(inquiryId), false);

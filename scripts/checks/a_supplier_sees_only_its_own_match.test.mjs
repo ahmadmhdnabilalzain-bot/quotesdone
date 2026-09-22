@@ -79,7 +79,7 @@ test('SP-F-02: a failing review HOLDS the quote — it does not refuse it', () =
   // Review of #854: a hard 400 here would have taken both quoting doors offline, because neither form
   // has a field for several of the details the review asks for (proved in submit_review.test.ts).
   const a = action('submit_quote');
-  assert.match(a, /if \(reviewIssues\) \{[\s\S]{0,600}accepted: false, held: true, code: 'quote_review_changes'/);
+  assert.match(a, /if \(reviewIssues\) \{[\s\S]{0,1200}accepted: false, held: true, code: 'quote_review_changes'/);
   assert.doesNotMatch(a, /'quote_review_changes'[^\n]*\}, 400\)/, 'a review failure must not be a refusal');
   assert.match(a, /if \(reviewIssues\) \{[\s\S]{0,300}update\(\{ status: 'draft' \}\)/, 'a held quote must not sit in a status the customer can read');
 });
@@ -88,9 +88,33 @@ test('SP-F-02: spec_approve is gated too — it releases a held quote to the cus
   const a = action('spec_hold');   // the spec_hold / spec_fill / spec_approve branch
   const approve = a.indexOf('await approve(repo,');
   const review = a.indexOf('reviewQuotation(');
-  assert.ok(review !== -1 && review > approve, 'the release callback must review the STORED quote');
+  assert.ok(review !== -1 && review > approve, 'the release must depend on a review of the STORED quote');
   assert.match(a, /const rvw = reviewQuotation\([\s\S]{0,200}workingFromStoredQuote\(row,/);
-  assert.match(a, /if \(!rvw\.approved\) return false;/, 'a quote that fails the review is not released');
+});
+
+test('SP-F-02: spec_approve\'s review is a PRECHECK — a refusal must not strand the quote', () => {
+  // Re-review of #854: approve() marks the hold released BEFORE it calls accept, and liveHold() reads
+  // only open and awaiting_approval, so refusing from inside accept left the quote unsent and the
+  // hold desk shut — spec_fill and spec_approve both answering not_awaiting_approval, with nothing
+  // named to fix. The precheck runs before the release and puts the hold back to 'open'.
+  const wf = code(read('supabase', 'functions', '_shared', 'line_specs', 'workflow.ts'));
+  const ap = wf.slice(wf.indexOf('export async function approve('));
+  const pre = ap.indexOf('precheck(q)');
+  const released = ap.indexOf("state: 'released'");
+  assert.ok(pre !== -1 && pre < released, 'the precheck must be asked before the hold is released');
+  assert.match(ap, /if \(pre\) \{[\s\S]{0,300}state: 'open', missing: pre\.missing[\s\S]{0,200}'still_missing'/, 'a refusal reopens the desk carrying what to fix');
+  const a = action('spec_hold');
+  assert.match(a, /return \{ missing: rvw\.issues\.map\(issueAsMissing\), issues: rvw\.issues \};/, 'the issues are handed back, not discarded');
+  assert.match(a, /if \(!inqSafe\) return \{ missing: \[\{[\s\S]{0,400}review_unavailable/, 'a transient inbox failure must not strand the quote either');
+});
+
+test('SP-C-04: a review hold carries what to fix in the shape the card already renders', () => {
+  // The portal renders a held quote from missing / spec_missing; a review hold used to carry
+  // neither, so QuoteCheck printed "Nothing missing — this is a complete quote." over a held quote.
+  const a = action('submit_quote');
+  assert.match(a, /const reviewMissing = rv\.approved \? \[\] : rv\.issues\.map\(issueAsMissing\);/);
+  assert.match(a, /code: 'quote_review_changes', missing: reviewMissing, review_issues: reviewIssues/);
+  assert.match(a, /spec_missing: \[\.\.\.a\.missing, \.\.\.reviewMissing\], would_hold: a\.held \|\| !!reviewIssues/);
 });
 
 test('SP-F-02: the dry run reports the review instead of pretending it would be accepted', () => {
@@ -141,16 +165,21 @@ test('SP-C-04: the one-click accept believes `accepted`, not `ok`', () => {
   assert.doesNotMatch(accept, /if \(j && j\.ok\) setSent/);
 });
 
-test('SP-F-04: spec and budget pass the BOQ\'s own gate — redaction, residual scan, and withhold', () => {
+test('SP-F-04: summary, spec and budget all pass the BOQ\'s own gate — redaction, residual scan, withhold', () => {
   // Review of #854: redactText alone matches seeds on WORD BOUNDARIES, so "MarsaHeights Villa 7" kept
   // the project name. redactBoq adds residualScan, which matches the same seeds as bare substrings and
   // HOLDS. The BOQ path always had it; spec and budget did not.
   const inbox = action('inbox');
+  // summary was the LAST one left on redactText alone (re-review of #854) — and it is the field that is
+  // always populated and always on the card, so it was the widest of the three leaks.
+  assert.match(inbox, /const summaryGate = revealed \|\| !ownerResolved \? null : inboxField<string>\(i\.summary \?\? null, buyerName, seeds, hits\)/);
+  assert.match(inbox, /summary_withheld: summaryWithheld/);
   assert.match(inbox, /const specGate = revealed \|\| !ownerResolved \? null : inboxField\(i\.spec, buyerName, seeds, hits\)/);
   assert.match(inbox, /const budgetGate = revealed \|\| !ownerResolved \? null : inboxField<string>\(i\.budget \?\? null, buyerName, seeds, hits\)/);
   assert.match(inbox, /spec_withheld: specWithheld/, 'a withheld brief must be said out loud, as the BOQ already is');
   assert.match(inbox, /budget_withheld: budgetWithheld/);
-  assert.doesNotMatch(inbox, /scrubDeep\(|scrubIdentity\(i\.budget|scrubDeepSeeded/, 'the un-gated scrubbers are what left the project name in');
+  assert.doesNotMatch(inbox, /scrubDeep\(|scrubIdentity\(i\.budget|scrubDeepSeeded|redactText\(/, 'the un-gated scrubbers are what left the project name in');
+  assert.doesNotMatch(code(read('supabase', 'functions', 'supplier_api', 'index.ts')), /import \{[^}]*redactText/, 'nothing in supplier_api reaches for the un-scanned redactor any more');
   const scrub = code(read('supabase', 'functions', 'supplier_api', 'identity_scrub.ts'));
   assert.match(scrub, /export function inboxField[\s\S]{0,400}redactBoq\(scrubDeep\(v, buyerName, hits\) as T, seeds\)/);
   assert.match(scrub, /export function inboxBoq[\s\S]{0,300}inboxField\(neutraliseCadLines\(boq\) as T/, 'one gate, not two');
@@ -186,6 +215,11 @@ test('SP-N-02: no median and no percentile leave the routine — a bracket does'
   assert.match(out, /'range_low', \(select lo from band\)/);
   assert.match(out, /'range_high', \(select hi from band\)/);
   assert.match(RECOMMEND, /floor\(mid_raw \/ step\) \* step as lo/, 'the published figure is the bracket, not the midpoint');
+  // The bracket's MIDDLE, not its bottom edge: the edge is up to a whole step low and it is what the
+  // one-click accept sends, so the Quote Builder systematically under-bid (re-review of #854).
+  assert.match(RECOMMEND, /lo \+ step \/ 2 as mid/);
+  assert.match(out, /'value', \(select mid from band\)/);
+  assert.doesNotMatch(RECOMMEND, /'verdict', 'at the market midpoint'/, 'the verdict must describe the bracket, not claim the midpoint');
   assert.match(RECOMMEND, /where r\.c >= 2/, 'a lead time or warranty is suggested only when two or more bids gave it');
 });
 
@@ -196,7 +230,8 @@ test('SP-N-02: market_position.your_index has its own floor and its own status f
   assert.match(habit, /round\(avg\(ratio\)::numeric, 2\)/, 'three decimal places was the leak');
   assert.match(habit, /count\(distinct o2\.supplier_id\)[\s\S]{0,300}>= 3/, 'only enquiries three other companies bid on');
   assert.match(habit, /and q\.status in \('submitted', 'revealed'\)/, 'a draft is not a bid, on this side either');
-  assert.match(RECOMMEND, /habit_out as \(select case when n >= 3 then idx else null end idx, n from habit\)/);
+  assert.match(RECOMMEND, /case when n >= 3 then round\(idx, 1\) else null end idx/, 'one decimal place: two let a supplier difference one enquiry against the next');
+  assert.match(RECOMMEND, /'your_quotes_measured', \(select n_band from habit_out\)/, 'the count is a band, not a number');
   assert.doesNotMatch(RECOMMEND.slice(RECOMMEND.indexOf("'market_position'")), /from habit\)/, 'the unfloored index must not be published');
 });
 

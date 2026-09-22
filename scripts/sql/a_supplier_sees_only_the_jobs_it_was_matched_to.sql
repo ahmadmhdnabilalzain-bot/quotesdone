@@ -145,7 +145,12 @@ as $function$
   -- price happens to be exactly AED 60,000 shares that number with the edge by coincidence, and
   -- nothing in the payload says which.
   band as (
-    select lo, lo + step as hi, step
+    -- `mid` is the MIDDLE of the bracket, not its bottom edge (re-review of #854). The bottom edge was
+    -- what the one-click accept sent, and it is up to a whole step low — a midpoint of 14,999 would
+    -- have been quoted at 10,000, 33% under — so the Quote Builder systematically under-bid its users.
+    -- The bracket's middle is derived from the bracket alone, reveals nothing the bracket does not,
+    -- and is wrong by at most half a step in either direction rather than a whole step in one.
+    select lo, lo + step as hi, lo + step / 2 as mid, step
     from (select floor(mid_raw / step) * step as lo, step
             from (select mid_raw, greatest(1000, power(10, floor(log(mid_raw)))::numeric / 2) as step
                     from stat) q) b
@@ -178,7 +183,17 @@ as $function$
         and (coalesce(q.source, '') = 'qd_demo_fixture') = flag.is_demo
     ) r where r.ratio is not null
   ),
-  habit_out as (select case when n >= 3 then idx else null end idx, n from habit),
+  -- DIFFERENCING (re-review of #854). your_index at two decimal places with an EXACT
+  -- your_quotes_measured lets a supplier subtract one enquiry's contribution from the next and recover
+  -- the new enquiry's median to about 3.5% — finer than a bracket, which would have made this the
+  -- remaining way in. One decimal place, and the count as a band rather than a number.
+  habit_out as (
+    select case when n >= 3 then round(idx, 1) else null end idx,
+           case when n >= 3 and n <= 5 then '3-5' when n <= 10 then '6-10'
+                when n <= 25 then '11-25' when n > 25 then 'more than 25' else null end n_band,
+           n
+    from habit
+  ),
 
   -- ── DELIVERY, WARRANTY AND TERMS ARE TEXT, SO THEY ARE PICKED, NOT AVERAGED ───────────────────
   -- The average of "8-10 weeks" and "12-14 weeks" is not a promise anybody made.
@@ -277,17 +292,20 @@ as $function$
       -- typed. `value` is the bottom of the bracket, because the portal's one-click accept has to send
       -- a number and that number must be one the routine derived from a bracket, not from a bid.
       'recommended_price', jsonb_build_object(
-        'value', (select lo from band), 'currency', 'AED',
+        'value', (select mid from band), 'currency', 'AED',
         'range_low', (select lo from band), 'range_high', (select hi from band),
         'bracket', (select step from band),
-        'basis', 'the AED ' || (select step from band)::text || ' bracket the middle of '
+        'basis', 'the middle of the AED ' || (select step from band)::text || ' bracket that the midpoint of '
                  || (select n from stat)::text || ' competing companies'' bids falls in'),
 
       -- Where that recommendation sits, and where this supplier usually sits.
+      -- THE VERDICT SAYS WHAT THE FIGURE IS (re-review of #854). It read "at the market midpoint",
+      -- which was not true of a bracket edge and is not true of a bracket middle either: the real
+      -- midpoint is somewhere inside the bracket and we deliberately do not say where.
       'market_position', jsonb_build_object(
-        'verdict', 'at the market midpoint',
+        'verdict', 'inside the bracket the market midpoint falls in — we do not publish the midpoint itself',
         'your_index', (select idx from habit_out),
-        'your_quotes_measured', (select n from habit_out),
+        'your_quotes_measured', (select n_band from habit_out),
         'detail', case when (select idx from habit_out) is null
                   then 'You have not priced enough enquiries yet for us to know where you usually sit.'
                   when (select idx from habit_out) > 1.02
@@ -349,7 +367,7 @@ as $function$
 $function$;
 
 comment on function public.fn_supplier_quote_recommend(bigint, uuid) is
-  'The quote builder''s proposal for ONE enquiry this supplier was matched to. Reads only bids in status submitted/revealed, refuses below three competing COMPANIES, publishes the bracket the midpoint falls in rather than a median or a percentile (three sorted bids are fully recoverable from median + p25 + p75, and an odd-population median IS one company''s bid), never returns the lowest, highest or verbatim observed terms, and reads the summary through inquiries_supplier_safe + fn_supplier_safe_text. Audit 22 Sep 2026, SP-N-02.';
+  'The quote builder''s proposal for ONE enquiry this supplier was matched to. Reads only bids in status submitted/revealed, refuses below three competing COMPANIES, publishes the middle of the bracket the midpoint falls in rather than a median or a percentile (three sorted bids are fully recoverable from median + p25 + p75, and an odd-population median IS one company''s bid), never returns the lowest, highest or verbatim observed terms, and reads the summary through inquiries_supplier_safe + fn_supplier_safe_text. Audit 22 Sep 2026, SP-N-02.';
 
 -- ── SP-N-03: the opportunities list is the matcher's output, not the estate's ──────────────────────
 create or replace function public.fn_supplier_opportunities(p_lead_id bigint)
