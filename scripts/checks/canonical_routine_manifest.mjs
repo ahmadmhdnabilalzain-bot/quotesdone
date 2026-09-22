@@ -524,4 +524,25 @@ console.log(`  production -> repository drift   ${REPO_ONLY ? 'not asserted' : P
 console.log(`  uncommitted application DDL      ${REPO_ONLY ? 'not asserted' : UNCOMMITTED_DDL.length}`);
 console.log(`  ------------------------------------`);
 console.log(`  countable findings               ${findings}  -> exit ${findings ? 1 : 0}`);
+
+// A FINDING HERE IS NOT NECESSARILY THE BRANCH'S (23 Sep 2026).
+//
+// The three production counters above read the LIVE database, not the diff. So this check can go
+// red on a branch that changed nothing, and on a commit of main that was green an hour earlier -
+// production moved underneath it. Measured that day: main's own run 35794274321 (head 26b914a)
+// was green at 22:48 UTC and failed on a re-run at 23:30 with 15 findings, none of them from any
+// diff, and every open PR went red at once. The cause was two PRs applied to production and not
+// yet merged - the normal window between an apply and its merge. It cleared when they landed.
+//
+// A session that reads the finding off a PR and starts fixing the PR loses an hour proving that,
+// so the check says it out loud and says how to attribute the finding.
+if (findings && !REPO_ONLY) {
+  console.log();
+  console.log("  THE THREE PRODUCTION COUNTERS READ THE LIVE DATABASE, NOT THIS DIFF.");
+  console.log("  A finding is only this branch's if the same check is red on main at the same moment:");
+  console.log("      git fetch origin && git checkout --detach origin/main && node scripts/checks/canonical_routine_manifest.mjs");
+  console.log("  Red on main too: production and main disagree - apply, or correct the file, on main.");
+  console.log("  Green on main:   the finding is this branch's - its SQL is unapplied, or its file is stale.");
+  console.log("  Red on both while another PR is mid-apply: that is the apply-then-merge window; re-read after it merges.");
+}
 process.exit(findings ? 1 : 0);
