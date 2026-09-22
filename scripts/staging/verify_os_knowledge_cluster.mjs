@@ -14,8 +14,8 @@
 // THROWS is invisible in actual_value, which is null for perfectly good reasons too (nullif over an
 // empty table). measured_at is therefore stamped only on the path that ran, and check 2 below is
 // the only thing that distinguishes "this company has no revenue yet" from "this measure is broken".
-import { mgmtRead, mgmtWrite, PROD_REF } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const PROD = process.argv.includes('--prod');
 const REF = PROD ? PROD_REF : STAGE;

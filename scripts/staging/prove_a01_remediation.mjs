@@ -12,7 +12,7 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { splitStatements } from './sql_split.mjs';
-import { PROD_REF, resolveStagingRef, mgmtWrite, mgmtRead } from './qd_guard.mjs';
+import { PROD_REF, resolveStagingRef, mgmtWrite, mgmtRead } from '../lib/qd_guard.mjs';
 
 const REF = resolveStagingRef(process.argv[2]);
 const APPLY = process.argv.includes('--apply');

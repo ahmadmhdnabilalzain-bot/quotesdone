@@ -8,13 +8,29 @@ import { buildMeta, textFromHtml } from '@/lib/seo';
 import { arDoc } from '@/lib/arabicDoc';
 type Doc = { title: string; html: string };
 const DOCS = legal as unknown as Record<string, { en: Doc; ar: Doc }>;
+// An archived version of a document is stored under a slug that ends in the version — the page that
+// renders it lives at /supplier-agreement/v10, not /supplier-agreement-v10.
+// MEASURED 22 SEP 2026 (production walk): /supplier-agreement/v10, /v11 and both /ar copies declared
+// canonical and hreflang URLs of /supplier-agreement-v10 and /supplier-agreement-v11 — both 404. The
+// path is now rebuilt from the slug, the superseded copies are noindex (the live agreement is the one
+// to index), and the version is in the title so the two are never mistaken for the same document.
+const ARCHIVED = /^(.*)-(v\d+)$/;
+
 export function metaFor(slug: string, locale: string) {
   const e = DOCS[slug];
   const d = e ? ((e as any)[locale] || e.en) : null;
   if (!d) return { title: 'QuotesDone' };
-  // strip the repeated document title, then take the opening prose
-  const body = textFromHtml(d.html).replace(d.title, '').trim();
-  return buildMeta({ locale, path: '/' + slug, title: d.title, description: body });
+  const v = ARCHIVED.exec(slug);
+  const path = v ? '/' + v[1] + '/' + v[2] : '/' + slug;
+  const title = v
+    ? d.title + (locale === 'ar' ? ` (${v[2]} — نسخة مؤرشفة)` : ` (${v[2]}, archived)`)
+    : d.title;
+  // The description is the legal text, not the document switcher: textFromHtml(d.html) opened with
+  // the nav ("Terms of Service Privacy Policy Supplier Agreement…") on every legal page (WEB-03).
+  const prose = (takeByClass(d.html, 'body')?.el ?? d.html).replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/i, '');
+  const body = textFromHtml(prose).replace(d.title, '').trim();
+  const meta = buildMeta({ locale, path, title, description: body });
+  return v ? { ...meta, robots: { index: false, follow: true } } : meta;
 }
 
 const L = {

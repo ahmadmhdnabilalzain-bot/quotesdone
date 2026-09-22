@@ -151,9 +151,8 @@
   "langSwitch": "العربية",
   "cookie": {
     "title": "We use cookies",
-    "text": "We use essential cookies to run QuotesDone, plus optional analytics cookies to improve it. You can accept or decline the optional ones.",
-    "accept": "Accept all",
-    "decline": "Essential only",
+    "text": "We use essential cookies only — to keep you signed in, to remember the request you are building and to keep your account secure. No analytics or advertising cookies are set.",
+    "ok": "Got it",
     "policy": "Cookie Policy"
   },
   "meta": {

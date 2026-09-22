@@ -177,7 +177,12 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
       source: 'form',
     }, token);
     setBusy(false);
-    if (j && j.ok) setSent(t(lang, 'created')); else setErr((j && (j.error || j.hint)) || 'submit_err');
+    // `ok` MEANS THE REQUEST WAS UNDERSTOOD, NOT THAT THE QUOTE WENT (audit 22 Sep 2026, SP-C-04 /
+    // SP-N-07). submit_quote answers ok:true for a quotation the sales engineer held for missing specs
+    // and for one saved as a draft, both with accepted:false — and this screen read `ok` alone, so a
+    // one-click accept that reached nobody said "Quote created". The flag to read is `accepted`.
+    if (j && j.accepted === true) setSent(t(lang, 'created'));
+    else setErr((j && (j.message || j.error || j.hint)) || 'submit_err');
   };
 
   const loaded = opps !== null;

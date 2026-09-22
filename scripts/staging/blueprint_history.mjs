@@ -4,7 +4,7 @@
 // numbers were true; the difference between them was unrecoverable, because the scorer printed
 // its verdicts and kept none of them. Writing is best-effort by design — a scorer that fails
 // because it could not save its own history would be worse than one with no history.
-import { mgmtWriteData, PROD_REF } from './qd_guard.mjs';
+import { mgmtWriteData, PROD_REF } from '../lib/qd_guard.mjs';
 import { readFileSync } from 'node:fs';
 
 const q = (v) => (v === null || v === undefined) ? 'null' : `'${String(v).replace(/'/g, "''")}'`;

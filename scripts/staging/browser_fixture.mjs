@@ -17,8 +17,8 @@
 // person), so the test writes a verification row for a code it chose, hashed exactly as login_otp
 // hashes it. Everything except the delivery hop is genuinely exercised.
 import { createHmac } from 'node:crypto';
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF, newRun, makeCustomer, makeInquiry, makeQuote, makeSupplier, teardown, q } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF, newRun, makeCustomer, makeInquiry, makeQuote, makeSupplier, teardown, q } from '../lib/demo_factory.mjs';
 
 const [, , cmd, arg] = process.argv;
 

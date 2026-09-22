@@ -13,21 +13,20 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { sql } from '../lib/db.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
-const q = async (query) => {
-  const r = await fetch('https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query', {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, read_only: true }),
-  });
-  const text = await r.text();
-  assert.ok(r.ok, `query failed: ${r.status} ${text}`);
-  return JSON.parse(text);
-};
+// This read used to POST to the management API itself, with NO backoff. MEASURED 22 Sep 2026: a
+// throttled night reported `query failed: 429 ThrottlerException` as an assertion failure, which
+// reads as "a dues routine stopped asking the predicate" and is not that at all. scripts/lib/db.mjs
+// is the estate's one retry policy for this endpoint (jittered, 7 attempts, and it names an
+// exhausted throttle as infrastructure). `readOnly` keeps the read_only flag this check has always
+// set, so the assertion is unchanged and the session still cannot write.
+const q = (query) => sql(query, { readOnly: true });
 
 const PREDICATE = 'fn_supplier_due_is_owed';
 export const DUES_ROUTINES = [

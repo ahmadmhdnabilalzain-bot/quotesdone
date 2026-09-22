@@ -17,7 +17,7 @@
 //   node seed_staging_secrets.mjs [--apply]
 //
 // Without --apply it reports and writes nothing. It prints key NAMES and actions only, never a value.
-import { mgmtRead, mgmtWrite, PROD_REF, resolveStagingRef } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF, resolveStagingRef } from '../lib/qd_guard.mjs';
 
 // 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
 // no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it
@@ -43,13 +43,18 @@ const WITHHOLD = new Map([
   ['twilio_from',               'real SMS/WhatsApp to real numbers'],
   ['twilio_wa_from',            'real SMS/WhatsApp to real numbers'],
   ['twilio_verify_service_sid', 'real SMS/WhatsApp to real numbers'],
-  ['qa_customer_password',      'production QA account credential'],
+  // qa_customer_password was withheld here until 22 Sep 2026, when it was deleted from production
+  // altogether (scripts/sql/five_dead_secrets_leave_the_store.sql): a plaintext account password
+  // nothing read. A withhold list naming a key that no longer exists is an index pointing at
+  // nothing, so the entry goes with it.
 ]);
 
 const FORCE_OFF = {
   email_enabled: 'false', supplier_emails_enabled: 'false',
   wa_autoreply_enabled: 'false', invite_enabled: 'false', bd_outreach_enabled: 'false',
-  marketing_golive: 'false', meta_sync_enabled: 'false', agent_autonomy_enabled: 'false',
+  // meta_sync_enabled left this list on 22 Sep 2026 with the deleted key: it switched an edge
+  // function (meta_sync) that no longer exists. social_send_enabled is the live social switch.
+  marketing_golive: 'false', social_send_enabled: 'off', agent_autonomy_enabled: 'false',
   cos_frozen: 'true', qa_mint_enabled: 'false',
 };
 
@@ -156,7 +161,7 @@ console.log(`staging internal_credential now: ${credAfter[0].n} rows (production
 
 // ---- scope additions staging is AHEAD of production on -------------------------------------------
 // Applied after the copy so a staging rebuild reapplies them. Each one must also be promoted to
-// production, and is listed in docs/sessions/NEXT_SESSION_BRIEF.md §8 for exactly that reason.
+// production, and is listed in docs/archive/sessions/NEXT_SESSION_BRIEF.md §8 for exactly that reason.
 //
 // capability_agent: its `confirm` action is the only real writer of a confirmed
 // supplier_capabilities row plus its supplier_capability_confirmation ledger entry, and it makes NO

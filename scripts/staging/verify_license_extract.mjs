@@ -16,8 +16,8 @@
 // a reader that invents a licence number for an unreadable scan is worse than one that fails.
 //
 //     node scripts/staging/verify_license_extract.mjs        3 model calls, ~0.2 AED
-import { mgmtRead } from './qd_guard.mjs';
-import { REF, call, q } from './demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
+import { REF, call, q } from '../lib/demo_factory.mjs';
 import {
   VALID_LICENCE, EXPIRED_LICENCE, DENSE_LICENCE,
   validLicencePdf, denseLicencePdf, expiredLicencePdf, illegibleLicencePdf,

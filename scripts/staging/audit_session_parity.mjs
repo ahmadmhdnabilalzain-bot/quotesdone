@@ -9,8 +9,8 @@
 //
 // Read-only on both projects: qd_guard's mgmtRead refuses anything else.
 import { readFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
 const H = { Authorization: 'Bearer ' + token };

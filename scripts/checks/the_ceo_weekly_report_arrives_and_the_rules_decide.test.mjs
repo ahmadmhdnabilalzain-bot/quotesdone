@@ -30,13 +30,42 @@ async function rows(q) {
   return Array.isArray(r) ? r : [];
 }
 
-test('every active CEO decision rule is evaluated', { skip: SKIP }, async () => {
+// 22 Sep 2026 (it_engineer, SEATS-07). The evaluator used to answer ok:true while two active rules
+// sat in state 'not_instrumented' — evaluated by nobody, reported as fine. It now answers ok:false
+// for those too, so `assert.equal(e.ok, true, 'evaluator not ok: ' + e.error)` would have failed
+// here with "evaluator not ok: undefined" (the uninstrumented case carries `uninstrumented_error`,
+// never `error` — see the SQL file: resilience_ping's failureOf only treats ok:false WITH a string
+// `error` as a heartbeat failure, and renaming it would make ceoDecisions permanently red).
+//
+// So the two states are asserted separately, and the uninstrumented one against a NAMED exemption:
+// a rule may be un-instrumented only while it is listed here with the reason and what would close
+// it. The list can only get shorter — an exemption that stops applying fails this test.
+export const UNINSTRUMENTED = {
+  spend_against_constraint:
+    'No table attributes spend to a funnel stage (checked 22 Sep 2026: department_budget, budgets, '
+    + 'budget_lines, budget_vs_actual, it_spend_daily, marketing_ad_spend_day, accountant_spend_report). '
+    + 'Closed by adding the stage attribution, or by the CEO setting ceo_decision.active = false.',
+};
+
+test('every active CEO decision rule is evaluated, or is a named exemption', { skip: SKIP }, async () => {
   const [r] = await rows(`select public.fn_ceo_decisions_evaluate(true) as e`);
   const e = r?.e;
   assert.ok(e, 'fn_ceo_decisions_evaluate did not answer');
   const silent = (e.rules || []).filter(x => x.state === 'no_evaluator').map(x => x.rule);
   assert.equal(silent.length, 0, 'active ceo_decision rule(s) nothing evaluates: ' + silent.join(', '));
-  assert.equal(e.ok, true, 'evaluator not ok: ' + e.error);
+
+  const blind = e.not_instrumented || [];
+  const unexpected = blind.filter(k => !UNINSTRUMENTED[k]);
+  assert.deepEqual(unexpected, [], 'active rule(s) with no instrument and no stated exemption: ' + unexpected.join(', '));
+  const stale = Object.keys(UNINSTRUMENTED).filter(k => !blind.includes(k));
+  assert.deepEqual(stale, [],
+    'UNINSTRUMENTED names a rule the live evaluator does not report as not_instrumented: ' + stale.join(', ')
+    + ' — either it is instrumented now and the exemption must be deleted, or the evaluator that reports '
+    + 'not_instrumented (the_ceo_decision_rules_that_have_no_instrument_say_so_in_ok.sql) is not applied yet');
+
+  // ok stays the honest summary: true only when nothing is unevaluated for either reason.
+  assert.equal(e.ok, blind.length === 0 && silent.length === 0,
+    'ok disagrees with the rules it summarises: ' + (e.error || '') + ' ' + (e.uninstrumented_error || ''));
 });
 
 test('the last closed week\'s CEO report reached the founder with its PDF', { skip: SKIP }, async () => {

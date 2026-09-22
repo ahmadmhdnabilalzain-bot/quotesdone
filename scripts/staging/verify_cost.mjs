@@ -17,13 +17,13 @@
 //
 //     node scripts/staging/verify_cost.mjs           the zero-cost gate
 //     node scripts/staging/verify_cost.mjs --live    also spends ~0.001 AED to prove the meter
-import { assertNotProduction, mgmtRead, mgmtWrite } from './qd_guard.mjs';
+import { assertNotProduction, mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 // REHOMED 15 AUG 2026: this defaulted to 'pglpqrhvozwepymcuunn', a project deleted that morning.
 // The target now comes from demo_factory, which is the single place that decides it.
-import { REF } from './demo_factory.mjs';
+import { REF } from '../lib/demo_factory.mjs';
 const BASE = `https://${REF}.supabase.co`;
 const LIVE = process.argv.includes('--live');
 

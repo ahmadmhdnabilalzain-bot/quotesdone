@@ -62,7 +62,7 @@ export default async function (H) {
   // §13 — SUPPLIER PERFORMANCE INTELLIGENCE (9)
   // ════════════════════════════════════════════════════════════════════════════════════════════════
   //
-  // KEPT DISTINCT FROM §4's TWO TILES. docs/sessions/ROW5_REQUIREMENTS.md logs this overlap: §4
+  // KEPT DISTINCT FROM §4's TWO TILES. docs/archive/sessions/ROW5_REQUIREMENTS.md logs this overlap: §4
   // draws Response and Quality as summary tiles on the command centre; §13 draws a FIVE-metric
   // health panel with bars. The panel leg below requires three or more metrics together in one
   // file, which two command-centre tiles cannot satisfy, so neither section can score the other's

@@ -17,7 +17,7 @@
 // jsonb, timestamps, enums - round-trips without hand-built SQL literals.
 //
 //   node scripts/staging/sync_staging_reference.mjs [--apply]
-import { mgmtRead, mgmtWrite, mgmtWriteData, PROD_REF, resolveStagingRef } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite, mgmtWriteData, PROD_REF, resolveStagingRef } from '../lib/qd_guard.mjs';
 
 // 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
 // no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it

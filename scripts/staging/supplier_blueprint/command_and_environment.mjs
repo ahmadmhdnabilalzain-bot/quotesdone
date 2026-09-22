@@ -13,7 +13,7 @@
 // file or function that carried the verdict.
 //
 // ── THE OVERLAP THIS MODULE MUST NOT CAUSE ───────────────────────────────────────────────────────
-// docs/sessions/ROW5_REQUIREMENTS.md logs four pairs that risk one implementation scoring twice.
+// docs/archive/sessions/ROW5_REQUIREMENTS.md logs four pairs that risk one implementation scoring twice.
 // One is this module's responsibility (the 3D pair — env-3d-scene vs map-globe vs ui-3d-maps vs
 // tech-threejs — was retired 21 Sep 2026 with the 3D environment and the network map):
 //   · cc-perf-response / cc-perf-quality (§4) vs the §13 health panel. §4 draws two SUMMARY TILES on

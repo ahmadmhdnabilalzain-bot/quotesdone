@@ -5,7 +5,7 @@
 // capability, and every one of these keys was added in the same change as the routines behind it.
 //
 //   node scripts/staging/verify_portal_entry.mjs
-import { makeCustomer, call, newRun } from './demo_factory.mjs';
+import { makeCustomer, call, newRun } from '../lib/demo_factory.mjs';
 
 const run = newRun();
 const fail = [];

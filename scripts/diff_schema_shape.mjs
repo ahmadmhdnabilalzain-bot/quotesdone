@@ -8,8 +8,8 @@
 //
 //   node scripts/diff_schema_shape.mjs            # columns + views
 //   node scripts/diff_schema_shape.mjs --views    # view definitions only
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
+import { REF as STAGE } from './lib/demo_factory.mjs';
 
 const VIEWS_ONLY = process.argv.includes('--views');
 const SHOW = (process.argv.find(a => a.startsWith('--show=')) || '').slice(7);
