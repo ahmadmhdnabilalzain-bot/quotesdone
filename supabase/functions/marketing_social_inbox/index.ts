@@ -25,7 +25,7 @@
 // social_model_enabled (off: the model is held — OpenRouter is on hold), cred_fn_ai (the gateway key).
 //
 // META APP SETUP (the founder's side). Callback URL:
-//   https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/marketing_social_inbox
+//   <SUPABASE_URL>/functions/v1/marketing_social_inbox   (the project's own URL; the ref is not written here)
 // Verify token: the value stored in app_secrets.meta_webhook_verify_token. Subscribe: Page -> messages,
 // message_echoes, feed; Instagram -> messages, comments. Permissions: pages_messaging,
 // pages_manage_metadata, pages_read_engagement, pages_manage_engagement, instagram_basic,
