@@ -567,6 +567,14 @@
   "fa4b51d2ade2",
   "fffb93cafbf1"
  ],
+ "scripts/sql/the_marketing_seat_publishes_measures_and_reports_spend.sql": [
+  "ae01b7bef25b"
+ ],
+ "scripts/sql/the_marketing_seat_publishes_measures_and_reports_spend_probe.sql": [
+  "3d46bb7cf9ae",
+  "4a41caa50bac",
+  "f19c38d9dfce"
+ ],
  "src/app/[locale]/blog/[slug]/opengraph-image.tsx": [
   "4bb69a8b2b4f"
  ],
