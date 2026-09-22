@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T09:09:20.943Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T11:03:14.960Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -194,7 +194,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (532) =====
+-- ===== TABLES (543) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -402,6 +402,20 @@ CREATE TABLE IF NOT EXISTS public.ad_spend_policy (
   monthly_cap_aed numeric,
   month_spent_aed numeric DEFAULT 0 NOT NULL,
   month_label text DEFAULT to_char(now(), 'YYYY-MM'::text) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ad_spend_reported (
+  source_ref text NOT NULL,
+  platform text NOT NULL,
+  spend_date date NOT NULL,
+  currency text NOT NULL,
+  amount numeric(14,2) NOT NULL,
+  amount_aed numeric(14,2),
+  campaign_ref text,
+  handoff_id bigint NOT NULL,
+  revisions integer DEFAULT 1 NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.admin_mfa_sessions (
@@ -4338,6 +4352,49 @@ CREATE TABLE IF NOT EXISTS public.market_intel (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_ad_spend_day (
+  account_id text NOT NULL,
+  campaign_id text NOT NULL,
+  day date NOT NULL,
+  campaign_name text,
+  spend numeric(14,2) NOT NULL,
+  currency text NOT NULL,
+  impressions bigint,
+  clicks bigint,
+  is_demo boolean DEFAULT false NOT NULL,
+  pulled_at timestamp with time zone DEFAULT now() NOT NULL,
+  handed_off_at timestamp with time zone,
+  booked_ack_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_connection_check (
+  check_key text NOT NULL,
+  platform text NOT NULL,
+  ok boolean NOT NULL,
+  http_status integer,
+  credential_keys text[] DEFAULT '{}'::text[] NOT NULL,
+  detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+  needs text,
+  measured_at timestamp with time zone NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_duty_run (
+  duty text NOT NULL,
+  last_started_at timestamp with time zone,
+  last_ok_at timestamp with time zone,
+  last_result jsonb
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_insight_day (
+  platform text NOT NULL,
+  object_type text NOT NULL,
+  object_id text NOT NULL,
+  metric text NOT NULL,
+  day date NOT NULL,
+  value numeric NOT NULL,
+  pulled_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_library (
   id bigint DEFAULT nextval('marketing_library_id_seq'::regclass) NOT NULL,
   category text NOT NULL,
@@ -4348,6 +4405,47 @@ CREATE TABLE IF NOT EXISTS public.marketing_library (
   source_file text,
   tsv tsvector GENERATED ALWAYS AS (to_tsvector('english'::regconfig, ((((COALESCE(title, ''::text) || ' '::text) || COALESCE(tags, ''::text)) || ' '::text) || COALESCE(content, ''::text)))) STORED,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_meta_page (
+  page_id text NOT NULL,
+  ig_id text,
+  page_token text NOT NULL,
+  fetched_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_post (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  ingest_key text NOT NULL,
+  owner_seat text DEFAULT 'marketing'::text NOT NULL,
+  ingested_by text NOT NULL,
+  title text,
+  text_en text NOT NULL,
+  text_ar text NOT NULL,
+  media_paths text[] DEFAULT '{}'::text[] NOT NULL,
+  channels text[] NOT NULL,
+  scheduled_at timestamp with time zone,
+  status text DEFAULT 'draft'::text NOT NULL,
+  is_demo boolean DEFAULT false NOT NULL,
+  dry_run jsonb,
+  postiz_result jsonb,
+  permalinks jsonb,
+  error text,
+  attempts integer DEFAULT 0 NOT NULL,
+  published_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_report (
+  report_date date NOT NULL,
+  window_from timestamp with time zone NOT NULL,
+  window_to timestamp with time zone NOT NULL,
+  figures jsonb NOT NULL,
+  no_data_yet boolean NOT NULL,
+  handoff_id bigint,
+  read_by_ceo_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_snapshots (
@@ -6376,6 +6474,45 @@ CREATE TABLE IF NOT EXISTS public.skills_matrix (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.social_conversation (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  platform text NOT NULL,
+  user_id text NOT NULL,
+  account_id text,
+  handle text,
+  owner_seat text DEFAULT 'marketing'::text NOT NULL,
+  status text DEFAULT 'auto'::text NOT NULL,
+  handed_at timestamp with time zone,
+  handed_reason text,
+  handoff_count integer DEFAULT 0 NOT NULL,
+  resumed_at timestamp with time zone,
+  resumed_by text,
+  last_inbound_at timestamp with time zone,
+  is_demo boolean GENERATED ALWAYS AS (((user_id ~* '^ZZDEMO'::text) OR (COALESCE(handle, ''::text) ~* '^ZZ DEMO'::text))) STORED,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.social_message (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  conversation_id bigint NOT NULL,
+  platform text NOT NULL,
+  channel text NOT NULL,
+  direction text NOT NULL,
+  author text NOT NULL,
+  meta_message_id text,
+  parent_id text,
+  in_reply_to bigint,
+  body text NOT NULL,
+  reply_kind text,
+  reply_key text,
+  send_status text,
+  send_error text,
+  sent_at timestamp with time zone,
+  outcome text,
+  occurred_at timestamp with time zone DEFAULT now() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.social_posts (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
@@ -6392,6 +6529,17 @@ CREATE TABLE IF NOT EXISTS public.social_posts (
   permalink_missing text,
   media_missing text,
   preview_url text
+);
+
+CREATE TABLE IF NOT EXISTS public.social_reply_library (
+  key text NOT NULL,
+  priority integer,
+  match_words text[] DEFAULT '{}'::text[] NOT NULL,
+  reply_en text NOT NULL,
+  reply_ar text NOT NULL,
+  active boolean DEFAULT true NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_by text
 );
 
 CREATE TABLE IF NOT EXISTS public.spec_alternative_offer (
@@ -7424,6 +7572,7 @@ ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_pkey PRIMARY
 ALTER TABLE public.ad_campaign_state ADD CONSTRAINT ad_campaign_state_pkey PRIMARY KEY (campaign_id);
 ALTER TABLE public.ad_decision ADD CONSTRAINT ad_decision_pkey PRIMARY KEY (id);
 ALTER TABLE public.ad_spend_policy ADD CONSTRAINT ad_spend_policy_pkey PRIMARY KEY (policy_key);
+ALTER TABLE public.ad_spend_reported ADD CONSTRAINT ad_spend_reported_pkey PRIMARY KEY (source_ref);
 ALTER TABLE public.admin_mfa_sessions ADD CONSTRAINT admin_mfa_sessions_pkey PRIMARY KEY (session_id);
 ALTER TABLE public.agent_action_kind_policy ADD CONSTRAINT agent_action_kind_policy_pkey PRIMARY KEY (kind);
 ALTER TABLE public.agent_actions ADD CONSTRAINT agent_actions_pkey PRIMARY KEY (id);
@@ -7727,7 +7876,14 @@ ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_pkey PRIMA
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_pkey PRIMARY KEY (model_id);
 ALTER TABLE public.llm_seat_binding ADD CONSTRAINT llm_seat_binding_pkey PRIMARY KEY (fn);
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_pkey PRIMARY KEY (account_id, campaign_id, day);
+ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_pkey PRIMARY KEY (check_key);
+ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_pkey PRIMARY KEY (duty);
+ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_pkey PRIMARY KEY (platform, object_id, metric, day);
 ALTER TABLE public.marketing_library ADD CONSTRAINT marketing_library_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_pkey PRIMARY KEY (page_id);
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_pkey PRIMARY KEY (report_date);
 ALTER TABLE public.marketing_snapshots ADD CONSTRAINT marketing_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.match_eval_runs ADD CONSTRAINT match_eval_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.materials ADD CONSTRAINT materials_pkey PRIMARY KEY (id);
@@ -7878,7 +8034,10 @@ ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
+ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_pkey PRIMARY KEY (id);
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id);
+ALTER TABLE public.social_reply_library ADD CONSTRAINT social_reply_library_pkey PRIMARY KEY (key);
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_pkey PRIMARY KEY (id);
 ALTER TABLE public.spec_backlog ADD CONSTRAINT spec_backlog_pkey PRIMARY KEY (id);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_pkey PRIMARY KEY (id);
@@ -7997,6 +8156,8 @@ ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
 ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_requirement_key UNIQUE (requirement);
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_expiry_date_band_channel_key UNIQUE (lead_id, expiry_date, band, channel);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_one_row_per_attempt UNIQUE (request_id, attempt_no);
+ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_ig_id_key UNIQUE (ig_id);
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_key UNIQUE (ingest_key);
 ALTER TABLE public.mdm_brands ADD CONSTRAINT mdm_brands_name_key UNIQUE (name);
 ALTER TABLE public.mdm_manufacturers ADD CONSTRAINT mdm_manufacturers_name_key UNIQUE (name);
 ALTER TABLE public.mdm_standards ADD CONSTRAINT mdm_standards_code_key UNIQUE (code);
@@ -8017,6 +8178,8 @@ ALTER TABLE public.resource_pool ADD CONSTRAINT resource_pool_resource_key UNIQU
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_key UNIQUE (transaction_id);
 ALTER TABLE public.rfq_archives ADD CONSTRAINT rfq_archives_rfq_id_key UNIQUE (rfq_id);
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_question_norm_key UNIQUE (question_norm);
+ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_user_id_key UNIQUE (platform, user_id);
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_platform_meta_message_id_key UNIQUE (platform, meta_message_id);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_category_title_key UNIQUE (category, title);
 ALTER TABLE public.supplier_catalog ADD CONSTRAINT supplier_catalog_supplier_id_source_hash_key UNIQUE (supplier_id, source_hash);
 ALTER TABLE public.supplier_dues ADD CONSTRAINT supplier_dues_transaction_id_key UNIQUE (transaction_id);
@@ -8064,6 +8227,11 @@ ALTER TABLE public.ad_spend_policy ADD CONSTRAINT ad_spend_policy_month_spent_ae
 ALTER TABLE public.ad_spend_policy ADD CONSTRAINT ad_spend_policy_monthly_cap_aed_check CHECK (((monthly_cap_aed IS NULL) OR (monthly_cap_aed >= (0)::numeric)));
 ALTER TABLE public.ad_spend_policy ADD CONSTRAINT ad_spend_policy_scale_step_pct_check CHECK ((scale_step_pct >= (0)::numeric));
 ALTER TABLE public.ad_spend_policy ADD CONSTRAINT ad_spend_policy_target_cpl_aed_check CHECK ((target_cpl_aed > (0)::numeric));
+ALTER TABLE public.ad_spend_reported ADD CONSTRAINT ad_spend_reported_amount_check CHECK ((amount >= (0)::numeric));
+ALTER TABLE public.ad_spend_reported ADD CONSTRAINT ad_spend_reported_currency_check CHECK ((currency ~ '^[A-Z]{3}$'::text));
+ALTER TABLE public.ad_spend_reported ADD CONSTRAINT ad_spend_reported_platform_check CHECK ((platform ~ '^[a-z][a-z0-9_]*$'::text));
+ALTER TABLE public.ad_spend_reported ADD CONSTRAINT ad_spend_reported_revisions_check CHECK ((revisions >= 1));
+ALTER TABLE public.ad_spend_reported ADD CONSTRAINT ad_spend_reported_source_ref_check CHECK ((btrim(source_ref) <> ''::text));
 ALTER TABLE public.agent_action_kind_policy ADD CONSTRAINT agent_action_kind_policy_policy_check CHECK ((policy = ANY (ARRAY['auto'::text, 'officer'::text, 'notify'::text])));
 ALTER TABLE public.agent_chats ADD CONSTRAINT agent_chats_role_check CHECK ((role = ANY (ARRAY['user'::text, 'assistant'::text])));
 ALTER TABLE public.agent_knowledge ADD CONSTRAINT agent_knowledge_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
@@ -8167,7 +8335,7 @@ ALTER TABLE public.founder_instruction ADD CONSTRAINT founder_instruction_status
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_elsewhere_ck CHECK (((moves_to IS NULL) OR (moves_to <> owner)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_to_ck CHECK (((moves_to IS NULL) = (moves_to_note IS NULL)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_note_ck CHECK ((btrim(note) <> ''::text));
-ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_owner_ck CHECK ((owner = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'website'::text])));
+ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_owner_ck CHECK ((owner = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'marketing'::text, 'website'::text])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_normal_balance_check CHECK ((normal_balance = ANY (ARRAY['D'::bpchar, 'C'::bpchar])));
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_type_check CHECK ((type = ANY (ARRAY['asset'::text, 'liability'::text, 'equity'::text, 'revenue'::text, 'expense'::text, 'other_income'::text])));
 ALTER TABLE public.gl_journal ADD CONSTRAINT gl_journal_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'posted'::text, 'void'::text])));
@@ -8259,6 +8427,33 @@ ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_failure_thre
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_impact_check CHECK ((impact = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_kind_check CHECK ((kind = ANY (ARRAY['competitor'::text, 'trend'::text, 'expansion'::text, 'regulatory'::text, 'other'::text])));
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'actioned'::text, 'dismissed'::text])));
+ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_account_id_check CHECK ((account_id ~ '^act_[0-9]+$'::text));
+ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_campaign_id_check CHECK ((btrim(campaign_id) <> ''::text));
+ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_currency_check CHECK ((currency ~ '^[A-Z]{3}$'::text));
+ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_demo_is_marked CHECK (((NOT is_demo) OR (campaign_name ~~ 'ZZ DEMO%'::text)));
+ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_spend_check CHECK ((spend >= (0)::numeric));
+ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_check_key_check CHECK ((check_key ~ '^[a-z]+(\.[a-z_]+)+$'::text));
+ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_failure_names_the_need CHECK ((ok OR (btrim(COALESCE(needs, ''::text)) <> ''::text)));
+ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_platform_check CHECK ((platform = ANY (ARRAY['postiz'::text, 'meta'::text, 'linkedin'::text])));
+ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_duty_check CHECK ((duty = ANY (ARRAY['access'::text, 'insights'::text, 'ad_spend'::text])));
+ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_metric_check CHECK ((metric ~ '^[a-z0-9_]+$'::text));
+ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_object_id_check CHECK ((btrim(object_id) <> ''::text));
+ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_object_type_check CHECK ((object_type = ANY (ARRAY['page'::text, 'account'::text, 'post'::text])));
+ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_platform_check CHECK ((platform = ANY (ARRAY['facebook'::text, 'instagram'::text, 'linkedin'::text, 'x'::text])));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_channels_check CHECK (((cardinality(channels) > 0) AND (channels <@ ARRAY['facebook'::text, 'instagram'::text, 'linkedin'::text, 'x'::text])));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_demo_is_marked CHECK (((NOT is_demo) OR (text_en ~~ 'ZZ DEMO%'::text)));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_failed_says_why CHECK (((status <> 'failed'::text) OR (error IS NOT NULL)));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_check CHECK ((ingest_key ~ '^[a-z0-9][a-z0-9_-]{2,80}$'::text));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingested_by_check CHECK ((ingested_by = ANY (ARRAY['founder'::text, 'claude'::text, 'marketing'::text])));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_instagram_needs_media CHECK (((NOT ('instagram'::text = ANY (channels))) OR (cardinality(media_paths) > 0)));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_owner_seat_check CHECK ((owner_seat = 'marketing'::text));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_published_says_when CHECK (((status <> 'published'::text) OR (published_at IS NOT NULL)));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_scheduled_has_a_time CHECK (((status <> ALL (ARRAY['scheduled'::text, 'publishing'::text, 'published'::text])) OR (scheduled_at IS NOT NULL)));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'scheduled'::text, 'publishing'::text, 'published'::text, 'failed'::text, 'cancelled'::text])));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_text_ar_check CHECK ((text_ar ~ '[؀-ۿ]'::text));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_text_en_check CHECK ((btrim(text_en) <> ''::text));
+ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_check CHECK ((window_to > window_from));
+ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_figures_check CHECK ((jsonb_typeof(figures) = 'object'::text));
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_check CHECK ((sender = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_direction_check CHECK ((direction = ANY (ARRAY['up'::text, 'down'::text])));
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_check CHECK ((domain = ANY (ARRAY['demand'::text, 'supply'::text, 'liquidity'::text, 'revenue'::text, 'quality'::text, 'cost'::text, 'ops'::text])));
@@ -8402,6 +8597,14 @@ ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_it
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_en_check CHECK ((btrim(reason_en) <> ''::text));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
+ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_check CHECK ((platform = ANY (ARRAY['instagram'::text, 'facebook'::text])));
+ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_status_check CHECK ((status = ANY (ARRAY['auto'::text, 'handed_to_human'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_author_check CHECK ((author = ANY (ARRAY['person'::text, 'seat'::text, 'human'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_channel_check CHECK ((channel = ANY (ARRAY['dm'::text, 'comment'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_direction_check CHECK ((direction = ANY (ARRAY['in'::text, 'out'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_platform_check CHECK ((platform = ANY (ARRAY['instagram'::text, 'facebook'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_reply_kind_check CHECK ((reply_kind = ANY (ARRAY['handoff'::text, 'standard'::text, 'faq'::text, 'knowledge'::text, 'unknown'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_send_status_check CHECK ((send_status = ANY (ARRAY['pending'::text, 'held_switch_off'::text, 'held_fixture'::text, 'sent'::text, 'failed'::text])));
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_clickable CHECK ((((image_url IS NOT NULL) OR (media_missing IS NOT NULL)) AND ((NOT ((mode = 'now'::text) AND (status = ANY (ARRAY['sent'::text, 'published'::text])))) OR ((permalinks IS NOT NULL) AND (permalinks <> '{}'::jsonb)) OR (permalink_missing IS NOT NULL))));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_alternatives_shape CHECK (((jsonb_typeof(alternatives) = 'array'::text) AND (jsonb_array_length(alternatives) >= 1) AND (NOT jsonb_path_exists(alternatives, '$[*]?(@.type() != "object")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*].keyvalue()?((@."key" != "option_id" && @."key" != "value") && @."key" != "suppliers")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*]."suppliers"?(@.type() != "number")'::jsonpath))));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_channel_check CHECK (((answer_channel IS NULL) OR (answer_channel = ANY (ARRAY['portal'::text, 'whatsapp'::text, 'email'::text]))));
@@ -8703,6 +8906,8 @@ ALTER TABLE public.sales_qualification_field ADD CONSTRAINT sales_qualification_
 ALTER TABLE public.sanctions_ban ADD CONSTRAINT sanctions_ban_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE CASCADE;
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES social_conversation(id);
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_in_reply_to_fkey FOREIGN KEY (in_reply_to) REFERENCES social_message(id);
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.stripe_dispute ADD CONSTRAINT stripe_dispute_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
@@ -9057,6 +9262,7 @@ CREATE INDEX llm_cache_emb_idx ON public.llm_cache USING ivfflat (embedding_gte 
 CREATE INDEX llm_cache_expiry_idx ON public.llm_cache USING btree (expires_at);
 CREATE INDEX llm_calls_created_idx ON public.llm_calls USING btree (created_at DESC);
 CREATE INDEX llm_calls_fn_idx ON public.llm_calls USING btree (fn, created_at DESC);
+CREATE INDEX marketing_post_due_idx ON public.marketing_post USING btree (scheduled_at) WHERE (status = 'scheduled'::text);
 CREATE UNIQUE INDEX marketing_snap_day ON public.marketing_snapshots USING btree (snapshot_date);
 CREATE INDEX materials_cat ON public.materials USING btree (category);
 CREATE INDEX messages_thread_idx ON public.messages USING btree (inquiry_id, supplier_id, created_at);
@@ -9153,6 +9359,7 @@ CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseli
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX social_message_conversation_idx ON public.social_message USING btree (conversation_id, created_at DESC);
 CREATE UNIQUE INDEX spec_alternative_offer_one_live_per_attr ON public.spec_alternative_offer USING btree (inquiry_id, line_no, attr) WHERE (state = ANY (ARRAY['open'::text, 'accepted'::text]));
 CREATE INDEX spec_alternative_offer_open_idx ON public.spec_alternative_offer USING btree (state, reply_by) WHERE (state = 'open'::text);
 CREATE UNIQUE INDEX spec_backlog_spec_ref_uidx ON public.spec_backlog USING btree (spec_ref) WHERE (spec_ref IS NOT NULL);
@@ -11229,7 +11436,44 @@ UNION ALL
     p.demo AS is_demo
    FROM ((quote_review_messages q
      JOIN quote_reviews qr ON ((qr.id = q.review_id)))
-     CROSS JOIN LATERAL fn_conversation_party(qr.supplier_id, NULL::uuid, NULL::uuid, NULL::text, NULL::text) p(party_kind, party_id, inquiry_id, demo));
+     CROSS JOIN LATERAL fn_conversation_party(qr.supplier_id, NULL::uuid, NULL::uuid, NULL::text, NULL::text) p(party_kind, party_id, inquiry_id, demo))
+UNION ALL
+ SELECT 'social_message'::text AS source_table,
+    (sm.id)::text AS source_id,
+    sc.platform AS channel,
+    sm.direction,
+    sm.occurred_at,
+        CASE
+            WHEN (sm.direction = 'in'::text) THEN COALESCE(NULLIF(sc.handle, ''::text), sc.user_id)
+            WHEN (sm.author = 'human'::text) THEN 'QuotesDone (team)'::text
+            ELSE 'QuotesDone (marketing, auto)'::text
+        END AS from_addr,
+        CASE
+            WHEN (sm.direction = 'in'::text) THEN 'QuotesDone'::text
+            ELSE COALESCE(NULLIF(sc.handle, ''::text), sc.user_id)
+        END AS to_addr,
+    NULL::text AS cc,
+    ((((initcap(sc.platform) || ' '::text) ||
+        CASE
+            WHEN (sm.channel = 'dm'::text) THEN 'message'::text
+            ELSE 'comment'::text
+        END) || ' - '::text) || COALESCE(NULLIF(sc.handle, ''::text), sc.user_id)) AS subject,
+    (sm.body ||
+        CASE
+            WHEN ((sm.direction = 'out'::text) AND (sm.author = 'seat'::text)) THEN (('
+
+'::text || 'Delivery: '::text) || COALESCE(sm.send_status, 'pending'::text))
+            ELSE ''::text
+        END) AS body,
+    NULL::text AS html,
+    '[]'::jsonb AS attachments,
+    p.party_kind,
+    p.party_id,
+    p.inquiry_id,
+    sc.is_demo
+   FROM ((social_message sm
+     JOIN social_conversation sc ON ((sc.id = sm.conversation_id)))
+     CROSS JOIN LATERAL fn_conversation_party(NULL::bigint, NULL::uuid, NULL::uuid, NULL::text, NULL::text) p(party_kind, party_id, inquiry_id, demo));
 
 CREATE OR REPLACE VIEW public.v_critical_capability_tests AS  WITH latest AS (
          SELECT DISTINCT ON (agent_runs.agent) agent_runs.agent,
@@ -11753,6 +11997,23 @@ CREATE OR REPLACE VIEW public.v_legacy_secret_users AS  SELECT function_name,
   WHERE ((reason = 'legacy_secret_used'::text) AND (at > (now() - '7 days'::interval)))
   GROUP BY function_name
   ORDER BY (count(*)) DESC;
+
+CREATE OR REPLACE VIEW public.v_marketing_social_volume AS  SELECT c.platform,
+    count(DISTINCT c.id) AS conversations,
+    count(DISTINCT c.id) FILTER (WHERE (c.status = 'handed_to_human'::text)) AS waiting_for_founder,
+    count(m.id) FILTER (WHERE (m.direction = 'in'::text)) AS inbound_total,
+    count(m.id) FILTER (WHERE ((m.direction = 'in'::text) AND (m.occurred_at > (now() - '1 day'::interval)))) AS inbound_24h,
+    count(m.id) FILTER (WHERE ((m.direction = 'in'::text) AND (m.occurred_at > (now() - '7 days'::interval)))) AS inbound_7d,
+    count(m.id) FILTER (WHERE ((m.author = 'seat'::text) AND (m.send_status = 'sent'::text))) AS auto_replies_sent,
+    count(m.id) FILTER (WHERE ((m.author = 'seat'::text) AND (m.send_status = 'held_switch_off'::text))) AS auto_replies_held_switch_off,
+    count(m.id) FILTER (WHERE ((m.author = 'seat'::text) AND (m.reply_kind = 'handoff'::text))) AS handoffs,
+    count(m.id) FILTER (WHERE ((m.author = 'seat'::text) AND (m.reply_kind = 'unknown'::text))) AS unanswered_gaps,
+    count(m.id) FILTER (WHERE (m.author = 'human'::text)) AS founder_replies,
+    max(m.occurred_at) FILTER (WHERE (m.direction = 'in'::text)) AS last_inbound_at
+   FROM (social_conversation c
+     LEFT JOIN social_message m ON ((m.conversation_id = c.id)))
+  WHERE (NOT c.is_demo)
+  GROUP BY c.platform;
 
 CREATE OR REPLACE VIEW public.v_openrouter_call_log AS  SELECT c.id,
     c.occurred_at,
@@ -14383,6 +14644,75 @@ begin
                          'fix', 'book_over_refund_loss', 'amount_aed', a.detail->>'excess_aed'));
   end if;
   return jsonb_build_object('ok', true, 'advance', public.fn_ceo_incident_advance((a.detail->>'incident_id')::bigint));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_keeps_reported_ad_spend(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; d jsonb; v_test boolean; v_fx numeric; v_aed numeric; v_recorded boolean := false;
+        v_month date; v_pos jsonb; v_inv jsonb; v_bid bigint; v_meta_month numeric;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'adspend.recorded' then
+    raise exception 'fn_accountant_keeps_reported_ad_spend: % is not an adspend.recorded handoff', p_id;
+  end if;
+  d := a.detail;
+  v_test := coalesce((d->>'test')::boolean, false) or coalesce(d->>'source_ref', '') ~* 'zz[ _-]?demo';
+  v_fx := coalesce((select num_value from public.gl_settings where key = 'usd_to_aed'), 3.6725);
+  v_aed := case d->>'currency' when 'AED' then (d->>'amount')::numeric
+                               when 'USD' then round((d->>'amount')::numeric * v_fx, 2) end;
+  v_month := date_trunc('month', (d->>'spend_date')::date)::date;
+
+  if not v_test then
+    insert into public.ad_spend_reported (source_ref, platform, spend_date, currency, amount, amount_aed, campaign_ref, handoff_id)
+    values (d->>'source_ref', d->>'platform', (d->>'spend_date')::date, d->>'currency', (d->>'amount')::numeric, v_aed,
+            nullif(d->>'campaign_ref', ''), p_id)
+    on conflict (source_ref) do update
+      set amount = excluded.amount, amount_aed = excluded.amount_aed, currency = excluded.currency,
+          spend_date = excluded.spend_date, campaign_ref = excluded.campaign_ref, handoff_id = excluded.handoff_id,
+          revisions = ad_spend_reported.revisions + 1, updated_at = now();
+    v_recorded := true;
+  end if;
+
+  select jsonb_build_object('platform', d->>'platform', 'month', to_char(v_month, 'YYYY-MM'),
+                            'reported_aed', coalesce(sum(amount_aed), 0), 'rows', count(*),
+                            'rows_unconverted', count(*) filter (where amount_aed is null))
+    into v_pos from public.ad_spend_reported
+   where platform = d->>'platform' and spend_date >= v_month and spend_date < (v_month + interval '1 month')::date;
+  if d->>'platform' = 'meta' then
+    -- the addition: Meta's month total feeds the invoice match's reported side
+    if v_recorded then
+      select round(sum(amount_aed), 2) into v_meta_month from public.ad_spend_reported
+       where platform = 'meta' and amount_aed is not null
+         and spend_date >= v_month and spend_date < (v_month + interval '1 month')::date;
+      if coalesce(v_meta_month, 0) > 0 then
+        insert into public.accountant_ad_spend_month (month, reported_spend_aed, reported_at, updated_at)
+        values (v_month, v_meta_month, now(), now())
+        on conflict (month) do update set reported_spend_aed = excluded.reported_spend_aed, reported_at = now(), updated_at = now();
+        -- the hourly snapshot (fn_accountant_ad_spend_snapshot) reads this; keep it saying the same figure
+        update public.ad_spend_policy set month_spent_aed = v_meta_month, month_label = to_char(v_month, 'YYYY-MM'), updated_at = now()
+         where policy_key = 'default' and to_char(v_month, 'YYYY-MM') = to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM');
+      end if;
+    end if;
+    begin
+      v_inv := public.fn_accountant_ad_spend_figures(v_month);
+      v_pos := v_pos || jsonb_build_object('invoiced_aed', v_inv->'invoiced_aed', 'meta_invoices', v_inv->'meta_invoices');
+    exception when others then
+      v_pos := v_pos || jsonb_build_object('invoiced_aed', null, 'invoiced_error', left(sqlerrm, 200));
+    end;
+  end if;
+
+  v_bid := public.fn_seat_handoff('accountant', 'marketing', 'adspend.booked', 'ad_spend_reported', (d->>'source_ref') || '@' || (d->>'amount'),
+    jsonb_build_object('recorded_handoff', p_id, 'source_ref', d->>'source_ref', 'amount', d->'amount', 'currency', d->>'currency',
+                       'amount_aed', v_aed, 'recorded', v_recorded, 'test', v_test, 'demo', v_test, 'month_position', v_pos,
+                       'books', case when v_test then 'Test money: not recorded and never booked.'
+                                     else 'Recorded on the accountant''s ad-spend record. The ledger entry is made from the platform''s invoice when it reaches the expenses mailbox (fn_gl_sync_business); booking the reported figure as well would count the same spend twice.' end));
+  return jsonb_build_object('waiting', 'marketing re-verification of adspend.booked ' || v_bid, 'recorded', v_recorded,
+                            'test', v_test, 'amount_aed', v_aed, 'booked_handoff', v_bid, 'month_position', v_pos);
 end $function$
 
 
@@ -18052,6 +18382,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18077,16 +18417,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -21573,6 +21903,7 @@ AS $function$
     ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
     ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
+    ('marketing-media',  'bucket', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the media of the posts the founder and Claude ingest to the marketing seat; private, not in the repository)', null),
 
     -- ── (a) columns whose files are filed by the STORAGE SWEEP of the bucket they sit in ──
     -- measured 15 Sep 2026 where rows exist; "no writer today" where no code writes the column yet
@@ -21606,6 +21937,7 @@ AS $function$
     ('it_incident.pdf_path',                 'column', 'agent-docs',       true, 'fn_enqueue_doc_backups: STORAGE SWEEP (rendered into agent-docs/it_engineer/incidents/)', null),
     ('ceo_daily_digest.pdf_path',            'column', 'agent-docs',       true, 'fn_enqueue_doc_backups: STORAGE SWEEP (rendered into agent-docs/ceo/daily_brief/)', null),
     ('ceo_weekly_report.pdf_path',           'column', 'agent-docs',       true, 'fn_enqueue_doc_backups: STORAGE SWEEP (rendered into agent-docs by resilience_ping renderPdfAndAttach)', null),
+    ('marketing_post.media_paths',           'column', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (marketing-media/posts/<ingest_key>/, written by marketing_channels ingest)', null),
 
     -- ── (b) EXEMPT (not a file or not ours) ──
     ('doc_backups.dropbox_path',             'column', null, false, null, 'EXEMPT (not a file or not ours): the Dropbox destination of a backup, not a source'),
@@ -23348,7 +23680,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_founder_text_forbidden()
  IMMUTABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select '(switched off|switch them|campaign|\mgate\M|go[- ]?live|invite_enabled|\mcaps?\M|ceiling|warm[- ]?up|subscription|marketing)'::text
+  select '(switched off|switch them|campaign|\mgate\M|go[- ]?live|invite_enabled|\mcaps?\M|ceiling|warm[- ]?up|subscription)'::text
 $function$
 
 
@@ -23608,7 +23940,8 @@ begin
     when jsonb_typeof(coalesce(p_output->'directives','[]'::jsonb)) <> 'array' or jsonb_array_length(coalesce(p_output->'directives','[]'::jsonb)) > 3 then 'directives is not an array of at most 3'
     when exists (select 1 from jsonb_array_elements(coalesce(p_output->'directives','[]'::jsonb)) dd
                   where jsonb_typeof(dd) <> 'object'
-                     or not coalesce(dd->>'seat' = any (array['sales_engineer','customer_support','accountant','it_engineer']), false)
+                     or not coalesce(dd->>'seat' = any (array['sales_engineer','customer_support','accountant','it_engineer','marketing']), false)
+                     or not exists (select 1 from public.org_role r where r.role_id = dd->>'seat' and r.status = 'active')
                      or not coalesce(dd->>'measure_key' = any (v_keys), false) or coalesce(dd->>'direction','') not in ('min','max')
                      or coalesce(dd->>'target','') !~ '^[0-9]+(\.[0-9]+)?$'
                      or case when coalesce(dd->>'due_days','') ~ '^[0-9]{1,3}$' then (dd->>'due_days')::int not between 1 and 14 else true end
@@ -23656,13 +23989,13 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_judgement_contract()
 AS $function$
   select jsonb_build_object(
     'version', 'ceo-judgement-v1',
-    'system', 'You are the chief executive of QuotesDone, a UAE construction-procurement marketplace. Customers post requests; verified suppliers quote; the customer sees a free comparison of the best three technical quotes plus every other quote, and pays a 3% reveal fee (plus card processing) to reveal the supplier they choose. Suppliers pay no commission. The company goal is AED 1,000,000 of reveal-fee revenue by 31 August 2027. You direct four seats: sales_engineer, customer_support, accountant, it_engineer. Decide ONLY from the numbers in the input; never invent one. You may not move money, change a supplier or customer record, message a customer, a supplier or the founder, or touch any founder switch. The supplier invitation campaign (its go, its switches, its daily volume and ramp), subscriptions and seats that do not exist yet are not yours to propose or mention: when a stage is held by them, choose hold_reserved and leave founder_decision null. founder_decision is only for a stage a seat can move that has not moved in 14 days despite directives. Choose exactly one option id from input.options. Give your reasoning in at most eight sentences, citing the input numbers you relied on. Make one measurable prediction. Reply with a single JSON object matching output_schema and nothing else.',
-    'input_fields', jsonb_build_array('date','goal','month_target','funnel','attainment','constraint','open_directives','options','plan_c_choice'),
+    'system', 'You are the chief executive of QuotesDone, a UAE construction-procurement marketplace. Customers post requests; verified suppliers quote; the customer sees a free comparison of the best three technical quotes plus every other quote, and pays a 3% reveal fee (plus card processing) to reveal the supplier they choose. Suppliers pay no commission. The company goal is AED 1,000,000 of reveal-fee revenue by 31 August 2027. You direct five seats: sales_engineer, customer_support, accountant, it_engineer, marketing (marketing owns the demand stage: buyers posting requests). input.marketing is the marketing seat''s latest daily report: read it as the picture of that stage. Decide ONLY from the numbers in the input; never invent one. You may not move money, change a supplier or customer record, message a customer, a supplier or the founder, or touch any founder switch. The supplier invitation campaign (its go, its switches, its daily volume and ramp), subscriptions and seats that do not exist yet are not yours to propose or mention: when a stage is held by them, choose hold_reserved and leave founder_decision null. founder_decision is only for a stage a seat can move that has not moved in 14 days despite directives. Choose exactly one option id from input.options. Give your reasoning in at most eight sentences, citing the input numbers you relied on. Make one measurable prediction. Reply with a single JSON object matching output_schema and nothing else.',
+    'input_fields', jsonb_build_array('date','goal','month_target','funnel','attainment','constraint','open_directives','options','plan_c_choice','marketing'),
     'output_schema', jsonb_build_object(
       'option_id', 'one of input.options[].id',
       'reasoning', 'string, 40-2000 characters, cites input numbers',
       'prediction', jsonb_build_object('measure_key','one of the measure keys in input.funnel','direction','min|max','value','number >= 0','by_date','YYYY-MM-DD, 1-30 days after input.date'),
-      'directives', 'array of at most 3: {seat: sales_engineer|customer_support|accountant|it_engineer, stage, measure_key, direction, target >= 0, due_days 1-14, instruction <= 400 characters}',
+      'directives', 'array of at most 3: {seat: sales_engineer|customer_support|accountant|it_engineer|marketing, stage, measure_key, direction, target >= 0, due_days 1-14, instruction <= 400 characters}',
       'founder_decision', 'null, or <= 300 characters naming the one decision only the founder can take'),
     'plan_c', 'If the slot is off, the call fails, or the answer fails validation, the coded decision already taken stands and the rejection is recorded on the plan.')
 $function$
@@ -23688,7 +24021,9 @@ begin
       'open_directives', (select coalesce(jsonb_agg(jsonb_build_object('seat', a.agent, 'stage', a.detail->>'stage', 'measure_key', a.detail->>'measure_key',
                                    'target', a.detail->'target', 'due_at', a.detail->>'due_at', 'reply', a.evidence)), '[]'::jsonb)
                             from public.agent_actions a where a.kind='handoff' and a.detail->>'type'='ceo.directive' and a.status='pending'),
-      'options', p.decision->'options', 'plan_c_choice', p.decision->>'plan_c_choice'));
+      'options', p.decision->'options', 'plan_c_choice', p.decision->>'plan_c_choice',
+      -- the marketing report the plan read when it was made (fn_ceo_plan_tick), 22 Sep 2026 (instruction 721)
+      'marketing', p.funnel->'marketing_report'));
 end $function$
 
 
@@ -23850,7 +24185,8 @@ AS $function$
                                       ||case a.detail->>'direction' when 'max' then ' down to ' else ' to ' end||(a.detail->>'target')
                                       ||' by '||to_char((a.detail->>'due_at')::timestamptz at time zone 'Asia/Dubai','DD Mon')||'.')
                        from public.agent_actions a
-                      where a.kind='handoff' and a.detail->>'type'='ceo.directive' and a.status='pending'), '[]'::jsonb)
+                      where a.kind='handoff' and a.detail->>'type'='ceo.directive' and a.status='pending'
+                        and exists (select 1 from public.org_role r where r.role_id = a.agent and r.status = 'active')), '[]'::jsonb)
         || case when p.founder_line is not null then jsonb_build_array('Waiting on you: '||p.founder_line) else '[]'::jsonb end
       from public.ceo_plan p order by p.plan_date desc limit 1)) x
    where x !~* public.fn_ceo_founder_text_forbidden()), '[]'::jsonb)
@@ -23914,7 +24250,9 @@ begin
     when 'quotes'         then 'requests reaching 3 quotes'
     when 'reveals'        then 'reveal fees paid'
     else 'every stage on plan' end;
-  v_owner := case v_stage when 'deliverability' then 'customer_support' when 'on_plan' then null else 'sales_engineer' end;
+  -- demand (customer requests posted) is buyer acquisition: the marketing seat's since 22 Sep 2026 (instruction 721).
+  v_owner := case v_stage when 'deliverability' then 'customer_support' when 'demand' then 'marketing'
+                          when 'on_plan' then null else 'sales_engineer' end;
   v_key := case v_stage
     when 'deliverability' then 'bounce_pct_7d' when 'invitations' then 'invitations_delivered'
     when 'registrations' then 'registrations_submitted'
@@ -23929,9 +24267,6 @@ begin
   if v_stage in ('invitations','registrations') and not (coalesce((g->>'invite_enabled')::boolean,false) and coalesce((g->>'supplier_outreach_golive')::boolean,false)) then
     v_lever := 'founder_reserved';
     v_hold := 'the campaign gate is closed: the founder''s reserved decision, held silently';
-  elsif v_stage = 'demand' then
-    v_lever := 'unowned';
-    v_hold := 'no existing seat owns buyer acquisition: recorded internally until a seat does';
   elsif v_stage = 'invitations' and ceil((p_target->>'invites')::numeric / 22) > v_cap then
     -- the ramp is the sales engineer's and customer support's (warm-up config), so the seat is directed
     -- and the shortfall is recorded -- the founder is not asked about the cap
@@ -24210,6 +24545,12 @@ begin
   end if;
 
   v_funnel := public.fn_ceo_plan_funnel(p_at);
+  -- THE CEO READS THE MARKETING PICTURE INTO THE PLAN (instruction 721): the latest marketing.report is kept on the
+  -- day's plan row, read by the judgement request as input.marketing. Informational: it changes no lever.
+  v_funnel := v_funnel || jsonb_build_object('marketing_report',
+    (select jsonb_build_object('report_date', m.report_date, 'no_data_yet', m.no_data_yet, 'headline', m.figures->>'headline',
+                               'measured', m.figures->'measured', 'not_measured', m.figures->'not_measured')
+       from public.marketing_report m where m.report_date <= v_local::date order by m.report_date desc limit 1));
   select to_jsonb(m) into v_target from public.ceo_plan_month m where m.month = date_trunc('month', v_local)::date;
   select to_jsonb(x) into v_prev from public.ceo_plan x where x.plan_date < v_local::date order by x.plan_date desc limit 1;
   v_dec := public.fn_ceo_plan_decide(v_funnel, coalesce(v_target, '{}'::jsonb), v_prev);
@@ -24232,6 +24573,29 @@ begin
                                     'call_model', v_funnel->'gates'->>'ceo_model_slot' = 'on'))
     || case when coalesce((v_act->>'ok')::boolean, false) then '{}'::jsonb else jsonb_build_object('error', v_act->>'error') end
     || case when v_fu ? 'error' then jsonb_build_object('error', v_fu->>'error') else '{}'::jsonb end;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_reads_marketing_report(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; m public.marketing_report;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'marketing.report' then
+    raise exception 'fn_ceo_reads_marketing_report: % is not a marketing.report handoff', p_id;
+  end if;
+  update public.marketing_report set read_by_ceo_at = coalesce(read_by_ceo_at, now())
+   where report_date = (a.detail->>'subject_id')::date returning * into m;
+  if m.report_date is null then
+    raise exception 'marketing.report % names report %, which does not exist', p_id, a.detail->>'subject_id';
+  end if;
+  return jsonb_build_object('read', true, 'read_at', m.read_by_ceo_at, 'report_date', m.report_date,
+                            'headline', m.figures->>'headline', 'no_data_yet', m.no_data_yet,
+                            'note', 'Read by the CEO for the overall picture. Informational: nothing was approved or decided.');
 end $function$
 
 
@@ -24854,7 +25218,7 @@ begin
     'seats', (
       select jsonb_object_agg(s.seat, jsonb_build_object(
 
-        -- WHAT IT DID: every run, and every run that failed. Same source for all five, so the
+        -- WHAT IT DID: every run, and every run that failed. Same source for all six, so the
         -- comparison between seats is honest.
         'runs',        (select count(*) from agent_runs r
                          where public.fn_run_seat(r.agent) = s.seat and r.started_at >= v_from),
@@ -24908,12 +25272,21 @@ begin
             'findings_closed',                 (select count(*) from it_watch_finding where status = 'resolved'),
             'alerts_delivered',                (select count(*) from notifications
                                                  where kind like 'it_%' and status = 'sent'))
+          -- 22 Sep 2026 (founder instruction 721): the marketing seat reports the overall picture to the CEO.
+          -- Its reports are READ, never approved; 'read_by_ceo' counts the CEO's read receipts.
+          when 'marketing' then jsonb_build_object(
+            'reports_filed',                   (select count(*) from marketing_report),
+            'reports_read_by_ceo',             (select count(*) from marketing_report where read_by_ceo_at is not null),
+            'ad_spend_reported_aed',           (select coalesce(sum(amount_aed), 0) from ad_spend_reported),
+            'latest_report',                   (select jsonb_build_object('date', m.report_date, 'headline', m.figures->'headline',
+                                                                          'no_data_yet', m.no_data_yet)
+                                                  from marketing_report m order by m.report_date desc limit 1))
           when 'ceo' then jsonb_build_object(
             'approvals_decided',               (select count(*) from ceo_approval),
             'reports_accepted',                (select count(*) from support_ceo_report where accepted_at is not null),
             'weekly_reports_delivered',        (select count(*) from ceo_weekly_report where founder_submitted_at is not null))
           else '{}'::jsonb end))
-      from (select unnest(array['ceo','customer_support','sales_engineer','accountant','it_engineer']) as seat) s),
+      from (select unnest(array['ceo','customer_support','sales_engineer','accountant','it_engineer','marketing']) as seat) s),
 
     'basis', 'Every figure is a count of rows that exist, over the window for activity and lifetime '
           || 'for achievement. Nothing here is scored or rated. A zero means the thing has not '
@@ -24963,7 +25336,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_figures(p_from date, p_to date)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   v_prev_from date := p_from - (p_to - p_from) - 1;
@@ -25021,7 +25394,7 @@ begin
                 'errors_week', (select count(*) from agent_runs r
                                where regexp_replace(r.agent,'^fn:','') = s.seat
                                  and r.status = 'error' and r.started_at::date between p_from and p_to)))
-              from (select unnest(array['ceo','customer_support','sales_engineer','accountant','it_engineer']) as seat) s),
+              from (select unnest(array['ceo','customer_support','sales_engineer','accountant','it_engineer','marketing']) as seat) s),
 
     'health', jsonb_build_object(
       'it_findings_open',   (select count(*) from it_watch_finding where status='open'),
@@ -37325,7 +37698,7 @@ AS $function$
       from h)
   select coalesce(jsonb_agg(jsonb_build_object(
            'item', g.t || ':' || g.agent || ':' || g.state,
-           'owner_seat', case when g.state = 'unanswered' and g.agent in ('ceo', 'customer_support', 'sales_engineer', 'accountant')
+           'owner_seat', case when g.state = 'unanswered' and g.agent in ('ceo', 'customer_support', 'sales_engineer', 'accountant', 'marketing')
                               then g.agent else 'ceo' end,
            'subject', 'agent_actions',
            'title', g.n || ' ' || g.t || ' handoff(s) to ' || g.agent
@@ -40130,6 +40503,146 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_ad_spend_record(p_account text, p_business_id text, p_rows jsonb, p_is_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_expected_acct text := 'act_' || regexp_replace(coalesce((select value from public.app_secrets where key = 'meta_ad_account_id'), ''), '^act_', '');
+  v_business text := (select value #>> '{}' from public.decision_policy where key = 'marketing_meta_business_id');
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_n int := 0; v_handoffs int := 0; d record;
+begin
+  if not p_is_demo and (p_account is distinct from v_expected_acct or p_business_id is distinct from v_business) then
+    return jsonb_build_object('ok', false, 'error', 'account_not_the_company',
+      'message', 'The ad account read is not app_secrets.meta_ad_account_id inside the Quotes Done business (decision_policy marketing_meta_business_id); nothing was recorded.',
+      'account', p_account, 'business', p_business_id);
+  end if;
+
+  insert into public.marketing_ad_spend_day as t (account_id, campaign_id, day, campaign_name, spend, currency, impressions, clicks, is_demo, pulled_at)
+  select p_account, r->>'campaign_id', (r->>'day')::date, r->>'campaign_name', round((r->>'spend')::numeric, 2),
+         upper(r->>'currency'), nullif(r->>'impressions', '')::bigint, nullif(r->>'clicks', '')::bigint, p_is_demo, now()
+    from jsonb_array_elements(coalesce(p_rows, '[]'::jsonb)) r
+  on conflict (account_id, campaign_id, day) do update
+     set campaign_name = excluded.campaign_name, currency = excluded.currency, impressions = excluded.impressions,
+         clicks = excluded.clicks, pulled_at = now(),
+         -- a revised figure goes to the accountant again
+         handed_off_at = case when excluded.spend is distinct from t.spend then null else t.handed_off_at end,
+         booked_ack_at = case when excluded.spend is distinct from t.spend then null else t.booked_ack_at end,
+         spend = excluded.spend;
+  get diagnostics v_n = row_count;
+
+  -- Never today (still moving), never a demo row, never a zero.
+  for d in
+    select s.* from public.marketing_ad_spend_day s
+     where s.account_id = p_account and not s.is_demo and s.day < v_today and s.handed_off_at is null and s.spend > 0
+     order by s.day, s.campaign_id
+  loop
+    update public.marketing_ad_spend_day set handed_off_at = now()
+     where account_id = d.account_id and campaign_id = d.campaign_id and day = d.day;
+    perform public.fn_marketing_records_ad_spend('meta', d.day, d.currency, d.spend,
+      d.account_id || ':' || d.campaign_id || ':' || d.day, d.campaign_name, false);
+    v_handoffs := v_handoffs + 1;
+  end loop;
+  return jsonb_build_object('ok', true, 'rows', v_n, 'handoffs', v_handoffs);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_asks_the_founder_to_take_over(p_platform text, p_thread_ref text, p_handle text, p_last_message text, p_summary text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_subject text; v_id bigint; a public.agent_actions;
+begin
+  if coalesce(p_platform, '') !~ '^[a-z][a-z0-9_]*$' or coalesce(btrim(p_thread_ref), '') = '' then
+    raise exception 'a handover names its platform (lowercase key) and the platform''s thread reference';
+  end if;
+  if concat_ws(' ', p_thread_ref, p_handle, p_last_message) ~* 'zz[ _-]?demo' then
+    return jsonb_build_object('asked', false, 'reason', 'a ZZ DEMO conversation never reaches the founder');
+  end if;
+  v_subject := p_platform || ':' || p_thread_ref || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD');
+  v_id := public.fn_seat_handoff('marketing', 'customer_support', 'delivery.request', 'social_conversation', v_subject,
+    jsonb_build_object('recipient_role', 'founder', 'kind', 'social_human_request', 'level', 'medium',
+      'dedupe_key', 'social_human_request:' || v_subject,
+      'event', 'Someone on ' || initcap(p_platform) || ' asked to speak with a person',
+      'detail', coalesce(nullif(btrim(p_handle), ''), 'A person') || ' asked to speak with a person on ' || initcap(p_platform)
+                || ' (conversation ' || p_thread_ref || ').' || E'\n\nTheir last message: ' || left(coalesce(p_last_message, ''), 1000)
+                || coalesce(E'\n\nThe conversation so far: ' || left(nullif(btrim(p_summary), ''), 1500), '')
+                || E'\n\nThe automatic replies on this conversation have stopped. Please reply to them directly on '
+                || initcap(p_platform) || '.',
+      'platform', p_platform, 'thread_ref', p_thread_ref));
+  select * into a from public.agent_actions where id = v_id;
+  return jsonb_build_object('asked', a.status <> 'failed', 'handoff_id', v_id, 'status', a.status,
+                            'notification_id', a.evidence->'notification_id', 'error', a.detail->>'error');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_assist(p_text text, p_embedding vector DEFAULT NULL::vector, p_min_similarity numeric DEFAULT 0.83, p_min_rank numeric DEFAULT 0.05, p_k integer DEFAULT 5, p_min_overlap numeric DEFAULT 0.60)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_k int := greatest(1, least(coalesce(p_k, 5), 20)); v_wide int := greatest(v_k * 4, 20);
+  c_lex_only numeric := greatest(0.20, coalesce(p_min_rank, 0));
+  v_tq tsquery; v_lex text[]; v_nlex int; v_need int; v_records jsonb; v_cited text[];
+begin
+  if coalesce(btrim(p_text), '') = '' then
+    return jsonb_build_object('company', public.fn_company_context(), 'ok', false, 'answered', false, 'refusal', 'empty_query');
+  end if;
+  v_tq := websearch_to_tsquery('english', p_text);
+  select array_agg(distinct u.lexeme) into v_lex from unnest(to_tsvector('english', p_text)) u;
+  v_nlex := coalesce(cardinality(v_lex), 0);
+  v_need := case when v_nlex = 0 then 2147483647
+                 else greatest(least(2, v_nlex), ceil(coalesce(p_min_overlap, 0.60) * v_nlex)::int) end;
+
+  with cand as (
+    select o.record_id, o.title, left(o.content, 4000) content, o.module, o.layer,
+           (1 - (o.embedding_gte <=> p_embedding))::numeric sim,
+           coalesce(ts_rank(o.tsv, v_tq), 0)::numeric * (case when o.tsv @@ v_tq then 1 else 0 end) rnk,
+           (select count(*) from unnest(o.tsv) u where u.lexeme = any (v_lex))::int hits, true has_vec
+      from public.ops_knowledge o
+     where p_embedding is not null and o.embedding_gte is not null
+       and coalesce(o.supersession_state, 'current') = 'current'
+     order by o.embedding_gte <=> p_embedding limit v_wide
+  ), lex as (
+    select o.record_id, o.title, left(o.content, 4000) content, o.module, o.layer,
+           null::numeric sim, ts_rank(o.tsv, v_tq)::numeric rnk, 0 hits, false has_vec
+      from public.ops_knowledge o
+     where o.tsv @@ v_tq and coalesce(o.supersession_state, 'current') = 'current'
+       and not exists (select 1 from cand c where c.record_id = o.record_id)
+     order by ts_rank(o.tsv, v_tq) desc limit v_wide
+  ), judged as (
+    select x.*, case when x.has_vec then x.sim >= p_min_similarity and (x.rnk >= p_min_rank or x.hits >= v_need)
+                     else x.rnk >= c_lex_only end ok
+      from (select * from cand union all select * from lex) x
+  ), top as (
+    select j.* from judged j where j.ok order by j.has_vec desc, j.sim desc nulls last, j.rnk desc limit v_k
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('corpus', 'ops_knowledge', 'record_id', t.record_id, 'title', t.title,
+                                               'provenance', coalesce(t.module, '') || coalesce(' · ' || t.layer, ''),
+                                               'similarity', round(t.sim, 4), 'lexical_rank', round(t.rnk, 4),
+                                               'route', case when t.has_vec then 'vector+lexical' else 'lexical_only' end,
+                                               'content', t.content)), '[]'::jsonb),
+         coalesce(array_agg('ops_knowledge:' || t.record_id), '{}')
+    into v_records, v_cited from top t;
+
+  return jsonb_build_object('company', public.fn_company_context(), 'ok', true, 'answered', cardinality(v_cited) > 0,
+    'records', v_records, 'cited', v_cited, 'corpora', jsonb_build_array('ops_knowledge'),
+    'floor', jsonb_build_object('min_similarity', p_min_similarity, 'min_rank', p_min_rank, 'lexical_only', c_lex_only,
+                                'lexeme_overlap_needed', v_need, 'vector_route', p_embedding is not null),
+    'refusal', case when cardinality(v_cited) = 0 then 'no_sourced_answer' end,
+    'handoff', case when cardinality(v_cited) = 0 then
+      'No sourced answer in company knowledge. Reply with the standard holding line and do not state a fee, date or policy; '
+      || 'if the person asks for someone, hand the conversation to the founder (fn_marketing_asks_the_founder_to_take_over).' end);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_blog_publish(p_id uuid, p_published boolean, p_by text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -40148,6 +40661,343 @@ begin
   exception when others then null; end;
   return jsonb_build_object('ok', true, 'published', r.published);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_closes_ad_spend_loops()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.agent_actions; b public.agent_actions; n_closed int := 0; n_mismatch int := 0; n_wait int := 0;
+begin
+  for h in select * from public.agent_actions
+            where kind = 'handoff' and agent = 'accountant' and detail->>'type' = 'adspend.recorded'
+              and detail->>'from' = 'marketing' and status = 'pending' and detail ? 'replied_at'
+            order by id limit 200 loop
+    select * into b from public.agent_actions
+     where kind = 'handoff' and agent = 'marketing' and detail->>'type' = 'adspend.booked'
+       and (detail->>'recorded_handoff')::bigint = h.id and status = 'done'
+     order by id desc limit 1;
+    if b.id is null then
+      n_wait := n_wait + 1;
+    elsif coalesce((b.evidence->>'verified')::boolean, false) then
+      perform set_config('qd.handoff_closer', 'marketing', true);
+      perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+        'verified_by', 'marketing', 'verified_at', now(), 'verdict', 'recorded as reported (adspend.booked ' || b.id || ')'));
+      perform set_config('qd.handoff_closer', '', true);
+      n_closed := n_closed + 1;
+    else
+      n_mismatch := n_mismatch + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'closed', n_closed, 'mismatch', n_mismatch, 'waiting', n_wait);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_connection_status()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'all_ok', coalesce(bool_and(c.ok), false),
+    'oldest_measurement', min(c.measured_at),
+    'checks', coalesce(jsonb_agg(jsonb_build_object('check', c.check_key, 'platform', c.platform, 'ok', c.ok,
+                'http_status', c.http_status, 'measured_at', c.measured_at, 'credential_keys', c.credential_keys,
+                'needs', c.needs, 'detail', c.detail) order by c.check_key), '[]'::jsonb),
+    'never_measured', not exists (select 1 from public.marketing_connection_check))
+  from public.marketing_connection_check c
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_duties_due()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- Due when no success yet today; but a start with no success after it is a run in flight or one that
+  -- failed, so that waits two hours instead of hammering Graph every beat.
+  select jsonb_object_agg(d.duty,
+           (r.last_ok_at is null or (r.last_ok_at at time zone 'Asia/Dubai')::date < (now() at time zone 'Asia/Dubai')::date)
+           and (r.last_started_at is null or r.last_started_at <= coalesce(r.last_ok_at, '-infinity')
+                or r.last_started_at < now() - interval '2 hours'))
+    from (values ('access'), ('insights'), ('ad_spend')) d(duty)
+    left join public.marketing_duty_run r on r.duty = d.duty
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_duty_mark(p_duty text, p_phase text, p_result jsonb DEFAULT NULL::jsonb)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if p_phase not in ('start', 'ok', 'error') then raise exception 'phase must be start, ok or error'; end if;
+  insert into public.marketing_duty_run (duty, last_started_at, last_ok_at, last_result)
+  values (p_duty, case when p_phase = 'start' then now() end, case when p_phase = 'ok' then now() end, p_result)
+  on conflict (duty) do update
+     set last_started_at = case when p_phase = 'start' then now() else marketing_duty_run.last_started_at end,
+         last_ok_at = case when p_phase = 'ok' then now() else marketing_duty_run.last_ok_at end,
+         last_result = coalesce(p_result, marketing_duty_run.last_result);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_notes_ad_spend_booked(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; d jsonb; r public.ad_spend_reported; v_ok boolean; v_why text;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'adspend.booked' then
+    raise exception 'fn_marketing_notes_ad_spend_booked: % is not an adspend.booked handoff', p_id;
+  end if;
+  d := a.detail;
+  select * into r from public.ad_spend_reported where source_ref = d->>'source_ref';
+  if coalesce((d->>'recorded')::boolean, false) then
+    v_ok := r.source_ref is not null and r.amount = (d->>'amount')::numeric;
+    v_why := case when r.source_ref is null then 'the accountant said recorded and no row exists'
+                  when not v_ok then 'the accountant''s row says ' || r.amount || ', marketing reported ' || (d->>'amount') end;
+  else
+    v_ok := coalesce((d->>'test')::boolean, false);
+    v_why := case when not v_ok then 'the accountant did not record real spend' end;
+  end if;
+  if v_ok then
+    update public.marketing_ad_spend_day set booked_ack_at = now()
+     where account_id || ':' || campaign_id || ':' || day = d->>'source_ref' and spend = (d->>'amount')::numeric;
+  end if;
+  return jsonb_build_object('verified', v_ok, 'reason', v_why, 'recorded_handoff', d->'recorded_handoff');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_post_ingest(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_key text := lower(btrim(coalesce(p->>'ingest_key', '')));
+  v_at timestamptz := nullif(p->>'scheduled_at', '')::timestamptz;
+  v_media text[] := coalesce((select array_agg(x) from jsonb_array_elements_text(coalesce(p->'media_paths', '[]'::jsonb)) x), '{}');
+  v_ch text[] := coalesce((select array_agg(distinct lower(x)) from jsonb_array_elements_text(coalesce(p->'channels', '[]'::jsonb)) x), '{}');
+  v_cur public.marketing_post; v_id bigint;
+begin
+  if public.fn_text_lost_its_script(p->>'text_ar') or public.fn_text_lost_its_script(p->>'text_en') then
+    return jsonb_build_object('ok', false, 'error', 'text_lost_its_script',
+      'message', 'The text arrived as question marks; send it as UTF-8 (scripts/marketing/ingest_post.mjs does).');
+  end if;
+  if v_at is not null and v_at < now() - interval '1 hour' then
+    return jsonb_build_object('ok', false, 'error', 'scheduled_in_the_past',
+      'message', 'scheduled_at is more than an hour ago; a past time would publish at once. Send a future time or none (draft).');
+  end if;
+  if exists (select 1 from unnest(v_media) m where m !~ '^posts/[a-z0-9_-]+/[A-Za-z0-9._-]+$') then
+    return jsonb_build_object('ok', false, 'error', 'media_path_outside_the_bucket_layout',
+      'message', 'media_paths are marketing-media objects under posts/<ingest_key>/.');
+  end if;
+
+  select * into v_cur from public.marketing_post where ingest_key = v_key for update;
+  if found and v_cur.status not in ('draft', 'scheduled') then
+    return jsonb_build_object('ok', true, 'id', v_cur.id, 'unchanged', true, 'status', v_cur.status,
+      'message', 'Already ' || v_cur.status || '; a post that reached Postiz is not edited. Ingest it under a new key.');
+  end if;
+
+  insert into public.marketing_post (ingest_key, ingested_by, title, text_en, text_ar, media_paths, channels,
+                                     scheduled_at, status, is_demo)
+  values (v_key, coalesce(p->>'ingested_by', 'claude'), nullif(btrim(p->>'title'), ''), p->>'text_en', p->>'text_ar',
+          v_media, v_ch, v_at, case when v_at is null then 'draft' else 'scheduled' end,
+          coalesce((p->>'is_demo')::boolean, false))
+  on conflict (ingest_key) do update
+     set ingested_by = excluded.ingested_by, title = excluded.title, text_en = excluded.text_en,
+         text_ar = excluded.text_ar, media_paths = excluded.media_paths, channels = excluded.channels,
+         scheduled_at = excluded.scheduled_at, status = excluded.status, is_demo = excluded.is_demo,
+         dry_run = null, updated_at = now()
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'id', v_id, 'status', case when v_at is null then 'draft' else 'scheduled' end,
+                            'updated', v_cur.id is not null);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_records_ad_spend(p_platform text, p_spend_date date, p_currency text, p_amount numeric, p_source_ref text, p_campaign_ref text DEFAULT NULL::text, p_test boolean DEFAULT false)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_test boolean;
+begin
+  if coalesce(p_platform, '') !~ '^[a-z][a-z0-9_]*$' then raise exception 'platform must be a lowercase key such as meta or linkedin, got %', p_platform; end if;
+  if p_spend_date is null then raise exception 'spend_date is required'; end if;
+  if coalesce(upper(p_currency), '') !~ '^[A-Z]{3}$' then raise exception 'currency must be an ISO code, got %', p_currency; end if;
+  if p_amount is null or p_amount < 0 then raise exception 'amount must be >= 0, got %', p_amount; end if;
+  if coalesce(btrim(p_source_ref), '') = '' then raise exception 'source_ref (the platform''s own reference for this spend) is required'; end if;
+  v_test := coalesce(p_test, false) or p_source_ref ~* 'zz[ _-]?demo' or coalesce(p_campaign_ref, '') ~* 'zz[ _-]?demo';
+  return public.fn_seat_handoff('marketing', 'accountant', 'adspend.recorded', 'ad_spend_reported',
+    p_source_ref || '@' || round(p_amount, 2)::text,
+    jsonb_build_object('platform', p_platform, 'spend_date', p_spend_date, 'currency', upper(p_currency),
+                       'amount', round(p_amount, 2), 'source_ref', p_source_ref, 'campaign_ref', p_campaign_ref,
+                       'test', v_test, 'demo', v_test));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_report_figures(p_from timestamp with time zone, p_to timestamp with time zone)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_posts int; v_posts_ever int; v_spend jsonb; v_spend_aed numeric; v_unconv int; v_asked int; v_inq numeric; v_head text;
+        v_sched int; v_held int; v_failed int; v_stuck int; v_live boolean; v_ins jsonb; v_conn jsonb; v_ins_days int;
+begin
+  select count(*) filter (where published_at >= p_from and published_at < p_to), count(*)
+    into v_posts, v_posts_ever from public.marketing_post where status = 'published' and not is_demo;
+  select count(*) filter (where status = 'scheduled' and scheduled_at >= p_to and scheduled_at < p_to + interval '7 days'),
+         count(*) filter (where status = 'scheduled' and scheduled_at <= p_to and dry_run is not null),
+         count(*) filter (where status = 'failed' and updated_at >= p_from and updated_at < p_to),
+         count(*) filter (where status = 'publishing' and updated_at < p_to - interval '30 minutes')
+    into v_sched, v_held, v_failed, v_stuck from public.marketing_post where not is_demo;
+  v_live := coalesce((select lower(value) = 'true' from public.app_secrets where key = 'marketing_golive'), false);
+  select coalesce(jsonb_object_agg(platform, aed), '{}'::jsonb), coalesce(sum(aed), 0), coalesce(sum(unconv), 0)
+    into v_spend, v_spend_aed, v_unconv
+    from (select platform, sum(amount_aed) aed, count(*) filter (where amount_aed is null) unconv
+            from public.ad_spend_reported where spend_date >= (p_from at time zone 'Asia/Dubai')::date
+                                           and spend_date < (p_to at time zone 'Asia/Dubai')::date
+           group by platform) s;
+  select count(*) into v_asked from public.notifications
+   where kind = 'social_human_request' and created_at >= p_from and created_at < p_to;
+  v_inq := public.fn_ceo_plan_measure('inquiries_posted', p_from, p_to)::numeric;
+  select coalesce(jsonb_object_agg(k, v), '{}'::jsonb), count(distinct d) into v_ins, v_ins_days from (
+    select i.platform || '.' || i.metric k, sum(i.value) v, max(i.day) d
+      from public.marketing_insight_day i
+     where i.object_type <> 'post' and i.day >= (p_from at time zone 'Asia/Dubai')::date - 1
+       and i.day < (p_to at time zone 'Asia/Dubai')::date
+     group by 1) x;
+  v_conn := public.fn_marketing_connection_status();
+  v_head := format('%s post(s) published, %s scheduled for the next 7 days%s, AED %s ad spend reported, %s conversation(s) handed to the founder, %s customer request(s) posted.',
+                   v_posts, v_sched, case when not v_live and v_held > 0 then format(' (%s due and held: publishing is off)', v_held) else '' end,
+                   v_spend_aed, v_asked, coalesce(v_inq::text, 'unmeasured'));
+  return jsonb_build_object(
+    'headline', v_head,
+    'measured', jsonb_build_object(
+      'posts_published', v_posts, 'posts_published_ever', v_posts_ever, 'posts_scheduled_next_7_days', v_sched,
+      'posts_due_held_by_switch', v_held, 'posts_failed', v_failed, 'posts_stuck_publishing', v_stuck, 'publishing_live', v_live,
+      'ad_spend_reported_aed', v_spend_aed, 'ad_spend_by_platform_aed', v_spend, 'ad_spend_rows_unconverted', v_unconv,
+      'conversations_handed_to_founder', v_asked, 'customer_requests_posted', v_inq,
+      'insights', v_ins, 'connections_all_ok', v_conn->'all_ok',
+      'connections_failing', coalesce((select jsonb_agg(c->'check') from jsonb_array_elements(v_conn->'checks') c where not (c->>'ok')::boolean), '[]'::jsonb),
+      'connections_measured_at', v_conn->'oldest_measurement'),
+    'not_measured', to_jsonb(array_remove(array[
+      case when v_ins_days = 0 then 'followers, reach and engagement per channel: no insight was pulled for the window yet' end,
+      case when coalesce((v_conn->>'never_measured')::boolean, true) then 'channel access: the access check has not run yet' end,
+      'social conversations answered: no social inbox record is built yet',
+      'search rankings and organic traffic: no SEO reader is built yet'], null)),
+    'basis', 'Posts: marketing_post (published_at in the window; scheduled and held from its status and dry_run). Spend: ad_spend_reported by spend_date (Asia/Dubai), in AED at gl_settings usd_to_aed. Insights: marketing_insight_day, page and account metrics summed over the window. Connections: marketing_connection_check as last measured. Handed to the founder: notifications of kind social_human_request. Customer requests: fn_ceo_plan_measure(inquiries_posted), demo excluded. Window: the 24 hours before the report.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_report_tick(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_local timestamp := p_at at time zone 'Asia/Dubai'; f jsonb; v_none boolean; v_hid bigint;
+begin
+  if exists (select 1 from public.marketing_report where report_date = v_local::date) then
+    return jsonb_build_object('ok', true, 'reported', false, 'reason', 'today''s report exists');
+  end if;
+  if v_local::time < time '07:00' then
+    return jsonb_build_object('ok', true, 'reported', false, 'reason', 'before 07:00 Dubai');
+  end if;
+  f := public.fn_marketing_report_figures(p_at - interval '1 day', p_at);
+  v_none := coalesce((f->'measured'->>'posts_published')::numeric, 0) = 0
+        and coalesce((f->'measured'->>'ad_spend_reported_aed')::numeric, 0) = 0
+        and coalesce((f->'measured'->>'conversations_handed_to_founder')::numeric, 0) = 0
+        and coalesce((f->'measured'->>'customer_requests_posted')::numeric, 0) = 0;
+  if v_none then
+    f := f || jsonb_build_object('headline', 'No data yet: nothing was published, spent or handed over in the last 24 hours, and no customer request was posted. ' || (f->>'headline'));
+  end if;
+  insert into public.marketing_report (report_date, window_from, window_to, figures, no_data_yet)
+  values (v_local::date, p_at - interval '1 day', p_at, f, v_none);
+  v_hid := public.fn_seat_handoff('marketing', 'ceo', 'marketing.report', 'marketing_report', v_local::date::text,
+                                  jsonb_build_object('report_date', v_local::date, 'headline', f->>'headline', 'no_data_yet', v_none));
+  update public.marketing_report set handoff_id = v_hid where report_date = v_local::date;
+  return jsonb_build_object('ok', true, 'reported', true, 'report_date', v_local::date, 'handoff_id', v_hid, 'no_data_yet', v_none);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_social_hand_to_human(p_conversation_id bigint, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c public.social_conversation%rowtype;
+  v_last text;
+  v_detail text;
+begin
+  select * into c from public.social_conversation where id = p_conversation_id for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no_such_conversation'); end if;
+  -- Already with him: a second "agent" in the same conversation does not email him twice.
+  if c.status = 'handed_to_human' then return jsonb_build_object('ok', true, 'notified', false, 'reason', 'already_handed'); end if;
+
+  update public.social_conversation
+     set status = 'handed_to_human', handed_at = now(), handed_reason = left(coalesce(p_reason, ''), 500),
+         handoff_count = handoff_count + 1
+   where id = c.id;
+
+  select string_agg(to_char(m.occurred_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || '  '
+                    || case m.author when 'person' then coalesce(c.handle, 'them') when 'seat' then 'QuotesDone (auto)' else 'QuotesDone (team)' end
+                    || ': ' || left(m.body, 400), E'\n' order by m.occurred_at)
+    into v_last
+    from (select * from public.social_message where conversation_id = c.id order by occurred_at desc limit 8) m;
+
+  v_detail := 'Someone on ' || initcap(c.platform) || ' asked to speak with a person. The marketing seat has stopped '
+    || 'auto-replying in this conversation and it is waiting for you.' || E'\n\n'
+    || 'Platform: ' || initcap(c.platform) || E'\n'
+    || 'Handle: ' || coalesce(nullif(c.handle, ''), '(not shared by Meta)') || '  (id ' || c.user_id || ')' || E'\n'
+    || 'Conversation: #' || c.id || E'\n\n'
+    || 'Last messages (Dubai time):' || E'\n' || coalesce(v_last, '(none)') || E'\n\n'
+    || 'Continue in the Meta inbox: https://business.facebook.com/latest/inbox/all' || E'\n'
+    || 'When you are done, hand it back to the seat: select public.fn_marketing_social_set_status('
+    || c.id || ', ''auto'', ''founder'');';
+
+  return jsonb_build_object('ok', true, 'notified', true, 'notify',
+    public.fn_notify_founder(
+      'Someone on ' || initcap(c.platform) || ' asked to speak with you' || coalesce(' (' || nullif(c.handle, '') || ')', ''),
+      v_detail, 'high', 'social_human_request',
+      'social_human:' || c.id || ':' || (c.handoff_count + 1), 'marketing'));
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_social_set_status(p_conversation_id bigint, p_status text, p_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if p_status not in ('auto', 'handed_to_human') then
+    return jsonb_build_object('ok', false, 'reason', 'status must be auto or handed_to_human');
+  end if;
+  update public.social_conversation
+     set status = p_status,
+         resumed_at = case when p_status = 'auto' then now() else resumed_at end,
+         resumed_by = case when p_status = 'auto' then left(coalesce(p_by, ''), 120) else resumed_by end,
+         handed_at = case when p_status = 'handed_to_human' and status = 'auto' then now() else handed_at end,
+         handed_reason = case when p_status = 'handed_to_human' and status = 'auto' then left(coalesce(p_by, ''), 500) else handed_reason end
+   where id = p_conversation_id;
+  return jsonb_build_object('ok', found, 'status', p_status);
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_studio()
@@ -40182,6 +41032,23 @@ AS $function$
     'review', (select coalesce(fn_review_pending(),'[]'::jsonb))
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_tick(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_rep jsonb; v_ads jsonb;
+begin
+  begin v_rep := public.fn_marketing_report_tick(p_at);
+  exception when others then v_rep := jsonb_build_object('ok', false, 'error', left(sqlerrm, 300)); end;
+  begin v_ads := public.fn_marketing_closes_ad_spend_loops();
+  exception when others then v_ads := jsonb_build_object('ok', false, 'error', left(sqlerrm, 300)); end;
+  return jsonb_build_object('ok', coalesce((v_rep->>'ok')::boolean, false) and coalesce((v_ads->>'ok')::boolean, false),
+                            'report', v_rep, 'ad_spend_loops', v_ads);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketplace_analytics()
@@ -52114,6 +52981,8 @@ begin
       v_duty := 'the RFQ dispatch and the spec-offer duty: widen the match inside the exact trade and chase the suppliers who have not quoted';
     when 'reveals' then
       v_duty := 'the comparison follow-up with the customer; the payment path is the accountant''s nightly test';
+    when 'demand' then
+      v_duty := 'the marketing seat''s duties (supabase/functions/marketing/duties.ts): approved posts, the social inbox and paid reach that bring buyers to post requests; its daily report (marketing.report) says what moved';
     else
       v_duty := 'no standing duty carries this stage'; v_block := 'no owner duty exists';
   end case;
@@ -57437,6 +58306,8 @@ AS $function$
     ('kb_chunks','knowledge'), ('dept_library','knowledge'), ('ops_knowledge','knowledge'), ('agent_knowledge','knowledge'),
     ('sales_knowledge','knowledge'), ('ceo_knowledge','knowledge'), ('support_knowledge','knowledge'),
     ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge'),
+    ('marketing_post','marketing'), ('marketing_connection_check','marketing'), ('marketing_insight_day','marketing'),
+    ('marketing_ad_spend_day','marketing'), ('marketing_duty_run','marketing'), ('marketing_report','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
 $function$
@@ -65590,6 +66461,7 @@ ALTER TABLE public.action_execution ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ad_campaign_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ad_decision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ad_spend_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ad_spend_reported ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_mfa_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agent_action_kind_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.agent_actions ENABLE ROW LEVEL SECURITY;
@@ -65893,7 +66765,14 @@ ALTER TABLE public.llm_failure_class ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_route_health ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_seat_binding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.market_intel ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_ad_spend_day ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_connection_check ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_duty_run ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_insight_day ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_library ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_meta_page ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_post ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_eval_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
@@ -66044,7 +66923,10 @@ ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_implication ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_conversation ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_reply_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.spec_alternative_offer ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.spec_backlog ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.strategy_risks ENABLE ROW LEVEL SECURITY;
@@ -66116,6 +66998,7 @@ CREATE POLICY accountant_issued_document_service_role_only ON public.accountant_
 CREATE POLICY accountant_month_close_service_role_only ON public.accountant_month_close AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_renewal_budget_service_role_only ON public.accountant_renewal_budget AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_year_end_pack_service_role_only ON public.accountant_year_end_pack AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ad_spend_reported_service_role_only ON public.ad_spend_reported AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.ai_cost_log AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY backup_prune_log_service_role_only ON public.backup_prune_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY bank_line_owner_ruling_service_role_only ON public.bank_line_owner_ruling AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -66168,6 +67051,13 @@ CREATE POLICY kb_embed_inflight_service_role_only ON public.kb_embed_inflight AS
 CREATE POLICY kb_embed_priority_service_role_only ON public.kb_embed_priority AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY kb_purge_ledger_service_role_only ON public.kb_purge_ledger AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY marketing_ad_spend_day_service_role_only ON public.marketing_ad_spend_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_connection_check_service_role_only ON public.marketing_connection_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_insight_day_service_role_only ON public.marketing_insight_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_meta_page_service_role_only ON public.marketing_meta_page AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_post_service_role_only ON public.marketing_post AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_report_service_role_only ON public.marketing_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY otp_blocked_prefix_service_role_only ON public.otp_blocked_prefix AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -66195,6 +67085,9 @@ CREATE POLICY routine_change_log_service_role_only ON public.routine_change_log 
 CREATE POLICY sanctions_ban_service_role_only ON public.sanctions_ban AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY social_conversation_service_role_only ON public.social_conversation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY social_message_service_role_only ON public.social_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY social_reply_library_service_role_only ON public.social_reply_library AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY spec_alternative_offer_service_role_only ON public.spec_alternative_offer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_dispute_service_role_only ON public.stripe_dispute AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_payout_service_role_only ON public.stripe_payout AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -66307,6 +67200,8 @@ $CRON$);
 --   cred_fn_knowledge_exam
 --   cred_fn_kyc
 --   cred_fn_learn_gaps
+--   cred_fn_marketing
+--   cred_fn_marketing_channels
 --   cred_fn_marketing_draft
 --   cred_fn_messages_api
 --   cred_fn_os_api

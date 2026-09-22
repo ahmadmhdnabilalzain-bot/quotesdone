@@ -538,11 +538,67 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('sales_knowledge','knowledge'), ('ceo_knowledge','knowledge'), ('support_knowledge','knowledge'),
     ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge'),
     ('marketing_post','marketing'), ('marketing_connection_check','marketing'), ('marketing_insight_day','marketing'),
-    ('marketing_ad_spend_day','marketing'), ('marketing_duty_run','marketing'),
+    ('marketing_ad_spend_day','marketing'), ('marketing_duty_run','marketing'), ('marketing_report','marketing'), ('marketing_report','marketing'),
     ('marketing_article','marketing'), ('marketing_prospect','marketing'), ('marketing_outreach_message','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
 $fn$;
 revoke execute on function public.fn_table_export_list() from public, anon, authenticated;
+
+-- THE REPORT CARRIES BUSINESS DEVELOPMENT AND THE SOCIAL INBOX (22 Sep 2026). fn_marketing_report_figures is
+-- redefined from its current definition (the_marketing_seat_publishes_measures_and_reports_spend.sql, PR #834)
+-- with two additions under measured: business_development (marketing_bd_figures, above) and social_inbox
+-- (v_marketing_social_volume, PR #835); the stale "no social inbox record is built yet" line is removed.
+create or replace function public.fn_marketing_report_figures(p_from timestamptz, p_to timestamptz)
+returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_posts int; v_posts_ever int; v_spend jsonb; v_spend_aed numeric; v_unconv int; v_asked int; v_inq numeric; v_head text;
+        v_sched int; v_held int; v_failed int; v_stuck int; v_live boolean; v_ins jsonb; v_conn jsonb; v_ins_days int;
+begin
+  select count(*) filter (where published_at >= p_from and published_at < p_to), count(*)
+    into v_posts, v_posts_ever from public.marketing_post where status = 'published' and not is_demo;
+  select count(*) filter (where status = 'scheduled' and scheduled_at >= p_to and scheduled_at < p_to + interval '7 days'),
+         count(*) filter (where status = 'scheduled' and scheduled_at <= p_to and dry_run is not null),
+         count(*) filter (where status = 'failed' and updated_at >= p_from and updated_at < p_to),
+         count(*) filter (where status = 'publishing' and updated_at < p_to - interval '30 minutes')
+    into v_sched, v_held, v_failed, v_stuck from public.marketing_post where not is_demo;
+  v_live := coalesce((select lower(value) = 'true' from public.app_secrets where key = 'marketing_golive'), false);
+  select coalesce(jsonb_object_agg(platform, aed), '{}'::jsonb), coalesce(sum(aed), 0), coalesce(sum(unconv), 0)
+    into v_spend, v_spend_aed, v_unconv
+    from (select platform, sum(amount_aed) aed, count(*) filter (where amount_aed is null) unconv
+            from public.ad_spend_reported where spend_date >= (p_from at time zone 'Asia/Dubai')::date
+                                           and spend_date < (p_to at time zone 'Asia/Dubai')::date
+           group by platform) s;
+  select count(*) into v_asked from public.notifications
+   where kind = 'social_human_request' and created_at >= p_from and created_at < p_to;
+  v_inq := public.fn_ceo_plan_measure('inquiries_posted', p_from, p_to)::numeric;
+  select coalesce(jsonb_object_agg(k, v), '{}'::jsonb), count(distinct d) into v_ins, v_ins_days from (
+    select i.platform || '.' || i.metric k, sum(i.value) v, max(i.day) d
+      from public.marketing_insight_day i
+     where i.object_type <> 'post' and i.day >= (p_from at time zone 'Asia/Dubai')::date - 1
+       and i.day < (p_to at time zone 'Asia/Dubai')::date
+     group by 1) x;
+  v_conn := public.fn_marketing_connection_status();
+  v_head := format('%s post(s) published, %s scheduled for the next 7 days%s, AED %s ad spend reported, %s conversation(s) handed to the founder, %s customer request(s) posted.',
+                   v_posts, v_sched, case when not v_live and v_held > 0 then format(' (%s due and held: publishing is off)', v_held) else '' end,
+                   v_spend_aed, v_asked, coalesce(v_inq::text, 'unmeasured'));
+  return jsonb_build_object(
+    'headline', v_head,
+    'measured', jsonb_build_object(
+      'posts_published', v_posts, 'posts_published_ever', v_posts_ever, 'posts_scheduled_next_7_days', v_sched,
+      'posts_due_held_by_switch', v_held, 'posts_failed', v_failed, 'posts_stuck_publishing', v_stuck, 'publishing_live', v_live,
+      'ad_spend_reported_aed', v_spend_aed, 'ad_spend_by_platform_aed', v_spend, 'ad_spend_rows_unconverted', v_unconv,
+      'conversations_handed_to_founder', v_asked, 'customer_requests_posted', v_inq,
+      'insights', v_ins, 'connections_all_ok', v_conn->'all_ok',
+      'connections_failing', coalesce((select jsonb_agg(c->'check') from jsonb_array_elements(v_conn->'checks') c where not (c->>'ok')::boolean), '[]'::jsonb),
+      'connections_measured_at', v_conn->'oldest_measurement',
+      'business_development', (select to_jsonb(f) from public.marketing_bd_figures f),
+      'social_inbox', coalesce((select jsonb_agg(to_jsonb(v)) from public.v_marketing_social_volume v), '[]'::jsonb)),
+    'not_measured', to_jsonb(array_remove(array[
+      case when v_ins_days = 0 then 'followers, reach and engagement per channel: no insight was pulled for the window yet' end,
+      case when coalesce((v_conn->>'never_measured')::boolean, true) then 'channel access: the access check has not run yet' end,
+      'search rankings and organic traffic: no SEO reader is built yet'], null)),
+    'basis', 'Posts: marketing_post (published_at in the window; scheduled and held from its status and dry_run). Spend: ad_spend_reported by spend_date (Asia/Dubai), in AED at gl_settings usd_to_aed. Insights: marketing_insight_day, page and account metrics summed over the window. Connections: marketing_connection_check as last measured. Handed to the founder: notifications of kind social_human_request. Customer requests: fn_ceo_plan_measure(inquiries_posted), demo excluded. Business development: marketing_bd_figures (7-day counts, ZZ DEMO excluded). Social inbox: v_marketing_social_volume per platform. Window: the 24 hours before the report.');
+end $fn$;
+revoke execute on function public.fn_marketing_report_figures(timestamptz, timestamptz) from public, anon, authenticated;
 
 commit;

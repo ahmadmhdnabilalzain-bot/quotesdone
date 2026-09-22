@@ -7,7 +7,7 @@
 # could silently strip that requirement with nothing failing and nothing logged. Pinning the
 # value here makes the auth posture reviewable in git: an unintended change shows up as a diff.
 #
-# Functions that require a JWT (19):
+# Functions that require a JWT (20):
 #   accountant
 #   ceo_agent
 #   contact_submit
@@ -15,6 +15,7 @@
 #   customer_intelligence
 #   inquiry_intake
 #   it_engineer
+#   marketing
 #   messages_api
 #   procurement_api
 #   project_api
@@ -113,9 +114,16 @@ verify_jwt = false
 [functions.login_otp]
 verify_jwt = false
 
-# The founder's one-tap LinkedIn page is opened from his email with no session; its internal actions
-# require the fn.marketing_outreach credential (requireInternal).
+[functions.marketing]
+verify_jwt = true
+
+[functions.marketing_channels]
+verify_jwt = true
+
 [functions.marketing_outreach]
+verify_jwt = false
+
+[functions.marketing_social_inbox]
 verify_jwt = false
 
 [functions.messages_api]

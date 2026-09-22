@@ -52,6 +52,8 @@ const SEATS = [
   { seat: 'sales_engineer',   call: "public.fn_sales_assist('supplier verification requirements'::text, null::vector)" },
   { seat: 'accountant',       call: "public.fn_accountant_assist('how is an expense booked'::text)" },
   { seat: 'it_engineer',      call: "public.fn_it_engineer_assist('how are credentials rotated'::text)" },
+  // 22 Sep 2026, the sixth seat (instruction 721): marketing retrieves over ops_knowledge (growth playbooks, its role card).
+  { seat: 'marketing',        call: "public.fn_marketing_assist('how do we measure organic SEO contribution to reveals'::text)" },
 ];
 
 // The estate's aborted-transaction idiom: do the work, carry the answer out on the exception message,
@@ -199,7 +201,7 @@ for (const { seat, call } of SEATS) {
   });
 }
 
-test('the five seats on record are exactly the five this check covers', { skip: SKIP }, async () => {
+test('the seats on record are exactly the seats this check covers', { skip: SKIP }, async () => {
   // A sixth seat added without a company block would otherwise pass silently: every seat this file
   // knows about would still carry it. The founder's ruling is about ANY seat the company makes.
   const rows = await sql(`select agent_key from public.org_agents where active order by agent_key`);

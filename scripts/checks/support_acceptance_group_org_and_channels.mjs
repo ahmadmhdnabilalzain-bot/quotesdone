@@ -84,7 +84,7 @@ const S = (name, expect, critical = false) => ({ name, expect, critical });
 // THE ROSTER IS WIDENED BY ONE NAME. IT IS NOT LOOSENED INTO A COUNT, AND THE EDGE TEST IS NOT
 // RELAXED TO LET A SEAT OFF. Every property the 4-seat version held is held here, and a SIXTH seat
 // still fails through all three of the same instruments:
-//   * inserted active                     → the_roster_is_exactly_the_five_authorised_seats
+//   * inserted active                     → the_roster_is_exactly_the_six_authorised_seats
 //                                           (v_names is a sorted string; a sixth name changes it)
 //                                           AND no_seat_exists_outside_the_authorised_roster
 //   * inserted 'retired' and never edged  → no_seat_exists_outside_the_authorised_roster ALONE
@@ -102,12 +102,17 @@ const S = (name, expect, critical = false) => ({ name, expect, critical });
 // seat is ever quietly edged under the CEO — and equally if it stops naming the founder, because a
 // seat with no edge and no named escalation reports to nobody at all.
 //
+// 22 SEP 2026 — THE SIXTH SEAT, marketing (founder instruction 721: it "reports to the CEO for the overall
+// picture"). The roster string and the off-roster list gain one name, and marketing joins the authorised-
+// child list because it holds an edge to the ceo by the founder's ruling. A SEVENTH seat still fails the
+// same three instruments.
+//
 // The authorised-child list in v_bad_edges is DELIBERATELY not widened to include it_engineer: that
 // list is what may hold an edge, and this seat may not.
 export const G9 = {
-  title: '9. An authenticated five-seat roster, every edge to the CEO except the founder-reporting seat, and no departments',
+  title: '9. An authenticated six-seat roster, every edge to the CEO except the founder-reporting seat, and no departments',
   scenarios: [
-    S('the_roster_is_exactly_the_five_authorised_seats', 'accountant,ceo,customer_support,it_engineer,sales_engineer', true),
+    S('the_roster_is_exactly_the_six_authorised_seats', 'accountant,ceo,customer_support,it_engineer,marketing,sales_engineer', true),
     S('no_seat_exists_outside_the_authorised_roster', '0', true),
     S('support_reports_directly_to_the_ceo', '1', true),
     S('every_edge_reports_to_the_ceo', '0', true),
@@ -137,7 +142,7 @@ begin
   -- 'inactive' is still an organisation growing back, just quietly. This is the ONLY assertion
   -- that sees a sixth seat inserted retired and never edged.
   select count(*) into v_off_roster from public.org_role
-   where role_id not in ('accountant','ceo','customer_support','it_engineer','sales_engineer');
+   where role_id not in ('accountant','ceo','customer_support','it_engineer','marketing','sales_engineer');
 
   -- THE FOUNDER-REPORTING EXCEPTION, ASSERTED RATHER THAN ASSUMED. The founder, 9 Sep 2026: the IT
   -- engineer "reports to me directly only". org_reporting_edge.parent_role_id is a foreign key to
@@ -158,7 +163,7 @@ begin
   -- duplicate edge, which an "all parents are ceo" test alone would happily accept.
   select (select count(*) from public.org_reporting_edge
            where parent_role_id <> 'ceo'
-              or child_role_id not in ('accountant','customer_support','sales_engineer'))
+              or child_role_id not in ('accountant','customer_support','marketing','sales_engineer'))
        + (select count(*) - count(distinct child_role_id) from public.org_reporting_edge)
     into v_bad_edges;
 
@@ -202,7 +207,7 @@ begin
     'Visibility only.');
   select count(*) into v_alerts_after from public.founder_alerts;
 
-  raise exception 'CHK<<the_roster_is_exactly_the_five_authorised_seats=%||no_seat_exists_outside_the_authorised_roster=%||support_reports_directly_to_the_ceo=%||every_edge_reports_to_the_ceo=%||the_it_engineer_reports_to_the_founder_and_has_no_edge=%||no_departments_remain=%||a_report_to_a_retired_role_is_refused=%||every_report_is_visible_in_the_ceo_queue=%||a_report_is_not_closed_by_being_received=%||accepting_a_report_needs_a_receipt=%||the_public_contact_exists_to_be_given=%||the_sending_number_is_not_the_founders=%||sharing_the_contact_pages_nobody=%>>',
+  raise exception 'CHK<<the_roster_is_exactly_the_six_authorised_seats=%||no_seat_exists_outside_the_authorised_roster=%||support_reports_directly_to_the_ceo=%||every_edge_reports_to_the_ceo=%||the_it_engineer_reports_to_the_founder_and_has_no_edge=%||no_departments_remain=%||a_report_to_a_retired_role_is_refused=%||every_report_is_visible_in_the_ceo_queue=%||a_report_is_not_closed_by_being_received=%||accepting_a_report_needs_a_receipt=%||the_public_contact_exists_to_be_given=%||the_sending_number_is_not_the_founders=%||sharing_the_contact_pages_nobody=%>>',
     v_names, v_off_roster, v_direct, v_bad_edges, v_it_founder, v_depts,
     r1->>'ok', v_visible, v_still_open, r3->>'ok',
     (coalesce(v_phone,'') <> ''),
