@@ -415,6 +415,25 @@ async function accountantDutiesTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE MARKETING SEAT'S CHANNELS (22 Sep 2026, marketing). Every beat: publish what is due (a dry run while
+// app_secrets.marketing_golive is not 'true'), then the once-a-Dubai-day reads fn_marketing_duties_due names
+// (access check, insights, ad spend -> the accountant). Under the seat's own credential, so the run is the
+// marketing seat's. The result names only counts: this endpoint is public and secretless.
+async function marketingChannelsTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_marketing_channels');
+    if (!secret) return { ok: false, error: 'cred_fn_marketing_channels is not in app_secrets' };
+    const r = await fetch(FN + '/marketing_channels', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+      body: JSON.stringify({ __secret: secret, action: 'duties' }), signal: AbortSignal.timeout(55000),
+    });
+    // deno-lint-ignore no-explicit-any
+    const j = await r.json().catch(() => null) as any;
+    return { status: r.status, ok: j?.ok ?? null, due: j?.publish?.due ?? null, published: j?.publish?.published ?? null,
+             dry_run: j?.publish?.dry_run ?? null, daily: j?.daily ? Object.keys(j.daily) : [] };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function vatThresholdTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_accountant_vat_threshold_check', { p_notify: true });
@@ -1134,6 +1153,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   ladder: { run: refundLadderTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
+  marketingChannels: { run: marketingChannelsTick },
   whatsapp: { run: whatsappTick },
   itdetect: { run: itDetectTick },
   itduties: { run: itDutiesTick },
