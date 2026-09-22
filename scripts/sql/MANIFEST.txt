@@ -1610,13 +1610,6 @@ scripts/sql/an_unmatched_question_gets_a_proper_answer.sql
 scripts/sql/the_public_company_block_carries_no_internal_figures.sql
 scripts/sql/a_fee_question_that_names_no_side_gets_the_customer_fee.sql
 scripts/sql/the_nonresponse_charge_is_the_refund_plus_the_admin_fee_plus_lawful_interest_probe.sql
-<<<<<<< HEAD
-scripts/sql/a_greeting_written_in_arabic_is_answered_in_arabic.sql
-scripts/sql/the_arabic_faq_answers_every_question_the_english_one_does.sql
-scripts/sql/the_live_composers_say_it_in_native_arabic.sql
-scripts/sql/the_licence_we_name_is_the_licence_we_hold.sql
-scripts/sql/the_report_pdf_enqueue_had_no_consumer.sql
-=======
 scripts/sql/the_records_left_behind_by_work_already_finished_are_closed_by_id.sql
 scripts/sql/the_it_digest_has_one_signature_again.sql
 scripts/sql/the_sms_line_writes_down_what_it_receives.sql
@@ -1638,4 +1631,8 @@ scripts/sql/the_delivery_column_names_everyone_who_writes_it.sql
 # company_faq answers and the two replies site_assistant sends verbatim still said Sunday to Thursday
 # while every file on the site said Monday to Friday. Becomes the canonical file for the two routines.
 scripts/sql/the_working_week_is_monday_to_friday_in_the_database_too.sql
->>>>>>> origin/main
+scripts/sql/a_greeting_written_in_arabic_is_answered_in_arabic.sql
+scripts/sql/the_arabic_faq_answers_every_question_the_english_one_does.sql
+scripts/sql/the_live_composers_say_it_in_native_arabic.sql
+scripts/sql/the_licence_we_name_is_the_licence_we_hold.sql
+scripts/sql/the_report_pdf_enqueue_had_no_consumer.sql
