@@ -96,8 +96,9 @@ test('the table drill\'s due-check waits at most 250 ms for a lock and then says
 });
 
 test('the tag apply_sql.mjs writes is the tag the guard reads as signed', () => {
-  assert.match(read('scripts/apply_sql.mjs'), /const tag = `qd-apply \$\{rev\} \$\{base\(process\.cwd\(\)\)\} \$\{base\(file\)\}`/);
+  assert.match(read('scripts/apply_sql.mjs'), /const tag = `qd-apply \$\{rev\} \$\{seat\} \$\{base\(process\.cwd\(\)\)\} \$\{base\(file\)\}`/);
   const guard = /^qd-apply ([0-9a-f]{7,40}) /;   // the pattern in trg_it_judge_routine_change
+  assert.equal('qd-apply 133aa12 it_engineer qd-it19 x.sql'.match(guard)?.[1], '133aa12', 'the seat after the revision must not break the guard');
   assert.equal('qd-apply 133aa12 qd-it19 x.sql'.match(guard)?.[1], '133aa12');
   assert.equal('qd-apply unknown qd-it19 x.sql'.match(guard), null, 'a copy that is not a git checkout must read as unsigned');
   assert.equal('mgmt-api'.match(guard), null);
@@ -165,7 +166,10 @@ if (!OVERDUE_SKIP) {
 async function probe(body) {
   try { await sql(`do $p$ ${body} $p$;`); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
-    if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));
+    // The payload arrives JSON-escaped inside the error text: unescape it as one JSON string first, so a
+    // nested value that itself carries quotes survives (the crude \" replace broke on fn_it_usage_watch's
+    // 'unjudged' object, 22 Sep 2026).
+    if (m) { try { return JSON.parse(JSON.parse('"' + m[1] + '"')); } catch { return JSON.parse(m[1].replace(/\\"/g, '"')); } }
     throw e;
   }
   throw new Error('probe committed instead of rolling back');
@@ -307,4 +311,79 @@ test('a bill over its recorded cap is a finding for the accountant; an unread pr
     end`);
   assert.deepEqual(r.finding, { open: true, owner: 'accountant', blast: 'agent_facing' });
   assert.deepEqual(Object.keys(r.not_read).sort(), ['twilio', 'vercel']);
+});
+
+// 22 Sep 2026, founder instruction 639: caps and subscriptions are his. duty:usage_twilio:cap_unknown:twilio_balance
+// and duty:usage_vercel:cap_unknown:vercel_charges_month had sat open since 14 Sep saying only "no cap is recorded".
+// A metric with no cap is now READ and recorded (unjudged), never raised; a cap that is set and breached still is.
+let UNJUDGED_SKIP = SKIP;
+if (!UNJUDGED_SKIP) {
+  const [u] = await sql(`select prosrc like '%unjudged%' ok from pg_proc where oid = 'public.fn_it_usage_watch(jsonb)'::regprocedure`);
+  if (!u.ok) UNJUDGED_SKIP = 'NOT_APPLIED: a_cap_the_founder_holds_is_read_not_raised.sql is not on production yet';
+}
+test('a cap nobody set is read and recorded, never raised; a set cap that is breached still is', { skip: UNJUDGED_SKIP }, async () => {
+  const r = await probe(`
+    declare v jsonb; v2 jsonb;
+    begin
+      update public.it_threshold set value = null where key = 'cap_supabase_storage_bytes';
+      v := public.fn_it_usage_watch(jsonb_build_object('twilio', jsonb_build_object('basis', 'measured', 'balance', 11.25),
+                                                       'vercel', jsonb_build_object('basis', 'measured', 'charges_month', 48.63)));
+      -- control: the same reading against a cap set at 1 byte is a finding
+      perform public.fn_it_cap_set('cap_supabase_storage_bytes', 1, 'accountant', 'ZZ DEMO probe');
+      v2 := public.fn_it_usage_watch(jsonb_build_object('twilio', jsonb_build_object('basis', 'measured', 'balance', 11.25),
+                                                        'vercel', jsonb_build_object('basis', 'measured', 'charges_month', 48.63)));
+      raise exception 'CHK<<%>>', json_build_object(
+        'open_cap_unknown', (select count(*) from public.it_engineer_finding where closed_at is null and issue_key like 'duty:usage\\_%:cap\\_unknown:%'),
+        'unjudged', v->'unjudged',
+        'breach_open', (select closed_at is null from public.it_engineer_finding where issue_key = 'duty:usage_supabase:supabase_storage_bytes'));
+    end`);
+  assert.equal(Number(r.open_cap_unknown), 0, 'a cap nobody recorded is still raised as a finding');
+  for (const k of ['twilio_balance', 'vercel_charges_month', 'supabase_storage_bytes']) {
+    assert.ok(r.unjudged && k in r.unjudged, `${k} was read with no cap and its reading was not recorded: ${JSON.stringify(r.unjudged)}`);
+  }
+  assert.equal(r.breach_open, true, 'a cap that is set and breached must still be a finding');
+});
+
+// 22 Sep 2026: 16 of 22 unsigned_revision findings were raised in the minutes between an apply and its PR's
+// merge -- the estate's own order is apply, then merge. An open PR now has two hours; past that it is raised,
+// and a revision in no PR (not_on_main) is raised at once.
+let GRACE_SKIP = SKIP;
+if (!GRACE_SKIP) {
+  const [g] = await sql(`select prosrc like '%''applied_as''%' ok from pg_proc where oid = 'public.fn_it_change_watch()'::regprocedure`);
+  if (!g.ok) GRACE_SKIP = 'NOT_APPLIED: an_apply_from_an_open_pull_request_waits_for_its_merge.sql is not on production yet';
+}
+test('an open PR revision waits two hours; after that, and not_on_main at once, it is raised', { skip: GRACE_SKIP }, async () => {
+  const r = await probe(`
+    begin
+      insert into public.it_change_revision (rev, verdict, pr_number, first_seen_at, checked_at, detail) values
+        ('abcdef2', 'open_pr', 9001, now() - interval '5 minutes', now(), '{}'),
+        ('abcdef3', 'open_pr', 9002, now() - interval '3 hours', now(), '{}'),
+        ('abcdef4', 'not_on_main', null, now() - interval '5 minutes', now(), '{}');
+      perform public.fn_it_change_watch();
+      raise exception 'CHK<<%>>', json_build_object(
+        'fresh_open_pr', (select count(*) from public.it_engineer_finding where issue_key = 'duty:unsigned_revision:rev:abcdef2' and closed_at is null),
+        'stale_open_pr', (select count(*) from public.it_engineer_finding where issue_key = 'duty:unsigned_revision:rev:abcdef3' and closed_at is null),
+        'not_on_main',   (select blast from public.it_engineer_finding where issue_key = 'duty:unsigned_revision:rev:abcdef4' and closed_at is null));
+    end`);
+  assert.equal(Number(r.fresh_open_pr), 0, 'an apply minutes before its merge was raised');
+  assert.equal(Number(r.stale_open_pr), 1, 'a PR left open for hours with its code live must be raised');
+  assert.equal(r.not_on_main, 'security', 'a revision in no pull request must be raised at once');
+});
+
+// 22 Sep 2026: duty:unsigned_revision:rev:2d34c4a and rev:59a3de8 (PR #834) could be attributed only by
+// opening the pull request -- the apply tag named a commit and a worktree, never the seat. The tag now
+// carries the seat, and an apply no seat owns is refused before it can write (scripts/lib/apply_seat.mjs).
+test('an apply is signed with the seat that owns it, and refused when nothing names one', async () => {
+  const { seatFor } = await import('../lib/apply_seat.mjs');
+  assert.equal(seatFor({ branch: 'it_engineer/the-alarms-say-only-what-is-true' }), 'it_engineer');
+  assert.equal(seatFor({ branch: 'worktree-agent-a3466b29cc207b137', subject: 'marketing: the seat publishes' }), 'marketing');
+  assert.equal(seatFor({ branch: 'HEAD', subject: 'sales_engineer + it_engineer: the Arabic check' }), 'sales_engineer');
+  assert.equal(seatFor({ flag: 'ceo', branch: 'it_engineer/x' }), 'ceo', 'an explicit --seat wins');
+  // controls: nothing names a seat, or a name that is not a seat
+  assert.equal(seatFor({ branch: 'worktree-agent-a3466b29cc207b137', subject: 'Merge branch main' }), null);
+  assert.equal(seatFor({ flag: 'session' }), null, 'a made-up seat is not a seat');
+  assert.equal(seatFor({ branch: 'main', subject: 'fix: typo' }), null);
+  const src = read('scripts/apply_sql.mjs');
+  assert.ok(src.indexOf('if (!seat) {') > 0 && src.indexOf('if (!seat) {') < src.indexOf('if (!APPLY) {'),
+    'the seat must be resolved, and refused, before the dry run exits -- so a dry run says so first');
 });

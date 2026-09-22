@@ -201,12 +201,25 @@ const declared = new Map();
   }
 }
 
+const { execSync } = await import('node:child_process');
+// THE SEAT IS SIGNED TOO (22 Sep 2026, scripts/lib/apply_seat.mjs). No seat, no write to production.
+const { seatFor, SEATS } = await import('./lib/apply_seat.mjs');
+const git = (cmd) => { try { return execSync(cmd, { encoding: 'utf8' }).trim(); } catch { return ''; } };
+const seatFlag = process.argv.includes('--seat') ? process.argv[process.argv.indexOf('--seat') + 1] : null;
+const seat = seatFor({ flag: seatFlag, branch: git('git rev-parse --abbrev-ref HEAD'), subject: git('git log -1 --format=%s') });
+if (!seat) {
+  console.error(`REFUSED: no seat owns this apply. Name it with --seat <${SEATS.join('|')}>, or apply from a branch or`);
+  console.error('commit that starts with the seat (it_engineer/..., "it_engineer: ..."). An unattributed routine change is a finding.');
+  process.exit(2);
+}
+
 if (!APPLY) {
   console.log(`\nDRY RUN — nothing was written to ${PROD_REF}.`);
   console.log(`  ${file}`);
   console.log(`  defines ${uniq.length} routine(s): ${uniq.join(', ') || '(none)'}`);
   console.log(`  calls ${wanted.length} routine(s) it does not define; all present on the database`);
   if (DDL) console.log('  --ddl: also carries schema changes');
+  console.log('  applied for the seat: ' + seat);
   console.log('\nGuards passed. Re-run with --apply to write it.');
   process.exit(0);
 }
@@ -218,15 +231,14 @@ const shapeBefore = DDL ? one(await mgmtRead(PROD_REF, SHAPE)) : null;
 // of its file from an unknown caller, logged only as 'mgmt-api'. Every apply from this tool now names
 // its commit, working directory and file, so an untagged routine change is, by construction, not from
 // a current checkout of this tool.
-const { execSync } = await import('node:child_process');
 let rev = 'unknown';
 try { rev = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { /* not a git checkout */ }
-// application_name holds 63 bytes, so keep the parts that identify a caller: commit, the last
+// application_name holds 63 bytes, so keep the parts that identify a caller: commit, seat, the last
 // folder of the working directory (the worktree name), and the start of the file name.
 const base = (p) => String(p).split(/[\\/]/).filter(Boolean).pop() || '';
 // Reduced to plain ASCII letters, digits, space, dot, dash and underscore, so the literal can never
 // close its quotes and one character is one byte under the 63-byte limit.
-const tag = `qd-apply ${rev} ${base(process.cwd())} ${base(file)}`.replace(/[^A-Za-z0-9 ._-]/g, '_').slice(0, 63);
+const tag = `qd-apply ${rev} ${seat} ${base(process.cwd())} ${base(file)}`.replace(/[^A-Za-z0-9 ._-]/g, '_').slice(0, 63);
 // Same line as the file's first line, so reported line numbers still match the file. A file that
 // must run outside a transaction (CREATE INDEX CONCURRENTLY) is sent alone: a second statement in
 // the same query would wrap it in an implicit transaction and Postgres would refuse it.
