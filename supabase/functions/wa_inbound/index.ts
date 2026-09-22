@@ -29,7 +29,7 @@ import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/l
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 // 22 Sep 2026 (customer_support, instruction 759): the URL Twilio signs, and the welcome + menu.
-import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from './signature.ts';
+import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
 import { type Audience, humanAlert, type Lang } from './menu.ts';
@@ -155,7 +155,7 @@ async function verifyProvenance(messageSid: string, from: string): Promise<{ ver
 // saves one Twilio API round trip on every inbound message. Provenance remains the fallback for
 // the no-token case, so the layered defence is preserved.
 //
-// 22 Sep 2026: the URL is no longer rebuilt from req.url alone — see signature.ts. Inside the edge
+// 22 Sep 2026: the URL is no longer rebuilt from req.url alone — see _shared/twilio_inbound_signature.ts. Inside the edge
 // runtime req.url's path is /wa_inbound, Twilio signs /functions/v1/wa_inbound, and every genuine
 // webhook failed here for twelve days.
 async function verifyTwilioSignature(req: Request, params: Record<string, string>): Promise<{ checked: boolean; valid: boolean; reason: string; urls?: string[] }> {

@@ -6,7 +6,7 @@
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/wa_inbound/signature.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { createHmac } from 'node:crypto';
-import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from './signature.ts';
+import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 
 // Twilio's documented algorithm, implemented independently of the code under test: the full URL, then
 // each POST parameter name+value in sorted-name order, HMAC-SHA1 keyed with the auth token, base64.
