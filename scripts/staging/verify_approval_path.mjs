@@ -6,8 +6,8 @@
 // does NOT move, and proving that each refusal names its own cause.
 //
 //   node scripts/staging/verify_approval_path.mjs        # zero spend, cleans up after itself
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

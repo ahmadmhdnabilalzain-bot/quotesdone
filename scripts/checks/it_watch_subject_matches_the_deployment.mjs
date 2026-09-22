@@ -20,7 +20,7 @@
 // This check re-derives the entire table from the repository and fails on any disagreement,
 // including a deployed function that has no row at all. It reads production; it writes nothing.
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 
 const CONFIG = 'supabase/config.toml';
 const FNDIR = 'supabase/functions';

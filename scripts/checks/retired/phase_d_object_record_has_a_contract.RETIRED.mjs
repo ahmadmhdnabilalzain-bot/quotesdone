@@ -70,7 +70,7 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 // skip below could take effect. It is loaded on first use instead.
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const mgmtRead = async (ref, sql) =>
-  (await import('../../staging/qd_guard.mjs')).mgmtRead(ref, sql);
+  (await import('../../lib/qd_guard.mjs')).mgmtRead(ref, sql);
 
 const token = () => (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8')).trim();

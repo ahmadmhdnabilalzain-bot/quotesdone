@@ -16,7 +16,7 @@
 //
 //   node scripts/gen_customer_360_reader.mjs      # writes scripts/sql/fn_ws_customer_360.sql
 import { writeFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const live = (await mgmtRead(PROD_REF,
   `select pg_get_functiondef(p.oid) d from pg_proc p

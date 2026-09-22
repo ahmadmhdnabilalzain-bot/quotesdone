@@ -3,6 +3,11 @@
 // Why: re-ran the Phase D deliverable builders (which DRIVE production inside aborted transactions) into a temp directory and diffed against the committed CSVs — a mirror, and the check that contended with the kernel gate and forced needs: serialisation.
 // The reasoning for every retired drive is in docs/agents/RETIRED_PHASE_DRIVES.md. The file is kept
 // verbatim below as the record of what was measured while it ran.
+// 23 SEP 2026 — ONE EDIT, PATHS ONLY. The Phase D package moved off the repository root to
+// docs/archive/phase-d-package/, and this file held the only three references to the old location.
+// They are rewritten so the record points at where the package actually is; not a line of the
+// measurement or of any assertion was touched. A retired check that names a path that no longer
+// exists is the "index pointing at nothing" failure, even when nothing runs it.
 
 // A COMMITTED DELIVERABLE IS A CLAIM ABOUT PRODUCTION. NOTHING WAS CHECKING IT.
 //
@@ -250,7 +255,7 @@ test('PHASE_D_FINANCIAL_PRIVACY_RESULT.md states the fractions PHASE_D_INJECTED_
 });
 
 test('PHASE_D_BUILDER_CLOSURE.md counts the deliverables git is actually tracking', () => {
-  const required = 'QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/PHASE_D_REQUIRED_DELIVERABLES.md';
+  const required = 'docs/archive/phase-d-package/PHASE_D_REQUIRED_DELIVERABLES.md';
   const md = join(COMMITTED, 'PHASE_D_BUILDER_CLOSURE.md');
   assert.ok(existsSync(md), `${md} is missing`);
 
@@ -276,7 +281,7 @@ test('PHASE_D_BUILDER_CLOSURE.md counts the deliverables git is actually trackin
     `${required} is not on disk, so the required-deliverable list cannot be read.\n`
     + '  Stage the package inputs — by path, never `git add -A`:\n'
     + `    git add "${required}"\n`
-    + '    git add "QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/registries/PHASE_D_INJECTED_DEFECT_CATALOG.csv"');
+    + '    git add "docs/archive/phase-d-package/registries/PHASE_D_INJECTED_DEFECT_CATALOG.csv"');
   const names = [...readFileSync(required, 'utf8').matchAll(/\b(PHASE_D_[A-Z0-9_]+\.(?:csv|md))\b/g)]
     .map((m) => m[1]);
   const wanted = [...new Set(names)];
@@ -322,7 +327,7 @@ test('PHASE_D_BUILDER_CLOSURE.md counts the deliverables git is actually trackin
 //     NAMES the exact command whose output it reports — otherwise "reproducible" is a word rather
 //     than a property. Asserted below, per file.
 test('all 15 required deliverables are present, tracked, non-empty and reproducible', () => {
-  const required = 'QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/PHASE_D_REQUIRED_DELIVERABLES.md';
+  const required = 'docs/archive/phase-d-package/PHASE_D_REQUIRED_DELIVERABLES.md';
   assert.ok(existsSync(required),
     `${required} is not on disk, so the approved denominator cannot be read. It is the package's `
     + 'list, never this file\'s opinion of it: a denominator typed into the check it guards is an '

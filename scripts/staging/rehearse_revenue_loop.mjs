@@ -8,8 +8,8 @@
 //
 //   QD_FIXTURES=1 node scripts/staging/rehearse_revenue_loop.mjs
 import { withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, makeReveal, call,
-         REF, q, num, snapshot, diffSnapshots } from './demo_factory.mjs';
-import { mgmtRead } from './qd_guard.mjs';
+         REF, q, num, snapshot, diffSnapshots } from '../lib/demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
 
 const checks = [];
 const ok = (name, pass, detail) => { checks.push(pass); console.log(`${pass ? 'PASS' : 'FAIL'} ${String(checks.length).padStart(2)} ${name.padEnd(52)} ${detail}`); };

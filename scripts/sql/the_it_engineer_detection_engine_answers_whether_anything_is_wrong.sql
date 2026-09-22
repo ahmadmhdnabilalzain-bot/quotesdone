@@ -151,10 +151,19 @@ insert into public.it_watch_subject (subject, kind, public_surface, verify_jwt, 
   ('rfq_flag','edge_function',true,false,false),
   ('role_guard','edge_function',true,false,false),
   ('sales_engineer','edge_function',false,true,true),
+  -- 22 Sep 2026: two functions that were deployed without a row here, found by
+  -- it_watch_subject_matches_the_deployment.mjs while adding sms_inbound below. Both check an
+  -- internal shared secret, so both are NOT public surfaces; transcribed, not judged.
+  ('sanctions_screen','edge_function',false,false,true),
   ('send_outbox','edge_function',false,false,true),
   ('send_sms','edge_function',false,false,true),
   ('send_whatsapp','edge_function',false,false,true),
   ('site_assistant','edge_function',true,false,false),
+  -- 22 Sep 2026 (customer_support, INT-03): the new SMS webhook. public_surface because its gate is
+  -- Twilio's HMAC over the request, not an internal shared secret — so by this table's definition it
+  -- is reachable from outside our backend and ranks as such. A deployed function with no row here is
+  -- not un-monitored quietly; it_watch_subject_matches_the_deployment.mjs fails on it.
+  ('sms_inbound','edge_function',true,false,false),
   ('stripe_checkout','edge_function',true,false,false),
   ('stripe_confirm','edge_function',true,false,false),
   ('stripe_setup','edge_function',true,true,false),
@@ -172,6 +181,7 @@ insert into public.it_watch_subject (subject, kind, public_surface, verify_jwt, 
   ('voice_otp_capture','edge_function',true,false,false),
   ('wa_inbound','edge_function',false,false,true),
   ('wa_optin_set','edge_function',false,true,true),
+  ('wa_status','edge_function',false,false,true),
   ('wa_template_setup','edge_function',false,false,true),
   ('wa_templates_watch','edge_function',false,true,true)
 on conflict (subject) do update

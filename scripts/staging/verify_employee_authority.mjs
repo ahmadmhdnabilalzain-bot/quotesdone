@@ -11,8 +11,8 @@
 // limit from every other rule in the gate.
 //
 //   node scripts/staging/verify_employee_authority.mjs      # zero spend
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

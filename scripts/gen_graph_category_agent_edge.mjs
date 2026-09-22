@@ -41,8 +41,8 @@
 // The supplier-facing reader (fn_graph_supplier_market) selects rel='adjacent_to' only, so this
 // adds nothing to what a supplier sees. It is the internal graph that gains the relationship.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { mgmtRead } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead } from './lib/qd_guard.mjs';
+import { REF as STAGE } from './lib/demo_factory.mjs';
 
 const OUT = 'scripts/sql/fn_graph_rebuild_category_agent_edge.sql';
 

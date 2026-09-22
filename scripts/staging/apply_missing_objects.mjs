@@ -23,8 +23,8 @@
 //   node scripts/staging/apply_missing_objects.mjs
 import { readFileSync } from 'node:fs';
 import { splitStatements } from './sql_split.mjs';
-import { mgmtRead, mgmtWrite, PROD_REF } from './qd_guard.mjs';
-import { REF } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF } from '../lib/demo_factory.mjs';
 
 const SCHEMA_FILE = 'C:/Users/Opera/quotesdone/supabase/schema/full_schema.sql';
 if (process.argv.includes('--apply')) {

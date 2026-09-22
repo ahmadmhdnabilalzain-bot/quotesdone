@@ -16,7 +16,7 @@
 //
 //   node scripts/gen_pdpl_customer_preference.mjs
 import { writeFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const rows = await mgmtRead(PROD_REF,
   `select p.proname n, pg_get_functiondef(p.oid) d from pg_proc p

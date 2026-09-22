@@ -389,6 +389,10 @@
   "6190da0bcb51",
   "ca7ac89e6aaf"
  ],
+ "scripts/sql/an_edit_is_owned_by_a_live_seat_and_answered_in_the_customers_language.sql": [
+  "1d3bf1712d59",
+  "4318956eb352"
+ ],
  "scripts/sql/an_unmatched_question_gets_a_proper_answer.sql": [
   "5962f01deb2f",
   "693c2ec882a6",
@@ -876,7 +880,6 @@
   "20ffc9b01a1e",
   "21830ed1d48b",
   "21c3cd4cc536",
-  "22cf4ddfea7f",
   "230c82cdb6b4",
   "23a0657f5846",
   "2583e0158e6f",
@@ -1021,6 +1024,7 @@
   "c6d01499693f",
   "c82d980e242a",
   "c935324cb3cf",
+  "c98a558f2c10",
   "cb9186eeb149",
   "cb93c4e62a13",
   "cc308a5e6acf",
@@ -1047,6 +1051,7 @@
   "e905a30bd566",
   "ea04e9e39668",
   "ea4af2f30734",
+  "eae85698e58b",
   "ef4f41b972a1",
   "efa91f65ffc9",
   "f1624f88a2ac",
@@ -1059,6 +1064,7 @@
   "f92d58802968",
   "f9be00ebca42",
   "f9cb889c7a48",
+  "fa4518464f6b",
   "fa9c385f1093",
   "fc0c39fd9d3b",
   "fc644b0eb14a",
@@ -2843,6 +2849,14 @@
  "supabase/functions/_shared/quote_labels.ts": [
   "d59ecf7fd6e7"
  ],
+ "supabase/functions/_shared/reveal_guard.ts": [
+  "605a93533c3b",
+  "81313df707ef",
+  "90032d0e95ed",
+  "a49713c03f13",
+  "c1c78f7840ee",
+  "d0629661fd94"
+ ],
  "supabase/functions/_shared/size_question.ts": [
   "29de6634a5a5",
   "6179513998c9",
@@ -2988,14 +3002,23 @@
   "fe749a06f354"
  ],
  "supabase/functions/customer_api/index.ts": [
+  "0183560e12a8",
+  "06ed97856972",
   "1e7a6e6cab42",
   "302ecd33f24f",
+  "318701cc6ae5",
   "355bbb0379e7",
   "3adbf5a1b22e",
+  "470f6f6cd807",
+  "4e23e528e11c",
   "53276351b81f",
+  "56f2c4228b44",
+  "576825a5b165",
   "5de8c7a4b018",
+  "820bc3b3178c",
   "83a390c9303a",
   "85da0685e1ff",
+  "89ad4a98f47d",
   "9668db0558d7",
   "9a550277509c",
   "9cdbdd59f936",
@@ -3004,7 +3027,11 @@
   "cc83c7932429",
   "e00773da115b",
   "e13e073561a2",
-  "f5175202b419"
+  "f5175202b419",
+  "fe9667777dfb"
+ ],
+ "supabase/functions/customer_documents/index.ts": [
+  "45f92e2a0325"
  ],
  "supabase/functions/customer_documents/shape.ts": [
   "1baf37f54ec0",
@@ -3167,6 +3194,7 @@
   "f62f83a4e79e"
  ],
  "supabase/functions/quote_compare/index.ts": [
+  "9a59faca8f00",
   "aa9f2a1ff91a"
  ],
  "supabase/functions/sales_engineer/index.ts": [
@@ -3218,6 +3246,15 @@
   "f40cee86aeb4",
   "f70f364a150d"
  ],
+ "supabase/functions/stripe_checkout/index.ts": [
+  "1317c3d3a9ac",
+  "783c51d9471a",
+  "ea217ac6f72a"
+ ],
+ "supabase/functions/stripe_confirm/index.ts": [
+  "7c6d41c8f1fb",
+  "97362be6c6b0"
+ ],
  "supabase/functions/supplier_ack/index.ts": [
   "19ebc394b957",
   "293cacc5507b",
@@ -3231,7 +3268,10 @@
   "3ae86111b9c8",
   "780982602d68",
   "8f9a5ea29d59",
+  "8fce5732032b",
+  "91ae2c7291d3",
   "94956e39f7f1",
+  "b950c9daf1bf",
   "d8840a7d8b95"
  ],
  "supabase/functions/supplier_api/quote_review.ts": [
@@ -3355,6 +3395,10 @@
   "5b18a29fa4d7",
   "afa6fc3ea96a",
   "c393ed6907b8"
+ ],
+ "supabase/functions/voice_otp/twiml.ts": [
+  "2106a8f82cd2",
+  "ee21e997c5f4"
  ],
  "supabase/functions/wa_inbound/coverage.ts": [
   "0aa6fdf4e4a5",
