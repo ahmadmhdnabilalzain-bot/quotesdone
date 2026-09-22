@@ -388,5 +388,5 @@ export const STAGE_LABEL: Record<Lang, Record<PackageStage, string>> = {
 
 export const CHAIN_LABEL: Record<Lang, Record<ChainStage, string>> = {
   en: { placed: 'Placed', approved: 'Approved', in_transit: 'In transit', arrived: 'Arrived on site', cancelled: 'Cancelled' },
-  ar: { placed: 'صدر الطلب', approved: 'معتمد', in_transit: 'قيد الشحن', arrived: 'وصل إلى الموقع', cancelled: 'ملغى' },
+  ar: { placed: 'صدر أمر الشراء', approved: 'معتمد', in_transit: 'قيد الشحن', arrived: 'وصل إلى الموقع', cancelled: 'ملغى' },
 };

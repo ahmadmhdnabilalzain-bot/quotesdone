@@ -534,11 +534,11 @@ Deno.serve(observe('wa_inbound', async (req) => {
         } else if (so.error === 'unknown_option') {
           const n = Number(so.options || 0);
           text = lang === 'ar'
-            ? `يرجى الرد برقم خيار من ١ إلى ${String(n).replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[Number(d)])}، أو «لا».`
+            ? `يُرجى الرد برقم الخيار (من 1 إلى ${n})، أو بكلمة «لا».`
             : `Please reply with an option number from 1 to ${n}, or NO.`;
         }
         // The answer is already recorded by the routine; a missing offer row must not make it silent.
-        if (!text) text = lang === 'ar' ? 'شكرًا لك، وصلنا ردّك.' : 'Thank you, we have received your answer.';
+        if (!text) text = lang === 'ar' ? 'شكرًا لكم، وصلنا ردّكم.' : 'Thank you, we have received your answer.';
         const replyS = bidiSafe(text.slice(0, 1200));
         const enabledS = (await sec('wa_autoreply_enabled')) === 'true';
         let sentS = false; let sendErrS: string | undefined;

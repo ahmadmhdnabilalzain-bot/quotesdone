@@ -51,12 +51,12 @@ const T = {
     requirement: 'What they need', noBrief: 'The customer has not described the work yet.',
   },
   ar: {
-    title: 'موصى به لك', loading: 'جارٍ ترتيب الفرص…',
-    why: 'لماذا نوصي بهذه', fit: 'ملاءمة', value: 'القيمة التقديرية',
+    title: 'فرص موصى بها لكم', loading: 'جارٍ ترتيب الفرص…',
+    why: 'سبب التوصية', fit: 'مدى الملاءمة', value: 'القيمة التقديرية',
     empty: 'لا توجد توصيات بعد.',
-    emptyWhy: 'تظهر الفرصة هنا عندما ينشر عميل عملًا يمكنك الفوز به.',
+    emptyWhy: 'تظهر الفرص هنا عندما ينشر أحد العملاء مشروعًا يمكنكم الفوز به.',
     ordered: 'مرتّبة حسب الملاءمة، لا حسب التاريخ.', notAssessable: 'غير قابل للتقييم بعد',
-    requirement: 'ما يحتاجونه', noBrief: 'لم يصف العميل العمل بعد.',
+    requirement: 'متطلبات العميل', noBrief: 'لم يقدّم العميل وصفًا للعمل بعد.',
   },
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
@@ -67,9 +67,9 @@ const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || 
 // rather than reading it off the payload also means a wording change server-side cannot silently
 // alter what the four rows are, which is the thing the supplier learns to read.
 const REASON_LABEL: Record<string, { en: string; ar: string }> = {
-  trade: { en: 'Your trade', ar: 'نشاطك' },
-  location: { en: 'Nearby location', ar: 'موقع قريب منك' },
-  capacity: { en: 'Your capacity fits', ar: 'قدرتك الإنتاجية مناسبة' },
+  trade: { en: 'Your trade', ar: 'نشاطكم' },
+  location: { en: 'Nearby location', ar: 'موقع قريب منكم' },
+  capacity: { en: 'Your capacity fits', ar: 'قدرتكم الإنتاجية مناسبة' },
   history: { en: 'Previous similar project', ar: 'مشروع مشابه سابق' },
 };
 
@@ -106,7 +106,7 @@ export default function SupplierOpportunities({ token, lang = 'en' }:
           {/* The population behind the empty list — never a silent nothing. */}
           <p className="mt-1.5 opacity-50">
             {lang === 'ar'
-              ? `${d.population?.open_inquiries ?? 0} طلب مفتوح · ${d.population?.quotes_in_estate ?? 0} عرض سعر في المنصة`
+              ? `الطلبات المفتوحة: ${d.population?.open_inquiries ?? 0} · عروض الأسعار على المنصة: ${d.population?.quotes_in_estate ?? 0}`
               : `${d.population?.open_inquiries ?? 0} open · ${d.population?.quotes_in_estate ?? 0} quotes in the estate`}
           </p>
         </section>

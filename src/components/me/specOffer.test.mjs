@@ -28,5 +28,5 @@ test('every Arabic spec-offer string exists and is Latin-free', () => {
     assert.ok(T.ar[k], 'missing Arabic ' + k);
     assert.doesNotMatch(T.ar[k].replace(/\{\w+\}/g, ''), /[A-Za-z]/, k);
   }
-  assert.equal(tf('ar', 'so_yes', { v: '600x600' }), 'نعم، تابِع بـ 600x600');
+  assert.equal(tf('ar', 'so_yes', { v: '600x600' }), 'نعم، اعتمد 600x600');
 });

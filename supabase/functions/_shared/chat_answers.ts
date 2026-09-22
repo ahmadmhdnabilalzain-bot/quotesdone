@@ -219,7 +219,7 @@ export function quoteAnswer(message: string, quotes: QuoteForAnswer[], lang: Lan
     return {
       quote_id: q.id, field, basis: 'quote_field_absent',
       reply: lang === 'ar'
-        ? `${head}، لم يذكر المورّد ${label}. لا أستطيع تأكيد ما لم يُكتب في العرض — اطلب توضيحاً من المورّد عبر «الرسائل» (تُفتح بعد الكشف) أو عبر سؤال توضيحي على الطلب، وسيُحفظ ردّه مع العرض.`
+        ? `${head}، لم يذكر المورّد ${label}. ولا أستطيع أن أؤكد أمرًا لم يرد في العرض — يمكنك طلب توضيح من المورّد عبر «الرسائل» (تُتاح بعد الكشف) أو بإرسال سؤال استيضاحي على الطلب، وسيُحفظ ردّه مع العرض.`
         : `${head}, the supplier did not state ${label}. I cannot confirm anything the quote does not say — ask the supplier through Messages (open after a reveal) or a clarification on the request, and their answer is kept with the quote.`,
     };
   }
@@ -237,14 +237,14 @@ export function quoteAnswer(message: string, quotes: QuoteForAnswer[], lang: Lan
     const triggered = above ? qm[0] > lm[0] : qm[0] < lm[0];
     compare = lang === 'ar'
       ? (triggered
-        ? ` رقمك (${qm[0]} متر) ${above ? 'يتجاوز' : 'أقل من'} حدّ ${lm[0]} متر المذكور في هذا السطر، لذا ينطبق هذا الاستثناء على حالتك كما هو مكتوب.`
-        : ` رقمك (${qm[0]} متر) ${above ? 'أقل من' : 'يتجاوز'} حدّ ${lm[0]} متر المذكور في هذا السطر، لذا كما هو مكتوب لا ينطبق هذا الاستثناء على حالتك.`)
+        ? ` القياس الذي ذكرته (${qm[0]} متر) ${above ? 'يتجاوز' : 'أقل من'} الحدّ الوارد في هذا البند (${lm[0]} متر)، لذا ينطبق هذا الاستثناء على حالتك وفق نصّه.`
+        : ` القياس الذي ذكرته (${qm[0]} متر) ${above ? 'أقل من' : 'يتجاوز'} الحدّ الوارد في هذا البند (${lm[0]} متر)، لذا لا ينطبق هذا الاستثناء على حالتك وفق نصّه.`)
       : (triggered
         ? ` Your figure (${qm[0]} m) is ${above ? 'above' : 'below'} the ${lm[0]} m threshold in that line, so as written this does apply to your case.`
         : ` Your figure (${qm[0]} m) is ${above ? 'below' : 'above'} the ${lm[0]} m threshold in that line, so as written this does not apply to your case.`);
   }
   const tail = lang === 'ar'
-    ? ' هذا ما كُتب في العرض حرفياً؛ وما لم يُكتب فيه لا أستطيع تأكيده — اطلب توضيحاً من المورّد عبر «الرسائل» بعد الكشف أو عبر سؤال توضيحي على الطلب.'
+    ? ' هذا نصّ ما ورد في العرض حرفيًا؛ وما لم يرد فيه لا أستطيع تأكيده — يمكنك طلب توضيح من المورّد عبر «الرسائل» بعد الكشف، أو بإرسال سؤال استيضاحي على الطلب.'
     : ' That is the quote\'s own wording; anything it does not say I cannot confirm — ask the supplier through Messages after a reveal, or a clarification on the request.';
   return {
     quote_id: q.id, field, basis: 'quote_field',
@@ -259,6 +259,6 @@ export function notYet(lang: Lang, taskId: number | string | null | undefined, s
   const who = seat === 'sales_engineer' ? { en: 'the sales engineer', ar: 'مهندس المبيعات' } : { en: 'customer support', ar: 'خدمة العملاء' };
   const t = taskId != null && taskId !== '' ? (lang === 'ar' ? ` (المهمة رقم ${taskId})` : ` (task #${taskId})`) : '';
   return lang === 'ar'
-    ? `ليس لديّ هذه المعلومة بعد، ولن أخمّن. سجّلت سؤالك كما كتبته ليتولّاه ${who.ar}${t}، وسيصلك الرد.`
+    ? `لا تتوفر لديّ هذه المعلومة حاليًا، ولا أودّ أن أجيبك بالتخمين. سجّلتُ سؤالك كما كتبته وأحلته إلى ${who.ar}${t}، وسيصلك الرد.`
     : `I don't have that yet, and I won't guess. I've logged your question as you wrote it for ${who.en}${t}, and the answer will come back to you.`;
 }

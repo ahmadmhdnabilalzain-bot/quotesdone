@@ -197,7 +197,7 @@ export const TRADES: Record<string, Trade> = Object.fromEntries([
       BRAND(['Sirpi', 'Arte', 'Omexco', 'Casamance', 'Graham & Brown', 'Vescom', 'Muraspec', 'Architects Paper']),
     ]),
   T('carpet', 'Carpets', 'السجاد والموكيت', /carpet|rug|موكيت|سجاد/i, [
-      A('material', 'Yarn', 'نوع الخيط', true, oneOf([['Nylon', /nylon|نايلون/i], ['Polypropylene', /polypropylene|\bpp\b/i], ['Wool', /wool|صوف/i], ['Polyester', /polyester|بوليستر/i]])),
+      A('material', 'Yarn', 'نوع الألياف', true, oneOf([['Nylon', /nylon|نايلون/i], ['Polypropylene', /polypropylene|\bpp\b/i], ['Wool', /wool|صوف/i], ['Polyester', /polyester|بوليستر/i]])),
       A('construction', 'Type (broadloom / tiles)', 'النوع (رول / بلاط)', true, oneOf([['Carpet tiles', /tiles?|بلاط/i], ['Broadloom', /broadloom|wall\s*-?\s*to\s*-?\s*wall|roll|رول/i]])),
       N('pile_weight', 'Pile weight', 'وزن الوبر', 'g/m²', 'غ/م²', false, numFrom(/(\d{3,4})\s*(?:g\/m2|g\/m²|gsm|oz)/i)),
       BRAND(['Interface', 'Balsan', 'Desso', 'Milliken', 'Tarkett', 'Shaw', 'Ege', 'Forbo']),
@@ -348,7 +348,7 @@ export const TRADES: Record<string, Trade> = Object.fromEntries([
   T('consultancy', 'Engineering & architectural consultancy', 'الاستشارات الهندسية والمعمارية', /design|drawing|supervision|consult|approval|study|survey|تصميم|إشراف|استشار|دراسة|مسح/i, [
       A('stage', 'Stage / service', 'المرحلة / الخدمة', true, oneOf([['Concept design', /concept|مبدئي/i], ['Schematic / DD', /schematic|design\s*development/i], ['Detailed design / IFC', /\bifc\b|detailed|تفصيلي/i], ['Authority approvals', /authority|approval|permit|بلدية|ترخيص|اعتماد/i], ['Site supervision', /supervision|إشراف/i], ['Survey / study', /survey|study|مسح|دراسة/i]])),
       A('deliverable', 'Deliverables', 'المخرجات', true, either(labelled('deliverables?|المخرجات'), oneOf([['Drawings set', /drawings?|مخطط/i], ['Report', /report|تقرير/i], ['BOQ / specification', /boq|specification|جدول كميات/i], ['Calculations', /calculation|حسابات/i]]))),
-      A('authority', 'Authority', 'الجهة', false, oneOf([['Dubai Municipality', /dubai\s*municipality|\bdm\b|بلدية دبي/i], ['Dubai Development Authority', /\bdda\b|development\s*authority/i], ['Trakhees', /trakhees|تراخيص/i], ['Civil Defence', /civil\s*defen[cs]e|الدفاع المدني/i], ['DEWA', /dewa|ديوا/i]])),
+      A('authority', 'Authority', 'جهة الاعتماد', false, oneOf([['Dubai Municipality', /dubai\s*municipality|\bdm\b|بلدية دبي/i], ['Dubai Development Authority', /\bdda\b|development\s*authority/i], ['Trakhees', /trakhees|تراخيص/i], ['Civil Defence', /civil\s*defen[cs]e|الدفاع المدني/i], ['DEWA', /dewa|ديوا/i]])),
     ]),
   T('manufacturing', 'Job-shop manufacturing', 'التصنيع حسب الطلب', /fabricat|machin|cnc|laser|bend|weld|cast|mould|تصنيع|خراطة|ليزر|لحام|قص/i, [
       A('material', 'Material', 'المادة', true, either(labelled('material|المادة'), oneOf([['Stainless steel', /stainless|ستانلس/i], ['Mild steel', /mild\s*steel|\bms\b|حديد/i], ['Aluminium', /alumin|ألمنيوم|المنيوم/i], ['Brass', /brass|نحاس أصفر/i], ['Copper', /copper|نحاس/i], ['Acrylic', /acrylic|أكريليك/i], ['HDPE / nylon', /hdpe|nylon|نايلون/i]]))),
@@ -363,7 +363,7 @@ export const TRADES: Record<string, Trade> = Object.fromEntries([
   T('facade', 'Facade cleaning', 'تنظيف الواجهات', /facade|window\s*clean|glass\s*clean|واجه/i, [
       A('access', 'Access method', 'طريقة الوصول', true, oneOf([['BMU / gondola', /\bbmu\b|gondola|cradle|جندول/i], ['Rope access', /rope|حبال/i], ['Boom lift / MEWP', /boom|mewp|cherry\s*picker|scissor|رافعة/i], ['Water-fed pole', /water\s*-?\s*fed|pole/i]])),
       A('products', 'Chemicals / products', 'المواد والمنظفات', true, either(labelled('chemicals?|products?|detergents?|المواد|المنظفات'), oneOf([['Neutral pH detergent', /neutral|ph\s*neutral|متعادل/i], ['Deionised water', /deioni[sz]ed|pure\s*water|ماء مقطر/i]]))),
-      N('frequency', 'Cleans per year', 'مرات التنظيف سنويًا', 'per year', 'سنويًا', false, numFrom(/(\d{1,2})\s*(?:times|cleans?|visits?)\s*(?:per|a|\/)\s*year/i)),
+      N('frequency', 'Cleans per year', 'مرات التنظيف سنويًا', 'per year', 'مرة سنويًا', false, numFrom(/(\d{1,2})\s*(?:times|cleans?|visits?)\s*(?:per|a|\/)\s*year/i)),
     ]),
   T('watertank', 'Water tank cleaning', 'تنظيف خزانات المياه', /tank|خزان/i, [
       A('method', 'Method', 'الطريقة', true, either(labelled('method|الطريقة'), oneOf([['Drain, scrub, disinfect & rinse', /disinfect|chlorinat|تعقيم|كلور/i], ['Drain & scrub', /scrub|drain|تفريغ/i]]))),

@@ -26,12 +26,12 @@ const COPY = {
     qst: { draft: 'Held — not sent yet', submitted: 'Sent to the customer', accepted: 'Customer revealed you', withdrawn: 'Withdrawn', expired: 'Expired' } as Record<string, string>,
   },
   ar: {
-    title: 'عروض الأسعار المقدَّمة', sub: 'افتح طلبًا لإرسال عرض سعرك إلى مهندس المبيعات، والرد على مراجعته، وتقديمه.',
-    empty: 'لا توجد طلبات للتسعير بعد', emptySub: 'يظهر هنا كل طلب يصلك برقمه، جاهزًا لعرض سعرك.',
-    job: 'رقم الطلب', notStarted: 'لا يوجد عرض بعد', open: 'افتح المحادثة', close: 'أغلق', inquiry: 'اقرأ الطلب',
+    title: 'عروض الأسعار المقدَّمة', sub: 'افتحوا أي طلب لإرسال عرض سعركم إلى مهندس المبيعات، والرد على مراجعته، ثم تقديمه.',
+    empty: 'لا توجد طلبات للتسعير بعد', emptySub: 'يظهر هنا كل طلب يصلكم برقمه، جاهزًا لتقديم عرض سعركم.',
+    job: 'رقم الطلب', notStarted: 'لا يوجد عرض بعد', open: 'فتح المحادثة', close: 'إغلاق', inquiry: 'قراءة الطلب',
     option: (n: number) => `الخيار ${n}`, loading: 'جارٍ التحميل…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
-    pdf: 'عرض سعرك (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
-    qst: { draft: 'محجوز — لم يُرسل بعد', submitted: 'أُرسل إلى العميل', accepted: 'كشف العميل عن عرضك', withdrawn: 'مسحوب', expired: 'منتهي الصلاحية' } as Record<string, string>,
+    pdf: 'عرض سعركم (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
+    qst: { draft: 'محجوز — لم يُرسل بعد', submitted: 'أُرسل إلى العميل', accepted: 'كشف العميل عن عرضكم', withdrawn: 'مسحوب', expired: 'منتهي الصلاحية' } as Record<string, string>,
   },
 };
 
