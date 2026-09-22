@@ -23,7 +23,7 @@ import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer'];
+const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
 const FLIPPED = [
   ['refund.requested', 'sales_engineer', 'accountant'], ['billing.question', 'sales_engineer', 'accountant'],
   ['charge.disputed', 'sales_engineer', 'accountant'],
