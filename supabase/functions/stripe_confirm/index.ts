@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
-import { sanctionedLead } from '../_shared/sanctioned.ts';
+import { canReveal } from '../_shared/reveal_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -37,8 +37,9 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     // and never the live one (see stripe_checkout; the mode is derived from the account, 14 Sep 2026).
     const keys = stripeKeyNames(isDemoEmail(user.email));
     const sk = await secret(keys.secret);
-    if (!sk && keys.mode === 'test') { await logRun('ok', { session_id: sid, mode: 'test' }, 'demo account: stripe test keys are not configured - confirmation refused, live key never used'); return J({ error: 'stripe_test_not_configured', mode: 'test' }, 200); }
-    if (!sk) { await logRun('error', { session_id: sid }, 'CONFIRM BLOCKED - stripe_secret_key missing from app_secrets'); return J({ error: 'stripe_not_configured' }, 200); }
+    // 503, not an HTTP 200 carrying a code (customer-portal audit CP-10, 22 Sep 2026).
+    if (!sk && keys.mode === 'test') { await logRun('ok', { session_id: sid, mode: 'test' }, 'demo account: stripe test keys are not configured - confirmation refused, live key never used'); return J({ ok: false, error: 'stripe_test_not_configured', code: 'stripe_test_not_configured', mode: 'test', message: 'Card payments are not available on this test account.', message_ar: 'الدفع بالبطاقة غير متاح على هذا الحساب التجريبي.' }, 503); }
+    if (!sk) { await logRun('error', { session_id: sid }, 'CONFIRM BLOCKED - stripe_secret_key missing from app_secrets'); return J({ ok: false, error: 'stripe_not_configured', code: 'stripe_not_configured', message: 'We could not confirm your payment just now. Nothing is lost — please reload in a moment.', message_ar: 'تعذّر تأكيد دفعتك الآن. لم يُفقد شيء — يُرجى تحديث الصفحة بعد لحظات.' }, 503); }
     const r = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(sid), { headers: { 'Authorization': 'Bearer ' + sk } });
     const s = await r.json();
     if (!r.ok) { await logRun('error', { session_id: sid, http: r.status }, 'stripe session fetch failed: ' + String(s?.error?.message || '').slice(0, 250)); return J({ error: 'stripe_error', detail: String(s?.error?.message || '').slice(0, 300) }, 502); }
@@ -53,7 +54,15 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     // this is the last door identity leaves by. Returning null here is deliberate and visible —
     // customer_api's reveal refuses before the charge, so reaching this branch means the ban landed
     // between the payment and the confirmation.
-    const supSel = async () => { if (await sanctionedLead(admin, q.supplier_id)) return null; const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return sup; };
+    //
+    // The DISCLOSURE goes through the same guard customer_api and stripe_checkout use
+    // (_shared/reveal_guard.ts, audit CP-09). The RECORDING never does: the money has moved, so a
+    // ban that lands mid-payment must still leave a transaction to refund against.
+    const supSel = async () => {
+      const g = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });
+      if (!g.ok) { await logRun('error', { quote_id: qid, disclosure_refused: g.code }, 'the payment is recorded but the supplier was NOT disclosed (' + g.code + '); the customer must be refunded or told.'); return null; }
+      const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return sup;
+    };
     const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
     if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, 'already recorded (likely by stripe_webhook)'); return J({ ok: true, already_revealed: true, supplier: await supSel(), original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
     if (s.payment_status !== 'paid') { await logRun('ok', { quote_id: qid, payment_status: String(s.payment_status || '') }, 'session not paid yet - returned pending'); return J({ ok: false, pending: true }); }

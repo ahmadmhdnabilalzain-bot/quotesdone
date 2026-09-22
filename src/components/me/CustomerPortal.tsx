@@ -932,7 +932,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
           <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">{t(lang, 'empty_body')}</p>
           <Button className="mt-4 gap-1.5" onClick={() => setShowNew(true)}><Plus className="h-4 w-4" aria-hidden />{t(lang, 'post_first')}</Button>
         </div>
-        <WhatHappensNext lang={lang} />
+        <WhatHappensNext lang={lang} terms={data && data.guarantee_terms} />
       </Card>
     ) : (filtered && !shown.length) ? <Card className="mt-3 p-5"><div className={S.sub}>{t(lang, needle ? 'no_search_match' : 'ball_none_you')}</div></Card>
       : filtered ? <div className={cn(S.list, 'mt-3')}>{shown.map((i) => <InquiryCard key={i.id} inq={i} token={token} lang={lang} onChange={refresh} terms={data && data.guarantee_terms} focusQuote={focusQuote} focusInq={focusInq} linkQuote={linkQuote} />)}</div>
@@ -1004,7 +1004,15 @@ function assistantOffers(lang, inqs, ballOf) {
 // what does it cost me. The four steps are the product as it actually runs — the 3% and the 3
 // working days are pricing_config.standard_reveal_rate and refund_window_working_days, the same
 // two numbers customer_api charges on.
-function WhatHappensNext({ lang }) {
+// CP-16 (22 Sep 2026): step 4 used to state 5 / 3 / 7-14 working days as typed English and Arabic.
+// pricing_config had moved the refund window to 5 while the sentence said what it said, which is
+// how a promise drifts from what is enforced. The terms now arrive with my_inquiries
+// (guarantee_terms — the same object RevealGuarantee reads) and the refund sentence is omitted
+// entirely when the server did not send them, rather than inventing a number.
+function WhatHappensNext({ lang, terms }) {
+  const w = terms && terms.window_days, c = terms && terms.chase_after_days;
+  const bmin = terms && terms.bank_min_days, bmax = terms && terms.bank_max_days;
+  const refund = w && c && bmin && bmax ? tf(lang, 'next_4_refund', { w, c, bmin, bmax }) : '';
   const steps = ['next_1', 'next_2', 'next_3', 'next_4'];
   return (
     <div className="mx-auto mt-6 max-w-[62ch] border-t border-border pt-5 text-start">
@@ -1013,7 +1021,7 @@ function WhatHappensNext({ lang }) {
         {steps.map((k, n) => (
           <li key={k} className="flex gap-3">
             <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/12 text-[11px] font-bold text-primary tabular-nums">{n + 1}</span>
-            <span className="min-w-0 text-[13px] leading-relaxed text-muted-foreground">{t(lang, k)}</span>
+            <span className="min-w-0 text-[13px] leading-relaxed text-muted-foreground">{t(lang, k)}{k === 'next_4' && refund ? ' ' + refund : ''}</span>
           </li>
         ))}
       </ol>
@@ -1184,6 +1192,9 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
               <Badge variant={anyRevealed ? 'revealed' : 'sealed'} dot className={cn('ms-auto shrink-0', anyRevealed && '!text-accent')}>{t(lang, anyRevealed ? 'lv_open' : 'lv_sealed')}</Badge>
             </div>
             <LevelledRows quotes={quotes} vmap={vmap} bestId={bestId} lang={lang} />
+            {/* A quote withheld with no word said is its own defect: my_inquiries counts the ones
+                on hold for missing details (audit CP-01) and the customer is told they exist. */}
+            {Number(inq.on_hold) > 0 ? <div className={cn(S.sub, 'border-t border-border px-2.5 pt-2 text-muted-foreground sm:px-3')}>{tf(lang, 'rc_on_hold', { n: Number(inq.on_hold) })}</div> : null}
             <div className="flex flex-col gap-2.5 border-t border-border p-2.5 sm:p-3">{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={vmap[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} terms={terms} focus={q.id === focusQuote} highlight={q.id === linkQuote} />)}</div>
           </section>
         : null}

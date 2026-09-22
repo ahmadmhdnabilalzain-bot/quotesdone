@@ -25,7 +25,8 @@ const DISCLAIMER_AR = "هذه توصية محايدة أعدّتها QuotesDone 
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined)||undefined; }
 async function sha256hex(s: string){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
 // The technical comparison (docs/contracts/technical_comparison.md) and the option-aware labels.
-import { rankable, rendererView, technicalComparison, type TechnicalComparison } from '../_shared/line_specs/compare.ts';
+import { rendererView, technicalComparison, type TechnicalComparison } from '../_shared/line_specs/compare.ts';
+import { heldQuoteIds } from '../_shared/reveal_guard.ts';
 import { requirementsOf } from '../_shared/line_specs/assess.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
@@ -83,6 +84,13 @@ Deno.serve(observe('quote_compare', async (req) => {
       return J({ error: 'not_found' }, 404);
     }
     if (!isAdmin && inq.customer_id !== cust.id) { await logRun('error', { compared: 0, ownership_violation: 1 }, 'quote_compare blocked an ownership violation (403): a signed-in customer requested the quote comparison for inquiry ' + String(inquiry_id).slice(0, 60) + ' which belongs to a different customer. Anonymised competitor pricing was NOT disclosed.'); return J({ error: 'not_your_inquiry' }, 403); }
+    // THE ANSWER'S LANGUAGE IS DECIDED BEFORE THE FIRST REFUSAL (customer-portal audit CP-03,
+    // 22 Sep 2026). `need_two` used to be answered with an English `note` whatever the customer's
+    // registered language, because the locale was resolved further down, after that branch.
+    // No language asked for: the customer's REGISTERED language decides, never the script of the text
+    // they typed (founder, 14 Sep 2026 - the registered language follows the whole workflow).
+    const lang = (langReq === 'ar' || langReq === 'en') ? langReq : await registeredLocale(admin, { role: 'customer', customerId: inq.customer_id });
+    const NEED_TWO = { en: 'Comparison needs at least two complete quotes.', ar: 'تحتاج المقارنة إلى عرضين مكتملين على الأقل.' };
     const MAX_COMPARE = 120;
     const MAX_ITEMS_PER_QUOTE = 40;
     const MAX_ITEMS_TOTAL = 1200;
@@ -90,7 +98,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     if (qsErr) { await logRun('error', { compared: 0, quotes_query_ok: 0, quotes_seen: 0 }, 'quote_compare could not read the quotes for inquiry ' + String(inquiry_id).slice(0, 60) + ' (' + String(qsErr.message).slice(0, 120) + '). The customer will be told they need at least two quotes even though suppliers may well have quoted — a query failure presented as an absence of quotes.'); }
     const live = (qsAll || []).filter((q: any) => q.status !== 'draft');
     let qs = live.slice(0, MAX_COMPARE);
-    if (!qs || qs.length < 2) { await logRun(qsErr ? 'error' : 'ok', { compared: 0, quotes_seen: qs.length, quotes_total_rows: (qsAll || []).length, need_two: 1, insufficient_genuine: qsErr ? 0 : 1, quotes_query_ok: qsErr ? 0 : 1 }, qsErr ? 'Customer asked to compare quotes and got \'need_two\' because the quotes query FAILED, not because too few suppliers quoted — real quotes may exist and are being hidden from the customer by a database error.' : ('Customer asked to compare quotes but only ' + qs.length + ' non-draft quote(s) exist for this RFQ, so no comparison was produced. This is genuine: suppliers have not returned enough quotes yet.')); return J({ ok: false, error: 'need_two', note: 'Comparison needs at least two complete quotes.' }, 200); }
+    if (!qs || qs.length < 2) { await logRun(qsErr ? 'error' : 'ok', { compared: 0, quotes_seen: qs.length, quotes_total_rows: (qsAll || []).length, need_two: 1, insufficient_genuine: qsErr ? 0 : 1, quotes_query_ok: qsErr ? 0 : 1 }, qsErr ? 'Customer asked to compare quotes and got \'need_two\' because the quotes query FAILED, not because too few suppliers quoted — real quotes may exist and are being hidden from the customer by a database error.' : ('Customer asked to compare quotes but only ' + qs.length + ' non-draft quote(s) exist for this RFQ, so no comparison was produced. This is genuine: suppliers have not returned enough quotes yet.')); return J({ ok: false, error: 'need_two', code: 'need_two', note: NEED_TWO[lang === 'ar' ? 'ar' : 'en'], message: NEED_TWO[lang === 'ar' ? 'ar' : 'en'] }, 409); }
 
     let itemsByQuote: Record<string, any[]> = {}; let itemsTotal = 0;
     const specOf: Record<string, Record<number, any>> = {};
@@ -111,19 +119,17 @@ Deno.serve(observe('quote_compare', async (req) => {
     // a delivery date, installation or warranty where they apply, or its ex-VAT price never reaches
     // the ranking, the shortlist or either table — whatever its status column says. It is counted as
     // on hold and nothing else (line_specs/compare.ts rankable).
+    // The predicate and the row mapping it needs now live in _shared/reveal_guard.ts, so this
+    // ranking, my_inquiries and the reveal guard cannot drift on what "complete" means
+    // (customer-portal audit CP-01, 22 Sep 2026).
     let heldAtRanking = 0;
     {
-      // deno-lint-ignore no-explicit-any
-      const s0: any = inq.spec;
-      const r = rankable(qs.map((q: any) => ({ q,
-        lines: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ line_no: it.line, description: String(it.description || ''), brand: it.brand, model: it.model, specification: it.specification, qty: it.qty, unit: it.unit, unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount, notes: it.notes, spec: it.spec })),
-        terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec, price_ex_vat: q.price_ex_vat } })),
-        inq.category, requirementsOf(s0));
-      heldAtRanking = r.held; qs = r.rankable.map((x) => x.q);
+      const held = heldQuoteIds(qs.map((q: any) => ({ quote: q, items: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ ...it, line_no: it.line })) })), inq.category, inq.spec);
+      heldAtRanking = held.size; qs = qs.filter((q: any) => !held.has(String(q.id)));
     }
     if (qs.length < 2) {
       await logRun('ok', { compared: 0, quotes_seen: qs.length, held_at_ranking: heldAtRanking, need_two: 1 }, 'Customer asked to compare quotes but only ' + qs.length + ' complete quote(s) exist for this RFQ (' + heldAtRanking + ' more are on hold for missing details), so no comparison was produced.');
-      return J({ ok: false, error: 'need_two', on_hold: heldAtRanking, note: 'Comparison needs at least two complete quotes.' }, 200);
+      return J({ ok: false, error: 'need_two', code: 'need_two', on_hold: heldAtRanking, note: NEED_TWO[lang === 'ar' ? 'ar' : 'en'], message: NEED_TWO[lang === 'ar' ? 'ar' : 'en'] }, 409);
     }
 
     const trackBySupplier: Record<string, any> = {};
@@ -201,9 +207,6 @@ Deno.serve(observe('quote_compare', async (req) => {
         completeness: ql ? { score: ql.score ?? null, passed: ql.pass ?? null, missing_mandatory: missMandatory } : undefined,
         track_record: tr || undefined };
     });
-    // No language asked for: the customer's REGISTERED language decides, never the script of the text
-    // they typed (founder, 14 Sep 2026 - the registered language follows the whole workflow).
-    const lang = (langReq === 'ar' || langReq === 'en') ? langReq : await registeredLocale(admin, { role: 'customer', customerId: inq.customer_id });
     // Every live quote with its place (see rosterOf). Recomputed on every answer, cached or not,
     // so it always reflects the quotes as they are now; it is never part of the model's input.
     // deno-lint-ignore no-explicit-any
@@ -248,7 +251,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     if (expertRef) payload.expert_reference = expertRef;
     if (mustSpecs.length) payload.must_state_specs = mustSpecs;
     const sys = SYS + (lang === 'ar' ? AR : '');
-    const key = await sec('cred_fn_ai'); if (!key) { await logRun('error', { compared: 0, quotes_seen: qs.length, ai_key_present: 0 }, 'quote_compare aborted: the cred_fn_ai credential is missing, so ' + qs.length + ' real supplier quotes could not be compared. The customer is shown \'ai_unavailable\' at the exact moment they are trying to choose a supplier, and the RFQ stalls at the decision step.'); return J({ ok: false, error: 'ai_unavailable' }, 200); }
+    const key = await sec('cred_fn_ai'); if (!key) { await logRun('error', { compared: 0, quotes_seen: qs.length, ai_key_present: 0 }, 'quote_compare aborted: the cred_fn_ai credential is missing, so ' + qs.length + ' real supplier quotes could not be compared. The customer is shown \'ai_unavailable\' at the exact moment they are trying to choose a supplier, and the RFQ stalls at the decision step.'); return J({ ok: false, error: 'ai_unavailable', code: 'ai_unavailable' }, 503); }
     let parsed: any = null; let lastDetail = '';
     let attempts = 0;
     // 5 Aug 2026. This asked for 4200 tokens and declared no patience, so the gateway applied its
