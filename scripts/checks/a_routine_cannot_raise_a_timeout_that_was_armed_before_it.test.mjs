@@ -24,8 +24,10 @@ import { join } from 'node:path';
 
 const DIR = 'scripts/sql';
 const SETTING = ['statement', 'timeout'].join('_');
-// A definition line, never a comment: optional leading spaces, then `set <setting>`, case-insensitive.
-const CLAUSE = new RegExp(String.raw`^\s*set\s+${SETTING}\b`, 'i');
+// Anywhere on a definition line, not only at its start: a header often carries several SET clauses on one
+// line (`… security definer set search_path to 'public' set <setting> to '30s'`), and an anchor at the
+// start of the line would let exactly that spelling through — which is how the clause was first written.
+const CLAUSE = new RegExp(String.raw`(^|\s)set\s+${SETTING}\b`, 'i');
 
 test('no routine definition tries to set its own statement timeout', () => {
   const offenders = [];

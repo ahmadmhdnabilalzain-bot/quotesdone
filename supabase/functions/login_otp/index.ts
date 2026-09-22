@@ -204,8 +204,10 @@ Deno.serve(observe('login_otp', async (req) => {
   // signs in on the reserved fixture block (+971 50 000 00xx, isDemoPhone), which no real person can
   // hold. This function sees the number, so it tags the run row `fixture: 1` and fn_it_detect's
   // refusal_rate leaves it out.
-  // WHAT WAS ACTUALLY MEASURED, re-derived over the whole Dubai day of 22 Sep (21 Sep 20:00Z - 22 Sep
-  // 20:00Z, agent 'fn:login_otp'): 566 runs, 415 status 'warn'. 249 of those warns carry `fixture`; 166 do
+  // WHAT WAS ACTUALLY MEASURED, AS AT 22 SEP 2026 20:00Z — the Dubai day was still running, so the totals
+  // below are a reading of that moment and will have grown; the invariants after them are what matter.
+  // Re-derived over the Dubai day of 22 Sep (21 Sep 20:00Z - 22 Sep 20:00Z, agent 'fn:login_otp'):
+  // 566 runs, 415 status 'warn'. 249 of those warns carry `fixture`; 166 do
   // NOT — and every one of the 166 is before 06:31:54Z, while the FIRST fixture-marked row is 06:50:31Z,
   // which is when this marking reached production. Classified: 159 sit in a burst of five or more calls
   // within 60 s (the 1x200 + 4x404 + 1x409 signature of
@@ -222,7 +224,11 @@ Deno.serve(observe('login_otp', async (req) => {
   let fixture = false;
   const cls = () => fixture ? { caller: 'fixture', fixture: 1 } : { caller: 'person' };
   const J = (o: unknown, s = 200) => annotate(reply(o, s), cls());
-  const log = (st: string, c: Record<string, unknown>, n: string) => logRun(st, { ...c, ...cls() }, n);
+  // The parameter is `counts`, never `c`: `c` is the issued OTP a few lines below, and
+  // a_sign_in_code_goes_on_one_channel_and_is_never_logged.test.mjs reads a bare `c` inside a log call as
+  // the code being written to a run row. It was a shadowed name, not a leak — and the check is right to
+  // refuse a spelling that cannot be told apart from one.
+  const log = (st: string, counts: Record<string, unknown>, n: string) => logRun(st, { ...counts, ...cls() }, n);
   try {
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
     // Three kinds, not two. 'admin' is /os and is the ONLY kind that resolves a phone through
