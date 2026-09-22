@@ -187,19 +187,44 @@ test('the detector fits the 8 s statement timeout, and a detector that stops per
   assert.equal(r.blind_finding, true, 'a detector with no persisted tick for two hours raised no monitor finding');
 });
 
-test('refusals inside a rehearsal window are the harness, not customers turned away', { skip: SKIP }, async () => {
-  const r = await probe(`
-    declare v jsonb;
+// 22 Sep 2026, two causes, both measured. (1) The probe opened its window at the default started_at = now() and
+// logged its refusals at now() - 1 minute, BEFORE its own window; it passed only while some real rehearsal
+// happened to be open. (2) It asserted "no refusal_rate:login_otp finding at all", so it read PRODUCTION'S state,
+// not its own rows: at 03:53 UTC login_otp had refused 56 of 67 callers outside any window, and every one of
+// them was scripts/checks/a_phone_cannot_select_an_account.test.mjs (6 calls a run, 5 refused by design) run
+// by check sessions without a rehearsal window of its own - the suite raising a "customers turned away"
+// finding against itself. That test now opens one. This probe now measures only what its own 60 rows do:
+// the detector runs once before they exist and once after, and the attempts it counts must not move inside a
+// window, and must move by exactly 60 outside one (the control), whatever real traffic is doing.
+const REFUSAL_PROBE = (withWindow) => `
+    declare v0 jsonb; v1 jsonb;
     begin
-      insert into public.rehearsal_window (run_tag, opened_by, note) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO');
+      set local statement_timeout = '60s';
+      -- a real window open over the last minute would cover the control's runs too; end it inside this rollback
+      ${withWindow ? '' : "update public.rehearsal_window set ended_at = now() - interval '10 minutes' where coalesce(ended_at, started_at + interval '6 hours') > now() - interval '10 minutes';"}
+      v0 := public.fn_it_detect(null, false);
+      ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, started_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', now() - interval '5 minutes');" : ''}
       insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
       select 'fn:login_otp', 'warn', now() - interval '1 minute', now() - interval '1 minute', '{"http":404}'::jsonb, 'ZZ DEMO'
         from generate_series(1, 60);
-      v := public.fn_it_detect(null, false);
-      raise exception 'CHK<<%>>', json_build_object('login_refusal_finding',
-        (select count(*) from jsonb_array_elements(v->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'));
-    end`);
-  assert.equal(r.login_refusal_finding, 0);
+      v1 := public.fn_it_detect(null, false);
+      raise exception 'CHK<<%>>', json_build_object(
+        'before', coalesce((select (f->'evidence'->>'window_attempts')::int from jsonb_array_elements(v0->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'), 0),
+        'after',  coalesce((select (f->'evidence'->>'window_attempts')::int from jsonb_array_elements(v1->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'), 0),
+        'finding_after', (select count(*) from jsonb_array_elements(v1->'findings') f where f->>'detector_key' = 'refusal_rate:login_otp'));
+    end`;
+
+test('refusals inside a rehearsal window are the harness, not customers turned away', { skip: SKIP }, async () => {
+  const r = await probe(REFUSAL_PROBE(true));
+  assert.equal(r.after, r.before, `the probe's 60 refusals inside a rehearsal window were counted (${r.before} -> ${r.after} attempts)`);
+});
+
+test('control: the same refusals outside any rehearsal window are counted and raise the finding', { skip: SKIP }, async () => {
+  const r = await probe(REFUSAL_PROBE(false));
+  assert.equal(r.finding_after, 1, 'sixty refused sign-ins outside a rehearsal raised no refusal_rate finding');
+  // before = 0 means production had no finding, so its attempts were not published; then only >= 60 is knowable
+  if (r.before > 0) assert.equal(r.after - r.before, 60, `outside a window the attempts moved ${r.before} -> ${r.after}, not by 60`);
+  else assert.ok(r.after >= 60, `outside a window the finding counted ${r.after} attempts`);
 });
 
 // 8. THE LEARNING GATE CLOSES WHAT THE PLAYBOOK KNOWS AND STILL REFUSES WHAT NOBODY HAS.
