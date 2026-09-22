@@ -165,7 +165,15 @@ begin
   v_plan := v_plan || (
     select jsonb_build_array(case when count(*) = 0 then 'The IT engineer has no open technical problems.'
                                   else 'The IT engineer works on '||count(*)||' open technical problem(s).' end)
-      from public.it_engineer_finding where closed_at is null);
+      -- ONE DEFINITION OF "OPEN", THE IT DIGEST'S (22 Sep 2026, it_engineer, UNSOLVED-11). This counted
+      -- every unclosed finding, including the ones the IT loop itself classes as 'warn' and never opens a
+      -- handoff for, so the founder's brief said a bigger number than the digest he gets minutes later.
+      -- MEASURED today: 9 unclosed findings, of which 1 is 'warn' (watch:run_failure:wa_status) — the
+      -- brief read 9-10, the digest 8. fn_it_loop_tick's predicate is closed_at is null AND
+      -- fn_it_engineer_severity(...) <> 'warn'; this is the same predicate, so the two can no longer differ.
+      from public.it_engineer_finding f
+     where f.closed_at is null
+       and public.fn_it_engineer_severity(f.blast, f.affected, f.started_at) <> 'warn');
 
   -- 22 Sep 2026 (ceo, instruction 638): the CEO's own plan leads item 7 -- the binding constraint, the
   -- directive each seat is working to, and the one decision only the founder can take, if any. This is

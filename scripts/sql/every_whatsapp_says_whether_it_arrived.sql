@@ -29,8 +29,9 @@
 --      that asked; no final report within 24 hours comes back as 'sent_unconfirmed'.
 --      fn_originator_checks_delivery confirms a WhatsApp/SMS only on delivered/read, and
 --      fn_ceo_delivery_undelivered_decide writes "the provider confirmed" only on the same evidence.
---   4. fn_twilio_status_poll_claim(limit): the backstop — messages sent 30 min to 7 days ago with no
---      final status, each at most once per 30 minutes, at most 50 per call (wa_status asks Twilio).
+--   4. fn_twilio_status_poll_claim(limit): the backstop — ANY message sent more than 30 min ago with no
+--      final status (no upper age: amended 22 Sep 2026), each at most once per 30 minutes, at most 50 per
+--      call (wa_status asks Twilio), and fn_twilio_status_poll_failed records a failed read on the row.
 --   5. fn_it_whatsapp_delivery_health(), duty 'whatsapp_delivery' (hourly): failure rate from
 --      delivered/failed reports per channel, and any message with no final report 24 hours on.
 --
@@ -54,10 +55,20 @@ alter table public.notifications
   add column if not exists provider_status_at timestamptz,
   add column if not exists provider_error_code text,
   add column if not exists provider_status_checked_at timestamptz;
+alter table public.notifications
+  add column if not exists provider_poll_failures int not null default 0;
 alter table public.notifications drop constraint if exists notifications_provider_status_known;
+-- AMENDED 22 SEP 2026 (it_engineer, UNSOLVED-05 / SEATS-03). Two states that are NOT Twilio's word and say
+-- so, because "null" was being read as "still on its way" for messages nobody can ever get an answer about:
+--   unrecorded  the send predates the 21 Sep SID fix, so no provider_message_id was ever stored. Twilio
+--               cannot be asked about a message we cannot name. Measured: 33 WhatsApp rows sent 9-21 Sep.
+--   unreadable  the poll asked Twilio provider_poll_failures times and could not read an answer. Written
+--               by fn_twilio_status_poll_failed only, and only after the give-up count.
+-- Both rank 0, so a real status arriving later (a late callback) still overwrites them.
 alter table public.notifications add constraint notifications_provider_status_known check (
   provider_status is null or provider_status in ('accepted', 'scheduled', 'queued', 'sending', 'sent',
-                                                 'delivered', 'undelivered', 'failed', 'read'));
+                                                 'delivered', 'undelivered', 'failed', 'read',
+                                                 'unrecorded', 'unreadable'));
 comment on column public.notifications.provider_status is
   'Twilio''s last reported status for a WhatsApp/SMS (never moves backwards). Written only by fn_twilio_status_arrived.';
 
@@ -146,6 +157,12 @@ revoke execute on function public.fn_twilio_status_arrived(text, text, text, tex
 -- ── 5. THE BACKSTOP: WHICH MESSAGES TO ASK TWILIO ABOUT ──────────────────────────────────────────
 -- Callbacks can be lost. Claimed rows are stamped before they are returned, so the next call walks the
 -- REMAINING set, never its own last answers, and two overlapping calls never ask twice (skip locked).
+-- AMENDED 22 SEP 2026 (UNSOLVED-05): the seven-day lower bound is gone. Measured on production: 35 founder
+-- WhatsApps sent 9-21 Sep had provider_status null and only the 3 inside seven days were ever claimed, so
+-- "recent" was the whole reason the rest were never asked about. The batch is still bounded the same way
+-- (at most 50 a call, one claim per row per 30 minutes, ordered oldest-checked first), which is what keeps
+-- the edge function inside its CPU budget: the work per call is capped, not the age of the backlog.
+-- A row already given up on ('unreadable') is not claimed again; a late callback can still overwrite it.
 create or replace function public.fn_twilio_status_poll_claim(p_limit int default 20)
 returns table (notification_id bigint, sid text)
 language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -154,8 +171,9 @@ begin
   update public.notifications u set provider_status_checked_at = now()
    where u.id in (select c.id from public.notifications c
                    where c.channel in ('whatsapp', 'sms') and coalesce(btrim(c.provider_message_id), '') <> ''
-                     and c.sent_at < now() - interval '30 minutes' and c.sent_at > now() - interval '7 days'
+                     and c.sent_at < now() - interval '30 minutes'
                      and public.fn_twilio_status_rank(c.provider_status) < 4
+                     and coalesce(c.provider_status, '') <> 'unreadable'
                      and (c.provider_status_checked_at is null or c.provider_status_checked_at < now() - interval '30 minutes')
                    order by coalesce(c.provider_status_checked_at, c.sent_at)
                    limit least(greatest(coalesce(p_limit, 20), 1), 50)
@@ -163,6 +181,42 @@ begin
   returning u.id, u.provider_message_id;
 end $fn$;
 revoke execute on function public.fn_twilio_status_poll_claim(int) from public, anon, authenticated;
+
+-- ── 5b. WHEN TWILIO CANNOT BE READ, SAY SO IN THE ROW ────────────────────────────────────────────
+-- 22 Sep 2026 (UNSOLVED-05 / SEATS-03). wa_status counted "unreadable" in its own run log and threw the
+-- HTTP status away, so six failed polls of notifications 35433/35569/37899 left no trace of WHY (it was
+-- asking Twilio for /Messages/undefined.json — the loop read a column the claim does not return). The
+-- failure now lands on the message: the count, the HTTP status and Twilio's own error code. After
+-- c_give_up failed reads the row stops being asked and reads 'unreadable' rather than looking undelivered.
+create or replace function public.fn_twilio_status_poll_failed(p_notification_id bigint, p_http int default null,
+                                                              p_code text default null)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare
+  c_give_up constant int := 5;   -- 5 x 30 minutes: 2.5 hours of trying before we stop asking.
+  n public.notifications; v_fails int; v_gave_up boolean;
+begin
+  select * into n from public.notifications where id = p_notification_id for update;
+  if n.id is null then return jsonb_build_object('matched', false); end if;
+  if public.fn_twilio_status_rank(n.provider_status) >= 4 then
+    return jsonb_build_object('matched', true, 'applied', false, 'reason', 'already final: ' || n.provider_status);
+  end if;
+  v_fails := coalesce(n.provider_poll_failures, 0) + 1;
+  v_gave_up := v_fails >= c_give_up;
+  update public.notifications
+     set provider_poll_failures = v_fails,
+         provider_status = case when v_gave_up then 'unreadable' else provider_status end,
+         provider_status_at = case when v_gave_up then now() else provider_status_at end,
+         provider_error_code = coalesce(nullif(btrim(coalesce(p_code, '')), ''), provider_error_code),
+         last_error = left('Twilio could not be read for this message: '
+                           || coalesce('HTTP ' || p_http::text, 'no HTTP response')
+                           || coalesce(', Twilio code ' || nullif(btrim(coalesce(p_code, '')), ''), '')
+                           || ' (attempt ' || v_fails || ' of ' || c_give_up || ')'
+                           || case when v_gave_up then ' — given up: the delivery of this message is unknown.' else '' end, 500)
+   where id = n.id;
+  return jsonb_build_object('matched', true, 'applied', true, 'failures', v_fails, 'gave_up', v_gave_up,
+                            'give_up_after', c_give_up, 'http', p_http, 'code', nullif(btrim(coalesce(p_code, '')), ''));
+end $fn$;
+revoke execute on function public.fn_twilio_status_poll_failed(bigint, int, text) from public, anon, authenticated;
 
 -- ── 6. THE WATCH: A WHATSAPP IS DELIVERED WHEN TWILIO SAYS SO ────────────────────────────────────
 create or replace function public.fn_customer_support_delivery_watch(p_request_id bigint default null)
@@ -285,6 +339,32 @@ begin
       elsif n.id is null and q.evidence ? 'notify' then
         v_result := 'routed';
         v_evidence := v_evidence || jsonb_build_object('notify', q.evidence->'notify');
+      -- 22 SEP 2026 (it_engineer, UNSOLVED-06) — "NOTHING WAS QUEUED" WAS THREE DIFFERENT THINGS.
+      -- MEASURED: support_ceo_report 3075, 3076, 3084 and 3085 each read 'A supplier_invite for the supplier
+      -- did not arrive (not_sent)' with reason 'nothing was queued'. Their requests (agent_actions 42578,
+      -- 42579, 42595, 42596) each carry evidence.queued = true and evidence.notification_id 36988/36989/
+      -- 37002/37003, and NONE of those notification rows exists any more: every one addressed a
+      -- zz-demo-supplier-invite-…@example.invalid fixture and the demo hygiene sweep deleted them between
+      -- being queued at 19:11-19:15Z and the watch tick at 19:30Z on 21 Sep. So support DID queue the
+      -- message; its record was removed afterwards. (The 22 Sep audit read these as invitations held by
+      -- app_secrets.supplier_outreach_golive=false. They are not: the hold path
+      -- (the_invitations_warm_up_on_measured_health_and_leave_across_the_working_day.sql) writes an
+      -- invite_schedule row with status 'pending' and a supplier_invites agent_run, and asks for no
+      -- delivery at all — so a held invitation never reaches this watch.)
+      -- The three cases now answer differently, and only the first is a fault:
+      --   nothing was ever queued and nothing explains it  -> 'not_sent'  (escalates, as before)
+      --   the campaign is held by the founder's own switch  -> 'held'     (recorded, never escalated)
+      --   the row it queued has since been deleted         -> 'record_removed'
+      elsif n.id is null and coalesce(q.detail->>'msg_type', '') like '%invite%'
+            and not public.fn_supplier_outreach_golive() then
+        v_result := 'held';
+        v_evidence := v_evidence || jsonb_build_object('reason',
+          'the supplier campaign is held: app_secrets.supplier_outreach_golive is false, so no invitation is sent. This is the founder''s switch, not a delivery failure.');
+      elsif n.id is null and coalesce((q.evidence->>'notification_id'), '') <> '' then
+        v_result := 'record_removed';
+        v_evidence := v_evidence || jsonb_build_object('reason',
+          'the notification this request queued (id ' || (q.evidence->>'notification_id')
+          || ') no longer exists, so its delivery cannot be read. A queued message whose row was deleted afterwards - the demo hygiene sweep does this to fixture rows - is not a message that was never sent.');
       elsif n.id is null then
         v_result := 'not_sent';
         v_evidence := v_evidence || jsonb_build_object('reason', coalesce(q.evidence->>'reason', 'nothing was queued'));
@@ -365,7 +445,10 @@ begin
   elsif v_result = 'delivered' and n.status = 'sent' and coalesce(btrim(n.provider_message_id), '') <> ''
         and (coalesce(n.channel, 'email') not in ('whatsapp', 'sms') or n.provider_status in ('delivered', 'read')) then
     v_verdict := 'confirmed';
-  elsif v_result in ('routed', 'stubbed', 'digested', 'cancelled') then
+  -- 'held' and 'record_removed' close here (22 Sep 2026, UNSOLVED-06): a message the founder's own switch
+  -- holds, and a queued row that was deleted afterwards, are both recorded rather than retried on the other
+  -- channel and escalated to the CEO. Neither is a delivery the seat can correct.
+  elsif v_result in ('routed', 'stubbed', 'digested', 'cancelled', 'held', 'record_removed') then
     v_verdict := v_result;
   end if;
 
@@ -513,7 +596,13 @@ begin
            count(*) filter (where n.provider_status in ('delivered', 'read')) as delivered,
            count(*) filter (where n.provider_status = 'read') as read,
            count(*) filter (where n.provider_status in ('failed', 'undelivered')) as failed,
-           count(*) filter (where public.fn_twilio_status_rank(n.provider_status) < 4 and n.sent_at < now() - interval '24 hours') as unknown,
+           -- 22 Sep 2026: a message we asked Twilio about c_give_up times and could not read is no longer
+           -- counted as "no report yet" — that read as a message still in flight. It is counted as
+           -- unreadable and raised on its own, so the two causes are never added into one number.
+           count(*) filter (where public.fn_twilio_status_rank(n.provider_status) < 4
+                              and coalesce(n.provider_status, '') <> 'unreadable'
+                              and n.sent_at < now() - interval '24 hours') as unknown,
+           count(*) filter (where n.provider_status = 'unreadable') as unreadable,
            count(*) as accepted
       from public.notifications n
      where n.channel in ('whatsapp', 'sms') and coalesce(btrim(n.provider_message_id), '') <> ''
@@ -521,7 +610,13 @@ begin
      group by n.channel
   loop
     v_rates := v_rates || jsonb_build_object(x.channel, jsonb_build_object('accepted', x.accepted, 'delivered', x.delivered,
-      'read', x.read, 'failed', x.failed, 'no_final_status_after_24h', x.unknown,
+      'read', x.read, 'failed', x.failed, 'no_final_status_after_24h', x.unknown, 'unreadable', x.unreadable,
+      -- Sends this estate can NEVER get a status for: no provider_message_id was stored (every send before
+      -- the 21 Sep SID fix). Counted here so the rate above is read against what it actually covers.
+      'sent_without_a_provider_id', (select count(*) from public.notifications m
+                                      where m.channel = x.channel and m.status in ('sent', 'failed')
+                                        and coalesce(btrim(m.provider_message_id), '') = ''
+                                        and m.sent_at > now() - interval '7 days'),
       'errors', (select coalesce(jsonb_object_agg(coalesce(e.code, 'none'),
                                    jsonb_build_object('count', e.c, 'means', public.fn_twilio_error_in_plain_words(e.code))), '{}'::jsonb)
                    from (select m.provider_error_code code, count(*) c from public.notifications m
@@ -540,6 +635,13 @@ begin
         'blast', 'customer_facing', 'affected', x.unknown,
         'evidence', (v_rates->x.channel) || jsonb_build_object('why_it_matters',
           'the status callback (wa_status) and its 30-minute backstop poll are both silent, so delivery is unknown'));
+    end if;
+    if x.unreadable > 0 then
+      v_items := v_items || jsonb_build_object('item', 'status_unreadable:' || x.channel, 'owner_seat', 'customer_support', 'subject', 'wa_status',
+        'title', x.unreadable || ' ' || x.channel || ' message(s) were asked of Twilio until the poll gave up: their delivery is unknown',
+        'blast', 'customer_facing', 'affected', x.unreadable,
+        'evidence', (v_rates->x.channel) || jsonb_build_object('why_it_matters',
+          'the backstop poll could not read Twilio for these messages (notifications.last_error carries the HTTP status and Twilio code of the last attempt), so no delivery can be claimed for them'));
     end if;
   end loop;
   v_out := jsonb_build_object('settled', public.fn_it_duty_settle('whatsapp_delivery', v_items), 'rates', v_rates);
@@ -575,6 +677,9 @@ select case
    and pg_get_functiondef('public.fn_originator_checks_delivery(bigint)'::regprocedure) like '%n.provider_status in (''delivered'', ''read'')%'
    and pg_get_functiondef('public.fn_ceo_delivery_undelivered_decide(bigint)'::regprocedure) like '%n.provider_status in (''delivered'', ''read'')%'
    and public.fn_twilio_status_rank('sent') < public.fn_twilio_status_rank('delivered')
+   and exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'notifications' and column_name = 'provider_poll_failures')
+   and pg_get_functiondef('public.fn_twilio_status_poll_failed(bigint,int,text)'::regprocedure) like '%given up%'
+   and pg_get_functiondef('public.fn_twilio_status_poll_claim(int)'::regprocedure) not like '%7 days%'
    and public.fn_twilio_error_in_plain_words('63016') like 'outside the 24-hour window%'
    and exists (select 1 from public.it_duty_schedule where duty = 'whatsapp_delivery')
    and exists (select 1 from public.internal_credential where context = 'fn.resilience_ping' and active and 'wa_status' = any (scope))

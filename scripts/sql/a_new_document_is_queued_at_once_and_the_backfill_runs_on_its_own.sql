@@ -408,11 +408,16 @@ revoke execute on function public.fn_enqueue_doc_backups() from public, anon, au
 
 -- ── 3. fn_enqueue_doc_backups_backfill: LEGACY EXPORTS and the STORAGE SWEEP, on their own call ────
 
+-- AMENDED 22 SEP 2026 (it_engineer, SEATS-05): its own 30 s ceiling, for the reason measured in
+-- a_conversation_party_is_found_by_index_so_the_dropbox_enqueue_fits_in_eight_seconds.sql — the backfill was
+-- cancelled at the authenticator's 8 s on 22 Sep 09:42:22Z ("the storage sweep and pre-7-Sep exports are
+-- not [queued]"). p_limit still bounds the work; only the ceiling on one pass moves.
 create or replace function public.fn_enqueue_doc_backups_backfill(p_limit integer default 200)
 returns integer
 language plpgsql
 security definer
 set search_path to 'public', 'pg_catalog'
+set statement_timeout to '30s'
 as $function$
 declare n integer := 0; m integer;
 begin

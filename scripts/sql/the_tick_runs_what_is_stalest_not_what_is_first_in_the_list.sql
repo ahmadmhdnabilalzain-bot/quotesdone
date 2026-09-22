@@ -160,7 +160,15 @@ as $fn$
              / greatest(extract(epoch from every), 1) as ratio
       from public.resilience_step
      where place = 'plan'
-       and (last_started_at is null or now() - last_started_at >= every)
+       -- A TICK IS NEVER EXACTLY ON THE BEAT, SO THE DUE TEST HAS TWO MINUTES OF TOLERANCE
+       -- (22 Sep 2026, it_engineer, SEATS-04). `now() - last_started_at >= every` asks for the full
+       -- interval to have elapsed at the moment the tick looks. Ticks jitter by seconds, so a 30-minute
+       -- step whose last attempt was 29 min 58 s ago is not due on this tick and waits for the next one:
+       -- its real cadence becomes one tick longer, and measured across the estate the scheduled steps
+       -- were running about 1.5x their declared interval. Two minutes is shorter than the shortest
+       -- declared `every` (15 min) so no step can run twice in one interval, and it is longer than any
+       -- observed jitter between ticks.
+       and (last_started_at is null or now() - last_started_at >= every - interval '2 minutes')
   ), ranked as (
     select *, row_number() over (order by ratio desc, step) as rn from due
   ), filled as (
