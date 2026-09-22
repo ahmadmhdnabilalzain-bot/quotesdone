@@ -1,1 +1,0 @@
-customer_support, 22 Sep 2026. Defines fn_founder_whatsapp_figures(text), which wa_inbound calls in its founder branch; apply BEFORE deploying wa_inbound (until then the founder gets the honest list without figures, never an error). Apply with --apply, run the _probe file (must return PROBE OK), then delete this note and append the file to MANIFEST.txt.

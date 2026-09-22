@@ -1,1 +1,0 @@
-customer_support, 22 Sep 2026. Pure probe for fn_founder_whatsapp_figures: run once after the_founder_asks_the_numbers_on_whatsapp_and_gets_them.sql is applied, as one query; it must return PROBE OK. Proved before apply on 22 Sep with the routine created inside the same rolled-back block. Then delete this note and append the file to MANIFEST.txt, as the other _probe files are.
