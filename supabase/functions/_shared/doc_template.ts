@@ -142,7 +142,13 @@ export function footerLines(id: DocIdentity): [string, string] {
 export function footerLinesAr(id: DocIdentity): [string, string] {
   const no = (id.licence.match(/\d{5,}/) || [''])[0];
   const permit = id.permit.replace(/^TDRA\s*/, '');
-  return [`${id.name} · رخصة تاجر من دائرة الاقتصاد والسياحة في دبي رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية TDRA ${permit}`,
+  // 22 Sep 2026 (DL-08): the authority's full Arabic name, and the Latin acronym TDRA dropped with it.
+  // Measured: writing the name in full and keeping the acronym made this footer 5.7pt too long and it
+  // ran into the page number on 11 of the 28 Arabic pages
+  // (scripts/checks/legal_pdfs_have_no_overlapping_text.test.mjs). The acronym is the English short
+  // form of the authority the line has just named in Arabic; the permit NUMBER is the code that
+  // identifies the document and stays.
+  return [`${id.name} · رخصة تاجر من دائرة الاقتصاد والسياحة في دبي رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية ${permit}`,
     `دبي، الإمارات العربية المتحدة · ${id.email} · ${id.phone} · ${id.web}`];
 }
 
