@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T04:47:08.193Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T06:51:31.184Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -35560,6 +35560,8 @@ end;
 --      seeded burst as much as they are real people, and this engine cannot separate the two. It
 --      reports that a customer-facing surface is turning callers away. Whether those callers were
 --      customers is a question only the surface itself could answer, and it does not record it.
+--      (22 Sep 2026: login_otp now does answer it for the fixture block — counts.fixture, excluded below.
+--      Every other surface still does not.)
 --   3. Anything under 20 logged attempts in 24 hours. customer_api refused 7 of 7 callers today and
 --      sits below that floor, so it is NOT evaluated. The number of subjects skipped for thin
 --      traffic is published in notes.refusals every tick so that silence can never be read as
@@ -35581,6 +35583,10 @@ for r in
       -- hygiene duty closes any window left open past six hours, which bounds what this can hide.
       -- (the rehearsal flag is computed once per row in D0, as a set; see D0)
       and not a.rehearsal
+      -- 22 Sep 2026: a run the SERVER marked as fixture traffic (login_otp: the number is in the reserved
+      -- block +971 50 000 00xx, which no real person holds) is our harness or a probe, window or no window.
+      -- Measured: all 58 refusals behind "login_otp turned away 58 of 69" carried fixture numbers.
+      and not (a.counts ? 'fixture')
       -- drop the semantic half of a double-logged request; see THE DOUBLE LOG above
       and not (a.agent not like 'fn:%' and exists (
         select 1 from public.agent_runs t

@@ -1,5 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { observe } from '../_shared/observe.ts';
+import { annotate, observe } from '../_shared/observe.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
@@ -12,7 +12,7 @@ const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABAS
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
 const admin = createClient(SB_URL, SB_SERVICE);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
-const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
+const reply = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '')); }
 function toE164(p: string): string { let d = String(p || '').replace(/[^\d+]/g, ''); if (d.startsWith('+')) { const n = d.slice(1).replace(/\D/g, ''); return n.length >= 8 ? '+' + n : ''; } d = d.replace(/\D/g, ''); if (d.startsWith('00')) d = d.slice(2); if (d.startsWith('971')) return '+' + d; if (d.startsWith('0')) return '+971' + d.slice(1); if (d.length === 9 && d.startsWith('5')) return '+971' + d; if (d.length >= 8) return '+' + d; return ''; }
@@ -200,6 +200,12 @@ async function confirmedWhatsApp(kind: string, email: string, e164: string): Pro
 
 Deno.serve(observe('login_otp', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  // OUR OWN TRAFFIC IS MARKED BY THE SERVER, NOT BY THE CALLER (22 Sep 2026). Every harness and probe
+  // signs in on the reserved fixture block (+971 50 000 00xx, isDemoPhone), which no real person can
+  // hold. This function sees the number, so it tags the run row `fixture: 1` and fn_it_detect's
+  // refusal_rate leaves it out: the 58-of-69 "customers turned away" on 22 Sep were all fixture calls.
+  let fixture = false;
+  const J = (o: unknown, s = 200) => fixture ? annotate(reply(o, s), { fixture: 1 }) : reply(o, s);
   try {
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
     // Three kinds, not two. 'admin' is /os and is the ONLY kind that resolves a phone through
@@ -208,6 +214,7 @@ Deno.serve(observe('login_otp', async (req) => {
     const idRaw = String(body.identifier || '').trim();
     const allowSignup = body.allow_signup === true;
     const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
+    fixture = isDemoPhone(toE164(idRaw));
 
     if (action === 'send') {
       if (emailOk(idRaw)) {
@@ -251,7 +258,7 @@ Deno.serve(observe('login_otp', async (req) => {
         // the metric excludes it, so the refusal is still on the record and no longer counted as
         // a fault. The note is unchanged - the reasoning is the point of writing it down.
         await logRun('skipped', { ambiguous_phone: 1, kind }, 'login_otp refused an SMS sign-in because more than one ' + kind + ' account carries this mobile number. No SMS was sent and no Twilio charge was incurred. This is the guard working, not a fault: a shared number cannot select a person. The caller was asked to sign in with their email instead.');
-        return J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409);
+        return annotate(J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409), { ambiguous_phone: 1 });
       }
       const acctEmail = owner ? owner.email : null;
       // AN UNKNOWN NUMBER IS REFUSED WHETHER OR NOT THE CALLER SAID "SIGN ME UP" (13 Aug 2026).
@@ -274,14 +281,14 @@ Deno.serve(observe('login_otp', async (req) => {
           // 'skipped' for the same reason as the ambiguity refusal above: expected, routine, and
           // not a fault. This one fires every time somebody tries to sign up with a phone number.
           await logRun('skipped', { sms_signup_refused: 1, kind }, 'login_otp refused to send a sign-up SMS to a number with no account. No SMS was sent and no Twilio charge was incurred. This is deliberate: email is the identity, so a phone alone cannot create an account, and letting this through only produced a paid-for code that verify would refuse. Sign-up is by email.');
-          return J({ error: 'We cannot create an account from a mobile number - your email address is what identifies your account. Please sign up with your email, and you can add your mobile straight afterwards.', no_account: true, signup_by_email: true }, 404);
+          return annotate(J({ error: 'We cannot create an account from a mobile number - your email address is what identifies your account. Please sign up with your email, and you can add your mobile straight afterwards.', no_account: true, signup_by_email: true }, 404), { sms_signup_refused: 1 });
         }
         // Do not send (and pay for) an SMS to a number that has no account. Tell the user first.
         return J({ error: "This mobile number isn't linked to a QuotesDone account yet. Please sign in with the email you registered with, or create your account first.", no_account: true }, 404);
       }
       // After the identity refusals (so a fixture number still answers 404/409 exactly as a real one
       // does) and before anything reaches Twilio: a fixture number is never texted.
-      if (isDemoPhone(e164)) { await logRun('skipped', { kind, captured: 1 }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
+      if (isDemoPhone(e164)) { await logRun('skipped', { kind, captured: 1, fixture: 1 }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.' }, 503);
 
       // A prefix the IT engineer blocked for pumping gets no code (public.otp_blocked_prefix, duty 11).
@@ -411,7 +418,7 @@ Deno.serve(observe('login_otp', async (req) => {
         return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.' }, 400);
-      if (isDemoPhone(e164)) { await logRun('skipped', { kind, captured: 1, action: 'verify' }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
+      if (isDemoPhone(e164)) { await logRun('skipped', { kind, captured: 1, fixture: 1, action: 'verify' }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet.' }, 503);
       try {
         const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Code: code }) });
@@ -423,7 +430,7 @@ Deno.serve(observe('login_otp', async (req) => {
       // the same defect as the admin short-circuit, and it is gone: the account tables are the
       // only authority on who owns an address, and an ambiguous number is refused, not guessed.
       const owner = await resolveEmailByPhone(kind, e164);
-      if (owner && 'ambiguous' in owner) return J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409);
+      if (owner && 'ambiguous' in owner) return annotate(J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409), { ambiguous_phone: 1 });
       const email = owner ? owner.email : '';
       if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.' }, 404);
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
