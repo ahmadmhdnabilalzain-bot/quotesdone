@@ -4,8 +4,8 @@ A UAE B2B **anonymous quotation marketplace**. A buyer posts a request describin
 product; verified UAE suppliers quote it; the quotes reach the buyer with the supplier's identity
 hidden. The buyer pays a **3% reveal fee** to unlock and contact one supplier.
 
-The company is run by software: six seats (`ceo`, `customer_support`, `sales_engineer`,
-`accountant`, `it_engineer`, `marketing`) own every deployed function between them, and a
+The company is run by software: six seats (`sales_engineer`, `customer_support`, `accountant`,
+`it_engineer`, `marketing`, `ceo`) own all 73 deployed functions between them, and a
 15-minute tick does the work. `ARCHITECTURE.md` says where each kind of thing lives and how the
 money moves. This file says how to run it.
 
@@ -16,12 +16,15 @@ money moves. This file says how to run it.
 | piece | what it is |
 |---|---|
 | web | **Next.js 16** (`next@16.3.5`, React 19, App Router, `next-intl` for EN/AR) in `src/`, deployed on **Vercel**, serving **quotesdone.com** and **quotesdone.ae** |
-| backend | **72 Supabase edge functions** (Deno, TypeScript) in `supabase/functions/<name>/index.ts` — the browser calls these directly; the Next app has exactly one API route of its own |
+| backend | **73 Supabase edge functions** (Deno, TypeScript) in `supabase/functions/<name>/index.ts` — the browser calls these directly; the Next app has exactly one API route of its own |
 | database | **ONE Supabase project, `htdblwldjkcgjvmqkbeh`.** Postgres holds the data, the business rules as SQL routines, and the secrets. There is no second production project |
 | scheduler | one Vercel cron, every 15 minutes, into `resilience_ping` |
 | models | routed through the single `ai_gateway` function; OpenRouter is deliberately held (see `ARCHITECTURE.md`) |
 
-Counted 22 Sep 2026: `ls supabase/functions/*/index.ts | wc -l` = 72.
+Counted 23 Sep 2026: `ls supabase/functions/*/index.ts | wc -l` = **73**. It was 72 until
+`sms_inbound` landed, and this line is re-measured on any commit that quotes it — a document that
+hands the reader a command *and* an answer that disagree with each other is exactly the failure this
+repository is trying to stop.
 
 ## Run it
 

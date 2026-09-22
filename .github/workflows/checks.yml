@@ -143,9 +143,9 @@ jobs:
       # os_api and the money paths first, because those are the ones where a compile error is a
       # silent 500 rather than a visible failure.
       #
-      # 22 SEP 2026 — THE SECOND STEP NOW BLOCKS. It was advisory from the day it landed, because
+      # 23 SEP 2026 — THE SECOND STEP NOW BLOCKS. It was advisory from the day it landed, because
       # "191 functions written over months will not all be clean on day one and a permanently red
-      # gate teaches people to ignore gates". Measured today: 72 functions remain and
+      # gate teaches people to ignore gates". Measured today: 73 functions remain and
       # `deno check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts` exits 0 over
       # every one of them. The reason for the exemption is gone, so the exemption is gone: an
       # advisory step that passes is a gate nobody is relying on, and the next type error to reach

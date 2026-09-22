@@ -12,7 +12,7 @@ so. Where a document and the code disagree, the code is right.
 | what | where | the rule |
 |---|---|---|
 | a database change | `scripts/sql/<lowercase_sentence>.sql` + a line at the END of `scripts/sql/MANIFEST.txt` | one file per subject; the manifest order decides which file is canonical |
-| runtime | `supabase/functions/<surface>/index.ts` | one directory per surface, 72 of them, all deployed |
+| runtime | `supabase/functions/<surface>/index.ts` | one directory per surface, 73 of them (23 Sep 2026), all deployed |
 | code shared between functions | `supabase/functions/_shared/*.ts` | the paid-provider gate, the internal-auth gate, attachments, the SSRF guard |
 | the web app | `src/app` (App Router, `en` at `/`, `ar` at `/ar` — `src/i18n/routing.ts:8`), `src/components`, `src/content` | the browser calls edge functions directly; `src/app/api/resilience-ping/route.ts` is the ONLY Next API route |
 | a gate | `scripts/checks/*.mjs`, run by `scripts/checks/run.mjs` | a check retires WITH its subject — renamed `*.RETIRED.mjs` into `scripts/checks/retired/`, never softened |
@@ -26,9 +26,17 @@ What decides a script's home is **who depends on it**, not whether it can be run
 holds the modules other scripts import, and one of them — `demo_factory.mjs` — also answers a
 command line: `--selftest` is how the fixture factory proves it returns the database to its exact
 baseline. A module carrying its own self-test is a module you can trust; it is still a library,
-because 77 files import it (`qd_guard.mjs`, with 104 importers, has no CLI at all). The inverse is
-the rule that matters: something
-in `scripts/` root that nothing imports and nothing runs belongs in `scripts/archive/`.
+because **70 files import it** (`qd_guard.mjs`, with **105**, has no CLI at all).
+
+Those two counts are *files under `scripts/` containing an `import … from` or `await import(…)`
+statement that names the module, excluding `scripts/archive/`* — 87 and 126 if the archived copies
+are counted, measured 23 Sep 2026. Stating what was counted is the point: an earlier draft of this
+paragraph said 77 and 104, which matched neither set.
+
+Two exceptions a literal reader would trip on. `scripts/lib/` also holds three `*.test.mjs` files
+(`canonical_sql`, `demo_pdf`, `retry`) that nothing imports — `scripts/checks/run.mjs` RUNS them,
+which is exactly the dependency the rule is about. And the inverse is the rule that really matters:
+something in `scripts/` root that nothing imports and nothing runs belongs in `scripts/archive/`.
 
 ### The four SQL apply tiers
 
@@ -57,16 +65,20 @@ Ownership is a row in `public.function_owner`, and
 `scripts/checks/every_deployed_function_has_an_owner.mjs` fails on either mismatch: a function
 deployed with no owner, or an owner row whose function is gone. It reads the LIVE deployment list,
 not the repository folders — a function serving on the internet with no source would otherwise
-pass. Run 22 Sep 2026, against 72 deployed functions:
+pass. Run 23 Sep 2026, against 73 deployed functions:
 
 | seat | functions | what it is |
 |---|---|---|
 | `sales_engineer` | 29 | matching, supplier onboarding and catalogue, drawings and take-off, document extraction |
-| `customer_support` | 18 | the customer's side: the portal backend, the chat widget, complaints, ratings, messaging |
+| `customer_support` | 19 | the customer's side: the portal backend, the chat widget, complaints, ratings, messaging, inbound SMS |
 | `it_engineer` | 10 | the estate itself: the tick, backups, deployment parity, alerts |
 | `accountant` | 10 | money: Stripe, refunds, invoices, the books, AI spend |
 | `marketing` | 4 | channels, outreach, the social inbox |
 | `ceo` | 1 | `ceo_agent` — the daily plan, the weekly report, the decisions |
+
+The counts move. `sms_inbound` arrived on 23 Sep and made it 73 and customer_support 19 while this
+document was in review, which is why the numbers carry the date they were read and the command that
+reads them: `node scripts/checks/every_deployed_function_has_an_owner.mjs` prints the table above.
 
 Every job and every task names a seat. There are no departments.
 

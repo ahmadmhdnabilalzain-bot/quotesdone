@@ -16,17 +16,21 @@ by a *document* was left in `scripts/`; the bar for moving was "nothing at all n
 **If one of these is needed again**, move it back with `git mv` and say in the commit what names it
 now. A script in `scripts/` root is one something calls.
 
-**Their imports were repaired, not left to rot.** Moving these files down one level broke every
-relative specifier in them: measured 23 Sep 2026, **42 specifiers in 21 files** no longer resolved.
-38 were repointed at the file that still exists (`./staging/qd_guard.mjs` → `../lib/qd_guard.mjs`,
-`./staging/demo_factory.mjs` → `../lib/demo_factory.mjs`, and `dwg_takeoff.ts`'s reach into
-`supabase/functions/_shared/doc_read/dwg.ts`). Each one was verified to exist on disk afterwards.
+**Their imports were repaired, not left to rot.** Moving these files down one level broke the
+relative specifiers in them. Measured 23 Sep 2026 — and stated as what it counts, because the first
+version of this paragraph said "38 repointed, the remaining 4" and then described three files:
 
-The remaining 4 are NOT broken and were deliberately not touched: the three
-`migrate_internal_auth_gates*.mjs` files hold `'../_shared/internal_auth.ts'` inside a string the
-codemod WRITES INTO an edge function. It is correct relative to its destination and was never
-resolvable from `scripts/`. A path in a string is not an import — repointing it would have broken
-the codemod while making a checker happy.
+- **42** relative path literals (`'./…'` or `'../…'` ending `.mjs`/`.js`/`.ts`) across the 21 files;
+- **39** resolve to a file on disk. 38 of them had to be repointed to get there —
+  `./staging/qd_guard.mjs` → `../lib/qd_guard.mjs`, `./staging/demo_factory.mjs` →
+  `../lib/demo_factory.mjs`, and `dwg_takeoff.ts`'s reach into
+  `supabase/functions/_shared/doc_read/dwg.ts`, which needed one more `../`;
+- **3** do not resolve, and are right not to.
+
+The 3 are `migrate_internal_auth_gates.mjs:15`, `_pass2.mjs:20` and `_pass3.mjs:22`, each holding
+`'../_shared/internal_auth.ts'` inside the import line the codemod WRITES INTO an edge function. It
+is correct relative to its destination and was never resolvable from `scripts/`. A path in a string
+is not an import — repointing it would have broken the codemod while making a checker happy.
 
 | file | what it did |
 |---|---|
