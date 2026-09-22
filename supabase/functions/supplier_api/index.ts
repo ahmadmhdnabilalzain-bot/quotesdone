@@ -18,6 +18,7 @@ import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
+import { readExpiry } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -70,6 +71,9 @@ import { inboxBoq, scrubDeep, scrubIdentity } from './identity_scrub.ts';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
+// The same switch supplier_portal reads: the model may be asked about a document only when the
+// founder has turned it on (22 Sep 2026, SEATS-02).
+async function flagOn(key: string): Promise<boolean> { return /^(on|true|1)$/i.test(String(await secretVal(key) || '').trim()); }
 function b64ToBytes(b64:string){ const bin=atob(String(b64).replace(/^data:[^;]+;base64,/,'')); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return a; }
 // AUDIT 4.2 (3 Aug 2026) ------------------------------------------------------------------
 // This function used to decide the registration state itself, from registered_supplier_count()
@@ -430,7 +434,34 @@ const handle = async (req: Request): Promise<Response> => {
         readQueue.push({ path: p, name: String(lic.filename || 'licence'), kind: 'licence', bytes: s.bytes, mime: s.mime });
       }
       const licImgs = Array.isArray(lic.images) ? lic.images : [];
-      if (licImgs.length || lic.file_b64) {
+      // CODE READS THE EXPIRY FIRST (22 Sep 2026, SEATS-02; founder instruction 524). This block
+      // went straight to license_extract, which runs through ai_gateway — under the founder's
+      // OpenRouter hold that is a 502 on every registration, so a licence uploaded here never got
+      // an expiry date at all while supplier_portal's Documents tab read the same document by code.
+      // Same reader, same rule as the portal: a date only counts when an expiry keyword stands
+      // beside it, and a scan (no text layer) returns nothing rather than a guess.
+      const licBytes = readQueue.find((d) => d.kind === 'licence' && d.bytes)
+        || (upd.license_doc_path ? await (async () => {
+             try {
+               const dl = await admin.storage.from('supplier-docs').download(String(upd.license_doc_path));
+               if (!dl.data) return null;
+               return { bytes: new Uint8Array(await dl.data.arrayBuffer()), mime: dl.data.type || 'application/pdf' } as { bytes: Uint8Array; mime: string };
+             } catch (_e) { return null; }
+           })() : null);
+      if (licBytes?.bytes) {
+        try {
+          const docRead = await readExpiry(licBytes.bytes, licBytes.mime || 'application/pdf');
+          if (docRead) {
+            upd.license_expiry = docRead.expiry;
+            upd.doc_extracted_at = new Date().toISOString();
+            out.license = { expiry: docRead.expiry, source: 'text', keyword: docRead.keyword, read_by: 'code' };
+          } else out.license_expiry_note = 'the trade licence has no readable text layer, or prints no date beside an expiry keyword, so no expiry was taken from it';
+        } catch (e) { out.license_expiry_note = String((e as Error)?.message || e).slice(0, 200); }
+      }
+      // The model path — legal name, licence number, authority, emirate, TRN — is behind the same
+      // flag the portal uses (app_secrets.document_expiry_ai). With the flag off nothing is asked
+      // of a gateway that cannot answer, and nothing above depends on it.
+      if ((licImgs.length || lic.file_b64) && await flagOn('document_expiry_ai')) {
         try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', images: licImgs, file_b64: lic.file_b64, mime: lic.mime, filename: lic.filename }) }); const jd = await r.json();
           if (jd?.ok && jd.doc) { const d = jd.doc;
             if (d.license_number) upd.trade_license_no = d.license_number;
