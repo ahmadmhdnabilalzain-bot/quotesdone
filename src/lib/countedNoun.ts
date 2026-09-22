@@ -4,9 +4,9 @@
 // (the singular accusative) — and the dual itself changes when the noun is not the subject
 // ('بندان' → 'بندين'). String audit 22 Sep 2026 (customer_support, CP-I18N-05): 22 templates in the
 // customer portal printed ONE fixed form for every number — '2 بندًا', '3 صفحة', '1 عروض' — while
-// supplierCount() (src/components/me/portalText.ts) and arDays() (src/lib/durationLabel.ts) had been
-// doing it correctly for their own two nouns all along. This is that rule for the rest of them, in
-// one place, so a new counted noun is a line in AR_NOUN and not a fourth implementation.
+// arDays() (src/lib/durationLabel.ts) and the old supplierCount() had been
+// doing it correctly for their own two nouns all along. supplierCount is folded in here (review of
+// #853), so a new counted noun is a line in AR_NOUN and never a second implementation.
 //
 // English is here too, because the same call sites were writing 'page(s)' and 'area(s)'.
 // Tested in src/lib/countedNoun.test.mjs.
@@ -42,6 +42,7 @@ const EN_NOUN: Record<Noun, [string, string]> = {
 /** arCount(2, AR_NOUN.line) = 'بندان'; with {oblique:true} = 'بندين'; arCount(3, …) = '3 بنود'. */
 export function arCount(n: number | string | null | undefined, forms: ArForms, opts?: { oblique?: boolean }): string {
   const k = Math.abs(Math.trunc(Number(n) || 0));
+  if (k === 0) return `0 ${forms.many}`; // '0 بندًا', as at 11+ — never the 3-10 plural
   if (k === 1) return forms.one;
   if (k === 2) return opts && opts.oblique ? forms.twoOblique : forms.two;
   return `${k} ${k <= 10 ? forms.few : forms.many}`;

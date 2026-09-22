@@ -27,7 +27,7 @@ export const T = {
     your_requests:'Your requests', no_requests:'No requests yet. ', post_first:'Post your first request', describe_job:' — describe the job in text, a photo or a drawing.',
     request_sent:'Request sent — matching you with suppliers now.', request_sent_split:'Request sent as {n} separate trades — each goes to its own specialist suppliers, all under one request.', payment_confirmed:'Payment confirmed — supplier contact unlocked below.',
     payment_pending:'Your payment is still being processed. Please refresh this page in a moment — do not pay again. Keep this page open so we can finish confirming it.',
-    payment_failed:"We couldn't confirm your payment yet. Please keep this page link and email management@quotesdone.com if you were charged.",
+    payment_failed:"We couldn't confirm your payment yet. Please keep this page link and email info@quotesdone.com if you were charged.",
     link_not_yours:"This quote isn't on your account. If the link was sent to a different email address, sign in with that one.",
     mod_spatial:'Project room', mod_documents:'Documents', mod_orders:'Orders',
     mod_predict:'What you may need next', mod_profile:'Buying profile', mod_account:'Account', open_module:'Open', theme_light:'Light mode', theme_dark:'Dark mode',
@@ -120,7 +120,7 @@ export const T = {
     your_requests:'طلباتك', no_requests:'لا توجد طلبات بعد. ', post_first:'انشر طلبك الأول', describe_job:' — صِف العمل نصًا أو بصورة أو بمخطط.',
     request_sent:'أُرسل طلبك، ونعمل الآن على مطابقته مع المورّدين.', request_sent_split:'أُرسل طلبك مقسّمًا إلى {n} تخصصات منفصلة؛ يصل كلٌّ منها إلى المورّدين المختصين به، وتبقى جميعها ضمن طلب واحد.', payment_confirmed:'تأكّد الدفع، وأصبحت بيانات التواصل مع المورّد متاحة أدناه.',
     payment_pending:'لا يزال الدفع قيد المعالجة. حدّث الصفحة بعد قليل ولا تكرّر الدفع، وأبقِ هذه الصفحة مفتوحة حتى يكتمل التأكيد.',
-    payment_failed:'لم نتمكّن من تأكيد الدفع حتى الآن. احتفظ برابط هذه الصفحة، وإن خُصم المبلغ من بطاقتك فراسلنا على management@quotesdone.com.',
+    payment_failed:'لم نتمكّن من تأكيد الدفع حتى الآن. احتفظ برابط هذه الصفحة، وإن خُصم المبلغ من بطاقتك فراسلنا على info@quotesdone.com.',
     link_not_yours:'هذا العرض غير موجود في حسابك. إذا أُرسل الرابط إلى بريد إلكتروني آخر، سجّل الدخول به.',
     mod_spatial:'غرفة المشروع', mod_documents:'المستندات', mod_orders:'أوامر الشراء',
     mod_predict:'ما قد تحتاجه لاحقًا', mod_profile:'ملف المشتريات', mod_account:'الحساب', open_module:'فتح', theme_light:'الوضع الفاتح', theme_dark:'الوضع الداكن',
@@ -270,7 +270,6 @@ Object.assign(T.en, {
   so_title: 'Your answer is needed', so_body: 'No supplier could quote the exact specification you asked for. Suppliers offered the alternatives below.',
   so_line: 'Line {n}', so_asked: 'You asked for: {v}', so_yes: 'Yes, proceed with {v}', so_no: 'No', so_by: 'Please answer by {d}.',
   so_accepted: 'We will proceed with {v}.', so_declined: 'Understood. Your request is closed and nothing was charged.', so_sending: 'Sending…',
-  so_sup_one: '1 supplier', so_sup_many: '{n} suppliers',
   cmp_title: 'Expert comparison report', cmp_title_rules: 'Comparison by our rules', cmp_badge_rules: 'Ranked on stated figures — specs not assessed', cmp_preparing: 'Preparing your comparison…',
   cmp_top: 'Top picks', cmp_catch: 'catch', cmp_missing: 'Missing from your request: ', cmp_dev: 'Spec differences: ', cmp_watch: 'Watch out: ', cmp_guidance: 'Guidance only — the final decision is yours.',
   cmp_price: 'Price', cmp_delivery: 'Delivery', cmp_quality: 'Quality', cmp_of5: 'out of 5', cmp_save: 'Save this comparison as a document', cmp_saving: 'Preparing…', cmp_save_fail: 'Could not build the document.',
@@ -331,9 +330,9 @@ Object.assign(T.en, {
   err_stripe: 'The payment provider did not respond. Nothing was charged — please try again.', err_mobile_unknown: 'This mobile number is not linked to an account yet. Sign in with your email, or create your account with your email first.',
   err_ambiguous: 'This mobile number is on more than one account, so we cannot tell which one is yours. Please sign in with your email.', err_sms_off: 'Sign-in by SMS is not switched on yet. Please sign in with your email.',
   err_too_many: 'Too many attempts. Please wait a little and try again.', err_expired: 'That code has expired. Please request a new one.',
-  err_suppressed: 'We cannot email this address because earlier mail to it bounced. Contact management@quotesdone.com and we will restore it.', err_invalid_id: 'Enter a valid email address or UAE mobile number.',
+  err_suppressed: 'We cannot email this address because earlier mail to it bounced. Contact info@quotesdone.com and we will restore it.', err_invalid_id: 'Enter a valid email address or UAE mobile number.',
   err_name: 'Please enter your name.', err_phone: 'Please enter a valid mobile number.', err_sms_nc: 'SMS verification is not switched on yet. Please try again later.',
-  err_suspended: 'Your account is suspended. Contact management@quotesdone.com if you believe this is a mistake.', err_registration: 'Please finish setting up your account first — open Account; it takes under a minute.',
+  err_suspended: 'Your account is suspended. Contact info@quotesdone.com if you believe this is a mistake.', err_registration: 'Please finish setting up your account first — open Account; it takes under a minute.',
   err_under_18: 'You must be 18 or over to use QuotesDone.', err_dob_required: 'Please enter your date of birth.', err_dob_invalid: 'Please enter a valid date of birth.',
   err_email_verify: 'Please verify your email before sending a request.', err_rate: 'You have done that several times in a short while. Please try again later.', err_not_found: 'We could not find that item.',
   err_not_yours: 'That request is not on your account.', err_refund_window: 'The refund window has passed; the case is checked against the record and the refund is issued if the supplier did not respond.',
@@ -347,7 +346,7 @@ Object.assign(T.ar, {
   nr_attach: 'أرفق مخططًا أو صورة أو عرض سعر',
   nr_attach_boq: 'أرفق جدول كميات — Excel أو CSV أو PDF أو صورة', nr_attach_boq_short: 'جدول الكميات',
   nr_boq_sheet_one: 'قرأتُ بندًا واحدًا من جدول الكميات كما ورد تمامًا؛ راجعه أدناه.',
-  nr_boq_sheet_many: 'قرأتُ من جدول الكميات {c} كما وردت تمامًا؛ راجعها أدناه.',
+  nr_boq_sheet_many: 'قرأتُ من جدول الكميات {c} كما ورد فيه تمامًا؛ راجع التفاصيل أدناه.',
   nr_boq_sheet_empty: 'فتحتُ جدول الكميات لكني لم أجد بنودًا بكميات تحت عناوين مثل الوصف والكمية والوحدة. يمكنك تصحيح الملف وإرفاقه من جديد، أو وصف العمل هنا.',
   nr_boq_err_too_large: 'حجم الملف أكبر من 20 ميغابايت. احذف الأوراق أو الصور الزائدة ثم أرفقه من جديد.',
   nr_heic_unsupported: 'لا يستطيع هذا المتصفح فتح صور HEIC. يُرجى تصدير الصورة بصيغة JPEG ثم إرفاقها من جديد.',
@@ -382,7 +381,7 @@ Object.assign(T.ar, {
   nr_drawing_held_boq: 'المخطط محجوز: لن يُرسل الملف {name} نفسه إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيصلهم فقط جدول الكميات الذي استخرجته منه بعد حذف جميع الأسماء — أو اضغط «إلغاء» في الأعلى.',
   nr_add_or_send: ' أضف أي شيء آخر، أو اضغط «أرسل إلى الموردين» أدناه.',
   nr_markup_caption: 'هذا عدّنا مرقّمًا على مخططك؛ ألقِ عليه نظرة، ولا حاجة إلى أن تعدّ بنفسك.',
-  nr_pages_ready: 'شكرًا — لم أتمكن من استخراج جدول كميات من هذا الملف، لكني جهّزتُ منه {c} لمشاركتها مع الموردين. أخبرني قليلًا عن العمل حتى أصفه لهم بدقة.',
+  nr_pages_ready: 'شكرًا — لم أتمكن من استخراج جدول كميات من هذا الملف، لكني جهّزتُ منه {c} للمشاركة مع الموردين. أخبرني قليلًا عن العمل حتى أصفه لهم بدقة.',
   nr_not_prepared: 'شكرًا — استلمتُ ملفك، لكني لم أتمكن من إخفاء كل ما يدل عليك فيه، لذلك هو محجوز ولن يُرسل إلى الموردين. يمكن إرسال طلبك من دونه: صِف العمل هنا، أو اضغط «إلغاء» في الأعلى.',
   nr_file_unreadable: 'تعذّرت قراءة هذا الملف، لكن يمكنك وصف العمل هنا في المحادثة.',
   nr_cad_queued: 'شكرًا — مخطط CAD هذا كبير الحجم، لذا تجري قراءته في الخلفية. يستغرق ذلك عادةً بضع دقائق، وستظهر الكميات هنا فور جاهزيتها. ويمكنك مواصلة وصف العمل في الأثناء.',
@@ -411,7 +410,6 @@ Object.assign(T.ar, {
   so_title: 'نحتاج إلى ردّك', so_body: 'لم يتمكن أي مورّد من تسعير المواصفات المطلوبة بالضبط، واقترح الموردون البدائل التالية.',
   so_line: 'البند {n}', so_asked: 'طلبتَ: {v}', so_yes: 'نعم، اعتمد {v}', so_no: 'لا', so_by: 'يُرجى الردّ قبل {d}.',
   so_accepted: 'سنعتمد {v}.', so_declined: 'حسنًا، أُغلق طلبك ولم يُخصم أي مبلغ.', so_sending: 'جارٍ الإرسال…',
-  so_sup_one: 'مورّد واحد', so_sup_two: 'مورّدان', so_sup_few: '{n} مورّدين', so_sup_many: '{n} مورّدًا',
   cmp_title: 'تقرير المقارنة الفنية', cmp_title_rules: 'مقارنة وفق قواعدنا', cmp_badge_rules: 'مرتّب وفق الأرقام المذكورة — دون تقييم المواصفات', cmp_preparing: 'جارٍ إعداد المقارنة…',
   cmp_top: 'أفضل الخيارات', cmp_catch: 'ما يجب مراعاته', cmp_missing: 'ينقصه مما طلبت: ', cmp_dev: 'يخالف المواصفات في: ', cmp_watch: 'انتبه: ', cmp_guidance: 'إرشادي فقط — القرار النهائي لك.',
   cmp_price: 'السعر', cmp_delivery: 'التسليم', cmp_quality: 'الجودة', cmp_of5: 'من 5', cmp_save: 'حفظ المقارنة في مستند', cmp_saving: 'جارٍ التجهيز…', cmp_save_fail: 'تعذّر إنشاء المستند.',
@@ -429,7 +427,7 @@ Object.assign(T.ar, {
   pay_basis_dom: 'سعر البطاقة الإماراتية', pay_basis_intl: 'سعر البطاقة الدولية',
   pay_confirm: 'ادفع {total}', pay_paying: 'جارٍ معالجة الدفع…', pay_cancel: 'إلغاء',
   pay_repriced: 'تغيّر الإجمالي لهذه البطاقة. يُرجى مراجعته قبل الدفع.',
-  pay_settling: 'تم الدفع وننتظر تأكيد البنك. تظهر بيانات تواصل المورّد هنا فور اكتمال التأكيد، وعادةً خلال دقيقة. لا يلزمكم أي إجراء آخر، ولن يُخصم المبلغ مرتين.',
+  pay_settling: 'تم الدفع وننتظر تأكيد البنك. تظهر بيانات تواصل المورّد هنا فور اكتمال التأكيد، وعادةً خلال دقيقة. لا يلزمك أي إجراء آخر، ولن يُخصم المبلغ مرتين.',
   pay_check_again: 'تحقّق مرة أخرى', pay_checking: 'جارٍ التحقق…',
   err_timeout: 'استغرق الرد وقتًا طويلًا. قد يكون الاتصال بطيئًا؛ يُرجى المحاولة مرة أخرى.',
   err_network: 'تعذّر الوصول إلى QuotesDone. يُرجى التحقق من الاتصال ثم المحاولة مرة أخرى.',
@@ -461,7 +459,7 @@ Object.assign(T.ar, {
   g_day: 'يوم العمل {d} من {w}', g_day0: 'دفعتَ اليوم — يبدأ العدّ من يوم العمل التالي.', g_workdays: 'أيام العمل من الاثنين إلى الجمعة.',
   g_ph_waiting: 'تم إبلاغ المورّد.', g_ph_chased: 'مرحلة رسالة المتابعة — بانتظار ردّ المورّد.', g_ph_final: 'بلغنا الإنذار الأخير — يجري التحقق من استردادك بناءً على السجل.',
   g_ph_ack: 'أكّد المورّد استلام طلب الكشف.', g_ph_refund: 'حالة الاسترداد: {status}.',
-  refund_st_requested: 'قيد المراجعة', refund_st_approved: 'تمت الموافقة عليه', refund_st_refunded: 'تم ردّ المبلغ', refund_st_rejected: 'مرفوض', refund_st_processing: 'قيد التنفيذ',
+  refund_st_requested: 'مطلوب', refund_st_approved: 'تمت الموافقة عليه', refund_st_refunded: 'تم ردّ المبلغ', refund_st_rejected: 'مرفوض', refund_st_processing: 'قيد التنفيذ',
   rcpt_title: 'تم استلام الدفع', rcpt_body: 'خُصم {fee} من بطاقتك (رسوم الكشف مع رسوم معالجة البطاقة). بيانات تواصل المورّد مفتوحة في الطلب أدناه، وبدأ عدّاد ضمان الكشف.',
   rcpt_cancelled: 'أُلغي الدفع — لم يُخصم أي مبلغ. يمكنك كشف المورّد متى شئت.',
   signup_email_reserved: 'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريدك الإلكتروني الحقيقي.', err_need_email: 'يُرجى إدخال بريدك الإلكتروني أولًا.', err_need_id: 'يُرجى إدخال بريدك الإلكتروني أو رقم جوالك أولًا.',
@@ -471,9 +469,9 @@ Object.assign(T.ar, {
   err_stripe: 'لم يستجب مزوّد الدفع. لم يُخصم أي مبلغ — يُرجى المحاولة مرة أخرى.', err_mobile_unknown: 'رقم الجوال هذا غير مرتبط بحساب بعد. سجّل الدخول ببريدك الإلكتروني، أو أنشئ حسابك ببريدك أولًا.',
   err_ambiguous: 'رقم الجوال هذا مسجّل على أكثر من حساب، فلا يمكننا تحديد حسابك. يُرجى تسجيل الدخول ببريدك الإلكتروني.', err_sms_off: 'تسجيل الدخول برسالة نصية غير مفعّل بعد. يُرجى تسجيل الدخول ببريدك الإلكتروني.',
   err_too_many: 'محاولات كثيرة. يُرجى الانتظار قليلًا ثم المحاولة مجددًا.', err_expired: 'انتهت صلاحية الرمز. يُرجى طلب رمز جديد.',
-  err_suppressed: 'لا يمكننا مراسلة هذا البريد لأن رسائل سابقة إليه ارتدّت. راسل management@quotesdone.com وسنعيد تفعيله.', err_invalid_id: 'أدخل بريدًا إلكترونيًا صحيحًا أو رقم جوال إماراتي.',
+  err_suppressed: 'لا يمكننا مراسلة هذا البريد لأن رسائل سابقة إليه ارتدّت. راسل info@quotesdone.com وسنعيد تفعيله.', err_invalid_id: 'أدخل بريدًا إلكترونيًا صحيحًا أو رقم جوال إماراتي.',
   err_name: 'يُرجى إدخال اسمك.', err_phone: 'يُرجى إدخال رقم جوال صحيح.', err_sms_nc: 'التحقق برسالة نصية غير مفعّل بعد. يُرجى المحاولة لاحقًا.',
-  err_suspended: 'حسابك موقوف. راسل management@quotesdone.com إن كنت تعتقد أن ذلك خطأ.', err_registration: 'يُرجى إكمال إعداد حسابك أولًا — افتح «الحساب»؛ يستغرق ذلك أقل من دقيقة.',
+  err_suspended: 'حسابك موقوف. راسل info@quotesdone.com إن كنت تعتقد أن ذلك خطأ.', err_registration: 'يُرجى إكمال إعداد حسابك أولًا — افتح «الحساب»؛ يستغرق ذلك أقل من دقيقة.',
   err_under_18: 'يجب أن يكون عمرك 18 عامًا أو أكثر لاستخدام QuotesDone.', err_dob_required: 'يُرجى إدخال تاريخ ميلادك.', err_dob_invalid: 'يُرجى إدخال تاريخ ميلاد صحيح.',
   err_email_verify: 'يُرجى التحقق من بريدك الإلكتروني قبل إرسال طلب.', err_rate: 'كرّرتَ هذا عدة مرات في وقت قصير. يُرجى المحاولة لاحقًا.', err_not_found: 'تعذّر العثور على هذا العنصر.',
   err_not_yours: 'هذا الطلب ليس ضمن حسابك.', err_refund_window: 'انقضت مهلة الاسترداد؛ تُراجع الحالة بناءً على السجل ويُصرف الاسترداد إن لم يردّ المورّد.',
@@ -483,14 +481,10 @@ Object.assign(T.ar, {
 
 /** t() with {name} placeholders filled. */
 export const tf = (lang, k, v = {}) => String(t(lang, k)).replace(/\{(\w+)\}/g, (_m, n) => (v[n] == null ? '' : String(v[n])));
-/** "2 suppliers" / "مورّدان". Arabic counts take the dual at 2, the plural at 3-10 and the singular
- *  accusative from 11 (١١ مورّدًا), so one plural key would be wrong for most numbers. */
-export function supplierCount(lang, n) {
-  n = Number(n) || 0;
-  if (n === 1) return t(lang, 'so_sup_one');
-  if (lang === 'ar') return n === 2 ? t(lang, 'so_sup_two') : tf(lang, n >= 3 && n <= 10 ? 'so_sup_few' : 'so_sup_many', { n });
-  return tf(lang, 'so_sup_many', { n });
-}
+/** The three sentinels call() answers with instead of throwing (CP-08). A reader that does not
+ *  test a field of its own must ask this before it stores the answer, or a network blip is filed
+ *  as the server's reply — which is how a registered customer was shown the sign-up form. */
+export const transportFailed = (j) => !!(j && j.ok === false && /^qd_/.test(String(j.error || '')));
 /** A string whose Arabic form carries {c} takes the counted noun from src/lib/countedNoun.ts,
  *  filled in by the caller: countPhrase(lang, n, 'line') → tf(lang, key, { n, c }). portalText
  *  imports nothing, because scripts/checks imports this file with bare node. */

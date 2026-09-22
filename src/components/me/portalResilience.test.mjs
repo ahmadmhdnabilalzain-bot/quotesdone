@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { t } from './portalText.ts';
+import { t, transportFailed } from './portalText.ts';
 
 const SRC = fs.readFileSync(new URL('./CustomerPortal.tsx', import.meta.url), 'utf8');
 const body = SRC.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
@@ -37,6 +37,25 @@ test('CP-08: call() times out, never throws, and never returns a half-parsed ans
   assert.match(fn, /JSON\.parse\(text\)/);
   assert.match(fn, /catch \(_e\) \{ return \{ ok: false, error: 'qd_bad_response'/);
   for (const lang of ['en', 'ar']) for (const k of ['err_timeout', 'err_network']) assert.notEqual(t(lang, k), k, `${lang}.${k}`);
+});
+
+test('CP-08: a transport sentinel is never filed as the server\'s answer', () => {
+  // The three shapes call() can invent, and the ones it must not claim.
+  for (const e of ['qd_timeout', 'qd_network', 'qd_bad_response']) assert.equal(transportFailed({ ok: false, error: e }), true, e);
+  for (const j of [null, undefined, {}, { ok: true }, { inquiries: [] }, { error: 'unauthorized' }, { ok: false, error: 'stripe_error' }]) {
+    assert.equal(transportFailed(j), false, JSON.stringify(j));
+  }
+  // Every reader that does not test a field of its own asks it before it stores the answer.
+  assert.match(body, /if \(transportFailed\(j\)\) \{ setErr\('net'\); return; \}\s*\n\s*setK\(j \|\| \{\}\);/);
+  assert.match(body, /if \(transportFailed\(j\)\) \{ setMsg\(t\(lang, 'load_failed'\)\); return; \} setSt\(j\);/);
+  // my_inquiries has no `ok`; its contract is the list, and nothing else is stored as one.
+  assert.match(body, /if \(!j \|\| !Array\.isArray\(j\.inquiries\)\) \{ setErr\(errText\(j, lang, 'load_failed'\)\); return; \}/);
+});
+
+test('CP-05: the card follows the server after the poll confirms the reveal', () => {
+  assert.match(body, /useEffect\(\(\) => \{ if \(q\.revealed && state !== 'revealed'\) setState\('revealed'\); \}, \[q\.revealed\]\);/);
+  // A revealed quote the server will not hand a contact for falls back to the card that has a retry.
+  assert.match(body, /if \(r && r\.supplier\) setContact\([\s\S]{0,200}?else setState\('settling'\);/);
 });
 
 test('CP-12: both upload paths go through the same 20 MB guard', () => {

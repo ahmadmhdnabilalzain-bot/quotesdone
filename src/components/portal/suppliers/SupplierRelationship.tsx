@@ -495,7 +495,7 @@ export function SupplierHistoryPanel({
           </div>
           {typeof data.relationship.rfqs_sent_platform_wide === 'number' ? (
             <div className={cn(S.note, 'mt-1')}>
-              {ar(lang, `على مستوى المنصة: أُرسل إلى هذا المورّد ${arCount(data.relationship.rfqs_sent_platform_wide, AR_NOUN.request, { oblique: true })}.`,
+              {ar(lang, `على مستوى المنصة: أُرسل إلى هذا المورّد ${arCount(data.relationship.rfqs_sent_platform_wide, AR_NOUN.request)}.`,
                 `Across the whole platform: ${countPhrase('en', data.relationship.rfqs_sent_platform_wide, 'request')} sent to this supplier.`)}
             </div>
           ) : null}
@@ -523,7 +523,7 @@ export function SupplierHistoryPanel({
                     'نعرض آخر 20 مشروعًا، وقد توجد مشاريع أخرى.',
                     'Showing the 20 most recent — there may be more.',
                   )
-                : ar(lang, `${arCount(count, AR_NOUN.project)} مسجّلة.`, `${countPhrase('en', count, 'project')} recorded.`)}
+                : ar(lang, `المشاريع المسجّلة: ${count}.`, `${countPhrase('en', count, 'project')} recorded.`)}
             </div>
 
             {categories.length ? (

@@ -204,7 +204,7 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
                         `الأرخص ${aed(r.cheapest_price)}، أي أقل بـ ${save} من العرض التالي.`)
                     : L(lang,
                         `You have ${r.quotes} quotes, the lowest at ${aed(r.cheapest_price)}.`,
-                        `لديك ${arCount(r.quotes, AR_NOUN.quote)}، أدناها ${aed(r.cheapest_price)}.`)}
+                        `لديك ${arCount(r.quotes, AR_NOUN.quote)}، ${Number(r.quotes) === 2 ? 'أدناهما' : 'أدناها'} ${aed(r.cheapest_price)}.`)}
             </div>
             {/* Said plainly rather than hidden: we cannot rank on speed what nobody stated a
                 lead time for. */}

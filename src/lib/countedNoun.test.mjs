@@ -11,7 +11,7 @@ test('Arabic takes its own form at 1, 2, 3-10 and 11+', () => {
   assert.equal(arCount(3, AR_NOUN.line), '3 بنود');
   assert.equal(arCount(10, AR_NOUN.line), '10 بنود');
   assert.equal(arCount(11, AR_NOUN.line), '11 بندًا');
-  assert.equal(arCount(0, AR_NOUN.line), '0 بنود');
+  assert.equal(arCount(0, AR_NOUN.line), '0 بندًا');
 });
 
 test('the oblique option changes the dual and nothing else', () => {

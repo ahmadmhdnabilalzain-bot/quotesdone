@@ -155,7 +155,7 @@ const warmDashboard = (tk, lang) => {
 // so /ar/me opened English and dir=ltr (e2e journey a, 14 Sep 2026). After sign-in the registered
 // language decides (onServedLocale). src/lib/documentLocale.ts.
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
-import { t, tf, errText, emirateName, supplierCount } from './portalText';
+import { t, tf, errText, emirateName, transportFailed } from './portalText';
 import { countPhrase } from '@/lib/countedNoun';
 // The account rule itself, not a copy: the same function customer_api create_inquiry gates on.
 import { accountMissing } from '../../../supabase/functions/_shared/account_rule';
@@ -328,10 +328,11 @@ export function CustomerPortal() {
   const strip = (<header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 sm:px-5 bg-background/95 border-b border-border shadow-e1">
     <a className="flex min-w-0 items-center gap-2 font-head text-base font-semibold tracking-snug text-foreground no-underline" href="/"><BrandMark className="h-8 w-8 shrink-0" /><span className="truncate">QuotesDone <span className="hidden font-mono text-label uppercase tracking-caps text-primary sm:inline">{t(lang, 'brand_sub')}</span></span></a>
     <div className="flex gap-2 items-center">
-      <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
-      <Button variant="outline" size="sm" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
-      <Button variant="outline" size="sm" onClick={swapTheme} aria-label={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')} title={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')}>{theme === 'dark' ? '☀' : '☾'}</Button>
-      {phase === 'app' && <BusyButton busy={signOutBusy} act="out" variant="outline" size="sm" busyLabel={t(lang, 'signing_out')} onClick={doSignOut}>{t(lang, 'signout')}</BusyButton>}
+      {/* h-11 — 44px, the minimum tap target; size="sm" is 32 (CP-13). */}
+      <Button asChild variant="outline" size="sm" className="h-11"><a href="/">{t(lang, 'home')}</a></Button>
+      <Button variant="outline" size="sm" className="h-11" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
+      <Button variant="outline" size="sm" className="h-11" onClick={swapTheme} aria-label={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')} title={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')}>{theme === 'dark' ? '☀' : '☾'}</Button>
+      {phase === 'app' && <BusyButton busy={signOutBusy} act="out" variant="outline" size="sm" className="h-11" busyLabel={t(lang, 'signing_out')} onClick={doSignOut}>{t(lang, 'signout')}</BusyButton>}
     </div>
   </header>);
   return (<div dir={rtl ? 'rtl' : 'ltr'} data-theme={theme} className="osx min-h-screen bg-background text-foreground">
@@ -439,6 +440,7 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
         setErr('unauth');
         return;
       }
+      if (transportFailed(j)) { setErr('net'); return; }
       setK(j || {});
     }).catch(() => { if (alive.current) setErr('net'); });
   };
@@ -480,7 +482,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
-  const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
+  const load = () => call('kyc', { action: 'state' }, token).then((j) => { if (transportFailed(j)) { setMsg(t(lang, 'load_failed')); return; } setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob, lang }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
@@ -571,9 +573,13 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // `.finally` rather than a second `setPosting(false)` inside `.then`: a failed refresh must not
   // leave the skeleton up forever, and it does not swallow the rejection either.
   const [posting, setPosting] = useState(false);
+  // my_inquiries answers { inquiries, locale, promo, guarantee_terms } — it has no `ok`, so the
+  // list itself is what is tested. Storing anything else (a transport sentinel, an error body) puts
+  // "post your first request" in front of a customer who has plenty (review of #853).
   const loadInq = (first) => get(first, 'inq', 'customer_api', { action: 'my_inquiries' }).then((j) => {
-    setData(j);
-    if (j && j.locale && onServedLocale) onServedLocale(j.locale);
+    if (!j || !Array.isArray(j.inquiries)) { setErr(errText(j, lang, 'load_failed')); return; }
+    setData(j); setErr('');
+    if (j.locale && onServedLocale) onServedLocale(j.locale);
   }).catch(() => setErr(t(lang, 'load_failed')))
     .finally(() => setPosting(false));
   // `err` was set here and rendered NOWHERE, loadOv had no .catch, and the four stat tiles fall back
@@ -1478,11 +1484,11 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); setState('revealed'); setJustRevealed(true); return true;
   };
   // The settling card's own button: one more ask, no reload, no second payment.
-  const [recheck, setRecheck] = useState(false);
+  const [recheckBusy, setRecheckBusy] = useState(false);
   const checkReveal = async () => {
-    setRecheck(true);
+    setRecheckBusy(true);
     unlock(await call('customer_api', { action: 'reveal', quote_id: q.id }, token));
-    setRecheck(false);
+    setRecheckBusy(false);
   };
   const reveal = async () => {
     setBusy(true); setMsg('');
@@ -1513,9 +1519,20 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     // stripe_checkout answers {error:'stripe_not_configured'} at HTTP 200; errText says it in words.
     setBusy(false); setMsg(errText(cr, lang, 'q_checkout_fail'));
   };
-  const showContactData = async () => { const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null); if (r && r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); };
+  // A revealed quote whose contact the server will not hand over yet (the payment is still
+  // settling) used to leave the redaction bar and "loading contact" spinning with no way forward.
+  // It falls back to the settling card, which says why and carries the Check again button.
+  const showContactData = async () => {
+    const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null);
+    if (r && r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name });
+    else setState('settling');
+  };
   const settling = state === 'settling';
   useEffect(() => { if (state === 'revealed' && !contact) showContactData(); }, [state]);
+  // THE SERVER IS THE ONE THAT KNOWS. `state` is seeded from q.revealed on mount and was never
+  // re-read, so a reveal confirmed by the minute poll (my_inquiries flips q.revealed) left the card
+  // sitting on 'settling' until the customer reloaded — the copy promises it opens by itself.
+  useEffect(() => { if (q.revealed && state !== 'revealed') setState('revealed'); }, [q.revealed]);
   const revealed = state === 'revealed';
   return (<div ref={hlRef} id={'quote-' + q.id} className={cn('scroll-mt-24 rounded-card border p-3.5 transition-colors duration-500 sm:p-4', lit && 'ring-2 ring-primary ring-offset-2 ring-offset-background', revealed ? 'border-accent/40 bg-accent/[0.04]' : best ? 'border-primary/35 bg-primary/[0.03]' : 'border-border bg-secondary/15')}>{dialog}
     <div className="flex items-center justify-between gap-3">
@@ -1549,7 +1566,7 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
         </div>)}
     {settling ? (<div className="mt-3 rounded-card border border-primary/30 bg-primary/5 p-3.5">
       <div className="text-[12.5px] leading-relaxed text-foreground">{t(lang, 'pay_settling')}</div>
-      <Button size="sm" variant="outline" className="mt-2.5" disabled={recheck} onClick={checkReveal}>{recheck ? t(lang, 'pay_checking') : t(lang, 'pay_check_again')}</Button>
+      <Button size="sm" variant="outline" className="mt-2.5" disabled={recheckBusy} onClick={checkReveal}>{recheckBusy ? t(lang, 'pay_checking') : t(lang, 'pay_check_again')}</Button>
     </div>) : null}
     {paying && !revealed ? <RevealPayment q={q} token={token} lang={lang} call={call}
       onPaid={async () => { setPaying(false); unlock(await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null)); onChange && onChange(); }}
@@ -1911,7 +1928,7 @@ function Journey({ idx, lang, matched, revealed = false }) {
   // lit from the reveal itself instead.
   const step = revealed ? JOURNEY.length - 1 : [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
   const label = (k, i) => (i === 2 && Number(matched) > 0)
-    ? (lang === 'ar' ? ('مطابَق مع ' + supplierCount('ar', matched)) : ('Matched to ' + matched + (Number(matched) === 1 ? ' supplier' : ' suppliers')))
+    ? (lang === 'ar' ? ('مطابَق مع ' + countPhrase('ar', matched, 'supplier', { oblique: true })) : ('Matched to ' + countPhrase('en', matched, 'supplier')))
     : t(lang, k);
   return (
     <div className="mt-3">
