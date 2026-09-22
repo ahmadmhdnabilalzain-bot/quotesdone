@@ -177,6 +177,20 @@ export const handler = observe('resend_inbound', async (req) => {
     // because Resend keeps inbound mail about a month and after that the row is the only copy.
     const fullText = String(text||''); const fullHtml: string | null = String(d.html || d['body-html'] || '') || null;
     const providerEmailId: string | null = emailId || null;
+    // A REDELIVERY IS NOT A NEW EMAIL (22 Sep 2026, founder instruction 705). Every path below ends by
+    // recording the email in inbound_messages under Resend's own id (unique index), but the receipt
+    // reader, the document classifier and license_extract ran BEFORE that record was looked at, so a
+    // Resend retry of an email we had already handled paid for the same model reads again and then
+    // lost the insert to the unique index. An email already on file is answered here, before any
+    // model call. A first delivery that died before its record was written is not on file, so it is
+    // still processed in full; a re-forward is a new email with a new id.
+    if (providerEmailId) {
+      const { data: seen } = await admin.from('inbound_messages').select('id').eq('provider_email_id', providerEmailId).limit(1);
+      if (seen && seen.length) {
+        await logRun('ok', { redelivery: 1, email_id: providerEmailId }, 'resend_inbound received email ' + providerEmailId + ' again; it is already on file as inbound message ' + seen[0].id + ', so nothing was re-read and no model was asked.');
+        return J({ ok: true, duplicate: true, inbound_message_id: seen[0].id });
+      }
+    }
     text = fullText.slice(0,8000);
     const from = addr(d.from); const to = addr(d.to); const subject = String(d.subject||'').slice(0,300);
     const toLocal = to.split('@')[0] || '';

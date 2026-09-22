@@ -410,7 +410,7 @@ Deno.serve(observe('site_assistant', async (req) => {
       //    wa_inbound and anything else that grows a door all ask the same routine rather than
       //    each carrying their own copy of a sentence the founder said once.
       const seat = seatForSurface;
-      const r = await fetch(GATEWAY, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: key, fn: 'site_assistant', agent: seat, task_class: live ? 'customer_portal_assistant' : 'visitor_chat', sys, input: [...history, { role:'user', content: message }], max: live ? 600 : 320, temperature: 0.3, cache_ttl_min: 0, try_faq: !live && !priceCtx, faq_text: message, rate_key: rlKey, rate_limit: rlLimit, rate_window_s: 3600 }) });
+      const r = await fetch(GATEWAY, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ __secret: key, fn: 'site_assistant', agent: seat, ...(who ? { subject: { email: who.email } } : {}), task_class: live ? 'customer_portal_assistant' : 'visitor_chat', sys, input: [...history, { role:'user', content: message }], max: live ? 600 : 320, temperature: 0.3, cache_ttl_min: 0, try_faq: !live && !priceCtx, faq_text: message, rate_key: rlKey, rate_limit: rlLimit, rate_window_s: 3600 }) });
       const jd = await r.json();
       reply = typeof jd?.content === 'string' ? jd.content.trim() : '';
       usedModel = jd?.model || null;

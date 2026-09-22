@@ -156,7 +156,10 @@ Deno.serve(observe('doc_extract', async (req) => {
   if(!doc) return j({ok:true,note:'no pending documents'});
 
   const { error:claimErr } = await sb.from('documents').update({status:'processing',attempts:(doc.attempts||0)+1}).eq('id',doc.id);
-  if(claimErr) await logThrottled('claim_failed',60,'error',{stage:'claim',document_id:doc.id},'doc_extract could not mark document '+doc.id+' as processing, so the same document will be picked up again every run: the queue never advances and extraction cost is burned repeatedly. '+String(claimErr?.message||claimErr).slice(0,160));
+  if(claimErr) await logThrottled('claim_failed',60,'error',{stage:'claim',document_id:doc.id},'doc_extract could not mark document '+doc.id+' as processing, so it was NOT read: an unclaimed read is never counted against its 3 attempts and would be re-read and re-paid on every tick. '+String(claimErr?.message||claimErr).slice(0,160));
+  // An unclaimed document is never read (22 Sep 2026, instruction 705). This used to log and carry on,
+  // so a failing claim meant attempts never rose and the same document was paid for on every tick.
+  if(claimErr) return j({ok:false,error:'claim_failed',document_id:doc.id},500);
 
   try{
     const { data:signed, error:se } = await sb.storage.from(doc.bucket).createSignedUrl(doc.path,300);
