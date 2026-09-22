@@ -17,8 +17,8 @@
 // Two different mechanisms that both contain the word cache, and conflating them would switch
 // response caching on for every model that supports prompt caching, which is all six.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { mgmtRead } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead } from './lib/qd_guard.mjs';
+import { REF as STAGE } from './lib/demo_factory.mjs';
 
 const OUT = 'scripts/sql/fn_ai_route_returns_cache_ttl.sql';
 

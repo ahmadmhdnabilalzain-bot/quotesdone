@@ -8,8 +8,8 @@
 // real campaign and the daily tick (fn_ads_manage(false)) never sees these.
 //
 //   QD_FIXTURES=1 node scripts/staging/rehearse_ad_spend.mjs
-import { REF, q, num } from './demo_factory.mjs';
-import { mgmtRead, mgmtFixture } from './qd_guard.mjs';
+import { REF, q, num } from '../lib/demo_factory.mjs';
+import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 
 if (process.env.QD_FIXTURES !== '1') { console.error('refusing: this script writes fixtures; set QD_FIXTURES=1'); process.exit(2); }
 

@@ -79,9 +79,24 @@ const SURFACES = [
    'the invitation landing endpoint must answer a banned lead the way it answers a closed one'],
   ['supabase/functions/customer_api/index.ts',
    'if (await sanctionedLead(admin, q.supplier_id)) return J(SANCTIONED_REFUSAL, 403);',
-   'the reveal must refuse BEFORE the customer is charged'],
+   'supplier_history must refuse to show a sanctioned party\'s profile'],
+  // 22 Sep 2026 (customer-portal audit CP-09). These three lines used to be pinned one per
+  // function, and stripe_checkout — the door that TAKES THE MONEY — was not pinned at all, because
+  // it had no sanctions check to pin. The three reveal doors now go through one guard, so the
+  // check follows the code: the guard must hold the refusal, and each door must call it. Pinning
+  // the old per-file text would have meant keeping three copies of the check to keep the test
+  // green, which is the defect this fix removed.
+  ['supabase/functions/_shared/reveal_guard.ts',
+   "if (await sanctionedLead(admin, q.supplier_id)) return refuse('account_sanctioned');",
+   'the one reveal guard must refuse a sanctioned supplier'],
+  ['supabase/functions/customer_api/index.ts',
+   'const gate = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });',
+   'the reveal must go through the guard BEFORE the customer is charged'],
+  ['supabase/functions/stripe_checkout/index.ts',
+   'const gate = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });',
+   'checkout must go through the guard before a card is charged'],
   ['supabase/functions/stripe_confirm/index.ts',
-   'if (await sanctionedLead(admin, q.supplier_id)) return null;',
+   'const g = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });',
    'the post-payment identity release must hand back nothing for a sanctioned party'],
 
   // MESSAGED — the counterparty, not only the caller.

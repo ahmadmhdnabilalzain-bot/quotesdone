@@ -1070,21 +1070,62 @@ async function itEngineerAlertTick(): Promise<unknown> {
 //   deployment  the latest PRODUCTION deployment's state. NOTE app_secrets.vercel_project holds
 //               'qd-site', a NAME, and /v6/deployments 404s on it — measured 9 Sep 2026. The id
 //               lives in vercel_project_id; the name is kept as a fallback rather than deleted.
-//   runtime     NOT AVAILABLE to the stored token. /v1/projects/<id>/runtime-logs,
-//               /v1/deployments/<uid>/runtime-logs and /v1/observability/runtime-logs all 404, and
-//               the deployment `events` endpoints return build output only. So this reading is
-//               passed as {basis:'unavailable'} and fn_it_detect reports that it did not look —
-//               it is never allowed to read as "no runtime errors". Give the token runtime-log
-//               scope, or attach a log drain, and swap the basis for a count; nothing else changes.
+//   runtime     THE SITE REPORTS ITSELF (22 Sep 2026, SEATS-06). No Vercel REST path serves
+//               runtime errors to the stored token: re-measured this morning, /v1/observability/
+//               {errors,runtime-errors,logs}, /v1/projects/<id>/{observability/errors,runtime-logs},
+//               /v1/deployments/<uid>/runtime-logs, /v1/errors and /v1/monitoring/metrics ALL 404
+//               while /v6/deployments with the same token answers. So polling cannot take this
+//               reading at all. src/instrumentation.ts (Next.js `onRequestError`) posts every
+//               uncaught server error to the site_error_ingest function, which writes
+//               public.error_events(source='website'), and this step COUNTS those rows for the last
+//               hour. fn_it_detect raises website_runtime_errors from that count.
+//               It still says honestly when it did not look: with no ingest secret, or no
+//               'site_report_ready' heartbeat in 24 h (the site posts one per cold start), the
+//               reading is 'unavailable' — zero rows from a site that is not reporting must never
+//               read as zero errors.
 //
 // Swallowed like every other tick in this file: monitoring must never take the watchdog down.
+// The website's runtime errors for the last hour, or an honest account of why there is no reading.
+// The site pushes them (src/instrumentation.ts -> site_error_ingest -> public.error_events); this
+// only counts. Three outcomes, never a made-up zero:
+//   no ingest secret            the reporting path is not configured at all
+//   no heartbeat in 24 h        the secret exists but no deployment has reported in, so a count of
+//                               zero would be the ingest being dead, not the site being healthy
+//   measured                    {count, window_minutes} — fn_it_detect decides what that means
+const RUNTIME_WINDOW_MIN = 60;
+async function siteRuntimeErrors(): Promise<Record<string, unknown>> {
+  try {
+    if (!(await sec('cred_site_error_ingest'))) {
+      return { basis: 'unavailable', reason: 'app_secrets.cred_site_error_ingest is not set, so the website has no way to report its runtime errors and they were NOT checked' };
+    }
+    const since24 = new Date(Date.now() - 24 * 3600_000).toISOString();
+    const { count: ready, error: e1 } = await admin.from('error_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('source', 'website').eq('kind', 'site_report_ready').gte('created_at', since24);
+    if (e1) return { basis: 'unavailable', reason: 'public.error_events could not be read: ' + e1.message };
+    if (!ready) {
+      return { basis: 'unavailable', reason: 'the website has not reported in for 24 hours (no site_report_ready in public.error_events): SITE_ERROR_INGEST_SECRET may be missing from the Vercel project, so its runtime errors were NOT checked' };
+    }
+    const since = new Date(Date.now() - RUNTIME_WINDOW_MIN * 60_000).toISOString();
+    const { count, error: e2 } = await admin.from('error_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('source', 'website').eq('kind', 'runtime_error').gte('created_at', since);
+    if (e2) return { basis: 'unavailable', reason: 'public.error_events could not be counted: ' + e2.message };
+    // RETENTION RUNS WHERE THE ROWS ARE READ (22 Sep 2026). Nothing else deletes a website row, and
+    // only the last hour and the last 24 h are ever read. Bounded at 2,000 rows a call by the
+    // routine itself — a 50k batch delete forced a database restart on 21 Sep. Swallowed: a prune
+    // that fails must never cost the tick its reading.
+    try { await admin.rpc('fn_prune_website_error_events', { p_limit: 2000 }); } catch (_e) { /* the next tick prunes */ }
+    return { basis: 'measured', count: count ?? 0, window_minutes: RUNTIME_WINDOW_MIN, reported_by: 'src/instrumentation.ts onRequestError -> site_error_ingest' };
+  } catch (e) {
+    return { basis: 'unavailable', reason: 'the runtime-error reading threw: ' + String((e as Error)?.message || e).slice(0, 200) };
+  }
+}
+
 async function itDetectTick(): Promise<unknown> {
   const web: Record<string, unknown> = {
     probed_at: new Date().toISOString(),
-    runtime_errors: {
-      basis: 'unavailable',
-      reason: 'no runtime-log endpoint is reachable with app_secrets.vercel_token (runtime-logs and observability both 404); the website\'s runtime errors were NOT checked',
-    },
+    runtime_errors: await siteRuntimeErrors(),
   };
   try {
     const site = await sec('public_site_url');

@@ -21,8 +21,8 @@
 //
 //   node scripts/staging/prove_redaction_retry.mjs
 import { readFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
-import { REF } from './demo_factory.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF } from '../lib/demo_factory.mjs';
 
 if (REF === PROD_REF) { console.error('refusing to run against production'); process.exit(2); }
 

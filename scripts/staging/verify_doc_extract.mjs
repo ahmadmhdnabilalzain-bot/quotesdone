@@ -15,8 +15,8 @@
 // three and reading exactly like model flakiness.
 //
 //     node scripts/staging/verify_doc_extract.mjs
-import { mgmtRead } from './qd_guard.mjs';
-import { REF, withRun, makeCustomer, makeInquiry, uploadObject, call, q } from './demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
+import { REF, withRun, makeCustomer, makeInquiry, uploadObject, call, q } from '../lib/demo_factory.mjs';
 import { readFileSync } from 'node:fs';
 
 const checks = [];

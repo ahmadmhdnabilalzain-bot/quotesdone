@@ -26,8 +26,8 @@
 // management API — the same split scripts/verify_prod_readiness.mjs uses.
 //
 //     node scripts/staging/apply_taxonomy_fix.mjs
-import { mgmtRead, mgmtWrite, PROD_REF } from './qd_guard.mjs';
-import { REF } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF } from '../lib/demo_factory.mjs';
 
 // trade code -> the catalogue category it belongs in. Every slug verified to exist in production.
 const TRADES = [

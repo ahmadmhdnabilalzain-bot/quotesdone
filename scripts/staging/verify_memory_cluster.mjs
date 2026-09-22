@@ -10,8 +10,8 @@
 // which is the only channel a deliberately-aborted transaction has.
 //
 //   node scripts/staging/verify_memory_cluster.mjs
-import { mgmtWrite } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const SQL = `
 do $fixture$

@@ -68,7 +68,7 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const mgmtRead = async (ref, sql) =>
-  (await import('../../staging/qd_guard.mjs')).mgmtRead(ref, sql);
+  (await import('../../lib/qd_guard.mjs')).mgmtRead(ref, sql);
 
 test('the company has zero directionless connections', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const rows = await mgmtRead(PROD_REF,

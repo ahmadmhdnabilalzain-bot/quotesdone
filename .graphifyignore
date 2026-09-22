@@ -57,7 +57,7 @@ audit/
 # ---- the one individually named exclusion, and why ----------------------------------------------
 # A word-by-word audit OF a session brief. It is a judgement, not a description, and its 14 heading
 # nodes read as statements about the brief's subject rather than about the brief.
-docs/sessions/NEXT_SESSION_BRIEF_WORD_BY_WORD_AUDIT.md
+docs/archive/sessions/NEXT_SESSION_BRIEF_WORD_BY_WORD_AUDIT.md
 
 # ---- graphify's own output ----------------------------------------------------------------------
 # A graph that ingests its own last report grows a second, fainter copy of itself every run.

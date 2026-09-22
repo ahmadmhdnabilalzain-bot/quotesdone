@@ -60,7 +60,10 @@ export const T = {
     next_1:'We structure your description into a request suppliers can price, and send it to matching UAE suppliers — without your name or number.',
     next_2:'Their quotes come back onto this screen. Quotes usually arrive within 3–5 working days; you are emailed as each one arrives.',
     next_3:'You compare them side by side for free. Supplier names stay hidden until you choose one.',
-    next_4:'Revealing a supplier costs 3% of that quote plus card processing, and nothing else. Everything you paid is refunded if they do not respond within 5 working days: we chase them for you after 3, and banks take 7-14 working days to show a refund.',
+    // The numbers are pricing_config's, passed in by my_inquiries (guarantee_terms) — never typed
+    // here (customer-portal audit CP-16, 22 Sep 2026: this said 5 / 3 / 7-14 in the string).
+    next_4:'Revealing a supplier costs 3% of that quote plus card processing, and nothing else.',
+    next_4_refund:'Everything you paid is refunded if they do not respond within {w} working days: we chase them for you after {c}, and banks take {bmin}-{bmax} working days to show a refund.',
     // ── shell ──
     nav_main:'Portal navigation', nav_work:'Your work', nav_collaborate:'Working with others', nav_intelligence:'Suggestions for you',
     nav_account:'Your account', nav_overview:'Overview', nav_requests:'My requests', nav_more:'More', nav_more_title:'All sections', nav_main_bar:'Main sections', nav_main_bar:'Main sections',
@@ -153,7 +156,8 @@ export const T = {
     next_1:'نحوّل وصفك إلى طلب يستطيع الموردون تسعيره، ونرسله إلى الموردين المطابقين في الإمارات — دون اسمك أو رقمك.',
     next_2:'تعود عروضهم إلى هذه الشاشة. تصل العروض عادةً خلال 3 إلى 5 أيام عمل، ويصلك بريد عند وصول كل عرض.',
     next_3:'تقارنها جنبًا إلى جنب مجانًا. تبقى أسماء الموردين مخفية حتى تختار أحدهم.',
-    next_4:'كشف المورّد يكلّف 3% من قيمة عرضه مع رسوم معالجة البطاقة، ولا شيء غير ذلك. ويُردّ إليك كامل ما دفعته إذا لم يردّ خلال 5 أيام عمل: نتابعه نيابةً عنك بعد 3 أيام، ويظهر المبلغ المسترد في حسابك خلال 7 إلى 14 يوم عمل بحسب البنك.',
+    next_4:'كشف المورّد يكلّف 3% من قيمة عرضه مع رسوم معالجة البطاقة، ولا شيء غير ذلك.',
+    next_4_refund:'ويُردّ إليك كامل ما دفعته إذا لم يردّ خلال {w} أيام عمل: نتابعه نيابةً عنك بعد {c} أيام عمل، ويظهر المبلغ المسترد في حسابك خلال {bmin} إلى {bmax} يوم عمل بحسب البنك.',
     // ── الهيكل ──
     nav_main:'تنقل البوابة', nav_work:'عملك', nav_collaborate:'العمل مع الآخرين', nav_intelligence:'اقتراحات لك',
     nav_account:'حسابك', nav_overview:'نظرة عامة', nav_requests:'طلباتي', nav_more:'المزيد', nav_more_title:'جميع الأقسام', nav_main_bar:'الأقسام الرئيسية',
@@ -262,6 +266,7 @@ Object.assign(T.en, {
   rc_edit: 'Edit request', rc_cancel: 'Cancel request', rc_cancelling: 'Cancelling…', rc_cancel_confirm: 'Cancel this request? Suppliers will stop quoting.', rc_cancel_fail: 'Could not cancel. Please try again.',
   rc_describe: 'Describe your request', rc_emirate_opt: 'Emirate (optional)', rc_budget_opt: 'Budget (optional)', rc_save: 'Save changes', rc_saving: 'Saving…', rc_cancel_edit: 'Cancel edit',
   rc_save_fail: 'Could not save changes.', rc_quotes_received: 'Quotes received ({n})',
+  rc_on_hold: '{n} more quote(s) are on hold: the supplier has not stated every detail your request needs and we are asking them for it. They appear here once they are complete.',
   cl_title: 'Questions and additions', cl_sub: 'Suppliers can ask before they quote. They never see your name or number, and you see them as Supplier A, B and so on.',
   cl_open: 'Add detail or answer supplier questions', cl_note_ph: 'Add detail for every invited supplier — scope, sizes, timing…', cl_note_label: 'Add detail to this request',
   cl_note_send: 'Add to request', cl_note_sent: 'Added — {n} invited supplier(s) notified.', cl_note_sent0: 'Added to your request. It reaches suppliers as they are invited.',
@@ -402,6 +407,7 @@ Object.assign(T.ar, {
   rc_edit: 'تعديل الطلب', rc_cancel: 'إلغاء الطلب', rc_cancelling: 'جارٍ الإلغاء…', rc_cancel_confirm: 'هل تريد إلغاء هذا الطلب؟ سيتوقف الموردون عن التسعير.', rc_cancel_fail: 'تعذّر الإلغاء. يُرجى المحاولة مرة أخرى.',
   rc_describe: 'صِف طلبك', rc_emirate_opt: 'الإمارة (اختياري)', rc_budget_opt: 'الميزانية (اختياري)', rc_save: 'حفظ التغييرات', rc_saving: 'جارٍ الحفظ…', rc_cancel_edit: 'إلغاء التعديل',
   rc_save_fail: 'تعذّر حفظ التغييرات.', rc_quotes_received: 'عروض الأسعار المستلمة ({n})',
+  rc_on_hold: 'هناك {n} عرض/عروض معلّقة: لم يذكر المورّد كل التفاصيل التي يحتاجها طلبك ونحن نطلبها منه. ستظهر هنا فور اكتمالها.',
   cl_title: 'الأسئلة والإضافات', cl_sub: 'يمكن للموردين السؤال قبل التسعير. لا يرون اسمك أو رقمك، وتراهم أنت بأسماء: المورّد A وB وهكذا.',
   cl_open: 'أضف تفاصيل أو أجب عن أسئلة الموردين', cl_note_ph: 'أضف تفاصيل لجميع الموردين المدعوين — النطاق، المقاسات، التوقيت…', cl_note_label: 'أضف تفاصيل إلى هذا الطلب',
   cl_note_send: 'أضف إلى الطلب', cl_note_sent: 'تمت الإضافة — أُبلغ {n} من الموردين المدعوين.', cl_note_sent0: 'أُضيفت إلى طلبك، وتصل إلى الموردين عند دعوتهم.',
@@ -525,6 +531,12 @@ export function errText(j, lang, fallbackKey = 'err_generic') {
   if (j.ambiguous) return t(lang, 'err_ambiguous');
   if (j.suppressed) return t(lang, 'err_suppressed');
   for (const c of [j.code, j.error]) if (c && CODE_KEY[String(c)]) return t(lang, CODE_KEY[String(c)]);
+  // A REFUSAL THAT ARRIVES IN BOTH LANGUAGES IS ALREADY THE SENTENCE (customer-portal audit CP-03 /
+  // CP-10, 22 Sep 2026). customer_api, stripe_checkout, stripe_confirm and quote_compare now answer
+  // a refusal with a machine `code`, a proper 4xx/5xx AND `message` / `message_ar`. A code with its
+  // own key above keeps that wording; anything new is rendered in the customer's language rather
+  // than falling through to the generic line.
+  if (j.message && j.message_ar) return String(lang === 'ar' ? j.message_ar : j.message);
   const text = [j.error, j.message].filter(Boolean).join(' ');
   for (const [re, k] of MSG_KEY) if (re.test(text)) return t(lang, k);
   return t(lang, fallbackKey);

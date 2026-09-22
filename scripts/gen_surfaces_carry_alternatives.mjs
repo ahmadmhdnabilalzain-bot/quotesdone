@@ -16,7 +16,7 @@
 // That is deliberate — see gate_records_the_alternative_it_rejected.sql. No value is synthesised for
 // a decision that recorded no evaluation.
 import { writeFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 // Reaches decision_log.alternatives from the agent_actions row currently in scope.
 //
