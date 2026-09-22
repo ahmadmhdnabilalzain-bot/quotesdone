@@ -82,4 +82,12 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // the complaint clock hands customer_support its own complaint before the Complaints Policy due date and
   // closes it on the final response (scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql)
   { type: 'complaint.due', from: 'customer_support', to: 'customer_support' },
+  // the CEO's daily plan names the binding constraint each seat can move; the CEO re-measures and closes it
+  // (scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql, applied 22 Sep 2026). Missing here until
+  // 22 Sep: that file inserts its four rows with INSERT ... SELECT FROM unnest(...), a shape the static
+  // parser in payments_are_the_accountant.test.mjs did not read, so only the production half saw them.
+  { type: 'ceo.directive', from: 'ceo', to: 'sales_engineer' },
+  { type: 'ceo.directive', from: 'ceo', to: 'customer_support' },
+  { type: 'ceo.directive', from: 'ceo', to: 'accountant' },
+  { type: 'ceo.directive', from: 'ceo', to: 'it_engineer' },
 ] as const;

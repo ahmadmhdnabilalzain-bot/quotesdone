@@ -69,6 +69,15 @@ function kindRows() {
         : type === 'delivery.result' ? 'fn_delivery_result_acts' : `fn_${to}_acts_on_handoff`);
       rows.push({ type, from, to, handler });
     }
+    // 22 Sep 2026: the INSERT ... SELECT 'type', 'from', s, '<meaning>', 'fn_handler' ... FROM unnest(array[...]) s
+    // shape (one kind to several seats) was invisible to the tuple parser above, so the four ceo.directive rows
+    // were live in production and absent from payment_handoffs.ts with this static test green. Read it too.
+    for (const t of m[0].matchAll(/select\s+'([a-z_.]+)',\s*'([a-z_]+)',\s*s,\s*'(?:[^']|'')*'(?:,\s*'(fn_[a-z0-9_]+)')?[\s\S]*?from\s+unnest\(array\[([^\]]*)\]\)\s+s\b/g)) {
+      const [, type, from, named, seats] = t;
+      for (const [, to] of seats.matchAll(/'([a-z_]+)'/g)) {
+        rows.push({ type, from, to, handler: named ?? `fn_${to}_acts_on_handoff` });
+      }
+    }
   }
   return rows;
 }
@@ -120,7 +129,9 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       || (type === 'it.finding' && sqlText.includes("fn_seat_handoff('it_engineer', v_owner, 'it.finding'"))
       || new RegExp(`p_from: '${from}', p_to: '${to}', p_type: '${type.replace('.', '\\.')}'`).test(ts)
       || (type === 'refund.remediate' && sqlText.includes("fn_seat_handoff('ceo', x.owner, 'refund.remediate'"))
-      || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"));
+      || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"))
+      // the CEO's daily plan addresses each directive to the seat the plan names
+      || (type === 'ceo.directive' && allSql.includes("fn_seat_handoff('ceo', dr->>'seat', 'ceo.directive'"));
     if (!produced) missing.push(`${k}: nothing starts it`);
   }
   assert.deepEqual(missing, []);

@@ -5,8 +5,9 @@
 // WhatsApp templates submitted on 18 Sep were in no register - so each was re-found as "open" days later.
 // scripts/sql/the_open_account_facts_of_21_september_are_recorded.sql recorded them. This fails, against
 // production, if the same cause comes back:
-//   1. a cap_/floor_ row of public.it_threshold is NULL with the basis its file inserted - a NULL is
-//      allowed only once somebody recorded, through fn_it_cap_set, what was measured and where it is set;
+//   1. a cap_/floor_ row of public.it_threshold is NULL - allowed only for the caps the founder holds
+//      (HELD_BY_FOUNDER below, instruction 639), and only while their row says where he sets them and the
+//      IT register keeps them from ever reaching him;
 //   2. a domain or licence in public.it_expiry has no date and is not marked never-expiring;
 //   3. an item inside its first warning has no renewal.due handoff for that date;
 //   4. a wa_template_registry row has been 'pending' for more than 14 days without being read again.
@@ -35,12 +36,42 @@ const q = async (query, attempt = 0) => {
   return JSON.parse(text);
 };
 
+// HELD BY THE FOUNDER. Founder instruction 639, 22 Sep 2026: "Do not ask about Vercel caps or subscriptions;
+// that is on him and he adds when reached. Twilio balance: only raise it if it is actually a blocker."
+// These two stay NULL on purpose: the number is his, he is never asked for it, and an empty cap is not a
+// blocker (a balance that stops sends fails the sends, and that arrives as its own fault). The check stays red
+// for any OTHER unrecorded cap, and for these two if their row stops saying so, loses where he sets it, or if
+// the IT register would ever mail him about it.
+//
+// WHY THIS CHANGED (22 Sep 2026): the exemption used to be "basis starts 'set by the <seat> on'". That was the
+// wording #784 wrote for a NULL too, which read like a recorded cap;
+// scripts/sql/a_cap_nobody_has_recorded_says_not_recorded.sql made a NULL say 'not recorded: <where> (noted by
+// the <seat> on <date>)' (two other checks require that), and this check went red on the two caps 639 settled.
+const HELD_BY_FOUNDER = {
+  cap_vercel_charges_month: 'instruction 639: Vercel caps and subscriptions are his, added when reached; never asked',
+  floor_twilio_balance: 'instruction 639: the Twilio balance is raised only when it is actually a blocker',
+};
+
 test('no provider cap or floor is left at its unrecorded default', async (t) => {
   if (!token) { t.skip('no management token'); return; }
-  const rows = await q(`select key from public.it_threshold
-                         where key ~ '^(cap|floor)_' and value is null and basis !~ '^set by the (accountant|ceo|founder) on '
-                         order by key`);
-  assert.deepEqual(rows.map((r) => r.key), [], 'caps nobody recorded (set each with public.fn_it_cap_set)');
+  const rows = await q(`select key, basis from public.it_threshold
+                         where key ~ '^(cap|floor)_' and key <> 'cap_warn_ratio' and value is null order by key`);
+  const unrecorded = rows.filter((r) => !HELD_BY_FOUNDER[r.key]).map((r) => r.key);
+  assert.deepEqual(unrecorded, [], 'caps nobody recorded (set each with public.fn_it_cap_set)');
+  // a held cap still says, truthfully, that it is empty and where he would set it
+  const unsaid = rows.filter((r) => HELD_BY_FOUNDER[r.key] && !/^not recorded: .*(vercel\.com|console\.twilio\.com)/.test(r.basis || ''))
+    .map((r) => r.key);
+  assert.deepEqual(unsaid, [], 'a cap held by the founder no longer says it is not recorded and where he sets it');
+});
+
+test('an unrecorded cap never reaches the founder', async (t) => {
+  if (!token) { t.skip('no management token'); return; }
+  const rows = await q(`select issue_key_like, to_founder from public.it_founder_decision_class
+                         where 'duty:usage_vercel:cap_unknown:vercel_charges_month' like issue_key_like
+                            or 'duty:usage_twilio:cap_unknown:twilio_balance' like issue_key_like`);
+  assert.ok(rows.length >= 1, 'no it_founder_decision_class row covers the cap_unknown findings (instruction 639)');
+  assert.deepEqual(rows.filter((r) => r.to_founder).map((r) => r.issue_key_like), [],
+    'the IT register would mail the founder about a cap instruction 639 says he is never asked about');
 });
 
 test('every domain and licence has an expiry date', async (t) => {

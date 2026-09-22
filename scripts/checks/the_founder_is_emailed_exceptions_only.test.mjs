@@ -49,6 +49,14 @@ test('notifications: every founder-bound email/whatsapp row of the last 24h has 
        and coalesce(n.channel, 'email') in ('email', 'whatsapp')
        and (n.to_role in ('founder', 'admin', 'owner') or lower(n.to_email) = admin.email)
        and coalesce(n.to_email, '') !~* '@example[.]invalid$'
+       -- A row is judged by the policy in force when it was queued. founder_mail_policy keeps no history, so a
+       -- row queued BEFORE its kind's row last changed was judged by a value this query cannot see, and the gate
+       -- let it through then. MEASURED 22 Sep 2026: twelve it_new_bug emails sent 21 Sep 04:30-22:01 UTC, when
+       -- it_new_bug was allowed; instruction 642 turned it off at 23:22 UTC (the_founder_hears_from_it_once_a_day.sql)
+       -- and nothing of that kind has been queued to him since - yet this read them against today's 'false' and
+       -- stayed red for a day on history. Every row queued after its kind's last change is still judged in full.
+       and not exists (select 1 from public.founder_mail_policy p
+                         where p.kind = coalesce(n.kind, n.type) and n.created_at < p.updated_at)
        and not coalesce((select p.allowed_to_email from public.founder_mail_policy p where p.kind = coalesce(n.kind, n.type)), false)
      order by n.created_at desc
      limit 50`);

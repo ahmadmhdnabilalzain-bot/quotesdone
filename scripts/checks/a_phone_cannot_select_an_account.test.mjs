@@ -29,7 +29,7 @@
 // a code we could not attribute to one account must not be issued.
 //
 //   node --test scripts/checks/
-import { test } from 'node:test';
+import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 
@@ -61,6 +61,30 @@ const q = async (project, query) => {
   assert.ok(r.ok, `query failed on ${project}: ${r.status} ${text}`);
   return JSON.parse(text);
 };
+
+// THIS FILE IS A REHEARSAL, AND SAYS SO. It calls the live, public login_otp six times a run and five are
+// refused by design. Measured 22 Sep 2026 03:53 UTC: those refusals, from check sessions run without a window,
+// were 56 of the 67 login_otp calls fn_it_detect saw outside any rehearsal in 24 hours, and it raised a HIGH
+// refusal_rate:login_otp finding ("turned away 84% ... a surface a customer opens") against the suite's own
+// traffic. The e2e harness opens a public.rehearsal_window for exactly this (scripts/e2e/fixtures.mjs openRun);
+// this file now does the same for its duration and ALWAYS closes it, so real refusals outside it still count.
+// The run_tag is not 'qd_run:<tag>', so the harness's stale-run sweep never mistakes it for a fixture run.
+// Prevented from recurring by the rehearsal/control pair in it_engineer_loop_is_closed.test.mjs.
+let windowId = null;
+before(async () => {
+  if (!mgmtToken) return;
+  const [w] = await q(PROJECTS.production, `insert into public.rehearsal_window (run_tag, opened_by, note)
+    values ('check:a_phone_cannot_select_an_account', 'scripts/checks/a_phone_cannot_select_an_account.test.mjs',
+            'ZZ DEMO: live login_otp refusals by design') returning id`);
+  windowId = w.id;
+});
+after(async () => {
+  if (windowId == null) return;
+  await q(PROJECTS.production, `update public.rehearsal_window set ended_at = now() where id = ${Number(windowId)} and ended_at is null`);
+});
+test('the live login_otp calls run inside a rehearsal window of their own', { skip: mgmtToken ? false : 'no management token' }, () => {
+  assert.ok(windowId != null, 'no rehearsal window was opened, so every refusal below reads as a customer turned away');
+});
 
 const send = async (project, user_kind, identifier) => {
   const r = await fetch(`https://${project}.supabase.co/functions/v1/login_otp`, {
