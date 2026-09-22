@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T22:42:38.563Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T22:58:10.462Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -56331,28 +56331,27 @@ AS $function$
            l.verified
       from public.leads l where l.id = p_lead_id
   ),
-  -- Only inquiries this supplier could actually work: open, and not their own demo fence.
+  -- ONLY THE ENQUIRIES WE SENT THIS SUPPLIER. Until 22 Sep this read every open row in
+  -- public.inquiries and handed back each one's inquiry_id with a reason line that could read
+  -- "Outside your registered trade" — the list itself said the job was not theirs. Matching is exact
+  -- trade or none (the founder's rule: never a nearest mapping), so public.inquiry_matches IS the
+  -- answer to "what may this supplier quote for", and asking anything else invents a second matcher.
   cand as (
     select i.id, i.category, i.emirate, i.summary_masked as summary, i.scope_type, i.created_at, i.budget_masked as budget,
-           -- WHAT THE CUSTOMER ACTUALLY NEEDS, which is not the project's title. raw_input is what
-           -- they typed, in their words. `spec` is jsonb — the structured brief intake derived —
-           -- and pouring that through ::text would put raw JSON in front of a supplier, so it is
-           -- deliberately not a fallback. No brief typed means NULL, and the surface says so.
            nullif(btrim(coalesce(i.raw_input_masked, '')), '') requirement,
            lower(coalesce(i.category, '')) cat
       from public.inquiries i
      where coalesce(i.status, 'open') = 'open'
+       and exists (select 1 from public.inquiry_matches m
+                    where m.inquiry_id = i.id and m.supplier_id = p_lead_id)
   ),
   scored as (
     select c.*,
       (c.cat = me.sector and me.sector <> '')                                    as trade_hit,
       (c.emirate is not null and (c.emirate = me.emirate
         or c.emirate = any(me.service_emirates)))                                as location_hit,
-      -- Capacity is only ASKED when the supplier has declared a capability. An empty capability
-      -- makes this unanswerable for them, not a failure by them.
       (me.capability <> '')                                                      as capacity_known,
       (me.capability <> '' and c.cat <> '' and position(c.cat in me.capability) > 0) as capacity_hit,
-      -- History needs a concluded job. Counted rather than assumed so the reason can name it.
       (select count(*) from public.quotes q
          join public.inquiries qi on qi.id = q.inquiry_id
         where q.supplier_id = p_lead_id and lower(coalesce(qi.category,'')) = c.cat) as similar_jobs
@@ -56360,8 +56359,6 @@ AS $function$
   ),
   ranked as (
     select s.*,
-      -- Weights that applied / weights that could apply. Capacity leaves the denominator when the
-      -- supplier has declared nothing; history leaves it while the estate has no completed work.
       round(100.0 * (
         (case when s.trade_hit then 40 else 0 end)
       + (case when s.location_hit then 30 else 0 end)
@@ -56373,35 +56370,36 @@ AS $function$
     'lead_id', p_lead_id,
     'count', (select count(*) from ranked),
     'ordered_by', 'fit_score desc — a ranked list, never chronological',
+    -- The population is the supplier's OWN matches. The estate-wide count of open enquiries used to be
+    -- published here, which told every supplier how much work it was not being shown.
     'population', jsonb_build_object(
-      'open_inquiries', (select count(*) from public.inquiries where coalesce(status,'open')='open'),
-      'quotes_in_estate', (select count(*) from public.quotes)
+      'matched_to_me', (select count(*) from public.inquiry_matches where supplier_id = p_lead_id),
+      'open_for_me', (select count(*) from cand),
+      'my_quotes', (select count(*) from public.quotes where supplier_id = p_lead_id)
     ),
     'note', case when (select count(*) from ranked) = 0
-                 then 'no open opportunities yet — nothing to rank'
+                 then 'no open opportunities yet — nothing has been matched to you'
                  else null end,
     'opportunities', coalesce((
       select jsonb_agg(x order by x->>'fit_score' desc) from (
         select jsonb_build_object(
           'inquiry_id', r.id,
-          'project_title', coalesce(nullif(btrim(coalesce(r.summary,'')),''), r.category, 'Untitled project'),
+          -- The masked columns, through the same seed scrub the inbox applies (SP-F-04's rule: the
+          -- customer's project name is not a pattern anything can recognise).
+          'project_title', coalesce(nullif(btrim(coalesce(public.fn_supplier_safe_text(r.id, r.summary), '')), ''), r.category, 'Untitled project'),
           'category', r.category,
           'emirate', r.emirate,
-          -- NULL, not an empty string: an inquiry with no brief has not been described yet, and the
-          -- surface must be able to say that rather than render a blank line.
-          'requirement', r.requirement,
-          'estimated_value', r.budget,
+          'requirement', public.fn_supplier_safe_text(r.id, r.requirement),
+          'estimated_value', public.fn_supplier_safe_text(r.id, r.budget),
           'fit_score', r.fit_score,
           'match_pct', r.fit_score,
-          -- THE "WHY". Each reason states whether it applied, and an unanswerable one says why it
-          -- could not be asked rather than reading as a failed test.
           'reasons', jsonb_build_array(
             jsonb_build_object(
               'key', 'trade',
               'applies', r.trade_hit,
               'text', case when r.trade_hit
                            then 'This is your trade — ' || coalesce(r.category,'the same category')
-                           else 'Outside your registered trade' end),
+                           else 'Matched to you on capability rather than on your registered sector' end),
             jsonb_build_object(
               'key', 'location',
               'applies', r.location_hit,
@@ -56420,12 +56418,10 @@ AS $function$
             jsonb_build_object(
               'key', 'history',
               'applies', r.similar_jobs > 0,
-              -- available:false is the whole point. 0 quotes exist in the estate, so this is
-              -- unanswerable for EVERY supplier and must never read as "you have no experience".
-              'available', (select count(*) from public.quotes) > 0,
+              'available', (select count(*) from public.quotes where supplier_id = p_lead_id) > 0,
               'similar_jobs', r.similar_jobs,
-              'text', case when (select count(*) from public.quotes) = 0
-                           then 'Previous similar project: no completed work has been recorded on QuotesDone yet, for anyone'
+              'text', case when (select count(*) from public.quotes where supplier_id = p_lead_id) = 0
+                           then 'Previous similar project: you have not quoted on QuotesDone yet'
                            when r.similar_jobs > 0
                            then 'You worked on ' || r.similar_jobs || ' previous similar project(s)'
                            else 'No previous similar project on record' end)
@@ -56693,58 +56689,122 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_quote_recommend(p_lead_id bigint, 
 AS $function$
   with me as (select * from public.leads where id = p_lead_id),
   flag as (select coalesce((select source from me), '') = 'qd_demo_fixture' as is_demo),
-  inq as (select * from public.inquiries where id = p_inquiry_id),
+  -- THE MATCH IS THE PERMISSION. Without a row here this enquiry does not exist for this supplier,
+  -- and nothing below is computed for them.
+  matched as (
+    select exists (select 1 from public.inquiry_matches m
+                    where m.inquiry_id = p_inquiry_id and m.supplier_id = p_lead_id) as ok
+  ),
+  inq as (select * from public.inquiries_supplier_safe where id = p_inquiry_id),
 
-  -- The competing bids: what every OTHER supplier has priced this same enquiry at.
+  -- The competing bids. A DRAFT IS NOT A BID: a quote that was never sent to the customer is a figure
+  -- somebody was still typing, and counting it moved the midpoint a real supplier prices against.
   bids as (
-    select q.quote_amount amt, q.lead_time, q.warranty, q.payment_terms
-    from public.quotes q, flag
-    where q.inquiry_id = p_inquiry_id
+    select q.supplier_id, q.quote_amount amt, q.lead_time, q.warranty, q.payment_terms
+    from public.quotes q, flag, matched
+    where matched.ok
+      and q.inquiry_id = p_inquiry_id
       and q.supplier_id is distinct from p_lead_id
+      and q.status in ('submitted', 'revealed')
       and q.quote_amount is not null and q.quote_amount > 0
       and (coalesce(q.source, '') = 'qd_demo_fixture') = flag.is_demo
   ),
+  -- n IS A COUNT OF COMPANIES, not of rows (review of #854). count(*) let ONE rival submitting three
+  -- priced options clear a three-bid floor by itself, and the median of those three is that rival's
+  -- middle option. lowest and highest are computed for the wide_spread signal only; neither, and no
+  -- percentile, ever leaves this routine.
   stat as (
-    select count(*) n,
-           round(percentile_cont(0.5)  within group (order by amt)) mid,
-           round(percentile_cont(0.25) within group (order by amt)) lo,
-           round(percentile_cont(0.75) within group (order by amt)) hi,
+    select count(distinct supplier_id) n,
+           count(*) n_rows,
+           percentile_cont(0.5) within group (order by amt) mid_raw,
            min(amt) lowest, max(amt) highest
     from bids
+  ),
+  -- THE BRACKET, AND WHY A BRACKET RATHER THAN A FIGURE (review of #854, and one correction on top).
+  --
+  -- The first version published the median with its p25 and p75. For three sorted bids a < b < c that
+  -- is p25 = (a+b)/2 and p75 = (b+c)/2, so a = 2*p25 - median and c = 2*p75 - median: all three bids
+  -- recovered to the fils out of the very payload whose comment promised none of them. An ODD
+  -- population also makes the median itself one company's exact number, so no raw statistic can carry
+  -- the guarantee at all.
+  --
+  -- Rounding the median was the next attempt and it failed on its own probe: the fixtures
+  -- 50000 / 61000 / 72000 have a median of 61000, which is already a multiple of a thousand, so
+  -- "rounded to the nearest AED 1,000" published bid b unchanged. A SYMMETRIC band fails the same way
+  -- for the same reason — its own midpoint is the number it was meant to hide.
+  --
+  -- What leaves this routine is therefore the BRACKET the midpoint falls in: [floor(mid/step)*step,
+  -- +step), step being half an order of magnitude and never less than AED 1,000 (AED 5,000 wide around
+  -- 61,000; AED 50,000 wide around 610,000). A bracket has no centre to invert and states only that
+  -- the middle of the market is somewhere inside it.
+  --
+  -- THE GUARANTEE, STATED AS IT ACTUALLY HOLDS: this routine publishes no statistic of the competing
+  -- bids finer than one bracket. It does not promise that no bid EQUALS a bracket edge — a rival whose
+  -- price happens to be exactly AED 60,000 shares that number with the edge by coincidence, and
+  -- nothing in the payload says which.
+  band as (
+    -- `mid` is the MIDDLE of the bracket, not its bottom edge (re-review of #854). The bottom edge was
+    -- what the one-click accept sent, and it is up to a whole step low — a midpoint of 14,999 would
+    -- have been quoted at 10,000, 33% under — so the Quote Builder systematically under-bid its users.
+    -- The bracket's middle is derived from the bracket alone, reveals nothing the bracket does not,
+    -- and is wrong by at most half a step in either direction rather than a whole step in one.
+    select lo, lo + step as hi, lo + step / 2 as mid, step
+    from (select floor(mid_raw / step) * step as lo, step
+            from (select mid_raw, greatest(1000, power(10, floor(log(mid_raw)))::numeric / 2) as step
+                    from stat) q) b
   ),
 
   -- The supplier's own habit, measured rather than assumed: across every enquiry they have priced,
   -- where did they sit against the midpoint of that enquiry's other bids? An index of 1.04 means
   -- this company prices 4% above the middle of the market, and it is computed from their own rows.
+  -- ITS OWN FLOOR, AND THE SAME STATUS RULE (review of #854). This index was the leak the headline
+  -- figure no longer is: idx = avg(my price / the median of the others') to three decimal places, with
+  -- your_quotes_measured naming the denominator, so on a single measured enquiry a supplier could
+  -- recover that median to about a tenth of a percent. It is now computed ONLY over enquiries where at
+  -- least three OTHER COMPANIES submitted, rounded to two places, and published only when three or
+  -- more enquiries went into it. The supplier's own drafts are excluded too: the outer query had no
+  -- status filter at all, which contradicted this file's own rule that a draft is not a bid.
   habit as (
-    select round(avg(ratio)::numeric, 3) idx, count(*) n
+    select round(avg(ratio)::numeric, 2) idx, count(*) n
     from (
       select q.quote_amount / nullif((
                select percentile_cont(0.5) within group (order by o.quote_amount)
                from public.quotes o
                where o.inquiry_id = q.inquiry_id and o.supplier_id is distinct from q.supplier_id
-                 and o.quote_amount > 0), 0) as ratio
+                 and o.status in ('submitted', 'revealed') and o.quote_amount > 0
+                 and (select count(distinct o2.supplier_id) from public.quotes o2
+                       where o2.inquiry_id = q.inquiry_id and o2.supplier_id is distinct from q.supplier_id
+                         and o2.status in ('submitted', 'revealed') and o2.quote_amount > 0) >= 3), 0) as ratio
       from public.quotes q, flag
       where q.supplier_id = p_lead_id and q.quote_amount > 0
+        and q.status in ('submitted', 'revealed')
         and (coalesce(q.source, '') = 'qd_demo_fixture') = flag.is_demo
     ) r where r.ratio is not null
   ),
+  -- DIFFERENCING (re-review of #854). your_index at two decimal places with an EXACT
+  -- your_quotes_measured lets a supplier subtract one enquiry's contribution from the next and recover
+  -- the new enquiry's median to about 3.5% — finer than a bracket, which would have made this the
+  -- remaining way in. One decimal place, and the count as a band rather than a number.
+  habit_out as (
+    select case when n >= 3 then round(idx, 1) else null end idx,
+           -- `when n < 3 then null` FIRST, and it is not decoration: without it a count of 0, 1 or 2
+           -- failed the `n >= 3 and n <= 5` branch, fell through to `n <= 10`, and read "6-10" — a
+           -- supplier with one measured enquiry told they had six to ten (reviewer's guard on #854).
+           case when n < 3 then null
+                when n <= 5 then '3-5' when n <= 10 then '6-10'
+                when n <= 25 then '11-25' else 'more than 25' end n_band,
+           n
+    from habit
+  ),
 
   -- ── DELIVERY, WARRANTY AND TERMS ARE TEXT, SO THEY ARE PICKED, NOT AVERAGED ───────────────────
-  -- The average of "8-10 weeks" and "12-14 weeks" is not a promise anybody made, so the routine
-  -- returns an answer a real supplier actually gave.
+  -- The average of "8-10 weeks" and "12-14 weeks" is not a promise anybody made.
   --
-  -- WHICH answer took two attempts, and the first one was wrong in a way worth recording. Taking
-  -- `order by count(*) desc, <text>` looks like "the most common", but when all four bids are
-  -- distinct every count is 1 and the tie breaks ALPHABETICALLY — which recommended "12-14 weeks",
-  -- the slowest delivery on the board, and "12 months on equipment", the weakest warranty. A
-  -- tie-break is not a market consensus, and dressing one up as the modal answer is the same defect
-  -- class as an invented percentage: arithmetic that ran correctly over the wrong population.
-  --
-  -- So: when a value genuinely repeats, that mode is the answer and `agreed_by` says how many said
-  -- it. When nothing repeats there IS no consensus, and the answer is the MIDDLE of the observed
-  -- range ranked by its leading number — a real bid, neither the fastest nor the slowest — with
-  -- `consensus` false so the surface can say the suppliers disagreed.
+  -- WHAT THIS RETURNS AND WHAT IT NO LONGER RETURNS (22 Sep 2026, SP-N-02). It used to return
+  -- `observed` — the distinct lead times and warranties every competitor had typed — and, when no two
+  -- bids agreed, "the middle of the range", which is one named competitor's exact promise. A value
+  -- only two or more suppliers independently gave is a market norm and may be suggested; anything
+  -- else is a rival's answer and is now withheld, with `consensus` false saying so.
   ranked as (
     select 'lead' kind, lead_time v, count(*) c,
            min(coalesce(substring(lead_time from '\d+')::int, 999)) ord
@@ -56759,25 +56819,18 @@ AS $function$
     from bids where payment_terms is not null group by 1, 2
   ),
   picked as (
-    select kind, v, c, has_mode from (
+    select kind, v, c from (
       select r.kind, r.v, r.c,
-             max(r.c) over (partition by r.kind) >= 2 as has_mode,
-             row_number() over (partition by r.kind order by r.c desc, r.ord) rn_mode,
-             row_number() over (partition by r.kind order by r.ord) rn_ord,
-             count(*) over (partition by r.kind) tot
+             row_number() over (partition by r.kind order by r.c desc, r.ord) rn
       from ranked r
-    ) z
-    where (z.has_mode and z.rn_mode = 1)
-       or (not z.has_mode and z.rn_ord = (z.tot + 1) / 2)
+      where r.c >= 2
+    ) z where z.rn = 1
   ),
-  lead_pick  as (select v, c, has_mode from picked where kind = 'lead'),
-  warr_pick  as (select v, c, has_mode from picked where kind = 'warranty'),
-  terms_pick as (select v, c, has_mode from picked where kind = 'terms'),
+  lead_pick  as (select v, c from picked where kind = 'lead'),
+  warr_pick  as (select v, c from picked where kind = 'warranty'),
+  terms_pick as (select v, c from picked where kind = 'terms'),
 
   -- ── RISK, AS NAMED SIGNALS RATHER THAN A MOOD ─────────────────────────────────────────────────
-  -- Each signal is a condition on a real column, each carries the sentence a supplier would need to
-  -- act on it, and the level is the count. A risk score with no reasons attached is a number the
-  -- supplier can neither check nor fix.
   risk as (
     select coalesce(jsonb_agg(jsonb_build_object('signal', s.k, 'detail', s.d)) filter (where s.hit), '[]'::jsonb) items,
            count(*) filter (where s.hit) n
@@ -56800,87 +56853,95 @@ AS $function$
              coalesce(((select completeness->>'score' from inq))::int < 60, true),
              'The customer brief is incomplete, so the scope you price may move after you send this.'
       union all
-      select 'thin_market',
-             (select n from stat) < 3,
-             'Fewer than three other suppliers have priced this, so the midpoint is a weak signal.'
-      union all
+      -- The spread is computed here and the BOOLEAN leaves the routine; the two bids it is computed
+      -- from never do.
       select 'wide_spread',
-             (select case when mid > 0 then (highest - lowest) / mid > 0.4 else false end from stat),
+             (select case when mid_raw > 0 then (highest - lowest) / mid_raw > 0.4 else false end from stat),
              'The other bids disagree by more than 40%, which usually means the scope is being read differently.'
     ) s
   )
 
-  select case when (select n from stat) = 0
-    then jsonb_build_object(
-      'available', false,
-      'lead_id', p_lead_id, 'inquiry_id', p_inquiry_id,
-      'basis', 'quotes from other suppliers on this enquiry',
-      'population', 0,
-      'note', 'no other supplier has priced this enquiry yet, so there is no market midpoint to '
-              'recommend against. A figure taken from a different project of a different size '
-              'would look identical on screen and mean nothing.')
+  select case
+    when not (select ok from matched)
+      -- Not 'forbidden': a job this supplier was not matched to must not be confirmed to exist.
+      then jsonb_build_object(
+        'available', false, 'reason', 'not_found',
+        'lead_id', p_lead_id, 'inquiry_id', p_inquiry_id,
+        'note', 'this enquiry is not one of yours')
+    when (select n from stat) < 3
+      -- THE THIN-MARKET FLOOR. With one competing company the midpoint IS its bid; with two, the pair
+      -- brackets it. Three separate COMPANIES is the smallest population from which a rounded band
+      -- describes a market rather than a named rival's quotation.
+      then jsonb_build_object(
+        'available', false, 'reason', 'thin_market',
+        'lead_id', p_lead_id, 'inquiry_id', p_inquiry_id,
+        'basis', 'quotes submitted by other suppliers on this enquiry',
+        'population', (select n from stat),
+        'note', 'fewer than three other companies have submitted a price for this enquiry, so there is '
+                'no market midpoint to recommend against. With one or two, any figure we showed you '
+                'would be their quotation, which is theirs and not ours to share.')
     else jsonb_build_object(
       'available', true,
       'lead_id', p_lead_id, 'inquiry_id', p_inquiry_id,
-      'summary', (select summary from inq),
+      -- The supplier-safe projection, scrubbed again: the raw inquiries.summary used to be read here,
+      -- which walked around the inbox entirely (SP-N-02).
+      'summary', public.fn_supplier_safe_text(p_inquiry_id, (select summary from inq)),
       'population', (select n from stat),
-      'basis', 'the midpoint of every other supplier''s bid on this enquiry',
+      'basis', 'the bracket the midpoint of every other company''s submitted bid on this enquiry falls in',
 
-      -- The recommended price, with the spread it came from.
+      -- The recommendation, as the bracket the market midpoint falls in. No median, no percentile, no
+      -- lowest and no highest: every one of those is, or reconstructs, a figure a named competitor
+      -- typed. `value` is the bottom of the bracket, because the portal's one-click accept has to send
+      -- a number and that number must be one the routine derived from a bracket, not from a bid.
       'recommended_price', jsonb_build_object(
-        'value', (select mid from stat), 'currency', 'AED',
-        'p25', (select lo from stat), 'p75', (select hi from stat),
-        'low', (select lowest from stat), 'high', (select highest from stat),
-        'basis', 'median of ' || (select n from stat)::text || ' competing bid(s) on this enquiry'),
+        'value', (select mid from band), 'currency', 'AED',
+        'range_low', (select lo from band), 'range_high', (select hi from band),
+        'bracket', (select step from band),
+        'basis', 'the middle of the AED ' || (select step from band)::text || ' bracket that the midpoint of '
+                 || (select n from stat)::text || ' competing companies'' bids falls in'),
 
       -- Where that recommendation sits, and where this supplier usually sits.
+      -- THE VERDICT SAYS WHAT THE FIGURE IS (re-review of #854). It read "at the market midpoint",
+      -- which was not true of a bracket edge and is not true of a bracket middle either: the real
+      -- midpoint is somewhere inside the bracket and we deliberately do not say where.
       'market_position', jsonb_build_object(
-        'verdict', 'at the market midpoint',
-        'your_index', (select idx from habit),
-        'your_quotes_measured', (select n from habit),
-        'detail', case when (select idx from habit) is null
+        'verdict', 'inside the bracket the market midpoint falls in — we do not publish the midpoint itself',
+        'your_index', (select idx from habit_out),
+        'your_quotes_measured', (select n_band from habit_out),
+        'detail', case when (select idx from habit_out) is null
                   then 'You have not priced enough enquiries yet for us to know where you usually sit.'
-                  when (select idx from habit) > 1.02
-                  then 'You normally price about ' || round(((select idx from habit) - 1) * 100)::text
+                  when (select idx from habit_out) > 1.02
+                  then 'You normally price about ' || round(((select idx from habit_out) - 1) * 100)::text
                        || '% above the middle of the market, so this suggestion is lower than your habit.'
-                  when (select idx from habit) < 0.98
-                  then 'You normally price about ' || round((1 - (select idx from habit)) * 100)::text
+                  when (select idx from habit_out) < 0.98
+                  then 'You normally price about ' || round((1 - (select idx from habit_out)) * 100)::text
                        || '% below the middle of the market, so this suggestion is higher than your habit.'
                   else 'You normally price close to the middle of the market, in line with this suggestion.' end),
 
-      -- Delivery, suggested from what the competition actually promised.
       'delivery_estimate', jsonb_build_object(
         'value', (select v from lead_pick),
         'agreed_by', (select c from lead_pick),
-        'consensus', (select has_mode from lead_pick),
-        'observed', (select coalesce(jsonb_agg(distinct lead_time), '[]'::jsonb) from bids where lead_time is not null),
-        'basis', case when (select has_mode from lead_pick)
-                 then 'the lead time most of the competing bids gave'
-                 else 'no two bids gave the same lead time, so this is the middle of the range' end),
+        'consensus', (select count(*) from lead_pick) > 0,
+        'basis', case when (select count(*) from lead_pick) > 0
+                 then 'the lead time two or more of the competing bids gave'
+                 else 'no two bids gave the same lead time, so there is no norm to suggest' end),
 
-      -- Warranty, picked the same way and with the same honesty about disagreement.
       'warranty', jsonb_build_object(
         'value', (select v from warr_pick),
         'agreed_by', (select c from warr_pick),
-        'consensus', (select has_mode from warr_pick),
-        'observed', (select coalesce(jsonb_agg(distinct warranty), '[]'::jsonb) from bids where warranty is not null),
-        'basis', case when (select has_mode from warr_pick)
-                 then 'the warranty most of the competing bids offered'
-                 else 'no two bids offered the same warranty, so this is the middle of the range' end),
+        'consensus', (select count(*) from warr_pick) > 0,
+        'basis', case when (select count(*) from warr_pick) > 0
+                 then 'the warranty two or more of the competing bids offered'
+                 else 'no two bids offered the same warranty, so there is no norm to suggest' end),
 
       'payment_terms', jsonb_build_object(
         'value', (select v from terms_pick),
         'agreed_by', (select c from terms_pick),
-        'consensus', (select has_mode from terms_pick),
-        'basis', case when (select has_mode from terms_pick)
-                 then 'the payment terms most of the competing bids asked for'
-                 else 'no two bids asked for the same terms, so this is the middle of the range' end),
+        'consensus', (select count(*) from terms_pick) > 0,
+        'basis', case when (select count(*) from terms_pick) > 0
+                 then 'the payment terms two or more of the competing bids asked for'
+                 else 'no two bids asked for the same terms, so there is no norm to suggest' end),
 
-      -- ── RISK: A LEVEL, ITS REASONS, AND WHAT TO DO ABOUT IT ───────────────────────────────────
-      -- The first version returned a level and its signals and stopped there, which leaves the
-      -- supplier holding the word "high" and no next move. Every other figure on this screen is a
-      -- proposal, and the risk should be one too: the routine names the single action that would
-      -- most reduce it, drawn from the same signals rather than from a phrasebook.
       'risk_level', jsonb_build_object(
         'value', case when (select n from risk) >= 3 then 'high'
                       when (select n from risk) >= 1 then 'medium' else 'low' end,
@@ -56903,7 +56964,7 @@ AS $function$
                  || 'scope later is a variation rather than an argument.'
           else 'We suggest treating the suggested price as indicative until more suppliers have priced this.'
           end,
-        'basis', 'six checked signals on your account, the brief and the shape of the competing bids'))
+        'basis', 'five checked signals on your account, the brief and the shape of the competing bids'))
   end;
 $function$
 
@@ -57090,6 +57151,43 @@ begin
     'ok', true, 'lead_id', p_lead_id, 'status', v_status, 'fee_due', v_due, 'currency', v_ccy,
     'may_quote', (v_status <> 'due'), 'exempt', v_exempt, 'founding_rank', v_rank,
     'paid_until', v_paid_until, 'charging_starts', v_start, 'free_count', v_free, 'claimed', v_claimed, 'reason', v_reason);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_safe_text(p_inquiry uuid, p_text text)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_out   text := p_text;
+  v_seeds text[];
+  v_seed  text;
+begin
+  if p_text is null or btrim(p_text) = '' then return p_text; end if;
+
+  select array_remove(array[
+           nullif(btrim(c.full_name), ''),
+           nullif(btrim(c.email), ''),
+           nullif(btrim(c.phone), ''),
+           nullif(btrim(pr.name), '')
+         ], null)
+    into v_seeds
+    from public.inquiries i
+    left join public.customers c on c.id = i.customer_id
+    left join public.projects  pr on pr.id = i.project_id
+   where i.id = p_inquiry;
+
+  foreach v_seed in array coalesce(v_seeds, array[]::text[]) loop
+    -- Four characters is the floor _shared/anonymise.ts uses: below it a "seed" is a fragment that
+    -- would mangle ordinary trade words rather than hide anybody.
+    if length(v_seed) >= 4 then
+      v_out := regexp_replace(v_out, regexp_replace(v_seed, '([.*+?^${}()|\[\]\\])', '\\\1', 'g'), '[hidden]', 'gi');
+    end if;
+  end loop;
+
+  return public.mask_project_identity(v_out);
 end $function$
 
 
@@ -57701,8 +57799,6 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_workspaces(p_lead_id bigint)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   with rel as (
-    -- One row per customer relationship this supplier actually has: an inquiry they were matched
-    -- to, or one they have exchanged messages about.
     select distinct i.id as inquiry_id
     from public.inquiries i
     where exists (select 1 from public.inquiry_matches m
@@ -57713,10 +57809,11 @@ AS $function$
   select jsonb_build_object(
     'lead_id', p_lead_id,
     'count', (select count(*) from rel),
-    -- The populations behind an empty list, so nobody has to guess whether the query worked.
+    -- MATCHED TO ME, and nothing about the estate (review of #854: the same estate-wide count that was
+    -- removed from fn_supplier_opportunities was still published here).
     'population', jsonb_build_object(
-      'inquiries', (select count(*) from public.inquiries),
-      'matches_for_me', (select count(*) from public.inquiry_matches where supplier_id = p_lead_id)
+      'matches_for_me', (select count(*) from public.inquiry_matches where supplier_id = p_lead_id),
+      'messaged_me', (select count(distinct inquiry_id) from public.messages where supplier_id = p_lead_id)
     ),
     'note', case when (select count(*) from rel) = 0
                  then 'no customer relationships yet — nothing has been matched or messaged'
@@ -57726,21 +57823,23 @@ AS $function$
       from (
         select jsonb_build_object(
           'inquiry_id', i.id,
-          -- §18's project identity.
           'project', jsonb_build_object(
-            -- inquiries has no `title` column. The human-readable name is the summary, then the
-            -- category, then the RFQ number — falling through in that order means a workspace
-            -- always has a name rather than rendering as blank.
-            'title', coalesce(nullif(btrim(coalesce(i.summary, '')), ''), i.category,
-                              'RFQ ' || coalesce(i.rfq_no::text, i.id::text)),
+            -- THE TITLE IS A CUSTOMER'S OWN SENTENCE (22 Sep 2026, SP-N-05). It used to be i.summary,
+            -- the raw column, printed at the top of the workspace before the reveal was paid for —
+            -- the one place in the portal that read around the masking and the reveal gate at once.
+            -- Post-reveal this supplier has paid for the customer's identity, so the unmasked summary
+            -- is theirs to read; before it, the masked column through the inbox's seed scrub.
+            'title', case when exists (select 1 from public.transactions t
+                                        where t.inquiry_id = i.id and t.supplier_id = p_lead_id)
+                          then coalesce(nullif(btrim(coalesce(i.summary, '')), ''), i.category,
+                                        'RFQ ' || coalesce(i.rfq_no::text, i.id::text))
+                          else coalesce(nullif(btrim(coalesce(public.fn_supplier_safe_text(i.id, i.summary_masked), '')), ''), i.category,
+                                        'RFQ ' || coalesce(i.rfq_no::text, i.id::text)) end,
             'category', i.category,
             'emirate', i.emirate,
             'status', i.status,
             'created_at', i.created_at
           ),
-          -- §18's files, CATEGORISED. The spec names drawings, specifications and contracts, so the
-          -- bucket is derived from the document's own kind rather than left as one undifferentiated
-          -- pile — a workspace whose files are a flat list is the thing §18 replaces.
           'files', (
             select coalesce(jsonb_agg(jsonb_build_object(
               'name', d.file_name, 'kind', d.kind, 'created_at', d.created_at,
@@ -57763,7 +57862,6 @@ AS $function$
             from public.documents d
             where d.ref_table = 'inquiries' and d.ref_id = i.id::text
           ),
-          -- §18's message count, and the unread split a supplier actually acts on.
           'message_count', (
             select count(*) from public.messages g
             where g.inquiry_id = i.id and g.supplier_id = p_lead_id and not coalesce(g.blocked, false)
@@ -57778,9 +57876,6 @@ AS $function$
             select max(g.created_at) from public.messages g
             where g.inquiry_id = i.id and g.supplier_id = p_lead_id
           ),
-          -- §18's timeline percentage. Derived from the stages the relationship has actually
-          -- passed, so it moves for a real reason and is null before anything has happened rather
-          -- than sitting at a meaningless 0%.
           'timeline', (
             select jsonb_build_object(
               'pct', case when total = 0 then null else round(100.0 * hit / total) end,
