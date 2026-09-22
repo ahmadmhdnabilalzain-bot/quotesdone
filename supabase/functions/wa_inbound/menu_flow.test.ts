@@ -590,15 +590,14 @@ Deno.test('777: FIGURES from the founder is his internal reading; from anyone el
   for (const t of ['figures please', 'send figures', 'the figures for the quote']) assertEquals(isFiguresCommand(t), false, t);
 });
 
-Deno.test('777: an unrecognised founder question gets the honest list and how to ask for the figures, no reading', async () => {
+Deno.test('780: an unrecognised founder question gets the customer reply: courteous line and menu, no internal wording', async () => {
   const h = founderHarness('founder');
-  await founderUnanswered(h.d, msg('should we open in Qatar next year', 'founder'), 'no_grounded_answer');
-  assertMatch(h.sent[0].body, /^Internal figures are sent only when you write FIGURES as the whole message:/);
-  assertMatch(h.sent[0].body, /Anything else needs the model, which is on hold, so I have recorded your question for the team\.$/);
+  await founderUnanswered(h.d, msg('Any specific number', 'founder'), 'no_grounded_answer');
+  const body = h.sent.map((m) => m.body || '').join(' ');
+  assert(!/FIGURES|internal figures|model|on hold|IT findings/i.test(body), 'internal wording reached a normal reply: ' + body);
   assertEquals(h.asked.length, 0, 'no reading is attached');
-  assert(!/\/os\b|dashboard/i.test(h.sent[0].body), 'never sends him to a page that does not exist');
-  assertEquals(h.gaps, ['no_grounded_answer:should we open in Qatar next year']);
-  assertEquals(h.rows[0].route, 'founder_help');
+  assertEquals(h.gaps, ['no_grounded_answer:Any specific number']);
+  assertEquals(h.rows[0].route, 'menu_reoffer');
 });
 
 Deno.test('777: the figures are read in exactly one place, behind the command word', async () => {

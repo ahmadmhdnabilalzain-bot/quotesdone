@@ -813,7 +813,7 @@ Deno.serve(observe('wa_inbound', async (req) => {
           return;
         }
         await founderUnanswered(menuDeps, menuIn, directive?.classifier_error ? 'settings_classifier_failed' : 'no_grounded_answer');
-        await logRun('ok', { audience: 'founder', route: 'founder_help', deferred: 1, cost_aed: 0 },
+        await logRun('ok', { audience: 'founder', route: 'menu_reoffer', deferred: 1, cost_aed: 0 },
           'founder message had no settings change and no grounded answer; the answerable list and the reading were sent, the question filed');
       })();
 

@@ -24,7 +24,7 @@ import {
   isSalam, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
 } from './menu.ts';
 import { coverageReply, mightBeCoverage, type Trade } from './coverage.ts';
-import { capabilityAnswer, figuresText, type Figures, founderHelp, isFiguresCommand, isSizeQuestion } from './founder_queries.ts';
+import { capabilityAnswer, figuresText, type Figures, isFiguresCommand, isSizeQuestion } from './founder_queries.ts';
 
 export type Turn = { route: string | null; await: string | null; lang: Lang | null };
 export type SendResult = { ok: boolean; err?: string };
@@ -240,14 +240,11 @@ export async function reofferMenu(d: MenuDeps, inp: MenuInput, lead: string): Pr
   await sendMenu(d, inp, langOf(inp.body), { audience: inp.audience, name: null }, 'menu_reoffer', lead);
 }
 
-/** The founder's question that nothing could answer: what can be answered without the model and how
- *  to ask for the figures — no reading (instruction 777). The question is filed for the team. */
+/** The founder's question that nothing could answer gets exactly what a customer gets (instruction 780,
+ *  22 Sep 2026): the courteous line and the menu. He tests as a customer would, so no internal wording (figures,
+ *  the model, the hold) ever appears in a normal reply; the figures are only ever the answer to FIGURES. */
 export async function founderUnanswered(d: MenuDeps, inp: MenuInput, reason: string): Promise<void> {
-  const body = String(inp.body || '').trim();
-  const recorded = body ? await d.recordGap(body, reason) : false;
-  const lang = langOf(body);
-  await reply(d, inp, lang, 'founder_help', founderHelp(lang), null,
-    { unanswered_reason: reason, gap_recorded: recorded, audience: 'founder' });
+  await unanswered(d, inp, reason);
 }
 
 /** Nothing could answer the question (22 Sep 2026). It is filed for the team (fn_support_knowledge_gap)
