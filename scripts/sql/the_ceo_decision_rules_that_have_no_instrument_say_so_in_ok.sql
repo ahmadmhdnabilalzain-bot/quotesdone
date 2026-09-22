@@ -257,7 +257,12 @@ begin
   -- ok is the honest answer to "was every active rule actually evaluated". A branch that answers
   -- 'not_instrumented' did not evaluate anything, so it cannot leave ok true (22 Sep 2026).
   --
-  -- THE KEY NAME IS LOAD-BEARING, DO NOT "TIDY" IT. resilience_ping's failureOf (steps.ts:14)
+  -- THE KEY NAME IS LOAD-BEARING, DO NOT "TIDY" IT — AND NO CHECK WILL STOP YOU. The review of
+  -- #852 measured this: renaming `uninstrumented_error` to `error` still passes every assertion in
+  -- the repository. It is caught only OPERATIONALLY, and late: the ceoDecisions step goes
+  -- permanently red on the heartbeat, which is how an estate learns to ignore a red step. The
+  -- reason the name matters is below; treat this paragraph as the check that does not exist.
+  -- resilience_ping's failureOf (steps.ts:14)
   -- counts a step as FAILED only when it answers ok:false AND a string `error` key; ok:false with
   -- no `error` is a result that has already reported itself, and is deliberately left alone.
   -- The missing-evaluator case keeps `error` because it IS a heartbeat failure — a rule nothing
