@@ -69,6 +69,9 @@ begin
   x := public.fn_accountant_keeps_reported_ad_spend((select max(id) from public.agent_actions where kind = 'handoff' and detail->>'type' = 'adspend.recorded'));
   r := r || jsonb_build_object('rehandle', x->'kept');
 
+  if (select count(*) from public.fn_table_export_list() where table_name like 'marketing\_%') <> 5 then
+    v_bad := array_append(v_bad, 'marketing_tables_not_in_the_daily_export'::text);
+  end if;
   r := r || jsonb_build_object('duties_due', public.fn_marketing_duties_due(), 'report', public.fn_marketing_report_figures(7),
                                'registry', (select count(*) from public.fn_backup_source_registry() where source in ('marketing-media', 'marketing_post.media_paths')),
                                'credential', (select count(*) from public.internal_credential where context = 'fn.marketing_channels'));
