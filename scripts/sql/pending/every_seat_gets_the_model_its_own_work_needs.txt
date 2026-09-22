@@ -1,7 +1,9 @@
 model_policy routing per founder_instruction 841 + 844 (23 Sep 2026), the AUDIENCE split: plan A
 qwen/qwen3.8-max-0902 for anything a customer or supplier reads, anything that can emit Arabic, any
-document reading and any judgement (35 classes); plan A z-ai/glm-5.3-flash for purely internal work
-(18 classes); plan B anthropic/claude-opus-5.5 and google/gemini-3.8-flash respectively. Two new
+document reading and any judgement (37 classes, of which identity_redaction_verify takes plan B as its
+PRIMARY - see its rationale); plan A z-ai/glm-5.3-flash for purely internal work (18 classes); plan B
+anthropic/claude-opus-5.5 and google/gemini-3.8-flash respectively. 37 + 18 + 2 gemini = 57 routed
+classes, which is the 55 live today plus the two this file creates. Two new
 classes, fn_task_class rows for the three gateway callers that had none, dept_key for the four that
 lacked one, a tier/model alignment so no degrade step is a cliff, and a trigger guard. Written by
 

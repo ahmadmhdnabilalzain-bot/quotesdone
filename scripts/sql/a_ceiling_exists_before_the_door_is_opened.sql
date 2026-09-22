@@ -34,7 +34,8 @@
 -- Three drafts of this file, so the movement is on the record:
 --   AED 2,870/month  priced on anthropic/claude-opus-5.5 for reasoning (superseded)
 --   AED 1,170/month  instruction 841, the reasoning/internal split
---   AED 1,190/month  instruction 844, the audience split            <- this file
+--   AED 1,190/month  instruction 844, the audience split
+--   AED 1,200/month  844 + the verify pass moved to opus-5.5 in review   <- this file
 -- 844 costs AED 20/month more than 841 would have, because document_extraction, visitor_chat,
 -- customer_communication, marketing_copy and accountant_receipt_extraction move from GLM to Qwen.
 -- That AED 20 is the entire price of having an Arabic-capable model on every surface a person reads.
@@ -66,11 +67,22 @@
 --     per call 0.008 + 0.012 = 0.020 USD
 --   document_extraction               86 qwen    3,000    2,000    1.55    5.69  MOVED from GLM
 --     per call 0.006 + 0.012 = 0.018 USD. est in 3,000 = one page image + the prompt.
+--     THIS LINE WILL COME IN HIGH, and the reason is known rather than guessed. quote_extract:81,
+--     license_extract:63 and drawing_boq:172 send a `file` part when an upload yields no page images,
+--     and neither qwen3.8-max nor glm-5.3-flash advertises the `file` modality. The provider answers
+--     400/422, failureKind maps that to 'next', and ai_gateway advances to anthropic/claude-opus-5.5
+--     which does carry `file`. So a PDF-only extraction pays for a wasted Qwen call AND an opus call
+--     at $4.00/$20.00. The PDF share is NOT folded in above because it has never been measured -
+--     ai_cost_log carries no mime column. Re-derive this line first when real tokens exist.
 --   visitor_chat                      64 qwen    2,000      600    0.49    1.79  MOVED from GLM
 --     per call 0.004 + 0.0036 = 0.0076 USD. 32 of 50 site_assistant calls reached a model at all.
---   identity_redaction_verify         28 qwen    3,000      800    0.30    1.11  judgement
---                                                          marketplace = 175.76  645.47
---     x1.5 headroom -> 968.20  ->  monthly_aed 970    (fill 66.5% in month one)
+--   identity_redaction_verify         28 opus    3,000      800    0.78    2.88  judgement, PLAN B AS PRIMARY
+--     per call 0.012 + 0.016 = 0.028 USD. The only class in the file whose primary is plan B: the FIND
+--     pass it checks is on qwen (844 puts document reading there), and find and verify on the same
+--     model is one opinion asked twice. AED 1.77 dearer than qwen would have been, for the one error
+--     in the estate that cannot be corrected afterwards - a supplier's identity reaching a customer.
+--                                                          marketplace = 176.24  647.19
+--     x1.5 headroom -> 970.79  ->  monthly_aed 980    (fill 66.0% in month one)
 --
 --   EXEC
 --   ceo_judgement / strategy         300 qwen    8,000    2,000    8.40   30.85  judgement
@@ -114,7 +126,7 @@
 --                                                          it          =   0.16    0.59
 --     x1.5 -> 0.88, below the floor  ->  monthly_aed 40    (fill 1.5%)
 --
---   TOTAL                                                                     AED 1,190 / month
+--   TOTAL                                                                     AED 1,200 / month
 --
 -- THE FLOOR IS AED 40, and it is the one number here that is a judgement rather than a derivation:
 -- small enough that a department which starts spending crosses degrade quickly and visibly, large
@@ -157,7 +169,7 @@ begin;
 insert into public.department_budget
   (dept_key, monthly_aed, spent_aed, period_label, degrade_at_pct, halt_at_pct, updated_at)
 values
-  ('marketplace',          970, 0, to_char(now(), 'YYYY-MM'), 70, 95, now()),
+  ('marketplace',          980, 0, to_char(now(), 'YYYY-MM'), 70, 95, now()),
   ('exec',                  50, 0, to_char(now(), 'YYYY-MM'), 75, 90, now()),
   ('customer_experience',   50, 0, to_char(now(), 'YYYY-MM'), 75, 90, now()),
   ('marketing',             40, 0, to_char(now(), 'YYYY-MM'), 70, 85, now()),

@@ -223,12 +223,28 @@
 -- the ceiling, measured: 724 output tokens with no max, parsing correctly) but the conclusion — do
 -- not route this to redaction_detection — stands, and this file keeps it off google on plan A.
 --
--- It now has its own class, identity_redaction_verify, on the REASONING row of the matrix:
--- qwen/qwen3.8-max-0902 primary, anthropic/claude-opus-5.5 on escalate, 2000 tokens (2.7x the 724
--- measured). A miss here sends a consultant's name, a client's name and a phone number from the
--- buyer's drawing to a supplier who has not been revealed. It is the only vision call in the estate
--- where the cheap model is the wrong answer, and it keeps failing closed: the function still treats
--- truncation, an unparseable answer and an exception as NOT clean.
+-- It now has its own class, identity_redaction_verify, with anthropic/claude-opus-5.5 as PRIMARY and
+-- qwen/qwen3.8-max-0902 behind it, 2000 tokens (2.7x the 724 measured).
+--
+-- THE REASON IT IS NOT ON THE QWEN ROW LIKE EVERY OTHER JUDGEMENT, and this was caught in review after
+-- an earlier draft had it there: 844 puts document reading on the Qwen row, so the FIND pass
+-- (drawing_redact -> document_extraction) is on qwen/qwen3.8-max-0902 too. That made find and verify
+-- THE SAME MODEL WITH THE SAME FALLBACK, and the entire design of this pair is that a cheap find is
+-- safe BECAUSE an independent verify catches what it misses. Two passes of the same model over the
+-- same page is one opinion asked twice - it shares every blind spot, including whatever made it miss
+-- an identity the first time. The design did not survive the routing change, so the routing changed
+-- back rather than the design being quietly abandoned.
+--
+-- Priced before deciding, not after: 28 calls a month at 3,000 in / 800 out on opus-5.5 is $0.028 a
+-- call, AED 2.88 a month - AED 1.77 more than qwen would cost. A miss here sends a consultant's name,
+-- a client's name and a phone number from the buyer's drawing to a supplier who has not been revealed,
+-- and no later step can unsend it. AED 1.77 a month is the cheapest insurance in this file.
+--
+-- WHAT IS STILL TRUE ON THE FALLBACK PATH, said plainly: the fallback IS qwen3.8-max, the find model,
+-- so an opus failure collapses the independence again. On that path the function's own fail-closed
+-- handling is the only guarantee left - truncation, an unparseable answer and an exception all mean
+-- NOT clean, and the page is refused rather than published. That handling is therefore load-bearing
+-- and is not to be "simplified".
 --
 -- ═══ 5. WHAT STAYS DETERMINISTIC ════════════════════════════════════════════════════════════════
 --
@@ -294,18 +310,28 @@ values
    || 'plus its reasoning; the caller''s own max was raised to match, because ai_gateway takes the '
    || 'lower of the two.'),
 
-  ('identity_redaction_verify', 'large', 'qwen/qwen3.8-max-0902', 'anthropic/claude-opus-5.5', 2000, true,
+  ('identity_redaction_verify', 'xlarge', 'anthropic/claude-opus-5.5', 'qwen/qwen3.8-max-0902', 2000, true,
    'The second pass over a REDACTED drawing page, asked whether any identity is still legible '
-   || '(drawing_redact/index.ts:186, fn drawing_redact_verify). WHY the reasoning row of the matrix '
-   || 'and not GLM: a false clean here publishes a consultant''s name, a client''s name, a plot '
+   || '(drawing_redact/index.ts:186, fn drawing_redact_verify). THE ONLY CLASS IN THE ESTATE WHOSE '
+   || 'PRIMARY IS PLAN B. A false clean here publishes a consultant''s name, a client''s name, a plot '
    || 'number and a phone number from the buyer''s drawing to a supplier who has not been revealed, '
-   || 'and no later step can unsend it. The FIND pass may be cheap because a miss there is caught '
-   || 'here; a miss here is caught by nobody. WHY not google: measured 13 Aug 2026, routing these '
-   || 'calls to redaction_detection on gemini refused two of three correctly-redacted fixtures while '
-   || 'naming the planted identifiers as still legible. 2000 tokens against the 724 measured with no '
-   || 'ceiling - a ceiling inside the answer''s natural range reads as an unparseable model, which '
-   || 'cost a whole session once. Still fails CLOSED: truncated, unparseable and exception all mean '
-   || 'not clean.')
+   || 'and no later step can unsend it - it is the one error in the estate that cannot be corrected '
+   || 'afterwards, only apologised for. WHY NOT the Qwen row like every other judgement: the FIND '
+   || 'pass (drawing_redact -> document_extraction) is ALSO on qwen/qwen3.8-max-0902, because 844 '
+   || 'puts document reading there. Find and verify on the same model with the same fallback is not '
+   || 'an independent second opinion, it is the same opinion twice, and the whole design of this pair '
+   || 'is that a cheap find is safe BECAUSE an independent verify catches it. Putting the verify on '
+   || 'anthropic/claude-opus-5.5 restores the independence. Priced before deciding: 28 calls a month '
+   || 'at 3,000 in / 800 out is $0.028 a call, AED 2.88 a month, AED 1.77 more than qwen - the '
+   || 'cheapest insurance in the file. FALLBACK qwen3.8-max, which IS the find model: on that path '
+   || 'the independence is lost and the function''s own fail-closed handling is the only guarantee '
+   || 'left, which is why that handling is not to be touched. WHY not google on either: measured 13 '
+   || 'Aug 2026, routing these calls to redaction_detection on gemini refused two of three '
+   || 'correctly-redacted fixtures while naming the planted identifiers as still legible - it '
+   || 'reported what a title block usually contains, from an area that was solid black. 2000 tokens '
+   || 'against the 724 measured with no ceiling: a ceiling inside the answer''s natural range reads '
+   || 'as an unparseable model, which cost a whole session once. Still fails CLOSED - truncated, '
+   || 'unparseable and exception all mean not clean.')
 on conflict (task_class) do update set
   tier = excluded.tier, model_primary = excluded.model_primary,
   model_fallback = excluded.model_fallback, max_tokens = excluded.max_tokens,
@@ -313,11 +339,17 @@ on conflict (task_class) do update set
 
 -- Plan A / plan B onto every reasoning class. tier 'large' because that is qwen3.8-max's registry
 -- tier and §7b explains why the two must agree.
+-- identity_redaction_verify is EXCLUDED and keeps what the insert above gave it: opus-5.5 primary,
+-- qwen3.8-max fallback. It is on the Qwen row's SIDE of 844's line (it is a judgement) but it is the
+-- one class whose primary must NOT be the same model as the pass it checks - see its own rationale.
+-- Without this exclusion the blanket below would silently undo it, which is exactly the shape of bug
+-- that put knowledge_ingestion's fallback equal to its primary in an earlier draft.
 update public.model_policy set
   tier = 'large',
   model_primary = 'qwen/qwen3.8-max-0902',
   model_fallback = 'anthropic/claude-opus-5.5'
- where active and task_class in (select task_class from qwen_classes);
+ where active and task_class in (select task_class from qwen_classes)
+   and task_class <> 'identity_redaction_verify';
 
 -- ── 2. EVERYTHING ELSE: plan A GLM 5.3 flash, plan B gemini-3.8-flash ──────────────────────────
 -- "use GLM 5.3 flash whenever, wherever it's possible as a primary model... We want to cut cost as
@@ -775,6 +807,10 @@ ruling as (
   select count(*) n from probe_routes p
    where p.use_llm
      and case
+           -- the one class whose primary is plan B, and deliberately so: it must not be the same
+           -- model as the find pass it checks. Asserted positively rather than skipped.
+           when p.task_class = 'identity_redaction_verify'
+             then p.chosen <> 'anthropic/claude-opus-5.5'
            when p.task_class in (select task_class from qwen_classes)
              then p.chosen <> 'qwen/qwen3.8-max-0902'
            when p.task_class = 'speech_transcription'

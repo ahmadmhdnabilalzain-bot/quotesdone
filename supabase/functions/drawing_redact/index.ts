@@ -106,19 +106,32 @@ If you cannot read the image, or you are unsure, answer {"clean": false, "found"
 //     (UNCHANGED. This row is deliberately not touched by the 23 Sep 2026 routing change — it has
 //      no caller, and editing a policy nothing reads is noise. Its fallback is
 //      google/gemini-3.5-flash. Do not read the line below as having moved it.)
-//   what runs now (verify)     qwen/qwen3.8-max-0902                2000    true
-//                              escalates to anthropic/claude-opus-5.5
-//   what runs now (find)       z-ai/glm-5.3-flash                   8000    false
+//   what runs now (find)       qwen/qwen3.8-max-0902                8000    true
 //                              via fn_task_class drawing_redact -> document_extraction
+//                              fallback anthropic/claude-opus-5.5
+//   what runs now (verify)     anthropic/claude-opus-5.5            2000    true
+//                              fallback qwen/qwen3.8-max-0902
 //
-// UPDATED 23 Sep 2026 (it_engineer), under founder_instruction 841. The conclusion of this block
-// still holds — these calls do not go to redaction_detection, and the verify pass is not on google —
-// but the reason the old routing was wrong was NOT only the model. fn_task_class.drawing_redact_verify
-// now names its own class, `identity_redaction_verify`, on the REASONING row of the founder's matrix:
-// qwen/qwen3.8-max-0902 with anthropic/claude-opus-5.5 on escalate and 2000 tokens. This is the one
-// place in the estate where a false clean leaks a supplier's and a buyer's identity to someone who has
-// not been revealed, and a miss here is caught by nobody, so it does not go on the cheap row.
-// The FIND pass stays cheap on purpose: a miss there is caught here.
+// UPDATED 23 Sep 2026 (it_engineer), under founder_instruction 841 + 844. The conclusion of this block
+// still holds — these calls do not go to redaction_detection, and the verify pass is not on google.
+//
+// READ THE TWO LINES ABOVE TOGETHER, because the point is which model is where. 844 puts document
+// reading on qwen/qwen3.8-max-0902, so the FIND pass is on Qwen — it is NOT the cheap internal model,
+// and an earlier version of this comment saying it was z-ai/glm-5.3-flash was simply wrong. The verify
+// pass is deliberately one model FURTHER UP than the pass it checks: opus-5.5 primary. A first draft
+// had verify on Qwen as well, which made find and verify the same model with the same fallback — one
+// opinion asked twice, sharing every blind spot including whatever made it miss an identity the first
+// time. That is not what this pair was built to do.
+//
+// So the old sentence "the FIND pass stays cheap on purpose: a miss there is caught here" is retired:
+// the find pass is not cheap any more, and what makes a find miss survivable is that the verify runs a
+// DIFFERENT and stronger model, not a cheaper one. Cost of the difference, measured: 28 verify calls a
+// month, AED 1.77 more than Qwen.
+//
+// ON THE FALLBACK PATH the verify falls to qwen3.8-max, which is the find model, and the independence
+// is gone. What remains is this function's own fail-closed handling below — truncated, unparseable and
+// exception all mean NOT clean, and the page is refused rather than published. That is load-bearing on
+// that path, not defensive decoration.
 // See scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql §4.
 //
 // Passing task_class:'redaction_detection' was tried on staging and measured against the same

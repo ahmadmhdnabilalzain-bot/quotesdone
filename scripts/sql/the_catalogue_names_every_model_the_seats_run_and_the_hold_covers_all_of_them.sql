@@ -75,12 +75,43 @@
 -- price than he asked for, which is the direction he asked for. If he wants the literal opus-5 it is
 -- one string away in every_seat_gets_the_model_its_own_work_needs.sql; nothing else would change.
 --
--- NEITHER NEW MODEL CARRIES `file` IN input_modalities (both are text+image+video). Nothing in the
--- estate sends a `file` part today - every document reaches a model as an image_url with a base64
--- data URL (supplier_catalog_ingest:295, drawing_redact:186, drawing_boq) and audio goes to
--- transcribe - and model_registry has no supports_file column for fn_ai_route's capability branch to
--- test, so this cannot be caught automatically. It is recorded here because the day something does
--- send a PDF as a file part, this is the paragraph that explains the provider's refusal.
+-- ─── NEITHER NEW MODEL CARRIES `file`, AND THREE CALLERS SEND PDFs ──────────────────────────────
+--
+-- qwen/qwen3.8-max-0902 and z-ai/glm-5.3-flash are both text+image+video. openai/* and anthropic/*
+-- carry `file`; the gemini rows carry it too. An earlier version of this paragraph said "nothing in
+-- the estate sends a `file` part today". THAT WAS WRONG, and it was wrong in the one direction that
+-- costs money. Measured 23 Sep 2026, three callers send `{type:'file', file:{filename, file_data}}`
+-- on the branch where an upload yielded no page images:
+--
+--   quote_extract/index.ts:81    else content.push({ type: 'file', ... 'quotation.pdf' })
+--   license_extract/index.ts:63  else content.push({ type: 'file', ... 'document.pdf' })
+--   drawing_boq/index.ts:172     else content.push({ type: 'file', ... 'drawing.pdf' })
+--
+-- All three route through fn_task_class to document_extraction, which founder_instruction 844 puts on
+-- qwen/qwen3.8-max-0902. So a PDF-only extraction sends a modality the primary does not advertise.
+--
+-- NOTHING SUBSTITUTES FOR IT. model_registry has no supports_file column, and fn_ai_route's capability
+-- branch only understands vision, audio and tools - p_require_caps cannot express "file", so the
+-- branch has nothing to test and no substitution to make.
+--
+-- IT SELF-HEALS, AT A PRICE, AND THE PRICE IS THE POINT. The provider answers 400 or 422;
+-- _shared/spend_guards.ts failureKind() maps both to 'next' (not 'retry', not 'stop'), so
+-- ai_gateway:751 advances the ladder to the fallback, anthropic/claude-opus-5.5, which DOES carry
+-- `file`. The extraction succeeds. What it costs each time is one wasted PAID Qwen call plus its
+-- latency, on a customer-facing path where a supplier is waiting for their quotation to be read.
+--
+-- CONSEQUENCE FOR THE CEILING, stated so nobody has to rediscover it: the arithmetic in
+-- a_ceiling_exists_before_the_door_is_opened.sql prices document_extraction at Qwen's $2.00/$6.00,
+-- but every PDF-only call actually lands on opus-5.5 at $4.00/$20.00 after paying for the Qwen
+-- attempt. The PDF share of document_extraction has never been measured - ai_cost_log carries no
+-- mime - so it is not folded into the estimate; it is named as the reason that line will come in
+-- HIGH rather than low when the first week of real tokens arrives.
+--
+-- THE FULLER FIX IS A supports_file COLUMN on this table plus 'file' in fn_ai_route's capability
+-- vocabulary, so the substitution happens before the wasted call rather than after it. That is a
+-- change to fn_ai_route's signature behaviour and it is deliberately NOT in this file: the self-heal
+-- means nothing is broken today, only wasteful, and a routing change should not ride along with a
+-- pricing change.
 --
 -- A context_len 5x below the truth is not cosmetic: it is the number any future "will this prompt
 -- fit" decision would read, and quote_comparison sends every quotation on one request.
