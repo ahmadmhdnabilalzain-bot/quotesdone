@@ -75,7 +75,9 @@ export const FALLBACK: DocIdentity = {
 export function licenceLine(id: DocIdentity, lang: 'en' | 'ar'): string {
   if (lang !== 'ar') return `${id.licence} · ${id.permit}`;
   const no = (id.licence.match(/\d{5,}/) || [''])[0];
-  return `رخصة تاجر رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات ${id.permit.replace(/^TDRA\s*/, '')}`;
+  // 22 Sep 2026 (DL-08): the authority's own Arabic name is «هيئة تنظيم الاتصالات والحكومة الرقمية» —
+  // it took the digital-government mandate in 2021 and the short form names a body that no longer exists.
+  return `رخصة تاجر رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية ${id.permit.replace(/^TDRA\s*/, '')}`;
 }
 
 /** The trimmed lockup (1612x180, 98% ink) — the only one that may be sized by height. */
@@ -140,7 +142,7 @@ export function footerLines(id: DocIdentity): [string, string] {
 export function footerLinesAr(id: DocIdentity): [string, string] {
   const no = (id.licence.match(/\d{5,}/) || [''])[0];
   const permit = id.permit.replace(/^TDRA\s*/, '');
-  return [`${id.name} · رخصة تاجر من دائرة الاقتصاد والسياحة في دبي رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات TDRA ${permit}`,
+  return [`${id.name} · رخصة تاجر من دائرة الاقتصاد والسياحة في دبي رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية TDRA ${permit}`,
     `دبي، الإمارات العربية المتحدة · ${id.email} · ${id.phone} · ${id.web}`];
 }
 

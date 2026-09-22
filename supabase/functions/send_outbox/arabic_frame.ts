@@ -10,6 +10,12 @@ export function arabicFrame(html: string): string {
   return html
     .replace(/<html(\s|>)/i, '<html dir="rtl" lang="ar"$1')
     .split(`>Unsubscribe</a> &middot; or email ${UNSUBSCRIBE_MAILBOX} to be removed.`).join(`>إلغاء الاشتراك</a> &middot; أو مراسلة ${UNSUBSCRIBE_MAILBOX} لإزالة عنوانكم من القائمة.`)
+    // 22 Sep 2026 (DL-06): the corrected footer, and the old one kept until the DB template carries
+    // the new words — for the minutes between this deploy and that apply, a supplier wrapper still
+    // says "Dubai DET E-Trader Licence", and an untranslated English line in an Arabic mail is worse
+    // than a line whose wording the next apply corrects.
+    .split('DET Trader Licence No. 1633275').join('رخصة تاجر رقم 1633275 – دائرة الاقتصاد والسياحة في دبي')
+    .split('TDRA NOL-26-100000665').join('خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية NOL-26-100000665')
     .split('Dubai DET E-Trader Licence').join('رخصة تاجر إلكتروني - دائرة الاقتصاد والسياحة في دبي')
     .split('Dubai, UAE').join('دبي، الإمارات العربية المتحدة')
     .split(', QuotesDone</div>').join('، QuotesDone</div>')

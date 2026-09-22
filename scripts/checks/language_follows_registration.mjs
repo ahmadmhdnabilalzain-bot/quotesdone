@@ -160,11 +160,18 @@ console.log(`documents: quote_documents.test.ts ${deno.status === 0 ? 'passed' :
 // ── 3b. EACH TOUCHPOINT READS THE REGISTERED ROW ─────────────────────────────────────────────────
 const F = 'supabase/functions/';
 const capi = src(F + 'customer_api/index.ts');
-ok((capi.match(/asLocale\(cust\.locale\)/g) || []).length >= 3, 'customer_api: the comparison, CSV and brief documents must each take asLocale(cust.locale)');
-// The quotation is the one document with a second-language copy on offer (customer audit 21 Sep 2026,
-// finding 4: the "النسخة العربية" button served English). It defaults to the registered language and
-// honours only an explicit 'en'/'ar' (documentLocale, tested in _shared/registered_locale.test.ts).
-ok((capi.match(/documentLocale\(body\.lang, cust\.locale\)/g) || []).length === 1, 'customer_api: only quote_pdf may take a requested document language, via documentLocale(body.lang, cust.locale)');
+// 21 Sep 2026 (customer-portal journey audit, finding 4): the "النسخة العربية" button served English,
+// because a document read customers.locale alone and ignored the button that was pressed. The fix went
+// further than the quotation — EVERY customer document (quotation, comparison, CSV, brief) now routes
+// through documentLocale(body.lang, cust.locale): the registered language is the default, and only an
+// explicit 'en'/'ar' overrides it. 22 SEP 2026 (DL-12): these two lines still described the state
+// before that fix — they demanded three bare asLocale(cust.locale) calls and exactly one
+// documentLocale — so this check had been RED on main since, naming correct code as the defect.
+// What must hold now: every document action takes documentLocale, and none reads the locale alone.
+ok((capi.match(/documentLocale\(body\.lang, cust\.locale\)/g) || []).length >= 4,
+   'customer_api: each customer document (quote, comparison, CSV, brief) must take documentLocale(body.lang, cust.locale)');
+ok(!/lang = asLocale\(cust\.locale\)/.test(capi),
+   'customer_api: a document reads customers.locale alone again, so the language button it was asked for is ignored');
 ok(!/String\(body\.lang/.test(capi), 'customer_api: a document still reads its language from the request body');
 ok(/registeredLocale\(admin, \{ role: 'customer'/.test(src(F + 'quote_compare/index.ts')), 'quote_compare: an unspecified language must come from the registered customer');
 ok(!/test\(String\(inq\.summary/.test(src(F + 'quote_compare/index.ts')), 'quote_compare: still guesses the language from the request text');
