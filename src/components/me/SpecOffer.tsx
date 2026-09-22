@@ -10,7 +10,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { t, tf, errText, supplierCount } from './portalText';
+import { t, tf, errText } from './portalText';
+import { countPhrase } from '@/lib/countedNoun';
 
 const fmtDate = (s, lang) => { const d = new Date(s); return isNaN(d.getTime()) ? String(s || '') : d.toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); };
 
@@ -50,7 +51,7 @@ export function SpecOffer({ inq, token, lang, call, onDone }) {
                     <Button key={a.option_id} size="sm" variant="outline" disabled={locked} className="h-auto flex-col items-start py-1.5 text-start"
                       onClick={() => reply(o, a.option_id, a.value)}>
                       <span>{tf(lang, 'so_yes', { v: a.value })}</span>
-                      <span className="text-[11.5px] font-normal text-muted-foreground">{supplierCount(lang, a.suppliers)}</span>
+                      <span className="text-[11.5px] font-normal text-muted-foreground">{countPhrase(lang, a.suppliers, 'supplier')}</span>
                     </Button>
                   ))}
                   <Button size="sm" variant="ghost" disabled={locked} onClick={() => reply(o, 'no', '')}>{t(lang, 'so_no')}</Button>

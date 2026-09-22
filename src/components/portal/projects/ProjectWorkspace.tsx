@@ -25,6 +25,8 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { categoryLabel } from '@/lib/categoryLabel';
+import { emirateName } from '@/components/me/portalText';
 import { projectApi } from './api';
 import {
   aed, deriveStats, elapsedPct, fmtDate, isOpenRfq, rfqValue,
@@ -276,8 +278,8 @@ export function ProjectWorkspace({
                     <TableCell className="max-w-[280px]">
                       <span className="block truncate text-foreground">{r.summary || tr(lang, 'untitled_rfq')}</span>
                     </TableCell>
-                    <TableCell>{r.category || '—'}</TableCell>
-                    <TableCell>{r.emirate || '—'}</TableCell>
+                    <TableCell>{r.category ? categoryLabel(r.category, lang) : '—'}</TableCell>
+                    <TableCell>{r.emirate ? emirateName(r.emirate, lang) : '—'}</TableCell>
                     <TableCell>{rfqValue(r) != null ? aed(rfqValue(r)) : '—'}</TableCell>
                     <TableCell>
                       <span className="flex flex-wrap items-center gap-1.5">
