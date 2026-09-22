@@ -612,6 +612,18 @@
   "3c96f2625036",
   "d89298a99de9"
  ],
+ "scripts/sql/the_whatsapp_menu_answers_like_a_senior_member_of_staff.sql": [
+  "00a9866295f2",
+  "1014b435b32f",
+  "18d04f89f17b",
+  "2fcc300bc0ca",
+  "4c605fe5b5ab",
+  "5628306d1e0e",
+  "58c1fcf37910",
+  "59288b902a9c",
+  "a47a1a80835f",
+  "f07872a12ef2"
+ ],
  "src/app/[locale]/blog/[slug]/opengraph-image.tsx": [
   "4bb69a8b2b4f"
  ],
