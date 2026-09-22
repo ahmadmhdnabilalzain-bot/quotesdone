@@ -45,7 +45,10 @@ test('the only outside writes are Postiz upload and post, after the dry-run retu
 test('ad spend never reaches the ledger, and demo amounts never reach the accountant', () => {
   const sql = code(SQL);
   assert.doesNotMatch(sql, /insert\s+into\s+public\.(gl_|journal|expense_entries|expenses\b|transactions\b)/i, 'the marketing file must book nothing');
-  assert.match(sql, /where s\.account_id = p_account and not s\.is_demo and s\.day < v_today/, 'only closed, non-demo days are handed off');
-  assert.match(sql, /if coalesce\(\(a\.detail->>'is_demo'\)::boolean, true\) then/, 'the accountant refuses a demo or unmarked amount');
+  assert.match(sql, /where s\.account_id = p_account and not s\.is_demo and s\.day < v_today and s\.handed_off_at is null and s\.spend > 0/, 'only closed, non-demo, non-zero days are handed off');
+  assert.match(sql, /v_test := coalesce\(\(d->>'test'\)::boolean, false\) or coalesce\(d->>'source_ref', ''\) ~\* 'zz\[ _-\]\?demo';/, 'the accountant marks test money');
+  assert.match(sql, /if not v_test then\s+insert into public\.ad_spend_reported/, 'test money never reaches the accountant\'s record');
+  assert.match(sql, /'recorded_handoff', p_id/, 'adspend.booked names the adspend.recorded it answers (#836 contract)');
+  assert.match(sql, /return jsonb_build_object\('verified', v_ok,/, 'marketing\'s handler returns evidence.verified (#836 contract)');
   assert.match(sql, /p_account is distinct from v_expected_acct or p_business_id is distinct from v_business/, 'an account outside the company is refused');
 });

@@ -32,9 +32,15 @@
 --   marketing_connection_check    the MEASURED access state per platform and credential, with when and what
 --                                 the founder must provide -- read by fn_marketing_connection_status
 --   marketing_insight_day         page, Instagram, post and LinkedIn metrics, one row per metric per day
---   marketing_ad_spend_day        Meta spend per campaign per day, and the adspend.recorded handoff
---   fn_accountant_keeps_reported_ad_spend / fn_marketing_notes_ad_spend_booked   the two money handlers
---   fn_marketing_report_figures   the overall picture the marketing.report handoff carries to the CEO
+--   marketing_ad_spend_day        Meta spend per campaign per day; each closed day goes to the accountant
+--                                 through #836's fn_marketing_records_ad_spend (adspend.recorded)
+--   fn_accountant_keeps_reported_ad_spend / fn_marketing_notes_ad_spend_booked   #836's two consumers,
+--                                 REPLACED under their names with #836's contract kept whole (adspend.booked
+--                                 carries recorded_handoff; marketing returns evidence.verified, which #836's
+--                                 fn_marketing_closes_ad_spend_loops reads to close adspend.recorded), plus:
+--                                 Meta's month total also kept in accountant_ad_spend_month (the invoice match)
+--   fn_marketing_report_figures   #836's (p_from, p_to) body replaced with the same shape plus posts,
+--                                 insights and measured connections -- what marketing.report carries
 --   fn_table_export_list          + the five marketing tables, so they reach the daily export and Dropbox
 --   fn_backup_source_registry     + the marketing-media bucket and marketing_post.media_paths
 --
@@ -46,9 +52,10 @@
 --   * The reported spend is NOT booked to the ledger: the Meta invoice is the tax document and is already
 --     booked by the expenses duty; booking the reported figure as well would count the spend twice. The
 --     accountant keeps it as the REPORTED side of the invoice match, which is what adspend.booked confirms.
---   * The seat, its handoff kinds (marketing.report, adspend.recorded, adspend.booked), fn_seat_handoff_types
---     and payment_handoffs.ts are the ceo/the-marketing-seat-exists build; APPLY THAT FILE FIRST. This file
---     names 'marketing' in function_owner and addresses handoffs to it.
+--   * The seat, its handoff kinds (marketing.report, adspend.recorded, adspend.booked), ad_spend_reported,
+--     fn_marketing_records_ad_spend, fn_marketing_closes_ad_spend_loops and fn_marketing_tick are the seat
+--     build (#836, the_company_gets_a_marketing_seat_that_reports_the_picture_to_the_ceo.sql); APPLY THAT FILE
+--     FIRST. This file calls them and does not redefine the closer.
 --   * social_posts stays as the history of the June-August Postiz ledger; nothing writes it any more.
 --
 -- Prevented by: supabase/functions/_shared/marketing_channels.test.ts (mock HTTP: switch off never POSTs,
@@ -271,9 +278,12 @@ returns jsonb language sql stable security definer set search_path to 'public', 
 $fn$;
 revoke execute on function public.fn_marketing_connection_status() from public, anon, authenticated;
 
--- ── 10. AD SPEND: RECORD THE READ, HAND CLOSED DAYS TO THE ACCOUNTANT ────────────────────────────
+-- ── 10. AD SPEND: RECORD THE READ, REPORT EACH CLOSED CAMPAIGN DAY THROUGH THE SEAT'S ONE DOOR ────
 -- p_rows: [{campaign_id, campaign_name, day, spend, currency, impressions, clicks}] as Graph returned them.
 -- p_business_id is the business the account reported on the SAME read; a mismatch records nothing.
+-- Each closed (Asia/Dubai) campaign day with spend goes to the accountant through fn_marketing_records_ad_spend
+-- (the contract of the seat build, #836): source_ref '<account>:<campaign>:<day>', so a revised figure is a
+-- revision of the same reference and an unchanged one is not sent twice (fn_seat_handoff dedupes on ref@amount).
 create or replace function public.fn_marketing_ad_spend_record(p_account text, p_business_id text, p_rows jsonb, p_is_demo boolean default false)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
@@ -301,126 +311,178 @@ begin
          spend = excluded.spend;
   get diagnostics v_n = row_count;
 
-  -- One handoff per closed day (Asia/Dubai), never for today, never for a demo row, never for a zero.
+  -- Never today (still moving), never a demo row, never a zero.
   for d in
-    select s.account_id, s.day, sum(s.spend) spend, min(s.currency) currency, count(distinct s.currency) currencies,
-           jsonb_agg(jsonb_build_object('campaign_id', s.campaign_id, 'campaign_name', s.campaign_name, 'spend', s.spend) order by s.campaign_id) campaigns
-      from public.marketing_ad_spend_day s
-     where s.account_id = p_account and not s.is_demo and s.day < v_today
-       and exists (select 1 from public.marketing_ad_spend_day u
-                    where u.account_id = s.account_id and u.day = s.day and not u.is_demo and u.handed_off_at is null)
-     group by s.account_id, s.day
-    having sum(s.spend) > 0
+    select s.* from public.marketing_ad_spend_day s
+     where s.account_id = p_account and not s.is_demo and s.day < v_today and s.handed_off_at is null and s.spend > 0
+     order by s.day, s.campaign_id
   loop
-    -- Marked BEFORE the handoff: the accountant answers inside fn_seat_handoff and sums the handed-off days,
-    -- so today's still-moving figure never enters the month it keeps (a probe caught 3 AED of today in it).
     update public.marketing_ad_spend_day set handed_off_at = now()
-     where account_id = d.account_id and day = d.day and not is_demo;
-    perform public.fn_seat_handoff('marketing', 'accountant', 'adspend.recorded', 'marketing_ad_spend_day',
-      d.account_id || ':' || d.day || ':' || d.spend,
-      jsonb_build_object('account_id', d.account_id, 'day', d.day, 'spend', d.spend,
-                         'currency', case when d.currencies = 1 then d.currency end, 'is_demo', false,
-                         'campaigns', d.campaigns, 'source', 'Meta Graph insights level=campaign time_increment=1'));
+     where account_id = d.account_id and campaign_id = d.campaign_id and day = d.day;
+    perform public.fn_marketing_records_ad_spend('meta', d.day, d.currency, d.spend,
+      d.account_id || ':' || d.campaign_id || ':' || d.day, d.campaign_name, false);
     v_handoffs := v_handoffs + 1;
   end loop;
   return jsonb_build_object('ok', true, 'rows', v_n, 'handoffs', v_handoffs);
 end $fn$;
 revoke execute on function public.fn_marketing_ad_spend_record(text, text, jsonb, boolean) from public, anon, authenticated;
 
--- ── 11. adspend.recorded -> accountant: keep the REPORTED side of the invoice match ───────────────
+-- ── 11. adspend.recorded -> accountant (replaces #836's body under the same name, same contract) ────
+-- #836's body, kept whole: record on ad_spend_reported (test money never), answer adspend.booked carrying
+-- recorded_handoff, and wait for marketing to close it. ONE ADDITION: Meta's month total is also kept in
+-- accountant_ad_spend_month, the REPORTED side the existing invoice match reads
+-- (every_meta_invoice_is_matched_to_the_spend_meta_reported.sql). Nothing is booked to the ledger here:
+-- the Meta invoice is booked by the expenses duty, and booking the reported figure too would count it twice.
 create or replace function public.fn_accountant_keeps_reported_ad_spend(p_id bigint)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare
-  a public.agent_actions; v_day date; v_month date; v_acct text; v_rep numeric; f jsonb;
-  v_expected_acct text := 'act_' || regexp_replace(coalesce((select value from public.app_secrets where key = 'meta_ad_account_id'), ''), '^act_', '');
+declare a public.agent_actions; d jsonb; v_test boolean; v_fx numeric; v_aed numeric; v_recorded boolean := false;
+        v_month date; v_pos jsonb; v_inv jsonb; v_bid bigint; v_meta_month numeric;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff';
-  v_day := nullif(a.detail->>'day', '')::date; v_acct := a.detail->>'account_id';
-  -- TEST AND SANDBOX AMOUNTS NEVER REACH THE BOOKS: refused here even though the sender never sends them.
-  if coalesce((a.detail->>'is_demo')::boolean, true) then
-    return jsonb_build_object('kept', false, 'refused', 'demo_or_unmarked', 'message', 'A demo or unmarked amount is never kept for the books.');
+  if not found or a.detail->>'type' is distinct from 'adspend.recorded' then
+    raise exception 'fn_accountant_keeps_reported_ad_spend: % is not an adspend.recorded handoff', p_id;
   end if;
-  if v_acct is distinct from v_expected_acct or v_day is null then
-    return jsonb_build_object('kept', false, 'refused', 'not_the_company_account', 'account', v_acct);
-  end if;
-  if coalesce(a.detail->>'currency', '') <> 'AED' then
-    return jsonb_build_object('kept', false, 'refused', 'currency_not_aed', 'currency', a.detail->>'currency',
-      'message', 'The ad account reports in AED (measured 22 Sep 2026); another currency is held until a conversion rule exists.');
+  d := a.detail;
+  v_test := coalesce((d->>'test')::boolean, false) or coalesce(d->>'source_ref', '') ~* 'zz[ _-]?demo';
+  v_fx := coalesce((select num_value from public.gl_settings where key = 'usd_to_aed'), 3.6725);
+  v_aed := case d->>'currency' when 'AED' then (d->>'amount')::numeric
+                               when 'USD' then round((d->>'amount')::numeric * v_fx, 2) end;
+  v_month := date_trunc('month', (d->>'spend_date')::date)::date;
+
+  if not v_test then
+    insert into public.ad_spend_reported (source_ref, platform, spend_date, currency, amount, amount_aed, campaign_ref, handoff_id)
+    values (d->>'source_ref', d->>'platform', (d->>'spend_date')::date, d->>'currency', (d->>'amount')::numeric, v_aed,
+            nullif(d->>'campaign_ref', ''), p_id)
+    on conflict (source_ref) do update
+      set amount = excluded.amount, amount_aed = excluded.amount_aed, currency = excluded.currency,
+          spend_date = excluded.spend_date, campaign_ref = excluded.campaign_ref, handoff_id = excluded.handoff_id,
+          revisions = ad_spend_reported.revisions + 1, updated_at = now();
+    v_recorded := true;
   end if;
 
-  v_month := date_trunc('month', v_day)::date;
-  select round(sum(spend), 2) into v_rep from public.marketing_ad_spend_day
-   where account_id = v_acct and not is_demo and currency = 'AED' and handed_off_at is not null
-     and day >= v_month and day < (v_month + interval '1 month')::date;
-  if coalesce(v_rep, 0) > 0 then
-    insert into public.accountant_ad_spend_month (month, reported_spend_aed, reported_at, updated_at)
-    values (v_month, v_rep, now(), now())
-    on conflict (month) do update set reported_spend_aed = excluded.reported_spend_aed, reported_at = now(), updated_at = now();
-    -- the hourly snapshot (fn_accountant_ad_spend_snapshot) reads this row; keep it saying the same figure
-    update public.ad_spend_policy set month_spent_aed = v_rep, month_label = to_char(v_month, 'YYYY-MM'), updated_at = now()
-     where policy_key = 'default' and to_char(v_month, 'YYYY-MM') = to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM');
+  select jsonb_build_object('platform', d->>'platform', 'month', to_char(v_month, 'YYYY-MM'),
+                            'reported_aed', coalesce(sum(amount_aed), 0), 'rows', count(*),
+                            'rows_unconverted', count(*) filter (where amount_aed is null))
+    into v_pos from public.ad_spend_reported
+   where platform = d->>'platform' and spend_date >= v_month and spend_date < (v_month + interval '1 month')::date;
+  if d->>'platform' = 'meta' then
+    -- the addition: Meta's month total feeds the invoice match's reported side
+    if v_recorded then
+      select round(sum(amount_aed), 2) into v_meta_month from public.ad_spend_reported
+       where platform = 'meta' and amount_aed is not null
+         and spend_date >= v_month and spend_date < (v_month + interval '1 month')::date;
+      if coalesce(v_meta_month, 0) > 0 then
+        insert into public.accountant_ad_spend_month (month, reported_spend_aed, reported_at, updated_at)
+        values (v_month, v_meta_month, now(), now())
+        on conflict (month) do update set reported_spend_aed = excluded.reported_spend_aed, reported_at = now(), updated_at = now();
+        -- the hourly snapshot (fn_accountant_ad_spend_snapshot) reads this; keep it saying the same figure
+        update public.ad_spend_policy set month_spent_aed = v_meta_month, month_label = to_char(v_month, 'YYYY-MM'), updated_at = now()
+         where policy_key = 'default' and to_char(v_month, 'YYYY-MM') = to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM');
+      end if;
+    end if;
+    begin
+      v_inv := public.fn_accountant_ad_spend_figures(v_month);
+      v_pos := v_pos || jsonb_build_object('invoiced_aed', v_inv->'invoiced_aed', 'meta_invoices', v_inv->'meta_invoices');
+    exception when others then
+      v_pos := v_pos || jsonb_build_object('invoiced_aed', null, 'invoiced_error', left(sqlerrm, 200));
+    end;
   end if;
-  f := public.fn_accountant_ad_spend_figures(v_month);
 
-  perform public.fn_seat_handoff('accountant', 'marketing', 'adspend.booked', 'accountant_ad_spend_month',
-    to_char(v_month, 'YYYY-MM') || ':' || coalesce(v_rep, 0),
-    jsonb_build_object('month', to_char(v_month, 'YYYY-MM'), 'reported_spend_aed', v_rep,
-                       'invoiced_aed', f->'invoiced_aed', 'difference_aed', f->'difference_aed', 'missing', f->'missing',
-                       'basis', 'Kept as the REPORTED side of the Meta invoice match. The ledger entry comes from the Meta invoice in expense_entries, so the spend is counted once.'));
-  return jsonb_build_object('kept', true, 'month', to_char(v_month, 'YYYY-MM'), 'reported_spend_aed', v_rep, 'figures', f);
+  v_bid := public.fn_seat_handoff('accountant', 'marketing', 'adspend.booked', 'ad_spend_reported', (d->>'source_ref') || '@' || (d->>'amount'),
+    jsonb_build_object('recorded_handoff', p_id, 'source_ref', d->>'source_ref', 'amount', d->'amount', 'currency', d->>'currency',
+                       'amount_aed', v_aed, 'recorded', v_recorded, 'test', v_test, 'demo', v_test, 'month_position', v_pos,
+                       'books', case when v_test then 'Test money: not recorded and never booked.'
+                                     else 'Recorded on the accountant''s ad-spend record. The ledger entry is made from the platform''s invoice when it reaches the expenses mailbox (fn_gl_sync_business); booking the reported figure as well would count the same spend twice.' end));
+  return jsonb_build_object('waiting', 'marketing re-verification of adspend.booked ' || v_bid, 'recorded', v_recorded,
+                            'test', v_test, 'amount_aed', v_aed, 'booked_handoff', v_bid, 'month_position', v_pos);
 end $fn$;
 revoke execute on function public.fn_accountant_keeps_reported_ad_spend(bigint) from public, anon, authenticated;
 
--- ── 12. adspend.booked -> marketing: the seat notes the accountant's answer on its rows ────────────
+-- ── 12. adspend.booked -> marketing (replaces #836's body under the same name, same contract) ──────
+-- #836's re-verification, kept whole: it returns evidence.verified, which fn_marketing_closes_ad_spend_loops
+-- (defined by #836, run by fn_marketing_tick) reads to close the adspend.recorded named by recorded_handoff.
+-- ONE ADDITION: a verified answer stamps booked_ack_at on the campaign day it answers.
 create or replace function public.fn_marketing_notes_ad_spend_booked(p_id bigint)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare a public.agent_actions; v_month date; v_n int;
+declare a public.agent_actions; d jsonb; r public.ad_spend_reported; v_ok boolean; v_why text;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff';
-  v_month := to_date(a.detail->>'month' || '-01', 'YYYY-MM-DD');
-  update public.marketing_ad_spend_day set booked_ack_at = now()
-   where not is_demo and handed_off_at is not null and booked_ack_at is null
-     and day >= v_month and day < (v_month + interval '1 month')::date;
-  get diagnostics v_n = row_count;
-  return jsonb_build_object('acknowledged_rows', v_n, 'month', a.detail->>'month',
-                            'reported_spend_aed', a.detail->'reported_spend_aed', 'invoiced_aed', a.detail->'invoiced_aed');
+  if not found or a.detail->>'type' is distinct from 'adspend.booked' then
+    raise exception 'fn_marketing_notes_ad_spend_booked: % is not an adspend.booked handoff', p_id;
+  end if;
+  d := a.detail;
+  select * into r from public.ad_spend_reported where source_ref = d->>'source_ref';
+  if coalesce((d->>'recorded')::boolean, false) then
+    v_ok := r.source_ref is not null and r.amount = (d->>'amount')::numeric;
+    v_why := case when r.source_ref is null then 'the accountant said recorded and no row exists'
+                  when not v_ok then 'the accountant''s row says ' || r.amount || ', marketing reported ' || (d->>'amount') end;
+  else
+    v_ok := coalesce((d->>'test')::boolean, false);
+    v_why := case when not v_ok then 'the accountant did not record real spend' end;
+  end if;
+  if v_ok then
+    update public.marketing_ad_spend_day set booked_ack_at = now()
+     where account_id || ':' || campaign_id || ':' || day = d->>'source_ref' and spend = (d->>'amount')::numeric;
+  end if;
+  return jsonb_build_object('verified', v_ok, 'reason', v_why, 'recorded_handoff', d->'recorded_handoff');
 end $fn$;
 revoke execute on function public.fn_marketing_notes_ad_spend_booked(bigint) from public, anon, authenticated;
 
--- ── 13. THE OVERALL PICTURE FOR THE CEO (marketing.report carries this; it asks for nothing) ──────
-create or replace function public.fn_marketing_report_figures(p_days int default 7)
-returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  with w as (select now() - make_interval(days => greatest(1, p_days)) as since)
-  select jsonb_build_object(
-    'window_days', greatest(1, p_days),
-    'publishing_live', coalesce((select lower(value) = 'true' from public.app_secrets where key = 'marketing_golive'), false),
-    'posts', jsonb_build_object(
-      'draft', (select count(*) from public.marketing_post where status = 'draft' and not is_demo),
-      'scheduled_next_window', (select count(*) from public.marketing_post where status = 'scheduled' and not is_demo
-                                   and scheduled_at < now() + make_interval(days => greatest(1, p_days))),
-      'due_held_by_switch', (select count(*) from public.marketing_post where status = 'scheduled' and not is_demo
-                                and scheduled_at <= now() and dry_run is not null),
-      'published_in_window', (select count(*) from public.marketing_post, w where status = 'published' and published_at >= w.since),
-      'failed_in_window', (select count(*) from public.marketing_post, w where status = 'failed' and updated_at >= w.since),
-      'stuck_publishing', (select count(*) from public.marketing_post where status = 'publishing' and updated_at < now() - interval '30 minutes')),
-    'insights', coalesce((select jsonb_object_agg(k, v) from (
-        select i.platform || '.' || i.metric k, sum(i.value) v
-          from public.marketing_insight_day i, w
-         where i.object_type <> 'post' and i.day >= (w.since at time zone 'Asia/Dubai')::date
-         group by 1) x), '{}'::jsonb),
-    'ad_spend', jsonb_build_object(
-      'window_aed', (select coalesce(sum(spend), 0) from public.marketing_ad_spend_day, w
-                      where not is_demo and currency = 'AED' and day >= (w.since at time zone 'Asia/Dubai')::date),
-      'month_to_date_aed', (select coalesce(sum(spend), 0) from public.marketing_ad_spend_day
-                             where not is_demo and currency = 'AED'
-                               and day >= date_trunc('month', now() at time zone 'Asia/Dubai')::date),
-      'handed_to_accountant_days', (select count(distinct day) from public.marketing_ad_spend_day where not is_demo and handed_off_at is not null),
-      'acknowledged_by_accountant_days', (select count(distinct day) from public.marketing_ad_spend_day where not is_demo and booked_ack_at is not null)),
-    'connections', public.fn_marketing_connection_status(),
-    'duties', coalesce((select jsonb_object_agg(duty, jsonb_build_object('last_ok_at', last_ok_at, 'last_started_at', last_started_at))
-                          from public.marketing_duty_run), '{}'::jsonb))
-$fn$;
-revoke execute on function public.fn_marketing_report_figures(integer) from public, anon, authenticated;
+-- ── 13. THE DAILY REPORT'S FIGURES (replaces #836's body; same signature and shape) ─────────────────
+-- #836: "the publishing, analytics and inbox builds replace this routine to add their own figures; the shape
+-- (headline, measured, not_measured) stays." fn_marketing_report_tick reads posts_published,
+-- ad_spend_reported_aed, conversations_handed_to_founder and customer_requests_posted, so those keys stay.
+-- Posts are now read from marketing_post (the store this build owns); social_posts is the June-August history.
+create or replace function public.fn_marketing_report_figures(p_from timestamptz, p_to timestamptz)
+returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_posts int; v_posts_ever int; v_spend jsonb; v_spend_aed numeric; v_unconv int; v_asked int; v_inq numeric; v_head text;
+        v_sched int; v_held int; v_failed int; v_stuck int; v_live boolean; v_ins jsonb; v_conn jsonb; v_ins_days int;
+begin
+  select count(*) filter (where published_at >= p_from and published_at < p_to), count(*)
+    into v_posts, v_posts_ever from public.marketing_post where status = 'published' and not is_demo;
+  select count(*) filter (where status = 'scheduled' and scheduled_at >= p_to and scheduled_at < p_to + interval '7 days'),
+         count(*) filter (where status = 'scheduled' and scheduled_at <= p_to and dry_run is not null),
+         count(*) filter (where status = 'failed' and updated_at >= p_from and updated_at < p_to),
+         count(*) filter (where status = 'publishing' and updated_at < p_to - interval '30 minutes')
+    into v_sched, v_held, v_failed, v_stuck from public.marketing_post where not is_demo;
+  v_live := coalesce((select lower(value) = 'true' from public.app_secrets where key = 'marketing_golive'), false);
+  select coalesce(jsonb_object_agg(platform, aed), '{}'::jsonb), coalesce(sum(aed), 0), coalesce(sum(unconv), 0)
+    into v_spend, v_spend_aed, v_unconv
+    from (select platform, sum(amount_aed) aed, count(*) filter (where amount_aed is null) unconv
+            from public.ad_spend_reported where spend_date >= (p_from at time zone 'Asia/Dubai')::date
+                                           and spend_date < (p_to at time zone 'Asia/Dubai')::date
+           group by platform) s;
+  select count(*) into v_asked from public.notifications
+   where kind = 'social_human_request' and created_at >= p_from and created_at < p_to;
+  v_inq := public.fn_ceo_plan_measure('inquiries_posted', p_from, p_to)::numeric;
+  select coalesce(jsonb_object_agg(k, v), '{}'::jsonb), count(distinct d) into v_ins, v_ins_days from (
+    select i.platform || '.' || i.metric k, sum(i.value) v, max(i.day) d
+      from public.marketing_insight_day i
+     where i.object_type <> 'post' and i.day >= (p_from at time zone 'Asia/Dubai')::date - 1
+       and i.day < (p_to at time zone 'Asia/Dubai')::date
+     group by 1) x;
+  v_conn := public.fn_marketing_connection_status();
+  v_head := format('%s post(s) published, %s scheduled for the next 7 days%s, AED %s ad spend reported, %s conversation(s) handed to the founder, %s customer request(s) posted.',
+                   v_posts, v_sched, case when not v_live and v_held > 0 then format(' (%s due and held: publishing is off)', v_held) else '' end,
+                   v_spend_aed, v_asked, coalesce(v_inq::text, 'unmeasured'));
+  return jsonb_build_object(
+    'headline', v_head,
+    'measured', jsonb_build_object(
+      'posts_published', v_posts, 'posts_published_ever', v_posts_ever, 'posts_scheduled_next_7_days', v_sched,
+      'posts_due_held_by_switch', v_held, 'posts_failed', v_failed, 'posts_stuck_publishing', v_stuck, 'publishing_live', v_live,
+      'ad_spend_reported_aed', v_spend_aed, 'ad_spend_by_platform_aed', v_spend, 'ad_spend_rows_unconverted', v_unconv,
+      'conversations_handed_to_founder', v_asked, 'customer_requests_posted', v_inq,
+      'insights', v_ins, 'connections_all_ok', v_conn->'all_ok',
+      'connections_failing', coalesce((select jsonb_agg(c->'check') from jsonb_array_elements(v_conn->'checks') c where not (c->>'ok')::boolean), '[]'::jsonb),
+      'connections_measured_at', v_conn->'oldest_measurement'),
+    'not_measured', to_jsonb(array_remove(array[
+      case when v_ins_days = 0 then 'followers, reach and engagement per channel: no insight was pulled for the window yet' end,
+      case when coalesce((v_conn->>'never_measured')::boolean, true) then 'channel access: the access check has not run yet' end,
+      'social conversations answered: no social inbox record is built yet',
+      'search rankings and organic traffic: no SEO reader is built yet'], null)),
+    'basis', 'Posts: marketing_post (published_at in the window; scheduled and held from its status and dry_run). Spend: ad_spend_reported by spend_date (Asia/Dubai), in AED at gl_settings usd_to_aed. Insights: marketing_insight_day, page and account metrics summed over the window. Connections: marketing_connection_check as last measured. Handed to the founder: notifications of kind social_human_request. Customer requests: fn_ceo_plan_measure(inquiries_posted), demo excluded. Window: the 24 hours before the report.');
+end $fn$;
+revoke execute on function public.fn_marketing_report_figures(timestamptz, timestamptz) from public, anon, authenticated;
 
 -- ── 14. THE SEAT'S RUNTIME CREDENTIAL, OWNER ROW AND CLOCK ──────────────────────────────────────
 do $mint$
