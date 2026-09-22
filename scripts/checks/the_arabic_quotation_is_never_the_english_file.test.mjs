@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const ROOT = process.cwd();
-const { pdfFactsFromBytes, sameDocument, languageOf } = await import(pathToFileURL(join(ROOT, 'scripts/e2e/pdf_facts.mjs')).href);
+const { pdfFactsFromBytes, sameDocument, sameMoney, amounts, languageOf } = await import(pathToFileURL(join(ROOT, 'scripts/e2e/pdf_facts.mjs')).href);
 const QUOTE = readFileSync(join(ROOT, 'supabase/functions/supplier_api/fixtures/ZZDEMO_quotation_D958E1EA.pdf'));
 const OTHER = readFileSync(join(ROOT, 'supabase/functions/_shared/catalogue_fixtures/zz_demo_it_wholesaler_catalogue.pdf'));
 
@@ -48,6 +48,26 @@ test('the language reading: Arabic presentation forms count as Arabic', () => {
   assert.equal(languageOf({ arabicShare: 0 }), 'en');
 });
 
+// THE SAME QUOTATION IN TWO LANGUAGES (22 Sep 2026). Two different files is half the property; the
+// Arabic render must also quote the same money. The two strings below are the real extracted text of
+// production pair QD-8B287960-A (en 99,734 bytes / 0% Arabic, ar 124,215 bytes / 78% Arabic), cut to
+// the numbers: pdf_native writes Western digits in the Arabic render, so the amounts are comparable.
+const EN_TEXT = '1 Knauf gypsum false ceiling 12.5mm 180 m2 95.00 17,100.00 2 Knauf gypsum cornice 150mm 210 m 42.00 8,820.00 Lines subtotal AED 25,920.00 Total quoted AED 25,920.00';
+const AR_TEXT = '1 ﺳﻘﻒ ﺟﺒﺲ 180 ﻡ2 95.00 17,100.00 2 ﻛﺮﻧﻴﺶ ﺟﺒﺲ 210 ﻡ 42.00 8,820.00 ﺇﺟﻤﺎﻟﻲ ﺍﻟﺒﻨﻮﺩ 25,920.00 ﺩﺭﻫﻢ ﺇﺟﻤﺎﻟﻲ ﺍﻟﻌﺮﺽ 25,920.00 ﺩﺭﻫﻢ';
+
+test('the two languages of one quotation state the same money', () => {
+  assert.deepEqual(amounts({ text: EN_TEXT }), ['95.00', '17,100.00', '42.00', '8,820.00', '25,920.00', '25,920.00']);
+  assert.deepEqual([sameMoney({ text: EN_TEXT }, { text: AR_TEXT }).comparable, sameMoney({ text: EN_TEXT }, { text: AR_TEXT }).same], [true, true]);
+});
+
+test('a re-priced, short or total-less Arabic render is caught', () => {
+  const repriced = AR_TEXT.replace('17,100.00', '17,900.00');
+  const short = AR_TEXT.replace('2 ﻛﺮﻧﻴﺶ ﺟﺒﺲ 210 ﻡ 42.00 8,820.00 ', '');
+  assert.equal(sameMoney({ text: EN_TEXT }, { text: repriced }).same, false, 'a changed rate must fail');
+  assert.equal(sameMoney({ text: EN_TEXT }, { text: short }).same, false, 'a dropped line must fail');
+  assert.equal(sameMoney({ text: EN_TEXT }, { text: 'ﻋﺮﺽ ﺃﺳﻌﺎﺭ' }).comparable, false, 'a render with no amounts is not comparable, never "agrees"');
+});
+
 test('journey h decides the step with sameDocument and the Arabic language, not a raw buffer compare', () => {
   const src = readFileSync(join(ROOT, 'scripts/e2e/journey_audit_buttons.mjs'), 'utf8');
   const at = src.indexOf("'the Arabic quotation is not the English file'");
@@ -56,4 +76,5 @@ test('journey h decides the step with sameDocument and the Arabic language, not 
   assert.match(block, /sameDocument\(pdfs\.en, pdfs\.ar\)/);
   assert.match(block, /languageOf\(pdfs\.ar\) === 'ar'/);
   assert.doesNotMatch(block, /Buffer\.compare/);
+  assert.match(src.slice(at, at + 1200), /sameMoney\(pdfs\.en, pdfs\.ar\)/, 'journey h no longer compares the money of the two renders');
 });

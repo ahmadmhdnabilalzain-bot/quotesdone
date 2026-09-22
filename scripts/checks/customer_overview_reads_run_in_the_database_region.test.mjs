@@ -39,7 +39,12 @@ test('the parse-time script issues all six reads, region-pinned', () => {
 
 test("the portal's own reads go through the region-pinned call(), warmed beside kyc, not behind it", () => {
   const s = code('src/components/me/CustomerPortal.tsx');
-  assert.match(s, /async function call\(path, body, token\) \{ const r = await fetch\(fnUrl\(path\),/);
+  // The subject here is the REGION PIN, not the shape of the function. This pinned the whole
+  // one-line body, so it went red on 22 Sep 2026 when call() grew an AbortController and a JSON
+  // parse guard (CP-08) while still fetching fnUrl(path). It now asserts the property: the portal's
+  // shared helper is declared, and the URL it fetches is the pinned one.
+  assert.match(s, /async function call\(path, body, token\) \{/);
+  assert.match(s, /await fetch\(fnUrl\(path\),/);
   assert.doesNotMatch(s, /\bSUPA_FN\b|FN \+ '\//, 'an unpinned functions URL is back in CustomerPortal');
   for (const [fn, action] of SIX) assert.match(s, new RegExp(`warm\\(tk, '\\w+', \\(\\) => call\\('${fn}', \\{ action: '${action}'`), `warmDashboard lost ${fn}:${action}`);
 });

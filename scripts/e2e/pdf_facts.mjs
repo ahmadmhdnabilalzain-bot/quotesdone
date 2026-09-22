@@ -51,6 +51,27 @@ export async function pdfFacts(url) {
  * document with a new timestamp is still the same document). An empty or unread side is NOT
  * comparable — the defect this replaced called two empty buffers "the same file".
  */
+/**
+ * The money a quotation states, in the order it states it: every amount written with two decimals
+ * (rates, line amounts, the subtotal, the total). MEASURED 22 Sep 2026 on the production pair
+ * QD-8B287960-A (en 99,734 bytes / 0% Arabic, ar 124,215 bytes / 78% Arabic): both read
+ * 95.00, 17,100.00, 42.00, 8,820.00, 25,920.00, 25,920.00 - pdf_native writes Western digits in the
+ * Arabic render too, so this is comparable across the two languages.
+ */
+export const amounts = (f) => String(f?.text || '').match(/\d[\d,]*\.\d\d/g) || [];
+
+/**
+ * Do two renders of one quotation state the same money? The languages differ on purpose; the
+ * numbers must not. This is the assertion that "not the same file" alone cannot make: a translation
+ * that quietly re-prices, drops a line or loses the total is a different document AND wrong.
+ */
+export function sameMoney(a, b) {
+  const [x, y] = [amounts(a), amounts(b)];
+  if (!x.length || !y.length) return { comparable: false, same: null, why: `no amounts read: ${x.length} and ${y.length}` };
+  const same = x.length === y.length && x.every((v, i) => v === y[i]);
+  return { comparable: true, same, why: same ? `${x.length} amounts agree (total ${x[x.length - 1]})` : `amounts differ: [${x.join(' ')}] vs [${y.join(' ')}]` };
+}
+
 export function sameDocument(a, b) {
   const size = (f) => (f?.ok && f.bytes?.length) || 0;
   if (!size(a) || !size(b)) return { comparable: false, same: null, why: `cannot compare: ${size(a)} and ${size(b)} bytes` };

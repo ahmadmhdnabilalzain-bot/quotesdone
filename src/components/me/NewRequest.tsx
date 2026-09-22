@@ -31,6 +31,7 @@ import { categoryLabel } from '@/lib/categoryLabel';
 import { mergeAttachment } from '@/lib/requestAttachments';
 import { boqNote, confidenceWord } from '@/lib/boqNotes';
 import { t, tf, errText, emirateName } from './portalText';
+import { countPhrase } from '@/lib/countedNoun';
 import { markupSvg } from './markup';
 import { DEVICE_TYPES } from '../../../supabase/functions/drawing_boq/legend_vocabulary';
 import { recognitionLangs, getRecognition, speechErrorKey } from './speech';
@@ -201,7 +202,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         const n = s.boq && Array.isArray(s.boq.boq) ? s.boq.boq.length : 0;
         if (!n) { push({ role: 'assistant', text: t(lang, 'nr_cad_failed') }); return; }
         const adopted = adopt({ ...res, boq: s.boq }, name, source);
-        push({ role: 'assistant', text: lengths ? t(lang, 'nr_lengths_ready') : tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, cat: s.boq.category ? ' (' + s.boq.category + ')' : '' }) + t(lang, 'nr_add_or_send') });
+        push({ role: 'assistant', text: lengths ? t(lang, 'nr_lengths_ready') : tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, c: countPhrase(lang, n, 'line', { oblique: true }), cat: s.boq.category ? ' (' + s.boq.category + ')' : '' }) + t(lang, 'nr_add_or_send') });
         await runIntake('', adopted);
         return;
       }
@@ -210,9 +211,19 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     }
     if (!lengths) push({ role: 'assistant', text: t(lang, 'nr_cad_slow') });
   };
+  const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // customer_api analyze_document refuses more
+  // Returns true when it has already told the customer and cleared the pickers.
+  const tooBig = (file) => {
+    if (!file || file.size <= MAX_UPLOAD_BYTES) return false;
+    push({ role: 'assistant', text: t(lang, 'nr_boq_err_too_large') });
+    try { if (fileRef.current) fileRef.current.value = ''; if (boqRef.current) boqRef.current.value = ''; } catch (_e) {}
+    return true;
+  };
   const onFile = async (file, source = 'drawing') => {
-    if (!file) return; setMsg(''); setAnalyzing(true); setEditor(false);
+    if (!file) return; setMsg('');
     push({ role: 'user', text: '', chip: file.name });
+    if (tooBig(file)) return;
+    setAnalyzing(true); setEditor(false);
     try {
       const p = { ...(await fileToImages(file)), name: file.name, source };
       if (p.mime === 'application/pdf' && p.images.length) p.schedule_tables = await readSchedules(p.b64);
@@ -253,13 +264,13 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       let text;
       if (n >= 1) {
         const cat = res.boq.category ? ' (' + res.boq.category + ')' : '';
-        text = tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, cat })
+        text = tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, c: countPhrase(lang, n, 'line', { oblique: true }), cat })
           + (partial ? t(lang, 'nr_partial_none') : '')
           + t(lang, 'nr_add_or_send');
       } else if (res && res.advice && !p.images.length) {
         text = res.advice; // customer_api names the real reason (CAD not converted, archive, unreadable)
       } else if (attached) {
-        text = tf(lang, 'nr_pages_ready', { n: pagesIn });
+        text = tf(lang, 'nr_pages_ready', { n: pagesIn, c: countPhrase(lang, pagesIn, 'page', { oblique: true }) });
       } else {
         text = t(lang, 'nr_not_prepared');
       }
@@ -283,7 +294,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     if (!DOC_RE.test(file.name)) return onFile(file, 'boq');
     setMsg(''); push({ role: 'user', text: '', chip: file.name });
     const reset = () => { try { if (boqRef.current) boqRef.current.value = ''; if (fileRef.current) fileRef.current.value = ''; } catch (_e) {} };
-    if (file.size > 20 * 1024 * 1024) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_too_large') }); reset(); return; }
+    if (tooBig(file)) { reset(); return; }
     setAnalyzing(true);
     try {
       const hint = messages.filter((m) => m.role === 'user').map((m) => m.text).join(' ').slice(0, 400);
@@ -300,7 +311,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       else if (!rows.length) push({ role: 'assistant', text: t(lang, 'nr_boq_sheet_empty') });
       else {
         const adopted = adopt(res, file.name, 'boq');
-        push({ role: 'assistant', text: tf(lang, rows.length === 1 ? 'nr_boq_sheet_one' : 'nr_boq_sheet_many', { n: rows.length }) + t(lang, 'nr_add_or_send') });
+        push({ role: 'assistant', text: tf(lang, rows.length === 1 ? 'nr_boq_sheet_one' : 'nr_boq_sheet_many', { n: rows.length, c: countPhrase(lang, rows.length, 'line', { oblique: true }) }) + t(lang, 'nr_add_or_send') });
         await runIntake('', adopted);
       }
     } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_generic') }); }
@@ -312,7 +323,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const res = await analyze(pages, boxes).catch(() => null);
     const ok = !!(res && res.redaction_complete === true && Number(res.redaction_pages_in) > 0);
     const dr = adopt(res, pages.name, pages.source);
-    push({ role: 'assistant', text: ok ? tf(lang, 'rd_done', { n: ((res && res.drawing_redacted_paths) || []).length || Number(res.redaction_pages_out) }) : t(lang, 'rd_failed') });
+    push({ role: 'assistant', text: ok ? tf(lang, 'rd_done', { c: countPhrase(lang, ((res && res.drawing_redacted_paths) || []).length || Number(res.redaction_pages_out), 'page') }) : t(lang, 'rd_failed') });
     if (ok) setEditor(false);
     if (res && res.boq && res.boq.boq && res.boq.boq.length && !ready) await runIntake('', dr);
     return ok;
@@ -702,7 +713,7 @@ function RedactionEditor({ lang, images, onApply, onSkip, reduce }) {
       <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">{t(lang, 'rd_body')}</p>
       <div className="mt-2.5 flex items-center justify-between gap-2 text-[12px] text-muted-foreground" dir="ltr">
         <button type="button" className="grid h-8 w-8 place-items-center rounded-lg border border-border disabled:opacity-40" disabled={page === 0} onClick={() => setPage((p) => p - 1)} aria-label={t(lang, 'rd_prev')}><ChevronLeft className="h-4 w-4" aria-hidden /></button>
-        <span>{tf(lang, 'rd_page', { n: page + 1, total: images.length })} · {tf(lang, 'rd_boxes', { n: total })}</span>
+        <span>{tf(lang, 'rd_page', { n: page + 1, total: images.length })} · {tf(lang, 'rd_boxes', { n: total, c: countPhrase(lang, total, 'area') })}</span>
         <button type="button" className="grid h-8 w-8 place-items-center rounded-lg border border-border disabled:opacity-40" disabled={page >= images.length - 1} onClick={() => setPage((p) => p + 1)} aria-label={t(lang, 'rd_next')}><ChevronRight className="h-4 w-4" aria-hidden /></button>
       </div>
       <div ref={surf} className="relative mt-2 cursor-crosshair touch-none select-none overflow-hidden rounded-lg border border-border bg-white" dir="ltr"
