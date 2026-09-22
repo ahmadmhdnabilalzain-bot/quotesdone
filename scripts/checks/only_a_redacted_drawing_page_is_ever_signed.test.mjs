@@ -29,7 +29,16 @@ test('the signer refuses a path that is not a redacted page', () => {
   const src = readFileSync(PAGES, 'utf8');
   assert.match(src, /export const isRedactedPath/, 'drawing_pages.ts no longer has the prefix guard');
   assert.match(src, /if \(!isRedactedPath\(path\)\) return \{ url: null/, 'signOne signs before it checks the prefix');
-  assert.match(src, /\.\.'/, 'the traversal guard is gone');
+  // THE GUARD ITSELF, NOT A STRING THAT LOOKS LIKE IT (review of #859, 23 Sep 2026). The first
+  // version of this line matched /\.\.'/, which any comment containing ..' would have satisfied.
+  // These pin the three clauses of isRedactedPath — the prefix, the traversal refusal and the
+  // absolute-path refusal — and the unit test beside the module proves each one behaves.
+  const guard = /export const isRedactedPath[\s\S]{0,320}?;/.exec(src);
+  assert.ok(guard, 'isRedactedPath is no longer one declaration this check can read');
+  assert.match(guard[0], /REDACTED_PREFIX\.test\(p\)/, 'the prefix test is gone from the guard');
+  assert.match(guard[0], /!p\.includes\('\.\.'\)/, 'the traversal refusal is gone from the guard');
+  assert.match(guard[0], /!p\.startsWith\('\/'\)/, 'the absolute-path refusal is gone from the guard');
+  assert.match(src, /const REDACTED_PREFIX = \/\^\(\?:drawings\\\/\)\?redacted\\\//, 'the prefix itself changed');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));

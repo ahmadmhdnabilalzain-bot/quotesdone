@@ -1833,6 +1833,11 @@ Deno.serve(observe('customer_api', async (req) => {
         value: Number.isFinite(Number(body.value)) ? Number(body.value) : null,
         limit: Math.min(24, Math.max(1, Number(body.limit) || 12)),
       };
+      // trade-level by design: no brief — `discover` is a free-text TRADES box, so the customer has
+      // named trades and not a job, and there is no summary or BOQ to read service keys from. Every
+      // matcher that DOES have a brief passes p_services (SP-F-01, 22 Sep 2026), and the check
+      // scripts/checks/every_matcher_that_has_a_brief_passes_its_services.test.mjs reads this marker
+      // per CALL, so a second matcher added in this file is not exempt by living here.
       const { data: rows, error: me } = await admin.rpc('fn_match_capability', {
         p_trades: filters.trades, p_need: filters.need, p_products: filters.products, p_brands: filters.brands,
         p_project_type: filters.project_type, p_value: filters.value, p_emirate: filters.emirate, p_limit: filters.limit,

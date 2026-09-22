@@ -112,6 +112,15 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
   // Counted, never listed. Shown to the visitor only when the matcher found someone — "0 suppliers"
   // on the first screen would be a true number that teaches the wrong lesson, and the audit asked
   // for > 0 only.
+  //
+  // AND IT COUNTS A DIFFERENT THING FROM THE FAN-OUT (23 Sep 2026, SP-F-01). From that date an
+  // inquiry carries the services it names and dispatch gates on them, so the number of suppliers who
+  // will actually RECEIVE a particular brief is at most this one and usually smaller. This page has
+  // no brief — the visitor has written nothing — so the count is honestly "suppliers registered for
+  // this trade", and the page words it that way rather than as a promise about a future request. The
+  // real fan-out is shown on the summary card at intake (inquiry_intake's supplier_count, which does
+  // pass the services).
+  // trade-level by design: no brief — the visitor has not written one yet.
   let supplierCount: number | null = null;
   try {
     const { data: cand } = await admin.rpc('fn_match_capability', {

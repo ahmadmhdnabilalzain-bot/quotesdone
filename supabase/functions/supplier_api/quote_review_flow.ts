@@ -416,6 +416,9 @@ async function decide(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, r
   // awaiting_upload, generate goes through this preview, and BOTH wait in ready_to_submit for the
   // supplier's Submit. Nothing is sent from here.
   if (!r.working) { await say(repo, r.id, 'text', awaitingUploadSaid()); return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId)); }
+  // r.last_review IS the review runReview stored for this same Working, and submitPayload sends
+  // `rv.price_ex_vat ?? w.amount` — so the total printed here is the total that will be submitted,
+  // from one expression rather than two that can drift.
   await say(repo, r.id, 'review', generatedSaid(l.inq.job_no, r.working, r.last_review?.price_ex_vat ?? null));
   await repo.updateReview(r.id, { status: 'ready_to_submit' });
   return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));

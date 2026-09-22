@@ -25,15 +25,21 @@ const walk = (d) => readdirSync(d).flatMap((f) => {
   return statSync(p).isDirectory() ? walk(p) : /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) ? [p] : [];
 });
 
-// THE TWO CALLS WITH NO BRIEF. Neither has a customer's words to read services from, so both are
-// trade-level by design and say so in their own comments:
+// THE CALLS WITH NO BRIEF. Neither has a customer's words to read services from, so both are
+// trade-level by design:
 //   public_site      the public category page counts "suppliers in this trade" for a visitor who
 //                    has not written anything yet.
 //   customer_api     the `discover` search is a free-text TRADES box; the customer names trades,
 //                    not a job, and the endpoint exists to answer "who does this trade".
-const TRADE_LEVEL_BY_DESIGN = new Set(['public_site/index.ts', 'customer_api/index.ts']);
+//
+// EXEMPTED PER CALL, NOT PER FILE (review of #859, 23 Sep 2026). Keying this on the file name would
+// have let a SECOND fn_match_capability call inside customer_api — one that does read an inquiry —
+// pass in silence, which is the very shape of the defect this check exists for. The exemption is now
+// a marker the call itself must carry, on the line before it or inside its arguments:
+const TRADE_LEVEL_MARKER = 'trade-level by design: no brief';
 
-/** Every fn_match_capability rpc call in a file, as {start,end} of its argument object. */
+/** Every fn_match_capability rpc call in a file: its argument object, and the comment above it. */
+const MARKER_LOOKBACK = 9;
 function callsIn(src) {
   const out = [];
   for (const m of src.matchAll(/\.rpc\(\s*['"`]fn_match_capability['"`]\s*,\s*\{/g)) {
@@ -43,7 +49,8 @@ function callsIn(src) {
       if (src[i] === '{') depth++;
       else if (src[i] === '}' && --depth === 0) break;
     }
-    out.push(src.slice(open, i + 1));
+    const before = src.slice(0, m.index).split('\n').slice(-MARKER_LOOKBACK).join('\n');
+    out.push({ args: src.slice(open, i + 1), before, line: src.slice(0, m.index).split('\n').length });
   }
   return out;
 }
@@ -54,11 +61,11 @@ test('every edge-function matcher with a brief passes p_services', () => {
   for (const file of walk(FUNCTIONS)) {
     const rel = file.slice(FUNCTIONS.length + 1).replace(/\\/g, '/');
     const src = readFileSync(file, 'utf8');
-    for (const args of callsIn(src)) {
+    for (const c of callsIn(src)) {
       seen++;
-      if (/\bp_services\s*:/.test(args)) continue;
-      if (TRADE_LEVEL_BY_DESIGN.has(rel)) continue;
-      missing.push(rel);
+      if (/\bp_services\s*:/.test(c.args)) continue;
+      if (c.before.includes(TRADE_LEVEL_MARKER) || c.args.includes(TRADE_LEVEL_MARKER)) continue;
+      missing.push(`${rel}:${c.line}`);
     }
   }
   assert.ok(seen >= 4, `fn_match_capability is called ${seen} time(s); this check has lost its subject`);

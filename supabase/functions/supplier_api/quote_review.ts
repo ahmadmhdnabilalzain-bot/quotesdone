@@ -364,9 +364,14 @@ export const readyToSubmitSaid = (job: string): Said => ({
 // the content is identical because both are built from the same Working. If a pre-submission PDF is
 // ever wanted, give _shared/line_specs/workflow.ts's `render` a record built from Working and
 // attach it here — nothing else changes.
+// THE TOTAL IS THE ONE submit_quote WILL CARRY, character for character: submitPayload sends
+// `rv.price_ex_vat ?? w.amount` and `priceExVat` here IS that rv.price_ex_vat. A preview total read
+// from a second expression is a preview that can differ from what is sent, which is the whole defect
+// this function was written to close.
+const PREVIEW_LINES = 40;
 export function generatedSaid(job: string, w: Working, priceExVat: number | null): Said {
   const money = (n: number | null | undefined) => (n == null ? '—' : fmt(n));
-  const lines = w.lines.slice(0, 40);
+  const lines = w.lines.slice(0, PREVIEW_LINES);
   const rowEn = (l: WLine, i: number) =>
     `${i + 1}. ${l.description}${l.qty ? ` — ${l.qty}${l.unit ? ' ' + l.unit : ''}` : ''}`
     + `${l.unit_price != null ? ` @ AED ${money(l.unit_price)}` : ''} = AED ${money(l.amount)}`;
@@ -375,7 +380,7 @@ export function generatedSaid(job: string, w: Working, priceExVat: number | null
     + `${l.unit_price != null ? ` × ${money(l.unit_price)} درهم` : ''} = ${money(l.amount)} درهم`;
   const more = w.lines.length > lines.length ? w.lines.length - lines.length : 0;
   const termsEn = [
-    `Total excluding VAT: AED ${money(priceExVat ?? w.price_ex_vat ?? w.amount)}`,
+    `Total excluding VAT: AED ${money(priceExVat ?? w.amount)}`,
     w.validity ? `Validity: ${w.validity}` : null,
     w.lead_time ? `Delivery / lead time: ${w.lead_time}` : null,
     w.warranty ? `Warranty: ${w.warranty}` : null,
@@ -383,7 +388,7 @@ export function generatedSaid(job: string, w: Working, priceExVat: number | null
     w.exclusions ? `Exclusions: ${w.exclusions}` : null,
   ].filter(Boolean);
   const termsAr = [
-    `الإجمالي غير شامل الضريبة: ${money(priceExVat ?? w.price_ex_vat ?? w.amount)} درهم`,
+    `الإجمالي غير شامل الضريبة: ${money(priceExVat ?? w.amount)} درهم`,
     w.validity ? `الصلاحية: ${w.validity}` : null,
     w.lead_time ? `التسليم / مدة التنفيذ: ${w.lead_time}` : null,
     w.warranty ? `الضمان: ${w.warranty}` : null,
@@ -392,10 +397,10 @@ export function generatedSaid(job: string, w: Working, priceExVat: number | null
   ].filter(Boolean);
   return {
     en: `Here is the standardised QuotesDone quotation I have prepared for Job ${job}, exactly as the customer would receive it. Nothing has been sent yet.\n\n`
-      + `${lines.map(rowEn).join('\n')}${more ? `\n… and ${more} more line(s)` : ''}\n\n${termsEn.join('\n')}\n\n`
+      + `${lines.map(rowEn).join('\n')}${more ? `\n… the first ${PREVIEW_LINES} lines are shown; the remaining ${more} are in the quotation and in its PDF.` : ''}\n\n${termsEn.join('\n')}\n\n`
       + `Read it through. If it is right, press "Submit to Job ${job}" (or reply "submit") and I will send it and attach the PDF here. If anything is wrong, tell me what to change, or attach your own version instead.`,
     ar: `هذا هو عرض QuotesDone الموحّد الذي أعددته للطلب ${job}، بالصيغة نفسها التي سيستلمها العميل. ولم يُرسل شيء بعد.\n\n`
-      + `${lines.map(rowAr).join('\n')}${more ? `\n… و${more} بندًا إضافيًا` : ''}\n\n${termsAr.join('\n')}\n\n`
+      + `${lines.map(rowAr).join('\n')}${more ? `\n… المعروض هنا أول ${PREVIEW_LINES} بندًا، وبقية البنود (${more}) مدرجة في العرض وفي نسخته PDF.` : ''}\n\n${termsAr.join('\n')}\n\n`
       + `يُرجى مراجعته. فإن كان صحيحًا فاضغطوا «تقديم العرض إلى الطلب ${job}» (أو اكتبوا «تقديم») لأرسله وأرفق نسخة PDF هنا. وإن كان فيه ما يحتاج تعديلًا فأخبروني به، أو أرفقوا نسختكم بدلًا منه.`,
   };
 }
