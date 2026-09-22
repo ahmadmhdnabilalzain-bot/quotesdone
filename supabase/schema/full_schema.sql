@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T22:58:10.462Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T23:37:35.930Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -58499,7 +58499,7 @@ begin
     'ok', true, 'task_id', v_task, 'asks', v_asks,
     'reply_en', 'I do not have a sourced answer to that yet, and I will not guess at it. I have '
       || 'recorded your question exactly as you asked it so it gets answered properly. If you need '
-      || 'it now, call or WhatsApp +971 50 931 9355 (Sun-Thu, 9am-6pm GST) or email '
+      || 'it now, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email '
       || 'management@quotesdone.com.',
     'reply_ar', 'لا تتوفر لديّ إجابة موثّقة عن ذلك حتى الآن، ولا أودّ التخمين. سجّلتُ سؤالكم كما كتبتموه '
       || 'تمامًا ليُجاب عنه إجابة دقيقة. وإن احتجتم إلى الإجابة الآن، يمكنكم الاتصال أو المراسلة عبر '
@@ -60551,13 +60551,13 @@ AS $function$
       || 'لا خطأ في سؤالكم، وإنما لم يصل النص سليمًا عبر الاتصال. يُرجى إعادة إرسال الرسالة. '
       || 'وإن تكرر ذلك، يمكنكم الاتصال أو المراسلة عبر واتساب:' || E'\n'
       || E'‎' || '+971 50 931 9355' || E'\n'
-      || '(من الأحد إلى الخميس، من 9 صباحًا حتى 6 مساءً بتوقيت الإمارات)' || E'\n'
+      || '(من الاثنين إلى الجمعة، من 9 صباحًا حتى 6 مساءً بتوقيت الإمارات)' || E'\n'
       || 'أو البريد الإلكتروني:' || E'\n' || 'management@quotesdone.com'
     else
       'Your message reached me with its characters replaced by question marks, so I cannot read '
       || 'what you asked. Nothing is wrong with your question — it did not survive the connection. '
       || 'Please send it again. If it keeps happening, call or WhatsApp +971 50 931 9355 '
-      || '(Sun-Thu, 9am-6pm GST) or email management@quotesdone.com.'
+      || '(Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.'
   end;
 $function$
 
