@@ -64,7 +64,7 @@ import { blobToWavB64 } from '@/lib/wavEncode';
 // 14 Sep 2026 ("the sales agent need to be extremely capable of reading all types of document"): every
 // document drawing_boq's 'document' mode reads goes to analyze_document; PDFs, photos and DWG keep the
 // drawing path (redacted pages for suppliers).
-const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|ifc|xml|x8[1-6]|zip|dxf)$/i;
+const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|ifc|xml|x8[1-6]|zip|dxf|rvt|rfa|dgn)$/i;
 const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type' };
 
 // A question may arrive as a sentence or as {key, text|question|label}; the chip needs text.
@@ -191,6 +191,25 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     setDrawing(merged);
     return merged;
   };
+  // The queued CAD read, polled every 15 s for up to 12 minutes (the worker is dispatched at once; a
+  // GitHub runner starts in ~20-60 s and reads a multi-MB DWG in seconds). Not awaited: the chat stays usable.
+  const pollCad = async (res, name, source, lengths = false) => {
+    for (let i = 0; i < 48; i++) {
+      await new Promise((r) => setTimeout(r, 15000));
+      const s = await call('customer_api', { action: 'cad_read_status', job_id: res.cad_job_id }, token).catch(() => null);
+      if (s && s.ok && s.status === 'done') {
+        const n = s.boq && Array.isArray(s.boq.boq) ? s.boq.boq.length : 0;
+        if (!n) { push({ role: 'assistant', text: t(lang, 'nr_cad_failed') }); return; }
+        const adopted = adopt({ ...res, boq: s.boq }, name, source);
+        push({ role: 'assistant', text: lengths ? t(lang, 'nr_lengths_ready') : tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, cat: s.boq.category ? ' (' + s.boq.category + ')' : '' }) + t(lang, 'nr_add_or_send') });
+        await runIntake('', adopted);
+        return;
+      }
+      if (s && s.ok && s.status === 'failed') { if (!lengths) push({ role: 'assistant', text: t(lang, 'nr_cad_failed') }); return; }
+      if (s && !s.ok && s.error === 'not_found') return;
+    }
+    if (!lengths) push({ role: 'assistant', text: t(lang, 'nr_cad_slow') });
+  };
   const onFile = async (file, source = 'drawing') => {
     if (!file) return; setMsg(''); setAnalyzing(true); setEditor(false);
     push({ role: 'user', text: '', chip: file.name });
@@ -202,6 +221,15 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       const read = isPhoto && source === 'drawing' ? await ocrDraw(p.images[0]) : null;
       if (read && read.symbols && read.symbols.matches.length) setMarks({ image: p.images[0], width: read.width, height: read.height, matches: read.symbols.matches });
       let res = await analyze(p, undefined, read || (isPhoto ? await ocr(p.images) : ''));
+      // A LARGE CAD DRAWING (22 Sep 2026): customer_api queued it for the CAD worker (it could not be read
+      // inside the edge's caps). The customer is told, and the take-off is fetched when it is ready.
+      if (res && res.note === 'cad_queued' && res.cad_job_id) {
+        adopt(res, file.name, source);
+        push({ role: 'assistant', text: t(lang, 'nr_cad_queued') });
+        pollCad(res, file.name, source);
+        setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
+        return;
+      }
       // A scanned PDF has pages but no text layer: OCR its rendered pages and read that text instead.
       if (!(res && res.boq && res.boq.boq && res.boq.boq.length) && p.mime === 'application/pdf' && p.images.length) {
         const text = await ocr(p.images);
@@ -243,6 +271,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // intake_required). A read BOQ goes to inquiry_intake, which asks what is still open and says
       // ready itself; the button appears only then (runIntake is the one place that sets ready).
       if (n >= 1) await runIntake('', adopted);
+      // A big PDF set's lengths are measured by the CAD worker; the take-off above updates when they arrive.
+      if (res && res.note === 'lengths_queued' && res.cad_job_id) pollCad(res, file.name, source, true);
     } catch (e) { push({ role: 'assistant', text: t(lang, String(e && e.message).includes('HEIC') ? 'nr_heic_unsupported' : 'nr_file_unreadable') }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };
@@ -260,6 +290,13 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       const res = await call('customer_api', { action: 'analyze_document', file_b64: await fileB64(file), mime: file.type || '', file_name: file.name, hint }, token).catch(() => null);
       const rows = (res && res.ok && res.boq && res.boq.boq) || [];
       if (!res || !res.ok) push({ role: 'assistant', text: t(lang, BOQ_ERR[res && res.error] || 'nr_boq_err_generic') });
+      else if (res.note === 'cad_queued' && res.cad_job_id) { adopt(res, file.name, 'drawing'); push({ role: 'assistant', text: t(lang, 'nr_cad_queued') }); pollCad(res, file.name, 'drawing'); }
+      // A Revit model or a DGN (22 Sep 2026): read for what is certain, with the reader's own ask for an
+      // export (IFC / DWG / DXF / PDF), shown in the customer's language through boqNotes.
+      else if (!rows.length && res.needs && res.boq && Array.isArray(res.boq.missing_info) && res.boq.missing_info.length) {
+        adopt(res, file.name, 'drawing');
+        push({ role: 'assistant', text: res.boq.missing_info.map((s) => boqNote(s, lang)).join(' ') });
+      }
       else if (!rows.length) push({ role: 'assistant', text: t(lang, 'nr_boq_sheet_empty') });
       else {
         const adopted = adopt(res, file.name, 'boq');
@@ -501,7 +538,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <div className="flex items-end gap-2">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           {/* Sheets are accepted here too, because the drop surface above advertises Excel and CSV; onAny routes them. */}
-          <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.ifc,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.ifc,.rvt,.rfa,.dgn,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach')} aria-label={t(lang, 'nr_attach')} className="grid h-10 w-10 place-items-center rounded-xl text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}><Paperclip className="h-5 w-5" aria-hidden /></button>
           {/* Founder, 14 Sep 2026: "boq can be anything: a photo, pdf, png, jpg, excel". Photos and PDFs take the
               drawing path (onFile, source 'boq'). HEIC is deliberately NOT listed: storage and the redactor cannot

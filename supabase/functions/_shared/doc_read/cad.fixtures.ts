@@ -11,14 +11,33 @@ export function dxfFrom(pairs: [number, string | number][]): Uint8Array {
   return new TextEncoder().encode(pairs.map(([c, v]) => `${String(c).padStart(3)}\n${v}`).join('\n') + '\n');
 }
 
-export const dxfSection = (name: string, body: [number, string | number][]): [number, string | number][] =>
+/**
+ * The same pairs as a BINARY DXF, written independently of cad.ts's reader: 2-byte codes (R13+) or
+ * 1-byte codes (R12). Only the codes the fixtures use: 0-9 strings, 10-59 reals, 70-79 int16, 90-99 int32.
+ */
+export function dxfBinaryFrom(pairs: [number, string | number][], wide = true): Uint8Array {
+  const out: number[] = [...new TextEncoder().encode('AutoCAD Binary DXF\r\n\x1a\x00')];
+  const push = (n: number, len: number, f: (d: DataView) => void) => { const b = new Uint8Array(len); f(new DataView(b.buffer)); out.push(...b); void n; };
+  for (const [c, v] of pairs) {
+    if (wide) push(c, 2, (d) => d.setInt16(0, c, true)); else out.push(c);
+    if (c <= 9) out.push(...new TextEncoder().encode(String(v)), 0);
+    else if (c >= 10 && c <= 59) push(c, 8, (d) => d.setFloat64(0, Number(v), true));
+    else if (c >= 70 && c <= 79) push(c, 2, (d) => d.setInt16(0, Number(v), true));
+    else if (c >= 90 && c <= 99) push(c, 4, (d) => d.setInt32(0, Number(v), true));
+    else throw new Error(`dxfBinaryFrom: code ${c} not supported by the fixture writer`);
+  }
+  return new Uint8Array(out);
+}
+
+export const dxfSection =(name: string, body: [number, string | number][]): [number, string | number][] =>
   [[0, 'SECTION'], [2, name], ...body, [0, 'ENDSEC']];
 
-export function dxfFixture(): Uint8Array {
+export const dxfFixture = (): Uint8Array => dxfFrom(dxfFixturePairs());
+export function dxfFixturePairs(): [number, string | number][] {
   const line = (layer: string, x1: number, y1: number, x2: number, y2: number): [number, string | number][] =>
     [[0, 'LINE'], [8, layer], [10, x1], [20, y1], [30, 0], [11, x2], [21, y2], [31, 0]];
   const insert = (x: number): [number, string | number][] => [[0, 'INSERT'], [8, 'DOORS'], [2, 'D-900'], [10, x], [20, 0], [30, 0]];
-  return dxfFrom([
+  return [
     ...dxfSection('HEADER', [[9, '$ACADVER'], [1, 'AC1027'], [9, '$INSUNITS'], [70, 4]]),
     ...dxfSection('BLOCKS', [[0, 'BLOCK'], [8, '0'], [2, 'D-900'], [70, 0], [10, 0], [20, 0], [30, 0], ...line('WALLS', 0, 0, 900, 0), [0, 'ENDBLK']]),
     ...dxfSection('ENTITIES', [
@@ -30,7 +49,7 @@ export function dxfFixture(): Uint8Array {
       [0, 'MTEXT'], [8, 'ANNO'], [10, 2500], [20, 1500], [40, 250], [1, '{\\fArial|b0|i0;غرفة المعيشة}\\Pالمطبخ %%c50'],
     ]),
     [0, 'EOF'],
-  ]);
+  ];
 }
 
 /**

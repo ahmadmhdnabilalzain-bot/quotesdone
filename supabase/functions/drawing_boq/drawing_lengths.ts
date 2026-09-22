@@ -208,6 +208,62 @@ export function measurePipes(p: PdfPage, strip: Box | null, scales: ScaleLabel[]
   return [...out.values()];
 }
 
+type SizeLabel = { key: string; w: number; round: boolean; x: number; y: number };
+/** A single-line run takes a size label only within this many real feet of it (measured 22 Sep 2026 on the
+ *  real M1.0 / roof plan: a branch's own label sits 0.5-4 ft from it; the "4"Ø" that had sized 28 ft of
+ *  roof-curb outline sat 8.7 and 17.8 ft away). */
+export const SINGLE_LABEL_FT = 6;
+/** A label past a run's END is this much farther than one beside it: a size is written beside the middle of
+ *  its run, while the end of a run stops next to the next run's label (the tee, the diffuser tag). */
+const END_PENALTY = 1.5;
+/** Two different sizes this close in effective distance: the size is ambiguous and stays unlabelled. */
+const AMBIGUOUS = 1.25;
+
+/** How far a label is from a run ALONG it: the perpendicular distance to the nearest segment whose span
+ *  the label lies beside, or (penalised) the distance to a segment's end. `seg` is the segment it is beside. */
+function alongRun(l: { x: number; y: number }, run: Line[]): { eff: number; d: number; seg: Line } {
+  let eff = Infinity, d = Infinity, seg = run[0];
+  for (const s of run) {
+    const t = (l.x - s.ax) * s.ux + (l.y - s.ay) * s.uy;
+    const e = distToLine(l.x, l.y, s), f = t >= 0 && t <= s.L ? e : e * END_PENALTY;
+    if (f < eff) { eff = f; d = e; seg = s; }
+  }
+  return { eff, d, seg };
+}
+
+/**
+ * Sizes for single-line runs, all runs of a sheet at once (22 Sep 2026). Each run takes the label nearest
+ * ALONG it (alongRun), within SINGLE_LABEL_FT; a label that sizes one run does not size a PARALLEL run that
+ * is farther from it (two branches side by side, each with its own label); two different sizes about as
+ * near (AMBIGUOUS) or none near enough -> null, and the run stays "size not labelled". Never guessed.
+ * Cost: runs x labels within the run's box grown by the bound.
+ */
+export function sizeSingleRuns(runs: { run: Line[]; inPt: number }[], labels: SizeLabel[]): (SizeLabel | null)[] {
+  const cands = runs.map(({ run, inPt }) => {
+    const R = SINGLE_LABEL_FT * 12 / inPt;
+    const xs = run.flatMap((s) => [s.ax, s.bx]), ys = run.flatMap((s) => [s.ay, s.by]);
+    const x0 = Math.min(...xs) - R, x1 = Math.max(...xs) + R, y0 = Math.min(...ys) - R, y1 = Math.max(...ys) + R;
+    const c: { l: SizeLabel; eff: number; d: number; seg: Line }[] = [];
+    for (const l of labels) {
+      if (l.x < x0 || l.x > x1 || l.y < y0 || l.y > y1) continue;
+      const a = alongRun(l, run); if (a.eff <= R) c.push({ l, ...a });
+    }
+    return c.sort((a, b) => a.eff - b.eff);
+  });
+  const order = runs.map((_, i) => i).sort((a, b) => (cands[a][0]?.eff ?? Infinity) - (cands[b][0]?.eff ?? Infinity));
+  const took = new Map<SizeLabel, { seg: Line; d: number }[]>();
+  const out: (SizeLabel | null)[] = runs.map(() => null);
+  for (const i of order) {
+    const free = cands[i].filter((c) => !(took.get(c.l) || []).some((t) => Math.abs(t.seg.ux * c.seg.uy - t.seg.uy * c.seg.ux) < 0.05 && t.d < c.d));
+    if (!free.length) continue;
+    const other = free.find((c) => c.l.key !== free[0].l.key);
+    if (other && other.eff <= free[0].eff * AMBIGUOUS) continue;
+    out[i] = free[0].l;
+    const t = took.get(free[0].l) || []; t.push({ seg: free[0].seg, d: free[0].d }); took.set(free[0].l, t);
+  }
+  return out;
+}
+
 /**
  * Duct of one plan sheet, drawn two ways and measured both ways:
  *  * DOUBLE-LINE (rectangular and large round): two SOLID parallel walls. Each wall is paired with the
@@ -222,7 +278,7 @@ export function measureDucts(p: PdfPage, strip: Box | null, scales: ScaleLabel[]
   const { W, H } = frame(p);
   const lines = linesOf(p, isDuctLayer, strip);
   if (!lines.length || lines.length > MAX_MEASURED_LINES) return [];
-  const labels: { key: string; w: number; round: boolean; x: number; y: number }[] = [];
+  const labels: SizeLabel[] = [];
   for (const r of p.runs) {
     if (inBox(cx(r), cy(r), strip)) continue;
     const t = r.text.trim().toUpperCase();
@@ -273,6 +329,22 @@ export function measureDucts(p: PdfPage, strip: Box | null, scales: ScaleLabel[]
     for (const l of labels) { if (Math.abs(l.w - d) > tolW) continue; const e = Math.hypot(l.x - x, l.y - y); if (e < bd) { bd = e; best = l; } }
     return best;
   };
+  // Two SINGLE-LINE branches drawn side by side are not one double-line duct (22 Sep 2026: M1.0 has a place
+  // where two branches run parallel 3.5"-42" apart and paired into a phantom stretch). A pair is refused when
+  // no printed size of its width is within 3 x SINGLE_LABEL_FT of it AND each line has its own, different size
+  // label alongside it: each is then a single line, sized by its own label below.
+  const own = new Map<Line, SizeLabel | null>();
+  const ownLabel = (s: Line, inPt: number) => {
+    if (!own.has(s)) own.set(s, sizeSingleRuns([{ run: [s], inPt }], labels)[0]);
+    return own.get(s)!;
+  };
+  const sideBySide = (a: Line, b: Line, d: number, lo: number, hi: number, inPt: number) => {
+    const la = ownLabel(a, inPt), lb = ownLabel(b, inPt);
+    if (!la || !lb || la === lb) return false;
+    const R = SINGLE_LABEL_FT * 12 / inPt, tolW = Math.max(1.5, d * 0.12);
+    const stretch = { ...a, ax: a.ax + a.ux * lo, ay: a.ay + a.uy * lo, L: hi - lo };
+    return !labels.some((l) => Math.abs(l.w - d) <= tolW && distToLine(l.x, l.y, stretch) <= 3 * R);
+  };
   for (let ai = 0; ai < solid.length; ai++) {
     const a = solid[ai];
     const sc = nearestScale(scales, (a.ax + a.bx) / 2 / W, (a.ay + a.by) / 2 / H); if (!sc) continue;
@@ -285,7 +357,9 @@ export function measureDucts(p: PdfPage, strip: Box | null, scales: ScaleLabel[]
       if (d < 3.5 || d > 42) continue;
       const t1 = (b.ax - a.ax) * a.ux + (b.ay - a.ay) * a.uy, t2 = (b.bx - a.ax) * a.ux + (b.by - a.ay) * a.uy;
       const lo = Math.max(0, Math.min(t1, t2)), hi = Math.min(a.L, Math.max(t1, t2));
-      if ((hi - lo) * inPt >= 6) cand.push({ d, lo, hi });
+      if ((hi - lo) * inPt < 6) continue;
+      if (sideBySide(a, b, d, lo, hi, inPt)) continue;
+      cand.push({ d, lo, hi });
     }
     if (!cand.length) continue;
     // Along the wall, each stretch takes its NEAREST partner: a wall beside a trunk and a branch has two.
@@ -339,6 +413,7 @@ export function measureDucts(p: PdfPage, strip: Box | null, scales: ScaleLabel[]
       }
     } else if (!(s.dashed && isLiner(s))) other.push(s);
   }
+  const singles: { run: Line[]; inPt: number; sc: ScaleLabel; total: number }[] = [];
   for (const run of runsOf(other)) {
     const xs = run.flatMap((s) => [s.ax, s.bx]), ys = run.flatMap((s) => [s.ay, s.by]);
     const mx = (Math.min(...xs) + Math.max(...xs)) / 2, my = (Math.min(...ys) + Math.max(...ys)) / 2;
@@ -350,8 +425,11 @@ export function measureDucts(p: PdfPage, strip: Box | null, scales: ScaleLabel[]
     const free = [...ends.entries()].filter(([, n]) => n === 1).map(([k]) => k);
     if (!free.length) continue;                                                  // closed: a symbol
     if (free.every((k) => wallEnds.has(k))) continue;                            // an end cap or a transition edge
-    let best: typeof labels[number] | null = null, bd = Infinity;
-    for (const l of labels) { const d = Math.min(...run.map((s) => distToLine(l.x, l.y, s))); if (d < bd) { bd = d; best = l; } }
+    singles.push({ run, inPt: sc.inPerPt!, sc, total });
+  }
+  const sized = sizeSingleRuns(singles, labels);
+  for (const [i, { run, sc, total }] of singles.entries()) {
+    const best = sized[i];
     const k = best ? best.key : 'single-line duct (size not labelled)';
     add(out, k, { key: k, svc: best?.round ? 'round' : 'rect', kind: 'duct', labelled: !!best, scale: sc.text }, total, sc.inPerPt!, run.map((s) => s.layer));
     out.get(k)!.single = (out.get(k)!.single || 0) + total * sc.inPerPt!;

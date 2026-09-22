@@ -23,7 +23,7 @@ const READERS = [
 // 22 Sep 2026 (#821): also a note CONSTANT (RVT_NOTE = '...', DENSE_NOTE = (a, b) => template,
 // DWG_SEND_DXF), missing.unshift(, and a reader's own empty('dwg', [ note list - the DWG/DGN/RVT asks
 // and the length notes were written in those shapes and slipped past the first version of this anchor.
-const ANCHOR = /\b(?:missing|notes|assumptions|MISSING_ALWAYS)\b(?:\s*:\s*string\[\])?\s*(?:\.(?:push|add|unshift)\(|=\s*\[|:\s*\[|=\s*new Set(?:<string>)?\(\[)|\b[A-Z][A-Z_]*(?:_NOTE|_SEND_DXF)\s*=\s*(?:\([^)]*\)\s*=>\s*)?|\bempty\('[a-z]+',\s*\[/g;
+const ANCHOR = /\b(?:missing|notes|assumptions|MISSING_ALWAYS)\b(?:\s*:\s*string\[\])?\s*(?:\.(?:push|add|unshift)\(|=\s*\[|:\s*\[|=\s*new Set(?:<string>)?\(\[)|\b[A-Z][A-Z0-9_]*(?:_NOTE|_SEND_DXF|_ASK)\s*=\s*(?:\([^)]*\)\s*=>\s*)?|\bempty\('[a-z]+',\s*\[/g;
 function literals(src, at) {
   const out = [];
   let i = at;
@@ -53,6 +53,16 @@ for (const f of READERS) {
 test('the readers were read', () => {
   assert.ok(sentences.size >= 50, `found ${sentences.size} sentences`);
   assert.ok(sentences.has('Read from the PDF text layer only: no drawing geometry was measured and no scale was applied.'));
+});
+
+// 22 Sep 2026: the binary-DXF, Revit and DGN sentences are found by the anchor (so a new one without
+// Arabic fails the test below), and a queued-DWG customer never sees a sentence the screen cannot say.
+test('the binary DXF, Revit and DGN sentences are among those read', () => {
+  for (const s of ['The Revit version could not be read from this file.', 'This Revit file is a family (.rfa), not a project model.',
+    'This is a MicroStation DGN V8 file.', 'A ZZDEMO_7.pdf x ZZDEMO_7.pdf pixel preview image was extracted from the file.',
+    'Read from binary DXF: ZZDEMO_7.pdf group-code pairs.']) assert.ok(sentences.has(s), `not found by the anchor: ${s}`);
+  assert.ok([...sentences].some((s) => s.startsWith('The building elements and quantities inside a Revit file')), 'RVT_IFC_ASK');
+  assert.ok([...sentences].some((s) => s.startsWith('A MicroStation DGN drawing cannot be read here yet.')), 'DGN_NOTE');
 });
 
 test('every reader sentence has Arabic', () => {

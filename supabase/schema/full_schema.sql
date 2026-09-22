@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T06:51:31.184Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T08:44:52.019Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -194,7 +194,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (531) =====
+-- ===== TABLES (532) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -1064,6 +1064,25 @@ CREATE TABLE IF NOT EXISTS public.business_rules (
   then_json jsonb NOT NULL,
   active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.cad_read_jobs (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  customer_id uuid,
+  owner_email text,
+  source_path text NOT NULL,
+  file_name text DEFAULT ''::text NOT NULL,
+  mime text DEFAULT ''::text NOT NULL,
+  bytes integer,
+  why text NOT NULL,
+  boq_in jsonb,
+  status text DEFAULT 'queued'::text NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  claimed_at timestamp with time zone,
+  finished_at timestamp with time zone,
+  result jsonb,
+  error text
 );
 
 CREATE TABLE IF NOT EXISTS public.canon_eval_questions (
@@ -7456,6 +7475,7 @@ ALTER TABLE public.brand_assets ADD CONSTRAINT brand_assets_pkey PRIMARY KEY (id
 ALTER TABLE public.budget_lines ADD CONSTRAINT budget_lines_pkey PRIMARY KEY (id);
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_pkey PRIMARY KEY (id);
 ALTER TABLE public.business_rules ADD CONSTRAINT business_rules_pkey PRIMARY KEY (id);
+ALTER TABLE public.cad_read_jobs ADD CONSTRAINT cad_read_jobs_pkey PRIMARY KEY (id);
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_pkey PRIMARY KEY (id);
 ALTER TABLE public.canon_eval_runs ADD CONSTRAINT canon_eval_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.catalog_category_domain ADD CONSTRAINT catalog_category_domain_pkey PRIMARY KEY (catalog_slug);
@@ -8073,6 +8093,8 @@ ALTER TABLE public.bank_line_owner_ruling ADD CONSTRAINT bank_line_owner_ruling_
 ALTER TABLE public.bank_statement_intake ADD CONSTRAINT bank_statement_intake_state_check CHECK ((state = ANY (ARRAY['parsed'::text, 'unreadable'::text])));
 ALTER TABLE public.board_opinion ADD CONSTRAINT board_opinion_recommendation_check CHECK ((recommendation = ANY (ARRAY['proceed'::text, 'proceed_with_conditions'::text, 'do_not_proceed'::text, 'abstain'::text])));
 ALTER TABLE public.budgets ADD CONSTRAINT budgets_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'closed'::text])));
+ALTER TABLE public.cad_read_jobs ADD CONSTRAINT cad_read_jobs_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'running'::text, 'done'::text, 'failed'::text])));
+ALTER TABLE public.cad_read_jobs ADD CONSTRAINT cad_read_jobs_why_check CHECK ((why = ANY (ARRAY['over_edge_ceiling'::text, 'edge_worker_died'::text, 'edge_reader_failed'::text, 'pdf_lengths_worker_died'::text])));
 ALTER TABLE public.canon_eval_questions ADD CONSTRAINT canon_eval_questions_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
 ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_decision_check CHECK ((decision = ANY (ARRAY['approved'::text, 'refused'::text])));
 ALTER TABLE public.ceo_approval ADD CONSTRAINT ceo_approval_not_self_superseding CHECK ((superseded_by IS DISTINCT FROM decision_id));
@@ -8771,6 +8793,8 @@ CREATE UNIQUE INDEX backup_prune_log_pass_uidx ON public.backup_prune_log USING 
 CREATE INDEX bank_statement_line_match_idx ON public.bank_statement_line USING btree (account, amount_aed, value_date);
 CREATE INDEX boq_fixture_run_recent_idx ON public.boq_fixture_run USING btree (fixture_id, ran_at DESC);
 CREATE UNIQUE INDEX brand_assets_filename_key ON public.brand_assets USING btree (filename);
+CREATE INDEX cad_read_jobs_customer ON public.cad_read_jobs USING btree (customer_id, created_at DESC);
+CREATE INDEX cad_read_jobs_open ON public.cad_read_jobs USING btree (created_at) WHERE (status = ANY (ARRAY['queued'::text, 'running'::text]));
 CREATE INDEX category_keyword_slug_idx ON public.category_keyword USING btree (slug);
 CREATE UNIQUE INDEX category_keyword_uidx ON public.category_keyword USING btree (slug, pattern);
 CREATE INDEX ce_type_idx ON public.company_event USING btree (event_type, occurred_at DESC);
@@ -18026,6 +18050,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18051,16 +18085,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -21550,6 +21574,7 @@ AS $function$
     ('support_knowledge.source_path',        'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
     ('ops_knowledge.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
     ('ceo_knowledge.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
+    ('cad_read_jobs.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a work-queue pointer to the customer''s original drawing in drawing-files, which is backed up through inquiries.drawing_file_path; the job holds no second copy'),
     ('demo-assets',                          'bucket', null, false, null, 'EXEMPT (not a file or not ours): a rehearsal fixture (one sample recording), never a record'),
 
     -- ── (c) EXEMPT (derived): no registry source. The one derived thing left out is a folder, not a
@@ -21969,6 +21994,33 @@ AS $function$
     'transactions',         (select count(*) from public.transactions),
     'categories_total',     (select count(*) from public.catalog_supplier_categories),
     'categories_at_target', (select count(*) from public.v_supply_gap where approved >= 10));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_cad_read_claim(p_limit integer DEFAULT 3)
+ RETURNS SETOF cad_read_jobs
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  update public.cad_read_jobs j
+     set status = 'failed', finished_at = now(),
+         error = coalesce(j.error, 'the reader stopped three times without finishing')
+   where j.status in ('queued', 'running') and j.attempts >= 3
+     and (j.status = 'queued' or j.claimed_at < now() - interval '30 minutes');
+  return query
+  update public.cad_read_jobs j
+     set status = 'running', attempts = j.attempts + 1, claimed_at = now()
+   where j.id in (
+     select c.id from public.cad_read_jobs c
+      where c.attempts < 3
+        and (c.status = 'queued' or (c.status = 'running' and c.claimed_at < now() - interval '30 minutes'))
+      order by c.created_at
+      limit greatest(1, least(coalesce(p_limit, 3), 10))
+      for update skip locked)
+  returning j.*;
+end;
 $function$
 
 
@@ -45362,6 +45414,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -45532,16 +45594,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -65426,6 +65478,7 @@ ALTER TABLE public.brand_assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.budget_lines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.business_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cad_read_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.canon_eval_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.canon_eval_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.catalog_category_domain ENABLE ROW LEVEL SECURITY;
@@ -65905,6 +65958,7 @@ CREATE POLICY bank_statement_intake_service_role_only ON public.bank_statement_i
 CREATE POLICY bank_statement_line_service_role_only ON public.bank_statement_line AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY blog_posts_public_read ON public.blog_posts AS PERMISSIVE FOR SELECT TO anon USING ((published = true));
 CREATE POLICY brand_assets_public_read ON public.brand_assets AS PERMISSIVE FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY cad_read_jobs_service_role_only ON public.cad_read_jobs AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY "specs readable" ON public.category_specs AS PERMISSIVE FOR SELECT TO anon USING (true);
 CREATE POLICY ceo_decision_log_service_role_only ON public.ceo_decision_log AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_plan_service_role_only ON public.ceo_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
