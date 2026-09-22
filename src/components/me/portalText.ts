@@ -27,7 +27,7 @@ export const T = {
     your_requests:'Your requests', no_requests:'No requests yet. ', post_first:'Post your first request', describe_job:' — describe the job in text, a photo or a drawing.',
     request_sent:'Request sent — matching you with suppliers now.', request_sent_split:'Request sent as {n} separate trades — each goes to its own specialist suppliers, all under one request.', payment_confirmed:'Payment confirmed — supplier contact unlocked below.',
     payment_pending:'Your payment is still being processed. Please refresh this page in a moment — do not pay again. Keep this page open so we can finish confirming it.',
-    payment_failed:"We couldn't confirm your payment yet. Please keep this page link and email management@quotesdone.com if you were charged.",
+    payment_failed:"We couldn't confirm your payment yet. Please keep this page link and email info@quotesdone.com if you were charged.",
     link_not_yours:"This quote isn't on your account. If the link was sent to a different email address, sign in with that one.",
     mod_spatial:'Project room', mod_documents:'Documents', mod_orders:'Orders',
     mod_predict:'What you may need next', mod_profile:'Buying profile', mod_account:'Account', open_module:'Open', theme_light:'Light mode', theme_dark:'Dark mode',
@@ -40,7 +40,7 @@ export const T = {
     attention_none:'Nothing needs your attention right now.',
     active_projects:'Active projects', projects_failed:"Couldn't load your projects just now.",
     no_projects:'No projects yet — group related requests into a project to track budget and progress. ',
-    rfqs_open_of:'requests open', suppliers_engaged:'suppliers engaged', no_budget_set:'No budget set',
+    rfqs_open_line:'{open} / {total} requests open', suppliers_engaged_line:'{n} suppliers engaged', no_budget_set:'No budget set',
     budget_label:'Budget', no_target_date:'No target date set, so there is no timeline to measure yet.',
     timeline_progress:'of the timeline elapsed',
     savings_unknown:'Potential savings needs at least two quotes on one request before it can be measured.',
@@ -81,7 +81,7 @@ export const T = {
     empty_title:'Your first request takes about a minute',
     empty_body:'Describe the job in text, a photo or a drawing. We structure it, send it anonymously to matching UAE suppliers, and their quotes come back here to compare side by side. Posting and comparing are free.',
     spread_title:'Quote spread', spread_locked:'Supplier names and exact prices unlock when you reveal',
-    spread_pre:'quotes in · around', spread_pre_one:'quote in · around', spread_none:'No quotes to compare yet.',
+    spread_line:'{c} in · around {avg}', spread_none:'No quotes to compare yet.',
     journey_title:'Request journey',
     jr_described:'Described', jr_structured:'Structured', jr_matched:'Matched', jr_quotes:'Quotes arriving', jr_compare:'Compare', jr_reveal:'Reveal',
     view_all:'View all',
@@ -120,7 +120,7 @@ export const T = {
     your_requests:'طلباتك', no_requests:'لا توجد طلبات بعد. ', post_first:'انشر طلبك الأول', describe_job:' — صِف العمل نصًا أو بصورة أو بمخطط.',
     request_sent:'أُرسل طلبك، ونعمل الآن على مطابقته مع المورّدين.', request_sent_split:'أُرسل طلبك مقسّمًا إلى {n} تخصصات منفصلة؛ يصل كلٌّ منها إلى المورّدين المختصين به، وتبقى جميعها ضمن طلب واحد.', payment_confirmed:'تأكّد الدفع، وأصبحت بيانات التواصل مع المورّد متاحة أدناه.',
     payment_pending:'لا يزال الدفع قيد المعالجة. حدّث الصفحة بعد قليل ولا تكرّر الدفع، وأبقِ هذه الصفحة مفتوحة حتى يكتمل التأكيد.',
-    payment_failed:'لم نتمكّن من تأكيد الدفع حتى الآن. احتفظ برابط هذه الصفحة، وإن خُصم المبلغ من بطاقتك فراسلنا على management@quotesdone.com.',
+    payment_failed:'لم نتمكّن من تأكيد الدفع حتى الآن. احتفظ برابط هذه الصفحة، وإن خُصم المبلغ من بطاقتك فراسلنا على info@quotesdone.com.',
     link_not_yours:'هذا العرض غير موجود في حسابك. إذا أُرسل الرابط إلى بريد إلكتروني آخر، سجّل الدخول به.',
     mod_spatial:'غرفة المشروع', mod_documents:'المستندات', mod_orders:'أوامر الشراء',
     mod_predict:'ما قد تحتاجه لاحقًا', mod_profile:'ملف المشتريات', mod_account:'الحساب', open_module:'فتح', theme_light:'الوضع الفاتح', theme_dark:'الوضع الداكن',
@@ -133,7 +133,7 @@ export const T = {
     attention_none:'لا شيء بانتظارك الآن.',
     active_projects:'المشاريع النشطة', projects_failed:'تعذّر تحميل مشاريعك الآن.',
     no_projects:'لا توجد مشاريع بعد — اجمع الطلبات المرتبطة في مشروع لتتبع الميزانية والتقدّم. ',
-    rfqs_open_of:'طلب مفتوح', suppliers_engaged:'مورّد مشارك', no_budget_set:'لم تُحدَّد ميزانية',
+    rfqs_open_line:'الطلبات المفتوحة: {open} من {total}', suppliers_engaged_line:'المورّدون المشاركون: {n}', no_budget_set:'لم تُحدَّد ميزانية',
     budget_label:'الميزانية', no_target_date:'لم يُحدَّد موعد مستهدف بعد، فلا جدول زمني يُقاس عليه.',
     timeline_progress:'من الجدول الزمني مضى',
     savings_unknown:'يلزم عرضان على الأقل للطلب نفسه لقياس التوفير المحتمل.',
@@ -174,7 +174,7 @@ export const T = {
     empty_title:'لا يستغرق طلبك الأول أكثر من دقيقة تقريبًا',
     empty_body:'صِف العمل نصًا أو بصورة أو بمخطط، ونتولّى تنظيمه وإرساله دون اسمك إلى الموردين المطابقين في الإمارات، ثم تعود عروضهم إلى هنا لتقارنها جنبًا إلى جنب. النشر والمقارنة مجانًا.',
     spread_title:'نطاق العروض', spread_locked:'تُفتح أسماء الموردين والأسعار الدقيقة عند الكشف',
-    spread_pre:'عرض وارد · بحدود', spread_pre_one:'عرض وارد · بحدود', spread_none:'لا توجد عروض للمقارنة بعد.',
+    spread_line:'ورد {c} · بحدود {avg}', spread_none:'لا توجد عروض للمقارنة بعد.',
     journey_title:'مسار الطلب',
     jr_described:'الوصف', jr_structured:'التنظيم', jr_matched:'المطابقة', jr_quotes:'ورود العروض', jr_compare:'المقارنة', jr_reveal:'الكشف',
     view_all:'عرض الكل',
@@ -205,7 +205,7 @@ Object.assign(T.en, {
   nr_attach: 'Attach a drawing, photo or quotation',
   nr_attach_boq: 'Attach a BOQ — Excel, CSV, PDF or a photo', nr_attach_boq_short: 'BOQ',
   nr_boq_sheet_one: 'Got it — I read 1 line item from your BOQ, exactly as written. Check it below.',
-  nr_boq_sheet_many: 'Got it — I read {n} line items from your BOQ, exactly as written. Check them below.',
+  nr_boq_sheet_many: 'Got it — I read {c} from your BOQ, exactly as written. Check them below.',
   nr_boq_sheet_empty: 'I opened your BOQ but found no item lines with quantities under a header such as Description, Qty and Unit. You can correct the file and attach it again, or describe the job here.',
   nr_boq_err_too_large: 'That file is over 20 MB. Remove extra sheets or pictures and attach it again.',
   nr_heic_unsupported: 'This browser cannot open HEIC photos. Please export the photo as JPEG and attach it again.',
@@ -234,14 +234,14 @@ Object.assign(T.en, {
   nr_override: 'I read this as {kept}, not {model} — correct me if that is wrong.', nr_chips_hint: 'Tap a question to answer it',
   nr_boq_title: 'Bill of quantities read from your file', nr_boq_item: 'Item', nr_boq_qty: 'Qty', nr_boq_unit: 'Unit', nr_boq_conf: 'Confidence',
   nr_boq_assumptions: 'Assumptions', nr_boq_missing: 'Missing information', nr_boq_overall: 'Overall reading confidence: {c}',
-  nr_boq_read_one: 'Got it — I read 1 line item from your file{cat}.', nr_boq_read_many: 'Got it — I read {n} line items from your file{cat}.',
+  nr_boq_read_one: 'Got it — I read 1 line item from your file{cat}.', nr_boq_read_many: 'Got it — I read {c} from your file{cat}.',
   nr_partial_none: ' I could not hide everything that identifies you on the drawing, so the drawing is held and will not go to suppliers — the details below still will.',
   nr_drawing_held: 'Drawing held: {name} will not be sent to suppliers, because I could not hide everything that identifies you on it. Your request goes without it — or press Cancel above.',
   // 22 Sep 2026: the file is held but its quantities were read — suppliers get those lines (names removed), not the file.
   nr_drawing_held_boq: 'Drawing held: {name} itself will not be sent to suppliers, because I could not hide everything that identifies you on it. They receive only the quantities I read from it, with every name removed — or press Cancel above.',
   nr_add_or_send: ' Add anything else, or tap Send to suppliers below.',
   nr_markup_caption: 'Our count, numbered on your drawing. Check it at a glance — you never need to count yourself.',
-  nr_pages_ready: 'Thanks — I could not pull a bill of quantities out of this file, but I have prepared {n} page(s) of it to share with suppliers. Tell me a little about the job so I can brief them properly.',
+  nr_pages_ready: 'Thanks — I could not pull a bill of quantities out of this file, but I have prepared {c} of it to share with suppliers. Tell me a little about the job so I can brief them properly.',
   nr_not_prepared: 'Thanks — I have your file, but I could not hide everything that identifies you on it, so it is held and will not be sent to suppliers. Your request can still go without it: describe the job here, or press Cancel above.',
   nr_file_unreadable: 'I could not read that file, but you can still describe the job here in the chat.',
   nr_cad_queued: 'Thanks — this CAD drawing is large, so it is being read in the background. It usually takes a few minutes; the quantities will appear here as soon as they are ready. You can keep describing the job meanwhile.',
@@ -256,8 +256,8 @@ Object.assign(T.en, {
   nr_draft_picked: 'I picked up the job you started on the home page.',
   rd_title: 'Mark what suppliers must not see', rd_body: 'Drag a box over your name, logo, stamp, phone number or address on each page. Everything inside a box is blacked out before any supplier sees the drawing.',
   rd_page: 'Page {n} of {total}', rd_clear: 'Clear this page', rd_apply: 'Hide these areas and attach', rd_applying: 'Preparing…', rd_skip: 'Send without the drawing',
-  rd_done: 'Done — {n} page(s) prepared with your boxes and attached for suppliers.', rd_failed: 'I still could not prepare the pages. Your request can go without the drawing.',
-  rd_boxes: '{n} area(s) marked', rd_prev: 'Previous page', rd_next: 'Next page', rd_canvas: 'Drawing page {n}. Drag to mark an area to hide.',
+  rd_done: 'Done — {c} prepared with your boxes and attached for suppliers.', rd_failed: 'I still could not prepare the pages. Your request can go without the drawing.',
+  rd_boxes: '{c} marked', rd_prev: 'Previous page', rd_next: 'Next page', rd_canvas: 'Drawing page {n}. Drag to mark an area to hide.',
   rc_request: 'Request', rc_quote_one: 'quote', rc_quote_many: 'quotes', rc_lines: 'line items', rc_editable: 'editable {m}m', rc_open: 'Open request', rc_hide: 'Hide details',
   rc_edit: 'Edit request', rc_cancel: 'Cancel request', rc_cancelling: 'Cancelling…', rc_cancel_confirm: 'Cancel this request? Suppliers will stop quoting.', rc_cancel_fail: 'Could not cancel. Please try again.',
   rc_describe: 'Describe your request', rc_emirate_opt: 'Emirate (optional)', rc_budget_opt: 'Budget (optional)', rc_save: 'Save changes', rc_saving: 'Saving…', rc_cancel_edit: 'Cancel edit',
@@ -270,7 +270,6 @@ Object.assign(T.en, {
   so_title: 'Your answer is needed', so_body: 'No supplier could quote the exact specification you asked for. Suppliers offered the alternatives below.',
   so_line: 'Line {n}', so_asked: 'You asked for: {v}', so_yes: 'Yes, proceed with {v}', so_no: 'No', so_by: 'Please answer by {d}.',
   so_accepted: 'We will proceed with {v}.', so_declined: 'Understood. Your request is closed and nothing was charged.', so_sending: 'Sending…',
-  so_sup_one: '1 supplier', so_sup_many: '{n} suppliers',
   cmp_title: 'Expert comparison report', cmp_title_rules: 'Comparison by our rules', cmp_badge_rules: 'Ranked on stated figures — specs not assessed', cmp_preparing: 'Preparing your comparison…',
   cmp_top: 'Top picks', cmp_catch: 'catch', cmp_missing: 'Missing from your request: ', cmp_dev: 'Spec differences: ', cmp_watch: 'Watch out: ', cmp_guidance: 'Guidance only — the final decision is yours.',
   cmp_price: 'Price', cmp_delivery: 'Delivery', cmp_quality: 'Quality', cmp_of5: 'out of 5', cmp_save: 'Save this comparison as a document', cmp_saving: 'Preparing…', cmp_save_fail: 'Could not build the document.',
@@ -288,6 +287,10 @@ Object.assign(T.en, {
   pay_basis_dom: 'UAE card rate', pay_basis_intl: 'International card rate',
   pay_confirm: 'Pay {total}', pay_paying: 'Processing payment…', pay_cancel: 'Cancel',
   pay_repriced: 'The total changed for this card. Please check it before paying.',
+  pay_settling: "Your payment went through and we are waiting for the bank to confirm it. The supplier's contact opens here the moment it clears — usually within a minute. Nothing more is needed from you, and you will not be charged twice.",
+  pay_check_again: 'Check again', pay_checking: 'Checking…',
+  err_timeout: 'That took too long to answer. Your connection may be slow — please try again.',
+  err_network: 'We could not reach QuotesDone. Please check your connection and try again.',
   pay_failed: 'The payment did not go through, and nothing was charged. Please try again or use another card.',
   q_unlocked: 'Unlocked', c_supplier: 'Supplier', c_revealed_on: 'Revealed on {d}', c_hired_badge: 'Hired supplier for this project', c_paid: 'You paid {fee} to reveal this supplier',
   c_website: 'Website', c_download: 'Download their quotation', c_rate_group: 'Rate this supplier', c_rate_n: 'Rate {n} of 5', c_rated: '★ Rated — press a star to change it', c_rate_change: 'You have rated this supplier — press a star to change your rating', c_thanks: 'Thanks for rating.', c_rate_fail: 'Could not save rating.',
@@ -315,6 +318,9 @@ Object.assign(T.en, {
   g_day: 'Working day {d} of {w}', g_day0: 'Paid today — the clock starts on the next working day.', g_workdays: 'Working days are Monday to Friday.',
   g_ph_waiting: 'The supplier has been notified.', g_ph_chased: 'Chase email stage — waiting on the supplier.', g_ph_final: 'Final call reached — your refund is being checked against the record.',
   g_ph_ack: 'The supplier acknowledged your reveal.', g_ph_refund: 'Refund {status}.',
+  // transactions.refund_status, said in words. An unknown value falls back to the raw code rather
+  // than to a guess (RevealGuarantee.tsx); only 'requested' is written by customer_api today.
+  refund_st_requested: 'requested', refund_st_approved: 'approved', refund_st_refunded: 'refunded', refund_st_rejected: 'declined', refund_st_processing: 'being processed',
   rcpt_title: 'Payment received', rcpt_body: "{fee} charged to your card (reveal fee plus card processing). The supplier's contact is unlocked on the request below and your Reveal Guarantee clock has started.",
   rcpt_cancelled: 'Payment cancelled — nothing was charged. You can reveal the supplier whenever you are ready.',
   signup_email_reserved: 'That email domain is reserved for examples and testing and cannot receive mail, so no code can reach it. Please use your real email address.', err_need_email: 'Please enter your email address first.', err_need_id: 'Please enter your email or mobile number first.',
@@ -326,7 +332,7 @@ Object.assign(T.en, {
   err_too_many: 'Too many attempts. Please wait a little and try again.', err_expired: 'That code has expired. Please request a new one.',
   err_suppressed: 'We cannot email this address because earlier mail to it bounced. Contact info@quotesdone.com and we will restore it.', err_invalid_id: 'Enter a valid email address or UAE mobile number.',
   err_name: 'Please enter your name.', err_phone: 'Please enter a valid mobile number.', err_sms_nc: 'SMS verification is not switched on yet. Please try again later.',
-  err_suspended: 'Your account is suspended. Contact support@quotesdone.com if you believe this is a mistake.', err_registration: 'Please finish setting up your account first — open Account; it takes under a minute.',
+  err_suspended: 'Your account is suspended. Contact info@quotesdone.com if you believe this is a mistake.', err_registration: 'Please finish setting up your account first — open Account; it takes under a minute.',
   err_under_18: 'You must be 18 or over to use QuotesDone.', err_dob_required: 'Please enter your date of birth.', err_dob_invalid: 'Please enter a valid date of birth.',
   err_email_verify: 'Please verify your email before sending a request.', err_rate: 'You have done that several times in a short while. Please try again later.', err_not_found: 'We could not find that item.',
   err_not_yours: 'That request is not on your account.', err_refund_window: 'The refund window has passed; the case is checked against the record and the refund is issued if the supplier did not respond.',
@@ -340,7 +346,7 @@ Object.assign(T.ar, {
   nr_attach: 'أرفق مخططًا أو صورة أو عرض سعر',
   nr_attach_boq: 'أرفق جدول كميات — Excel أو CSV أو PDF أو صورة', nr_attach_boq_short: 'جدول الكميات',
   nr_boq_sheet_one: 'قرأتُ بندًا واحدًا من جدول الكميات كما ورد تمامًا؛ راجعه أدناه.',
-  nr_boq_sheet_many: 'قرأتُ من جدول الكميات {n} بندًا كما وردت تمامًا؛ راجعها أدناه.',
+  nr_boq_sheet_many: 'قرأتُ من جدول الكميات {c} كما ورد فيه تمامًا؛ راجع التفاصيل أدناه.',
   nr_boq_sheet_empty: 'فتحتُ جدول الكميات لكني لم أجد بنودًا بكميات تحت عناوين مثل الوصف والكمية والوحدة. يمكنك تصحيح الملف وإرفاقه من جديد، أو وصف العمل هنا.',
   nr_boq_err_too_large: 'حجم الملف أكبر من 20 ميغابايت. احذف الأوراق أو الصور الزائدة ثم أرفقه من جديد.',
   nr_heic_unsupported: 'لا يستطيع هذا المتصفح فتح صور HEIC. يُرجى تصدير الصورة بصيغة JPEG ثم إرفاقها من جديد.',
@@ -369,13 +375,13 @@ Object.assign(T.ar, {
   nr_override: 'فهمتُ طلبك على أنه {kept} وليس {model} — صحّحني إن كنت مخطئًا.', nr_chips_hint: 'اضغط على سؤال للإجابة عنه',
   nr_boq_title: 'جدول الكميات المستخرج من ملفك', nr_boq_item: 'البند', nr_boq_qty: 'الكمية', nr_boq_unit: 'الوحدة', nr_boq_conf: 'دقة القراءة',
   nr_boq_assumptions: 'الافتراضات', nr_boq_missing: 'معلومات ناقصة', nr_boq_overall: 'دقة القراءة الإجمالية: {c}',
-  nr_boq_read_one: 'تم — قرأتُ بندًا واحدًا من ملفك{cat}.', nr_boq_read_many: 'تم — قرأتُ {n} بندًا من ملفك{cat}.',
+  nr_boq_read_one: 'تم — قرأتُ بندًا واحدًا من ملفك{cat}.', nr_boq_read_many: 'تم — قرأتُ {c} من ملفك{cat}.',
   nr_partial_none: ' لم أتمكن من إخفاء كل ما يدل عليك في المخطط، لذلك المخطط محجوز ولن يصل إلى الموردين — أما التفاصيل أدناه فستصل كاملة.',
   nr_drawing_held: 'المخطط محجوز: لن يُرسل {name} إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيُرسل طلبك من دونه — أو اضغط «إلغاء» في الأعلى.',
   nr_drawing_held_boq: 'المخطط محجوز: لن يُرسل الملف {name} نفسه إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيصلهم فقط جدول الكميات الذي استخرجته منه بعد حذف جميع الأسماء — أو اضغط «إلغاء» في الأعلى.',
   nr_add_or_send: ' أضف أي شيء آخر، أو اضغط «أرسل إلى الموردين» أدناه.',
   nr_markup_caption: 'هذا عدّنا مرقّمًا على مخططك؛ ألقِ عليه نظرة، ولا حاجة إلى أن تعدّ بنفسك.',
-  nr_pages_ready: 'شكرًا — لم أتمكن من استخراج جدول كميات من هذا الملف، لكني جهّزتُ {n} صفحة منه لمشاركتها مع الموردين. أخبرني قليلًا عن العمل حتى أصفه لهم بدقة.',
+  nr_pages_ready: 'شكرًا — لم أتمكن من استخراج جدول كميات من هذا الملف، لكني جهّزتُ منه {c} للمشاركة مع الموردين. أخبرني قليلًا عن العمل حتى أصفه لهم بدقة.',
   nr_not_prepared: 'شكرًا — استلمتُ ملفك، لكني لم أتمكن من إخفاء كل ما يدل عليك فيه، لذلك هو محجوز ولن يُرسل إلى الموردين. يمكن إرسال طلبك من دونه: صِف العمل هنا، أو اضغط «إلغاء» في الأعلى.',
   nr_file_unreadable: 'تعذّرت قراءة هذا الملف، لكن يمكنك وصف العمل هنا في المحادثة.',
   nr_cad_queued: 'شكرًا — مخطط CAD هذا كبير الحجم، لذا تجري قراءته في الخلفية. يستغرق ذلك عادةً بضع دقائق، وستظهر الكميات هنا فور جاهزيتها. ويمكنك مواصلة وصف العمل في الأثناء.',
@@ -390,8 +396,8 @@ Object.assign(T.ar, {
   nr_draft_picked: 'تابعتُ من حيث توقفتَ في الصفحة الرئيسية.',
   rd_title: 'حدّد ما يجب ألا يراه الموردون', rd_body: 'اسحب مربعًا فوق اسمك أو شعارك أو ختمك أو رقم هاتفك أو عنوانك في كل صفحة. ويُحجب كل ما داخل المربع بالكامل قبل أن يرى أي مورّد المخطط.',
   rd_page: 'الصفحة {n} من {total}', rd_clear: 'مسح هذه الصفحة', rd_apply: 'أخفِ هذه المناطق وأرفق المخطط', rd_applying: 'جارٍ التجهيز…', rd_skip: 'أرسل دون المخطط',
-  rd_done: 'تم — جُهّزت {n} صفحة بالمربعات التي حددتها وأُرفقت للموردين.', rd_failed: 'تعذّر تجهيز الصفحات. يمكن إرسال طلبك دون المخطط.',
-  rd_boxes: '{n} منطقة محددة', rd_prev: 'الصفحة السابقة', rd_next: 'الصفحة التالية', rd_canvas: 'صفحة المخطط {n}. اسحب لتحديد منطقة لإخفائها.',
+  rd_done: 'تم — جُهّزت {c} بالمربعات التي حددتها وأُرفقت للموردين.', rd_failed: 'تعذّر تجهيز الصفحات. يمكن إرسال طلبك دون المخطط.',
+  rd_boxes: 'المناطق المحددة: {n}', rd_prev: 'الصفحة السابقة', rd_next: 'الصفحة التالية', rd_canvas: 'صفحة المخطط {n}. اسحب لتحديد منطقة لإخفائها.',
   rc_request: 'طلب', rc_quote_one: 'عرض سعر', rc_quote_many: 'عروض أسعار', rc_lines: 'بند', rc_editable: 'قابل للتعديل {m} د', rc_open: 'عرض التفاصيل', rc_hide: 'إخفاء التفاصيل',
   rc_edit: 'تعديل الطلب', rc_cancel: 'إلغاء الطلب', rc_cancelling: 'جارٍ الإلغاء…', rc_cancel_confirm: 'هل تريد إلغاء هذا الطلب؟ سيتوقف الموردون عن التسعير.', rc_cancel_fail: 'تعذّر الإلغاء. يُرجى المحاولة مرة أخرى.',
   rc_describe: 'صِف طلبك', rc_emirate_opt: 'الإمارة (اختياري)', rc_budget_opt: 'الميزانية (اختياري)', rc_save: 'حفظ التغييرات', rc_saving: 'جارٍ الحفظ…', rc_cancel_edit: 'إلغاء التعديل',
@@ -404,7 +410,6 @@ Object.assign(T.ar, {
   so_title: 'نحتاج إلى ردّك', so_body: 'لم يتمكن أي مورّد من تسعير المواصفات المطلوبة بالضبط، واقترح الموردون البدائل التالية.',
   so_line: 'البند {n}', so_asked: 'طلبتَ: {v}', so_yes: 'نعم، اعتمد {v}', so_no: 'لا', so_by: 'يُرجى الردّ قبل {d}.',
   so_accepted: 'سنعتمد {v}.', so_declined: 'حسنًا، أُغلق طلبك ولم يُخصم أي مبلغ.', so_sending: 'جارٍ الإرسال…',
-  so_sup_one: 'مورّد واحد', so_sup_two: 'مورّدان', so_sup_few: '{n} مورّدين', so_sup_many: '{n} مورّدًا',
   cmp_title: 'تقرير المقارنة الفنية', cmp_title_rules: 'مقارنة وفق قواعدنا', cmp_badge_rules: 'مرتّب وفق الأرقام المذكورة — دون تقييم المواصفات', cmp_preparing: 'جارٍ إعداد المقارنة…',
   cmp_top: 'أفضل الخيارات', cmp_catch: 'ما يجب مراعاته', cmp_missing: 'ينقصه مما طلبت: ', cmp_dev: 'يخالف المواصفات في: ', cmp_watch: 'انتبه: ', cmp_guidance: 'إرشادي فقط — القرار النهائي لك.',
   cmp_price: 'السعر', cmp_delivery: 'التسليم', cmp_quality: 'الجودة', cmp_of5: 'من 5', cmp_save: 'حفظ المقارنة في مستند', cmp_saving: 'جارٍ التجهيز…', cmp_save_fail: 'تعذّر إنشاء المستند.',
@@ -422,6 +427,10 @@ Object.assign(T.ar, {
   pay_basis_dom: 'سعر البطاقة الإماراتية', pay_basis_intl: 'سعر البطاقة الدولية',
   pay_confirm: 'ادفع {total}', pay_paying: 'جارٍ معالجة الدفع…', pay_cancel: 'إلغاء',
   pay_repriced: 'تغيّر الإجمالي لهذه البطاقة. يُرجى مراجعته قبل الدفع.',
+  pay_settling: 'تم الدفع وننتظر تأكيد البنك. تظهر بيانات تواصل المورّد هنا فور اكتمال التأكيد، وعادةً خلال دقيقة. لا يلزمك أي إجراء آخر، ولن يُخصم المبلغ مرتين.',
+  pay_check_again: 'تحقّق مرة أخرى', pay_checking: 'جارٍ التحقق…',
+  err_timeout: 'استغرق الرد وقتًا طويلًا. قد يكون الاتصال بطيئًا؛ يُرجى المحاولة مرة أخرى.',
+  err_network: 'تعذّر الوصول إلى QuotesDone. يُرجى التحقق من الاتصال ثم المحاولة مرة أخرى.',
   pay_failed: 'لم يكتمل الدفع ولم يُخصم أي مبلغ. يُرجى المحاولة مرة أخرى أو استخدام بطاقة أخرى.',
   q_unlocked: 'تم الكشف', c_supplier: 'المورّد', c_revealed_on: 'كُشف بتاريخ {d}', c_hired_badge: 'المورّد المتعاقد معه لهذا المشروع', c_paid: 'دفعت {fee} لكشف هذا المورّد',
   c_website: 'الموقع الإلكتروني', c_download: 'تنزيل عرض سعره', c_rate_group: 'قيّم هذا المورّد', c_rate_n: 'تقييم {n} من 5', c_rated: '★ تم التقييم — اضغط نجمة لتغييره', c_rate_change: 'قيّمت هذا المورّد من قبل — اضغط نجمة لتغيير تقييمك', c_thanks: 'شكرًا على تقييمك.', c_rate_fail: 'تعذّر حفظ التقييم.',
@@ -450,6 +459,7 @@ Object.assign(T.ar, {
   g_day: 'يوم العمل {d} من {w}', g_day0: 'دفعتَ اليوم — يبدأ العدّ من يوم العمل التالي.', g_workdays: 'أيام العمل من الاثنين إلى الجمعة.',
   g_ph_waiting: 'تم إبلاغ المورّد.', g_ph_chased: 'مرحلة رسالة المتابعة — بانتظار ردّ المورّد.', g_ph_final: 'بلغنا الإنذار الأخير — يجري التحقق من استردادك بناءً على السجل.',
   g_ph_ack: 'أكّد المورّد استلام طلب الكشف.', g_ph_refund: 'حالة الاسترداد: {status}.',
+  refund_st_requested: 'مطلوب', refund_st_approved: 'تمت الموافقة عليه', refund_st_refunded: 'تم ردّ المبلغ', refund_st_rejected: 'مرفوض', refund_st_processing: 'قيد التنفيذ',
   rcpt_title: 'تم استلام الدفع', rcpt_body: 'خُصم {fee} من بطاقتك (رسوم الكشف مع رسوم معالجة البطاقة). بيانات تواصل المورّد مفتوحة في الطلب أدناه، وبدأ عدّاد ضمان الكشف.',
   rcpt_cancelled: 'أُلغي الدفع — لم يُخصم أي مبلغ. يمكنك كشف المورّد متى شئت.',
   signup_email_reserved: 'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريدك الإلكتروني الحقيقي.', err_need_email: 'يُرجى إدخال بريدك الإلكتروني أولًا.', err_need_id: 'يُرجى إدخال بريدك الإلكتروني أو رقم جوالك أولًا.',
@@ -461,7 +471,7 @@ Object.assign(T.ar, {
   err_too_many: 'محاولات كثيرة. يُرجى الانتظار قليلًا ثم المحاولة مجددًا.', err_expired: 'انتهت صلاحية الرمز. يُرجى طلب رمز جديد.',
   err_suppressed: 'لا يمكننا مراسلة هذا البريد لأن رسائل سابقة إليه ارتدّت. راسل info@quotesdone.com وسنعيد تفعيله.', err_invalid_id: 'أدخل بريدًا إلكترونيًا صحيحًا أو رقم جوال إماراتي.',
   err_name: 'يُرجى إدخال اسمك.', err_phone: 'يُرجى إدخال رقم جوال صحيح.', err_sms_nc: 'التحقق برسالة نصية غير مفعّل بعد. يُرجى المحاولة لاحقًا.',
-  err_suspended: 'حسابك موقوف. راسل support@quotesdone.com إن كنت تعتقد أن ذلك خطأ.', err_registration: 'يُرجى إكمال إعداد حسابك أولًا — افتح «الحساب»؛ يستغرق ذلك أقل من دقيقة.',
+  err_suspended: 'حسابك موقوف. راسل info@quotesdone.com إن كنت تعتقد أن ذلك خطأ.', err_registration: 'يُرجى إكمال إعداد حسابك أولًا — افتح «الحساب»؛ يستغرق ذلك أقل من دقيقة.',
   err_under_18: 'يجب أن يكون عمرك 18 عامًا أو أكثر لاستخدام QuotesDone.', err_dob_required: 'يُرجى إدخال تاريخ ميلادك.', err_dob_invalid: 'يُرجى إدخال تاريخ ميلاد صحيح.',
   err_email_verify: 'يُرجى التحقق من بريدك الإلكتروني قبل إرسال طلب.', err_rate: 'كرّرتَ هذا عدة مرات في وقت قصير. يُرجى المحاولة لاحقًا.', err_not_found: 'تعذّر العثور على هذا العنصر.',
   err_not_yours: 'هذا الطلب ليس ضمن حسابك.', err_refund_window: 'انقضت مهلة الاسترداد؛ تُراجع الحالة بناءً على السجل ويُصرف الاسترداد إن لم يردّ المورّد.',
@@ -471,14 +481,13 @@ Object.assign(T.ar, {
 
 /** t() with {name} placeholders filled. */
 export const tf = (lang, k, v = {}) => String(t(lang, k)).replace(/\{(\w+)\}/g, (_m, n) => (v[n] == null ? '' : String(v[n])));
-/** "2 suppliers" / "مورّدان". Arabic counts take the dual at 2, the plural at 3-10 and the singular
- *  accusative from 11 (١١ مورّدًا), so one plural key would be wrong for most numbers. */
-export function supplierCount(lang, n) {
-  n = Number(n) || 0;
-  if (n === 1) return t(lang, 'so_sup_one');
-  if (lang === 'ar') return n === 2 ? t(lang, 'so_sup_two') : tf(lang, n >= 3 && n <= 10 ? 'so_sup_few' : 'so_sup_many', { n });
-  return tf(lang, 'so_sup_many', { n });
-}
+/** The three sentinels call() answers with instead of throwing (CP-08). A reader that does not
+ *  test a field of its own must ask this before it stores the answer, or a network blip is filed
+ *  as the server's reply — which is how a registered customer was shown the sign-up form. */
+export const transportFailed = (j) => !!(j && j.ok === false && /^qd_/.test(String(j.error || '')));
+/** A string whose Arabic form carries {c} takes the counted noun from src/lib/countedNoun.ts,
+ *  filled in by the caller: countPhrase(lang, n, 'line') → tf(lang, key, { n, c }). portalText
+ *  imports nothing, because scripts/checks imports this file with bare node. */
 export const EMIRATE_AR = { Dubai: 'دبي', 'Abu Dhabi': 'أبوظبي', Sharjah: 'الشارقة', Ajman: 'عجمان', 'Ras Al Khaimah': 'رأس الخيمة', 'Umm Al Quwain': 'أم القيوين', Fujairah: 'الفجيرة' };
 export const emirateName = (e, lang) => (lang === 'ar' && EMIRATE_AR[e]) || e;
 
@@ -498,6 +507,10 @@ const CODE_KEY = {
   review_comment_too_short: 'err_review_comment', rating_out_of_range: 'err_rating_range',
   // reveal_invoice, 21 Sep 2026: no invoice or receipt for a payment that has not settled.
   payment_not_settled: 'q_inv_not_paid',
+  // call() answers with these three instead of throwing (CP-08, 22 Sep 2026): a request that timed
+  // out, never left the browser, or came back as something other than JSON is a sentence the
+  // customer can act on, not a blank screen or a raw parser error.
+  qd_timeout: 'err_timeout', qd_network: 'err_network', qd_bad_response: 'err_generic',
 };
 const MSG_KEY = [
   [/do-not-send/i, 'err_suppressed'], [/create an account from a mobile/i, 'signup_email_only'], [/not linked|No account is registered/i, 'err_mobile_unknown'],

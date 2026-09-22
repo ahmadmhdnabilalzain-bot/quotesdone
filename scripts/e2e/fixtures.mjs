@@ -4,7 +4,7 @@
 // The founder: "do what is needed cause you need to keep browsing stuff without my credentials".
 // This module mints complete ZZ DEMO customers and suppliers on the one production project, signs them
 // in without delivering an OTP, and destroys everything a run created. It builds on
-// scripts/staging/demo_factory.mjs (auth admin, teardown by tag, the OTP hop) rather than beside it.
+// scripts/lib/demo_factory.mjs (auth admin, teardown by tag, the OTP hop) rather than beside it.
 //
 // WHO THEY ARE
 //   email   qd-<tag>-<kind><n>@example.invalid   RFC 2606: nobody can receive mail there

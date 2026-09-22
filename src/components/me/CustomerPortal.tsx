@@ -124,7 +124,19 @@ const tokenAlive = (t) => {
   try { return (JSON.parse(atob(String(t).split('.')[1])).exp || 0) > (Date.now() / 1000) + 60; }
   catch (_e) { return true; } // unparseable: let the endpoint be the judge, do not lock anyone out
 };
-async function call(path, body, token) { const r = await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body) }); return r.json(); }
+const CALL_TIMEOUT_MS = 30000; // longer than any endpoint's own budget; this is the hang, not the slow answer
+async function call(path, body, token) {
+  const ac = typeof AbortController === 'function' ? new AbortController() : null;
+  const timer = ac ? setTimeout(() => ac.abort(), CALL_TIMEOUT_MS) : null;
+  let r;
+  try {
+    r = await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
+  } catch (e) {
+    return { ok: false, error: (e && e.name === 'AbortError') ? 'qd_timeout' : 'qd_network' };
+  } finally { if (timer) clearTimeout(timer); }
+  const text = await r.text().catch(() => '');
+  try { return JSON.parse(text); } catch (_e) { return { ok: false, error: 'qd_bad_response', status: r.status }; }
+}
 // The five reads the dashboard makes on its first render, started beside the kyc gate rather than
 // behind it — see prefetch.ts for the measurement. Keys are what Dashboard and DecisionSupport take.
 import { warm, take, drop } from './prefetch';
@@ -143,7 +155,8 @@ const warmDashboard = (tk, lang) => {
 // so /ar/me opened English and dir=ltr (e2e journey a, 14 Sep 2026). After sign-in the registered
 // language decides (onServedLocale). src/lib/documentLocale.ts.
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
-import { t, tf, errText, emirateName, supplierCount } from './portalText';
+import { t, tf, errText, emirateName, transportFailed } from './portalText';
+import { countPhrase } from '@/lib/countedNoun';
 // The account rule itself, not a copy: the same function customer_api create_inquiry gates on.
 import { accountMissing } from '../../../supabase/functions/_shared/account_rule';
 import { BrandMark } from '@/components/BrandMark';
@@ -211,7 +224,7 @@ const S = {
   wrap: 'max-w-[1040px] mx-auto p-[22px]',
   frow: 'flex gap-2.5 flex-wrap mt-2.5',
   tabsWrap: 'inline-flex flex-wrap gap-1.5 rounded-xl bg-secondary/40 p-1',
-  tab: 'rounded-md px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
+  tab: 'flex min-h-11 items-center justify-center rounded-md px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
   tabOn: 'bg-primary/15 text-primary',
   list: 'flex flex-col gap-3',
   field: 'mt-3 flex h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
@@ -315,10 +328,11 @@ export function CustomerPortal() {
   const strip = (<header className="sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 sm:px-5 bg-background/95 border-b border-border shadow-e1">
     <a className="flex min-w-0 items-center gap-2 font-head text-base font-semibold tracking-snug text-foreground no-underline" href="/"><BrandMark className="h-8 w-8 shrink-0" /><span className="truncate">QuotesDone <span className="hidden font-mono text-label uppercase tracking-caps text-primary sm:inline">{t(lang, 'brand_sub')}</span></span></a>
     <div className="flex gap-2 items-center">
-      <Button asChild variant="outline" size="sm"><a href="/">{t(lang, 'home')}</a></Button>
-      <Button variant="outline" size="sm" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
-      <Button variant="outline" size="sm" onClick={swapTheme} aria-label={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')} title={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')}>{theme === 'dark' ? '☀' : '☾'}</Button>
-      {phase === 'app' && <BusyButton busy={signOutBusy} act="out" variant="outline" size="sm" busyLabel={t(lang, 'signing_out')} onClick={doSignOut}>{t(lang, 'signout')}</BusyButton>}
+      {/* h-11 — 44px, the minimum tap target; size="sm" is 32 (CP-13). */}
+      <Button asChild variant="outline" size="sm" className="h-11"><a href="/">{t(lang, 'home')}</a></Button>
+      <Button variant="outline" size="sm" className="h-11" onClick={() => setLang(rtl ? 'en' : 'ar')}>{rtl ? 'EN' : 'عربي'}</Button>
+      <Button variant="outline" size="sm" className="h-11" onClick={swapTheme} aria-label={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')} title={theme === 'dark' ? t(lang, 'theme_light') : t(lang, 'theme_dark')}>{theme === 'dark' ? '☀' : '☾'}</Button>
+      {phase === 'app' && <BusyButton busy={signOutBusy} act="out" variant="outline" size="sm" className="h-11" busyLabel={t(lang, 'signing_out')} onClick={doSignOut}>{t(lang, 'signout')}</BusyButton>}
     </div>
   </header>);
   return (<div dir={rtl ? 'rtl' : 'ltr'} data-theme={theme} className="osx min-h-screen bg-background text-foreground">
@@ -426,6 +440,7 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
         setErr('unauth');
         return;
       }
+      if (transportFailed(j)) { setErr('net'); return; }
       setK(j || {});
     }).catch(() => { if (alive.current) setErr('net'); });
   };
@@ -467,7 +482,7 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [full_name, setFullName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [emCode, setEmCode] = useState(''); const [smsCode, setSmsCode] = useState(''); const [sentSms, setSentSms] = useState(false); const [sentEmail, setSentEmail] = useState(false);
   const [terms, setTerms] = useState(false); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
-  const load = () => call('kyc', { action: 'state' }, token).then((j) => { setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
+  const load = () => call('kyc', { action: 'state' }, token).then((j) => { if (transportFailed(j)) { setMsg(t(lang, 'load_failed')); return; } setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob, lang }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
@@ -558,12 +573,22 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // `.finally` rather than a second `setPosting(false)` inside `.then`: a failed refresh must not
   // leave the skeleton up forever, and it does not swallow the rejection either.
   const [posting, setPosting] = useState(false);
+  // my_inquiries answers { inquiries, locale, promo, guarantee_terms } — it has no `ok`, so the
+  // list itself is what is tested. Storing anything else (a transport sentinel, an error body) puts
+  // "post your first request" in front of a customer who has plenty (review of #853).
   const loadInq = (first) => get(first, 'inq', 'customer_api', { action: 'my_inquiries' }).then((j) => {
-    setData(j);
-    if (j && j.locale && onServedLocale) onServedLocale(j.locale);
-  }).catch(() => { /* the screen reports its own failure; an unhandled rejection hides it */ })
+    if (!j || !Array.isArray(j.inquiries)) { setErr(errText(j, lang, 'load_failed')); return; }
+    setData(j); setErr('');
+    if (j.locale && onServedLocale) onServedLocale(j.locale);
+  }).catch(() => setErr(t(lang, 'load_failed')))
     .finally(() => setPosting(false));
-  const loadOv = (first) => get(first, 'ov', 'customer_portal', { action: 'overview', lang }).then((j) => { if (j && j.ok) setOv(j); else setErr(j ? errText(j, lang, 'load_failed') : ''); });
+  // `err` was set here and rendered NOWHERE, loadOv had no .catch, and the four stat tiles fall back
+  // to a pulsing skeleton while `ov` is null — so an overview that failed left a customer watching
+  // four grey boxes for ever, with the reason held in a state variable nothing printed (audit
+  // 22 Sep 2026, CP-07). Both paths now set the message, and the banner below renders it with Retry.
+  const loadOv = (first) => get(first, 'ov', 'customer_portal', { action: 'overview', lang })
+    .then((j) => { if (j && j.ok) { setOv(j); setErr(''); } else setErr(errText(j, lang, 'load_failed')); })
+    .catch(() => setErr(t(lang, 'load_failed')));
   // THE ROLLUP THAT WAS COMPUTED AND THROWN AWAY. project_api action='dashboard' recomputes, on
   // every call, this customer's project_summary rows (each carrying rfq_count, rfq_open,
   // budget_total, timeline_pct and supplier_count) plus an avg_savings_pct measured across the
@@ -644,7 +669,9 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         const ts = typeof (d && d.ts) === 'number' ? d.ts : Date.parse(String((d && d.ts) || ''));
         const text = String((d && d.text) || '').trim();
         if (text && Number.isFinite(ts) && Date.now() - ts < 24 * 3600e3) {
-          const extra = [d.category, d.emirate].filter(Boolean).join(', ');
+          // The homepage stores the raw category and emirate; an Arabic customer must not read
+          // "(Marble, Dubai)" in the middle of their own Arabic brief (CP-I18N-03).
+          const extra = [d.category && categoryLabel(d.category, lang), d.emirate && emirateName(d.emirate, lang)].filter(Boolean).join(lang === 'ar' ? '، ' : ', ');
           setDraft(extra ? text + ' (' + extra + ')' : text); setShowNew(true);
         }
       }
@@ -672,7 +699,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // THE SHELL MOUNTS FIRST AND THE CONTENT FILLS IN. This was an early return to a centred
   // "Loading your requests…" with no navigation at all, so the first thing a customer saw was a
   // blank page that then became a different page. The frame is knowable before the data is.
-  const booting = !ov && !data;
+  const booting = !ov && !data && !err;
   const s = (ov && ov.stats) || {}; const inqs = (data && data.inquiries) || [];
   const alertsCount = Number((ov && ov.alerts_count) ?? ((ov && ov.alerts) || []).length) || 0;
   const projects = (pd && Array.isArray(pd.projects)) ? pd.projects : [];
@@ -785,6 +812,11 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     </section>
 
     {note && <div className={S.note}>{note}</div>}
+    {/* CP-07: the one place a failed overview or request list is reported, with the way out. */}
+    {err && <div className="mb-3.5 flex flex-wrap items-center gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3" role="alert">
+      <span className="min-w-0 flex-1 text-[13px] text-danger-fg">{err}</span>
+      <Button size="sm" variant="outline" onClick={() => { setErr(''); refresh(); }}>{t(lang, 'retry')}</Button>
+    </div>}
     {waAsk && <div className="mb-3.5"><WhatsAppChoice token={token} lang={lang} mode="prompt" current={kyc.whatsapp} mobile={kyc.phone} onDone={() => setWaAsk(false)} /></div>}
     {receipt && <ReceiptNote receipt={receipt} inqs={inqs} lang={lang} onClose={() => setReceipt(null)} />}
     {/* llm_available comes from customer_portal's overview (llm_route_health): it hides the mic
@@ -823,7 +855,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         <ArrowRight className={cn('mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground', rtl && 'rotate-180')} aria-hidden />
       </button>))}</div>}
 
-    {!onlyRequests && (ov ? (
+    {!onlyRequests && !err && (ov ? (
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile icon={FileText} label={t(lang, 'k_open')} value={s.open_inquiries ?? 0} hint={t(lang, 'k_open_hint')} />
         <StatTile icon={MessageSquareQuote} label={t(lang, 'k_quotes')} value={s.quotes_received ?? 0} hint={t(lang, 'k_quotes_hint')} />
@@ -877,7 +909,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openProject(p.project_id); } }}
               className="cursor-pointer p-3.5 transition-colors duration-200 hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <div className="flex justify-between items-center gap-2"><b className="text-[13.5px] text-foreground">{p.name}</b><span className={S.sub}>{projectStatusLabel(lang, p.status)}</span></div>
-              <div className={cn(S.sub, 'mt-1')}>{openN + ' / ' + totalN + ' ' + t(lang, 'rfqs_open_of')}{' · '}{(Number(p.supplier_count) || 0) + ' ' + t(lang, 'suppliers_engaged')}</div>
+              <div className={cn(S.sub, 'mt-1')}>{tf(lang, 'rfqs_open_line', { open: openN, total: totalN })}{' · '}{tf(lang, 'suppliers_engaged_line', { n: Number(p.supplier_count) || 0 })}</div>
               <div className={cn(S.sub, 'mt-0.5')}>{budget == null ? t(lang, 'no_budget_set') : (t(lang, 'budget_label') + ': ' + aed(budget))}</div>
               {timeline == null
                 ? <div className={cn(S.sub, 'mt-1 text-muted-foreground/70')}>{t(lang, 'no_target_date')}</div>
@@ -1130,7 +1162,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
           {inq.emirate ? <span>{emirateName(inq.emirate, lang)}</span> : null}
           {inq.emirate ? <span aria-hidden className="text-muted-foreground/40">·</span> : null}
           <span>{quotes.length} {t(lang, quotes.length === 1 ? 'rc_quote_one' : 'rc_quote_many')}</span>
-          {(inq.boq && inq.boq.boq) ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{inq.boq.boq.length} {t(lang, 'rc_lines')}</span></> : null}
+          {(inq.boq && inq.boq.boq) ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{countPhrase(lang, inq.boq.boq.length, 'line')}</span></> : null}
           {inq.editable ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{tf(lang, 'rc_editable', { m: inq.edit_minutes_left })}</span></> : null}
         </div>
       </div>
@@ -1446,7 +1478,18 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
   // Warn, do not block: an expired price is still a supplier worth contacting.
   const exp = expiryOf(q, lang);
   const w = terms && terms.window_days, c = terms && terms.chase_after_days;
-  const unlock = (r) => { if (!r) return; setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); setState('revealed'); setJustRevealed(true); };
+  const revealedFacts = (r) => !!(r && r.already_revealed && r.supplier);
+  const unlock = (r) => {
+    if (!revealedFacts(r)) { setState('settling'); return false; }
+    setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); setState('revealed'); setJustRevealed(true); return true;
+  };
+  // The settling card's own button: one more ask, no reload, no second payment.
+  const [recheckBusy, setRecheckBusy] = useState(false);
+  const checkReveal = async () => {
+    setRecheckBusy(true);
+    unlock(await call('customer_api', { action: 'reveal', quote_id: q.id }, token));
+    setRecheckBusy(false);
+  };
   const reveal = async () => {
     setBusy(true); setMsg('');
     const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null);
@@ -1476,8 +1519,20 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     // stripe_checkout answers {error:'stripe_not_configured'} at HTTP 200; errText says it in words.
     setBusy(false); setMsg(errText(cr, lang, 'q_checkout_fail'));
   };
-  const showContactData = async () => { const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null); if (r && r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name }); };
+  // A revealed quote whose contact the server will not hand over yet (the payment is still
+  // settling) used to leave the redaction bar and "loading contact" spinning with no way forward.
+  // It falls back to the settling card, which says why and carries the Check again button.
+  const showContactData = async () => {
+    const r = await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null);
+    if (r && r.supplier) setContact({ supplier: r.supplier, file_url: r.original_file_url, file_name: r.original_file_name });
+    else setState('settling');
+  };
+  const settling = state === 'settling';
   useEffect(() => { if (state === 'revealed' && !contact) showContactData(); }, [state]);
+  // THE SERVER IS THE ONE THAT KNOWS. `state` is seeded from q.revealed on mount and was never
+  // re-read, so a reveal confirmed by the minute poll (my_inquiries flips q.revealed) left the card
+  // sitting on 'settling' until the customer reloaded — the copy promises it opens by itself.
+  useEffect(() => { if (q.revealed && state !== 'revealed') setState('revealed'); }, [q.revealed]);
   const revealed = state === 'revealed';
   return (<div ref={hlRef} id={'quote-' + q.id} className={cn('scroll-mt-24 rounded-card border p-3.5 transition-colors duration-500 sm:p-4', lit && 'ring-2 ring-primary ring-offset-2 ring-offset-background', revealed ? 'border-accent/40 bg-accent/[0.04]' : best ? 'border-primary/35 bg-primary/[0.03]' : 'border-border bg-secondary/15')}>{dialog}
     <div className="flex items-center justify-between gap-3">
@@ -1509,6 +1564,10 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
           {/* Gold: the one action in the product that unseals an identity. */}
           <Button variant="reveal" aria-busy={revealSpin || undefined} disabled={busy || concluded} onClick={reveal}>{revealSpin ? <Spinner /> : <Lock aria-hidden />}{busy ? t(lang, leaving ? 'q_redirecting' : 'q_wait') : t(lang, 'q_reveal')}</Button>
         </div>)}
+    {settling ? (<div className="mt-3 rounded-card border border-primary/30 bg-primary/5 p-3.5">
+      <div className="text-[12.5px] leading-relaxed text-foreground">{t(lang, 'pay_settling')}</div>
+      <Button size="sm" variant="outline" className="mt-2.5" disabled={recheckBusy} onClick={checkReveal}>{recheckBusy ? t(lang, 'pay_checking') : t(lang, 'pay_check_again')}</Button>
+    </div>) : null}
     {paying && !revealed ? <RevealPayment q={q} token={token} lang={lang} call={call}
       onPaid={async () => { setPaying(false); unlock(await call('customer_api', { action: 'reveal', quote_id: q.id }, token).catch(() => null)); onChange && onChange(); }}
       onFallback={checkoutFallback} onCancel={() => setPaying(false)} /> : null}
@@ -1869,7 +1928,7 @@ function Journey({ idx, lang, matched, revealed = false }) {
   // lit from the reveal itself instead.
   const step = revealed ? JOURNEY.length - 1 : [0, 2, 3, 4, 5][Math.max(0, Math.min(4, Number(idx) || 0))];
   const label = (k, i) => (i === 2 && Number(matched) > 0)
-    ? (lang === 'ar' ? ('مطابَق مع ' + supplierCount('ar', matched)) : ('Matched to ' + matched + (Number(matched) === 1 ? ' supplier' : ' suppliers')))
+    ? (lang === 'ar' ? ('مطابَق مع ' + countPhrase('ar', matched, 'supplier', { oblique: true })) : ('Matched to ' + countPhrase('en', matched, 'supplier')))
     : t(lang, k);
   return (
     <div className="mt-3">
@@ -1927,7 +1986,7 @@ function QuoteSpread({ quotes, lang }) {
       {!anyRevealed ? (
         <>
           <div className="mt-2.5 text-[15px] font-bold text-foreground">
-            {priced.length + ' ' + t(lang, priced.length === 1 ? 'spread_pre_one' : 'spread_pre') + ' ' + aed(roundK(vals.reduce((a, b) => a + b, 0) / vals.length))}
+            {tf(lang, 'spread_line', { c: countPhrase(lang, priced.length, 'quote'), avg: aed(roundK(vals.reduce((a, b) => a + b, 0) / vals.length)) })}
           </div>
           {/* One band. Not one bar per quote. */}
           <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-secondary/70">

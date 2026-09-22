@@ -3,7 +3,7 @@
 // Founder, 14 Sep 2026 (founder_instruction #158, #160). Proved against production inside ONE
 // transaction that raises at the end, so it commits nothing: no notification, support case, counter
 // or event survives, and the dispatchers never see a row. The supplier it acts on is made for the run
-// by scripts/staging/demo_factory.mjs makeSupplier (ZZ DEMO, fixture mobile, withAuth:false) and torn
+// by scripts/lib/demo_factory.mjs makeSupplier (ZZ DEMO, fixture mobile, withAuth:false) and torn
 // down afterwards. It used to repurpose an existing lead as 'approved' inside the transaction; since
 // #698 trg_leads_e0_mandatory_six_gate refuses that unless the founder's six are complete, so the lead
 // is now a complete one, approved by the sales engineer's verification (completeMandatorySix).
