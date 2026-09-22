@@ -44,7 +44,8 @@ const aed = (n: unknown) => {
 };
 const days = (n: unknown, lang: string) => {
   const v = Number(n);
-  return Number.isFinite(v) ? v + ' ' + L(lang, v === 1 ? 'day' : 'days', 'يوم') : null;
+  if (!Number.isFinite(v)) return null;
+  return lang === 'ar' ? arDays(v) : v + ' ' + (v === 1 ? 'day' : 'days');
 };
 
 type Rec = {
