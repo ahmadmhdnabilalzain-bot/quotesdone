@@ -24,7 +24,7 @@ import {
   isSalam, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
 } from './menu.ts';
 import { coverageReply, mightBeCoverage, type Trade } from './coverage.ts';
-import { type Figures, founderAnswer, founderHelp, founderTopics } from './founder_queries.ts';
+import { capabilityAnswer, figuresText, type Figures, founderHelp, isFiguresCommand, isSizeQuestion } from './founder_queries.ts';
 
 export type Turn = { route: string | null; await: string | null; lang: Lang | null };
 export type SendResult = { ok: boolean; err?: string };
@@ -43,7 +43,7 @@ export type MenuDeps = {
   trades(): Promise<Trade[]>;
   /** fn_support_knowledge_gap: the unanswered question is filed for the team. False if it could not be. */
   recordGap(text: string, reason: string): Promise<boolean>;
-  /** fn_founder_whatsapp_figures: the founder's readings; {ok:false} for any other number. */
+  /** fn_founder_whatsapp_figures: the founder's readings, on the FIGURES command only; {ok:false} for any other number. */
   founderFigures(from: string): Promise<Figures>;
   /** fn_wa_problem_report: opens a support case, or adds to the one this number/account already has open. */
   openCase(from: string, text: string, lang: Lang): Promise<CaseResult>;
@@ -134,6 +134,15 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
     }
   }
 
+  // 0a'. FIGURES / «أرقام» as the whole message: his internal reading (instruction 777). His number only;
+  //      from anyone else the command word is answered like a size question, below.
+  if (inp.audience === 'founder' && isFiguresCommand(body)) {
+    const lang = langOf(body);
+    const f = await d.founderFigures(inp.from);
+    await reply(d, inp, lang, 'founder_figures', figuresText(f, lang), null, { audience: 'founder', read: f?.ok === true });
+    return { handled: true, route: 'founder_figures' };
+  }
+
   // 0b. Handed to a person: the seat does not talk over the human (instruction 763). The message is
   //     recorded for the team and nothing is sent, until the founder closes it or the 23-hour follow-up
   //     (fn_wa_human_request_tick) hands the conversation back. Never the founder's own number: his
@@ -153,6 +162,14 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   const choice = menuChoice({ body, listId: inp.listId, buttonPayload: inp.buttonPayload, numbers: lastWasMenu });
   // A bare number carries no language; the menu it answers does.
   const lang: Lang = langOf(body, last?.lang || 'en');
+
+  // 0c. A question about our size or volumes, from ANY number, the founder's included (instruction 777):
+  //     what we do, never a number. Taken before every other handler so no FAQ row, fn_wa_route intent
+  //     or model can answer it with a count. The command word from anyone but the founder lands here too.
+  if (isSizeQuestion(body) || isFiguresCommand(body)) {
+    await reply(d, inp, lang, 'capability_answer', capabilityAnswer(lang), null, { audience: inp.audience, size_question: true });
+    return { handled: true, route: 'capability_answer' };
+  }
 
   // 1. The message after "Report a problem" is the problem.
   if (!choice && awaiting === 'problem' && body && !isGreeting(body) && !isMenuWord(body)) {
@@ -223,28 +240,13 @@ export async function reofferMenu(d: MenuDeps, inp: MenuInput, lead: string): Pr
   await sendMenu(d, inp, langOf(inp.body), { audience: inp.audience, name: null }, 'menu_reoffer', lead);
 }
 
-/** The founder asks the numbers (22 Sep 2026): recognised topics are answered from the live readings.
- *  False when the message asks about none of them, or the readings could not be had. index.ts calls
- *  this only in its founder branch, and fn_founder_whatsapp_figures refuses any other number. */
-export async function answerFounder(d: MenuDeps, inp: MenuInput): Promise<boolean> {
-  if (inp.audience !== 'founder') return false;
-  const body = String(inp.body || '').trim();
-  const topics = founderTopics(body);
-  if (!topics.length) return false;
-  const lang = langOf(body);
-  const text = founderAnswer(topics, await d.founderFigures(inp.from), lang);
-  if (!text) return false;
-  await reply(d, inp, lang, 'founder_figures', text, null, { topics, audience: 'founder' });
-  return true;
-}
-
-/** The founder's question that nothing could answer: the honest list of what can be answered without
- *  the model, and today's reading. The question is filed for the team. */
+/** The founder's question that nothing could answer: what can be answered without the model and how
+ *  to ask for the figures — no reading (instruction 777). The question is filed for the team. */
 export async function founderUnanswered(d: MenuDeps, inp: MenuInput, reason: string): Promise<void> {
   const body = String(inp.body || '').trim();
   const recorded = body ? await d.recordGap(body, reason) : false;
   const lang = langOf(body);
-  await reply(d, inp, lang, 'founder_help', founderHelp(await d.founderFigures(inp.from), lang), null,
+  await reply(d, inp, lang, 'founder_help', founderHelp(lang), null,
     { unanswered_reason: reason, gap_recorded: recorded, audience: 'founder' });
 }
 

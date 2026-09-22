@@ -5,8 +5,8 @@
 //
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/wa_inbound/menu_flow.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
-import { answerFounder, answerFromFaq, type Content, founderUnanswered, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
-import { type Figures, founderTopics } from './founder_queries.ts';
+import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
+import { type Figures, isFiguresCommand } from './founder_queries.ts';
 import { coverageIntent, coverageReply, groupedTrades, type Trade, tradeNamed } from './coverage.ts';
 import {
   type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, isGreeting, type Lang, MENU_BUTTON, sorryLead,
@@ -515,11 +515,11 @@ Deno.test('wa_inbound never builds a reply from an internal error, and never cal
   assert(!src.includes('note: got.err'));
 });
 
-// ---- The founder asks the numbers (review of #843, 22 Sep 2026) ---------------------------------------
-// His free-text business questions went to agent_brain, dead since 7 Sep. They are answered from
-// fn_founder_whatsapp_figures (the probe the_founder_asks_the_numbers_on_whatsapp_and_gets_them_probe.sql
-// proves each reading moves with its own seeded fact and that another number is refused). Every field
-// below carries a different number so a reading answered from the wrong field fails.
+// ---- Internal figures stay internal (founder_instruction 777, 22 Sep 2026) ----------------------------
+// He asked "how many suppliers do we have" and got "0": "we shouldn't be sharing such numbers; instead a
+// professional response". A size question gets the capability statement from EVERY number, his included;
+// the internal reading goes to his number only, on the command word FIGURES / «أرقام» as the whole message.
+// Every field below carries a different number so a reading answered from the wrong field fails.
 const FIG: Figures = {
   ok: true, read_at_local: '19:33 on Tue 22 Sep',
   suppliers: { registered: 11, registered_7d: 12, verified: 13 }, requests: { today: 21, last_7d: 22 },
@@ -527,79 +527,90 @@ const FIG: Figures = {
   support: { open_cases: 51, waiting_for_person: 52 }, it: { open_findings: 61 },
   marketing_7d: { posts_published: 71, posts_scheduled: 72, ad_spend_aed: 73 }, brief: { local_time: '20:00', sent_today: false },
 };
-function founderHarness(figures: Figures = FIG) {
-  const h = harness({ ctx: { audience: 'founder' } });
+function founderHarness(audience: Audience = 'founder', figures: Figures = FIG) {
+  const h = harness({ ctx: { audience } });
   const asked: string[] = [];
   h.d.founderFigures = (from) => { asked.push(from); return Promise.resolve(figures); };
   return { ...h, asked };
 }
+// No digit may survive once the links are taken out: a count cannot hide in the capability answer.
+const noCount = (body: string) => !/\d/.test(body.replace(/https?:\/\/\S+/g, ''));
 
-Deno.test('each recognised founder question is answered with its own live number and the time of the reading', async () => {
-  const cases: Array<[string, RegExp]> = [
-    ['how many suppliers do we have?', /Suppliers: 11 registered \(12 in the last 7 days\), 13 verified\./],
-    ['any requests today', /Customer requests: 21 today, 22 in the last 7 days\./],
-    ['how many quotes so far', /Quotes: 31 in total, 32 in the last 7 days\./],
-    ['how much revenue this month', /Reveals this month: 41 paid, AED 4,200 in fees\./],
-    ['how many support cases are open', /Support: 51 open case\(s\), 52 waiting for a person\./],
-    ['any IT issues?', /IT: 61 open technical finding\(s\)/],
-    ['marketing numbers', /Marketing \(7 days\): 71 post\(s\) published, 72 scheduled, AED 73 ad spend\./],
-    ['كم عدد الموردين؟', /الموردون: 11 مسجّل \(12 خلال 7 أيام\)، و13 موثّق\./],
-    ['كم طلب اليوم', /طلبات العملاء: 21 اليوم، و22 خلال 7 أيام\./],
-    ['كم الإيرادات هذا الشهر', /الكشف هذا الشهر: 41 مدفوع، بقيمة 4,200 درهم\./],
+Deno.test('777: a size question from ANY number gets the capability answer, never a number, and never reads the figures', async () => {
+  const asks: Array<[string, Lang]> = [
+    ['how many suppliers do we have', 'en'], ['How many suppliers do you have?', 'en'], ['how many customers use quotesdone', 'en'],
+    ['how big are you', 'en'], ['what is your revenue', 'en'], ['how many requests have you received so far', 'en'],
+    ['كم عدد الموردين لديكم', 'ar'], ['كم عدد الموردين؟', 'ar'], ['كم عدد العملاء المسجلين في المنصة', 'ar'], ['ما حجم شركتكم', 'ar'],
   ];
-  for (const [q, want] of cases) {
-    const h = founderHarness();
-    assertEquals(await answerFounder(h.d, msg(q, 'founder')), true, q);
-    assertMatch(h.sent[0].body, want, q);
-    assertMatch(h.sent[0].body, /19:33 on Tue 22 Sep/, q);
-    assertEquals(h.rows[0].route, 'founder_figures');
-    assert(!INTERNAL.test(h.sent[0].body), q + ': internal wording');
+  for (const aud of ['founder', 'customer', 'supplier', 'unknown'] as Audience[]) {
+    for (const [q, lang] of asks) {
+      const h = founderHarness(aud);
+      const r = await menuTurn(h.d, msg(q, aud));
+      assertEquals(r.route, 'capability_answer', aud + ': ' + q);
+      assertEquals(h.sent.length, 1);
+      const body = h.sent[0].body;
+      assert(noCount(body), aud + ': ' + q + ' carries a digit: ' + body);
+      assert(!INTERNAL.test(body), q + ': internal wording');
+      assertEquals(h.asked.length, 0, aud + ': ' + q + ' must not even read the figures');
+      if (lang === 'ar') {
+        assertMatch(body, /نطابق كل طلب عرض سعر مع موردين موثّقين[\s\S]*لطلب عرض سعر:\nhttps:\/\/quotesdone\.com\/ar\/me\?new=1[\s\S]*«قائمة»/);
+      } else {
+        assertMatch(body, /We match each quotation request to verified suppliers across the UAE in the exact trade[\s\S]*To request a quotation: https:\/\/quotesdone\.com\/me\?new=1\n\nReply MENU/);
+      }
+    }
   }
-  // Two topics in one message get both lines.
-  const two = founderHarness();
-  await answerFounder(two.d, msg('how many suppliers and requests this week', 'founder'));
-  assertMatch(two.sent[0].body, /Suppliers: 11[\s\S]*Customer requests: 21/);
 });
 
-Deno.test('a report request gets when the daily brief comes and the reading now', async () => {
-  const h = founderHarness();
-  assertEquals(await answerFounder(h.d, msg('send me the report', 'founder')), true);
-  assertMatch(h.sent[0].body, /^The full daily brief comes today at 20:00 \(UAE time\)\.\n\nReading at 19:33/);
-  for (const n of ['11 registered', '21 today', '31 in total', '41 paid', '51 open', '61 open', '71 post']) assert(h.sent[0].body.includes(n), n);
-  const sent = founderHarness({ ...FIG, brief: { local_time: '20:00', sent_today: true } });
-  await answerFounder(sent.d, msg('ارسل لي التقرير', 'founder'));
-  assertMatch(sent.sent[0].body, /^أُرسل ملخص اليوم، والملخص التالي غدًا الساعة 20:00/);
+Deno.test('777: FIGURES from the founder is his internal reading; from anyone else it is the capability answer', async () => {
+  for (const cmd of ['FIGURES', 'figures', 'Figures.', 'أرقام', 'الأرقام']) {
+    const h = founderHarness('founder');
+    assertEquals((await menuTurn(h.d, msg(cmd, 'founder'))).route, 'founder_figures', cmd);
+    assertEquals(h.asked.length, 1);
+    const body = h.sent[0].body;
+    if (/[a-z]/i.test(cmd)) {
+      assertMatch(body, /^Internal figures at 19:33 on Tue 22 Sep \(UAE time\), for internal use only:/);
+      for (const n of ['Suppliers: 11 registered (12 in the last 7 days), 13 verified.', 'Customer requests: 21 today, 22', 'Quotes: 31 in total', 'Reveals this month: 41 paid, AED 4,200', 'Support: 51 open', 'IT: 61 open', 'Marketing (7 days): 71']) assert(body.includes(n), n);
+    } else {
+      assertMatch(body, /^الأرقام الداخلية \(19:33 on Tue 22 Sep بتوقيت الإمارات\)، للاطلاع الداخلي فقط:/);
+      assert(body.includes('الموردون: 11 مسجّل (12 خلال 7 أيام)، و13 موثّق.'));
+    }
+  }
+  // The routine's refusal is said plainly, never turned into numbers.
+  const refused = founderHarness('founder', { ok: false });
+  await menuTurn(refused.d, msg('FIGURES', 'founder'));
+  assertEquals(refused.sent[0].body, 'The internal figures could not be read just now; please try again shortly.');
+  // Anyone else: the command word reads nothing and gets the capability answer.
+  for (const aud of ['customer', 'supplier', 'unknown'] as Audience[]) {
+    const h = founderHarness(aud);
+    assertEquals((await menuTurn(h.d, msg('FIGURES', aud))).route, 'capability_answer', aud);
+    assertEquals(h.asked.length, 0, aud + ' must not read the figures');
+    assert(noCount(h.sent[0].body));
+  }
+  // Only the whole message is the command.
+  for (const t of ['figures please', 'send figures', 'the figures for the quote']) assertEquals(isFiguresCommand(t), false, t);
 });
 
-Deno.test('an unrecognised founder question gets the honest list, today\'s reading, and is filed', async () => {
-  const h = founderHarness();
-  assertEquals(await answerFounder(h.d, msg('should we open in Qatar next year', 'founder')), false);
+Deno.test('777: an unrecognised founder question gets the honest list and how to ask for the figures, no reading', async () => {
+  const h = founderHarness('founder');
   await founderUnanswered(h.d, msg('should we open in Qatar next year', 'founder'), 'no_grounded_answer');
-  assertMatch(h.sent[0].body, /^I can answer these without AI: suppliers registered and verified, customer requests today and this week/);
-  assertMatch(h.sent[0].body, /Anything else needs the model, which is on hold, so I have recorded your question for the team\.\n\nReading at 19:33/);
+  assertMatch(h.sent[0].body, /^Internal figures are sent only when you write FIGURES as the whole message:/);
+  assertMatch(h.sent[0].body, /Anything else needs the model, which is on hold, so I have recorded your question for the team\.$/);
+  assertEquals(h.asked.length, 0, 'no reading is attached');
   assert(!/\/os\b|dashboard/i.test(h.sent[0].body), 'never sends him to a page that does not exist');
   assertEquals(h.gaps, ['no_grounded_answer:should we open in Qatar next year']);
   assertEquals(h.rows[0].route, 'founder_help');
-  // A topic word with no count or status word is not a figures question ("what do suppliers pay").
-  assertEquals(founderTopics('what do suppliers pay'), []);
 });
 
-Deno.test('the founder figures are never reachable from any other number', async () => {
-  for (const aud of ['customer', 'supplier', 'unknown'] as Audience[]) {
-    const h = founderHarness();
-    assertEquals(await answerFounder(h.d, msg('how many suppliers do we have?', aud)), false, aud);
-    assertEquals(h.asked.length, 0, aud + ' must not even read the figures');
-    assertEquals(h.sent.length, 0);
-  }
-  // The routine's own refusal ({ok:false}) is never turned into numbers.
-  const refused = founderHarness({ ok: false });
-  assertEquals(await answerFounder(refused.d, msg('how many suppliers do we have?', 'founder')), false);
-  // In wa_inbound both calls sit inside the founder branch, before any other audience's handler.
+Deno.test('777: the figures are read in exactly one place, behind the command word', async () => {
+  const flow = await Deno.readTextFile(new URL('./menu_flow.ts', import.meta.url));
+  const calls = flow.split('d.founderFigures(').length - 1;
+  assertEquals(calls, 1, 'fn_founder_whatsapp_figures must be read in one place only');
+  const at = flow.indexOf('d.founderFigures(');
+  const guard = flow.lastIndexOf("if (inp.audience === 'founder' && isFiguresCommand(body))", at);
+  assert(guard > 0 && at - guard < 200, 'the only read sits directly behind the founder + FIGURES guard');
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
-  const open = src.indexOf("if (audience === 'founder') {"), end = src.indexOf('// ---- A DOCUMENT ARRIVED');
-  for (const call of ['answerFounder(menuDeps', 'founderUnanswered(menuDeps']) {
-    const at = src.indexOf(call);
-    assert(at > open && at < end, call + ' must sit inside the founder branch');
-    assertEquals(src.indexOf(call, at + 1), -1, call + ' must be called once');
-  }
+  assert(!src.includes('answerFounder('), 'the natural-question figures path must not return');
+  // The size question is decided before any other handler in the turn.
+  assert(flow.indexOf('isSizeQuestion(body)') < flow.indexOf('// 1. The message after "Report a problem"'));
+  assert(src.indexOf('menuTurn(menuDeps, menuIn)') < src.indexOf("if (audience === 'founder') {\n      const question"));
 });
