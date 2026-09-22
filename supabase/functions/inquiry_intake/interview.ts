@@ -143,7 +143,14 @@ export function parseWhen(text: string, now = new Date()): When | null {
 export function parseBudget(text: string): string | null {
   const t = normDigits(text);
   if (!/aed|dhs?\b|dirhams?|درهم|دراهم|budget|ميزانية|\d\s*k\b/i.test(t)) return null;
-  const m = t.match(/(\d+(?:[.,]\d+)*)\s*(k\b|thousand|ألف|الف|m\b|million|مليون)?/i);
+  // The amount must sit WITH its money word, not anywhere in the text. Measured 22 Sep 2026 on
+  // production (scripts/e2e/drawing_reaches_suppliers.mjs): "…26x18 supply duct… Budget is open." became
+  // budget "AED 26" - the word "budget" let the text in and the first number anywhere was taken - and
+  // 26 fell below every HVAC supplier's minimum job size, so the request matched nobody.
+  const NUM = String.raw`(\d+(?:[.,]\d+)*)\s*(k\b|thousand|ألف|الف|m\b|million|مليون)?`;
+  const m = t.match(new RegExp(String.raw`(?:aed|dhs?\b|dirhams?|درهم|دراهم|budget|ميزانية)[^\d\n.;!?]{0,24}?` + NUM, 'i'))
+    || t.match(new RegExp(NUM + String.raw`\s*(?:aed|dhs?\b|dirhams?|درهم|دراهم)`, 'i'))
+    || t.match(/(\d+(?:[.,]\d+)*)\s*(k)\b/i);
   if (!m) return null;
   let v = Number(m[1].replace(/,/g, ''));
   if (!Number.isFinite(v) || v <= 0) return null;

@@ -102,6 +102,11 @@ Deno.test('parsers: units, emirates EN/AR, dates, yes/no options, budget', () =>
   assertEquals(parseWhen('within 3 weeks')!.days, 21);
   assertEquals(parseWhen('خلال أسبوعين')!.days, 14);
   assertEquals(parseBudget('around AED 50k'), 'AED 50000');
+  // 22 Sep 2026, replayed from production: a duct size is not a budget, and "Budget is open" names none.
+  assertEquals(parseBudget('Quantities: 26x18 supply duct, EF-1. Needed by 30 November 2026. Budget is open.'), null);
+  assertEquals(parseBudget('budget around 120,000 dirhams'), 'AED 120000');
+  assertEquals(parseBudget('75k for the whole job'), 'AED 75000');
+  assertEquals(parseBudget('Budget: AED 1.2m'), 'AED 1200000');
   const illum: SpecField = { key: 'illuminated', type: 'select', options: ['Yes', 'No'], question: 'Illuminated?' };
   assertEquals(parseAnswer(illum, 'نعم', true), 'Yes');
   assertEquals(parseAnswer(illum, 'no thanks', true), 'No');
