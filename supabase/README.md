@@ -1,18 +1,20 @@
 # Edge functions — deploying and keeping them in git
 
-## The problem this solves
+QuotesDone runs on **72 Supabase edge functions**, one directory each under
+`supabase/functions/`, all of them in git. Counted 22 Sep 2026:
+`ls supabase/functions/*/index.ts | wc -l` = 72, and
+`every_deployed_function_has_an_owner.mjs` reads 72 deployed against the live project.
 
-QuotesDone runs on **195 Supabase edge functions**. Until now none of them were in
-git. The repo held only the Next.js frontend.
+## The problem this solved
 
-That meant the only way to change backend code was to read a function out of the
-Supabase API and write it back by hand. Every change risked silent transcription
-drift — a mangled regex or a dropped line — landing straight in production with
-nothing to diff against.
-
-On 21 Jul 2026 that constraint stopped two already-verified fixes from shipping,
-because the function in question (`customer_api`) is 64 KB and hand-copying it was
-a worse risk than leaving the fixes unshipped.
+This file was written on 21 Jul 2026, when the number was **195** and none of them were
+in git: the repo held only the Next.js frontend. The only way to change backend code was
+to read a function out of the Supabase API and write it back by hand, and every change
+risked silent transcription drift — a mangled regex or a dropped line — landing straight
+in production with nothing to diff against. That constraint stopped two already-verified
+fixes from shipping, because `customer_api` is 64 KB and hand-copying it was the worse
+risk. 137 functions that belonged to no seat were deleted on 8 Sep 2026, which is most of
+the difference between 195 and 72.
 
 ## One-time setup (~60 seconds)
 
@@ -36,9 +38,8 @@ a password: never commit it, never paste it into a chat.
 ## Then
 
 ```bash
-# Mirror all 195 functions into the repo — do this first
+# Mirror every deployed function into the repo (they are already here; this proves parity)
 ./scripts/edge-functions.sh pull
-git add supabase/functions && git commit -m "Put edge functions under source control"
 
 # Ship the pending customer_api fixes (source is already staged in the repo)
 ./scripts/edge-functions.sh deploy customer_api
@@ -47,9 +48,13 @@ git add supabase/functions && git commit -m "Put edge functions under source con
 ./scripts/edge-functions.sh diff customer_api
 ```
 
-## What is staged and waiting
+## What was staged and waiting, 21 Jul 2026
 
-`supabase/functions/customer_api/index.ts` is **v33** — verified, not yet deployed.
+Kept as the worked example of how a change is verified before it ships. It is not a
+to-do list: whether the repository and production agree TODAY is answered by
+`node scripts/verify_deploy_parity.mjs --all`, never by this paragraph.
+
+`supabase/functions/customer_api/index.ts` was **v33** — verified, not yet deployed.
 Production is still on v32. Two changes, 67 lines, diffed line by line:
 
 1. **`brief_pdf` action** — renders "What suppliers see" through `pdf_native`, so

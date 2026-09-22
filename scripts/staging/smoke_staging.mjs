@@ -17,8 +17,8 @@
 // IT CANNOT BE RUN TODAY AND THAT IS DELIBERATE: it makes live agent calls, and every provider
 // route is held open-circuit in llm_route_health at the founder's instruction. Rehoming it is not
 // releasing it. When the hold is lifted, this needs QD_FIXTURES=1 like every other fixture path.
-import { mgmtFixture } from './qd_guard.mjs';
-import { REF } from './demo_factory.mjs';
+import { mgmtFixture } from '../lib/qd_guard.mjs';
+import { REF } from '../lib/demo_factory.mjs';
 import { readFileSync } from 'node:fs';
 
 const BASE = `https://${REF}.supabase.co`;

@@ -39,7 +39,7 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 const skip = hasToken ? false : 'no Supabase management token';
 
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
-const mgmtRead = async (ref, sql) => (await import('../../staging/qd_guard.mjs')).mgmtRead(ref, sql);
+const mgmtRead = async (ref, sql) => (await import('../../lib/qd_guard.mjs')).mgmtRead(ref, sql);
 const rows = async (sql) => { const r = await mgmtRead(PROD_REF, sql); return Array.isArray(r) ? r : []; };
 const show = (label, list, fmt) => {
   if (!list.length) return;

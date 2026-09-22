@@ -35,8 +35,8 @@
 // fn_exec_meeting genuinely SELECTS from v_os_health and puts the figures into the findings it
 // returns — the meeting output changes, not just its text.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { mgmtRead } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead } from './lib/qd_guard.mjs';
+import { REF as STAGE } from './lib/demo_factory.mjs';
 
 const OUT = 'scripts/sql/os_health_reaches_the_exec_meeting.sql';
 const one = async (sql) => { const r = await mgmtRead(STAGE, sql); return r[0] ? Object.values(r[0])[0] : null; };

@@ -17,7 +17,7 @@
 //   node seed_staging_secrets.mjs [--apply]
 //
 // Without --apply it reports and writes nothing. It prints key NAMES and actions only, never a value.
-import { mgmtRead, mgmtWrite, PROD_REF, resolveStagingRef } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF, resolveStagingRef } from '../lib/qd_guard.mjs';
 
 // 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
 // no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it
@@ -156,7 +156,7 @@ console.log(`staging internal_credential now: ${credAfter[0].n} rows (production
 
 // ---- scope additions staging is AHEAD of production on -------------------------------------------
 // Applied after the copy so a staging rebuild reapplies them. Each one must also be promoted to
-// production, and is listed in docs/sessions/NEXT_SESSION_BRIEF.md §8 for exactly that reason.
+// production, and is listed in docs/archive/sessions/NEXT_SESSION_BRIEF.md §8 for exactly that reason.
 //
 // capability_agent: its `confirm` action is the only real writer of a confirmed
 // supplier_capabilities row plus its supplier_capability_confirmation ledger entry, and it makes NO

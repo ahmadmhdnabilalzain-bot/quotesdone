@@ -38,7 +38,7 @@
 // `seed` writes to the live project through the demo factory, so it needs the factory's explicit
 // production opt-in as well as `arm`:   QD_FIXTURES=1 node scripts/rehearsal/hvac_dress_rehearsal.mjs seed
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { newRun, makeSupplier, teardown as factoryTeardown } from '../staging/demo_factory.mjs';
+import { newRun, makeSupplier, teardown as factoryTeardown } from '../lib/demo_factory.mjs';
 
 const PROD = 'htdblwldjkcgjvmqkbeh';
 // The one run tag this rehearsal's demo suppliers carry, in leads.tags as 'qd_run:hvacdress'. Fixed and

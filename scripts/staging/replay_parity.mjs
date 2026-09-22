@@ -11,8 +11,8 @@
 // Read-only against production, by construction: qd_guard's mgmtRead refuses anything else.
 // Exits non-zero on any mismatch. It never writes to production — promotion is apply_sql.mjs.
 import { readFileSync } from 'node:fs';
-import { mgmtRead, mgmtWrite, PROD_REF } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const file = process.argv[2];
 if (!file) { console.error('usage: node scripts/staging/replay_parity.mjs <file.sql>'); process.exit(2); }

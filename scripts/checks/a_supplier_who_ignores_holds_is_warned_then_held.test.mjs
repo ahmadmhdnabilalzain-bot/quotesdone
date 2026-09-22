@@ -110,7 +110,7 @@ end $probe$;`;
 
 test('production: the run, the warning through support, the hold, and the founder-only lift', { skip: SKIP }, async (t) => {
   const { sql } = await import('../lib/db.mjs');
-  const { withRun, makeSupplier } = await import('../staging/demo_factory.mjs');
+  const { withRun, makeSupplier } = await import('../lib/demo_factory.mjs');
   let out = null;
   // The Management API hands the exception message back inside its own JSON, so the report arrives
   // with its quotes escaped; unescape once before parsing. The greedy match takes the whole report.

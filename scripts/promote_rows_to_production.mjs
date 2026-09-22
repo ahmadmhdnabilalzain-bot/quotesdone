@@ -12,8 +12,8 @@
 //
 // Asserts a whole-row md5 match on both projects afterwards and exits non-zero if they differ.
 import { readFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
+import { REF as STAGE } from './lib/demo_factory.mjs';
 
 const [table, keyCol, ...keys] = process.argv.slice(2);
 if (!table || !keyCol || !keys.length) {

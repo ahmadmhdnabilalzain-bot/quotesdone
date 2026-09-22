@@ -24,8 +24,8 @@
 //   exactly as login_otp stores it; only delivery is skipped). The MOBILE verification is recorded
 //   directly: Twilio Verify cannot be driven without sending an SMS, and the number is fake by design.
 import { readFileSync } from 'node:fs';
-import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile } from '../staging/demo_factory.mjs';
-import { mgmtRead, mgmtFixture } from '../staging/qd_guard.mjs';
+import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile } from '../lib/demo_factory.mjs';
+import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 
 export { REF, BASE, call };

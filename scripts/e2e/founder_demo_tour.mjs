@@ -37,7 +37,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call } from './fixtures.mjs';
-import { newRun, makeInquiry, uploadObject, keys, q, num } from '../staging/demo_factory.mjs';
+import { newRun, makeInquiry, uploadObject, keys, q, num } from '../lib/demo_factory.mjs';
 import { demoPdf, demoOfficePlanPng } from '../lib/demo_pdf.mjs';
 
 // ONE TAG FOR THE LIFE OF THE DEMO. Not random: the founder's demo is a standing thing, so --link

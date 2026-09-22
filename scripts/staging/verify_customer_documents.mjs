@@ -12,8 +12,8 @@
 //
 //   node scripts/staging/verify_customer_documents.mjs
 import { withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, makeReveal,
-         uploadObject, keys, q, jb, BASE, REF } from './demo_factory.mjs';
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
+         uploadObject, keys, q, jb, BASE, REF } from '../lib/demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
 
 const out = [];
 let failures = 0;

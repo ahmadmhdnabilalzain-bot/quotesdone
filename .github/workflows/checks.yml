@@ -141,19 +141,28 @@ jobs:
         with:
           deno-version: v2.x
       # os_api and the money paths first, because those are the ones where a compile error is a
-      # silent 500 rather than a visible failure. The remaining functions follow; a failure here
-      # does not block, because 191 functions written over months will not all be clean on day one
-      # and a permanently red gate teaches people to ignore gates.
+      # silent 500 rather than a visible failure.
+      #
+      # 22 SEP 2026 — THE SECOND STEP NOW BLOCKS. It was advisory from the day it landed, because
+      # "191 functions written over months will not all be clean on day one and a permanently red
+      # gate teaches people to ignore gates". Measured today: 72 functions remain and
+      # `deno check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts` exits 0 over
+      # every one of them. The reason for the exemption is gone, so the exemption is gone: an
+      # advisory step that passes is a gate nobody is relying on, and the next type error to reach
+      # a non-listed function would have merged green.
       # --node-modules-dir=auto is required, not cosmetic. There is a package.json at the repo root
       # (the Next.js app), so Deno treats this as a Node project and expects a node_modules
       # directory that a fresh checkout does not have. Without the flag it fails resolving
       # npm:@supabase/realtime-js - an environment error that says nothing about the code, which is
       # the worst kind of red build: it trains people to ignore the gate.
-      # supplier_api was deleted on 8 Sep 2026 under the founder's rule -- it belonged to neither
-      # the CEO nor the customer-support agent. The gate is narrowed to what still exists rather
-      # than the list being softened: a named function that is gone must come OFF the list, because
-      # leaving it makes the step fail for a reason that has nothing to do with type safety, and the
-      # usual repair for that is to stop taking the step seriously.
+      # 22 SEP 2026 — a stale comment corrected. This block used to say supplier_api "was deleted on
+      # 8 Sep 2026 ... the gate is narrowed to what still exists", while supplier_api is named in the
+      # step below and supabase/functions/supplier_api/index.ts is 1,319 lines of the live supplier
+      # portal backend. It was deleted in the 8 Sep sweep (182308b) and RESTORED the same day by
+      # b573732, "The portals come back", after every button on /me and /portal 404'd for about
+      # ninety minutes. The rule
+      # the old comment states is still the rule — a named function that is gone comes OFF the list
+      # rather than the step being softened — it simply does not apply to supplier_api.
       # os_api led this list until 9 Sep 2026, when the OS was deleted. A named function that is gone
       # must come OFF the list rather than the step being softened: leaving it makes deno check fail
       # for a reason that has nothing to do with type safety, and the usual repair for that is to stop
@@ -174,6 +183,5 @@ jobs:
       # land the step red — the failure mode the original comment warns about.
       - name: Check the gated functions
         run: deno check --no-lock --node-modules-dir=auto supabase/functions/ceo_agent/index.ts supabase/functions/stripe_webhook/index.ts supabase/functions/supplier_pay/index.ts supabase/functions/customer_api/index.ts supabase/functions/supplier_api/index.ts supabase/functions/resend_inbound/index.ts supabase/functions/supplier_catalog_ingest/index.ts
-      - name: Check every other edge function (advisory)
-        continue-on-error: true
+      - name: Check every other edge function
         run: deno check --no-lock --node-modules-dir=auto supabase/functions/*/index.ts

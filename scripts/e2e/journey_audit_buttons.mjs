@@ -23,7 +23,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { call, read, write } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE } from './browser.mjs';
-import { makeInquiry, keys, BASE } from '../staging/demo_factory.mjs';
+import { makeInquiry, keys, BASE } from '../lib/demo_factory.mjs';
 import { pdfFacts, isArabic, languageOf, sameDocument } from './pdf_facts.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));

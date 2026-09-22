@@ -11,7 +11,7 @@
 // rows and no reader scores NO.
 //
 //   node scripts/staging/verify_spec_architecture.mjs        # read-only, PRODUCTION, zero spend
-import { mgmtRead, PROD_REF } from './qd_guard.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 
 const rows = [];
 const q = async (sql) => (await mgmtRead(PROD_REF, sql))[0];
