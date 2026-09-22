@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T09:05:31.036Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T09:09:20.943Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -36171,11 +36171,14 @@ begin
   -- count; the harness purges its own tag, so one that survives is a teardown fault. Cannot see: a
   -- dashboard that counts demo rows while none exist — with zero leftovers there is nothing to leak.
   v_items := '[]'::jsonb;
-  for x in select 'customers' t, count(*) n from public.customers c
+  -- THE FOUNDER'S STANDING DEMO IS NOT A LEFTOVER (22 Sep 2026, PR #831; see the file header).
+  for x in select 'customers' t, count(*) n, (array_agg(c.id::text order by c.created_at))[1:10] ids from public.customers c
             where (c.is_demo or c.email like 'qd-%@example.invalid') and c.created_at < now() - interval '6 hours'
+              and coalesce(c.email, '') not like 'qd-founderdemo-%'
            union all
-           select 'leads', count(*) from public.leads l
-            where (l.is_demo or l.email like 'qd-%@example.invalid') and l.created_at < now() - interval '6 hours' loop
+           select 'leads', count(*), (array_agg(l.id::text order by l.created_at))[1:10] from public.leads l
+            where (l.is_demo or l.email like 'qd-%@example.invalid') and l.created_at < now() - interval '6 hours'
+              and coalesce(l.email, '') not like 'qd-founderdemo-%' loop
     -- Only a run still in progress excuses leftovers. Measured on the proof: four e2e windows and one
     -- from 5 Sep were never closed, and "any open window" silenced this check for good.
     if x.n > 0 and not exists (select 1 from public.rehearsal_window w
@@ -36183,7 +36186,7 @@ begin
       v_items := v_items || jsonb_build_object('item', x.t, 'owner_seat', 'ceo', 'subject', 'e2e_harness',
         'title', x.n || ' demo ' || x.t || ' row(s) outlived their run by more than six hours',
         'blast', 'internal', 'affected', 1, 'demo', true,
-        'evidence', jsonb_build_object('table', x.t, 'rows', x.n, 'purge', 'node scripts/e2e/run.mjs --purge-tag <tag>'));
+        'evidence', jsonb_build_object('table', x.t, 'rows', x.n, 'ids', to_jsonb(x.ids), 'purge', 'node scripts/e2e/run.mjs --purge-tag <tag>'));
     end if;
   end loop;
   -- A rehearsal window left open is a run that never tore down.

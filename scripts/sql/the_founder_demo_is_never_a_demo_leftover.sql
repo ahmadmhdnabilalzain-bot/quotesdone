@@ -1,3 +1,5 @@
+-- REBASED 22 Sep 2026 onto every_handoff_is_answered_within_its_window.sql (PR #832), which redefined fn_it_duties
+-- first: this body is #832s, with only the founderdemo exemption and the ids evidence below added.
 -- THE FOUNDER'S STANDING DEMO IS NEVER A DEMO LEFTOVER, AND A REAL LEFTOVER NAMES ITS ROWS.
 --
 -- Assigned: customer_support (the portal demo), with it_engineer's duty. 22 Sep 2026.
@@ -39,11 +41,7 @@
 --
 
 create or replace function public.fn_it_duties(p_r jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_out jsonb := '{}'::jsonb; v_items jsonb; x record; s jsonb; v_mode text; v_hook jsonb; v_missing text[];
   v_p95 numeric; v_hour int;
@@ -131,7 +129,11 @@ begin
   for x in select a.id, a.detail->>'from' frm, a.created_at from public.agent_actions a
             where a.kind = 'handoff' and a.detail->>'type' = 'delivery.request'
               and a.created_at < now() - interval '2 hours' and a.created_at > now() - interval '7 days'
-              and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%' loop
+              and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%'
+              -- 22 Sep 2026: a founder-bound request customer_support holds for the 19:00 Dubai IT digest
+              -- is waiting on a schedule, not lost. It is late only once the digest could have taken it.
+              and not (a.status = 'pending' and a.evidence->>'digest' = 'pending'
+                       and now() < public.fn_it_digest_hold_ends(a.created_at)) loop
     v_items := v_items || jsonb_build_object('item', 'request:' || x.id, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
       'title', 'Delivery request ' || x.id || ' from ' || x.frm || ' has had no confirmed outcome for '
                || round(extract(epoch from now() - x.created_at) / 3600) || ' hours',
@@ -145,6 +147,11 @@ begin
       'blast', 'customer_facing', 'affected', 0, 'evidence', jsonb_build_object('notification_id', x.id, 'sent_at', x.sent_at));
   end loop;
   v_out := v_out || jsonb_build_object('delivery', public.fn_it_duty_settle('delivery', v_items));
+
+  -- ── 4b. EVERY HANDOFF IS ANSWERED ──
+  -- Reads: every pending handoff against its seat_handoff_kind.reply_within (every_handoff_is_answered_
+  -- within_its_window.sql). Cannot see: a conversation that was never started -- only one that stalled.
+  v_out := v_out || jsonb_build_object('handoff_sla', public.fn_it_duty_settle('handoff_sla', public.fn_it_handoff_sla_items()));
 
   -- ── 5. PAYMENT RECONCILIATION ──
   -- Reads: Stripe live and test — completed Checkout Sessions and refunds of the last 72 hours, and the
@@ -246,12 +253,7 @@ begin
   -- count; the harness purges its own tag, so one that survives is a teardown fault. Cannot see: a
   -- dashboard that counts demo rows while none exist — with zero leftovers there is nothing to leak.
   v_items := '[]'::jsonb;
-  -- THE FOUNDER'S STANDING DEMO IS NOT A LEFTOVER (22 Sep 2026, measured). Every row this counted on
-  -- 22 Sep was qd-founderdemo-* (customers fc952c2c.., 34760038.., lead 126512), seeded on 18 Sep by
-  -- scripts/e2e/founder_demo_tour.mjs, which keeps them on purpose; the founder said leave demo
-  -- records alone (instruction 571). The harness already exempts that tag (fixtures.mjs NEVER_SWEPT);
-  -- this duty did not, so it fired in every hour no rehearsal window happened to be open. The ids are
-  -- now in the evidence, so the next finding names its rows instead of sending someone to find them.
+  -- THE FOUNDER'S STANDING DEMO IS NOT A LEFTOVER (22 Sep 2026, PR #831; see the file header).
   for x in select 'customers' t, count(*) n, (array_agg(c.id::text order by c.created_at))[1:10] ids from public.customers c
             where (c.is_demo or c.email like 'qd-%@example.invalid') and c.created_at < now() - interval '6 hours'
               and coalesce(c.email, '') not like 'qd-founderdemo-%'
@@ -302,6 +304,5 @@ begin
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
   values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duties', 'result', v_out), null);
   return v_out;
-end $function$;
-
+end $fn$;
 revoke execute on function public.fn_it_duties(jsonb) from public, anon, authenticated;
