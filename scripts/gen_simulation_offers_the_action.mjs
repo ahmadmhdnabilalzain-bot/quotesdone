@@ -27,7 +27,7 @@
 //   node scripts/gen_simulation_offers_the_action.mjs
 //   node scripts/apply_sql.mjs scripts/sql/simulation_offers_the_action.sql --promote
 import { writeFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const ANCHOR = `  returning id into v_id;`;
 

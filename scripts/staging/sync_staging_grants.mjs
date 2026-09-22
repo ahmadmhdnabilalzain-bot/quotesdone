@@ -17,7 +17,7 @@
 // copies that shape rather than granting broadly to make the error go away.
 //
 //   node scripts/staging/sync_staging_grants.mjs [--apply]
-import { mgmtRead, mgmtWrite, PROD_REF, resolveStagingRef } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite, PROD_REF, resolveStagingRef } from '../lib/qd_guard.mjs';
 
 // 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is
 // no second project — pglpqrhvozwepymcuunn was deleted. It is kept rather than retired because it

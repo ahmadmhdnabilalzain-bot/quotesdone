@@ -20,11 +20,11 @@
 //
 //     node scripts/staging/verify_portal.mjs
 import { readFileSync } from 'node:fs';
-import { mgmtRead } from './qd_guard.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
 import {
   REF, withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, makeReveal,
   mkAuthUser, call, q,
-} from './demo_factory.mjs';
+} from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

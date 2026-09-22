@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, sweepStaleRuns, read, REF } from './fixtures.mjs';
 import { launch, SITE, HARNESS_SIGNED_OUT } from './browser.mjs';
 import { JOURNEYS } from './journeys.mjs';
-import { newRun, teardown } from '../staging/demo_factory.mjs';
+import { newRun, teardown } from '../lib/demo_factory.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };

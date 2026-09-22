@@ -131,7 +131,7 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
     const req = route.request();
     const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type, apikey, x-client-info', 'access-control-allow-methods': 'POST, GET, OPTIONS' };
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: cors, body: 'ok' });
-    const { BASE } = await import('../staging/demo_factory.mjs');
+    const { BASE } = await import('../lib/demo_factory.mjs');
     const target = BASE + '/functions/v1/' + req.url().split('/functions/v1/')[1];
     const h = req.headers();
     const res = await fetch(target, { method: req.method(), headers: { authorization: h['authorization'] || '', 'content-type': h['content-type'] || 'application/json' }, body: req.method() === 'GET' ? undefined : req.postData() });

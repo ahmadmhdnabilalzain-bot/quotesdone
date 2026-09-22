@@ -10,7 +10,7 @@
 //   node scripts/gen_simulation_action_carries_its_evidence.mjs
 //   node scripts/apply_sql.mjs scripts/sql/simulation_action_carries_its_evidence.sql --promote
 import { writeFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const ANCHOR = `                              target_table, target_id, confidence)`;
 const REPL = `                              target_table, target_id, confidence, evidence)`;

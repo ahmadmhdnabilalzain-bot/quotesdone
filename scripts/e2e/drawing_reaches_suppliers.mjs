@@ -26,7 +26,7 @@
 import http from 'node:http';
 import zlib from 'node:zlib';
 import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, call, waitFor } from './fixtures.mjs';
-import { runIntake } from '../staging/demo_factory.mjs';
+import { runIntake } from '../lib/demo_factory.mjs';
 
 const KEEP = process.argv.includes('--keep');
 const results = [];

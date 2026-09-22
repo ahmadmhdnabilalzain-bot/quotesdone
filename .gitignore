@@ -14,9 +14,13 @@ build/
 # Supabase CLI local state
 supabase/.temp/
 
-# graphify: generated locally, cheap to rebuild
-graphify-out/cost.json
-graphify-out/cache/
+# graphify: generated locally, cheap to rebuild, and as of 22 Sep 2026 NOT tracked at all.
+# Measured: 7 tracked files, 30 MB, of which graph.json alone was 25 MB — a generated artefact
+# rewritten in full by `graphify update .` on every code change, so every commit that touched code
+# carried a multi-megabyte binary-shaped diff nobody read. The repository's CLAUDE.md still tells
+# every session to query it; the answer to a missing graph is `graphify update .` (AST-only, no API
+# cost), not a checkout.
+graphify-out/
 
 # transient commit-message scratch
 COMMIT_MSG.tmp
@@ -76,22 +80,19 @@ e2e-reports/
 # Every root entry is ignored unless named below. A new top-level file or folder is added HERE, on
 # purpose, in the same commit that introduces it.
 /*
-!/.agents/
 !/.claude/
 !/.github/
 !/.gitignore
 !/.graphifyignore
 !/.mcp.json
 !/.squawk.toml
+!/ARCHITECTURE.md
 !/CLAUDE.md
-!/QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17/
 !/README.md
-!/SKILLS_MANUAL.md
 !/ai-organization/
 !/components.json
 !/deno.lock
 !/docs/
-!/graphify-out/
 !/knowledge-import/
 !/knowledge/
 !/messages/
@@ -101,12 +102,10 @@ e2e-reports/
 !/package.json
 !/postcss.config.mjs
 !/public/
-!/repomix.config.json
 !/scripts/
 !/src/
 !/supabase/
 !/tailwind.config.ts
-!/tools/
 !/tsconfig.json
 !/vercel.json
 

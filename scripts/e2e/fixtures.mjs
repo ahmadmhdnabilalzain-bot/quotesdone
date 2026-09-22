@@ -4,7 +4,7 @@
 // The founder: "do what is needed cause you need to keep browsing stuff without my credentials".
 // This module mints complete ZZ DEMO customers and suppliers on the one production project, signs them
 // in without delivering an OTP, and destroys everything a run created. It builds on
-// scripts/staging/demo_factory.mjs (auth admin, teardown by tag, the OTP hop) rather than beside it.
+// scripts/lib/demo_factory.mjs (auth admin, teardown by tag, the OTP hop) rather than beside it.
 //
 // WHO THEY ARE
 //   email   qd-<tag>-<kind><n>@example.invalid   RFC 2606: nobody can receive mail there
@@ -24,8 +24,8 @@
 //   exactly as login_otp stores it; only delivery is skipped). The MOBILE verification is recorded
 //   directly: Twilio Verify cannot be driven without sending an SMS, and the number is fake by design.
 import { readFileSync } from 'node:fs';
-import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile } from '../staging/demo_factory.mjs';
-import { mgmtRead, mgmtFixture } from '../staging/qd_guard.mjs';
+import { newRun, mkAuthUser, makeSupplier, teardown, verifyEmailByOtp, call, keys, uploadObject, q, num, REF, BASE, demoMobile } from '../lib/demo_factory.mjs';
+import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 
 export { REF, BASE, call };
