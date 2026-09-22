@@ -13,7 +13,10 @@
 // arcs; closed polylines add their area (shoelace plus each bulge's circular segment) per layer.
 // Everything is converted to metres and square metres.
 //
-// WHAT IT NEVER DOES. It does not read binary DXF or DWG (needs 'cad_conversion'), explode blocks,
+// A DWG reaches this reader too: dwg.ts (22 Sep 2026) opens it with LibreDWG and hands its entities over
+// as ASCII DXF, so a DWG and a DXF share this one take-off.
+//
+// WHAT IT NEVER DOES. It does not read binary DXF (needs 'cad_conversion'), explode blocks,
 // apply viewport scales, or guess what a layer means. Without $INSUNITS the unit is a guess and
 // every quantity says so at confidence 'low'. Identity is NOT scrubbed here; the caller does that.
 import { capText, empty, LIMITS, ok, refuse, type Qty, type ReadContext, type ReadResult } from './types.ts';

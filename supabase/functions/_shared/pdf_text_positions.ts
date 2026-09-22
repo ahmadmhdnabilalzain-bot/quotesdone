@@ -43,7 +43,15 @@ export type TextRun = { text: string; x: number; y: number; w: number; h: number
 export type PdfImage = { x: number; y: number; w: number; h: number; px: number; py: number };
 /** A straight stroked or filled edge, display frame, normalised. Only axis-aligned ones are kept. */
 export type PdfLine = { x1: number; y1: number; x2: number; y2: number };
-export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[]; images?: PdfImage[]; lines?: PdfLine[]; truncated?: boolean };
+/** CAD layer geometry (22 Sep 2026): every STROKED segment drawn inside an optional-content group,
+ *  keyed by the layer's name ("M-HVAC-DUCT", "P-SANR"), as flat [x1,y1,x2,y2,...] in the display frame,
+ *  normalised. Curves are flattened (8 chords). Only present when the PDF carries layers.
+ *  `layerWidths` holds each segment's stroke width in paper points, same order (one number each): a CAD
+ *  single-line duct is a heavy line and a leader on the same annotation layer is a hairline. */
+export type LayerSegs = Record<string, number[]>;
+/** A small closed outline (a keyed-note hexagon, a tag circle): its box, its vertex count and its layer. */
+export type PdfMark = { x: number; y: number; w: number; h: number; n: number; layer: string };
+export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[]; images?: PdfImage[]; lines?: PdfLine[]; layers?: LayerSegs; layerWidths?: LayerSegs; marks?: PdfMark[]; truncated?: boolean };
 
 const DEC = new TextDecoder('latin1');
 type Obj = { dict: string; stream: Uint8Array | null };
@@ -53,6 +61,9 @@ const ID: M = [1, 0, 0, 1, 0, 0];
 /** Operators interpreted per page, forms included. A dense A1/ANSI-D CAD sheet measured ~1.5M. */
 export const MAX_OPS = 4_000_000;
 const MAX_FORM_DEPTH = 12;
+/** Stroked segments kept per page across all layers (4 numbers each), so a pathological file cannot
+ *  exhaust memory; past it the page is marked truncated. */
+export const MAX_LAYER_SEGS = 600_000;
 
 async function decodeStream(dict: string, body: Uint8Array): Promise<Uint8Array | null> {
   if (/\/FlateDecode\b/.test(dict)) return (await inflate(body, 'deflate')) ?? (await inflate(body, 'deflate-raw'));
@@ -195,7 +206,7 @@ function parseCMap(src: string): { two: boolean; map: Map<number, string> } {
   return { two, map };
 }
 
-type Ctx = { objs: Map<number, Obj>; forms: Map<number, string | null>; fonts: Map<number, Font>; ops: number; truncated: boolean };
+type Ctx = { objs: Map<number, Obj>; forms: Map<number, string | null>; fonts: Map<number, Font>; ocg: Map<number, string | null>; ops: number; truncated: boolean; segs: number; layers: boolean };
 async function fontOf(ctx: Ctx, num: number): Promise<Font> {
   const hit = ctx.fonts.get(num); if (hit) return hit;
   const o = ctx.objs.get(num); let f: Font = { two: false, map: null };
@@ -232,12 +243,27 @@ async function formContent(ctx: Ctx, num: number): Promise<string | null> {
 /** Interpret one content stream (a page's, or a form's) into runs, images and axis-aligned lines. */
 async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: number, emit: {
   run: (text: string, m: M, size: number, n: number) => void; image: (m: M, px: number, py: number) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
-}, active: Set<number>): Promise<void> {
-  let ctm: M = ctm0; const stack: M[] = [];
+  layerSeg: (layer: string, x1: number, y1: number, x2: number, y2: number, width: number) => void; mark: (layer: string, pts: [number, number][]) => void;
+}, active: Set<number>, layer0 = '', lw0 = 1): Promise<void> {
+  let ctm: M = ctm0; const stack: [M, number][] = []; let lw = lw0;
   let tm: M = ID, tlm: M = ID; let size = 12, lead = 0; let font: Font | null = null;
   let nums: number[] = []; let pStr: string | undefined; let pArr: string | undefined; let pName: string | undefined;
   const xobjs = namedRefs(ctx.objs, res, 'XObject');
   const fontRefs = namedRefs(ctx.objs, res, 'Font');
+  // Optional content (CAD layers): `/OC /MC0 BDC ... EMC`, MC0 named in the resources' /Properties and
+  // pointing at an OCG whose /Name is the layer. Measured 22 Sep 2026 on the two real bid sets: 57 and
+  // 50 layers, among them M-HVAC-DUCT, P-SANR, P-VENT, P-DOMW-CW, P-DOMW-HW - the system each line is.
+  const props = namedRefs(ctx.objs, res, 'Properties');
+  const layers: string[] = []; let layer = layer0;
+  const ocgName = (num: number | undefined): string | null => {
+    if (num === undefined) return null;
+    if (ctx.ocg.has(num)) return ctx.ocg.get(num)!;
+    const d = ctx.objs.get(num)?.dict || '';
+    const m = /\/Name\s*\(((?:\\.|[^\\)])*)\)/.exec(d);
+    const h = m ? null : /\/Name\s*<([0-9A-Fa-f]+)>/.exec(d);
+    const nm = /\/Type\s*\/OCG\b/.test(d) ? (m ? unescapePdfString(m[1]) : h ? hexToString(h[1]) : '').replace(/^\xfe\xff/, '').replace(/\x00/g, '') : null;
+    ctx.ocg.set(num, nm); return nm;
+  };
   let path: [number, number][][] = []; let curPath: [number, number][] | null = null;
   const T = (x: number, y: number): [number, number] => [ctm[0] * x + ctm[2] * y + ctm[4], ctm[1] * x + ctm[3] * y + ctm[5]];
   // `decoded` is already through decodeText (Tj/'/" and each TJ piece are decoded by the caller).
@@ -251,9 +277,18 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
     tm = mul([1, 0, 0, 1, n * 0.6 * size, 0], tm);
   };
   const newline = (tx: number, ty: number) => { tlm = mul([1, 0, 0, 1, tx, ty], tlm); tm = tlm; };
-  const flushPath = () => {
-    for (const sp of path) for (let i = 1; i < sp.length; i++) emit.seg(sp[i - 1][0], sp[i - 1][1], sp[i][0], sp[i][1]);
+  const flushPath = (stroked: boolean) => {
+    for (const sp of path) {
+      for (let i = 1; i < sp.length; i++) emit.seg(sp[i - 1][0], sp[i - 1][1], sp[i][0], sp[i][1]);
+      if (layer && stroked && ctx.layers) { const wd = lw * Math.sqrt(Math.abs(ctm[0] * ctm[3] - ctm[1] * ctm[2])); for (let i = 1; i < sp.length; i++) emit.layerSeg(layer, sp[i - 1][0], sp[i - 1][1], sp[i][0], sp[i][1], wd); }
+      if (layer && sp.length >= 5 && sp[0][0] === sp[sp.length - 1][0] && sp[0][1] === sp[sp.length - 1][1]) emit.mark(layer, sp);
+    }
     path = []; curPath = null;
+  };
+  // Curves are flattened into chords so a duct elbow or a round bubble keeps its true length and shape.
+  const bez = (p1: [number, number], p2: [number, number], p3: [number, number]) => {
+    if (!curPath) return; const p0 = curPath[curPath.length - 1];
+    for (let i = 1; i <= 8; i++) { const t = i / 8, u = 1 - t; const k0 = u * u * u, k1 = 3 * u * u * t, k2 = 3 * u * t * t, k3 = t * t * t; curPath.push([k0 * p0[0] + k1 * p1[0] + k2 * p2[0] + k3 * p3[0], k0 * p0[1] + k1 * p1[1] + k2 * p2[1] + k3 * p3[1]]); }
   };
   for (const tk of tokens(src)) {
     if (tk.t === 'num') { nums.push(Number(tk.v)); continue; }
@@ -264,8 +299,9 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
     const a = nums; const str = pStr; const arr = pArr; const name = pName;
     nums = []; pStr = undefined; pArr = undefined; pName = undefined;
     switch (tk.v) {
-      case 'q': stack.push(ctm); break;
-      case 'Q': ctm = stack.pop() || ctm0; break;
+      case 'q': stack.push([ctm, lw]); break;
+      case 'Q': { const g = stack.pop(); ctm = g ? g[0] : ctm0; lw = g ? g[1] : lw0; } break;
+      case 'w': if (a.length) lw = a[a.length - 1]; break;
       case 'cm': if (a.length >= 6) ctm = mul(a.slice(-6) as M, ctm); break;
       case 'BT': tm = ID; tlm = ID; break;
       case 'Tf': {
@@ -288,10 +324,16 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
       } break;
       case 'm': if (a.length >= 2) { curPath = [T(a[0], a[1])]; path.push(curPath); } break;
       case 'l': if (a.length >= 2) { if (!curPath) { curPath = [T(a[0], a[1])]; path.push(curPath); } else curPath.push(T(a[0], a[1])); } break;
-      case 'c': case 'v': case 'y': if (a.length >= 4 && curPath) curPath.push(T(a[a.length - 2], a[a.length - 1])); break; // endpoint only
+      case 'c': if (a.length >= 6 && curPath) bez(T(a[0], a[1]), T(a[2], a[3]), T(a[4], a[5])); break;
+      case 'v': if (a.length >= 4 && curPath) bez(curPath[curPath.length - 1], T(a[0], a[1]), T(a[2], a[3])); break;
+      case 'y': if (a.length >= 4 && curPath) bez(T(a[0], a[1]), T(a[2], a[3]), T(a[2], a[3])); break;
       case 're': if (a.length >= 4) { const [x, y, w, h] = a; path.push([T(x, y), T(x + w, y), T(x + w, y + h), T(x, y + h), T(x, y)]); curPath = null; } break;
       case 'h': if (curPath && curPath.length > 1) curPath.push(curPath[0]); break;
-      case 'S': case 's': case 'f': case 'F': case 'f*': case 'B': case 'B*': case 'b': case 'b*': flushPath(); break;
+      case 'S': case 's': case 'B': case 'B*': case 'b': case 'b*': flushPath(true); break;
+      case 'f': case 'F': case 'f*': flushPath(false); break;
+      case 'BDC': { layers.push(layer); const nm = name !== undefined ? ocgName(props.get(name)) : null; if (nm) layer = nm; } break;
+      case 'BMC': layers.push(layer); break;
+      case 'EMC': layer = layers.length ? layers.pop()! : layer0; break;
       case 'n': path = []; curPath = null; break;
       case 'Do': {
         if (name === undefined) break;
@@ -306,7 +348,7 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
         const mtx = numArr((o.dict.match(/\/Matrix\s*\[([^\]]*)\]/) || [])[1]);
         const fres = dictValue(ctx.objs, o.dict, 'Resources') ?? res;
         active.add(num);
-        await interpret(ctx, fsrc, fres, mul(mtx.length === 6 ? mtx as M : ID, ctm), depth + 1, emit, active);
+        await interpret(ctx, fsrc, fres, mul(mtx.length === 6 ? mtx as M : ID, ctm), depth + 1, emit, active, layer, lw);
         active.delete(num);
         if (ctx.truncated) return;
       } break;
@@ -339,6 +381,7 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
     const dec = await decodeStream(o.dict, o.stream); if (dec) src += DEC.decode(dec) + '\n';
   }
   const runs: TextRun[] = []; const images: PdfImage[] = []; const lines: PdfLine[] = [];
+  const layerSegs: LayerSegs = {}; const layerWidths: LayerSegs = {}; const marks: PdfMark[] = []; ctx.segs = 0;
   const D = (x: number, y: number) => toDisplay(x, y, p.mb, p.rotate);
   const box = (pts: [number, number][]) => {
     const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
@@ -361,26 +404,46 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
       const dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
       if ((dy < 1e-4 && dx >= 0.004) || (dx < 1e-4 && dy >= 0.004)) lines.push({ x1: Math.min(x1, x2), y1: Math.min(y1, y2), x2: Math.max(x1, x2), y2: Math.max(y1, y2) });
     },
+    layerSeg: (l, ax, ay, bx, by, wd) => {
+      if (++ctx.segs > MAX_LAYER_SEGS) { ctx.truncated = true; return; }
+      const [x1, y1] = D(ax, ay), [x2, y2] = D(bx, by);
+      if (x1 === x2 && y1 === y2) return;
+      (layerSegs[l] ||= []).push(x1, y1, x2, y2); (layerWidths[l] ||= []).push(Math.round(wd * 100) / 100);
+    },
+    mark: (l, pts) => {
+      const b = box(pts.map(([x, y]) => D(x, y)));
+      if (b.w < 0.02 && b.h < 0.02 && b.w > 0 && b.h > 0) marks.push({ ...b, n: pts.length - 1, layer: l });
+    },
   }, new Set());
-  return { page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs, images, lines, ...(ctx.truncated ? { truncated: true } : {}) }, content: src };
+  const hasLayers = Object.keys(layerSegs).length > 0;
+  return { page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs, images, lines, ...(hasLayers ? { layers: layerSegs, layerWidths } : {}), ...(marks.length ? { marks } : {}), ...(ctx.truncated ? { truncated: true } : {}) }, content: src };
 }
 
 /** Pages in order, each with its text runs AND its decoded content stream (for pdf_measure's path
  *  operators). [] when unreadable. */
-export async function pdfPageContents(bytes: Uint8Array): Promise<{ page: PdfPage; content: string }[]> {
+/** `only` = [from, to): interpret only those pages (0-based); the others come back as empty stubs in their
+ *  place, so page indexes stay the same. 22 Sep 2026: drawing_redact parsed the WHOLE set on every 4-page
+ *  call, which with the pixel work put each call past the edge CPU cap (HTTP 546 on production). */
+export async function pdfPageContents(bytes: Uint8Array, only?: [number, number], opts: { layers?: boolean } = {}): Promise<{ page: PdfPage; content: string }[]> {
   if (!bytes || bytes.length < 5 || DEC.decode(bytes.subarray(0, 5)) !== '%PDF-') return [];
   const head = DEC.decode(bytes.subarray(0, Math.min(bytes.length, 4096)));
   if (/\/Encrypt\b/.test(head) || /\/Encrypt\b/.test(DEC.decode(bytes.subarray(Math.max(0, bytes.length - 4096))))) return [];
   const objs = await readObjects(bytes);
-  const ctx: Ctx = { objs, forms: new Map(), fonts: new Map(), ops: 0, truncated: false };
+  const ctx: Ctx = { objs, forms: new Map(), fonts: new Map(), ocg: new Map(), ops: 0, truncated: false, segs: 0, layers: opts.layers !== false };
   const pages: { page: PdfPage; content: string }[] = [];
-  for (const p of pageTree(objs)) pages.push(await readPage(ctx, p));
+  const tree = pageTree(objs);
+  for (let i = 0; i < tree.length; i++) {
+    const p = tree[i];
+    if (only && (i < only[0] || i >= only[1])) { pages.push({ page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs: [] }, content: '' }); continue; }
+    pages.push(await readPage(ctx, p));
+  }
   return pages;
 }
 
 /** Pages in order, each with its text runs in normalised top-left display coordinates. [] when unreadable. */
-export async function pdfPages(bytes: Uint8Array): Promise<PdfPage[]> {
-  return (await pdfPageContents(bytes)).map((p) => p.page);
+/** `opts.layers: false` skips the CAD layer geometry (the cheap read drawing_boq's first call makes). */
+export async function pdfPages(bytes: Uint8Array, only?: [number, number], opts: { layers?: boolean } = {}): Promise<PdfPage[]> {
+  return (await pdfPageContents(bytes, only, opts)).map((p) => p.page);
 }
 
 /**
