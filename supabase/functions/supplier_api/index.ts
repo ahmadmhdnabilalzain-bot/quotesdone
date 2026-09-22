@@ -464,11 +464,11 @@ const handle = async (req: Request): Promise<Response> => {
             out.license = { expiry: docRead.expiry, source: 'text', keyword: docRead.keyword, read_by: 'code' };
           } else {
             noteBoth('We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.',
-                     'لم نتمكن من قراءة تاريخ انتهاء الرخصة التجارية — قد يكون الملف صورة ممسوحة ضوئياً أو لا يذكر تاريخاً بجانب كلمة الانتهاء. لم نقم بتخمين أي تاريخ.');
+                     'لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.');
           }
         } catch (e) {
           noteBoth('We could not read your trade licence file (' + String((e as Error)?.message || e).slice(0, 120) + '). Nothing was guessed.',
-                   'تعذّرت قراءة ملف الرخصة التجارية. لم نقم بتخمين أي تاريخ.');
+                   'تعذّرت قراءة ملف رخصتكم التجارية. ولم نخمّن أي تاريخ.');
         }
       }
       // The model path — legal name, licence number, authority, emirate, TRN — is behind the same
