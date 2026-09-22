@@ -5,8 +5,13 @@
 // returns (copied field-for-field from its output on LibreDWG's sample drawings, 22 Sep 2026). The
 // real-DWG proof, which needs the network, is dwg_samples.check.ts, run as its own CI step.
 import { assert, assertAlmostEquals, assertEquals } from 'jsr:@std/assert@1';
-import { dwgToDxf, DWG_MAX_BYTES, readDwg, type DwgDb } from './dwg.ts';
+import { dwgToDxf, DWG_MAX_BYTES, lowerMemoryFloor, readDwg, type DwgDb } from './dwg.ts';
+// @deno-types="../vendor/sheetjs-0.20.3/types/index.d.ts"
+import { CFB } from '../vendor/sheetjs-0.20.3/xlsx.mjs';
 import { readDxf } from './cad.ts';
+import { dxfBinaryFrom } from './cad.fixtures.ts';
+import { cadSupplierBoq } from '../cad_identity.ts';
+import { boqFromExtracted } from '../../drawing_boq/boq_from_document.ts';
 import { readDocument } from './index.ts';
 import type { Extracted, ReadResult } from './types.ts';
 // The notes are English at the source; the customer's and the supplier's screens show them in Arabic through
@@ -89,14 +94,64 @@ Deno.test('the npm import and the pinned WASM URL name the same package version'
 
 Deno.test('a Revit model and a DGN v7 are recognised and told what to export, not read as a spreadsheet', async () => {
   const utf16 = (s: string) => new Uint8Array([...s].flatMap((c) => [c.charCodeAt(0), 0]));
-  const rvt = new Uint8Array(4096);
-  rvt.set([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]); rvt.set(utf16('BasicFileInfo'), 1024);
-  const r = good(await readDocument(rvt, 'tower.rvt'));
-  assertEquals([r.kind, r.needs], ['rvt', 'bim_conversion']);
-  assert(r.notes[0].includes('IFC') && (boqNoteAr(r.notes[0]) || '').includes('ريفيت'), r.notes[0]);
+  const c = CFB.utils.cfb_new();
+  CFB.utils.cfb_add(c, '/BasicFileInfo', new Uint8Array([7, ...utf16('Worksharing: Not enabled\r\nFormat: 2024\r\n')]));
+  CFB.utils.cfb_add(c, '/ProjectInformation', new Uint8Array(8));
+  const r = good(await readDocument(new Uint8Array(CFB.write(c, { type: 'array' })), 'tower.rvt'));
+  assertEquals([r.kind, r.needs, r.quantities.length], ['rvt', 'bim_conversion', 0]);
+  assert(r.notes.some((n) => n.includes('File > Export > IFC')), r.notes.join(' | '));
+  for (const n of r.notes) assert(/[؀-ۿ]/.test(boqNoteAr(n) || ''), `no Arabic for: ${n}`);
 
   const dgn = new Uint8Array(2048); dgn.set([0x08, 0x09, 0xfe, 0x02]);
   const g = good(await readDocument(dgn, 'site.dgn'));
-  assertEquals([g.kind, g.needs], ['dgn', 'cad_conversion']);
-  assert(g.notes[0].includes('DWG or DXF') && (boqNoteAr(g.notes[0]) || '').includes('مايكروستيشن'), g.notes[0]);
+  assertEquals([g.kind, g.needs, g.notes[0]], ['dgn', 'cad_conversion', 'This is a MicroStation DGN V7 (2D) file.']);
+  assert(g.notes[1].includes('DWG or DXF') && g.notes[1].includes('PDF'), g.notes[1]);
+  for (const n of g.notes) assert(/[؀-ۿ]/.test(boqNoteAr(n) || ''), `no Arabic for: ${n}`);
+});
+
+// THE 1 GB MEMORY FLOOR (22 Sep 2026): every DWG died on production with "Memory limit exceeded" because
+// the .wasm asked for 1 GB before reading a byte. Prevented by this test (the rewrite itself) and by
+// dwg_samples.check.ts (the real .wasm, after the rewrite, declares WASM_MIN_PAGES and still reads).
+Deno.test('lowerMemoryFloor rewrites the memory minimum in place, same width, nothing else moves', () => {
+  // magic+version, a type section (id 1, 4 bytes), memory section (id 5): 1 memory, flags 1, min 16384 (3-byte LEB), max 65536 (3-byte LEB)
+  const wasm = new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, 1, 4, 1, 0x60, 0, 0, 5, 8, 1, 1, 0x80, 0x80, 0x01, 0x80, 0x80, 0x04]);
+  const before = wasm.slice();
+  assertEquals(lowerMemoryFloor(wasm, 256), { from: 16384, to: 256 });
+  assertEquals(wasm.length, before.length);
+  assertEquals([...wasm.subarray(18, 21)], [0x80, 0x82, 0x00]);                 // 256, padded to 3 bytes
+  assertEquals([...wasm.subarray(0, 18)], [...before.subarray(0, 18)]);
+  assertEquals([...wasm.subarray(21)], [...before.subarray(21)]);               // the maximum is untouched
+  assert(WebAssembly.validate(wasm), 'still a valid module');
+  assertEquals(new WebAssembly.Memory({ initial: 1 }).buffer.byteLength, 65536);  // sanity: pages are 64 KB
+  assertEquals(lowerMemoryFloor(wasm, 256), { from: 256, to: 256 });            // a rerun changes nothing
+});
+
+// THE REDACTION AUDIT (22 Sep 2026, #827): a CAD file's title-block names reached suppliers through the
+// take-off. Every CAD reader here now hands back the DXF text it measured (dxf_text), and drawing_boq and
+// the CAD worker pass it to cad_identity.cadSupplierBoq. This fails if a DWG's or a binary DXF's own job
+// names reach a BOQ line again.
+Deno.test('a DWG and a binary DXF: nothing the file says about its own job reaches a BOQ line', async () => {
+  const db: DwgDb = { header: { INSUNITS: 6, PROJECTNAME: 'ZZ HARBOUR TOWER' }, entities: [
+    { type: 'INSERT', layer: 'ZZORBIT-TITLE', name: 'ZZORBIT_TITLEBLOCK_A1', insertionPoint: { x: 0, y: 0 } },
+    { type: 'ATTRIB', layer: 'ZZORBIT-TITLE', text: { text: 'ZZ ORBIT CONSULTING ENGINEERS' }, tag: 'CONSULTANT' },
+    { type: 'LINE', layer: 'ZZORBIT-M-DUCT', startPoint: { x: 0, y: 0 }, endPoint: { x: 12, y: 0 } },
+    { type: 'INSERT', layer: 'M-HVAC', name: 'FCU', insertionPoint: { x: 1, y: 1 } },
+  ] };
+  const dwg = good(await readDxf(new TextEncoder().encode(dwgToDxf(db).dxf), ctx));
+  const pairs: [number, string | number][] = [
+    [0, 'SECTION'], [2, 'HEADER'], [9, '$INSUNITS'], [70, 6], [9, '$PROJECTNAME'], [1, 'ZZ HARBOUR TOWER'], [0, 'ENDSEC'],
+    [0, 'SECTION'], [2, 'ENTITIES'],
+    [0, 'INSERT'], [8, 'ZZORBIT-TITLE'], [2, 'ZZORBIT_TITLEBLOCK_A1'], [10, 0], [20, 0],
+    [0, 'LINE'], [8, 'ZZORBIT-M-DUCT'], [10, 0], [20, 0], [11, 12], [21, 0],
+    [0, 'INSERT'], [8, 'M-HVAC'], [2, 'FCU'], [10, 1], [20, 1],
+    [0, 'TEXT'], [8, 'ZZORBIT-TITLE'], [1, 'CLIENT: ZZ HARBOUR TOWER'],
+    [0, 'ENDSEC'], [0, 'EOF'],
+  ];
+  const bin = good(await readDxf(dxfBinaryFrom(pairs), ctx));
+  for (const e of [dwg, bin]) {
+    assert(e.dxf_text && e.dxf_text.includes('ZZ HARBOUR TOWER'), 'the reader hands back the text it measured');
+    const out = JSON.stringify(cadSupplierBoq(boqFromExtracted(e, '', '', {}), e.dxf_text));
+    for (const bad of [/ZZORBIT/i, /ZZ ORBIT/i, /HARBOUR/i, /TITLEBLOCK/i]) assert(!bad.test(out), `${bad} reached the BOQ: ${out.slice(0, 300)}`);
+    assert(/FCU/.test(out) && /M-DUCT/.test(out), `the work is still there: ${out.slice(0, 300)}`);
+  }
 });

@@ -1,8 +1,8 @@
 // cad — ASCII DXF quantities and text.
 // deno test --no-lock --node-modules-dir=none supabase/functions/_shared/doc_read/cad.test.ts
 import { assert, assertAlmostEquals, assertEquals, assertThrows } from 'jsr:@std/assert@1';
-import { readDxf, redactDxf, stripMtext } from './cad.ts';
-import { dxfFixture, dxfFrom, dxfSection, dxfTitleBlockFixture } from './cad.fixtures.ts';
+import { binaryDxfToAscii, readDxf, redactDxf, stripMtext } from './cad.ts';
+import { dxfBinaryFrom, dxfFixture, dxfFixturePairs, dxfFrom, dxfSection, dxfTitleBlockFixture } from './cad.fixtures.ts';
 import type { Extracted, ReadResult } from './types.ts';
 
 const ctx = { filename: 'plan.dxf', depth: 0 };
@@ -42,11 +42,38 @@ Deno.test('no $INSUNITS: mm assumed from coordinates, confidence low, note says 
   assert(e.notes.some((n) => n.includes('millimetres were assumed')));
 });
 
-Deno.test('binary DXF needs cad_conversion; garbage refused', async () => {
-  const bin = new TextEncoder().encode('AutoCAD Binary DXF\r\n\x1a\x00\x00\x00');
-  const e = good(await readDxf(bin, ctx));
-  assertEquals(e.needs, 'cad_conversion');
+// 22 Sep 2026: binary DXF is READ (it was answered needs:'cad_conversion'). Prevented from regressing by
+// these three tests and by dwg_samples.check.ts (LibreDWG's real .dxfb files against their ASCII DXF).
+Deno.test('binary DXF, R13+ and R12 codes: the same take-off and text as the ASCII fixture', async () => {
+  const asc = good(await readDxf(dxfFixture(), ctx));
+  for (const wide of [true, false]) {
+    const bin = good(await readDxf(dxfBinaryFrom(dxfFixturePairs(), wide), ctx));
+    assertEquals([bin.kind, bin.needs], ['dxf', null]);
+    assertEquals(bin.quantities, asc.quantities);
+    assertEquals(bin.text, asc.text);
+    assert(/^Read from binary DXF: \d+ group-code pairs\.$/.test(bin.notes[0]), bin.notes[0]);
+  }
+});
+
+Deno.test('hostile binary DXF: truncated, unknown code, unterminated string, a lone sentinel - refused, never thrown', async () => {
+  const full = dxfBinaryFrom(dxfFixturePairs());
+  const bad = [
+    full.subarray(0, full.length - 5),                                                    // a real cut mid-value
+    new Uint8Array([...full.subarray(0, 22), 0x39, 0x30, 1, 2, 3]),                       // code 12345: no value type
+    new Uint8Array([...full.subarray(0, 22), 0, 0, 0x53, 0x45, 0x43]),                    // "SEC" with no NUL
+    new TextEncoder().encode('AutoCAD Binary DXF\r\n\x1a\x00\x00\x00'),
+  ];
+  for (const b of bad) {
+    const r = await readDxf(b, ctx);
+    if (r.ok) assertEquals(r.quantities.length, 0, 'a lone sentinel reads as an empty drawing, nothing invented');
+    else assertEquals(r.error, 'dxf_unreadable');
+  }
   assertEquals((await readDxf(new TextEncoder().encode('hello world'), ctx)).ok, false);
+});
+
+Deno.test('binary DXF: the pair cap stops a hostile file and the note says the totals are partial', () => {
+  const r = binaryDxfToAscii(dxfBinaryFrom(dxfFixturePairs()), 10);
+  assertEquals([r.pairs, r.capped], [10, true]);
 });
 
 Deno.test('entity cap stops reading and says the totals are partial', async () => {
@@ -73,6 +100,18 @@ Deno.test('redactDxf: the client is gone from every string, geometry and quantit
   assertEquals(q(after, 'm', 'layer [client] VILLA')?.qty, 2);
   assertEquals(q(after, 'sqm', 'layer FLOOR')?.qty, 20);
   assertThrows(() => redactDxf(new TextEncoder().encode('AutoCAD Binary DXF\r\n\x1a\x00'), (s) => s));
+});
+
+Deno.test('redactDxf on a BINARY DXF: the supplier gets a redacted ASCII DXF with the same take-off', async () => {
+  const pairs = dxfFixturePairs();
+  pairs.splice(pairs.length - 2, 0, [0, 'TEXT'], [8, 'TITLE'], [10, 0], [20, -500], [40, 100], [1, 'CLIENT: Ahmed Al Mansoori']);
+  const bin = dxfBinaryFrom(pairs);
+  const r = redactDxf(bin, (s) => s.replace(/Ahmed|Al Mansoori/gi, '[client]'));
+  const out = new TextDecoder().decode(r.bytes);
+  assert(!/mansoori|ahmed/i.test(out) && !out.startsWith('AutoCAD Binary'), 'identity gone, output is ASCII');
+  const shape = (e: Extracted) => e.quantities.map((x) => `${x.qty} ${x.unit}`).sort();
+  assertEquals(shape(good(await readDxf(r.bytes, ctx))), shape(good(await readDxf(bin, ctx))));
+  assertThrows(() => redactDxf(bin.subarray(0, bin.length - 5), (s) => s));   // cannot follow it -> never passed on
 });
 
 Deno.test('MTEXT formatting codes', () => {

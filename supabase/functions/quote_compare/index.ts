@@ -8,6 +8,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { deterministicCompare, rosterOf } from './deterministic.ts';
 import { observe } from '../_shared/observe.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
+import { activeFailure, failureRecord, isCachedAnalysis } from '../_shared/spend_guards.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -34,6 +35,7 @@ const AR = `\n\nLANGUAGE: Write ALL human-readable text VALUES in this JSON — 
 
 Deno.serve(observe('quote_compare', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  const reqStart = Date.now();
   try {
     const body = await req.json().catch(() => ({} as any));
     const inquiry_id = String(body.inquiry_id || '');
@@ -207,7 +209,33 @@ Deno.serve(observe('quote_compare', async (req) => {
     // deno-lint-ignore no-explicit-any
     const withRoster = (a: any) => { if (a && typeof a === 'object') { a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.on_hold = onHold; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
     const qhash = await sha256hex(JSON.stringify(labelled));
-    try { const { data: cached } = await admin.from('qd_compare_cache').select('analysis').eq('inquiry_id', inquiry_id).eq('quotes_hash', qhash).eq('lang', lang).maybeSingle(); if (cached?.analysis) { await logRun('ok', { compared: 1, quotes_seen: qs.length, cached: 1, lang }, 'Quote comparison for ' + qs.length + ' quotes served from cache; the customer got their recommendation with no model call.'); return J({ ok: true, analysis: withRoster(cached.analysis), cached: true }); } } catch (_e) { /* */ }
+    // THE SPEC SWEEP NEEDS NO MODEL (22 Sep 2026). sales_engineer's spec_offer_sweep reads only
+    // technical_detail, which is computed above by code. It used to run the full model comparison
+    // on every candidate, every resilience tick, to throw everything but that field away.
+    if (body.technical_only === true) {
+      await logRun('ok', { compared: 0, technical_only: 1, quotes_seen: qs.length, lang }, 'Technical comparison for ' + qs.length + ' quotes served by code for the no-exact-spec sweep; no model was asked.');
+      return J({ ok: true, technical_only: true, analysis: withRoster({}) });
+    }
+    // A FAILED COMPARISON IS CACHED TOO (22 Sep 2026). The cache held successes only, "so the model
+    // result wins the moment the model works again" - which also meant a failing input re-ran the
+    // whole ladder on every mount of the compare card (CustomerPortal.tsx Comparison, deps
+    // [inqId, lang]). A failure is now stored for this exact (inquiry, quotes hash, language) with a
+    // retry-after that starts at 15 minutes and doubles per consecutive failure, capped at a day
+    // (_shared/spend_guards.ts). Until then the customer is served the same deterministic ranking a
+    // failure serves, at no cost; a changed quote set is a new hash and is compared at once.
+    let priorFailure: unknown = null;
+    try {
+      const { data: cached } = await admin.from('qd_compare_cache').select('analysis').eq('inquiry_id', inquiry_id).eq('quotes_hash', qhash).eq('lang', lang).maybeSingle();
+      if (isCachedAnalysis(cached?.analysis)) { await logRun('ok', { compared: 1, quotes_seen: qs.length, cached: 1, lang }, 'Quote comparison for ' + qs.length + ' quotes served from cache; the customer got their recommendation with no model call.'); return J({ ok: true, analysis: withRoster(cached!.analysis), cached: true }); }
+      priorFailure = cached?.analysis ?? null;
+      const held = activeFailure(priorFailure);
+      if (held) {
+        const analysis = deterministicCompare(labelled as never, lang as 'en' | 'ar');
+        await logRun('ok', { compared: 1, degraded: 1, cached_failure: 1, failures: held.count, quotes_seen: qs.length, top3: analysis.top3.length, lang }, 'The model comparison for these ' + qs.length + ' quotes failed ' + held.count + ' time(s) (' + held.detail.slice(0, 80) + '); until ' + held.retry_after + ' the customer is served the deterministic ranking and no model is asked again.');
+        return J({ ok: true, analysis: withRoster(analysis), degraded: true, cached_failure: true, retry_after: held.retry_after, detail: held.detail });
+      }
+    } catch (_e) { /* */ }
+    const rememberFailure = async (detail: string) => { try { await admin.from('qd_compare_cache').upsert({ inquiry_id, quotes_hash: qhash, lang, analysis: failureRecord(priorFailure, detail), created_at: new Date().toISOString() }); } catch (_e) { /* the next view simply tries again */ } };
     const boqItems = (inq.boq && Array.isArray((inq.boq as any).boq)) ? (inq.boq as any).boq.map((b: any) => `${b.description || ''}${b.qty ? ' ('+b.qty+' '+(b.unit||'')+')' : ''}`).slice(0, 40) : [];
     const cref = await sec('compliance_ref');
     // NEW v21: QuotesDone's own curated expertise for this trade (market prices, red flags, spec hierarchy, must-state specs).
@@ -232,23 +260,29 @@ Deno.serve(observe('quote_compare', async (req) => {
     // start an attempt that cannot land inside the platform request ceiling.
     // Measured wall at the 10000-token budget: 33s (2 quotes EN) to 67s (3 quotes AR).
     const COMPARE_WALL_MS = 140000;
-    for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
-      const leftMs = COMPARE_WALL_MS - (Date.now() - T0);
-      if (leftMs < 25000) { lastDetail = lastDetail || ('no_time_left_for_attempt_' + (attempt + 1)); break; }
+    // ONE GATEWAY REQUEST (22 Sep 2026). This looped twice over a gateway that itself tried two
+    // attempts on each of two models - up to eight provider calls at 10,000 output tokens each for
+    // one card view. The gateway now bounds a request at two paid calls across its ladder, so a
+    // second loop here only multiplied that; the failure is cached instead of re-asked.
+    // `subject` lets the gateway recognise our own ZZ DEMO inquiries and answer them for nothing.
+    {
+      // The request's own clock. T0 is module scope, so on a warm worker it is the worker's age,
+      // not this request's: the wall would read as spent and the call would go out with no time.
+      const leftMs = COMPARE_WALL_MS - (Date.now() - reqStart);
       try {
         attempts++;
-        const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'quote_compare', sys, input: JSON.stringify(payload), max: 10000, temperature: 0.2, client_timeout_ms: Math.min(leftMs, 100000) }) });
-        const jd = await r.json();
+        const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'quote_compare', subject: { inquiry_id, customer_id: inq.customer_id }, sys, input: JSON.stringify(payload), max: 10000, temperature: 0.2, client_timeout_ms: Math.min(leftMs, 100000) }) });
+        const jd = await r.json().catch(() => null);
         const model = String(jd?.model || 'ai_gateway');
-        if (!r.ok) { lastDetail = 'http' + (r.status) + ':' + model + ':' + (JSON.stringify(jd?.error||'').slice(0,140)); continue; }
-        const content = jd?.content || '';
-        if (!content) { lastDetail = 'empty:' + model + ':' + String(jd?.outcome || ''); continue; }
-        const p = parseJson(content);
-        if (p) { parsed = p; break; }
+        const content = r.ok ? (jd?.content || '') : '';
+        const p = content ? parseJson(content) : null;
+        if (!r.ok) lastDetail = 'http' + (r.status) + ':' + model + ':' + String(jd?.outcome || '') + ':' + (JSON.stringify(jd?.error || '').slice(0, 140));
+        else if (!content) lastDetail = 'empty:' + model + ':' + String(jd?.outcome || '');
+        else if (p) parsed = p;
         // A cut-off reply and a badly-formatted reply are different defects with different fixes.
         // Say which one this was: 'parse:model:truncated@3000' points at model_policy, plain
         // 'parse:model' points at the prompt.
-        lastDetail = 'parse:' + model + (jd?.truncated ? ':truncated@' + jd?.max_tokens + ' (used ' + jd?.output_tokens + ')' : '');
+        else lastDetail = 'parse:' + model + (jd?.truncated ? ':truncated@' + jd?.max_tokens + ' (used ' + jd?.output_tokens + ')' : '');
       } catch (e) { lastDetail = 'exc:' + String((e as Error)?.message || e).slice(0, 100); }
     }
     // MODEL-FREE FALLBACK. This used to return {ok:false,'parse_failed'} at HTTP 200 and the
@@ -256,7 +290,8 @@ Deno.serve(observe('quote_compare', async (req) => {
     // failing is not a rare edge: the whole company runs on ONE OpenRouter balance, so when it
     // empties this branch is the ONLY branch. A rules-only ranking off the figures the suppliers
     // actually stated is worth incomparably more than an empty screen, and it costs nothing.
-    // It is NOT cached — the model result must win as soon as the model works again.
+    // The failure IS cached, with a short retry-after (see rememberFailure): the model result still
+    // wins as soon as the model works again, without every card view paying to find out.
     const degradedBecause = (why: string) => {
       // deterministicCompare sets its own closing paragraph: DISCLAIMER_* claims a match "on
       // specification", which a rules ranking never assesses.
@@ -265,9 +300,10 @@ Deno.serve(observe('quote_compare', async (req) => {
     };
     if (!parsed) {
       const { analysis } = degradedBecause(String(lastDetail).slice(0, 120));
+      await rememberFailure(String(lastDetail));
       const t3 = analysis.top3.length;
       await logRun(t3 > 0 ? 'ok' : 'error', { compared: 1, degraded: 1, quotes_seen: qs.length, ai_attempts: attempts, ai_ok: 0, top3: t3, lang },
-        'Every model attempt for quote_compare failed (' + String(lastDetail).slice(0, 120) + '), so the customer was served the DETERMINISTIC comparison instead of nothing: ' + qs.length + ' quotes ranked on stated price, completeness, lead time, warranty and payment terms, ' + t3 + ' ranked recommendation(s). It is labelled degraded to the customer and is not cached, so the full analysis returns the moment the model does.');
+        'Every model attempt for quote_compare failed (' + String(lastDetail).slice(0, 120) + '), so the customer was served the DETERMINISTIC comparison instead of nothing: ' + qs.length + ' quotes ranked on stated price, completeness, lead time, warranty and payment terms, ' + t3 + ' ranked recommendation(s). It is labelled degraded to the customer; the failure is cached with a short retry-after, so card views do not re-ask the model, and the full analysis returns once it answers.');
       return J({ ok: true, analysis: withRoster(analysis), degraded: true, detail: lastDetail });
     }
     if (Array.isArray(parsed.quotes) && parsed.quotes.length > 3) parsed.quotes = parsed.quotes.slice(0, 3);
@@ -286,9 +322,10 @@ Deno.serve(observe('quote_compare', async (req) => {
     // which would have served it back on every re-open.
     if (_top3 === 0 || _shown === 0) {
       const { analysis } = degradedBecause('empty_shortlist');
+      await rememberFailure('empty_shortlist');
       const t3 = analysis.top3.length;
       await logRun(t3 > 0 ? 'ok' : 'error', { compared: 1, degraded: 1, quotes_seen: qs.length, ai_attempts: attempts, ai_ok: 1, empty_shortlist: 1, top3: t3, lang },
-        'The model returned a comparison object with an EMPTY shortlist for ' + qs.length + ' real quotes, which reaches the customer as a blank decision step. Served the DETERMINISTIC comparison instead: ' + t3 + ' ranked recommendation(s) from stated figures. The empty model result was not cached.');
+        'The model returned a comparison object with an EMPTY shortlist for ' + qs.length + ' real quotes, which reaches the customer as a blank decision step. Served the DETERMINISTIC comparison instead: ' + t3 + ' ranked recommendation(s) from stated figures. The empty model result was not cached; the failure was, with a short retry-after.');
       return J({ ok: true, analysis: withRoster(analysis), degraded: true, detail: 'empty_shortlist' });
     }
     let cacheSaved = 1;

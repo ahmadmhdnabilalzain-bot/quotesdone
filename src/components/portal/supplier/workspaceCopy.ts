@@ -20,6 +20,8 @@ const EN: Dict = {
   rfq_pages_unavailable: '{n} of {total} drawing pages could not be opened — please refresh to try again.',
   rfq_pages_row_missing: '{n} could not be opened',
   rfq_pages_none: 'The drawings for this inquiry could not be opened — please refresh to try again. Please do not price from the bill of quantities alone.',
+  // 22 Sep 2026: a held drawing or a CAD file is not shown, and the supplier is told it exists (supplier_api drawing_withheld).
+  rfq_file_withheld: 'The customer attached a drawing or document that is not shown here, because it could not be shared without revealing who they are. Any quantities we could read from it are in the bill of quantities below. If you need a detail from it, ask a question below.',
 
   // messages
   mb_loading: 'Loading your messages…', mb_err: 'We could not load your messages. Please try again.', mb_retry: 'Try again',
@@ -81,6 +83,7 @@ const AR: Dict = {
   rfq_pages_unavailable: 'تعذّر فتح {n} من أصل {total} من صفحات المخططات — يُرجى تحديث الصفحة والمحاولة مرة أخرى.',
   rfq_pages_row_missing: 'تعذّر فتح {n} منها',
   rfq_pages_none: 'تعذّر فتح مخططات هذا الاستفسار — يُرجى تحديث الصفحة والمحاولة مرة أخرى. يُرجى عدم التسعير بالاعتماد على جدول الكميات وحده.',
+  rfq_file_withheld: 'أرفق العميل مخططاً أو مستنداً لا يُعرض هنا، لأنه تعذّرت مشاركته دون الكشف عن هويته. الكميات التي أمكننا قراءتها منه واردة في جدول الكميات أدناه، وإن احتجتم إلى أي تفصيل منه فيُرجى طرح سؤالكم أدناه.',
 
   mb_loading: 'جارٍ تحميل رسائلكم…', mb_err: 'تعذّر تحميل رسائلكم. يُرجى المحاولة مرة أخرى.', mb_retry: 'إعادة المحاولة',
   mb_locked_h: 'تُتاح مراسلة العملاء عند فوزكم بمشروع',

@@ -29,6 +29,8 @@ export type InquiryDetail = {
     boq: { boq?: unknown[] } | null; boq_withheld: boolean; boq_confidence: string | null; drawing_pages: string[];
     /** expected = on the inquiry, served = signed and in drawing_pages, failed = missing from this view. */
     drawing_pages_expected: number; drawing_pages_served: number; drawing_pages_failed: number;
+    /** The customer attached a file that cannot be shown without identifying them (held drawing, any CAD file). */
+    drawing_withheld?: boolean;
     quotes: { id: string; option_no?: number; status: string; quote_amount: number | null; spec_hold?: unknown }[];
     review: { state: ReviewState; updated_at: string } | null;
   };

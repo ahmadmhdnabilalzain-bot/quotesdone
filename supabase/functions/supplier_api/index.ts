@@ -32,7 +32,7 @@ import { jobAlias } from '../_shared/quote_labels.ts';
 import { deriveLineFields, deriveTermsFromScope } from '../_shared/line_specs/derive.ts';
 // A DRAWING PAGE THAT FAILS TO SIGN IS COUNTED, LOGGED AND RAISED - never silently dropped from the
 // inbox (18 Sep 2026, sales_engineer). See _shared/drawing_pages.ts for the production measurement.
-import { signRedactedDrawings } from '../_shared/drawing_pages.ts';
+import { drawingWithheld, signRedactedDrawings } from '../_shared/drawing_pages.ts';
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
 import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction } from './quote_review_actions.ts';
 import { supabaseReviewRepo } from './quote_review_flow.ts';
@@ -435,7 +435,7 @@ const handle = async (req: Request): Promise<Response> => {
       }
       const licImgs = Array.isArray(lic.images) ? lic.images : [];
       if (licImgs.length || lic.file_b64) {
-        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'license', images: licImgs, file_b64: lic.file_b64, mime: lic.mime, filename: lic.filename }) }); const jd = await r.json();
+        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', images: licImgs, file_b64: lic.file_b64, mime: lic.mime, filename: lic.filename }) }); const jd = await r.json();
           if (jd?.ok && jd.doc) { const d = jd.doc;
             if (d.license_number) upd.trade_license_no = d.license_number;
             if (d.license_authority) upd.license_authority = d.license_authority;
@@ -497,7 +497,7 @@ const handle = async (req: Request): Promise<Response> => {
         upd.catalog_doc_paths = [...existingCat, ...catPaths.filter((p) => !existingCat.includes(p))].slice(0, 20);
       }
       if (profImgs.length) {
-        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'profile', images: profImgs.slice(0, 10) }) }); const jd = await r.json();
+        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', images: profImgs.slice(0, 10) }) }); const jd = await r.json();
           if (jd?.ok && jd.profile) { const pf = jd.profile;
             if (pf.summary) upd.capability_summary = pf.summary;
             // DOCUMENTS LEAD (spec, 29 Jul 2026). This line used to read
@@ -844,9 +844,13 @@ const handle = async (req: Request): Promise<Response> => {
       // rfq_no rides on the owner read: the ONE job number (audit 21 Sep 2026, finding 7), read from the
       // table because the supplier-safe projection does not carry it and a sequence number identifies nobody.
       const rfqOf: Record<string, number | null> = {};
-      { const { data: owners, error: eOwners } = await admin.from('inquiries').select('id,customer_id,project_id,rfq_no').in('id', ids);
+      // WITHHELD, SAID OUT LOUD (22 Sep 2026, sales_engineer). A customer's file that could not be shared
+      // without identifying them (a held drawing, any CAD file) left the supplier with no drawing and no
+      // word that one existed. Only the FACT is read here — the path never leaves this function.
+      const hasOriginal = new Set<string>();
+      { const { data: owners, error: eOwners } = await admin.from('inquiries').select('id,customer_id,project_id,rfq_no,drawing_file_path').in('id', ids);
         if (eOwners) ownerResolved = false;
-        else for (const o of (owners || [])) { rfqOf[String(o.id)] = o?.rfq_no ?? null; if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); if (o?.project_id) projectOf[String(o.id)] = String(o.project_id); } }
+        else for (const o of (owners || [])) { rfqOf[String(o.id)] = o?.rfq_no ?? null; if (o?.drawing_file_path) hasOriginal.add(String(o.id)); if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); if (o?.project_id) projectOf[String(o.id)] = String(o.project_id); } }
       const custIds = Array.from(new Set(Object.values(ownerOf)));
       const custName: Record<string, string> = {};
       // 14 Sep 2026 (founder: nothing that identifies the customer may reach a supplier). The buyer's
@@ -912,7 +916,7 @@ const handle = async (req: Request): Promise<Response> => {
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
         // through the same scrubIdentity as summary, behind the same reveal gate.
         const sBudget = revealed ? i.budget : (ownerResolved ? scrubIdentity(i.budget ?? null, buyerName, hits) : null);
-        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_ar: sSummaryAr, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_ar: sSummaryAr, spec: sSpec, created_at: i.created_at, budget: sBudget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
@@ -1123,7 +1127,7 @@ const handle = async (req: Request): Promise<Response> => {
       const { data: inq } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
       const secret = await secretVal('cred_fn_supplier_api');
       let jd: any = {};
-      try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed', detail: String((e as Error)?.message || e) }, 502); }
+      try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed', detail: String((e as Error)?.message || e) }, 502); }
       // Under the OpenRouter hold quote_extract has no model to call, so this is the expected path:
       // the code tells the portal to say "fill in the form", which is a complete way to quote.
       if (!jd?.ok) return J({ error: jd?.error || 'Could not read the quotation. Please fill the form instead.', code: 'quote_read_failed', detail: jd?.detail || null }, 502);

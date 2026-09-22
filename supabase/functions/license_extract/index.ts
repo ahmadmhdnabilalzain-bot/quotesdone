@@ -89,7 +89,7 @@ Deno.serve(observe('license_extract', async (req) => {
       // on a truncated response and every field below is then scrubbed to '', so the caller gets
       // HTTP 200 {ok:true, doc:{legal_name:'', license_number:'', confidence:'low'}} - identical to
       // a genuinely unreadable scan. doc_extract carried the same pattern at max:2000 and DID fail.
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', temperature: 0.1, sys, input: [{ role: 'user', content }] }) });
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'license_extract', subject: body.subject ?? null, temperature: 0.1, sys, input: [{ role: 'user', content }] }) });
       const jd = await r.json();
       if (!r.ok || jd?.ok === false) return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0, 300) }, 502);
       // A truncation and a malformed answer are different repairs (raise the ceiling / fix the

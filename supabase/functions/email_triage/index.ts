@@ -39,7 +39,10 @@ Deno.serve(observe('email_triage', async (req) => {
       } catch (_e) { tlText = ''; }
       const out = await llm(SYS, 'From: ' + (m.from_email||'') + '\nSubject: ' + (m.subject||'') + '\n\n' + String(m.body||'').slice(0, 4000) + tlText, 800);
       if (out) { const mm = out.match(/\{[\s\S]*\}/); if (mm) { try { const pj = JSON.parse(mm[0]); category = String(pj.category||'other').slice(0,40); summary = String(pj.summary||'').slice(0,500); reply = String(pj.reply||'').slice(0,4000); } catch (_e) {} } }
-      await admin.from('inbound_messages').update({ ai_category: category, ai_summary: summary, ai_draft_reply: reply || null, triaged_at: new Date().toISOString() }).eq('id', m.id);
+      const { error: markErr } = await admin.from('inbound_messages').update({ ai_category: category, ai_summary: summary, ai_draft_reply: reply || null, triaged_at: new Date().toISOString() }).eq('id', m.id);
+      // An answer that cannot be recorded is paid for again on the next run (22 Sep 2026, instruction
+      // 705): stop the batch rather than read the rest of the inbox into the same failing write.
+      if (markErr) { if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts, note: 'email_triage stopped: could not record the triage of inbound message ' + m.id + ' (' + String(markErr.message).slice(0, 160) + '); continuing would re-read and re-pay for it on every run.' }).eq('id', run.id); return J({ ok: false, error: 'mark_failed', counts }, 500); }
       counts.triaged++;
       if (category === 'spam' || !reply) { counts.spam++; }
       else {

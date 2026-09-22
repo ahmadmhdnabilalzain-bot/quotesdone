@@ -16,7 +16,9 @@
 // A DWG reaches this reader too: dwg.ts (22 Sep 2026) opens it with LibreDWG and hands its entities over
 // as ASCII DXF, so a DWG and a DXF share this one take-off.
 //
-// WHAT IT NEVER DOES. It does not read binary DXF (needs 'cad_conversion'), explode blocks,
+// A BINARY DXF reaches it too (22 Sep 2026): binaryDxfToAscii below turns its pairs into ASCII first.
+//
+// WHAT IT NEVER DOES. It does not explode blocks,
 // apply viewport scales, or guess what a layer means. Without $INSUNITS the unit is a guess and
 // every quantity says so at confidence 'low'. Identity is NOT scrubbed here; the caller does that.
 import { capText, empty, LIMITS, ok, refuse, type Qty, type ReadContext, type ReadResult } from './types.ts';
@@ -66,11 +68,81 @@ function polyMeasure(v: { x: number; y: number; b: number }[], closed: boolean):
   return { len, area: closed && n >= 2 ? Math.abs(shoe / 2 + seg) : 0 };
 }
 
-export async function readDxf(bytes: Uint8Array, _ctx: ReadContext, maxEntities = DXF_MAX_ENTITIES): Promise<ReadResult> {
-  const head = new TextDecoder('latin1').decode(bytes.subarray(0, 22));
-  if (head.startsWith('AutoCAD Binary DXF')) {
-    return ok(empty('dxf', ['Binary DXF: it has to be converted to ASCII DXF or PDF before its content can be read.'], 'cad_conversion'));
+// ---------------------------------------------------------------------------------------------------
+// BINARY DXF (22 Sep 2026, founder instructions 31/63/64/696). The same group-code/value pairs as an
+// ASCII DXF, written as bytes: the 22-byte sentinel "AutoCAD Binary DXF\r\n\x1a\0", then each pair as a
+// group code (2 bytes little-endian from R13; 1 byte in R12, where 255 means "a 2-byte code follows")
+// and a value whose TYPE is fixed by the code's range (AutoCAD DXF Reference, "Group Code Value Types"):
+// strings end in NUL, reals are 8-byte IEEE, integers 2/4/8 bytes, 290-299 booleans 1 byte, and binary
+// chunks (310-319, 1004) a length byte and that many bytes. binaryDxfToAscii writes the pairs back out
+// as ASCII DXF and readDxf does the ONE take-off. MEASURED on LibreDWG's test-data example_2000.dxfb
+// and example_2018.dxfb against the ASCII DXF of the same drawing: see cad.test.ts (fetched at test
+// time, never committed). A code outside every range, or a value running past the end, stops the read:
+// a misread type would shift every following pair, so nothing after it could be trusted.
+type BinT = 's' | 'f' | 'h' | 'i' | 'q' | 'b' | 'x';
+function binType(c: number): BinT | null {
+  if (c <= 9 || c === 100 || c === 101 || c === 102 || c === 105 || (c >= 300 && c <= 309) || (c >= 320 && c <= 369) || (c >= 390 && c <= 399) ||
+    (c >= 410 && c <= 419) || (c >= 430 && c <= 439) || (c >= 470 && c <= 481) || c === 999 || (c >= 1000 && c <= 1009 && c !== 1004)) return 's';
+  if ((c >= 10 && c <= 59) || (c >= 110 && c <= 149) || (c >= 210 && c <= 239) || (c >= 460 && c <= 469) || (c >= 1010 && c <= 1059)) return 'f';
+  if ((c >= 60 && c <= 79) || (c >= 170 && c <= 179) || (c >= 270 && c <= 289) || (c >= 370 && c <= 389) || (c >= 400 && c <= 409) || (c >= 1060 && c <= 1070)) return 'h';
+  if ((c >= 90 && c <= 99) || (c >= 420 && c <= 429) || (c >= 440 && c <= 459) || c === 1071) return 'i';
+  if (c >= 160 && c <= 169) return 'q';
+  if (c >= 290 && c <= 299) return 'b';
+  if ((c >= 310 && c <= 319) || c === 1004) return 'x';
+  return null;
+}
+
+/** Binary DXF bytes -> ASCII DXF text. Throws on a structure it cannot follow (caller refuses). */
+export function binaryDxfToAscii(bytes: Uint8Array, maxPairs = DXF_MAX_ENTITIES * 40): { dxf: string; pairs: number; capped: boolean } {
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const n = bytes.length;
+  // R12 writes 1-byte codes: the first pair after the sentinel is code 0 "SECTION", so byte 22 is 0 and
+  // byte 23 is 'S' (0x53) in R12, while R13+ has a second zero byte there.
+  const wide = bytes[23] === 0;
+  const lat = new TextDecoder('latin1'), utf = new TextDecoder('utf-8');
+  const out: string[] = [];
+  let p = 22, pairs = 0, capped = false, utf8 = false;
+  const need = (k: number) => { if (p + k > n) throw new Error(`binary DXF truncated at byte ${p}`); };
+  while (p < n) {
+    if (pairs >= maxPairs) { capped = true; break; }
+    need(wide ? 2 : 1);
+    let code: number;
+    if (wide) { code = dv.getInt16(p, true); p += 2; } else { code = bytes[p++]; if (code === 255) { need(2); code = dv.getInt16(p, true); p += 2; } }
+    const t = binType(code);
+    if (!t) throw new Error(`binary DXF: group code ${code} at byte ${p} has no known value type`);
+    let v: string;
+    switch (t) {
+      case 's': { const e = bytes.indexOf(0, p); if (e < 0) throw new Error(`binary DXF: unterminated string at byte ${p}`); v = (utf8 ? utf : lat).decode(bytes.subarray(p, e)); p = e + 1; break; }
+      case 'f': need(8); v = String(dv.getFloat64(p, true)); p += 8; break;
+      case 'h': need(2); v = String(dv.getInt16(p, true)); p += 2; break;
+      case 'i': need(4); v = String(dv.getInt32(p, true)); p += 4; break;
+      case 'q': need(8); v = String(dv.getBigInt64(p, true)); p += 8; break;
+      case 'b': need(1); v = String(bytes[p++]); break;
+      case 'x': { need(1); const len = bytes[p++]; need(len); v = [...bytes.subarray(p, p + len)].map((x) => x.toString(16).padStart(2, '0')).join('').toUpperCase(); p += len; break; }
+    }
+    // From AutoCAD 2007 (AC1021) text is UTF-8; before it, the $DWGCODEPAGE code page (read as latin1).
+    if (code === 1 && out[out.length - 1] === '$ACADVER') utf8 = v >= 'AC1021';
+    out.push(String(code), v.replace(/\r?\n/g, '\\P'));
+    pairs++;
+    if (code === 0 && v === 'EOF') break;
   }
+  return { dxf: out.join('\n') + '\n', pairs, capped };
+}
+
+/** Binary DXF: converted to ASCII pairs, then the one take-off below. */
+async function readBinaryDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities: number): Promise<ReadResult> {
+  let conv: ReturnType<typeof binaryDxfToAscii>;
+  try { conv = binaryDxfToAscii(bytes); } catch (e) { return refuse('dxf_unreadable', String((e as Error)?.message || e).slice(0, 160)); }
+  const r = await readDxf(new TextEncoder().encode(conv.dxf), ctx, maxEntities);
+  if (!r.ok) return r;
+  const notes = [`Read from binary DXF: ${conv.pairs} group-code pairs.`];
+  if (conv.capped) notes.push(`The binary DXF has more than ${conv.pairs} group-code pairs; reading stopped there, so totals are partial.`);
+  return ok({ ...r, notes: [...notes, ...r.notes] });
+}
+
+export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities = DXF_MAX_ENTITIES): Promise<ReadResult> {
+  const head = new TextDecoder('latin1').decode(bytes.subarray(0, 22));
+  if (head.startsWith('AutoCAD Binary DXF')) return readBinaryDxf(bytes, ctx, maxEntities);
   const src = new TextDecoder('utf-8').decode(bytes);
   const lines = src.split(/\r?\n/);
   if (!/^\s*0\s*$/.test(lines[0] ?? '') && !src.slice(0, 2000).includes('SECTION')) {
@@ -214,7 +286,9 @@ export async function readDxf(bytes: Uint8Array, _ctx: ReadContext, maxEntities 
   if (anon) notes.push(`${anon} anonymous block inserts (dimensions, hatches, dynamic blocks) were not counted.`);
   if (capped) notes.push(`The drawing has more than ${maxEntities} entities; reading stopped there, so totals are partial.`);
   notes.push('Lengths are per layer as drawn; block contents are not exploded and viewport scales are not applied.');
-  return ok({ ...empty('dxf', notes), text: text.join('').trimEnd(), quantities });
+  // dxf_text: the ASCII DXF this take-off came from (the file, a converted binary DXF, or a DWG's entities
+  // written by dwg.ts), for cad_identity's identity scan by the caller. Every CAD reader passes through here.
+  return ok({ ...empty('dxf', notes), text: text.join('').trimEnd(), quantities, dxf_text: src });
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -238,10 +312,11 @@ const isStringCode = (c: number) => (c >= 1 && c <= 9) || (c >= 300 && c <= 309)
 const isFreeText = (c: number) => c === 1 || c === 3 || (c >= 300 && c <= 309) || c === 999 || c === 1000 || c === 1001;
 
 export function redactDxf(bytes: Uint8Array, redact: (s: string) => string): { bytes: Uint8Array; changed: number; residualCheck: string } {
-  if (new TextDecoder('latin1').decode(bytes.subarray(0, 22)).startsWith('AutoCAD Binary DXF')) {
-    throw new Error('dxf_binary: a binary DXF cannot be redacted; it must not be passed on');
-  }
-  const src = new TextDecoder('utf-8').decode(bytes);
+  // A binary DXF is converted to ASCII first (22 Sep 2026), so the supplier's copy is the redacted ASCII
+  // DXF. A binary file the converter cannot follow throws here, and so is never passed on.
+  const src = new TextDecoder('latin1').decode(bytes.subarray(0, 22)).startsWith('AutoCAD Binary DXF')
+    ? binaryDxfToAscii(bytes).dxf
+    : new TextDecoder('utf-8').decode(bytes);
   const eol = src.includes('\r\n') ? '\r\n' : '\n';
   const lines = src.split(/\r?\n/);
   if (!src.slice(0, 2000).includes('SECTION')) throw new Error('dxf_unreadable: not an ASCII DXF');

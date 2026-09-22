@@ -18,6 +18,7 @@ Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'zz-demo-key');
 Deno.env.set('RESEND_INBOUND_NO_SERVE', '1');
 
 const INVITES_SENT = { n: 0 };
+const SEEN_EMAIL_IDS = new Set<string>();
 type Call = { url: string; method: string; body: string; prefer: string };
 const calls: Call[] = [];
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
@@ -36,6 +37,11 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   // "have we ever sent this address an invitation?" -- a HEAD count; INVITES_SENT decides the answer
   if (u.pathname === '/rest/v1/notifications' && req.method === 'HEAD') {
     return new Response(null, { status: 200, headers: { 'Content-Range': '*/' + INVITES_SENT.n } });
+  }
+  // "is this Resend email already on file?" -- only the ids in SEEN_EMAIL_IDS are
+  if (u.pathname === '/rest/v1/inbound_messages' && req.method === 'GET' && u.searchParams.has('provider_email_id')) {
+    const id = (u.searchParams.get('provider_email_id') || '').replace(/^eq\./, '');
+    return json(SEEN_EMAIL_IDS.has(id) ? [{ id: 77 }] : []);
   }
   const one = (req.headers.get('Accept') || '').includes('vnd.pgrst.object');
   let row: Record<string, unknown> = { id: 1 };
@@ -207,4 +213,17 @@ Deno.test({ name: 'a supplier document email that mentions stopping is not an un
   await handler(await signed({ email_id: 'zz-demo-unsub-2', from: 'ZZ DEMO Supplier <owner@example.invalid>',
     to: ['docs@mail.quotesdone.com'], subject: 'Re: licence renewal', text: 'Please do not stop the tender. Licence attached next week.' }));
   assertEquals(suppressions().length, 0);
+} });
+
+// A REDELIVERY IS NOT A NEW EMAIL (it_engineer, 22 Sep 2026, founder instruction 705). Resend retries any
+// non-2xx; an email already on file under its Resend id must not reach a reader or the model again.
+Deno.test({ name: 'a redelivered email already on file is answered before any reader or model runs', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  SEEN_EMAIL_IDS.add('zz-demo-0001'); calls.length = 0;
+  try {
+    const res = await handler(await delivery(statementPdf(LINES)));
+    const out = await res.json();
+    assertEquals([res.status, out.duplicate, out.inbound_message_id], [200, true, 77]);
+    assertEquals(calls.filter((c) => /ai_gateway|license_extract|\/rpc\/fn_accountant/.test(c.url)).length, 0);
+    assertEquals(calls.filter((c) => /\/rest\/v1\/(inbound_messages|expense_entries)/.test(c.url) && c.method !== 'GET').length, 0);
+  } finally { SEEN_EMAIL_IDS.delete('zz-demo-0001'); }
 } });

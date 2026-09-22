@@ -22,6 +22,13 @@
 // deduplicated issue key, so a recurrence is visible after the fact and not only in a log line.
 // deno-lint-ignore-file no-explicit-any
 
+/**
+ * THE CUSTOMER ATTACHED A FILE THE SUPPLIER CANNOT BE SHOWN (22 Sep 2026). A held drawing — or any CAD file,
+ * which is never pictured for a supplier — carries an original and no redacted page. The supplier was told
+ * nothing, and priced as if no drawing existed. True means "say so": the portal words it in EN and AR.
+ */
+export const drawingWithheld = (hasOriginal: boolean, redactedPages: number) => hasOriginal && redactedPages === 0;
+
 /** The one dedupe identity for this fault. One key, not one per inquiry: the subject is the signing. */
 export const DRAWING_SIGN_ISSUE = 'supplier_inbox:drawing_page_sign_failed';
 

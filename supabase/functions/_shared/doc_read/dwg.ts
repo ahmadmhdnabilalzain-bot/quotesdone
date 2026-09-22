@@ -24,8 +24,9 @@
 // IDENTICAL for the 2004, 2007, 2010, 2013 and 2018 editions. KNOWN LIBREDWG DEFECT: in the R14 and 2000
 // editions it returns the closed 3D polyline with 3 of its 4 vertices, so that layer reads 0.95 sqm and
 // 0.43 m short. dwg_samples.check.ts pins both facts, so a LibreDWG upgrade that fixes or worsens it shows.
-// So the edge reads DWGs up to DWG_MAX_BYTES and says what to do past it. scripts/dwg_takeoff.ts runs
-// this same reader with no ceiling where there is no CPU cap (a CI worker, a laptop).
+// ON PRODUCTION NONE OF THIS RAN until 22 Sep 2026: see THE 1 GB MEMORY FLOOR below. The edge reads DWGs
+// up to DWG_MAX_BYTES; past it, or when the edge worker dies, customer_api queues the drawing for
+// scripts/cad_read_worker.ts, which runs this same reader with no ceiling (a GitHub runner, no CPU cap).
 //
 // WHAT IT NEVER DOES. SPLINE, ELLIPSE, HATCH, MLINE, 3D solids, tables and multileaders are counted by
 // type in the notes, not measured. Blocks are not exploded (same as DXF). Identity is NOT scrubbed here.
@@ -43,11 +44,15 @@ const RELEASE: Record<string, string> = {
 };
 
 /**
- * Past this size a DWG is not opened in an edge function. The 2 s CPU cap kills the isolate silently
- * (no catch runs), so the ceiling is the largest file MEASURED to fit cold (582 KB at ~1.5 s), rounded
- * up a little, and the note says what to send instead. Raise it only with a measurement on the edge.
+ * Past this size a DWG is not opened in an edge function; customer_api queues it for the CAD worker
+ * (scripts/cad_read_worker.ts, no CPU cap), which runs this same reader with no ceiling. MEASURED 22 Sep
+ * 2026, dev machine, cold isolate, process CPU (includes V8's compile threads): 1.4 MB / 5 entities
+ * 0.45 s; 569 KB / 67 entities 0.80 s; 562 KB / 2,551 entities 1.9 s; 2.1 MB / 121 entities 2.7 s. Size
+ * does not predict the cost - entities and objects do - so this ceiling is not what keeps the edge safe:
+ * customer_api treats a worker that dies (546) exactly like a file over the ceiling and queues it. The
+ * ceiling only spares a customer the wait for an edge attempt that is very likely to die.
  */
-export const DWG_MAX_BYTES = 640 * 1024;
+export const DWG_MAX_BYTES = 1536 * 1024;
 
 type P = { x?: number; y?: number; z?: number };
 // deno-lint-ignore no-explicit-any
@@ -70,6 +75,12 @@ export function dwgToDxf(db: DwgDb): { dxf: string; skipped: Map<string, number>
   g(0, 'SECTION'); g(2, 'HEADER');
   const u = Number(db.header?.INSUNITS);
   if (Number.isFinite(u)) { g(9, '$INSUNITS'); g(70, u); }
+  // The job's own names (22 Sep 2026): carried into the DXF text so cad_identity.ts can take them out of
+  // the take-off. readDxf measures nothing from them.
+  for (const k of ['PROJECTNAME', 'HYPERLINKBASE', 'LASTSAVEDBY']) {
+    const v = String(db.header?.[k] ?? '').trim();
+    if (v) { g(9, '$' + k); g(1, oneLine(v)); }
+  }
   g(0, 'ENDSEC'); g(0, 'SECTION'); g(2, 'ENTITIES');
   for (const e of db.entities) {
     const head = (t: string) => { g(0, t); g(8, e.layer || '0'); };
@@ -92,7 +103,8 @@ export function dwgToDxf(db: DwgDb): { dxf: string; skipped: Map<string, number>
         g(0, 'SEQEND'); break;
       case 'INSERT': head('INSERT'); g(2, e.name ?? ''); pt(e.insertionPoint); break;
       case 'TEXT': head('TEXT'); g(1, oneLine(e.text)); break;
-      case 'ATTRIB': head('ATTRIB'); g(1, oneLine(e.text?.text ?? e.text)); break;
+      // The tag (CLIENT, PROJECT, DRAWN ...) is what tells cad_identity a value names a party.
+      case 'ATTRIB': head('ATTRIB'); g(1, oneLine(e.text?.text ?? e.text)); if (e.tag) g(2, oneLine(e.tag)); break;
       case 'MTEXT': head('MTEXT'); g(1, oneLine(e.text)); break;
       case 'DIMENSION': head('DIMENSION'); g(1, oneLine(e.text)); if (e.measurement) g(42, e.measurement); break; // R14 stores none (0)
       default: skipped.set(e.type, (skipped.get(e.type) ?? 0) + 1);
@@ -113,6 +125,39 @@ async function sha256Hex(b: Uint8Array<ArrayBuffer>): Promise<string> {
   const h = new Uint8Array(await crypto.subtle.digest('SHA-256', b));
   return [...h].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
+// ---- THE 1 GB MEMORY FLOOR (22 Sep 2026) ---------------------------------------------------------------
+// MEASURED ON PRODUCTION, 22 Sep 2026: every DWG sent to the deployed drawing_boq — 22 KB, 183 KB, 408 KB,
+// 569 KB — came back HTTP 546 WORKER_RESOURCE_LIMIT in 0.6-4.0 s, and the function log says "Memory limit
+// exceeded". The same bytes read fine on a laptop, which is why #821 reported DWG as read. The cause is in
+// the .wasm itself: its memory section declares a MINIMUM of 16,384 pages (Emscripten INITIAL_MEMORY=1GB),
+// so instantiating it asks for 1 GB before a single byte of the drawing is read. A desktop reserves that
+// lazily; the edge counts it and kills the worker. So NO DWG of any size was ever read on production.
+// The build also carries memory GROWTH (its glue's growMemory calls wasmMemory.grow), so the floor is not
+// needed: lowerMemoryFloor rewrites the minimum to WASM_MIN_PAGES in place — same LEB128 width, so no other
+// byte moves — AFTER the pinned SHA-256 has been checked on the original bytes. Memory then grows only as
+// far as the drawing needs; dwg.test.ts and dwg_samples.check.ts measure how far.
+export const WASM_MIN_PAGES = 256;   // 16 MB; the largest sample measured grows past it on its own
+export function lowerMemoryFloor(bin: Uint8Array, pages = WASM_MIN_PAGES): { from: number; to: number } {
+  let p = 8;
+  const leb = () => { let r = 0, s = 0, b: number; do { b = bin[p++]; r += (b & 0x7f) * 2 ** s; s += 7; } while (b & 0x80 && s < 35); return r; };
+  while (p < bin.length) {
+    const id = bin[p++], size = leb(), start = p;
+    if (id === 5) {
+      if (leb() !== 1) throw new Error('libredwg wasm: expected one memory');
+      p++;                                   // flags: bit 0 says a maximum follows the minimum
+      const at = p, from = leb(), width = p - at;
+      if (pages >= from) return { from, to: from };
+      for (let i = 0, v = pages; i < width; i++, v = Math.floor(v / 128)) bin[at + i] = (v & 0x7f) | (i < width - 1 ? 0x80 : 0);
+      return { from, to: pages };
+    }
+    p = start + size;
+  }
+  throw new Error('libredwg wasm: no memory section');
+}
+
+/** The WASM heap of the last drawing opened, in bytes (measurement only). */
+let heapOf = () => 0;
+export const lastWasmHeapBytes = () => heapOf();
 // deno-lint-ignore no-explicit-any
 async function freshLibreDwg(): Promise<any> {
   compiled ??= (async () => {
@@ -120,6 +165,7 @@ async function freshLibreDwg(): Promise<any> {
     if (!r.ok) throw new Error(`libredwg wasm fetch ${r.status}`);
     const bin = new Uint8Array(await r.arrayBuffer());
     if (await sha256Hex(bin) !== WASM_SHA256) throw new Error('libredwg wasm checksum mismatch');
+    lowerMemoryFloor(bin);
     // A string LITERAL, not built from PKG: the edge bundler only includes dynamic imports it can read
     // statically. Keep it equal to PKG (dwg.test.ts asserts they match).
     return { m: await import('npm:@mlightcad/libredwg-web@0.7.14'), mod: await WebAssembly.compile(bin) };
@@ -131,6 +177,7 @@ async function freshLibreDwg(): Promise<any> {
     instantiateWasm: (imports: WebAssembly.Imports, done: (i: WebAssembly.Instance, m: WebAssembly.Module) => unknown) =>
       WebAssembly.instantiate(mod, imports).then((i) => done(i, mod)),
   });
+  heapOf = () => inst.HEAPU8?.byteLength ?? 0;
   return m.LibreDwg.createByWasmInstance(inst);
 }
 
