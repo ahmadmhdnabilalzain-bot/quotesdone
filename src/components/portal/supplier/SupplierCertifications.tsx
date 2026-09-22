@@ -124,7 +124,7 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
                   {L.status[c.document_status]}
                   {c.expiry && c.days_left != null && (
                     <> · {c.days_left >= 0
-                      ? `${L.expiresIn} ${ar ? arDays(c.days_left) : `${c.days_left} ${L.days}`}`
+                      ? (ar ? (c.days_left === 0 ? 'تنتهي اليوم' : `${L.expiresIn} ${arDays(c.days_left)}`) : `${L.expiresIn} ${c.days_left} ${L.days}`)
                       : (ar ? `منذ ${arDays(Math.abs(c.days_left))}` : `${Math.abs(c.days_left)} ${L.daysAgo}`)}</>
                   )}
                 </p>

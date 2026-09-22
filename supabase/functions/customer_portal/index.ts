@@ -20,6 +20,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
+import { arDays } from '../_shared/ar_days.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -172,7 +173,7 @@ Deno.serve(observe('customer_portal', async (req) => {
         const days = p.within_days ?? p.horizon_days ?? p.days;
         if (!what) continue;
         alerts.push({ kind: 'forecast_need', severity: 'low', category: what, within_days: days ?? null,
-          title: ar ? ('من المرجّح أن تحتاج ' + what + (days ? ' خلال ' + days + ' يومًا' : '')) : ('You will likely need ' + what + (days ? ' within ' + days + ' days' : '')),
+          title: ar ? ('من المرجّح أن تحتاج ' + what + (days ? ' خلال ' + arDays(days) : '')) : ('You will likely need ' + what + (days ? ' within ' + days + ' days' : '')),
           detail: ar ? ('استنادًا إلى وتيرة مشاريعك السابقة. ابدأ طلب عروض الأسعار الآن ليتّسع الوقت للتوريد.') : ('Based on the rhythm of your past projects. Starting the RFQ now leaves room for lead time.') });
       }
 

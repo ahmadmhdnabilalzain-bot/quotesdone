@@ -39,8 +39,9 @@
 //     arabic_glossary.mjs
 //   - vocabulary and parsers (trade glossaries, aliases, rule packs, normalisers, OCR/sheet readers,
 //     fixtures) — they match what people type, they are not messages
-//   - the PDF documents (quote/charge/reveal/certificate/archive renderers) — owned by the document
-//     template work and its own checks
+//   - the PDF documents (quote/reveal/payment/certificate/archive renderers) — owned by the document
+//     template work and its own checks. The supplier charge documents ARE scanned (review of #818:
+//     a day count there reached the supplier).
 //   - SQL files before the anchor — history; the live routines they define were rewritten through the
 //     anchor file itself.
 //
@@ -51,7 +52,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LIST = 'scripts/checks/arabic_reviewed_strings.json';
@@ -75,7 +76,7 @@ export const ARTEFACTS = [
 
 // Files on a surface above that are vocabulary, parsers, fixtures or PDF renderers.
 const NOT_A_MESSAGE = [
-  /^supabase\/functions\/_shared\/(trade_glossary_ar|trade_classify|trade_words|boq_arabic|anonymise|identity_numbers|bank_statement_parse|receipt_parse|catalogue_read|catalogue_model|service_meaning|service_rewrite|drawing_identity_text|pdf_measure|registered_locale|doc_template|quote_documents|supplier_charge_documents|reveal_fee_documents|supplier_payment_documents|supplier_charge|supplier_capability|project_budget|boq_open_lines)\.ts$/,
+  /^supabase\/functions\/_shared\/(trade_glossary_ar|trade_classify|trade_words|boq_arabic|anonymise|identity_numbers|bank_statement_parse|receipt_parse|catalogue_read|catalogue_model|service_meaning|service_rewrite|drawing_identity_text|pdf_measure|registered_locale|doc_template|quote_documents|reveal_fee_documents|supplier_payment_documents|supplier_charge|supplier_capability|project_budget|boq_open_lines)\.ts$/,
   /^supabase\/functions\/_shared\/(doc_read|rules|vendor)\//,
   /^supabase\/functions\/(pdf_native|drawing_boq|sanctions_screen|supplier_catalog_ingest|quote_extract|compliance_archive|conversation_archive)\//,
   /^supabase\/functions\/_shared\/line_specs\/(derive|compare|vat|workflow|options)\.ts$/,
@@ -179,19 +180,45 @@ if (MAIN && process.argv.includes('--write')) {
 
   // Review of #818: "${n} days" in Arabic was printed with one fixed noun, wrong for 1, 2 and 3-10.
   // A variable count placed straight before the word for day(s) must go through arDays()
-  // (src/lib/durationLabel.ts). Working days (the noun followed by "work") are fixed windows and exempt.
-  const DAY_COUNT_BY_HAND = /(\$\{[^}]*\}|\{[a-z_]+\}) ?(?:يوم(?:ًا|اً)?|أيام)(?![؀-ۿ])(?! عمل)/;
+  // (src/lib/durationLabel.ts; supabase/functions/_shared/ar_days.ts at the edge; public.fn_ar_days in
+  // SQL) — whether interpolated (`${n}`, `{n}`) or concatenated (`+ n + '...'`, `|| '...'`). Only an
+  // Arabic LETTER after the word stops a match, so punctuation (، ؛ ؟ .) does not hide it. Working days
+  // (the noun followed by "work") are fixed windows and exempt.
+  const DAY_WORD = '(?:يوم(?:ًا|اً)?|أيام)(?![\\u0621-\\u064A])(?! عمل)';
+  const DAY_COUNT_BY_HAND = new RegExp(`(?:(?:\\$\\{[^}]*\\}|\\{[a-z_]+\\}) ?|(?:\\+|\\|\\|) ?['"\`] ?)${DAY_WORD}`);
+  // The three helpers themselves spell the forms out and are the one place allowed to.
+  const HELPER_START = /export function arDays\(|function public\.fn_ar_days\(/;
+  const HELPER_END = /^\}|^\$fn\$;/;
   test('the day-count pattern catches a hand-written count and passes the helper', () => {
-    assert.ok(DAY_COUNT_BY_HAND.test('`خلال ${d} يومًا`'));
-    assert.ok(DAY_COUNT_BY_HAND.test("'{days} أيام'"));
-    assert.ok(!DAY_COUNT_BY_HAND.test('`خلال ${arDays(d)}`'));
-    assert.ok(!DAY_COUNT_BY_HAND.test("'{w} أيام عمل'"));
-    assert.ok(!DAY_COUNT_BY_HAND.test("'${n} يومان'"));
+    for (const s of ['`خلال ${d} يومًا`', "'{days} أيام'", '`خلال ${days} يومًا؛`', "' خلال ' + days + ' يومًا'", "|| ' يومًا). '", "`${n} يوم.`"]) assert.ok(DAY_COUNT_BY_HAND.test(s), s);
+    for (const s of ['`خلال ${arDays(d)}`', "'{w} أيام عمل'", "'${n} يومان'", "|| ' يومان'"]) assert.ok(!DAY_COUNT_BY_HAND.test(s), s);
   });
-  test('no Arabic template prints a day count without arDays()', () => {
+  test('no Arabic template prints a day count without the helper', () => {
     const hits = [];
-    for (const f of surfaces()) for (const l of arabicLines(f)) if (DAY_COUNT_BY_HAND.test(l.text)) hits.push(`${f}:${l.line} ${l.text.trim().slice(0, 120)}`);
-    assert.deepEqual(hits, [], 'use arDays() from src/lib/durationLabel.ts');
+    for (const f of surfaces()) {
+      let inHelper = false;
+      fs.readFileSync(path.join(ROOT, f), 'utf8').split(/\r?\n/).forEach((text, i) => {
+        if (HELPER_START.test(text)) inHelper = true;
+        else if (inHelper && HELPER_END.test(text)) { inHelper = false; return; }
+        if (!inHelper && AR.test(text) && !/^\s*(\/\/|\/\*|\*|--)/.test(text) && DAY_COUNT_BY_HAND.test(text)) hits.push(`${f}:${i + 1} ${text.trim().slice(0, 120)}`);
+      });
+    }
+    assert.deepEqual(hits, [], 'use arDays() (src/lib/durationLabel.ts, supabase/functions/_shared/ar_days.ts) or public.fn_ar_days()');
+  });
+  test('the three day-count helpers agree', async () => {
+    const { arDays: web } = await import(pathToFileURL(path.join(ROOT, 'src/lib/durationLabel.ts')).href);
+    const { arDays: edge } = await import(pathToFileURL(path.join(ROOT, 'supabase/functions/_shared/ar_days.ts')).href);
+    // The SQL helper, read from its definition and evaluated the same way Postgres does.
+    const sqlText = fs.readFileSync(path.join(ROOT, ANCHOR), 'utf8');
+    const body = sqlText.slice(sqlText.indexOf('function public.fn_ar_days('));
+    const lit = (re) => { const m = body.match(re); assert.ok(m, String(re)); return m[1]; };
+    const z = lit(/abs\(p_n\) = 0 then '([^']+)'/), one = lit(/abs\(p_n\) = 1 then '([^']+)'/), two = lit(/abs\(p_n\) = 2 then '([^']+)'/);
+    const few = lit(/abs\(p_n\) <= 10 then abs\(p_n\)::text \|\| '([^']+)'/), many = lit(/else abs\(p_n\)::text \|\| '([^']+)'/);
+    const sql = (n) => { const k = Math.abs(n); return k === 0 ? z : k === 1 ? one : k === 2 ? two : k <= 10 ? k + few : k + many; };
+    const want = { 0: 'اليوم', 1: 'يوم واحد', 2: 'يومان', 3: '3 أيام', 10: '10 أيام', 11: '11 يومًا', 15: '15 يومًا', 100: '100 يومًا' };
+    for (const [n, s] of Object.entries(want)) {
+      assert.equal(web(Number(n)), s, `web ${n}`); assert.equal(edge(Number(n)), s, `edge ${n}`); assert.equal(sql(Number(n)), s, `sql ${n}`);
+    }
   });
 
   test('the SQL anchor is in MANIFEST or pending, so new SQL files are scanned', () => {

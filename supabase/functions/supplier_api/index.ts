@@ -2,6 +2,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactText } from '../_shared/anonymise.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
+import { arDays } from '../_shared/ar_days.ts';
 // MALWARE WATCH, 9 Sep 2026. Every file a supplier sends is hashed and looked up before it reaches
 // storage; a hash VirusTotal already knows to be malicious is refused here rather than stored,
 // forwarded and served back. See _shared/malware.ts for why the lookup blocks and the analysis does not.
@@ -705,7 +706,7 @@ const handle = async (req: Request): Promise<Response> => {
           // Only the certificate is outstanding and it is on its way: nothing is asked of the supplier.
           ? (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name}. نعمل حاليًا على إصدار شهادة موافقتكم الموقّعة على شروط المورّد، وسيُفعَّل حسابكم تلقائيًا فور صدورها، دون أن يلزمكم أي إجراء.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. We are issuing the signed certificate of your acceptance of the supplier terms; your account activates automatically as soon as it is ready. Nothing is needed from you.` })
-          : (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name} لدى QuotesDone.\n\nلم يُفعَّل حسابكم بعد، إذ لا يزال ينقصه ما يلي: ${needAr}.\n\nيُرجى تسجيل الدخول إلى بوابة المورّد واستكمال ذلك، وسيُفعَّل حسابكم تلقائيًا فور اكتمال البنود الستة، دون قائمة انتظار أو مراجعة يدوية.\n\nنرجو استكمال ذلك خلال ${days} يومًا؛ إذ يُغلق طلب التسجيل بعدها تلقائيًا، ويسعدنا تسجيلكم من جديد في أي وقت.` }
+          : (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name} لدى QuotesDone.\n\nلم يُفعَّل حسابكم بعد، إذ لا يزال ينقصه ما يلي: ${needAr}.\n\nيُرجى تسجيل الدخول إلى بوابة المورّد واستكمال ذلك، وسيُفعَّل حسابكم تلقائيًا فور اكتمال البنود الستة، دون قائمة انتظار أو مراجعة يدوية.\n\nنرجو استكمال ذلك خلال ${arDays(days)}؛ إذ يُغلق طلب التسجيل بعدها تلقائيًا، ويسعدنا تسجيلكم من جديد في أي وقت.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name} with QuotesDone.\n\nYour account is not active yet because it still needs: ${needEn}.\n\nPlease sign in to your supplier portal and complete it. Your account activates automatically as soon as all six required items are in — there is no waiting list and no manual queue.\n\nPlease do this within ${days} days. After that this registration closes automatically, and you are welcome to start again at any time.` });
         await notify([
           { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,

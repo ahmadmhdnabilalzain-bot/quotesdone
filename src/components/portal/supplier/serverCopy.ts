@@ -103,7 +103,7 @@ const COPY: Record<string, Entry> = {
   doc_expiry_title: s((p) => `${p.doc} ${p.expired ? 'has expired' : 'expires soon'}`, (p) => (p.expired ? `انتهت صلاحية ${docAr(p.doc)}` : `أوشكت صلاحية ${docAr(p.doc)} على الانتهاء`)),
   doc_expiry_detail: s(
     (p) => `Expiry ${p.expiry} — ${p.days_left < 0 ? `overdue by ${Math.abs(p.days_left)} days` : `${p.days_left} days left`}. Upload a renewed copy to stay eligible.`,
-    (p) => `تاريخ الانتهاء ${p.expiry} — ${p.days_left < 0 ? `انقضى على انتهائها ${arDays(Math.abs(p.days_left))}` : `المتبقي ${arDays(p.days_left)}`}. ارفعوا نسخة مجدّدة لتبقوا ضمن المورّدين المؤهّلين.`),
+    (p) => `تاريخ الانتهاء ${p.expiry} — ${p.days_left < 0 ? `انقضى على انتهائها ${arDays(Math.abs(p.days_left))}` : p.days_left === 0 ? 'تنتهي اليوم' : `المتبقي ${arDays(p.days_left)}`}. ارفعوا نسخة مجدّدة لتبقوا ضمن المورّدين المؤهّلين.`),
   // `total` (audit 21 Sep 2026, finding 6): the bell said "1 new RFQ" beside "Inquiries received (3)";
   // both were true (two were already quoted) but neither said so. The count now names what it is out of.
   new_rfq_title: s((p) => `${p.count} new RFQ${p.count > 1 ? 's' : ''} waiting for your quote` + (p.total > p.count ? ` (of ${p.total} received)` : ''), (p) => `${p.count} ${plural(p.count, 'طلب تسعير جديد ينتظر', 'طلبات تسعير جديدة تنتظر')} عرضكم` + (p.total > p.count ? ` (من أصل ${p.total})` : '')),

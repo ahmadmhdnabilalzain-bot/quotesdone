@@ -95,6 +95,30 @@ begin
   end if;
 end $guard$;
 
+-- 1b. public.fn_ar_days(int): an Arabic day count with the number agreeing (0 = today, 1, 2, 3-10,
+--     11+). "N days" had been glued as one fixed noun after the number, wrong for 1, 2 and 3-10
+--     (review of #818). The SQL twin of arDays() in src/lib/durationLabel.ts and
+--     supabase/functions/_shared/ar_days.ts; every_arabic_message_is_written_not_translated.test.mjs
+--     keeps the three equal. Two routines below call it; both are security definer, so no caller
+--     needs EXECUTE of its own.
+create or replace function public.fn_ar_days(p_n integer)
+returns text
+language sql
+immutable
+returns null on null input
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select case
+    when abs(p_n) = 0 then 'اليوم'
+    when abs(p_n) = 1 then 'يوم واحد'
+    when abs(p_n) = 2 then 'يومان'
+    when abs(p_n) <= 10 then abs(p_n)::text || ' أيام'
+    else abs(p_n)::text || ' يومًا'
+  end
+$fn$;
+
+revoke execute on function public.fn_ar_days(integer) from public, anon, authenticated;
+
 -- 2. The routines. Each body is the live pg_get_functiondef text with only Arabic literals rewritten;
 --    every routine was closed to anon/authenticated when measured, and the revoke is restated.
 
@@ -658,7 +682,7 @@ begin
         'body', case when v_ar then
             'السادة/ ' || coalesce(r.company_name, 'المورّد') || ' المحترمين،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
             || 'فُتح طلب تسجيلكم كمورّد بتاريخ ' || v_opened || '، ولا يزال ينقصه: ' || v_items_ar || '. '
-            || 'أبلغناكم أننا سنبقي الطلب مفتوحًا ' || public.fn_supplier_exception_days() || ' يومًا، وقد انقضت هذه المدة، لذلك أُغلق طلب التسجيل.' || chr(10) || chr(10)
+            || 'أبلغناكم أننا سنبقي الطلب مفتوحًا ' || public.fn_ar_days(public.fn_supplier_exception_days()) || '، وقد انقضت هذه المدة، لذلك أُغلق طلب التسجيل.' || chr(10) || chr(10)
             || 'يمكنكم التسجيل من جديد في أي وقت عبر https://quotesdone.com/portal، ويُفعَّل حسابكم فور اكتمال البنود الستة: '
             || 'اسم الشركة، ورقم جوال موثَّق، وبريد إلكتروني موثَّق، والرخصة التجارية، والملف التعريفي للشركة، والموافقة الموقّعة على شروط المورّد.' || chr(10) || chr(10)
             || 'وإن رأيتم أن في ذلك خطأً، فيسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10) || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
@@ -828,7 +852,7 @@ begin
       || E'Until it is settled your profile does not receive new customer requests.\n\nIf you have already paid, reply to this email and we will check it against the payment record.';
     v_sub_ar := 'تذكير ' || (d->>'dunning_no') || ': اشتراككم في QuotesDone لم يُسدَّد بعد';
     v_body_ar := 'استحق اشتراككم السنوي كمورّد بقيمة ' || (d->>'fee') || ' درهم في ' || (d->>'due_on') || ' ولم يُسدَّد بعد ('
-      || (d->>'days_overdue') || ' يومًا). يُرجى السداد من قسم الفواتير في بوابة المورّد، علمًا بأن ملفكم لن يتلقى طلبات جديدة حتى السداد.';
+      || public.fn_ar_days((d->>'days_overdue')::int) || '). يُرجى السداد من قسم الفواتير في بوابة المورّد، علمًا بأن ملفكم لن يتلقى طلبات جديدة حتى السداد.';
     v_msg := 'subscription_dunning';
   elsif v_notice = 'subscription_payment_failed' then
     v_sub_en := 'Your QuotesDone subscription payment did not go through';
@@ -1460,6 +1484,8 @@ update public.notification_copy
 -- 4. Read-only verdict: each routine no longer carries a sampled phrase it replaced, and all 13
 --    notification_copy bodies are the new text.
 select case when true
+      and public.fn_ar_days(0) = 'اليوم' and public.fn_ar_days(1) = 'يوم واحد' and public.fn_ar_days(2) = 'يومان'
+      and public.fn_ar_days(10) = '10 أيام' and public.fn_ar_days(11) = '11 يومًا'
       and position(convert_from(decode('d8aad98520d8aad8a3d983d98ad8af20d8a7d984d983d8b4d98120e2809420', 'hex'), 'UTF8') in (select prosrc from pg_proc where oid = 'public.fn_sales_engineer_acts_on_handoff(bigint)'::regprocedure)) = 0
       and position(convert_from(decode('d984d98520d986d8acd8af20d8b9d985d984d98ad8a920d8a7d984d983d8b4d98120d987d8b0d98720d981d98a20d8add8b3d8a7d8a8d9832e', 'hex'), 'UTF8') in (select prosrc from pg_proc where oid = 'public.fn_refund_open_from_customer(uuid,text,text)'::regprocedure)) = 0
       and position(convert_from(decode('d8a7d8b1d981d8b920d8b1d8aed8b5d8aad98320d8a7d984d8aad8acd8a7d8b1d98ad8a9', 'hex'), 'UTF8') in (select prosrc from pg_proc where oid = 'public.fn_supplier_advisor(bigint)'::regprocedure)) = 0
