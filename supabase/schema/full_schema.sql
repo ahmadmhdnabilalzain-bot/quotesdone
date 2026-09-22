@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-22T20:30:38.317Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-22T20:52:11.726Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -194,7 +194,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (546) =====
+-- ===== TABLES (547) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -6548,6 +6548,17 @@ CREATE TABLE IF NOT EXISTS public.skills_matrix (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.sms_messages (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  sms_from text NOT NULL,
+  sms_to text NOT NULL,
+  body text DEFAULT ''::text NOT NULL,
+  message_sid text,
+  verified boolean DEFAULT false NOT NULL,
+  meta jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.social_conversation (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   platform text NOT NULL,
@@ -8111,6 +8122,7 @@ ALTER TABLE public.seo_categories ADD CONSTRAINT seo_categories_pkey PRIMARY KEY
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_pkey PRIMARY KEY (from_code, implies_trade, implies_code);
 ALTER TABLE public.simulations ADD CONSTRAINT simulations_pkey PRIMARY KEY (id);
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_pkey PRIMARY KEY (agent_key, skill);
+ALTER TABLE public.sms_messages ADD CONSTRAINT sms_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_pkey PRIMARY KEY (id);
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id);
@@ -9487,6 +9499,8 @@ CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseli
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
 CREATE UNIQUE INDEX security_kpi_snap_day ON public.security_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX sms_messages_from_created_idx ON public.sms_messages USING btree (sms_from, created_at DESC);
+CREATE UNIQUE INDEX sms_messages_message_sid_uk ON public.sms_messages USING btree (message_sid) WHERE (message_sid IS NOT NULL);
 CREATE INDEX social_message_conversation_idx ON public.social_message USING btree (conversation_id, created_at DESC);
 CREATE UNIQUE INDEX spec_alternative_offer_one_live_per_attr ON public.spec_alternative_offer USING btree (inquiry_id, line_no, attr) WHERE (state = ANY (ARRAY['open'::text, 'accepted'::text]));
 CREATE INDEX spec_alternative_offer_open_idx ON public.spec_alternative_offer USING btree (state, reply_by) WHERE (state = 'open'::text);
@@ -50200,7 +50214,18 @@ AS $function$
     -- reporting. A gate that opens only when a key is present and wrong is a gate that a deleted key
     -- switches off silently.
     'email_cron',   coalesce((select value from public.app_secrets where key = 'email_enabled'), '') is distinct from 'true',
-    'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true',
+
+    -- THE FLAG ARM, unchanged: an estate that has never had an approved set polls until it does.
+    -- THE WORK ARM, added 22 Sep 2026: something is still pending and nobody has asked about it
+    -- today. 'received' is Twilio's word for submitted-and-undecided; anything that is neither
+    -- approved nor rejected is undecided, so the condition is written as the absence of a verdict
+    -- rather than as a list of the words Twilio currently uses for waiting.
+    'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true'
+      or exists (
+        select 1 from public.messaging_template
+         where channel = 'whatsapp'
+           and status not in ('approved', 'rejected')
+           and (last_checked_at is null or last_checked_at < now() - interval '20 hours')),
 
     -- The queue is the gate. No flag, because nothing here costs a model call and a queued SMS has a
     -- person at the end of it.
@@ -68207,6 +68232,7 @@ ALTER TABLE public.seo_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.service_implication ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.simulations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.skills_matrix ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sms_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_conversation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_posts ENABLE ROW LEVEL SECURITY;
@@ -68372,6 +68398,7 @@ CREATE POLICY routine_change_log_service_role_only ON public.routine_change_log 
 CREATE POLICY sanctions_ban_service_role_only ON public.sanctions_ban AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY sms_messages_service_role_only ON public.sms_messages AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_conversation_service_role_only ON public.social_conversation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_message_service_role_only ON public.social_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_reply_library_service_role_only ON public.social_reply_library AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -68430,7 +68457,6 @@ $CRON$);
 --   content_secret
 --   cos_frozen
 --   cred_action_invoker
---   cred_cron_ads_autopilot
 --   cred_cron_agents
 --   cred_cron_backup
 --   cred_cron_compliance
@@ -68554,7 +68580,6 @@ $CRON$);
 --   founding_free_limit
 --   github_token
 --   inbound_secret
---   inbound_secret_rotated_from_20260719
 --   inbound_webhook_secret
 --   internal_credential_hmac_key
 --   invite_body
@@ -68571,11 +68596,10 @@ $CRON$);
 --   marketing_golive
 --   meta_access_token
 --   meta_ad_account_id
+--   meta_app_id
 --   meta_app_secret
 --   meta_autospend_golive
---   meta_campaign_filter
 --   meta_daily_budget_cap_aed
---   meta_sync_enabled
 --   meta_webhook_verify_token
 --   min_job_value_aed
 --   openrouter_api_key
@@ -68587,7 +68611,6 @@ $CRON$);
 --   project_ref
 --   public_site_url
 --   qa_customer_email
---   qa_customer_password
 --   qa_mint_enabled
 --   rating_request_days_after_reveal
 --   require_structured_quotes
@@ -68601,7 +68624,9 @@ $CRON$);
 --   site_assistant_global_day
 --   site_assistant_ip_hour
 --   sla_quote_hours
+--   social_model_enabled
 --   social_posts_per_week
+--   social_send_enabled
 --   stripe_publishable_key
 --   stripe_publishable_key_test
 --   stripe_secret_key

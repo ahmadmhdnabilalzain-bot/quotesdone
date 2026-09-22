@@ -6,7 +6,7 @@
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/wa_inbound/signature.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { createHmac } from 'node:crypto';
-import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from './signature.ts';
+import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from './twilio_inbound_signature.ts';
 
 // Twilio's documented algorithm, implemented independently of the code under test: the full URL, then
 // each POST parameter name+value in sorted-name order, HMAC-SHA1 keyed with the auth token, base64.
@@ -70,7 +70,7 @@ Deno.test('fails closed: altered body, wrong token, missing header, forged signa
 });
 
 Deno.test('the webhook handler checks the signature over the candidate URLs, not a URL rebuilt from the runtime path', async () => {
-  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const src = await Deno.readTextFile(new URL('../wa_inbound/index.ts', import.meta.url));
   const fn = src.slice(src.indexOf('async function verifyTwilioSignature'), src.indexOf('// Keep a forgery flood'));
   assert(fn.includes('signedUrlCandidates(req.url'), 'verifyTwilioSignature must build its URLs with signedUrlCandidates');
   assert(fn.includes('verifyInboundSignature('), 'verifyTwilioSignature must compare through verifyInboundSignature');
