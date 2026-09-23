@@ -39,7 +39,10 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 // the coded result standing, its open lines marked "not confirmed by a second reading".
 // The ONLY image it can send is `page`: a redacted page drawing_redact recorded as complete
 // (confirm.ts redactedPageFor), downloaded here by its recorded path. It takes no request input.
-async function confirmStep(lines: any[], page: RedactedPage): Promise<Record<string, unknown>> {
+// `author` is the model that drafted the lines, or 'deterministic' when code counted them. drawing_boq_confirm is a
+// review class (model_policy.reviews_class): ai_gateway refuses it without counterpart_model and routes it away from
+// the author's family (every_review_class_is_judged_by_another_family_than_its_author.sql, founder instruction ~891).
+async function confirmStep(lines: any[], page: RedactedPage, author: string): Promise<Record<string, unknown>> {
   const { data: file, error } = await admin.storage.from('drawing-files').download(page.path);
   if (error || !file) { const m = mergeConfirm(lines, null); return { boq: m.lines, confirm: m.status, confirm_detail: { why: 'redacted_page_unreadable' } }; }
   const u8 = new Uint8Array(await file.arrayBuffer()); let bin = '';
@@ -48,7 +51,7 @@ async function confirmStep(lines: any[], page: RedactedPage): Promise<Record<str
   let reply: ConfirmReply | null = null; let why = 'no_reply';
   try {
     const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-      __secret: key, fn: 'drawing_boq', task_class: CONFIRM_ROUTE, max: CONFIRM_MAX_TOKENS, temperature: 0, sys: CONFIRM_SYS,
+      __secret: key, fn: 'drawing_boq', task_class: CONFIRM_ROUTE, counterpart_model: author, max: CONFIRM_MAX_TOKENS, temperature: 0, sys: CONFIRM_SYS,
       input: [{ role: 'user', content: [{ type: 'text', text: confirmUserText(lines) }, { type: 'image_url', image_url: { url: dataUrl(btoa(bin), 'image/jpeg') } }] }] }) });
     const jd = await r.json();
     if (r.ok && jd?.ok !== false && jd?.content) { reply = parseConfirm(String(jd.content), new Set(lines.map((l: any) => lineKey(l)))); why = reply ? 'ok' : 'unparseable'; }
@@ -95,7 +98,9 @@ Deno.serve(observe('drawing_boq', async (req) => {
         : { data: null };
       const page = redactedPageFor(run as RedactionRun | null);
       if (!page) { const m = mergeConfirm(lines, null); return J({ ok: true, boq: m.lines, confirm: m.status, confirm_detail: { why: 'redaction_not_verified' } }); }
-      return J({ ok: true, ...(await confirmStep(lines, page)) });
+      // No author named: the draft came from code (the drawing-set, text, spreadsheet and CAD readers never set one).
+      const author = typeof body.author_model === 'string' && body.author_model.trim() ? body.author_model.trim().slice(0, 200) : 'deterministic';
+      return J({ ok: true, ...(await confirmStep(lines, page, author)) });
     }
     // 22 Sep 2026. THE LENGTHS, as a second call after the take-off (drawing_set.ts, "THE LENGTHS ARE A SECOND
     // CALL"): the same PDF read WITH its CAD layers, duct and pipe runs measured at the printed scale, and
@@ -181,6 +186,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
     if (content.length < 2) return J({ error: 'no readable image' }, 400);
 
     let rawContent = '';
+    let authorModel = 'unknown';
     let ai: any = {};
     try {
       const payload = { __secret: key, fn: 'drawing_boq', max: 8000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] };
@@ -188,6 +194,8 @@ Deno.serve(observe('drawing_boq', async (req) => {
       const jd = await r.json();
       if (!r.ok || jd?.ok === false) { const d = await deterministic('ai_gateway_refused'); if (d) return d; return J({ error: 'ai_error', detail: jd?.detail || jd?.error || '', deterministic: pdfB64 ? 'pdf_unreadable' : 'no_pdf_supplied', meta: JSON.stringify(jd).slice(0,600) }, 502); }
       rawContent = jd?.content || '';
+      // The draft's author, carried back by customer_api into mode 'confirm' so the confirm is routed to another family.
+      authorModel = typeof jd?.model === 'string' && jd.model ? jd.model : 'unknown';
       if (body.__debug) return J({ ok: true, _len: String(rawContent).length, finish: jd?.finish_reason });
       ai = parseJson(rawContent || '{}');
     } catch (e) { const d = await deterministic('ai_exception'); if (d) return d; return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
@@ -203,6 +211,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
     ai.summary = scrub(ai.summary||'');
     ai.scale_detected = scrub(ai.scale_detected||'');
     if (!['low','medium','high'].includes(ai.confidence)) ai.confidence = 'low';
+    ai.author_model = authorModel;
     return J({ ok: true, boq: ai });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }));

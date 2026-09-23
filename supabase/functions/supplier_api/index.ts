@@ -1262,6 +1262,11 @@ const handle = async (req: Request): Promise<Response> => {
       // Under the OpenRouter hold quote_extract has no model to call, so this is the expected path:
       // the code tells the portal to say "fill in the form", which is a complete way to quote.
       if (!jd?.ok) return J({ error: jd?.error || 'Could not read the quotation. Please fill the form instead.', code: 'quote_read_failed', detail: jd?.detail || null }, 502);
+      // WHO READ IT (founder instruction ~891). The model quote_extract read this quotation with, kept per supplier and
+      // inquiry so the quote submitted from it carries its author and quote_compare can be routed to another family.
+      const readBy = typeof jd.extracted_by_model === 'string' && jd.extracted_by_model ? jd.extracted_by_model : 'unknown';
+      const { error: xmErr } = await admin.from('quote_extraction_model').upsert({ subject_key: `${sup.id}:${inquiry_id}`, model: readBy, extracted_at: new Date().toISOString() });
+      if (xmErr) console.error('quote_extraction_model: ' + xmErr.message);
       return J({ ok: true, proposal: jd.proposal, original_file_path, original_file_name });
     }
     // THE TWO WAYS OUT OF A HOLD (founder, 14 Sep 2026). (a) fill in the missing details here: the
@@ -1451,6 +1456,13 @@ const handle = async (req: Request): Promise<Response> => {
       const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
       const reviewMessage = reviewIssues ? rv.issues.slice(0, 3).map((i) => (lang === 'ar' ? i.ar : i.en)).join(' ') : null;
 
+      // The quote's author for quote_compare's independence routing: a typed quote has no model author; an uploaded one
+      // carries the model quote_extract read it with (recorded at 'extract'), or 'unknown', which fails closed.
+      let quoteAuthor = 'deterministic';
+      if (isUpload) {
+        const { data: xm } = await admin.from('quote_extraction_model').select('model').eq('subject_key', `${sup.id}:${inquiryId}`).maybeSingle();
+        quoteAuthor = typeof xm?.model === 'string' && xm.model ? xm.model : 'unknown';
+      }
       const submission_id = crypto.randomUUID();
       const repo = supabaseRepo(admin, { dispatch: kickDelivery });
       const supplier = supplierOf(sup, email);
@@ -1462,7 +1474,7 @@ const handle = async (req: Request): Promise<Response> => {
         const vat = readVat({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
           stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat) });
         const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, quote_amount: vat.price_ex_vat ?? p.amount, price_ex_vat: vat.price_ex_vat, vat_treatment: vat.treatment, vat_amount: vat.vat_amount, supplier_trn: trn, amount_as_stated: p.amount,
-          notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
+          notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
         // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
         if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;

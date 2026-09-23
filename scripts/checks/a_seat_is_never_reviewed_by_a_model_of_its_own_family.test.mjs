@@ -211,7 +211,7 @@ begin
     'monitor_marketing', (select jsonb_build_object('reviews', x->'evidence'->'reviews', 'approvals', x->'evidence'->'approvals') from jsonb_array_elements(v) x where x->>'item' = 'rubber_stamp:ceo:marketing'));
 
   -- UNHEALTHY OTHER FAMILY: Opus's breaker tripped by a real failure class -> no fallback to Sol
-  update public.llm_route_health set opened_class = 'provider_error' where model_id = c_opus;
+  update public.llm_route_health set opened_class = 'provider_error' where model_id in (c_opus, 'google/gemini-3.8-flash', 'z-ai/glm-5.3-flash');  -- every family but the author's (third-family last resort, #880)
   v := public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo');
   o := o || jsonb_build_object('tripped_route', concat_ws(':', v->>'use_llm', v->>'no_independent_reviewer', coalesce(v->>'model', 'none')));
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO tripped', v_ev, v_pr, c_sol, null, null, null, true);
@@ -220,7 +220,7 @@ begin
     'escalated_finding', (select count(*) from public.it_engineer_finding where issue_key = 'duty:deliberation_independence_demo:no_independent_reviewer:ceo:marketing' and closed_at is null));
 
   -- THE PAIR CEILING: marketing -> ceo has spent AED 60 of 50 this month (a rolled-back row)
-  update public.llm_route_health set opened_class = null where model_id = c_opus;
+  update public.llm_route_health set opened_class = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'z-ai/glm-5.3-flash');
   insert into public.ai_cost_log (fn, dept_key, agent_key, task_class, model_used, cost_aed, ok)
   values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO over budget', v_ev, v_pr, c_sol, null, null, null, true);
