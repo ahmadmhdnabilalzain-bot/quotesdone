@@ -1662,3 +1662,8 @@ scripts/sql/the_credential_stamp_is_written_at_most_once_a_minute.sql
 scripts/sql/the_embed_dispatcher_never_queues_more_than_it_can_have_in_flight.sql
 scripts/sql/the_signature_trigger_waits_as_long_as_signing_actually_takes.sql
 scripts/sql/finding_a_lead_by_its_email_or_its_handset_uses_an_index.sql
+
+# 23 Sep 2026 (founder_instruction 854): GPT Sol 5.6 replaces Qwen 3.8 Max on all 36 classes and takes
+# the identity-hidden verify; gemini-3.8-flash replaces 3.5 flash and flash-lite; the three seat
+# catch-alls move to 844's audience split; ceilings re-derived to AED 1,600/month. Data only.
+scripts/sql/gpt_sol_takes_every_qwen_class_and_one_gemini_takes_every_gemini_class.sql
