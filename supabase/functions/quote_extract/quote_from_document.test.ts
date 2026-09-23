@@ -2,11 +2,11 @@
 // deno test --no-lock supabase/functions/quote_extract/quote_from_document.test.ts
 //
 // A CSV quotation with a letterhead, priced lines, VAT and a grand total must give the grand total
-// (not the VAT, not a single line), every priced line, the lead time and validity, and must mask the
+// (not the VAT, not a single line), every priced line, and must mask the
 // supplier's own company name, phone and email, since the customer pays to reveal who quoted.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { readDocument } from '../_shared/doc_read/index.ts';
-import { quoteFromExtracted, rowText } from './quote_from_document.ts';
+import { quoteFromExtracted, quoteText, rowText } from './quote_from_document.ts';
 
 const CSV = [
   'ZZ DEMO Tiling Contracting LLC,,,,',
@@ -33,6 +33,9 @@ Deno.test('a CSV quotation gives the ex-VAT price, the priced lines and the term
   const all = JSON.stringify({ ...p, masked_terms: [] });
   assert(!all.includes('ZZ DEMO Tiling') && !all.includes('123 4567') && !all.includes('zzdemo'), 'supplier identity reached the proposal');
   assert(p.masked_terms.includes('ZZ DEMO Tiling'));
+  // A reasoned term that carries the supplier's identity is masked like every other field.
+  const q = quoteFromExtracted(r, ['ZZ DEMO Tiling'], { conditions: 'Installation by ZZ DEMO Tiling team, call +971 50 123 4567' });
+  assert(!q.conditions.includes('ZZ DEMO Tiling') && !q.conditions.includes('123 4567'), q.conditions);
 });
 
 // 21 Sep 2026 (customer audit, finding 12): the audited CSV's note rows were split on their commas
@@ -43,7 +46,16 @@ Deno.test('a note row the CSV reader split on its commas keeps them; a priced li
     'Warranty: 2 years materials and workmanship', 'Payment terms: 50% advance, 50% on completion', 'Exclusions: electrical fittings, painting of walls, scaffolding above 4m'].join('\n');
   const r = await readDocument(new TextEncoder().encode(csv), 'quotation-final.csv', 'text/csv');
   assert(r.ok, JSON.stringify(r));
-  const p = quoteFromExtracted(r, []);
+  // The note rows keep their commas in the text the reasoning reads (quoteText)...
+  const text = quoteText(r);
+  assert(text.includes('Exclusions: electrical fittings, painting of walls, scaffolding above 4m'), text);
+  assert(text.includes('Payment terms: 50% advance, 50% on completion'), text);
+  // ...and no term is read from a label by this module any more (founder_instruction 886-903): with no
+  // reasoned terms passed in, the terms stay empty for the supplier to type.
+  const bare = quoteFromExtracted(r, []);
+  assertEquals([bare.exclusions, bare.payment_terms, bare.warranty, bare.lead_time, bare.validity, bare.conditions], ['', '', '', '', '', '']);
+  // The reasoned terms are applied as given, trailing punctuation trimmed.
+  const p = quoteFromExtracted(r, [], { exclusions: 'electrical fittings, painting of walls, scaffolding above 4m.', payment_terms: '50% advance, 50% on completion', warranty: '2 years materials and workmanship' });
   assertEquals(p.exclusions, 'electrical fittings, painting of walls, scaffolding above 4m');
   assertEquals(p.payment_terms, '50% advance, 50% on completion');
   assertEquals(p.warranty, '2 years materials and workmanship');

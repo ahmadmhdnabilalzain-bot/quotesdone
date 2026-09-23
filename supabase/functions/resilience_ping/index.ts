@@ -1067,6 +1067,9 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     for (const r of rows ?? []) told.push({ id: r.id, ...(await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none', detail: String(e?.message || e).slice(0, 200) }))) });
     return { escalated: (rows ?? []).length, told };
   });
+  // THE SUPPLIER TRADE BACKFILL (sales_engineer, 23 Sep 2026): files at most the daily cap of leads for reasoning,
+  // and NOTHING unless app_secrets.lead_reclassify_backfill = 'go' (the cost is quoted beside the gate).
+  await step('lead_reclassify', async () => rpc('fn_lead_reclassify_tick', { p_limit: 20 }));
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');

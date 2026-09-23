@@ -40,6 +40,7 @@
 //     rather than retiring the row — not being able to ask Twilio is not Meta refusing.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { twilioVerdict, UNKNOWN_RETRY_CAP } from '../_shared/provider_signals.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
@@ -192,13 +193,14 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}){
 //   * RESIDUAL, not closed: if the isolate DIES between Twilio accepting the message and the row being
 //     updated, no catch runs, the row stays 'sending', and the claim requeues it after 5 minutes — one
 //     duplicate WhatsApp message. Narrow, real, and unfixable from this side while Twilio has no key.
-type WaSend = { ok: boolean; sid: string | null; error: string | null; threw?: boolean };
+// code: Twilio's numeric error code (its REST error object), the structured signal a rejection is judged by.
+type WaSend = { ok: boolean; sid: string | null; error: string | null; code?: number | string | null; threw?: boolean };
 async function twilioSend(acct:string, auth:string, form:URLSearchParams): Promise<WaSend> {
   try {
     const r = await timedFetch(`https://api.twilio.com/2010-04-01/Accounts/${acct}/Messages.json`,
       { method:'POST', headers:{ 'Authorization':'Basic '+auth, 'Content-Type':'application/x-www-form-urlencoded' }, body: form.toString() }, 15_000);
     const jd = await r.json().catch(()=>({}));
-    return { ok:r.ok, sid: jd?.sid||null, error: r.ok?null:(jd?.message||('http '+r.status)) };
+    return { ok:r.ok, sid: jd?.sid||null, error: r.ok?null:(jd?.message||('http '+r.status)), code: r.ok ? null : (jd?.code ?? null) };
   } catch (e) {
     return { ok:false, sid:null, threw:true, error: 'the request to Twilio did not return: ' + String((e as Error)?.message || e).slice(0,160) };
   }
@@ -473,12 +475,24 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // the send while approval is pending; marking the row 'failed' dropped it for good (only
       // 'queued' rows are drained). Such rows stay queued and deliver the moment the template lands —
       // the same discipline as the mapped-but-unregistered branch above.
-      const pendingTemplate = !res.ok && /approv|not (yet )?approved|template.*(pending|invalid|not found)|63016|63042/i.test(String(res.error || ''));
-      if (pendingTemplate) {
-        lastErr = 'template awaiting approval: ' + String(res.error || '').slice(0, 160);
+      // 23 SEP 2026 (founder_instruction 886-903): judged by Twilio's structured error CODE (_shared/provider_signals.ts),
+      // never by reading its English message. A rejection with no code at all is unknown, and is retried, not dropped.
+      const verdict = res.ok ? null : twilioVerdict(res.code);
+      // an unknown rejection is retried a bounded number of times, then falls through to 'failed' below
+      const tries = Number((n as { attempts?: number }).attempts || 0) + 1;
+      if (verdict === 'unknown' && tries < UNKNOWN_RETRY_CAP) {
+        lastErr = 'rejected with no Twilio error code, retry ' + tries + '/' + UNKNOWN_RETRY_CAP + ': ' + String(res.error || '').slice(0, 160);
+        await admin.from('notifications').update({ attempts: tries, last_error: lastErr.slice(0, 500) }).eq('id', n.id);
         if (await tryFallback(n, lastErr)) continue;
         skipped++; requeued++; continue;
       }
+      if (verdict === 'not_yet') {
+        lastErr = 'template not usable yet (Twilio ' + res.code + '): ' + String(res.error || '').slice(0, 160);
+        if (await tryFallback(n, lastErr)) continue;
+        skipped++; requeued++; continue;
+      }
+      if (verdict === 'outside_window') res.error = 'outside the 24-hour WhatsApp window (Twilio 63016), a retry cannot deliver it: ' + String(res.error || '');
+      if (verdict === 'unknown') res.error = 'rejected with no Twilio error code ' + UNKNOWN_RETRY_CAP + ' times: ' + String(res.error || '');
       if (!res.ok) {
         // Twilio rejected it outright. For anyone else that is a failed row; for the founder it is
         // the exact case the fallback exists for — the alert still has to reach him.

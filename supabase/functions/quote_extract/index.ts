@@ -14,7 +14,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
-import { quoteFromExtracted } from './quote_from_document.ts';
+import { quoteFromExtracted, quoteText } from './quote_from_document.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -59,8 +61,14 @@ Deno.serve(observe('quote_extract', async (req) => {
       try {
         const rd = await readDocument(String(body.file_b64), String(body.filename || 'quotation'), String(body.mime || ''));
         if (!rd.ok) return null;
-        const p = quoteFromExtracted(rd, Array.isArray(body.supplier_terms) ? body.supplier_terms.map((s: unknown) => String(s)) : []);
-        if (p.amount == null && !p.line_items.length) return null;
+        // The PRICES are read from the file's layout; the TERMS are what it means, so they are reasoned
+        // (think(), founder_instruction 886-903). Held: they are left empty and the supplier types them.
+        const masks = Array.isArray(body.supplier_terms) ? body.supplier_terms.map((s: unknown) => String(s)) : [];
+        const priced = quoteFromExtracted(rd, masks);
+        if (priced.amount == null && !priced.line_items.length) return null;   // no model is asked about a file with no price
+        const terms = await quoteTerms(defaultDeps(admin, 'quote_extract'), { text: quoteText(rd) });
+        const p = terms.value ? quoteFromExtracted(rd, masks, terms.value) : priced;
+        if (!terms.value) p.notes += ' The lead time, validity, payment terms, warranty and exclusions were not read from the file: please type them in the form. / لم تُقرأ مدة التسليم وصلاحية العرض وشروط الدفع والضمان والاستثناءات من الملف: يُرجى كتابتها في النموذج.';
         await logRun(p.amount != null ? 'ok' : 'error', { quote_extracted: p.amount != null ? 1 : 0, deterministic: 1, line_items: p.line_items.length, masked_terms: p.masked_terms.length }, `quote_extract read the supplier's ${rd.kind} file with no model (${why}): ${p.line_items.length} priced line(s), total ${p.amount ?? 'not found'}.`);
         return J({ ok: p.amount != null, proposal: { ...p, fallback_reason: why }, extracted_by_model: 'deterministic', error: p.amount != null ? undefined : 'no_amount' });
       } catch (_e) { return null; }

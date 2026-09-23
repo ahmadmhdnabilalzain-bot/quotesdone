@@ -14,7 +14,9 @@
 import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 
 const CITED = `(select split_part(x, ':', 2)::bigint from public.sales_decision_log s, unnest(s.cited) x where x ~ '^kb_chunks:[0-9]+$')`;
-const CLAUSE = `public.fn_kb_purge_clause(k.source_kind, k.category, k.citation)`;
+// The third argument is the REASONED jurisdiction of the citation (kb_citation_jurisdiction, surface
+// ceo.kb_jurisdiction), never the citation text: an undecided citation is clause 4 and kept.
+const CLAUSE = `public.fn_kb_purge_clause(k.source_kind, k.category, (select j.jurisdiction from public.kb_citation_jurisdiction j where j.citation_md5 = md5(k.citation)))`;
 const SLICE = 200000;
 
 const rule = await mgmtRead(PROD_REF, `select count(*)::int as n from pg_proc where proname = 'fn_kb_purge_clause'`);

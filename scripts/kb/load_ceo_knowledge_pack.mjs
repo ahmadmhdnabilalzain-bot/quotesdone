@@ -111,6 +111,10 @@ for (let i = 0; i < rows.length; i += 25) {
   process.stdout.write(done + ' ');
 }
 console.log('\nloaded ' + done);
+// EMBED ON WRITE (23 Sep 2026): the pack is read by meaning only, so a row loaded without a vector is invisible.
+// Every new or changed row (the update trigger clears a changed row's vector) is embedded now, free and in-region.
+const { embedMissing } = await import('./embed_sales_knowledge.mjs');
+await embedMissing('ceo_knowledge');
 
 const check = await sql(`select count(*) total,
   count(*) filter (where search is not null) with_vector,

@@ -1,5 +1,5 @@
 {
-  "_": "ONE company description (founder instruction 920, 23 Sep 2026). Every profile variant is BUILT from these sentences, so no variant can say what the canonical text does not; profile_text.test.ts proves each fits its platform's limit. Edit a sentence here and every platform follows. Seat: marketing.",
+  "_": "ONE company description (founder instruction 920, 23 Sep 2026). Every profile variant is BUILT from these sentences, so no variant can say what the canonical text does not; profile_text.test.ts proves each fits its platform's limit. Edit a sentence here and every platform follows. Standing rules (23 Sep 2026): English only, no trade licence number, never the word \"AI\" (say \"smart\"). Seat: marketing.",
   "canonical": {
     "en": {
       "tagline": "Post once. Compare quotes. Reveal only who you choose.",
@@ -10,19 +10,6 @@
       "drawings": "Drawings are shared only when identity details are covered.",
       "fee": "Customers pay a 3% reveal fee only when they reveal a supplier.",
       "free": "The first 1,000 suppliers join free, permanently.",
-      "licence": "Licensed in Dubai: DET Trader Licence 1633275.",
-      "site": "quotesdone.ae"
-    },
-    "ar": {
-      "tagline": "اطلبوا مرةً واحدة، وقارنوا العروض، واكشفوا فقط من تختارونه.",
-      "what": "QuotesDone منصة إماراتية لعروض الأسعار دون كشف الهوية.",
-      "how": "انشروا طلبكم مرةً واحدة، وقارنوا عروض موردين موثّقين.",
-      "reveal": "لا تكشفون إلا عن المورد الذي تختارونه.",
-      "match": "تتم مطابقة الموردين وفق التخصصات التي يؤكدونها.",
-      "drawings": "لا تُشارَك المخططات إلا بعد حجب بيانات الهوية.",
-      "fee": "يدفع العميل رسوم كشف بنسبة 3% فقط عند كشف المورد.",
-      "free": "انضمام أول 1,000 مورد مجاني وبصفة دائمة.",
-      "licence": "مرخّصة في دبي: رخصة تاجر DET رقم 1633275.",
       "site": "quotesdone.ae"
     }
   },
@@ -34,8 +21,7 @@
       "api": "twilio",
       "join": " | ",
       "parts": [
-        "en.tagline",
-        "ar.tagline"
+        "en.tagline"
       ],
       "source": "Meta WhatsApp Business profile: about, 139 characters"
     },
@@ -48,12 +34,10 @@
       "parts": [
         "en.what",
         "en.how",
+        "en.reveal",
         "en.match",
         "en.free",
-        "ar.what",
-        "ar.how",
-        "ar.match",
-        "ar.free"
+        "en.site"
       ],
       "source": "Meta WhatsApp Business profile: description, 512 characters"
     },
@@ -64,8 +48,7 @@
       "api": "manual",
       "join": "\n",
       "parts": [
-        "en.tagline",
-        "ar.tagline"
+        "en.tagline"
       ],
       "source": "Instagram bio, 150 characters; the Graph API cannot write a bio"
     },
@@ -105,16 +88,7 @@
         "en.drawings",
         "en.fee",
         "en.free",
-        "en.licence",
-        "en.site",
-        "ar.what",
-        "ar.how",
-        "ar.reveal",
-        "ar.match",
-        "ar.drawings",
-        "ar.fee",
-        "ar.free",
-        "ar.licence"
+        "en.site"
       ],
       "source": "LinkedIn company page overview, 2,000 characters"
     },
@@ -143,14 +117,7 @@
         "en.drawings",
         "en.fee",
         "en.free",
-        "en.site",
-        "ar.what",
-        "ar.how",
-        "ar.reveal",
-        "ar.match",
-        "ar.drawings",
-        "ar.fee",
-        "ar.free"
+        "en.site"
       ],
       "source": "YouTube channel description, 1,000 characters (channels.update brandingSettings, youtube.force-ssl)"
     },

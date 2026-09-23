@@ -6,7 +6,9 @@
 // interview (fn_category_questions), the per-trade compliance checklist, the matcher
 // (fn_match_capability) and the published price bands (fn_price_guidance). This function puts them
 // on the first screen. Which category a visitor's words ask for is REASONED (think(), 23 Sep 2026), and
-// under the model hold the visitor is asked to describe the job; everything else here calls no model.
+// under the model hold the visitor is asked to describe the job. Which trade a price question asks about is
+// reasoned too (founder_instruction 886-903); under the hold price_guidance answers reason 'held' rather than
+// a band chosen by matching words. Everything else here calls no model.
 //
 // ACTIONS (POST {action, ...}):
 //   counters        -> fn_public_site_counters(): aggregates, NULL below each floor.
@@ -24,8 +26,9 @@
 // (public_site_global_day, default 5000) that does not trust the forgeable X-Forwarded-For.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { documentLine, isPageTopic } from './rules.ts';
-import { catalogueCategoryOf } from '../_shared/reasoned_matching.ts';
 import { defaultDeps } from '../_shared/think.ts';
+import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
+import { catalogueCategoryOf } from '../_shared/reasoned_matching.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -154,10 +157,11 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
   };
 }
 
-async function priceGuidance(question: string) {
-  const { data: pg, error } = await admin.rpc('fn_price_guidance', { p_question: question.slice(0, 300), p_limit: 6 });
-  if (error || !pg) return { ok: false, reason: 'unavailable' };
-  const p: any = pg;
+// WHICH TRADE A QUESTION IS ABOUT, AND WHETHER IT ASKS A PRICE AT ALL, IS REASONED (think(),
+// _shared/reasoned_suppliers.ts priceGuidanceFor; founder_instruction 886-903) — fn_price_guidance no
+// longer reads the question. Held (the model hold): no band is offered on a guess; reason 'held'.
+async function priceGuidance(question: string, ip: string) {
+  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site'), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
   if (p.ok && Array.isArray(p.bands)) {
     // Only the band itself. The evidence text and the kb_chunk/blog source ids stay server-side.
     const bands = p.bands.slice(0, 4).map((b: any) => ({
@@ -165,7 +169,8 @@ async function priceGuidance(question: string) {
       unit: b.unit && b.unit !== 'none' ? String(b.unit) : null, as_of: b.as_of || null,
     })).filter((b: any) => Number.isFinite(b.low) || Number.isFinite(b.high));
     const asOf = bands.map((b: any) => b.as_of).filter(Boolean).sort().pop() || null;
-    return { ok: true, trade: p.trade, bands, as_of: asOf, unmatched_terms: p.unmatched_terms || [] };
+    // unmatched_terms stays empty: whether a band is for the item asked is not decided by matching its words.
+    return { ok: true, trade: p.trade, bands, as_of: asOf, asked_item: p.asked_item ?? null, unmatched_terms: [] };
   }
   if (p.reason === 'trade_has_a_recorded_gap') return { ok: false, reason: 'gap', trade: p.trade || null };
   return { ok: false, reason: String(p.reason || 'no_match') };
@@ -238,7 +243,7 @@ Deno.serve(async (req) => {
     const pip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
     if (!(await rl('public_site_page_ip:' + pip, await secNum('public_site_page_ip_hour', 600), 3600))) return J({ ok: false, rate_limited: true }, 429);
     try {
-      const r = await priceGuidance(`How much does ${String(b.topic)} cost per square metre in the UAE?`);
+      const r = await priceGuidance(`How much does ${String(b.topic)} cost per square metre in the UAE?`, pip);
       return J(r, 200, { 'Cache-Control': 'public, max-age=3600, s-maxage=86400' });
     } catch (_e) { return J({ ok: false, error: 'internal' }, 500); }
   }
@@ -260,7 +265,7 @@ Deno.serve(async (req) => {
     if (action === 'price_guidance') {
       const q = String(b.question || '').trim() || (b.topic ? `How much does ${String(b.topic).slice(0, 80)} cost per square metre in the UAE?` : '');
       if (q.length < 3) return J({ ok: false, error: 'empty' }, 400);
-      return J(await priceGuidance(q));
+      return J(await priceGuidance(q, ip));
     }
     return J({ ok: false, error: 'unknown_action' }, 400);
   } catch (_e) {

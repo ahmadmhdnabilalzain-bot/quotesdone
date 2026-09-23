@@ -30,15 +30,17 @@ import { sendWhatsApp } from '../_shared/wa_send.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { queueWhatsAppMeaning, whatsappMeaning, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
+import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
-import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 // 22 Sep 2026 (customer_support, instruction 759): the URL Twilio signs, and the welcome + menu.
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
-import { type Audience, humanAlert, type Lang } from './menu.ts';
+import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -526,7 +528,21 @@ async function handleInbound(req: Request): Promise<Response> {
           const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', offer?.inquiry_id ?? so.inquiry_id).maybeSingle();
           if (offer) {
             const o = { ...offer, accepted_value: offer.accepted_value ?? so.accepted_value ?? null } as OfferForText;
-            text = (so.state === 'accepted' ? acceptedMessage(o, lang, { rfqNo: inq?.rfq_no }) : apologyMessage(o, lang, 'declined', { rfqNo: inq?.rfq_no })).body;
+            const arTexts = so.state === 'accepted' ? await arabicTextsFor(defaultDeps(admin, 'wa_inbound'), lang, offerTexts(o), { fileOnly: true }) : undefined;
+            const msg = so.state === 'accepted' ? acceptedMessage(o, lang, { rfqNo: inq?.rfq_no, arTexts }) : apologyMessage(o, lang, 'declined', { rfqNo: inq?.rfq_no });
+            if (msg.untranslated?.length) {
+              // Never an Arabic reply with English in it. A fixed acknowledgement (no free text) answers now; the full
+              // confirmation is parked and goes by email and WhatsApp once its Arabic is reasoned (fn_arabic_outbound_flush).
+              text = 'شكرًا لكم، وصلنا اختياركم وسنرسل لكم التأكيد قريبًا.';
+              const { data: cu } = so.customer_id ? await admin.from('customers').select('email').eq('id', String(so.customer_id)).maybeSingle() : { data: null };
+              if (cu?.email) {
+                const base = { type: 'spec_offer_accepted', kind: 'customer_support_spec_offer_accepted', to_role: 'customer', inquiry_id: String(offer.inquiry_id ?? so.inquiry_id), subject: msg.subject, body: msg.body, status: 'queued', lang, requested_by: 'customer_support', sender: 'customer_support' };
+                const rows = [{ ...base, channel: 'email', to_email: cu.email, dedupe_key: `spec_offer:${so.offer_id}:accepted:email` },
+                              { ...base, channel: 'whatsapp', to_email: cu.email, dedupe_key: `spec_offer:${so.offer_id}:accepted:whatsapp` }];
+                const { error: pErr } = await admin.rpc('fn_arabic_outbound_park', { p_texts: msg.untranslated, p_rows: rows });
+                if (pErr) await logRun('error', { route: 'spec_offer_reply', parked: 0 }, 'the Arabic confirmation could not be parked: ' + pErr.message);
+              }
+            } else text = msg.body;
           }
         } else if (so.error === 'unknown_option') {
           const n = Number(so.options || 0);
@@ -584,16 +600,24 @@ async function handleInbound(req: Request): Promise<Response> {
                messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'] };
     };
     const menuDeps: MenuDeps = {
-      meaning: (_text: string) => (meaningP ??= (async () => {
+      intent: (_text: string) => (meaningP ??= (async () => {
         if (!Body.trim()) return null;
         const r = await whatsappMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn());
         meaningWhy = r.result.reason ?? r.result.status;
         return r.value;
       })().catch((e) => { meaningWhy = 'threw: ' + String((e as Error)?.message || e).slice(0, 200); return null; })),
-      queueMeaning: async (_text: string) => {
+      queueIntent: async (_text: string) => {
         try { await queueWhatsAppMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn(), meaningWhy); }
         catch (e) { await itFinding('wa_inbound:meaning_not_queued', 'A held WhatsApp question could not be filed for replay', { error: String((e as Error)?.message || e) }); }
       },
+      meaning: async (text: string, awaitingProblem: boolean, offerMenu: boolean) =>
+        (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined,
+          // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
+          // Paired by option id, never by position, so the two languages cannot drift onto each other's option.
+          menu: offerMenu ? menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown').map((i) => {
+            const ar = menuItems('ar', audience === 'supplier' ? 'supplier' : 'unknown').find((x) => x.id === i.id);
+            return { id: i.id, title: i.item + (ar ? ' / ' + ar.item : ''), description: i.description + (ar ? ' / ' + ar.description : '') };
+          }) : undefined })).value,
       autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
       recentTurns: async (from: string): Promise<Turn[]> => {
         const { data } = await admin.from('wa_messages').select('meta,lang,created_at').eq('wa_from', from)
@@ -1021,7 +1045,7 @@ async function handleInbound(req: Request): Promise<Response> {
     }
     try {
       // The intent is the REASONED meaning (above), never the body's words: null = held, 'none' = no row fits.
-      const meaning = await menuDeps.meaning(Body);
+      const meaning = await menuDeps.intent(Body);
       const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
       const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson, p_intent: intent });
       route = (data || null) as Record<string, unknown> | null;

@@ -18,6 +18,7 @@ import { modelHeld } from '../_shared/llm_hold.ts';
 import { type Deps, runStep, type Step } from '../_shared/marketing_judgement.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { call, linkedinComments, processComment, unhideRequest, youtubeComments, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
+import { commentClass } from '../_shared/reasoned_social.ts';
 import { accessToken, type SocialPlatform } from '../_shared/marketing_social_oauth.ts';
 import { pushFacebook, pushWhatsapp, pushYoutube, VARIANTS } from './profile_text.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
@@ -84,7 +85,9 @@ export const socialComments: Duty = {
         const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
           message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
           subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
-        const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, person)
+        // What the comment IS is reasoned too (reasoned_social.ts), lazily; held, nothing is hidden or said (held_classify).
+        const cls = async () => (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') })).value;
+        const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls, person)
           .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
         counts[o] = (counts[o] || 0) + 1;
       }
@@ -99,7 +102,59 @@ export const socialComments: Duty = {
           .lt('created_at', new Date(now.getTime() - 10 * 60_000).toISOString())
           .gt('created_at', new Date(now.getTime() - 24 * 3600_000).toISOString()).limit(50);
         if (error) throw new Error('unfinished comments: ' + error.message);
+        // A replay of a held comment that died mid-way leaves outcome 'replaying:<when>'. After 10 minutes it is
+        // handed back to 'held_classify' (compare-and-set, so a live replay is never overtaken; never emptied, so a
+        // failed run cannot delete it — release() returns it to 'held_classify' again) and re-run here with a FRESH
+        // reasoning (a new dedupe key, since its first held question is already closed): answered, the policy runs;
+        // held again, it is queued anew and waits for its own replay.
+        // ALSO: a 'held_classify' comment with NO open held question (a replay answered but its send failed and
+        // release() handed it back, or a run died before its question was filed) is re-run the same way, so no held
+        // comment can wait for a replay that will never come. A row the platform already accepted a reply for
+        // (send_status 'sent', marked at the send) is never re-sent.
+        // A rotating window over the oldest first, sized to the backlog: with 50 or fewer every tick covers all of
+        // them; with more, ceil(n/50) ticks cover all, so rows waiting on an OPEN question (skipped below) never starve
+        // the rest. ponytail: move the "no open question" test into SQL (an RPC) if the backlog grows large.
+        const staleOf = () => admin.from('social_message').select('id', { count: 'exact', head: true })
+          .eq('direction', 'in').eq('channel', 'comment').or('outcome.like.replaying:%,outcome.eq.held_classify');
+        const { count: backlog } = await staleOf();
+        const windows = Math.max(1, Math.ceil((backlog ?? 0) / 50));
+        const from = (Math.floor(now.getTime() / 600_000) % windows) * 50;
+        const { data: stale, error: staleErr } = await admin.from('social_message')
+          .select('id,outcome,send_status,meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
+          .eq('direction', 'in').eq('channel', 'comment').or('outcome.like.replaying:%,outcome.eq.held_classify')
+          .order('occurred_at', { ascending: true }).range(from, from + 49);
+        if (staleErr) throw new Error('stale comment replays: ' + staleErr.message);
         const counts: Record<string, number> = {};
+        for (const r of stale || []) {
+          if (r.send_status === 'sent') {
+            // The platform accepted the reply but the run died before recording it: finish it as answered, never re-send.
+            await admin.from('social_message').update({ outcome: 'replied' }).eq('id', r.id).eq('outcome', r.outcome);
+            counts['finalized_sent'] = (counts['finalized_sent'] || 0) + 1;
+            continue;
+          }
+          if (String(r.outcome).startsWith('replaying:')) {
+            const at = Date.parse(String(r.outcome).slice('replaying:'.length));
+            if (!(at < now.getTime() - 10 * 60_000)) continue;
+            const { data: won } = await admin.from('social_message').update({ outcome: 'held_classify' }).eq('id', r.id).eq('outcome', r.outcome).select('id');
+            if (!won?.length) continue;
+          } else {
+            // This comment's own questions only: the exact key, or it followed by ':' (a retry) — LIKE's _ and % escaped.
+            // This comment's own open class questions, by the subject every one of them carries (exact equality on
+            // platform + message id): no LIKE or key range, so nothing in an id can act as a wildcard, and collation
+            // (which ignores ':' in the database's locale, measured 23 Sep 2026) plays no part.
+            const { data: open } = await admin.from('reasoning_held_question').select('id').eq('status', 'held')
+              .eq('surface', 'marketing_social.comment_classify').eq('subject->>platform', r.platform)
+              .eq('subject->>message_id', r.meta_message_id).limit(1);
+            if (open?.length) continue;
+          }
+          const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
+            authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
+          const cls = (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId,
+            text: String(ev.text || ''), retry: 'retry:' + now.toISOString() })).value;
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls)
+            .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
+          counts['revived:' + o] = (counts['revived:' + o] || 0) + 1;
+        }
         for (const r of data || []) {
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
             authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
@@ -107,7 +162,9 @@ export const socialComments: Duty = {
           const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
             message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
             subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
-          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, person)
+          // What the comment IS is reasoned too (reasoned_social.ts); held, nothing is hidden or said (held_classify).
+          const cls = async () => (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') })).value;
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls, person)
             .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
           counts[o] = (counts[o] || 0) + 1;
         }
