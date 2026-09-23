@@ -1,4 +1,0 @@
-Committed, not applied: it writes one production row (bank_line_owner_ruling 230 = capital, founder_instruction 357),
-and data backfills go through the release operator, not the session. Apply with --apply (no DDL); it prints its
-own verdict row and must read PROBE OK. Then delete this note and append the file to the END of MANIFEST.txt.
-Seat: accountant.
