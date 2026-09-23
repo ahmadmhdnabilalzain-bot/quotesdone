@@ -11,8 +11,8 @@
 // identical amounts on one RFQ are already caught by the identical_bids rule directly above it.
 //
 //     node scripts/staging/verify_fraud_hash.mjs      zero model calls
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF, withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, q } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF, withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, q } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

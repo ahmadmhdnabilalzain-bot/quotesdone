@@ -6,8 +6,8 @@
 // built in the same change as the function, and it runs the real dispatcher against real rows.
 //
 //   node scripts/staging/verify_event_contract.mjs          # staging, zero model spend
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

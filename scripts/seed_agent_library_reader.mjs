@@ -46,7 +46,7 @@
 //
 //   node scripts/seed_agent_library_reader.mjs              # apply to staging, then measure
 //   node scripts/seed_agent_library_reader.mjs --print-sql  # emit the statements for production
-import { mgmtRead, mgmtWrite, resolveStagingRef } from './staging/qd_guard.mjs';
+import { mgmtRead, mgmtWrite, resolveStagingRef } from './lib/qd_guard.mjs';
 
 // LAYER 2c — the operations corpus, wired in the SAME change that imported it.
 //

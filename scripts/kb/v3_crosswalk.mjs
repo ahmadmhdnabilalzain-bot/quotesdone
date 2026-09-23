@@ -5,7 +5,7 @@
 // Usage: node scripts/kb/v3_crosswalk.mjs <extracted-root> [--ref=<project>]
 import fs from 'node:fs';
 import path from 'node:path';
-import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 import { walk } from './v3_package.mjs';
 
 const root = process.argv[2];

@@ -13,8 +13,8 @@
 // which refuses unless QD_FIXTURES=1 is set for the run. Read the note on that function before you
 // use it: this crosses HTTP, so nothing here is inside a transaction that can roll back. The
 // teardown is tag-derived and runs in a finally; that is what stands between this and live data.
-import { mgmtRead, mgmtFixture } from './qd_guard.mjs';
-import { teardown, REF } from './demo_factory.mjs';
+import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
+import { teardown, REF } from '../lib/demo_factory.mjs';
 import { readFileSync } from 'node:fs';
 import { createHmac, randomBytes } from 'node:crypto';
 

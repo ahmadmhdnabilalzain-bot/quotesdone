@@ -6,6 +6,7 @@
 // COST: prompt caching (cache_control ephemeral) on the system prompt — multi-turn chats bill it at ~10% on repeat turns.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
 import { detectCat, detectTrades, detectEmirate, detectUrgency, utilityText } from './classify.ts';
@@ -31,6 +32,11 @@ function sanitizeInput(text: string): string { return String(text || '').replace
 // `subject` is the verified session email: ai_gateway answers our own ZZ DEMO / @example.invalid harness
 // with a no-cost stub instead of a paid call (founder instruction 705, _shared/spend_guards.ts).
 async function llm(messages: any[], subject: { email?: string; customer_id?: string | null } = {}): Promise<string | null> {
+  // THE HOLD IS ASKED BEFORE THE GATEWAY IS CALLED (22 Sep 2026, SEATS-08/CP-14). Under the
+  // founder's OpenRouter hold every route in llm_route_health is open until 2126, so this call
+  // could only ever come back empty — 592 pointless gateway round trips in 72 h, each logged
+  // below as agent_runs status 'error' although the deterministic interview ran exactly as built.
+  if (await modelHeld(admin)) return null;
   const key = await sec('cred_fn_ai'); if (!key) return null;
   // Prompt caching is now applied by ai_gateway on the system prompt it receives.
   const sys = messages.filter((m: any) => m && m.role === 'system').map((m: any) => String(m.content || '')).join('\n\n');
@@ -349,7 +355,15 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     let out = raw ? parseJson(raw) : null;
     const llmCallOk = raw !== null;
     const llmParseOk = out !== null;
-    if (!llmCallOk) { await logRun('error', { llm_call_ok: 0, llm_parse_ok: 0, keyword_fallback_used: 1 }, 'Intake LLM call failed for every model (or the OpenRouter key is missing), so this customer\'s brief was assembled by the crude keyword fallback instead of real comprehension — the RFQ may be mis-categorised, under-specified, or held at \'needs_info\' forever, and the customer will never learn why.'); }
+    // A RUN THE FOUNDER'S HOLD SHAPED IS NOT A FAILED RUN (22 Sep 2026, SEATS-08/CP-14). While the
+    // hold is on there is no model to call, the deterministic interview below IS the designed path,
+    // and logging it as 'error' put 592 false faults into agent_runs in 72 h — the watchers page on
+    // status='error', so the intake's real failures were buried under its normal operation.
+    if (!llmCallOk && await modelHeld(admin)) {
+      await logRun('ok', { llm_call_ok: 0, llm_parse_ok: 0, keyword_fallback_used: 1, model_held: 1 },
+        'The founder\'s OpenRouter hold is on (every llm_route_health route is open), so no model was called and this intake was run by the deterministic interview, which is the designed path under the hold.');
+    }
+    else if (!llmCallOk) { await logRun('error', { llm_call_ok: 0, llm_parse_ok: 0, keyword_fallback_used: 1 }, 'Intake LLM call failed for every model (or the OpenRouter key is missing), so this customer\'s brief was assembled by the crude keyword fallback instead of real comprehension — the RFQ may be mis-categorised, under-specified, or held at \'needs_info\' forever, and the customer will never learn why.'); }
     else if (!llmParseOk) { await logRun('error', { llm_call_ok: 1, llm_parse_ok: 0, keyword_fallback_used: 1 }, 'Intake LLM replied with unparseable JSON, so this customer\'s brief fell back to keyword guessing rather than the model — the brief that suppliers eventually quote against is degraded and may name the wrong trade.'); }
 
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;

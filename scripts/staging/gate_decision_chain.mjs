@@ -19,7 +19,7 @@
 // rows. That is the point — the chain is proved by running it, not by inspecting it — but it means
 // this belongs in a hand or a CI step, never in a loop or a cron.
 import { readFileSync } from 'node:fs';
-import { PROD_REF } from './qd_guard.mjs';
+import { PROD_REF } from '../lib/qd_guard.mjs';
 
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();

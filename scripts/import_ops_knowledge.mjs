@@ -49,7 +49,7 @@
 // a deliberate act somebody has to take, not a default.
 import { createReadStream, existsSync } from 'node:fs';
 import { createInterface } from 'node:readline';
-import { mgmtRead, mgmtWrite, resolveStagingRef } from './staging/qd_guard.mjs';
+import { mgmtRead, mgmtWrite, resolveStagingRef } from './lib/qd_guard.mjs';
 
 const PACK = 'C:/Users/Opera/qd-packs/QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31/QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31';
 const RECORDS = `${PACK}/06_ALL_RECORDS/01_ALL_OPERATIONAL_RECORDS.jsonl`;

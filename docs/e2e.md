@@ -29,7 +29,7 @@ nothing was left behind.
 | `supabase/functions/_shared/demo_identity.ts` | the TypeScript half of the same rule (`send_whatsapp`, `stripe_checkout`, `stripe_confirm`) |
 | `scripts/checks/demo_identities_never_reach_a_real_person.test.mjs` | proves the database half on production in an aborted transaction |
 
-It builds on `scripts/staging/demo_factory.mjs`, which does auth admin, teardown by run tag and the OTP
+It builds on `scripts/lib/demo_factory.mjs`, which does auth admin, teardown by run tag and the OTP
 hop. It does not replace it. `journey_test.mjs` is older API-only coverage. It still calls
 `dispatch_inquiry`, which no longer exists, so this harness does not reuse it.
 

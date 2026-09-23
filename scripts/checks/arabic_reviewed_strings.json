@@ -30,6 +30,7 @@
   "0f1bbc0d77b5",
   "0f28f4f9fb4b",
   "0f2dd6e60c8d",
+  "11f8340b63a6",
   "127551aed079",
   "12b83b1d61a0",
   "12f82a5ef7bc",
@@ -116,7 +117,6 @@
   "52129deda121",
   "525800c0e16f",
   "52f7be3fb6b3",
-  "530d510d325a",
   "53474f02279d",
   "536a78cb6785",
   "53eedc0f9b14",
@@ -156,7 +156,6 @@
   "6901ab259363",
   "6a81c49538b5",
   "6ab3971601b8",
-  "6b46d3a9d400",
   "6b61514ff405",
   "6b7b449abc5c",
   "6cd365b41e7a",
@@ -299,6 +298,7 @@
   "c193655cc7f4",
   "c289821a62f9",
   "c28aae843ea4",
+  "c57d40279bc2",
   "c5ed4520c071",
   "c99a08620bdd",
   "c9aa98d5a264",
@@ -374,7 +374,6 @@
   "f7d06dc2d6b6",
   "f8c311bcc121",
   "f8e5b88fd5eb",
-  "f966dfd9c2b9",
   "f995a7f1e58e",
   "faaaf27c8698",
   "fbff3973024d",
@@ -393,6 +392,10 @@
   "4c605fe5b5ab",
   "6190da0bcb51",
   "ca7ac89e6aaf"
+ ],
+ "scripts/sql/an_edit_is_owned_by_a_live_seat_and_answered_in_the_customers_language.sql": [
+  "1d3bf1712d59",
+  "4318956eb352"
  ],
  "scripts/sql/an_unmatched_question_gets_a_proper_answer.sql": [
   "5962f01deb2f",
@@ -644,6 +647,20 @@
   "a47a1a80835f",
   "f07872a12ef2"
  ],
+ "scripts/sql/the_working_week_is_monday_to_friday_in_the_database_too.sql": [
+  "010238467fbf",
+  "0f801472cbda",
+  "6bc9dc1285ab",
+  "6ece79da1cbc",
+  "9bf4d77b4f88",
+  "9cc56ceba9de",
+  "9dad2edb1e3e",
+  "d0479646925c",
+  "d5a1002e2f29",
+  "e24997779d68",
+  "f68a7ffaa78f",
+  "f9d904cdc2a1"
+ ],
  "src/app/[locale]/blog/[slug]/opengraph-image.tsx": [
   "4bb69a8b2b4f"
  ],
@@ -747,7 +764,8 @@
   "1085098eb87e"
  ],
  "src/components/LegalDoc.tsx": [
-  "28fd1b25a6a1"
+  "28fd1b25a6a1",
+  "af5b64b29683"
  ],
  "src/components/MarketingDoc.tsx": [
   "493ce5b65112",
@@ -866,7 +884,6 @@
   "20ffc9b01a1e",
   "21830ed1d48b",
   "21c3cd4cc536",
-  "22cf4ddfea7f",
   "230c82cdb6b4",
   "23a0657f5846",
   "2583e0158e6f",
@@ -1011,6 +1028,7 @@
   "c6d01499693f",
   "c82d980e242a",
   "c935324cb3cf",
+  "c98a558f2c10",
   "cb9186eeb149",
   "cb93c4e62a13",
   "cc308a5e6acf",
@@ -1037,6 +1055,7 @@
   "e905a30bd566",
   "ea04e9e39668",
   "ea4af2f30734",
+  "eae85698e58b",
   "ef4f41b972a1",
   "efa91f65ffc9",
   "f1624f88a2ac",
@@ -1049,6 +1068,7 @@
   "f92d58802968",
   "f9be00ebca42",
   "f9cb889c7a48",
+  "fa4518464f6b",
   "fa9c385f1093",
   "fc0c39fd9d3b",
   "fc644b0eb14a",
@@ -2358,22 +2378,6 @@
   "4aeed5637090",
   "f34468617380"
  ],
- "src/components/visual/CompareLevelling.tsx": [
-  "58ce525d33df",
-  "83feabecc8fd",
-  "e66a6c2062bf"
- ],
- "src/components/visual/DrawingScan.tsx": [
-  "065d7eb843c1",
-  "5b1fb4c87380",
-  "65579b375a32",
-  "885ca0e94a7e",
-  "aaec34bcf330",
-  "b021cdba3e3d",
-  "d9f69ce19f71",
-  "da0d32090a15",
-  "eac3d0835183"
- ],
  "src/components/visual/EmiratesMap.tsx": [
   "159742f4d3e6",
   "43227cdf0df6",
@@ -2849,6 +2853,14 @@
  "supabase/functions/_shared/quote_labels.ts": [
   "d59ecf7fd6e7"
  ],
+ "supabase/functions/_shared/reveal_guard.ts": [
+  "605a93533c3b",
+  "81313df707ef",
+  "90032d0e95ed",
+  "a49713c03f13",
+  "c1c78f7840ee",
+  "d0629661fd94"
+ ],
  "supabase/functions/_shared/size_question.ts": [
   "29de6634a5a5",
   "6179513998c9",
@@ -2994,14 +3006,23 @@
   "fe749a06f354"
  ],
  "supabase/functions/customer_api/index.ts": [
+  "0183560e12a8",
+  "06ed97856972",
   "1e7a6e6cab42",
   "302ecd33f24f",
+  "318701cc6ae5",
   "355bbb0379e7",
   "3adbf5a1b22e",
+  "470f6f6cd807",
+  "4e23e528e11c",
   "53276351b81f",
+  "56f2c4228b44",
+  "576825a5b165",
   "5de8c7a4b018",
+  "820bc3b3178c",
   "83a390c9303a",
   "85da0685e1ff",
+  "89ad4a98f47d",
   "9668db0558d7",
   "9a550277509c",
   "9cdbdd59f936",
@@ -3010,7 +3031,11 @@
   "cc83c7932429",
   "e00773da115b",
   "e13e073561a2",
-  "f5175202b419"
+  "f5175202b419",
+  "fe9667777dfb"
+ ],
+ "supabase/functions/customer_documents/index.ts": [
+  "45f92e2a0325"
  ],
  "supabase/functions/customer_documents/shape.ts": [
   "1baf37f54ec0",
@@ -3173,6 +3198,7 @@
   "f62f83a4e79e"
  ],
  "supabase/functions/quote_compare/index.ts": [
+  "9a59faca8f00",
   "aa9f2a1ff91a"
  ],
  "supabase/functions/sales_engineer/index.ts": [
@@ -3198,9 +3224,8 @@
  ],
  "supabase/functions/site_assistant/index.ts": [
   "0216fce59446",
-  "1fd3dde27a22",
+  "0e0329c97c49",
   "32f673f57030",
-  "473454172ad9",
   "488eec99c14e",
   "4c6a9cec02c0",
   "524c3be9b432",
@@ -3213,16 +3238,26 @@
   "9a84f622dd82",
   "9ce520c3750e",
   "a0464b0bd27b",
-  "a688085e300e",
   "ad4119107cfd",
   "ad996ed439d2",
   "af3e20773443",
+  "c183c419054d",
   "c4356c2c80ac",
+  "c94d66d845db",
   "d13175d02298",
   "dbd6352d03bc",
   "dbf6dbc61869",
   "f40cee86aeb4",
   "f70f364a150d"
+ ],
+ "supabase/functions/stripe_checkout/index.ts": [
+  "1317c3d3a9ac",
+  "783c51d9471a",
+  "ea217ac6f72a"
+ ],
+ "supabase/functions/stripe_confirm/index.ts": [
+  "7c6d41c8f1fb",
+  "97362be6c6b0"
  ],
  "supabase/functions/supplier_ack/index.ts": [
   "19ebc394b957",
@@ -3237,7 +3272,10 @@
   "3ae86111b9c8",
   "780982602d68",
   "8f9a5ea29d59",
+  "8fce5732032b",
+  "91ae2c7291d3",
   "94956e39f7f1",
+  "b950c9daf1bf",
   "d8840a7d8b95"
  ],
  "supabase/functions/supplier_api/quote_review.ts": [
@@ -3375,6 +3413,10 @@
   "afa6fc3ea96a",
   "c393ed6907b8"
  ],
+ "supabase/functions/voice_otp/twiml.ts": [
+  "2106a8f82cd2",
+  "ee21e997c5f4"
+ ],
  "supabase/functions/wa_inbound/coverage.ts": [
   "0aa6fdf4e4a5",
   "0bc2596ce60b",
@@ -3450,7 +3492,6 @@
   "91e8cc5ab105",
   "92478aa8fc99",
   "93b1be2560cb",
-  "98c0925a3c6c",
   "9db6c1ec03dc",
   "9dcf907cb500",
   "a1523ed2efbe",
@@ -3470,6 +3511,7 @@
   "e332bdbfcc71",
   "e3d8cf33b4c4",
   "ed6ffb116fb9",
+  "f015f5ba7006",
   "f1e0a31d8277",
   "fe741877988e"
  ],

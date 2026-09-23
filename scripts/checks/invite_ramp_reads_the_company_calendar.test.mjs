@@ -18,19 +18,19 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { sql } from '../lib/db.mjs';
 
 const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
-const q = async (project, query) => {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${project}/database/query`, {
-    method: 'POST', headers: { Authorization: 'Bearer ' + mgmtToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query }),
-  });
-  assert.ok(r.ok, `query failed on ${project}: ${r.status}`);
-  return r.json();
-};
+// This POSTed its own fetch with NO backoff at all, and reported a throttle as
+// `query failed on htdblwldjkcgjvmqkbeh: 429` — which reads as "the invite ramp stopped consulting
+// the calendar". MEASURED 22 Sep 2026: that is how this check went red on origin/main while the
+// ramp was correct. scripts/lib/db.mjs is the estate's one retry policy for this endpoint and
+// names an exhausted throttle as infrastructure. The assertions below are unchanged; read_only is
+// set because both statements are reads.
+const q = (project, query) => sql(query, { ref: project, readOnly: true });
 
 const defOf = async (project) => {
   const rows = await q(project, "select pg_get_functiondef(p.oid) as def from pg_proc p "
