@@ -1,5 +1,5 @@
-// THE MARKETING SEAT'S DUTY LIST — empty today, and real: the 'duties' action runs every entry on every
-// call (resilience_ping step 'marketing', every 30 minutes) before fn_marketing_tick.
+// THE MARKETING SEAT'S DUTY LIST: the 'duties' action runs every entry on every call (resilience_ping step
+// 'marketing', every 30 minutes) before fn_marketing_tick.
 //
 // The builds that fill it (founder instruction 721, 22 Sep 2026):
 //   * publishing / analytics / ad spend — schedule the approved posts through Postiz, read each channel's
@@ -14,8 +14,9 @@
 // scripts/checks/meta_and_social_are_held_for_the_marketing_seat.test.mjs). Email and WhatsApp go through
 // customer_support (_shared/deliver.ts); replies on the company's own social channels are this seat's.
 import { timedFetch } from '../_shared/timed_fetch.ts';
-import { processComment, readX, readYouTube, youtubeToken, type CommentEvent } from '../_shared/marketing_social_comments.ts';
-import { adminStore } from '../_shared/marketing_social_store.ts';
+import { call, linkedinTarget, processComment, unhideRequest, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
+import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
+import { postizIntegrations, type PostizIntegration } from '../_shared/marketing_channels.ts';
 import { wantsHuman } from '../marketing_social_inbox/reply.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -30,40 +31,99 @@ export interface Duty {
   run: (ctx: DutyContext) => Promise<Record<string, unknown>>;
 }
 
+// ── EACH PLATFORM ON ITS OWN ─────────────────────────────────────────────────────────────────────────
+// One platform failing never stops the others. A credential failure (missing, expired, refused) SKIPS that
+// platform and says so; any other failure is collected and thrown once every step has run, so it becomes the
+// seat's IT finding without costing the other platforms their run.
+const CREDENTIAL = /\b(401|403|190)\b|token|credential|unauthori[sz]ed|forbidden|expired|oauth|not connected|no .*key/i;
+export async function isolated(steps: Record<string, () => Promise<unknown>>) {
+  const out: Record<string, unknown> = {}; const skipped: string[] = []; const errors: string[] = [];
+  for (const [name, step] of Object.entries(steps)) {
+    try { out[name] = await step(); }
+    catch (e) {
+      const msg = String((e as Error)?.message || e).slice(0, 200);
+      if (e instanceof Skip || CREDENTIAL.test(msg)) skipped.push(name + ': ' + msg); else errors.push(name + ': ' + msg);
+    }
+  }
+  return { out, skipped, errors };
+}
+export class Skip extends Error {}
 
-// SOCIAL COMMENTS ON X AND YOUTUBE (instruction 866, 23 Sep 2026). Instagram and Facebook comments arrive by
-// Meta webhook at marketing_social_inbox; X and YouTube have no webhook we can use, so each run reads what is
-// new and hands every comment to the same policy. A platform with no credential is skipped and SAYS so
-// (skipped: 'x: no x_user_token') — reading it is a count, never a silent zero. Credentials, by key name:
-//   x_user_token, x_user_id                        (OAuth 2.0 user token: tweet.read tweet.write users.read)
-//   youtube_client_id, youtube_client_secret, youtube_refresh_token, youtube_channel_id (scope youtube.force-ssl)
-// Only comments from the last 24 hours are taken: an old comment answered today reads as a bot catching up.
+// SOCIAL COMMENTS (instruction 866; founder rulings of 23 Sep 2026). Instagram and Facebook comments arrive by
+// Meta webhook at marketing_social_inbox; this duty
+//   1. retries every Instagram/Facebook comment an earlier run left unfinished (no outcome after 10 minutes);
+//   2. un-hides what a reviewing seat said was not abuse, and closes each social.* handoff the receiving seat
+//      has answered (the originator closes: fn_marketing_social_handoffs_close);
+//   3. YouTube: through the founder's Postiz YouTube connection only — skipped, and SAYS so, until it is there;
+//   4. LinkedIn: the QuotesDone company page only (linkedinTarget) — a personal profile is refused.
+// X is removed (founder, 23 Sep 2026: no paid X API).
 export const socialComments: Duty = {
   name: 'social_comments',
   async run({ admin, sec, now }) {
     const gateway = Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway';
-    const counts: Record<string, unknown> = { skipped: [] as string[] };
-    const fresh = (e: CommentEvent) => now.getTime() - e.at.getTime() < 24 * 3600 * 1000;
-    const runAll = async (platform: string, events: CommentEvent[], token: string) => {
-      const store = adminStore(admin, timedFetch, async () => token, gateway);
-      const out: Record<string, number> = {};
-      for (const ev of events.filter(fresh)) {
-        const o = await processComment(store, ev, wantsHuman(ev.text)).catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
-        out[o] = (out[o] || 0) + 1;
-      }
-      counts[platform] = { read: events.length, outcomes: out };
+    const metaToken = (ev: { platform: Platform; accountId: string }) =>
+      ev.platform === 'youtube' ? Promise.resolve(null) : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);
+    let postiz: PostizIntegration[] | null = null;
+    const integrations = async () => {
+      if (postiz) return postiz;
+      const key = await sec('postiz_api_key');
+      if (!key) throw new Skip('no postiz_api_key');
+      const r = await postizIntegrations(timedFetch, (await sec('postiz_api_url')) || 'https://api.postiz.com/public/v1', key);
+      if (r.error) throw new Error('postiz integrations HTTP ' + r.status + ': ' + r.error);
+      return (postiz = r.list.filter((x) => !x.disabled && !x.refreshNeeded));
     };
-    const [xt, xu] = [await sec('x_user_token'), await sec('x_user_id')];
-    if (xt && xu) {
-      const { data } = await admin.from('social_message').select('meta_message_id').eq('platform', 'x').eq('direction', 'in')
-        .order('occurred_at', { ascending: false }).limit(1).maybeSingle();
-      await runAll('x', await readX(timedFetch, xt, xu, data?.meta_message_id ?? null), xt);
-    } else (counts.skipped as string[]).push('x: no x_user_token / x_user_id');
-    const [ci, cs, rt, ch] = [await sec('youtube_client_id'), await sec('youtube_client_secret'), await sec('youtube_refresh_token'), await sec('youtube_channel_id')];
-    if (ci && cs && rt && ch) {
-      const token = await youtubeToken(timedFetch, ci, cs, rt);
-      await runAll('youtube', await readYouTube(timedFetch, token, ch), token);
-    } else (counts.skipped as string[]).push('youtube: no youtube_client_id / _client_secret / _refresh_token / _channel_id');
+
+    const { out, skipped, errors } = await isolated({
+      async retry_unfinished() {
+        const { data, error } = await admin.from('social_message')
+          .select('meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
+          .eq('direction', 'in').eq('channel', 'comment').is('outcome', null)
+          .lt('created_at', new Date(now.getTime() - 10 * 60_000).toISOString())
+          .gt('created_at', new Date(now.getTime() - 24 * 3600_000).toISOString()).limit(50);
+        if (error) throw new Error('unfinished comments: ' + error.message);
+        const counts: Record<string, number> = {};
+        for (const r of data || []) {
+          const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
+            authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, wantsHuman(ev.text))
+            .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
+          counts[o] = (counts[o] || 0) + 1;
+        }
+        return counts;
+      },
+      async close_handoffs() {
+        // A hide the reviewing seat reversed is un-hidden first; then every answered handoff is closed by us.
+        const { data } = await admin.from('agent_actions').select('id,detail').eq('kind', 'handoff').eq('status', 'pending')
+          .in('detail->>type', ['social.escalation', 'social.lead']).eq('detail->>unhide', 'true').is('detail->>unhidden_at', null).limit(50);
+        let unhidden = 0;
+        for (const h of data || []) {
+          const d = h.detail || {};
+          const ev = { platform: d.platform, accountId: d.account, commentId: d.comment } as CommentEvent;
+          const t = await metaToken(ev);
+          if (!t) continue;
+          const r = await call(timedFetch, unhideRequest(ev, t));
+          if (r.ok) { await admin.from('agent_actions').update({ detail: { ...d, unhidden_at: now.toISOString() } }).eq('id', h.id); unhidden++; }
+        }
+        const { data: closed, error } = await admin.rpc('fn_marketing_social_handoffs_close');
+        if (error) throw new Error('fn_marketing_social_handoffs_close: ' + error.message);
+        return { unhidden, closed };
+      },
+      async youtube() {
+        const yt = (await integrations()).find((x) => x.identifier === 'youtube');
+        if (!yt) throw new Skip('youtube not connected in Postiz');
+        // Measured 23 Sep 2026 (docs.postiz.com/llms.txt): Postiz's public API has no comment read or reply and
+        // hands out no platform token, and the founder ruled out our own Google OAuth keys. Nothing is read.
+        throw new Skip('youtube connected in Postiz (' + yt.id + '), but Postiz exposes no comment endpoint or token');
+      },
+      async linkedin() {
+        const ours = await sec('linkedin_company_page_integration_id');
+        const page = (await integrations()).find((x) => linkedinTarget(x, ours));
+        if (!page) throw new Skip('the company page named by linkedin_company_page_integration_id is not connected in Postiz (personal profiles are refused)');
+        throw new Skip('linkedin company page connected, but Postiz exposes no comment endpoint');
+      },
+    });
+    const counts = { ...out, skipped };
+    if (errors.length) throw new Error(errors.join(' | ') + ' (the other steps ran: ' + JSON.stringify(counts).slice(0, 300) + ')');
     return counts;
   },
 };

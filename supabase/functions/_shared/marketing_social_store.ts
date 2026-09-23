@@ -5,7 +5,9 @@
 // its send status. Kept forever, like every conversation (founder, 14 Sep).
 import { decide, unknown, type CorpusRow, type LibraryRow } from '../marketing_social_inbox/reply.ts';
 import type { FaqRow, Lang } from './chat_answers.ts';
+import { pickPage, type PageAccount } from '../marketing_social_inbox/meta.ts';
 import { call, hideRequest, replyRequest, type CommentEvent, type Fetch, type Store } from './marketing_social_comments.ts';
+import { raiseSocialHandoff } from '../marketing/social_handoffs.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -27,9 +29,21 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
         meta_message_id: ev.commentId, parent_id: ev.threadId, body: ev.text, occurred_at: ev.at.toISOString(), classification: cls,
       }, { onConflict: 'platform,meta_message_id', ignoreDuplicates: true }).select('id,conversation_id');
       if (error) throw new Error('message: ' + error.message);
-      if (!data?.length) return null;
-      inRows.set(data[0].id, { conv: data[0].conversation_id, platform: ev.platform });
-      return data[0].id as number;
+      let row = data?.[0];
+      if (!row) {
+        // Already stored. Answered (outcome set) means done; no outcome means an earlier run failed before it
+        // finished, so this delivery takes it over — a comment is never left unanswered for ever.
+        const { data: old } = await admin.from('social_message').select('id,conversation_id,outcome')
+          .eq('platform', ev.platform).eq('meta_message_id', ev.commentId).eq('direction', 'in').maybeSingle();
+        if (!old || old.outcome != null) return null;
+        row = old;
+      }
+      inRows.set(row.id, { conv: row.conversation_id, platform: ev.platform });
+      return row.id as number;
+    },
+    async release(inId) {
+      // Nothing was sent: the row is removed so the next delivery (or the duty's sweep) processes it afresh.
+      await admin.from('social_message').delete().eq('id', inId).is('outcome', null);
     },
     async threadAllowed(ev) {
       try { const { data, error } = await admin.rpc('rl_check', { p_key: 'social_thread:' + ev.platform + ':' + ev.threadId, p_limit: 3, p_seconds: 600 }); return error ? false : data !== false; }
@@ -47,14 +61,7 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       });
       if (error) throw new Error('reply row: ' + error.message);
     },
-    async handoff(to, type, ev, cls) {
-      const { data, error } = await admin.rpc('fn_seat_handoff', { p_from: 'marketing', p_to: to, p_type: type, p_subject_table: 'social_message',
-        p_subject_id: ev.platform + ':' + ev.commentId,
-        p_payload: { platform: ev.platform, handle: ev.handle, text: ev.text.slice(0, 1000), thread: ev.threadId, classification: cls,
-          waiting_for: to + ' to answer the commenter privately' } });
-      if (error) throw new Error('handoff: ' + error.message);
-      return (data as number) ?? null;
-    },
+    handoff: (type, ev, cls, extra) => raiseSocialHandoff(admin, type, ev, cls, extra),
     async switchOn(key) { return (await sec(key)) === 'on'; },
     async library(key, lang) {
       const { data } = await admin.from('social_reply_library').select('reply_en,reply_ar').eq('key', key).eq('active', true).maybeSingle();
@@ -67,8 +74,9 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       ]);
       let corpus: CorpusRow[] = [];
       try { corpus = ((await admin.rpc('fn_support_corpus_search', { p_query: ev.text, p_public: true, p_limit: 6 })).data || []) as CorpusRow[]; } catch (_e) { corpus = []; }
-      // A public comment reply never carries the DM suffix ("reply agent"): it makes no sense under a post.
-      const library = ((lib || []) as LibraryRow[]).filter((r) => r.key !== 'knowledge_suffix');
+      // Only the comment_* rows: a DM row carries DM instructions ("reply 'agent'", the founder's mobile)
+      // that must never be posted under a public post. FAQ and knowledge answers pass guard() in processComment.
+      const library = ((lib || []) as LibraryRow[]).filter((r) => r.key.startsWith('comment_'));
       const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus);
       return d.kind === 'unknown' ? { ...unknown(library, d.lang), text: '' } : d;
     },
@@ -99,4 +107,26 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       return t ? await call(f, hideRequest(ev, t)) : { ok: false, error: 'no credential for ' + ev.platform };
     },
   };
+}
+
+// THE PAGE TOKEN, DERIVED — never a typed-in secret. me/accounts with the system-user token lists every page it
+// manages with that page's own token and linked Instagram account; the one matching is cached in
+// marketing_meta_page and refetched on refresh (Graph 190). Shared by the webhook and the marketing duty.
+export async function metaPageToken(admin: Admin, f: Fetch, platform: 'facebook' | 'instagram', accountId: string, refresh = false): Promise<string | null> {
+  if (!refresh) {
+    const { data } = await admin.from('marketing_meta_page').select('page_token').eq(platform === 'facebook' ? 'page_id' : 'ig_id', accountId).maybeSingle();
+    if (data?.page_token) return data.page_token as string;
+  }
+  const { data: k } = await admin.from('app_secrets').select('value').eq('key', 'meta_access_token').maybeSingle();
+  const sys = String(k?.value ?? '').trim();
+  if (!sys) return null;
+  try {
+    const r = await f('https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account&limit=100&access_token=' + encodeURIComponent(sys));
+    const j = await r.json();
+    const page = pickPage((j?.data || []) as PageAccount[], platform, accountId);
+    if (!r.ok || !page) return null;
+    await admin.from('marketing_meta_page').upsert({ page_id: page.id, ig_id: page.instagram_business_account?.id ?? null,
+      page_token: page.access_token, fetched_at: new Date().toISOString() }, { onConflict: 'page_id' });
+    return page.access_token;
+  } catch (_e) { return null; }
 }

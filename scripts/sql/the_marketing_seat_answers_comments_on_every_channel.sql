@@ -13,12 +13,13 @@
 --   Postiz's public API (docs.postiz.com/llms.txt) has no endpoint that reads or answers a comment.
 --
 -- WHAT THIS CHANGES (read by supabase/functions/_shared/marketing_social_comments.ts and _store.ts):
---   1. x and youtube are platforms the inbox can hold.
+--   1. youtube is a platform the inbox can hold (through the founder's Postiz connection). X is NOT: the founder
+--      ruled on 23 Sep 2026 that there is no paid X API, and nothing reads or answers X.
 --   2. every comment row carries its classification, who decided the reply (rule / model / guard_fallback),
 --      the guard failures of a rejected model draft, and the handoff it raised — the audit the founder and the
 --      month-end review read. send_status gains the outcomes that send nothing: held_model (the model is held:
 --      "held, not run"), rate_limited, not_sent, hidden.
---   3. two seat conversations: social.escalation (marketing -> customer_support: a complaint, a dispute, a
+--   3. two seat conversations, CLOSED BY MARKETING (originator_closes) once the receiving seat has answered: social.escalation (marketing -> customer_support: a complaint, a dispute, a
 --      legal threat, a request for a person, or a model draft that failed its guards) and social.lead
 --      (marketing -> sales_engineer: a customer or a supplier asking to work with us). Both wait in the
 --      receiving seat's inbox (fn_agent_handoff_inbox) for that seat to answer the commenter privately.
@@ -29,10 +30,10 @@
 
 alter table public.social_conversation drop constraint if exists social_conversation_platform_check;
 alter table public.social_conversation add constraint social_conversation_platform_check
-  check (platform in ('instagram', 'facebook', 'x', 'youtube'));
+  check (platform in ('instagram', 'facebook', 'youtube'));
 alter table public.social_message drop constraint if exists social_message_platform_check;
 alter table public.social_message add constraint social_message_platform_check
-  check (platform in ('instagram', 'facebook', 'x', 'youtube'));
+  check (platform in ('instagram', 'facebook', 'youtube'));
 
 alter table public.social_message
   add column if not exists classification text,
@@ -62,11 +63,57 @@ revoke all on function public.fn_marketing_social_handoff_waits(bigint) from pub
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
   ('social.escalation', 'marketing', 'customer_support',
    'a public comment that must not be answered in public (complaint, dispute, legal, identity, a request for a person, or a model draft that failed its guards)',
-   'fn_marketing_social_handoff_waits', interval '24 hours', false, 'scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql'),
+   'fn_marketing_social_handoff_waits', interval '24 hours', true, 'scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql'),
   ('social.lead', 'marketing', 'sales_engineer',
    'a public comment from a customer asking for quotes or a supplier asking to join',
-   'fn_marketing_social_handoff_waits', interval '24 hours', false, 'scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql')
-on conflict do nothing;
+   'fn_marketing_social_handoff_waits', interval '24 hours', true, 'scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql')
+on conflict (type, from_seat, to_seat) do update set originator_closes = excluded.originator_closes, handler = excluded.handler,
+  meaning = excluded.meaning, reply_within = excluded.reply_within, owner_file = excluded.owner_file;
+
+-- THE RECEIVING SEAT ANSWERS: it has written to the commenter privately (or reviewed a hide). p_unhide asks
+-- marketing to restore a comment that was hidden and was not abuse. Only the addressed seat may answer.
+create or replace function public.fn_marketing_social_handoff_answered(p_id bigint, p_seat text, p_note text, p_unhide boolean default false)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare a public.agent_actions;
+begin
+  select * into a from public.agent_actions
+   where id = p_id and kind = 'handoff' and status = 'pending' and detail->>'type' in ('social.escalation', 'social.lead') for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no pending social handoff ' || p_id); end if;
+  if a.agent is distinct from p_seat then
+    return jsonb_build_object('ok', false, 'reason', 'handoff ' || p_id || ' is addressed to ' || a.agent || ', not ' || coalesce(p_seat, 'nobody'));
+  end if;
+  if coalesce(btrim(p_note), '') = '' then return jsonb_build_object('ok', false, 'reason', 'an answer needs a note of what was done'); end if;
+  update public.agent_actions
+     set detail = detail || jsonb_build_object('answered_at', now(), 'answered_by', p_seat, 'answer', left(p_note, 1000))
+                         || case when p_unhide then jsonb_build_object('unhide', true) else '{}'::jsonb end
+   where id = p_id;
+  return jsonb_build_object('ok', true, 'handoff_id', p_id);
+end $fn$;
+revoke all on function public.fn_marketing_social_handoff_answered(bigint, text, text, boolean) from public, anon, authenticated;
+
+-- THE ORIGINATOR RE-CHECKS AND CLOSES (marketing duty social_comments, every 30 minutes): a social handoff closes
+-- when the receiving seat has answered and, if it asked for the comment back, the comment has been un-hidden.
+create or replace function public.fn_marketing_social_handoffs_close()
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare h record; n_closed int := 0; n_waiting int := 0;
+begin
+  for h in select a.id, a.detail from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'from' = 'marketing'
+              and a.detail->>'type' in ('social.escalation', 'social.lead')
+  loop
+    if h.detail ? 'answered_at' and (coalesce((h.detail->>'unhide')::boolean, false) = false or h.detail ? 'unhidden_at') then
+      perform set_config('qd.handoff_closer', 'marketing', true);
+      perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('verified_by', 'marketing', 'verified_at', now(),
+        'answer', h.detail->>'answer', 'answered_by', h.detail->>'answered_by', 'unhidden_at', h.detail->>'unhidden_at'));
+      perform set_config('qd.handoff_closer', '', true);
+      n_closed := n_closed + 1;
+    else
+      n_waiting := n_waiting + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('closed', n_closed, 'waiting', n_waiting);
+end $fn$;
+revoke all on function public.fn_marketing_social_handoffs_close() from public, anon, authenticated;
 
 insert into public.social_reply_library (key, priority, match_words, reply_en, reply_ar, updated_by) values
 ('comment_praise', null, '{}',

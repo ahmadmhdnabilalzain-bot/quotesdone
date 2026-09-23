@@ -1,4 +1,4 @@
-// THE MARKETING SEAT ANSWERS PUBLIC COMMENTS ON EVERY CHANNEL SYNCED IN POSTIZ (marketing, 23 Sep 2026).
+// THE MARKETING SEAT ANSWERS PUBLIC COMMENTS ON THE COMPANY'S OWN CHANNELS (marketing, 23 Sep 2026).
 //
 // Founder, instruction 866: "the marketing agent need to be able to reply to the comments as well. If
 // someone said something, he should be able to reply … that applies to all the platforms on social
@@ -6,33 +6,32 @@
 // automation." So there is NO per-reply approval anywhere below: the system guarantees the reply instead.
 //
 // MEASURED 23 Sep 2026 (read-only, htdblwldjkcgjvmqkbeh + docs.postiz.com/llms.txt): Postiz's public API
-// publishes, lists posts and reads analytics; it has no endpoint that reads or answers a comment. So each
-// platform is reached directly with its own official API:
+// publishes, lists posts and reads analytics; it has no endpoint that reads or answers a comment.
 //   instagram / facebook — Meta webhook (marketing_social_inbox) delivers the comment; reply and hide via Graph
-//   x                    — polled: GET /2/users/:id/mentions; reply POST /2/tweets; hide PUT /2/tweets/:id/hidden
-//   youtube              — polled: commentThreads.list; reply comments.insert; hide comments.setModerationStatus
-//   linkedin-page        — NOT built: see the PR. scripts/checks/linkedin_is_never_automated.test.mjs forbids
-//                          any code naming LinkedIn's API host, and the Community Management API needs LinkedIn's
-//                          own approval of the app first.
+//   youtube              — through the Postiz YouTube connection only (founder, 23 Sep: no own Google OAuth
+//                          keys). Until the founder connects YouTube in Postiz the duty skips it and says so.
+//   linkedin             — ONLY the QuotesDone company page (founder, 23 Sep): linkedinTarget() refuses any
+//                          integration but the one app_secrets.linkedin_company_page_integration_id names.
+//   x                    — REMOVED (founder, 23 Sep 2026: no paid X API). Nothing here reads or answers X.
 //
 // THE POLICY, deterministic first (processComment):
-//   spam_abuse       -> hidden where the platform allows it, never argued with
+//   spam_abuse       -> hidden where the platform allows it, AND handed to customer_support to review
+//                       (unhideRequest reverses it); never hidden when the comment also asks or wants to join
 //   complaint, sensitive_legal, a request for a person
-//                    -> handed to customer_support (fn_seat_handoff 'social.escalation') + a fixed public
-//                       acknowledgement that states no fact
-//   sales_lead       -> handed to sales_engineer ('social.lead') + the fixed how-it-works reply (comment_lead)
-//   supplier_enquiry -> handed to sales_engineer ('social.lead') + the fixed supplier reply (fee facts)
+//                    -> handed to customer_support ('social.escalation') + a fixed acknowledgement
+//   sales_lead / supplier_enquiry -> handed to sales_engineer ('social.lead') + the fixed reply
 //   praise           -> the fixed thanks
-//   question         -> the library / FAQ / knowledge answer (reply.ts decide); only when none exists does the
-//                       model draft, and the draft must pass guard() or it is NOT sent (the comment is
-//                       escalated instead). While the model is held: recorded 'held_not_run', nothing sent.
+//   question         -> the comment library / FAQ / knowledge answer; only when none exists does the model
+//                       draft. While the model is held: recorded 'held_not_run', nothing sent.
 //   off_topic        -> ignored
-// Our own account is never answered (no loop); a comment id is answered at most once (unique key); a thread
-// takes at most 3 seat replies in 10 minutes. Nothing is sent unless app_secrets.social_send_enabled = 'on'
-// (the emergency stop) and the author is not a ZZDEMO fixture.
+// EVERY text that would be sent — library, FAQ, knowledge or model — passes guard() and the platform's
+// length limit, or it is NOT sent: the comment is escalated and the fixed acknowledgement goes instead. A
+// fact is never truncated. Our own account is never answered; a comment id is answered at most once; a
+// thread takes at most 3 seat replies in 10 minutes. Nothing is sent unless app_secrets.social_send_enabled
+// = 'on' (the emergency stop) and the author is not a ZZDEMO fixture.
 import { langOf, type Lang } from './chat_answers.ts';
 
-export type Platform = 'facebook' | 'instagram' | 'x' | 'youtube';
+export type Platform = 'facebook' | 'instagram' | 'youtube';
 export type Class = 'question' | 'praise' | 'complaint' | 'spam_abuse' | 'sales_lead' | 'supplier_enquiry' | 'sensitive_legal' | 'off_topic';
 
 export interface CommentEvent {
@@ -43,89 +42,147 @@ export interface CommentEvent {
   handle: string | null;    // what the platform shows publicly; nothing more is kept
   text: string;
   at: Date;
-  threadId: string;         // the post / video / conversation the comment sits under
+  threadId: string;         // the post / video the comment sits under
+}
+
+// ── NORMALISE: what a reader sees, not what the bytes say ─────────────────────────────────────────────
+// NFKC; Arabic-Indic and Persian digits to ASCII; every Unicode dash to '-'; Cyrillic/Greek look-alikes to
+// Latin; curly quotes to straight; zero-width and tatweel removed; diacritics (Latin accents and Arabic
+// harakat) stripped. Without this "Е‑Trader" (Cyrillic Е, U+2011) and "٥٪" walk past every rule.
+const LOOKALIKE: Record<string, string> = {
+  'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'у': 'y', 'х': 'x', 'і': 'i', 'ј': 'j', 'ѕ': 's', 'һ': 'h', 'ԁ': 'd', 'ӏ': 'l',
+  'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T', 'Х': 'X', 'У': 'Y', 'І': 'I', 'Ј': 'J', 'Ѕ': 'S',
+  'α': 'a', 'ο': 'o', 'ρ': 'p', 'ε': 'e', 'ι': 'i', 'κ': 'k', 'ν': 'v', 'τ': 't', 'Α': 'A', 'Β': 'B', 'Ε': 'E', 'Ι': 'I', 'Κ': 'K', 'Μ': 'M', 'Ν': 'N', 'Ο': 'O', 'Ρ': 'P', 'Τ': 'T', 'Χ': 'X',
+};
+export function normalise(s: string): string {
+  return String(s || '').normalize('NFKC')
+    .replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660))
+    .replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x6F0))
+    .replace(/[‐-―−﹘﹣－­]/g, '-')
+    .replace(/[‘’‛′＇]/g, "'").replace(/[“”‟″]/g, '"')
+    .replace(/[​-‏‪-‮⁠-⁤﻿ـ]/g, '')
+    .replace(/[Ѐ-ӿͰ-Ͽ]/g, (c) => LOOKALIKE[c] ?? c)
+    .normalize('NFD').replace(/\p{Mn}/gu, '').normalize('NFC');
 }
 
 // ── CLASSIFY ─────────────────────────────────────────────────────────────────────────────────────
-// First hit wins, in this order: abuse before everything (an insult with a question is still abuse),
-// legal and complaint before leads (an angry supplier is a complaint, not a lead), a question before praise
-// ("great, how do I register?" wants the answer). Asking who a supplier or customer is, is identity: escalated.
-const n = (s: string) => ' ' + String(s || '').toLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/\s+/g, ' ') + ' ';
+// Word-bounded throughout: 'court' is not 'courtyard', 'كم' is not 'لكم'. Punctuation becomes space
+// (except ? and ؟), so every term is matched between spaces.
+const n = (s: string) => ' ' + normalise(s).toLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+  .replace(/([?؟])/g, ' $1 ').replace(/[^\p{L}\p{N}?؟%٪'\s]/gu, ' ').replace(/\s+/g, ' ') + ' ';
+const W = (alts: string) => new RegExp(`(?<=\\s)(?:${alts})(?=\\s)`);
+// A hide needs a clear signal: an insult or a known spam pitch, as whole words.
+const ABUSE = W("idiots?|stupid|morons?|scam(?:mers?|s)?|fraudsters?|fuck\\w*|shit\\w*|bastards?|crypto|bitcoin|forex|onlyfans|promo code|dm me for \\w+|(?:buy|get|cheap|free) \\d*k? ?followers|نصاب|نصابين|حرامي|حراميه|تافه|غبي|كلب|اربح|متابعين");
+// …and is never taken when the comment also asks something or wants to join: that person gets an answer.
+const ASKS = W("\\?|؟|how|what|where|when|why|can i|can we|do you|is it|is this|register|registration|sign up|signup|join|quote|quotes|كيف|وش|ايش|متي|وين|ليش|هل|كم|تسجيل|اسجل|انضم|عرض سعر");
 const RULES: [Class, RegExp][] = [
-  ['spam_abuse', /(https?:\/\/(?!(www\.)?quotesdone\.(com|ae))|\bwww\.(?!quotesdone)|crypto|bitcoin|forex|followers|dm me for|promo code|onlyfans|\bidiot|\bstupid\b|\bscam(mers)?\b|fuck|shit|bastard|نصاب|نصابين|حرامي|حراميه|تافه|غبي|كلب|اربح|متابعين)/],
-  ['sensitive_legal', /(lawyer|lawsuit|\bsue\b|court|legal action|police|report you|consumer protection|fraud|who (is|was) the (supplier|customer|client)|name of the (supplier|customer|client)|which (supplier|company) (did|was|is)|اسم المورد|اسم العميل|مين المورد|من هو المورد|منو المورد|محامي|محكمه|قضيه|الشرطه|بلاغ|حمايه المستهلك|احتيال)/],
-  ['complaint', /(refund|complain|complaint|terrible|worst|disappointed|never (replied|responded|answered)|no one (replied|answered)|charged me|overcharged|not happy|bad service|استرجاع|استرداد|شكوي|اشتكي|سيء|سيئ|اسوا|ما احد رد|ما رد|محد رد|خصم مني|خدمه سيئه|غير راضي)/],
-  ['supplier_enquiry', /(supplier|contractor|vendor|register (my|our) (company|business)|list (my|our) (company|business)|get (leads|jobs|projects)|trade licen[cs]e|مورد|موردين|مقاول|تسجيل شركتي|تسجيل شركتنا|رخصه تجاريه)/],
-  ['sales_lead', /(i need (a |an )?(quote|quotation)|need quotes?|looking for (a |an )?(company|someone|quote)|can you (do|quote)|how much (for|to|would)|price for|احتاج عرض|ابي عرض|ابغي عرض|اريد عرض|عرض سعر|ابحث عن شركه|كم سعر|كم يكلف)/],
-  ['question', /(\?|؟|\bhow\b|\bwhat\b|\bwhere\b|\bwhen\b|\bwhy\b|\bcan i\b|\bdo you\b|\bis it\b|\bfee|كيف|وش|ايش|متي|وين|ليش|هل|كم)/],
-  ['praise', /(great|amazing|awesome|love (it|this)|well done|good job|excellent|thank(s| you)|nice|brilliant|👏|🔥|❤|ممتاز|رائع|جميل|يعطيكم العافيه|شكرا|ما شاء الله|مبدعين|احسنتم)/],
+  ['sensitive_legal', W("lawyer|lawsuit|sue|court|legal action|police|report you|consumer protection|fraud|who (?:is|was) the (?:supplier|customer|client)|name of the (?:supplier|customer|client)|which (?:supplier|company) (?:did|was|is)|اسم المورد|اسم العميل|مين المورد|من هو المورد|منو المورد|محامي|محكمه|قضيه|الشرطه|بلاغ|حمايه المستهلك|احتيال")],
+  ['complaint', W("refund|complain|complaint|terrible|worst|disappointed|never (?:replied|responded|answered)|no one (?:replied|answered)|nobody answered|charged me|overcharged|not happy|bad service|استرجاع|استرداد|شكوي|اشتكي|سيء|سيئ|اسوا|ما احد رد|ما رد|محد رد|خصم مني|خدمه سيئه|غير راضي")],
+  ['supplier_enquiry', W("supplier|contractor|vendor|register (?:my|our) (?:company|business)|register as (?:a )?supplier|list (?:my|our) (?:company|business)|get (?:leads|jobs|projects)|trade licen[cs]e|مورد|موردين|مقاول|تسجيل شركتي|تسجيل شركتنا|رخصه تجاريه")],
+  ['sales_lead', W("i need (?:a |an )?(?:quote|quotation)|need quotes?|quote|quotes|quotation|looking for (?:a |an )?(?:company|someone|quote)|can you (?:do|quote)|how much (?:for|to|would)|price for|احتاج عرض|ابي عرض|ابغي عرض|اريد عرض|عرض سعر|ابحث عن شركه|كم سعر|كم يكلف")],
+  ['question', W("\\?|؟|how|what|where|when|why|can i|do you|is it|fees?|sign up|register|كيف|وش|ايش|متي|وين|ليش|هل|كم")],
+  ['praise', /(?<=\s)(?:great|amazing|awesome|love (?:it|this)|well done|good job|excellent|thank(?:s| you)|nice|brilliant|ممتاز|رائع|جميل|يعطيكم العافيه|شكرا|ما شاء الله|مبدعين|احسنتم)(?=\s)|👏|🔥|❤/],
 ];
 export function classify(text: string, wantsPerson = false): Class {
   const t = n(text);
-  if (RULES[0][1].test(t)) return 'spam_abuse';
+  if (ABUSE.test(t) && !ASKS.test(t)) return 'spam_abuse';
   if (wantsPerson) return 'complaint';
-  for (const [c, re] of RULES.slice(1)) if (re.test(t)) return c;
+  for (const [c, re] of RULES) if (re.test(t)) return c;
   return 'off_topic';
 }
 
-// ── THE GUARDS every model draft passes before it can be sent (founder, 23 Sep 2026) ────────────────
-// The facts are the company's published ones (site FAQ, supplier agreement v12, portal copy):
-// customers pay a 3% reveal fee only on a reveal; the first 1,000 suppliers are free permanently, AED 1,000
-// a year from the 1,001st registration; DET Trader Licence 1633275 (never "E-Trader"); the contact line and
-// mailbox below. Anything else the draft asserts with a number is a claim nobody verified: it fails.
+// ── THE GUARDS every outgoing text passes before it can be sent (founder, 23 Sep 2026) ────────────────
+// The facts are the company's published ones (site FAQ, supplier agreement v12, portal copy): customers pay
+// a 3% reveal fee only on a reveal; the first 1,000 suppliers are free permanently, AED 1,000 a year from the
+// 1,001st registration; DET Trader Licence 1633275 (never "E-Trader"); the company mailbox. Anything else
+// asserted with a number, a link, a phone, a company name, a promise or a legal view fails. No phone number
+// is ever posted in public — the founder's mobile least of all.
 export const FACTS = {
   percents: ['3'],
   amounts: ['1,000', '1000'],
-  numbers: ['1633275', '1,000', '1000', '1,001', '1001', '3', '24', '9', '6', '971'],
+  numbers: ['1633275', '1,000', '1000', '1,001', '1001'],
   domains: /^(www\.)?quotesdone\.(com|ae)$/,
   emails: ['management@quotesdone.com'],
-  phones: ['971509319355'],
 };
-export const LIMIT: Record<Platform, number> = { x: 280, instagram: 300, facebook: 300, youtube: 500 };
+export const LIMIT: Record<Platform, number> = { instagram: 300, facebook: 300, youtube: 500 };
 const AR = /[؀-ۿ]/g;
 const arabicShare = (s: string) => (s.match(AR) || []).length / Math.max(1, (s.match(/[A-Za-z؀-ۿ]/g) || []).length);
+const NUM_WORDS = 'one|two|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|thousand|half|zero'
+  + '|واحد|اثنين|اثنان|اربعه|خمسه|سته|سبعه|ثمانيه|تسعه|عشره|عشرين|ثلاثين|خمسين|مائه|مئه|مية|الف|نصف|صفر';
+const PCT = "%|٪|percent|per ?cent|pct|بالمئه|بالمائه|بالميه|في المئه|في المائه";
+const CUR = 'aed|dhs?|dirhams?|درهم|دراهم';
 
 export function guard(draft: string, ev: Pick<CommentEvent, 'platform' | 'text' | 'handle'>): string[] {
   const f: string[] = [];
-  const d = String(draft || '').trim();
-  if (!d || /^UNKNOWN\b/.test(d)) return ['empty'];
-  if (d.length > LIMIT[ev.platform]) f.push('too_long');
+  const raw = String(draft || '').trim();
+  if (!raw || /^UNKNOWN\b/.test(raw)) return ['empty'];
+  if (raw.length > LIMIT[ev.platform]) f.push('too_long');
+  const d = normalise(raw);                                   // case kept: the company-name rule reads capitals
+  const l = d.toLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
   const lang: Lang = langOf(ev.text);
   const share = arabicShare(d);
   if (lang === 'ar' ? share < 0.6 : share > 0.1) f.push('wrong_language');
-  for (const m of d.matchAll(/(\d+(?:[.,]\d+)?)\s*(%|٪|percent|بالمئه|بالمائة)/gi)) if (!FACTS.percents.includes(m[1])) f.push('percent:' + m[1]);
-  for (const m of d.matchAll(/(?:aed|dhs?|درهم)\s*([\d,]+)|([\d,]+)\s*(?:aed|dhs?|درهم)/gi)) {
-    if (!FACTS.amounts.includes(m[1] || m[2])) f.push('amount:' + (m[1] || m[2]));
+  // fees
+  for (const m of l.matchAll(new RegExp(`(\\d+(?:[.,]\\d+)?)\\s*(?:${PCT})`, 'g'))) if (!FACTS.percents.includes(m[1])) f.push('percent:' + m[1]);
+  if (new RegExp(`(?:^|[^\\p{L}])(?:${NUM_WORDS})[\\s-]*(?:${PCT})`, 'u').test(l)) f.push('percent_words');
+  // amounts
+  for (const m of l.matchAll(new RegExp(`(?<![a-z])(?:${CUR})\\s*([\\d,.]+)|([\\d,.]+)\\s*(?:${CUR})(?![a-z])`, 'g'))) {
+    const v = (m[1] || m[2]).replace(/[.,]$/, '');
+    if (!FACTS.amounts.includes(v)) f.push('amount:' + v);
   }
-  for (const m of d.replace(/https?:\/\/\S+/g, '').matchAll(/\d[\d,]*/g)) {
+  if (new RegExp(`(?:^|[^\\p{L}])(?:${NUM_WORDS}|thousands?|hundreds?)[\\s-]+(?:${CUR})(?![a-z])`, 'u').test(l)) f.push('amount_words');
+  // free-for-everyone / no-fee claims (the published fact is narrower: the first 1,000 suppliers)
+  if (/free (?:forever|for (?:everyone|everybody|all|life|ever))|no fees?\b|zero fees?|without (?:any )?fees?|never pay|(?:completely|totally|100%) free|always free|مجانا للجميع|مجاني للجميع|مجانا دائما|مجاني دائما|بدون (?:اي )?رسوم|بلا رسوم|لا (?:توجد|يوجد) (?:اي )?رسوم|مجاني تماما|مجانا تماما|مجاني بالكامل/.test(l)) f.push('free_claim');
+  // refund promises
+  if (/we(?:'ll| will| shall| can) (?:refund|return your money|give (?:you )?(?:a |your )?(?:full )?refund)|full refund|refund(?:ed)? (?:you )?in full|money back|guaranteed refund|سنعيد|سنرد|سنرجع|نعيد لك|نعيد لكم|نرجع لك|نرجع لكم|استرداد كامل|استرجاع كامل|نسترد لك|نسترد لكم|نعوضك|نعوضكم/.test(l)) f.push('refund_promise');
+  // numbers nobody verified (after digit folding)
+  const noUrls = l.replace(/https?:\/\/\S+/g, '');
+  for (const m of noUrls.matchAll(/\d[\d,]*/g)) {
     const digits = m[0].replace(/,/g, '');
-    if (digits.length >= 4 && !FACTS.numbers.includes(m[0]) && !FACTS.phones.some((p) => p.includes(digits))) f.push('number:' + m[0]);
+    if (digits.length >= 4 && !FACTS.numbers.includes(m[0].replace(/,$/, ''))) f.push('number:' + m[0]);
   }
-  if (/e[\s-]?trader|اي تريدر|إي تريدر/i.test(d)) f.push('e_trader');
-  for (const m of d.matchAll(/https?:\/\/([^/\s]+)|\b((?:www\.)?[a-z0-9-]+\.(?:com|ae|net|org|io|co))\b/gi)) {
-    if (!FACTS.domains.test((m[1] || m[2]).toLowerCase())) f.push('link:' + (m[1] || m[2]));
+  for (const m of noUrls.matchAll(/(?:\+|00)?\d[\d\s().-]{6,}\d/g)) if (m[0].replace(/\D/g, '').length >= 7 && !FACTS.numbers.includes(m[0].trim())) f.push('phone');
+  if (/e[\s._-]*trader|اي ?تريدر/.test(l)) f.push('e_trader');
+  // links: only our own domains; shorteners, chat links (wa.me, t.me) and every other host fail
+  const noMail = l.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (e) => { if (!FACTS.emails.includes(e)) f.push('email'); return ' '; });
+  for (const m of noMail.matchAll(/(?:https?:\/\/)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?![a-z0-9-])/g)) {
+    if (!FACTS.domains.test(m[1])) f.push('link:' + m[1]);
   }
-  for (const m of d.matchAll(/[\w.+-]+@[\w-]+\.[\w.]+/g)) if (!FACTS.emails.includes(m[0].toLowerCase())) f.push('email');
-  for (const m of d.matchAll(/(?:\+|00)?\d[\d\s-]{7,}\d/g)) if (!FACTS.phones.includes(m[0].replace(/\D/g, '').replace(/^00/, ''))) f.push('phone');
+  if (/https?:\/\/(?!(?:www\.)?quotesdone\.(?:com|ae)\b)/.test(noMail)) f.push('link');
   for (const m of d.matchAll(/@([A-Za-z0-9_.]+)/g)) if (m[1].toLowerCase() !== String(ev.handle || '').toLowerCase().replace(/^@/, '') && !/quotesdone/i.test(m[1])) f.push('mention');
-  if (/\b(l\.?l\.?c|fze|fzco|trading|contracting|establishment)\b|(supplier|customer|client) (named|called|is)\b|ذ\.م\.م|المورد (هو|اسمه)|العميل (هو|اسمه)/i.test(d)) f.push('identity');
-  if (/\b(guarantee[ds]?|promise|we will (refund|fix|call)|will cost|costs? (around|about|from)|starting (at|from)|cheapest|best price|within \d+ (hours|minutes))\b|نضمن|نعدكم|يكلف|اقل سعر|أقل سعر/i.test(d)) f.push('promise_or_price');
-  if (/\b(liable|liability|lawsuit|legal advice|legally|court|sue)\b|قانوني|قانونيا|محكمة|مسؤولية قانونية/i.test(d)) f.push('legal');
-  if (/[؀-ۿ][,;?]/.test(d) || /يرجى ملاحظة/.test(d)) f.push('arabic_register');
-  return f;
+  // a DM instruction under a public post ("reply 'agent'") or a private channel
+  if (/(?:reply|type|send|write|message us)\s+["']?(?:agent|human|person)|whatsapp|واتساب|اكتب(?:وا)?\s+["']?(?:agent|وكيل|موظف)/.test(l)) f.push('dm_instruction');
+  // a named third party: legal forms, "done by <Name>", "Al <Name>", an Arabic company named
+  if (/\b(?:l\.?l\.?c|fze|fzco|fz-llc|trading|contracting|establishment|est\.|group|holding)\b|(?:supplier|customer|client|company|firm|contractor) (?:named|called|is)\b|ذ\.م\.م|المورد (?:هو|اسمه)|العميل (?:هو|اسمه)|شركه [^\s]+ (?:نفذت|قامت)|(?:نفذ(?:ه|ها|ت)?|قامت? به) (?:شركه|مؤسسه)/.test(l)
+    || /\b(?:by|from|with|via|to|and) (?:(?:Al|El)[\s-])?(?!QuotesDone\b|Quotes\b|UAE\b|Dubai\b|Abu\b|Sharjah\b)[A-Z][a-z]{2,}(?:[\s-][A-Z][a-z]+)*/.test(d)
+    || /\b(?:Al|El)[\s-][A-Z][a-z]{2,}/.test(d)) f.push('identity');
+  if (/\b(?:guarantee[ds]?|promise[ds]?|we will (?:fix|call|pay)|will cost|costs? (?:around|about|from)|starting (?:at|from)|cheapest|best price|within \d+ (?:hours|minutes|days))\b|نضمن|نعدكم|نعدك|يكلف|اقل سعر/.test(l)) f.push('promise_or_price');
+  if (/\b(?:liable|liability|lawsuit|legal advice|legally|court|sue|entitled|by law|under (?:uae |the |federal |local )?law|your rights?|consumer rights?|the law)\b|قانوني|قانونيا|محكمه|مسؤوليه قانونيه|حسب القانون|بموجب القانون|وفق القانون|يحق لك|يحق لكم|من حقك|من حقكم/.test(l)) f.push('legal');
+  if (/[؀-ۿ][,;?]/.test(raw) || /يرجى ملاحظة/.test(raw)) f.push('arabic_register');
+  return [...new Set(f)];
+}
+
+// ── LINKEDIN: the company page, and nothing else (founder, 23 Sep 2026) ─────────────────────────────
+// A reply may go out through a LinkedIn integration only when it is the Postiz 'linkedin-page' integration
+// whose id app_secrets.linkedin_company_page_integration_id names. A personal profile ('linkedin') is refused
+// whatever its id, and so is every page but ours (scripts/checks/linkedin_is_never_automated.test.mjs).
+export function linkedinTarget(integration: { id: string; identifier: string } | null | undefined, companyPageId: string | null | undefined): boolean {
+  return !!integration && !!companyPageId && integration.identifier === 'linkedin-page' && String(integration.id) === String(companyPageId);
 }
 
 // ── THE STORE, injected so tests replay every platform with no network and no database ─────────────
 export interface Decided { kind: string; key: string | null; text: string }
 export interface SendResult { ok: boolean; id?: string | null; error?: string }
+export type HandoffType = 'social.escalation' | 'social.lead';
 export interface Store {
-  insertInbound(ev: CommentEvent, cls: Class): Promise<number | null>;   // null: already seen (idempotency)
+  insertInbound(ev: CommentEvent, cls: Class): Promise<number | null>;   // null: already answered (idempotency)
+  release(inId: number): Promise<void>;                                  // processing failed before a send: retry later
   threadAllowed(ev: CommentEvent): Promise<boolean>;
   record(inId: number, row: Outcome): Promise<void>;
-  handoff(to: 'customer_support' | 'sales_engineer', type: 'social.escalation' | 'social.lead', ev: CommentEvent, cls: Class): Promise<number | null>;
+  handoff(type: HandoffType, ev: CommentEvent, cls: Class, extra?: Record<string, unknown>): Promise<number | null>;
   switchOn(key: 'social_send_enabled' | 'social_model_enabled'): Promise<boolean>;
   library(key: string, lang: Lang): Promise<string>;
-  deterministic(ev: CommentEvent): Promise<Decided>;                 // reply.ts decide(): library, FAQ, knowledge
+  deterministic(ev: CommentEvent): Promise<Decided>;                 // comment_* library rows, FAQ, knowledge
   draft(ev: CommentEvent, lang: Lang): Promise<string | null>;        // the model, only over retrieved knowledge
   reply(ev: CommentEvent, text: string): Promise<SendResult>;
   hide(ev: CommentEvent): Promise<SendResult>;
@@ -143,60 +200,76 @@ export interface Outcome {
 }
 
 export const isFixture = (ev: CommentEvent) => /^ZZDEMO/i.test(ev.authorId) || /^ZZ ?DEMO/i.test(ev.handle || '');
+const SEAT: Record<HandoffType, string> = { 'social.escalation': 'customer_support', 'social.lead': 'sales_engineer' };
+export const seatFor = (t: HandoffType) => SEAT[t];
 
 export async function processComment(s: Store, ev: CommentEvent, wantsPerson = false): Promise<string> {
   if (!ev.text.trim() || ev.authorId === ev.accountId) return 'own_or_empty';
   const cls = classify(ev.text, wantsPerson);
   const inId = await s.insertInbound(ev, cls);
   if (inId == null) return 'duplicate';
-  const lang = langOf(ev.text);
-  const o: Outcome = { classification: cls, outcome: '', reply: null, decided_by: 'rule', send_status: 'not_sent', guard_failures: [], handoff_id: null };
-  const done = async (outcome: string) => { o.outcome = outcome; await s.record(inId, o); return outcome; };
-  const escalate = async (to: 'customer_support' | 'sales_engineer', type: 'social.escalation' | 'social.lead') => {
-    o.handoff_id = await s.handoff(to, type, ev, cls);
-  };
-
-  if (cls === 'off_topic') return await done('ignored_off_topic');
-  if (cls === 'spam_abuse') {
-    if (isFixture(ev)) { o.send_status = 'held_fixture'; return await done('hide_held'); }
-    if (!(await s.switchOn('social_send_enabled'))) { o.send_status = 'held_switch_off'; return await done('hide_held'); }
-    const r = await s.hide(ev);
-    o.send_status = r.ok ? 'hidden' : 'failed'; o.send_error = r.error ?? null;
-    return await done(r.ok ? 'hidden' : 'hide_failed');
+  let sent = false;
+  try {
+    return await run();
+  } catch (e) {
+    // Nothing reached the commenter: give the row back so the next delivery or the sweep retries it.
+    if (!sent) await s.release(inId).catch(() => {});
+    throw e;
   }
 
-  let text = '';
-  if (cls === 'complaint' || cls === 'sensitive_legal') { await escalate('customer_support', 'social.escalation'); text = await s.library('comment_escalated_ack', lang); }
-  else if (cls === 'supplier_enquiry') { await escalate('sales_engineer', 'social.lead'); text = await s.library('comment_supplier', lang); }
-  else if (cls === 'sales_lead') { await escalate('sales_engineer', 'social.lead'); text = await s.library('comment_lead', lang); }
-  else if (cls === 'praise') text = await s.library('comment_praise', lang);
-  else {
-    const d = await s.deterministic(ev);
-    if (d.kind === 'handoff') { o.classification = 'complaint'; await escalate('customer_support', 'social.escalation'); text = await s.library('comment_escalated_ack', lang); }
-    else if (d.kind !== 'unknown' && d.text) text = d.text;
+  async function run(): Promise<string> {
+    const lang = langOf(ev.text);
+    const o: Outcome = { classification: cls, outcome: '', reply: null, decided_by: 'rule', send_status: 'not_sent', guard_failures: [], handoff_id: null };
+    const done = async (outcome: string) => { o.outcome = outcome; await s.record(inId!, o); return outcome; };
+    const escalate = async (type: HandoffType, extra?: Record<string, unknown>) => { o.handoff_id = await s.handoff(type, ev, o.classification, extra); };
+    const ack = async () => { if (!o.handoff_id) await escalate('social.escalation'); return await s.library('comment_escalated_ack', lang); };
+
+    if (cls === 'off_topic') return await done('ignored_off_topic');
+    if (cls === 'spam_abuse') {
+      if (isFixture(ev)) { o.send_status = 'held_fixture'; return await done('hide_held'); }
+      if (!(await s.switchOn('social_send_enabled'))) { o.send_status = 'held_switch_off'; return await done('hide_held'); }
+      const r = await s.hide(ev);
+      sent = r.ok;
+      o.send_status = r.ok ? 'hidden' : 'failed'; o.send_error = r.error ?? null;
+      // Every hide is reviewed by a person-facing seat, who can reverse it (unhideRequest).
+      if (r.ok) await escalate('social.escalation', { hidden: true, review: 'un-hide if this was not abuse' });
+      return await done(r.ok ? 'hidden' : 'hide_failed');
+    }
+
+    let text = '';
+    if (cls === 'complaint' || cls === 'sensitive_legal') text = await ack();
+    else if (cls === 'supplier_enquiry') { await escalate('social.lead'); text = await s.library('comment_supplier', lang); }
+    else if (cls === 'sales_lead') { await escalate('social.lead'); text = await s.library('comment_lead', lang); }
+    else if (cls === 'praise') text = await s.library('comment_praise', lang);
     else {
-      if (!(await s.switchOn('social_model_enabled'))) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_not_run'); }
-      const draft = await s.draft(ev, lang);
-      o.guard_failures = guard(draft || '', ev);
-      if (!o.guard_failures.length) { text = String(draft).trim(); o.decided_by = 'model'; }
+      const d = await s.deterministic(ev);
+      if (d.kind === 'handoff') { o.classification = 'complaint'; text = await ack(); }
+      else if (d.kind !== 'unknown' && d.text) text = d.text;
       else {
-        // A failed draft is never sent and never queued for a person to approve: the seat that owns
-        // the subject answers the commenter privately, and the public reply states no fact.
-        o.decided_by = 'guard_fallback';
-        await escalate('customer_support', 'social.escalation');
-        text = await s.library('comment_escalated_ack', lang);
+        if (!(await s.switchOn('social_model_enabled'))) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_not_run'); }
+        text = String((await s.draft(ev, lang)) || '').trim();
+        o.decided_by = 'model';
       }
     }
+    // EVERY text, whatever produced it, passes the guards and fits the platform — or it is not sent: the
+    // subject goes to the seat that owns it and the fixed acknowledgement goes instead. Never truncated.
+    const failures = text ? guard(text, ev) : ['empty'];
+    if (failures.length) {
+      o.guard_failures = failures;
+      o.decided_by = 'guard_fallback';
+      text = await ack();
+      const again = text ? guard(text, ev) : ['empty'];
+      if (again.length) { o.guard_failures = [...failures, ...again.map((x) => 'ack:' + x)]; return await done('not_sent_guard'); }
+    }
+    o.reply = text;
+    if (!(await s.threadAllowed(ev))) { o.send_status = 'rate_limited'; return await done('rate_limited'); }
+    if (isFixture(ev)) { o.send_status = 'held_fixture'; return await done('reply_held'); }
+    if (!(await s.switchOn('social_send_enabled'))) { o.send_status = 'held_switch_off'; return await done('reply_held'); }
+    const r = await s.reply(ev, text);
+    sent = r.ok;
+    o.send_status = r.ok ? 'sent' : 'failed'; o.send_error = r.error ?? null; o.platform_reply_id = r.id ?? null;
+    return await done(r.ok ? 'replied' : 'reply_failed');
   }
-  if (!text) return await done('no_reply_text');
-  if (text.length > LIMIT[ev.platform]) text = text.slice(0, LIMIT[ev.platform] - 1).replace(/\s+\S*$/, '') + '…';
-  o.reply = text;
-  if (!(await s.threadAllowed(ev))) { o.send_status = 'rate_limited'; return await done('rate_limited'); }
-  if (isFixture(ev)) { o.send_status = 'held_fixture'; return await done('reply_held'); }
-  if (!(await s.switchOn('social_send_enabled'))) { o.send_status = 'held_switch_off'; return await done('reply_held'); }
-  const r = await s.reply(ev, text);
-  o.send_status = r.ok ? 'sent' : 'failed'; o.send_error = r.error ?? null; o.platform_reply_id = r.id ?? null;
-  return await done(r.ok ? 'replied' : 'reply_failed');
 }
 
 // ── THE PLATFORM CALLS. Pure request builders + readers with the fetch injected. ──────────────────────
@@ -210,21 +283,22 @@ export function replyRequest(ev: CommentEvent, text: string, token: string): Req
   switch (ev.platform) {
     case 'instagram': return { url: GRAPH + encodeURIComponent(ev.commentId) + '/replies', method: 'POST', headers: auth, body: JSON.stringify({ message: text }) };
     case 'facebook': return { url: GRAPH + encodeURIComponent(ev.commentId) + '/comments', method: 'POST', headers: auth, body: JSON.stringify({ message: text }) };
-    case 'x': return { url: 'https://api.x.com/2/tweets', method: 'POST', headers: auth, body: JSON.stringify({ text, reply: { in_reply_to_tweet_id: ev.commentId } }) };
     case 'youtube': return { url: 'https://www.googleapis.com/youtube/v3/comments?part=snippet', method: 'POST', headers: auth,
       body: JSON.stringify({ snippet: { parentId: ev.commentId, textOriginal: text } }) };
   }
 }
-export function hideRequest(ev: CommentEvent, token: string): Req {
+/** Hides (hidden = true) or restores (hidden = false) a comment. Every hide can be reversed by the reviewing seat. */
+export function hideRequest(ev: CommentEvent, token: string, hidden = true): Req {
   const auth = { ...J, Authorization: 'Bearer ' + token };
   switch (ev.platform) {
-    case 'instagram': return { url: GRAPH + encodeURIComponent(ev.commentId), method: 'POST', headers: auth, body: JSON.stringify({ hide: true }) };
-    case 'facebook': return { url: GRAPH + encodeURIComponent(ev.commentId), method: 'POST', headers: auth, body: JSON.stringify({ is_hidden: true }) };
-    // X hides replies only under OUR posts; a stand-alone mention cannot be hidden (the API answers 403).
-    case 'x': return { url: 'https://api.x.com/2/tweets/' + encodeURIComponent(ev.commentId) + '/hidden', method: 'PUT', headers: auth, body: JSON.stringify({ hidden: true }) };
-    case 'youtube': return { url: 'https://www.googleapis.com/youtube/v3/comments/setModerationStatus?id=' + encodeURIComponent(ev.commentId) + '&moderationStatus=heldForReview', method: 'POST', headers: auth };
+    case 'instagram': return { url: GRAPH + encodeURIComponent(ev.commentId), method: 'POST', headers: auth, body: JSON.stringify({ hide: hidden }) };
+    case 'facebook': return { url: GRAPH + encodeURIComponent(ev.commentId), method: 'POST', headers: auth, body: JSON.stringify({ is_hidden: hidden }) };
+    case 'youtube': return { url: 'https://www.googleapis.com/youtube/v3/comments/setModerationStatus?id=' + encodeURIComponent(ev.commentId)
+      + '&moderationStatus=' + (hidden ? 'heldForReview' : 'published'), method: 'POST', headers: auth };
   }
 }
+export const unhideRequest = (ev: CommentEvent, token: string) => hideRequest(ev, token, false);
+
 export async function call(f: Fetch, r: Req): Promise<SendResult> {
   try {
     const res = await f(r.url, { method: r.method, headers: r.headers, body: r.body });
@@ -232,39 +306,4 @@ export async function call(f: Fetch, r: Req): Promise<SendResult> {
     if (!res.ok) return { ok: false, error: String(j?.error?.message || j?.detail || j?.title || res.status).slice(0, 300) };
     return { ok: true, id: j?.data?.id ?? j?.id ?? null };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
-}
-
-/** X: mentions of our account since the last one we stored. OAuth 2.0 user token (tweet.read users.read). */
-export async function readX(f: Fetch, token: string, userId: string, sinceId: string | null): Promise<CommentEvent[]> {
-  const q = new URLSearchParams({ max_results: '100', expansions: 'author_id', 'user.fields': 'username', 'tweet.fields': 'created_at,conversation_id,author_id' });
-  if (sinceId) q.set('since_id', sinceId);
-  const r = await f('https://api.x.com/2/users/' + encodeURIComponent(userId) + '/mentions?' + q, { headers: { Authorization: 'Bearer ' + token } });
-  if (!r.ok) throw new Error('x mentions HTTP ' + r.status);
-  const j = await r.json() as any;
-  const users = new Map<string, string>((j?.includes?.users || []).map((u: any) => [String(u.id), String(u.username)]));
-  return (j?.data || []).map((t: any) => ({ platform: 'x' as const, accountId: userId, commentId: String(t.id), authorId: String(t.author_id),
-    handle: users.get(String(t.author_id)) ?? null, text: String(t.text || '').replace(/^(@\w+\s+)+/, '').trim(),
-    at: new Date(t.created_at || Date.now()), threadId: String(t.conversation_id || t.id) }));
-}
-
-/** YouTube: an access token from the channel's refresh token (scope youtube.force-ssl). */
-export async function youtubeToken(f: Fetch, clientId: string, clientSecret: string, refresh: string): Promise<string> {
-  const r = await f('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refresh, grant_type: 'refresh_token' }).toString() });
-  const j = await r.json().catch(() => ({})) as any;
-  if (!r.ok || !j?.access_token) throw new Error('youtube token HTTP ' + r.status);
-  return String(j.access_token);
-}
-/** YouTube: the newest top-level comments on every video of our channel. */
-export async function readYouTube(f: Fetch, token: string, channelId: string): Promise<CommentEvent[]> {
-  const r = await f('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&order=time&maxResults=50&allThreadsRelatedToChannelId='
-    + encodeURIComponent(channelId), { headers: { Authorization: 'Bearer ' + token } });
-  if (!r.ok) throw new Error('youtube commentThreads HTTP ' + r.status);
-  const j = await r.json() as any;
-  return (j?.items || []).map((it: any) => {
-    const s = it?.snippet?.topLevelComment?.snippet || {};
-    return { platform: 'youtube' as const, accountId: channelId, commentId: String(it?.snippet?.topLevelComment?.id || it.id),
-      authorId: String(s?.authorChannelId?.value || ''), handle: s?.authorDisplayName ? String(s.authorDisplayName) : null,
-      text: String(s?.textOriginal || '').trim(), at: new Date(s?.publishedAt || Date.now()), threadId: String(it?.snippet?.videoId || it.id) };
-  });
 }
