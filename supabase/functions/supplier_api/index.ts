@@ -357,7 +357,11 @@ function regenRender(q: any, sup: any, inqRow: any): Render {
     const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
     const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
     const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => pdfDoc(rec, { inquiry: { id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no ?? null, category: inqRow?.category ?? null, emirate: safeInq?.emirate ?? null }, letter, lang, arTexts }), { subject: { quote_id: rec.quote_id, kind: 'regenerated_quotation' } });
-    if (!d.doc) return 'arabic_pending';
+    if (!d.doc) {
+      // The quote waits by its own id, whoever filed the lines first; the replay renders it when they are all in.
+      await admin.rpc('fn_arabic_document_wait', { p_quote: String(rec.quote_id), p_texts: d.missing.length ? d.missing : ['(pending)'] });
+      return 'arabic_pending';
+    }
     const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, ...d.doc.body, bucket: 'quote-files', folder: `quotes/${sup.id}/${q.inquiry_id}/regenerated`, name: `quotation_${String(rec.quote_id).slice(0, 8)}_option${rec.option_no}_${lang}` }) });
     const j = await r.json().catch(() => null);
     return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;
@@ -377,6 +381,8 @@ async function arabicFinish(quoteId: string): Promise<Response> {
   const { count: optCount } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiry_id).eq('supplier_id', sup.id);
   const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(inqRow?.spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1 };
   const out = await finishArabic(repo, quoteId, supplierOf(sup, String(sup.claimed_by || '')), ctx, regenRender(q, sup, inqRow));
+  // Done, or nothing waits any more: the waiter row goes. still_pending keeps it for the next replay.
+  if (out.ok || out.code === 'not_pending' || out.code === 'not_found') await admin.from('arabic_document_waiter').delete().eq('quote_id', quoteId);
   return J(out, out.ok ? 200 : 409);
 }
 
@@ -1130,7 +1136,7 @@ const handle = async (req: Request): Promise<Response> => {
       const summaries = out.map((o) => o.summary).filter((x): x is string => typeof x === 'string' && !!x.trim());
       if (summaries.length) {
         try {
-          const ar = await arabicOf(defaultDeps(admin, 'supplier_api'), { texts: summaries });
+          const ar = await arabicOf(defaultDeps(admin, 'supplier_api'), { texts: summaries, fileOnly: true });   // a list never waits on a model
           for (const o of out) if (typeof o.summary === 'string' && ar.map[o.summary.trim()]) o.summary_ar = ar.map[o.summary.trim()];
         } catch (_e) { /* the portal shows the customer's own words */ }
       }

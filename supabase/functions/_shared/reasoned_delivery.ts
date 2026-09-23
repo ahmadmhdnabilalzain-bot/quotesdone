@@ -25,9 +25,9 @@ export interface DeliveryIO {
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
-  /** A regenerated Arabic quotation that waited for its reasoned Arabic: render it and send the approval request
-   *  (supplier_api spec_arabic_finish -> workflow.ts finishArabic). Decision point trade_glossary_ar. */
-  arabicFinish?(quoteId: string): Promise<Sent>;
+  /** Every regenerated Arabic quotation whose lines are now all reasoned (fn_arabic_waiters_ready): render it and send
+   *  the approval request (supplier_api spec_arabic_finish -> workflow.ts finishArabic). Decision point trade_glossary_ar. */
+  arabicFinishReady?(): Promise<Sent>;
 }
 export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'none'; detail?: string };
 
@@ -77,10 +77,12 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
 
   // A held Arabic translation: fn_reason_apply_sales_engineer__document_arabic has stored the Arabic and flushed any
   // parked message; what is left is a regenerated quotation, which needs a render (a PDF) before its approval request.
+  // The waiting quotations are found by the QUOTE (arabic_document_waiter), not by this row's subject: the same lines
+  // may have been filed first by another document, and a held row keeps its first subject.
   if (row.surface === 'sales_engineer.document_arabic') {
-    if (subject.kind !== 'regenerated_quotation' || !subject.quote_id || !io.arabicFinish) return { delivered: false, via: 'none', detail: 'stored; no document waits on this translation' };
-    const s = await io.arabicFinish(String(subject.quote_id));
-    return { delivered: s.ok, via: 'none', detail: s.ok ? 'the Arabic quotation was rendered and its approval request sent' : s.err };
+    if (!io.arabicFinishReady) return { delivered: false, via: 'none', detail: 'stored; no renderer wired' };
+    const s = await io.arabicFinishReady();
+    return { delivered: s.ok, via: 'none', detail: s.ok ? 'every quotation whose Arabic is complete was rendered and asked for approval' : s.err };
   }
 
   // A held ANSWER (think.answer on a channel): the answer itself goes back where the question came from.
@@ -130,15 +132,21 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       await admin.rpc('fn_support_report_to_ceo', { p_idempotency_key: key, p_severity: 'routine', p_subject: subject, p_evidence: evidence,
         p_attempted: ['reasoned the held message', 'gave the approved public contact'], p_requested: 'Visibility only. No action is requested.' });
     },
-    arabicFinish: async (quoteId) => {
+    arabicFinishReady: async () => {
+      const { data: ids, error } = await admin.rpc('fn_arabic_waiters_ready', { p_limit: 10 });
+      if (error) return { ok: false, err: error.message };
+      const errs: string[] = [];
+      for (const quoteId of (Array.isArray(ids) ? ids : []) as string[]) {
       const { timedFetch } = await import('./timed_fetch.ts');
       // supplier_api has verify_jwt = true: the service key passes the gateway; __secret decides the caller.
       const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/supplier_api', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '') },
-        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'spec_arabic_finish', quote_id: quoteId }),
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'spec_arabic_finish', quote_id: String(quoteId) }),
       }, 60_000);
       const j = await r.json().catch(() => ({}));
-      return r.ok && j?.ok ? { ok: true } : { ok: false, err: String(j?.code ?? j?.error ?? r.status) };
+      if (!(r.ok && j?.ok)) errs.push(quoteId + ': ' + String(j?.code ?? j?.error ?? r.status));
+      }
+      return errs.length ? { ok: false, err: errs.join('; ') } : { ok: true };
     },
     socialHandoff: async (subject) => {
       const { timedFetch } = await import('./timed_fetch.ts');

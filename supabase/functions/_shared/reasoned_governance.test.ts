@@ -88,7 +88,10 @@ Deno.test('a message never waits on reasoning: a failure leaves the words to be 
 
 Deno.test('format helpers: the question asks for one JSON object; pairs keep only Arabic; batches respect the reply cap', () => {
   assert(arabicQuestion(['a', 'b']).includes('1. a\n2. b'));
-  assertEquals(arabicPairs(['a', 'b', 'c'], '```json\n{"1":"أ","2":"b","4":"د"}\n```'), { a: 'أ' });
+  assertEquals(arabicPairs(['a', 'b', 'c'], '```json\n{"1":"أ","2":"x","4":"د"}\n```'), { a: 'أ' });
+  // a line that is only a code/model/brand, kept exactly as written by the model, IS its answer (else held for ever)
+  assertEquals(arabicPairs(['IP65', 'Daikin FTKF50TV', 'MDF board', 'Painting of walls excluded'], '{"1":"IP65","2":"Daikin FTKF50TV","3":"MDF board","4":"Painting of walls excluded"}'),
+    { IP65: 'IP65', 'Daikin FTKF50TV': 'Daikin FTKF50TV' }, 'prose echoed back is not an answer; a code kept as written is');
   assertEquals(arabicPairs(['a'], 'not json'), {});
   assertEquals(batches(['x'.repeat(400), 'y'.repeat(300), 'z'], 600).map((b) => b.length), [1, 2]);
   assertEquals(needsArabic('مطابق'), false);
@@ -101,4 +104,15 @@ Deno.test('arabicOf de-duplicates and trims before it reasons', async () => {
   const r = await arabicOf(m.deps, { texts: [' Wardrobe ', 'Wardrobe', ''] });
   assertEquals(r.missing, ['Wardrobe']);
   assertEquals(m.rpcs.filter(([f]) => f === 'fn_reason_hold').length, 1);
+});
+
+Deno.test('a request path never waits on a model: the cache answers, the rest is FILED for the replay', async () => {
+  const m = mock({ cached: { Wardrobe: 'خزانة' }, replies: { decompose: [PLAN] } });
+  const r = await arabicOf(m.deps, { texts: ['Wardrobe', 'Kitchen base unit'], fileOnly: true });
+  assertEquals(r.map, { Wardrobe: 'خزانة' });
+  assertEquals(r.missing, ['Kitchen base unit']);
+  assertEquals(m.llm, [], 'no model call on a request path, even with the gate open');
+  const hold = m.rpcs.find(([f]) => f === 'fn_reason_hold')!;
+  assertEquals([hold[1].p_surface, (hold[1].p_subject as { sources: string[] }).sources], [ARABIC_SURFACE, ['Kitchen base unit']]);
+  assertEquals((hold[1].p_request as { surface: string; research: boolean }).research, false, 'the replay re-runs exactly the request think() would have run');
 });

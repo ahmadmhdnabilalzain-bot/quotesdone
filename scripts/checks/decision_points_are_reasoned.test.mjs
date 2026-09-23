@@ -404,7 +404,15 @@ begin
   v_id := public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
   update public.reasoning_held_question set status = 'failed', attempts = 5, escalated_at = now() where id = v_id;
   perform public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
-  o := o || jsonb_build_object('reopened', (select status || ':' || attempts || ':' || (escalated_at is null) || ':' || (expires_at is null) from public.reasoning_held_question where id = v_id));
+  o := o || jsonb_build_object('reopened', (select status || ':' || attempts || ':' || (escalated_at is null) || ':' || (expires_at is null) || ':' || (created_at >= now()) from public.reasoning_held_question where id = v_id));
+  -- a line that is only a code is kept as written (else its document would be held for ever); a waiting quotation is
+  -- found by its own id once its lines are in, whoever filed them
+  perform public.fn_arabic_document_wait('zz-demo-b7-quote', array['ZZ DEMO IP65', 'ZZ DEMO waiter line']);
+  perform public.fn_arabic_translation_store('{"ZZ DEMO IP65":"ZZ DEMO IP65"}'::jsonb, null);
+  o := o || jsonb_build_object('kept_code', public.fn_arabic_translations(array['ZZ DEMO IP65'])->>'ZZ DEMO IP65',
+    'waiter_early', (select public.fn_arabic_waiters_ready(100) ? 'zz-demo-b7-quote'));
+  perform public.fn_arabic_translation_store('{"ZZ DEMO waiter line":"سطر"}'::jsonb, null);
+  o := o || jsonb_build_object('waiter_ready', (select public.fn_arabic_waiters_ready(100) ? 'zz-demo-b7-quote'));
   -- 60 governance: a registered kind escalates; a kind merely SPELLED like one does not
   insert into public.agent_actions (agent, kind, title, confidence) values ('ceo', 'finance_alert', 'ZZ DEMO', 0.9) returning id into v_n;
   o := o || jsonb_build_object('gov_registered', (select escalated from public.agent_actions where id = v_n));
@@ -442,7 +450,8 @@ begin
                         'public.fn_reason_apply_ceo__kb_jurisdiction(bigint,jsonb)', 'public.fn_reason_apply_sales_engineer__document_arabic(bigint,jsonb)',
                         'public.fn_arabic_translations(text[])', 'public.fn_arabic_translation_store(jsonb,bigint)', 'public.fn_kb_purge_clause(text,text,text)',
                         'public.fn_arabic_outbound_park(text[],jsonb)', 'public.fn_arabic_outbound_flush(integer)', 'public.fn_notification_severity(text,text)',
-                        'public.fn_notify_founder(text,text,text,text,text,text)', 'public.fn_reason_hold(text,text,text,jsonb,jsonb,jsonb,text,text)']) f),
+                        'public.fn_notify_founder(text,text,text,text,text,text)', 'public.fn_arabic_document_wait(text,text[])',
+                        'public.fn_arabic_waiters_ready(integer)', 'public.fn_spec_offer_restart_clock(bigint)', 'public.fn_reason_hold(text,text,text,jsonb,jsonb,jsonb,text,text)']) f),
     'service_all', (select bool_and(has_function_privilege('service_role', f, 'execute'))
       from unnest(array['public.fn_challenge(text,text,text,jsonb)', 'public.fn_what_if(text,jsonb,text)', 'public.fn_arabic_translations(text[])']) f),
     'old_overloads', (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -467,7 +476,10 @@ end $p$;`);
   assert.equal(out.producer_status, 'queued', 'a real outage from the real producer is sent at once, not digested');
   assert.equal(out.type_outage, 'queued:critical', 'an outage type goes at once whatever its subject says');
   assert.equal(out.type_routine, 'digest:warn', 'a routine type folds whatever its subject says');
-  assert.equal(out.reopened, 'held:0:true:true', 'a failed question filed again is reopened, never left dead or expiring');
+  assert.equal(out.reopened, 'held:0:true:true:true', 'a failed question filed again is reopened (its 48-hour clock restarts), never left dead or expiring');
+  assert.equal(out.kept_code, 'ZZ DEMO IP65');
+  assert.equal(out.waiter_early, false);
+  assert.equal(out.waiter_ready, true);
   assert.equal(out.parked_before, 'held');
   assert.equal(out.parked_after, 'sent');
   assert.equal(out.parked_body, 'سنمضي باعتماد سطر مترجم', 'the parked message goes out whole, in Arabic');

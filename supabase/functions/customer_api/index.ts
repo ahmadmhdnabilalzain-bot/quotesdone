@@ -1523,7 +1523,7 @@ Deno.serve(observe('customer_api', async (req) => {
         const { data: c } = await admin.from('customers').select('email,locale').eq('id', cust.id).maybeSingle();
         const { data: inqRow } = await admin.from('inquiries').select('rfq_no').eq('id', String(res.inquiry_id)).maybeSingle();
         const lang = asLocale(c?.locale ?? cust.locale);
-        const arTexts = res.state === 'accepted' && o ? await arabicTextsFor(defaultDeps(admin, 'customer_api'), lang, offerTexts(o as OfferForText)) : undefined;
+        const arTexts = res.state === 'accepted' && o ? await arabicTextsFor(defaultDeps(admin, 'customer_api'), lang, offerTexts(o as OfferForText), { fileOnly: true }) : undefined;
         const msg = res.state === 'accepted' ? acceptedMessage(o as OfferForText, lang, { rfqNo: inqRow?.rfq_no, arTexts }) : apologyMessage(o as OfferForText, lang, 'declined', { rfqNo: inqRow?.rfq_no });
         const kind = res.state === 'accepted' ? 'accepted' : 'apology_declined';
         // customer_support asks and answers the alternatives question (finding SP-F-08, 22 Sep 2026;
@@ -1538,7 +1538,8 @@ Deno.serve(observe('customer_api', async (req) => {
         // fn_arabic_outbound_flush the moment the Arabic exists — never sent with English in it.
         if (msg.untranslated?.length && rows.length) {
           const { error: pErr } = await admin.rpc('fn_arabic_outbound_park', { p_texts: msg.untranslated, p_rows: rows });
-          if (pErr) console.error('spec_offer_reply: confirmation not parked —', pErr.message);
+          // A failed park is an error, never a send: the message has placeholders in it.
+          if (pErr) throw new Error('the Arabic confirmation could not be parked: ' + pErr.message);
           rows.length = 0;
         }
         const { data: sent } = rows.length ? await requestDelivery(admin, rows) : { data: [] };

@@ -55,6 +55,8 @@ begin
     status = case when reasoning_held_question.status in ('failed', 'expired') then 'held' else reasoning_held_question.status end,
     attempts = case when reasoning_held_question.status in ('failed', 'expired') then 0 else reasoning_held_question.attempts end,
     escalated_at = case when reasoning_held_question.status in ('failed', 'expired') then null else reasoning_held_question.escalated_at end,
+    -- the 48-hour escalation clock restarts with the reopen, or fn_reason_held_escalate would fire on the next tick
+    created_at = case when reasoning_held_question.status in ('failed', 'expired') then now() else reasoning_held_question.created_at end,
     expires_at = null
   returning id into v_id;
   return v_id;
@@ -529,7 +531,8 @@ begin
   v_kind  := coalesce(nullif(btrim(p_kind), ''), 'unregistered');
   -- p_level is the producer's own closed vocabulary; this maps it onto notifications.severity by exact value.
   v_sev := case lower(v_level) when 'critical' then 'critical' when 'urgent' then 'critical' when 'danger' then 'critical'
-                               when 'high' then 'high' when 'error' then 'high' when 'info' then 'info' else 'warn' end;
+                               when 'high' then 'high' when 'error' then 'high' when 'info' then 'info' when 'low' then 'info'
+                               when 'warn' then 'warn' when 'warning' then 'warn' else 'warn' end;
   select allowed_to_email into v_allowed from public.founder_mail_policy where kind = v_kind;
 
   if not coalesce(v_allowed, false) then
@@ -802,10 +805,13 @@ grant execute on function public.fn_reason_apply_ceo__kb_jurisdiction(bigint, js
 create table if not exists public.arabic_translation (
   source_md5 text primary key check (source_md5 ~ '^[0-9a-f]{32}$'),
   source     text not null,
-  arabic     text not null check (arabic ~ '[؀-ۿ]'),
+  arabic     text not null,   -- Arabic script, or the source itself (a line that is only a code/model/brand)
   held_id    bigint,
   created_at timestamptz not null default now()
 );
+alter table public.arabic_translation drop constraint if exists arabic_translation_arabic_check;
+alter table public.arabic_translation drop constraint if exists arabic_translation_is_arabic_or_kept;
+alter table public.arabic_translation add constraint arabic_translation_is_arabic_or_kept check (arabic ~ '[؀-ۿ]' or arabic = source);
 alter table public.arabic_translation enable row level security;
 drop policy if exists arabic_translation_service_role_only on public.arabic_translation;
 create policy arabic_translation_service_role_only on public.arabic_translation
@@ -870,11 +876,13 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare h record; v_map jsonb; v_rows jsonb; v_row jsonb; v_out jsonb; k text; n integer := 0; v_subject text; v_body text;
 begin
-  for h in select * from public.arabic_outbound_hold where status = 'held' order by id
-            limit greatest(1, least(coalesce(p_limit, 20), 200)) for update skip locked
+  -- Only rows whose every line is ALREADY translated are picked: an incomplete row never starves a ready one.
+  for h in select * from public.arabic_outbound_hold o where o.status = 'held'
+              and not exists (select 1 from unnest(o.texts) t
+                               where not exists (select 1 from public.arabic_translation a where a.source_md5 = md5(t)))
+            order by o.id limit greatest(1, least(coalesce(p_limit, 20), 200)) for update skip locked
   loop
     v_map := public.fn_arabic_translations(h.texts);
-    if (select count(*) from unnest(h.texts) t where v_map ? t) < cardinality(h.texts) then continue; end if;
     v_rows := '[]'::jsonb;
     for v_row in select * from jsonb_array_elements(h.delivery) loop
       v_subject := coalesce(v_row->>'subject', ''); v_body := coalesce(v_row->>'body', '');
@@ -885,14 +893,74 @@ begin
       v_rows := v_rows || jsonb_build_array(v_row || jsonb_build_object('subject', v_subject, 'body', v_body));
     end loop;
     if v_rows::text like '%⟦%' then continue; end if;   -- a placeholder it could not fill: never sent
-    v_out := public.fn_customer_support_takes_delivery(v_rows);
-    update public.arabic_outbound_hold set status = 'sent', sent_at = now(), result = v_out where id = h.id;
-    n := n + 1;
+    -- One refused delivery must never roll back the translation store or the park that called this flush.
+    begin
+      v_out := public.fn_customer_support_takes_delivery(v_rows);
+      update public.arabic_outbound_hold set status = 'sent', sent_at = now(), result = v_out where id = h.id;
+      n := n + 1;
+    exception when others then
+      update public.arabic_outbound_hold set status = 'failed', result = jsonb_build_object('error', sqlerrm) where id = h.id;
+    end;
   end loop;
   return n;
 end $fn$;
 revoke execute on function public.fn_arabic_outbound_flush(integer) from public, anon, authenticated;
 grant execute on function public.fn_arabic_outbound_flush(integer) to service_role;
+
+-- A regenerated Arabic quotation waiting for its lines, keyed by the QUOTE (not by who filed the question first: the
+-- same lines may already be held for another document, and a held question keeps its first subject). The replay asks
+-- which waiters are now complete (fn_arabic_waiters_ready) and renders each; supplier_api deletes the row on success.
+create table if not exists public.arabic_document_waiter (
+  quote_id   text primary key check (btrim(quote_id) <> ''),
+  texts      text[] not null check (cardinality(texts) > 0),
+  created_at timestamptz not null default now()
+);
+alter table public.arabic_document_waiter enable row level security;
+drop policy if exists arabic_document_waiter_service_role_only on public.arabic_document_waiter;
+create policy arabic_document_waiter_service_role_only on public.arabic_document_waiter
+  as permissive for all to public using (false) with check (false);
+revoke all on public.arabic_document_waiter from anon, authenticated;
+
+create or replace function public.fn_arabic_document_wait(p_quote text, p_texts text[])
+returns void
+language sql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  insert into public.arabic_document_waiter (quote_id, texts) values (p_quote, p_texts)
+  on conflict (quote_id) do update set texts = excluded.texts
+$fn$;
+revoke execute on function public.fn_arabic_document_wait(text, text[]) from public, anon, authenticated;
+grant execute on function public.fn_arabic_document_wait(text, text[]) to service_role;
+
+create or replace function public.fn_arabic_waiters_ready(p_limit integer default 20)
+returns jsonb
+language sql stable security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select coalesce(jsonb_agg(w.quote_id order by w.created_at), '[]'::jsonb)
+    from (select quote_id, created_at from public.arabic_document_waiter d
+           where not exists (select 1 from unnest(d.texts) t
+                              where not exists (select 1 from public.arabic_translation a where a.source_md5 = md5(t)))
+           order by created_at limit greatest(1, least(coalesce(p_limit, 20), 100))) w
+$fn$;
+revoke execute on function public.fn_arabic_waiters_ready(integer) from public, anon, authenticated;
+grant execute on function public.fn_arabic_waiters_ready(integer) to service_role;
+
+-- An offer question held for its Arabic goes out LATE: its reply window and reminder schedule restart when it is
+-- first actually sent, so the customer is not handed every overdue reminder and a lapse in one burst.
+create or replace function public.fn_spec_offer_restart_clock(p_offer bigint)
+returns boolean
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+begin
+  update public.spec_alternative_offer
+     set reply_by = now() + (reply_by - opened_at), opened_at = now()
+   where id = p_offer and state = 'open' and last_sent_at is null and opened_at < now();
+  return found;
+end $fn$;
+revoke execute on function public.fn_spec_offer_restart_clock(bigint) from public, anon, authenticated;
+grant execute on function public.fn_spec_offer_restart_clock(bigint) to service_role;
 
 -- p_pairs: {"<source>": "<arabic>", ...}. A value with no Arabic script (a format check) is not stored.
 create or replace function public.fn_arabic_translation_store(p_pairs jsonb, p_held_id bigint default null)
@@ -906,7 +974,10 @@ begin
   insert into public.arabic_translation (source_md5, source, arabic, held_id)
   select md5(e.key), e.key, btrim(e.value), p_held_id
     from jsonb_each_text(p_pairs) e
-   where btrim(e.key) <> '' and e.value ~ '[؀-ۿ]'
+   where btrim(e.key) <> '' and (e.value ~ '[؀-ۿ]'
+         -- kept as written only when the line has the shape of a code (no lowercase word): the same test as
+         -- reasoned_governance.ts keptAsWritten, on our own reply
+         or (btrim(e.value) = e.key and e.key !~ '(^|[[:space:],;/(])[a-z]{2,}($|[[:space:],;/).])'))
   on conflict (source_md5) do update set arabic = excluded.arabic, held_id = excluded.held_id, created_at = now();
   get diagnostics n = row_count;
   if n > 0 then perform public.fn_arabic_outbound_flush(20); end if;   -- a parked message may now be whole

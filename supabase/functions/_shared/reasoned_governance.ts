@@ -24,6 +24,10 @@ export const ARABIC_BATCH_CHARS = 600;
 // A script test, not a meaning test: does the string already carry Arabic letters / any Latin letters.
 const arabicScript = (s: string) => /[؀-ۿ]/.test(s);
 const latinScript = (s: string) => /[A-Za-z]/.test(s);
+/** May a reply equal to its source stand as its Arabic-page text? Only when it has the SHAPE of a code: no token that
+ * is a run of lowercase letters (prose like "painting of walls" has them; "IP65", "Daikin FTKF50TV", "BS EN 1090" do
+ * not). A case-shape test on our own reply, not a reading of meaning. */
+export const keptAsWritten = (s: string) => !/(^|[\s,;/(])[a-z]{2,}(?=$|[\s,;/).])/.test(s);
 /** A line that needs translating: it has Latin letters (a line wholly in Arabic, or only digits, needs none). */
 export const needsArabic = (s: string) => !!s && latinScript(s);
 
@@ -35,11 +39,14 @@ export function arabicQuestion(texts: string[]): string {
     + texts.map((t, i) => `${i + 1}. ${t}`).join('\n');
 }
 
-/** The reasoned answer → {source: arabic}, keeping only lines whose value is Arabic script. Pure (format parsing). */
+/** The reasoned answer → {source: arabic}. A line is kept when its value is Arabic script, OR is the source itself:
+ * a line that is only a code, grade, model or brand ("IP65", "Daikin FTKF50TV") is kept as written by the model's
+ * own reading — that is its correct Arabic-page text, and without it such a document would be held for ever. Any
+ * other Latin reply is not an answer. Pure (format parsing). */
 export function arabicPairs(texts: string[], answer: string): Record<string, string> {
   const o = parseJson<Record<string, unknown>>(answer) ?? {};
   const out: Record<string, string> = {};
-  texts.forEach((t, i) => { const v = o[String(i + 1)]; if (typeof v === 'string' && arabicScript(v)) out[t] = v.trim(); });
+  texts.forEach((t, i) => { const v = o[String(i + 1)]; if (typeof v === 'string' && (arabicScript(v) || (v.trim() === t && keptAsWritten(t)))) out[t] = v.trim(); });
   return out;
 }
 
@@ -63,7 +70,9 @@ export type ArabicOf = { map: Record<string, string>; complete: boolean; missing
 
 /** Native Arabic for every text: cache first, then think() per batch. complete=false means at least one line has
  * no Arabic yet (held under the hold, or the model failed) — the caller must not print it half-translated. */
-export async function arabicOf(deps: ThinkDeps, o: { texts: string[]; subject?: Record<string, unknown> }): Promise<ArabicOf> {
+/** fileOnly: a request path (a portal list, a WhatsApp webhook) never waits on a model — the cache answers what it can
+ * and every missing batch is FILED for the replay (fn_reason_hold, exactly the request think() would file). */
+export async function arabicOf(deps: ThinkDeps, o: { texts: string[]; subject?: Record<string, unknown>; fileOnly?: boolean }): Promise<ArabicOf> {
   const texts = [...new Set(o.texts.map((t) => String(t ?? '').trim()).filter(needsArabic))];
   const map: Record<string, string> = {};
   const results: ThinkResult[] = [];
@@ -71,11 +80,17 @@ export async function arabicOf(deps: ThinkDeps, o: { texts: string[]; subject?: 
   const { data } = await deps.rpc('fn_arabic_translations', { p_sources: texts });
   if (data && typeof data === 'object') for (const [k, v] of Object.entries(data as Record<string, unknown>)) if (typeof v === 'string') map[k] = v;
   for (const chunk of batches(texts.filter((t) => !map[t]))) {
-    const result = await think(deps, {
-      seat: 'sales_engineer', surface: ARABIC_SURFACE, question: arabicQuestion(chunk),
-      context: { audience: 'customer', language: 'ar' }, research: false,
+    const req = {
+      seat: 'sales_engineer' as const, surface: ARABIC_SURFACE, question: arabicQuestion(chunk),
+      context: { audience: 'customer' as const, language: 'ar' as const }, research: false,
       subject: { ...(o.subject ?? {}), sources: chunk }, dedupeKey: 'arabic:' + await sha(chunk.join('\u0001')),
-    });
+    };
+    if (o.fileOnly) {
+      await deps.rpc('fn_reason_hold', { p_seat: req.seat, p_surface: req.surface, p_question: req.question, p_request: req, p_plan: {},
+        p_subject: req.subject, p_reason: 'filed_from_a_request_path', p_dedupe_key: req.dedupeKey });
+      continue;
+    }
+    const result = await think(deps, req);
     results.push(result);
     if (result.status !== 'answered') continue;
     const pairs = arabicPairs(chunk, result.answer);
@@ -87,11 +102,11 @@ export async function arabicOf(deps: ThinkDeps, o: { texts: string[]; subject?: 
 }
 
 /** For a message (not a document): the Arabic of whatever lines could be reasoned now, or undefined on an English
- * message. A line still held is quoted as written by the message itself, and its question waits in the queue. */
-export async function arabicTextsFor(deps: ThinkDeps, lang: string, texts: string[]): Promise<Record<string, string> | undefined> {
+ * message. A line still missing leaves the message untranslated: it is retried or parked, never sent. */
+export async function arabicTextsFor(deps: ThinkDeps, lang: string, texts: string[], o: { fileOnly?: boolean } = {}): Promise<Record<string, string> | undefined> {
   if (lang !== 'ar') return undefined;
-  // A failure to reason never stops the message: the lines are quoted as written instead.
-  try { return (await arabicOf(deps, { texts })).map; } catch (_e) { return {}; }
+  // A failure to reason never throws out of a message path: the message is then untranslated, so it is held/parked.
+  try { return (await arabicOf(deps, { texts, fileOnly: o.fileOnly })).map; } catch (_e) { return {}; }
 }
 
 /** Build an Arabic document: the builder reports the lines it could not print (`untranslated`); they are

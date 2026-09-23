@@ -800,7 +800,7 @@
     {
      "file": "supabase/functions/_shared/reasoned_governance.ts",
      "must_contain": [
-      "await think(deps, {",
+      "await think(deps, req)",
       "surface: ARABIC_SURFACE"
      ],
      "must_not_contain": [
@@ -841,7 +841,8 @@
      "file": "supabase/functions/supplier_api/index.ts",
      "must_contain": [
       "await nativeArabic(defaultDeps(admin, 'supplier_api')",
-      "await arabicOf(defaultDeps(admin, 'supplier_api')"
+      "await arabicOf(defaultDeps(admin, 'supplier_api')",
+      "admin.rpc('fn_arabic_document_wait'"
      ],
      "must_not_contain": [
       "arTrade("
@@ -894,7 +895,8 @@
     {
      "file": "supabase/functions/_shared/reasoned_delivery.ts",
      "must_contain": [
-      "if (row.surface === 'sales_engineer.document_arabic') {"
+      "if (row.surface === 'sales_engineer.document_arabic') {",
+      "admin.rpc('fn_arabic_waiters_ready'"
      ]
     }
    ]

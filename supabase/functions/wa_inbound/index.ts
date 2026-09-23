@@ -526,7 +526,7 @@ async function handleInbound(req: Request): Promise<Response> {
           const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', offer?.inquiry_id ?? so.inquiry_id).maybeSingle();
           if (offer) {
             const o = { ...offer, accepted_value: offer.accepted_value ?? so.accepted_value ?? null } as OfferForText;
-            const arTexts = so.state === 'accepted' ? await arabicTextsFor(defaultDeps(admin, 'wa_inbound'), lang, offerTexts(o)) : undefined;
+            const arTexts = so.state === 'accepted' ? await arabicTextsFor(defaultDeps(admin, 'wa_inbound'), lang, offerTexts(o), { fileOnly: true }) : undefined;
             const msg = so.state === 'accepted' ? acceptedMessage(o, lang, { rfqNo: inq?.rfq_no, arTexts }) : apologyMessage(o, lang, 'declined', { rfqNo: inq?.rfq_no });
             if (msg.untranslated?.length) {
               // Never an Arabic reply with English in it. A fixed acknowledgement (no free text) answers now; the full

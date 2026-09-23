@@ -158,6 +158,7 @@ async function specOfferSweep(limit: number) {
         // An Arabic message never goes out with an untranslated line: it is not marked sent, so the next tick
         // retries it — by then the replay has put the reasoned Arabic in the cache (decision point trade_glossary_ar).
         if (msg.untranslated?.length) { out.arabic_held++; continue; }
+        await admin.rpc('fn_spec_offer_restart_clock', { p_offer: o.id });   // a late first send gets its full window
         const ids = await tellCustomer(o, 'offer', msg, lang, cust);
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'sent', p_notification_ids: ids });
         out.offers_sent++;
