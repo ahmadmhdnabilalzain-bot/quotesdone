@@ -57,7 +57,7 @@ Response `200`:
 { ok: true, confirmed: boolean, first_run: boolean,
   checklist: Checklist[],                      // trades the sales engineer prepared, in order
   services_by_trade: Record<string, Service[]>,// every active trade's services (for a trade the supplier adds)
-  selected_services: string[],                 // keys ticked now; on first run = every service of every prepared trade
+  selected_services: string[],                 // keys ticked now; on first run = [] (founder_instruction 862: it starts unticked)
   extra_services: string[],                    // the supplier's own words saved before
   vocabulary: { trades: Trade[]; roles: Role[] },
   capability: object | null,                   // the supplier_capabilities row (roles, source_docs, ...)
@@ -197,7 +197,11 @@ Effect:
 Response `200`: `{ ok: true, confirmed: true, version, trades, roles, services, implied, removed,
 own_words, resolved: Record<string, string[]>, proposed_trades: string[], new_trades_under_review: string[] }`.
 `400 { code: 'capability_need_trade_role' }` with no trade or no role ·
-`400 { code: 'services_nothing_recognised' }` when nothing resolved to any trade.
+`400 { code: 'services_nothing_recognised' }` when nothing resolved to any trade ·
+`400 { code: 'services_none_ticked', trades }` when the save states no service at all (no ticked key
+and no own words) while a confirmed trade has services to tick — founder_instructions 857 and 862: a
+service he did not tick is one he did not confirm, so an empty portfolio is refused rather than stored
+as complete. Enforced in capabilityConfirm, so `capability_confirm` returns it too.
 
 ## What matching reads
 

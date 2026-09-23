@@ -27,14 +27,20 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
-const OWNING_SQL =
-  'scripts/sql/the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql';
+// Every file that registers a model and states its price. A later file that registers a model the
+// first one did not (openai/gpt-5.6-sol, founder_instruction 854) must be read too, or its prices go
+// unchecked while this check stays green.
+const OWNING_SQLS = [
+  'scripts/sql/the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql',
+  'scripts/sql/gpt_sol_takes_every_qwen_class_and_one_gemini_takes_every_gemini_class.sql',
+];
+const OWNING_SQL = OWNING_SQLS.join(' + ');
 const CATALOGUE = 'https://openrouter.ai/api/v1/models';
 
 // The `update public.model_registry set context_len = <n>, in_per_mtok_usd = <a>,
 //  out_per_mtok_usd = <b>, ... where model_id = '<id>';` statements, plus the three inserted rows.
 const claimed = () => {
-  const sql = readFileSync(join(REPO, OWNING_SQL), 'utf8');
+  const sql = OWNING_SQLS.map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n');
   const out = new Map();
 
   for (const m of sql.matchAll(
@@ -50,6 +56,11 @@ const claimed = () => {
     out.set(m[1], { ctx: Number(m[4]), in: Number(m[2]), out: Number(m[3]) });
   }
 
+  // Every file must contribute what it registers. The size floor alone cannot see a later file's row
+  // stop parsing: the first file clears 10 on its own, so a reshaped Sol row would vanish silently
+  // and this check would stay green (measured in the review of PR #867).
+  assert.ok(out.has('openai/gpt-5.6-sol'),
+    'openai/gpt-5.6-sol was not parsed out of its registering file, so its price is not being checked');
   assert.ok(out.size >= 10,
     `only ${out.size} models parsed out of ${OWNING_SQL} — the statements were reshaped and this `
     + 'check stopped reading them, which would make it pass by finding nothing');
@@ -111,18 +122,18 @@ test('the capabilities the registry file claims are the ones the catalogue adver
     return;
   }
   const expect = {
-    // founder_instruction 841's two plan-A models. If either stops being vision-capable, every
-    // extraction and drawing class silently gets substituted for something nobody chose; and their
-    // audio:false is the measured fact that keeps speech_transcription on gemini.
-    'qwen/qwen3.8-max-0902': { image: true, audio: false },
+    // The two plan-A models: openai/gpt-5.6-sol (founder_instruction 854, replacing qwen3.8-max) and
+    // z-ai/glm-5.3-flash. If either stops being vision-capable, every extraction and drawing class
+    // silently gets substituted for something nobody chose; and their audio:false is the measured
+    // fact that keeps speech_transcription on gemini.
+    'openai/gpt-5.6-sol': { image: true, audio: false },
     'z-ai/glm-5.3-flash': { image: true, audio: false },
     'anthropic/claude-opus-5.5': { image: true, audio: false },
     'anthropic/claude-sonnet-5': { image: true, audio: false },
+    // The ONLY model any policy routes audio to since founder_instruction 854 retired
+    // gemini-3.1-flash-lite and gemini-3.5-flash. speech_transcription has no second model that
+    // hears, so if this goes audio:false every voice note stops being transcribed.
     'google/gemini-3.8-flash': { image: true, audio: true },
-    // speech_transcription's pair. The SQL header says their audio support was READ, not assumed;
-    // this is what keeps that true.
-    'google/gemini-3.1-flash-lite': { image: true, audio: true },
-    'google/gemini-3.5-flash': { image: true, audio: true },
     'openai/gpt-6-luna': { image: true, audio: false },
   };
   const wrong = [];
