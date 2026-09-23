@@ -4056,5 +4056,27 @@
   "d0c6f4df064e",
   "d2f51ce60d95",
   "e0c574ae3528"
+ ],
+ "scripts/sql/an_edited_faq_answer_is_re_embedded_and_a_quote_is_not_a_fee.sql": [
+  "a47a1a80835f",
+  "1014b435b32f",
+  "5628306d1e0e",
+  "09e34500ac5e",
+  "f07872a12ef2",
+  "645f307c5da1",
+  "53962f65c124",
+  "9f0c722adeaa",
+  "b7a97a31e18e",
+  "05bf391d672b",
+  "c5775a110d98",
+  "4bdd12523768",
+  "ba58c3e097b7",
+  "4e0e02c9c581",
+  "1ff60edf941b",
+  "fc50ccfee153",
+  "7ecf7b80329a",
+  "53d4bae517e7",
+  "8d271add63c5",
+  "5f72551ec377"
  ]
 }

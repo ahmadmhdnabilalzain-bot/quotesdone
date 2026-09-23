@@ -73,11 +73,11 @@ revoke execute on function public.fn_faq_concepts(text, boolean) from public, an
 --    id N") still said identifying details are removed automatically, so an Arabic drawing question got
 --    the claim the English was withdrawn for. Same meaning as the English text, guarded on the old
 --    sentence; the trigger above clears their vectors as they change.
-update public.company_faq set answer = replace(answer,
-         'كما تُحجب تلقائياً أي بيانات تعريفية من المخططات التي ترفعها.',
+update public.company_faq set answer = regexp_replace(answer,
+         'كما تُحجب تلقائي.. أي بيانات تعريفية من المخططات التي ترفعها.',
          'ولا يُشارَك مخططك مع الموردين إلا بعد تغطية بياناتك عليه (خانة العنوان واسمك وهاتفك وبريدك الإلكتروني)، وإذا تعذّرت تغطيتها لا يُشارَك المخطط، ويسعّر الموردون حينها على أساس نطاق العمل والكميات.'),
        updated_at = now()
- where id = 605 and answer like '%تُحجب تلقائياً أي بيانات تعريفية%';
+ where id = 605 and answer like '%تُحجب تلقائي__ أي بيانات تعريفية%';
 update public.company_faq set answer = replace(answer,
          'وتُنقّى المخططات تلقائيًا من أي تفاصيل تكشف الهوية قبل أن يطّلع عليها الموردون.',
          'ولا يُشارَك المخطط مع الموردين إلا بعد تغطية بياناتكم عليه (خانة العنوان واسمكم وهاتفكم وبريدكم الإلكتروني)؛ والمخطط الذي تتعذّر تغطيته لا يُشارَك، ويسعّر الموردون حينها على أساس نطاق العمل والكميات.'),
