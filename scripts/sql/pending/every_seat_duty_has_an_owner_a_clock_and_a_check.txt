@@ -1,0 +1,4 @@
+Committed, not applied. The release operator applies it (node scripts/apply_sql.mjs <file> --apply --ddl), deploys
+resilience_ping (its seatDuties step), deletes this note and appends the file to the END of MANIFEST.txt in the same
+commit. It must be applied BEFORE any file that registers a seat duty (they insert into public.seat_duty).
+Proved in an aborted transaction by scripts/checks/seat_duties_run_on_their_clock.test.mjs. Seat: it_engineer.
