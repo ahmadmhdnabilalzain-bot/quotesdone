@@ -63,7 +63,7 @@ set local lock_timeout = '3s';
 -- ── 1. the vectors ──────────────────────────────────────────────────────────────────────────────
 create table if not exists public.knowledge_vector_ml (
   src         text not null check (src in ('seat_case_memory', 'ceo_knowledge', 'support_knowledge', 'accountant_knowledge',
-                'it_engineer_knowledge', 'sales_knowledge', 'company_faq', 'agent_knowledge', 'ops_knowledge',
+                'it_engineer_knowledge', 'marketing_knowledge', 'sales_knowledge', 'company_faq', 'agent_knowledge', 'ops_knowledge',
                 'reasoning_knowledge_candidate', 'kb_chunks')),
   row_id      text not null,
   text_hash   text not null,
@@ -125,6 +125,7 @@ create or replace view public.v_knowledge_ml_source with (security_invoker = tru
   union all select 'support_knowledge', s.record_id, s.title, s.body, 2 from public.support_knowledge s
   union all select 'accountant_knowledge', a.record_id, a.title, a.content, 2 from public.accountant_knowledge a where a.runtime_index_eligible
   union all select 'it_engineer_knowledge', i.record_id, i.title, i.content, 2 from public.it_engineer_knowledge i where i.runtime_index_eligible
+  union all select 'marketing_knowledge', k.record_id, k.title, k.content, 2 from public.marketing_knowledge k where k.runtime_index_eligible
   union all select 'sales_knowledge', s.record_id, s.title, s.content, 2 from public.sales_knowledge s where s.runtime_index_eligible
   union all select 'company_faq', f.id::text, f.question, f.answer, 3 from public.company_faq f where f.status = 'approved'
   union all select 'agent_knowledge', g.id::text, g.topic, g.content, 3 from public.agent_knowledge g
@@ -172,7 +173,7 @@ begin
   -- One source at a time, in priority order: each query is a limited anti-join on one table's key (the view
   -- prunes every other branch on src) and stops as soon as it has enough rows.
   for v_src in select unnest(array['seat_case_memory', 'ceo_knowledge', 'support_knowledge', 'accountant_knowledge',
-      'it_engineer_knowledge', 'sales_knowledge', 'company_faq', 'agent_knowledge', 'ops_knowledge',
+      'it_engineer_knowledge', 'marketing_knowledge', 'sales_knowledge', 'company_faq', 'agent_knowledge', 'ops_knowledge',
       'reasoning_knowledge_candidate', 'kb_chunks']) loop
     exit when jsonb_array_length(v_rows) >= v_want;
     -- Reaching kb_chunks with nothing claimed means every earlier source had nothing unclaimed. Only THIS
@@ -266,6 +267,8 @@ create or replace trigger z_ml_vectors_stale after update of title, content or d
   for each row execute function public.fn_ml_vectors_stale('accountant_knowledge', 'record_id');
 create or replace trigger z_ml_vectors_stale after update of title, content or delete on public.it_engineer_knowledge
   for each row execute function public.fn_ml_vectors_stale('it_engineer_knowledge', 'record_id');
+create or replace trigger z_ml_vectors_stale after update of title, content or delete on public.marketing_knowledge
+  for each row execute function public.fn_ml_vectors_stale('marketing_knowledge', 'record_id');
 create or replace trigger z_ml_vectors_stale after update of title, content or delete on public.sales_knowledge
   for each row execute function public.fn_ml_vectors_stale('sales_knowledge', 'record_id');
 create or replace trigger z_ml_vectors_stale after update of question, answer or delete on public.company_faq
@@ -358,11 +361,11 @@ begin
     -- sales_knowledge: the sales engineer reads all of it; customer_support reads the TRADE packs (what a trade
     -- needs), never the sales seat's own playbook
     union (select 'sales_knowledge', s.record_id from public.knowledge_vector_ml v join public.sales_knowledge s on v.src = 'sales_knowledge' and s.record_id = v.row_id
-            where s.runtime_index_eligible and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and exists (select 1 from unnest(s.tags) t where t like 'trade:%')))
+            where s.runtime_index_eligible and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             order by v.embedding <=> m limit n)
     union (select 'sales_knowledge', s.record_id from public.sales_knowledge s
             where g is not null and s.embedding_gte is not null and s.runtime_index_eligible
-              and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and exists (select 1 from unnest(s.tags) t where t like 'trade:%')))
+              and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             order by s.embedding_gte <=> g limit n)
     union (select 'accountant_knowledge', s.record_id from public.knowledge_vector_ml v join public.accountant_knowledge s on v.src = 'accountant_knowledge' and s.record_id = v.row_id
             where p_seat = 'accountant' and s.runtime_index_eligible order by v.embedding <=> m limit n)
@@ -372,6 +375,10 @@ begin
             where p_seat = 'it_engineer' and s.runtime_index_eligible order by v.embedding <=> m limit n)
     union (select 'it_engineer_knowledge', s.record_id from public.it_engineer_knowledge s
             where p_seat = 'it_engineer' and g is not null and s.embedding_gte is not null and s.runtime_index_eligible order by s.embedding_gte <=> g limit n)
+    union (select 'marketing_knowledge', s.record_id from public.knowledge_vector_ml v join public.marketing_knowledge s on v.src = 'marketing_knowledge' and s.record_id = v.row_id
+            where p_seat = 'marketing' and s.runtime_index_eligible order by v.embedding <=> m limit n)
+    union (select 'marketing_knowledge', s.record_id from public.marketing_knowledge s
+            where p_seat = 'marketing' and g is not null and s.embedding_gte is not null and s.runtime_index_eligible order by s.embedding_gte <=> g limit n)
     union (select 'ceo_knowledge', v.row_id from public.knowledge_vector_ml v where p_seat = 'ceo' and v.src = 'ceo_knowledge' order by v.embedding <=> m limit n)
     union (select 'ceo_knowledge', s.record_id from public.ceo_knowledge s
             where p_seat = 'ceo' and g is not null and s.embedding_gte is not null order by s.embedding_gte <=> g limit n)
@@ -391,6 +398,7 @@ begin
              when 'sales_knowledge' then (select 1 - (x.embedding_gte <=> g) from public.sales_knowledge x where x.record_id = c.row_id)
              when 'accountant_knowledge' then (select 1 - (x.embedding_gte <=> g) from public.accountant_knowledge x where x.record_id = c.row_id)
              when 'it_engineer_knowledge' then (select 1 - (x.embedding_gte <=> g) from public.it_engineer_knowledge x where x.record_id = c.row_id)
+             when 'marketing_knowledge' then (select 1 - (x.embedding_gte <=> g) from public.marketing_knowledge x where x.record_id = c.row_id)
              when 'ceo_knowledge' then (select 1 - (x.embedding_gte <=> g) from public.ceo_knowledge x where x.record_id = c.row_id)
              when 'support_knowledge' then (select 1 - (x.embedding_gte <=> g) from public.support_knowledge x where x.record_id = c.row_id)
            end end s_gte
@@ -443,6 +451,10 @@ begin
     union all
     (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, sc.s_ml, sc.score, 'reviewed', true
        from scored sc join public.it_engineer_knowledge s on sc.src = 'it_engineer_knowledge' and s.record_id = sc.row_id
+      order by sc.score desc limit k)
+    union all
+    (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, sc.s_ml, sc.score, 'reviewed', true
+       from scored sc join public.marketing_knowledge s on sc.src = 'marketing_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
     union all
     (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 1200), s.source_path, sc.s_ml, sc.score, 'reviewed', true
