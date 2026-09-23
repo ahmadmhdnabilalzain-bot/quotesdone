@@ -107,6 +107,9 @@ with v(name, variant, expect_attr) as (values
   select 'problems(): tiktok video 2001 not refused'
    where cardinality(public.fn_marketing_platform_spec_problems('tiktok', 'video', repeat('a',2001), null, null, null, null)) = 0
   union all
+  select 'x: a caption that is only a URL does not weigh 23'
+   where public.fn_marketing_caption_length('https://quotesdone.ae/a-long-path', 'x_weighted') <> 23
+  union all
   select 'artifact_platform_spec still carries a stale number: ' || platform || '/' || kind
     from public.artifact_platform_spec
    where (platform = 'youtube' and kind = 'short' and max_duration_s is distinct from 180)

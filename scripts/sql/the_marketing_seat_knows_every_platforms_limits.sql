@@ -270,6 +270,8 @@ begin
   v := regexp_replace(v, '[' || chr(65038) || chr(127995) || '-' || chr(127999) || ']', '', 'g');
   v := regexp_replace(v, chr(8205) || '.', '', 'g');
   v := regexp_replace(v, '([' || chr(127462) || '-' || chr(127487) || '])[' || chr(127462) || '-' || chr(127487) || ']', '\1', 'g');
+  -- regexp_split_to_table('', '') yields one empty row, which the loop would weigh as 1.
+  if v = '' then return 23 * v_urls; end if;
   for ch in select c from regexp_split_to_table(v, '') c loop
     cp := ascii(ch);
     n := n + case when cp <= 4351 or cp between 8192 and 8205 or cp between 8208 and 8223 or cp between 8242 and 8247
