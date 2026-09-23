@@ -759,6 +759,36 @@
    "severity": "med",
    "where": "scripts/sql/every_seat_reasons_before_it_answers.sql",
    "decides": "support_knowledge and ceo_knowledge carry no vector column, so fn_reason_retrieve cannot read them by meaning"
+  },
+  {
+   "id": "quote.line_specs_readerless",
+   "order": 72,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "critical",
+   "where": "supabase/functions/_shared/line_specs/reasoned_specs.ts",
+   "decides": "for a trade with no line reader (123 of #881's 153), which pack checklist a quote is priced against and whether each line states each required spec — reasoned with the supplier's own words as evidence; under the hold every required spec is asked and the quote is held. Not 123 regex readers.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/line_specs/reasoned_specs.ts",
+     "must_contain": [
+      "surface: 'quote.line_specs'",
+      "surface: 'quote.spec_checklist'"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/line_specs/workflow.ts",
+     "must_contain": [
+      "withReasoned(read, await ctx.reason(read, ctx.checklist))"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/index.ts",
+     "must_contain": [
+      "admin.rpc('fn_trade_spec_checklist'"
+     ]
+    }
+   ]
   }
  ]
 }

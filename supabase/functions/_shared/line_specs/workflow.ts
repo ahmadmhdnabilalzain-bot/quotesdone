@@ -31,7 +31,8 @@
 // Written against a small repository interface so the workflow test runs entirely in memory: no
 // database, no network, and therefore no way to reach a real supplier.
 import { approvalNotice, assessQuote, holdNotice, lineText, releasedNotice, SEAT, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
-import { TRADES } from './model.ts';
+import { TRADES, tradeOfCategory, type Attr } from './model.ts';
+import { withReasoned } from './reasoned_specs.ts';
 import { optionLabel } from './options.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 import { requestDelivery } from '../deliver.ts';
@@ -71,7 +72,10 @@ export interface SpecRepo {
   log(counts: Record<string, unknown>, note: string): Promise<void>;
 }
 export type Supplier = { id: number; email: string | null; phone?: string | null; locale: string | null };
-export type Ctx = { category: string | null; requirements: Requirements; ref: string; multiOption?: boolean; now?: () => Date };
+// checklist: a trade with no line reader asks its knowledge pack's required specs (reasoned_specs.ts); reason: what the
+// supplier's lines already state, judged by think() — null under the model hold, and then nothing is pre-filled.
+export type Ctx = { category: string | null; requirements: Requirements; ref: string; multiOption?: boolean; now?: () => Date;
+  checklist?: Attr[]; reason?: (lines: Line[], checklist: Attr[]) => Promise<Record<number, Record<string, string>> | null> };
 const nowIso = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date()).toISOString();
 const langOf = (s: Supplier): 'en' | 'ar' => (String(s.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
 
@@ -106,9 +110,13 @@ async function persistSpecs(repo: SpecRepo, quoteId: string, a: Assessment, line
  */
 export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, ctx: Ctx) {
   const q = await repo.quote(quoteId); if (!q) throw new Error('quote not found: ' + quoteId);
-  const lines = await repo.lines(quoteId);
-  const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements });
-  await persistSpecs(repo, quoteId, a, lines);
+  const read = await repo.lines(quoteId);
+  // What the supplier's own words already state, judged by reasoning, is written in before the check;
+  // under the model hold nothing is, and every required spec is asked (the quote is held).
+  const lines = ctx.checklist?.length && ctx.reason && !TRADES[tradeOfCategory(ctx.category)]
+    ? withReasoned(read, await ctx.reason(read, ctx.checklist)) : read;
+  const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
+  await persistSpecs(repo, quoteId, a, read);
   const at = nowIso(ctx);
   const live = await repo.liveHold(quoteId);
   let superseded: number | null = null;
@@ -217,7 +225,7 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const hold = await repo.liveHold(quoteId);
   if (!hold) return { ok: false as const, code: 'no_hold' as const };
   const lines = await repo.lines(quoteId);
-  const a0 = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements });
+  const a0 = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
   const errors: FillError[] = [];
   const next = lines.map((l) => ({ ...l, spec: { ...(l.spec ?? {}) }, spec_source: { ...(l.spec_source ?? {}) } }));
   for (const [ln, vals] of Object.entries(values.lines ?? {})) {
@@ -261,7 +269,7 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   const history = [...(hold.supplier_values ?? []), { at: nowIso(ctx), by: 'supplier', values }];
 
   const q1 = { ...q, ...patch } as QuoteRow;
-  const a1 = assessQuote({ category: ctx.category, lines: next, terms: q1, requirements: ctx.requirements });
+  const a1 = assessQuote({ category: ctx.category, lines: next, terms: q1, requirements: ctx.requirements, checklist: ctx.checklist });
   if (a1.held) {
     await repo.updateHold(hold.id, { missing: a1.missing, state: 'open', supplier_values: history });
     return { ok: true as const, complete: false as const, missing: a1.missing, schema: formSchema(a1, next) };
@@ -295,7 +303,7 @@ export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplie
   if (!hold || hold.state !== 'awaiting_approval') return { ok: false as const, code: 'not_awaiting_approval' as const };
   if (confirm !== true) return { ok: false as const, code: 'confirm_required' as const };
   const lines = await repo.lines(quoteId);
-  const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements });
+  const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
   if (a.held) { await repo.updateHold(hold.id, { state: 'open', missing: a.missing }); return { ok: false as const, code: 'still_missing' as const, missing: a.missing }; }
   if (precheck) {
     const pre = await precheck(q);

@@ -94,7 +94,7 @@ test('the evaluation harness exists, holds the founder\'s example, and passes in
 
 test('the SQL files replay safely: no begin/commit, a revoke per routine, RLS and a policy per table, a pending note each', () => {
   const manifest = read('scripts/sql/MANIFEST.txt');
-  for (const f of [ENGINE, MIGRATE]) {
+  for (const f of [ENGINE, MIGRATE, 'scripts/sql/a_trade_without_a_line_reader_is_held_on_its_packs_required_specs.sql']) {
     const sql = code(f, read(f));
     assert.doesNotMatch(sql, /^\s*(begin|commit)\s*;/im, `${f}: no begin/commit — the probe replays it inside an aborted transaction`);
     for (const m of sql.matchAll(/create (?:or replace )?function public\.([a-z0-9_]+)\(/g)) {

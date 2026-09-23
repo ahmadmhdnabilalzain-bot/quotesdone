@@ -595,10 +595,11 @@ async function handleInbound(req: Request): Promise<Response> {
         return (data as { answered?: boolean; answer?: string } | null)?.answered ? String((data as { answer: string }).answer) : null;
       },
       trades: async (): Promise<Trade[]> => {
-        const { data, error } = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases')
+        // Each trade with its live group (taxonomy_trade_group, twelve groups since #881).
+        const { data, error } = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases,group:taxonomy_trade_group(code,label_en,label_ar,sort)')
           .eq('active', true).order('sort').order('code');
         if (error) await itFinding('wa_inbound:trade_list_failed', 'WhatsApp could not read the live trade list', { error: error.message });
-        return (data || []) as Trade[];
+        return (data || []) as unknown as Trade[];
       },
       founderFigures: async (from: string): Promise<Figures> => {
         const { data, error } = await admin.rpc('fn_founder_whatsapp_figures', { p_phone: from });
