@@ -179,6 +179,18 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_customer_support_disputes_tick()',
     asOf: { post_reveal_dispute: 'opened_at' },
   },
+  // 24 Sep 2026 (marketing, #905). recruitment:pool_empty when a trade marked for recruitment has no leads left to
+  // invite. Gaps opened and leads that existed at the instant; a healthy day has no marked gap with an empty pool.
+  fn_marketing_recruitment_funnel: {
+    replay: 'pg_temp.qd_replay_fn_marketing_recruitment_funnel()',
+    asOf: { supply_gap: 'opened_at', leads: 'created_at' },
+  },
+  // 24 Sep 2026 (marketing, #905). reputation:no_public_review_link when a satisfied customer waits for an ask and no
+  // review link is configured. Reviews that existed at the instant; the asks it writes are rolled back.
+  fn_marketing_reputation: {
+    replay: 'pg_temp.qd_replay_fn_marketing_reputation()',
+    asOf: { reviews: 'created_at' },
+  },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
