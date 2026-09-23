@@ -1,0 +1,6 @@
+A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
+the_marketing_seat_knows_every_platforms_limits.sql has been applied, and it must print PROBE OK.
+It is read-only (SELECTs only) and cannot reach a person. Before the apply it errors (the routine does not
+exist); with naive character counting it fails on the X URL, emoji and ZWJ cases (shown in the PR).
+
+This note therefore stays for the life of the file. Seat: marketing.

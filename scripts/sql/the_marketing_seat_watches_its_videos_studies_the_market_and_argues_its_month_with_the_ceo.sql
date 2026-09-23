@@ -293,9 +293,8 @@ begin
     if v_ok and k = 'post_metric' then
       execute 'select exists (select 1 from public.marketing_post_metric m where to_jsonb(m)->>''id'' = $1)' into v_ok using r;
     elsif v_ok and k = 'scorecard' then
-      -- TODO(#875): pin this to marketing_post_metric's own date column once #875 merges; a text match on the row stands in.
-      execute 'select exists (select 1 from public.marketing_post_metric m where to_jsonb(m)::text like ''%"'' || $1 || ''-%'')'
-        into v_ok using left(r, 7);
+      execute 'select exists (select 1 from public.marketing_post_metric m where m.captured_at >= $1::date '
+           || 'and m.captured_at < ($1::date + interval ''1 month''))' into v_ok using r;
     end if;
     if not coalesce(v_ok, false) then
       bad := bad || ('evidence ' || coalesce(k,'?') || ':' || coalesce(r,'?') || ' does not exist');
@@ -319,8 +318,18 @@ begin
   if coalesce(public.fn_marketing_jnum(p_plan->'video'->'length_s'), 0) <= 0 then bad := bad || 'plan.video.length_s must be a number above 0'::text; end if;
   if p_plan->'budget' ? 'ad_spend_aed' and public.fn_marketing_jnum(p_plan->'budget'->'ad_spend_aed') is distinct from 0 then
     bad := bad || 'ORGANIC ONLY (founder 866): plan.budget.ad_spend_aed must be the number 0'::text; end if;
-  if p_plan::text ~* '(boost(ed|ing)?\s+(the\s+)?post|sponsor(ed)?\s+(post|content|ad)|paid\s+(ad|ads|promotion|reach|media)|ad\s*spend\s*(of|:)?\s*(aed|usd)?\s*[1-9]|promoted\s+post|ads\s+manager)' then
-    bad := bad || 'ORGANIC ONLY (founder 866): the plan proposes paid promotion'::text; end if;
+  -- ORGANIC ONLY BY STRUCTURE, NOT WORDING: a paid-promotion FIELD anywhere in the plan (a key such as paid_*, ad(s)_*,
+  -- boost*, sponsor*, promot*), or money in the budget on any line but the model's, is refused. Prose is free to say
+  -- "we will not boost"; a regex over prose refused exactly that.
+  if exists (with recursive k(key, val) as (
+               select e.key, e.value from jsonb_each(p_plan) e
+               union all
+               select e.key, e.value from k, jsonb_each(k.val) e where jsonb_typeof(k.val) = 'object')
+             select 1 from k where k.key ~* '^(paid|ads?(_|$)|boost|sponsor|promot)' and k.key <> 'ad_spend_aed') then
+    bad := bad || 'ORGANIC ONLY (founder 866): the plan carries a paid-promotion field'::text; end if;
+  if jsonb_typeof(p_plan->'budget') = 'object' and exists (select 1 from jsonb_each(p_plan->'budget') b
+       where b.key not in ('model_aed', 'ad_spend_aed') and coalesce(public.fn_marketing_jnum(b.value), 0) <> 0) then
+    bad := bad || 'ORGANIC ONLY (founder 866): the only money in the plan is model_aed'::text; end if;
   return bad;
 end $fn$;
 
@@ -333,9 +342,10 @@ begin
   select * into f from public.marketing_asset_feature where file_sha256 = p_sha order by measured_at desc limit 1;
   select * into q from public.marketing_asset_perception where file_sha256 = p_sha order by id desc limit 1;
   if to_regclass('public.marketing_post_metric') is not null and f.file_sha256 is not null then
-    execute 'select coalesce(jsonb_agg(to_jsonb(m)), ''[]''::jsonb) from (select * from public.marketing_post_metric m '
-         || 'where to_jsonb(m)::text like ''%'' || $1 || ''%'' or to_jsonb(m)::text like ''%'' || $2 || ''%'' limit 50) m'
-      into v_metrics using p_sha, f.asset_path;
+    execute 'select coalesce(jsonb_agg(to_jsonb(m)), ''[]''::jsonb) from (select m.* from public.marketing_post_metric m '
+         || 'join public.marketing_post p on p.id = m.post_id where $1 = any(p.media_paths) or $2 = any(p.media_paths) '
+         || 'order by m.id limit 50) m'
+      into v_metrics using f.asset_path, f.asset_bucket || '/' || f.asset_path;
   end if;
   return jsonb_build_object('asset', p_sha, 'path', f.asset_path,
     'features', case when f.file_sha256 is null then null else to_jsonb(f) - 'toolchain' end,
@@ -481,9 +491,10 @@ begin
     select * into q from public.marketing_asset_perception where file_sha256 = p_subject order by id desc limit 1;
     if q.id is null then raise exception 'no perception for asset %', p_subject; end if;
     if to_regclass('public.marketing_post_metric') is not null then
-      execute 'select coalesce(jsonb_agg(to_jsonb(m)), ''[]''::jsonb) from (select * from public.marketing_post_metric m '
-           || 'where to_jsonb(m)::text like ''%'' || $1 || ''%'' or to_jsonb(m)::text like ''%'' || $2 || ''%'' limit 50) m'
-        into v_metrics using p_subject, f.asset_path;
+      execute 'select coalesce(jsonb_agg(to_jsonb(m)), ''[]''::jsonb) from (select m.* from public.marketing_post_metric m '
+           || 'join public.marketing_post p on p.id = m.post_id where $1 = any(p.media_paths) or $2 = any(p.media_paths) '
+           || 'order by m.id limit 50) m'
+        into v_metrics using f.asset_path, f.asset_bucket || '/' || f.asset_path;
     end if;
     return jsonb_build_object('step', 'quality_review', 'seat', 'marketing', 'task_class', 'marketing_quality_review', 'max_tokens', 2000,
       'images', (select coalesce(jsonb_agg(k), '[]'::jsonb) from (select k from jsonb_array_elements(f.keyframes) k limit 4) s),
@@ -510,8 +521,10 @@ begin
 
   v_month := p_subject::date;   -- the month being planned
   if p_step = 'evaluate' then
-    if to_regprocedure('public.fn_marketing_scorecard(date)') is not null then
-      begin execute 'select to_jsonb(public.fn_marketing_scorecard($1))' into v_score using (v_month - interval '1 month')::date;
+    -- #875's signature: fn_marketing_scorecard(p_month text 'YYYY-MM', p_include_demo boolean) returns a table of rows
+    if to_regprocedure('public.fn_marketing_scorecard(text,boolean)') is not null then
+      begin execute 'select coalesce(jsonb_agg(to_jsonb(x)), ''[]''::jsonb) from public.fn_marketing_scorecard($1, false) x'
+              into v_score using to_char(v_month - interval '1 month', 'YYYY-MM');
       exception when others then v_score := jsonb_build_object('error', left(sqlerrm, 200)); end;
     end if;
     return jsonb_build_object('step', 'evaluate', 'seat', 'marketing', 'task_class', 'marketing_evaluate', 'max_tokens', 3000,
@@ -1078,8 +1091,10 @@ select case
     then 'PROBE FAILED: a complete organic plan was refused'
   when cardinality(public.fn_marketing_plan_problems('{"topics":[{"title":"x"}],"formats":["reel"],"music":{},"voiceover":{},"video":{"count":8,"length_s":25},"cadence":{},"budget":{"ad_spend_aed":500}}'::jsonb)) = 0
     then 'PROBE FAILED: a plan with ad spend passed'
-  when cardinality(public.fn_marketing_plan_problems('{"topics":[{"title":"boost the post to reach more"}],"formats":["reel"],"music":{},"voiceover":{},"video":{"count":8,"length_s":25},"cadence":{},"budget":{"ad_spend_aed":0}}'::jsonb)) = 0
-    then 'PROBE FAILED: a plan proposing boosting passed'
+  when cardinality(public.fn_marketing_plan_problems('{"topics":[{"title":"x"}],"formats":["reel"],"music":{},"voiceover":{},"video":{"count":8,"length_s":25},"cadence":{"boosted_posts_per_week":2},"budget":{"ad_spend_aed":0}}'::jsonb)) = 0
+    then 'PROBE FAILED: a plan with a paid-promotion field passed'
+  when cardinality(public.fn_marketing_plan_problems('{"topics":[{"title":"x","why":"we will not boost or sponsor anything: organic only"}],"formats":["reel"],"music":{},"voiceover":{},"video":{"count":8,"length_s":25},"cadence":{},"budget":{"ad_spend_aed":0,"model_aed":15}}'::jsonb)) <> 0
+    then 'PROBE FAILED: a plan that SAYS it will not boost was refused for its wording'
   when cardinality(public.fn_marketing_evidence_problems('[{"kind":"market_intel","ref":"-1","point":"x"}]'::jsonb)) = 0
     then 'PROBE FAILED: a citation to a missing row passed'
   when (public.fn_marketing_plan_calendar('2026-09-23 08:00+00')->>'deadline') <> '2026-09-23'
