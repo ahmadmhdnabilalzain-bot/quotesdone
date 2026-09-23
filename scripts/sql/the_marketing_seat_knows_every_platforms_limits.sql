@@ -3,14 +3,14 @@
 -- Founder, instruction 869: "Make sure our agent as well, the marketing agent, is having the right knowledge
 -- about captioning limits for every platform, aspect ratio needed, and stuff like that. Otherwise, things will
 -- get messy." Scope: the channels synced in Postiz — Instagram (feed + Reels), Facebook (feed + Reels), X,
--- YouTube (regular + Shorts), LinkedIn company page. TikTok is out (founder). Organic only.
+-- YouTube (regular + Shorts), LinkedIn company page, and TikTok (video + photo; the founder connected it in Postiz
+-- on 23 Sep 2026, after first leaving it out). Organic only.
 --
 -- WHAT WAS MEASURED BEFORE THIS FILE (23 Sep 2026, read-only):
 --   * artifact_platform_spec (v3_artifact_review.sql + v3_video_platform_specs.sql) holds 14 media rows with NO
 --     source and NO caption limits. Two of its numbers are now wrong against the official pages read today:
 --     youtube/short max_duration_s 60 (YouTube: 180 since Oct 2024) and instagram/reel max 90 s with 100 MB
---     (Graph API: 900 s, 300 MB). It is the artifact reviewer's media gate and is not edited here; the PR names
---     the rows so the coordinator can point it at this table.
+--     (Graph API: 900 s, 300 MB). It is the artifact reviewer's media gate; section 7b corrects those two rows.
 --   * marketing_post_variant does not exist on main or in production; nothing hard-codes a caption limit yet.
 --   * ops_knowledge has no record a marketing question about a platform limit can find.
 --
@@ -45,8 +45,8 @@ begin;
 
 -- ── 1. THE SPEC ──────────────────────────────────────────────────────────────────────────────────
 create table if not exists public.marketing_platform_spec (
-  platform     text not null check (platform in ('instagram', 'facebook', 'x', 'youtube', 'linkedin')),
-  surface      text not null check (surface in ('feed_image', 'carousel', 'reel', 'feed_post', 'post', 'video', 'short', 'page_post')),
+  platform     text not null check (platform in ('instagram', 'facebook', 'x', 'youtube', 'linkedin', 'tiktok')),
+  surface      text not null check (surface in ('feed_image', 'carousel', 'reel', 'feed_post', 'post', 'video', 'short', 'page_post', 'photo')),
   attribute    text not null,
   value_num    numeric,
   value_text   text,
@@ -90,7 +90,11 @@ with src(k, url) as (values
   ('PZX', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/x.provider.ts'),
   ('PZI', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/instagram.provider.ts'),
   ('PZF', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/facebook.provider.ts'),
-  ('PZL', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/linkedin.provider.ts')
+  ('PZL', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/linkedin.provider.ts'),
+  ('TTM', 'https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide'),
+  ('TTD', 'https://developers.tiktok.com/doc/content-posting-api-reference-direct-post'),
+  ('TTP', 'https://developers.tiktok.com/doc/content-posting-api-reference-photo-post'),
+  ('PZT', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/tiktok.provider.ts')
 ), r(platform, surface, attribute, value_num, value_text, unit, counted_as, source_kind, k, confidence, note) as (values
   -- INSTAGRAM (Graph API content publishing, ig-user/media) — feed image, carousel, Reels
   ('instagram','feed_image','caption_max', 2200, null, 'characters', 'utf16_units', 'official', 'IG', 'high', 'Counted as UTF-16 units, the stricter reading and the one Postiz (JavaScript) applies; an emoji outside the BMP counts 2.'),
@@ -176,7 +180,28 @@ with src(k, url) as (values
   ('linkedin','video','max_duration_s', 1800, null, 'seconds', null, 'official', 'LIV', 'high', '30 minutes.'),
   ('linkedin','video','max_file_bytes', 524288000, '500 MB', 'bytes', null, 'official', 'LIV', 'medium', 'The page gives 75 KB-500 MB in the spec and a field that allows 5 GB; the stricter 500 MB is enforced.'),
   ('linkedin','video','codec_container', null, 'MP4, uploaded in 4 MB parts; one optional thumbnail; one SRT caption file', null, null, 'official', 'LIV', 'high', null),
-  ('linkedin','video','resolution_fps_aspect', null, null, null, null, 'official', 'LIV', 'high', 'The Videos API page states none; it points to the video ADS spec page, which is paid media and out of scope.')
+  ('linkedin','video','resolution_fps_aspect', null, null, null, null, 'official', 'LIV', 'high', 'The Videos API page states none; it points to the video ADS spec page, which is paid media and out of scope.'),
+  -- TIKTOK (Content Posting API; added 23 Sep 2026 when the founder connected TikTok in Postiz)
+  ('tiktok','video','caption_max', 2000, null, 'characters', 'utf16_units', 'postiz', 'PZT', 'high', 'TikTok allows 2,200 UTF-16 units in a video title/caption (direct-post reference); Postiz caps at 2,000, which is stricter and binds.'),
+  ('tiktok','video','caption_max_tiktok', 2200, null, 'UTF-16 units', null, 'official', 'TTD', 'high', 'TikTok''s own limit; not enforced because Postiz''s 2,000 is stricter.'),
+  ('tiktok','video','hashtag_max', null, null, null, null, 'official', 'TTD', 'medium', 'Neither TikTok''s API reference nor Postiz states a hashtag count; hashtags count inside the caption length.'),
+  ('tiktok','video','max_duration_s', 600, '10 minutes', 'seconds', null, 'official', 'TTM', 'high', 'API ceiling. Each creator has a lower personal ceiling (creator_info max_video_post_duration_sec, typically 3-10 min by account); query it before posting.'),
+  ('tiktok','video','min_duration_s', null, null, null, null, 'official', 'TTM', 'medium', 'The media-transfer page states no minimum duration.'),
+  ('tiktok','video','max_file_bytes', 4294967296, '4 GB', 'bytes', null, 'official', 'TTM', 'high', null),
+  ('tiktok','video','min_width', 360, null, 'px', null, 'official', 'TTM', 'high', 'Both sides at least 360 px and at most 4096 px.'),
+  ('tiktok','video','min_height', 360, null, 'px', null, 'official', 'TTM', 'high', null),
+  ('tiktok','video','fps_min', 23, null, 'fps', null, 'official', 'TTM', 'high', null),
+  ('tiktok','video','fps_max', 60, null, 'fps', null, 'official', 'TTM', 'high', null),
+  ('tiktok','video','codec_container', null, 'MP4 (recommended), WebM or MOV; H.264 (recommended), H.265, VP8 or VP9', null, null, 'official', 'TTM', 'high', null),
+  ('tiktok','video','aspect_recommended', null, null, null, null, 'official', 'TTM', 'medium', 'The API pages state no aspect ratio rule; 9:16 is TikTok''s native frame but no official page read on 23 Sep 2026 says so.'),
+  ('tiktok','video','privacy_level', null, 'PUBLIC_TO_EVERYONE, MUTUAL_FOLLOW_FRIENDS, FOLLOWER_OF_CREATOR, SELF_ONLY (offer only those creator_info returns); disable_comment / disable_duet / disable_stitch are per-post switches', null, null, 'official', 'TTD', 'high', null),
+  ('tiktok','video','cover', null, 'A frame chosen by video_cover_timestamp_ms; no separate cover upload', null, null, 'official', 'TTD', 'high', null),
+  ('tiktok','video','safe_zone', null, null, null, null, 'official', 'TTD', 'low', 'TikTok publishes no pixel safe zone in the API docs.'),
+  ('tiktok','photo','caption_max', 2000, null, 'characters', 'utf16_units', 'postiz', 'PZT', 'high', 'Photo description: TikTok allows 4,000 UTF-16 units; Postiz caps post text at 2,000, which binds.'),
+  ('tiktok','photo','title_max', 90, null, 'UTF-16 units', 'utf16_units', 'official', 'TTP', 'high', null),
+  ('tiktok','photo','items_max', 35, null, 'photos', null, 'official', 'TTP', 'high', null),
+  ('tiktok','photo','max_file_bytes', 20971520, '20 MB per image', 'bytes', null, 'official', 'TTM', 'high', null),
+  ('tiktok','photo','image_format', null, 'WebP or JPEG, at most 1080p (Postiz: at most 1080 px on the shorter side)', null, null, 'official', 'TTM', 'high', null)
 )
 insert into public.marketing_platform_spec
   (platform, surface, attribute, value_num, value_text, unit, counted_as, source_kind, source_url, read_on, confidence, note)
@@ -465,6 +490,14 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
   ) v(t, s)
 $fn$;
 revoke execute on function public.fn_table_export_list() from public, anon, authenticated;
+
+-- ── 7b. THE ARTIFACT REVIEWER'S TWO STALE NUMBERS ─────────────────────────────────────────────────
+-- artifact_platform_spec (v3_video_platform_specs.sql) is the media gate of the artifact reviewer. Two of its rows
+-- contradict the official pages cited above; corrected here so the two stores agree (coordinator, 23 Sep 2026).
+update public.artifact_platform_spec set max_duration_s = 180
+ where platform = 'youtube' and kind = 'short';
+update public.artifact_platform_spec set max_duration_s = 900, max_bytes = 314572800
+ where platform = 'instagram' and kind = 'reel';
 
 -- ── 8. TEACH THE SEAT NOW ────────────────────────────────────────────────────────────────────────
 select public.fn_marketing_platform_spec_knowledge_sync();

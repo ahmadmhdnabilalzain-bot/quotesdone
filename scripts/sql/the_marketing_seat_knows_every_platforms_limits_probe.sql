@@ -41,7 +41,17 @@ with v(name, variant, expect_attr) as (values
   ('li 3001',                jsonb_build_object('platform','linkedin','surface','page_post','caption', repeat('a',3001)), 'caption_max'),
   ('li video 1801 s',        jsonb_build_object('platform','linkedin','surface','video','media', jsonb_build_object('duration_s',1801)), 'max_duration_s'),
   -- a surface with no rows is refused, not waved through
-  ('tiktok is refused',      jsonb_build_object('platform','tiktok','surface','video','caption','x'), 'platform_surface')
+  ('unknown surface refused', jsonb_build_object('platform','tiktok','surface','story','caption','x'), 'platform_surface'),
+  -- TikTok: Postiz's 2000 binds (UTF-16, so an astral emoji is 2), 10-minute API ceiling, 4 GB, 360 px, 23-60 fps, 35 photos, 90-unit photo title
+  ('tt 2000 passes',         jsonb_build_object('platform','tiktok','surface','video','caption', repeat('ت',2000)), null),
+  ('tt 1999 + emoji',        jsonb_build_object('platform','tiktok','surface','video','caption', repeat('a',1999) || '🔥'), 'caption_max'),
+  ('tt 601 s',               jsonb_build_object('platform','tiktok','surface','video','caption','x','media', jsonb_build_object('duration_s',601)), 'max_duration_s'),
+  ('tt 5 GB',                jsonb_build_object('platform','tiktok','surface','video','caption','x','media', jsonb_build_object('bytes',5368709120)), 'max_file_bytes'),
+  ('tt 320 wide',            jsonb_build_object('platform','tiktok','surface','video','caption','x','media', jsonb_build_object('width',320,'height',640)), 'min_width'),
+  ('tt 20 fps',              jsonb_build_object('platform','tiktok','surface','video','caption','x','media', jsonb_build_object('fps',20)), 'fps_min'),
+  ('tt 1080x1920 30fps ok',  jsonb_build_object('platform','tiktok','surface','video','caption','x','media', jsonb_build_object('width',1080,'height',1920,'fps',30,'duration_s',45,'bytes',50000000)), null),
+  ('tt 36 photos',           jsonb_build_object('platform','tiktok','surface','photo','caption','x','media', jsonb_build_object('items',36)), 'items_max'),
+  ('tt photo title 91',      jsonb_build_object('platform','tiktok','surface','photo','caption','x','title', repeat('t',91)), 'title_max')
 ), judged as (
   select name, expect_attr, public.fn_marketing_variant_violations(variant) got from v
 ), bad as (
@@ -52,7 +62,7 @@ with v(name, variant, expect_attr) as (values
       or (expect_attr is not null and not exists (select 1 from jsonb_array_elements(got) e where e->>'attribute' = expect_attr))
   union all
   select 'platform ' || p || ' has no caption_max row'
-    from unnest(array['instagram','facebook','x','youtube','linkedin']) p
+    from unnest(array['instagram','facebook','x','youtube','linkedin','tiktok']) p
    where not exists (select 1 from public.marketing_platform_spec s where s.platform = p and s.attribute = 'caption_max')
   union all
   select 'row without a verifiable source: ' || platform || '/' || surface || '/' || attribute
@@ -63,9 +73,14 @@ with v(name, variant, expect_attr) as (values
    where not exists (select 1 from public.marketing_platform_spec_source x where x.source_url = s.source_url)
   union all
   select 'knowledge record missing for ' || p
-    from unnest(array['instagram','facebook','x','youtube','linkedin']) p
+    from unnest(array['instagram','facebook','x','youtube','linkedin','tiktok']) p
    where not exists (select 1 from public.ops_knowledge o where o.record_id = 'qd-marketing:platform-spec:' || p
                         and o.role_key = 'marketing' and o.content like '%Source: https://%')
+  union all
+  select 'artifact_platform_spec still carries a stale number: ' || platform || '/' || kind
+    from public.artifact_platform_spec
+   where (platform = 'youtube' and kind = 'short' and max_duration_s is distinct from 180)
+      or (platform = 'instagram' and kind = 'reel' and (max_duration_s is distinct from 900 or max_bytes is distinct from 314572800))
   union all
   select 'fn_marketing_assist does not cite the Instagram record for a caption-limit question'
    where not (public.fn_marketing_assist('Instagram caption limit hashtags', null)->'cited') ? 'ops_knowledge:qd-marketing:platform-spec:instagram'
