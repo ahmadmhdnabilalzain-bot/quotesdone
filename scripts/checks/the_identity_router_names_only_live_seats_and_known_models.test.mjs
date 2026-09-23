@@ -10,9 +10,14 @@
 // This check fails on that original input.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sql, skipWithoutToken } from '../lib/db.mjs';
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { sql } from '../lib/db.mjs';
 
-const SKIP = skipWithoutToken();
+// Runs against production only; without a management token there is nothing to read.
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
+const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
 test('every identity the router can route names a live seat', { skip: SKIP }, async () => {
   const rows = await sql(
