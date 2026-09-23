@@ -275,3 +275,19 @@ Deno.test('the duty: one platform failing never stops the others, and a credenti
   assertEquals(r.skipped.length, 2);
   assertEquals(r.errors, ['broken: boom']);
 });
+
+Deno.test('the reasoned person check is lazy: never asked for our own comment or one already handled; asked once otherwise', async () => {
+  let asked = 0;
+  const person = () => { asked++; return Promise.resolve(true); };
+  const own = memStore();
+  const mine = ev('what are your fees?');
+  assertEquals(await processComment(own, { ...mine, authorId: mine.accountId }, person), 'own_or_empty');
+  const seen = Object.assign(memStore(), { seen: () => Promise.resolve(true) });
+  assertEquals(await processComment(seen, ev('still waiting'), person), 'duplicate');
+  assertEquals(asked, 0);
+  const s = Object.assign(memStore(), { seen: () => Promise.resolve(false) });
+  const e = ev('is anyone there, I paid last week');
+  await processComment(s, e, person);
+  assertEquals(asked, 1);
+  assertEquals(s.mem.rows.get('instagram:' + e.commentId)!.classification, 'complaint');
+});
