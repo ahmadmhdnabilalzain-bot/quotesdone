@@ -26,6 +26,7 @@
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
+import { tagCalendar } from './utm.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const BUCKET = 'marketing-media';
@@ -57,7 +58,8 @@ export async function verifyAssets(calendar, fetchBytes) {
 async function main() {
   const [file] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
   if (!file) { console.error('usage: node scripts/marketing/load_calendar.mjs <calendar.json> [--dry-run]'); process.exit(2); }
-  const calendar = JSON.parse(readFileSync(file, 'utf8'));
+  // every quotesdone link names its post (utm.mjs) BEFORE the load, so the approved text already carries it
+  const calendar = tagCalendar(JSON.parse(readFileSync(file, 'utf8')));
   const mgmt = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
   const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmt } })).json();
   const service = keys.find?.((k) => k.name === 'service_role')?.api_key;

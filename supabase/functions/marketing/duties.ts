@@ -1,4 +1,4 @@
-// THE MARKETING SEAT'S DUTY LIST — empty today, and real: the 'duties' action runs every entry on every
+// THE MARKETING SEAT'S DUTY LIST (post_results and scorecard since 23 Sep 2026, instruction 865): the 'duties' action runs every entry on every
 // call (resilience_ping step 'marketing', every 30 minutes) before fn_marketing_tick.
 //
 // The builds that fill it (founder instruction 721, 22 Sep 2026):
@@ -22,8 +22,11 @@ export interface DutyContext {
 }
 export interface Duty {
   name: string;
+  owner_seat: 'marketing';   // every duty names the seat that owns it
   run: (ctx: DutyContext) => Promise<Record<string, unknown>>;
 }
+
+import { POST_RESULTS, SCORECARD } from './post_results.ts';
 
 // A page's VISIBLE text, so a rotated script nonce or tracking tag is not a "change" — only the words are.
 export function visibleText(html: string): string {
@@ -42,6 +45,7 @@ async function sha256(s: string): Promise<string> {
 // stays open until the rows are re-checked and fn_marketing_platform_spec_source_verified(url, who) is called.
 const platformSpecFreshness: Duty = {
   name: 'platform_spec_freshness',
+  owner_seat: 'marketing',
   run: async ({ admin }) => {
     const due = await admin.rpc('fn_marketing_platform_spec_sources_due', { p_limit: 3 });
     if (due.error) throw new Error('sources_due: ' + due.error.message);
@@ -65,4 +69,7 @@ const platformSpecFreshness: Duty = {
   },
 };
 
-export const DUTIES: Duty[] = [platformSpecFreshness];
+// post_results: ties each published post to its platform ids and reads its results at +1d/+3d/+7d/+28d.
+// scorecard:    fn_marketing_scorecard stored weekly (Monday, Asia/Dubai) and at month end (the 1st).
+// platform_spec_freshness: the cited platform pages re-read monthly (above).
+export const DUTIES: Duty[] = [POST_RESULTS, SCORECARD, platformSpecFreshness];
