@@ -51,19 +51,29 @@ export function liveReadingStore(admin: Admin): ReadingStore {
   };
 }
 
-/** At most this many unread headings are reasoned per read; the rest wait for the next read (their originals show). */
-export const READS_PER_CALL = 8;
+/** At most this many unread headings are reasoned inside one read; the rest wait for a later read (originals show). */
+export const READS_PER_CALL = 3;
+/** Remembered for a heading whose question is filed (the hold, or a model that failed): it is not asked again on
+ *  every read; the replay overwrites it with the reasoned heading. It is no SECTIONS id, so it prints nothing. */
+export const FILED = 'filed';
 
-/** The readings for every section of the given BOQs: remembered ones, plus up to READS_PER_CALL newly reasoned. */
-export async function boqReadings(deps: ThinkDeps, store: ReadingStore, boqs: unknown[]): Promise<Record<string, string>> {
+/**
+ * The readings for the headings of `reasonOver` (gated BOQs: remembered, plus up to READS_PER_CALL newly reasoned)
+ * and of `lookupOnly` (BOQs whose text must not be reasoned over or stored — a revealed, unscrubbed BOQ: remembered
+ * readings only).
+ */
+export async function boqReadings(deps: ThinkDeps, store: ReadingStore, reasonOver: unknown[], lookupOnly: unknown[] = []): Promise<Record<string, string>> {
   const sections = new Map<string, string>();
-  for (const b of boqs) for (const s of sectionsToRead(b)) if (!sections.has(sectionKey(s))) sections.set(sectionKey(s), s);
-  if (!sections.size) return {};
-  const readings = await store.remembered([...sections.keys()]);
+  for (const b of reasonOver) for (const s of sectionsToRead(b)) if (!sections.has(sectionKey(s))) sections.set(sectionKey(s), s);
+  const keys = new Set(sections.keys());
+  for (const b of lookupOnly) for (const s of sectionsToRead(b)) keys.add(sectionKey(s));
+  if (!keys.size) return {};
+  const readings = await store.remembered([...keys]);
   const unread = [...sections.entries()].filter(([k]) => !(k in readings)).slice(0, READS_PER_CALL);
   await Promise.all(unread.map(async ([k, s]) => {
     const r = await sectionReading(deps, { section: s });
-    if (r.value) { readings[k] = r.value; await store.remember(k, s, r.value); }
+    const reading = r.value ?? (r.result.held_id ? FILED : null);
+    if (reading) { readings[k] = reading; await store.remember(k, s, reading); }
   }));
   return readings;
 }

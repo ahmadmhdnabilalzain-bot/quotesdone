@@ -988,6 +988,7 @@ const handle = async (req: Request): Promise<Response> => {
       // is counted and raised rather than dropped in silence; the pages that did sign are still served.
       const pagesOf = await signRedactedDrawings(admin, (inq || []).map((i) => ({ id: i.id, paths: i.drawing_redacted_paths })));
       const out: any[] = [];
+      const gatedBoqs: unknown[] = [];
       for (const i of (inq || [])) {
         const dp = pagesOf[String(i.id)] || { urls: [], expected: 0, served: 0, failed: 0 };
         const pages: string[] = dp.urls;
@@ -1028,7 +1029,8 @@ const handle = async (req: Request): Promise<Response> => {
         const gated = revealed || !ownerResolved ? null : inboxBoq(i.boq, buyerName, seeds, hits);
         const boqWithheld = gated ? gated.withheld : false;
         const sBoq = revealed ? i.boq : (gated ? gated.boq : null);
-        const sBoqAr = sBoq || null;   // its Arabic headings are added after the loop, from the served (gated) BOQs
+        const sBoqAr = sBoq || null;   // its Arabic headings are added after the loop
+        if (gated?.boq) gatedBoqs.push(gated.boq);   // only a gated BOQ's headings may be reasoned over
         // The scope in Arabic ONLY when the trade glossary reads every word of it (audit 21 Sep 2026, finding 26);
         // a partial reading would be a guessed scope, so it stays null and the portal shows the customer's words.
         const sSummaryAr = sSummary ? (() => { const t = arTrade(sSummary); return t.complete && t.ar && t.ar !== sSummary ? t.ar : null; })() : null;
@@ -1044,11 +1046,12 @@ const handle = async (req: Request): Promise<Response> => {
         out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       // The BOQ read in Arabic (audit 21 Sep 2026, findings 26/27). Which Arabic heading a section means is
-      // reasoned (decision point documents.boq_arabic) over the SERVED, gated BOQs only — never the customer's
-      // unscrubbed text — and remembered per heading. Under the hold an unread heading keeps its original words.
+      // reasoned (decision point documents.boq_arabic) over the GATED BOQs only — a revealed BOQ is the customer's
+      // unscrubbed text, so it only looks up readings already remembered and never adds a heading of its own.
+      // Under the hold an unread heading keeps its original words.
       const served = out.filter((o) => o.boq);
       if (served.length) {
-        const readings = await boqReadings(defaultDeps(admin, 'supplier_api'), liveReadingStore(admin), served.map((o) => o.boq)).catch(() => ({} as Record<string, string>));
+        const readings = await boqReadings(defaultDeps(admin, 'supplier_api'), liveReadingStore(admin), gatedBoqs, served.map((o) => o.boq)).catch(() => ({} as Record<string, string>));
         for (const o of served) o.boq = boqWithArabic(o.boq, readings);
       }
       return J({ inquiries: out, approval_status: sup.approval_status });

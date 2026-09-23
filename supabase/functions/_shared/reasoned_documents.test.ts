@@ -1,7 +1,8 @@
 // documents.boq_arabic with a MOCKED model (think.test.ts pattern). No network, no paid call.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import type { LlmReply, Phase, ThinkDeps } from './think.ts';
-import { boqReadings, READS_PER_CALL, sectionReading, type ReadingStore } from './reasoned_documents.ts';
+import { boqReadings, FILED, READS_PER_CALL, sectionReading, type ReadingStore } from './reasoned_documents.ts';
+import { boqWithArabic, type BoqLine } from './boq_arabic.ts';
 
 function mock(o: { live: boolean; choice?: string | ((input: string) => string) }) {
   const rpcs: [string, Record<string, unknown>][] = []; const llmCalls: Phase[] = [];
@@ -72,13 +73,35 @@ Deno.test('boqReadings: remembered readings are used, new ones reasoned once and
   assertEquals(st.saved, [['drywall', 'Drywall', 'partitions']]);
 });
 
-Deno.test('boqReadings under the hold: nothing remembered, nothing guessed, the originals show', async () => {
+Deno.test('boqReadings under the hold: each heading is filed once, nothing guessed, the originals show', async () => {
   const m = mock({ live: false });
   const st = store();
   const r = await boqReadings(m.deps, st.s, [{ boq: [{ section: 'Ceilings' }, { section: 'Partitions' }] }]);
-  assertEquals(r, {});
-  assertEquals(st.saved, []);
+  assertEquals(r, { ceilings: FILED, partitions: FILED });
+  assertEquals(st.saved, [['ceilings', 'Ceilings', FILED], ['partitions', 'Partitions', FILED]]);
   assertEquals(m.rpcs.filter(([f]) => f === 'fn_reason_hold').length, 2);
+  // FILED prints nothing: the heading shows its original words.
+  assertEquals(boqWithArabic({ boq: [{ section: 'Ceilings' }] as BoqLine[] }, r).boq[0].section_ar, null);
+});
+
+Deno.test('a read whose headings are all remembered (read or filed) calls neither the gate nor think', async () => {
+  const m = mock({ live: false });
+  const st = store({ ceilings: 'ceilings', partitions: FILED });
+  await boqReadings(m.deps, st.s, [{ boq: [{ section: 'Ceilings' }, { section: 'Partitions' }] }]);
+  assertEquals(m.rpcs.length, 0);
+  assertEquals(m.llmCalls.length, 0);
+  assertEquals(st.saved, []);
+});
+
+Deno.test('a revealed (unscrubbed) BOQ is only looked up: its headings are never reasoned over or stored', async () => {
+  const m = mock({ live: true, choice: 'ceilings' });
+  const st = store({ ceilings: 'ceilings' });
+  const r = await boqReadings(m.deps, st.s, [], [{ boq: [{ section: 'Ceilings' }, { section: 'ZZ DEMO Marsa Villa 7 fit-out' }] }]);
+  assertEquals(r, { ceilings: 'ceilings' });
+  assertEquals(st.asked, [['ceilings', 'zz demo marsa villa 7 fit-out']]);
+  assertEquals(m.rpcs.length, 0);
+  assertEquals(m.llmCalls.length, 0);
+  assertEquals(st.saved, []);
 });
 
 Deno.test('boqReadings reasons at most READS_PER_CALL new headings per read', async () => {
