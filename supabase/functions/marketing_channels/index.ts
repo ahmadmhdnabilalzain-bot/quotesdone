@@ -30,6 +30,7 @@ import {
 import { calendarBlocks, calendarRows, calendarSheet, type CalPost } from '../_shared/marketing_calendar_doc.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
+import { recallCases } from '../_shared/case_recall.ts';
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -296,6 +297,11 @@ async function calendarSend(key: string) {
   const { data: c } = await admin.from('marketing_campaign').select('id,campaign_key,theme,title,month,is_demo').eq('campaign_key', key).maybeSingle();
   if (!c) return { ok: false, error: 'no_such_campaign' };
   if (c.is_demo) return { ok: false, error: 'a ZZ DEMO campaign is never mailed' };
+  // PAST PLANS LIKE THIS ONE (23 Sep 2026), before this plan goes to him: which themes he approved,
+  // and any the CEO refused. Returned with the send so the seat sees them; this plan excluded.
+  const memory = await recallCases(admin, { seat: 'marketing', path: 'plan', caseKind: 'campaign_plan', otherSeats: false,
+    situation: [c.title, 'theme: ' + c.theme, 'month ' + c.month].filter(Boolean).join(' | '),
+    exclude: { table: 'marketing_campaign', id: String(c.id) } });
   const { data: hash } = await admin.rpc('fn_marketing_campaign_hash', { p_campaign_id: c.id });
   const { data: posts } = await admin.from('marketing_post')
     .select('id,ingest_key,scheduled_at,scheduled_local,title,cta_url,video_path,video_sha256,cover_path')
@@ -345,7 +351,7 @@ async function calendarSend(key: string) {
   const { data: sent, error } = await admin.rpc('fn_marketing_calendar_sent', { p_campaign_key: c.campaign_key, p_hash: hash,
     p_pdf_path: `${stem}.pdf`, p_xlsx_path: `${stem}.xlsx`, p_subject: `Social calendar ${monthName}: ${rows.length} posts for your approval`, p_body: body });
   if (error) return { ok: false, error: error.message };
-  return { ...(sent as Record<string, unknown>), pdf: `${stem}.pdf`, xlsx: `${stem}.xlsx`, posts: rows.length, links: pdf.meta.links, pages: pdf.meta.pages };
+  return { ...(sent as Record<string, unknown>), pdf: `${stem}.pdf`, xlsx: `${stem}.xlsx`, posts: rows.length, links: pdf.meta.links, pages: pdf.meta.pages, precedent: memory };
 }
 
 async function calendarsDue() {

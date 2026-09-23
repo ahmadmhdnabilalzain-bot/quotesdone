@@ -1458,11 +1458,10 @@ const handle = async (req: Request): Promise<Response> => {
 
       // The quote's author for quote_compare's independence routing: a typed quote has no model author; an uploaded one
       // carries the model quote_extract read it with (recorded at 'extract'), or 'unknown', which fails closed.
-      let quoteAuthor = 'deterministic';
-      if (isUpload) {
-        const { data: xm } = await admin.from('quote_extraction_model').select('model').eq('subject_key', `${sup.id}:${inquiryId}`).maybeSingle();
-        quoteAuthor = typeof xm?.model === 'string' && xm.model ? xm.model : 'unknown';
-      }
+      // body.source is the client's word, so it never decides this (#880 review, item 2): the server's own extraction
+      // record does. A record => its model; an upload with no record => 'unknown' (fails closed); otherwise typed by a person.
+      const { data: xm } = await admin.from('quote_extraction_model').select('model').eq('subject_key', `${sup.id}:${inquiryId}`).maybeSingle();
+      const quoteAuthor = typeof xm?.model === 'string' && xm.model ? xm.model : (isUpload ? 'unknown' : 'deterministic');
       const submission_id = crypto.randomUUID();
       const repo = supabaseRepo(admin, { dispatch: kickDelivery });
       const supplier = supplierOf(sup, email);
