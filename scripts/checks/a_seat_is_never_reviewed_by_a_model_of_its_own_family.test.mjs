@@ -57,7 +57,12 @@ declare
   v_steel2 constant text := 'Against the revealed plan: a nine hundred dirham search budget is untested against any supplier gap.';
 begin
   select count(*) into n_before from public.seat_deliberation where not demo;
-  -- a second pair exists only inside this rolled-back transaction, for the monitor's control history
+  -- the file registers no pair; both exist only inside this rolled-back transaction (marketing -> ceo is #876's)
+  insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
+  values ('deliberation.review', 'marketing', 'ceo', 'ZZ DEMO probe pair', 'fn_seat_deliberation_acts_on_handoff', interval '2 days', true,
+          'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql')
+  on conflict (type, from_seat, to_seat) do nothing;
+  insert into public.seat_deliberation_ceiling values ('marketing', 'ceo', 'marketing', 50, 'ZZ DEMO probe pair') on conflict do nothing;
   insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
   values ('deliberation.review', 'sales_engineer', 'ceo', 'ZZ DEMO probe pair', 'fn_seat_deliberation_acts_on_handoff', interval '2 days', true,
           'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql');
@@ -206,7 +211,7 @@ begin
   values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO over budget', v_ev, v_pr, c_sol, null, null, null, true);
   o := o || jsonb_build_object('over_ceiling_turn', (select status || ':' || left(why, 27) from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'),
-    'budget_ok', public.fn_seat_deliberation_budget('marketing', 'ceo')->'ok', 'budget_dept', public.fn_seat_deliberation_budget('marketing', 'ceo')->>'dept');
+    'budget_ok', public.fn_seat_deliberation_budget('marketing', 'ceo')->'ok', 'no_ceil', public.fn_seat_deliberation_budget('accountant', 'ceo')->'ok', 'budget_dept', public.fn_seat_deliberation_budget('marketing', 'ceo')->>'dept');
   o := o || jsonb_build_object('real_deliberations_untouched', (select count(*) from public.seat_deliberation where not demo) = n_before);
   raise exception 'CHK<<%>>', o::text;
 end $p$;`;
@@ -254,6 +259,7 @@ test('production, in one aborted transaction: independence, blind first, steelma
     assert.equal(out[k], 'MALFORMED_REVIEW', k);
   assert.equal(out.over_ceiling_turn, 'held_not_run:held, not run: pair_ceiling');
   assert.equal(out.budget_ok, false);
+  assert.equal(out.no_ceil, false, 'a pair with no ceiling row is held');
   assert.equal(out.budget_dept, 'marketing');
 
   assert.equal(out.approval_without_steelman, 'MALFORMED_REVIEW');

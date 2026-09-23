@@ -78,8 +78,8 @@
 --   fn_seat_deliberation_close(id, closed_by, outcome)         -- the author seat only
 --   A NEW PAIR IS TWO ROWS, added by the build that calls open() for it: ('deliberation.review', <author>,
 --   <reviewer>) in seat_handoff_kind and its monthly cap in seat_deliberation_ceiling. open() refuses an
---   unregistered pair; the step holds a pair with no ceiling. Registered here: marketing -> ceo only (its
---   caller is the marketing monthly plan debate, #876), AED 50/month charged to marketing.
+--   unregistered pair; the step holds a pair with no ceiling. Registered here: none. marketing -> ceo
+--   (AED 50/month charged to marketing) is added by #876 with its call site.
 --
 -- ─── COST PER REVIEW, catalogue prices (opus-5.5 USD 4/20, sol 2/10 per Mtok) ───────────────────
 --   Estimate: blind ~6,000 in / ~900 out; compare ~8,000 in / ~1,100 out (caps 1,500 and 1,800).
@@ -560,10 +560,7 @@ alter table public.seat_deliberation_ceiling enable row level security;
 drop policy if exists seat_deliberation_ceiling_service_role_only on public.seat_deliberation_ceiling;
 create policy seat_deliberation_ceiling_service_role_only on public.seat_deliberation_ceiling as permissive for all to public using (false) with check (false);
 revoke all on public.seat_deliberation_ceiling from anon, authenticated;
-insert into public.seat_deliberation_ceiling (author_seat, reviewer_seat, dept_key, cap_aed_month, note) values
-  ('marketing', 'ceo', 'marketing', 50,
-   'Founder approval 23 Sep 2026: the CEO reviews marketing on opus-5.5, up to AED 50 a month, charged to marketing.')
-on conflict (author_seat, reviewer_seat) do nothing;
+-- No rows here: the build that opens a pair adds its row (marketing -> ceo: #876, AED 50/month, marketing).
 
 create or replace function public.fn_seat_deliberation_budget(p_author_seat text, p_reviewer_seat text, p_at timestamptz default now())
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -771,11 +768,8 @@ begin
 end $fn$;
 revoke execute on function public.fn_seat_deliberation_acts_on_handoff(bigint) from public, anon, authenticated;
 
-insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
-  ('deliberation.review', 'marketing', 'ceo',
-   'Marketing asks the CEO to judge a proposal. The CEO reviews on a model of another family, blind first, with the strongest case against (founder_instruction 873).',
-   'fn_seat_deliberation_acts_on_handoff', interval '2 days', true, 'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql')
-on conflict (type, from_seat, to_seat) do nothing;
+-- No pair is registered here. The build that calls fn_seat_deliberation_open for a pair adds its
+-- ('deliberation.review', <author>, <reviewer>) row with handler fn_seat_deliberation_acts_on_handoff (marketing -> ceo: #876).
 
 -- ── 9. THE AGREEMENT MONITOR ───────────────────────────────────────────────────────────────────
 -- p_include_demo exists for the check's rolled-back ZZ DEMO history only; the duty never passes it.
