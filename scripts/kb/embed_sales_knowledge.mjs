@@ -49,6 +49,18 @@ const SHAPE = {
 const CONC = 6;
 const lit = (v) => "'" + String(v).replace(/'/g, "''") + "'";
 
+/** One text through the same free in-region path: a 384-d gte-small vector literal, or null (never a made-up one). */
+export async function embedText(text, fnName = 'embed_query') {
+  const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
+  if (!secret) throw new Error('no cred_fn_ai in app_secrets');
+  const res = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ __secret: secret, fn: fnName, action: 'embed', text: String(text).slice(0, 1200) }),
+  });
+  const j = res.ok ? await res.json() : null;
+  return Array.isArray(j?.embedding) ? '[' + j.embedding.join(',') + ']' : null;
+}
+
 /** Embeds every row of TABLE that has no vector yet. Returns the counts; never writes a vector it did not get. */
 export async function embedMissing(TABLE, { limit = 100000, log = console.log } = {}) {
   if (!TABLES.includes(TABLE)) throw new Error(`table must be one of: ${TABLES.join(', ')}`);

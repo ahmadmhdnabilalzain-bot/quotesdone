@@ -682,83 +682,345 @@
   {
    "id": "accountant.receipt_parse",
    "order": 63,
-   "status": "pending",
+   "status": "migrated",
    "seat": "accountant",
    "severity": "high",
    "where": "supabase/functions/_shared/receipt_parse.ts",
-   "decides": "parsePeriod, vendorFromAddress/VENDOR_NAMES, parseAmount label reading"
+   "decides": "parsePeriod (/annual|monthly|renew|your plan/), vendorFromAddress + VENDOR_NAMES (the sender domain spelled into a vendor) decided how often a receipt bills and who issued it; now documentKind (cadence among the options) and receiptVendor (a known vendor, else the name as the document writes it) reason them; the amount beside its currency mark, the date, VAT and TRN stay format parsing",
+   "held": "Held: the receipt is not booked on a word guess. It is archived and handed to the bookkeeper (fn_receipt_hand_to_bookkeeper, [HELD — nothing booked: who issued this waits for reasoning]) and the question waits in the accountant queue (dedupe expense_vendor:<email id>); when the hold lifts reasoned_delivery re-runs the expense_sweep for that email, which books it.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/receipt_parse.ts",
+     "must_contain": [
+      "vendor: string; period: ParsedReceipt['period']"
+     ],
+     "must_not_contain": [
+      "const VENDOR_NAMES",
+      "function vendorFromAddress",
+      "function parsePeriod",
+      "knownCadence"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_books.ts",
+     "must_contain": [
+      "surface: 'accountant.receipt_vendor'",
+      "{ id: 'another_vendor', meaning:"
+     ]
+    },
+    {
+     "file": "supabase/functions/resend_inbound/index.ts",
+     "must_contain": [
+      "await receiptVendor(booksDeps",
+      "read_as: ex.read_as ?? null, renews_item: ex.renews_item ?? null"
+     ],
+     "must_not_contain": [
+      "RECEIPT_SYS",
+      "knownCadence"
+     ]
+    },
+    {
+     "file": "supabase/functions/accountant/index.ts",
+     "must_contain": [
+      "await receiptVendor(booksDeps",
+      "renews_item: reading?.renewsItem ?? null"
+     ],
+     "must_not_contain": [
+      "knownCadence"
+     ]
+    }
+   ]
   },
   {
    "id": "accountant.bank_statement",
    "order": 64,
-   "status": "pending",
+   "status": "migrated",
    "seat": "accountant",
    "severity": "med",
    "where": "supabase/functions/_shared/bank_statement_parse.ts",
-   "decides": "isBankStatement"
+   "decides": "isBankStatement (/mashreq/ and /statement/ over the sender, subject, filenames and the rebuilt rows) decided whether an email was a bank statement; now documentKind reasons it over the same envelope and the statement rows (statementRowText), and takeInStatement runs only for a message reasoned to be one",
+   "held": "Held: nothing is taken in as a statement on a word guess; the email is held for the bookkeeper like an unreadable receipt and the question waits in the accountant queue (dedupe expense_kind:<email id>); on replay reasoned_delivery re-runs the expense_sweep for it, which takes the statement in.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/bank_statement_parse.ts",
+     "must_contain": [
+      "export function readStatement("
+     ],
+     "must_not_contain": [
+      "function isBankStatement"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/bank_statement_intake.ts",
+     "must_contain": [
+      "export async function statementRowText("
+     ],
+     "must_not_contain": [
+      "isBankStatement("
+     ]
+    },
+    {
+     "file": "supabase/functions/accountant/index.ts",
+     "must_contain": [
+      "if (kind === 'bank_statement') {"
+     ],
+     "must_not_contain": [
+      "isBankStatement("
+     ]
+    },
+    {
+     "file": "supabase/functions/resend_inbound/index.ts",
+     "must_contain": [
+      "if (kind === 'bank_statement' && isExpenseMailbox && expenseSenderOk) {"
+     ]
+    }
+   ]
   },
   {
    "id": "accountant.resend_receiptish",
    "order": 65,
-   "status": "pending",
+   "status": "migrated",
    "seat": "accountant",
    "severity": "med",
    "where": "supabase/functions/resend_inbound/index.ts",
-   "decides": "isReceiptish subject/from regex"
+   "decides": "isReceiptish: a subject regex (receipt|invoice|payment|renewal|billing|funded...) and a sender regex (billing|invoice|stripe) decided whether an email took the receipt path; now the mailbox the sender addressed (structured) routes finance mail, and any other email is reasoned by documentKind",
+   "held": "Held: an email to a non-finance mailbox takes the supplier-document path, which stores it and classifies nothing on a guess; the question waits in the accountant queue (dedupe expense_kind:<email id>), and if it is reasoned to be an expense document reasoned_delivery hands the stored email to the bookkeeper.",
+   "proof": [
+    {
+     "file": "supabase/functions/resend_inbound/index.ts",
+     "must_contain": [
+      "kind = (await documentKind(booksDeps, mail, renewals, register)).value;",
+      "let receiptish = FINANCE_BOXES.has(toLocal);"
+     ],
+     "must_not_contain": [
+      "function isReceiptish",
+      "isReceiptish("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "await deliverBooks(row, r, io)",
+      "...liveBooksIO(admin)"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.accountant_bank_lines",
    "order": 66,
-   "status": "pending",
+   "status": "migrated",
    "seat": "accountant",
    "severity": "high",
    "where": "scripts/sql",
-   "decides": "bank line text regex in _book_bank_charges/_credits/_ad_spend_figures/_renewal_budget_line/owner_transfer/expense_duty"
+   "decides": "description ~* gl_settings.bank_charge_pattern / owner_transfer_pattern / bank_interest_pattern (+ fn_bank_line_is_owner_transfer), ilike '%stripe%' in the payout reconciliation, vendor ~* the Meta and renewal vendor patterns, and vendor ilike '%name%' in the expense duty decided what a bank line or a booked expense IS; now bank_statement_line.kind (reasoned by bankLineKind each duties tick, or applied on replay) and expense_entries.read_as / renews_item (reasoned when booked) carry the meaning, and the patterns are deleted",
+   "held": "Held: a line stays kind NULL and no routine books it; the question waits in the accountant queue (dedupe bank_line:<id>) and fn_reason_apply_accountant__bank_line records the kind when the hold lifts; a credit still unreasoned past the matching window is an accountant finding (\"not reasoned yet\"), never booked on a guess.",
+   "proof": [
+    {
+     "file": "scripts/sql/the_books_and_the_knowledge_are_read_by_meaning_not_by_words.sql",
+     "must_contain": [
+      "where b.amount_aed < 0 and b.kind = 'bank_charge'",
+      "if l.ruling = 'capital' or l.kind = 'owner_transfer' then",
+      "elsif l.kind = 'bank_interest' then",
+      "bl.kind = 'stripe_payout'",
+      "read_as = 'meta_ads_invoice'",
+      "where renews_item = p_item",
+      "create or replace function public.fn_reason_apply_accountant__bank_line(",
+      "drop function if exists public.fn_bank_line_is_owner_transfer(text, text);"
+     ],
+     "must_not_contain": [
+      "~* v_pat",
+      "fn_bank_line_is_owner_transfer(l.description",
+      "ilike '%stripe%'",
+      "ilike '%' || v || '%'",
+      "'owner_transfer_pattern')"
+     ]
+    },
+    {
+     "file": "supabase/functions/accountant/index.ts",
+     "must_contain": [
+      "const bankLines = await reasonBankLines(defaultDeps(admin, 'accountant'));"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_books.ts",
+     "must_contain": [
+      "surface: 'accountant.bank_line'"
+     ]
+    }
+   ]
   },
   {
    "id": "marketing.outreach_reply",
    "order": 67,
-   "status": "pending",
+   "status": "migrated",
    "seat": "marketing",
    "severity": "high",
    "where": "supabase/functions/_shared/marketing_outreach.ts",
-   "decides": "classifyReply: decline/later/positive/question word lists pick the reply and whether to stop"
+   "decides": "classifyReply: ordered decline/later/positive regex lists (EN and AR) chose the follow-up and whether the prospect was closed as declined; now replyClass reasons the reply against the message it answers",
+   "held": "Held: the reply is recorded as replied with no class, nobody is closed and no follow-up is drafted on a guess; it waits in the marketing queue (dedupe outreach_reply:<mark token>) and on replay fn_marketing_outreach_reply_reasoned records the class, closes a decline and adds the composed follow-up.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/marketing_outreach.ts",
+     "must_contain": [
+      "cls: ReplyClass): { cls: ReplyClass; message: string; lint: Finding[] }"
+     ],
+     "must_not_contain": [
+      "function classifyReply",
+      "const CLASSES"
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing_outreach/index.ts",
+     "must_contain": [
+      "await replyClass(defaultDeps(admin, 'marketing_outreach')"
+     ],
+     "must_not_contain": [
+      "classifyReply("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_outreach.ts",
+     "must_contain": [
+      "surface: 'marketing.outreach_reply'",
+      "admin.rpc('fn_marketing_outreach_reply_reasoned'"
+     ]
+    },
+    {
+     "file": "scripts/sql/the_books_and_the_knowledge_are_read_by_meaning_not_by_words.sql",
+     "must_contain": [
+      "create or replace function public.fn_marketing_outreach_reply_reasoned("
+     ]
+    }
+   ]
   },
   {
    "id": "send_whatsapp.pending_template",
    "order": 68,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "low",
    "where": "supabase/functions/send_whatsapp/index.ts",
-   "decides": "pendingTemplate regex on provider text"
+   "decides": "a regex over Twilio's English error message (approv|not yet approved|template pending|63016|63042) decided that a rejected send was a template awaiting approval and kept it queued; now Twilio's structured error code decides (twilioVerdict), and a rejection with no code is unknown and retried",
+   "held": "No model is involved: the decision is the provider's structured code. A rejection without a code is treated as unknown and the row stays queued for the next tick (never read off the prose, never dropped).",
+   "proof": [
+    {
+     "file": "supabase/functions/send_whatsapp/index.ts",
+     "must_contain": [
+      "const verdict = res.ok ? null : twilioVerdict(res.code);",
+      "code: r.ok ? null : (jd?.code ?? null)"
+     ],
+     "must_not_contain": [
+      "/approv|not (yet )?approved",
+      "pendingTemplate"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/provider_signals.ts",
+     "must_contain": [
+      "export const TWILIO_NOT_YET_CODES = new Set([63016, 63042]);"
+     ]
+    }
+   ]
   },
   {
    "id": "transcribe.no_speech",
    "order": 69,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "low",
    "where": "supabase/functions/transcribe/index.ts",
-   "decides": "no-speech placeholder regex"
+   "decides": "a regex over the model's transcript (no speech|silence|inaudible|no audio|blank|empty) decided there was no speech, so a caller who said \"silence\" got nothing; now the model returns {speech, text} and its structured speech field decides",
+   "held": "Held/unreadable: a transcriber reply that is not the {speech, text} object is not guessed at; the caller gets transcription_failed (unreadable) and is asked to record again. Under the paid hold the gateway refuses as before.",
+   "proof": [
+    {
+     "file": "supabase/functions/transcribe/index.ts",
+     "must_contain": [
+      "const read = readTranscript(j?.content);"
+     ],
+     "must_not_contain": [
+      "no (clear )?(human )?speech|silence"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/provider_signals.ts",
+     "must_contain": [
+      "export function readTranscript("
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_os_incident_set_owner_and_due",
    "order": 70,
-   "status": "pending",
+   "status": "migrated",
    "seat": "it_engineer",
    "severity": "low",
    "where": "scripts/sql",
-   "decides": "reason ilike '%incident response%' -> incident owner"
+   "decides": "order by (reason ilike '%incident response%') over event_subscription chose an incident's owner (no subscriber exists, so every incident fell to the non-existent 'security'); now an incident belongs to the it_engineer seat, and a writer that names an owner keeps it",
+   "held": "No reasoning is needed: the owner is structured (the founder's seat for incidents), so nothing waits under the hold.",
+   "proof": [
+    {
+     "file": "scripts/sql/the_books_and_the_knowledge_are_read_by_meaning_not_by_words.sql",
+     "must_contain": [
+      "new.owner := 'it_engineer';"
+     ],
+     "must_not_contain": [
+      "ilike '%incident response%'"
+     ]
+    }
+   ]
   },
   {
    "id": "knowledge.support_ceo_vectors",
    "order": 71,
-   "status": "pending",
+   "status": "migrated",
    "seat": "it_engineer",
    "severity": "med",
    "where": "scripts/sql/every_seat_reasons_before_it_answers.sql",
-   "decides": "support_knowledge and ceo_knowledge carry no vector column, so fn_reason_retrieve cannot read them by meaning"
+   "decides": "support_knowledge and ceo_knowledge carried no vector column, so fn_reason_retrieve could not read them by meaning, and fn_support_knowledge_search / fn_ceo_knowledge_search ranked by websearch_to_tsquery with a best-terms OR fallback; now both carry embedding_gte (gte-small), are read by vector distance only (over the 0.84 corroboration floor), are embedded on write by their loaders, and a changed row's vector is cleared by trigger",
+   "held": "Not a model decision: retrieval is gte-small, free and in-region, which the hold does not reach. A row with no vector yet (before the backfill runs) is simply not retrieved; nothing falls back to words.",
+   "proof": [
+    {
+     "file": "scripts/sql/the_books_and_the_knowledge_are_read_by_meaning_not_by_words.sql",
+     "must_contain": [
+      "alter table public.support_knowledge add column if not exists embedding_gte vector(384);",
+      "(select 'support_knowledge', s.record_id",
+      "(select 'ceo_knowledge', c.record_id",
+      "1 - (k.embedding_gte <=> p_embedding) >= 0.84",
+      "create trigger trg_ceo_knowledge_text_change_clears_embedding"
+     ],
+     "must_not_contain": [
+      "websearch_to_tsquery",
+      "k.search @@"
+     ]
+    },
+    {
+     "file": "supabase/functions/ceo_agent/index.ts",
+     "must_contain": [
+      "p_query: query, p_embedding: vec ? '[' + vec.join(',') + ']' : null,"
+     ]
+    },
+    {
+     "file": "scripts/kb/embed_sales_knowledge.mjs",
+     "must_contain": [
+      "'support_knowledge', 'ceo_knowledge'",
+      "export async function embedMissing("
+     ]
+    },
+    {
+     "file": "scripts/kb/load_support_knowledge_pack.mjs",
+     "must_contain": [
+      "await embedMissing('support_knowledge');"
+     ]
+    },
+    {
+     "file": "scripts/kb/load_ceo_knowledge_pack.mjs",
+     "must_contain": [
+      "await embedMissing('ceo_knowledge');"
+     ]
+    }
+   ]
   },
   {
    "id": "marketing_social.comment_needs_a_person",
