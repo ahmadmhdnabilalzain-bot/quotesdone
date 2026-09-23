@@ -354,8 +354,9 @@ const B6 = 'scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.
 
 test('B6: the routing and CEO routines read no free text for meaning', () => {
   const sql = code(B6, read(B6));
-  const body = (name) => { const a = sql.indexOf('function public.' + name + '('); const b = sql.indexOf('$function$;', a); assert.ok(a > 0 && b > a, name); return sql.slice(a, b); };
-  for (const n of ['fn_resolve_cat_agent', 'trg_inquiry_enrich', 'fn_supplier_document_home', 'fn_should_escalate', 'fn_task_review', 'fn_twin']) {
+  const body = (name) => { const a = sql.indexOf('function public.' + name + '('); const ends = ['$function$;', '$fn$;'].map((e) => sql.indexOf(e, a)).filter((i) => i > a); const b = Math.min(...ends); assert.ok(a > 0 && ends.length, name); return sql.slice(a, b); };
+  for (const n of ['fn_resolve_cat_agent', 'trg_inquiry_enrich', 'fn_supplier_document_home', 'fn_should_escalate', 'fn_task_review', 'fn_twin',
+                   'fn_lead_reclassify_tick', 'fn_reason_apply_lead_trade__classify', 'fn_category_key_for_slug', 'fn_category_key_ask', 'fn_reason_apply_category__key_for_slug']) {
     assert.doesNotMatch(body(n), /~\*|~ '|ilike|\blike\b|position\(|strpos\(|similar to|regexp_(match|matches|like|split|substr|count|instr)|substring\([^)]*\bfrom\b/i, `${n} matches text again`);
   }
   // fn_decide and the refund checklist keep format guards on OUR keys and addresses (ilike 'supplier@%',
@@ -590,8 +591,12 @@ begin
   insert into public.app_secrets (key, value) values ('lead_reclassify_backfill', 'maybe');
   o := o || jsonb_build_object('not_go', public.fn_lead_reclassify_tick(20, array[a, b, c])->>'reason');
 
-  -- 2. 'go' with room for exactly two more today: two filed, then the cap stops the third.
+  -- 2. 'go' under the model hold: nothing is filed (it would only wait and pile up in the seat's queue).
   update public.app_secrets set value = 'go' where key = 'lead_reclassify_backfill';
+  o := o || jsonb_build_object('held_gate', public.fn_lead_reclassify_tick(20, array[a, b, c])->>'reason');
+  -- ... and with the models open (the gate stubbed inside this aborted transaction) and room for exactly two more
+  -- today: two filed, then the cap stops the third.
+  create or replace function public.fn_kernel_paid_provider_gate(p_model text default null) returns jsonb language sql as $g$ select '{"allowed":true,"rule":"zz_probe_open"}'::jsonb $g$;
   insert into public.app_secrets (key, value) values ('lead_reclassify_daily_cap', '0') on conflict (key) do update set value = '0';
   update public.app_secrets set value = ((select count(*) from public.reasoning_held_question where surface = 'lead_trade.classify'
     and created_at >= date_trunc('day', now() at time zone 'Asia/Dubai') at time zone 'Asia/Dubai') + 2)::text where key = 'lead_reclassify_daily_cap';
@@ -606,8 +611,12 @@ begin
   perform public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ the description says it installs split units', 'confidence', 0.8, 'decision', jsonb_build_object('choice', v_code)));
   v_id := (select id from public.reasoning_held_question where dedupe_key = 'lead_trade:' || b);
   perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"zz_not_a_trade"}}'::jsonb);
+  update public.app_secrets set value = '100000' where key = 'lead_reclassify_daily_cap';   -- room for the re-ask below
+  v := public.fn_lead_reclassify_tick(20, array[b]);
+  o := o || jsonb_build_object('invented_reasked', v->>'filed', 'invented_new_row', (select status from public.reasoning_held_question where dedupe_key = 'lead_trade:' || b));
   o := o || jsonb_build_object('stored', (select trade_code || ':' || confidence || ':' || (evidence like 'ZZ the description%') from public.lead_trade_class where lead_id = a),
     'invented_stored', exists (select 1 from public.lead_trade_class where lead_id = b),
+    'no_shortlist_agreed', (select shortlist_agreed from public.lead_trade_class where lead_id = a),
     'twin_pool', (public.fn_twin('category', v_code)->>'supplier_pool_total')::int >= 1,
     'twin_words', (public.fn_twin('category', 'zz demo')->>'supplier_pool_total')::int);
 
@@ -632,12 +641,15 @@ end $p$;`);
   assert.equal(out.off, 'gate_off');
   assert.equal(out.off_filed, 0, 'without the gate nothing is filed');
   assert.equal(out.not_go, 'gate_off', 'only the exact word go opens it');
+  assert.equal(out.held_gate, 'model_hold', 'under the hold the backfill files nothing, even at go');
   assert.equal(out.go_filed, 2);
   assert.equal(out.capped, 'daily_cap', 'the daily cap stops the third');
   assert.equal(out.go_rows, 2);
   assert.match(out.go_seat, /^sales_engineer:(19[0-9]|2[0-9][0-9])$/, 'every active trade (195) plus none is offered');
   assert.match(out.stored, /:0\.8:true$/);
   assert.equal(out.invented_stored, false, 'an option that does not exist is never stored');
+  assert.equal(out.invented_new_row, 'held', 'the lead is asked again rather than left unclassified forever');
+  assert.equal(out.no_shortlist_agreed, null, 'no shortlist is not a disagreement');
   assert.equal(out.twin_pool, true);
   assert.equal(out.twin_words, 0, 'the free-text categories column counts no supplier');
   assert.ok(out.word, 'a vocabulary word without a declared key exists (measured 23 Sep 2026: 40)');

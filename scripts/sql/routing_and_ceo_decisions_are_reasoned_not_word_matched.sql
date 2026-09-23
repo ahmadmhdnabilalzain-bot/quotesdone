@@ -150,7 +150,7 @@ declare v_key text; v_txt text;
 begin
   v_key := public.fn_resolve_cat_agent(p_category);
   if v_key is null then return ''; end if;
-  select string_agg('## '||topic||E'\n'||content, E'\n\n')
+  select string_agg('## '||topic||E'\n'||content, E'\n\n' order by topic, content)
     into v_txt from agent_knowledge
     where agent_key = v_key
       and topic in ('Pricing benchmarks & red flags','Quote analysis & comparison',
@@ -215,6 +215,11 @@ begin
   if coalesce(btrim(v_gate), '') <> 'go' then
     return jsonb_build_object('ran', false, 'reason', 'gate_off', 'gate_key', 'lead_reclassify_backfill');
   end if;
+  -- Nothing is filed while the model hold is on: a question filed under the hold would only wait 48 hours and
+  -- land in the sales engineer's queue as a pending item, 95 a day. The backfill runs only when it can reason.
+  if coalesce(public.fn_kernel_paid_provider_gate('hold-probe/not-a-model')->>'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state') then
+    return jsonb_build_object('ran', false, 'reason', 'model_hold');
+  end if;
   begin select btrim(value)::int into v_cap from public.app_secrets where key = 'lead_reclassify_daily_cap';
   exception when others then v_cap := null; end;
   v_cap := greatest(0, coalesce(v_cap, 95));
@@ -231,8 +236,11 @@ begin
     select x.* from public.leads x
      where (p_only is null or x.id = any (p_only))   -- p_only: a named set (the probe's ZZ DEMO leads); null = every lead
        and not exists (select 1 from public.lead_trade_class c where c.lead_id = x.id)
-       and not exists (select 1 from public.reasoning_held_question h where h.dedupe_key = 'lead_trade:' || x.id)
-     order by x.id
+       -- a question still waiting, or one that failed within the day, is not asked again; one whose answer could not be
+       -- stored (fn_reason_apply_lead_trade__classify puts it back to held) is waiting again, so it is skipped here too
+       and not exists (select 1 from public.reasoning_held_question h where h.dedupe_key = 'lead_trade:' || x.id
+                         and (h.status = 'held' or (h.status = 'failed' and coalesce(h.last_attempt_at, h.created_at) > now() - interval '24 hours')))
+     order by (coalesce(x.approval_status, '') = 'approved') desc, x.id   -- approved suppliers first: they are the live pools
      limit v_room
   loop
     v_short := '[]'::jsonb;
@@ -271,13 +279,19 @@ begin
   select * into r from public.reasoning_held_question where id = p_id;
   if nullif(r.subject->>'lead_id', '') is null or coalesce(v_choice, '') = '' then return null; end if;
   select t.code into v_code from public.taxonomy_trade t where t.code = v_choice;
-  if v_code is null and v_choice <> 'none' then return null; end if;   -- an option that does not exist is not stored
+  if v_code is null and v_choice <> 'none' then
+    -- an option that does not exist is not stored. The row keeps its (invalid) result for the record, and its dedupe
+    -- key is released so the next tick asks again, within the daily cap.
+    update public.reasoning_held_question set dedupe_key = dedupe_key || ':invalid:' || p_id where id = p_id;
+    return jsonb_build_object('lead_id', (r.subject->>'lead_id')::bigint, 'stored', false, 'invalid_choice', v_choice);
+  end if;
   begin v_conf := least(1, greatest(0, (p_result->>'confidence')::numeric)); exception when others then v_conf := null; end;
   insert into public.lead_trade_class (lead_id, trade_code, confidence, evidence, shortlist, shortlist_agreed, held_id)
   values ((r.subject->>'lead_id')::bigint, v_code, v_conf,
           left(coalesce(nullif(btrim(p_result->>'answer'), ''), 'reasoned without a stated reason'), 2000),
           coalesce(r.subject->'shortlist', '[]'::jsonb),
-          case when v_code is null then null else coalesce(r.subject->'shortlist', '[]'::jsonb) ? v_code end, p_id)
+          case when v_code is null or jsonb_array_length(coalesce(r.subject->'shortlist', '[]'::jsonb)) = 0 then null
+               else r.subject->'shortlist' ? v_code end, p_id)
   on conflict (lead_id) do update set trade_code = excluded.trade_code, confidence = excluded.confidence, evidence = excluded.evidence,
         shortlist = excluded.shortlist, shortlist_agreed = excluded.shortlist_agreed, held_id = excluded.held_id, decided_at = now();
   return jsonb_build_object('lead_id', (r.subject->>'lead_id')::bigint, 'trade_code', v_code);
@@ -332,6 +346,24 @@ begin
 end $fn$;
 revoke execute on function public.fn_category_key_ask(text) from public, anon, authenticated;
 grant execute on function public.fn_category_key_ask(text) to service_role;
+
+-- A key the reasoning names that the catalogue does not hold is not kept, and the word can be asked again.
+create or replace function public.fn_reason_apply_category__key_for_slug(p_id bigint, p_result jsonb)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_choice text := p_result->'decision'->>'choice';
+begin
+  if v_choice = 'none' or exists (select 1 from public.org_category_identity i where i.category_key = v_choice) then
+    return jsonb_build_object('key', v_choice);
+  end if;
+  -- released for a later ask (fn_category_key_ask on the next category_specs insert), the invalid answer kept for the record
+  update public.reasoning_held_question set dedupe_key = dedupe_key || ':invalid:' || p_id where id = p_id;
+  return jsonb_build_object('key', null, 'invalid_choice', v_choice);
+end $fn$;
+revoke execute on function public.fn_reason_apply_category__key_for_slug(bigint, jsonb) from public, anon, authenticated;
+grant execute on function public.fn_reason_apply_category__key_for_slug(bigint, jsonb) to service_role;
 
 create or replace function public.trg_category_key_asked()
 returns trigger

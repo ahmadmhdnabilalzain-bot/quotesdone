@@ -9,7 +9,8 @@ Functions to deploy with it: resilience_ping (the lead_reclassify step; it does 
 supabase/functions/_shared/reasoned_routing.ts ships with any deploy; no function imports it.
 
 THE BULK BACKFILL IS GATED, CAPPED AND PRICED — nothing is spent until the founder says go:
-  gate key:  app_secrets.lead_reclassify_backfill = 'go'   (absent or anything else: fn_lead_reclassify_tick files nothing)
+  gate key:  app_secrets.lead_reclassify_backfill = 'go'   (absent or anything else: fn_lead_reclassify_tick files nothing;
+             it also files nothing while the model hold is on, and takes approved suppliers first)
   daily cap: app_secrets.lead_reclassify_daily_cap = 95 leads per Dubai day (written by this file)
   estimate:  ~AED 0.114 per lead (1 question = ~3 calls, ~12k in / 0.7k out tokens, agent_reasoning at USD 2/10 per M);
              22,272 leads = ~AED 2,540; the cap = ~AED 10.8 a day, ~AED 325 a month (25% of the marketplace

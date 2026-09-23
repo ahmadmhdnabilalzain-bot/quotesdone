@@ -1064,7 +1064,7 @@
    "severity": "high",
    "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
    "decides": "a supplier's trade: leads.categories is free text (company names as often as trades, measured 23 Sep 2026) and lead_category was filled by keyword_v1; fn_decide's invite pool and fn_twin matched a category as a substring of it",
-   "held": "A lead is in no trade's pool until reasoned. fn_lead_reclassify_tick files lead_trade.classify questions (195 trades + none; a gte-small shortlist is a hint only) ONLY when app_secrets.lead_reclassify_backfill = 'go', at most lead_reclassify_daily_cap (95) a Dubai day (~AED 0.114 a lead, ~AED 2,540 for 22,272, quoted in app_secrets.lead_reclassify_cost_estimate); the answer is stored in lead_trade_class with evidence and confidence.",
+   "held": "A lead is in no trade's pool until reasoned. fn_lead_reclassify_tick files lead_trade.classify questions (195 trades + none; a gte-small shortlist is a hint only) ONLY when app_secrets.lead_reclassify_backfill = 'go' AND the model hold is off (so nothing piles up in the seat's queue), approved suppliers first, at most lead_reclassify_daily_cap (95) a Dubai day (~AED 0.114 a lead, ~AED 2,540 for 22,272, quoted in app_secrets.lead_reclassify_cost_estimate); the answer is stored in lead_trade_class with evidence and confidence, and an invented trade is never stored (the lead is asked again).",
    "proof": [
     {
      "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
@@ -1072,7 +1072,8 @@
       "if coalesce(btrim(v_gate), '') <> 'go' then",
       "perform public.fn_reason_route_ask('sales_engineer', 'lead_trade.classify',",
       "create or replace function public.fn_reason_apply_lead_trade__classify(",
-      "exists (select 1 from lead_trade_class c where c.lead_id = leads.id and c.trade_code = lower(btrim(v_ctx->>'category')))"
+      "exists (select 1 from lead_trade_class c where c.lead_id = leads.id and c.trade_code = lower(btrim(v_ctx->>'category')))",
+      "return jsonb_build_object('ran', false, 'reason', 'model_hold');"
      ],
      "must_not_contain": [
       "lower(coalesce(categories,''))||' '||lower(coalesce(sub_type,'')) like"
