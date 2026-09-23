@@ -38,9 +38,10 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       if (!row) {
         // Already stored. Answered (outcome set) means done; no outcome means an earlier run failed before it
         // finished, so this delivery takes it over — a comment is never left unanswered for ever.
-        const { data: old } = await admin.from('social_message').select('id,conversation_id,outcome')
+        const { data: old } = await admin.from('social_message').select('id,conversation_id,outcome,send_status')
           .eq('platform', ev.platform).eq('meta_message_id', ev.commentId).eq('direction', 'in').maybeSingle();
-        if (!old) return null;
+        // A reply the platform already accepted (send_status 'sent', marked at the send) is never sent again, by any path.
+        if (!old || old.send_status === 'sent') return null;
         if (old.outcome === 'held_classify') {
           // A comment whose class was held is taken over by ONE replay: a compare-and-set to 'replaying:<when>', so a
           // concurrent replay or redelivery gets nothing and cannot reply twice. The row is never emptied, so a

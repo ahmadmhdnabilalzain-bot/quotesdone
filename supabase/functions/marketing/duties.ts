@@ -99,7 +99,11 @@ export const socialComments: Duty = {
         // (send_status 'sent', marked at the send) is never re-sent.
         const { data: stale, error: staleErr } = await admin.from('social_message')
           .select('id,outcome,send_status,meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
-          .eq('direction', 'in').eq('channel', 'comment').or('outcome.like.replaying:%,outcome.eq.held_classify').limit(50);
+          .eq('direction', 'in').eq('channel', 'comment').or('outcome.like.replaying:%,outcome.eq.held_classify')
+          // A rotating window over the oldest first, so comments waiting on an OPEN question (skipped below) can never
+          // starve the rest: 20 ticks cover 1,000 waiting rows. ponytail: move the "no open question" test into SQL
+          // (an RPC) if the held backlog ever passes that.
+          .order('occurred_at', { ascending: true }).range(Math.floor(now.getTime() / 600_000) % 20 * 50, Math.floor(now.getTime() / 600_000) % 20 * 50 + 49);
         if (staleErr) throw new Error('stale comment replays: ' + staleErr.message);
         const counts: Record<string, number> = {};
         for (const r of stale || []) {
@@ -110,8 +114,10 @@ export const socialComments: Duty = {
             const { data: won } = await admin.from('social_message').update({ outcome: 'held_classify' }).eq('id', r.id).eq('outcome', r.outcome).select('id');
             if (!won?.length) continue;
           } else {
+            // This comment's own questions only: the exact key, or it followed by ':' (a retry) — LIKE's _ and % escaped.
+            const key = 'social_comment_class:' + r.platform + ':' + r.meta_message_id;
             const { data: open } = await admin.from('reasoning_held_question').select('id').eq('status', 'held')
-              .like('dedupe_key', 'social_comment_class:' + r.platform + ':' + r.meta_message_id + '%').limit(1);
+              .or('dedupe_key.eq."' + key + '",dedupe_key.like."' + key.replace(/[\\%_]/g, (c) => '\\' + c) + ':%"').limit(1);
             if (open?.length) continue;
           }
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
