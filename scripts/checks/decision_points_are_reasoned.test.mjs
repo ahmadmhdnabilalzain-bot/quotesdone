@@ -126,13 +126,30 @@ test('the SQL files replay safely: no begin/commit, a revoke per routine, RLS an
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 /** Every file of the chain still pending (a note in scripts/sql/pending, no MANIFEST line), in order: what a probe
- *  replays inside its aborted transaction so it measures the committed code, not only what production has. */
-const pendingReplay = () => CHAIN.filter((f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt'))))
-  .map((f) => read(f)).join('\n') + '\n';
+ *  replays inside its aborted transaction so it measures the committed code, not only what production has.
+ *  A pending file whose every routine production ALREADY carries verbatim (prosrc) is not replayed: re-running it
+ *  would test nothing new and can fail on a privileged SET the probe role may not issue (measured 23 Sep 17:45:
+ *  #884's two files were live on production, unrecorded, and replaying them failed 42723 / 42501). */
+async function pendingReplay() {
+  const { sql } = await import('../lib/db.mjs');
+  const out = [];
+  for (const f of CHAIN.filter((x) => existsSync(join(REPO, 'scripts/sql/pending', x.split('/').pop().replace(/\.sql$/, '.txt'))))) {
+    const text = read(f);
+    const bodies = [...text.matchAll(/create (?:or replace )?function public\.([a-z0-9_]+)\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$/g)].map((m) => [m[1], m[3].trim()]);
+    let live = false;
+    if (bodies.length) {
+      const names = [...new Set(bodies.map(([n]) => n))];
+      const rows = await sql(`select proname, prosrc from pg_proc where pronamespace = 'public'::regnamespace and proname = any(array[${names.map((n) => `'${n}'`).join(',')}])`, { readOnly: true });
+      live = bodies.every(([n, b]) => rows.some((r) => r.proname === n && String(r.prosrc).trim() === b));
+    }
+    if (!live) out.push(text);
+  }
+  return out.join('\n') + '\n';
+}
 /** Runs a DO block that ends in raise exception 'CHK<<json>>' after the pending chain; returns the json. Nothing commits. */
 async function probe(block, prefix = '') {
   const { sql } = await import('../lib/db.mjs');
-  try { await sql(prefix + pendingReplay() + block, { retry: false }); }
+  try { await sql(prefix + (await pendingReplay()) + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));
@@ -235,7 +252,7 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   const before = 'create temporary table zz_rfq_before on commit drop as select i.id, coalesce((public.fn_rfq_required_check(i)->>\'required_ok\')::boolean, true) ok from public.inquiries i;\n';
   // Every pending file replays, whether or not the engine is already applied (a later file may still be pending).
   void r;
-  const body = before + pendingReplay() + PROBE;
+  const body = before + (await pendingReplay()) + PROBE;
   let out;
   try {
     await sql(body, { retry: false });
