@@ -9,12 +9,14 @@
 //      the trades (fn_check_licence_activity is not in production). Founder rulings 857/862: a
 //      service counts only when the supplier ticked it himself.
 //   2. "Suppliers see the drawings with identity removed" / "drawings are automatically redacted".
-//      Drawing redaction needs the model behind drawing_redact, which is held; a page not confirmed
-//      clean is not shared at all. What IS true: suppliers see the scope and the quantities with
-//      personal details removed, and the customer's name reaches them only when they are chosen.
+//      No model redacts a drawing while the model hold stands. For a PDF with a text layer the
+//      server boxes the title block and the customer's own details (customer_api -> drawing_redact,
+//      deterministic); anything it cannot cover (photo, scan, raster CAD) is not shared at all. So the
+//      true line is conditional: a drawing reaches suppliers only after the details on it are covered.
+//      Suppliers always see the scope and quantities; the customer's name only when they are chosen.
 //
 // This check fails if either claim, in English or Arabic, comes back on a site surface. When the
-// licence-activity comparison or unattended redaction ships, retire the matching pattern here in the
+// licence-activity comparison or model-verified redaction of every drawing ships, retire the matching pattern here in the
 // same PR that ships it.
 //
 //   node --test scripts/checks/site_copy_claims_only_what_matching_and_redaction_do.test.mjs
@@ -29,7 +31,7 @@ const SURFACES = ['messages', 'src/app', 'src/components', 'src/content'];
 
 // Arabic written as \u escapes so this file cannot match its own patterns if scripts/ is ever scanned.
 const CLAIMS = [
-  ['EN: matched on the licence', /trades? your licen[cs]e covers|jobs your licen[cs]e covers|licen[cs]ed for (your|that) trade|your licensed trade|licensed matching|Licensed suppliers are invited/i],
+  ['EN: matched on the licence', /trades? your licen[cs]e covers|jobs your licen[cs]e covers|licen[cs]ed for (your|that) trade|your licensed trade|licensed matching|Licensed suppliers are invited|trades licensed for the work/i],
   ['EN: suppliers see redacted drawings', /drawings? with (identity|personal details) removed|from the drawings before any supplier|drawings (are|is) automatically redacted|drawings are automatically redacted|automatically redacts identifying details/i],
   // "covered by your licence", "your licensed activity", "licensed for your activity",
   // "licensed suppliers are invited", "licensed for this activity", "licensed matching"
@@ -41,6 +43,8 @@ const CLAIMS = [
     'يُ?دعى الموردون المرخّ?صون',
     'المرخّ?صون لهذا النشاط',
     'المطابقة المرخّ?صة',
+    // "holders of licences matching (the work)"
+    'أصحاب الرخص المطابقة',
   ].join('|'))],
   // "and the drawings after removing", "and from the drawings before", "identifying details from the
   // drawings", "the drawings are masked"

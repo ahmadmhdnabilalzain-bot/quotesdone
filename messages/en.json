@@ -22,7 +22,7 @@
     "kicker": "Every trade in the UAE · except food & beverage, for now",
     "title": "Anonymous quotes from licence-checked UAE suppliers.",
     "sealed": "Every quote arrives sealed. Only the one you choose is ever opened.",
-    "how": "Describe the job once. We send it without your name to verified suppliers who confirm your trade, anywhere in the UAE, and their quotes reach you in 3–5 working days.",
+    "how": "Describe the job once. We send it without your name to verified suppliers who have confirmed they work in your trade, anywhere in the UAE, and their quotes reach you in 3–5 working days.",
     "price": [
       {
         "k": "Free",
@@ -199,7 +199,7 @@
     "cells": [
       {
         "title": "Your identity is stripped",
-        "body": "Your name, number and company are removed from the brief before any supplier sees it, and a drawing is shared only once it is confirmed clean. No cold calls, no inbox flooding."
+        "body": "Your name, number and company are removed from the brief before any supplier sees it, and a drawing is shared only after your details on it are covered. No cold calls, no inbox flooding."
       },
       {
         "title": "Licence-checked suppliers only",
@@ -295,7 +295,7 @@
         "Free to quote — the customer pays the 3% reveal fee, you pay no commission",
         "Invites only for the trades and services you confirm on your verified profile, for jobs anywhere in the UAE",
         "Your quote is listed for the customer with every other one; the strongest three are also levelled into their comparison report",
-        "Before a reveal you see the full scope, the quantities and the emirate with personal details removed — never the customer’s name"
+        "Before a reveal you see the full scope, the quantities, the emirate and any drawing whose identifying details have been covered — never the customer’s name"
       ],
       "cta": "Become a supplier"
     }
@@ -392,7 +392,7 @@
       },
       {
         "k": "The buyer stays anonymous",
-        "v": "You see the scope and the quantities with personal details removed, and you quote on the job itself. The customer’s name reaches you when they choose you."
+        "v": "You see the scope and the quantities with personal details removed, and you quote on the work described. The customer’s name reaches you when they choose you."
       },
       {
         "k": "Ranked on fit, never on fees",
@@ -463,7 +463,7 @@
     "rows": [
       {
         "who": "The supplier sees",
-        "before": "The scope, the quantities and the emirate, with personal details removed",
+        "before": "The scope, the quantities, the emirate and any drawing whose identifying details have been covered",
         "after": "Your name and contact details, to start the job"
       },
       {
