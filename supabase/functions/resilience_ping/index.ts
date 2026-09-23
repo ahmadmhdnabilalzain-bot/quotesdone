@@ -16,6 +16,7 @@ import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { replayHeld } from '../_shared/think.ts';
+import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, holdingNotice, liveDeliveryIO } from '../_shared/reasoned_delivery.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -395,6 +396,20 @@ async function caseMemoryEmbedTick(): Promise<unknown> {
     // A claim that could not embed anything is a failure, never a quiet zero.
     return { ok: failed === 0 || embedded > 0, claimed: (data || []).length, embedded, failed };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE LEARNING LOOP (23 Sep 2026, it_engineer; scripts/sql/every_judgement_learns_from_its_outcome.sql).
+// Daily: per-seat accuracy against real outcomes into seat_learning_daily (a fall opens a finding).
+// Weekly: cases with outcomes, grouped by meaning, distilled into cross-family-verified lessons
+// (_shared/learning_loop.ts); held under the model hold, never written from words.
+async function learningMeasureTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_learning_measure', {});
+    return error ? { ok: false, error: error.message } : data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+async function learningDistilTick(): Promise<unknown> {
+  try { return await distilLessons(admin); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
 async function refundLadderTick(): Promise<unknown> {
@@ -1302,6 +1317,8 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   caseMemory: { run: caseMemoryEmbedTick },
+  learningMeasure: { run: learningMeasureTick },
+  learningDistil: { run: learningDistilTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
   marketing: { run: marketingTick },

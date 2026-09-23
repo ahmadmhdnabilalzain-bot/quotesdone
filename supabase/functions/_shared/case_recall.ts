@@ -29,6 +29,7 @@ export type RecalledCase = {
 export type CaseMemory = {
   seat: string; path: string; available: boolean; reason?: string;
   cases: RecalledCase[]; finalised_precedent: boolean; rule: string | null;
+  judgement_id?: number | null;   // the seat_judgement row this recall opened (the outcome lands on it)
 };
 
 export const RECALL_EMBED_MS = 1500;
@@ -51,7 +52,25 @@ export async function recallCases(admin: Rpc, o: {
   seat: string; path: string; situation: string; trade?: string | null; k?: number;
   caseKind?: string | null; otherSeats?: boolean; exclude?: { table: string; id: string } | null;
   embedding?: number[] | string | null;
+  subject?: Record<string, unknown> | null;   // what the judgement is about; defaults to `exclude`
+  record?: boolean;                           // default true: every recall opens its judgement row
 }): Promise<CaseMemory> {
+  const m = await recallOnly(admin, o);
+  if (o.record === false) return m;
+  // THE RECALL RECORD (learning loop, 23 Sep 2026). Every judgement a seat makes is opened here WITH the
+  // memory it recalled, so its real outcome can be written back onto it and the seat's accuracy measured
+  // (scripts/sql/every_judgement_learns_from_its_outcome.sql). Recording never fails the decision.
+  try {
+    const subject = o.subject ?? (o.exclude ? { table: o.exclude.table, id: o.exclude.id } : null);
+    const { data, error } = await admin.rpc('fn_judgement_record', {
+      p_seat: o.seat, p_surface: o.path, p_subject: subject, p_question: String(o.situation || '').slice(0, 2000), p_recall: recallTrace(m),
+    });
+    m.judgement_id = error ? null : Number(data) || null;
+  } catch (_e) { m.judgement_id = null; }
+  return m;
+}
+
+async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Promise<CaseMemory> {
   const base = { seat: o.seat, path: o.path, cases: [] as RecalledCase[], finalised_precedent: false, rule: null };
   const text = String(o.situation || '').trim();
   if (!text) return { ...base, available: false, reason: 'no_situation' };
