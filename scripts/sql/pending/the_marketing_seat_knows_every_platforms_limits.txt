@@ -1,0 +1,5 @@
+Committed, not applied: the builder was told not to apply (the coordinator serialises applies across parallel
+builders, 23 Sep 2026). Depends on the_marketing_seat_writes_articles_and_drafts_linkedin_outreach.sql (its
+fn_table_export_list is restated here) and the marketing seat (fn_marketing_assist). Moves when applied with
+  node scripts/apply_sql.mjs scripts/sql/the_marketing_seat_knows_every_platforms_limits.sql --apply --ddl
+then this note is deleted and the file appended to the END of MANIFEST.txt in the same commit. Seat: marketing.
