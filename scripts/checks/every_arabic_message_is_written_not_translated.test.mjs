@@ -181,7 +181,9 @@ export function surfaces() {
   // docs/marketing/*.json: the social calendars the marketing seat publishes (added 23 Sep 2026, #870).
   const calendars = fs.existsSync(path.join(ROOT, 'docs/marketing'))
     ? fs.readdirSync(path.join(ROOT, 'docs/marketing')).filter((n) => n.endsWith('.json')).map((n) => 'docs/marketing/' + n) : [];
-  return [...new Set(['messages/ar.json', ...calendars, ...code, ...sqlAfterAnchor()])]
+  // The company's public profile description on every platform (instruction 920, #883).
+  const profile = 'supabase/functions/marketing/profile_text.json';
+  return [...new Set(['messages/ar.json', profile, ...calendars, ...code, ...sqlAfterAnchor()])]
     .filter((f) => fs.existsSync(path.join(ROOT, f))).sort();
 }
 

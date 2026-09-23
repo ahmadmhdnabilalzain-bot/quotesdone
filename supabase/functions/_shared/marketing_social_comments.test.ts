@@ -2,7 +2,7 @@
 // The marketing seat answers public comments with no person approving a reply (instruction 866, 23 Sep 2026).
 // Every platform is replayed with a mocked fetch and an in-memory store: nothing here can reach an account.
 import { assert, assertEquals, assertRejects } from 'jsr:@std/assert@1';
-import { call, guard, hideRequest, LIMIT, linkedinTarget, normalise, processComment, replyRequest, unhideRequest,
+import { call, guard, hideRequest, LIMIT, normalise, processComment, replyRequest, unhideRequest,
   type Class, type CommentEvent, type Decided, type Outcome, type Platform, type Store } from './marketing_social_comments.ts';
 
 // The fixed replies are read from the SQL that ships them, so the test pins the rows production gets.
@@ -249,23 +249,21 @@ Deno.test('Instagram, Facebook and YouTube: replies, hides and un-hides go to th
   assert(replyRequest(ig, 'a', 'T').url.endsWith('/' + ig.commentId + '/replies'));
   assert(replyRequest(fb, 'a', 'T').url.endsWith('/' + fb.commentId + '/comments'));
   assertEquals(JSON.parse(replyRequest(yt, 'a', 'T').body!).snippet.parentId, yt.commentId);
-  assertEquals(JSON.parse(hideRequest(ig, 'T').body!), { hide: true });
-  assertEquals(JSON.parse(unhideRequest(ig, 'T').body!), { hide: false });
-  assertEquals(JSON.parse(hideRequest(fb, 'T').body!), { is_hidden: true });
-  assertEquals(JSON.parse(unhideRequest(fb, 'T').body!), { is_hidden: false });
-  assert(hideRequest(yt, 'T').url.endsWith('moderationStatus=heldForReview') && unhideRequest(yt, 'T').url.endsWith('moderationStatus=published'));
+  assertEquals(JSON.parse(hideRequest(ig, 'T')!.body!), { hide: true });
+  assertEquals(JSON.parse(unhideRequest(ig, 'T')!.body!), { hide: false });
+  assertEquals(JSON.parse(hideRequest(fb, 'T')!.body!), { is_hidden: true });
+  assertEquals(JSON.parse(unhideRequest(fb, 'T')!.body!), { is_hidden: false });
+  assert(hideRequest(yt, 'T')!.url.endsWith('moderationStatus=heldForReview') && unhideRequest(yt, 'T')!.url.endsWith('moderationStatus=published'));
   assertEquals(await call(mock({ id: '20' }), replyRequest(ig, 'a', 'T')), { ok: true, id: '20' });
+  const li = ev('x', { platform: 'linkedin', accountId: 'urn:li:organization:9', commentId: 'urn:li:comment:(urn:li:activity:1,2)', threadId: 'urn:li:share:1' });
+  const lr = replyRequest(li, 'a', 'T');
+  assertEquals(JSON.parse(lr.body!).actor, 'urn:li:organization:9', 'the page answers, never a member');
+  assertEquals(JSON.parse(lr.body!).parentComment, li.commentId);
+  assertEquals(hideRequest(li, 'T'), null, 'LinkedIn has no reversible hide');
+  assertEquals((await call(mock({}), hideRequest(li, 'T'))).ok, false);
   assert(!LIMIT['x' as Platform], 'X is removed (founder, 23 Sep 2026)');
 });
 
-Deno.test('LinkedIn: only the company page integration the founder named; a personal profile is refused', () => {
-  const page = { id: 'int_page_1', identifier: 'linkedin-page' };
-  assert(linkedinTarget(page, 'int_page_1'));
-  assert(!linkedinTarget({ id: 'int_page_1', identifier: 'linkedin' }, 'int_page_1'), 'a personal profile with the same id is refused');
-  assert(!linkedinTarget({ id: 'int_person', identifier: 'linkedin' }, 'int_page_1'));
-  assert(!linkedinTarget({ id: 'int_other_page', identifier: 'linkedin-page' }, 'int_page_1'), 'another page is refused');
-  assert(!linkedinTarget(page, null) && !linkedinTarget(page, ''), 'no id configured: nothing is allowed');
-});
 
 Deno.test('the duty: one platform failing never stops the others, and a credential failure is a skip, not a failure', async () => {
   const { isolated, Skip } = await import('../marketing/duties.ts');
