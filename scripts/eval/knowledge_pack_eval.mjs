@@ -69,7 +69,9 @@ const hitsExpr = (q) => `(select count(distinct regexp_replace(x->>'id', '@ar$',
 if (mode === 'live') {
   for (let i = 0; i < qs.length; i += 25) {
     const part = qs.slice(i, i + 25);
-    const [r] = await sql(`select jsonb_build_array(${part.map(hitsExpr).join(',')}) got`, { readOnly: true });
+    // Not the API read_only flag: its role cannot EXECUTE fn_reason_retrieve (service_role only, 42501 measured
+    // 23 Sep 2026). The routine is STABLE and this is one SELECT, so nothing can be written either way.
+    const [r] = await sql(`select jsonb_build_array(${part.map(hitsExpr).join(',')}) got`);
     part.forEach((q, j) => { q.hits = r.got[j]; });
   }
 } else {
