@@ -27,7 +27,7 @@
 // guessed. No model anywhere on this path (OpenRouter is on hold, and a rewrite that decides who
 // receives an inquiry has to be reproducible).
 
-import { capabilityConfirm, capabilityState, tradeCode } from './supplier_capability.ts';
+import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } from './supplier_capability.ts';
 import { impliedServices, rewriteServices, tidy, type Implication, type ServiceTerm } from './service_rewrite.ts';
 import { serviceVocab } from './service_vocabulary.ts';
 import type { TradeTerm } from './trade_words.ts';
@@ -104,10 +104,11 @@ export function preparedTrades(cap: Record<string, unknown> | null, confirmed: b
   // one the checklist already shows (taxonomy_trade.umbrella_code: corrugated_packaging out of packaging)
   // is listed after it, unticked, as 'refine'. The umbrella stays his and keeps every inquiry naming it;
   // the specific trade becomes his only through a service he ticks in it (ServicesTab sends a 'refine'
-  // trade only when one of its services is ticked). Nobody is moved from one code to another.
+  // trade only when one of its services is ticked, and the server keeps it only then: keepTickedRefine).
+  // Only under a trade he holds (not one his documents merely suggest), and one level only.
   const shown = new Set(out.map((t) => t.code));
   for (const [child, parent] of Object.entries(umbrellaOf)) {
-    if (parent && shown.has(parent) && !shown.has(child)) { out.push({ code: child, source: 'refine' }); shown.add(child); }
+    if (parent && held.includes(parent) && !shown.has(child)) { out.push({ code: child, source: 'refine' }); shown.add(child); }
   }
   return out;
 }
@@ -122,6 +123,14 @@ export async function voiceEnabled(admin: Admin): Promise<boolean> {
   const { data } = await admin.from('decision_policy').select('value').eq('key', VOICE_FLAG).maybeSingle();
   const v = data?.value;
   return v === true || (!!v && typeof v === 'object' && (v as { enabled?: unknown }).enabled === true);
+}
+
+/** A split trade (it names an umbrella) that the supplier does not already hold is kept only when he ticked
+ *  a service in it. Offered is not confirmed (founder instructions 857, 895/899/900): whatever a client sends,
+ *  the server is where this holds. */
+export function keepTickedRefine(sent: string[], held: string[], umbrellaOf: Record<string, string | null | undefined>, stated: string[]): string[] {
+  // Exactly the trades preparedTrades offered as refine: split from a trade he holds, not held themselves.
+  return sent.filter((t) => held.includes(t) || !umbrellaOf[t] || !held.includes(umbrellaOf[t]!) || stated.some((k) => k.startsWith(t + '.')));
 }
 
 export async function servicesState(admin: Admin, supplierId: number) {
@@ -401,13 +410,16 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   // preview merges what is stored before it offers the implied list; the save has to merge it too, or
   // a client that echoes only this screen's removals would quietly re-enable a service the supplier
   // struck out weeks ago. Anything now stated or kept wins over a stale removal.
-  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed,services').eq('supplier_id', supplierId).maybeSingle();
+  const { data: prevCap } = await admin.from('supplier_capabilities').select('services_removed,services,trades').eq('supplier_id', supplierId).maybeSingle();
   const removed = [...new Set([...(Array.isArray(prevCap?.services_removed) ? prevCap!.services_removed as string[] : []), ...arr(body.removed)])]
     .filter((s) => known.has(s) && !implied.includes(s) && !stated.includes(s));
   const own = cleanExtras(arr(body.own_words).map((w) => tidy(w)));
   const raw = String(body.raw_text ?? '').slice(0, RAW_TEXT_MAX);
 
-  const trades = new Set(arr(body.trades).map((t) => t.trim()).filter(Boolean).slice(0, 25));
+  const vocabTrades = (await capabilityVocabulary(admin)).trades as { code: string; umbrella_code?: string | null }[];
+  const umbrellaOf = Object.fromEntries(vocabTrades.map((t) => [t.code, t.umbrella_code]));
+  const held = Array.isArray(prevCap?.trades) ? prevCap!.trades as string[] : [];
+  const trades = new Set(keepTickedRefine(arr(body.trades).map((t) => t.trim()).filter(Boolean).slice(0, 25), held, umbrellaOf, stated));
   for (const k of stated) trades.add(k.split('.')[0]);
   // The supplier's own words still resolve to a TRADE where an alias names one; where none does, the
   // words stay as the supplier wrote them and the sales engineer gets a proposal to map or add.

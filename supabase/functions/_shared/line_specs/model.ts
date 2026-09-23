@@ -26,7 +26,7 @@
 // the portal, the hold decision and the comparison all import them from here. A copy in a table would
 // be a second source that drifts. The trade keys ARE the database's spec groups, and a test pins that
 // every category in category_specs and src/content/categories.json resolves to a trade here.
-import { BRANDED_GOODS, NO_LINE_SPECS_YET } from './taxonomy_trades.ts';
+import { BRANDED_GOODS, NO_LINE_SPECS_YET, SAME_AS } from './taxonomy_trades.ts';
 
 export type AttrType = 'text' | 'number';
 export type Attr = {
@@ -417,6 +417,7 @@ export const NON_MATERIAL = /^(?:\d+[.)]\s*)?(?:labou?r(?:\s*charges?)?|installa
 export function tradeOfCategory(category: string | null | undefined): string {
   const c = String(category ?? '').toLowerCase();
   // An exact taxonomy code of 23 Sep 2026 is decided before any pattern below can misread it (taxonomy_trades.ts).
+  if (SAME_AS[c]) return SAME_AS[c];
   if (BRANDED_GOODS.has(c)) return 'branded_goods';
   if (NO_LINE_SPECS_YET.has(c)) return c;
   const rules: [RegExp, string][] = [

@@ -89,8 +89,10 @@ test('the quote hold decides every new code exactly once (line_specs/taxonomy_tr
   const src = read('supabase/functions/_shared/line_specs/taxonomy_trades.ts');
   const setOf = (name) => [...between(src, `export const ${name}`, ']);').matchAll(/'([a-z_0-9]+)'/g)].map((m) => m[1]);
   const b = setOf('BRANDED_GOODS'); const o = setOf('NO_LINE_SPECS_YET');
-  assert.deepEqual(b.filter((c) => o.includes(c)), [], 'a code in both lists');
-  assert.deepEqual([...b, ...o].sort(), NEW.map((t) => t.code).sort());
+  const same = [...between(src, 'export const SAME_AS', '};').matchAll(/^ {2}([a-z_0-9]+): '/gm)].map((m) => m[1]);
+  const all = [...b, ...o, ...same];
+  assert.equal(new Set(all).size, all.length, 'a code in two lists');
+  assert.deepEqual(all.sort(), NEW.map((t) => t.code).sort());
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || fs.existsSync(path.join(homedir(), '.supabase', 'access-token'));

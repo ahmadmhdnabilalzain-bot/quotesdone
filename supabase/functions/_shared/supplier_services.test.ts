@@ -2,7 +2,7 @@
 // model, no database. The voice flag is OFF in production (decision_policy supplier_voice_input_enabled).
 import { assertEquals } from 'jsr:@std/assert@1';
 import {
-  b64Bytes, checkVoice, cleanExtras, langOf, preparedTrades, splitServices, transcribeServiceNote,
+  b64Bytes, checkVoice, cleanExtras, keepTickedRefine, langOf, preparedTrades, splitServices, transcribeServiceNote,
   VOICE, VOICE_PER_HOUR, type VoiceDeps,
 } from './supplier_services.ts';
 
@@ -39,8 +39,17 @@ Deno.test('preparedTrades: a trade split from one he holds is offered after it a
     { code: 'packaging', source: 'confirmed' }, { code: 'flexible_packaging', source: 'confirmed' },
     { code: 'corrugated_packaging', source: 'refine' },
   ]);
+  // an umbrella only his documents suggest offers nothing
+  assertEquals(preparedTrades({ trades: [], proposed_trades: ['packaging'] }, false, umbrellaOf), [{ code: 'packaging', source: 'documents' }]);
   // the umbrella not shown: nothing is offered for it
   assertEquals(preparedTrades({ trades: ['hvac'] }, true, umbrellaOf), [{ code: 'hvac', source: 'confirmed' }]);
+});
+
+Deno.test('keepTickedRefine: a refine trade sent unticked is not saved; ticked, held or unrelated ones are', () => {
+  const umbrellaOf = { corrugated_packaging: 'packaging', flexible_packaging: 'packaging', industrial_pumps: 'oilfield' };
+  assertEquals(keepTickedRefine(['packaging', 'corrugated_packaging', 'flexible_packaging', 'industrial_pumps', 'hvac'], ['packaging'], umbrellaOf,
+    ['flexible_packaging.pouches']), ['packaging', 'flexible_packaging', 'industrial_pumps', 'hvac']);
+  assertEquals(keepTickedRefine(['corrugated_packaging'], ['packaging', 'corrugated_packaging'], umbrellaOf, []), ['corrugated_packaging']);
 });
 
 const wav = 'UklGR' + 'A'.repeat(400);
