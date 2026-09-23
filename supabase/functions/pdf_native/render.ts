@@ -589,6 +589,8 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
       else if (t === 'terms') terms(b);
       else if (t === 'legend') legend(b);
       else if (t === 'space') { ensure(b.h || 10); y -= b.h || 10; }
+      // An embedded picture (the marketing calendar's key frames, 23 Sep 2026): bytes are embedded before drawing.
+      else if (t === 'image' && b._img) { const w = Math.min(Number(b.w) || 160, CW); const h = b._img.height * (w / b._img.width); ensure(h + 10); page.drawImage(b._img, { x: px(0, w), y: y - h, width: w, height: h }); y -= h + 10; }
     }
   }
   // The legacy putLine the signature block uses (plain left/right placement).
@@ -597,7 +599,11 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
 
   if (body.cover) cover(body.cover); else legacyHeader();
   if (body.body_html) renderBlocks(parseHtml(String(body.body_html)));
-  else if (Array.isArray(body.blocks)) renderBlocks(body.blocks);
+  else if (Array.isArray(body.blocks)) {
+    // deno-lint-ignore no-explicit-any
+    for (const b of body.blocks as any[]) if ((b?.t || b?.type) === 'image' && b.bytes) { try { b._img = b.kind === 'png' ? await pdf.embedPng(b.bytes) : await pdf.embedJpg(b.bytes); } catch (_e) { b._img = null; } }
+    renderBlocks(body.blocks);
+  }
   // 14 Sep 2026 (agent: accountant): the signature image rose ~40pt above the space reserved for it and sat on the
   // last line of text (Reminder 2). The drop below the preceding content now fits the tallest of the signature,
   // the rotated stamp and the signatory lines, and the page break reserves exactly that.

@@ -196,7 +196,9 @@ Deno.serve(observe('send_outbox', async (req) => {
       if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
       if (sent >= remaining) break;
       const from = supplierSide ? fromSup : fromInfo;
-      const reply = supplierSide ? (docReq ? replyDocs : replySup) : replyInfo;
+      // A row may name its own Reply-To (notifications.reply_to, constrained to our inbound subdomain): the monthly
+      // social calendar carries calendar+<token>@mail.quotesdone.com so the founder's reply reaches resend_inbound.
+      const reply = n.reply_to || (supplierSide ? (docReq ? replyDocs : replySup) : replyInfo);
       const unsub = (supplierSide && unsubKey) ? `${unsubBase}?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
       // NO UNSUBSCRIBE, NO SUPPLIER MARKETING (21 Sep 2026). The link and the RFC 8058 headers are only
       // built when unsubscribe_signing_key reads back; when it did not, supplier mail used to go out with
