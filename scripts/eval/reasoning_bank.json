@@ -2060,6 +2060,419 @@
    "expect": {
     "choice": "build"
    }
+  },
+  {
+   "id": "c900",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how many quotes will I get?",
+   "expect": {
+    "choice": "count",
+    "faq_id": 13
+   }
+  },
+  {
+   "id": "c901",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "what does it cost?",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 30
+   }
+  },
+  {
+   "id": "c902",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how long until I receive quotes?",
+   "expect": {
+    "choice": "timeline",
+    "faq_id": 26
+   }
+  },
+  {
+   "id": "c903",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم عدد عروض الأسعار التي سأحصل عليها؟",
+   "expect": {
+    "choice": "count",
+    "faq_id": 604
+   }
+  },
+  {
+   "id": "c904",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم تكلفة الخدمة؟",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 609
+   }
+  },
+  {
+   "id": "c905",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم يستغرق الحصول على عروض الأسعار؟",
+   "expect": {
+    "choice": "timeline",
+    "faq_id": 903
+   }
+  },
+  {
+   "id": "c906",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "what should a gypsum false ceiling cost per sqm in Dubai",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c907",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم تكلفة السقف الجبسي للمتر المربع في دبي",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c908",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "does a Dubai supplier cover Abu Dhabi as well",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c909",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "what is the parking fee at Dubai Mall",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c910",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how long is a football match",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c911",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم رسوم ركن السيارة في دبي مول؟",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c912",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم يستغرق مباراة كرة القدم؟",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c913",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم تستغرق مباراة كرة القدم؟",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c914",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "what are your fees?",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 30
+   }
+  },
+  {
+   "id": "c915",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "is the service free?",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 30
+   }
+  },
+  {
+   "id": "c916",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how long does a supplier take to quote?",
+   "expect": {
+    "choice": "timeline",
+    "faq_id": 26
+   }
+  },
+  {
+   "id": "c917",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "هل المنصة مجانية؟",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 609
+   }
+  },
+  {
+   "id": "c918",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how many suppliers do you have",
+   "expect": {
+    "choice": "size"
+   }
+  },
+  {
+   "id": "c919",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم عدد الموردين لديكم",
+   "expect": {
+    "choice": "size"
+   }
+  },
+  {
+   "id": "c920",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "shared.quote_answer",
+   "q": "The quote excludes scaffolding above 4 m, but my ceilings are only 3.2 m — does that exclusion affect me?",
+   "options": [
+    {
+     "id": "q:0:exclusions:applies",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line APPLIES to the case they describe"
+    },
+    {
+     "id": "q:0:exclusions:does_not_apply",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line does NOT apply to the case they describe"
+    },
+    {
+     "id": "q:0:warranty",
+     "meaning": "they ask about the warranty of the quote from Supplier A (the supplier left it blank)"
+    },
+    {
+     "id": "none",
+     "meaning": "the question is not about any of these quotes"
+    }
+   ],
+   "expect": {
+    "choice": "q:0:exclusions:does_not_apply"
+   }
+  },
+  {
+   "id": "c921",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "shared.quote_answer",
+   "q": "عرض السعر يستثني السقالات فوق 4 متر لكن ارتفاع الأسقف عندي 3.2 متر فقط، هل يؤثر هذا الاستثناء عليّ؟",
+   "options": [
+    {
+     "id": "q:0:exclusions:applies",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line APPLIES to the case they describe"
+    },
+    {
+     "id": "q:0:exclusions:does_not_apply",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line does NOT apply to the case they describe"
+    },
+    {
+     "id": "q:0:warranty",
+     "meaning": "they ask about the warranty of the quote from Supplier A (the supplier left it blank)"
+    },
+    {
+     "id": "none",
+     "meaning": "the question is not about any of these quotes"
+    }
+   ],
+   "expect": {
+    "choice": "q:0:exclusions:does_not_apply"
+   }
+  },
+  {
+   "id": "c922",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "shared.quote_answer",
+   "q": "what warranty does the quote give?",
+   "options": [
+    {
+     "id": "q:0:exclusions:applies",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line APPLIES to the case they describe"
+    },
+    {
+     "id": "q:0:exclusions:does_not_apply",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line does NOT apply to the case they describe"
+    },
+    {
+     "id": "q:0:warranty",
+     "meaning": "they ask about the warranty of the quote from Supplier A (the supplier left it blank)"
+    },
+    {
+     "id": "none",
+     "meaning": "the question is not about any of these quotes"
+    }
+   ],
+   "expect": {
+    "choice": "q:0:warranty"
+   }
+  },
+  {
+   "id": "c923",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "shared.quote_answer",
+   "q": "does a Dubai supplier cover Abu Dhabi as well?",
+   "options": [
+    {
+     "id": "q:0:exclusions:applies",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line APPLIES to the case they describe"
+    },
+    {
+     "id": "q:0:exclusions:does_not_apply",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line does NOT apply to the case they describe"
+    },
+    {
+     "id": "q:0:warranty",
+     "meaning": "they ask about the warranty of the quote from Supplier A (the supplier left it blank)"
+    },
+    {
+     "id": "none",
+     "meaning": "the question is not about any of these quotes"
+    }
+   ],
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c924",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "sales_engineer.on_topic",
+   "q": "the quote excludes scaffolding above 4 m but my ceilings are 3.2 m, does that exclusion matter",
+   "options": [
+    {
+     "id": "kb:0",
+     "meaning": "this passage answers what they asked: \"Does a Dubai supplier cover Abu Dhabi as well? It depends on the supplier, and you do not have to guess.\""
+    },
+    {
+     "id": "none",
+     "meaning": "none of these passages answers what they asked"
+    }
+   ],
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c925",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "sales_engineer.on_topic",
+   "q": "the quote excludes scaffolding above 4 m but my ceilings are 3.2 m, does that exclusion matter",
+   "options": [
+    {
+     "id": "kb:0",
+     "meaning": "this passage answers what they asked: \"Does a Dubai supplier cover Abu Dhabi as well? It depends on the supplier, and you do not have to guess.\""
+    },
+    {
+     "id": "kb:1",
+     "meaning": "this passage answers what they asked: \"Exclusions are the items a supplier leaves out of a quotation, such as scaffolding.\""
+    },
+    {
+     "id": "none",
+     "meaning": "none of these passages answers what they asked"
+    }
+   ],
+   "expect": {
+    "choice": "kb:1"
+   }
+  },
+  {
+   "id": "c926",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "sales_engineer.on_topic",
+   "q": "كم عدد الموردين",
+   "options": [
+    {
+     "id": "kb:0",
+     "meaning": "this passage answers what they asked: \"عدد الموردين الذين يستلمون طلبك محدود\""
+    },
+    {
+     "id": "none",
+     "meaning": "none of these passages answers what they asked"
+    }
+   ],
+   "expect": {
+    "choice": "kb:0"
+   }
   }
  ]
 }

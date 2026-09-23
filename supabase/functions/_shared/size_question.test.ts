@@ -8,7 +8,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { capabilityStatement } from './size_question.ts';
 import { decide } from '../marketing_social_inbox/reply.ts';
-import { SIZE, SITE_OPTIONS, socialOptions, whatsappOptions } from './reasoned_channels.ts';
+import { SIZE, socialOptions, whatsappOptions, widgetOptions } from './reasoned_channels.ts';
 
 Deno.test('777: the statement carries no count, in both languages, and ends with the request link', () => {
   for (const lang of ['en', 'ar'] as const) {
@@ -20,7 +20,7 @@ Deno.test('777: the statement carries no count, in both languages, and ends with
 });
 
 Deno.test('777: every public surface offers the reasoning the size option, and keeps it apart from "how many quotes will I get"', () => {
-  for (const opts of [whatsappOptions([], []), SITE_OPTIONS, socialOptions([], [])]) assert(opts.some((o) => o.id === SIZE.id));
+  for (const opts of [whatsappOptions([], []), widgetOptions([], false), socialOptions([], [])]) assert(opts.some((o) => o.id === SIZE.id));
   assert(/NOT a question about how many quotes THEIR request/.test(SIZE.meaning));
 });
 
@@ -39,7 +39,7 @@ Deno.test('777: the social inbox answers a reasoned size question with the state
 Deno.test('777: the site assistant asks the reasoning before its FAQ route, the gateway and the model', async () => {
   const src = await Deno.readTextFile(new URL('../site_assistant/index.ts', import.meta.url));
   const at = src.indexOf("if (asked === 'size')");
-  assert(at > 0 && src.indexOf('siteQuestion(defaultDeps(admin') < at, 'site_assistant must reason the question first');
+  assert(at > 0 && src.indexOf('widgetMeaning(defaultDeps(admin') < at, 'site_assistant must reason the question first');
   assert(at < src.indexOf('pickFaq(qType'), 'before the count/cost/timeline FAQ');
   assert(at < src.indexOf("sec('cred_fn_ai')"), 'before the gateway credential');
 });

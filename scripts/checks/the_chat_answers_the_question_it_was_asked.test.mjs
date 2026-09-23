@@ -4,7 +4,7 @@
 //   13  the public widget routes count / cost / timeline (REASONED since 23 Sep 2026: siteQuestion, never lexemes)
 //       BEFORE the model key and the gateway,
 //       so a held ai_gateway (circuit_open) can never again refuse "what does it cost?";
-//    7  the portal chat reads the customer's own quote BEFORE the corpora, drops off-topic passages, and
+//    7  the portal chat reads the customer's own quote BEFORE the corpora, drops off-topic passages (a reasoned choice since 23 Sep 2026), and
 //       never prints the raw "[corpus · provenance]" tag;
 //    6  a revealed conversation that has not been opened yet reads "Ready to message", not "No chat open",
 //       and its row is a keyboard-reachable button.
@@ -29,7 +29,10 @@ test('sales_engineer answers from the own quote first, filters off-topic passage
   const own = s.indexOf('answerFromOwnQuotes(caller.customerId');
   const rpc = s.indexOf("rpc('fn_sales_assist'");
   assert.ok(own > 0 && rpc > 0 && own < rpc, 'own-quote answer must precede fn_sales_assist');
-  assert.match(s, /\.filter\(\(x\) => onTopic\(message/, 'retrieved passages must be filtered by onTopic');
+  // Off-topic passages are dropped by the REASONED passage choice (portalPassage, 23 Sep 2026), not a shared word:
+  // only the chosen record is answered, and nothing is answered while it is unreasoned.
+  assert.match(s, /portalPassage\(defaultDeps\(admin, 'sales_engineer'\)/, 'retrieved passages must be chosen by portalPassage');
+  assert.ok(s.includes("const recs = pick?.startsWith('kb:') && all[Number(pick.slice(3))] ? [all[Number(pick.slice(3))]] : [];"), 'only the reasoned passage is answered');
   assert.doesNotMatch(s, /'\[' \+ String\(x\.corpus\)/, 'the raw [corpus · provenance] tag is back in the reply');
   assert.match(s, /setTimeout\(\(\) => r\(null\), 1500\)/, 'the gte-small embed must stay bounded');
 });

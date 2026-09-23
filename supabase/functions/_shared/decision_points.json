@@ -342,7 +342,7 @@
     {
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
-      "siteQuestion(defaultDeps(admin, 'site_assistant')"
+      "widgetMeaning(defaultDeps(admin, 'site_assistant')"
      ],
      "must_not_contain": [
       "routeQuestion("
@@ -431,12 +431,12 @@
    "severity": "med",
    "where": "supabase/functions/site_assistant/index.ts",
    "decides": "SUP_RE/CUS_RE audienceFromText: customer vs supplier",
-   "held": "Held, the audience stays unknown (never guessed from phrases); the prompt's own rule applies: answer what holds for both sides and ask one short question if it matters. A verified session or the page path (a URL format, not meaning) still decides first. Never queued: the visitor is answered now.",
+   "held": "Held, the audience stays unknown (never guessed from phrases); the side is one dimension of the widget's single reasoned decision (widgetMeaning), asked only when neither the session nor the page path says it. The prompt's own rule applies: answer what holds for both sides. Never queued: the visitor is answered now.",
    "proof": [
     {
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
-      "visitorSide(defaultDeps(admin, 'site_assistant')"
+      "if (wm.side) { audience = wm.side; source = 'text'; }"
      ],
      "must_not_contain": [
       "SUP_RE",
@@ -1062,29 +1062,95 @@
   {
    "id": "shared.quote_answer",
    "order": 78,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "supabase/functions/_shared/chat_answers.ts",
-   "decides": "quoteAnswer: FIELD_RE / QUOTE_RE and a shared-word score decide which quote field a question asks about — found by B1"
+   "decides": "quoteAnswer: FIELD_RE / QUOTE_RE and a shared-word score decide which quote field a question asks about — found by B1",
+   "held": "Held, no quote field is chosen and nothing is answered from a quote on a guess: the portal question falls through to the knowledge corpora, where the held passage choice ends in the honest notYet reply with its task number (the question is kept). Never queued: the portal chat has no later channel.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/chat_answers.ts",
+     "must_contain": [
+      "export function quoteAnswer(choice: string | null"
+     ],
+     "must_not_contain": [
+      "FIELD_RE",
+      "QUOTE_RE",
+      "ABOVE_RE",
+      "BELOW_RE",
+      "shared(message"
+     ]
+    },
+    {
+     "file": "supabase/functions/sales_engineer/index.ts",
+     "must_contain": [
+      "quoteQuestion(defaultDeps(admin, 'sales_engineer')",
+      "quoteAnswer(choice, shown, lang, message)"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_channels.ts",
+     "must_contain": [
+      "export function quoteOptions(",
+      "surface: 'shared.quote_answer'"
+     ]
+    }
+   ]
   },
   {
    "id": "sales_engineer.on_topic",
    "order": 79,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/sales_engineer/index.ts",
-   "decides": "onTopic passage filter (~line 377): a shared word decides a knowledge passage answers the question — found by B1"
+   "decides": "onTopic passage filter (~line 377): a shared word decides a knowledge passage answers the question — found by B1",
+   "held": "Held, no passage is chosen: the question is recorded as a knowledge gap (refusal not_reasoned_yet) with a sales_engineer task, and the customer gets the honest notYet sentence with that task number. No passage is shown because it shares a word.",
+   "proof": [
+    {
+     "file": "supabase/functions/sales_engineer/index.ts",
+     "must_contain": [
+      "portalPassage(defaultDeps(admin, 'sales_engineer')"
+     ],
+     "must_not_contain": [
+      "onTopic("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/chat_answers.ts",
+     "must_not_contain": [
+      "export const onTopic",
+      "export function shared(",
+      "const AR_EN"
+     ]
+    }
+   ]
   },
   {
    "id": "site_assistant.passage_and_faq_scoring",
    "order": 80,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "med",
    "where": "supabase/functions/site_assistant/index.ts",
-   "decides": "the top-passage shared-word check and tok() FAQ scoring decide which answer the widget gives — found by B1"
+   "decides": "the top-passage shared-word check and tok() FAQ scoring decide which answer the widget gives — found by B1",
+   "held": "Held, no passage is quoted and no FAQ is ranked by tokens: the model context is the retrieved pack, the gateway, the price guide or a recorded knowledge gap (fn_support_knowledge_gap) answers the visitor. One think() per message (widgetMeaning) decides question, passage and side together. Never queued.",
+   "proof": [
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "asked?.startsWith('kb:') ? packRows[Number(asked.slice(3))]",
+      "passages: packRows"
+     ],
+     "must_not_contain": [
+      "function tok(",
+      "qtok",
+      "packTop",
+      "offered.has("
+     ]
+    }
+   ]
   },
   {
    "id": "documents.boq_arabic",

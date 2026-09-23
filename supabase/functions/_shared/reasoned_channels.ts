@@ -11,6 +11,9 @@
 //   * reply.ts match_words substrings picked a standard social reply, and one shared
 //     word decided a knowledge passage answered the question                         (marketing_social.library_match, .on_topic)
 //   * site_assistant SUP_RE/CUS_RE decided customer vs supplier                      (site_assistant.audience)
+//   * site_assistant tok() FAQ scoring and a one-shared-word passage gate             (site_assistant.passage_and_faq_scoring)
+//   * chat_answers quoteAnswer FIELD_RE / QUOTE_RE / ABOVE_RE / a shared-word score   (shared.quote_answer)
+//   * sales_engineer onTopic passage filter                                           (sales_engineer.on_topic)
 //
 // ONE DECISION PER MESSAGE PER CHANNEL. The WhatsApp question is ONE choice among everything the database
 // can answer (an intent row, our size, the trade list, one trade), and the social DM is ONE choice among the
@@ -25,9 +28,11 @@
 //   * social: the honest 'unknown' library reply goes (a gap is recorded, a person offered) and the meaning
 //     waits in the marketing queue; the replay sends the grounded reply on the platform (surface
 //     marketing_social.library_match).
+//   * portal chat (sales_engineer): nothing is queued; the honest notYet answer files a task with the question.
 //   * website widget: an anonymous visitor has no channel to be answered on later, so nothing is queued; the
 //     widget's own path answers (gateway, price guide, corpus) or files the question as a knowledge gap.
-import { think, type ThinkDeps, type ThinkRequest } from './think.ts';
+import { think, type ThinkDeps, type ThinkRequest, type ThinkResult } from './think.ts';
+import { FIELD_LABEL, FIELDS, figures, type QuoteForAnswer } from './chat_answers.ts';
 import type { Reasoned } from './reasoned_decisions.ts';
 
 export type Option = { id: string; meaning: string };
@@ -80,37 +85,88 @@ function waRequest(o: WaMeaningInput, queue: boolean): ThinkRequest {
 }
 /** What the WhatsApp message asks. Not queued when held: the caller files it only if nothing else answered. */
 export const whatsappMeaning = (deps: ThinkDeps, o: WaMeaningInput) => choose(deps, waRequest(o, false));
-/** The meaning, filed in customer_support's queue for replay (the hold, and nothing answered the message). */
-export const queueWhatsAppMeaning = (deps: ThinkDeps, o: WaMeaningInput) => choose(deps, waRequest(o, true));
+/** The meaning, filed in customer_support's queue for replay when nothing else answered the message — WITHOUT a
+ *  second think(): the request the first ask built, filed with the reason it was not answered (the hold, or a
+ *  reasoning that failed), so no model is ever called twice for one message. */
+export async function queueWhatsAppMeaning(deps: ThinkDeps, o: WaMeaningInput, reason: string): Promise<number | null> {
+  const req = waRequest(o, true);
+  const { data, error } = await deps.rpc('fn_reason_hold', {
+    p_seat: req.seat, p_surface: req.surface, p_question: req.question, p_request: JSON.parse(JSON.stringify(req)),
+    p_plan: {}, p_subject: req.subject ?? null, p_reason: reason, p_dedupe_key: req.dedupeKey ?? null,
+  });
+  return error ? null : Number(data) || null;
+}
 
-// ── The website widget (surfaces shared.route_question, shared.size_question, site_assistant.audience) ───
+// ── The website widget (surface shared.route_question; also shared.size_question, site_assistant.audience,
+//    site_assistant.passage_and_faq_scoring) — ONE reasoned decision per message ────────────────────────
 export const SITE_OPTIONS: Option[] = [
   SIZE,
-  { id: 'cost', meaning: 'they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs' },
+  { id: 'cost', meaning: 'they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else' },
   { id: 'count', meaning: 'they ask how many quotes their own request will receive, or how many suppliers receive it' },
-  { id: 'timeline', meaning: 'they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified' },
+  { id: 'timeline', meaning: 'they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes' },
   NONE,
 ];
-/** Which of the widget's canned answers the question is, if any. Never queued: an anonymous visitor cannot be answered later. */
-export function siteQuestion(deps: ThinkDeps, o: { message: string; conversation?: string }): Promise<Reasoned<string>> {
-  return choose(deps, {
+const SIDES: Option[] = [
+  { id: 'supplier', meaning: 'and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)' },
+  { id: 'customer', meaning: 'and they write as someone who wants to BUY (a job done, products priced, quotes for their project)' },
+  { id: 'unknown', meaning: 'and it does not say which side of the marketplace they are on' },
+];
+/** The widget's options: the canned questions, each retrieved passage (kb:<n>), none — crossed with the visitor's
+ *  side (…|supplier / …|customer / …|unknown) only when neither the session nor the page path already says it. */
+export function widgetOptions(passages: Passage[], askSide: boolean): Option[] {
+  const base = [
+    ...SITE_OPTIONS.filter((x) => x.id !== 'none'),
+    ...passages.map((p, n) => ({ id: 'kb:' + n, meaning: `this passage of company knowledge answers what they asked: "${String(p.content || '').slice(0, 400)}"` })),
+    NONE,
+  ];
+  return askSide ? base.flatMap((b) => SIDES.map((s) => ({ id: b.id + '|' + s.id, meaning: b.meaning + ' — ' + s.meaning }))) : base;
+}
+/** What the visitor asks, which passage (if any) answers it, and which side they are on — one think() call.
+ *  Never queued: an anonymous visitor cannot be answered later; held, every value is null. */
+export async function widgetMeaning(deps: ThinkDeps, o: { message: string; conversation?: string; passages: Passage[]; askSide: boolean }):
+  Promise<{ question: string | null; side: 'customer' | 'supplier' | null; result: ThinkResult }> {
+  const r = await choose(deps, {
     seat: 'customer_support', surface: 'shared.route_question', question: o.message.slice(0, 4000), queueWhenHeld: false,
     context: { audience: 'visitor', ...(o.conversation ? { conversation: [{ role: 'visitor', text: o.conversation.slice(0, 3000) }] } : {}) },
-    decision: { name: 'widget_question', options: SITE_OPTIONS },
+    decision: { name: 'widget_question', options: widgetOptions(o.passages, o.askSide) },
+  });
+  const [question, side] = (r.value ?? '').split('|');
+  return { question: question || null, side: side === 'customer' || side === 'supplier' ? side : null, result: r.result };
+}
+
+// ── The portal chat (sales_engineer; surfaces shared.quote_answer and sales_engineer.on_topic) ────────────
+/** Which of the customer's own quotes, which field, and — where the line and the question each carry one metre
+ *  figure — whether the line applies to their case. ponytail: the first 15 quotes (by price) are offered. */
+export function quoteOptions(quotes: QuoteForAnswer[], message: string): Option[] {
+  const out: Option[] = [];
+  quotes.slice(0, 15).forEach((q, i) => {
+    const who = `the quote${q.rfq_no ? ' for request ' + q.rfq_no : ''}${q.inquiry_summary ? ' ("' + String(q.inquiry_summary).slice(0, 80) + '")' : ''} from ${q.supplier_label}`;
+    for (const f of FIELDS) {
+      const line = q[f] ? String(q[f]).slice(0, 300) : '';
+      const what = `they ask about the ${FIELD_LABEL[f].en} of ${who}` + (line ? `, which reads: "${line}"` : ' (the supplier left it blank)');
+      if (line && figures(line, message)) {
+        out.push({ id: `q:${i}:${f}:applies`, meaning: what + ' — and as written that line APPLIES to the case they describe' });
+        out.push({ id: `q:${i}:${f}:does_not_apply`, meaning: what + ' — and as written that line does NOT apply to the case they describe' });
+      } else out.push({ id: `q:${i}:${f}`, meaning: what });
+    }
+  });
+  return [...out, { id: 'none', meaning: 'the question is not about any of these quotes' }];
+}
+export function quoteQuestion(deps: ThinkDeps, o: { message: string; quotes: QuoteForAnswer[] }): Promise<Reasoned<string>> {
+  return choose(deps, {
+    seat: 'sales_engineer', surface: 'shared.quote_answer', question: o.message.slice(0, 4000), queueWhenHeld: false,
+    context: { audience: 'customer' }, decision: { name: 'quote_question', options: quoteOptions(o.quotes, o.message) },
   });
 }
-/** Is the visitor a customer or a supplier, from what they wrote? Never queued (as above). */
-export function visitorSide(deps: ThinkDeps, o: { conversation: string }): Promise<Reasoned<string>> {
+/** Which retrieved passage answers the portal question (kb:<n>), or none. */
+export function portalPassage(deps: ThinkDeps, o: { message: string; passages: Passage[] }): Promise<Reasoned<string>> {
   return choose(deps, {
-    seat: 'customer_support', surface: 'site_assistant.audience', question: o.conversation.slice(0, 4000), queueWhenHeld: false,
-    context: { audience: 'visitor' },
-    decision: {
-      name: 'visitor_side', options: [
-        { id: 'supplier', meaning: 'they write as a business that wants to SELL or quote through QuotesDone: registering as a supplier, their trade licence, receiving jobs or leads' },
-        { id: 'customer', meaning: 'they write as someone who wants to BUY: a job done, products priced, quotes for their project' },
-        { id: 'unknown', meaning: 'it does not say which side they are on' },
-      ],
-    },
+    seat: 'sales_engineer', surface: 'sales_engineer.on_topic', question: o.message.slice(0, 4000), queueWhenHeld: false,
+    context: { audience: 'customer' },
+    decision: { name: 'portal_passage', options: [
+      ...o.passages.map((p, n) => ({ id: 'kb:' + n, meaning: `this passage answers what they asked: "${String(p.content || '').slice(0, 400)}"` })),
+      { id: 'none', meaning: 'none of these passages answers what they asked' },
+    ] },
   });
 }
 

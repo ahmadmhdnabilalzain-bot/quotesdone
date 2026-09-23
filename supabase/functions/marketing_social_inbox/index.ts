@@ -127,6 +127,15 @@ async function reasonedHandoff(platform: string, messageId: string): Promise<{ o
   if (already && already.length) return { ok: true, outcome: 'already_handed_off' };
   const { data: conv } = await admin.from('social_conversation').select('id,platform,user_id,account_id,handle').eq('id', m.conversation_id).single();
   if (!conv) return { ok: false, error: 'conversation_not_found' };
+  // EXACTLY ONE MESSAGE PER HELD DM. When its meaning replayed first and a grounded reply already went
+  // (reasonedReply, which in turn stands down after a handoff), the conversation is handed to a person
+  // WITHOUT a second text: the person picks it up; the customer never gets a reply and then a handoff line.
+  const { data: grounded } = await admin.from('social_message').select('id').eq('in_reply_to', m.id)
+    .in('reply_kind', ['standard', 'faq', 'knowledge']).neq('send_status', 'failed').limit(1);
+  if (grounded && grounded.length) {
+    await admin.rpc('fn_marketing_social_hand_to_human', { p_conversation_id: conv.id, p_reason: String(m.body || '') });
+    return { ok: true, outcome: 'handed_to_human:reply_already_sent' };
+  }
   const ev: InboundEvent = { platform: conv.platform, channel: m.channel, accountId: conv.account_id, userId: conv.user_id, handle: conv.handle,
     messageId, text: String(m.body || ''), at: new Date(m.occurred_at), parentId: m.parent_id, echo: false, echoAppId: null, echoMetadata: null };
   // Meta's own window decides whether a reply may still be sent (meta.ts); outside it the founder is still told.

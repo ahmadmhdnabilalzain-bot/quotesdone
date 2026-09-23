@@ -575,17 +575,23 @@ async function handleInbound(req: Request): Promise<Response> {
     // size, the trade list or one trade (_shared/reasoned_channels.ts). It replaces fn_wa_answer's
     // match_patterns, coverage.ts's regexes and isSizeQuestion's. Held (the model hold) it is null: nothing is
     // guessed, and only if nothing else answers the message is it filed for replay (menu_flow.ts unanswered).
-    let meaningP: Promise<string | null> | null = null;
+    // The reason it was not answered (the hold, a failed reasoning, or a throw) rides with it, so the queue files
+    // the question WITHOUT reasoning again: one think() per message, never a second model call.
+    let meaningP: Promise<string | null> | null = null; let meaningWhy = 'not_asked';
     const meaningIn = async (): Promise<WaMeaningInput> => {
       const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
       return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades: await menuDeps.trades(), phone: From,
                messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'] };
     };
     const menuDeps: MenuDeps = {
-      meaning: (_text: string) => (meaningP ??= (async () => Body.trim()
-        ? (await whatsappMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn())).value : null)().catch(() => null)),
+      meaning: (_text: string) => (meaningP ??= (async () => {
+        if (!Body.trim()) return null;
+        const r = await whatsappMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn());
+        meaningWhy = r.result.reason ?? r.result.status;
+        return r.value;
+      })().catch((e) => { meaningWhy = 'threw: ' + String((e as Error)?.message || e).slice(0, 200); return null; })),
       queueMeaning: async (_text: string) => {
-        try { await queueWhatsAppMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn()); }
+        try { await queueWhatsAppMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn(), meaningWhy); }
         catch (e) { await itFinding('wa_inbound:meaning_not_queued', 'A held WhatsApp question could not be filed for replay', { error: String((e as Error)?.message || e) }); }
       },
       autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
