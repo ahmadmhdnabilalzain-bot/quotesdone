@@ -171,6 +171,8 @@ export interface Store {
   draft(ev: CommentEvent, lang: Lang): Promise<string | null>;        // the model, only over retrieved knowledge
   reply(ev: CommentEvent, text: string): Promise<SendResult>;
   hide(ev: CommentEvent): Promise<SendResult>;
+  /** Already handled (an inbound row with an outcome): a redelivery must not re-ask the reasoning. Optional for test stores. */
+  seen?(ev: CommentEvent): Promise<boolean>;
 }
 export interface Outcome {
   classification: Class | null;
@@ -188,11 +190,18 @@ export const isFixture = (ev: CommentEvent) => /^ZZDEMO/i.test(ev.authorId) || /
 const SEAT: Record<HandoffType, string> = { 'social.escalation': 'customer_support', 'social.lead': 'sales_engineer' };
 export const seatFor = (t: HandoffType) => SEAT[t];
 
-/** The comment policy for a comment whose class was REASONED (`reasoned`), or null while that reasoning is held. */
-export async function processComment(s: Store, ev: CommentEvent, reasoned: Class | null, wantsPerson = false): Promise<string> {
+type Lazy<T> = T | (() => Promise<T>);
+/** The comment policy for a comment whose class was REASONED (`reasoned`; null while that reasoning is held).
+ *  Either argument may be a function: the reasoning (think()) then runs only for a comment that is not our own
+ *  and not empty, and never for one the store already recorded (a redelivery or sweep retry). */
+export async function processComment(s: Store, ev: CommentEvent, reasoned: Lazy<Class | null>, wantsPerson: Lazy<boolean> = false): Promise<string> {
   if (!ev.text.trim() || ev.authorId === ev.accountId) return 'own_or_empty';
+  const lazy = typeof reasoned === 'function' || typeof wantsPerson === 'function';
+  if (lazy && s.seen && (await s.seen(ev))) return 'duplicate';
+  const klass = typeof reasoned === 'function' ? await reasoned() : reasoned;
+  const person = typeof wantsPerson === 'function' ? await wantsPerson() : wantsPerson;
   // A reasoned request for a person is handled as a complaint — except abuse, which is hidden and reviewed anyway.
-  const cls: Class | null = wantsPerson && reasoned !== 'spam_abuse' ? 'complaint' : reasoned;
+  const cls: Class | null = person && klass !== 'spam_abuse' ? 'complaint' : klass;
   const inId = await s.insertInbound(ev, cls);
   if (inId == null) return 'duplicate';
   let sent = false;

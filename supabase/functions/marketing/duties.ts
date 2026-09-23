@@ -93,11 +93,12 @@ export const socialComments: Duty = {
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
             authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
           // A person check is REASONED (think()); held, it is queued under the same dedupe key the webhook used.
-          const person = await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
+          const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
             message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
-            subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } });
-          const cls = await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') });
-          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls.value, person.value === true)
+            subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
+          // What the comment IS is reasoned too (reasoned_social.ts); held, nothing is hidden or said (held_classify).
+          const cls = async () => (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') })).value;
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls, person)
             .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
           counts[o] = (counts[o] || 0) + 1;
         }
