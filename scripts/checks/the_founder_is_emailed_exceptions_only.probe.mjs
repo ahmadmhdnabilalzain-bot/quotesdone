@@ -90,7 +90,10 @@ begin
   q0 := (select max(id) from public.notifications); t0 := (select max(id) from public.org_tasks);
 
   -- ---------------------------------------------------------------- 6. data-integrity smoke
-  select count(*) into wa_queued from public.notifications where status = 'queued' and channel = 'whatsapp' and created_at < now() - interval '2 hours';
+  -- 'sending' counts as waiting (22 Sep 2026, CONN-03): fn_notifications_claim parks a row there while
+  -- a sender holds it, and only a sender requeues an expired claim — so a dead sender's backlog lives
+  -- in 'sending' and a count of 'queued' alone would read zero for the very case this measures.
+  select count(*) into wa_queued from public.notifications where status in ('queued','sending') and channel = 'whatsapp' and created_at < now() - interval '2 hours';
   delete from public.notifications where type = 'smoke_alert' and created_at > now() - interval '24 hours';   -- its own 24h dedupe, cleared LOCALLY (rolled back)
   smoke_before := public.fn_smoke();      -- the WhatsApp rows alone must no longer trip email_backlog_stuck
   insert into public.notifications (type, to_email, to_role, channel, subject, body, status, created_at)
@@ -183,7 +186,7 @@ begin
 
   -- ---------------------------------------------------------------- 14. the real queue right now
   select count(*) into n from public.notifications
-   where status in ('queued','pending') and channel = 'email'
+   where status in ('queued','pending','sending') and channel = 'email'   -- 'sending' is claimed, not gone (CONN-03)
      and (to_role in ('founder','admin','owner') or lower(to_email) = v_admin)
      and not coalesce((select allowed_to_email from public.founder_mail_policy p where p.kind = coalesce(notifications.kind, notifications.type)), false);
   out := out || jsonb_build_object('14', n,

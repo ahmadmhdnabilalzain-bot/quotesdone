@@ -767,7 +767,10 @@ async function backupPruneTick(): Promise<unknown> {
 async function whatsappTick(): Promise<unknown> {
   try {
     const { count } = await admin.from('notifications')
-      .select('id', { count: 'exact', head: true }).eq('channel', 'whatsapp').eq('status', 'queued');
+      // 'sending' is counted (22 Sep 2026, CONN-03): a claimed row is mail that has not gone, and only
+      // a sender requeues an expired claim, so counting 'queued' alone would report an empty queue in
+      // the one case that matters — the sender being down.
+      .select('id', { count: 'exact', head: true }).eq('channel', 'whatsapp').in('status', ['queued', 'sending']);
     // A HEARTBEAT THAT BEATS ONLY UNDER LOAD IS NOT A HEARTBEAT (21 Sep 2026). This used to return
     // here when nothing was queued, so send_whatsapp ran only when there was mail: 26 runs in the
     // 3.4 days to 21 Sep against a tick every 15 minutes. fn_it_detect's run_silent arm reads that
@@ -1282,16 +1285,22 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
 // still runs every step, in declaration order, exactly as it did before this change.
 const DECLARED_ORDER = Object.keys(STEP_RUN);
 
-// THE DEADLINE, UNCHANGED AT 110 s — DELIBERATELY. Vercel's route and the callers were aligned to 180 s
-// on 17 Sep (#742), so there is headroom, and raising this would have made today's tick fit. It would
-// also have moved the cliff rather than removed it: the list grew by two steps this week, and a fuller
-// list on a longer deadline is the same defect later. It stays as the BACKSTOP — the thing that catches
-// a step whose real cost the plan's estimate got wrong — while the plan is what keeps the tick inside it.
-const DEADLINE_MS = 110_000;
+// THE DEADLINE, 95 s (was 110 s until 22 Sep 2026, it_engineer, CONN-02). It stays the BACKSTOP — the
+// thing that catches a step whose real cost the plan's estimate got wrong — while the plan is what keeps
+// the tick inside it. Two things changed together and neither works without the other:
+//   * runSteps now bounds how long a step may still be WAITED ON (steps.ts, stepCapMs), not only when it
+//     may begin. Before, a step admitted at 109.9 s could add its own 55 s timeout on top.
+//   * 95 s + the 25 s reserve = a 120 s ceiling on the last step's return, and the three `always` drains
+//     get a 10 s floor after that, so the worst tick is 130 s inside the 150 s platform cap. At 110 s the
+//     same arithmetic gave 145 s, which leaves nothing for the liveness read and fn_it_duty_settle that
+//     run after the steps.
+// Raising it again moves the cliff rather than removing it; the plan's budget below is the knob to turn.
+const DEADLINE_MS = 95_000;
 
-// WHAT THE PLAN MAY COMMIT, against the 110 s backstop. The three place='last' drains are appended
-// OUTSIDE it because they deliver (measured 9.4 s outbox + 5.4 s archive + ~1 s it a tick), so the
-// arithmetic is 70 + 16 + the liveness read and fn_it_duty_settle ≈ 90 s inside 110 s. The every-tick
+// WHAT THE PLAN MAY COMMIT, against the 95 s backstop and its 120 s wait ceiling. The three
+// place='last' drains are appended OUTSIDE it because they deliver (measured 9.4 s outbox + 5.4 s
+// archive + ~1 s it a tick), so the
+// arithmetic is 70 + 16 + the liveness read and fn_it_duty_settle ≈ 90 s inside 95 s. The every-tick
 // set adds up to 57.4 s of expected cost, which fits with room for the hourly and daily steps to take
 // turns in the gap. Measured mean tick before this change: 80.4 s over 24 h, max 140.9 s — the max is
 // what this bounds, because before it nothing capped what one tick could commit to.

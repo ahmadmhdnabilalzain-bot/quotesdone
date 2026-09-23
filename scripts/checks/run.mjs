@@ -243,6 +243,15 @@ function main() {
       // fixtures, the taxonomy seed in scripts/sql, and tesseract.js's wasm under node_modules/.deno.
       // A per-folder list failed to resolve those files; the repository root read-only is the simple
       // rule. Still no write, no network, no environment beyond the three names above.
+      // --allow-net, SCOPED to loopback (23 Sep 2026, PR #856): _shared/timed_fetch.test.ts proves the
+      // helper 21 functions now share rejects instead of hanging, and to do that it has to accept a real
+      // connection and answer nothing — Deno.listen on 127.0.0.1. CI failed with NotCapable "Requires net
+      // access to 127.0.0.1:0" while `deno test -A` passed locally, which is the same shape as the two
+      // widenings above. A per-test `permissions: { net: [...] }` does NOT work here: Deno refuses with
+      // "Can't escalate parent thread permissions", so the grant has to be on the runner. 127.0.0.1 is the
+      // whole grant — no hostname resolves to it but itself, so no test can reach a real service, and
+      // nothing outbound (Resend, Twilio, Stripe, Supabase) is reachable from this runner.
+      '--allow-net=127.0.0.1',
       `--allow-read=${REPO}`, ...deno],
       { stdio: 'inherit', cwd: REPO, shell: process.platform === 'win32' });
     if (denoRes.error && denoRes.error.code === 'ENOENT') {

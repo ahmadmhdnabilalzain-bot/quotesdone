@@ -22,8 +22,14 @@ test('send_outbox folds case on the suppression lookup', () => {
 
 test('send_outbox holds supplier marketing with no unsubscribe link, before the provider call', () => {
   const hold = outbox.indexOf('holdForNoUnsubscribe(supplierSide, docReq, unsub)');
-  const call = outbox.indexOf("fetch('https://api.resend.com/emails'");
-  assert.ok(hold > 0 && call > 0 && hold < call, 'the no-unsubscribe hold must run before the Resend call');
+  // THE PROVIDER CALL IS FOUND BY ITS URL, NOT BY WHO CALLS IT (22 Sep 2026). This read
+  // `fetch('https://api.resend.com/emails'` and stopped matching the moment CONN-04 wrapped that call
+  // in timedFetch(): `call` became -1, the ordering could no longer be evaluated, and the assertion
+  // would have gone red for a reason that has nothing to do with unsubscribe. The URL is the thing
+  // that identifies the hop; the function that makes the request is an implementation detail.
+  const call = outbox.search(/https:\/\/api\.resend\.com\/emails/);
+  assert.ok(call > 0, 'the Resend send could not be found in send_outbox at all — this ordering check cannot be evaluated');
+  assert.ok(hold > 0 && hold < call, 'the no-unsubscribe hold must run before the Resend call');
 });
 
 test('send_outbox sends a text/plain part', () => {
