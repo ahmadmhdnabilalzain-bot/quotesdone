@@ -62,6 +62,52 @@ export const TRADES: Trade[] = [
   {"code":"mep_general","label":"MEP (combined)","label_ar":"الأعمال الكهروميكانيكية المتكاملة (MEP)","aliases":["building services","contractors electro mechanical","electro mechanical","electromechanical","mechanical electrical plumbing","mep","mep works","كهروميكانيك","إلكتروميكانيك","أعمال ميكانيكية وكهربائية"]},
 ];
 
+// The twelve live groups (public.taxonomy_trade_group) and each fixture trade's group, as
+// scripts/sql/the_missing_trades_join_the_taxonomy_under_twelve_groups.sql (#881) writes them. wa_inbound
+// reads them with the trade rows; the answer is grouped by whatever the table says.
+const G: Record<string, [string, string, number]> = {
+  construction_building: ['Construction & Building', 'البناء والتشييد', 10],
+  mep_building_systems: ['MEP & Building Systems', 'الأعمال الكهروميكانيكية وأنظمة المباني', 20],
+  industrial_manufacturing: ['Industrial Equipment & Manufacturing', 'المعدات الصناعية والتصنيع', 30],
+  materials_packaging: ['Materials, Chemicals & Packaging', 'المواد الخام والكيماويات والتغليف', 40],
+  energy_environment: ['Energy, Environment & Agriculture', 'الطاقة والبيئة والزراعة', 50],
+  transport_mobility: ['Transport, Vehicles, Marine & Aviation', 'النقل والمركبات والبحرية والطيران', 60],
+  technology_telecom: ['Technology & Telecom', 'التقنية والاتصالات', 70],
+  facilities_property: ['Facilities & Property Services', 'خدمات المرافق والعقارات', 80],
+  professional_business: ['Professional & Business Services', 'الخدمات المهنية وخدمات الأعمال', 90],
+  marketing_media_events: ['Marketing, Media & Events', 'التسويق والإعلام والفعاليات', 100],
+  health_lab_safety: ['Health, Laboratory & Safety', 'الصحة والمختبرات والسلامة', 110],
+  furniture_hospitality_consumer: ['Furniture, Hospitality & Consumer Goods', 'الأثاث والضيافة والسلع الاستهلاكية', 120],
+};
+const GROUP_OF: Record<string, string> = {
+  aluminium: 'construction_building', building_materials: 'construction_building', civil_works: 'construction_building', doors: 'construction_building',
+  flooring: 'construction_building', glazing: 'construction_building', gypsum: 'construction_building', interior_fitout: 'construction_building',
+  joinery: 'construction_building', painting: 'construction_building', scaffolding: 'construction_building', steel: 'construction_building',
+  wallpaper: 'construction_building', waterproofing: 'construction_building', landscaping: 'construction_building', heavy_equipment: 'construction_building',
+  electrical: 'mep_building_systems', elevators: 'mep_building_systems', fire_fighting: 'mep_building_systems', home_automation: 'mep_building_systems',
+  hvac: 'mep_building_systems', mep_general: 'mep_building_systems', plumbing: 'mep_building_systems', security_systems: 'mep_building_systems', av_it: 'mep_building_systems',
+  oilfield: 'industrial_manufacturing', chemicals: 'materials_packaging', packaging: 'materials_packaging', plastics_pipes: 'materials_packaging',
+  solar: 'energy_environment', power_generators: 'energy_environment', logistics_moving: 'transport_mobility', marine: 'transport_mobility',
+  it_services: 'technology_telecom', office_equipment: 'technology_telecom', pos_retail: 'technology_telecom', cleaning: 'facilities_property',
+  engineering_consultancy: 'professional_business', labour_supply: 'professional_business', signage: 'marketing_media_events',
+  safety_equipment: 'health_lab_safety', upholstery: 'furniture_hospitality_consumer',
+};
+function accountsForEveryTrade(body: string, lang: 'en' | 'ar') {
+  let counted = 0;
+  for (const [code, [en, ar]] of Object.entries(G)) {
+    const members = TRADES.filter((t) => t.group?.code === code);
+    if (!members.length) continue;
+    const line = body.split('\n').find((l) => l.startsWith('• ' + (lang === 'ar' ? ar : en) + ': '));
+    assert(line, 'group missing: ' + en);
+    const named = members.filter((t) => line.includes(lang === 'ar' ? t.label_ar! : t.label)).length;
+    const more = Number((line.match(lang === 'ar' ? / و(\d+) أخرى$/ : / and (\d+) more$/) ?? [])[1] ?? 0);
+    assertEquals(named + more, members.length, en + ': every trade named or counted');
+    counted += members.length;
+  }
+  assertEquals(counted, TRADES.length);
+}
+for (const t of TRADES) { const g = GROUP_OF[t.code]; if (g) t.group = { code: g, label_en: G[g][0], label_ar: G[g][1], sort: G[g][2] }; }
+
 type Sent = { to: string; body: string; content?: Content };
 // THE REASONED MEANING, MOCKED (the real one is think(): _shared/reasoned_menus.ts, tested in reasoned_menus.test.ts).
 // These are the readings a model returns for the fixtures below; the routing is what this file proves.
@@ -490,8 +536,14 @@ Deno.test('271: the founder\'s exact message after the menu gets the grouped cov
   assertEquals(await answerFromFaq(h.d, msg('What sectors you cover', 'founder')), true);
   const body = h.sent[0].body;
   assertMatch(body, /^We match quotation requests to verified UAE suppliers in these trades:/);
-  for (const t of TRADES) assert(body.includes(t.label), 'every live trade is listed: ' + t.label);
-  assertMatch(body, /• MEP: HVAC & air conditioning, Electrical/);
+  // Twelve group headings leave less room than five did: every trade is either named or counted in its
+  // group ("and N more"), and every group that has a trade is there — nothing is dropped.
+  accountsForEveryTrade(body, 'en');
+  // Grouped by the twelve live groups, in their table order — not the five this file used to carry.
+  assertMatch(body, /• Construction & Building: /);
+  assertMatch(body, /• MEP & Building Systems: HVAC & air conditioning, Electrical/);
+  assert(body.indexOf('• Construction & Building') < body.indexOf('• MEP & Building Systems'), 'groups in their sort order');
+  assert(!/• MEP: |• Fit-out & finishes|• Services & tech/.test(body), 'none of the five retired groups');
   assertMatch(body, /only to suppliers of that exact trade\. New trades are welcome: https:\/\/quotesdone\.com\/supplier/);
   assertMatch(body, /Request a quotation: https:\/\/quotesdone\.com\/me\?new=1/);
   assert(body.length <= 1500, 'fits one WhatsApp message: ' + body.length);
@@ -507,7 +559,7 @@ Deno.test('coverage questions in other words, in English and formal Arabic, and 
   }
   const ar = coverageReply('ما هي القطاعات التي تغطونها', TRADES, 'ar')!;
   assertMatch(ar, /^نطابق طلبات عروض الأسعار مع موردين موثّقين في الإمارات/);
-  for (const t of TRADES) assert(ar.includes(t.label_ar!), 'every live trade in Arabic: ' + t.label_ar);
+  accountsForEveryTrade(ar, 'ar');
   assertMatch(ar, /\nhttps:\/\/quotesdone\.com\/ar\/supplier\n/); // a link on its own line in RTL text
   assertMatch(ar, /\nhttps:\/\/quotesdone\.com\/ar\/me\?new=1$/);
   assert(ar.length <= 1500, 'Arabic fits one WhatsApp message: ' + ar.length);
