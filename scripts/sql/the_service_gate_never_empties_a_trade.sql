@@ -47,6 +47,16 @@
 --
 -- A NON-KEY IN p_services NO LONGER SWITCHES THE GATE OFF (re-review finding B). See the `named` CTE.
 --
+-- AND A SUPPLIER THAT WAS NEVER ASKED IS NOT A SUPPLIER THAT REFUSED (re-review finding C). The
+-- per-trade reading above consults only the named trades the supplier DECLARES, so when the services
+-- named fall entirely in trades it does not declare there is no declared-and-silent trade to find and it
+-- was excluded on silence it was never given a chance to break. That is the supplier this file exists to
+-- protect. A fourth arm, `never_asked`, covers it. It is ordinary rather than a corner: detectTrades and
+-- serviceKeysOf read the same brief INDEPENDENTLY, so a brief naming two trades and yielding keys in only
+-- one is the normal shape, and worst case a doors-only supplier pool went to zero on an inquiry that
+-- named doors. Measured: p_trades {doors, aluminium}, p_services {aluminium.louvres}, against a supplier
+-- declaring doors only -- 75305e6 EXCLUDED it, this file passes it.
+--
 -- THIS IS A MATCHING-POLICY CHANGE, AND THE FOUNDER HAS NOT RULED ON IT. From 15 Sep 2026 a supplier's
 -- silence at service level was read as a denial; from this file it is read as trade level. The founder's
 -- own rule is untouched -- exact trade match or none, and no key is ever invented or mapped to a
@@ -72,14 +82,36 @@
 -- is silent on painting, so the union reading dropped it and the per-trade reading keeps it, and `why`
 -- names painting as the trade it passed at trade level in.
 --
--- THE EXCLUSION ARM COULD NOT BE MEASURED ON TODAY'S ROWS, and that is said rather than glossed: it
--- needs a supplier that HAS named services in a trade and is asked for one of that trade's services it
--- does not hold. 126512 holds all five active gypsum services and none of the painting ones, so no such
--- pair exists right now. It is preserved by construction -- the third disjunct requires a DECLARED named
--- trade with no key at all in it, which is false for a trade the supplier has spoken in -- and the
--- re-review verified it directly on the previous draft (aluminium.tensile_structures, 0). After step 3
+-- THE PREDICATE WAS MEASURED WHERE THE DATA COULD NOT SUPPLY THE CASE. An earlier draft of this header
+-- said the exclusion arm "could not be measured" because production's rows had churned. That was the
+-- wrong conclusion from a true observation: production's DATA could not supply the case, but the
+-- PREDICATE could be driven directly. The gate's own expressions were run against the REAL taxonomy and
+-- the REAL fn_services_effective over a read-only VALUES list of synthetic candidate rows -- no fixture
+-- seeded, no row written, nothing created. Measured 23 Sep 2026, every arm at its boundary:
+--
+--   asked                                    candidate                                    verdict
+--   {aluminium.louvres}                      declares {doors}, Services tab never opened   PASS  never_asked
+--   {aluminium.louvres}                      declares {doors}, SPOKE doors.wooden_doors    PASS  never_asked
+--   {aluminium.louvres, doors.fire_doors}    declares {doors}, tab never opened            PASS  silent in doors
+--   {aluminium.louvres, doors.fire_doors}    declares {doors}, SPOKE doors.wooden_doors    EXCL  spoke, no hit
+--   {doors.fire_doors}                       declares {aluminium,doors}, aluminium keys     PASS  silent in doors
+--   {doors.fire_doors}                       declares {aluminium,doors}, spoke in BOTH      EXCL  spoke, no hit
+--   {doors.fire_doors, aluminium.curtain_wall}  declares {aluminium,doors}, spoke in BOTH   EXCL  spoke, no hit
+--   {} (empty)                               every candidate                                PASS  gate off
+--   {'Doors'}                                every candidate                                PASS  0 real keys
+--   {'Doors','aluminium.louvres'}            declares {aluminium,doors}, aluminium keys     PASS  hit, noise dropped
+--
+-- The first two rows are the two the three-arm draft (75305e6) EXCLUDED and this file passes; the fourth
+-- and the EXCL rows are the exclusion arm, measured rather than argued. NOTE for anyone re-running an
+-- older transcript: aluminium.tensile_structures is NOT an active taxonomy key, so the `named` filter
+-- above discards it and it cannot serve as an exclusion-arm case at all; aluminium.curtain_wall can.
+--
+-- POST-APPLY PROBE, TWO HALVES, because zero cannot tell a dead guard from an idle system. After step 3
 -- of the apply order, 126512 holds painting.interior and painting.repainting and three painting services
--- become unheld: fn_match_capability(array['painting'], p_services := those three) must then return 0.
+-- become unheld:
+--   fn_match_capability(array['painting'], p_services := those three unheld keys)  must return 0
+--   fn_match_capability(array['painting'], p_services := array['painting.interior']) must return 1
+-- Non-zero on the first, or zero on the second, is the rollback trigger.
 --
 -- THE ROWS THEMSELVES CHURN, because every confirmed capability in production today is a ZZ DEMO
 -- rehearsal supplier that a later rehearsal replaces. A second reading twenty minutes after the one
@@ -206,6 +238,15 @@ svc as (
            where t.tr = any(coalesce(e.trades, '{}'::text[]))
              and not exists (select 1 from unnest(e.eff_services) k where split_part(k, '.', 1) = t.tr)
            group by t.tr order by t.tr) as silent_in,
+    -- NEVER ASKED AT ALL (23 Sep 2026, re-review finding C): the inquiry named services only in trades
+    -- this supplier does not declare. silent_in is then empty for the WRONG reason — not "it spoke", but
+    -- "it was never asked" — and with no hit either the supplier was excluded. That is the supplier this
+    -- file exists to protect: one that has never opened the Services tab. It is ordinary rather than a
+    -- corner, because detectTrades and serviceKeysOf read the same brief INDEPENDENTLY, so a brief that
+    -- names two trades and yields keys in only one is the normal shape (the backfilled rows carry keys
+    -- across three, two and two trades). Worst case, a doors-only supplier pool went to zero on an
+    -- inquiry that named doors. It matches the trade gate above and it is asked nothing here.
+    not exists (select 1 from named t where t.tr = any(coalesce(e.trades, '{}'::text[]))) as never_asked,
     -- ponytail: one scan of service_implication per candidate. At 113 curated rows against a
     -- candidate set the gates above have already cut down, this is not measurable; batch it with a
     -- single unnest+join if the map or the candidate count grows an order of magnitude.
@@ -235,13 +276,15 @@ scored as (
      )) as ptype_hit,
     (p_value is not null and c.min_project_value is not null and c.max_project_value is not null) as size_known
   from svc c
-  -- GATE: the inquiry named services, so the supplier must either cover one of them, or be SILENT in
-  -- at least one named trade it declares — silent there means trade level there, and excluding it is
-  -- what emptied whole trades. Read per trade: a supplier that has named services in EVERY named trade
-  -- it declares and covers none of the named ones is still excluded, which is the gate doing its job.
-  where (select k from n) = 0
-     or cardinality(c.service_hits) > 0
-     or cardinality(c.silent_in) > 0
+  -- GATE, four arms. The inquiry named real services, so the supplier must either cover one of them, or
+  -- be trade level for this work — silent in a named trade it declares, or asked about no trade of its
+  -- own at all. Excluding either of those is what emptied whole trades. Read per trade: a supplier that
+  -- has named services in EVERY named trade it declares and covers none of the named ones is still
+  -- excluded, which is the gate doing its job.
+  where (select k from n) = 0          -- the inquiry named no service this taxonomy knows
+     or cardinality(c.service_hits) > 0 -- it covers one of the services named
+     or cardinality(c.silent_in) > 0    -- it declares a named trade and has named nothing in it
+     or c.never_asked                   -- the services named are in no trade it declares
 ),
 ranked as (
   select s.*,
@@ -265,6 +308,10 @@ select r.supplier_id, r.company_name, r.score_v as score,
     -- trail has to say which was which.
     case when cardinality(r.silent_in) > 0
            then 'trade level in ' || array_to_string(r.silent_in, '+') end,
+    -- The never-asked arm populates neither silent_in nor service_hits, so it needs its own line or the
+    -- audit trail would show a candidate with no reason at all (re-review finding C).
+    case when (select k from n) > 0 and r.never_asked
+           then 'trade level (no service named in this supplier''s trades)' end,
     case when cardinality(r.via_implication) > 0 then 'implied: ' || array_to_string(r.via_implication, ', ') end,
     case when r.product_hits > 0 then r.product_hits||'/'||cardinality(p_products)||' products' end,
     case when r.brand_hit then 'brand match' end,
