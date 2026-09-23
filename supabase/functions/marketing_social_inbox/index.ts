@@ -34,18 +34,17 @@
 // pages_manage_metadata, pages_read_engagement, pages_manage_engagement, instagram_basic,
 // instagram_manage_messages, instagram_manage_comments (all carried by meta_access_token, measured 22 Sep).
 //
-// OTHER PLATFORMS — what their official APIs allow, as documented by the platforms (not tested here;
-// no scraping, ever). LinkedIn: messages to a company Page are not open to third-party apps; comments
-// on the Page's own posts can be read and answered through the Community Management API after LinkedIn
-// approves the app. TikTok: direct messages to a business account are a limited-access Business
-// Messaging API; comments on the account's own videos are available through the TikTok API for
-// Business after approval. Either would be a second parser beside meta.ts feeding the same tables.
+// COMMENTS (23 Sep 2026, instruction 866): a public comment is not a conversation. It goes to processComment
+// (_shared/marketing_social_comments.ts), the one comment policy X and YouTube also use (marketing duty
+// social_comments). LinkedIn Page comments are not built: see that file.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { observe } from '../_shared/observe.ts';
 import type { FaqRow } from '../_shared/chat_answers.ts';
 import { clip, handshake, maxLen, OUR_METADATA, parseEvents, pickPage, sendRequest, tokenExpired, verifySignature, withinWindow, type InboundEvent, type PageAccount } from './meta.ts';
-import { decide, unknown, type CorpusRow, type Decision, type LibraryRow } from './reply.ts';
+import { decide, unknown, wantsHuman, type CorpusRow, type Decision, type LibraryRow } from './reply.ts';
+import { processComment } from '../_shared/marketing_social_comments.ts';
+import { adminStore } from '../_shared/marketing_social_store.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
@@ -87,6 +86,14 @@ Deno.serve(observe('marketing_social_inbox', async (req) => {
 }));
 
 async function handle(ev: InboundEvent): Promise<string> {
+  // A PUBLIC COMMENT follows the comment policy (instruction 866): classified, answered from fixed facts,
+  // hidden when abusive, handed to the owning seat when it is a complaint, a dispute or a lead — no person
+  // approves a reply (founder, 23 Sep 2026). DMs keep the conversation flow below.
+  if (ev.channel === 'comment' && !ev.echo) {
+    return await processComment(adminStore(admin, timedFetch, () => pageToken(ev), GATEWAY), {
+      platform: ev.platform, accountId: ev.accountId, commentId: ev.messageId, authorId: ev.userId, handle: ev.handle,
+      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, wantsHuman(ev.text));
+  }
   // THE CONVERSATION, one per person per platform, owned by the marketing seat.
   const convRow: Record<string, unknown> = { platform: ev.platform, user_id: ev.userId, account_id: ev.accountId };
   if (ev.handle) convRow.handle = ev.handle;
