@@ -31,7 +31,8 @@
 // Written against a small repository interface so the workflow test runs entirely in memory: no
 // database, no network, and therefore no way to reach a real supplier.
 import { approvalNotice, assessQuote, holdNotice, lineText, releasedNotice, SEAT, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
-import { TRADES, tradeOfCategory, type Attr } from './model.ts';
+import { TRADES, type Attr } from './model.ts';
+import { applyReading, type QuoteReading } from '../reasoned_matching.ts';
 import { needsChecklist, withReasoned } from './reasoned_specs.ts';
 import { optionLabel } from './options.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
@@ -72,9 +73,12 @@ export interface SpecRepo {
   log(counts: Record<string, unknown>, note: string): Promise<void>;
 }
 export type Supplier = { id: number; email: string | null; phone?: string | null; locale: string | null };
-// checklist: a trade with no line reader asks its knowledge pack's required specs (reasoned_specs.ts); reason: what the
-// supplier's lines already state, judged by think() — null under the model hold, and then nothing is pre-filled.
+// read: what the supplier's quotation states, read by reasoning (_shared/reasoned_matching.ts readQuote) before
+// the check; null under the model hold, and then only what he stated in keyed fields counts (the quote is held).
+// checklist / reason: a trade with no catalogue entry asks its knowledge pack's required specs, judged by think()
+// (reasoned_specs.ts); null under the hold, and then nothing is pre-filled.
 export type Ctx = { category: string | null; requirements: Requirements; ref: string; multiOption?: boolean; now?: () => Date;
+  read?: (q: QuoteRow, lines: Line[]) => Promise<QuoteReading | null>;
   checklist?: Attr[]; reason?: (lines: Line[], checklist: Attr[]) => Promise<Record<number, Record<string, string>> | null> };
 const nowIso = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date()).toISOString();
 const langOf = (s: Supplier): 'en' | 'ar' => (String(s.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
@@ -110,13 +114,17 @@ async function persistSpecs(repo: SpecRepo, quoteId: string, a: Assessment, line
  */
 export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, ctx: Ctx) {
   const q = await repo.quote(quoteId); if (!q) throw new Error('quote not found: ' + quoteId);
-  const read = await repo.lines(quoteId);
-  // What the supplier's own words already state, judged by reasoning, is written in before the check;
-  // under the model hold nothing is, and every required spec is asked (the quote is held).
+  const stored = await repo.lines(quoteId);
+  // READ BEFORE THE CHECK (23 Sep 2026): what reasoning finds in his own words is written in; under the hold
+  // nothing is, and every required detail is asked of him.
+  const reading = ctx.read ? await ctx.read(q, stored) : null;
+  const applied = applyReading(stored, q.terms_spec, reading);
+  if (reading) { q.terms_spec = applied.terms_spec; await repo.updateQuote(quoteId, { terms_spec: applied.terms_spec }); }
+  const read = applied.lines;
   const lines = ctx.checklist?.length && ctx.reason && needsChecklist(ctx.category)
     ? withReasoned(read, await ctx.reason(read, ctx.checklist)) : read;
   const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
-  await persistSpecs(repo, quoteId, a, read);
+  await persistSpecs(repo, quoteId, a, stored);
   const at = nowIso(ctx);
   const live = await repo.liveHold(quoteId);
   let superseded: number | null = null;

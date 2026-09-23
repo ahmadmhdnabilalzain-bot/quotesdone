@@ -394,3 +394,48 @@ end $p$;`);
   assert.equal(out.keywords_routine, false, 'create_inquiry needs no replay routine: its trade is the intake\'s own');
   assert.equal(out.service_can, true);
 });
+
+// BATCH B3 (sales_engineer, points 23-27 + 77): trades, catalogue categories, product matches and spec groups read no
+// free text for meaning. Aborted transaction; the batch file replays first while pending; nothing reaches a person.
+test('production, aborted: batch B3 routines read no words for meaning, route only a reasoned category, and are service_role only',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v jsonb; v_cat int;
+begin
+  o := o || jsonb_build_object('norm_free_text', public.fn_norm_trades('ZZ DEMO we need air conditioning for my villa'),
+                               'norm_slug', public.fn_norm_trades('glass'));
+  v := public.fn_kb_route_decide('ZZ DEMO supply and install aluminium windows for a villa');
+  o := o || jsonb_build_object('route_unreasoned', v->>'action', 'route_candidates', jsonb_array_length(v->'candidates'), 'route_cat', v->'catalog_num');
+  v_cat := (v->'candidates'->0->>'catalog_num')::int;
+  v := public.fn_kb_route_decide('ZZ DEMO', v_cat);
+  o := o || jsonb_build_object('route_reasoned', v->>'action', 'route_reasoned_cat', (v->>'catalog_num')::int = v_cat,
+                               'route_bogus', public.fn_kb_route_decide('ZZ DEMO', -1)->>'action',
+                               'kb_route_gone', to_regprocedure('public.fn_kb_route(text,integer)') is null,
+                               'decide_old_gone', to_regprocedure('public.fn_kb_route_decide(text)') is null);
+  o := o || jsonb_build_object('match_src_ilike', (select prosrc ~* 'ilike' from pg_proc where oid = 'public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])'::regprocedure),
+    'product_status', public.fn_supplier_product_match('00000000-0000-4000-8000-000000000000'::uuid, -1)->>'status',
+    'product_old_gone', to_regprocedure('public.fn_supplier_product_match(uuid,bigint)') is null,
+    'group_marble', public.fn_quote_spec_group('marble-granite'), 'group_free_text', public.fn_quote_spec_group('air con duct cleaning'),
+    'group_src_regex', (select position('~*' in prosrc) > 0 from pg_proc where oid = 'public.fn_quote_spec_group(text)'::regprocedure));
+  o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in
+            ('fn_norm_trades', 'fn_kb_route_decide', 'fn_match_capability', 'fn_supplier_product_match', 'fn_quote_spec_group')),
+    'service_can', has_function_privilege('service_role', 'public.fn_kb_route_decide(text,integer)', 'execute'));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  console.log(JSON.stringify(out));
+  assert.equal(out.norm_free_text, null, 'free text is not read for a trade: it needs reasoning');
+  assert.ok(Array.isArray(out.norm_slug) && out.norm_slug.length > 0, 'a slug still resolves exactly');
+  assert.equal(out.route_unreasoned, 'needs_reasoning');
+  assert.ok(out.route_candidates > 0);
+  assert.equal(out.route_cat, null, 'nothing is routed on the words');
+  assert.equal(out.route_reasoned, 'route_or_ask_scope_details');
+  assert.equal(out.route_reasoned_cat, true);
+  assert.equal(out.route_bogus, 'ask_clarifying_question');
+  assert.equal(out.kb_route_gone, true); assert.equal(out.decide_old_gone, true);
+  assert.equal(out.match_src_ilike, false);
+  assert.equal(out.product_status, 'needs_reasoning'); assert.equal(out.product_old_gone, true);
+  assert.equal(out.group_marble, 'tiling'); assert.equal(out.group_free_text, null); assert.equal(out.group_src_regex, false);
+  assert.equal(out.anon_can, false); assert.equal(out.service_can, true);
+});
