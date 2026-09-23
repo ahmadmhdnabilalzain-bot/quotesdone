@@ -1,6 +1,6 @@
 // A held question, reasoned after the hold lifts, is delivered on its own channel under the channel's rules.
 import { assertEquals, assertMatch } from 'jsr:@std/assert';
-import { deliverReasoned, holdingNotice, type DeliveryIO } from './reasoned_delivery.ts';
+import { deliverReasoned, holdingNotice, sendHeldNotices, type DeliveryIO } from './reasoned_delivery.ts';
 import type { HeldRow, ThinkResult } from './think.ts';
 
 function io(windowOpen: boolean) {
@@ -177,4 +177,22 @@ Deno.test('the website widget: a visitor reasoned to have asked for a person is 
   const no = await deliverReasoned(row('site_assistant.person', 'how do fees work?', { path: '/' }), answered('no_person'), x);
   assertEquals(no.delivered, false);
   assertEquals(log.length, 1);
+});
+
+Deno.test('a holding notice that failed is recorded as failed and sent again; a throw is a failed attempt, not a lost batch', async () => {
+  const { x } = io(true);
+  let fail = true;
+  const flaky: DeliveryIO = { ...x, sendWaText: () => Promise.resolve(fail ? { ok: false, err: 'twilio 63016' } : { ok: true }) };
+  const rec: [number, boolean][] = [];
+  const record = (id: number, d: { delivered: boolean }) => { rec.push([id, d.delivered]); return Promise.resolve(); };
+  const rows = [{ id: 7, surface: 'wa_inbound.needs_a_person', question: 'where is my quote?', subject: { phone: '+971500000001' } }];
+  const first = await sendHeldNotices(rows, flaky, record);
+  assertEquals(first.map((r) => r.delivered), [false]);
+  fail = false;                              // the next tick, fn_reason_held_notice_due returns the same row
+  const second = await sendHeldNotices(rows, flaky, record);
+  assertEquals(second.map((r) => r.delivered), [true]);
+  assertEquals(rec, [[7, false], [7, true]]);
+  const throwing: DeliveryIO = { ...x, waWindowOpen: () => Promise.reject(new Error('db down')) };
+  const t = await sendHeldNotices([...rows, { ...rows[0], id: 8 }], throwing, record);
+  assertEquals(t.map((r) => [r.id, r.delivered]), [[7, false], [8, false]]);
 });

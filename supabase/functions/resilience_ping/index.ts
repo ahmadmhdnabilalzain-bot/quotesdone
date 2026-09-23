@@ -17,7 +17,7 @@ import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/la
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { replayHeld } from '../_shared/think.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
-import { deliverReasoned, holdingNotice, liveDeliveryIO } from '../_shared/reasoned_delivery.ts';
+import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -1089,10 +1089,11 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
   // row stays held and is still replayed above the moment the hold lifts.
   await step('reasoning_escalate', async () => {
-    const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as { id: number; surface: string; question: string; subject: Record<string, unknown> | null }[] | null;
-    const io = liveDeliveryIO(admin);
-    const told = [];
-    for (const r of rows ?? []) told.push({ id: r.id, ...(await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none', detail: String(e?.message || e).slice(0, 200) }))) });
+    const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as unknown[] | null;
+    // The notices owed — the rows just escalated AND any earlier one whose send failed — come from the queue, not
+    // from the escalate call's return, so a failure is retried (a_customer_notice_that_failed_is_sent_again.sql).
+    const owed = (await rpc('fn_reason_held_notice_due', { p_limit: 20 })) as { id: number; surface: string; question: string; subject: Record<string, unknown> | null }[] | null;
+    const told = await sendHeldNotices(owed ?? [], liveDeliveryIO(admin), (id, d) => rpc('fn_reason_held_notice_record', { p_id: id, p_delivery: d }));
     return { escalated: (rows ?? []).length, told };
   });
   // THE SUPPLIER TRADE BACKFILL (sales_engineer, 23 Sep 2026): files at most the daily cap of leads for reasoning,

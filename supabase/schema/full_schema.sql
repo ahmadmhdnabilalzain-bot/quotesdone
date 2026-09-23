@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T22:45:54.064Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T22:57:14.111Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -176,6 +176,7 @@ CREATE SEQUENCE IF NOT EXISTS public.screening_entry_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.screening_run_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.seat_case_memory_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.seat_case_memory_miss_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.seat_knowledge_exam_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.self_review_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.spec_alternative_offer_id_seq;
@@ -201,7 +202,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (598) =====
+-- ===== TABLES (600) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -6312,7 +6313,11 @@ CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
   applied_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   dedupe_key text,
-  escalated_at timestamp with time zone
+  escalated_at timestamp with time zone,
+  notice_attempts integer DEFAULT 0 NOT NULL,
+  notice_last_at timestamp with time zone,
+  notice_delivered_at timestamp with time zone,
+  notice_detail jsonb
 );
 
 CREATE TABLE IF NOT EXISTS public.reasoning_knowledge_candidate (
@@ -7038,6 +7043,32 @@ CREATE TABLE IF NOT EXISTS public.seat_judgement (
   finalised boolean DEFAULT false NOT NULL,
   outcome_at timestamp with time zone,
   made_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_knowledge_exam (
+  id bigint DEFAULT nextval('seat_knowledge_exam_id_seq'::regclass) NOT NULL,
+  seat text NOT NULL,
+  item_key text NOT NULL,
+  question text NOT NULL,
+  reference text NOT NULL,
+  asked_held_id bigint,
+  answer text,
+  answer_model text,
+  grade_held_id bigint,
+  verdict text,
+  grade_reason text,
+  asked_at timestamp with time zone DEFAULT now() NOT NULL,
+  answered_at timestamp with time zone,
+  graded_at timestamp with time zone,
+  refiled_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_knowledge_refresh (
+  seat text NOT NULL,
+  quarter date NOT NULL,
+  items jsonb DEFAULT '[]'::jsonb NOT NULL,
+  opened_at timestamp with time zone DEFAULT now() NOT NULL,
+  verified_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_learning_daily (
@@ -8835,6 +8866,8 @@ ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_pkey PRIMARY KEY (duty);
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_pkey PRIMARY KEY (type, from_seat, to_seat);
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_pkey PRIMARY KEY (id);
+ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_pkey PRIMARY KEY (id);
+ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_pkey PRIMARY KEY (seat, quarter);
 ALTER TABLE public.seat_learning_daily ADD CONSTRAINT seat_learning_daily_pkey PRIMARY KEY (seat, day);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_pkey PRIMARY KEY (cluster_key);
 ALTER TABLE public.security_advisor_baseline ADD CONSTRAINT security_advisor_baseline_pkey PRIMARY KEY (cache_key);
@@ -9621,6 +9654,9 @@ ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_type_check
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_seat_check CHECK ((seat = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'marketing'::text])));
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_status_check CHECK ((status = ANY (ARRAY['recalled'::text, 'answered'::text, 'held'::text])));
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_surface_check CHECK ((btrim(surface) <> ''::text));
+ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_question_check CHECK ((btrim(question) <> ''::text));
+ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_verdict_check CHECK ((verdict = ANY (ARRAY['correct'::text, 'partial'::text, 'wrong'::text, 'not_covered'::text])));
+ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_quarter_check CHECK ((quarter = (date_trunc('quarter'::text, (quarter)::timestamp with time zone))::date));
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_case_ids_check CHECK ((cardinality(case_ids) >= 3));
 ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_from_code_check CHECK ((from_code ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)?$'::text));
@@ -9976,6 +10012,8 @@ ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_run_id_fkey FO
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_deliberation_id_fkey FOREIGN KEY (deliberation_id) REFERENCES seat_deliberation(id) ON DELETE CASCADE;
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_reviews_turn_id_fkey FOREIGN KEY (reviews_turn_id) REFERENCES seat_deliberation_turn(id);
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
+ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
+ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES reasoning_knowledge_candidate(id);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES social_conversation(id);
@@ -10463,6 +10501,8 @@ CREATE UNIQUE INDEX seat_deliberation_turn_one_recorded ON public.seat_deliberat
 CREATE UNIQUE INDEX seat_deliberation_turn_one_waiting ON public.seat_deliberation_turn USING btree (deliberation_id, round, phase) WHERE (status = ANY (ARRAY['held_not_run'::text, 'no_independent_reviewer'::text]));
 CREATE INDEX seat_judgement_seat_outcome_idx ON public.seat_judgement USING btree (seat, outcome_at);
 CREATE INDEX seat_judgement_subject_idx ON public.seat_judgement USING btree (subject_table, subject_id) WHERE (subject_table IS NOT NULL);
+CREATE INDEX seat_knowledge_exam_item ON public.seat_knowledge_exam USING btree (seat, item_key, asked_at);
+CREATE INDEX seat_knowledge_exam_seat_graded ON public.seat_knowledge_exam USING btree (seat, graded_at);
 CREATE INDEX security_advisor_baseline_new_idx ON public.security_advisor_baseline USING btree (in_baseline, cleared_at);
 CREATE UNIQUE INDEX security_events_fingerprint_uq ON public.security_events USING btree (fingerprint);
 CREATE INDEX security_events_idx ON public.security_events USING btree (created_at DESC);
@@ -19713,16 +19753,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -19748,6 +19778,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -40065,6 +40105,14 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_knowledge_exam()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_exam(2) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_close(p_issue_key text, p_note text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -40230,6 +40278,217 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_exam(p_per_seat integer DEFAULT 2)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare s text; i record; v_id bigint; v_q text; v_held bigint; v_n int := 0;
+begin
+  foreach s in array array['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] loop
+    for i in
+      select k.item_key, k.title, k.content from public.fn_seat_knowledge_items(s) k
+       where not exists (select 1 from public.seat_knowledge_exam e
+                          where e.seat = s and e.item_key = k.item_key and e.asked_at > now() - interval '90 days')
+       order by md5(k.item_key || current_date::text)          -- a different sample each day, reproducible within it
+       limit greatest(1, least(coalesce(p_per_seat, 2), 5))
+    loop
+      v_q := 'Knowledge check for the ' || replace(s, '_', ' ') || ' seat. As the senior member of staff in this role, '
+          || 'explain what we know and apply about: ' || coalesce(nullif(btrim(i.title), ''), left(i.content, 160));
+      insert into public.seat_knowledge_exam (seat, item_key, question, reference)
+      values (s, i.item_key, v_q, left(i.content, 6000)) returning id into v_id;
+      -- Asked in the SEAT'S OWN queue, answered by think() from its own knowledge (no research: this measures what
+      -- the seat already knows). Replayed the moment the model hold lifts.
+      v_held := public.fn_reason_hold(s, s || '.knowledge_exam', v_q,
+        jsonb_build_object('seat', s, 'surface', s || '.knowledge_exam', 'question', v_q,
+          'context', jsonb_build_object('audience', 'internal'), 'research', false, 'stakes', 'normal',
+          'subject', jsonb_build_object('exam_id', v_id), 'dedupeKey', 'kexam:' || v_id),
+        jsonb_build_object('filed_by', 'it_engineer.knowledge_exam'), jsonb_build_object('exam_id', v_id), 'seat_duty', 'kexam:' || v_id);
+      update public.seat_knowledge_exam set asked_held_id = v_held where id = v_id;
+      v_n := v_n + 1;
+    end loop;
+  end loop;
+  return jsonb_build_object('asked', v_n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_exam_answered(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; e public.seat_knowledge_exam; v_grade bigint;
+begin
+  select * into r from public.reasoning_held_question where id = p_id;
+  select * into e from public.seat_knowledge_exam where id = (r.subject->>'exam_id')::bigint for update;
+  if not found then return jsonb_build_object('applied', false, 'reason', 'no exam row'); end if;
+  if e.answered_at is not null then return jsonb_build_object('applied', true, 'already', e.id); end if;
+  update public.seat_knowledge_exam set answer = left(coalesce(p_result->>'answer', ''), 6000), answer_model = p_result->>'model',
+         answered_at = now() where id = e.id;
+  v_grade := public.fn_seat_duty_reason('it_engineer', 'it_engineer.knowledge_grade',
+    'Grade a seat''s answer against the reference knowledge item it was examined on. Judge the MEANING: does the '
+      || 'answer state what the reference states, without contradicting it? Wording does not matter.',
+    ('[{"id":"correct","meaning":"the answer states the substance of the reference and contradicts nothing in it"},'
+    || '{"id":"partial","meaning":"the answer is right as far as it goes but misses a material part of the reference"},'
+    || '{"id":"wrong","meaning":"the answer contradicts the reference or states something materially false"},'
+    || '{"id":"not_covered","meaning":"the answer does not address the subject of the reference, or declines to"}]')::jsonb,
+    jsonb_build_object('seat', e.seat, 'question', e.question, 'reference', left(e.reference, 3000),
+                       'answer', left(coalesce(p_result->>'answer', ''), 3000)),
+    jsonb_build_object('exam_id', e.id), 'kgrade:' || e.id);
+  update public.seat_knowledge_exam set grade_held_id = v_grade where id = e.id;
+  return jsonb_build_object('applied', true, 'exam_id', e.id, 'grade_held_id', v_grade);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_pass_rate()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare s record; v_out jsonb := '[]'::jsonb; v_raised int := 0; v_refiled int := 0; e record; v_gate jsonb; v_open boolean;
+begin
+  v_gate := public.fn_kernel_paid_provider_gate('hold-probe/not-a-model');
+  v_open := coalesce(v_gate->>'rule', '') not in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state');
+  for s in
+    select seat,
+           count(*) filter (where graded_at > now() - interval '30 days') as n30,
+           count(*) filter (where graded_at > now() - interval '30 days' and verdict = 'correct') as ok30,
+           count(*) filter (where graded_at <= now() - interval '30 days' and graded_at > now() - interval '60 days') as nprev,
+           count(*) filter (where graded_at <= now() - interval '30 days' and graded_at > now() - interval '60 days' and verdict = 'correct') as okprev,
+           count(*) filter (where graded_at is null and asked_at < now() - interval '7 days') as ungraded_week
+      from public.seat_knowledge_exam group by seat
+  loop
+    declare r30 numeric := case when s.n30 > 0 then round(s.ok30::numeric / s.n30, 3) end;
+            rprev numeric := case when s.nprev > 0 then round(s.okprev::numeric / s.nprev, 3) end;
+            v_bad boolean;
+    begin
+      v_bad := s.n30 >= 5 and (r30 < 0.70 or (rprev is not null and s.nprev >= 5 and rprev - r30 >= 0.10));
+      v_out := v_out || jsonb_build_object('seat', s.seat, 'rate_30d', r30, 'graded_30d', s.n30, 'rate_prev_30d', rprev, 'raised', v_bad);
+      if v_bad then
+        v_raised := v_raised + 1;
+        perform public.fn_it_engineer_finding_upsert('knowledge_pass_rate:' || s.seat,
+          'The ' || s.seat || ' seat''s knowledge pass rate is ' || round(r30 * 100) || '% over the last 30 days'
+            || case when rprev is not null then ' (was ' || round(rprev * 100) || '%)' else '' end,
+          'public.seat_knowledge_exam', 'agent_facing', (s.n30 - s.ok30)::int,
+          jsonb_build_object('seat', s.seat, 'rate_30d', r30, 'rate_prev_30d', rprev, 'graded_30d', s.n30, 'owner_seat', s.seat),
+          '{}'::text[], array['which items it answered wrong and why'], 'it_engineer');
+        perform public.fn_seat_handoff('it_engineer', s.seat, 'it.finding', 'seat_knowledge_exam',
+          'knowledge_pass_rate:' || s.seat || ':' || to_char(now(), 'IYYY-IW'),
+          jsonb_build_object('duty', 'knowledge_pass_rate', 'issue_key', 'knowledge_pass_rate:' || s.seat, 'subject', s.seat || ' knowledge',
+                             'title', 'Your knowledge pass rate dropped to ' || round(r30 * 100) || '%; the items you missed are filed for re-research'));
+        -- THE SEAT ACTS: every item it missed in the window is re-researched in its own queue.
+        for e in select * from public.seat_knowledge_exam
+                  where seat = s.seat and verdict in ('wrong', 'partial', 'not_covered') and graded_at > now() - interval '30 days' and refiled_at is null loop
+          perform public.fn_reason_hold(e.seat, e.seat || '.knowledge_refresh',
+            'Re-research and correct our knowledge on: ' || e.question || ' — the answer given was graded ' || e.verdict || '.',
+            jsonb_build_object('seat', e.seat, 'surface', e.seat || '.knowledge_refresh',
+              'question', 'Re-research and correct our knowledge on: ' || e.question, 'research', true, 'stakes', 'high',
+              'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('reference', left(e.reference, 2000), 'grade', e.grade_reason)),
+              'subject', jsonb_build_object('item_key', e.item_key, 'exam_id', e.id), 'dedupeKey', 'krefile:' || e.id),
+            jsonb_build_object('filed_by', 'it_engineer.knowledge_pass_rate'), jsonb_build_object('item_key', e.item_key, 'exam_id', e.id),
+            'seat_duty', 'krefile:' || e.id);
+          update public.seat_knowledge_exam set refiled_at = now() where id = e.id;
+          v_refiled := v_refiled + 1;
+        end loop;
+      else
+        update public.it_engineer_finding set closed_at = now(), close_note = 'pass rate back within bounds (knowledge_pass_rate)'
+         where issue_key = 'knowledge_pass_rate:' || s.seat and closed_at is null;
+      end if;
+      -- An exam nobody could grade for a week WHILE a model can reason is a broken monitor, not a quiet one.
+      if v_open and s.ungraded_week > 0 then
+        perform public.fn_it_engineer_finding_upsert('knowledge_pass_rate:unmeasured:' || s.seat,
+          s.ungraded_week || ' knowledge exam(s) of ' || s.seat || ' asked over a week ago are still ungraded while the model gate is open',
+          'public.seat_knowledge_exam / reasoning_held_question', 'agent_facing', s.ungraded_week::int,
+          jsonb_build_object('seat', s.seat), '{}'::text[], array['whether the replay or the apply fails'], 'it_engineer');
+      else
+        update public.it_engineer_finding set closed_at = now(), close_note = 'exams are being graded (or the model hold explains it)'
+         where issue_key = 'knowledge_pass_rate:unmeasured:' || s.seat and closed_at is null;
+      end if;
+    end;
+  end loop;
+  return jsonb_build_object('seats', v_out, 'raised', v_raised, 'refiled', v_refiled, 'model_gate_open', v_open);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_refresh()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare s text; i record; v_q date := date_trunc('quarter', (now() at time zone 'Asia/Dubai'))::date; v_items jsonb; v_held bigint;
+  v_opened int := 0; v_verified int := 0; v_overdue int := 0; f record; v_text text;
+begin
+  foreach s in array array['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] loop
+    if not exists (select 1 from public.seat_knowledge_refresh where seat = s and quarter = v_q) then
+      v_items := '[]'::jsonb;
+      for i in select k.item_key, k.title, k.content from public.fn_seat_knowledge_items(s) k
+                order by k.updated_at nulls first, k.item_key limit 5 loop
+        v_text := 'Quarterly knowledge refresh (' || to_char(v_q, 'YYYY "Q"Q') || '). Is this still correct and current in the '
+               || 'UAE today? Check the authoritative source and state precisely what has changed, if anything. Item: '
+               || coalesce(i.title, '') || E'\n' || left(i.content, 1500);
+        v_held := public.fn_reason_hold(s, s || '.knowledge_refresh', v_text,
+          jsonb_build_object('seat', s, 'surface', s || '.knowledge_refresh', 'question', v_text, 'research', true, 'stakes', 'high',
+            'context', jsonb_build_object('audience', 'internal'),
+            'subject', jsonb_build_object('item_key', i.item_key, 'quarter', v_q), 'dedupeKey', 'krefresh:' || v_q || ':' || i.item_key),
+          jsonb_build_object('filed_by', 'it_engineer.knowledge_refresh'), jsonb_build_object('item_key', i.item_key, 'quarter', v_q),
+          'seat_duty', 'krefresh:' || v_q || ':' || i.item_key);
+        v_items := v_items || jsonb_build_object('item_key', i.item_key, 'title', left(i.title, 200), 'held_id', v_held, 'done_at', null);
+      end loop;
+      insert into public.seat_knowledge_refresh (seat, quarter, items) values (s, v_q, v_items);
+      v_opened := v_opened + 1;
+    end if;
+  end loop;
+
+  -- VERIFY: a quarter is refreshed when every item it filed was reasoned (the apply stamps done_at).
+  update public.seat_knowledge_refresh r set verified_at = now()
+   where verified_at is null and jsonb_array_length(items) > 0
+     and not exists (select 1 from jsonb_array_elements(r.items) x where x->>'done_at' is null);
+  get diagnostics v_verified = row_count;
+  for f in select * from public.seat_knowledge_refresh where verified_at is null and opened_at < now() - interval '45 days' loop
+    v_overdue := v_overdue + 1;
+    perform public.fn_it_engineer_finding_upsert('knowledge_refresh:' || f.seat || ':' || f.quarter,
+      'The ' || f.seat || ' seat''s knowledge refresh for ' || to_char(f.quarter, 'YYYY "Q"Q') || ' is not complete after 45 days',
+      'public.seat_knowledge_refresh', 'agent_facing',
+      (select count(*)::int from jsonb_array_elements(f.items) x where x->>'done_at' is null),
+      jsonb_build_object('seat', f.seat, 'quarter', f.quarter, 'owner_seat', f.seat), '{}'::text[],
+      array['whether the model hold or a failing research step keeps the questions held'], 'it_engineer');
+  end loop;
+  update public.it_engineer_finding fi set closed_at = now(), close_note = 'the quarter''s refresh completed'
+   where fi.issue_key like 'knowledge_refresh:%' and fi.closed_at is null
+     and exists (select 1 from public.seat_knowledge_refresh r
+                  where 'knowledge_refresh:' || r.seat || ':' || r.quarter = fi.issue_key and r.verified_at is not null);
+  return jsonb_build_object('quarter', v_q, 'opened', v_opened, 'verified', v_verified, 'overdue', v_overdue);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_refreshed(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; v_n int;
+begin
+  select * into r from public.reasoning_held_question where id = p_id;
+  if (r.subject->>'quarter') is null then
+    -- a re-research filed by the pass-rate monitor: the exam row carries it
+    return jsonb_build_object('applied', true, 'refiled_exam', r.subject->>'exam_id', 'sources', jsonb_array_length(coalesce(p_result->'sources', '[]'::jsonb)));
+  end if;
+  update public.seat_knowledge_refresh k
+     set items = (select jsonb_agg(case when x->>'item_key' = r.subject->>'item_key' and x->>'done_at' is null
+                                        then x || jsonb_build_object('done_at', now(), 'sources', jsonb_array_length(coalesce(p_result->'sources', '[]'::jsonb)))
+                                        else x end order by o)
+                    from jsonb_array_elements(k.items) with ordinality t(x, o))
+   where k.seat = r.seat and k.quarter = (r.subject->>'quarter')::date;
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('applied', v_n > 0, 'item_key', r.subject->>'item_key');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_search_vector()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -40241,6 +40500,41 @@ begin
    || setweight(to_tsvector('english'::regconfig, coalesce(array_to_string(new.tags,' '),'')), 'B')
    || setweight(to_tsvector('english'::regconfig, coalesce(new.content,'')), 'C');
   return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_licence_expiry_watch()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_asks jsonb; v_before int; v_after int; v_fix json; v_ids jsonb;
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+begin
+  v_asks := public.fn_licence_expiry_sweep(false);
+
+  -- THE INVARIANT, measured here and not trusted to the routine that sets it: an approved supplier whose licence
+  -- or insurance is past its date is not matchable (fn_is_matchable reads matching_blocked).
+  select count(*) into v_before from public.leads l
+   where l.approval_status = 'approved' and not coalesce(l.banned, false) and not coalesce(l.matching_blocked, false)
+     and (l.license_expiry < v_today or l.insurance_expiry < v_today);
+  if v_before > 0 then v_fix := public.fn_reconcile_doc_blocks(0); end if;   -- pauses them AND tells each supplier
+  select count(*), coalesce(jsonb_agg(l.id order by l.id), '[]'::jsonb) into v_after, v_ids from public.leads l
+   where l.approval_status = 'approved' and not coalesce(l.banned, false) and not coalesce(l.matching_blocked, false)
+     and (l.license_expiry < v_today or l.insurance_expiry < v_today);
+
+  if v_after > 0 then
+    perform public.fn_it_engineer_finding_upsert('licence_expiry:matchable_after_expiry',
+      v_after || ' approved supplier(s) with an expired licence or insurance are still matchable after the pause ran',
+      'public.leads / fn_reconcile_doc_blocks', 'customer_facing', v_after, jsonb_build_object('lead_ids', v_ids, 'owner_seat', 'sales_engineer'),
+      '{}'::text[], array['why fn_reconcile_doc_blocks skipped them (a manual block reason it will not overwrite?)'], 'it_engineer');
+  else
+    update public.it_engineer_finding set closed_at = now(), close_note = 'no expired supplier is matchable (licence_expiry_watch)'
+     where issue_key = 'licence_expiry:matchable_after_expiry' and closed_at is null;
+  end if;
+  return jsonb_build_object('renewal_asks', v_asks - 'sample', 'expired_matchable_before', v_before,
+                            'paused', v_fix, 'expired_matchable_after', v_after);
 end $function$
 
 
@@ -51748,6 +52042,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -51918,16 +52222,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -52627,6 +52921,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_accountant__knowledge_exam(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_exam_answered(p_id, p_result) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_accountant__knowledge_refresh(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_refreshed(p_id, p_result) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_category__key_for_slug(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -52733,6 +53043,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__knowledge_exam(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_exam_answered(p_id, p_result) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__knowledge_refresh(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_refreshed(p_id, p_result) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__refund_off_platform(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -52832,6 +53158,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_customer_support__knowledge_exam(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_exam_answered(p_id, p_result) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_customer_support__knowledge_refresh(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_refreshed(p_id, p_result) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_documents__boq_arabic(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -52892,6 +53234,42 @@ begin
   end if;
   return jsonb_build_object('inquiry_id', r.subject->>'inquiry_id', 'choice', p_result->'decision'->>'choice', 'flagged', v_n > 0);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__knowledge_exam(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_exam_answered(p_id, p_result) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__knowledge_grade(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice';
+begin
+  select * into r from public.reasoning_held_question where id = p_id;
+  if v_choice is null or not exists (select 1 from jsonb_array_elements(r.request->'decision'->'options') o where o->>'id' = v_choice) then
+    -- fn_reason_held_resolve marks a row applied whenever its apply returns (even null), so an answer that is not one of
+    -- the options RAISES: the resolve rolls back and the grade is reasoned again on a later replay.
+    raise exception 'CHOICE_NOT_AN_OPTION: % is not a grade (held question %)', coalesce(v_choice, 'no choice'), p_id;
+  end if;
+  update public.seat_knowledge_exam set verdict = v_choice, grade_reason = left(coalesce(p_result->>'answer', ''), 1000), graded_at = now()
+   where id = (r.subject->>'exam_id')::bigint and graded_at is null;
+  return jsonb_build_object('applied', true, 'exam_id', r.subject->>'exam_id', 'verdict', v_choice);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__knowledge_refresh(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_refreshed(p_id, p_result) $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_lead_trade__classify(p_id bigint, p_result jsonb)
@@ -52968,6 +53346,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_marketing__knowledge_exam(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_exam_answered(p_id, p_result) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_marketing__knowledge_refresh(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_refreshed(p_id, p_result) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_sales_engineer__document_arabic(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -52992,6 +53386,22 @@ begin
   end loop;
   return jsonb_build_object('stored', public.fn_arabic_translation_store(v_pairs, p_id));
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_sales_engineer__knowledge_exam(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_exam_answered(p_id, p_result) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_sales_engineer__knowledge_refresh(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_knowledge_refreshed(p_id, p_result) $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_sql__fn_org_task_consume_tick(p_id bigint, p_result jsonb)
@@ -53163,6 +53573,55 @@ begin
                                               'subject', m.subject, 'status', m.status)), '[]'::jsonb)
     into v from marked m where (select count(*) from filed) >= 0;
   return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_held_notice_due(p_limit integer DEFAULT 20)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb; v_dead int;
+begin
+  select coalesce(jsonb_agg(jsonb_build_object('id', h.id, 'seat', h.seat, 'surface', h.surface, 'question', left(h.question, 500),
+                                               'subject', h.subject, 'attempts', h.notice_attempts) order by h.escalated_at), '[]'::jsonb)
+    into v
+    from (select * from public.reasoning_held_question
+           where escalated_at is not null and notice_delivered_at is null
+             and coalesce(subject->>'phone', '') <> '' and notice_attempts < 8
+             and (notice_last_at is null or notice_last_at < now() - interval '30 minutes')
+           order by escalated_at
+           limit greatest(1, least(coalesce(p_limit, 20), 100))) h;
+
+  select count(*) into v_dead from public.reasoning_held_question
+   where escalated_at is not null and notice_delivered_at is null and coalesce(subject->>'phone', '') <> '' and notice_attempts >= 8;
+  if v_dead > 0 then
+    perform public.fn_it_engineer_finding_upsert('held_notice:undelivered',
+      v_dead || ' WhatsApp customer(s) were never told their held question is with a person (8 failed attempts each)',
+      'public.reasoning_held_question / resilience_ping reasoning_escalate', 'customer_facing', v_dead,
+      jsonb_build_object('owner_seat', 'customer_support'), '{}'::text[], array['what the channel refused (notice_detail)'], 'customer_support');
+  else
+    update public.it_engineer_finding set closed_at = now(), close_note = 'every owed holding notice was delivered'
+     where issue_key = 'held_notice:undelivered' and closed_at is null;
+  end if;
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_held_notice_record(p_id bigint, p_delivery jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ok boolean := coalesce((p_delivery->>'delivered')::boolean, false);
+begin
+  update public.reasoning_held_question
+     set notice_attempts = notice_attempts + 1, notice_last_at = now(), notice_detail = p_delivery,
+         notice_delivered_at = case when v_ok then now() else notice_delivered_at end
+   where id = p_id and notice_delivered_at is null;
+  return jsonb_build_object('id', p_id, 'delivered', v_ok, 'recorded', found);
 end $function$
 
 
@@ -59665,6 +60124,32 @@ CREATE OR REPLACE FUNCTION public.fn_seat_handoff_types()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select k.type, k.from_seat, k.to_seat, k.meaning from public.seat_handoff_kind k
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_knowledge_items(p_seat text)
+ RETURNS TABLE(item_key text, title text, content text, updated_at timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select 'support_knowledge:' || record_id, title, body, imported_at from public.support_knowledge
+   where p_seat = 'customer_support' and coalesce(runtime_index_eligible, true) and nullif(btrim(body), '') is not null
+  union all
+  select 'sales_knowledge:' || record_id, title, content, coalesce(updated_at, ingested_at) from public.sales_knowledge
+   where p_seat = 'sales_engineer' and coalesce(runtime_index_eligible, true) and nullif(btrim(content), '') is not null
+  union all
+  select 'accountant_knowledge:' || record_id, title, content, coalesce(updated_at, ingested_at) from public.accountant_knowledge
+   where p_seat = 'accountant' and coalesce(runtime_index_eligible, true) and nullif(btrim(content), '') is not null
+  union all
+  select 'it_engineer_knowledge:' || record_id, title, content, coalesce(updated_at, ingested_at) from public.it_engineer_knowledge
+   where p_seat = 'it_engineer' and coalesce(runtime_index_eligible, true) and nullif(btrim(content), '') is not null
+  union all
+  select 'ceo_knowledge:' || record_id, title, body, imported_at from public.ceo_knowledge
+   where p_seat = 'ceo' and coalesce(runtime_index_eligible, true) and nullif(btrim(body), '') is not null
+  union all
+  select 'agent_knowledge:' || id, topic, content, coalesce(updated_at, created_at) from public.agent_knowledge
+   where p_seat = 'marketing' and agent_key like 'marketing%' and nullif(btrim(content), '') is not null;
 $function$
 
 
@@ -75388,6 +75873,8 @@ ALTER TABLE public.seat_deliberation_turn ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_duty ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_handoff_kind ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_judgement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_knowledge_exam ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_knowledge_refresh ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_learning_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_lesson_cluster ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_advisor_baseline ENABLE ROW LEVEL SECURITY;
@@ -75616,6 +76103,8 @@ CREATE POLICY seat_deliberation_turn_service_role_only ON public.seat_deliberati
 CREATE POLICY seat_duty_service_role_only ON public.seat_duty AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_judgement_service_role_only ON public.seat_judgement AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_knowledge_exam_service_role_only ON public.seat_knowledge_exam AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_knowledge_refresh_service_role_only ON public.seat_knowledge_refresh AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_learning_daily_service_role_only ON public.seat_learning_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_lesson_cluster_service_role_only ON public.seat_lesson_cluster AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

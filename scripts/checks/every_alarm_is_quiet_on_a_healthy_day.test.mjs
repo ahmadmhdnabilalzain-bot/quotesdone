@@ -135,6 +135,34 @@ export const REGISTER = {
   // duties it runs are run inside the rolled-back replay.
   fn_seat_duties_tick: {
     replay: 'pg_temp.qd_replay_fn_seat_duties_tick(1)',
+    asOf: { seat_duty: 'created_at' },   // a duty registered after the instant did not exist then
+  },
+  // 24 Sep 2026 (it_engineer, #903). Raises held_notice:undelivered when a WhatsApp holding notice owed to a customer
+  // failed 8 times. It reads held questions that existed (were escalated) at the instant; a healthy day has none
+  // undeliverable, so it is quiet. Its claims are made inside the rolled-back replay.
+  fn_reason_held_notice_due: {
+    replay: 'pg_temp.qd_replay_fn_reason_held_notice_due(20)',
+    asOf: { reasoning_held_question: 'escalated_at' },
+  },
+  // 24 Sep 2026 (it_engineer, #903). Raises licence_expiry:matchable_after_expiry only when an approved supplier with
+  // an expired licence or insurance is STILL matchable after its own pause ran. Leads that existed at the instant;
+  // the renewal asks and pauses happen inside the rolled-back replay.
+  fn_it_engineer_licence_expiry_watch: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_licence_expiry_watch()',
+    asOf: { leads: 'created_at' },
+  },
+  // 24 Sep 2026 (it_engineer, #903). A seat's knowledge pass rate below 70%, or 10 points down on the month before,
+  // over graded exam answers that existed at the instant. A healthy day has no seat below the bar.
+  fn_it_engineer_knowledge_pass_rate: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_knowledge_pass_rate()',
+    asOf: { seat_knowledge_exam: 'asked_at' },
+  },
+  // 24 Sep 2026 (it_engineer, #903). A quarter's knowledge refresh still unverified 45 days after it opened. Refreshes
+  // that existed at the instant; the new quarter's refresh it files is written inside the rolled-back replay.
+  fn_it_engineer_knowledge_refresh: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_knowledge_refresh()',
+    // Not filtered by opened_at: hiding this quarter's row makes the copy insert it again (23505). A row opened after
+    // the instant is never 45 days old at it, so leaving it visible cannot make the replay louder.
     asOf: {},
   },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
