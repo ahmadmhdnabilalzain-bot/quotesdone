@@ -99,10 +99,14 @@ export interface ThinkResult {
 export interface LlmReply { content: string | null; model?: string | null; error?: string | null; used_llm?: boolean }
 // deno-lint-ignore no-explicit-any
 type RpcResult = { data: any; error: { message: string } | null };
+export type EmbedSpace = 'gte' | 'ml';
 export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number }): Promise<LlmReply>;
-  embed(text: string): Promise<number[] | null>;
+  // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
+  embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
+  /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
+  space?(): Promise<EmbedSpace>;
   rpc(fn: string, args: Record<string, unknown>): Promise<RpcResult>;
   search?(query: string): Promise<{ url: string; title: string }[]>;
   read?(url: string): Promise<string | null>;
@@ -113,6 +117,16 @@ export interface ThinkDeps {
 // unrelated 0.760-0.816; scripts/sql/every_seat_remembers_its_cases_and_recalls_them_by_meaning.sql).
 // A step whose best knowledge is below it is not answered from knowledge alone; it is researched.
 export const CORROBORATION_FLOOR = 0.84;
+// The same bar in the multilingual space, where similarities sit on a different scale: the multilingual cosine
+// below which the SAME share of English eval questions' best row falls as falls below 0.84 under gte-small.
+// Measured by scripts/eval/multilingual_recall_eval.mjs on 23 Sep 2026: 0.833 in both runs (1,094 English
+// questions; with and without kb_chunks in the pool). The bar is moved to its equivalent, not lowered.
+export const CORROBORATION_FLOOR_ML = 0.833;
+// The routines each space reads. A vector is only ever put to the routine of its own space.
+const ROUTINES = {
+  gte: { retrieve: 'fn_reason_retrieve', recall: 'fn_case_recall', floor: CORROBORATION_FLOOR },
+  ml: { retrieve: 'fn_reason_retrieve_ml', recall: 'fn_case_recall_ml', floor: CORROBORATION_FLOOR_ML },
+} as const;
 export const MAX_STEPS = 5;
 export const MAX_SYNTH_PASSES = 3;         // the first draft + two forced re-passes
 export const MAX_RESEARCH_PAGES = 3;
@@ -321,29 +335,46 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     value: f.value == null || String(f.value).trim() === '' || String(f.value) === 'null' ? null : String(f.value), from: f.from ? String(f.from) : null,
   })).filter((f) => f.name);
   const sources: Source[] = [];
-  const qVec = await deps.embed(req.question);
+  // The space is asked once per run. If the multilingual embedder cannot answer, this run falls back to
+  // gte-small and the gte routines: a slower-to-improve answer, never a vector put to the wrong space.
+  let space: EmbedSpace = deps.space ? await deps.space().catch(() => 'gte' as EmbedSpace) : 'gte';
+  const embedIn = async (t: string): Promise<{ v: number[] | null; r: typeof ROUTINES[EmbedSpace] }> => {
+    if (space === 'ml') {
+      const v = await deps.embed(t, 'ml');
+      if (v) return { v, r: ROUTINES.ml };
+      space = 'gte';
+    }
+    return { v: await deps.embed(t, 'gte'), r: ROUTINES.gte };
+  };
+  const q0 = await embedIn(req.question);
+  const qVec = q0.v;
   // Recall goes through the ONE shared recall (case_recall.ts), which also opens this judgement's row in
   // public.seat_judgement carrying what was recalled — the recall record the outcome is later written onto.
-  const memory = await recallCases(deps, { seat: req.seat, path: req.surface, situation: req.question, trade: ctx.trade ?? null, k: 3, embedding: qVec, subject: req.subject ?? null });
+  const memory = await recallCases(deps, { seat: req.seat, path: req.surface, situation: req.question, trade: ctx.trade ?? null, k: 3, ...(q0.r === ROUTINES.ml ? { embeddingMl: qVec } : { embedding: qVec }), subject: req.subject ?? null });
   judgementId = memory.judgement_id ?? null;
   for (const c of memory.cases) sources.push({ id: 'case#' + c.case_id, kind: 'case_memory', title: `${c.seat}/${c.case_kind} ${c.finalised ? 'FINALISED' : 'not finalised'}`, excerpt: [c.situation, c.decision && 'decided: ' + c.decision, c.outcome && 'outcome: ' + c.outcome, c.correction && 'CORRECTED: ' + c.correction].filter(Boolean).join(' | ').slice(0, 900), citation: null, similarity: c.similarity ?? null, trust: 'case_memory' });
-  steps.push({ id: 'resolve', kind: 'resolve', goal: 'fill the deciding facts from the conversation, profile, case and case memory', status: 'done', detail: { known: facts.filter((f) => f.value).map((f) => f.name), missing: facts.filter((f) => !f.value).map((f) => f.name), recalled: memory.cases.length, recall: memory.available ? 'ok' : memory.reason, judgement_id: judgementId } });
+  steps.push({ id: 'resolve', kind: 'resolve', goal: 'fill the deciding facts from the conversation, profile, case and case memory', status: 'done', detail: { known: facts.filter((f) => f.value).map((f) => f.name), missing: facts.filter((f) => !f.value).map((f) => f.name), recalled: memory.cases.length, recall: memory.available ? 'ok' : memory.reason, judgement_id: judgementId, space: q0.r === ROUTINES.ml ? 'ml' : 'gte' } });
 
   // c. RETRIEVE PER STEP, d. RESEARCH where knowledge is thin
   const thin: typeof planSteps = [];
   for (const s of planSteps) {
     if (!s.needs) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'skipped' }); continue; }
-    const v = await deps.embed(s.query);
+    const { v, r: rt } = await embedIn(s.query);
     if (!v) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'failed', detail: 'embedding_unavailable' }); thin.push(s); continue; }
-    const { data, error } = await deps.rpc('fn_reason_retrieve', { p_seat: req.seat, p_embedding: vec(v), p_k: 6 });
+    // The multilingual search fuses both spaces (fn_reason_retrieve_ml), so it takes the gte-small vector too;
+    // without one it ranks by the multilingual space alone.
+    const vg = rt === ROUTINES.ml ? await deps.embed(s.query, 'gte') : null;
+    const { data, error } = await deps.rpc(rt.retrieve, rt === ROUTINES.ml
+      ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6 }
+      : { p_seat: req.seat, p_embedding: vec(v), p_k: 6 });
     const rows = !error && Array.isArray(data) ? data : [];
     for (const r of rows) {
       const id = `${r.source}:${r.id}`;
       if (!sources.some((x) => x.id === id)) sources.push({ id, kind: String(r.source), title: String(r.title ?? ''), excerpt: String(r.excerpt ?? '').slice(0, 1200), citation: r.citation ?? null, similarity: Number(r.similarity), trust: r.trust === 'pending_review' ? 'pending_review' : 'reviewed' });
     }
     const best = rows.reduce((m: number, r: { similarity?: number }) => Math.max(m, Number(r.similarity) || 0), 0);
-    steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: error ? 'failed' : 'done', detail: { rows: rows.length, best: Math.round(best * 1000) / 1000, error: error?.message } });
-    if (best < CORROBORATION_FLOOR) thin.push(s);
+    steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: error ? 'failed' : 'done', detail: { rows: rows.length, best: Math.round(best * 1000) / 1000, space: rt.retrieve === ROUTINES.ml.retrieve ? 'ml' : 'gte', error: error?.message } });
+    if (best < rt.floor) thin.push(s);
   }
   const doResearch = (req.research ?? !deciding) && thin.length > 0 && deps.search && deps.read;
   const researched: Source[] = [];
@@ -434,7 +465,12 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
       const r = await call(system, input, o.max ?? 900, '', o.counterpartModel ? { counterpartModel: o.counterpartModel } : {});
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
-    embed: async (t) => { const { embedLine } = await import('./gte_embed.ts'); return await embedLine(t); },
+    embed: async (t, space) => {
+      // The model runs in embed_ml, never in this worker (ml_embed_client.ts); 8 s covers its cold start (1.2-2.6 s).
+      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return await embedQueryMlRemote(admin, t, fn, 8000); }
+      const { embedLine } = await import('./gte_embed.ts'); return await embedLine(t);
+    },
+    space: async () => { const { readSpace } = await import('./ml_embed_client.ts'); return await readSpace(admin); },
     rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
     search: webSearch,
     read: readPage,
