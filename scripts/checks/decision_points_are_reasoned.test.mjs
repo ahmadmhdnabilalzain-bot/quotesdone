@@ -88,6 +88,14 @@ test('provider webhooks are acknowledged at once and handled after (reasoning ne
   assert.match(read('supabase/functions/_shared/async_webhook.test.ts'), /ms < 100/);
 });
 
+test('the pack loader and the reasoning agree on every spec code (a filled value lands where the reasoning reads)', async () => {
+  const { specCode: loaderCode } = await import(join(REPO, 'scripts/kb/load_trade_spec_checklists.mjs').replace(/\\/g, '/').replace(/^([A-Za-z]):/, 'file:///$1:'));
+  const { specCode: engineCode } = await import(join(REPO, 'supabase/functions/_shared/line_specs/reasoned_specs.ts').replace(/\\/g, '/').replace(/^([A-Za-z]):/, 'file:///$1:'));
+  for (const s of ['cavity width and gas fill (air/argon %)', 'outer pane: thickness, type (annealed/HS/tempered)', 'Rated capacity; tonnes', 'sizes (max/min) and quantity in m²']) {
+    assert.equal(loaderCode(s), engineCode(s), s);
+  }
+});
+
 test('the migrated SQL routines read no free text for meaning: no ~*, ilike or like-on-text in their bodies', () => {
   const sql = code(MIGRATE, read(MIGRATE));
   const body = (name) => { const a = sql.indexOf('function public.' + name + '('); const b = sql.indexOf('$function$;', a); assert.ok(a > 0 && b > a, name); return sql.slice(a, b); };
@@ -134,18 +142,21 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
  *  #884's two files were live on production, unrecorded, and replaying them failed 42723 / 42501). */
 async function pendingReplay() {
   const { sql } = await import('../lib/db.mjs');
+  // A routine a LATER file of the chain redefines counts as live when that later definition is (measured 23 Sep
+  // 18:30: the dispatch and lifecycle files went live, so the engine's own fn_reason_hold/held_due/held_resolve no
+  // longer match production — superseded, not missing — and replaying the engine failed 42501 again).
+  const pend = CHAIN.filter((x) => existsSync(join(REPO, 'scripts/sql/pending', x.split('/').pop().replace(/\.sql$/, '.txt'))));
+  const defs = CHAIN.map((f) => [f, [...read(f).matchAll(/create (?:or replace )?function public\.([a-z0-9_]+)\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$/g)].map((m) => [m[1], m[3].trim()])]);
+  const names = [...new Set(defs.flatMap(([, b]) => b.map(([n]) => n)))];
+  const rows = names.length ? await sql(`select proname, prosrc from pg_proc where pronamespace = 'public'::regnamespace and proname = any(array[${names.map((n) => `'${n}'`).join(',')}])`, { readOnly: true }) : [];
+  const liveBody = (n, b) => rows.some((r) => r.proname === n && String(r.prosrc).trim() === b);
   const out = [];
-  for (const f of CHAIN.filter((x) => existsSync(join(REPO, 'scripts/sql/pending', x.split('/').pop().replace(/\.sql$/, '.txt'))))) {
-    const text = read(f);
-    const bodies = [...text.matchAll(/create (?:or replace )?function public\.([a-z0-9_]+)\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$/g)].map((m) => [m[1], m[3].trim()]);
-    let live = false;
-    if (bodies.length) {
-      const names = [...new Set(bodies.map(([n]) => n))];
-      const rows = await sql(`select proname, prosrc from pg_proc where pronamespace = 'public'::regnamespace and proname = any(array[${names.map((n) => `'${n}'`).join(',')}])`, { readOnly: true });
-      live = bodies.every(([n, b]) => rows.some((r) => r.proname === n && String(r.prosrc).trim() === b));
-    }
-    if (!live) out.push(text);
-  }
+  defs.forEach(([f, bodies], i) => {
+    if (!pend.includes(f)) return;
+    const later = defs.slice(i + 1).flatMap(([, b]) => b);
+    const live = bodies.length > 0 && bodies.every(([n, b]) => liveBody(n, b) || later.some(([m, c]) => m === n && liveBody(m, c)));
+    if (!live) out.push(read(f));
+  });
   return out.join('\n') + '\n';
 }
 /** Runs a DO block that ends in raise exception 'CHK<<json>>' after the pending chain; returns the json. Nothing commits. */
