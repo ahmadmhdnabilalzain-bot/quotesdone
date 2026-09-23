@@ -234,3 +234,11 @@ Deno.test('what reasoning read is written onto the quote, marked reasoned, befor
   assertEquals([l.spec?.thickness_mm, l.spec_source?.thickness_mm], ['18mm', 'reasoned']);
   assertEquals(repo.quotes.get('q6')!.terms_spec?.installation?.source, 'reasoned');
 });
+
+Deno.test('the fill-in form offers the installation scope beside "is installation included?" — one round, not two', async () => {
+  const { termItem } = await import('./assess.ts');
+  const a = { lines: [], missing: [termItem('delivery'), termItem('installation_included'), termItem('warranty_coverage')], terms: {} } as unknown as Parameters<typeof formSchema>[0];
+  assertEquals(formSchema(a, []).terms.map((t) => t.attr), ['delivery', 'installation_included', 'installation_detail', 'warranty_coverage']);
+  const b = { lines: [], missing: [termItem('installation_detail')], terms: {} } as unknown as Parameters<typeof formSchema>[0];
+  assertEquals(formSchema(b, []).terms.map((t) => t.attr), ['installation_detail'], 'never offered twice');
+});

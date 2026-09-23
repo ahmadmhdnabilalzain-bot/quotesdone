@@ -30,7 +30,7 @@
 //
 // Written against a small repository interface so the workflow test runs entirely in memory: no
 // database, no network, and therefore no way to reach a real supplier.
-import { approvalNotice, assessQuote, holdNotice, lineText, releasedNotice, SEAT, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
+import { approvalNotice, assessQuote, termItem, holdNotice, lineText, releasedNotice, SEAT, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
 import { TRADES, type Attr } from './model.ts';
 import { applyReading, type QuoteReading } from '../reasoned_matching.ts';
 import { needsChecklist, withReasoned } from './reasoned_specs.ts';
@@ -153,6 +153,15 @@ export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, 
   return { held: true as const, hold_id: hold.id, missing: a.missing, superseded, assessment: a, notification_ids: ids };
 }
 
+// ONE ROUND, NOT TWO (it_engineer, 23 Sep 2026, measured by the e2e harness on production): the form asked
+// only "Is installation included?"; a supplier who answered yes was held AGAIN for the installation scope,
+// a field the first form never offered. Offer the scope beside the question; fillIn ignores it on "no".
+function withInstallationDetail(terms: MissingItem[]): MissingItem[] {
+  const i = terms.findIndex((m) => m.attr === 'installation_included');
+  if (i < 0 || terms.some((m) => m.attr === 'installation_detail')) return terms;
+  return [...terms.slice(0, i + 1), termItem('installation_detail'), ...terms.slice(i + 1)];
+}
+
 /** What the supplier's fill-in form shows: every missing detail, with the values already read beside it. */
 export function formSchema(a: Assessment, _lines: Line[]) {
   return {
@@ -160,7 +169,7 @@ export function formSchema(a: Assessment, _lines: Line[]) {
       line_no: l.line_no, description: l.description, trade: l.trade, trade_en: l.trade ? TRADES[l.trade].en : null, trade_ar: l.trade ? TRADES[l.trade].ar : null,
       fields: l.defs.map((x) => ({ attr: x.code, label_en: x.en, label_ar: x.ar, type: x.type, unit: x.unit ?? null, unit_ar: x.unit_ar ?? null, options: x.options ?? null, mandatory: x.mandatory, value: l.spec[x.code] ?? null, missing: l.missing.includes(x.code) })),
     })),
-    terms: a.missing.filter((m) => m.scope === 'quote' && m.attr !== 'line_items'),
+    terms: withInstallationDetail(a.missing.filter((m) => m.scope === 'quote' && m.attr !== 'line_items')),
     needs_itemised_lines: a.missing.some((m) => m.attr === 'line_items'),
     values: a.terms,
   };

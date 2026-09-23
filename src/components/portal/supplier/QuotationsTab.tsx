@@ -23,7 +23,7 @@ const COPY = {
     empty: 'No inquiries to quote yet', emptySub: 'Each inquiry you receive appears here by its job number, ready for your quotation.',
     job: 'Job No.', notStarted: 'No quotation yet', open: 'Open conversation', close: 'Close', inquiry: 'Read the inquiry',
     option: (n: number) => `Option ${n}`, loading: 'Loading…', err: 'Something went wrong. Please try again.',
-    pdf: 'Your quotation (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfFailed: 'The document could not be prepared. Please try again.',
+    pdf: 'Your quotation (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfHeld: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.', pdfFailed: 'The document could not be prepared. Please try again.',
     qst: { draft: 'Held — not sent yet', submitted: 'Sent to the customer', accepted: 'Customer revealed you', withdrawn: 'Withdrawn', expired: 'Expired' } as Record<string, string>,
   },
   ar: {
@@ -31,7 +31,7 @@ const COPY = {
     empty: 'لا توجد طلبات للتسعير بعد', emptySub: 'يظهر هنا كل طلب يصلكم برقمه، جاهزًا لتقديم عرض سعركم.',
     job: 'رقم الطلب', notStarted: 'لا يوجد عرض بعد', open: 'فتح المحادثة', close: 'إغلاق', inquiry: 'قراءة الطلب',
     option: (n: number) => `الخيار ${n}`, loading: 'جارٍ التحميل…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
-    pdf: 'عرض سعركم (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
+    pdf: 'عرض سعركم (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfHeld: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
     qst: { draft: 'محجوز — لم يُرسل بعد', submitted: 'أُرسل إلى العميل', accepted: 'كشف العميل عن عرضكم', withdrawn: 'مسحوب', expired: 'منتهي الصلاحية' } as Record<string, string>,
   },
 };
@@ -44,14 +44,14 @@ const COPY = {
 function QuotePdf({ token, lang, quoteId, title }: { token: string; lang: Lang; quoteId: string; title: string | null }) {
   const t = COPY[lang];
   const [busy, setBusy] = useState<Lang | null>(null);
-  const [err, setErr] = useState(false);
-  const open = async (l: Lang) => { setBusy(l); setErr(false); const ok = await openPdf(() => qr.quotePdf(token, quoteId, l)); setBusy(null); if (!ok) setErr(true); };
+  const [err, setErr] = useState<boolean | 'held'>(false);
+  const open = async (l: Lang) => { setBusy(l); setErr(false); const ok = await openPdf(() => qr.quotePdf(token, quoteId, l)); setBusy(null); if (ok !== true) setErr(ok === 'held' ? 'held' : true); };
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px]">
       <span className="text-muted-foreground">{title ? `${title} · ` : ''}{t.pdf}</span>
       <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('en')} lang="en">{busy === 'en' ? t.preparing : t.pdfEn}</Button>
       <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('ar')} lang="ar">{busy === 'ar' ? t.preparing : t.pdfAr}</Button>
-      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
+      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{err === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
     </div>
   );
 }
