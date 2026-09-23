@@ -47,6 +47,7 @@ import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 // wa_status). 'sent' with a SID now means only "Twilio accepted it"; whether it ARRIVED is the
 // provider_status that callback (or its 30-minute backstop poll) writes onto the row.
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
+import { portfolioGate } from './portfolio_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
@@ -84,7 +85,7 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 // then marks THIS row 'skipped' with the reason. It returns null for a row that is not the
 // founder's, so the caller falls through to the behaviour it always had.
 type WaRow = { id: number; type?: string|null; to_phone?: string|null; to_role?: string|null;
-               subject?: string|null; body?: string|null; created_at?: string|null; lang?: string|null };
+               subject?: string|null; body?: string|null; created_at?: string|null; lang?: string|null; lead_id?: number|null };
 // isFounderRow decides the CAP EXEMPTIONS only. Who the founder is for the fallback is decided in
 // one place — fn_wa_founder_alert_fallback, which uses a10's own test (to_role, or to_phone equal
 // to admin_mfa_phone) — so this function does not pre-filter and the two cannot disagree about a
@@ -138,6 +139,9 @@ function tmplKey(type:string):string|null{
   // and its lifting). Transactional, UTILITY category. Until wa_template_setup registers the SID the
   // rows stay queued (mapped-but-unregistered), never dropped; the email twin goes meanwhile.
   if(['quote_spec_hold','quote_spec_regenerated','quote_spec_released','supplier_collaboration_warning','supplier_matching_hold','supplier_matching_hold_lifted'].includes(t)) return 'supplier_account_notice';
+  // 23 Sep 2026 (instruction 858): the 3-working-day portfolio reminder is a notice about the supplier's
+  // own account too. {{1}} is its subject, {{2}} the portal, which opens on the Services tab.
+  if(t==='supplier_portfolio_incomplete') return 'supplier_account_notice';
   // 6 SEP 2026: the founder's own alert. fn_notify_founder queues it (allowed kind, severe level) and
   // wa_flush drains it here. "QuotesDone alert: {{1}}. Details: {{2}}. Open the OS to act." — registered
   // by wa_template_setup under this key.
@@ -370,6 +374,16 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         await admin.from('notifications').update({ status: 'held', last_error:
           ('held: this WhatsApp message was ' + Math.round(ageH) + 'h old when the queue was drained, past the ' + staleH + 'h staleness bar. An alert this old describes a situation that has probably changed, so it is retained and NOT delivered.').slice(0,500) }).eq('id', n.id);
         heldStale++; continue;
+      }
+      // 23 Sep 2026 (instruction 858, review of #869): after the staleness bar (so a held row still expires at 24h), the portfolio reminder is re-read when its WhatsApp
+      // copy actually leaves, not only when the email was written. A supplier who completed his portfolio
+      // after the email must not get a WhatsApp telling him he is still incomplete. FAILS CLOSED
+      // (portfolio_gate.ts): an error or a timeout leaves the row queued with its reason, never sends it.
+      if (String(n.type || '') === 'supplier_portfolio_incomplete') {
+        const g = await portfolioGate((fn, args, signal) => (signal ? admin.rpc(fn, args).abortSignal(signal) : admin.rpc(fn, args)), n.lead_id);
+        if (g.action === 'cancel') { await admin.from('notifications').update({ status: 'cancelled', last_error: g.reason }).eq('id', n.id); skipped++; continue; }
+        // held like a row waiting on its template: the claim lapses and the next run re-checks it
+        if (g.action === 'hold') { await admin.from('notifications').update({ last_error: g.reason }).eq('id', n.id); skipped++; requeued++; lastErr = g.reason; continue; }
       }
       // A capped row is NOT a requeue caused by a template. Counting it as one is what made three
       // founder alerts read as "templates_not_ready" for a day while the template was approved.

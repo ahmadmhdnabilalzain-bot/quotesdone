@@ -89,6 +89,22 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
   const brands = strArr(body.brands, 40, 60);
   const projectTypes = strArr(body.project_types, 12, 60);
   const services = strArr(body.services, 120);
+  // NOTHING TICKED IS NOT A CONFIRMATION (founder_instructions 857 and 862, 23 Sep 2026). The first visit
+  // now starts unticked, so a supplier who presses Confirm without ticking anything would otherwise be
+  // stored as confirmed — matchable, with an empty portfolio shown as complete — and under 857 he would
+  // then reach no inquiry that names a service, without ever having been told why. So a confirm that
+  // states no service at all (no ticked key and no words of his own) is refused whenever the trades he
+  // confirms HAVE services to tick. A trade the taxonomy lists no service for has nothing to tick, and
+  // is confirmed as before. Decided here, in the one writer of confirmed_at, so the Services tab's
+  // services_save_rewrite and the older capability_confirm route (and any mobile client of either)
+  // obey the same rule.
+  if (!services.length) {
+    const { data: tickable } = await admin.from('taxonomy_trade_service')
+      .select('trade_code').eq('active', true).in('trade_code', trades).limit(1);
+    if ((tickable || []).length) {
+      return [400, { error: 'no_service_ticked', code: 'services_none_ticked', trades }];
+    }
+  }
   // Supplier-declared only. These feed a HARD gate in fn_match_capability (a job outside the range
   // removes the supplier from the candidate set), so null stays null and stays permissive.
   const nv = (v: unknown) => (v === null || v === undefined || v === '') ? null : (Number.isFinite(Number(v)) ? Number(v) : null);
