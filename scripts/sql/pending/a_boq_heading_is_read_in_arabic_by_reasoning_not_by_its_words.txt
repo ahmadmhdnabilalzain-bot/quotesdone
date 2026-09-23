@@ -1,9 +1,0 @@
-Committed, not applied. Apply AFTER a_reasoned_answer_is_applied_by_its_own_surface.sql (its resolver calls
-fn_reason_apply_documents__boq_arabic) and every_seat_reasons_before_it_answers.sql (reasoning_held_question).
-Creates public.boq_section_reading (RLS, service_role only) and fn_reason_apply_documents__boq_arabic(bigint, jsonb).
-Deploy WITH it: supplier_api (the inbox reads boq_section_reading through _shared/reasoned_documents.ts).
-Deploying supplier_api before the apply is safe: the select fails, .catch returns no readings, and every
-heading shows in its original words (the held behaviour).
-Proved by node --test scripts/checks/decision_points_are_reasoned.test.mjs (aborted-transaction probe) and
-deno test supabase/functions/_shared/reasoned_documents.test.ts.
-Seat: sales_engineer.
