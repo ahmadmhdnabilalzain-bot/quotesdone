@@ -97,17 +97,27 @@ export const socialComments: Duty = {
         // release() handed it back, or a run died before its question was filed) is re-run the same way, so no held
         // comment can wait for a replay that will never come. A row the platform already accepted a reply for
         // (send_status 'sent', marked at the send) is never re-sent.
+        // A rotating window over the oldest first, sized to the backlog: with 50 or fewer every tick covers all of
+        // them; with more, ceil(n/50) ticks cover all, so rows waiting on an OPEN question (skipped below) never starve
+        // the rest. ponytail: move the "no open question" test into SQL (an RPC) if the backlog grows large.
+        const staleOf = () => admin.from('social_message').select('id', { count: 'exact', head: true })
+          .eq('direction', 'in').eq('channel', 'comment').or('outcome.like.replaying:%,outcome.eq.held_classify');
+        const { count: backlog } = await staleOf();
+        const windows = Math.max(1, Math.ceil((backlog ?? 0) / 50));
+        const from = (Math.floor(now.getTime() / 600_000) % windows) * 50;
         const { data: stale, error: staleErr } = await admin.from('social_message')
           .select('id,outcome,send_status,meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
           .eq('direction', 'in').eq('channel', 'comment').or('outcome.like.replaying:%,outcome.eq.held_classify')
-          // A rotating window over the oldest first, so comments waiting on an OPEN question (skipped below) can never
-          // starve the rest: 20 ticks cover 1,000 waiting rows. ponytail: move the "no open question" test into SQL
-          // (an RPC) if the held backlog ever passes that.
-          .order('occurred_at', { ascending: true }).range(Math.floor(now.getTime() / 600_000) % 20 * 50, Math.floor(now.getTime() / 600_000) % 20 * 50 + 49);
+          .order('occurred_at', { ascending: true }).range(from, from + 49);
         if (staleErr) throw new Error('stale comment replays: ' + staleErr.message);
         const counts: Record<string, number> = {};
         for (const r of stale || []) {
-          if (r.send_status === 'sent') continue;
+          if (r.send_status === 'sent') {
+            // The platform accepted the reply but the run died before recording it: finish it as answered, never re-send.
+            await admin.from('social_message').update({ outcome: 'replied' }).eq('id', r.id).eq('outcome', r.outcome);
+            counts['finalized_sent'] = (counts['finalized_sent'] || 0) + 1;
+            continue;
+          }
           if (String(r.outcome).startsWith('replaying:')) {
             const at = Date.parse(String(r.outcome).slice('replaying:'.length));
             if (!(at < now.getTime() - 10 * 60_000)) continue;
@@ -115,9 +125,12 @@ export const socialComments: Duty = {
             if (!won?.length) continue;
           } else {
             // This comment's own questions only: the exact key, or it followed by ':' (a retry) — LIKE's _ and % escaped.
-            const key = 'social_comment_class:' + r.platform + ':' + r.meta_message_id;
+            // This comment's own open class questions, by the subject every one of them carries (exact equality on
+            // platform + message id): no LIKE or key range, so nothing in an id can act as a wildcard, and collation
+            // (which ignores ':' in the database's locale, measured 23 Sep 2026) plays no part.
             const { data: open } = await admin.from('reasoning_held_question').select('id').eq('status', 'held')
-              .or('dedupe_key.eq."' + key + '",dedupe_key.like."' + key.replace(/[\\%_]/g, (c) => '\\' + c) + ':%"').limit(1);
+              .eq('surface', 'marketing_social.comment_classify').eq('subject->>platform', r.platform)
+              .eq('subject->>message_id', r.meta_message_id).limit(1);
             if (open?.length) continue;
           }
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
