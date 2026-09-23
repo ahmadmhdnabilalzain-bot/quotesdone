@@ -1,7 +1,7 @@
 // The marketing seat's LinkedIn drafts (marketing, 22 Sep 2026). ZZ DEMO people only; no network.
 //   deno test supabase/functions/_shared/marketing_outreach.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { classifyReply, composeFirst, composeFollowUp, founderList, NOTE_MAX, type Prospect, type Segment } from './marketing_outreach.ts';
+import { composeFirst, composeFollowUp, founderList, NOTE_MAX, type Prospect, type Segment } from './marketing_outreach.ts';
 
 const SEGMENTS: Segment[] = ['developer', 'contractor_procurement', 'consultant', 'facility_manager'];
 const person = (id: number, segment: Segment, language: 'en' | 'ar', opening_line: string | null = null): Prospect =>
@@ -31,17 +31,12 @@ Deno.test('the same person always gets the same draft; neighbours vary', () => {
   assert(asks.size >= 2, 'the closing line varies between people');
 });
 
-Deno.test('a pasted reply is read, and the follow-up is professional in its language', () => {
-  assertEquals(classifyReply('Not interested, thanks'), 'decline');
-  assertEquals(classifyReply('Sounds good, please share details'), 'positive');
-  assertEquals(classifyReply('Busy this month, maybe after Eid'), 'later');
-  assertEquals(classifyReply('What is your fee structure?'), 'question');
-  assertEquals(classifyReply('لا، شكرًا'), 'decline');
-  assertEquals(classifyReply('نعم، أرسل التفاصيل'), 'positive');
-  assertEquals(classifyReply('مشغول حاليًا، لاحقًا إن شاء الله'), 'later');
-  for (const l of ['en', 'ar'] as const) for (const r of ['yes', 'not interested', 'later', 'how much?']) {
-    const f = composeFollowUp({ full_name: 'ZZ DEMO Sara', language: l }, r);
-    assertEquals(f.lint, [], `${l}/${r}`);
+// What a pasted reply MEANS is reasoned (reasoned_outreach.test.ts); the follow-up for each class is written here.
+Deno.test('the follow-up for every reasoned class is professional in its language', () => {
+  for (const l of ['en', 'ar'] as const) for (const c of ['decline', 'later', 'positive', 'question'] as const) {
+    const f = composeFollowUp({ full_name: 'ZZ DEMO Sara', language: l }, c);
+    assertEquals(f.lint, [], `${l}/${c}`);
+    assertEquals(f.cls, c);
   }
 });
 

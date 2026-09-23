@@ -1,0 +1,603 @@
+{
+ "trade": "marine",
+ "entries": [
+  {
+   "id": "marine:impa-issa-codes",
+   "topic": "Ship chandlery and IMPA/ISSA codes",
+   "kind": "glossary",
+   "body_en": "Ship supply (chandlery) covers deck, engine, cabin, safety and technical stores delivered to vessels at berth or at anchorage. Two catalogues make a ship's requisition unambiguous from port to port. The IMPA Marine Stores Guide, now in its 8th edition, gives every item a unique six-digit code tied to one exact description; the digital version lists more than 50,000 products and is refreshed about every six months so it can be loaded into e-procurement systems, and the codes have been kept stable for decades. The ISSA catalogue is published by the International Shipsuppliers & Services Association, which groups roughly 2,000 ship suppliers through national associations. Purchasing platforms generate requisitions with these codes, so a supplier quoting to a vessel should answer line by line with the code, the description, the unit of measure exactly as requested, and a clear note of any substitution. Food provisions and bonded stores are a separate stream with food-safety rules and are outside this platform's scope. UAE deliveries happen at Jebel Ali, Port Rashid, Khalifa Port, Khor Fakkan, Hamriyah and, very heavily, at the Fujairah anchorage, which its port authority describes as one of the world's top three bunkering hubs, with about 12,500 calls in 2023 and more than 100 utility boats serving anchored ships from its service harbour. Speed decides many orders: requisitions often arrive a day or two before the ship, and buyers compare total price, availability, delivery time to the ship's side and the ability to supply the whole list in one delivery.",
+   "body_ar": "يشمل تموين السفن مخازن السطح والمحركات والكبائن ومعدات السلامة والمخازن الفنية التي تُسلَّم للسفينة على الرصيف أو في منطقة الرسو. ويعتمد القطاع على كتالوجين يجعلان طلب الشراء واضحاً في أي ميناء: دليل IMPA للمخازن البحرية، وهو الآن في طبعته الثامنة، ويمنح كل صنف رمزاً فريداً من ستة أرقام مرتبطاً بوصف واحد محدد، وتضم نسخته الرقمية أكثر من خمسين ألف منتج وتُحدَّث كل ستة أشهر تقريباً لتُحمَّل في أنظمة المشتريات الإلكترونية، مع ثبات الرموز منذ عقود. أما كتالوج ISSA فتصدره الرابطة الدولية لموردي السفن التي تضم نحو ألفي مورد عبر جمعيات وطنية. وتصدر أنظمة الشراء طلباتها بهذه الرموز، لذا على المورد أن يرد بنداً بنداً بالرمز والوصف ووحدة القياس كما طُلبت، وأن يوضح أي بديل. أما المؤن الغذائية والمخازن المعفاة من الرسوم فمسار مستقل له اشتراطات سلامة الغذاء وهو خارج نطاق المنصة. ويتم التسليم في الدولة في جبل علي وميناء راشد وميناء خليفة وخورفكان والحمرية، وبكثافة في منطقة رسو الفجيرة التي تصفها سلطة الميناء بأنها من أكبر ثلاثة مراكز لتزويد الوقود في العالم، إذ استقبلت نحو اثني عشر ألفاً وخمسمئة سفينة في 2023 ويخدمها أكثر من مئة قارب خدمات من ميناء الخدمات. والسرعة حاسمة، فكثيراً ما يصل الطلب قبل وصول السفينة بيوم أو يومين، ويقارن المشتري السعر الإجمالي والتوفر وزمن التسليم إلى جانب السفينة والقدرة على توريد القائمة كاملة دفعة واحدة.",
+   "sources": [
+    "https://impa.net/what-we-do/impa-marine-stores-guide",
+    "https://www.shipsupply.org/",
+    "https://fujairahport.ae/marine-centre/fujairah-offshore-anchorage-area/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:solas-lsa",
+   "topic": "SOLAS life-saving appliances and the LSA Code",
+   "kind": "standard",
+   "body_en": "Life-saving appliances on ships under the SOLAS Convention must meet SOLAS Chapter III and the International Life-Saving Appliance (LSA) Code and be type-approved for the flag concerned. The family covers lifejackets (adult, child and infant, with light and whistle), immersion suits and thermal protective aids, lifebuoys with self-activating lights and smoke signals, pyrotechnics (rocket parachute flares, hand flares, buoyant smoke signals, line-throwing appliances), inflatable or rigid liferafts with SOLAS A or B equipment packs and hydrostatic release units (HRUs), lifeboats, rescue boats and their launching gear. The approval route depends on the flag: EU-flag ships need Marine Equipment Directive approval shown by the wheel mark, US-flag ships need USCG approval, and other flags accept approvals by their own administration or recognised organisations, so a supplier cannot quote correctly without knowing the flag. Life-limited items are central to this trade. Pyrotechnics carry a manufacturer-stamped expiry date and must be replaced before it; some rules treat unmarked signals as expired after four years. Inflatable liferafts, inflatable lifejackets, inflated rescue boats and serviceable HRUs must be serviced at intervals not exceeding 12 months at an approved station, while disposable HRUs are replaced at the end of the life printed on them. Leisure craft and small work boats that are not SOLAS ships follow federal and emirate rules instead. Every requisition should state vessel type, flag, the approval mark required, quantities and any minimum remaining shelf life.",
+   "body_ar": "يجب أن تستوفي معدات إنقاذ الأرواح على السفن الخاضعة لاتفاقية سولاس متطلبات الفصل الثالث من الاتفاقية والمدونة الدولية لمعدات إنقاذ الأرواح، وأن تكون معتمدة الطراز لدى دولة العلم. وتشمل سترات النجاة للكبار والأطفال والرضع مع الضوء والصافرة، وبدلات الغمر ومعينات الحماية الحرارية، وأطواق النجاة بأضوائها وإشارات الدخان، والألعاب النارية من صواريخ المظلة والشعلات اليدوية وإشارات الدخان العائمة وأجهزة قذف الحبال، وأطواف النجاة القابلة للنفخ أو الصلبة بحزم معدات سولاس A أو B ووحدات الإطلاق الهيدروستاتيكي، وقوارب النجاة والإنقاذ ومعدات إنزالها. ويتبع مسار الاعتماد دولة العلم: فسفن الاتحاد الأوروبي تحتاج اعتماد توجيه المعدات البحرية بعلامة العجلة، والسفن الأمريكية تحتاج اعتماد خفر السواحل الأمريكي، وبقية الأعلام تقبل اعتماد إدارتها أو الهيئات المعترف بها، ولذلك لا يمكن التسعير الصحيح قبل معرفة العلم. والأصناف محدودة العمر جوهر هذا المجال؛ فالألعاب النارية تحمل تاريخ انتهاء يختمه المصنع ويجب استبدالها قبله، وبعض القواعد تعد الإشارات غير المؤرخة منتهية بعد أربع سنوات. أما أطواف النجاة وسترات النجاة القابلة للنفخ وقوارب الإنقاذ المنفوخة ووحدات الإطلاق القابلة للصيانة فتُصان في محطة معتمدة على فترات لا تتجاوز اثني عشر شهراً، وتُستبدل وحدات الإطلاق ذات الاستخدام الواحد عند نهاية العمر المطبوع عليها. ويخضع اليخوت وقوارب العمل الصغيرة غير الخاضعة لسولاس للأنظمة الاتحادية والمحلية. وعلى كل طلب أن يحدد نوع السفينة والعلم وعلامة الاعتماد المطلوبة والكميات والحد الأدنى للعمر المتبقي.",
+   "sources": [
+    "https://www.bahamasmaritime.com/wp-content/uploads/2026/01/MN006-Servicing-of-inflatable-lifesaving-appliances.pdf",
+    "https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/AssemblyDocuments/A.761(18).pdf",
+    "https://www.sailing.org/tools/documents/SPSC4lSR1215423PyrotechnicCarruthers-%5B19552%5D.pdf",
+    "https://www.marineinsight.com/maritime-law/requirements-regarding-pyrotechnics-put-forth-by-solas/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:liferaft-servicing",
+   "topic": "Liferaft and inflatable equipment servicing stations",
+   "kind": "authority_approval",
+   "body_en": "SOLAS regulation III/20 requires inflatable liferafts, inflatable lifejackets, inflated rescue boats and hydrostatic release units (other than disposable ones) to be serviced at intervals not exceeding 12 months. The flag administration may extend this to 17 months where servicing is impracticable, for example when the ship trades where no approved station exists, and IMO guidance (MSC/Circ.955) lets many flags align servicing with the annual survey window, so up to about 18 months can pass between two services; the manager should confirm the route with the flag or its recognised organisation rather than assume it. Servicing must be done at a station approved in line with IMO Resolution A.761(18): the station must be authorised by the manufacturer of each raft brand it services, work from the maker's current manual and bulletins, employ technicians trained and certificated by that manufacturer, and keep proper facilities, tools and genuine spares; administrations are expected to inspect stations regularly. A.761 also calls for the necessary additional pressure test every year once a raft is more than ten years old, alongside routine inspection, gas-inflation checks at the maker's intervals, and replacement of expired pack items such as pyrotechnics, water, rations, medical kit and batteries, ending with a service certificate. Several stations operate in the UAE, each approved for specific brands; ask for the station's current manufacturer certificate and flag acceptance before booking. A complete quote states the brand and model covered, service scope and special tests, pack items replaced at owner's cost, transport to and from the vessel, turnaround time, and whether a loan raft is available if the ship must sail meanwhile.",
+   "body_ar": "تشترط اللائحة III/20 من اتفاقية سولاس صيانة أطواف النجاة القابلة للنفخ وسترات النجاة القابلة للنفخ وقوارب الإنقاذ المنفوخة ووحدات الإطلاق الهيدروستاتيكي (عدا ذات الاستخدام الواحد) على فترات لا تتجاوز اثني عشر شهراً. ويجوز لإدارة دولة العلم تمديد المدة إلى سبعة عشر شهراً إذا تعذرت الصيانة، كأن تعمل السفينة في مناطق لا توجد بها محطة معتمدة، كما تسمح إرشادات المنظمة البحرية الدولية MSC/Circ.955 لكثير من الأعلام بمواءمة الصيانة مع نافذة المسح السنوي بحيث قد يصل الفاصل إلى نحو ثمانية عشر شهراً، وعلى مدير السفينة تأكيد الآلية مع دولة العلم أو هيئة التصنيف لا افتراضها. ويجب أن تتم الصيانة في محطة معتمدة وفق قرار المنظمة A.761(18)، أي محطة مفوضة من الشركة المصنعة لكل علامة طوف تصونها، تعمل بدليل الصيانة الحالي ونشراته، ويعمل بها فنيون دربتهم الشركة المصنعة ومنحتهم شهاداتها، ولديها المرافق والأدوات وقطع الغيار الأصلية، على أن تفتشها الإدارة دورياً. ويقضي القرار كذلك بإجراء اختبار الضغط الإضافي سنوياً بعد أن يتجاوز عمر الطوف عشر سنوات، إلى جانب الفحص الروتيني واختبارات النفخ بالغاز حسب فترات المصنع، واستبدال محتويات الحزمة المنتهية كالألعاب النارية والماء والحصص الغذائية والإسعافات والبطاريات، ثم إصدار شهادة صيانة. وتعمل في الدولة عدة محطات معتمدة لعلامات محددة، فاطلب شهادة المصنع السارية وقبول دولة العلم قبل الحجز. ويتضمن العرض الكامل العلامة والطراز المشمولين ونطاق الصيانة والاختبارات الخاصة، والأصناف المستبدلة على حساب المالك، والنقل من السفينة وإليها، ومدة الإنجاز، وتوفر طوف بديل مؤقت إذا اضطرت السفينة للإبحار.",
+   "sources": [
+    "https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/AssemblyDocuments/A.761(18).pdf",
+    "https://www.bahamasmaritime.com/wp-content/uploads/2026/01/MN006-Servicing-of-inflatable-lifesaving-appliances.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:mooring-rope-fibres",
+   "topic": "Mooring ropes: HMPE vs polyester vs nylon vs polypropylene and mixed",
+   "kind": "comparison",
+   "body_en": "Mooring line fibre decides strength, stretch, weight and handling. HMPE (high-modulus polyethylene, such as Dyneema-type fibre) gives the highest strength for its weight, has a density just under that of water so it floats, and stretches very little; it is now common on large tankers, gas carriers and container ships. Its drawbacks are heat sensitivity (the fibre maker cites about 80 C as the critical temperature, a real concern on worn, hot fairleads), creep under long static load, and low elasticity, which is why HMPE lines are normally fitted with a more elastic tail. Polyester has moderate stretch, good abrasion and UV resistance and keeps its strength when wet; it serves for general mooring and as tail material. Nylon absorbs energy well and suits tails and towing but loses strength when wet, so under MEG4 its design break force must be stated wet. Polypropylene and polypropylene/polyester blends are cheaper floating general-purpose ropes with lower strength and UV life. Constructions include 8-strand plaited, 12-strand braided and double braid, sometimes with a polyester cover over an HMPE core for grip. OCIMF's Mooring Equipment Guidelines, 4th edition (MEG4, 2018), set the vocabulary: the Ship Design MBL (SDMBL) is the reference strength of the ship's mooring system; each new line should have a Line Design Break Force (LDBF) of 100 to 105 percent of SDMBL and tails a Tail Design Break Force of 125 to 130 percent; lines are retired under the ship's Line Management Plan, for example when residual strength falls to 75 percent of SDMBL. SOLAS regulation II-1/3-8, amended from 1 January 2024, brought mooring-equipment selection and inspection guidance into force. Specify material, construction, diameter, length, LDBF and SDMBL, eye splices, tails and certificate.",
+   "body_ar": "تحدد مادة حبل الإرساء قوته ومطاطيته ووزنه وسهولة التعامل معه. فحبال HMPE، أي البولي إيثيلين عالي المعامل مثل ألياف داينيما، تعطي أعلى قوة نسبة إلى وزنها، وكثافتها أقل قليلاً من الماء فتطفو، واستطالتها ضئيلة جداً، وأصبحت شائعة على الناقلات الكبيرة وناقلات الغاز وسفن الحاويات. أما عيوبها فحساسيتها للحرارة، إذ يذكر مصنع الألياف نحو ثمانين درجة مئوية حداً حرجاً وهذا مهم مع الموجهات المتآكلة الساخنة، والزحف تحت الحمل الثابت الطويل، وقلة المرونة، ولذلك تُركّب عادة مع ذيل أكثر مرونة. والبوليستر متوسط الاستطالة جيد المقاومة للاحتكاك والأشعة فوق البنفسجية ولا يفقد قوته مبتلاً، ويستعمل للإرساء العام وللذيول. والنايلون يمتص الطاقة جيداً ويناسب الذيول والقطر لكنه يفقد جزءاً من قوته مبتلاً، ولذا تشترط إرشادات MEG4 ذكر قوة كسره التصميمية في الحالة المبتلة. أما البولي بروبيلين وخلائطه مع البوليستر فأرخص وتطفو لكنها أقل قوة وعمراً تحت الشمس. ومن أنواع الجدل الثماني والمضفور ذو الاثنتي عشرة جديلة والمضفور المزدوج، وأحياناً غلاف بوليستر فوق قلب HMPE لتحسين القبضة. وقد وضعت إرشادات معدات الإرساء الصادرة عن منتدى OCIMF، الطبعة الرابعة 2018، المصطلحات المعتمدة: حمل الكسر التصميمي للسفينة SDMBL هو القوة المرجعية لنظام إرسائها، ويجب أن تكون قوة الكسر التصميمية للحبل الجديد LDBF بين مئة ومئة وخمسة في المئة منه، وللذيل بين مئة وخمسة وعشرين ومئة وثلاثين في المئة، ويُسحب الحبل من الخدمة وفق خطة إدارة الحبال، مثلاً عند انخفاض قوته المتبقية إلى خمسة وسبعين في المئة. كما أدخل تعديل اللائحة II-1/3-8 من سولاس اعتباراً من الأول من يناير 2024 إرشادات اختيار معدات الإرساء وفحصها حيز التنفيذ. ويجب تحديد المادة والجدل والقطر والطول وقوة الكسر التصميمية وحمل السفينة التصميمي والعُرى والذيول والشهادة.",
+   "sources": [
+    "https://www.wilhelmsen.com/ships-service/ropes/an-overview-of-the-regulations-and-guidelines-governing-mooring-lines/",
+    "https://www.marlowropes.com/news/fibre-rope-solutions/hmpe-dyneema-structure-grades-performance/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:wire-rope",
+   "topic": "Steel wire rope for marine and offshore: constructions, grades and lubrication",
+   "kind": "product",
+   "body_en": "Steel wire ropes are used for mooring on some ships, towing, cranes, winches, lifeboat davits and offshore lifting. They are described by construction (for example 6x36 IWRC: six strands of 36 wires around an independent wire rope core), lay (regular or Lang's, right or left hand), diameter, rope grade (1770, 1960 or 2160 N per square millimetre wire tensile grade), finish (bright or galvanised, the latter standard at sea), lubrication and minimum breaking force. Rotation-resistant constructions (for example 35x7 or 18x7) are required for single-fall crane hoists to prevent spinning. Compacted strand ropes give higher strength and crush resistance for multi-layer drum spooling. Standards include EN 12385 and ISO 2408, with API 9A for oilfield ropes. Terminations (ferrule-secured eyes, spelter or resin sockets, wedge sockets) reduce the rope's effective strength by stated efficiencies. Ropes must come with a manufacturer's certificate and, for lifting appliances on classed ships or offshore, class or third-party certification. Discard criteria in ISO 4309 (broken wires, diameter reduction, corrosion, deformation) govern replacement. Specify application, construction, diameter, length, grade, finish, core, lay, terminations and certification.",
+   "body_ar": "تُستخدم حبال الأسلاك الفولاذية للإرساء على بعض السفن والقطر والرافعات والونشات ورافعات قوارب النجاة والرفع البحري. وتُوصف بالتركيب (مثل 6x36 IWRC: ست جدائل من 36 سلكاً حول قلب مستقل من حبل سلكي)، والفتل (عادي أو لانج، يميني أو يساري)، والقطر، ودرجة الحبل (1770 أو 1960 أو 2160 نيوتن لكل مليمتر مربع كدرجة شد للسلك)، والتشطيب (لامع أو مجلفن، والمجلفن هو المعتاد في البحر)، والتزييت، وأدنى قوة كسر. والتراكيب المقاومة للدوران (مثل 35x7 أو 18x7) مطلوبة لرافعات الخط الواحد لمنع الدوران. والحبال ذات الجدائل المضغوطة تعطي مقاومة أعلى ومقاومة للسحق في لف الطبول متعدد الطبقات. ومن المعايير EN 12385 وISO 2408، وAPI 9A لحبال حقول النفط. والنهايات (العيون المثبتة بالجلبة، والمقابس المصبوبة بالمعدن أو الراتنج، والمقابس الإسفينية) تقلل المقاومة الفعالة للحبل بكفاءات محددة. ويجب أن تأتي الحبال بشهادة المصنع، ولأجهزة الرفع على السفن المصنفة أو المنشآت البحرية بشهادة هيئة التصنيف أو طرف ثالث. وتحكم معايير الاستبعاد في ISO 4309 (الأسلاك المكسورة، ونقص القطر، والتآكل، والتشوه) الاستبدال. حدّد الاستخدام والتركيب والقطر والطول والدرجة والتشطيب والقلب والفتل والنهايات والشهادة.",
+   "sources": [
+    "https://www.lr.org/en/knowledge/class-news/13-18/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:anchor-chain",
+   "topic": "Anchor chain grades U1/U2/U3 and offshore R3/R4/R5",
+   "kind": "standard",
+   "body_en": "Ship anchor chain cable is governed by IACS Unified Requirement W18 and the rules of each classification society. W18 divides stud-link chain into Grades 1, 2 and 3 by the nominal tensile strength of the bar steel: roughly 370 to 490 N/mm2 for Grade 1, 490 to 690 N/mm2 for Grade 2 and at least 690 N/mm2 for Grade 3. Several societies label the same grades U1, U2 and U3 (or K1 to K3), so buyers will see both forms; they are the same ladder of mild, special and extra-special quality steel. Because strength rises with grade, a smaller diameter of a higher grade can meet the same required breaking load. The ship's equipment number, calculated under class rules based on IACS UR A1, fixes the required anchor mass and the chain diameter and grade; A1 was revised in 2018 to add deep-water anchoring assessment and to allow wire rope instead of chain for bower anchors on ships under 40 m. Grade 2 and Grade 3 bar and chain must be made by society-approved works and certified after proof-load and breaking-load tests, and accessories such as Kenter joining shackles, swivels and end links must match the chain grade. Chain is sold in shackle lengths of 27.5 m (15 fathoms). Offshore mooring chain for rigs and floating production units is a separate family under IACS W22, graded R3, R3S, R4, R4S and R5, often studless, with stricter testing and fatigue considerations. Replacement chain must also suit the windlass gypsy in diameter and link geometry, or it will not seat. Specify grade, diameter, number of shackles, stud or studless, accessories, and the class society whose certificate is required.",
+   "body_ar": "تخضع سلاسل مراسي السفن للمتطلب الموحد W18 الصادر عن الرابطة الدولية لهيئات التصنيف ولقواعد كل هيئة تصنيف. ويقسم هذا المتطلب السلاسل ذات الدعامة إلى الدرجات 1 و2 و3 حسب مقاومة الشد الاسمية لقضبان الصلب: من نحو 370 إلى 490 نيوتن لكل مليمتر مربع للدرجة الأولى، ومن 490 إلى 690 للثانية، و690 فأكثر للثالثة. وتسمي بعض الهيئات الدرجات نفسها U1 وU2 وU3 أو K1 إلى K3، فهي السلم نفسه من الصلب العادي والخاص والخاص جداً. ولأن القوة تزيد مع الدرجة، يمكن لقطر أصغر من درجة أعلى أن يحقق حمل الكسر المطلوب نفسه. ويحدد رقم تجهيز السفينة، المحسوب وفق قواعد التصنيف المستندة إلى المتطلب A1، وزن المرساة وقطر السلسلة ودرجتها، وقد عُدّل A1 في 2018 ليضيف تقييم الرسو في المياه العميقة ويسمح بالحبال السلكية بدل السلسلة لمراسي السفن التي يقل طولها عن أربعين متراً. ويجب أن تُصنع قضبان وسلاسل الدرجتين الثانية والثالثة لدى مصانع معتمدة من الهيئة وأن تُعتمد بعد اختبارات حمل الإثبات وحمل الكسر، وأن تطابق الملحقات كأقفال كينتر والمفاصل الدوارة والحلقات الطرفية درجة السلسلة. وتباع السلسلة بوحدة الشكل البالغة 27.5 متراً أي خمس عشرة قامة. أما سلاسل إرساء المنصات والوحدات العائمة فعائلة مستقلة تخضع للمتطلب W22 بدرجات R3 وR3S وR4 وR4S وR5، وغالباً بلا دعامة، مع اختبارات أشد واعتبارات للإجهاد المتكرر. ويجب أن تناسب السلسلة البديلة بكرة الرافعة في القطر وشكل الحلقة وإلا لن تستقر. ويجب تحديد الدرجة والقطر وعدد الأشكال ووجود الدعامة والملحقات وهيئة التصنيف المطلوبة شهادتها.",
+   "sources": [
+    "https://iacs.s3.af-south-1.amazonaws.com/wp-content/uploads/2022/05/18141704/ur-w18rev5.pdf",
+    "https://www.lr.org/en/knowledge/class-news/13-18/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:antifouling-paint",
+   "topic": "Marine coatings: antifouling types, AFS Convention and PSPC",
+   "kind": "standard",
+   "body_en": "Hull coatings protect steel from corrosion and stop marine growth that raises fuel consumption. Antifoulings fall into self-polishing copolymers (biocide released at a controlled rate as the surface polishes away), cheaper controlled-depletion polymers with shorter life, and biocide-free foul-release silicone or fluoropolymer systems that shed fouling once the ship moves at speed and suit active, faster vessels. The IMO AFS Convention bans harmful antifouling substances. Organotin (TBT) could not be applied from 1 January 2003 and had to be absent or sealed from 1 January 2008. Amendments adopted in 2021 (resolution MEPC.331(76)) banned cybutryne: from 1 January 2023 it may not be applied or re-applied, and existing coatings containing it must be removed or sealed with a barrier coat at the next scheduled antifouling renewal, and in any case within 60 months of the last application. Ships of 400 GT and above on international voyages carry an International Anti-fouling System Certificate, now worded to cover cybutryne; ships of 24 m or more but under 400 GT carry a signed Declaration on Anti-fouling Systems. Suppliers should therefore provide a maker's statement that the product is free of TBT and cybutryne. Gulf water is warm much of the year, so fouling is aggressive and idle time and speed profile weigh heavily in the choice. Seawater ballast tanks on new ships of 500 GT and above follow the IMO Performance Standard for Protective Coatings (PSPC, MSC.215(82)), typically light-coloured multi-coat epoxy aiming at a 15-year target useful life. Docking work involves surface preparation to ISO 8501 grades, humidity control and inspector sign-off. Specify vessel type, trading pattern, docking interval, areas, film thickness and compliance documents.",
+   "body_ar": "تحمي طلاءات البدن الصلب من التآكل وتمنع النمو البحري الذي يزيد استهلاك الوقود. وتنقسم الطلاءات المانعة للحشف إلى بوليمرات مشتركة ذاتية التلميع تطلق المبيد بمعدل منضبط مع تآكل السطح، وبوليمرات الاستنزاف المنضبط الأرخص والأقصر عمراً، وأنظمة السيليكون أو البوليمرات الفلورية الخالية من المبيدات التي تطرد الحشف عند إبحار السفينة بسرعة وتناسب السفن النشطة السريعة. وتحظر اتفاقية المنظمة البحرية الدولية لأنظمة مكافحة الحشف المواد الضارة؛ فقد مُنع وضع مركبات القصدير العضوي منذ الأول من يناير 2003 ووجب إزالتها أو عزلها منذ الأول من يناير 2008. ثم حظرت تعديلات القرار MEPC.331(76) لعام 2021 مادة السيبوترين، فلا يجوز وضعها أو إعادة وضعها منذ الأول من يناير 2023، ويجب إزالة الطلاء الحاوي لها أو عزله بطبقة حاجزة عند أول تجديد مجدول، وفي كل الأحوال خلال ستين شهراً من آخر وضع. وتحمل السفن بحمولة 400 طن إجمالي فأكثر في الرحلات الدولية شهادة دولية لنظام مكافحة الحشف معدلة لتشمل السيبوترين، وتحمل السفن التي يبلغ طولها أربعة وعشرين متراً فأكثر وحمولتها دون 400 طن إقراراً موقعاً. لذا يجب على المورد تقديم إفادة من المصنع بخلو المنتج من القصدير العضوي والسيبوترين. ومياه الخليج دافئة معظم العام، فالحشف فيها شديد، ولفترات التوقف وسرعة التشغيل وزن كبير في الاختيار. أما خزانات الصابورة في السفن الجديدة بحمولة 500 طن فأكثر فتتبع معيار أداء الطلاءات الواقية وفق القرار MSC.215(82)، وعادة بنظام إيبوكسي فاتح متعدد الطبقات بعمر مستهدف خمس عشرة سنة. ويشمل العمل في الحوض الجاف تجهيز السطح وفق درجات ISO 8501 والتحكم في الرطوبة واعتماد المفتش. ويجب تحديد نوع السفينة ونمط تشغيلها وفترة الحوض والمساحات وسماكة الطبقة ووثائق المطابقة.",
+   "sources": [
+    "https://www.imo.org/en/ourwork/environment/pages/anti-fouling.aspx",
+    "https://www.dnv.com/news/2022/cybutryne-banned-in-anti-fouling-systems-from-1-january-2023-224593/",
+    "https://ww2.eagle.org/content/dam/eagle/regulatory-news/2023/ABS%20Regulatory%20News%20-%20AFS%20Convention%20-%20Ban%20on%20Cybutryne%20in%20Hull%20Coatings.pdf",
+    "https://www.wartsila.com/encyclopedia/term/performance-standards-for-protective-coatings-(pspc)"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:class-certificates",
+   "topic": "Classification societies and certificates for marine equipment",
+   "kind": "authority_approval",
+   "body_en": "Most commercial ships and offshore units are classed by an IACS member society (ABS, BV, CCS, CRS, DNV, IRS, KR, LR, NK, PRS, RINA, TL) or another recognised organisation, which often also performs statutory surveys for the flag. The UAE has its own society, Tasneef (Emirates Classification Society), founded in Abu Dhabi in 2012. Equipment and materials fitted to classed vessels often need two layers of paper: a type approval certificate for the product design (for example cables, pumps, valves, fire detection, some coatings), and for many items a product or inspection certificate for the actual unit, issued after class survey or witnessed testing. Grade 2 and 3 anchor chain (IACS W18) and hull structural steel (IACS W11) are typical: they must come from works approved by the society and carry its certificate and stamp. Some items carry MED wheel-mark approval instead of, or as well as, class approval. Because surveyors can reject uncertified parts and delay the ship, the buyer must name the class society and certificate type in the requisition, and suppliers should expect the certificate to be checked on the society's online register. On the UAE side, the federal Ministry of Energy and Infrastructure keeps the national Ship Register and acts as maritime administration for UAE-flag ships under Federal Maritime Law No. 43 of 2023 (in force from 29 March 2024, replacing the 1981 law), and authorises recognised organisations to survey on its behalf. Emirate bodies such as the Dubai Maritime Authority, Abu Dhabi Maritime and the Fujairah and Sharjah port authorities regulate local craft, marine activities and port operations, and the UAE takes part in Gulf port state control through the Riyadh MoU.",
+   "body_ar": "تُصنَّف معظم السفن التجارية والوحدات البحرية لدى إحدى هيئات الرابطة الدولية لهيئات التصنيف، مثل ABS وBV وCCS وCRS وDNV وIRS وKR وLR وNK وPRS وRINA وTL، أو لدى هيئة أخرى معترف بها، وكثيراً ما تتولى الهيئة المسوحات القانونية نيابة عن دولة العلم. وللدولة هيئة تصنيف وطنية هي «تصنيف» (هيئة الإمارات للتصنيف) التي تأسست في أبوظبي عام 2012. وتحتاج المعدات والمواد المركبة على السفن المصنفة غالباً إلى مستويين من الوثائق: شهادة اعتماد طراز لتصميم المنتج كالكابلات والمضخات والصمامات وأنظمة كشف الحريق وبعض الطلاءات، وشهادة منتج أو فحص للوحدة ذاتها تصدر بعد مسح الهيئة أو اختبار بحضورها. ومن الأمثلة سلاسل المراسي من الدرجتين الثانية والثالثة وصلب هياكل السفن، إذ يجب أن تصدر من مصانع معتمدة لدى الهيئة وتحمل شهادتها وختمها. وبعض الأصناف تحمل علامة العجلة الأوروبية بدلاً من اعتماد التصنيف أو معه. ولأن المفتش قد يرفض القطع غير المعتمدة فيتأخر إبحار السفينة، يجب أن يذكر المشتري هيئة التصنيف ونوع الشهادة في الطلب، وأن يتوقع المورد التحقق منها في السجل الإلكتروني للهيئة. أما محلياً فتتولى وزارة الطاقة والبنية التحتية سجل السفن الوطني وتعمل إدارةً بحرية للسفن الرافعة لعلم الدولة بموجب القانون البحري الاتحادي رقم 43 لسنة 2023 الساري منذ 29 مارس 2024 بدلاً من قانون 1981، وتفوض هيئات معترفاً بها للمسح نيابة عنها. وتنظم الجهات المحلية كهيئة دبي البحرية وأبوظبي البحرية وسلطتي ميناءي الفجيرة والشارقة الوسائط البحرية المحلية والأنشطة البحرية وعمليات الموانئ، وتشارك الدولة في رقابة دولة الميناء الخليجية عبر مذكرة تفاهم الرياض.",
+   "sources": [
+    "https://www.wfw.com/articles/new-uae-maritime-law-what-you-need-to-know/",
+    "https://www.tasneef.ae/",
+    "https://riyadhmou.org/about-us/",
+    "https://www.classnk.or.jp/hp/pdf/info_service/iacs_ur_and_ui/ur_w11_rev.10_sep_2025_cln.pdf",
+    "https://iacs.s3.af-south-1.amazonaws.com/wp-content/uploads/2022/05/18141704/ur-w18rev5.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:fenders",
+   "topic": "Marine fenders: pneumatic (Yokohama) vs foam-filled vs rubber cell/cone vs D-fenders",
+   "kind": "comparison",
+   "body_en": "Fenders absorb berthing energy and protect hulls and quays. High-pressure floating pneumatic fenders (often called Yokohama type) are covered by ISO 17357-1: a cylindrical body with hemispherical ends, built from outer rubber, synthetic tyre-cord reinforcement and inner rubber, filled with air at one of two rated initial pressures, 50 kPa or 80 kPa, and usually protected by a chain-and-tyre net. They are the standard choice for ship-to-ship transfers, which are common at the Fujairah anchorage and offshore, and for tanker berths and temporary moorings, because they give high energy absorption with relatively low reaction force and hull pressure. Foam-filled fenders with polyurethane skins cannot sink or deflate after a puncture and suit naval craft, work boats and offshore support. Fixed quay fenders include cell and cone units for large-ship berths (normally with steel front frames and low-friction polyethylene facing pads), arch fenders, cylindrical fenders, and D-shaped or square rubber sections for tugs and small craft. Selection starts from a berthing energy calculation using vessel displacement, approach velocity and berthing coefficients under a recognised design guide, then checks reaction force against the structure and allowable hull pressure. For supply the buyer must state the fender type; for pneumatic units the diameter by length and the 50 or 80 kPa rating; net type; guaranteed energy absorption and reaction; the maker's performance test certificates; and any third-party or terminal requirements for the ship-to-ship operation. Quotes that give only size and price, without the pressure rating and test data, cannot be compared.",
+   "body_ar": "تمتص المصدات طاقة الرسو وتحمي بدن السفينة والأرصفة. وتغطي المواصفة ISO 17357-1 المصدات الهوائية العائمة عالية الضغط المعروفة بنوع يوكوهاما، وهي جسم أسطواني بطرفين نصف كرويين من مطاط خارجي وطبقة تسليح من نسيج الإطارات ومطاط داخلي، يُملأ بالهواء عند أحد ضغطين ابتدائيين معتمدين هما 50 أو 80 كيلوباسكال، ويُحمى عادة بشبكة من السلاسل والإطارات. وهي الخيار المعتاد لعمليات النقل من سفينة إلى سفينة الشائعة في منطقة رسو الفجيرة وفي البحر، ولأرصفة الناقلات والمراسي المؤقتة، لأنها تمتص طاقة عالية بقوة رد وضغط على البدن منخفضين نسبياً. أما المصدات المحشوة بالرغوة بغلاف من البولي يوريثان فلا تغرق ولا تفرغ عند الثقب، وتناسب السفن الحربية وقوارب العمل وسفن الدعم البحري. ومن مصدات الأرصفة الثابتة المصدات الخلوية والمخروطية لأرصفة السفن الكبيرة مع إطارات أمامية فولاذية وألواح بولي إيثيلين قليلة الاحتكاك، والمصدات القوسية والأسطوانية، ومقاطع المطاط على شكل D أو المربعة للقاطرات والقوارب الصغيرة. ويبدأ الاختيار بحساب طاقة الرسو من إزاحة السفينة وسرعة الاقتراب ومعاملات الرسو وفق دليل تصميم معتمد، ثم التحقق من قوة الرد على المنشأة والضغط المسموح على البدن. وعند التوريد يجب تحديد نوع المصد، وللمصدات الهوائية القطر والطول وفئة الضغط 50 أو 80 كيلوباسكال، ونوع الشبكة، والطاقة الممتصة وقوة الرد المضمونتين، وشهادات اختبار الأداء من المصنع، وأي اشتراطات لطرف ثالث أو للمحطة تنطبق على العملية. والعروض التي تكتفي بالمقاس والسعر دون فئة الضغط وبيانات الاختبار لا تصلح للمقارنة.",
+   "sources": [
+    "https://cdn.standards.iteh.ai/samples/59873/f74f55eac287450191e221f7ed213268/ISO-17357-1-2014.pdf",
+    "https://fujairahport.ae/marine-centre/fujairah-offshore-anchorage-area/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:sacrificial-anodes",
+   "topic": "Sacrificial anodes: zinc vs aluminium vs magnesium",
+   "kind": "comparison",
+   "body_en": "Galvanic (sacrificial) anodes protect hulls, sea chests, ballast and cargo tanks, jetties and offshore structures by corroding in place of the steel. DNV-RP-B401, the recommended practice widely used for cathodic protection design, covers aluminium-based and zinc-based anodes. Its design electrochemical capacity for aluminium-zinc-indium alloy in seawater is about 2,000 ampere-hours per kilogram against about 780 for zinc, so an aluminium anode delivers roughly two and a half times the charge per kilogram and fewer or lighter anodes are needed; that is why Al-Zn-In is the usual choice for hulls, ballast tanks and offshore jackets. Zinc remains a reliable traditional option for hulls and some tank locations. Magnesium has the most negative potential and is used in fresh or brackish water and for buried structures in high-resistivity soil; it is too active for seawater hulls and is not permitted in tanks. Tanks carry a specific safety rule: because a falling aluminium anode striking rusty steel can create a thermite spark, aluminium anodes in cargo tanks for liquids with a flash point below 60 C, and in ballast tanks next to such tanks, must be positioned so a loose anode could not develop more than 275 joules; in practice a 10 kg anode must sit lower than about 2.8 m above the tank bottom. Zinc avoids that constraint. Specify alloy and standard, net and gross weight, dimensions, insert and mounting (weld-on straps, bolt-on, flush), quantity per area, and the maker's certificate of chemical composition and electrochemical test; classed ships may also need class type approval of the anode product.",
+   "body_ar": "تحمي الأقطاب الجلفانية المضحية أبدان السفن وصناديق مآخذ البحر وخزانات الصابورة والشحن والأرصفة والمنشآت البحرية بأن تتآكل بدلاً من الصلب. وتغطي الممارسة الموصى بها DNV-RP-B401، المعتمدة على نطاق واسع في تصميم الحماية الكاثودية، الأقطاب المصنوعة من سبائك الألمنيوم والزنك. وتبلغ السعة الكهروكيميائية التصميمية لسبيكة الألمنيوم والزنك والإنديوم في مياه البحر نحو ألفي أمبير ساعة لكل كيلوغرام مقابل نحو سبعمئة وثمانين للزنك، أي أن قطب الألمنيوم يعطي قرابة ضعفين ونصف لكل كيلوغرام فيقل عدد الأقطاب أو وزنها، ولذلك هي الخيار المعتاد للأبدان وخزانات الصابورة والمنصات البحرية. ويبقى الزنك خياراً تقليدياً موثوقاً للأبدان وبعض مواقع الخزانات. أما المغنيسيوم فجهده الأشد سالبية، ويستعمل في المياه العذبة أو قليلة الملوحة وللمنشآت المدفونة في التربة عالية المقاومة، وهو نشط أكثر من اللازم لأبدان السفن في مياه البحر وغير مسموح به في الخزانات. وللخزانات قاعدة أمان خاصة: لأن سقوط قطب ألمنيوم على صلب صدئ قد يولد شرارة ثرميت، يجب أن تُركّب أقطاب الألمنيوم في خزانات شحن السوائل التي تقل نقطة وميضها عن ستين درجة مئوية، وفي خزانات الصابورة المجاورة لها، بحيث لا تتجاوز طاقة القطب إن سقط 275 جول، وعملياً يجب أن يكون قطب وزنه عشرة كيلوغرامات على ارتفاع أقل من نحو 2.8 متر من قاع الخزان، بينما لا يخضع الزنك لهذا القيد. ويجب تحديد السبيكة والمواصفة والوزن الصافي والإجمالي والأبعاد والقلب وطريقة التثبيت بالحام أو بالبراغي أو المستوي، والكمية لكل مساحة، وشهادة المصنع للتركيب الكيميائي والاختبار الكهروكيميائي، وقد تحتاج السفن المصنفة اعتماد طراز من هيئة التصنيف.",
+   "sources": [
+    "https://www.dnv.com/energy/standards-guidelines/dnv-rp-b401-cathodic-protection-design/",
+    "https://mitcorr.com/resources/offshore-cp-design.html",
+    "https://cathwell.com/what-anode-to-use-in-ballast-and-cargo-tanks-aluminium-or-zinc/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:offshore-lifting",
+   "topic": "Offshore containers and lifting sets: DNV 2.7-1, slings, shackles and certification",
+   "kind": "standard",
+   "body_en": "Cargo carrying units lifted between supply vessels and offshore installations are held to stricter rules than onshore lifting. Offshore containers, baskets, tanks, skids and their lifting sets are commonly certified to DNV-ST-E271 (formerly DNV 2.7-1), which sets requirements for approval, manufacture, testing, marking, certification and periodic inspection of offshore containers and their lifting sets; the European EN 12079 series and ISO 10855 cover the same ground and certificates often reference them together. Each unit carries a data plate and certificate from the certifying body and must be re-inspected at the intervals the standard sets, with its inspection status marked. The lifting set (multi-leg wire-rope or chain sling with master link and shackles) is certified together with the container and sized for its rating, so replacing one leg or shackle with an uncertified part voids the set. Offshore shackles are normally the safety-bolt type (bolt, nut and cotter pin) rather than screw-pin, and must be proof-tested with traceable certificates; chain slings are usually high-grade alloy chain, and synthetic slings are rated and colour-coded by capacity. In the UAE, operators such as ADNOC and their contractors apply their own lifting procedures, inspection colour codes and lists of accepted third-party inspection bodies, so a supplier should expect the operator to name the inspection company. A requisition must state unit type and dimensions, maximum gross mass and payload, the certification standard, number of sling legs and angle, shackle type, inspection and marking requirements, and any operator-mandated inspection body.",
+   "body_ar": "تخضع وحدات الشحن التي تُرفع بين سفن الإمداد والمنشآت البحرية لقواعد أشد من الرفع على اليابسة. وتُعتمد الحاويات البحرية والسلال والخزانات والمنصات وأطقم رفعها عادة وفق المواصفة DNV-ST-E271، المعروفة سابقاً DNV 2.7-1، التي تحدد متطلبات الاعتماد والتصنيع والاختبار والوسم والشهادات والفحص الدوري للحاويات البحرية وأطقم رفعها، وتغطي سلسلة المواصفات الأوروبية EN 12079 والمواصفة ISO 10855 المجال نفسه، وكثيراً ما تشير الشهادات إليها معاً. وتحمل كل وحدة لوحة بيانات وشهادة من جهة الاعتماد، ويجب إعادة فحصها في الفترات التي تحددها المواصفة مع وسم حالة الفحص. ويُعتمد طقم الرفع، من حمالات سلكية أو سلسلية متعددة الأرجل مع حلقة رئيسية وأقفال، مع الحاوية نفسها وبحسب حمولتها، فاستبدال رجل أو قفل بقطعة غير معتمدة يبطل اعتماد الطقم. وتُستخدم في البحر عادة أقفال بمسمار أمان مع صامولة ودبوس بدلاً من الأقفال ذات المسمار الملولب، ويجب اختبارها بحمل الإثبات مع شهادات قابلة للتتبع، والحمالات السلسلية عادة من سبائك عالية الدرجة، والحمالات النسيجية مصنفة ومرمزة بالألوان حسب الحمولة. وفي الدولة تطبق الجهات المشغلة مثل أدنوك ومقاولوها إجراءات رفع خاصة بها ورموز ألوان للفحص وقوائم بجهات الفحص المقبولة، فعلى المورد أن يتوقع تحديد جهة الفحص من المشغل. ويجب أن يحدد الطلب نوع الوحدة وأبعادها والكتلة الإجمالية القصوى والحمولة ومواصفة الاعتماد وعدد أرجل الحمالة وزاويتها ونوع القفل ومتطلبات الفحص والوسم وأي جهة فحص يشترطها المشغل.",
+   "sources": [
+    "https://www.dnv.com/energy/standards-guidelines/dnv-st-e271-offshore-containers/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:marine-cables",
+   "topic": "Marine and offshore cables: IEC 60092, flame and fire resistance, type approval",
+   "kind": "standard",
+   "body_en": "Cables for ships and offshore units follow the IEC 60092 series on electrical installations in ships. IEC 60092-350 sets the general construction and test methods for power, control and instrumentation cables with copper conductors for fixed installations on ships and on mobile and fixed offshore units, at voltages up to 18/30(36) kV. It covers cables that see vibration and movement from the ship but not cables meant for repeated flexing, and it excludes optical-fibre, subsea and umbilical, data and communication, and coaxial cables, which have their own standards. Product parts of the series define specific power and control or instrumentation constructions. Marine cables are usually specified halogen-free and low-smoke, flame-retardant when bunched and, for circuits that must keep working in a fire (fire pumps, emergency lighting, alarm and public address), fire-resistant; most are braided with copper or galvanised steel wire for mechanical protection and screening. Offshore drilling units often call for mud-resistant sheaths to the Norwegian NEK TS 606 specification, common in Gulf offshore work. Every classed installation needs cable types with type approval from the relevant classification society, and yard or operator specifications are strict, so any substitution needs written approval. A buyer must state the governing standard, number of cores and conductor size, voltage rating, insulation and sheath compound, armour or braid, fire performance, class approval required, total length and drum lengths. Fire-test standard numbers quoted by suppliers should be checked against the project specification rather than assumed.",
+   "body_ar": "تتبع كابلات السفن والوحدات البحرية سلسلة المواصفات IEC 60092 الخاصة بالتركيبات الكهربائية على السفن. وتحدد المواصفة IEC 60092-350 متطلبات البناء العامة وطرق الاختبار لكابلات القدرة والتحكم والأجهزة ذات الموصلات النحاسية للتركيبات الثابتة على السفن والوحدات البحرية المتحركة والثابتة، بجهد يصل إلى 18/30(36) كيلوفولت. وهي تشمل الكابلات المعرضة للاهتزاز وحركة السفينة لا الكابلات المخصصة للثني المتكرر، وتستثني كابلات الألياف الضوئية والكابلات البحرية والسرية وكابلات البيانات والاتصالات والكابلات المحورية التي لها مواصفاتها. وتحدد الأجزاء الأخرى من السلسلة تراكيب كابلات القدرة وكابلات التحكم والأجهزة. وتُطلب الكابلات البحرية عادة خالية من الهالوجين قليلة الدخان، مقاومة لانتشار اللهب عند تجميعها، ومقاومة للحريق للدوائر التي يجب أن تعمل أثناء الحريق كمضخات الحريق والإنارة الطارئة والإنذار والنداء العام، ومعظمها مزود بجديلة من النحاس أو الصلب المجلفن للحماية الميكانيكية والحجب. وتطلب وحدات الحفر البحرية غالباً أغلفة مقاومة لطين الحفر وفق المواصفة النرويجية NEK TS 606 الشائعة في مشاريع الخليج البحرية. وكل تركيب مصنف يحتاج أنواع كابلات معتمدة الطراز من هيئة التصنيف المعنية، ومواصفات الأحواض والمشغلين صارمة فأي بديل يحتاج موافقة مكتوبة. ويجب أن يذكر المشتري المواصفة الحاكمة وعدد القلوب ومقطع الموصل وفئة الجهد ومادة العزل والغلاف والتدريع أو الجديلة وأداء الحريق واعتماد التصنيف المطلوب والطول الكلي وأطوال البكرات، وأن يتحقق من أرقام مواصفات اختبار الحريق التي يذكرها المورد مقابل مواصفة المشروع.",
+   "sources": [
+    "https://webstore.iec.ch/en/publication/60517"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:marine-hoses",
+   "topic": "Marine cargo and bunker hoses: GMPHOM and EN 1765",
+   "kind": "product",
+   "body_en": "Hoses that move crude oil, products and bunker fuel between terminals, buoy moorings, barges and ships are safety-critical items. For rubber oil suction and discharge hose assemblies, the European standard EN 1765 (current edition 2016) defines four hose types for petroleum and liquid petroleum products with up to 50 percent aromatics, excluding LPG and natural gas, for nominal bores from 50 to 500 and service temperatures from minus 20 C to 82 C, in smooth-bore, rough-bore or armoured rough-bore construction; these are the typical ship-to-shore, ship-to-ship and bunker hoses. Composite (thermoplastic multi-layer) hoses for hydrocarbons, solvents and chemicals are covered by EN 13765 and are lighter and more flexible. Floating and submarine hoses at offshore single-point moorings are bought to OCIMF's industry guide for manufacturing and purchasing such hoses, which defines prototype and production testing and single- or double-carcass designs. In every case the buyer must match the rated working pressure to the terminal's requirement, choose electrically continuous or discontinuous construction to fit the terminal's insulation arrangement, and match end flanges to the manifold standard and pressure class. Each hose should come with a test certificate, a unique serial number and manufacture date, and be retired under the operator's hose management and the maker's stated life. In the UAE, oil terminals and the Fujairah anchorage, where bunker delivery is mostly barge-to-ship, run their own hose inspection regimes, so terminal acceptance of the hose type can be a condition of supply. Specify service fluid, standard and type, bore, length, pressure rating, electrical continuity, end fittings, buoyancy for floating strings and required testing.",
+   "body_ar": "تُعد الخراطيم التي تنقل النفط الخام والمنتجات ووقود السفن بين المحطات والعوامات والصنادل والسفن معدات حرجة للسلامة. وتحدد المواصفة الأوروبية EN 1765، طبعة 2016، لمجمعات خراطيم المطاط لشفط النفط وتفريغه أربعة أنواع للنفط والمنتجات البترولية السائلة التي لا تتجاوز نسبة العطريات فيها خمسين في المئة، باستثناء غاز البترول المسال والغاز الطبيعي، بأقطار اسمية من 50 إلى 500 ونطاق حرارة تشغيل من سالب عشرين إلى اثنتين وثمانين درجة مئوية، بتجويف أملس أو خشن أو خشن مدرع، وهي الخراطيم المعتادة للنقل بين السفينة والشاطئ وبين السفن وللتزود بالوقود. أما الخراطيم المركبة متعددة الطبقات من اللدائن الحرارية للهيدروكربونات والمذيبات والكيماويات فتغطيها EN 13765، وهي أخف وأكثر مرونة. وتُشترى الخراطيم العائمة والمغمورة في عوامات الإرساء البحرية وفق دليل منتدى OCIMF لتصنيع هذه الخراطيم وشرائها، الذي يحدد اختبارات النموذج والإنتاج وتصاميم الغلاف المفرد أو المزدوج. وفي كل الحالات يجب مطابقة ضغط التشغيل المقنن لاشتراط المحطة، واختيار البناء الموصل كهربائياً أو غير الموصل بما يناسب ترتيب العزل فيها، ومطابقة الشفاه الطرفية لمعيار المشعب وفئة ضغطه. ويجب أن يرافق كل خرطوم شهادة اختبار ورقم تسلسلي فريد وتاريخ تصنيع، وأن يُسحب من الخدمة وفق برنامج المشغل والعمر الذي يحدده المصنع. وفي الدولة تطبق محطات النفط ومنطقة رسو الفجيرة، حيث يتم التزويد غالباً من الصندل إلى السفينة، أنظمة فحص خاصة بها، وقد يكون قبول المحطة لنوع الخرطوم شرطاً للتوريد. ويجب تحديد السائل والمواصفة والنوع والقطر والطول وفئة الضغط والتوصيل الكهربائي والوصلات الطرفية والطفو للخراطيم العائمة والاختبارات المطلوبة.",
+   "sources": [
+    "https://www.en-standard.eu/bs-en-1765-2016-rubber-hose-assemblies-for-oil-suction-and-discharge-services-specification-for-the-assemblies/",
+    "https://fujairahport.ae/marine-centre/fujairah-offshore-anchorage-area/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:gmdss-electronics",
+   "topic": "Navigation and GMDSS safety electronics: EPIRB, SART, AIS, VHF",
+   "kind": "product",
+   "body_en": "Radio and navigation safety equipment on SOLAS ships falls under SOLAS Chapter IV (radiocommunications and the Global Maritime Distress and Safety System, GMDSS) and Chapter V (safety of navigation), with IMO performance standards and IEC test standards behind each item. Typical supply lines are 406 MHz EPIRBs, SARTs or AIS-SARTs for locating survival craft, portable GMDSS VHF radios, fixed VHF DSC and MF/HF sets, satellite GMDSS terminals, AIS transponders, ECDIS, radar and GNSS receivers. EPIRBs are the item most often mishandled. Each 406 MHz beacon carries a country code in its hexadecimal identity, and Cospas-Sarsat guidance is that it must be registered with the national authority of that country, or in the International Beacon Registration Database only where that country allows it or has no registry of its own. A beacon coded for one flag therefore cannot simply move to a ship of another flag without reprogramming and re-registration. EPIRB batteries and their release units have printed expiry dates, and flags commonly require shore-based maintenance and annual testing. Equipment must be type-approved (MED wheel mark or other flag-accepted approval) and installed and surveyed by authorised technicians; the annual radio survey supports the ship's safety radio certificate. In the UAE, radio equipment import and use also involve the telecommunications regulator (TDRA) for type approval and licensing, while the maritime administration handles ship radio documents for UAE-flag ships; the exact split should be confirmed case by case. Buyers must state flag, MMSI and required approvals, and for EPIRBs the country code to be programmed and the registration route.",
+   "body_ar": "تخضع معدات الاتصال والملاحة الخاصة بالسلامة على سفن سولاس للفصل الرابع من الاتفاقية، أي الاتصالات اللاسلكية والنظام العالمي للاستغاثة والسلامة البحرية، وللفصل الخامس الخاص بسلامة الملاحة، ولكل صنف معايير أداء من المنظمة البحرية الدولية ومواصفات اختبار من IEC. ومن بنود التوريد المعتادة منارات الطوارئ EPIRB بتردد 406 ميغاهرتز، وأجهزة SART أو AIS-SART لتحديد مواقع وسائل النجاة، وأجهزة VHF المحمولة، وأجهزة VHF DSC وMF/HF الثابتة، ومحطات الأقمار الصناعية، وأجهزة AIS، وأنظمة ECDIS، والرادار، ومستقبلات تحديد المواقع. ومنارات الطوارئ أكثر ما يُخطأ فيه؛ فكل منارة تحمل رمز دولة في هويتها الست عشرية، وتقضي إرشادات كوسباس-سارسات بتسجيلها لدى السلطة الوطنية لتلك الدولة، أو في قاعدة التسجيل الدولية فقط إذا سمحت الدولة بذلك أو لم يكن لديها سجل. لذا لا يجوز نقل منارة مبرمجة لعلم إلى سفينة بعلم آخر دون إعادة برمجة وتسجيل. ولبطاريات المنارات ووحدات إطلاقها تواريخ انتهاء مطبوعة، وكثيراً ما تشترط دولة العلم صيانة على الشاطئ واختباراً سنوياً. ويجب أن تكون المعدات معتمدة الطراز بعلامة العجلة أو اعتماد تقبله دولة العلم، وأن يركبها ويفحصها فنيون معتمدون، والمسح اللاسلكي السنوي يدعم شهادة السلامة اللاسلكية للسفينة. وفي الدولة يرتبط استيراد أجهزة الراديو واستخدامها أيضاً بهيئة تنظيم الاتصالات والحكومة الرقمية لاعتماد الطراز والترخيص، بينما تتولى الإدارة البحرية وثائق الراديو لسفن العلم الإماراتي، ويُستحسن تأكيد توزيع الاختصاص في كل حالة. ويجب أن يذكر المشتري العلم ورقم MMSI والاعتمادات المطلوبة، وللمنارات رمز الدولة المطلوب برمجته ومسار التسجيل.",
+   "sources": [
+    "https://cospas-sarsat.int/en/beacon-ownership/beacon-registration-faq"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:marine-fire",
+   "topic": "Marine fire-fighting equipment: FSS Code, extinguishers and fixed systems",
+   "kind": "standard",
+   "body_en": "Fire safety on ships is governed by SOLAS Chapter II-2 and the International Code for Fire Safety Systems (FSS Code). Portable and semi-portable extinguishers (water, foam, CO2, dry powder) must be type-approved for marine use under the flag's accepted route, commonly the MED wheel mark; they are not interchangeable with building extinguishers approved by UAE Civil Defence, and a supplier must not substitute one for the other. Fixed systems include high-pressure CO2 total flooding for engine rooms, pump rooms and cargo holds, water-mist and sprinkler systems, fixed and deck foam on tankers, and local-application systems. Maintenance of fixed CO2 systems follows IMO MSC.1/Circ.1318/Rev.1 (2021): monthly visual checks by the crew; annual inspection of release controls, pipework and cylinders; every two years (plus or minus three months) on passenger ships, or at each intermediate, periodical or renewal survey on cargo ships, a service by technicians trained to standards accepted by the administration, including cylinder content checks and function tests; internal inspection of all control valves at least every five years; renewal of flexible hoses every ten years; and at the ten-year point internal inspection and hydrostatic test of at least 10 percent of the cylinders, rising to 50 percent if any fail, with all cylinders tested before their 20th anniversary and every ten years after. Firefighter's outfits with breathing apparatus and spare cylinders, emergency escape breathing devices, hoses and nozzles, the international shore connection and fire detection complete the equipment. In UAE ports this servicing is done by companies accepted by the flag or its class society. Specify vessel type, flag, approval, extinguisher type and size, system type, service scope and certificates.",
+   "body_ar": "تخضع السلامة من الحريق على السفن للفصل II-2 من اتفاقية سولاس والمدونة الدولية لأنظمة السلامة من الحريق. ويجب أن تكون الطفايات المحمولة وشبه المحمولة، من الماء والرغوة وثاني أكسيد الكربون والبودرة الجافة، معتمدة الطراز للاستخدام البحري وفق المسار المقبول لدى دولة العلم، وغالباً بعلامة العجلة الأوروبية، ولا تُستبدل بها طفايات المباني المعتمدة من الدفاع المدني، ولا يجوز للمورد أن يخلط بينهما. ومن الأنظمة الثابتة الإغراق الكلي بثاني أكسيد الكربون عالي الضغط لغرف المحركات والمضخات وعنابر الشحن، وأنظمة الرذاذ المائي والرشاشات، والرغوة الثابتة ورغوة سطح الناقلات، وأنظمة الإطفاء الموضعي. وتتبع صيانة أنظمة ثاني أكسيد الكربون الثابتة تعميم المنظمة البحرية الدولية MSC.1/Circ.1318/Rev.1 لعام 2021: فحص بصري شهري من الطاقم؛ وفحص سنوي لأجهزة الإطلاق والأنابيب والأسطوانات؛ وكل سنتين بزيادة أو نقص ثلاثة أشهر على سفن الركاب، أو عند كل مسح وسيط أو دوري أو تجديدي على سفن الشحن، صيانة بواسطة فنيين مدربين وفق معايير تقبلها الإدارة تشمل التحقق من كمية الغاز واختبارات التشغيل؛ وفحص داخلي لجميع صمامات التحكم مرة على الأقل كل خمس سنوات؛ وتجديد الخراطيم المرنة كل عشر سنوات؛ وعند السنة العاشرة فحص داخلي واختبار هيدروستاتيكي لعشرة في المئة على الأقل من الأسطوانات يرتفع إلى خمسين في المئة إن فشلت أي منها، مع اختبار جميع الأسطوانات قبل مرور عشرين عاماً ثم كل عشر سنوات. وتكمل المعدات بدلات رجال الإطفاء مع أجهزة التنفس وأسطواناتها الاحتياطية، وأجهزة التنفس للهروب، والخراطيم والفوهات، ووصلة الشاطئ الدولية، وأنظمة الكشف. وفي موانئ الدولة تتولى هذه الصيانة شركات مقبولة لدى دولة العلم أو هيئة التصنيف. ويجب تحديد نوع السفينة والعلم والاعتماد ونوع الطفاية وحجمها ونوع النظام ونطاق الخدمة والشهادات.",
+   "sources": [
+    "https://www.liscr.com/sites/default/files/Guidelines%20for%20the%20maintenance%20and%20inspections%20of%20fixed%20CO2%20fire-extinguishing%20systems-MSC.1_Circ.1318_Rev.1.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:marine-steel",
+   "topic": "Shipbuilding steel grades: A, B, D, E and AH36/DH36/EH36",
+   "kind": "standard",
+   "body_en": "Hull structural steel for ships and offshore units is ordered to classification society rules harmonised through IACS Unified Requirement W11. Normal-strength steel comes in grades A, B, D and E, all with a minimum yield strength of 235 N/mm2 and tensile strength of 400 to 520 N/mm2; the letter indicates the Charpy impact requirement at progressively lower test temperatures (B at 0 C, D at minus 20 C, E at minus 40 C, while grade A needs impact testing only in thicker plate). Higher-strength steel is offered at three yield levels, 315, 355 and 390 N/mm2 (the 32, 36 and 40 series), each in toughness grades A, D, E and F, with F tested at minus 60 C for low-temperature service; AH36, DH36 and EH36 are the everyday names for the 355 N/mm2 grades. W11 also controls the delivery condition (as-rolled, normalised, controlled or thermo-mechanically rolled) according to grade and thickness. The designer selects grades by member and location, using tougher grades for critical strakes and thick plate. Plates, sections and bulb flats must come from mills approved by the relevant society, be stamped with its mark and carry its certificate; for repair work in UAE yards on classed ships, the surveyor will expect material certified by the ship's own society or one it accepts. Offshore structures commonly use steels to EN 10225 or API specifications with through-thickness (Z) properties where required. A requisition should state grade, thickness and dimensions, quantity, any special delivery condition, class society and the type of inspection certificate the society requires.",
+   "body_ar": "يُطلب صلب هياكل السفن والوحدات البحرية وفق قواعد هيئات التصنيف الموحدة عبر المتطلب W11 الصادر عن الرابطة الدولية لهيئات التصنيف. ويأتي الصلب العادي بالدرجات A وB وD وE، وحد الخضوع الأدنى لها جميعاً 235 نيوتن لكل مليمتر مربع ومقاومة الشد بين 400 و520، ويدل الحرف على متطلب اختبار الصدم شاربي عند درجات حرارة تتدرج نزولاً: B عند الصفر المئوي، وD عند سالب عشرين، وE عند سالب أربعين، أما الدرجة A فلا تحتاج اختبار صدم إلا في الألواح السميكة. ويتوفر الصلب عالي المقاومة بثلاثة مستويات خضوع هي 315 و355 و390 نيوتن لكل مليمتر مربع، أي سلاسل 32 و36 و40، ولكل منها درجات متانة A وD وE وF، وتُختبر F عند سالب ستين للخدمة في الحرارة المنخفضة، والأسماء الشائعة AH36 وDH36 وEH36 تعني درجات 355. كما يضبط W11 حالة التوريد من الدرفلة العادية أو المعايرة أو الدرفلة المنضبطة أو الحرارية الميكانيكية حسب الدرجة والسماكة. ويختار المصمم الدرجة حسب العضو الإنشائي وموقعه، مع درجات أمتن للألواح الحرجة والسميكة. ويجب أن تأتي الألواح والمقاطع من مصانع معتمدة لدى الهيئة المعنية، مختومة بعلامتها ومرفقة بشهادتها، وفي أعمال الإصلاح في أحواض الدولة على السفن المصنفة يتوقع المفتش مادة معتمدة من هيئة السفينة أو من هيئة تقبلها. أما المنشآت البحرية فتستخدم عادة صلباً وفق EN 10225 أو مواصفات API مع خواص السماكة العرضية عند الحاجة. ويجب أن يحدد الطلب الدرجة والسماكة والأبعاد والكمية وحالة التوريد الخاصة إن وجدت وهيئة التصنيف ونوع شهادة الفحص المطلوبة.",
+   "sources": [
+    "https://www.classnk.or.jp/hp/pdf/info_service/iacs_ur_and_ui/ur_w11_rev.10_sep_2025_cln.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:spec-marine-order",
+   "topic": "Spec checklist: quoting marine stores and equipment for a vessel",
+   "kind": "spec_checklist",
+   "body_en": "A marine supply quote is exact only when the requisition gives vessel and delivery context plus item identity. Vessel data: name, IMO number, flag, class society, vessel type and size, and whether SOLAS or non-SOLAS. Delivery: port or anchorage, ETA and ETD, agent details, whether delivery is at berth, by launch or to a warehouse for forwarding, and customs status (ships' stores in transit or duty-paid). Items: IMPA or ISSA code where available, full description, maker and part number for spares (with the equipment model and serial number or nameplate), unit of measure, quantity, and acceptable alternatives (original, genuine or equivalent). Certification required: MED wheelmark, USCG, class type approval, product certificate, or none; manufacturing date limits for items with expiry (pyrotechnics, medical supplies, EPIRB batteries, hydrostatic releases). For ropes, chain and lifting gear: material, construction, size, length, MBL or SWL and certificate. For paints: product, colour, volume, and system compatibility with the existing coating. Commercial: currency, payment terms, validity and delivery cost for launch or port pass. Missing vessel or certification data is the most common reason quotes are rejected onboard.",
+   "body_ar": "لا يكون عرض التوريد البحري دقيقاً إلا إذا أعطى الطلب سياق السفينة والتسليم وهوية الصنف. بيانات السفينة: الاسم ورقم IMO والعلم وهيئة التصنيف ونوع السفينة وحجمها وهل هي خاضعة لسولاس أم لا. التسليم: الميناء أو المرسى، والوصول والمغادرة المتوقعان، وبيانات الوكيل، وهل التسليم على الرصيف أم بالقارب أم إلى مستودع للشحن، والحالة الجمركية (مخازن سفن بالعبور أو مدفوعة الرسوم). الأصناف: رمز IMPA أو ISSA حيث يتوفر، والوصف الكامل، والصانع ورقم القطعة لقطع الغيار (مع طراز المعدة ورقمها التسلسلي أو لوحتها)، ووحدة القياس، والكمية، والبدائل المقبولة (أصلي أو حقيقي أو مكافئ). الشهادات المطلوبة: علامة العجلة MED أو خفر السواحل الأمريكي أو اعتماد نوع التصنيف أو شهادة منتج أو لا شيء؛ وحدود تاريخ التصنيع للأصناف ذات الصلاحية (الألعاب النارية والمستلزمات الطبية وبطاريات المنارات ووحدات الإطلاق الهيدروستاتيكي). وللحبال والسلاسل ومعدات الرفع: المادة والتركيب والمقاس والطول وMBL أو SWL والشهادة. وللدهانات: المنتج واللون والحجم وتوافق النظام مع الطلاء القائم. والنقاط التجارية: العملة وشروط الدفع والصلاحية وتكلفة التسليم بالقارب أو تصريح الميناء. ونقص بيانات السفينة أو الشهادات هو أكثر أسباب رفض العروض على متن السفينة.",
+   "sources": [
+    "https://impa.net/what-we-do/impa-marine-stores-guide",
+    "https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/AssemblyDocuments/A.761(18).pdf",
+    "https://www.imo.org/en/ourwork/environment/pages/anti-fouling.aspx",
+    "https://cospas-sarsat.int/en/beacon-ownership/beacon-registration-faq"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23",
+   "required_specs": [
+    "vessel name, IMO number, flag, class",
+    "SOLAS or non-SOLAS",
+    "port/anchorage and ETA/ETD",
+    "agent and delivery method (berth/launch)",
+    "customs status (in transit / duty paid)",
+    "IMPA/ISSA code or maker part number",
+    "equipment model/serial for spares",
+    "unit and quantity",
+    "genuine/equivalent acceptance",
+    "certification required (MED/USCG/class)",
+    "expiry/manufacturing date limits",
+    "rope/chain/lifting: material, size, MBL/SWL, certificate",
+    "paint: product, colour, system compatibility",
+    "commercial terms"
+   ]
+  },
+  {
+   "id": "marine:port-delivery-uae",
+   "topic": "Delivering supplies to vessels in UAE ports: passes, customs and launches",
+   "kind": "authority_approval",
+   "body_en": "Supplying ships in UAE ports involves port, security, customs and maritime-authority steps that affect both price and timing. In Dubai, Jebel Ali and Port Rashid are operated by DP World within the Ports, Customs and Free Zone Corporation, whose regulator Trakhees issues marine NOCs, unified digital marine permits, entry permits for supplier vehicles and equipment, and accreditation for shipping agents and third-party agencies working in the port. The Dubai Maritime Authority regulates commercial maritime activity in Dubai waters; company set-up guides state that a ship-chandling licence needs DMA pre-approval, and DMA Administrative Resolution No. 1 of 2025 governs permits for commercial work done from vessels, such as goods transport, towing and diving. In Abu Dhabi, Abu Dhabi Maritime, part of AD Ports Group, issues NOCs for maritime company licences, operating permits for marine companies, anchorage and mooring permits applied for by the agent or master, and fuel-supply permits for floating platforms. The Fujairah anchorage, with up to 174 anchor positions and more than 100 utility boats run by agencies from the service harbour, is where much of the country's launch delivery happens, so launch hire, weather and timing are real cost items; Khor Fakkan in Sharjah is another east-coast option. Customs treatment of ships' stores (in transit, re-export or duty-paid) depends on the goods' origin and the declaration route and must be confirmed with the agent or Dubai Customs per shipment; this pack does not establish the exact procedure. Dangerous goods such as paints, gases and pyrotechnics need correct classification and may be restricted on launches. Every quote should say whether delivery is at berth, alongside by launch or to a forwarder, and whether passes, launch and customs costs are included.",
+   "body_ar": "يتطلب تزويد السفن في موانئ الدولة خطوات لدى الموانئ والأمن والجمارك والسلطات البحرية تؤثر في السعر والتوقيت. ففي دبي تشغل موانئ دبي العالمية ميناءي جبل علي وراشد ضمن مؤسسة الموانئ والجمارك والمنطقة الحرة، وتصدر جهتها التنظيمية «تراخيص» شهادات عدم الممانعة البحرية والتصاريح البحرية الرقمية الموحدة وتصاريح دخول مركبات الموردين ومعداتهم، وتعتمد الوكلاء الملاحيين والجهات الخارجية العاملة في الميناء. وتنظم هيئة دبي البحرية النشاط البحري التجاري في مياه دبي، وتذكر أدلة تأسيس الشركات أن رخصة تموين السفن تحتاج موافقة مسبقة من الهيئة، ويحكم القرار الإداري رقم 1 لسنة 2025 تصاريح الأعمال التجارية التي تُنفذ من السفن كنقل البضائع والقطر والغوص. وفي أبوظبي تصدر «أبوظبي البحرية» التابعة لمجموعة موانئ أبوظبي شهادات عدم الممانعة لتراخيص الشركات البحرية وتصاريح تشغيلها وتصاريح الرسو والإرساء التي يتقدم بها الوكيل أو الربان وتصاريح تزويد المنصات العائمة بالوقود. أما منطقة رسو الفجيرة، بما يصل إلى 174 موقع رسو وأكثر من مئة قارب خدمات تشغلها الوكالات من ميناء الخدمات، فهي حيث يتم معظم التسليم بالقوارب في الدولة، ولذا فإن استئجار القارب والطقس والتوقيت بنود تكلفة حقيقية، ويمثل خورفكان في الشارقة خياراً آخر على الساحل الشرقي. أما المعاملة الجمركية لمخازن السفن، سواء بالعبور أو إعادة التصدير أو مع دفع الرسوم، فتعتمد على منشأ البضاعة ومسار التصريح ويجب تأكيدها مع الوكيل أو جمارك دبي لكل شحنة، ولا تثبت هذه الحزمة الإجراء الدقيق. وتحتاج البضائع الخطرة كالدهانات والغازات والألعاب النارية تصنيفاً صحيحاً وقد تُقيّد على القوارب. ويجب أن يوضح كل عرض ما إذا كان التسليم على الرصيف أو بجانب السفينة بالقارب أو إلى وكيل شحن، وهل تشمل الأسعار التصاريح والقارب والجمارك.",
+   "sources": [
+    "https://www.pcfc.ae/en/Pages/servicelists.aspx?BU=trakhees",
+    "https://www.admaritime.ae/our-services/",
+    "https://fujairahport.ae/marine-centre/fujairah-offshore-anchorage-area/",
+    "https://www.meydanfz.ae/activity-hub/setup-ship-chandlers-business-in-dubai-uae",
+    "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(1)%20of%202025%20for%20Commercial%20Maritime.html"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:red-flags",
+   "topic": "Red flags in marine supply quotes",
+   "kind": "quote_red_flag",
+   "body_en": "Warning signs in marine and offshore supply quotes: safety equipment (lifejackets, pyrotechnics, liferafts, fire extinguishers, EPIRBs) offered without the MED, USCG or flag-accepted type approval the vessel needs, or with building-grade approvals only; pyrotechnics or medical supplies near expiry, which will be rejected at the next survey; spares offered as \"genuine\" without traceability to the original manufacturer, or \"OEM equivalent\" without stating the maker; mooring ropes quoted by diameter only, without material, construction and certified breaking load, or with MBL figures that are suspiciously high for the diameter; anchor chain, steel plate or lifting gear without class certificates; paint offered as equivalent but incompatible with the existing coating system or not AFS-compliant; liferaft service by a station not approved for that brand; quotes that exclude launch or port-pass costs, then add them after delivery; unit of measure mismatches (per coil vs per metre, per litre vs per tin) that make prices look lower. Unusually low prices on branded items can indicate counterfeits, particularly for bearings, filters and electronic parts. Any of these should hold the quote until clarified, because non-compliant items can detain the ship at port state control.",
+   "body_ar": "من علامات التحذير في عروض التوريد البحري: عرض معدات السلامة (سترات النجاة والألعاب النارية والأطواف والطفايات والمنارات) دون اعتماد النوع MED أو خفر السواحل الأمريكي أو المقبول لدى العلم الذي تحتاجه السفينة، أو باعتمادات المباني فقط؛ أو ألعاب نارية أو مستلزمات طبية قريبة الانتهاء ستُرفض في المسح التالي؛ أو قطع غيار تُعرض على أنها أصلية دون تتبع للمصنع الأصلي، أو مكافئة دون ذكر الصانع؛ أو حبال إرساء تُسعَّر بالقطر فقط دون المادة والتركيب وحمل الكسر المعتمد، أو بأرقام MBL مرتفعة بشكل مريب للقطر؛ أو سلاسل مراسي أو ألواح فولاذ أو معدات رفع دون شهادات تصنيف؛ أو دهان يُعرض كمكافئ لكنه غير متوافق مع نظام الطلاء القائم أو غير مطابق لاتفاقية AFS؛ أو صيانة أطواف من محطة غير معتمدة لتلك العلامة؛ أو عروض تستثني تكاليف القارب أو تصريح الميناء ثم تضيفها بعد التسليم؛ أو عدم تطابق وحدات القياس (للفة مقابل للمتر، للتر مقابل للعلبة) مما يجعل الأسعار تبدو أقل. والأسعار المنخفضة بشكل غير معتاد لأصناف ذات علامات قد تدل على تقليد، خاصة المحامل والفلاتر والقطع الإلكترونية. أي من ذلك يوجب تعليق العرض حتى يُوضَّح، لأن الأصناف غير المطابقة قد تؤدي لاحتجاز السفينة في رقابة دولة الميناء.",
+   "sources": [
+    "https://riyadhmou.org/about-us/",
+    "https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/AssemblyDocuments/A.761(18).pdf",
+    "https://www.imo.org/en/ourwork/environment/pages/anti-fouling.aspx",
+    "https://iacs.s3.af-south-1.amazonaws.com/wp-content/uploads/2022/05/18141704/ur-w18rev5.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:buyer-mistakes",
+   "topic": "Common buyer mistakes in marine procurement",
+   "kind": "buyer_mistake",
+   "body_en": "Common errors include sending requisitions without IMO number, flag and class, so suppliers cannot confirm which approvals apply. Buyers order spares by description instead of maker's part number and equipment serial, receiving parts that do not fit. They buy building-code fire extinguishers or non-MED lifejackets for SOLAS ships, then fail survey. They replace an HMPE mooring line with a polyester one of the same diameter, losing a large share of the strength, or use HMPE without tails. They order chain without checking the gypsy fit. They mix incompatible paint systems during drydock touch-up, causing detachment. They forget expiry cycles and receive items that expire within months. They do not plan for launch delivery windows at Fujairah anchorage, missing the vessel's departure. They overlook customs treatment, paying duty on ships' stores that could be supplied in transit. And they treat all class certificates as equal, when the specific class and certificate type matter for survey. Providing vessel data, part numbers, certification and delivery context at requisition avoids most of these problems.",
+   "body_ar": "من الأخطاء الشائعة إرسال طلبات دون رقم IMO والعلم والتصنيف، فلا يستطيع الموردون تأكيد الاعتمادات المنطبقة. ويطلب المشترون قطع الغيار بالوصف بدلاً من رقم قطعة الصانع والرقم التسلسلي للمعدة، فيستلمون قطعاً لا تناسب. ويشترون طفايات بمواصفات المباني أو سترات نجاة غير معتمدة MED لسفن سولاس ثم يفشلون في المسح. ويستبدلون حبل إرساء HMPE بحبل بوليستر بالقطر نفسه فتنخفض المقاومة إلى النصف، أو يستخدمون HMPE دون ذيول. ويطلبون السلاسل دون التحقق من ملاءمة بكرة الونش. ويخلطون أنظمة دهانات غير متوافقة في إصلاحات الحوض الجاف فيحدث الانفصال. وينسون دورات الصلاحية فيستلمون أصنافاً تنتهي خلال أشهر. ولا يخططون لنوافذ التسليم بالقوارب في مرسى الفجيرة فتفوتهم مغادرة السفينة. ويغفلون المعاملة الجمركية فيدفعون رسوماً على مخازن سفن كان يمكن توريدها بالعبور. ويعاملون كل شهادات التصنيف على أنها متساوية، بينما تهم هيئة التصنيف ونوع الشهادة المحددان للمسح. وتقديم بيانات السفينة وأرقام القطع والشهادات وسياق التسليم عند الطلب يتجنب معظم هذه المشاكل.",
+   "sources": [
+    "https://www.wilhelmsen.com/ships-service/ropes/an-overview-of-the-regulations-and-guidelines-governing-mooring-lines/",
+    "https://www.marlowropes.com/news/fibre-rope-solutions/hmpe-dyneema-structure-grades-performance/",
+    "https://impa.net/what-we-do/impa-marine-stores-guide"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:price-drivers",
+   "topic": "Price drivers for marine supplies",
+   "kind": "price_driver",
+   "body_en": "Marine supply prices are driven by certification, brand, urgency and logistics. Type-approved safety items (MED or USCG) cost more than uncertified equivalents because of testing and surveillance. Genuine original manufacturer spares for main engines, generators and deck machinery carry premiums over equivalent parts. Mooring rope prices depend on fibre (HMPE is several times the cost of polyester or polypropylene per metre), diameter, construction, splicing and certification. Anchor chain, wire rope and steel follow steel and alloy prices plus class certification costs. Marine paint cost depends on product type (foul-release silicone systems cost much more than conventional antifouling), volume and technical service during application. Logistics costs are significant: launch hire at anchorages, port passes, customs formalities, dangerous goods handling, air freight for urgent spares, and after-hours deliveries. Urgency often dominates: a vessel waiting in port pays heavily for delay, so fast delivery commands a premium. Exchange rates for European products, minimum order quantities, and consolidated versus split deliveries also affect price. Buyers should compare total landed cost to the ship, not only unit prices.",
+   "body_ar": "تتحدد أسعار التوريد البحري بالاعتماد والعلامة والاستعجال واللوجستيات. أصناف السلامة المعتمدة النوع (MED أو خفر السواحل الأمريكي) أغلى من المكافئات غير المعتمدة بسبب الاختبار والرقابة. وقطع الغيار الأصلية من المصنع الأصلي للمحركات الرئيسية والمولدات وآلات السطح تحمل علاوة على القطع المكافئة. وتعتمد أسعار حبال الإرساء على الألياف (HMPE أغلى بعدة أضعاف من البوليستر أو البولي بروبيلين للمتر) والقطر والتركيب والجدل والشهادة. وتتبع سلاسل المراسي والحبال السلكية والفولاذ أسعار الفولاذ والسبائك إضافة إلى تكاليف شهادات التصنيف. وتعتمد تكلفة الدهانات البحرية على نوع المنتج (أنظمة تحرير الحشف السيليكونية أغلى كثيراً من مانعات الحشف التقليدية) والحجم والخدمة الفنية أثناء التطبيق. وتكاليف اللوجستيات كبيرة: استئجار القوارب في المراسي، وتصاريح الموانئ، والإجراءات الجمركية، ومناولة البضائع الخطرة، والشحن الجوي لقطع الغيار العاجلة، والتسليم خارج ساعات العمل. وكثيراً ما يطغى الاستعجال: فالسفينة المنتظرة في الميناء تدفع كثيراً مقابل التأخير، فيحمل التسليم السريع علاوة. وتؤثر أيضاً أسعار الصرف للمنتجات الأوروبية والحد الأدنى للطلب والتسليم المجمع مقابل المجزأ. وعلى المشتري مقارنة التكلفة الإجمالية الواصلة إلى السفينة لا أسعار الوحدات فقط.",
+   "sources": [
+    "https://impa.net/what-we-do/impa-marine-stores-guide",
+    "https://fujairahport.ae/marine-centre/fujairah-offshore-anchorage-area/"
+   ],
+   "confidence": "low",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:lead-times",
+   "topic": "Lead times for marine and offshore supplies in the UAE",
+   "kind": "lead_time",
+   "body_en": "The UAE, especially Dubai, Sharjah and Fujairah, has a dense network of ship chandlers and marine stockists, so common IMPA deck, engine and cabin stores, standard ropes, paints, safety consumables and many spares can be delivered to a vessel within one to a few days, often timed to the ship's port stay. Type-approved safety equipment in common sizes is usually stocked, but specific liferaft models, large quantities of immersion suits or particular EPIRB models may need importing. Longer lead times apply to certified anchor chain and large anchors (often weeks from specialist mills in Asia or Europe), large-diameter HMPE mooring lines with specific certification, class-certified steel plate in less common grades, offshore containers and certified lifting sets built to order, marine cables with specific type approval, and genuine spares for older engines or equipment from overseas manufacturers, which may require air freight. Liferaft annual servicing typically takes a few days at the station. These are general patterns, not guaranteed durations; buyers should give the vessel's schedule and ask suppliers to confirm availability item by item, with alternatives if the ship cannot wait.",
+   "body_ar": "في الإمارات، خاصة دبي والشارقة والفجيرة، شبكة كثيفة من مموّني السفن ومخزني اللوازم البحرية، فيمكن تسليم مخازن السطح والمحركات والكبائن الشائعة برموز IMPA والحبال القياسية والدهانات ومستهلكات السلامة وكثير من قطع الغيار إلى السفينة خلال يوم إلى بضعة أيام، غالباً بتوقيت يوافق إقامة السفينة في الميناء. وعادةً تُخزن معدات السلامة المعتمدة بالمقاسات الشائعة، لكن طرازات أطواف محددة أو كميات كبيرة من بدلات الغمر أو طرازات منارات معينة قد تحتاج استيراداً. وتطول المدد لسلاسل المراسي المعتمدة والمراسي الكبيرة (غالباً أسابيع من مصانع متخصصة في آسيا أو أوروبا)، وحبال HMPE كبيرة القطر بشهادات محددة، وألواح الفولاذ المعتمدة من التصنيف بدرجات أقل شيوعاً، والحاويات البحرية ومجموعات الرفع المعتمدة المصنعة حسب الطلب، والكابلات البحرية باعتماد نوع محدد، وقطع الغيار الأصلية للمحركات أو المعدات القديمة من مصنعين في الخارج التي قد تتطلب شحناً جوياً. وعادةً تستغرق الصيانة السنوية للأطواف بضعة أيام في المحطة. هذه أنماط عامة لا مدد مضمونة؛ وعلى المشتري تقديم جدول السفينة وطلب تأكيد التوفر صنفاً صنفاً من الموردين، مع بدائل إذا لم تستطع السفينة الانتظار.",
+   "sources": [
+    "https://fujairahport.ae/marine-centre/fujairah-offshore-anchorage-area/"
+   ],
+   "confidence": "low",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:warranty",
+   "topic": "Warranty and service life norms for marine equipment",
+   "kind": "warranty",
+   "body_en": "Marine equipment warranties are usually limited and conditional. Manufacturers of safety equipment typically warrant against manufacturing defects for a set period, but many items are governed more by service life and servicing rules than by warranty: liferafts and inflatable lifejackets need annual servicing at approved stations and have manufacturer-stated maximum lives; pyrotechnics expire on the date the maker stamps on them; hydrostatic release units are either disposable with a printed life or serviced every 12 months; EPIRB batteries and hydrostatic releases have expiry dates; and SCBA and CO2 cylinders need periodic hydrostatic testing. Mooring ropes are replaced according to the ship's line management plan under OCIMF MEG4, based on inspection and residual strength, not warranty. For machinery spares, genuine parts carry the manufacturer's parts warranty, often 6 to 12 months from installation within a limit from delivery, conditional on installation by qualified personnel. Paint warranties for hull coatings are sometimes offered as performance guarantees linked to technical service supervision during application. Buyers should obtain warranty terms in writing and track expiry and servicing dates for safety equipment, because surveyors check certificates and dates, not warranties.",
+   "body_ar": "ضمانات المعدات البحرية عادةً محدودة ومشروطة. يضمن مصنعو معدات السلامة عادةً ضد عيوب التصنيع لفترة محددة، لكن كثيراً من الأصناف تحكمها قواعد عمر الخدمة والصيانة أكثر من الضمان: فالأطواف وسترات النجاة القابلة للنفخ تحتاج صيانة سنوية في محطات معتمدة ولها عمر أقصى يحدده المصنع؛ والألعاب النارية تنتهي صلاحيتها (غالباً نحو ثلاث إلى أربع سنوات من التصنيع)؛ ووحدات الإطلاق الهيدروستاتيكي إما للاستعمال مرة لسنتين أو تُصان سنوياً؛ ولبطاريات المنارات ووحدات إطلاقها تواريخ انتهاء؛ وتحتاج أسطوانات أجهزة التنفس الذاتي وثاني أكسيد الكربون اختباراً هيدروستاتيكياً دورياً. وتُستبدل حبال الإرساء وفق خطة إدارة الخطوط للسفينة بموجب MEG4 من OCIMF، بناءً على الفحص والمقاومة المتبقية لا الضمان. ولقطع غيار الآلات تحمل القطع الأصلية ضمان قطع المصنع، غالباً 6 إلى 12 شهراً من التركيب ضمن حد من التسليم، بشرط التركيب بواسطة أفراد مؤهلين. وتُعرض ضمانات دهانات البدن أحياناً كضمانات أداء مرتبطة بإشراف الخدمة الفنية أثناء التطبيق. وعلى المشتري الحصول على شروط الضمان كتابياً وتتبع تواريخ الانتهاء والصيانة لمعدات السلامة، لأن المساحين يفحصون الشهادات والتواريخ لا الضمانات.",
+   "sources": [
+    "https://www.bahamasmaritime.com/wp-content/uploads/2026/01/MN006-Servicing-of-inflatable-lifesaving-appliances.pdf",
+    "https://www.liscr.com/sites/default/files/Guidelines%20for%20the%20maintenance%20and%20inspections%20of%20fixed%20CO2%20fire-extinguishing%20systems-MSC.1_Circ.1318_Rev.1.pdf",
+    "https://www.wilhelmsen.com/ships-service/ropes/an-overview-of-the-regulations-and-guidelines-governing-mooring-lines/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:genuine-vs-equivalent-spares",
+   "topic": "Genuine OEM vs equivalent (pattern) spare parts for ship machinery",
+   "kind": "comparison",
+   "body_en": "Spare parts for main engines, generators, purifiers, compressors, pumps and deck machinery can be supplied as genuine parts from the original equipment manufacturer (OEM) or its licensees, as parts made by the OEM's own suppliers sold through independent channels, or as pattern (non-OEM equivalent) parts made by third parties. Genuine parts carry the manufacturer's warranty and documentation and are preferred for safety-critical and warranty-period equipment, class survey items and components where tolerance and metallurgy matter (for example fuel injection parts, crankshaft bearings, turbocharger components). Quality pattern parts can be cost-effective for wear items such as gaskets, filters, O-rings, and some pump parts, but quality varies widely, and counterfeit parts using OEM branding exist. Some ship managers specify genuine only; others accept equivalents with the maker named. To quote correctly, the supplier needs the equipment maker, model, serial number or engine number, drawing or plate number, and the part number from the manual. The quote should state clearly whether each line is genuine, OEM-sourced or pattern, the actual manufacturer and country, and warranty. Mislabelled equivalents sold as genuine are a serious commercial and safety issue.",
+   "body_ar": "يمكن توريد قطع غيار المحركات الرئيسية والمولدات والفرازات والضواغط والمضخات وآلات السطح كقطع أصلية من مصنع المعدات الأصلي أو مرخصيه، أو كقطع يصنعها موردو المصنع الأصلي وتُباع عبر قنوات مستقلة، أو كقطع مكافئة غير أصلية يصنعها طرف ثالث. وتحمل القطع الأصلية ضمان المصنع ووثائقه، وتُفضل للمعدات الحرجة للسلامة والمعدات ضمن فترة الضمان وأصناف مسح التصنيف والمكونات التي تهم فيها السماحيات والمعادن (مثل قطع حقن الوقود ومحامل عمود المرفق ومكونات الشاحن التوربيني). ويمكن أن تكون القطع المكافئة الجيدة اقتصادية لأصناف التآكل مثل الجوانات والفلاتر والحلقات المطاطية وبعض قطع المضخات، لكن الجودة تتفاوت كثيراً، وتوجد قطع مقلدة تحمل علامة المصنع الأصلي. ويشترط بعض مديري السفن القطع الأصلية فقط، ويقبل آخرون المكافئات مع تسمية الصانع. وللتسعير الصحيح يحتاج المورد صانع المعدة وطرازها ورقمها التسلسلي أو رقم المحرك ورقم الرسم أو اللوحة ورقم القطعة من الدليل. ويجب أن يذكر العرض بوضوح لكل بند هل هو أصلي أم من مصدر المصنع أم مكافئ، والصانع الفعلي وبلده والضمان. وبيع المكافئات المعنونة خطأً كأصلية مشكلة تجارية ومشكلة سلامة جسيمة.",
+   "sources": [
+    "https://impa.net/what-we-do/impa-marine-stores-guide",
+    "https://www.shipsupply.org/"
+   ],
+   "confidence": "low",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:marine-lubricants",
+   "topic": "Marine lubricants: cylinder oils, system oils, BN and fuel sulphur rules",
+   "kind": "product",
+   "body_en": "Marine lubricants are matched to engine type and fuel. Since 1 January 2020, MARPOL Annex VI limits the sulphur content of fuel used outside emission control areas to 0.50 percent by mass (0.10 percent inside ECAs); ships comply by burning very low sulphur fuel, by fitting exhaust gas cleaning systems (scrubbers) and continuing on high-sulphur fuel, or by using alternative fuels, and carrying non-compliant fuel without a scrubber has been banned since 1 March 2020. This matters for lubricants because two-stroke crosshead main engines use cylinder oil whose base number (BN, its alkalinity) must match the acid-forming sulphur in the fuel: ships on compliant low-sulphur fuel generally run lower-BN cylinder oils, while scrubber-fitted ships burning high-sulphur fuel need high-BN oils, and a mismatch causes deposits or corrosive wear. Exact BN bands come from the engine maker's guidance and are not fixed by this pack. The same engines use a separate system oil for the crankcase. Four-stroke trunk-piston engines (generators and medium-speed mains) use trunk piston engine oils, typically SAE 30 or 40, with BN chosen for the fuel. Other lines include hydraulic, gear, stern-tube, compressor and turbine oils and greases; some jurisdictions demand environmentally acceptable lubricants at oil-to-sea interfaces. Engine builders publish lists of approved or no-objection lubricants, and buyers should ask for that evidence. Supply in UAE ports is by drum, IBC or bulk barge. Buyers should state engine maker and model, fuel type and scrubber status, required BN and viscosity grade, approvals, quantity, packaging and delivery method, and request used-oil analysis where available.",
+   "body_ar": "تُختار زيوت التشحيم البحرية حسب نوع المحرك والوقود. فمنذ الأول من يناير 2020 يحدد الملحق السادس من اتفاقية ماربول نسبة الكبريت في الوقود المستخدم خارج مناطق التحكم في الانبعاثات بنصف في المئة كتلةً وبعُشر في المئة داخلها، وتمتثل السفن بحرق وقود منخفض الكبريت جداً، أو بتركيب أنظمة غسل غاز العادم والاستمرار على الوقود عالي الكبريت، أو باستخدام وقود بديل، ويُحظر منذ الأول من مارس 2020 حمل وقود غير مطابق دون جهاز غسل. ولهذا أثر مباشر على الزيوت، لأن محركات الشوط الثنائي الرئيسية تستخدم زيت أسطوانات يجب أن يتوافق رقمه القاعدي، أي قلويته، مع الكبريت المكوّن للأحماض في الوقود: فالسفن التي تحرق وقوداً منخفض الكبريت تستخدم عموماً زيوتاً أقل في الرقم القاعدي، والسفن المزودة بأجهزة الغسل وتحرق وقوداً عالي الكبريت تحتاج زيوتاً عالية الرقم القاعدي، وعدم التوافق يسبب ترسبات أو تآكلاً. أما النطاقات الدقيقة فتحددها إرشادات صانع المحرك ولا تحددها هذه الحزمة. وتستخدم المحركات نفسها زيت نظام منفصلاً لعلبة المرفق. وتستخدم محركات الشوط الرباعي في المولدات والمحركات متوسطة السرعة زيوت محركات المكابس الجذعية، غالباً بدرجة SAE 30 أو 40، ويُختار رقمها القاعدي حسب الوقود. ومن الأصناف الأخرى زيوت الهيدروليك والتروس وأنبوب المروحة والضواغط والتوربينات والشحوم، وتشترط بعض الدول زيوتاً مقبولة بيئياً للأجزاء الملامسة لمياه البحر. وينشر صانعو المحركات قوائم بالزيوت المعتمدة أو غير المعترض عليها، وعلى المشتري طلب هذا الإثبات. ويتم التوريد في موانئ الدولة ببراميل أو حاويات وسيطة أو بصنادل سائبة. ويجب أن يذكر المشتري صانع المحرك وطرازه ونوع الوقود ووجود جهاز الغسل والرقم القاعدي ودرجة اللزوجة والاعتمادات والكمية والتعبئة وطريقة التسليم، وأن يطلب تحليل الزيت المستعمل إن توفر.",
+   "sources": [
+    "https://www.imo.org/en/mediacentre/hottopics/pages/sulphur-2020.aspx"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:uae-maritime-authorities",
+   "topic": "Who regulates what in UAE maritime supply",
+   "kind": "authority_approval",
+   "body_en": "A marine supplier in the UAE deals with federal, emirate and port layers, and a senior sales engineer should know which body a question belongs to. Federal level: the Ministry of Energy and Infrastructure (MoEI) is the maritime administration. It keeps the national Ship Register, issues statutory documents for UAE-flag ships and recognises classification societies to survey on its behalf. Federal Maritime Law No. 43 of 2023, in force since 29 March 2024, replaced the 1981 law; it relaxed ownership rules (majority UAE or GCC ownership, or a UAE domicile or ship-management office) and introduced vessel age limits for registration, with details left to executive regulations. The UAE also has a national classification society, Tasneef, and applies port state control jointly with Bahrain, Saudi Arabia, Oman, Qatar and Kuwait under the Riyadh MoU (2004), so foreign ships in UAE ports can be inspected and detained for defective safety equipment. Dubai: the Dubai Maritime Authority licenses and permits commercial marine activities and craft in Dubai waters (its Administrative Resolution No. 1 of 2025 covers commercial work done from vessels), and ship-chandling licences need its pre-approval; inside Jebel Ali, Port Rashid and the free zones, Trakhees, the PCFC regulator, handles marine NOCs, digital marine permits, supplier entry permits and agent accreditation. Abu Dhabi: Abu Dhabi Maritime, part of AD Ports Group, issues marine activity NOCs, operating permits, anchorage and mooring permits and craft licences. East coast: the Port of Fujairah runs its anchorage, patrolled with the Coast Guard within 12 nautical miles, and its service harbour for supply boats. Which permit a supplier itself needs depends on its licence, zone and activity and should be confirmed with the relevant authority before quoting delivery.",
+   "body_ar": "يتعامل مورد المعدات البحرية في الدولة مع مستويات اتحادية ومحلية ومستوى الموانئ، وعلى مهندس المبيعات الخبير أن يعرف الجهة المختصة بكل سؤال. فعلى المستوى الاتحادي تعمل وزارة الطاقة والبنية التحتية إدارةً بحرية، إذ تمسك سجل السفن الوطني وتصدر الوثائق القانونية للسفن الرافعة لعلم الدولة وتعترف بهيئات التصنيف للمسح نيابة عنها. وقد حل القانون البحري الاتحادي رقم 43 لسنة 2023، الساري منذ 29 مارس 2024، محل قانون 1981، فخفف شروط الملكية لتكفي أغلبية مواطنين من الدولة أو دول مجلس التعاون أو وجود موطن أو مكتب إدارة سفن في الدولة، وأدخل حدوداً لعمر السفن عند التسجيل، على أن تفصل اللائحة التنفيذية الإجراءات. وللدولة هيئة تصنيف وطنية هي «تصنيف»، وتطبق رقابة دولة الميناء بالاشتراك مع البحرين والسعودية وعُمان وقطر والكويت بموجب مذكرة تفاهم الرياض لعام 2004، فيجوز تفتيش السفن الأجنبية في موانئ الدولة واحتجازها إذا كانت معدات السلامة معيبة. وفي دبي ترخص هيئة دبي البحرية الأنشطة والوسائط البحرية التجارية في مياه الإمارة وتمنح تصاريحها، ويغطي قرارها الإداري رقم 1 لسنة 2025 الأعمال التجارية المنفذة من السفن، وتحتاج رخص تموين السفن موافقتها المسبقة؛ أما داخل جبل علي وميناء راشد والمناطق الحرة فتتولى «تراخيص»، الجهة التنظيمية لمؤسسة الموانئ والجمارك والمنطقة الحرة، شهادات عدم الممانعة البحرية والتصاريح البحرية الرقمية وتصاريح دخول الموردين واعتماد الوكلاء. وفي أبوظبي تصدر «أبوظبي البحرية» التابعة لمجموعة موانئ أبوظبي شهادات عدم الممانعة للأنشطة البحرية وتصاريح التشغيل وتصاريح الرسو والإرساء وتراخيص الوسائط. وعلى الساحل الشرقي يدير ميناء الفجيرة منطقة الرسو التي يجوبها مع خفر السواحل ضمن اثني عشر ميلاً بحرياً، وميناء الخدمات لقوارب التموين. ويعتمد التصريح الذي يحتاجه المورد نفسه على رخصته ومنطقته ونشاطه، ويجب تأكيده مع الجهة المعنية قبل الالتزام بموعد التسليم.",
+   "sources": [
+    "https://www.wfw.com/articles/new-uae-maritime-law-what-you-need-to-know/",
+    "https://www.tasneef.ae/",
+    "https://riyadhmou.org/about-us/",
+    "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(1)%20of%202025%20for%20Commercial%20Maritime.html",
+    "https://www.meydanfz.ae/activity-hub/setup-ship-chandlers-business-in-dubai-uae",
+    "https://www.pcfc.ae/en/Pages/servicelists.aspx?BU=trakhees",
+    "https://www.admaritime.ae/our-services/",
+    "https://fujairahport.ae/marine-centre/fujairah-offshore-anchorage-area/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:co2-system-servicing",
+   "topic": "Fixed CO2 fire system servicing scope and intervals",
+   "kind": "spec_checklist",
+   "body_en": "Servicing of fixed high-pressure CO2 fire-extinguishing systems is one of the most frequently quoted marine safety services in UAE ports, and quotes are often not comparable because the scope is left vague. The reference is IMO MSC.1/Circ.1318/Rev.1 (2021), which replaced the 2009 guidelines. The crew carries out monthly visual checks and an annual inspection of release controls, alarms, pipework and cylinders. The shore service by a company whose technicians are trained to standards accepted by the flag falls every two years (plus or minus three months) on passenger ships, and at each intermediate, periodical or renewal survey on cargo ships; it includes checking the CO2 contents of every cylinder by weighing or a level-measuring method, testing the release mechanisms, time-delay devices, alarms and fan stops, and blowing through the distribution lines and nozzles with dry air. Control valves need an internal inspection at least every five years and flexible hoses must be renewed every ten years. At the ten-year point at least 10 percent of cylinders get an internal inspection and hydrostatic test; if any fail, 50 percent must be tested, and all cylinders must be tested before their 20th anniversary and every ten years thereafter. Cylinders that are dented or bulging are retested or replaced. The service company must be accepted by the flag or its class society, issue a report per system and tag the equipment with the inspection date. A buyer asking for a quote must provide the details listed below, and the supplier's quote should itemise refilling of any under-weight cylinders, hydrostatic testing and hose renewal separately from the basic service.",
+   "body_ar": "تعد صيانة أنظمة إطفاء الحريق الثابتة بثاني أكسيد الكربون عالي الضغط من أكثر خدمات السلامة البحرية طلباً في موانئ الدولة، وكثيراً ما تتعذر مقارنة العروض لأن النطاق يُترك غامضاً. والمرجع هو تعميم المنظمة البحرية الدولية MSC.1/Circ.1318/Rev.1 لعام 2021 الذي حل محل إرشادات 2009. فالطاقم يجري فحصاً بصرياً شهرياً وفحصاً سنوياً لأجهزة الإطلاق والإنذارات والأنابيب والأسطوانات. أما الصيانة الخارجية بواسطة شركة لديها فنيون مدربون وفق معايير تقبلها دولة العلم فتكون كل سنتين بزيادة أو نقص ثلاثة أشهر على سفن الركاب، وعند كل مسح وسيط أو دوري أو تجديدي على سفن الشحن، وتشمل التحقق من كمية الغاز في كل أسطوانة بالوزن أو بقياس المستوى، واختبار أجهزة الإطلاق ومؤقتات التأخير والإنذارات وإيقاف المراوح، ونفخ خطوط التوزيع والفوهات بهواء جاف. ويجب فحص صمامات التحكم داخلياً مرة على الأقل كل خمس سنوات وتجديد الخراطيم المرنة كل عشر سنوات. وعند السنة العاشرة يُفحص داخلياً ويُختبر هيدروستاتيكياً عشرة في المئة على الأقل من الأسطوانات، فإن فشلت أي منها وجب اختبار خمسين في المئة، ويجب اختبار جميع الأسطوانات قبل مرور عشرين عاماً ثم كل عشر سنوات. والأسطوانات المنبعجة أو المنتفخة يُعاد اختبارها أو تُستبدل. ويجب أن تكون شركة الصيانة مقبولة لدى دولة العلم أو هيئة التصنيف، وأن تصدر تقريراً لكل نظام وتضع بطاقة بتاريخ الفحص. وعلى المشتري تقديم البيانات المدرجة أدناه، وعلى المورد أن يفصل في عرضه إعادة تعبئة الأسطوانات الناقصة والاختبار الهيدروستاتيكي وتجديد الخراطيم عن الخدمة الأساسية.",
+   "required_specs": [
+    "vessel name, IMO number, flag and class society",
+    "ship type (passenger or cargo) and survey due date",
+    "protected spaces and system maker",
+    "number and size of CO2 cylinders and pilot cylinders",
+    "date of last hydrostatic test and last service report",
+    "scope: routine service, 5-year valve inspection, 10-year hydrostatic test, hose renewal",
+    "refill of under-weight cylinders priced separately",
+    "required approval of service company (flag/class acceptance)",
+    "port or anchorage and service window"
+   ],
+   "sources": [
+    "https://www.liscr.com/sites/default/files/Guidelines%20for%20the%20maintenance%20and%20inspections%20of%20fixed%20CO2%20fire-extinguishing%20systems-MSC.1_Circ.1318_Rev.1.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "marine:pyrotechnics-expiry",
+   "topic": "Marine pyrotechnics: expiry, approval and handling",
+   "kind": "buyer_mistake",
+   "body_en": "Distress pyrotechnics are consumables with a hard life limit, and they cause a large share of rejected deliveries and port state control findings. The SOLAS set on a cargo ship comprises rocket parachute flares carried on or near the bridge, hand flares and buoyant smoke signals in each survival craft pack, lifebuoy self-activating smoke signals, and line-throwing appliances. Each must be type-approved to the LSA Code performance requirements (for example, a rocket parachute flare must burn for at least 40 seconds at a minimum luminous intensity of 30,000 candela) through the route the flag accepts, such as MED wheel mark or USCG approval. The manufacturer stamps an expiry date on every signal, and ships replace them before that date; where no date is stamped, some rules treat a signal as expired after four years from manufacture. The practical buyer mistakes are: ordering without stating the flag, so the approval mark is wrong; accepting stock that was made long ago, so the ship receives signals that expire before the next survey; and forgetting that liferaft packs have their own pyrotechnics, renewed at the annual liferaft service rather than bought separately. Pyrotechnics are explosives for transport, so they need correct dangerous-goods classification and packing, may be refused on some launches or in some air-freight routes, and cannot simply be carried on a delivery van with other stores. Expired signals must be landed for proper disposal rather than thrown overboard; the supplier should say whether it can take them back. A good requisition states flag, approval, quantity by type and a minimum remaining life, for example at least 30 months from delivery.",
+   "body_ar": "تُعد الألعاب النارية للاستغاثة مواد استهلاكية ذات عمر محدد صارم، وهي سبب كثير من رفض الشحنات وملاحظات رقابة دولة الميناء. وتتكون المجموعة المطلوبة وفق سولاس على سفينة الشحن من صواريخ المظلة المحفوظة على الجسر أو قربه، والشعلات اليدوية وإشارات الدخان العائمة في حزمة كل وسيلة نجاة، وإشارات الدخان ذاتية التشغيل لأطواق النجاة، وأجهزة قذف الحبال. ويجب أن يكون كل منها معتمد الطراز وفق متطلبات الأداء في مدونة معدات إنقاذ الأرواح، فمثلاً يجب أن يحترق صاروخ المظلة أربعين ثانية على الأقل بشدة إضاءة لا تقل عن ثلاثين ألف شمعة، عبر المسار الذي تقبله دولة العلم كعلامة العجلة الأوروبية أو اعتماد خفر السواحل الأمريكي. ويختم المصنع تاريخ انتهاء على كل إشارة، وتستبدلها السفن قبله، وحيث لا يوجد تاريخ تعدها بعض القواعد منتهية بعد أربع سنوات من التصنيع. وأخطاء المشترين الشائعة: الطلب دون ذكر العلم فتأتي علامة الاعتماد خاطئة؛ وقبول مخزون قديم فتصل إشارات تنتهي قبل المسح التالي؛ ونسيان أن لحزم أطواف النجاة ألعابها النارية الخاصة التي تُجدد في الصيانة السنوية للطوف لا بالشراء المنفصل. وتصنف الألعاب النارية متفجرات في النقل، فتحتاج تصنيفاً وتغليفاً صحيحين كبضائع خطرة، وقد تُرفض على بعض القوارب أو في بعض مسارات الشحن الجوي، ولا تُحمل ببساطة مع المخازن الأخرى. ويجب إنزال الإشارات المنتهية إلى الشاطئ للتخلص منها بطريقة سليمة لا رميها في البحر، وعلى المورد أن يوضح إن كان يستلمها. والطلب الجيد يذكر العلم والاعتماد والكمية لكل نوع وحداً أدنى للعمر المتبقي، مثلاً ثلاثين شهراً على الأقل من التسليم.",
+   "sources": [
+    "https://www.marineinsight.com/maritime-law/requirements-regarding-pyrotechnics-put-forth-by-solas/",
+    "https://www.sailing.org/tools/documents/SPSC4lSR1215423PyrotechnicCarruthers-%5B19552%5D.pdf",
+    "https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/AssemblyDocuments/A.761(18).pdf"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  }
+ ],
+ "eval": [
+  {
+   "q_en": "HMPE or polyester mooring ropes for our tanker, and do we need tails?",
+   "q_ar": "حبال إرساء HMPE أم بوليستر لناقلتنا، وهل نحتاج ذيولاً؟",
+   "expected_entry_ids": [
+    "marine:mooring-rope-fibres"
+   ]
+  },
+  {
+   "q_en": "Can we supply Civil Defence approved extinguishers to a Panama-flag ship?",
+   "q_ar": "هل يمكننا توريد طفايات معتمدة من الدفاع المدني لسفينة ترفع علم بنما؟",
+   "expected_entry_ids": [
+    "marine:marine-fire",
+    "marine:red-flags"
+   ]
+  },
+  {
+   "q_en": "Where can we service our liferaft in Fujairah and what will it cost?",
+   "q_ar": "أين يمكننا صيانة طوف النجاة في الفجيرة وكم ستكلف؟",
+   "expected_entry_ids": [
+    "marine:liferaft-servicing"
+   ]
+  },
+  {
+   "q_en": "What is the difference between U2 and U3 anchor chain?",
+   "q_ar": "ما الفرق بين سلسلة المرساة U2 وU3؟",
+   "expected_entry_ids": [
+    "marine:anchor-chain"
+   ]
+  },
+  {
+   "q_en": "Zinc or aluminium anodes for our hull?",
+   "q_ar": "أقطاب زنك أم ألمنيوم لبدن سفينتنا؟",
+   "expected_entry_ids": [
+    "marine:sacrificial-anodes"
+   ]
+  },
+  {
+   "q_en": "We need Yokohama fenders for ship-to-ship transfer, what do you need to know?",
+   "q_ar": "نحتاج مصدات يوكوهاما لعملية نقل من سفينة لسفينة، ماذا تحتاجون معرفته؟",
+   "expected_entry_ids": [
+    "marine:fenders"
+   ]
+  },
+  {
+   "q_en": "What information must a ship requisition include for you to quote?",
+   "q_ar": "ما المعلومات التي يجب أن يتضمنها طلب السفينة لتسعروا؟",
+   "expected_entry_ids": [
+    "marine:spec-marine-order",
+    "marine:impa-issa-codes"
+   ]
+  },
+  {
+   "q_en": "Our antifouling supplier offered a cheaper paint, is it compliant?",
+   "q_ar": "عرض علينا مورد مانع الحشف دهاناً أرخص، هل هو مطابق؟",
+   "expected_entry_ids": [
+    "marine:antifouling-paint",
+    "marine:red-flags"
+   ]
+  },
+  {
+   "q_en": "Which cable should we use for a fire pump circuit on an offshore rig?",
+   "q_ar": "أي كابل نستخدم لدائرة مضخة الحريق على منصة بحرية؟",
+   "expected_entry_ids": [
+    "marine:marine-cables"
+   ]
+  },
+  {
+   "q_en": "Do we pay customs on stores delivered by launch to a ship at Fujairah anchorage?",
+   "q_ar": "هل ندفع جمارك على المخازن المسلمة بالقارب لسفينة في مرسى الفجيرة؟",
+   "expected_entry_ids": [
+    "marine:port-delivery-uae"
+   ]
+  },
+  {
+   "q_en": "Which UAE authority do I need a permit from to deliver stores to a ship in Jebel Ali versus Khalifa Port?",
+   "q_ar": "من أي جهة في الدولة أحتاج تصريحاً لتسليم مخازن لسفينة في جبل علي مقارنة بميناء خليفة؟",
+   "expected_entry_ids": [
+    "marine:uae-maritime-authorities",
+    "marine:port-delivery-uae"
+   ]
+  },
+  {
+   "q_en": "Quote for the 10-year CO2 system service on a bulk carrier - what is included?",
+   "q_ar": "عرض سعر لصيانة نظام ثاني أكسيد الكربون العشرية لناقلة صب، ماذا تشمل؟",
+   "expected_entry_ids": [
+    "marine:co2-system-servicing",
+    "marine:marine-fire"
+   ]
+  },
+  {
+   "q_en": "The flares you delivered expire in 8 months - is that acceptable?",
+   "q_ar": "الشعلات التي وردتموها تنتهي بعد ثمانية أشهر، هل هذا مقبول؟",
+   "expected_entry_ids": [
+    "marine:pyrotechnics-expiry",
+    "marine:red-flags"
+   ]
+  },
+  {
+   "q_en": "Our liferaft service is due but the ship is at sea for two more months - can we extend?",
+   "q_ar": "موعد صيانة طوف النجاة حان والسفينة في البحر شهرين آخرين، هل يمكن التمديد؟",
+   "expected_entry_ids": [
+    "marine:liferaft-servicing"
+   ]
+  },
+  {
+   "q_en": "Can we move an EPIRB from our Panama ship to our UAE-flag ship?",
+   "q_ar": "هل يمكن نقل منارة الطوارئ من سفينتنا البنمية إلى سفينتنا الرافعة لعلم الإمارات؟",
+   "expected_entry_ids": [
+    "marine:gmdss-electronics"
+   ]
+  }
+ ],
+ "verified": {
+  "fetched_urls": 34,
+  "fetched_url_list": [
+   "https://cathwell.com/what-anode-to-use-in-ballast-and-cargo-tanks-aluminium-or-zinc/",
+   "https://cdn.standards.iteh.ai/samples/59873/f74f55eac287450191e221f7ed213268/ISO-17357-1-2014.pdf",
+   "https://cospas-sarsat.int/en/beacon-ownership/beacon-registration-faq",
+   "https://dlp.dubai.gov.ae/Legislation%20Reference/2025/Administrative%20Resolution%20No.%20(1)%20of%202025%20for%20Commercial%20Maritime.html",
+   "https://fujairahport.ae/marine-centre/fujairah-offshore-anchorage-area/",
+   "https://iacs.s3.af-south-1.amazonaws.com/wp-content/uploads/2022/05/18141704/ur-w18rev5.pdf",
+   "https://impa.net/what-we-do/impa-marine-stores-guide",
+   "https://mitcorr.com/resources/offshore-cp-design.html",
+   "https://riyadhmou.org/about-us/",
+   "https://webstore.iec.ch/en/publication/60517",
+   "https://ww2.eagle.org/content/dam/eagle/regulatory-news/2023/ABS%20Regulatory%20News%20-%20AFS%20Convention%20-%20Ban%20on%20Cybutryne%20in%20Hull%20Coatings.pdf",
+   "https://www.admaritime.ae/our-services/",
+   "https://www.bahamasmaritime.com/wp-content/uploads/2026/01/MN006-Servicing-of-inflatable-lifesaving-appliances.pdf",
+   "https://www.classnk.or.jp/hp/pdf/info_service/iacs_ur_and_ui/ur_w11_rev.10_sep_2025_cln.pdf",
+   "https://www.dnv.com/energy/standards-guidelines/dnv-rp-b401-cathodic-protection-design/",
+   "https://www.dnv.com/energy/standards-guidelines/dnv-st-e271-offshore-containers/",
+   "https://www.dnv.com/news/2022/cybutryne-banned-in-anti-fouling-systems-from-1-january-2023-224593/",
+   "https://www.en-standard.eu/bs-en-1765-2016-rubber-hose-assemblies-for-oil-suction-and-discharge-services-specification-for-the-assemblies/",
+   "https://www.imo.org/en/mediacentre/hottopics/pages/sulphur-2020.aspx",
+   "https://www.imo.org/en/ourwork/environment/pages/anti-fouling.aspx",
+   "https://www.liscr.com/sites/default/files/Guidelines%20for%20the%20maintenance%20and%20inspections%20of%20fixed%20CO2%20fire-extinguishing%20systems-MSC.1_Circ.1318_Rev.1.pdf",
+   "https://www.lr.org/en/knowledge/class-news/13-18/",
+   "https://www.marineinsight.com/maritime-law/requirements-regarding-pyrotechnics-put-forth-by-solas/",
+   "https://www.marlowropes.com/news/fibre-rope-solutions/hmpe-dyneema-structure-grades-performance/",
+   "https://www.meydanfz.ae/activity-hub/setup-ship-chandlers-business-in-dubai-uae",
+   "https://www.pcfc.ae/en/Pages/servicelists.aspx?BU=trakhees",
+   "https://www.sailing.org/tools/documents/SPSC4lSR1215423PyrotechnicCarruthers-%5B19552%5D.pdf",
+   "https://www.shipsupply.org/",
+   "https://www.tasneef.ae/",
+   "https://www.wartsila.com/encyclopedia/term/performance-standards-for-protective-coatings-(pspc)",
+   "https://www.wfw.com/articles/new-uae-maritime-law-what-you-need-to-know/",
+   "https://www.wilhelmsen.com/ships-service/ropes/an-overview-of-the-regulations-and-guidelines-governing-mooring-lines/",
+   "https://wwwcdn.imo.org/localresources/en/KnowledgeCentre/IndexofIMOResolutions/AssemblyDocuments/A.761(18).pdf"
+  ],
+  "claims_checked": 96,
+  "corrected": [
+   "marine:impa-issa-codes",
+   "marine:solas-lsa",
+   "marine:liferaft-servicing",
+   "marine:mooring-rope-fibres",
+   "marine:anchor-chain",
+   "marine:antifouling-paint",
+   "marine:class-certificates",
+   "marine:sacrificial-anodes",
+   "marine:marine-fire",
+   "marine:marine-steel",
+   "marine:marine-hoses",
+   "marine:port-delivery-uae",
+   "marine:marine-lubricants",
+   "marine:gmdss-electronics",
+   "marine:warranty",
+   "marine:buyer-mistakes"
+  ],
+  "removed": [],
+  "removed_claims": [
+   "anchor-chain: U3 mandatory >40 m (not supported)",
+   "sacrificial-anodes: zinc hot-water limit 50-60 C",
+   "marine-hoses: 10/15 bar typical ratings",
+   "marine-lubricants: BN 15-40 / 70-140 bands and US VGP EAL claim",
+   "marine-steel: blanket 3.2 certificate type",
+   "port-delivery-uae: in-transit customs procedure (now marked not established)",
+   "solas-lsa/warranty: fixed 2-year HRU life, 3-4 year pyrotechnic life"
+  ],
+  "still_unverified": [
+   "marine:wire-rope",
+   "marine:offshore-lifting",
+   "marine:marine-cables",
+   "marine:fenders",
+   "marine:price-drivers",
+   "marine:lead-times",
+   "marine:genuine-vs-equivalent-spares",
+   "marine:red-flags"
+  ],
+  "notes": "ISO 4309 page returned 403; EU MED directive (eur-lex) and USCG pyrotechnic guideline failed to load; WebSearch budget exhausted before ISSA/MED/Dubai Customs checks."
+ }
+}

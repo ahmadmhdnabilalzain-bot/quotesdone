@@ -30,14 +30,16 @@ import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 // and this function archives what arrives, so the verdict has to be taken before the object is
 // written, not after.
 import { sanitizeAndScan } from '../_shared/malware.ts';
-import { parseReceipt } from '../_shared/receipt_parse.ts';
+import { parseAmount, parseReceipt } from '../_shared/receipt_parse.ts';
 import { pdfText } from '../_shared/pdf_text.ts';
 import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
-import { takeInStatement } from '../_shared/bank_statement_intake.ts';
+import { statementRowText, takeInStatement } from '../_shared/bank_statement_intake.ts';
+import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
+import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
 import { calendarTokenOf, isCalendarReply, replyIntent } from '../_shared/marketing_calendar_mail.ts';
@@ -121,19 +123,19 @@ async function fetchInboundAttachmentBytes(emailId:string, attId:string, rkey:st
 async function attachmentBytes(a:any, emailId:string, rkey:string|undefined){ if (a.content) return b64ToBytes(String(a.content)); if (a.url || a.download_url) { const by = await fetchAttachmentUrl(String(a.url||a.download_url), 'webhook_attachment_url'); if (by) return by; } if (a.id && emailId && rkey) return await fetchInboundAttachmentBytes(emailId, String(a.id), rkey); return null; }
 async function extractDoc(mode:string, bytes:Uint8Array, mime:string, fname:string, inbSecret:string){ try{ const isImg=/^image\//.test(mime); const payload:any = isImg ? { __secret:inbSecret, mode, images:[{ b64: bytesToB64(bytes), mime }] } : { __secret:inbSecret, mode, file_b64: bytesToB64(bytes), mime, filename: fname }; const r=await timedFetch(`${SUPA_URL}/functions/v1/license_extract`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const j=await r.json(); return (j&&j.ok)?j:null; }catch{ return null; } }
 const SYS = `You classify a document a supplier emailed to QuotesDone, a UAE building & fit-out marketplace. Decide if it relates to the supplier's company profile and what it is. Return STRICT JSON only: {\"relevant\":boolean,\"category\":\"trade_license\"|\"company_profile\"|\"catalogue\"|\"certificate\"|\"vat_trn\"|\"bank_letter\"|\"insurance\"|\"other\",\"summary\":string,\"suggested_field\":string|null,\"confidence\":\"low\"|\"medium\"|\"high\"}. suggested_field = the profile detail it informs or null.`;
-const RECEIPT_SYS = `You extract a business expense from a vendor receipt/invoice/subscription email for QuotesDone bookkeeping. The email is usually a FORWARD; identify the ORIGINAL vendor (Supabase, Vercel, Resend, GoDaddy, Apify, OpenRouter, CloudConvert, Anthropic, OpenAI, Microsoft, Google, Google Play, Dropbox, Adobe, Twilio, Rork, Netflix, Tasjeel, DubaiPay, etc.), NOT the person who forwarded it. If a payment is for a product sold THROUGH a platform (e.g. \"subscription from Dropbox on Google Play\"), the vendor is the actual product (Dropbox). Return STRICT JSON only: {\"is_receipt\":boolean,\"vendor\":string,\"amount\":number,\"currency\":string,\"date\":\"YYYY-MM-DD\",\"recurring\":boolean,\"period\":\"monthly\"|\"annual\"|\"one_off\",\"note\":string}. amount = TOTAL actually charged (incl tax). currency = 3-letter code. IMPORTANT: report the amount in the currency the vendor actually billed, and do not convert between currencies. recurring=true for any subscription/plan/renewal that repeats; period=monthly or annual accordingly; one-off purchases use period=one_off. If there is genuinely no charged amount, set is_receipt=false.`;
 // The founder confirmed this address on 9 Sep 2026: the accountant "collects expenses from the
 // email expenses@mail.quotesdone.com". Same mail. subdomain as docs@mail.quotesdone.com.
 const EXPENSE_MAILBOX = 'expenses@mail.quotesdone.com';
 async function sha256hex(s: string){ const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(d)).map((b)=>b.toString(16).padStart(2,'0')).join(''); }
 const dbxSafe = (s: string) => String(s||'').replace(/[\\/:*?"<>|\r\n\t]+/g,' ').replace(/\s+/g,' ').trim();
-function isReceiptish(toLocal:string, subject:string, from:string){
-  const boxes=['receipts','receipt','billing','expenses','expense','finance','accounts','accounting','fin','subscriptions','subscription','bills','bill'];
-  if (boxes.includes(toLocal)) return true;
-  if (/(receipt|invoice|payment (was )?(received|successful|confirmation)|tax invoice|your .*receipt|order receipt|thank you for your order|subscription (renewed|payment|confirmation)|renewal|your plan|billing|funded)/i.test(subject)) return true;
-  if (/(billing|invoice|receipts?|no-?reply.*(pay|billing)|stripe)/i.test(from)) return true;
-  return false;
-}
+// WHICH MAILBOX the sender addressed is structured data, the one fact the sender chose: mail to a finance mailbox
+// is expense mail. What any OTHER email is -- a receipt, a statement, or a supplier's document -- is MEANING, and
+// is reasoned (_shared/reasoned_books.ts documentKind); the subject/sender regex that decided it (isReceiptish) is
+// gone (23 Sep 2026, founder_instruction 886-903, decision point accountant.resend_receiptish).
+const FINANCE_BOXES = new Set(['receipts','receipt','billing','expenses','expense','finance','accounts','accounting','fin','subscriptions','subscription','bills','bill']);
+// The reasoning engine's model, embedder and database. A test injects a mocked one; nothing else does.
+let thinkDeps: ThinkDeps | null = null;
+export function useThinkDeps(d: ThinkDeps | null) { thinkDeps = d; }
 // Exported so its test drives the real handler; the runtime serves it (a test sets RESEND_INBOUND_NO_SERVE).
 export const handler = observe('resend_inbound', async (req) => {
   try {
@@ -224,13 +226,12 @@ export const handler = observe('resend_inbound', async (req) => {
     }
 
     // ---- Forwarded receipt / subscription -> finance ----
-    // 6 SEP 2026: DETERMINISTIC FIRST. The model call below was the ONLY way a receipt got booked, and
-    // under the paid hold (15 Aug) it returns nothing, so four of the founder's own forwarded receipts
-    // fell through to the supplier-document path and were shown to him as his work. A receipt is a
-    // fixed-shape document: _shared/receipt_parse.ts reads vendor/amount/currency/date/period from the
-    // forwarded header block and the text. The model is the fallback when no amount can be read, and
-    // when the fallback returns nothing the email goes to the BOOKKEEPER (handToBookkeeper), never to him.
-    const receiptish = isReceiptish(toLocal, subject, from);
+    // 6 SEP 2026: a receipt nobody could book goes to the BOOKKEEPER (handToBookkeeper), never to the founder.
+    // 23 SEP 2026 (founder_instruction 886-903): WHAT the email is (a statement, a receipt and its cadence, a
+    // Meta ads invoice, a licence or domain renewal, or none of these) and WHO issued it are REASONED
+    // (_shared/reasoned_books.ts); only the figures are parsed (_shared/receipt_parse.ts). Under the model hold
+    // nothing is booked on a guess: the email is held for the bookkeeper and the accountant's queue replays it.
+    let receiptish = FINANCE_BOXES.has(toLocal);
     let receiptReason = '';
     const handToBookkeeper = async (inboundId: number | null | undefined, reviewIds: number[], reason: string) => {
       if (!inboundId) return null;
@@ -304,6 +305,28 @@ export const handler = observe('resend_inbound', async (req) => {
       return J({ ok: true, unsubscribe: true, suppressed: !supErr }, supErr ? 500 : 200);
     }
 
+    const booksDeps = thinkDeps ?? defaultDeps(admin, 'resend_inbound');
+    const svixKey = req.headers.get('svix-id') || req.headers.get('webhook-id') || '';
+    const mail: ExpenseMail = { emailId: emailId || ('svix:' + svixKey), from, to, subject, text,
+      filenames: atts.map((a) => String(a.filename || a.name || '')), mailbox: isExpenseMailbox ? 'expenses' : 'other', providerEmailId };
+    const { data: booksCtx } = await admin.rpc('fn_accountant_reading_context');
+    const renewals = Array.isArray(booksCtx?.renewals) ? booksCtx.renewals : [];
+    const register = Array.isArray(booksCtx?.register) ? booksCtx.register : [];
+    // An email to any OTHER mailbox: is it the company's own spending at all? Reasoned over the envelope and
+    // the note. Held: it takes the supplier-document path below, which stores and classifies nothing on a guess,
+    // and the replay hands it to the bookkeeper if it is reasoned to be an expense document.
+    // Only mail that could carry a document of our spending is asked at all: it has an attachment, or it comes from
+    // a permitted expense forwarder (structured facts, no word read). Anything else is plain correspondence.
+    let kind: string | null = null;
+    // true while what the email is, or who issued it, waits for reasoning: the accountant's queue owns it then, and
+    // it is NOT also handed to the bookkeeper (one owner, no double path); the replay re-runs the sweep for it.
+    let reasoningHeld = false;
+    if (!receiptish && (atts.length > 0 || expenseSenderOk)) {
+      kind = (await documentKind(booksDeps, mail, renewals, register)).value;
+      receiptish = kind !== null && kind !== 'other';
+      reasoningHeld = kind === null;
+    }
+
     let att: { bytes: Uint8Array; name: string; mime: string; ext: string } | null = null;
     if (receiptish) {
       try {
@@ -334,24 +357,32 @@ export const handler = observe('resend_inbound', async (req) => {
         } else if (att) {
           receiptReason = 'The receipt is an image, which has no text layer; reading it needs a vision model and every paid route is held. ';
         }
-        // 15 SEP 2026 — A BANK STATEMENT IS NOT A RECEIPT. Recognised and taken in by the SAME routine the
-        // accountant's expense_sweep uses (_shared/bank_statement_intake.ts), before the receipt parser and
-        // the model fallback: the founder's first forwarded Mashreq statement was held here as an
-        // unreadable receipt, after a gateway call it should never have made.
-        if (isExpenseMailbox && expenseSenderOk) {
-          let csvText = '';
-          for (const a of atts.slice(0, 8)) {
-            if (!/\.csv$/i.test(String(a.filename || a.name || ''))) continue;
-            const by = await attachmentBytes(a, emailId, rkey);
-            if (by && by.length <= 5 * 1024 * 1024) { csvText = new TextDecoder().decode(by); break; }
-          }
-          const svixKey = req.headers.get('svix-id') || req.headers.get('webhook-id') || '';
+        // A CSV export (the .csv extension is a file-format fact) is read as text; it is used only if the message is
+        // reasoned to be a statement, and the reasoning reads it too.
+        let csvText = '';
+        for (const a of atts.slice(0, 8)) {
+          if (!/\.csv$/i.test(String(a.filename || a.name || ''))) continue;
+          const by = await attachmentBytes(a, emailId, rkey);
+          if (by && by.length <= 5 * 1024 * 1024) { csvText = new TextDecoder().decode(by); break; }
+        }
+        // WHAT IS IT, read with the document: the real Mashreq statement names its bank only inside the PDF, so
+        // the reasoning reads the rows statementRowText rebuilds from it (or pdf_text's text layer, or the CSV).
+        const rowText = att && att.mime === 'application/pdf' ? await statementRowText(att) : '';
+        if (kind === null) {
+          kind = (await documentKind(booksDeps, { ...mail, docText: [rowText || docText, csvText.slice(0, 2000)].filter(Boolean).join('\n').slice(0, 4000) }, renewals, register)).value;
+          reasoningHeld = kind === null;
+          if (kind === null) receiptReason += 'What this document is waits for reasoning: the model is held, so it is not booked on a guess; the accountant\x27s queue replays it. ';
+          else if (kind === 'other') receiptReason += 'Reasoned: this is not a document of the company\x27s own spending, so nothing was booked. ';
+        }
+        // 15 SEP 2026 — A BANK STATEMENT IS NOT A RECEIPT. Taken in by the SAME routine the accountant's
+        // expense_sweep uses (_shared/bank_statement_intake.ts), before any receipt handling.
+        if (kind === 'bank_statement' && isExpenseMailbox && expenseSenderOk) {
           const stRef = emailId ? 'resend:' + emailId : 'svix:' + svixKey;
           const stIn = await takeInStatement(admin, {
             from, subject, filenames: atts.map((a) => String(a.filename || a.name || '')),
-            pdf: att && att.mime === 'application/pdf' ? att : null, csvText, docText, readNote: receiptReason,
+            pdf: att && att.mime === 'application/pdf' ? att : null, csvText, docText, rowText, readNote: receiptReason,
             sourceRef: stRef, archivePath: 'bank/' + new Date().toISOString().slice(0, 10) + '/' + (emailId || svixKey || Date.now()) });
-          if (stIn) {
+          {
             await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, html: fullHtml, provider_email_id: providerEmailId,
               body: `[BANK STATEMENT — taken in as ${stRef}, ${stIn.lines} line(s)${stIn.problem ? ', does NOT add up, recorded unreadable' : ''}]${stIn.doc_path ? ' document: ' + stIn.doc_path : ''}\n\n` + fullText,
               attachments_count: stIn.doc_path ? 1 : 0, matched_existing: false, needs_review: !!stIn.error });
@@ -366,23 +397,20 @@ export const handler = observe('resend_inbound', async (req) => {
         const parseBody = docText ? (text + '\n' + docText) : text;
 
         let ex: any = {};
-        let det = parseReceipt({ from, subject, body: parseBody });
-        if (det && det.period === 'one_off') {
-          // the subscription register already knows this vendor's cadence
-          const { data: known } = await admin.from('expenses').select('cadence').ilike('vendor', det.vendor).eq('active', true).limit(1);
-          const cad0 = String(known?.[0]?.cadence || '');
-          if (cad0 === 'monthly' || cad0 === 'annual') det = parseReceipt({ from, subject, body: parseBody, knownCadence: cad0 }) || det;
-        }
-        if (det) {
-          ex = { is_receipt: true, vendor: det.vendor, amount: det.amount, currency: det.currency, date: det.date, period: det.period, recurring: det.recurring, vat: det.vat, trn: det.trn, note: subject + ' [deterministic: ' + det.basis + (docText ? ' src=pdf_text' : '') + ']' };
-        } else if (inbSecret) {
-          const r = await timedFetch(`${SUPA_URL}/functions/v1/ai_gateway`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({__secret:inbSecret,fn:'resend_inbound',sys:RECEIPT_SYS,input:`From: ${from}\nSubject: ${subject}\nBody:\n${parseBody.slice(0,8000)}`,max:400,temperature:0})}, 45_000);
-          const jd = await r.json(); ex = r.ok ? parseJson(jd?.content||'{}') : {};
-          // a refused call is the hold doing its job, not a failure; only a broken gateway is an error
-          if (!r.ok) await logRun(r.status >= 500 ? 'error' : 'ok', { from, subject, gateway_status: r.status }, 'deterministic parser read no amount; receipt extraction model call returned http ' + r.status + ' - handing the email to the bookkeeper');
-          receiptReason += 'The deterministic parser read no amount and the model fallback returned ' + (r.ok ? 'no receipt.' : 'http ' + r.status + ' (paid inference is held).');
-        } else {
-          receiptReason += 'The deterministic parser read no amount and no model fallback is configured.';
+        const reading = kind ? readingOf(kind) : null;
+        if (reading && !parseAmount(parseBody) && !parseAmount(subject)) {
+          receiptReason += 'No amount could be read beside a currency mark, so nothing was booked and nothing was estimated. ';
+        } else if (reading) {
+          // Who issued it: one of the vendors the books already carry, else the name as the document writes it.
+          const vendor = (await receiptVendor(booksDeps, { ...mail, docText: docText.slice(0, 4000) }, Array.isArray(booksCtx?.vendors) ? booksCtx.vendors : [])).value;
+          const det = vendor ? parseReceipt({ subject, body: parseBody, vendor, period: reading.period }) : null;
+          if (det) {
+            ex = { is_receipt: true, vendor: det.vendor, amount: det.amount, currency: det.currency, date: det.date, period: det.period, recurring: det.recurring, vat: det.vat, trn: det.trn,
+                   read_as: reading.readAs, renews_item: reading.renewsItem, note: subject + ' [reasoned: ' + kind + '; ' + det.basis + (docText ? ' src=pdf_text' : '') + ']' };
+          } else if (!vendor) {
+            reasoningHeld = true;
+            receiptReason += 'Who issued this waits for reasoning: the model is held, so it is not booked on a guess; the accountant\x27s queue replays it. ';
+          }
         }
         if (ex && ex.is_receipt === true && ex.vendor && Number(ex.amount) > 0) {
           const amount = Number(ex.amount);
@@ -569,7 +597,7 @@ export const handler = observe('resend_inbound', async (req) => {
               note: ('auto from forwarded ' + (recurring?'subscription':'receipt') + ': ' + String(ex.note||subject)).slice(0,300),
               source: 'receipt', doc_path: docPath, doc_name: docName.slice(0,180), doc_content_type: docType,
               doc_kind: docPath ? docKind : null, doc_note: docPath ? docNote : null,
-              source_msg_id: msgKey, vat_amount: vatAmt, vendor_trn: trn },
+              source_msg_id: msgKey, vat_amount: vatAmt, vendor_trn: trn, read_as: ex.read_as ?? null, renews_item: ex.renews_item ?? null },
               { onConflict: 'source_msg_id', ignoreDuplicates: true })
             .select('id').maybeSingle();
           let entryId: number | null = (insRow?.id as number | undefined) ?? null;
@@ -616,12 +644,12 @@ export const handler = observe('resend_inbound', async (req) => {
       }
       const { data: heldRow } = await admin.from('inbound_messages').insert({
         from_email: from, to_email: to, subject, html: fullHtml, provider_email_id: providerEmailId,
-        body: `[HELD — no amount could be read, nothing booked]${heldPath ? ' document: receipt-files/' + heldPath : ' (no readable attachment)'}\n\n` + fullText,
+        body: `[HELD — nothing booked: ${(receiptReason || 'no amount could be read').slice(0, 200)}]${heldPath ? ' document: receipt-files/' + heldPath : ' (no readable attachment)'}\n\n` + fullText,
         attachments_count: heldPath ? 1 : 0, matched_existing: false, needs_review: true,
       }).select('id').maybeSingle();
-      await handToBookkeeper(heldRow?.id, [], (receiptReason || 'No amount could be read from this email.') + (heldPath ? ' The document is archived at receipt-files/' + heldPath + '. Read it, then book the expense in expense_entries (source \'receipt\') and post it with fn_expense_post_to_gl.' : ' No attachment could be read, so ask for a re-forward.'));
+      if (!reasoningHeld) await handToBookkeeper(heldRow?.id, [], (receiptReason || 'No amount could be read from this email.') + (heldPath ? ' The document is archived at receipt-files/' + heldPath + '. Read it, then book the expense in expense_entries (source \'receipt\') and post it with fn_expense_post_to_gl.' : ' No attachment could be read, so ask for a re-forward.'));
       await logRun('ok', { expenses_mailbox: 1, receipt: true, booked: false, held: true, doc_archived: !!heldPath, from, subject }, 'receipt HELD for review, not guessed at: ' + (receiptReason || 'no amount could be read').slice(0, 300));
-      return J({ ok: true, receipt: true, booked: false, held: true, reason: 'amount_unreadable', doc: heldPath });
+      return J({ ok: true, receipt: true, booked: false, held: true, reason: kind === null ? 'awaiting_reasoning' : kind === 'other' ? 'not_an_expense_document' : 'amount_unreadable', doc: heldPath });
     }
 
     // ---- Supplier document handling (store + classify + AUTO-EXTRACT + apply) ----
@@ -717,7 +745,7 @@ export const handler = observe('resend_inbound', async (req) => {
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: stored>0 && appliedSummary.length===0 }).select('id').maybeSingle();
     // 6 Sep 2026: a receipt-ish email that reached this path was NOT booked. It is finance's work from here —
     // one org_task for the bookkeeper, and the rows carry that owner so neither OS surface shows them to the founder.
-    if (receiptish && !lead) await handToBookkeeper(inbRow?.id, reviews, receiptReason || 'The receipt path did not book this email.');
+    if (receiptish && !lead && !reasoningHeld) await handToBookkeeper(inbRow?.id, reviews, receiptReason || 'The receipt path did not book this email.');
     if (lead && appliedSummary.length) {
       try{ await requestDelivery(admin, { type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }

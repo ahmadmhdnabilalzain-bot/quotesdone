@@ -62,10 +62,56 @@ const FILL = {
   glass_type: 'Double-glazed unit', glass_thickness: '6mm + 12mm air + 6mm', profile_system: 'Schuco AWS 70',
   finish: 'RAL 9016 powder coated', standard: 'BS EN 14351-1', brand: 'Schuco', model: 'AWS 70',
 };
+// B's option 2 states a different system; on the desk he states that one, not option 1's.
+const FILL_PREMIUM = {
+  glass_type: 'Double-glazed unit, low-e', glass_thickness: '6mm + 16mm argon + 6mm', profile_system: 'Technal Soleal',
+  finish: 'Anodised', standard: 'BS EN 14351-1', brand: 'Technal', model: 'Soleal',
+};
+// The hold desk as the supplier uses it: read the form, state every missing detail exactly, save.
+async function deskFill(sup, qid, fill, amount) {
+  const h = await call('supplier_api', sup.jwt, { action: 'spec_hold', quote_id: qid });
+  const lines = {};
+  for (const l of h.json?.schema?.lines || []) for (const f of l.fields) if (f.missing || !f.value) (lines[l.line_no] ||= {})[f.attr] = fill[f.attr] ?? (f.type === 'number' ? '10' : (f.options?.[0] ?? `ZZ DEMO ${f.attr} 10 mm`));
+  const terms = {};
+  // A detail the harness does not know by name (e.g. a customer's "component:<name>" material
+  // requirement) still gets a concrete, exact value - never a vague one the desk would refuse.
+  for (const t of h.json?.schema?.terms || []) terms[t.attr] = TERM_FILL(amount)[t.attr] ?? (t.type === 'number' ? '10' : (t.options?.[0] ?? 'Double glazed 6mm + 12mm air + 6mm, Schuco AWS 70, RAL 9016'));
+  const f1 = await call('supplier_api', sup.jwt, { action: 'spec_fill', quote_id: qid, values: { lines, terms } });
+  return { f1, fillDetail: `HTTP ${f1.status} complete=${f1.json?.complete} pdf=${f1.json?.pdf_url ? 'yes' : 'no'} still missing=${(f1.json?.missing || []).map((x) => x.attr).join(',') || 'none'} errors=${JSON.stringify(f1.json?.errors || []).slice(0, 120)}` };
+}
+async function releaseViaDesk(sup, qid, fill, amount) {
+  const d = await deskFill(sup, qid, fill, amount);
+  if (d.f1.json?.complete !== true) return { released: false, detail: d.fillDetail };
+  const ap = await call('supplier_api', sup.jwt, { action: 'spec_approve', quote_id: qid, confirm: true });
+  return { released: ap.json?.released === true, detail: `${d.fillDetail}; approve HTTP ${ap.status} released=${ap.json?.released} live=${ap.json?.live} code=${ap.json?.code ?? ''}` };
+}
 const TERM_FILL = (amount) => ({
   delivery: '21 days', installation_included: 'yes', installation_detail: 'Installation within 10 working days of delivery',
   warranty_period: '2 years', warranty_coverage: 'manufacturing defects and workmanship', price_ex_vat: String(amount),
 });
+
+// ---- the model hold, measured -------------------------------------------------------------------
+// 23 Sep 2026 (#886, #893; founder_instruction 886-903, ledger 890). Meaning is never decided by a word
+// list: the intake's trade and a quotation's specifications are read by reasoning (_shared/think.ts), and
+// under the founder's OpenRouter hold nothing is read — the intake is HELD and every quotation is HELD
+// until the supplier states each detail on the hold desk. The post-deploy smoke kept asserting "the
+// interview reaches ready" and "a complete quote is accepted first time", which only reasoning can do,
+// and raised 14 findings for the product doing what it must. The hold is asked of the SAME gate the
+// product asks (_shared/llm_hold.ts heldFromGate over fn_kernel_paid_provider_gate), never assumed. Only
+// while it answers held, and only when the product's answer is exactly the held answer, does a
+// reasoning-only step report SKIP — with the held contract asserted as its own step. The moment the hold
+// lifts every one of them is a hard FAIL again.
+const HOLD_RULES = new Set(['founder_hold', 'no_paid_ai_switch', 'empty_route_state']);   // llm_hold.ts HOLD_RULES
+let heldBy;
+export async function modelHold() {
+  if (heldBy !== undefined) return heldBy;
+  try {
+    const g = (await read(`select public.fn_kernel_paid_provider_gate('hold-probe/not-a-model') g`))[0]?.g;
+    heldBy = g && g.allowed !== true && HOLD_RULES.has(String(g.rule ?? '')) ? `${g.rule}: ${String(g.reason ?? '').slice(0, 120)}` : null;
+  } catch (_e) { heldBy = null; }   // could not tell: nothing is excused
+  return heldBy;
+}
+const UNDER_HOLD = (h) => ` — model hold on (${h}); reasoning is not run, so this is held by design and re-proven when the hold lifts`;
 
 // ---- a. the customer posts a request -----------------------------------------------------------
 export async function journeyCustomerRequest(ctx) {
@@ -126,7 +172,7 @@ export async function journeyCustomerRequest(ctx) {
       'Ground and first floor, direct vehicle access, no crane needed. Budget is open.',
       'Please proceed with these details.', 'Yes, that is correct.',
     ];
-    let status = null, turns = 0, readiness = 0;
+    let status = null, turns = 0, readiness = 0, last = {};
     // A budget, not just a turn count: each reply may take up to 90 s, and a chat that never reaches
     // ready must not stall the whole run (run 5 sat here for over ten minutes).
     const deadline = Date.now() + 5 * 60 * 1000;
@@ -139,6 +185,7 @@ export async function journeyCustomerRequest(ctx) {
       ]);
       turns++;
       const j = res ? await res.json().catch(() => ({})) : {};
+      if (res) last = j;
       status = j.status ?? status; readiness = Number(j.readiness ?? readiness) || 0;
       if (status === 'ready') break;
       // When the sales engineer offers answer chips, tap the first one, as a customer would.
@@ -150,11 +197,19 @@ export async function journeyCustomerRequest(ctx) {
         ]);
         turns++;
         const j2 = r2 ? await r2.json().catch(() => ({})) : {};
+        if (r2) last = j2;
         status = j2.status ?? status; readiness = Number(j2.readiness ?? readiness) || 0;
         if (status === 'ready') break;
       }
     }
-    rep.step(J, 'the sales engineer interview reaches ready', status === 'ready' ? 'PASS' : 'FAIL', `${turns} turn(s), status=${status}, readiness=${readiness}`, { shot: await shot(s.page, dir, 'a_intake') });
+    // Held by design only when the gate says held AND the intake answered exactly the held answer:
+    // status 'held' with no trade decided (inquiry_intake: "held for review rather than guessed").
+    const held = status === 'held' ? await modelHold() : null;
+    const heldAnswer = status === 'held' && last.category == null && !(last.trades || []).length;
+    rep.step(J, 'the sales engineer interview reaches ready', status === 'ready' ? 'PASS' : held && heldAnswer ? 'SKIP' : 'FAIL',
+      `${turns} turn(s), status=${status}, readiness=${readiness}${held && heldAnswer ? UNDER_HOLD(held) : ''}`, { shot: await shot(s.page, dir, 'a_intake') });
+    if (held) rep.step(J, 'under the model hold the interview is held, never keyword-guessed', heldAnswer ? 'PASS' : 'FAIL',
+      `status=${status} category=${last.category ?? null} trades=${JSON.stringify(last.trades ?? [])}`);
     if (status === 'ready') {
       const send = s.page.getByRole('button', { name: /Send to suppliers/ }).first();
       // THE EMPTY STATE MUST NOT FLASH AFTER "Request sent" (recurrence table row 12, #761): the
@@ -230,6 +285,7 @@ export async function journeyCustomerRequest(ctx) {
     asked.length === 4 ? 'PASS' : (via === 'fallback' ? 'SKIP' : 'FAIL'), `answered: ${asked.join(', ') || 'none'}${via === 'fallback' ? ' (fallback request)' : ''}`);
   // Suppliers quote a request they can see: for a split that is a child, never the 'split' parent.
   ctx.inquiryId = quotable[0] || inquiryId;
+  ctx.requestVia = via;
   ctx.parentInquiryId = inquiryId;
 }
 
@@ -268,7 +324,13 @@ export async function journeySuppliers(ctx) {
     left join lateral (select x from unnest(coalesce(l.tags,'{}')) x where x like 'qd_run:%' limit 1) t on true
     where m.inquiry_id = ${q(inquiryId)} and coalesce(t.x, '') <> ${q('qd_run:' + ctx.run.tag)}`) : [];
   const concurrentOnly = direct.length > 0 && others.length >= direct.length && others.every((o) => o.open);
-  rep.step(J, 'routing invited the demo suppliers', direct.length === 0 ? 'PASS' : concurrentOnly ? 'SKIP' : 'FAIL',
+  // Routing runs when the portal POSTS a request (customer_api create_inquiry → sales_engineer match). Under
+  // the model hold the intake is held, nothing is posted, and the harness wrote the request itself: the
+  // product's routing never ran on it. That is SKIP only under the measured hold with a fallback request
+  // and no routing record (a routing record means routing DID run, and a miss then is a FAIL).
+  const notPosted = direct.length > 0 && ctx.requestVia === 'fallback' && !routing ? await modelHold() : null;
+  rep.step(J, 'routing invited the demo suppliers', direct.length === 0 ? 'PASS' : concurrentOnly || notPosted ? 'SKIP' : 'FAIL',
+    (notPosted ? `the request could not be posted (the intake is held), so routing did not run${UNDER_HOLD(notPosted)}; ` : '') +
     `${fx.suppliers.length - direct.length}/${fx.suppliers.length} matched by the product; ${direct.length} invited directly by the harness` +
     (others.length ? ` — slots taken by other runs' fixtures: ${others.map((o) => `${o.supplier_id}@${o.tag}(${o.open ? 'run in progress' : 'run over, not swept'})`).join(', ')}` : '') +
     `${routing ? ' — routing ' + JSON.stringify({ outcome: routing.outcome, fanout: routing.fanout, verdict: routing.router_verdict, note: routing.note, trades: routing.trades, error: routing.error }).slice(0, 300) : ''}`);
@@ -328,12 +390,29 @@ export async function journeySuppliers(ctx) {
     `HTTP ${b1.status} code=${b1.json?.code} rows=${bRows.map((r) => `#${r.option_no}:${r.status}`).join(',')} held=${bOpts.filter((o) => o.held).length}`);
 
   // C: complete -> accepted first time (preflight first, so a miss is reported, not guessed)
+  // Under the model hold his prose is not read, so the preflight must answer "would hold" and the
+  // submission must be held for spec_hold — anything else is still a FAIL (see modelHold above).
+  const mHold = await modelHold();
   const pre = await call('supplier_api', C.jwt, { ...completeQuote(inquiryId, 124900), dry_run: true });
-  rep.step(J, 'preflight: the complete quote states every required detail', pre.json?.would_hold === false ? 'PASS' : 'FAIL',
-    `would_hold=${pre.json?.would_hold} missing=${(pre.json?.spec_missing || []).map((x) => x.attr).join(',') || 'none'} would_accept=${pre.json?.would_accept}`);
+  rep.step(J, 'preflight: the complete quote states every required detail', pre.json?.would_hold === false ? 'PASS' : mHold && pre.json?.would_hold === true ? 'SKIP' : 'FAIL',
+    `would_hold=${pre.json?.would_hold} missing=${(pre.json?.spec_missing || []).map((x) => x.attr).join(',') || 'none'} would_accept=${pre.json?.would_accept}${mHold && pre.json?.would_hold === true ? UNDER_HOLD(mHold) : ''}`);
   const c1 = await call('supplier_api', C.jwt, completeQuote(inquiryId, 124900));
-  if (c1.json?.quote?.id) ctx.run.ids.quotes.add(String(c1.json.quote.id));
-  rep.step(J, 'a complete quote is accepted', c1.json?.accepted === true ? 'PASS' : 'FAIL', `HTTP ${c1.status} held=${c1.json?.held} accepted=${c1.json?.accepted} code=${c1.json?.code ?? ''}`);
+  const cQid = c1.json?.quote?.id ?? c1.json?.quote_id;
+  if (cQid) ctx.run.ids.quotes.add(String(cQid));
+  const cHeld = mHold && c1.json?.held === true && c1.json?.code === 'spec_hold';
+  rep.step(J, 'a complete quote is accepted', c1.json?.accepted === true ? 'PASS' : cHeld ? 'SKIP' : 'FAIL',
+    `HTTP ${c1.status} held=${c1.json?.held} accepted=${c1.json?.accepted} code=${c1.json?.code ?? ''}${cHeld ? UNDER_HOLD(mHold) : ''}`);
+  // Under the hold a supplier's quotation goes live the only way the product allows: he states each
+  // detail on the hold desk and approves the regenerated quotation. C and both of B's options walk that
+  // path with exactly what their quotations say, so the comparison has the live quotes it ranks.
+  if (mHold) {
+    const bOpt = new Map(bRows.map((r) => [String(r.id), r.option_no]));
+    for (const [who, sup, qid, fill, amount] of [['C', C, cQid, FILL, 124900], ...bRows.map((r) => ['B', B, r.id, r.option_no === 2 ? FILL_PREMIUM : FILL, r.option_no === 2 ? 142000 : 118500])]) {
+      const label = who === 'B' ? `option ${bOpt.get(String(qid))}` : 'quotation';
+      const r = qid ? await releaseViaDesk(sup, qid, fill, amount) : { released: false, detail: 'no quote id returned' };
+      rep.step(J, `under the model hold, supplier ${who}'s ${label} is released through the hold desk`, r.released ? 'PASS' : 'FAIL', r.detail);
+    }
+  }
 
   // Held quotes are not ranked (checked NOW, while A is still held).
   const cmp = await call('quote_compare', fx.customer.jwt, { inquiry_id: inquiryId, lang: 'en' });
@@ -343,16 +422,8 @@ export async function journeySuppliers(ctx) {
 
   // A fills in the missing details -> regenerated -> approves -> released
   if (aQid) {
-    const h = await call('supplier_api', A.jwt, { action: 'spec_hold', quote_id: aQid });
-    const lines = {};
-    for (const l of h.json?.schema?.lines || []) for (const f of l.fields) if (f.missing || !f.value) (lines[l.line_no] ||= {})[f.attr] = FILL[f.attr] ?? (f.type === 'number' ? '10' : (f.options?.[0] ?? `ZZ DEMO ${f.attr} 10 mm`));
-    const terms = {};
-    // A detail the harness does not know by name (e.g. a customer's "component:<name>" material
-    // requirement) still gets a concrete, exact value - never a vague one the desk would refuse.
-    for (const t of h.json?.schema?.terms || []) terms[t.attr] = TERM_FILL(131000)[t.attr] ?? (t.type === 'number' ? '10' : (t.options?.[0] ?? 'Double glazed 6mm + 12mm air + 6mm, Schuco AWS 70, RAL 9016'));
-    const f1 = await call('supplier_api', A.jwt, { action: 'spec_fill', quote_id: aQid, values: { lines, terms } });
-    rep.step(J, 'filling in the details regenerates the quotation', f1.json?.complete === true ? 'PASS' : 'FAIL',
-      `HTTP ${f1.status} complete=${f1.json?.complete} pdf=${f1.json?.pdf_url ? 'yes' : 'no'} still missing=${(f1.json?.missing || []).map((x) => x.attr).join(',') || 'none'} errors=${JSON.stringify(f1.json?.errors || []).slice(0, 120)}`);
+    const d = await deskFill(A, aQid, FILL, 131000);
+    rep.step(J, 'filling in the details regenerates the quotation', d.f1.json?.complete === true ? 'PASS' : 'FAIL', d.fillDetail);
     const ap = await call('supplier_api', A.jwt, { action: 'spec_approve', quote_id: aQid, confirm: true });
     rep.step(J, 'the supplier approves and the quote is released', ap.json?.released === true ? 'PASS' : 'FAIL', `HTTP ${ap.status} released=${ap.json?.released} live=${ap.json?.live} code=${ap.json?.code ?? ''}`);
     const after = (await read(`select h.state, h.approved_by is not null approved, q.status from public.quote_spec_hold h join public.quotes q on q.id = h.quote_id where h.quote_id = ${q(aQid)} order by h.id desc limit 1`))[0] || {};
@@ -967,7 +1038,9 @@ export async function journeySignupWhatsApp(ctx) {
   }
 
   // NO — English and Arabic. Part 1 proves the refusal; part 2 (harness-only) continues the screens.
-  const SEND = { en: 'Send code', ar: 'أرسل الرمز' };
+  // src/components/portal/whatsappChoiceText.ts send_code. The Arabic had drifted ('أرسل الرمز'): the click waited
+  // out its timeout, the response wait below rejected unhandled and the process died before teardown (23 Sep 2026).
+  const SEND = { en: 'Send code', ar: 'إرسال الرمز' };
   for (const lang of ['en', 'ar']) {
     const no = await makeDemoCustomer(run, { label: `WA no ${lang}`, locale: lang, stopBeforeWhatsApp: true });
     const other = demoMobile();
@@ -987,6 +1060,7 @@ export async function journeySignupWhatsApp(ctx) {
       await q2.locator('input[type=radio][value="other"]').check();
       await q2.locator('input[type=tel]').fill(other);
       const resp = s.page.waitForResponse((r) => r.url().includes('/functions/v1/kyc') && (r.request().postData() || '').includes('whatsapp_send_code'), { timeout: 20000 });
+      resp.catch(() => {});   // observed below; never an unhandled rejection that kills the run before teardown
       await q2.getByRole('button', { name: SEND[lang] }).click();
       const body = await (await resp).json().catch(() => null);
       const ev = await refusalEvidence(no.email, other, since);
