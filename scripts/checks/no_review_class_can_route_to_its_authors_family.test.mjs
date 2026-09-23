@@ -75,7 +75,12 @@ test('the gateway refuses a review class without its author, and writes the auth
   assert.match(gw, /outcome: 'review_needs_counterpart'/);
   assert.match(gw, /route\.why = String\(route\.why \?\? ''\) \+ ' \| counterpart_model=' \+/);
   assert.match(gw, /counterpart \? 0 : Number\(body\.cache_ttl_min/, 'a review is never served from cache');
+  // never unreviewed: no independent reviewer => HELD and recorded; a third-family review is tagged
+  assert.match(gw, /if \(counterpart && route\.no_independent_reviewer\) \{\s*await rpcSafe\('fn_review_hold_record'/);
+  assert.match(gw, /' \| reviewer_tier=' \+ route\.reviewer_tier/);
+  assert.match(read('supabase/functions/resilience_ping/index.ts'), /rpc\('fn_it_review_independence_watch'\)/);
   const sql = read(FILE);
+  assert.match(sql, /'third_family_fallback'/);
   assert.match(sql, /substring\(coalesce\(new\.model_selected_because, ''\) from 'counterpart_model=\(\[\^ \|\]\+\)'\)/);
 });
 
