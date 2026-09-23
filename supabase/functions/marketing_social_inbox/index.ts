@@ -41,6 +41,7 @@
 // Messaging API; comments on the account's own videos are available through the TikTok API for
 // Business after approval. Either would be a second parser beside meta.ts feeding the same tables.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { observe } from '../_shared/observe.ts';
 import type { FaqRow } from '../_shared/chat_answers.ts';
 import { clip, handshake, maxLen, OUR_METADATA, parseEvents, pickPage, sendRequest, tokenExpired, verifySignature, withinWindow, type InboundEvent, type PageAccount } from './meta.ts';
@@ -159,7 +160,7 @@ async function answer(ev: InboundEvent): Promise<Decision> {
     + 'Never state a price, fee, date, timeline or promise that is not written in the KNOWLEDGE. If the KNOWLEDGE does not answer it, reply exactly UNKNOWN.\n\nKNOWLEDGE:\n'
     + corpus.map((c) => c.content).join('\n\n');
   try {
-    const r = await fetch(GATEWAY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    const r = await timedFetch(GATEWAY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       __secret: key, fn: 'marketing_social_inbox', agent: 'marketing', task_class: 'visitor_chat', sys,
       input: [{ role: 'user', content: ev.text }], max: 300, temperature: 0.2, cache_ttl_min: 0, try_faq: false }) });
     const jd = await r.json();
@@ -206,19 +207,41 @@ async function send(ev: InboundEvent, outId: number, text: string): Promise<void
   try {
     const post = async (t: string) => {
       const { url, body } = sendRequest(ev, text, t);
-      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const r = await timedFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       return { r, j: await r.json().catch(() => ({})) as any };
     };
     let { r, j } = await post(token);
     if (!r.ok && tokenExpired(j?.error) && (token = await pageToken(ev, true))) ({ r, j } = await post(token));
+    // BEING THROTTLED IS NOT A FAILED REPLY (22 Sep 2026, it_engineer, CONN-07). Every non-2xx used to
+    // become send_status='failed', which is terminal — nothing re-drains this table — so a Graph
+    // rate-limit answer discarded a customer's answer for good. Meta's throttles are short: 613 is
+    // calls-per-second, 4 is the app's hourly window, 17 is the user's. Two waits inside this same
+    // handler clear the per-second one outright; if the hourly window is what we hit, the row is left
+    // 'pending' with the reason rather than failed, so it is still owed and reads as owed.
+    const live = token;   // narrowed: the refresh above may have set `token` back to null
+    for (let attempt = 0; live && !r.ok && rateLimited(r.status, j?.error) && attempt < 2; attempt++) {
+      await new Promise((ok) => setTimeout(ok, [1000, 4000][attempt]));
+      ({ r, j } = await post(live));
+    }
     if (r.ok) await set({ send_status: 'sent', sent_at: new Date().toISOString(), meta_message_id: j?.message_id || j?.id || null });
+    else if (rateLimited(r.status, j?.error)) {
+      await set({ send_status: 'pending', send_error: ('rate limited by Meta after 2 retries (' + String(j?.error?.code ?? r.status) + '): '
+        + String(j?.error?.message || '').slice(0, 200) + ' — still owed, not failed').slice(0, 300) });
+    }
     else await set({ send_status: 'failed', send_error: String(j?.error?.message || r.status).slice(0, 300) });
   } catch (e) { await set({ send_status: 'failed', send_error: String((e as Error)?.message || e).slice(0, 300) }); }
 }
 
+/** HTTP 429, or one of Graph's own throttle codes: 4 app-hourly, 17 user-hourly, 613 calls-per-second. */
+export function rateLimited(status: number, err: unknown): boolean {
+  if (status === 429) return true;
+  const c = Number((err as { code?: unknown })?.code);
+  return c === 4 || c === 17 || c === 613;
+}
+
 async function fillHandle(ev: InboundEvent, convId: number, token: string): Promise<void> {
   try {
-    const r = await fetch('https://graph.facebook.com/v21.0/' + encodeURIComponent(ev.userId) + '?fields=name,username&access_token=' + encodeURIComponent(token));
+    const r = await timedFetch('https://graph.facebook.com/v21.0/' + encodeURIComponent(ev.userId) + '?fields=name,username&access_token=' + encodeURIComponent(token));
     const j = await r.json();
     const h = j?.username || j?.name;
     if (r.ok && h) await admin.from('social_conversation').update({ handle: String(h).slice(0, 120) }).eq('id', convId);
@@ -237,7 +260,7 @@ async function pageToken(ev: InboundEvent, refresh = false): Promise<string | nu
   const sys = await sec('meta_access_token');
   if (!sys) return null;
   try {
-    const r = await fetch('https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account&limit=100&access_token=' + encodeURIComponent(sys));
+    const r = await timedFetch('https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account&limit=100&access_token=' + encodeURIComponent(sys));
     const j = await r.json();
     const page = pickPage((j?.data || []) as PageAccount[], ev.platform, ev.accountId);
     if (!r.ok || !page) return null;

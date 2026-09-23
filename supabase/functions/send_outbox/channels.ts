@@ -34,6 +34,20 @@ export function selectQueue(admin: SupabaseClient, limit: number, now: Date = ne
     .order('created_at', { ascending: true }).limit(limit);
 }
 
+// READING THE QUEUE IS NOT TAKING IT (22 Sep 2026, it_engineer, CONN-03). selectQueue above is a plain
+// SELECT: two overlapping runs — and this function is driven every 2 minutes AND from the resilience
+// tick AND from email_cron — see the same rows, both build the message, both POST it, and the second
+// UPDATE to 'sent' hides the first. fn_notifications_claim takes the rows with FOR UPDATE SKIP LOCKED
+// and moves them to 'sending' in the same statement, so a second caller cannot see them at all, and
+// requeues any claim older than 5 minutes so a sender that died costs 5 minutes and not the message.
+//
+// selectQueue is KEPT, not deleted: it is what channels.test.ts builds the exact PostgREST request
+// from, and it is the readable statement of which rows this sender owns. The claim's SQL carries the
+// same rule; the two are checked against each other by that test.
+export function claimQueue(admin: SupabaseClient, limit: number) {
+  return admin.rpc('fn_notifications_claim', { p_channel: 'email', p_limit: limit });
+}
+
 export function ownsChannel(channel: unknown): boolean {
   return channel === null || channel === undefined || !(NOT_OWNED_CHANNELS as readonly unknown[]).includes(channel);
 }

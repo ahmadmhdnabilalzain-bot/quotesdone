@@ -1,4 +1,5 @@
 // kyc — passwordless account completion: mobile (SMS) + email verification, REQUIRED DOB (18+) profile, terms->signed PDF.
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
@@ -58,12 +59,12 @@ async function phoneRateLimited(phone: string, email: string): Promise<boolean> 
   return (mine.count || 0) >= KYC_PHONE_SENDS_PER_ACCOUNT_HOUR;
 }
 async function verifySend(tw: TwAuth, phone: string, channel: string, locale: string) {
-  const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel, Locale: locale }) });
+  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel, Locale: locale }) });
   const jd: any = await r.json().catch(() => ({}));
   return { r, jd };
 }
 async function verifyCheck(tw: TwAuth, phone: string, code: string): Promise<boolean> {
-  const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Code: code }) });
+  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Code: code }) });
   const jd: any = await r.json().catch(() => ({}));
   return jd?.status === 'approved';
 }
@@ -406,7 +407,7 @@ Deno.serve(observe('kyc', async (req) => {
       }
       else await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
       let signed_url = null; let signErr = '';
-      try { const secret = await sec('cred_fn_kyc'); const r = await fetch(`${FN}/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, action: 'sign', kind, email }) }); const jd = await r.json(); signed_url = jd?.signed_url || null; if (!signed_url) signErr = String(jd?.error || jd?.detail || 'no signed_url returned').slice(0, 200); } catch (e) { signErr = String((e as Error)?.message || e).slice(0, 200); }
+      try { const secret = await sec('cred_fn_kyc'); const r = await timedFetch(`${FN}/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, action: 'sign', kind, email }) }, 45_000); const jd = await r.json(); signed_url = jd?.signed_url || null; if (!signed_url) signErr = String(jd?.error || jd?.detail || 'no signed_url returned').slice(0, 200); } catch (e) { signErr = String((e as Error)?.message || e).slice(0, 200); }
       // terms acceptance is recorded either way; a missing signed PDF is a compliance-trail gap worth surfacing
       if (!signed_url) await logRun('error', { action, kind, terms_recorded: true, signed_pdf: false }, 'terms accepted but signed PDF not produced: ' + signErr);
       else await logRun('ok', { action, kind, terms_recorded: true, signed_pdf: true }, '');
