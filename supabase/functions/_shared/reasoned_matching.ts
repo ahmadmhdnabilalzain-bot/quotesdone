@@ -43,9 +43,9 @@ export async function catalogueCategoryOf(deps: ThinkDeps, o: {
 
 /** Which one of this supplier's products does the enquiry ask for? [] = none. (surface sql.fn_supplier_product_match) */
 export async function productsAsked(deps: ThinkDeps, o: {
-  want: string; products: { product_id: number; name: string | null; brand?: string | null; model?: string | null; description?: string | null }[];
+  want: string; products: { product_id: string; name: string | null; brand?: string | null; model?: string | null; description?: string | null }[];
   inquiryId: string; leadId: number;
-}): Promise<Reasoned<number[]>> {
+}): Promise<Reasoned<string[]>> {
   const result = await think(deps, {
     seat: 'sales_engineer', surface: 'sql.fn_supplier_product_match', question: o.want.slice(0, 4000),
     dedupeKey: `product_match:${o.inquiryId}:${o.leadId}`, subject: { inquiry_id: o.inquiryId, supplier_id: o.leadId },
@@ -56,7 +56,7 @@ export async function productsAsked(deps: ThinkDeps, o: {
     ] },
   });
   const choice = answered(result) ? result.decision?.choice ?? null : null;
-  return { value: choice == null ? null : choice === 'none' ? [] : [Number(choice.slice(1))].filter((n) => n > 0), result };
+  return { value: choice == null ? null : choice === 'none' ? [] : [choice.slice(1)], result };
 }
 
 /**

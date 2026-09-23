@@ -41,10 +41,10 @@ Deno.test('catalogue category: the reasoned category, none, and under the hold n
 });
 
 Deno.test('products asked: the reasoned product, none, and held -> not scored, one question queued', async () => {
-  const products = [{ product_id: 11, name: 'Curtain wall profile' }, { product_id: 12, name: 'Door closer' }];
-  assertEquals((await productsAsked(mock(choose('p11')).deps, { want: 'curtain walling for a tower', products, inquiryId: 'i1', leadId: 5 })).value, [11]);
+  const products = [{ product_id: 'a1', name: 'Curtain wall profile' }, { product_id: 'b2', name: 'Door closer' }];
+  assertEquals((await productsAsked(mock(choose('pa1')).deps, { want: 'curtain walling for a tower', products, inquiryId: 'i1', leadId: 5 })).value, ['a1']);
   assertEquals((await productsAsked(mock(choose('none')).deps, { want: 'painting', products, inquiryId: 'i1', leadId: 5 })).value, []);
-  const h = mock(choose('p12'), { held: true });
+  const h = mock(choose('pb2'), { held: true });
   assertEquals((await productsAsked(h.deps, { want: 'x', products, inquiryId: 'i1', leadId: 5 })).value, null);
   assertEquals([h.holds[0].p_surface, h.holds[0].p_dedupe_key, h.holds[0].p_subject], ['sql.fn_supplier_product_match', 'product_match:i1:5', { inquiry_id: 'i1', supplier_id: 5 }]);
 });

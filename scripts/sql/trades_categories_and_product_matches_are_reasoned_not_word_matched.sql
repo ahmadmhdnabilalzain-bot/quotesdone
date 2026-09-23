@@ -8,6 +8,7 @@
 --   25 fn_match_capability       products / brands / project type compared with ilike '%x%' BOTH ways -> score
 --   26 fn_supplier_product_match position(term in the enquiry) over >= 4-letter words -> matched_terms, match_pct
 --   27 fn_quote_spec_group       a 45-branch category regex -> which spec group a quote is checked against
+--   77 fn_kb_route_decide        routed on fn_kb_route's alias scores (it is rewritten below with 24)
 --
 -- WHAT. None of them reads free text for meaning any more:
 --   23 fn_norm_trades resolves EXACTLY: a value that is a live taxonomy code or an intake slug resolves through
@@ -117,11 +118,14 @@ grant execute on function public.fn_kb_route_decide(text, integer) to service_ro
 -- ── 25. fn_match_capability: products, brands, project type and emirate compared exactly ─────────────────
 -- Canonical body: scripts/sql/a_supplier_receives_a_service_inquiry_only_for_what_he_ticked.sql (MANIFEST
 -- 1282, read back from production 23 Sep 2026). Only the comparisons marked EXACT change.
-create or replace function public.fn_match_capability(p_trades text[], p_need text DEFAULT 'executes'::text, p_products text[] DEFAULT '{}'::text[], p_brands text[] DEFAULT '{}'::text[], p_project_type text DEFAULT NULL::text, p_value numeric DEFAULT NULL::numeric, p_emirate text DEFAULT NULL::text, p_limit integer DEFAULT 12, p_services text[] DEFAULT '{}'::text[])
-returns table(supplier_id bigint, company_name text, score numeric, trades text[], roles text[], product_hits integer, brand_hit boolean, ptype_hit boolean, track numeric, why text, service_hits text[], via_implication text[])
+create or replace function public.fn_match_capability(p_trades text[], p_need text default 'executes',
+  p_products text[] default '{}', p_brands text[] default '{}', p_project_type text default null,
+  p_value numeric default null, p_emirate text default null, p_limit integer default 12, p_services text[] default '{}')
+returns table(supplier_id bigint, company_name text, score numeric, trades text[], roles text[], product_hits integer,
+  brand_hit boolean, ptype_hit boolean, track numeric, why text, service_hits text[], via_implication text[])
+set search_path to 'public', 'pg_temp'
 language sql
 stable
-set search_path to 'public', 'pg_temp'
 as $function$
 with w as (
   select coalesce((select value::text::numeric from decision_policy where key='score_w_product'),40)      as w_prod,
@@ -224,7 +228,7 @@ scored as (
     (select count(*) from unnest((select products from q)) pq
       where pq = any(array(select lower(btrim(pp)) from unnest(coalesce(c.products_norm, '{}'::text[])) pp)))::int as product_hits,
     (cardinality((select brands from q)) > 0 and exists (
-       select 1 from unnest(coalesce(c.brands, '{}'::text[])) bb where lower(btrim(bb)) = any((select brands from q))
+       select 1 from unnest(coalesce(c.brands, '{}'::text[])) bb where lower(btrim(bb)) in (select unnest(q.brands) from q)
      )) as brand_hit,
     ((select ptype from q) is not null and exists (
        select 1 from unnest(coalesce(c.project_types, '{}'::text[])) pt where lower(btrim(pt)) = (select ptype from q)
@@ -272,7 +276,7 @@ grant execute on function public.fn_match_capability(text[], text, text[], text[
 -- ── 26. fn_supplier_product_match: the reasoned product ids, or needs_reasoning ─────────────────────────
 drop function if exists public.fn_supplier_product_match(uuid, bigint);
 
-create or replace function public.fn_supplier_product_match(p_inquiry_id uuid, p_lead_id bigint, p_asked bigint[] default null)
+create or replace function public.fn_supplier_product_match(p_inquiry_id uuid, p_lead_id bigint, p_asked uuid[] default null)
 returns jsonb
 language sql
 stable
@@ -304,7 +308,7 @@ as $fn$
     'to_reason', case when p_asked is null then jsonb_build_object(
         'want', (select left(want, 4000) from inq),
         'products', coalesce((select jsonb_agg(jsonb_build_object('product_id', pr.id, 'name', pr.name, 'brand', pr.brand, 'model', pr.model,
-                                  'category_slug', pr.category_slug, 'description', pr.description) order by pr.id) from prod), '[]'::jsonb)) end,
+                                  'category_slug', pr.category_slug, 'description', pr.description) order by pr.id) from prod pr), '[]'::jsonb)) end,
     'matches', case when p_asked is null then '[]'::jsonb else coalesce((
       select jsonb_agg(jsonb_build_object(
           'product_id', pr.id, 'name', pr.name, 'brand', pr.brand, 'model', pr.model,
@@ -314,8 +318,8 @@ as $fn$
       from prod pr), '[]'::jsonb) end
   );
 $fn$;
-revoke execute on function public.fn_supplier_product_match(uuid, bigint, bigint[]) from public, anon, authenticated;
-grant execute on function public.fn_supplier_product_match(uuid, bigint, bigint[]) to service_role;
+revoke execute on function public.fn_supplier_product_match(uuid, bigint, uuid[]) from public, anon, authenticated;
+grant execute on function public.fn_supplier_product_match(uuid, bigint, uuid[]) to service_role;
 
 -- ── 27. fn_quote_spec_group: a keyed column, not a category regex ───────────────────────────────────────
 alter table public.category_specs add column if not exists quote_spec_group text;
