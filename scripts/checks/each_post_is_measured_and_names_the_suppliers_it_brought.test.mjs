@@ -21,7 +21,9 @@ const SQL = R(SQL_FILE);
 
 test('the marketing duty list runs post_results and scorecard, each owned by marketing', () => {
   const duties = R('supabase/functions/marketing/duties.ts');
-  assert.match(duties, /export const DUTIES: Duty\[\] = \[POST_RESULTS, SCORECARD\]/, 'DUTIES does not run post_results and scorecard');
+  // other duties (platform_spec_freshness, #873) may follow in the same list; these two must be in it
+  const list = (duties.match(/export const DUTIES: Duty\[\] = \[([^\]]*)\]/) || [])[1] || '';
+  for (const d of ['POST_RESULTS', 'SCORECARD']) assert.ok(list.split(',').map((s) => s.trim()).includes(d), `DUTIES does not run ${d}`);
   const pr = R('supabase/functions/marketing/post_results.ts');
   for (const n of ['post_results', 'scorecard']) assert.match(pr, new RegExp(`name: '${n}', owner_seat: 'marketing'`), `${n} names no owning seat`);
   assert.match(pr, /rpc\('fn_marketing_post_checkpoints_due'/);
