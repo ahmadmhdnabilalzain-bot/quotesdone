@@ -816,6 +816,11 @@ begin
              evidence = format('Recovered on %s: %s read %s against %s expected (%s).', v_day, p.metric_key, v_act, v_exp, v_status)
        where task_id = v_task;
       n_closed := n_closed + 1; v_task := null;
+    elsif v_task is not null and v_status = 'not_measurable' then
+      -- the miss can no longer be confirmed or cleared: say so on the task instead of leaving it silently open
+      update public.ceo_task set state = 'blocked',
+             blocked_reason = format('On %s %s became not measurable (under 20 in its denominator); the miss is neither confirmed nor cleared.', v_day, p.metric_key)
+       where task_id = v_task and state <> 'blocked';
     end if;
 
     insert into public.target_daily_verdict (day, contract_id, metric_key, owner_seat, expected, actual, gap_pct, status, task_id, handoff_id)
