@@ -1377,8 +1377,8 @@ begin
 end $fn$;
 revoke execute on function public.trg_supplier_document_subject_asked() from public, anon, authenticated;
 grant execute on function public.trg_supplier_document_subject_asked() to service_role;
-drop trigger if exists supplier_document_subject_asked on public.documents;
-create trigger supplier_document_subject_asked after insert or update of file_name, status on public.documents
+-- CREATE OR REPLACE (not drop + create): SHARE ROW EXCLUSIVE, so reads of documents never wait on this apply.
+create or replace trigger supplier_document_subject_asked after insert or update of file_name, status on public.documents
   for each row execute function public.trg_supplier_document_subject_asked();
 
 -- The live supporting documents already on file are asked about once (6 on 23 Sep 2026). Called directly,
