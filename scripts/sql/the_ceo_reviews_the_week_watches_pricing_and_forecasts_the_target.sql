@@ -246,7 +246,9 @@ begin
       case v_kind when 'management_review' then 'Challenge the chief executive''s reading of the company''s week.'
                   when 'pricing_monitor' then 'Challenge the chief executive''s pricing call before it reaches the founder.'
                   else 'Challenge the chief executive''s response to the revenue forecast.' end,
-      jsonb_build_object('facts', rv.facts),
+      -- seat_deliberation.evidence is capped at 60,000 characters; a week that outgrows it is passed as text, cut.
+      case when length(rv.facts::text) <= 50000 then jsonb_build_object('facts', rv.facts)
+           else jsonb_build_object('facts_cut_at_50000_chars', left(rv.facts::text, 50000)) end,
       jsonb_build_object('call', v_choice, 'fields', v_fields, 'reasoning', left(coalesce(p_result->>'answer', ''), 3000)),
       p_result, 'ceo_review', v_kind || ':' || v_period);
   end if;
