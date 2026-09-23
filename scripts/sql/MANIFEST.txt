@@ -1631,3 +1631,4 @@ scripts/sql/the_delivery_column_names_everyone_who_writes_it.sql
 # company_faq answers and the two replies site_assistant sends verbatim still said Sunday to Thursday
 # while every file on the site said Monday to Friday. Becomes the canonical file for the two routines.
 scripts/sql/the_working_week_is_monday_to_friday_in_the_database_too.sql
+scripts/sql/the_site_error_ingest_names_the_seat_that_owns_it.sql
