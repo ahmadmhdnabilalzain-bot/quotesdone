@@ -75,9 +75,12 @@ test('no migrated decision point is decided by a word list again, and each one a
   }
   // the engine every migrated point goes through
   const th = read('supabase/functions/_shared/think.ts');
-  for (const s of ["deps.rpc('fn_reason_retrieve'", "deps.rpc('fn_case_recall'", "deps.rpc('fn_reason_hold'", "deps.rpc('fn_reason_propose_knowledge'", 'counterpartModel: model', 'refuse(draft']) {
+  for (const s of ["deps.rpc('fn_reason_retrieve'", "deps.rpc('fn_reason_hold'", "deps.rpc('fn_reason_propose_knowledge'", 'counterpartModel: model', 'refuse(draft']) {
     assert.ok(th.includes(s), `think.ts lost ${s}`);
   }
+  // Case memory: think() recalls through the one shared recall (#910), which calls fn_case_recall itself.
+  assert.ok(th.includes('await recallCases(deps, '), 'think.ts lost its case recall (recallCases)');
+  assert.ok(read('supabase/functions/_shared/case_recall.ts').includes("admin.rpc('fn_case_recall'"), 'case_recall.ts lost fn_case_recall');
   assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, 3, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\)\)\)/);
 });
 
@@ -258,7 +261,7 @@ begin
             from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in
             ('fn_wa_route', 'fn_ceo_command_submit', 'fn_ceo_command_interpret', 'fn_rfq_required_check', 'fn_reason_retrieve',
              'fn_reason_hold', 'fn_reason_held_due', 'fn_reason_held_resolve', 'fn_reason_propose_knowledge', 'fn_reason_held_delivered')),
-    'service_can', has_function_privilege('service_role', 'public.fn_wa_route(text,text,boolean,boolean)', 'execute'));
+    'service_can', has_function_privilege('service_role', 'public.fn_wa_route(text,text,boolean,boolean,text)', 'execute'));
 
   raise exception 'CHK<<%>>', o::text;
 end $p$;`;
@@ -347,6 +350,372 @@ end $p$;`);
   assert.equal(out.with.status, 'applied');
   assert.equal(out.with.effect.choice, 'yes');
   assert.equal(out.without, 'reasoned');
+});
+
+// ── batch B6: routing and the CEO's decisions (points 47-54; ceo + sales_engineer) ──────────────────
+const B6 = 'scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql';
+
+// Batch B1 (decision points 7-14, customer channels): the WhatsApp intent table answers the REASONED intent and
+// never reads the body for meaning; the old overloads are gone; only service_role executes.
+test('production, aborted: fn_wa_answer / fn_wa_route answer the reasoned intent, never the words (wa_inbound.intent_table)',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v jsonb;
+begin
+  -- Words that the old match_patterns caught ('hi', 'price', 'register', 'speak to a human') decide nothing now.
+  v := public.fn_wa_answer('+971500000021', 'ZZ DEMO hi, what is the price, how do I register, speak to a human', null);
+  o := o || jsonb_build_object('held_matched', v->>'matched', 'held_by', v->>'intent_decided_by');
+  v := public.fn_wa_answer('+971500000021', 'ZZ DEMO hi, what is the price', 'none');
+  o := o || jsonb_build_object('none_matched', v->>'matched', 'none_by', v->>'intent_decided_by');
+  -- ...and a body with none of pricing's words is answered as pricing when that is what was reasoned.
+  v := public.fn_wa_answer('+971500000021', 'ZZ DEMO is it free for me?', 'pricing');
+  o := o || jsonb_build_object('reasoned_intent', v->>'intent', 'reasoned_matched', v->>'matched');
+  v := public.fn_wa_answer('+971500000021', 'ZZ DEMO', 'not_a_row');
+  o := o || jsonb_build_object('unknown_row_matched', v->>'matched');
+  o := o || jsonb_build_object('held_log', (select refusal_reason from public.wa_answer_log where from_phone = '+971500000021' and body like 'ZZ DEMO hi, what is the price, how%' order by id desc limit 1));
+  -- The route passes the intent through; a reasoned contact_human is the one way to the number by intent.
+  v := public.fn_wa_route('+971500000021', 'ZZ DEMO is anyone actually there?', false, false, 'contact_human');
+  o := o || jsonb_build_object('route_intent', v->>'deterministic_intent', 'route_person', v->>'needs_a_person', 'route_by', v->>'person_decided_by');
+  v := public.fn_wa_route('+971500000021', 'ZZ DEMO speak to a human please', false, null);
+  o := o || jsonb_build_object('route_held_intent', v->'deterministic_intent', 'route_held_person', v->>'needs_a_person', 'route_held_by', v->>'intent_decided_by');
+  o := o || jsonb_build_object(
+    'old_answer', to_regprocedure('public.fn_wa_answer(text,text)') is not null,
+    'old_route', to_regprocedure('public.fn_wa_route(text,text,boolean,boolean)') is not null,
+    'reads_patterns', position('match_patterns' in pg_get_functiondef('public.fn_wa_answer(text,text,text)'::regprocedure)) > 0,
+    'anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+                   from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_wa_answer', 'fn_wa_route')),
+    'service_can', has_function_privilege('service_role', 'public.fn_wa_answer(text,text,text)', 'execute')
+                   and has_function_privilege('service_role', 'public.fn_wa_route(text,text,boolean,boolean,text)', 'execute'));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  console.log(JSON.stringify(out, null, 1));
+  assert.equal(out.held_matched, 'false', 'unreasoned: the words decide nothing');
+  assert.equal(out.held_by, 'held: not yet reasoned');
+  assert.match(out.held_log, /^Not reasoned yet \(the model hold\)/);
+  assert.equal(out.none_matched, 'false');
+  assert.equal(out.none_by, 'reasoning');
+  assert.equal(out.reasoned_intent, 'pricing');
+  assert.equal(out.reasoned_matched, 'true');
+  assert.equal(out.unknown_row_matched, 'false', 'an intent that is not an active row is not answered');
+  assert.equal(out.route_intent, 'contact_human');
+  assert.equal(out.route_person, 'true');
+  assert.equal(out.route_by, 'intent');
+  assert.equal(out.route_held_intent, null, '"speak to a human" held: no intent from the words');
+  assert.equal(out.route_held_person, 'false');
+  assert.equal(out.route_held_by, 'held: not yet reasoned');
+  assert.equal(out.old_answer, false);
+  assert.equal(out.old_route, false);
+  assert.equal(out.reads_patterns, false);
+  assert.equal(out.anon_can, false);
+  assert.equal(out.service_can, true);
+});
+
+test('B6: the routing and CEO routines read no free text for meaning', () => {
+  const sql = code(B6, read(B6));
+  const body = (name) => { const a = sql.indexOf('function public.' + name + '('); const ends = ['$function$;', '$fn$;'].map((e) => sql.indexOf(e, a)).filter((i) => i > a); const b = Math.min(...ends); assert.ok(a > 0 && ends.length, name); return sql.slice(a, b); };
+  for (const n of ['fn_resolve_cat_agent', 'trg_inquiry_enrich', 'fn_supplier_document_home', 'fn_should_escalate', 'fn_task_review', 'fn_twin',
+                   'fn_lead_reclassify_tick', 'fn_reason_apply_lead_trade__classify', 'fn_category_key_for_slug', 'fn_category_key_ask', 'fn_reason_apply_category__key_for_slug']) {
+    assert.doesNotMatch(body(n), /~\*|~ '|ilike|\blike\b|position\(|strpos\(|similar to|regexp_(match|matches|like|split|substr|count|instr)|substring\([^)]*\bfrom\b/i, `${n} matches text again`);
+  }
+  // fn_decide and the refund checklist keep format guards on OUR keys and addresses (ilike 'supplier@%',
+  // a ':'-suffixed source_ref); no pattern may touch the category text or the refund notes.
+  assert.doesNotMatch(body('fn_decide'), /categories,''\)\)\|\||~\*/, 'fn_decide reads the category text by substring again');
+  assert.doesNotMatch(body('fn_ceo_refund_checklist'), /reason_note[^;]*~|close_reason[^;]*~/, 'the refund notes are pattern-matched again');
+  assert.doesNotMatch(sql.slice(sql.indexOf('function public.fn_category_expert_ref('), sql.indexOf('end $fn$;', sql.indexOf('function public.fn_category_expert_ref('))), /~\*/);
+});
+
+test('production, aborted (B6): escalation, refunds, tasks, documents, repeats and desks wait for reasoning and apply it',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare
+  o jsonb := '{}'::jsonb; v jsonb; v_id bigint; n bigint; c record; v_lead bigint; v_doc bigint; v_tx uuid; v_ref bigint;
+  v_cust uuid; v_i1 uuid; v_i2 uuid; v_i3 uuid; v_task bigint; v_resp text;
+begin
+  -- 1. The desk: a fragment of a catalogue name is no longer a desk; the slug and the exact name are.
+  select * into c from public.category_agents where coalesce(active, true) and length(name) > 8 order by slug limit 1;
+  o := o || jsonb_build_object('frag', public.fn_resolve_cat_agent(substr(lower(c.name), 2, 5)),
+    'slug', public.fn_resolve_cat_agent(c.slug) = 'cat:' || c.slug, 'name', public.fn_resolve_cat_agent(c.name) is not null,
+    'expert_nothing', public.fn_category_expert_ref('zz demo no such trade'));
+
+  -- 2. Escalation: the words decide nothing; the text waits, nothing is recorded; the reasoned answer decides.
+  v := public.fn_should_escalate(jsonb_build_object('text', 'ZZ DEMO is a refund dispute over a contract change legal here?', 'actor', 'sales_engineer'));
+  o := o || jsonb_build_object('esc_reasons', v->'reasons', 'esc_needs', v->'needs_reasoning'->>'surface',
+    'esc_opts', (select jsonb_agg(x->>'id') from jsonb_array_elements(v->'needs_reasoning'->'options') x where x->>'id' in ('legal_matter', 'neither')));
+  select count(*) into n from public.decision_record;
+  v := public.fn_decide('escalate', jsonb_build_object('text', 'ZZ DEMO the supplier kept the deposit and we will take him to court'), 'sales_engineer');
+  o := o || jsonb_build_object('dec_wait', v->>'decision', 'dec_route', v->>'route_to', 'dec_records', (select count(*) from public.decision_record) - n);
+  v_id := (v->>'held_id')::bigint;
+  o := o || jsonb_build_object('dec_row', (select seat || ':' || surface || ':' || status || ':' || (expires_at is null) from public.reasoning_held_question where id = v_id));
+  v := public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"legal_matter"}}'::jsonb);
+  o := o || jsonb_build_object('dec_applied', v->>'status', 'dec_after', v->'effect'->'decided'->>'decision',
+    'dec_after_reason', v->'effect'->'decided'->'reasons'->>0);
+  v := public.fn_decide('approve', jsonb_build_object('text', 'ZZ DEMO please approve the brochure reprint'), 'sales_engineer');
+  perform public.fn_reason_held_resolve((v->>'held_id')::bigint, '{"status":"answered","answer":"ZZ","decision":{"choice":"neither"}}'::jsonb);
+  o := o || jsonb_build_object('neither', public.fn_should_escalate(jsonb_build_object('text', 'ZZ DEMO please approve the brochure reprint'))->'reasons');
+
+  -- 3. The refund: its note is read by reasoning; until then it waits (no cycle, no decline on a word).
+  select id into v_tx from public.transactions order by revealed_at desc nulls last limit 1;
+  if v_tx is not null then
+    insert into public.refunds (transaction_id, stripe_payment_intent, amount_fils, reason_code, reason_note, requested_by, status, currency)
+    select t.id, t.payment_ref, round(coalesce(t.total_charged, t.reveal_fee) * 100)::bigint, 'supplier_unresponsive',
+           'ZZ DEMO the customer says she paid the supplier in cash at the site', 'customer', 'requested', 'AED'
+      from public.transactions t where t.id = v_tx
+    returning id into v_ref;
+    v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
+    o := o || jsonb_build_object('rf_item', (select i->>'kind' from jsonb_array_elements(v->'items') i where i->>'item' = 'off_platform_engagement_reasoned'),
+      'rf_offp_before', (select i->'evidence'->'off_platform_engagement_recorded' from jsonb_array_elements(v->'items') i where i->>'item' = 'no_refund_exclusion_applies'),
+      'rf_nonrem_other', (select count(*) from jsonb_array_elements(v->'failed') i where not coalesce((i->>'remediable')::boolean, false)));
+    -- The review runs inside a savepoint that is rolled back, so the refund is still open for the replay below.
+    begin
+      select count(*) into n from public.refund_ceo_review where refund_id = v_ref;
+      v := public.fn_ceo_refund_review(v_ref, 'probe');
+      o := o || jsonb_build_object('rf_review', v->>'outcome', 'rf_review_reason', v->>'reason', 'rf_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref) - n);
+      raise exception 'zz_b6_rollback';
+    exception when others then if sqlerrm <> 'zz_b6_rollback' then raise; end if;
+    end;
+    -- The only live payment carries its own non-remediable findings (measured 23 Sep 2026: the supplier
+    -- responded, the customer rated), so the waiting branch is proved against a checklist whose ONLY
+    -- failures are remediable work and the unread note — the checklist's own shape, stubbed inside a
+    -- rolled-back savepoint. The refund must WAIT: no cycle, no handoff, no decline, no founder page.
+    begin
+      -- the REAL checklist, over the live payment with its non-remediable facts taken away (all rolled back)
+      update public.transactions set supplier_ack_at = null where id = v_tx;
+      update public.messages set blocked = true where inquiry_id = (select inquiry_id from public.transactions where id = v_tx) and sender = 'supplier';
+      delete from public.reviews where transaction_id = v_tx;
+      delete from public.refund_ladder_evidence where transaction_id = v_tx;
+      update public.supplier_response_watch set first_response_at = null where transaction_id = v_tx;
+      delete from public.transactions x where x.id <> v_tx and x.customer_id = (select customer_id from public.transactions where id = v_tx)
+        and x.supplier_id = (select supplier_id from public.transactions where id = v_tx);
+      update public.inquiries set status = 'open' where id = (select inquiry_id from public.transactions where id = v_tx) and status in ('completed', 'closed');
+      v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
+      o := o || jsonb_build_object('rf2_failed', (select jsonb_agg(i->>'item' order by i->>'item') from jsonb_array_elements(v->'failed') i),
+        'rf2_nonrem', (select count(*) from jsonb_array_elements(v->'failed') i where not coalesce((i->>'remediable')::boolean, false)));
+      select count(*) into n from public.refund_ceo_review where refund_id = v_ref;
+      -- the review runs in its own statement, so the counts below see what it wrote
+      v := public.fn_ceo_refund_review(v_ref, 'probe');
+      o := o || jsonb_build_object('rf2_review', v->>'outcome',
+        'rf2_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref) - n,
+        'rf2_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text),
+        'rf2_reasoning_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text and a.detail->>'remedy_key' = 'reasoning'));
+      -- Now the ladder is complete too, so the unread note is the ONLY failure: the refund must rest.
+      delete from public.agent_actions where detail->>'type' = 'refund.remediate' and detail->>'refund_id' = v_ref::text;
+      delete from public.refund_ceo_review where refund_id = v_ref;
+      insert into public.refund_ladder_evidence (transaction_id, refund_id, step, result, delivered)
+      values (v_tx, v_ref, 'chase', 'no_response_confirmation', true), (v_tx, v_ref, 'final_call', 'no_response_confirmation', true);
+      v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
+      o := o || jsonb_build_object('rf3_failed', (select jsonb_agg(i->>'item') from jsonb_array_elements(v->'failed') i),
+        'rf3_review', null);
+      v := public.fn_ceo_refund_review(v_ref, 'probe');
+      o := o || jsonb_build_object('rf3_review', v->>'outcome',
+        'rf3_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref),
+        'rf3_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text));
+      raise exception 'zz_b6_rollback';
+    exception when others then if sqlerrm <> 'zz_b6_rollback' then raise; end if;
+    end;
+    select id into v_id from public.reasoning_held_question where surface = 'ceo.refund_off_platform' and subject->>'refund_id' = v_ref::text;
+    -- The reasoned answer is read by the checklist; the replay re-runs the review, which now cites it.
+    update public.reasoning_held_question set status = 'reasoned', result = '{"status":"answered","decision":{"choice":"engaged_off_platform"}}'::jsonb where id = v_id;
+    v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
+    o := o || jsonb_build_object('rf_offp_after', (select i->'evidence'->'off_platform_engagement_recorded' from jsonb_array_elements(v->'items') i where i->>'item' = 'no_refund_exclusion_applies'),
+      'rf_reasoned_item_gone', not exists (select 1 from jsonb_array_elements(v->'items') i where i->>'item' = 'off_platform_engagement_reasoned'));
+    update public.reasoning_held_question set status = 'held' where id = v_id;
+    v := public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"engaged_off_platform"}}'::jsonb);
+    o := o || jsonb_build_object('rf_row', (select status from public.reasoning_held_question where id = v_id),
+      'rf_apply_review', v->'effect'->'review'->>'outcome', 'rf_apply_reason', v->'effect'->'review'->>'reason');
+    update public.refunds set reason_note = 'The customer reported that the revealed supplier has not responded.' where id = v_ref;
+    v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
+    o := o || jsonb_build_object('rf_default_note_asks', exists (select 1 from jsonb_array_elements(v->'items') i where i->>'item' = 'off_platform_engagement_reasoned'));
+  end if;
+
+  -- 4. The supplier's document: filed on save; fills no slot until reasoned; then fills the ISO slot.
+  select id into v_lead from public.leads where iso_doc_path is null order by id limit 1;
+  insert into public.documents (bucket, path, file_name, kind, ref_table, ref_id, status)
+  values ('supplier-docs', 'supporting/' || v_lead || '/zz_demo.pdf', 'ZZ DEMO ISO 9001:2015 certificate', 'supporting:certificate', 'supplier_supporting', v_lead::text, 'received')
+  returning id into v_doc;
+  select id into v_id from public.reasoning_held_question where dedupe_key = 'supdoc:' || v_doc || ':' || md5('ZZ DEMO ISO 9001:2015 certificate');
+  o := o || jsonb_build_object('doc_asked', (select seat || ':' || surface from public.reasoning_held_question where id = v_id),
+    'doc_before', (select source from public.fn_supplier_document_home(v_lead) where key = 'iso'));
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"iso"}}'::jsonb);
+  o := o || jsonb_build_object('doc_after', (select source || ':' || (path like '%zz_demo.pdf') from public.fn_supplier_document_home(v_lead) where key = 'iso'),
+    'doc_backfilled', (select count(*) from public.reasoning_held_question where surface = 'supplier_documents.subject'));
+
+  -- 5. A repeat request: the same summary is flagged at once; a different wording waits for reasoning.
+  insert into public.customers (email, full_name) values ('zz-demo-b6@example.invalid', 'ZZ DEMO B6') returning id into v_cust;
+  insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO lay 20 m2 of porcelain tiles in a villa kitchen') returning id into v_i1;
+  insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO lay 20 m2 of porcelain tiles in a villa kitchen') returning id into v_i2;
+  insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO kitchen floor tiling, about twenty square metres, porcelain') returning id into v_i3;
+  o := o || jsonb_build_object('dup_same', (select plausibility->>'possible_duplicate' from public.inquiries where id = v_i2),
+    'dup_reworded_before', (select plausibility->>'possible_duplicate' from public.inquiries where id = v_i3));
+  select id into v_id from public.reasoning_held_question where dedupe_key = 'inquiry_dup:' || v_i3;
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"same_request"}}'::jsonb);
+  o := o || jsonb_build_object('dup_reworded_after', (select plausibility->>'duplicate_by' from public.inquiries where id = v_i3));
+
+  -- 6. A task's owner: no owner on a word; the reasoned responsibility records it.
+  select id into v_task from public.org_tasks where coalesce(result->>'deliverable', '') <> '' order by id desc limit 1;
+  v := public.fn_task_review(v_task);
+  o := o || jsonb_build_object('task_waits', v->'awaiting_reasoning'->0->>'surface', 'task_owner_before', v->>'owns_responsibility');
+  select responsibility into v_resp from public.os_responsibility order by responsibility limit 1;
+  v := public.fn_reason_held_resolve((select id from public.reasoning_held_question where dedupe_key like 'task_resp:' || v_task || ':%'),
+         jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_resp)));
+  o := o || jsonb_build_object('task_applied', v->>'status', 'task_owner_after', v->'effect'->>'owns_responsibility' = v_resp);
+
+  -- 7. Only service_role executes.
+  o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in
+            ('fn_reason_route_ask', 'fn_reason_route_answer', 'fn_resolve_cat_agent', 'fn_category_expert_ref', 'trg_inquiry_enrich',
+             'fn_supplier_document_home', 'fn_should_escalate', 'fn_decide', 'fn_ceo_refund_checklist', 'fn_ceo_refund_review', 'fn_task_review',
+             'fn_task_ownership_record', 'fn_supplier_document_subject_ask', 'trg_supplier_document_subject_asked',
+             'fn_reason_apply_ceo__escalation_meaning', 'fn_reason_apply_ceo__refund_off_platform', 'fn_reason_apply_ceo__task_responsibility',
+             'fn_reason_apply_ceo__task_collaboration_rule', 'fn_reason_apply_inquiry__same_request')));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  console.log(JSON.stringify(out, null, 1));
+  assert.equal(out.frag, null, 'a fragment of a catalogue name is not a desk');
+  assert.equal(out.slug, true);
+  assert.equal(out.name, true);
+  assert.equal(out.expert_nothing, '');
+
+  assert.deepEqual(out.esc_reasons, [], 'legal_triggers words in the text decide nothing');
+  assert.equal(out.esc_needs, 'ceo.escalation_meaning');
+  assert.deepEqual(out.esc_opts, ['legal_matter', 'neither']);
+  assert.equal(out.dec_wait, 'awaiting_reasoning');
+  assert.equal(out.dec_route, 'ceo', 'the waiting escalation sits with the CEO seat, never the founder');
+  assert.equal(out.dec_records, 0, 'nothing is recorded before the meaning is reasoned');
+  assert.equal(out.dec_row, 'ceo:ceo.escalation_meaning:held:true');
+  assert.equal(out.dec_applied, 'applied');
+  assert.equal(out.dec_after, 'escalate');
+  assert.match(out.dec_after_reason, /legal matter \(reasoned/);
+  assert.deepEqual(out.neither, [], 'a reasoned "neither" escalates nothing');
+
+  if (out.rf_item !== undefined) {
+    assert.equal(out.rf_item, 'needs_reasoning');
+    assert.equal(out.rf_offp_before, null, 'no exclusion is assumed before the note is read');
+    if (out.rf_nonrem_other > 0) {
+      assert.equal(out.rf_review, 'declined');
+      assert.doesNotMatch(String(out.rf_review_reason), /off the platform/);
+    } else {
+      assert.equal(out.rf_review, 'waiting_on_reasoning');
+      assert.equal(out.rf_cycles, 0, 'a question still being reasoned spends no cycle and pages nobody');
+    }
+    // the real checklist: only remediable work fails besides the unread note
+    assert.equal(out.rf2_nonrem, 0, 'the savepoint left no non-remediable finding: ' + JSON.stringify(out.rf2_failed));
+    assert.ok(out.rf2_failed.includes('off_platform_engagement_reasoned'));
+    assert.equal(out.rf2_review, 'rejected', 'the other remediable work still goes to its owners while the note is reasoned');
+    assert.ok(out.rf2_handoffs > 0);
+    assert.equal(out.rf2_reasoning_handoffs, 0, 'no person is handed a question only reasoning answers');
+    assert.deepEqual(out.rf3_failed, ['off_platform_engagement_reasoned'], 'the real checklist: only the unread note fails');
+    assert.equal(out.rf3_review, 'waiting_on_reasoning', 'a refund whose note is unread waits');
+    assert.equal(out.rf3_cycles, 0, 'no cycle is spent, so three of them can never page the founder');
+    assert.equal(out.rf3_handoffs, 0);
+    assert.equal(out.rf_offp_after, true);
+    assert.equal(out.rf_reasoned_item_gone, true);
+    assert.equal(out.rf_row, 'applied');
+    assert.equal(out.rf_apply_review, 'declined', 'the replay re-runs the CEO review on the reasoned answer');
+    assert.match(String(out.rf_apply_reason), /off the platform \(reasoned/);
+    assert.equal(out.rf_default_note_asks, false, 'our own default note asks nothing');
+  }
+
+  assert.equal(out.doc_asked, 'sales_engineer:supplier_documents.subject');
+  assert.notEqual(out.doc_before, 'supporting', 'an unreasoned label fills no slot');
+  assert.equal(out.doc_after, 'supporting:true');
+  assert.ok(out.doc_backfilled >= 7, 'the live supporting documents were asked about');
+
+  assert.equal(out.dup_same, 'true');
+  assert.equal(out.dup_reworded_before, null, 'a differently worded request is not flagged on a substring');
+  assert.equal(out.dup_reworded_after, 'reasoning');
+
+  assert.equal(out.task_waits, 'ceo.task_responsibility');
+  assert.equal(out.task_owner_before, null);
+  assert.equal(out.task_applied, 'applied');
+  assert.equal(out.task_owner_after, true);
+  assert.equal(out.anon_can, false);
+});
+
+test('production, aborted (B6): supplier trades are reasoned behind a gate and a cap; category keys are declared or reasoned',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v jsonb; a bigint; b bigint; c bigint; v_id bigint; v_code text; v_word text; v_key text;
+begin
+  insert into public.leads (company_name, categories, description) values ('ZZ DEMO B6 One', 'ZZ DEMO', 'ZZ DEMO we install split air conditioners') returning id into a;
+  insert into public.leads (company_name, categories, description) values ('ZZ DEMO B6 Two', 'ZZ DEMO', 'ZZ DEMO') returning id into b;
+  insert into public.leads (company_name, categories, description) values ('ZZ DEMO B6 Three', 'ZZ DEMO', 'ZZ DEMO') returning id into c;
+
+  -- 1. No gate, nothing filed; a value other than exactly go is no gate.
+  delete from public.app_secrets where key = 'lead_reclassify_backfill';
+  v := public.fn_lead_reclassify_tick(20, array[a, b, c]);
+  o := o || jsonb_build_object('off', v->>'reason', 'off_filed', (select count(*) from public.reasoning_held_question where surface = 'lead_trade.classify' and subject->>'lead_id' in (a::text, b::text, c::text)));
+  insert into public.app_secrets (key, value) values ('lead_reclassify_backfill', 'maybe');
+  o := o || jsonb_build_object('not_go', public.fn_lead_reclassify_tick(20, array[a, b, c])->>'reason');
+
+  -- 2. 'go' under the model hold: nothing is filed (it would only wait and pile up in the seat's queue).
+  update public.app_secrets set value = 'go' where key = 'lead_reclassify_backfill';
+  o := o || jsonb_build_object('held_gate', public.fn_lead_reclassify_tick(20, array[a, b, c])->>'reason');
+  -- ... and with the models open (the gate stubbed inside this aborted transaction) and room for exactly two more
+  -- today: two filed, then the cap stops the third.
+  create or replace function public.fn_kernel_paid_provider_gate(p_model text default null) returns jsonb language sql as $g$ select '{"allowed":true,"rule":"zz_probe_open"}'::jsonb $g$;
+  insert into public.app_secrets (key, value) values ('lead_reclassify_daily_cap', '0') on conflict (key) do update set value = '0';
+  update public.app_secrets set value = ((select count(*) from public.reasoning_held_question where surface = 'lead_trade.classify'
+    and created_at >= date_trunc('day', now() at time zone 'Asia/Dubai') at time zone 'Asia/Dubai') + 2)::text where key = 'lead_reclassify_daily_cap';
+  v := public.fn_lead_reclassify_tick(20, array[a, b, c]);
+  o := o || jsonb_build_object('go_filed', v->'filed', 'capped', public.fn_lead_reclassify_tick(20, array[a, b, c])->>'reason',
+    'go_rows', (select count(*) from public.reasoning_held_question where surface = 'lead_trade.classify' and subject->>'lead_id' in (a::text, b::text, c::text)),
+    'go_seat', (select seat || ':' || jsonb_array_length(request->'decision'->'options') from public.reasoning_held_question where dedupe_key = 'lead_trade:' || a));
+
+  -- 3. The reasoned trade is stored with its evidence; an invented one is not; the twin counts it.
+  select code into v_code from public.taxonomy_trade where active order by sort, code limit 1;
+  v_id := (select id from public.reasoning_held_question where dedupe_key = 'lead_trade:' || a);
+  perform public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ the description says it installs split units', 'confidence', 0.8, 'decision', jsonb_build_object('choice', v_code)));
+  v_id := (select id from public.reasoning_held_question where dedupe_key = 'lead_trade:' || b);
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"zz_not_a_trade"}}'::jsonb);
+  update public.app_secrets set value = '100000' where key = 'lead_reclassify_daily_cap';   -- room for the re-ask below
+  v := public.fn_lead_reclassify_tick(20, array[b]);
+  o := o || jsonb_build_object('invented_reasked', v->>'filed', 'invented_new_row', (select status from public.reasoning_held_question where dedupe_key = 'lead_trade:' || b));
+  o := o || jsonb_build_object('stored', (select trade_code || ':' || confidence || ':' || (evidence like 'ZZ the description%') from public.lead_trade_class where lead_id = a),
+    'invented_stored', exists (select 1 from public.lead_trade_class where lead_id = b),
+    'no_shortlist_agreed', (select shortlist_agreed from public.lead_trade_class where lead_id = a),
+    'twin_pool', (public.fn_twin('category', v_code)->>'supplier_pool_total')::int >= 1,
+    'twin_words', (public.fn_twin('category', 'zz demo')->>'supplier_pool_total')::int);
+
+  -- 4. A vocabulary word no declared rung maps has no key until reasoned; the reasoned key is then read back.
+  select w into v_word from (select distinct lower(btrim(category)) w from public.category_specs) s
+   where not exists (select 1 from public.category_route_map m where m.category = s.w)
+     and not exists (select 1 from public.catalog_supplier_categories x where x.slug = s.w) order by w limit 1;
+  o := o || jsonb_build_object('word', v_word, 'word_before', public.fn_category_key_for_slug(v_word),
+    'word_asked', exists (select 1 from public.reasoning_held_question where dedupe_key = 'category_key:' || v_word));
+  select category_key into v_key from public.org_category_identity order by category_key limit 1;
+  perform public.fn_reason_held_resolve((select id from public.reasoning_held_question where dedupe_key = 'category_key:' || v_word),
+    jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_key)));
+  o := o || jsonb_build_object('word_after', public.fn_category_key_for_slug(v_word) = v_key);
+
+  o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in
+            ('fn_lead_reclassify_tick', 'fn_reason_apply_lead_trade__classify', 'fn_category_key_for_slug', 'fn_category_key_ask', 'trg_category_key_asked',
+             'fn_twin')));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  console.log(JSON.stringify(out, null, 1));
+  assert.equal(out.off, 'gate_off');
+  assert.equal(out.off_filed, 0, 'without the gate nothing is filed');
+  assert.equal(out.not_go, 'gate_off', 'only the exact word go opens it');
+  assert.equal(out.held_gate, 'model_hold', 'under the hold the backfill files nothing, even at go');
+  assert.equal(out.go_filed, 2);
+  assert.equal(out.capped, 'daily_cap', 'the daily cap stops the third');
+  assert.equal(out.go_rows, 2);
+  assert.match(out.go_seat, /^sales_engineer:(19[0-9]|2[0-9][0-9])$/, 'every active trade (195) plus none is offered');
+  assert.match(out.stored, /:0\.8:true$/);
+  assert.equal(out.invented_stored, false, 'an option that does not exist is never stored');
+  assert.equal(out.invented_new_row, 'held', 'the lead is asked again rather than left unclassified forever');
+  assert.equal(out.no_shortlist_agreed, null, 'no shortlist is not a disagreement');
+  assert.equal(out.twin_pool, true);
+  assert.equal(out.twin_words, 0, 'the free-text categories column counts no supplier');
+  assert.ok(out.word, 'a vocabulary word without a declared key exists (measured 23 Sep 2026: 40)');
+  assert.equal(out.word_before, null, 'no key on a substring');
+  assert.equal(out.word_asked, true);
+  assert.equal(out.word_after, true);
+  assert.equal(out.anon_can, false);
 });
 
 test('production, aborted: documents.boq_arabic — a replayed heading reading is remembered; the table and routine are service_role only',

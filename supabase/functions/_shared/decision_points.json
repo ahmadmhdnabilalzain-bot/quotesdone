@@ -130,7 +130,7 @@
      "file": "supabase/functions/marketing_social_inbox/index.ts",
      "must_contain": [
       "needsAPerson(defaultDeps(admin, 'marketing_social_inbox')",
-      "person.value === true)",
+      "person.value === true, meaning)",
       "action === 'reasoned_handoff'"
      ]
     }
@@ -164,74 +164,288 @@
   {
    "id": "wa_inbound.intent_table",
    "order": 7,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "scripts/sql/handing_to_a_person_is_giving_the_number_because_there_is_one_person.sql",
-   "decides": "fn_wa_answer: body tokens vs wa_reply_intent.match_patterns pick the deterministic intent (incl. contact_human)"
+   "decides": "fn_wa_answer: body tokens vs wa_reply_intent.match_patterns pick the deterministic intent (incl. contact_human)",
+   "held": "p_intent is null: fn_wa_answer answers nothing from the intent table and logs the message as held, never matched. Held (the model hold): nothing is guessed. WhatsApp answers from what needs no meaning (the approved FAQ, then the courteous line and the menu, the question filed as a knowledge gap), then files the meaning in customer_support's queue (queueWhatsAppMeaning); the replay sends the reasoned answer on WhatsApp — free text in the 24-hour window, the support_reply template outside it (reasoned_delivery.ts, wa_inbound.intent_table). The replay calls fn_wa_answer with the reasoned intent; a request for a person is delivered by wa_inbound.needs_a_person, never twice.",
+   "proof": [
+    {
+     "file": "scripts/sql/whatsapp_answers_the_intent_that_was_reasoned_not_the_words_it_matched.sql",
+     "must_contain": [
+      "where active and intent_key = p_intent",
+      "public.fn_wa_answer(p_phone, coalesce(p_body, '(voice note)'), p_intent)",
+      "drop function if exists public.fn_wa_answer(text, text);"
+     ],
+     "must_not_contain": [
+      "foreach v_pat in array i.match_patterns",
+      "match_patterns"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/index.ts",
+     "must_contain": [
+      "whatsappMeaning(defaultDeps(admin, 'wa_inbound')",
+      "p_intent: intent"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "row.surface === 'wa_inbound.intent_table'",
+      "await io.waIntentReply(phone, question, choice.slice(7))"
+     ]
+    }
+   ]
   },
   {
    "id": "wa_inbound.coverage_intent",
    "order": 8,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "supabase/functions/wa_inbound/coverage.ts",
-   "decides": "coverageIntent/mightBeCoverage: EN/AR regexes decide a coverage question and skip the model"
+   "decides": "coverageIntent/mightBeCoverage: EN/AR regexes decide a coverage question and skip the model",
+   "held": "A coverage question is not recognised by words while held: the list is not sent on a guess. Held (the model hold): nothing is guessed. WhatsApp answers from what needs no meaning (the approved FAQ, then the courteous line and the menu, the question filed as a knowledge gap), then files the meaning in customer_support's queue (queueWhatsAppMeaning); the replay sends the reasoned answer on WhatsApp — free text in the 24-hour window, the support_reply template outside it (reasoned_delivery.ts, wa_inbound.intent_table). The replay builds the list from the live taxonomy_trade rows (coverageReply).",
+   "proof": [
+    {
+     "file": "supabase/functions/wa_inbound/coverage.ts",
+     "must_contain": [
+      "export function coverageReply(meaning: string, trades: Trade[], lang: Lang)"
+     ],
+     "must_not_contain": [
+      "EN_TOPIC",
+      "AR_TOPIC",
+      "function mightBeCoverage",
+      "function coverageIntent"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/menu_flow.ts",
+     "must_contain": [
+      "coverageReply(intent, await d.trades(), langOf(text))"
+     ],
+     "must_not_contain": [
+      "mightBeCoverage("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_channels.ts",
+     "must_contain": [
+      "{ id: COVERAGE_LIST, meaning:"
+     ]
+    }
+   ]
   },
   {
    "id": "wa_inbound.trade_named",
    "order": 9,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "supabase/functions/wa_inbound/coverage.ts",
-   "decides": "tradeNamed: longest label substring decides covered / not covered"
+   "decides": "tradeNamed: longest label substring decides covered / not covered",
+   "held": "No trade is claimed while held (the exact-trade rule): no label substring is read. Held (the model hold): nothing is guessed. WhatsApp answers from what needs no meaning (the approved FAQ, then the courteous line and the menu, the question filed as a knowledge gap), then files the meaning in customer_support's queue (queueWhatsAppMeaning); the replay sends the reasoned answer on WhatsApp — free text in the 24-hour window, the support_reply template outside it (reasoned_delivery.ts, wa_inbound.intent_table). The replay answers the reasoned trade:<code> from the live row, or the list and the welcome for a trade we do not list (coverage:other).",
+   "proof": [
+    {
+     "file": "supabase/functions/wa_inbound/coverage.ts",
+     "must_contain": [
+      "trades.find((t) => 'trade:' + t.code === meaning)"
+     ],
+     "must_not_contain": [
+      "function tradeNamed",
+      "noArticle(",
+      "tradeNamed("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_channels.ts",
+     "must_contain": [
+      "id: 'trade:' + t.code"
+     ]
+    }
+   ]
   },
   {
    "id": "shared.size_question",
    "order": 10,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "supabase/functions/_shared/size_question.ts",
-   "decides": "isSizeQuestion: a canned capability statement pre-empts every other handler"
+   "decides": "isSizeQuestion: a canned capability statement pre-empts every other handler",
+   "held": "A size question is not guessed to be one: no surface sends the capability statement on a word. WhatsApp: Held (the model hold): nothing is guessed. WhatsApp answers from what needs no meaning (the approved FAQ, then the courteous line and the menu, the question filed as a knowledge gap), then files the meaning in customer_support's queue (queueWhatsAppMeaning); the replay sends the reasoned answer on WhatsApp — free text in the 24-hour window, the support_reply template outside it (reasoned_delivery.ts, wa_inbound.intent_table). Social: the honest unknown goes and the meaning waits in the marketing queue (replay: the statement on the platform). Widget: nothing is queued (an anonymous visitor cannot be answered later); the widget's own path answers or files a knowledge gap.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/size_question.ts",
+     "must_contain": [
+      "export function capabilityStatement(lang: Lang)"
+     ],
+     "must_not_contain": [
+      "EN_ABOUT_US",
+      "function isSizeQuestion",
+      "AR_SUBJECT"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/menu_flow.ts",
+     "must_contain": [
+      "(await d.intent(body)) === 'size'"
+     ],
+     "must_not_contain": [
+      "isSizeQuestion("
+     ]
+    },
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "if (asked === 'size')"
+     ],
+     "must_not_contain": [
+      "isSizeQuestion("
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing_social_inbox/reply.ts",
+     "must_contain": [
+      "if (m === 'size')"
+     ],
+     "must_not_contain": [
+      "isSizeQuestion("
+     ]
+    }
+   ]
   },
   {
    "id": "shared.route_question",
    "order": 11,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "supabase/functions/_shared/chat_answers.ts",
-   "decides": "routeQuestion COST/COUNT/TIMELINE/TRADE_PRICE regexes pick a canned FAQ as the final answer (site widget, social)"
+   "decides": "routeQuestion COST/COUNT/TIMELINE/TRADE_PRICE regexes pick a canned FAQ as the final answer (site widget, social)",
+   "held": "No canned FAQ is chosen on a word. Widget: siteQuestion is held and never queued (no channel to answer an anonymous visitor later); the widget's own path (price guide, corpus, gateway) answers or files the question as a knowledge gap. Social: the honest unknown goes and the meaning (faq:<type>) waits in the marketing queue; the replay sends the FAQ on the platform.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/chat_answers.ts",
+     "must_contain": [
+      "export function pickFaq("
+     ],
+     "must_not_contain": [
+      "COST_RE",
+      "COUNT_RE",
+      "TIMELINE_RE",
+      "function routeQuestion",
+      "ANCHOR_RE"
+     ]
+    },
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "widgetMeaning(defaultDeps(admin, 'site_assistant')"
+     ],
+     "must_not_contain": [
+      "routeQuestion("
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing_social_inbox/reply.ts",
+     "must_contain": [
+      "pickFaq(m.slice(4) as QuestionType, lang, faqs)"
+     ],
+     "must_not_contain": [
+      "routeQuestion("
+     ]
+    }
+   ]
   },
   {
    "id": "marketing_social.library_match",
    "order": 12,
-   "status": "pending",
+   "status": "migrated",
    "seat": "marketing",
    "severity": "high",
    "where": "supabase/functions/marketing_social_inbox/reply.ts",
-   "decides": "matchLibrary: match_words substrings pick a standard public reply"
+   "decides": "matchLibrary: match_words substrings pick a standard public reply",
+   "held": "No standard reply is picked on a word: the honest unknown library reply goes now (the gap recorded, a person offered) and the meaning waits in the marketing seat's queue with the retrieved passages on the row; the replay sends the reasoned library / FAQ / passage reply on the platform, inside Meta's window, once (marketing_social_inbox reasoned_reply). A public comment is never queued; the comment policy owns it.",
+   "proof": [
+    {
+     "file": "supabase/functions/marketing_social_inbox/reply.ts",
+     "must_contain": [
+      "'lib:' + r.key === m"
+     ],
+     "must_not_contain": [
+      "function matchLibrary",
+      "hay.includes(",
+      "match_words as string[]"
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing_social_inbox/index.ts",
+     "must_contain": [
+      "socialMeaning(deps, {",
+      "j.action === 'reasoned_reply'"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "row.surface === 'marketing_social.library_match'",
+      "await io.socialReply(subject, choice)"
+     ]
+    }
+   ]
   },
   {
    "id": "marketing_social.on_topic",
    "order": 13,
-   "status": "pending",
+   "status": "migrated",
    "seat": "marketing",
    "severity": "med",
    "where": "supabase/functions/marketing_social_inbox/reply.ts",
-   "decides": "onTopic: a shared word decides a corpus passage answers the question"
+   "decides": "onTopic: a shared word decides a corpus passage answers the question",
+   "held": "No passage is quoted because it shares a word: held, the honest unknown goes and the meaning waits in the marketing queue carrying the exact passages it was reasoned over; the replay quotes the reasoned passage (kb:<n>) on the platform.",
+   "proof": [
+    {
+     "file": "supabase/functions/marketing_social_inbox/reply.ts",
+     "must_contain": [
+      "passages[Number(m.slice(3))]"
+     ],
+     "must_not_contain": [
+      "onTopic("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_channels.ts",
+     "must_contain": [
+      "id: 'kb:' + n"
+     ]
+    }
+   ]
   },
   {
    "id": "site_assistant.audience",
    "order": 14,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "med",
    "where": "supabase/functions/site_assistant/index.ts",
-   "decides": "SUP_RE/CUS_RE audienceFromText: customer vs supplier"
+   "decides": "SUP_RE/CUS_RE audienceFromText: customer vs supplier",
+   "held": "Held, the audience stays unknown (never guessed from phrases); the side is one dimension of the widget's single reasoned decision (widgetMeaning), asked only when neither the session nor the page path says it. The prompt's own rule applies: answer what holds for both sides. Never queued: the visitor is answered now.",
+   "proof": [
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "if (wm.side) { audience = wm.side; source = 'text'; }"
+     ],
+     "must_not_contain": [
+      "SUP_RE",
+      "CUS_RE",
+      "audienceFromText("
+     ]
+    }
+   ]
   },
   {
    "id": "site_assistant.person",
@@ -1062,74 +1276,197 @@
   {
    "id": "sql.fn_resolve_cat_agent",
    "order": 47,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "category desk by like"
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "category desk by like: hop 4 matched a catalogue display name containing the category (or the category containing a slug), so overlapping letters chose the desk",
+   "held": "Not a model decision any more: a category resolves only through a DECLARED mapping (slug, lead_trade_map, the exact catalogue name); one nothing declares resolves to no desk (null), which every caller already reads as unmatched. Nothing is guessed, under the hold or not.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "where coalesce(active,true) and lower(btrim(name)) = c"
+     ],
+     "must_not_contain": [
+      "lower(name) like '%'||c||'%'",
+      "c like '%'||slug||'%'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_category_expert_ref",
    "order": 48,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "low",
-   "where": "scripts/sql",
-   "decides": "category regex -> expert ref"
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "a fifteen-branch regex on the category (cctv|security, hvac|air.?con, glass|glaz ...) chose the expert knowledge slug",
+   "held": "Not a model decision any more: the expert reference follows fn_resolve_cat_agent (declared mappings only); a category nothing declares has no expert reference (empty), as the old else-branch returned. Nothing is guessed.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "v_key := public.fn_resolve_cat_agent(p_category);"
+     ],
+     "must_not_contain": [
+      "p_category ~* 'cctv",
+      "p_category ~*"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.trg_inquiry_enrich",
    "order": 49,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "summary ilike left(summary,40) -> duplicate inquiry"
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "summary ilike left(summary,40) -> a differently worded request was flagged possible_duplicate by substring",
+   "held": "An identical summary is flagged at once (identity, not meaning). A differently worded sibling (same customer, category, 30 minutes) files inquiry.same_request in the sales_engineer queue (dedupe inquiry_dup:<id>); under the hold no flag is guessed, and fn_reason_apply_inquiry__same_request sets it when reasoned.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "perform public.fn_reason_route_ask('sales_engineer', 'inquiry.same_request',",
+      "create or replace function public.fn_reason_apply_inquiry__same_request("
+     ],
+     "must_not_contain": [
+      "i.summary ilike '%' || left(NEW.summary, 40)"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_supplier_document_home",
    "order": 50,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "file_name regex -> document class"
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "a regex on the supplier's file label (iso|أيزو, insurance|liability|تأمين, manufacturer|authori[sz]|وكالة) decided which required document slot a supporting file fills",
+   "held": "The label is asked about when it is saved (trg_supplier_document_subject_asked -> supplier_documents.subject in the sales_engineer queue, dedupe supdoc:<id>:<md5 label>; the 6 live files are asked once by the file). Until it is reasoned the file stays in the supplier's own list but fills no slot; nothing is classified by a word.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "nullif(public.fn_reason_route_answer('supdoc:' || d.id || ':' || md5(coalesce(d.file_name, ''))), 'none') as subject",
+      "select public.fn_reason_route_ask('sales_engineer', 'supplier_documents.subject',"
+     ],
+     "must_not_contain": [
+      "d.file_name ~*"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_should_escalate",
    "order": 51,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "high",
-   "where": "scripts/sql",
-   "decides": "decision_policy.legal_triggers substrings -> escalation"
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "decision_policy.legal_triggers substrings (position(trg in text)) and three shared long words with a worse institutional_memory headline -> escalation",
+   "held": "Text whose meaning is not yet reasoned returns needs_reasoning (ceo.escalation_meaning, dedupe ceo.escalation:<md5 text>) and adds no reason; fn_decide files it in the CEO seat's queue and decides nothing. No escalation, to the founder least of all, on a word.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "v_choice := public.fn_reason_route_answer(v_key);",
+      "'needs_reasoning', v_needs);"
+     ],
+     "must_not_contain": [
+      "position(trg in c_txt)",
+      "position(w in c_txt)",
+      "a.title ilike '%'||owner||'%'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_decide",
    "order": 52,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "high",
-   "where": "scripts/sql",
-   "decides": "category regex branches in the CEO decision routine"
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "the escalate/approve branches acted on fn_should_escalate's word matches, and the invite pool took any supplier whose category text CONTAINED the slug (like '%'||category||'%')",
+   "held": "An escalate/approve on text not yet reasoned returns awaiting_reasoning with route_to ceo and writes no decision_record, log or task; the question waits in the CEO seat's queue and fn_reason_apply_ceo__escalation_meaning re-runs the decision on the reasoned meaning. The invite pool reads the REASONED trade (lead_trade_class) exactly; an unclassified supplier is in no pool.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "v_held := public.fn_reason_route_ask('ceo', 'ceo.escalation_meaning',",
+      "'decided', public.fn_decide(r.subject->>'kind'",
+      "exists (select 1 from lead_trade_class c where c.lead_id = leads.id and c.trade_code = lower(btrim(v_ctx->>'category')))"
+     ],
+     "must_not_contain": [
+      "lower(coalesce(sub_type,'')) like '%'||lower(v_ctx->>'category')||'%'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_ceo_refund_checklist",
    "order": 53,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "high",
-   "where": "scripts/sql",
-   "decides": "reason_note ~* 'off.?platform' -> refund checklist fact"
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "reason_note ~* 'off.?platform' (and supplier_response_watch.close_reason) -> the off-platform EXCLUSION, which declines the refund",
+   "held": "Notes not yet read file ceo.refund_off_platform in the CEO seat's queue (dedupe refund_offp:<tx>:<md5 notes>); the exclusion is not assumed, item off_platform_engagement_reasoned (kind needs_reasoning) fails, and fn_ceo_refund_review returns waiting_on_reasoning: no approval, no decline, no cycle, no founder page. The platform's own default note asks nothing. The reasoned answer re-runs the review.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "v_offp_held := public.fn_reason_route_ask('ceo', 'ceo.refund_off_platform', v_offp_text,",
+      "'outcome', 'waiting_on_reasoning'",
+      "'review', public.fn_ceo_refund_review(v_rid, 'reasoned'));"
+     ],
+     "must_not_contain": [
+      "~* 'off.?platform'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_task_review",
    "order": 54,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "os_responsibility words in task text -> owner"
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "os_responsibility words in the task text (position(), longest first) -> the owning OS and owner; two shared long words -> a (possibly blocking) collaboration rule applies",
+   "held": "The responsibility (ceo.task_responsibility) and each collaboration rule (ceo.task_collaboration_rule) are filed in the CEO seat's queue; until reasoned no owner is recorded and no rule applies, and the review lists them under awaiting_reasoning. The apply routines record the ownership row / collaboration row when answered.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "v_held := public.fn_reason_route_ask('ceo', 'ceo.task_responsibility', v_text,",
+      "v_rule_choice := public.fn_reason_route_answer(v_rule_key);",
+      "create or replace function public.fn_reason_apply_ceo__task_responsibility("
+     ],
+     "must_not_contain": [
+      "position(replace(r.responsibility, '_', ' ') in lower(v_text))",
+      "position(w in lower(v_text))"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_routing.ts",
+     "must_contain": [
+      "'ceo.task_responsibility'",
+      "'ceo.escalation_meaning'",
+      "'ceo.refund_off_platform'",
+      "'supplier_documents.subject'",
+      "'inquiry.same_request'"
+     ],
+     "must_not_contain": [
+      "~*"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_task_is_demand",
@@ -1875,7 +2212,7 @@
      "file": "supabase/functions/wa_inbound/menu_flow.ts",
      "must_contain": [
       "if (inp.audience === 'founder' && isFiguresCommand(body)) {",
-      "  if (isSizeQuestion(body)) {"
+      "  if (!choice && (await d.intent(body)) === 'size') {"
      ],
      "must_not_contain": [
       "isSizeQuestion(body) || isFiguresCommand(body)",
@@ -1984,29 +2321,95 @@
   {
    "id": "shared.quote_answer",
    "order": 78,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "supabase/functions/_shared/chat_answers.ts",
-   "decides": "quoteAnswer: FIELD_RE / QUOTE_RE and a shared-word score decide which quote field a question asks about — found by B1"
+   "decides": "quoteAnswer: FIELD_RE / QUOTE_RE and a shared-word score decide which quote field a question asks about — found by B1",
+   "held": "Held, no quote field is chosen and nothing is answered from a quote on a guess: the portal question falls through to the knowledge corpora, where the held passage choice ends in the honest notYet reply with its task number (the question is kept). Never queued: the portal chat has no later channel.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/chat_answers.ts",
+     "must_contain": [
+      "export function quoteAnswer(choice: string | null"
+     ],
+     "must_not_contain": [
+      "FIELD_RE",
+      "QUOTE_RE",
+      "ABOVE_RE",
+      "BELOW_RE",
+      "shared(message"
+     ]
+    },
+    {
+     "file": "supabase/functions/sales_engineer/index.ts",
+     "must_contain": [
+      "quoteQuestion(defaultDeps(admin, 'sales_engineer')",
+      "quoteAnswer(choice, shown, lang, message)"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_channels.ts",
+     "must_contain": [
+      "export function quoteOptions(",
+      "surface: 'shared.quote_answer'"
+     ]
+    }
+   ]
   },
   {
    "id": "sales_engineer.on_topic",
    "order": 79,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/sales_engineer/index.ts",
-   "decides": "onTopic passage filter (~line 377): a shared word decides a knowledge passage answers the question — found by B1"
+   "decides": "onTopic passage filter (~line 377): a shared word decides a knowledge passage answers the question — found by B1",
+   "held": "Held, no passage is chosen: the question is recorded as a knowledge gap (refusal not_reasoned_yet) with a sales_engineer task, and the customer gets the honest notYet sentence with that task number. No passage is shown because it shares a word.",
+   "proof": [
+    {
+     "file": "supabase/functions/sales_engineer/index.ts",
+     "must_contain": [
+      "portalPassage(defaultDeps(admin, 'sales_engineer')"
+     ],
+     "must_not_contain": [
+      "onTopic("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/chat_answers.ts",
+     "must_not_contain": [
+      "export const onTopic",
+      "export function shared(",
+      "const AR_EN"
+     ]
+    }
+   ]
   },
   {
    "id": "site_assistant.passage_and_faq_scoring",
    "order": 80,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "med",
    "where": "supabase/functions/site_assistant/index.ts",
-   "decides": "the top-passage shared-word check and tok() FAQ scoring decide which answer the widget gives — found by B1"
+   "decides": "the top-passage shared-word check and tok() FAQ scoring decide which answer the widget gives — found by B1",
+   "held": "Held, no passage is quoted and no FAQ is ranked by tokens: the model context is the retrieved pack, the gateway, the price guide or a recorded knowledge gap (fn_support_knowledge_gap) answers the visitor. One think() per message (widgetMeaning) decides question, passage and side together. Never queued.",
+   "proof": [
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "asked?.startsWith('kb:') ? packRows[Number(asked.slice(3))]",
+      "passages: packRows"
+     ],
+     "must_not_contain": [
+      "function tok(",
+      "qtok",
+      "packTop",
+      "offered.has("
+     ]
+    }
+   ]
   },
   {
    "id": "documents.boq_arabic",
@@ -2110,6 +2513,7 @@
    "severity": "critical",
    "where": "supabase/functions/_shared/line_specs/reasoned_specs.ts",
    "decides": "for a trade with no line reader (123 of #881's 153), which pack checklist a quote is priced against and whether each line states each required spec — reasoned with the supplier's own words as evidence; under the hold every required spec is asked and the quote is held. Not 123 regex readers.",
+   "held": "Under the hold every required spec of the pack checklist is asked of the supplier and the quote is held; it is never passed on a guess.",
    "proof": [
     {
      "file": "supabase/functions/_shared/line_specs/reasoned_specs.ts",
@@ -2133,8 +2537,7 @@
       "admin.rpc('fn_trade_spec_checklist'"
      ]
     }
-   ],
-   "held": "Under the hold every required spec of the pack checklist is asked of the supplier and the quote is held; it is never passed on a guess."
+   ]
   },
   {
    "id": "inquiry_intake.specialist",
@@ -2428,6 +2831,75 @@
    "severity": "med",
    "where": "scripts/sql/the_same_question_in_arabic_gets_the_same_answer.sql",
    "decides": "fn_price_guidance: the question regex (cost|price|how much|سعر|بكم) decides whether a question is about price at all (the price-book like is a separate registered point) — found by B9 sweep"
+  },
+  {
+   "id": "sql.leads_categories_keyword_v1",
+   "order": 116,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "a supplier's trade: leads.categories is free text (company names as often as trades, measured 23 Sep 2026) and lead_category was filled by keyword_v1; fn_decide's invite pool and fn_twin matched a category as a substring of it",
+   "held": "A lead is in no trade's pool until reasoned. fn_lead_reclassify_tick files lead_trade.classify questions (195 trades + none; a gte-small shortlist is a hint only) ONLY when app_secrets.lead_reclassify_backfill = 'go' AND the model hold is off (so nothing piles up in the seat's queue), approved suppliers first, at most lead_reclassify_daily_cap (95) a Dubai day (~AED 0.114 a lead, ~AED 2,540 for 22,272, quoted in app_secrets.lead_reclassify_cost_estimate); the answer is stored in lead_trade_class with evidence and confidence, and an invented trade is never stored (the lead is asked again).",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "if coalesce(btrim(v_gate), '') <> 'go' then",
+      "perform public.fn_reason_route_ask('sales_engineer', 'lead_trade.classify',",
+      "create or replace function public.fn_reason_apply_lead_trade__classify(",
+      "exists (select 1 from lead_trade_class c where c.lead_id = leads.id and c.trade_code = lower(btrim(v_ctx->>'category')))",
+      "return jsonb_build_object('ran', false, 'reason', 'model_hold');"
+     ],
+     "must_not_contain": [
+      "lower(coalesce(categories,''))||' '||lower(coalesce(sub_type,'')) like"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sql.fn_category_key_for_slug",
+   "order": 117,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "rungs 3 and 4 matched the trade word inside catalogue slugs and names (slug like '%-'||word||'-%', name like '%'||word||'%'); they resolved 40 of 56 vocabulary words (measured 23 Sep 2026)",
+   "held": "A word no declared rung maps is asked once (category.key_for_slug, dedupe category_key:<word>; on the category_specs insert trigger and a one-off for the 40 known words); until reasoned it has no key (null), which callers read as no category.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "where o.category_key = public.fn_reason_route_answer('category_key:' || lower(btrim(p_slug)))",
+      "return public.fn_reason_route_ask('sales_engineer', 'category.key_for_slug',"
+     ],
+     "must_not_contain": [
+      "c.slug like lower(btrim(p_slug))",
+      "lower(c.name) like '%' || lower(btrim(p_slug))"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sql.fn_twin_category",
+   "order": 118,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "fn_twin('category'): approved_suppliers and supplier_pool_total counted leads whose free-text categories CONTAINED the category word",
+   "held": "Not a model decision: the counts read lead_trade_class (reasoned trades) exactly; unclassified leads are counted apart (supplier_pool_unclassified), never guessed into a trade.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "'supplier_pool_total',(select count(*) from lead_trade_class c where c.trade_code = lower(btrim(p_id))),"
+     ],
+     "must_not_contain": [
+      "like '%'||lower(p_id)||'%'"
+     ]
+    }
+   ]
   }
  ]
 }

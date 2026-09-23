@@ -16,6 +16,7 @@ import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { replayHeld } from '../_shared/think.ts';
+import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, holdingNotice, liveDeliveryIO } from '../_shared/reasoned_delivery.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -412,6 +413,19 @@ async function mlEmbedTick(): Promise<unknown> {
     const j = await r.json().catch(() => null);
     return { ok: r.ok, status: r.status, result: j };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+// THE LEARNING LOOP (23 Sep 2026, it_engineer; scripts/sql/every_judgement_learns_from_its_outcome.sql).
+// Daily: per-seat accuracy against real outcomes into seat_learning_daily (a fall opens a finding).
+// Weekly: cases with outcomes, grouped by meaning, distilled into cross-family-verified lessons
+// (_shared/learning_loop.ts); held under the model hold, never written from words.
+async function learningMeasureTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_learning_measure', {});
+    return error ? { ok: false, error: error.message } : data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+async function learningDistilTick(): Promise<unknown> {
+  try { return await distilLessons(admin); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
 async function refundLadderTick(): Promise<unknown> {
@@ -1069,6 +1083,9 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     for (const r of rows ?? []) told.push({ id: r.id, ...(await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none', detail: String(e?.message || e).slice(0, 200) }))) });
     return { escalated: (rows ?? []).length, told };
   });
+  // THE SUPPLIER TRADE BACKFILL (sales_engineer, 23 Sep 2026): files at most the daily cap of leads for reasoning,
+  // and NOTHING unless app_secrets.lead_reclassify_backfill = 'go' (the cost is quoted beside the gate).
+  await step('lead_reclassify', async () => rpc('fn_lead_reclassify_tick', { p_limit: 20 }));
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');
@@ -1317,6 +1334,8 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   ladder: { run: refundLadderTick },
   caseMemory: { run: caseMemoryEmbedTick },
   mlEmbed: { run: mlEmbedTick },
+  learningMeasure: { run: learningMeasureTick },
+  learningDistil: { run: learningDistilTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
   marketing: { run: marketingTick },
