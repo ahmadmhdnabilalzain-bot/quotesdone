@@ -16,6 +16,8 @@
 // Nothing here writes to Meta. Reads only: /me, /debug_token, /me/accounts, page and Instagram insights,
 // ad account insights. The only writes are to Postiz, and only through publishPost with live=true.
 
+import { campaignOf, withUtm } from './marketing_post_results.ts';
+
 export type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
 export const CHANNELS = ['facebook', 'instagram', 'linkedin', 'x'] as const;
@@ -66,7 +68,7 @@ export function integrationFor(list: PostizIntegration[], ch: Channel): PostizIn
 }
 
 export interface PublishInput {
-  id: number; text_en: string; text_ar: string; channels: string[]; scheduled_at: string; is_demo: boolean;
+  id: number; ingest_key?: string; text_en: string; text_ar: string; channels: string[]; scheduled_at: string; is_demo: boolean;
   media: { name: string; type: string; bytes: Uint8Array }[];
 }
 
@@ -82,7 +84,9 @@ export function buildPostizPayload(post: PublishInput, list: PostizIntegration[]
     const settings: Record<string, unknown> = { __type: it.identifier };
     if (it.identifier.startsWith('instagram')) settings.post_type = 'post';
     if (it.identifier === 'x') settings.who_can_reply_post = 'everyone';
-    posts.push({ integration: { id: it.id }, value: [{ content: postBody(post), image: images }], settings });
+    // every quotesdone link names the platform, the month and the post (marketing_post_results.ts withUtm)
+    const content = post.ingest_key ? withUtm(postBody(post), ch, campaignOf(post.scheduled_at), post.ingest_key) : postBody(post);
+    posts.push({ integration: { id: it.id }, value: [{ content, image: images }], settings });
     resolved[ch] = it.identifier;
   }
   return { payload: { type: 'now', date: new Date().toISOString(), shortLink: false, tags: [], posts }, skipped, resolved };

@@ -76,7 +76,7 @@ async function ingest(body: any) {
 // ── publish ───────────────────────────────────────────────────────────────────────────────────────
 async function publishDue(e: Awaited<ReturnType<typeof env>>) {
   const { data: due, error } = await admin.from('marketing_post')
-    .select('id,text_en,text_ar,channels,scheduled_at,is_demo,media_paths,dry_run')
+    .select('id,ingest_key,text_en,text_ar,channels,scheduled_at,is_demo,media_paths,dry_run')
     .eq('status', 'scheduled').lte('scheduled_at', new Date().toISOString()).order('scheduled_at').limit(5);
   if (error) return { ok: false, error: error.message };
   if (!due?.length) return { ok: true, due: 0 };

@@ -1,4 +1,4 @@
-// THE MARKETING SEAT'S DUTY LIST — empty today, and real: the 'duties' action runs every entry on every
+// THE MARKETING SEAT'S DUTY LIST (post_results and scorecard since 23 Sep 2026, instruction 865): the 'duties' action runs every entry on every
 // call (resilience_ping step 'marketing', every 30 minutes) before fn_marketing_tick.
 //
 // The builds that fill it (founder instruction 721, 22 Sep 2026):
@@ -22,7 +22,12 @@ export interface DutyContext {
 }
 export interface Duty {
   name: string;
+  owner_seat: 'marketing';   // every duty names the seat that owns it
   run: (ctx: DutyContext) => Promise<Record<string, unknown>>;
 }
 
-export const DUTIES: Duty[] = [];
+import { POST_RESULTS, SCORECARD } from './post_results.ts';
+
+// post_results: ties each published post to its platform ids and reads its results at +1d/+3d/+7d/+28d.
+// scorecard:    fn_marketing_scorecard stored weekly (Monday, Asia/Dubai) and at month end (the 1st).
+export const DUTIES: Duty[] = [POST_RESULTS, SCORECARD];

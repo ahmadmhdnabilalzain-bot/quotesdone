@@ -1,0 +1,6 @@
+Committed, not applied (marketing, 23 Sep 2026, instruction 865). The operator serialises applies across
+three parallel marketing builders. Apply with node scripts/apply_sql.mjs <file> --apply --ddl, then delete
+this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit, then read
+scripts/sql/each_post_is_measured_and_names_the_suppliers_it_brought_probe.sql (must print PROBE OK).
+Until applied, the marketing duties post_results and scorecard fail their RPCs and raise an IT finding
+owned by marketing; deploy the marketing and supplier_api functions only after the apply.
