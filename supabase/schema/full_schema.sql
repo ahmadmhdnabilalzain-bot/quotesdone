@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T15:11:33.753Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T15:30:13.861Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -31081,7 +31081,18 @@ begin
   -- BITES: a kind whose executions have failed more often than they succeeded loses the confidence
   -- it needs to be taken autonomously and escalates instead. That is the difference between a
   -- measured outcome and a stored one.
-  v_prior := public.fn_decision_outcomes(p_kind, 90);
+  -- Read inline: retire_the_routines_no_seat_can_reach.sql dropped fn_decision_outcomes on 8 Sep 2026 while
+  -- this call survived, so every fn_decide raised 42883 (measured 23 Sep 2026). The same count as that routine
+  -- (fn_execution_run.sql): 'cancelled' is reported, never a failure.
+  select jsonb_build_object('decision_type', p_kind, 'window_days', 90, 'traced', count(*),
+           'graded', count(*) filter (where t.outcome_status is not null),
+           'succeeded', count(*) filter (where t.outcome_status = 'succeeded'),
+           'failed', count(*) filter (where t.outcome_status in ('failed','stalled')),
+           'cancelled', count(*) filter (where t.outcome_status = 'cancelled'),
+           'last_evaluated_at', max(t.evaluated_at))
+    into v_prior
+    from public.decision_trace t
+   where t.decision_type = p_kind and t.created_at > now() - interval '90 days';
   sources := sources || jsonb_build_array(jsonb_build_object(
                'kind', 'prior_outcomes', 'ref', 'decision_trace', 'result', v_prior));
   if coalesce((v_prior->>'graded')::int, 0) >= 3
@@ -31185,7 +31196,7 @@ begin
   -- STEP 9. Execution linked BACK to the decision. One correlation_id ties the trace to the
   -- action, and the action carries the decision_record id it came from, so
   -- v_executions_without_decision_trace stays empty for anything this engine produced.
-  -- The row is written 'queued' and public.fn_execution_run (cron execution_run_hourly) performs
+  -- The row is written 'queued' and fn_execution_run (cron execution_run_hourly; retired since, so nothing performs it today) was to perform
   -- it: it delivers the decision to the actor the decision named and settles the row against the
   -- artefact it created. Claiming 'succeeded' here would be claiming an outcome before the act.
   if v_verdict = 'passed' then
