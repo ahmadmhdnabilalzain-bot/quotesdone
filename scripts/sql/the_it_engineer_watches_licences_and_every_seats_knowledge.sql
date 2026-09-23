@@ -245,7 +245,9 @@ declare r public.reasoning_held_question; v_choice text := p_result->'decision'-
 begin
   select * into r from public.reasoning_held_question where id = p_id;
   if v_choice is null or not exists (select 1 from jsonb_array_elements(r.request->'decision'->'options') o where o->>'id' = v_choice) then
-    return jsonb_build_object('applied', false, 'reason', 'the choice is not one of the options filed');
+    -- fn_reason_held_resolve marks a row applied whenever its apply returns (even null), so an answer that is not one of
+    -- the options RAISES: the resolve rolls back and the grade is reasoned again on a later replay.
+    raise exception 'CHOICE_NOT_AN_OPTION: % is not a grade (held question %)', coalesce(v_choice, 'no choice'), p_id;
   end if;
   update public.seat_knowledge_exam set verdict = v_choice, grade_reason = left(coalesce(p_result->>'answer', ''), 1000), graded_at = now()
    where id = (r.subject->>'exam_id')::bigint and graded_at is null;

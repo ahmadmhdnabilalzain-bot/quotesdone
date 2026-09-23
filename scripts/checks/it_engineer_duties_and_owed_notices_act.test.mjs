@@ -63,6 +63,10 @@ do $$ declare o jsonb := '{}'; v jsonb; lid bigint; e_id bigint; ah bigint; g bi
   perform public.fn_reason_held_resolve(ah, '{"status":"answered","answer":"ZZ DEMO answer","model":"zz/model"}');
   select grade_held_id into g from public.seat_knowledge_exam where id = e_id;
   o := o || jsonb_build_object('grade', (select jsonb_build_object('seat', seat, 'stakes', request->>'stakes', 'n', jsonb_array_length(request->'decision'->'options')) from public.reasoning_held_question where id = g));
+  begin
+    perform public.fn_reason_held_resolve(g, '{"status":"answered","answer":"x","decision":{"choice":"maybe"}}');
+    o := o || jsonb_build_object('bad_grade', 'applied');
+  exception when others then o := o || jsonb_build_object('bad_grade', left(sqlerrm, 40)); end;
   perform public.fn_reason_held_resolve(g, '{"status":"answered","answer":"contradicts the reference","decision":{"choice":"wrong"}}');
   o := o || jsonb_build_object('verdict', (select verdict from public.seat_knowledge_exam where id = e_id));
 
@@ -105,6 +109,7 @@ end $$;`);
   assert.equal(o.asked, 6, 'the exam did not ask one item of each of the six seats');
   assert.equal(o.asked_seats, 6);
   assert.deepEqual(o.grade, { seat: 'it_engineer', stakes: 'high', n: 4 }, 'the grade is not a high-stakes reasoned decision of the it_engineer');
+  assert.match(o.bad_grade, /^CHOICE_NOT_AN_OPTION/, 'a grade outside the options was applied (and the question lost)');
   assert.equal(o.verdict, 'wrong', 'the reasoned grade was not recorded');
   assert.equal(o.raised, 1, 'a seat at 20 % was not raised');
   assert.equal(o.finding, 1);
