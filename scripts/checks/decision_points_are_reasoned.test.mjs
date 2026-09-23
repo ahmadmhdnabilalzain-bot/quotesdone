@@ -408,7 +408,8 @@ begin
   -- a line that is only a code is kept as written (else its document would be held for ever); a waiting quotation is
   -- found by its own id once its lines are in, whoever filed them
   perform public.fn_arabic_document_wait('zz-demo-b7-quote', array['ZZ DEMO IP65', 'ZZ DEMO waiter line']);
-  perform public.fn_arabic_translation_store('{"ZZ DEMO IP65":"ZZ DEMO IP65"}'::jsonb, null);
+  perform public.fn_arabic_translation_store('{"ZZ DEMO IP65":"ZZ DEMO IP65","Zz Demo Wardrobe":"Zz Demo Wardrobe"}'::jsonb, null);
+  o := o || jsonb_build_object('prose_echo_rejected', not (public.fn_arabic_translations(array['Zz Demo Wardrobe']) ? 'Zz Demo Wardrobe'));
   o := o || jsonb_build_object('kept_code', public.fn_arabic_translations(array['ZZ DEMO IP65'])->>'ZZ DEMO IP65',
     'waiter_early', (select public.fn_arabic_waiters_ready(100) ? 'zz-demo-b7-quote'));
   perform public.fn_arabic_translation_store('{"ZZ DEMO waiter line":"سطر"}'::jsonb, null);
@@ -485,6 +486,7 @@ end $p$;`);
   assert.equal(out.type_routine, 'digest:warn', 'a routine type folds whatever its subject says');
   assert.equal(out.reopened, 'held:0:true:true:true', 'a failed question filed again is reopened (its 48-hour clock restarts), never left dead or expiring');
   assert.equal(out.kept_code, 'ZZ DEMO IP65');
+  assert.equal(out.prose_echo_rejected, true, 'title-case English echoed back is not stored as its Arabic');
   assert.equal(out.waiter_early, false);
   assert.equal(out.waiter_ready, true);
   assert.equal(out.parked_before, 'held');

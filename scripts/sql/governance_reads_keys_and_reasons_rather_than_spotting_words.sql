@@ -771,6 +771,7 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare c record; n integer := 0; v_req jsonb; v_opts jsonb; v_go text; v_cap integer; v_today integer;
 begin
+  perform pg_advisory_xact_lock(hashtext('public.fn_kb_jurisdiction_file'));   -- two callers cannot both spend the cap
   select value into v_go from public.app_secrets where key = 'kb_jurisdiction_backfill';
   if coalesce(v_go, '') <> 'go' then return 0; end if;
   select coalesce((value #>> '{}')::int, 12) into v_cap from public.decision_policy where key = 'kb_jurisdiction_daily_cap';
@@ -922,7 +923,10 @@ begin
       end loop;
       v_rows := v_rows || jsonb_build_array(v_row || jsonb_build_object('subject', v_subject, 'body', v_body));
     end loop;
-    if v_rows::text like '%⟦%' then continue; end if;   -- a placeholder it could not fill: never sent
+    if v_rows::text like '%⟦%' then   -- a placeholder it could not fill: never sent, and never re-picked
+      update public.arabic_outbound_hold set status = 'failed', result = jsonb_build_object('error', 'unfilled placeholder') where id = h.id;
+      continue;
+    end if;
     -- One refused delivery must never roll back the translation store or the park that called this flush.
     begin
       v_out := public.fn_customer_support_takes_delivery(v_rows);
@@ -945,6 +949,8 @@ create table if not exists public.arabic_document_waiter (
   texts      text[] not null check (cardinality(texts) > 0),
   created_at timestamptz not null default now()
 );
+alter table public.arabic_document_waiter add column if not exists attempts integer not null default 0;
+alter table public.arabic_document_waiter add column if not exists last_tried_at timestamptz;
 alter table public.arabic_document_waiter enable row level security;
 drop policy if exists arabic_document_waiter_service_role_only on public.arabic_document_waiter;
 create policy arabic_document_waiter_service_role_only on public.arabic_document_waiter
@@ -967,11 +973,12 @@ returns jsonb
 language sql stable security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select coalesce(jsonb_agg(w.quote_id order by w.created_at), '[]'::jsonb)
-    from (select quote_id, created_at from public.arabic_document_waiter d
-           where not exists (select 1 from unnest(d.texts) t
+  select coalesce(jsonb_agg(w.quote_id), '[]'::jsonb)
+    from (select quote_id from public.arabic_document_waiter d
+           where d.attempts < 5   -- a render that keeps failing stops costing replays (it is reported by supplier_api)
+             and not exists (select 1 from unnest(d.texts) t
                               where not exists (select 1 from public.arabic_translation a where a.source_md5 = md5(t)))
-           order by created_at limit greatest(1, least(coalesce(p_limit, 20), 100))) w
+           order by d.attempts, d.last_tried_at nulls first, d.created_at limit greatest(1, least(coalesce(p_limit, 20), 100))) w
 $fn$;
 revoke execute on function public.fn_arabic_waiters_ready(integer) from public, anon, authenticated;
 grant execute on function public.fn_arabic_waiters_ready(integer) to service_role;
@@ -1007,7 +1014,8 @@ begin
    where btrim(e.key) <> '' and (e.value ~ '[؀-ۿ]'
          -- kept as written only when the line has the shape of a code (no lowercase word): the same test as
          -- reasoned_governance.ts keptAsWritten, on our own reply
-         or (btrim(e.value) = e.key and e.key !~ '(^|[[:space:],;/(])[a-z]{2,}($|[[:space:],;/).])'))
+         or (btrim(e.value) = e.key and not exists (select 1 from regexp_split_to_table(e.key, '[^A-Za-z0-9]+') w
+                                                      where w ~ '[a-z]' and w !~ '[0-9]')))
   on conflict (source_md5) do update set arabic = excluded.arabic, held_id = excluded.held_id, created_at = now();
   get diagnostics n = row_count;
   if n > 0 then perform public.fn_arabic_outbound_flush(20); end if;   -- a parked message may now be whole

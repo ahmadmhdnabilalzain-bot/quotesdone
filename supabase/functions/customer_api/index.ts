@@ -1544,7 +1544,16 @@ Deno.serve(observe('customer_api', async (req) => {
         }
         const { data: sent } = rows.length ? await requestDelivery(admin, rows) : { data: [] };
         await admin.rpc('fn_spec_offer_mark', { p_offer: offerId, p_action: 'answered', p_notification_ids: (sent || []).map((d) => d.notification_id).filter((x) => typeof x === 'number') });
-      } catch (e) { console.error('spec_offer_reply: confirmation not queued —', String((e as Error)?.message || e)); }
+      } catch (e) {
+        const why = String((e as Error)?.message || e);
+        console.error('spec_offer_reply: confirmation not queued —', why);
+        // The answer is recorded; the confirmation is not. It is never silent: customer_support's CEO report names it.
+        try {
+          await admin.rpc('fn_support_report_to_ceo', { p_idempotency_key: 'spec_offer_confirmation_failed:' + offerId, p_severity: 'routine',
+            p_subject: 'A customer\'s choice was recorded but its confirmation could not be queued', p_evidence: { offer_id: offerId, error: why.slice(0, 500) },
+            p_attempted: ['recorded the answer', 'queued or parked the confirmation'], p_requested: 'Send the confirmation by hand or re-queue it.' });
+        } catch (_e) { /* the console line above still stands */ }
+      }
       return J({ ok: true, state: res.state, inquiry_closed: !!res.inquiry_closed });
     }
 

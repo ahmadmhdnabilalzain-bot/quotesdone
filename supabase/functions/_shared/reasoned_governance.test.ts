@@ -90,8 +90,9 @@ Deno.test('format helpers: the question asks for one JSON object; pairs keep onl
   assert(arabicQuestion(['a', 'b']).includes('1. a\n2. b'));
   assertEquals(arabicPairs(['a', 'b', 'c'], '```json\n{"1":"أ","2":"x","4":"د"}\n```'), { a: 'أ' });
   // a line that is only a code/model/brand, kept exactly as written by the model, IS its answer (else held for ever)
-  assertEquals(arabicPairs(['IP65', 'Daikin FTKF50TV', 'MDF board', 'Painting of walls excluded'], '{"1":"IP65","2":"Daikin FTKF50TV","3":"MDF board","4":"Painting of walls excluded"}'),
-    { IP65: 'IP65', 'Daikin FTKF50TV': 'Daikin FTKF50TV' }, 'prose echoed back is not an answer; a code kept as written is');
+  assertEquals(arabicPairs(['IP65', 'BS EN 1090', 'FTKF50TV', 'Wardrobe', 'Kitchen Base Unit', 'MDF board', 'Painting of walls excluded'],
+    '{"1":"IP65","2":"BS EN 1090","3":"FTKF50TV","4":"Wardrobe","5":"Kitchen Base Unit","6":"MDF board","7":"Painting of walls excluded"}'),
+    { IP65: 'IP65', 'BS EN 1090': 'BS EN 1090', FTKF50TV: 'FTKF50TV' }, 'prose echoed back (any case) is not an answer; a code kept as written is');
   assertEquals(arabicPairs(['a'], 'not json'), {});
   assertEquals(batches(['x'.repeat(400), 'y'.repeat(300), 'z'], 600).map((b) => b.length), [1, 2]);
   assertEquals(needsArabic('مطابق'), false);
