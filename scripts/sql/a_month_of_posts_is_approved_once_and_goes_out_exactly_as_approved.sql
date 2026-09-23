@@ -206,7 +206,9 @@ begin
     return null;
   end if;
   execute 'select public.fn_marketing_platform_spec_problems($1,$2,$3,$4,$5,$6,$7)'
-    into r using v.platform, v.post_type, v.body, v.hashtags, v.title, v.alt_text, v.first_comment;
+    -- the hashtags are passed EMPTY: body already ends with them, so passing them again would count them twice
+    -- (review of #874); the spec routine reads them from the body it is given
+    into r using v.platform, v.post_type, v.body, '{}'::text[], v.title, v.alt_text, v.first_comment;
   return coalesce(r, '{}');
 end $fn$;
 revoke execute on function public.fn_marketing_variant_problems(public.marketing_post_variant) from public, anon, authenticated;
@@ -395,7 +397,9 @@ revoke execute on function public.fn_marketing_calendar_reply(jsonb) from public
 alter table public.notifications add column if not exists reply_to text;
 alter table public.notifications drop constraint if exists notifications_reply_to_is_our_inbound;
 alter table public.notifications add constraint notifications_reply_to_is_our_inbound
-  check (reply_to is null or reply_to ~ '^[a-z0-9._+-]+@mail\.quotesdone\.com$');
+  check (reply_to is null or reply_to ~ '^[a-z0-9._+-]+@mail\.quotesdone\.com$') not valid;
+-- NOT VALID: notifications is large and every existing row has reply_to null (the column is new above), so a
+-- VALIDATE scan would prove nothing while holding a lock on the outbox; new and updated rows are checked.
 
 -- ── 6. THE PUBLISH GATE, IN THE DATABASE ─────────────────────────────────────────────────────────
 -- NULL = may move towards Postiz. Otherwise the reason. Order: demo, campaign, approval, switch, specs.
@@ -416,6 +420,12 @@ begin
   if c.approved_hash is null then return 'not_approved: the founder has not approved campaign ' || c.campaign_key; end if;
   if c.approved_hash <> public.fn_marketing_campaign_hash(c.id) then
     return 'approval_void: campaign ' || c.campaign_key || ' was edited after the founder approved it';
+  end if;
+  -- A slot missed by more than 30 minutes (the switch was off, the seat was down) is not posted late: he approved
+  -- a time, and a Tuesday-morning post going out on Thursday night is not what he approved (review of #874).
+  -- Checked BEFORE the switch so the aborted-transaction probe proves it without touching marketing_golive.
+  if p.scheduled_at < now() - interval '30 minutes' then
+    return 'missed_slot: due ' || to_char(p.scheduled_at at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') || ' Dubai; reschedule and re-approve';
   end if;
   if coalesce((select lower(value) from public.app_secrets where key = 'marketing_golive'), 'false') <> 'true' then
     return 'switch_off: app_secrets.marketing_golive is not true';
@@ -656,6 +666,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_ad_spend_day','marketing'), ('marketing_duty_run','marketing'), ('marketing_report','marketing'),
     ('marketing_article','marketing'), ('marketing_prospect','marketing'), ('marketing_outreach_message','marketing'),
     ('marketing_campaign','marketing'), ('marketing_post_variant','marketing'),
+    ('marketing_platform_spec','marketing'), ('marketing_platform_spec_source','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
 $fn$;

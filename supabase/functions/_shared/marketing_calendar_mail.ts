@@ -31,9 +31,13 @@ export function isCalendarReply(m: { to?: string | null; subject?: string | null
  */
 export function replyIntent(text: string | null | undefined): 'approve' | 'unclear' {
   const own: string[] = [];
-  for (const raw of String(text || '').replace(/\r/g, '').split('\n')) {
-    const l = raw.trim();
+  const all = String(text || '').replace(/\r/g, '').split('\n');
+  for (let i = 0; i < all.length; i++) {
+    const l = all[i].trim();
     if (/^>/.test(l)) break;
+    if (/^_{5,}$/.test(l)) break;                      // Outlook's separator above the quoted mail
+    // Gmail wraps a long "On <date>, <name> <addr> wrote:" header over two lines
+    if (/^(on |في )/i.test(l) && /(wrote:|كتب:)$/i.test((l + ' ' + (all[i + 1] || '').trim()).trim())) break;
     if (/^(on .+wrote:|from:|sent from my|-+ ?original message ?-+|في .+ كتب|كتب .+:)/i.test(l)) break;
     if (/^-- ?$/.test(l)) break;                       // signature delimiter
     if (l) own.push(l);

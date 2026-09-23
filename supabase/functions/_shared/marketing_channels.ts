@@ -202,6 +202,26 @@ export async function publishPost(f: Fetch, base: string, key: string, post: Pub
   return { mode: 'live', ok: true, postiz: stripTokens(j), channels: resolved, skipped };
 }
 
+export async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as unknown as BufferSource))].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * The first asset whose bytes are not the approved ones (review of #874): `expected` maps a storage path to the
+ * sha256 the calendar carried (and the approval hash covers). A path with an expected hash that does not match
+ * -- or an expected hash with no bytes at all -- is named; null means every approved asset is byte-identical.
+ */
+export async function assetMismatch(assets: Array<{ path: string | null | undefined; bytes: Uint8Array }>, expected: Record<string, string | null | undefined>): Promise<string | null> {
+  for (const [path, want] of Object.entries(expected)) {
+    if (!path || !want) continue;
+    const a = assets.find((x) => x.path === path);
+    if (!a) return path + ' was not read';
+    const got = await sha256Hex(a.bytes);
+    if (got !== want.toLowerCase()) return `${path} is ${got}, approved ${want}`;
+  }
+  return null;
+}
+
 /** Postiz's post ids from its POST /posts answer ([{postId, integration}]). */
 export function postizIds(answer: unknown): string[] {
   return (Array.isArray(answer) ? answer : []).map((x: any) => String(x?.postId || x?.id || '')).filter(Boolean);

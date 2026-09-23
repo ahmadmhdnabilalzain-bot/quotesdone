@@ -157,6 +157,20 @@ begin
     v_bad := v_bad || 'reload_did_not_restore_the_content'::text;
   end if;
 
+  -- 5b. a slot missed by more than 30 minutes is refused even for an approved month (review of #874)
+  update public.marketing_post set scheduled_at = now() - interval '2 hours', scheduled_local = (now() - interval '2 hours') at time zone 'Asia/Dubai'
+   where id = v_pid;
+  v_hash2 := public.fn_marketing_campaign_hash((select id from public.marketing_campaign where campaign_key = 'probe-2099-01'));
+  perform public.fn_marketing_calendar_sent('probe-2099-01', v_hash2, 'marketing/calendar/probe-2099-01/probe3.pdf', null, 'Social calendar January 2099', 'Late.');
+  select calendar_token into v_tok2 from public.marketing_campaign where campaign_key = 'probe-2099-01';
+  x := public.fn_marketing_calendar_reply(jsonb_build_object('token', v_tok2, 'from_email', v_founder, 'authenticated', true, 'message_id', 'm-late', 'intent', 'approve'));
+  if x->>'outcome' <> 'approved' then v_bad := v_bad || ('late_month_not_approved: ' || x::text); end if;
+  v_err := null;
+  begin update public.marketing_post set status = 'publishing' where id = v_pid; v_bad := v_bad || 'missed_slot_published'::text;
+  exception when check_violation then v_err := sqlerrm; end;
+  r := r || jsonb_build_object('missed_slot', v_err);
+  if v_err !~ 'missed_slot' then v_bad := v_bad || 'missed_slot_refused_for_the_wrong_reason'::text; end if;
+
   -- 6. ZZ DEMO both ways
   v_err := null;
   begin

@@ -18,14 +18,20 @@ Deno.test('approve in English and Arabic, with the quoted email below ignored', 
   for (const t of ['approve', 'Approve.', 'approved', 'OK approve', 'ok, approved!', 'I approve', 'Approved, thanks',
                    'موافق', 'أوافق', 'تمت الموافقة', 'نعم موافق',
                    'approve\n\nOn Tue, 23 Sep 2026 QuotesDone <info@quotesdone.com> wrote:\n> The calendar ... change nothing',
-                   'موافق\n\nSent from my iPhone', 'Approve\n-- \nAhmad']) {
+                   'موافق\n\nSent from my iPhone', 'Approve\n-- \nAhmad',
+                   // Outlook: a rule of underscores above the quoted mail
+                   'Approve\n\n________________________________\nFrom: QuotesDone <info@quotesdone.com>\nlooks fine but change X',
+                   // Gmail: the "On ... wrote:" header wrapped over two lines, with a change request quoted below it
+                   'approve\n\nOn Tue, 23 Sep 2026 at 10:02, QuotesDone Social <calendar+0123@mail.quotesdone.com>\nwrote:\n\nbut change the third video',
+                   'موافق\n\nفي الثلاثاء 23 سبتمبر 2026، QuotesDone\nكتب:\nغير موافق']) {
     assertEquals(replyIntent(t), 'approve', JSON.stringify(t));
   }
 });
 
 Deno.test('anything that is not only an approval approves nothing', () => {
   for (const t of ['looks fine but change X', 'approve but move post 3 to Friday', "don't approve", 'not approved', 'ok',
-                   'thanks', '', 'approve?', 'موافق لكن غيّر الفيديو الثالث', 'غير موافق', '> approve']) {
+                   'thanks', '', 'approve?', 'موافق لكن غيّر الفيديو الثالث', 'غير موافق', '> approve',
+                   'On second thought, do not approve', '_____\napprove']) {
     assertEquals(replyIntent(t), 'unclear', JSON.stringify(t));
   }
 });

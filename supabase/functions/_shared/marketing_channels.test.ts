@@ -2,7 +2,7 @@
 //   deno test supabase/functions/_shared/marketing_channels.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import {
-  buildPostizPayload, deletePostizPost, dubaiDate, findInPostiz, isDemoText, measureAccess, publishPost, pullInsights,
+  assetMismatch, buildPostizPayload, deletePostizPost, dubaiDate, sha256Hex, findInPostiz, isDemoText, measureAccess, publishPost, pullInsights,
   readAdSpend, stripTokens, type Fetch, type MetaEnv, type PublishInput, type Variant,
 } from './marketing_channels.ts';
 
@@ -153,6 +153,15 @@ Deno.test('every create-post payload says shortLink: false, and the UTM link rea
   assertEquals(sent.posts.length, 6);
   for (const p of sent.posts) assert(p.value[0].content.includes(UTM), p.settings.__type + ' lost or changed the UTM link');
   assertEquals(buildPostizPayload(withLink, INTEGRATIONS, [], null).payload.shortLink, false, 'the dry run shows the same');
+});
+
+Deno.test('a video or key frame whose bytes are not the approved ones is named, and never passes', async () => {
+  const V = 'campaigns/c/videos/01.mp4', K = 'campaigns/c/frames/01.jpg';
+  const good = { [V]: await sha256Hex(VIDEO.bytes), [K]: await sha256Hex(FRAME.bytes) };
+  assertEquals(await assetMismatch([{ path: V, bytes: VIDEO.bytes }, { path: K, bytes: FRAME.bytes }], good), null);
+  const swapped = await assetMismatch([{ path: V, bytes: new Uint8Array([9, 9, 9]) }, { path: K, bytes: FRAME.bytes }], good);
+  assert(swapped && swapped.startsWith(V + ' is ') && swapped.endsWith('approved ' + good[V]), String(swapped));
+  assertEquals(await assetMismatch([{ path: V, bytes: VIDEO.bytes }], good), K + ' was not read', 'an approved key frame that was not read is a mismatch');
 });
 
 Deno.test('ZZ DEMO is caught in the TEXT as well as by the flag', () => {

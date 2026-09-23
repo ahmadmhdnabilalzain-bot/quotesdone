@@ -23,7 +23,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import {
-  deletePostizPost, dubaiDate, findInPostiz, integrationFor, isDemoText, measureAccess, postizIds, postizIntegrations, postizReleases,
+  assetMismatch, deletePostizPost, dubaiDate, findInPostiz, integrationFor, isDemoText, measureAccess, postizIds, postizIntegrations, postizReleases,
   publishPost, pullInsights, readAdSpend, stripTokens, type MetaEnv, type PublishInput, type Variant,
 } from '../_shared/marketing_channels.ts';
 import { calendarBlocks, calendarRows, calendarSheet, type CalPost } from '../_shared/marketing_calendar_doc.ts';
@@ -147,14 +147,14 @@ async function reconcile(e: Env) {
 async function publishDue(e: Env) {
   const recon = await reconcile(e);
   const { data: due, error } = await admin.from('marketing_post')
-    .select('id,ingest_key,title,text_en,text_ar,cta_url,is_demo,media_paths,cover_path,dry_run,attempts,scheduled_at,publish_started_at')
+    .select('id,ingest_key,title,text_en,text_ar,cta_url,is_demo,media_paths,cover_path,video_path,video_sha256,cover_sha256,dry_run,attempts,scheduled_at,publish_started_at')
     .eq('status', 'scheduled').lte('scheduled_at', new Date().toISOString()).order('scheduled_at').limit(5);
   if (error) return { ok: false, error: error.message, reconcile: recon };
   if (!due?.length) return { ok: true, due: 0, reconcile: recon };
   if (!e.postizKey) return { ok: false, error: 'postiz_api_key is not in app_secrets', due: due.length, reconcile: recon };
   let live = 0, dry = 0, failed = 0, unconfirmed = 0, refused = 0;
   for (const p of due) {
-    const variants = await variantsOf(p.id);
+    let variants = await variantsOf(p.id);
     const { data: refusal } = await admin.rpc('fn_marketing_post_refusal', { p_post_id: p.id });
     const demo = p.is_demo || isDemoText(p.title, p.text_en, p.text_ar, p.cta_url, ...variants.flatMap((v) => [v.body, v.title, v.alt_text, v.first_comment]));
     const why = demo ? 'a ZZ DEMO post is never published' : !e.golive ? 'app_secrets.marketing_golive is not true' : (refusal as string | null);
@@ -186,11 +186,18 @@ async function publishDue(e: Env) {
       .eq('id', p.id).eq('status', 'scheduled').select('id');
     if (cErr) { await patch(p.id, { dry_run: { at: new Date().toISOString(), mode: 'refused_by_database', reason: cErr.message } }); refused++; continue; }
     if (!claimed?.length) continue;
+    // Read the variants again AFTER the claim: what is sent is what the database let through, not an earlier read.
+    variants = await variantsOf(p.id);
     const media: PublishInput['media'] = [];
     let missing = '';
     for (const path of p.media_paths || []) { const m = await download(path); if (!m) { missing = path; break; } media.push(m); }
     const cover = await download(p.cover_path);
     if (missing) { await patch(p.id, { status: 'failed', error: 'media not readable from ' + BUCKET + ': ' + missing }); failed++; continue; }
+    // The bytes must be the ones the founder approved (the calendar's sha256, part of the approved hash). A file
+    // replaced in the bucket after approval is never uploaded.
+    const differs = await assetMismatch(media.map((m, i) => ({ path: (p.media_paths || [])[i], bytes: m.bytes })).concat(cover ? [{ path: p.cover_path, bytes: cover.bytes }] : []),
+      { [p.video_path || '']: p.video_sha256, [p.cover_path || '']: p.cover_sha256 });
+    if (differs) { await patch(p.id, { status: 'failed', error: 'bytes differ from what was approved: ' + differs }); failed++; continue; }
     const res = await publishPost(fetch, e.postizBase, e.postizKey, input(media, cover), true, '');
     const now = new Date().toISOString();
     if (res.mode === 'live' && res.ok) {
@@ -213,7 +220,9 @@ async function postByKey(key: unknown) {
   return data;
 }
 
-// Cancel: a post already in Postiz is deleted THERE first; only then is it cancelled here.
+// Cancel: a post already in Postiz is deleted THERE first; only then is it cancelled here. A cancelled post
+// leaves the month's content hash, so cancelling one post VOIDS the month's approval by design: the founder
+// is emailed the corrected calendar and approves the month as it now stands.
 async function cancel(e: Env, body: any) {
   const p = await postByKey(body?.ingest_key);
   if (!p) return { ok: false, error: 'no_such_post' };
