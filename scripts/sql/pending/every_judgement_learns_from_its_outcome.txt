@@ -1,9 +1,0 @@
-Committed, not applied. Apply AFTER every_seat_remembers_its_cases_and_recalls_them_by_meaning.sql and
-every_seat_reasons_before_it_answers.sql (both from #889's line), then append this file to the END of MANIFEST.txt.
-Deploy IN THE SAME STEP as the apply: every function that imports _shared/case_recall.ts or _shared/think.ts
-(recallCases now calls fn_judgement_record; think() calls fn_judgement_decided) and resilience_ping (the
-learningMeasure and learningDistil steps). Deployed before the apply, the recording RPCs fail and are
-swallowed: the decision still runs, but no judgement row is written.
-Proved by node --test scripts/checks/every_judgement_carries_its_recall_and_its_outcome.test.mjs
-(aborted-transaction probe; loads this file inside the transaction while it is unapplied).
-Seat: it_engineer (for all six seats).
