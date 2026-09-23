@@ -29,6 +29,7 @@ import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
@@ -37,7 +38,7 @@ import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
-import { type Audience, humanAlert, type Lang } from './menu.ts';
+import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -571,6 +572,14 @@ async function handleInbound(req: Request): Promise<Response> {
     // the founder's command channel, and it never takes a document (the media branch below owns those).
     const waFrom = 'whatsapp:' + (await sec('twilio_wa_from'));
     const menuDeps: MenuDeps = {
+      meaning: async (text: string, awaitingProblem: boolean, offerMenu: boolean) =>
+        (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined,
+          // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
+          // Paired by option id, never by position, so the two languages cannot drift onto each other's option.
+          menu: offerMenu ? menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown').map((i) => {
+            const ar = menuItems('ar', audience === 'supplier' ? 'supplier' : 'unknown').find((x) => x.id === i.id);
+            return { id: i.id, title: i.item + (ar ? ' / ' + ar.item : ''), description: i.description + (ar ? ' / ' + ar.description : '') };
+          }) : undefined })).value,
       autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
       recentTurns: async (from: string): Promise<Turn[]> => {
         const { data } = await admin.from('wa_messages').select('meta,lang,created_at').eq('wa_from', from)
