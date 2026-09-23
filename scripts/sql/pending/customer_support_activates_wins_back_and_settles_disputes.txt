@@ -1,0 +1,5 @@
+Committed, not applied. Stacks on every_seat_duty_has_an_owner_a_clock_and_a_check.sql (#901), which must be applied
+first (this file inserts into public.seat_duty). The release operator applies it (node scripts/apply_sql.mjs <file>
+--apply --ddl), deletes this note and appends the file to the END of MANIFEST.txt in the same commit.
+Proved in an aborted transaction by scripts/checks/customer_support_and_accountant_duties_act.test.mjs.
+Seats: customer_support (activation, win-back, disputes), ceo (decides a dispute).
