@@ -22,11 +22,11 @@ type Step = { title: string; body: string };
 
 const L = {
   en: {
-    econKicker: 'Economics', stepsKicker: 'Onboarding', coverage: 'Coverage', coverageNote: 'Briefs reach you from anywhere in the UAE, for the trades your licence covers.',
+    econKicker: 'Economics', stepsKicker: 'Onboarding', coverage: 'Coverage', coverageNote: 'Briefs reach you from anywhere in the UAE, for the trades and services you confirm on your verified profile.',
     ruleKicker: 'Obligation', finalKicker: 'Supplier portal',
   },
   ar: {
-    econKicker: 'الجدوى', stepsKicker: 'التسجيل', coverage: 'التغطية', coverageNote: 'تصلك الطلبات من أي مكان في الإمارات، للأنشطة التي تغطيها رخصتك.',
+    econKicker: 'الجدوى', stepsKicker: 'التسجيل', coverage: 'التغطية', coverageNote: 'تصلكم الطلبات من أي مكان في الإمارات، وفق الأنشطة والخدمات التي تؤكّدونها في ملفكم الموثّق.',
     ruleKicker: 'التزام', finalKicker: 'بوابة الموردين',
   },
 };
