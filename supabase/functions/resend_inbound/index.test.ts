@@ -227,3 +227,35 @@ Deno.test({ name: 'a redelivered email already on file is answered before any re
     assertEquals(calls.filter((c) => /\/rest\/v1\/(inbound_messages|expense_entries)/.test(c.url) && c.method !== 'GET').length, 0);
   } finally { SEEN_EMAIL_IDS.delete('zz-demo-0001'); }
 } });
+
+// HIS REPLY TO THE MONTHLY SOCIAL CALENDAR (marketing, 23 Sep 2026, founder_instruction 872). The handler reads
+// the token, the sender, SES's verdict and the words; fn_marketing_calendar_reply decides (its checks are proved
+// by the aborted-transaction probe). Here: the reply reaches it and ONLY it, with the right verdict.
+const CAL_TOKEN = '0123456789abcdef0123456789abcdef';
+const calReply = (text: string, headers?: Record<string, string>, to = `calendar+${CAL_TOKEN}@mail.quotesdone.com`, from = 'ZZ DEMO Founder <management@example.invalid>') =>
+  signed({ email_id: 'zz-demo-cal-' + Math.random(), from, to: [to], subject: 'Re: Social calendar October 2026: 12 posts for your approval', text, ...(headers ? { headers } : {}) });
+const calCalls = () => calls.filter((c) => c.url.endsWith('/rpc/fn_marketing_calendar_reply')).map((c) => JSON.parse(c.body).p);
+
+Deno.test({ name: 'a calendar reply goes to fn_marketing_calendar_reply with the SES verdict and its intent, and nowhere else', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  calls.length = 0;
+  let out = await (await handler(await calReply('Approve\n\nOn Tue QuotesDone wrote:\n> the calendar', SES('example.invalid')))).json();
+  assertEquals(out.calendar_reply, true);
+  assertEquals(calCalls(), [{ token: CAL_TOKEN, from_email: 'management@example.invalid', authenticated: true, message_id: calCalls()[0].message_id, intent: 'approve' }]);
+  assertEquals(calls.filter((c) => /ai_gateway|fn_receipt_hand_to_bookkeeper|fn_accountant|email_suppressions|\/leads/.test(c.url) && c.method !== 'GET').length, 0);
+  // forged: no SES pass -> authenticated false (the function refuses it)
+  calls.length = 0;
+  await handler(await calReply('approve'));
+  assertEquals(calCalls()[0].authenticated, false);
+  // Arabic approval; an ambiguous reply is 'unclear'
+  calls.length = 0;
+  await handler(await calReply('موافق', SES('example.invalid')));
+  assertEquals(calCalls()[0].intent, 'approve');
+  calls.length = 0;
+  await handler(await calReply('looks fine but change the third video', SES('example.invalid')));
+  assertEquals(calCalls()[0].intent, 'unclear');
+  // the token also comes from the subject when the client replied to another address
+  calls.length = 0;
+  out = await (await handler(await signed({ email_id: 'zz-demo-cal-s', from: 'management@example.invalid', to: ['info@quotesdone.com'],
+    subject: `Re: Social calendar [ref ${CAL_TOKEN}]`, text: 'approved', headers: SES('example.invalid') }))).json();
+  assertEquals([out.calendar_reply, calCalls()[0].token], [true, CAL_TOKEN]);
+} });

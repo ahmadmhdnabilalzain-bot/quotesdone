@@ -1,9 +1,9 @@
-// The marketing seat against a MOCK Postiz and a MOCK Graph (marketing, 22 Sep 2026). No network.
+// The marketing seat against a MOCK Postiz and a MOCK Graph (marketing, 22-23 Sep 2026). No network.
 //   deno test supabase/functions/_shared/marketing_channels.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import {
-  buildPostizPayload, dubaiDate, measureAccess, publishPost, pullInsights, readAdSpend, stripTokens,
-  type Fetch, type MetaEnv, type PublishInput,
+  assetMismatch, buildPostizPayload, deletePostizPost, dubaiDate, sha256Hex, findInPostiz, isDemoText, measureAccess, publishPost, pullInsights,
+  readAdSpend, stripTokens, type Fetch, type MetaEnv, type PublishInput, type Variant,
 } from './marketing_channels.ts';
 
 const TOKEN = 'EAAZZDEMOTOKENVALUE0000000000';
@@ -13,6 +13,7 @@ const META: MetaEnv = { graph: G, token: TOKEN, adAccountId: '1234', businessId:
 const INTEGRATIONS = [
   { id: 'i-fb', identifier: 'facebook', disabled: false }, { id: 'i-ig', identifier: 'instagram-standalone', disabled: false },
   { id: 'i-li', identifier: 'linkedin-page', disabled: false }, { id: 'i-x', identifier: 'x', disabled: false },
+  { id: 'i-yt', identifier: 'youtube', disabled: false }, { id: 'i-tt', identifier: 'tiktok-business', disabled: false },
 ];
 
 type Call = { method: string; url: string };
@@ -28,48 +29,145 @@ function mock(routes: Array<[RegExp, (url: string, init?: RequestInit) => unknow
   return { f, calls };
 }
 
+// The bodies as marketing_post_variant stores them: caption, blank line, hashtags (the generated column).
+const v = (platform: Variant['platform'], post_type: Variant['post_type'], caption: string, hashtags: string[], extra: Partial<Variant> = {}): Variant =>
+  ({ platform, seq: 1, post_type, body: caption + (hashtags.length ? '\n\n#' + hashtags.join(' #') : ''), hashtags, title: null, alt_text: null, first_comment: null, ...extra });
+const VIDEO = { name: '01.mp4', type: 'video/mp4', bytes: new Uint8Array([0, 0, 0, 24]) };
+const FRAME = { name: '01.jpg', type: 'image/jpeg', bytes: new Uint8Array([255, 216]) };
 const POST: PublishInput = {
-  id: 1, text_en: 'ZZ DEMO — get three quotes', text_ar: 'احصل على ثلاثة عروض أسعار', channels: ['facebook', 'instagram', 'linkedin'],
-  scheduled_at: '2026-09-22T08:00:00Z', is_demo: true, media: [{ name: 'card.png', type: 'image/png', bytes: new Uint8Array([1, 2, 3]) }],
+  id: 1, ingest_key: 'm1-01', is_demo: false, media: [VIDEO], cover: FRAME,
+  variants: [
+    v('instagram', 'reel', 'Suppliers: real requests.\n\nالموردون: طلبات حقيقية.', ['UAE', 'Suppliers'], { alt_text: 'A supplier on a phone', first_comment: 'Register: quotesdone.ae' }),
+    v('x', 'video', 'Suppliers: real requests.', ['UAE']),
+    { ...v('x', 'video', 'الموردون: طلبات حقيقية.', []), seq: 2 },
+    v('youtube', 'short', 'Suppliers: real requests from UAE buyers.', ['Shorts', 'UAE'], { title: 'Three quotes, one request' }),
+    v('linkedin', 'video', 'Suppliers in the UAE: real requests.', ['Procurement']),
+    v('facebook', 'reel', 'Suppliers: real requests.', ['UAE']),
+    v('tiktok', 'video', 'Suppliers: real requests. الموردون', ['UAE', 'Suppliers']),
+  ],
 };
 
 Deno.test('switch off: the scheduler reads Postiz and never POSTs anything', async () => {
   const { f, calls } = mock([[/\/integrations$/, () => INTEGRATIONS]]);
-  const r = await publishPost(f, P, 'k', { ...POST, is_demo: false }, false, 'app_secrets.marketing_golive is not true');
+  const r = await publishPost(f, P, 'k', POST, false, 'app_secrets.marketing_golive is not true');
   assertEquals(r.mode, 'dry_run');
   assertEquals(calls.filter((c) => c.method !== 'GET'), [], 'a dry run wrote to Postiz');
   if (r.mode === 'dry_run') {
-    assertEquals(r.would_send.channels, { facebook: 'facebook', instagram: 'instagram-standalone', linkedin: 'linkedin-page' });
-    assertEquals(r.would_send.media, 1);
+    assertEquals(r.would_send.channels, { instagram: 'instagram-standalone', x: 'x', youtube: 'youtube', linkedin: 'linkedin-page', facebook: 'facebook', tiktok: 'tiktok-business' });
+    assertEquals(r.would_send.variants.length, 7);
   }
 });
 
-Deno.test('live: uploads the media, then posts EN + AR to every connected channel', async () => {
+Deno.test('live: one Postiz post per platform from its variant, hashtags in every text, never a joined EN+AR body', async () => {
   let sent: any = null;
   const { f, calls } = mock([
     [/\/integrations$/, () => INTEGRATIONS],
-    [/\/upload$/, () => ({ id: 'm1', path: 'https://uploads.example.invalid/m1.png' })],
-    [/\/posts$/, (_u, init) => { sent = JSON.parse(String(init?.body)); return [{ postId: 'p1', integration: 'i-fb' }]; }],
+    [/\/upload$/, (_u, init) => { const n = (init?.body as FormData).get('file') as File; return { id: 'u-' + n.name, path: 'https://uploads.example.invalid/' + n.name }; }],
+    [/\/posts$/, (_u, init) => { sent = JSON.parse(String(init?.body)); return [{ postId: 'p1', integration: 'i-ig' }]; }],
   ]);
-  const r = await publishPost(f, P, 'k', { ...POST, is_demo: false }, true, '');
-  assert(r.mode === 'live' && r.ok);
-  assertEquals(calls.map((c) => c.method + ' ' + c.url.replace(P, '')), ['GET /integrations', 'POST /upload', 'POST /posts']);
-  assertEquals(sent.posts.length, 3);
-  const content = sent.posts[0].value[0].content as string;
-  assert(content.includes('get three quotes') && content.includes('ثلاثة'), 'the body carries both languages');
-  assertEquals(sent.posts.find((p: any) => p.settings.__type === 'instagram-standalone').value[0].image, [{ id: 'm1', path: 'https://uploads.example.invalid/m1.png' }]);
+  const r = await publishPost(f, P, 'k', POST, true, '');
+  assert(r.mode === 'live' && r.ok, JSON.stringify(r));
+  assertEquals(calls.map((c) => c.method + ' ' + c.url.replace(P, '')), ['GET /integrations', 'POST /upload', 'POST /upload', 'POST /posts']);
+  const by = Object.fromEntries(sent.posts.map((p: any) => [p.settings.__type, p]));
+  assertEquals(Object.keys(by).sort(), ['facebook', 'instagram-standalone', 'linkedin-page', 'tiktok-business', 'x', 'youtube']);
+  // every approved hashtag reaches the text Postiz receives, on every platform
+  for (const vv of POST.variants.filter((x) => x.seq === 1)) {
+    const id = { instagram: 'instagram-standalone', linkedin: 'linkedin-page', tiktok: 'tiktok-business' }[vv.platform as string] || vv.platform;
+    const content: string = by[id].value[0].content;
+    assertEquals(content, vv.body, vv.platform + ' got a different text than the approved body');
+    for (const h of vv.hashtags) assert(content.includes('#' + h), vv.platform + ' lost #' + h);
+  }
+  // X is a thread: EN tweet then AR reply, each its own value
+  assertEquals(by.x.value.map((x: any) => x.content), ['Suppliers: real requests.\n\n#UAE', 'الموردون: طلبات حقيقية.']);
+  assert(by.x.value[0].content.length <= 280);
+  // Instagram: a video sent as post_type 'post' is published by Postiz as a Reel; alt text on the media; first comment follows
+  assertEquals(by['instagram-standalone'].settings, { __type: 'instagram-standalone', post_type: 'post', collaborators: [] });
+  assertEquals(by['instagram-standalone'].value[0].image, [{ id: 'u-01.mp4', path: 'https://uploads.example.invalid/01.mp4', alt: 'A supplier on a phone' }]);
+  assertEquals(by['instagram-standalone'].value[1].content, 'Register: quotesdone.ae');
+  // YouTube: the calendar's title reaches the settings block; hashtags also as tags; the key frame is the thumbnail
+  assertEquals(by.youtube.settings.title, 'Three quotes, one request');
+  assertEquals(by.youtube.settings.type, 'public');
+  assertEquals(by.youtube.settings.tags, [{ value: 'Shorts', label: 'Shorts' }, { value: 'UAE', label: 'UAE' }]);
+  assertEquals(by.youtube.settings.thumbnail, { id: 'u-01.jpg', path: 'https://uploads.example.invalid/01.jpg' });
+  assert(by.youtube.value[0].content.includes('#Shorts'));
+  // TikTok: DIRECT_POST (UPLOAD would only reach the app inbox), public, no auto music
+  assertEquals(by['tiktok-business'].settings, { __type: 'tiktok-business', privacy_level: 'PUBLIC_TO_EVERYONE', duet: true, stitch: true, comment: true,
+    autoAddMusic: 'no', brand_content_toggle: false, brand_organic_toggle: false, content_posting_method: 'DIRECT_POST' });
+  for (const p of sent.posts) assert(!(p.value[0].content.includes('Suppliers') && p.value[0].content.includes('الموردون') && p.settings.__type === 'x'), 'X got the joined text');
 });
 
-Deno.test('a channel that is not connected is skipped, and instagram without media is skipped', () => {
-  const { skipped, resolved } = buildPostizPayload({ ...POST, channels: ['instagram', 'x', 'tiktok'] }, INTEGRATIONS.filter((i) => i.identifier !== 'x'), []);
+Deno.test('reel vs post is the media\'s call: a reel without a video, or YouTube without one, is skipped with the reason', () => {
+  const imageOnly = { ...POST, media: [FRAME], cover: null };
+  const { skipped, resolved } = buildPostizPayload(imageOnly, INTEGRATIONS.filter((i) => i.identifier !== 'linkedin-page'), [{ id: 'm', path: 'p' }], null);
   assertEquals(resolved, {});
-  assertEquals(skipped, ['instagram (needs media)', 'x (not connected in Postiz)', 'tiktok (not a marketing channel)']);
+  assert(skipped.includes('instagram (instagram reel needs a video)'), skipped.join('|'));
+  assert(skipped.includes('youtube (youtube short needs a video)'), skipped.join('|'));
+  assert(skipped.includes('linkedin (not connected in Postiz)'), skipped.join('|'));
 });
 
-Deno.test('a Postiz refusal is a failure with its reason, never a success', async () => {
-  const { f } = mock([[/\/integrations$/, () => INTEGRATIONS], [/\/upload$/, () => ({ id: 'm1', path: 'x' })], [/\/posts$/, () => ({ message: 'rate limited' }), 429]]);
-  const r = await publishPost(f, P, 'k', { ...POST, is_demo: false }, true, '');
-  assert(r.mode === 'live' && !r.ok && r.error === 'rate limited' && r.status === 429);
+Deno.test('a Postiz refusal is a failure; no answer or a 5xx is UNCLEAR (reconciled before any resend)', async () => {
+  const base: Array<[RegExp, (u: string) => unknown, number?]> = [[/\/integrations$/, () => INTEGRATIONS], [/\/upload$/, () => ({ id: 'm1', path: 'x' })]];
+  let r = await publishPost(mock([...base, [/\/posts$/, () => ({ message: 'rate limited' }), 429]]).f, P, 'k', POST, true, '');
+  assert(r.mode === 'live' && !r.ok && !r.unclear && r.error === 'rate limited' && r.status === 429);
+  r = await publishPost(mock([...base, [/\/posts$/, () => ({ message: 'gateway' }), 502]]).f, P, 'k', POST, true, '');
+  assert(r.mode === 'live' && !r.ok && r.unclear);
+  const lost = mock(base);
+  const f: Fetch = (u, i) => /\/posts$/.test(u) ? Promise.reject(new Error('connection reset')) : lost.f(u, i);
+  r = await publishPost(f, P, 'k', POST, true, '');
+  assert(r.mode === 'live' && !r.ok && r.unclear && /no answer/.test(r.error));
+});
+
+Deno.test('before a resend: a post Postiz already has is found by integration and text, HTML or not', async () => {
+  const { f, calls } = mock([[/\/posts\?startDate=/, () => ({ posts: [
+    { id: 'z9', content: '<p>Suppliers: real requests.</p><p>#UAE</p>', integration: { id: 'i-x', providerIdentifier: 'x' } },
+    { id: 'z8', content: 'something else', integration: { id: 'i-fb', providerIdentifier: 'facebook' } }] })]]);
+  const found = await findInPostiz(f, P, 'k', new Date('2026-10-01'), new Date('2026-10-02'),
+    [{ integrationId: 'i-x', content: 'Suppliers: real requests.\n\n#UAE' }, { integrationId: 'i-fb', content: 'Suppliers: real requests.\n\n#UAE' }]);
+  assertEquals(found, { ok: true, ids: ['z9'] });
+  assertEquals(calls.filter((c) => c.method !== 'GET'), []);
+  const down = await findInPostiz(mock([[/\/posts\?/, () => ({ message: 'down' }), 503]]).f, P, 'k', new Date(), new Date(), []);
+  assertEquals(down.ok, false, 'an unreadable Postiz is never read as "not there"');
+});
+
+Deno.test('cancel deletes the post in Postiz; an already-gone post is fine', async () => {
+  const { f, calls } = mock([[/\/posts\/p1$/, () => ({ ok: true })], [/\/posts\/gone$/, () => ({ message: 'not found' }), 404]]);
+  assertEquals((await deletePostizPost(f, P, 'k', 'p1')).ok, true);
+  assertEquals((await deletePostizPost(f, P, 'k', 'gone')).ok, true);
+  assertEquals(calls.map((c) => c.method + ' ' + c.url.replace(P, '')), ['DELETE /posts/p1', 'DELETE /posts/gone']);
+  const bad = await deletePostizPost(mock([[/\/posts\//, () => ({ message: 'published posts cannot be deleted' }), 400]]).f, P, 'k', 'p2');
+  assert(!bad.ok && /cannot be deleted/.test(bad.error!));
+});
+
+// Postiz's account "Shortlink Preference" is "Ask every time" (23 Sep 2026). The public API's POST /posts takes
+// a top-level boolean `shortLink` (Postiz CLI 2.0.16 builds the same body and DEFAULTS it to true), so the
+// publisher states false on every create: our UTM links reach every platform exactly as approved.
+Deno.test('every create-post payload says shortLink: false, and the UTM link reaches every platform unchanged', async () => {
+  const UTM = 'https://www.quotesdone.ae/suppliers?utm_source=social&utm_medium=organic&utm_campaign=2026-month1';
+  const withLink: PublishInput = { ...POST, variants: POST.variants.map((x) => ({ ...x, body: x.body + '\n' + UTM })) };
+  let sent: any = null;
+  const { f } = mock([[/\/integrations$/, () => INTEGRATIONS], [/\/upload$/, () => ({ id: 'm', path: 'p' })],
+    [/\/posts$/, (_u, init) => { sent = JSON.parse(String(init?.body)); return [{ postId: 'p1' }]; }]]);
+  const r = await publishPost(f, P, 'k', withLink, true, '');
+  assert(r.mode === 'live' && r.ok);
+  assertEquals(sent.shortLink, false, 'shortLink must be sent as false, never left to the account default');
+  assertEquals(sent.posts.length, 6);
+  for (const p of sent.posts) assert(p.value[0].content.includes(UTM), p.settings.__type + ' lost or changed the UTM link');
+  assertEquals(buildPostizPayload(withLink, INTEGRATIONS, [], null).payload.shortLink, false, 'the dry run shows the same');
+});
+
+Deno.test('a video or key frame whose bytes are not the approved ones is named, and never passes', async () => {
+  const V = 'campaigns/c/videos/01.mp4', K = 'campaigns/c/frames/01.jpg';
+  const good = { [V]: await sha256Hex(VIDEO.bytes), [K]: await sha256Hex(FRAME.bytes) };
+  assertEquals(await assetMismatch([{ path: V, bytes: VIDEO.bytes }, { path: K, bytes: FRAME.bytes }], good), null);
+  const swapped = await assetMismatch([{ path: V, bytes: new Uint8Array([9, 9, 9]) }, { path: K, bytes: FRAME.bytes }], good);
+  assert(swapped && swapped.startsWith(V + ' is ') && swapped.endsWith('approved ' + good[V]), String(swapped));
+  assertEquals(await assetMismatch([{ path: V, bytes: VIDEO.bytes }], good), K + ' was not read', 'an approved key frame that was not read is a mismatch');
+});
+
+Deno.test('ZZ DEMO is caught in the TEXT as well as by the flag', () => {
+  assert(isDemoText('Hello', 'ZZ DEMO caption'));
+  assert(isDemoText('zz-demo'));
+  assert(!isDemoText('Hello', null, undefined, 'Dubai'));
 });
 
 Deno.test('tokens never survive into anything the seat stores', () => {

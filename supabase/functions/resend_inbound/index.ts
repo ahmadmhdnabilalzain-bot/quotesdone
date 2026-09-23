@@ -40,6 +40,7 @@ import { requestDelivery } from '../_shared/deliver.ts';
 import { takeInStatement } from '../_shared/bank_statement_intake.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
+import { calendarTokenOf, isCalendarReply, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -199,6 +200,28 @@ export const handler = observe('resend_inbound', async (req) => {
     const fwdList = String(await sec('expense_forwarders')||'').toLowerCase().split(',').map((x)=>x.trim()).filter(Boolean);
     const expenseSenderOk = [...adminList, ...fwdList].includes(from);
     const owner = adminList[0] || 'management@quotesdone.com';
+
+    // ---- HIS REPLY TO THE MONTHLY SOCIAL CALENDAR (23 Sep 2026, marketing; founder_instruction 872) ----
+    // "I can reply to the email and say approve and that's it." A reply to calendar+<token>@mail.quotesdone.com
+    // (or carrying "[ref <token>]" in its subject) is read here and nowhere else: never as a receipt or a
+    // supplier document. This side reads the mail -- token, sender, the receiving server's SPF/DKIM/DMARC
+    // verdict (fromDomainAuthenticated, the same gate the unsubscribe path uses) and what the reply says
+    // (replyIntent) -- and fn_marketing_calendar_reply decides: founder + authenticated + this calendar's token
+    // + content unchanged since it was sent + month not over + "approve". It answers him itself.
+    if (isCalendarReply({ to, subject })) {
+      const calHdrs = d.headers?.['authentication-results'] ? d.headers
+        : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+      const verdict = { token: calendarTokenOf({ to, subject }) || '', from_email: from,
+        authenticated: fromDomainAuthenticated(calHdrs?.['authentication-results'], from), message_id: providerEmailId || '', intent: replyIntent(fullText) };
+      const { data: out, error: cErr } = await admin.rpc('fn_marketing_calendar_reply', { p: verdict });
+      await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject,
+        body: '[MONTHLY CALENDAR REPLY: ' + (cErr ? 'error ' + cErr.message : String((out as any)?.outcome)) + '; authenticated ' + verdict.authenticated + ', read as ' + verdict.intent + ']\n\n' + fullText,
+        html: fullHtml, provider_email_id: providerEmailId, attachments_count: 0, matched_existing: !!(out as any)?.campaign_key,
+        needs_review: !!cErr || (out as any)?.outcome === 'not_the_founder' });
+      await logRun(cErr ? 'error' : 'ok', { calendar_reply: 1, outcome: (out as any)?.outcome ?? null, authenticated: verdict.authenticated, intent: verdict.intent },
+        'monthly calendar reply from ' + from + ': ' + (cErr ? 'fn_marketing_calendar_reply failed: ' + cErr.message : String((out as any)?.outcome)));
+      return J({ ok: !cErr, calendar_reply: true, outcome: (out as any)?.outcome ?? null });
+    }
 
     // ---- Forwarded receipt / subscription -> finance ----
     // 6 SEP 2026: DETERMINISTIC FIRST. The model call below was the ONLY way a receipt got booked, and
