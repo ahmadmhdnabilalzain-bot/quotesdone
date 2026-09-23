@@ -29,7 +29,7 @@ const T = {
     // 14 Sep 2026: the old line sold 'AI-powered procurement' and an assistant that reads your catalog;
     // every model route is on hold, so the page promises only what runs today.
     valueProp: 'Quote on real UAE jobs. Keep 100% of what you win.',
-    sub: 'Anonymous requests for the trade your licence covers, from customers anywhere in the UAE. No commission — the customer pays the reveal fee.',
+    sub: 'Anonymous requests matched to the trades and services you confirm on your verified profile, from customers anywhere in the UAE. No commission — the customer pays the reveal fee.',
     ctaPrimary: 'Become a Verified Supplier',
     ctaSecondary: 'See How It Works',
     stepsTitle: 'How It Works',
@@ -47,7 +47,7 @@ const T = {
   ar: {
     kicker: 'للمورّدين والمصنّعين والمقاولين في الإمارات',
     valueProp: 'قدّموا عروضكم على مشاريع حقيقية في الإمارات، واحتفظوا بكامل قيمة ما تفوزون به.',
-    sub: 'طلبات محجوبة الهوية ضمن النشاط الذي تغطيه رخصتكم، من عملاء في جميع أنحاء الإمارات. بلا عمولة، فالعميل هو من يدفع رسوم الكشف.',
+    sub: 'طلبات محجوبة الهوية وفق الأنشطة والخدمات التي تؤكّدونها في ملفكم الموثّق، من عملاء في جميع أنحاء الإمارات. بلا عمولة، فالعميل هو من يدفع رسوم الكشف.',
     ctaPrimary: 'انضموا إلى المورّدين الموثّقين',
     ctaSecondary: 'تعرّفوا على آلية العمل',
     stepsTitle: 'آلية العمل',
