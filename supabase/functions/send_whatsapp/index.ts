@@ -138,6 +138,9 @@ function tmplKey(type:string):string|null{
   // and its lifting). Transactional, UTILITY category. Until wa_template_setup registers the SID the
   // rows stay queued (mapped-but-unregistered), never dropped; the email twin goes meanwhile.
   if(['quote_spec_hold','quote_spec_regenerated','quote_spec_released','supplier_collaboration_warning','supplier_matching_hold','supplier_matching_hold_lifted'].includes(t)) return 'supplier_account_notice';
+  // 23 Sep 2026 (instruction 858): the 3-working-day portfolio reminder is a notice about the supplier's
+  // own account too. {{1}} is its subject, {{2}} the portal, which opens on the Services tab.
+  if(t==='supplier_portfolio_incomplete') return 'supplier_account_notice';
   // 6 SEP 2026: the founder's own alert. fn_notify_founder queues it (allowed kind, severe level) and
   // wa_flush drains it here. "QuotesDone alert: {{1}}. Details: {{2}}. Open the OS to act." — registered
   // by wa_template_setup under this key.

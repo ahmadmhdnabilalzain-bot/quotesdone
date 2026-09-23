@@ -3965,5 +3965,27 @@
   "a5cba62f3cdc",
   "c55aebde9a84",
   "d7028cd29b51"
+ ],
+ "scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql": [
+  "3709aa8b5c54",
+  "5db548e3dec1",
+  "71f08c42ef7f",
+  "728bd3a53339",
+  "74596984b433",
+  "7584e1788f66",
+  "87267a674885",
+  "87788077310e",
+  "8cc0c1745546",
+  "9457f7e6a78c",
+  "9543dfce19ad",
+  "9a3c54125c6f",
+  "a282634a81d4",
+  "a9f8e5a00c44",
+  "b12430be42f0",
+  "b722b602db04",
+  "bcad2ca3526d",
+  "d2f51ce60d95",
+  "f18e9c9ee9ab",
+  "fe20b440c4c0"
  ]
 }
