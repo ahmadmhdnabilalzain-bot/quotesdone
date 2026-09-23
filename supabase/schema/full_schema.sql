@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T19:38:57.034Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T20:00:16.359Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -4763,7 +4763,7 @@ CREATE TABLE IF NOT EXISTS public.marketing_post (
   ingested_by text NOT NULL,
   title text,
   text_en text NOT NULL,
-  text_ar text NOT NULL,
+  text_ar text,
   media_paths text[] DEFAULT '{}'::text[] NOT NULL,
   channels text[] NOT NULL,
   scheduled_at timestamp with time zone,
@@ -9296,7 +9296,7 @@ ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_channels_check C
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_cover_sha256_check CHECK ((cover_sha256 ~ '^[0-9a-f]{64}$'::text));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_cta_url_check CHECK ((cta_url ~ '^https://'::text));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_demo_is_marked CHECK (((NOT is_demo) OR (text_en ~~ 'ZZ DEMO%'::text)));
-ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_demo_text_is_flagged CHECK ((is_demo OR (((((text_en || ' '::text) || text_ar) || ' '::text) || COALESCE(title, ''::text)) !~* 'zz[ _-]?demo'::text)));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_demo_text_is_flagged CHECK ((is_demo OR (((((text_en || ' '::text) || COALESCE(text_ar, ''::text)) || ' '::text) || COALESCE(title, ''::text)) !~* 'zz[ _-]?demo'::text)));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_failed_says_why CHECK (((status <> 'failed'::text) OR (error IS NOT NULL)));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_check CHECK ((ingest_key ~ '^[a-z0-9][a-z0-9_-]{2,80}$'::text));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingested_by_check CHECK ((ingested_by = ANY (ARRAY['founder'::text, 'claude'::text, 'marketing'::text])));
@@ -9306,7 +9306,7 @@ ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_owner_seat_check
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_published_says_when CHECK (((status <> 'published'::text) OR (published_at IS NOT NULL)));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_scheduled_has_a_time CHECK (((status <> ALL (ARRAY['scheduled'::text, 'publishing'::text, 'published'::text])) OR (scheduled_at IS NOT NULL)));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'scheduled'::text, 'publishing'::text, 'unconfirmed'::text, 'published'::text, 'failed'::text, 'cancelled'::text])));
-ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_text_ar_check CHECK ((text_ar ~ '[؀-ۿ]'::text));
+ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_text_ar_check CHECK (((text_ar IS NULL) OR (text_ar ~ '[؀-ۿ]'::text)));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_text_en_check CHECK ((btrim(text_en) <> ''::text));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_video_sha256_check CHECK ((video_sha256 ~ '^[0-9a-f]{64}$'::text));
 ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_checkpoint_check CHECK ((checkpoint = ANY (ARRAY['1d'::text, '3d'::text, '7d'::text, '28d'::text])));
@@ -14734,6 +14734,54 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_books_duty(p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_as_of date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
+  v_after int := (select num_value::int from public.gl_settings where key = 'books_stale_after_days');
+  v_last date; v_last_at timestamptz; v_mail timestamptz; n_arrived int; n_unbooked int; n_unposted int;
+  v_cause text; v_items jsonb := '[]'::jsonb;
+begin
+  if v_after is null then raise exception 'fn_accountant_books_duty: gl_settings.books_stale_after_days is missing'; end if;
+  select max(entry_date), max(posted_at) into v_last, v_last_at from public.gl_journal
+   where status = 'posted' and memo !~* 'zz[ _-]?demo';
+  select max(created_at) into v_mail from public.inbound_messages where to_email ilike 'expenses@%';
+  -- What reached the mailbox since the last posting, and what of it has no entry and no statement behind it.
+  select count(*), count(*) filter (where not exists (select 1 from public.expense_entries e where e.source_msg_id = 'resend:' || m.provider_email_id)
+                                      and not exists (select 1 from public.bank_statement_intake b where b.source_ref = 'resend:' || m.provider_email_id))
+    into n_arrived, n_unbooked
+    from public.inbound_messages m
+   where m.to_email ilike 'expenses@%' and m.created_at > coalesce(v_last_at, '-infinity') and m.created_at < now() - interval '2 hours';
+  select count(*) into n_unposted from public.expense_entries e
+   where not exists (select 1 from public.gl_journal g where g.source = 'expense' and g.source_ref = e.id::text)
+     and not ((coalesce(e.vendor, '') || ' ' || coalesce(e.note, '')) ~* 'zz[ _-]?demo');
+
+  if v_last is null or v_as_of - v_last > v_after then
+    v_cause := case
+      when n_unposted > 0 then n_unposted || ' booked expense(s) have no journal: posting is failing'
+      when n_unbooked > 0 then n_unbooked || ' message(s) reached the expenses mailbox and were neither booked nor held as a statement'
+      else 'nothing has reached the expenses mailbox since ' || coalesce(to_char(v_mail at time zone 'Asia/Dubai', 'DD Mon YYYY'), 'ever')
+           || ', so there was nothing to post; the vendor-side gaps are in the expenses duty' end;
+    v_items := jsonb_build_array(jsonb_build_object('item', 'books_stale', 'owner_seat', 'accountant', 'subject', 'gl_journal',
+      'title', 'The books are ' || coalesce((v_as_of - v_last)::text, 'never') || ' day(s) stale (last posted journal '
+               || coalesce(v_last::text, 'none') || '): ' || v_cause,
+      'blast', 'internal', 'affected', 1,
+      'evidence', jsonb_build_object('last_posted_journal', v_last, 'last_posted_at', v_last_at, 'stale_after_days', v_after,
+        'last_expenses_mail', v_mail, 'mail_since_last_posting', n_arrived, 'mail_not_booked', n_unbooked,
+        'entries_not_posted', n_unposted,
+        'remedy', case when n_unposted + n_unbooked > 0
+                       then 'run the accountant expense_sweep for the named message, then fn_gl_sync_business; read the stage finding if it raises'
+                       else 'forward the month''s receipts to expenses@mail.quotesdone.com; nothing is broken on this side' end)));
+  end if;
+  return jsonb_build_object('as_of', v_as_of, 'last_posted_journal', v_last, 'mail_not_booked', n_unbooked,
+    'entries_not_posted', n_unposted, 'findings', public.fn_accountant_duty_settle('books', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_budgets_renewal(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -15439,6 +15487,8 @@ begin
   exception when others then v_err := v_err || jsonb_build_object('step', 'disputes', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('costs', public.fn_accountant_cost_booking_tick());
   exception when others then v_err := v_err || jsonb_build_object('step', 'costs', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('books', public.fn_accountant_books_duty());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'books', 'error', sqlerrm); end;
   -- The five further duties (14 Sep 2026). Ad spend, recovery and renewals run BEFORE the close, which
   -- reads their figures; the bank balance and the year-end pack read the close, so they run after it.
   -- F2 AD SPEND IS HELD FOR THE MARKETING SEAT (founder rule 641, 22 Sep 2026: Meta and social are
@@ -15462,7 +15512,7 @@ begin
                                  'completed', public.fn_accountant_reports_complete());
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
 
-  foreach v_step in array array['stripe', 'bank', 'collections', 'subscriptions', 'expenses', 'charge_audit', 'disputes', 'costs',
+  foreach v_step in array array['stripe', 'bank', 'collections', 'subscriptions', 'expenses', 'charge_audit', 'disputes', 'costs', 'books',
                                 'recovery', 'renewals', 'close', 'bank_balance', 'year_end', 'ceo'] loop
     perform public.fn_accountant_duty_stage(v_step,
       (select string_agg(e->>'error', '; ') from jsonb_array_elements(v_err) e where e->>'step' = v_step));
@@ -19466,6 +19516,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -19491,16 +19551,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -20212,6 +20262,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -20727,135 +20906,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -43515,7 +43565,10 @@ begin
       raise exception 'calendar %: % or % is not in the private marketing-media bucket', v_key, v_video, v_frame;
     end if;
     v_en := btrim(coalesce(r->>'caption_en', '')); v_ar := btrim(coalesce(r->>'caption_ar', ''));
-    if v_en = '' or v_ar !~ '[؀-ۿ]' then raise exception 'calendar %: caption_en and an Arabic caption_ar are required', v_key; end if;
+    -- ENGLISH ONLY ON SOCIAL (founder, 23 Sep 2026): caption_en is required; caption_ar is optional and, when
+    -- given, must be Arabic (question marks refused). An absent Arabic caption stores NULL, never ''.
+    if v_en = '' then raise exception 'calendar %: caption_en is required', v_key; end if;
+    if v_ar <> '' and v_ar !~ '[؀-ۿ]' then raise exception 'calendar %: caption_ar is given but is not Arabic', v_key; end if;
     v_title := coalesce(nullif(btrim(r->>'title'), ''), nullif(btrim(r#>>'{video,title}'), ''));
     if v_title is null then raise exception 'calendar %: video.title is required', v_key; end if;
     v_tags := coalesce((select array_agg(regexp_replace(btrim(x), '^#', '') order by n) from jsonb_array_elements_text(coalesce(r->'hashtags', '[]')) with ordinality h(x, n)), '{}');
@@ -43532,7 +43585,7 @@ begin
     insert into public.marketing_post as t (ingest_key, ingested_by, title, text_en, text_ar, media_paths, channels, scheduled_at,
                                             scheduled_local, status, is_demo, campaign_id, video_path, video_sha256, cover_path,
                                             cover_sha256, cta_url, rationale, music)
-    values (v_key, 'claude', v_title, v_en, v_ar, array[v_video], array[v_platform], v_utc, v_local, 'scheduled', v_demo, v_cid,
+    values (v_key, 'claude', v_title, v_en, nullif(v_ar, ''), array[v_video], array[v_platform], v_utc, v_local, 'scheduled', v_demo, v_cid,
             v_video, r#>>'{video,sha256}', v_frame, r#>>'{keyframe,sha256}', nullif(btrim(r->>'cta_url'), ''),
             nullif(btrim(r->>'rationale'), ''), r->'music')
     on conflict (ingest_key) do update set title = excluded.title, text_en = excluded.text_en, text_ar = excluded.text_ar,
@@ -43552,8 +43605,9 @@ begin
     select id into v_pid from public.marketing_post where ingest_key = v_key;
 
     -- the variants: EN+AR in one post where the platform spec says it fits; on X a thread (EN, then AR) when not
-    v_bi := v_en || E'\n\n' || v_ar;
-    v_lang := r->>'language';
+    v_bi := case when v_ar = '' then v_en else v_en || E'\n\n' || v_ar end;
+    v_lang := coalesce(r->>'language', case when v_ar = '' then 'en' end);
+    if v_lang in ('ar', 'bi', 'thread') and v_ar = '' then raise exception 'calendar %: language % needs caption_ar', v_key, v_lang; end if;
     if v_lang is null then
       v_probe := row(null, v_pid, v_platform, 1, 'bi', v_type, v_bi, v_tags, public.fn_marketing_variant_text(v_bi, v_tags),
                      nullif(btrim(r->>'alt_text'), ''), case when v_platform = 'youtube' then v_title end,
@@ -51176,6 +51230,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -51346,16 +51410,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -60700,7 +60754,7 @@ begin
     select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
            -- Arabic only where the lead's own locale says so AND the Arabic copy exists; otherwise
            -- English, which is also what a04 assumes for an unregistered recipient.
-           case when lower(coalesce(l.locale, '')) like 'ar%' and coalesce(v_body_ar, '') like '%{{link}}%'
+           case when (lower(coalesce(l.locale, '')) like 'ar%' or coalesce(l.company_name, '') ~ '[؀-ۿ]') and coalesce(v_body_ar, '') like '%{{link}}%'
                      and coalesce(v_subj_ar, '') <> '' then 'ar' else 'en' end as lang
     from leads l
     where public.fn_supplier_invite_eligible(l)
@@ -60767,6 +60821,8 @@ AS $function$
      -- never twice, read from the outbox rather than from a status column
      and not exists (select 1 from public.notifications n
                       where n.type = 'supplier_invite' and lower(btrim(n.to_email)) = lower(btrim(p.email)))
+     -- never an address on the suppression list, whatever the reason (23 Sep 2026)
+     and not exists (select 1 from public.email_suppressions s where lower(btrim(s.email)) = lower(btrim(p.email)))
      and coalesce((public.fn_email_sendable(p.email)->>'ok')::boolean, false)
      -- 22 Sep 2026: a COLD invitation needs a measured MX. An A-record-only domain (361 leads), a lookup
      -- that errored (86) or a domain never asked is a bounce risk on a domain with no history to spend.
@@ -66256,17 +66312,15 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_wa_answer(p_from text, p_body text)
+CREATE OR REPLACE FUNCTION public.fn_wa_answer(p_from text, p_body text, p_intent text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   v_body     text := lower(btrim(coalesce(p_body, '')));
-  i          record;
-  v_intent   record := null;
-  v_pat      text;
+  v_intent   public.wa_reply_intent;
   v_reply    text;
   v_lead     record;
   v_lead_id  bigint;
@@ -66292,41 +66346,21 @@ begin
     v_ident_k := 'lead'; v_ident_id := v_lead_id::text;
   end if;
 
-  -- MATCH. First intent whose pattern appears in the body wins, in sort order, so a specific
-  -- intent can be placed ahead of a general one.
-  for i in select * from public.wa_reply_intent where active order by sort, intent_key loop
-    foreach v_pat in array i.match_patterns loop
-      -- WORD BOUNDARIES, NOT SUBSTRINGS. A plain substring test matched the greeting pattern 'hi'
-      -- inside the word 'something', so 'i want to buy something' was answered with hello. Patterns that
-      -- begin and end on a word character are matched on word boundaries; punctuation patterns such as
-      -- '#' keep the substring test, because a boundary around a symbol never matches.
-      -- Whole-token matching WITHOUT regex escapes. The transport between this file and the database
-      -- strips backslashes, so a regex word boundary arrives as a literal letter and the statement
-      -- will not even parse. Padding both sides with spaces and normalising punctuation to spaces
-      -- gives the same result with no escape to lose.
-      if (case
-            when v_pat ~ '[a-z0-9]'
-              then position(' ' || v_pat || ' '
-                            in ' ' || regexp_replace(v_body, '[^a-z0-9 ]', ' ', 'g') || ' ') > 0
-            else position(v_pat in v_body) > 0
-          end)
-         and (not i.requires_number or v_body ~ '[0-9]{2,}') then
-        v_intent := i;
-        exit;
-      end if;
-    end loop;
-    exit when v_intent is not null;
-  end loop;
+  -- THE INTENT, AS REASONED. Read by key from the active rows; the body is not read for meaning.
+  select * into v_intent from public.wa_reply_intent where active and intent_key = p_intent;
 
-  -- NO MATCH. An honest refusal that names what it would need. Never a guess, and never a claim
-  -- that some service is unavailable.
-  if v_intent is null then
+  -- NOTHING TO ANSWER FROM. An honest refusal that names what it would need. Never a guess.
+  if not found then
     v_reply := public.fn_wa_unmatched_reply();
     insert into public.wa_answer_log (from_phone, body, identity_kind, identity_id, matched, reply, refusal_reason)
     values (p_from, p_body, v_ident_k, v_ident_id, false, v_reply,
-            'No enumerated intent matched. This row is the backlog: a real question with no resolver.')
+            case when p_intent is null
+                 then 'Not reasoned yet (the model hold). The meaning waits in customer_support''s queue and is answered on WhatsApp when it is reasoned.'
+                 when p_intent = 'none' then 'Reasoned: no intent row fits. This row is the backlog: a real question with no resolver.'
+                 else 'Reasoned as ' || p_intent || ': answered outside the intent table (size statement, trade list), not backlog.' end)
     returning id into v_log;
-    return jsonb_build_object('ok', true, 'matched', false, 'reply', v_reply, 'log_id', v_log);
+    return jsonb_build_object('ok', true, 'matched', false, 'reply', v_reply, 'log_id', v_log,
+                              'intent_decided_by', case when p_intent is null then 'held: not yet reasoned' else 'reasoning' end);
   end if;
 
   -- IDENTITY REQUIRED BUT UNKNOWN.
@@ -66335,7 +66369,7 @@ begin
             || 'email address you registered with, or REGISTER to start a new registration.';
     insert into public.wa_answer_log (from_phone, body, identity_kind, identity_id, intent_key, matched, reply, refusal_reason)
     values (p_from, p_body, v_ident_k, v_ident_id, v_intent.intent_key, true, v_reply,
-            'Intent matched but the sender is not a known party.')
+            'Intent reasoned but the sender is not a known party.')
     returning id into v_log;
     return jsonb_build_object('ok', true, 'matched', true, 'intent', v_intent.intent_key, 'reply', v_reply, 'log_id', v_log);
   end if;
@@ -66347,13 +66381,8 @@ begin
   v_reply := replace(v_reply, '{{free_count}}',  coalesce(v_cfg.supplier_free_count::text, '1000'));
   v_reply := replace(v_reply, '{{reg_fee}}',     coalesce(round(v_cfg.supplier_reg_fee)::text, '1000'));
 
-  -- THE APPROVED PUBLIC CONTACT, filled the same way. It is read from the settings that say
-  -- publication in their names -- never from founder_mobile, which is a private contact record that
-  -- happens to hold the same digits. Two values matching is not permission to publish either.
-  --
-  -- When the setting is absent the slot renders a sentence that ADMITS it rather than an empty
-  -- string. "You can contact  on  " is worse than saying the contact is not configured, and the
-  -- build spec asks for a blocker reported to the CEO rather than a placeholder shown to a customer.
+  -- THE APPROVED PUBLIC CONTACT, read from the settings that say publication in their names -- never from
+  -- founder_mobile. Absent, the slot ADMITS it rather than rendering an empty string.
   v_reply := replace(v_reply, '{{founder_public_phone}}',
     coalesce((select value from public.app_secrets where key = 'founder_public_phone'),
              '(no approved public contact is configured yet)'));
@@ -66389,10 +66418,8 @@ begin
   end if;
 
   -- BY-ID LOOKUP. A number in the body is resolved against the real records, and returned ONLY to a
-  -- party who appears on that record. An id is not a password.
+  -- party who appears on that record. The digits are FORMAT: the first run of two or more.
   if v_intent.scope = 'by_id' then
-    -- The first run of two or more digits. Stripping every digit from the whole sentence turns
-    -- 'i have 2 questions about job 55' into 255, which is a different job belonging to someone else.
     v_id := nullif((regexp_match(v_body, '([0-9]{2,})'))[1], '')::bigint;
     if v_id is null then
       v_reply := 'Send me the number and I will look it up. For example: quote 1234, or job 5678.';
@@ -66410,7 +66437,7 @@ begin
   return jsonb_build_object(
     'ok', true, 'matched', true, 'intent', v_intent.intent_key,
     'identity_kind', v_ident_k, 'identity_id', v_ident_id,
-    'reply', v_reply, 'log_id', v_log, 'answered_by', 'deterministic'
+    'reply', v_reply, 'log_id', v_log, 'answered_by', 'deterministic', 'intent_decided_by', 'reasoning'
   );
 end;
 $function$
@@ -67287,7 +67314,7 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_wa_route(p_phone text, p_body text, p_has_audio boolean DEFAULT false, p_needs_person boolean DEFAULT NULL::boolean)
+CREATE OR REPLACE FUNCTION public.fn_wa_route(p_phone text, p_body text, p_has_audio boolean DEFAULT false, p_needs_person boolean DEFAULT NULL::boolean, p_intent text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -67314,7 +67341,7 @@ begin
     into v_held;
   v_held := not v_held;
 
-  v_det  := public.fn_wa_answer(p_phone, coalesce(p_body, '(voice note)'));
+  v_det  := public.fn_wa_answer(p_phone, coalesce(p_body, '(voice note)'), p_intent);
   v_pack := public.fn_wa_fact_pack(p_phone);
   v_intent := v_det->>'intent';
   v_reply  := v_det->>'reply';
@@ -67409,6 +67436,7 @@ begin
 
     'deterministic_reply', v_reply,
     'deterministic_intent', v_intent,
+    'intent_decided_by', case when p_intent is null then 'held: not yet reasoned' else 'reasoning' end,
     'fact_pack', v_pack,
     'model_brief', public.fn_wa_model_brief()
   );

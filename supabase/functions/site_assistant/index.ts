@@ -27,7 +27,6 @@ import { defaultDeps } from '../_shared/think.ts';
 import { widgetMeaning } from '../_shared/reasoned_channels.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
-import { defaultDeps } from '../_shared/think.ts';
 import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
