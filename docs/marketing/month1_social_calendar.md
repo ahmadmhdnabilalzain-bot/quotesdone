@@ -21,7 +21,7 @@ All 12 files are 1080x1920 (9:16), 60 fps. 01-06 run 24 s, 07-12 run 28 s. On-sc
 | 07 | The First 1000 | The first 1,000. A lasting advantage. / Not a trial. Free. Forever. The first 1,000 pay no membership subscription (AED 0 year one, year two, every year). / Your capabilities. Relevant inquiries. / First 1,000: AED 0. After that: membership, from registration 1,001. Same merit-based ranking. Early entry, not paid preference. | "Register early. Keep the advantage." Register your business, quotesdone.com/supplier. Supplier verification and agreement apply. | Suppliers |
 | 08 | Beyond Your Contacts | A friend's contact is a starting point ("Who did you use?"). / Look beyond who you already know. / Not just a name. A quote you can assess (scope, price, timing, terms). / Compare options. Choose what fits. | "More perspective. Your choice." **Start your request**. Post and compare free. Reveal fees apply. | Customers |
 | 09 | Your Business Belongs Here | Your business. Your opportunity. / Across UAE sectors. Beyond the usual trades. / Show what you do. Meet requests that fit. / More chances to be considered. Request volume and sales are not guaranteed. | "FIRST 1,000 SUPPLIERS. Join early. Subscription-free forever." Register your business, quotesdone.com/supplier. Food & beverage excluded. | Suppliers |
-| 10 | You Dont Need to Be the Expert | Know what you need. Not every technical term. / Describe the outcome. We ask the questions. / Materials. Scope. The details that matter. / Understand the options. Not just the numbers. | "Less guesswork. More clarity." **Start with your requirement**. Post and compare free. Reveal fees apply. | Customers |
+| 10 | You Don't Need to Be the Expert | Know what you need. Not every technical term. / Describe the outcome. We ask the questions. / Materials. Scope. The details that matter. / Understand the options. Not just the numbers. | "Less guesswork. More clarity." **Start with your requirement**. Post and compare free. Reveal fees apply. | Customers |
 | 11 | Compete on Value | Your expertise. Not a paid position. / No featured suppliers. No paid ranking. / Technical fit. Scope. Delivery. Value. / Compete on your offer. Let the customer choose. | "Bring your expertise. Join the first 1,000." A permanent subscription waiver, not a ranking boost. Register your business, quotesdone.com/supplier. | Suppliers |
 | 12 | Procurement with Perspective | Your supplier list can go further. / One inquiry. Relevant new options. / Align the scope. Top three in one report; every other quotation available. / The lowest number is not the whole story. | "More options. A clearer decision." **Submit your company request**. Post and compare free. Reveal fees apply. | Customers |
 
@@ -66,7 +66,7 @@ YouTube Shorts), so every video goes to every channel unchanged.
 | 1 (28 Sep - 1 Oct) | Awareness: there is a place for you | 09 Your Business Belongs Here | 02 Big Plans | 11 Compete on Value |
 | 2 (5 - 8 Oct) | Trust: how it treats you | 04 Behind the Check | 03 On Your Terms | 05 Complete Before Compare |
 | 3 (12 - 15 Oct) | The offer | 07 The First 1000 | 12 Procurement with Perspective | 06 Stay in the Loop |
-| 4 (19 - 22 Oct) | Action: requests are coming | 08 Beyond Your Contacts | 10 You Dont Need to Be the Expert | 01 Stop Chasing Suppliers |
+| 4 (19 - 22 Oct) | Action: requests are coming | 08 Beyond Your Contacts | 10 You Don't Need to Be the Expert | 01 Stop Chasing Suppliers |
 
 Why this order: a supplier first has to see that his trade belongs (09), that the work arrives from real
 projects (02) and that he cannot be outbid by money (11). Before handing over a licence he needs to know
@@ -105,9 +105,16 @@ Postiz analytics and move any platform whose window underperforms.
   the bio link must carry the Instagram UTM. LinkedIn, Facebook, X and YouTube carry the tracked link.
 - Hashtags: Instagram 5, LinkedIn 3, Facebook 2, X 1, YouTube 3 (with #Shorts). Few and specific.
 - Every claim is from the Supplier Agreement or the supplier page: first 1,000 free permanently; AED 1,000
-  a year from the 1,001st; no commission (the customer pays the 3% reveal fee); invited only for licensed
-  activity; customer identity hidden until chosen; every quotation shown and the top three compared on
-  price, completeness and delivery; all trades except food and beverage. No counts, no statistics.
+  a year from the 1,001st; no commission (the customer pays the 3% reveal fee); invited only for the
+  trades and services a supplier confirms on his verified profile; customer identity hidden until
+  chosen; suppliers see scope and quantities with personal details removed (drawings are not claimed:
+  drawing redaction is held); every quotation shown and the top three compared on price, completeness
+  and delivery; registration open to every trade except food and beverage. No counts, no statistics.
+- Hashtags are a separate field for this page; the posting builder merges them into the published text.
+  The Arabic tag is #موردي_الإمارات, without diacritics, as people search for it.
+- The .json is on the surface of `scripts/checks/every_arabic_message_is_written_not_translated.test.mjs`
+  (every `docs/marketing/*.json`), so its Arabic lines, and every future calendar's, are checked for
+  translation artefacts and must be recorded as reviewed.
 
 Sources: [Sprout Social, best times to post on LinkedIn](https://sproutsocial.com/insights/best-times-to-post-on-linkedin/),
 [Instagram](https://sproutsocial.com/insights/best-times-to-post-on-instagram/),

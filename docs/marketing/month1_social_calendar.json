@@ -57,8 +57,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Your Business Belongs Here",
-      "caption_en": "If your business is licensed in the UAE, there is a place for it on QuotesDone.\n\nProducts, services, manufacturing, fit-out, logistics, technology and more. Suppliers are invited only to requests that match the activity on their trade licence, from customers anywhere in the UAE. Every trade is open except food and beverage, for now. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "إذا كان نشاط شركتكم مرخّصًا في الإمارات، فلها مكان على QuotesDone.\n\nمنتجات وخدمات وتصنيع وتجهيزات داخلية وخدمات لوجستية وتقنية وغيرها. لا تصلكم إلا الطلبات التي تطابق النشاط المرخّص لشركتكم، من عملاء في أي مكان في الإمارات. جميع الأنشطة متاحة باستثناء الأغذية والمشروبات حاليًا. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "If your business is licensed in the UAE, there is a place for it on QuotesDone.\n\nProducts, services, manufacturing, fit-out, logistics, technology and more. Suppliers are invited only to requests that match the trades and services they confirm on their verified profile, from customers anywhere in the UAE. Registration is open to every trade except food and beverage, for now. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "إذا كان نشاط شركتكم مرخّصًا في الإمارات، فلها مكان على QuotesDone.\n\nمنتجات وخدمات وتصنيع وتجهيزات داخلية وخدمات لوجستية وتقنية وغيرها. لا تصلكم إلا الطلبات التي تطابق الأنشطة والخدمات التي تؤكّدونها في ملفكم الموثّق، من عملاء في أي مكان في الإمارات. والتسجيل متاح لجميع الأنشطة باستثناء الأغذية والمشروبات حاليًا. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -85,7 +85,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 1043
+      "chars": 1135
     },
     {
       "ingest_key": "2026m1-09-facebook",
@@ -99,8 +99,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Your Business Belongs Here",
-      "caption_en": "If your business is licensed in the UAE, there is a place for it on QuotesDone.\n\nProducts, services, manufacturing, fit-out, logistics, technology and more. Suppliers are invited only to requests that match the activity on their trade licence, from customers anywhere in the UAE. Every trade is open except food and beverage, for now. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "إذا كان نشاط شركتكم مرخّصًا في الإمارات، فلها مكان على QuotesDone.\n\nمنتجات وخدمات وتصنيع وتجهيزات داخلية وخدمات لوجستية وتقنية وغيرها. لا تصلكم إلا الطلبات التي تطابق النشاط المرخّص لشركتكم، من عملاء في أي مكان في الإمارات. جميع الأنشطة متاحة باستثناء الأغذية والمشروبات حاليًا. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "If your business is licensed in the UAE, there is a place for it on QuotesDone.\n\nProducts, services, manufacturing, fit-out, logistics, technology and more. Suppliers are invited only to requests that match the trades and services they confirm on their verified profile, from customers anywhere in the UAE. Registration is open to every trade except food and beverage, for now. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "إذا كان نشاط شركتكم مرخّصًا في الإمارات، فلها مكان على QuotesDone.\n\nمنتجات وخدمات وتصنيع وتجهيزات داخلية وخدمات لوجستية وتقنية وغيرها. لا تصلكم إلا الطلبات التي تطابق الأنشطة والخدمات التي تؤكّدونها في ملفكم الموثّق، من عملاء في أي مكان في الإمارات. والتسجيل متاح لجميع الأنشطة باستثناء الأغذية والمشروبات حاليًا. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -126,7 +126,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 1030
+      "chars": 1122
     },
     {
       "ingest_key": "2026m1-09-x",
@@ -140,7 +140,7 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Your Business Belongs Here",
-      "caption_en": "Licensed in the UAE? Suppliers on QuotesDone are invited to requests that match the activity on their trade licence. Every trade except food and beverage, for now. The first 1,000 register free, permanently. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "Licensed in the UAE? QuotesDone invites suppliers to requests that match the trades they confirm on their verified profile. Registration is open to every trade except food and beverage, for now. The first 1,000 register free, permanently. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_ar": "",
       "caption_language": "en",
       "hashtags": [
@@ -166,7 +166,7 @@
         }
       },
       "rationale": "Sprout Social: X activity high 12:00-18:00 Tue-Thu. English only: a bilingual body exceeds the 280-character limit.",
-      "chars": 245
+      "chars": 276
     },
     {
       "ingest_key": "2026m1-09-youtube",
@@ -179,9 +179,9 @@
       "scheduled_at_utc": "2026-09-28T13:30:00Z",
       "status": "ready_for_approval",
       "end_card_note": null,
-      "title": "Your business belongs here: UAE suppliers, every trade except F&B",
-      "caption_en": "If your business is licensed in the UAE, there is a place for it on QuotesDone. Products, services, manufacturing, fit-out, logistics, technology and more. Suppliers are invited only to requests that match the activity on their trade licence, from customers anywhere in the UAE. Every trade is open except food and beverage, for now. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "إذا كان نشاط شركتكم مرخّصًا في الإمارات، فلها مكان على QuotesDone. منتجات وخدمات وتصنيع وتجهيزات داخلية وخدمات لوجستية وتقنية وغيرها. لا تصلكم إلا الطلبات التي تطابق النشاط المرخّص لشركتكم، من عملاء في أي مكان في الإمارات. جميع الأنشطة متاحة باستثناء الأغذية والمشروبات حاليًا. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "title": "Your business belongs here: supplier registration is open in the UAE",
+      "caption_en": "If your business is licensed in the UAE, there is a place for it on QuotesDone. Products, services, manufacturing, fit-out, logistics, technology and more. Suppliers are invited only to requests that match the trades and services they confirm on their verified profile, from customers anywhere in the UAE. Registration is open to every trade except food and beverage, for now. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "إذا كان نشاط شركتكم مرخّصًا في الإمارات، فلها مكان على QuotesDone. منتجات وخدمات وتصنيع وتجهيزات داخلية وخدمات لوجستية وتقنية وغيرها. لا تصلكم إلا الطلبات التي تطابق الأنشطة والخدمات التي تؤكّدونها في ملفكم الموثّق، من عملاء في أي مكان في الإمارات. والتسجيل متاح لجميع الأنشطة باستثناء الأغذية والمشروبات حاليًا. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -208,7 +208,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 907
+      "chars": 999
     },
     {
       "ingest_key": "2026m1-09-instagram",
@@ -222,15 +222,15 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Your Business Belongs Here",
-      "caption_en": "If your business is licensed in the UAE, there is a place for it on QuotesDone.\n\nProducts, services, manufacturing, fit-out, logistics, technology and more. Suppliers are invited only to requests that match the activity on their trade licence, from customers anywhere in the UAE. Every trade is open except food and beverage, for now. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "إذا كان نشاط شركتكم مرخّصًا في الإمارات، فلها مكان على QuotesDone.\n\nمنتجات وخدمات وتصنيع وتجهيزات داخلية وخدمات لوجستية وتقنية وغيرها. لا تصلكم إلا الطلبات التي تطابق النشاط المرخّص لشركتكم، من عملاء في أي مكان في الإمارات. جميع الأنشطة متاحة باستثناء الأغذية والمشروبات حاليًا. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_en": "If your business is licensed in the UAE, there is a place for it on QuotesDone.\n\nProducts, services, manufacturing, fit-out, logistics, technology and more. Suppliers are invited only to requests that match the trades and services they confirm on their verified profile, from customers anywhere in the UAE. Registration is open to every trade except food and beverage, for now. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
+      "caption_ar": "إذا كان نشاط شركتكم مرخّصًا في الإمارات، فلها مكان على QuotesDone.\n\nمنتجات وخدمات وتصنيع وتجهيزات داخلية وخدمات لوجستية وتقنية وغيرها. لا تصلكم إلا الطلبات التي تطابق الأنشطة والخدمات التي تؤكّدونها في ملفكم الموثّق، من عملاء في أي مكان في الإمارات. والتسجيل متاح لجميع الأنشطة باستثناء الأغذية والمشروبات حاليًا. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video in teal and white. Headlines: \"Your business. Your opportunity.\" \"Across UAE sectors. Beyond the usual trades.\" \"Show what you do. Meet requests that fit.\" \"More chances to be considered.\" Tiles show technology, creative, manufacturing, logistics, fit-out, products, business services and specialist trades. Small print: food and beverage excluded, verification applies, request volume and sales are not guaranteed. End card: \"Join early. Subscription-free forever.\" for the first 1,000 suppliers, Register your business, quotesdone.com/supplier.",
       "alt_text_ar": "فيديو متحرك بالأخضر المزرق والأبيض يعرض قطاعات الأعمال في الإمارات: التقنية والتصنيع والخدمات اللوجستية والتجهيزات الداخلية وغيرها، ويوضح أن المطابقة تتبع النشاط الفعلي للشركة. الملاحظة: الأغذية والمشروبات مستثناة، والتوثيق مطلوب، ولا ضمان لعدد الطلبات. الخاتمة: التسجيل دون اشتراك بشكل دائم لأول 1,000 مورّد، quotesdone.com/supplier.",
@@ -252,7 +252,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 937
+      "chars": 1036
     },
     {
       "ingest_key": "2026m1-02-linkedin",
@@ -266,8 +266,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Big Plans",
-      "caption_en": "Every project starts as an idea. The work goes to the suppliers who can deliver it.\n\nOn QuotesDone a customer describes a project once, and suppliers whose licensed activity matches it are invited to quote: fit-out, electrical and MEP, flooring, landscaping and every other trade except food and beverage. Register your business so the next request can reach you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "كل مشروع يبدأ بفكرة، والعمل يذهب إلى المورّد القادر على تنفيذه.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويُدعى لتقديم العروض المورّدون الذين يطابق نشاطهم المرخّص هذا المشروع: التجهيزات الداخلية والأعمال الكهروميكانيكية والأرضيات وتنسيق الحدائق وسائر الأنشطة باستثناء الأغذية والمشروبات. سجّلوا شركتكم ليصلكم الطلب القادم. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "Every project starts as an idea. The work goes to the suppliers who can deliver it.\n\nOn QuotesDone a customer describes a project once, and suppliers whose confirmed trades match it are invited to quote: fit-out, electrical and MEP, flooring, landscaping and many more trades. Register your business so the next request can reach you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "كل مشروع يبدأ بفكرة، والعمل يذهب إلى المورّد القادر على تنفيذه.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويُدعى لتقديم العروض المورّدون الذين تطابق أنشطتهم المؤكّدة هذا المشروع: التجهيزات الداخلية والأعمال الكهروميكانيكية والأرضيات وتنسيق الحدائق وغيرها من الأنشطة. سجّلوا شركتكم ليصلكم الطلب القادم. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -294,7 +294,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 1120
+      "chars": 1083
     },
     {
       "ingest_key": "2026m1-02-facebook",
@@ -308,8 +308,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Big Plans",
-      "caption_en": "Every project starts as an idea. The work goes to the suppliers who can deliver it.\n\nOn QuotesDone a customer describes a project once, and suppliers whose licensed activity matches it are invited to quote: fit-out, electrical and MEP, flooring, landscaping and every other trade except food and beverage. Register your business so the next request can reach you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "كل مشروع يبدأ بفكرة، والعمل يذهب إلى المورّد القادر على تنفيذه.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويُدعى لتقديم العروض المورّدون الذين يطابق نشاطهم المرخّص هذا المشروع: التجهيزات الداخلية والأعمال الكهروميكانيكية والأرضيات وتنسيق الحدائق وسائر الأنشطة باستثناء الأغذية والمشروبات. سجّلوا شركتكم ليصلكم الطلب القادم. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "Every project starts as an idea. The work goes to the suppliers who can deliver it.\n\nOn QuotesDone a customer describes a project once, and suppliers whose confirmed trades match it are invited to quote: fit-out, electrical and MEP, flooring, landscaping and many more trades. Register your business so the next request can reach you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "كل مشروع يبدأ بفكرة، والعمل يذهب إلى المورّد القادر على تنفيذه.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويُدعى لتقديم العروض المورّدون الذين تطابق أنشطتهم المؤكّدة هذا المشروع: التجهيزات الداخلية والأعمال الكهروميكانيكية والأرضيات وتنسيق الحدائق وغيرها من الأنشطة. سجّلوا شركتكم ليصلكم الطلب القادم. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -335,7 +335,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 1107
+      "chars": 1070
     },
     {
       "ingest_key": "2026m1-02-x",
@@ -349,7 +349,7 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Big Plans",
-      "caption_en": "A customer describes the project once. QuotesDone invites the UAE suppliers whose licensed activity matches it: fit-out, MEP, flooring, landscaping and more. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "A customer describes the project once. QuotesDone invites the UAE suppliers whose confirmed trades match it: fit-out, MEP, flooring, landscaping and more. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_ar": "",
       "caption_language": "en",
       "hashtags": [
@@ -375,7 +375,7 @@
         }
       },
       "rationale": "Sprout Social: X activity high 12:00-18:00 Tue-Thu. English only: a bilingual body exceeds the 280-character limit.",
-      "chars": 195
+      "chars": 192
     },
     {
       "ingest_key": "2026m1-02-youtube",
@@ -389,8 +389,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Big plans start with an idea, and the right UAE suppliers",
-      "caption_en": "Every project starts as an idea. The work goes to the suppliers who can deliver it. On QuotesDone a customer describes a project once, and suppliers whose licensed activity matches it are invited to quote: fit-out, electrical and MEP, flooring, landscaping and every other trade except food and beverage. Register your business so the next request can reach you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "كل مشروع يبدأ بفكرة، والعمل يذهب إلى المورّد القادر على تنفيذه. على QuotesDone يصف العميل مشروعه مرة واحدة، ويُدعى لتقديم العروض المورّدون الذين يطابق نشاطهم المرخّص هذا المشروع: التجهيزات الداخلية والأعمال الكهروميكانيكية والأرضيات وتنسيق الحدائق وسائر الأنشطة باستثناء الأغذية والمشروبات. سجّلوا شركتكم ليصلكم الطلب القادم. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "caption_en": "Every project starts as an idea. The work goes to the suppliers who can deliver it. On QuotesDone a customer describes a project once, and suppliers whose confirmed trades match it are invited to quote: fit-out, electrical and MEP, flooring, landscaping and many more trades. Register your business so the next request can reach you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "كل مشروع يبدأ بفكرة، والعمل يذهب إلى المورّد القادر على تنفيذه. على QuotesDone يصف العميل مشروعه مرة واحدة، ويُدعى لتقديم العروض المورّدون الذين تطابق أنشطتهم المؤكّدة هذا المشروع: التجهيزات الداخلية والأعمال الكهروميكانيكية والأرضيات وتنسيق الحدائق وغيرها من الأنشطة. سجّلوا شركتكم ليصلكم الطلب القادم. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -417,7 +417,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 984
+      "chars": 947
     },
     {
       "ingest_key": "2026m1-02-instagram",
@@ -431,15 +431,15 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Big Plans",
-      "caption_en": "Every project starts as an idea. The work goes to the suppliers who can deliver it.\n\nOn QuotesDone a customer describes a project once, and suppliers whose licensed activity matches it are invited to quote: fit-out, electrical and MEP, flooring, landscaping and every other trade except food and beverage. Register your business so the next request can reach you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "كل مشروع يبدأ بفكرة، والعمل يذهب إلى المورّد القادر على تنفيذه.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويُدعى لتقديم العروض المورّدون الذين يطابق نشاطهم المرخّص هذا المشروع: التجهيزات الداخلية والأعمال الكهروميكانيكية والأرضيات وتنسيق الحدائق وسائر الأنشطة باستثناء الأغذية والمشروبات. سجّلوا شركتكم ليصلكم الطلب القادم. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_en": "Every project starts as an idea. The work goes to the suppliers who can deliver it.\n\nOn QuotesDone a customer describes a project once, and suppliers whose confirmed trades match it are invited to quote: fit-out, electrical and MEP, flooring, landscaping and many more trades. Register your business so the next request can reach you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
+      "caption_ar": "كل مشروع يبدأ بفكرة، والعمل يذهب إلى المورّد القادر على تنفيذه.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويُدعى لتقديم العروض المورّدون الذين تطابق أنشطتهم المؤكّدة هذا المشروع: التجهيزات الداخلية والأعمال الكهروميكانيكية والأرضيات وتنسيق الحدائق وغيرها من الأنشطة. سجّلوا شركتكم ليصلكم الطلب القادم. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video. An empty isometric room fills with a desk and panels. Headlines: \"Big plans. Start with an idea.\" \"Big ideas need the right connections.\" with fit-out, electrical and MEP, landscaping and flooring around \"Your project\". \"One place. More possibilities. Connect your requirement with UAE suppliers.\" \"From possibilities to your choice.\" End card: \"Big plans. Start here.\" Discover QuotesDone, quotesdone.com.",
       "alt_text_ar": "فيديو متحرك: غرفة فارغة تتحول إلى مكتب، ثم مشروع يرتبط بأنشطة التجهيزات الداخلية والأعمال الكهروميكانيكية والأرضيات وتنسيق الحدائق، ثم مقارنة عروض الأسعار. الخاتمة: QuotesDone، quotesdone.com.",
@@ -461,7 +461,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 1014
+      "chars": 984
     },
     {
       "ingest_key": "2026m1-11-linkedin",
@@ -476,7 +476,7 @@
       "end_card_note": null,
       "title": "Compete on Value",
       "caption_en": "No featured suppliers. No paid ranking.\n\nOn QuotesDone every quotation you submit is shown to the customer, and the strongest three are compared on price, completeness and delivery, not on what a supplier pays. Membership does not buy a better position, and neither does registering early. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "لا مورّدين مميّزين مدفوعين، ولا ترتيب يُشترى.\n\nعلى QuotesDone يُعرض كل عرض سعر تقدّمونه على العميل، وتُقارَن أقوى ثلاثة عروض على السعر والاكتمال والتسليم، لا على ما يدفعه المورّد. العضوية لا تمنح موقعًا أفضل، وكذلك التسجيل المبكر. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "لا مورّدين مميّزين مدفوعين، ولا ترتيب يُشترى.\n\nعلى QuotesDone يُعرض كل عرض سعر تقدّمونه على العميل، وتُقارَن أقوى ثلاثة عروض على السعر والاكتمال والتسليم، لا على ما يدفعه المورّد. العضوية لا تمنح موقعًا أفضل، ولا التسجيل المبكر كذلك. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -503,7 +503,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 950
+      "chars": 967
     },
     {
       "ingest_key": "2026m1-11-facebook",
@@ -518,7 +518,7 @@
       "end_card_note": null,
       "title": "Compete on Value",
       "caption_en": "No featured suppliers. No paid ranking.\n\nOn QuotesDone every quotation you submit is shown to the customer, and the strongest three are compared on price, completeness and delivery, not on what a supplier pays. Membership does not buy a better position, and neither does registering early. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "لا مورّدين مميّزين مدفوعين، ولا ترتيب يُشترى.\n\nعلى QuotesDone يُعرض كل عرض سعر تقدّمونه على العميل، وتُقارَن أقوى ثلاثة عروض على السعر والاكتمال والتسليم، لا على ما يدفعه المورّد. العضوية لا تمنح موقعًا أفضل، وكذلك التسجيل المبكر. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "لا مورّدين مميّزين مدفوعين، ولا ترتيب يُشترى.\n\nعلى QuotesDone يُعرض كل عرض سعر تقدّمونه على العميل، وتُقارَن أقوى ثلاثة عروض على السعر والاكتمال والتسليم، لا على ما يدفعه المورّد. العضوية لا تمنح موقعًا أفضل، ولا التسجيل المبكر كذلك. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -544,7 +544,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 937
+      "chars": 954
     },
     {
       "ingest_key": "2026m1-11-x",
@@ -599,7 +599,7 @@
       "end_card_note": null,
       "title": "Compete on value: no featured suppliers, no paid ranking",
       "caption_en": "No featured suppliers. No paid ranking. On QuotesDone every quotation you submit is shown to the customer, and the strongest three are compared on price, completeness and delivery, not on what a supplier pays. Membership does not buy a better position, and neither does registering early. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "لا مورّدين مميّزين مدفوعين، ولا ترتيب يُشترى. على QuotesDone يُعرض كل عرض سعر تقدّمونه على العميل، وتُقارَن أقوى ثلاثة عروض على السعر والاكتمال والتسليم، لا على ما يدفعه المورّد. العضوية لا تمنح موقعًا أفضل، وكذلك التسجيل المبكر. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "caption_ar": "لا مورّدين مميّزين مدفوعين، ولا ترتيب يُشترى. على QuotesDone يُعرض كل عرض سعر تقدّمونه على العميل، وتُقارَن أقوى ثلاثة عروض على السعر والاكتمال والتسليم، لا على ما يدفعه المورّد. العضوية لا تمنح موقعًا أفضل، ولا التسجيل المبكر كذلك. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -626,7 +626,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 814
+      "chars": 831
     },
     {
       "ingest_key": "2026m1-11-instagram",
@@ -641,14 +641,14 @@
       "end_card_note": null,
       "title": "Compete on Value",
       "caption_en": "No featured suppliers. No paid ranking.\n\nOn QuotesDone every quotation you submit is shown to the customer, and the strongest three are compared on price, completeness and delivery, not on what a supplier pays. Membership does not buy a better position, and neither does registering early. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "لا مورّدين مميّزين مدفوعين، ولا ترتيب يُشترى.\n\nعلى QuotesDone يُعرض كل عرض سعر تقدّمونه على العميل، وتُقارَن أقوى ثلاثة عروض على السعر والاكتمال والتسليم، لا على ما يدفعه المورّد. العضوية لا تمنح موقعًا أفضل، وكذلك التسجيل المبكر. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_ar": "لا مورّدين مميّزين مدفوعين، ولا ترتيب يُشترى.\n\nعلى QuotesDone يُعرض كل عرض سعر تقدّمونه على العميل، وتُقارَن أقوى ثلاثة عروض على السعر والاكتمال والتسليم، لا على ما يدفعه المورّد. العضوية لا تمنح موقعًا أفضل، ولا التسجيل المبكر كذلك. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video. Headlines: \"Your expertise. Not a paid position.\" \"No featured suppliers. No paid ranking. Membership does not buy a better position.\" \"Technical fit. Scope. Delivery. Value. Quotes are assessed against the customer's requirement.\" \"Compete on your offer. Let the customer choose. No paid preference. No guaranteed winner.\" End card: \"Bring your expertise. Join the first 1,000.\" A permanent subscription waiver, not a ranking boost. Register your business, quotesdone.com/supplier.",
       "alt_text_ar": "فيديو متحرك: لا مورّدين مميّزين ولا ترتيب مدفوع، وتُقيَّم العروض على الملاءمة الفنية والنطاق والتسليم والقيمة. الخاتمة: انضموا إلى أول 1,000 مورّد، إعفاء دائم من الاشتراك لا يرفع الترتيب، quotesdone.com/supplier.",
@@ -670,7 +670,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 844
+      "chars": 868
     },
     {
       "ingest_key": "2026m1-04-linkedin",
@@ -684,8 +684,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Behind the Check",
-      "caption_en": "A name is easy. A check matters.\n\nBefore a supplier is matched to any request, QuotesDone checks the business behind the name: a valid trade licence with its number, issuing authority and expiry, the company profile, a verified mobile and email, and signed supplier terms. Expired licences stay out of matching. It is an important first step, not a guarantee of workmanship. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "الاسم سهل، والتحقق هو ما يُعتدّ به.\n\nقبل أن يُطابَق أي مورّد مع أي طلب، تتحقق QuotesDone من الشركة التي تقف خلف الاسم: رخصة تجارية سارية برقمها وجهة إصدارها وتاريخ انتهائها، وملف الشركة، ورقم هاتف وبريد إلكتروني موثّقان، وشروط المورّد موقّعة. والرخص المنتهية تبقى خارج المطابقة. إنها خطوة أولى مهمة، وليست ضمانًا لجودة التنفيذ. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "A name is easy. A check matters.\n\nBefore a supplier is matched to any request, QuotesDone checks the business behind the name: a current trade licence, the company profile, a verified mobile and email, and signed supplier terms. Expired licences stay out of matching. It is an important first step, not a guarantee of workmanship. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "الاسم سهل، والتحقق هو ما يُعتدّ به.\n\nقبل أن يُطابَق أي مورّد مع أي طلب، تتحقق QuotesDone من الشركة التي تقف خلف الاسم: رخصة تجارية سارية، وملف الشركة، ورقم هاتف وبريد إلكتروني موثّقان، وشروط المورّد موقّعة. والرخص المنتهية تبقى خارج المطابقة. إنها خطوة أولى مهمة، وليست ضمانًا لجودة التنفيذ. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -712,7 +712,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 1132
+      "chars": 1066
     },
     {
       "ingest_key": "2026m1-04-facebook",
@@ -726,8 +726,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Behind the Check",
-      "caption_en": "A name is easy. A check matters.\n\nBefore a supplier is matched to any request, QuotesDone checks the business behind the name: a valid trade licence with its number, issuing authority and expiry, the company profile, a verified mobile and email, and signed supplier terms. Expired licences stay out of matching. It is an important first step, not a guarantee of workmanship. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "الاسم سهل، والتحقق هو ما يُعتدّ به.\n\nقبل أن يُطابَق أي مورّد مع أي طلب، تتحقق QuotesDone من الشركة التي تقف خلف الاسم: رخصة تجارية سارية برقمها وجهة إصدارها وتاريخ انتهائها، وملف الشركة، ورقم هاتف وبريد إلكتروني موثّقان، وشروط المورّد موقّعة. والرخص المنتهية تبقى خارج المطابقة. إنها خطوة أولى مهمة، وليست ضمانًا لجودة التنفيذ. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "A name is easy. A check matters.\n\nBefore a supplier is matched to any request, QuotesDone checks the business behind the name: a current trade licence, the company profile, a verified mobile and email, and signed supplier terms. Expired licences stay out of matching. It is an important first step, not a guarantee of workmanship. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "الاسم سهل، والتحقق هو ما يُعتدّ به.\n\nقبل أن يُطابَق أي مورّد مع أي طلب، تتحقق QuotesDone من الشركة التي تقف خلف الاسم: رخصة تجارية سارية، وملف الشركة، ورقم هاتف وبريد إلكتروني موثّقان، وشروط المورّد موقّعة. والرخص المنتهية تبقى خارج المطابقة. إنها خطوة أولى مهمة، وليست ضمانًا لجودة التنفيذ. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -753,7 +753,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 1119
+      "chars": 1053
     },
     {
       "ingest_key": "2026m1-04-x",
@@ -807,8 +807,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Behind the check: how QuotesDone verifies UAE suppliers",
-      "caption_en": "A name is easy. A check matters. Before a supplier is matched to any request, QuotesDone checks the business behind the name: a valid trade licence with its number, issuing authority and expiry, the company profile, a verified mobile and email, and signed supplier terms. Expired licences stay out of matching. It is an important first step, not a guarantee of workmanship. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "الاسم سهل، والتحقق هو ما يُعتدّ به. قبل أن يُطابَق أي مورّد مع أي طلب، تتحقق QuotesDone من الشركة التي تقف خلف الاسم: رخصة تجارية سارية برقمها وجهة إصدارها وتاريخ انتهائها، وملف الشركة، ورقم هاتف وبريد إلكتروني موثّقان، وشروط المورّد موقّعة. والرخص المنتهية تبقى خارج المطابقة. إنها خطوة أولى مهمة، وليست ضمانًا لجودة التنفيذ. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "caption_en": "A name is easy. A check matters. Before a supplier is matched to any request, QuotesDone checks the business behind the name: a current trade licence, the company profile, a verified mobile and email, and signed supplier terms. Expired licences stay out of matching. It is an important first step, not a guarantee of workmanship. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "الاسم سهل، والتحقق هو ما يُعتدّ به. قبل أن يُطابَق أي مورّد مع أي طلب، تتحقق QuotesDone من الشركة التي تقف خلف الاسم: رخصة تجارية سارية، وملف الشركة، ورقم هاتف وبريد إلكتروني موثّقان، وشروط المورّد موقّعة. والرخص المنتهية تبقى خارج المطابقة. إنها خطوة أولى مهمة، وليست ضمانًا لجودة التنفيذ. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -835,7 +835,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 996
+      "chars": 930
     },
     {
       "ingest_key": "2026m1-04-instagram",
@@ -849,15 +849,15 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Behind the Check",
-      "caption_en": "A name is easy. A check matters.\n\nBefore a supplier is matched to any request, QuotesDone checks the business behind the name: a valid trade licence with its number, issuing authority and expiry, the company profile, a verified mobile and email, and signed supplier terms. Expired licences stay out of matching. It is an important first step, not a guarantee of workmanship. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "الاسم سهل، والتحقق هو ما يُعتدّ به.\n\nقبل أن يُطابَق أي مورّد مع أي طلب، تتحقق QuotesDone من الشركة التي تقف خلف الاسم: رخصة تجارية سارية برقمها وجهة إصدارها وتاريخ انتهائها، وملف الشركة، ورقم هاتف وبريد إلكتروني موثّقان، وشروط المورّد موقّعة. والرخص المنتهية تبقى خارج المطابقة. إنها خطوة أولى مهمة، وليست ضمانًا لجودة التنفيذ. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_en": "A name is easy. A check matters.\n\nBefore a supplier is matched to any request, QuotesDone checks the business behind the name: a current trade licence, the company profile, a verified mobile and email, and signed supplier terms. Expired licences stay out of matching. It is an important first step, not a guarantee of workmanship. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
+      "caption_ar": "الاسم سهل، والتحقق هو ما يُعتدّ به.\n\nقبل أن يُطابَق أي مورّد مع أي طلب، تتحقق QuotesDone من الشركة التي تقف خلف الاسم: رخصة تجارية سارية، وملف الشركة، ورقم هاتف وبريد إلكتروني موثّقان، وشروط المورّد موقّعة. والرخص المنتهية تبقى خارج المطابقة. إنها خطوة أولى مهمة، وليست ضمانًا لجودة التنفيذ. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video on a light background. Headlines: \"A name is easy. A check matters.\" \"Start with the licence. Number. Issuing authority. Expiry.\" \"Current documents. A stronger start. Expired licences stay out of matching.\" \"Checked before you're connected. An important first step. Not a quality guarantee.\" A wheel links business name, mobile, email, trade licence, company profile and signed terms. End card: \"Confidence starts with the checks.\" Meet QuotesDone, quotesdone.com. Licence checks do not certify workmanship.",
       "alt_text_ar": "فيديو متحرك يشرح التحقق من المورّد: الرخصة التجارية ورقمها وجهة إصدارها وتاريخ انتهائها، والرخص المنتهية خارج المطابقة، ثم اسم الشركة والهاتف والبريد وملف الشركة والشروط الموقّعة. التحقق خطوة أولى وليس ضمانًا لجودة التنفيذ. quotesdone.com.",
@@ -879,7 +879,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 1026
+      "chars": 967
     },
     {
       "ingest_key": "2026m1-03-linkedin",
@@ -893,8 +893,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "On Your Terms",
-      "caption_en": "You are judged on the work, not on who you know.\n\nCustomers on QuotesDone share the brief, not their identity. As a supplier you see the scope, the quantities and the drawings with personal details removed, and you quote on the job itself. The customer's name reaches you when they choose you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يُحكم عليكم بالعمل، لا بمن تعرفون.\n\nعلى QuotesDone يشارك العميل تفاصيل الطلب دون هويته. ترون بصفتكم مورّدًا نطاق العمل والكميات والمخططات بعد حذف البيانات الشخصية، وتقدّمون عرضكم على العمل نفسه. ولا يصلكم اسم العميل إلا عندما يختاركم. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "You are judged on the work, not on who you know.\n\nCustomers on QuotesDone share the brief, not their identity. As a supplier you see the scope and the quantities with personal details removed, and you quote on the job itself. The customer's name reaches you when they choose you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يُقيَّم عرضكم بالعمل، لا بالمعارف.\n\nعلى QuotesDone يشارك العميل تفاصيل الطلب دون هويته. ترون نطاق العمل والكميات بعد حذف البيانات الشخصية، وتقدّمون عرضكم على العمل نفسه. ولا سوف يتم إرسال اسم العميل إلا عندما يختاركم. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -921,7 +921,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 958
+      "chars": 933
     },
     {
       "ingest_key": "2026m1-03-facebook",
@@ -935,8 +935,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "On Your Terms",
-      "caption_en": "You are judged on the work, not on who you know.\n\nCustomers on QuotesDone share the brief, not their identity. As a supplier you see the scope, the quantities and the drawings with personal details removed, and you quote on the job itself. The customer's name reaches you when they choose you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يُحكم عليكم بالعمل، لا بمن تعرفون.\n\nعلى QuotesDone يشارك العميل تفاصيل الطلب دون هويته. ترون بصفتكم مورّدًا نطاق العمل والكميات والمخططات بعد حذف البيانات الشخصية، وتقدّمون عرضكم على العمل نفسه. ولا يصلكم اسم العميل إلا عندما يختاركم. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "You are judged on the work, not on who you know.\n\nCustomers on QuotesDone share the brief, not their identity. As a supplier you see the scope and the quantities with personal details removed, and you quote on the job itself. The customer's name reaches you when they choose you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يُقيَّم عرضكم بالعمل، لا بالمعارف.\n\nعلى QuotesDone يشارك العميل تفاصيل الطلب دون هويته. ترون نطاق العمل والكميات بعد حذف البيانات الشخصية، وتقدّمون عرضكم على العمل نفسه. ولا يصلكم اسم العميل إلا عندما يختاركم. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -962,7 +962,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 945
+      "chars": 920
     },
     {
       "ingest_key": "2026m1-03-x",
@@ -976,7 +976,7 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "On Your Terms",
-      "caption_en": "On QuotesDone suppliers see the scope, quantities and drawings with personal details removed, and quote on the job itself. The customer's name reaches you when they choose you. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "On QuotesDone suppliers see the scope and quantities with personal details removed, and quote on the job itself. The customer's name reaches you when they choose you. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_ar": "",
       "caption_language": "en",
       "hashtags": [
@@ -1002,7 +1002,7 @@
         }
       },
       "rationale": "Sprout Social: X activity high 12:00-18:00 Tue-Thu. English only: a bilingual body exceeds the 280-character limit.",
-      "chars": 214
+      "chars": 204
     },
     {
       "ingest_key": "2026m1-03-youtube",
@@ -1016,8 +1016,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "On your terms: quote on the work, not the name",
-      "caption_en": "You are judged on the work, not on who you know. Customers on QuotesDone share the brief, not their identity. As a supplier you see the scope, the quantities and the drawings with personal details removed, and you quote on the job itself. The customer's name reaches you when they choose you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يُحكم عليكم بالعمل، لا بمن تعرفون. على QuotesDone يشارك العميل تفاصيل الطلب دون هويته. ترون بصفتكم مورّدًا نطاق العمل والكميات والمخططات بعد حذف البيانات الشخصية، وتقدّمون عرضكم على العمل نفسه. ولا يصلكم اسم العميل إلا عندما يختاركم. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "caption_en": "You are judged on the work, not on who you know. Customers on QuotesDone share the brief, not their identity. As a supplier you see the scope and the quantities with personal details removed, and you quote on the job itself. The customer's name reaches you when they choose you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يُقيَّم عرضكم بالعمل، لا بالمعارف. على QuotesDone يشارك العميل تفاصيل الطلب دون هويته. ترون نطاق العمل والكميات بعد حذف البيانات الشخصية، وتقدّمون عرضكم على العمل نفسه. ولا يصلكم اسم العميل إلا عندما يختاركم. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -1044,7 +1044,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 822
+      "chars": 797
     },
     {
       "ingest_key": "2026m1-03-instagram",
@@ -1058,15 +1058,15 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "On Your Terms",
-      "caption_en": "You are judged on the work, not on who you know.\n\nCustomers on QuotesDone share the brief, not their identity. As a supplier you see the scope, the quantities and the drawings with personal details removed, and you quote on the job itself. The customer's name reaches you when they choose you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "يُحكم عليكم بالعمل، لا بمن تعرفون.\n\nعلى QuotesDone يشارك العميل تفاصيل الطلب دون هويته. ترون بصفتكم مورّدًا نطاق العمل والكميات والمخططات بعد حذف البيانات الشخصية، وتقدّمون عرضكم على العمل نفسه. ولا يصلكم اسم العميل إلا عندما يختاركم. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_en": "You are judged on the work, not on who you know.\n\nCustomers on QuotesDone share the brief, not their identity. As a supplier you see the scope and the quantities with personal details removed, and you quote on the job itself. The customer's name reaches you when they choose you. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
+      "caption_ar": "يُقيَّم عرضكم بالعمل، لا بالمعارف.\n\nعلى QuotesDone يشارك العميل تفاصيل الطلب دون هويته. ترون نطاق العمل والكميات بعد حذف البيانات الشخصية، وتقدّمون عرضكم على العمل نفسه. ولا يصلكم اسم العميل إلا عندما يختاركم. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video. Headlines: \"Your project. Not your identity.\" \"Share the brief. Keep your privacy. Your details are removed before suppliers see it.\" \"Let suppliers focus on the job. The work. Not who you are.\" A brief with scope, drawings and requirements goes to suppliers A, B and C. \"Every quote. Your decision.\" Sealed envelopes; only the chosen one opens. End card: \"Sourcing, on your terms.\" Get to know QuotesDone, quotesdone.com.",
       "alt_text_ar": "فيديو متحرك: يشارك العميل الطلب دون هويته، وتُحذف بياناته قبل أن يراها المورّدون، فيركّز المورّد على العمل. تبقى العروض مغلقة إلى أن يختار العميل. quotesdone.com.",
@@ -1088,7 +1088,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 852
+      "chars": 834
     },
     {
       "ingest_key": "2026m1-05-linkedin",
@@ -1103,7 +1103,7 @@
       "end_card_note": null,
       "title": "Complete Before Compare",
       "caption_en": "A quote should be complete before it is compared.\n\nOn QuotesDone each quotation is checked for price, lead time, warranty and validity. If a detail is missing, it comes back to the supplier with a clear note and a clear next step. Complete quotations are then compared on the same terms, so the one with the best offer is not lost for a missing line. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "عرض السعر يجب أن يكتمل قبل أن يُقارَن.\n\nعلى QuotesDone يُفحص كل عرض سعر من حيث السعر ومدة التنفيذ والضمان والصلاحية. وإذا نقصه تفصيل، يعود إلى المورّد مع ملاحظة واضحة وخطوة تالية واضحة. ثم تُقارَن العروض المكتملة على الأسس نفسها، فلا يضيع العرض الأفضل بسبب سطر ناقص. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "عرض السعر يجب أن يكتمل قبل أن يُقارَن.\n\nعلى QuotesDone يُفحص كل عرض سعر من حيث السعر ومدة التنفيذ والضمان والصلاحية. وإذا نقصه تفصيل، يعود إلى المورّد مع ملاحظة واضحة وخطوة تالية واضحة. ثم تُقارَن العروض المكتملة على الأسس نفسها، فلا يضيع العرض الأفضل بسبب سطر ناقص. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -1130,7 +1130,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 1047
+      "chars": 1061
     },
     {
       "ingest_key": "2026m1-05-facebook",
@@ -1145,7 +1145,7 @@
       "end_card_note": null,
       "title": "Complete Before Compare",
       "caption_en": "A quote should be complete before it is compared.\n\nOn QuotesDone each quotation is checked for price, lead time, warranty and validity. If a detail is missing, it comes back to the supplier with a clear note and a clear next step. Complete quotations are then compared on the same terms, so the one with the best offer is not lost for a missing line. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "عرض السعر يجب أن يكتمل قبل أن يُقارَن.\n\nعلى QuotesDone يُفحص كل عرض سعر من حيث السعر ومدة التنفيذ والضمان والصلاحية. وإذا نقصه تفصيل، يعود إلى المورّد مع ملاحظة واضحة وخطوة تالية واضحة. ثم تُقارَن العروض المكتملة على الأسس نفسها، فلا يضيع العرض الأفضل بسبب سطر ناقص. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "عرض السعر يجب أن يكتمل قبل أن يُقارَن.\n\nعلى QuotesDone يُفحص كل عرض سعر من حيث السعر ومدة التنفيذ والضمان والصلاحية. وإذا نقصه تفصيل، يعود إلى المورّد مع ملاحظة واضحة وخطوة تالية واضحة. ثم تُقارَن العروض المكتملة على الأسس نفسها، فلا يضيع العرض الأفضل بسبب سطر ناقص. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -1171,7 +1171,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 1034
+      "chars": 1048
     },
     {
       "ingest_key": "2026m1-05-x",
@@ -1226,7 +1226,7 @@
       "end_card_note": null,
       "title": "Complete before compare: price, lead time, warranty, validity",
       "caption_en": "A quote should be complete before it is compared. On QuotesDone each quotation is checked for price, lead time, warranty and validity. If a detail is missing, it comes back to the supplier with a clear note and a clear next step. Complete quotations are then compared on the same terms, so the one with the best offer is not lost for a missing line. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "عرض السعر يجب أن يكتمل قبل أن يُقارَن. على QuotesDone يُفحص كل عرض سعر من حيث السعر ومدة التنفيذ والضمان والصلاحية. وإذا نقصه تفصيل، يعود إلى المورّد مع ملاحظة واضحة وخطوة تالية واضحة. ثم تُقارَن العروض المكتملة على الأسس نفسها، فلا يضيع العرض الأفضل بسبب سطر ناقص. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "caption_ar": "عرض السعر يجب أن يكتمل قبل أن يُقارَن. على QuotesDone يُفحص كل عرض سعر من حيث السعر ومدة التنفيذ والضمان والصلاحية. وإذا نقصه تفصيل، يعود إلى المورّد مع ملاحظة واضحة وخطوة تالية واضحة. ثم تُقارَن العروض المكتملة على الأسس نفسها، فلا يضيع العرض الأفضل بسبب سطر ناقص. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -1253,7 +1253,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 911
+      "chars": 925
     },
     {
       "ingest_key": "2026m1-05-instagram",
@@ -1268,14 +1268,14 @@
       "end_card_note": null,
       "title": "Complete Before Compare",
       "caption_en": "A quote should be complete before it is compared.\n\nOn QuotesDone each quotation is checked for price, lead time, warranty and validity. If a detail is missing, it comes back to the supplier with a clear note and a clear next step. Complete quotations are then compared on the same terms, so the one with the best offer is not lost for a missing line. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "عرض السعر يجب أن يكتمل قبل أن يُقارَن.\n\nعلى QuotesDone يُفحص كل عرض سعر من حيث السعر ومدة التنفيذ والضمان والصلاحية. وإذا نقصه تفصيل، يعود إلى المورّد مع ملاحظة واضحة وخطوة تالية واضحة. ثم تُقارَن العروض المكتملة على الأسس نفسها، فلا يضيع العرض الأفضل بسبب سطر ناقص. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_ar": "عرض السعر يجب أن يكتمل قبل أن يُقارَن.\n\nعلى QuotesDone يُفحص كل عرض سعر من حيث السعر ومدة التنفيذ والضمان والصلاحية. وإذا نقصه تفصيل، يعود إلى المورّد مع ملاحظة واضحة وخطوة تالية واضحة. ثم تُقارَن العروض المكتملة على الأسس نفسها، فلا يضيع العرض الأفضل بسبب سطر ناقص. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video in dark teal. Headlines: \"A quote should be complete. Not a number with missing details.\" A quotation check shows price, lead time, warranty and a missing validity. \"Missing a detail? Back for completion. Incomplete quotations are held.\" \"The supplier fills in what's missing.\" \"Complete first. Compare next.\" End card: \"Less back-and-forth. More clarity.\" Discover QuotesDone, quotesdone.com.",
       "alt_text_ar": "فيديو متحرك: فحص عرض السعر (السعر، مدة التنفيذ، الضمان، الصلاحية). العرض الناقص يُعلَّق ويعود إلى المورّد لاستكماله، ثم يُقارَن بعد اكتماله. quotesdone.com.",
@@ -1297,7 +1297,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 941
+      "chars": 962
     },
     {
       "ingest_key": "2026m1-07-linkedin",
@@ -1311,8 +1311,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "The First 1000",
-      "caption_en": "The first 1,000. A lasting advantage.\n\nThe first 1,000 suppliers to register on QuotesDone pay no subscription, permanently. Not a trial. From the 1,001st registration, membership is AED 1,000 a year. Early entry is not paid preference: ranking is the same for every supplier. Supplier verification and the Supplier Agreement apply.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "أول 1,000 مورّد: ميزة تدوم.\n\nأول 1,000 مورّد يسجّلون على QuotesDone لا يدفعون أي اشتراك، بشكل دائم، وليست فترة تجريبية. واعتبارًا من التسجيل رقم 1,001 تبلغ العضوية 1,000 درهم سنويًا. والتسجيل المبكر لا يمنح أفضلية مدفوعة، فالترتيب واحد لجميع المورّدين. ويخضع التسجيل لتوثيق المورّد واتفاقية المورّد.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "The first 1,000. A lasting advantage.\n\nThe first 1,000 suppliers to register on QuotesDone pay no subscription, permanently. Not a trial. From the 1,001st registration, membership is AED 1,000 a year. Early entry is not paid preference: every supplier is ranked by the same rules. Supplier verification and the Supplier Agreement apply.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "أول 1,000 مورّد: ميزة تدوم.\n\nأول 1,000 مورّد يسجّلون على QuotesDone لا يدفعون أي اشتراك، بشكل دائم، وليست فترة تجريبية. واعتبارًا من التسجيل رقم 1,001 تبلغ العضوية 1,000 درهم سنويًا. والتسجيل المبكر لا يمنح أفضلية مدفوعة، فالترتيب يخضع للقواعد نفسها لجميع المورّدين. ويخضع التسجيل لتوثيق المورّد واتفاقية المورّد.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -1339,7 +1339,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 939
+      "chars": 957
     },
     {
       "ingest_key": "2026m1-07-facebook",
@@ -1353,8 +1353,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "The First 1000",
-      "caption_en": "The first 1,000. A lasting advantage.\n\nThe first 1,000 suppliers to register on QuotesDone pay no subscription, permanently. Not a trial. From the 1,001st registration, membership is AED 1,000 a year. Early entry is not paid preference: ranking is the same for every supplier. Supplier verification and the Supplier Agreement apply.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "أول 1,000 مورّد: ميزة تدوم.\n\nأول 1,000 مورّد يسجّلون على QuotesDone لا يدفعون أي اشتراك، بشكل دائم، وليست فترة تجريبية. واعتبارًا من التسجيل رقم 1,001 تبلغ العضوية 1,000 درهم سنويًا. والتسجيل المبكر لا يمنح أفضلية مدفوعة، فالترتيب واحد لجميع المورّدين. ويخضع التسجيل لتوثيق المورّد واتفاقية المورّد.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "The first 1,000. A lasting advantage.\n\nThe first 1,000 suppliers to register on QuotesDone pay no subscription, permanently. Not a trial. From the 1,001st registration, membership is AED 1,000 a year. Early entry is not paid preference: every supplier is ranked by the same rules. Supplier verification and the Supplier Agreement apply.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "أول 1,000 مورّد: ميزة تدوم.\n\nأول 1,000 مورّد يسجّلون على QuotesDone لا يدفعون أي اشتراك، بشكل دائم، وليست فترة تجريبية. واعتبارًا من التسجيل رقم 1,001 تبلغ العضوية 1,000 درهم سنويًا. والتسجيل المبكر لا يمنح أفضلية مدفوعة، فالترتيب يخضع للقواعد نفسها لجميع المورّدين. ويخضع التسجيل لتوثيق المورّد واتفاقية المورّد.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -1380,7 +1380,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 926
+      "chars": 944
     },
     {
       "ingest_key": "2026m1-07-x",
@@ -1434,8 +1434,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "The first 1,000 UAE suppliers register free, permanently",
-      "caption_en": "The first 1,000. A lasting advantage. The first 1,000 suppliers to register on QuotesDone pay no subscription, permanently. Not a trial. From the 1,001st registration, membership is AED 1,000 a year. Early entry is not paid preference: ranking is the same for every supplier. Supplier verification and the Supplier Agreement apply.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "أول 1,000 مورّد: ميزة تدوم. أول 1,000 مورّد يسجّلون على QuotesDone لا يدفعون أي اشتراك، بشكل دائم، وليست فترة تجريبية. واعتبارًا من التسجيل رقم 1,001 تبلغ العضوية 1,000 درهم سنويًا. والتسجيل المبكر لا يمنح أفضلية مدفوعة، فالترتيب واحد لجميع المورّدين. ويخضع التسجيل لتوثيق المورّد واتفاقية المورّد.",
+      "caption_en": "The first 1,000. A lasting advantage. The first 1,000 suppliers to register on QuotesDone pay no subscription, permanently. Not a trial. From the 1,001st registration, membership is AED 1,000 a year. Early entry is not paid preference: every supplier is ranked by the same rules. Supplier verification and the Supplier Agreement apply.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "أول 1,000 مورّد: ميزة تدوم. أول 1,000 مورّد يسجّلون على QuotesDone لا يدفعون أي اشتراك، بشكل دائم، وليست فترة تجريبية. واعتبارًا من التسجيل رقم 1,001 تبلغ العضوية 1,000 درهم سنويًا. والتسجيل المبكر لا يمنح أفضلية مدفوعة، فالترتيب يخضع للقواعد نفسها لجميع المورّدين. ويخضع التسجيل لتوثيق المورّد واتفاقية المورّد.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -1462,7 +1462,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 803
+      "chars": 821
     },
     {
       "ingest_key": "2026m1-07-instagram",
@@ -1476,15 +1476,15 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "The First 1000",
-      "caption_en": "The first 1,000. A lasting advantage.\n\nThe first 1,000 suppliers to register on QuotesDone pay no subscription, permanently. Not a trial. From the 1,001st registration, membership is AED 1,000 a year. Early entry is not paid preference: ranking is the same for every supplier. Supplier verification and the Supplier Agreement apply.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "أول 1,000 مورّد: ميزة تدوم.\n\nأول 1,000 مورّد يسجّلون على QuotesDone لا يدفعون أي اشتراك، بشكل دائم، وليست فترة تجريبية. واعتبارًا من التسجيل رقم 1,001 تبلغ العضوية 1,000 درهم سنويًا. والتسجيل المبكر لا يمنح أفضلية مدفوعة، فالترتيب واحد لجميع المورّدين. ويخضع التسجيل لتوثيق المورّد واتفاقية المورّد.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_en": "The first 1,000. A lasting advantage.\n\nThe first 1,000 suppliers to register on QuotesDone pay no subscription, permanently. Not a trial. From the 1,001st registration, membership is AED 1,000 a year. Early entry is not paid preference: every supplier is ranked by the same rules. Supplier verification and the Supplier Agreement apply.\n\nRegister your business: link in bio, quotesdone.com/supplier",
+      "caption_ar": "أول 1,000 مورّد: ميزة تدوم.\n\nأول 1,000 مورّد يسجّلون على QuotesDone لا يدفعون أي اشتراك، بشكل دائم، وليست فترة تجريبية. واعتبارًا من التسجيل رقم 1,001 تبلغ العضوية 1,000 درهم سنويًا. والتسجيل المبكر لا يمنح أفضلية مدفوعة، فالترتيب يخضع للقواعد نفسها لجميع المورّدين. ويخضع التسجيل لتوثيق المورّد واتفاقية المورّد.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video. A gold \"1,000\" reads \"The first 1,000. A lasting advantage.\" \"Not a trial. Free. Forever. The first 1,000 pay no membership subscription.\" Year one, year two, every year: AED 0. \"Your capabilities. Relevant inquiries.\" \"First 1,000: AED 0. After that: membership. Annual subscriptions apply from registration 1,001. Same merit-based ranking.\" \"Early entry, not paid preference.\" End card: \"Register early. Keep the advantage.\" Register your business, quotesdone.com/supplier. Supplier verification and agreement apply.",
       "alt_text_ar": "فيديو متحرك: أول 1,000 مورّد دون اشتراك بشكل دائم، صفر درهم كل عام. من التسجيل رقم 1,001 يُطبَّق اشتراك سنوي. الترتيب واحد للجميع، والتسجيل المبكر ليس أفضلية مدفوعة. quotesdone.com/supplier.",
@@ -1506,7 +1506,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 833
+      "chars": 858
     },
     {
       "ingest_key": "2026m1-12-linkedin",
@@ -1521,7 +1521,7 @@
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Procurement with Perspective",
       "caption_en": "The video shows procurement teams, your future customers, looking beyond their existing supplier list. Register your business to be on the new one.\n\nOn QuotesDone a company sends one request and receives relevant options beyond its existing contacts. The strongest three quotations are compared in one report, and every other quotation stays available. For a supplier outside that list, it is a way to be considered on the quality of the offer. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو فرق المشتريات، وهم عملاؤكم القادمون، ينظرون إلى ما هو أبعد من قائمة مورّديهم الحالية. سجّلوا شركتكم لتكونوا ضمن القائمة الجديدة.\n\nعلى QuotesDone ترسل الشركة طلبًا واحدًا وتتلقى خيارات مناسبة من خارج جهات اتصالها. وتُقارَن أقوى ثلاثة عروض في تقرير واحد، وتبقى سائر العروض متاحة. وللمورّد الذي لم يكن في تلك القائمة، هذه فرصة ليُنظر في عرضه على أساس جودته. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو فرق المشتريات، وهم عملاؤكم القادمون، ينظرون إلى ما هو أبعد من قائمة مورّديهم الحالية. سجّلوا شركتكم لتكونوا ضمن القائمة الجديدة.\n\nعلى QuotesDone ترسل الشركة طلبًا واحدًا وتتلقى خيارات مناسبة من خارج جهات اتصالها. وتُقارَن أقوى ثلاثة عروض في تقرير واحد، وتبقى سائر العروض متاحة. وللمورّد الذي لم يكن في تلك القائمة، هذه فرصة ليُنظر في عرضه على أساس جودته. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -1548,7 +1548,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 1242
+      "chars": 1256
     },
     {
       "ingest_key": "2026m1-12-facebook",
@@ -1563,7 +1563,7 @@
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Procurement with Perspective",
       "caption_en": "The video shows procurement teams, your future customers, looking beyond their existing supplier list. Register your business to be on the new one.\n\nOn QuotesDone a company sends one request and receives relevant options beyond its existing contacts. The strongest three quotations are compared in one report, and every other quotation stays available. For a supplier outside that list, it is a way to be considered on the quality of the offer. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو فرق المشتريات، وهم عملاؤكم القادمون، ينظرون إلى ما هو أبعد من قائمة مورّديهم الحالية. سجّلوا شركتكم لتكونوا ضمن القائمة الجديدة.\n\nعلى QuotesDone ترسل الشركة طلبًا واحدًا وتتلقى خيارات مناسبة من خارج جهات اتصالها. وتُقارَن أقوى ثلاثة عروض في تقرير واحد، وتبقى سائر العروض متاحة. وللمورّد الذي لم يكن في تلك القائمة، هذه فرصة ليُنظر في عرضه على أساس جودته. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو فرق المشتريات، وهم عملاؤكم القادمون، ينظرون إلى ما هو أبعد من قائمة مورّديهم الحالية. سجّلوا شركتكم لتكونوا ضمن القائمة الجديدة.\n\nعلى QuotesDone ترسل الشركة طلبًا واحدًا وتتلقى خيارات مناسبة من خارج جهات اتصالها. وتُقارَن أقوى ثلاثة عروض في تقرير واحد، وتبقى سائر العروض متاحة. وللمورّد الذي لم يكن في تلك القائمة، هذه فرصة ليُنظر في عرضه على أساس جودته. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -1589,7 +1589,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 1229
+      "chars": 1243
     },
     {
       "ingest_key": "2026m1-12-x",
@@ -1644,7 +1644,7 @@
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Procurement with perspective: be the option beyond the list",
       "caption_en": "The video shows procurement teams, your future customers, looking beyond their existing supplier list. Register your business to be on the new one. On QuotesDone a company sends one request and receives relevant options beyond its existing contacts. The strongest three quotations are compared in one report, and every other quotation stays available. For a supplier outside that list, it is a way to be considered on the quality of the offer. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو فرق المشتريات، وهم عملاؤكم القادمون، ينظرون إلى ما هو أبعد من قائمة مورّديهم الحالية. سجّلوا شركتكم لتكونوا ضمن القائمة الجديدة. على QuotesDone ترسل الشركة طلبًا واحدًا وتتلقى خيارات مناسبة من خارج جهات اتصالها. وتُقارَن أقوى ثلاثة عروض في تقرير واحد، وتبقى سائر العروض متاحة. وللمورّد الذي لم يكن في تلك القائمة، هذه فرصة ليُنظر في عرضه على أساس جودته. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "caption_ar": "يعرض الفيديو فرق المشتريات، وهم عملاؤكم القادمون، ينظرون إلى ما هو أبعد من قائمة مورّديهم الحالية. سجّلوا شركتكم لتكونوا ضمن القائمة الجديدة. على QuotesDone ترسل الشركة طلبًا واحدًا وتتلقى خيارات مناسبة من خارج جهات اتصالها. وتُقارَن أقوى ثلاثة عروض في تقرير واحد، وتبقى سائر العروض متاحة. وللمورّد الذي لم يكن في تلك القائمة، هذه فرصة ليُنظر في عرضه على أساس جودته. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -1671,7 +1671,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 1106
+      "chars": 1120
     },
     {
       "ingest_key": "2026m1-12-instagram",
@@ -1686,14 +1686,14 @@
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Procurement with Perspective",
       "caption_en": "The video shows procurement teams, your future customers, looking beyond their existing supplier list. Register your business to be on the new one.\n\nOn QuotesDone a company sends one request and receives relevant options beyond its existing contacts. The strongest three quotations are compared in one report, and every other quotation stays available. For a supplier outside that list, it is a way to be considered on the quality of the offer. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "يعرض الفيديو فرق المشتريات، وهم عملاؤكم القادمون، ينظرون إلى ما هو أبعد من قائمة مورّديهم الحالية. سجّلوا شركتكم لتكونوا ضمن القائمة الجديدة.\n\nعلى QuotesDone ترسل الشركة طلبًا واحدًا وتتلقى خيارات مناسبة من خارج جهات اتصالها. وتُقارَن أقوى ثلاثة عروض في تقرير واحد، وتبقى سائر العروض متاحة. وللمورّد الذي لم يكن في تلك القائمة، هذه فرصة ليُنظر في عرضه على أساس جودته. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_ar": "يعرض الفيديو فرق المشتريات، وهم عملاؤكم القادمون، ينظرون إلى ما هو أبعد من قائمة مورّديهم الحالية. سجّلوا شركتكم لتكونوا ضمن القائمة الجديدة.\n\nعلى QuotesDone ترسل الشركة طلبًا واحدًا وتتلقى خيارات مناسبة من خارج جهات اتصالها. وتُقارَن أقوى ثلاثة عروض في تقرير واحد، وتبقى سائر العروض متاحة. وللمورّد الذي لم يكن في تلك القائمة، هذه فرصة ليُنظر في عرضه على أساس جودته. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video. Headlines: \"Your supplier list can go further. A foundation. Not a limit.\" \"One inquiry. Relevant new options.\" \"Align the scope. See the differences. Top three in one report. Every other quotation also available.\" A scale weighs price against overall value: \"The lowest number is not the whole story.\" End card: \"More options. A clearer decision.\" Submit your company request, quotesdone.com. Post and compare free. Reveal fees apply.",
       "alt_text_ar": "فيديو متحرك: قائمة المورّدين الحالية أساس لا حدّ، وطلب واحد يأتي بخيارات جديدة، وأقوى ثلاثة عروض في تقرير واحد، وأقل سعر ليس القصة كلها. quotesdone.com.",
@@ -1715,7 +1715,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 1136
+      "chars": 1157
     },
     {
       "ingest_key": "2026m1-06-linkedin",
@@ -1729,8 +1729,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Stay in the Loop",
-      "caption_en": "Customers follow their request without living on a screen.\n\nOn QuotesDone a customer follows each request, from request to quotes to review, through updates on WhatsApp and email, and returns when ready. Registered suppliers are part of the requests they follow. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يتابع العميل طلبه دون أن يبقى أمام الشاشة.\n\nعلى QuotesDone يتابع العميل كل طلب، من الطلب إلى العروض إلى المراجعة، عبر تحديثات على واتساب والبريد الإلكتروني، ويعود متى كان مستعدًا. والمورّدون المسجّلون جزء من الطلبات التي يتابعها. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "Customers follow their request without living on a screen.\n\nThe video shows how your future customers will follow their requests, with updates on WhatsApp and email from request to quotes to review. Registered suppliers get the same: each new request that matches the trades you confirm reaches you by email and WhatsApp. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يتابع العميل طلبه دون أن يبقى أمام الشاشة.\n\nيعرض الفيديو كيف سيتابع عملاؤكم القادمون طلباتهم عبر تحديثات على واتساب والبريد الإلكتروني، من الطلب إلى العروض إلى المراجعة. وكذلك المورّدون المسجّلون: يصلكم كل طلب جديد يطابق الأنشطة التي تؤكّدونها عبر البريد الإلكتروني وواتساب. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -1757,7 +1757,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 922
+      "chars": 1040
     },
     {
       "ingest_key": "2026m1-06-facebook",
@@ -1771,8 +1771,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Stay in the Loop",
-      "caption_en": "Customers follow their request without living on a screen.\n\nOn QuotesDone a customer follows each request, from request to quotes to review, through updates on WhatsApp and email, and returns when ready. Registered suppliers are part of the requests they follow. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يتابع العميل طلبه دون أن يبقى أمام الشاشة.\n\nعلى QuotesDone يتابع العميل كل طلب، من الطلب إلى العروض إلى المراجعة، عبر تحديثات على واتساب والبريد الإلكتروني، ويعود متى كان مستعدًا. والمورّدون المسجّلون جزء من الطلبات التي يتابعها. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "Customers follow their request without living on a screen.\n\nThe video shows how your future customers will follow their requests, with updates on WhatsApp and email from request to quotes to review. Registered suppliers get the same: each new request that matches the trades you confirm reaches you by email and WhatsApp. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يتابع العميل طلبه دون أن يبقى أمام الشاشة.\n\nيعرض الفيديو كيف سيتابع عملاؤكم القادمون طلباتهم عبر تحديثات على واتساب والبريد الإلكتروني، من الطلب إلى العروض إلى المراجعة. وكذلك المورّدون المسجّلون: يصلكم كل طلب جديد يطابق الأنشطة التي تؤكّدونها عبر البريد الإلكتروني وواتساب. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -1798,7 +1798,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 909
+      "chars": 1027
     },
     {
       "ingest_key": "2026m1-06-x",
@@ -1812,7 +1812,7 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Stay in the Loop",
-      "caption_en": "Customers on QuotesDone follow each request, from request to quotes to review, through WhatsApp and email updates. Registered suppliers are part of those requests. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "The video shows your future customers following requests on WhatsApp and email. Registered suppliers get each new request matching the trades they confirm the same way. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_ar": "",
       "caption_language": "en",
       "hashtags": [
@@ -1838,7 +1838,7 @@
         }
       },
       "rationale": "Sprout Social: X activity high 12:00-18:00 Tue-Thu. English only: a bilingual body exceeds the 280-character limit.",
-      "chars": 201
+      "chars": 206
     },
     {
       "ingest_key": "2026m1-06-youtube",
@@ -1852,8 +1852,8 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Stay in the loop: request, quotes, review on WhatsApp and email",
-      "caption_en": "Customers follow their request without living on a screen. On QuotesDone a customer follows each request, from request to quotes to review, through updates on WhatsApp and email, and returns when ready. Registered suppliers are part of the requests they follow. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يتابع العميل طلبه دون أن يبقى أمام الشاشة. على QuotesDone يتابع العميل كل طلب، من الطلب إلى العروض إلى المراجعة، عبر تحديثات على واتساب والبريد الإلكتروني، ويعود متى كان مستعدًا. والمورّدون المسجّلون جزء من الطلبات التي يتابعها. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "caption_en": "Customers follow their request without living on a screen. The video shows how your future customers will follow their requests, with updates on WhatsApp and email from request to quotes to review. Registered suppliers get the same: each new request that matches the trades you confirm reaches you by email and WhatsApp. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يتابع العميل طلبه دون أن يبقى أمام الشاشة. يعرض الفيديو كيف سيتابع عملاؤكم القادمون طلباتهم عبر تحديثات على واتساب والبريد الإلكتروني، من الطلب إلى العروض إلى المراجعة. وكذلك المورّدون المسجّلون: يصلكم كل طلب جديد يطابق الأنشطة التي تؤكّدونها عبر البريد الإلكتروني وواتساب. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -1880,7 +1880,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 786
+      "chars": 904
     },
     {
       "ingest_key": "2026m1-06-instagram",
@@ -1894,15 +1894,15 @@
       "status": "ready_for_approval",
       "end_card_note": null,
       "title": "Stay in the Loop",
-      "caption_en": "Customers follow their request without living on a screen.\n\nOn QuotesDone a customer follows each request, from request to quotes to review, through updates on WhatsApp and email, and returns when ready. Registered suppliers are part of the requests they follow. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "يتابع العميل طلبه دون أن يبقى أمام الشاشة.\n\nعلى QuotesDone يتابع العميل كل طلب، من الطلب إلى العروض إلى المراجعة، عبر تحديثات على واتساب والبريد الإلكتروني، ويعود متى كان مستعدًا. والمورّدون المسجّلون جزء من الطلبات التي يتابعها. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_en": "Customers follow their request without living on a screen.\n\nThe video shows how your future customers will follow their requests, with updates on WhatsApp and email from request to quotes to review. Registered suppliers get the same: each new request that matches the trades you confirm reaches you by email and WhatsApp. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
+      "caption_ar": "يتابع العميل طلبه دون أن يبقى أمام الشاشة.\n\nيعرض الفيديو كيف سيتابع عملاؤكم القادمون طلباتهم عبر تحديثات على واتساب والبريد الإلكتروني، من الطلب إلى العروض إلى المراجعة. وكذلك المورّدون المسجّلون: يصلكم كل طلب جديد يطابق الأنشطة التي تؤكّدونها عبر البريد الإلكتروني وواتساب. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video in teal. A phone shows a project moving from request to quotes to review. Headlines: \"Your project moves. So do you.\" \"Updates come to you. On WhatsApp and email.\" A clock: \"Less checking. More doing.\" \"Stay in the loop. Keep your momentum.\" End card: \"Your day. Still yours.\" Explore QuotesDone, quotesdone.com. Project updates on WhatsApp and email.",
       "alt_text_ar": "فيديو متحرك: هاتف يعرض مراحل الطلب، والتحديثات تصل عبر واتساب والبريد الإلكتروني. quotesdone.com.",
@@ -1924,7 +1924,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 816
+      "chars": 941
     },
     {
       "ingest_key": "2026m1-08-linkedin",
@@ -1938,8 +1938,8 @@
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Beyond Your Contacts",
-      "caption_en": "The video shows how your future customers will look beyond their own contacts. Register your business so their request can reach you.\n\nOn QuotesDone a customer's request reaches suppliers beyond their own contacts, matched on licensed activity, and each quotation shows scope, price, timing and terms side by side. If your business was never on their list, this is how it gets considered. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو كيف سيبحث عملاؤكم القادمون خارج دائرة معارفهم. سجّلوا شركتكم ليصلكم طلبهم.\n\nعلى QuotesDone يصل طلب العميل إلى مورّدين من خارج جهات اتصاله، وفق النشاط المرخّص، ويعرض كل عرض سعر النطاق والسعر والمدة والشروط جنبًا إلى جنب. وإن لم تكن شركتكم على قائمته يومًا، فهكذا يُنظر في عرضها. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "The video shows how your future customers will look beyond their own contacts. Register your business so their request can reach you.\n\nOn QuotesDone a customer's request reaches suppliers beyond their own contacts, matched on the trades suppliers confirm, and each quotation shows scope, price, timing and terms side by side. If your business was never on their list, this is how it gets considered. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو كيف سيبحث عملاؤكم القادمون خارج دائرة معارفهم. سجّلوا شركتكم ليصلكم طلبهم.\n\nعلى QuotesDone يصل طلب العميل إلى مورّدين من خارج جهات اتصاله، وفق الأنشطة التي يؤكّدها المورّد، ويعرض كل عرض سعر النطاق والسعر والمدة والشروط جنبًا إلى جنب. وإن لم تكن شركتكم على قائمته يومًا، فهكذا يُنظر في عرضها. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -1966,7 +1966,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 1109
+      "chars": 1148
     },
     {
       "ingest_key": "2026m1-08-facebook",
@@ -1980,8 +1980,8 @@
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Beyond Your Contacts",
-      "caption_en": "The video shows how your future customers will look beyond their own contacts. Register your business so their request can reach you.\n\nOn QuotesDone a customer's request reaches suppliers beyond their own contacts, matched on licensed activity, and each quotation shows scope, price, timing and terms side by side. If your business was never on their list, this is how it gets considered. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو كيف سيبحث عملاؤكم القادمون خارج دائرة معارفهم. سجّلوا شركتكم ليصلكم طلبهم.\n\nعلى QuotesDone يصل طلب العميل إلى مورّدين من خارج جهات اتصاله، وفق النشاط المرخّص، ويعرض كل عرض سعر النطاق والسعر والمدة والشروط جنبًا إلى جنب. وإن لم تكن شركتكم على قائمته يومًا، فهكذا يُنظر في عرضها. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "The video shows how your future customers will look beyond their own contacts. Register your business so their request can reach you.\n\nOn QuotesDone a customer's request reaches suppliers beyond their own contacts, matched on the trades suppliers confirm, and each quotation shows scope, price, timing and terms side by side. If your business was never on their list, this is how it gets considered. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو كيف سيبحث عملاؤكم القادمون خارج دائرة معارفهم. سجّلوا شركتكم ليصلكم طلبهم.\n\nعلى QuotesDone يصل طلب العميل إلى مورّدين من خارج جهات اتصاله، وفق الأنشطة التي يؤكّدها المورّد، ويعرض كل عرض سعر النطاق والسعر والمدة والشروط جنبًا إلى جنب. وإن لم تكن شركتكم على قائمته يومًا، فهكذا يُنظر في عرضها. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -2007,7 +2007,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 1096
+      "chars": 1135
     },
     {
       "ingest_key": "2026m1-08-x",
@@ -2021,7 +2021,7 @@
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Beyond Your Contacts",
-      "caption_en": "The video shows your future customers looking beyond their contacts. On QuotesDone their request reaches suppliers matched on licensed activity. Register yours. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "The video shows your future customers looking beyond their contacts. On QuotesDone their request reaches suppliers matched on the trades suppliers confirm. Register yours. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_ar": "",
       "caption_language": "en",
       "hashtags": [
@@ -2047,7 +2047,7 @@
         }
       },
       "rationale": "Sprout Social: X activity high 12:00-18:00 Tue-Thu. English only: a bilingual body exceeds the 280-character limit.",
-      "chars": 198
+      "chars": 209
     },
     {
       "ingest_key": "2026m1-08-youtube",
@@ -2061,8 +2061,8 @@
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Beyond your contacts: be considered on the quote, not the referral",
-      "caption_en": "The video shows how your future customers will look beyond their own contacts. Register your business so their request can reach you. On QuotesDone a customer's request reaches suppliers beyond their own contacts, matched on licensed activity, and each quotation shows scope, price, timing and terms side by side. If your business was never on their list, this is how it gets considered. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو كيف سيبحث عملاؤكم القادمون خارج دائرة معارفهم. سجّلوا شركتكم ليصلكم طلبهم. على QuotesDone يصل طلب العميل إلى مورّدين من خارج جهات اتصاله، وفق النشاط المرخّص، ويعرض كل عرض سعر النطاق والسعر والمدة والشروط جنبًا إلى جنب. وإن لم تكن شركتكم على قائمته يومًا، فهكذا يُنظر في عرضها. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "caption_en": "The video shows how your future customers will look beyond their own contacts. Register your business so their request can reach you. On QuotesDone a customer's request reaches suppliers beyond their own contacts, matched on the trades suppliers confirm, and each quotation shows scope, price, timing and terms side by side. If your business was never on their list, this is how it gets considered. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو كيف سيبحث عملاؤكم القادمون خارج دائرة معارفهم. سجّلوا شركتكم ليصلكم طلبهم. على QuotesDone يصل طلب العميل إلى مورّدين من خارج جهات اتصاله، وفق الأنشطة التي يؤكّدها المورّد، ويعرض كل عرض سعر النطاق والسعر والمدة والشروط جنبًا إلى جنب. وإن لم تكن شركتكم على قائمته يومًا، فهكذا يُنظر في عرضها. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -2089,7 +2089,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 973
+      "chars": 1012
     },
     {
       "ingest_key": "2026m1-08-instagram",
@@ -2103,15 +2103,15 @@
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Beyond Your Contacts",
-      "caption_en": "The video shows how your future customers will look beyond their own contacts. Register your business so their request can reach you.\n\nOn QuotesDone a customer's request reaches suppliers beyond their own contacts, matched on licensed activity, and each quotation shows scope, price, timing and terms side by side. If your business was never on their list, this is how it gets considered. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "يعرض الفيديو كيف سيبحث عملاؤكم القادمون خارج دائرة معارفهم. سجّلوا شركتكم ليصلكم طلبهم.\n\nعلى QuotesDone يصل طلب العميل إلى مورّدين من خارج جهات اتصاله، وفق النشاط المرخّص، ويعرض كل عرض سعر النطاق والسعر والمدة والشروط جنبًا إلى جنب. وإن لم تكن شركتكم على قائمته يومًا، فهكذا يُنظر في عرضها. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_en": "The video shows how your future customers will look beyond their own contacts. Register your business so their request can reach you.\n\nOn QuotesDone a customer's request reaches suppliers beyond their own contacts, matched on the trades suppliers confirm, and each quotation shows scope, price, timing and terms side by side. If your business was never on their list, this is how it gets considered. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
+      "caption_ar": "يعرض الفيديو كيف سيبحث عملاؤكم القادمون خارج دائرة معارفهم. سجّلوا شركتكم ليصلكم طلبهم.\n\nعلى QuotesDone يصل طلب العميل إلى مورّدين من خارج جهات اتصاله، وفق الأنشطة التي يؤكّدها المورّد، ويعرض كل عرض سعر النطاق والسعر والمدة والشروط جنبًا إلى جنب. وإن لم تكن شركتكم على قائمته يومًا، فهكذا يُنظر في عرضها. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video. Headlines: \"A friend's contact is a starting point.\" with chat bubbles \"Who did you use?\", \"Do you have a contact?\", \"Any recommendations?\". \"Look beyond who you already know.\" \"Not just a name. A quote you can assess.\" showing scope, price, timing and terms. \"Compare options. Choose what fits.\" End card: \"More perspective. Your choice.\" Start your request, quotesdone.com. Post and compare free. Reveal fees apply.",
       "alt_text_ar": "فيديو متحرك: التوصية نقطة بداية، ثم طلب واحد يصل إلى خيارات أوسع، وعرض سعر يوضح النطاق والسعر والمدة والشروط. quotesdone.com.",
@@ -2133,12 +2133,12 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 1003
+      "chars": 1049
     },
     {
       "ingest_key": "2026m1-10-linkedin",
       "video_no": "10",
-      "video_title": "You Dont Need to Be the Expert",
+      "video_title": "You Don't Need to Be the Expert",
       "arc_stage": "action",
       "platform": "linkedin",
       "postiz_identifier": "linkedin-page",
@@ -2146,9 +2146,9 @@
       "scheduled_at_utc": "2026-10-21T07:30:00Z",
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
-      "title": "You Dont Need to Be the Expert",
+      "title": "You Don't Need to Be the Expert",
       "caption_en": "The video shows your future customers describing what they need in their own words. What reaches you is a clearer brief, easier to price.\n\nCustomers on QuotesDone describe the outcome in their own words, and the follow-up questions turn it into a clearer requirement before suppliers prepare their quotations: materials, scope of work, terms and warranty. Supplier specifications remain the supplier's responsibility. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو عملاءكم القادمين وهم يصفون ما يحتاجونه بكلماتهم. وما يصلكم طلب أوضح وأسهل في التسعير.\n\nعلى QuotesDone يصف العميل النتيجة التي يريدها بكلماته، ثم تحوّلها أسئلة المتابعة إلى متطلبات أوضح قبل أن يعدّ المورّدون عروضهم: المواد ونطاق العمل والشروط والضمان. وتبقى مواصفات المورّد مسؤولية المورّد. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو عملاءكم القادمين وهم يصفون ما يحتاجونه بكلماتهم. وما يصلكم طلب أوضح وأسهل في التسعير.\n\nعلى QuotesDone يصف العميل النتيجة التي يريدها بكلماته، ثم تحوّلها أسئلة المتابعة إلى متطلبات أوضح قبل أن يعدّ المورّدون عروضهم: المواد ونطاق العمل والشروط والضمان. وتبقى مواصفات المورّد مسؤولية المورّد. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -2175,12 +2175,12 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 1150
+      "chars": 1164
     },
     {
       "ingest_key": "2026m1-10-facebook",
       "video_no": "10",
-      "video_title": "You Dont Need to Be the Expert",
+      "video_title": "You Don't Need to Be the Expert",
       "arc_stage": "action",
       "platform": "facebook",
       "postiz_identifier": "facebook",
@@ -2188,9 +2188,9 @@
       "scheduled_at_utc": "2026-10-21T09:00:00Z",
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
-      "title": "You Dont Need to Be the Expert",
+      "title": "You Don't Need to Be the Expert",
       "caption_en": "The video shows your future customers describing what they need in their own words. What reaches you is a clearer brief, easier to price.\n\nCustomers on QuotesDone describe the outcome in their own words, and the follow-up questions turn it into a clearer requirement before suppliers prepare their quotations: materials, scope of work, terms and warranty. Supplier specifications remain the supplier's responsibility. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو عملاءكم القادمين وهم يصفون ما يحتاجونه بكلماتهم. وما يصلكم طلب أوضح وأسهل في التسعير.\n\nعلى QuotesDone يصف العميل النتيجة التي يريدها بكلماته، ثم تحوّلها أسئلة المتابعة إلى متطلبات أوضح قبل أن يعدّ المورّدون عروضهم: المواد ونطاق العمل والشروط والضمان. وتبقى مواصفات المورّد مسؤولية المورّد. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو عملاءكم القادمين وهم يصفون ما يحتاجونه بكلماتهم. وما يصلكم طلب أوضح وأسهل في التسعير.\n\nعلى QuotesDone يصف العميل النتيجة التي يريدها بكلماته، ثم تحوّلها أسئلة المتابعة إلى متطلبات أوضح قبل أن يعدّ المورّدون عروضهم: المواد ونطاق العمل والشروط والضمان. وتبقى مواصفات المورّد مسؤولية المورّد. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -2216,12 +2216,12 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 1137
+      "chars": 1151
     },
     {
       "ingest_key": "2026m1-10-x",
       "video_no": "10",
-      "video_title": "You Dont Need to Be the Expert",
+      "video_title": "You Don't Need to Be the Expert",
       "arc_stage": "action",
       "platform": "x",
       "postiz_identifier": "x",
@@ -2229,7 +2229,7 @@
       "scheduled_at_utc": "2026-10-21T10:30:00Z",
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
-      "title": "You Dont Need to Be the Expert",
+      "title": "You Don't Need to Be the Expert",
       "caption_en": "The video shows your future customers describing the outcome; follow-up questions turn it into a clearer brief before you price it. Register to receive them. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_ar": "",
       "caption_language": "en",
@@ -2261,7 +2261,7 @@
     {
       "ingest_key": "2026m1-10-youtube",
       "video_no": "10",
-      "video_title": "You Dont Need to Be the Expert",
+      "video_title": "You Don't Need to Be the Expert",
       "arc_stage": "action",
       "platform": "youtube",
       "postiz_identifier": "youtube",
@@ -2271,7 +2271,7 @@
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "A clearer brief before you quote: materials, scope, terms",
       "caption_en": "The video shows your future customers describing what they need in their own words. What reaches you is a clearer brief, easier to price. Customers on QuotesDone describe the outcome in their own words, and the follow-up questions turn it into a clearer requirement before suppliers prepare their quotations: materials, scope of work, terms and warranty. Supplier specifications remain the supplier's responsibility. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو عملاءكم القادمين وهم يصفون ما يحتاجونه بكلماتهم. وما يصلكم طلب أوضح وأسهل في التسعير. على QuotesDone يصف العميل النتيجة التي يريدها بكلماته، ثم تحوّلها أسئلة المتابعة إلى متطلبات أوضح قبل أن يعدّ المورّدون عروضهم: المواد ونطاق العمل والشروط والضمان. وتبقى مواصفات المورّد مسؤولية المورّد. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "caption_ar": "يعرض الفيديو عملاءكم القادمين وهم يصفون ما يحتاجونه بكلماتهم. وما يصلكم طلب أوضح وأسهل في التسعير. على QuotesDone يصف العميل النتيجة التي يريدها بكلماته، ثم تحوّلها أسئلة المتابعة إلى متطلبات أوضح قبل أن يعدّ المورّدون عروضهم: المواد ونطاق العمل والشروط والضمان. وتبقى مواصفات المورّد مسؤولية المورّد. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -2298,12 +2298,12 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 1014
+      "chars": 1028
     },
     {
       "ingest_key": "2026m1-10-instagram",
       "video_no": "10",
-      "video_title": "You Dont Need to Be the Expert",
+      "video_title": "You Don't Need to Be the Expert",
       "arc_stage": "action",
       "platform": "instagram",
       "postiz_identifier": "instagram-standalone",
@@ -2311,16 +2311,16 @@
       "scheduled_at_utc": "2026-10-21T15:30:00Z",
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
-      "title": "You Dont Need to Be the Expert",
+      "title": "You Don't Need to Be the Expert",
       "caption_en": "The video shows your future customers describing what they need in their own words. What reaches you is a clearer brief, easier to price.\n\nCustomers on QuotesDone describe the outcome in their own words, and the follow-up questions turn it into a clearer requirement before suppliers prepare their quotations: materials, scope of work, terms and warranty. Supplier specifications remain the supplier's responsibility. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "يعرض الفيديو عملاءكم القادمين وهم يصفون ما يحتاجونه بكلماتهم. وما يصلكم طلب أوضح وأسهل في التسعير.\n\nعلى QuotesDone يصف العميل النتيجة التي يريدها بكلماته، ثم تحوّلها أسئلة المتابعة إلى متطلبات أوضح قبل أن يعدّ المورّدون عروضهم: المواد ونطاق العمل والشروط والضمان. وتبقى مواصفات المورّد مسؤولية المورّد. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_ar": "يعرض الفيديو عملاءكم القادمين وهم يصفون ما يحتاجونه بكلماتهم. وما يصلكم طلب أوضح وأسهل في التسعير.\n\nعلى QuotesDone يصف العميل النتيجة التي يريدها بكلماته، ثم تحوّلها أسئلة المتابعة إلى متطلبات أوضح قبل أن يعدّ المورّدون عروضهم: المواد ونطاق العمل والشروط والضمان. وتبقى مواصفات المورّد مسؤولية المورّد. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video. Headlines: \"Know what you need. Not every technical term.\" \"Describe the outcome. We ask the questions.\" with cards \"What do you need?\", \"What details matter?\", \"A clearer brief.\" \"Materials. Scope. The details that matter.\" \"Understand the options. Not just the numbers.\" End card: \"Less guesswork. More clarity.\" Start with your requirement, quotesdone.com. Post and compare free. Reveal fees apply.",
       "alt_text_ar": "فيديو متحرك: يصف العميل النتيجة، وتُطرح أسئلة المتابعة لتوضيح الطلب، ثم مقارنة العروض على المواد والنطاق والشروط. quotesdone.com.",
@@ -2342,7 +2342,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 1044
+      "chars": 1065
     },
     {
       "ingest_key": "2026m1-01-linkedin",
@@ -2356,8 +2356,8 @@
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Stop Chasing Suppliers",
-      "caption_en": "The video shows what your future customers will do on QuotesDone: describe the project once, compare complete quotes, reveal one supplier. Register your business so their requests reach you.\n\nOn QuotesDone a customer describes the project once, compares complete quotations and reveals only the supplier they choose. Suppliers stop chasing too: requests come to you, matched to the activity on your licence, with no commission on the work you win. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو ما سيفعله عملاؤكم القادمون على QuotesDone: يصفون المشروع مرة واحدة، ويقارنون عروضًا مكتملة، ويكشفون عن مورّد واحد. سجّلوا شركتكم لتصلكم طلباتهم.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويقارن عروضًا مكتملة، ولا يكشف إلا عن المورّد الذي يختاره. والمورّد أيضًا يتوقف عن الملاحقة: تصلكم الطلبات المطابقة لنشاط رخصتكم، دون عمولة على ما تفوزون به. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "The video shows what your future customers will do on QuotesDone: describe the project once, compare complete quotes, reveal one supplier. Register your business so their requests reach you.\n\nOn QuotesDone a customer describes the project once, compares complete quotations and reveals only the supplier they choose. Suppliers stop chasing too: requests come to you, matched to the trades and services you confirm, with no commission on the work you win. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو ما سيفعله عملاؤكم القادمون على QuotesDone: يصفون المشروع مرة واحدة، ويقارنون عروضًا مكتملة، ويكشفون عن مورّد واحد. سجّلوا شركتكم لتصلكم طلباتهم.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويقارن عروضًا مكتملة، ولا يكشف إلا عن المورّد الذي يختاره. والمورّد أيضًا يتوقف عن الملاحقة: تصلكم الطلبات المطابقة للأنشطة والخدمات التي تؤكّدونها، دون عمولة على ما تفوزون به. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#Procurement",
@@ -2384,7 +2384,7 @@
         }
       },
       "rationale": "Sprout Social: LinkedIn strongest Tue-Thu late morning to afternoon (local time); UAE agency guides agree on 10:00-16:00. 11:30 Dubai lands before lunch in the working day.",
-      "chars": 1238
+      "chars": 1278
     },
     {
       "ingest_key": "2026m1-01-facebook",
@@ -2398,8 +2398,8 @@
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Stop Chasing Suppliers",
-      "caption_en": "The video shows what your future customers will do on QuotesDone: describe the project once, compare complete quotes, reveal one supplier. Register your business so their requests reach you.\n\nOn QuotesDone a customer describes the project once, compares complete quotations and reveals only the supplier they choose. Suppliers stop chasing too: requests come to you, matched to the activity on your licence, with no commission on the work you win. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو ما سيفعله عملاؤكم القادمون على QuotesDone: يصفون المشروع مرة واحدة، ويقارنون عروضًا مكتملة، ويكشفون عن مورّد واحد. سجّلوا شركتكم لتصلكم طلباتهم.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويقارن عروضًا مكتملة، ولا يكشف إلا عن المورّد الذي يختاره. والمورّد أيضًا يتوقف عن الملاحقة: تصلكم الطلبات المطابقة لنشاط رخصتكم، دون عمولة على ما تفوزون به. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "The video shows what your future customers will do on QuotesDone: describe the project once, compare complete quotes, reveal one supplier. Register your business so their requests reach you.\n\nOn QuotesDone a customer describes the project once, compares complete quotations and reveals only the supplier they choose. Suppliers stop chasing too: requests come to you, matched to the trades and services you confirm, with no commission on the work you win. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو ما سيفعله عملاؤكم القادمون على QuotesDone: يصفون المشروع مرة واحدة، ويقارنون عروضًا مكتملة، ويكشفون عن مورّد واحد. سجّلوا شركتكم لتصلكم طلباتهم.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويقارن عروضًا مكتملة، ولا يكشف إلا عن المورّد الذي يختاره. والمورّد أيضًا يتوقف عن الملاحقة: تصلكم الطلبات المطابقة للأنشطة والخدمات التي تؤكّدونها، دون عمولة على ما تفوزون به. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم: https://quotesdone.com/supplier?utm_source=facebook&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
@@ -2425,7 +2425,7 @@
         }
       },
       "rationale": "Sprout Social: Facebook peaks late morning and mid-afternoon midweek; UAE guides cite a 12:00-14:00 lunch peak.",
-      "chars": 1225
+      "chars": 1265
     },
     {
       "ingest_key": "2026m1-01-x",
@@ -2439,7 +2439,7 @@
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Stop Chasing Suppliers",
-      "caption_en": "The video shows what your future customers will do on QuotesDone. Suppliers stop chasing: requests come to you, matched to your licence, no commission on work you win. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_en": "The video shows what your future customers will do on QuotesDone. Suppliers stop chasing: requests come to you, matched to the trades you confirm, no commission on work you win. https://quotesdone.com/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
       "caption_ar": "",
       "caption_language": "en",
       "hashtags": [
@@ -2465,7 +2465,7 @@
         }
       },
       "rationale": "Sprout Social: X activity high 12:00-18:00 Tue-Thu. English only: a bilingual body exceeds the 280-character limit.",
-      "chars": 205
+      "chars": 215
     },
     {
       "ingest_key": "2026m1-01-youtube",
@@ -2478,9 +2478,9 @@
       "scheduled_at_utc": "2026-10-22T13:30:00Z",
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
-      "title": "Stop chasing: requests matched to your licence, no commission",
-      "caption_en": "The video shows what your future customers will do on QuotesDone: describe the project once, compare complete quotes, reveal one supplier. Register your business so their requests reach you. On QuotesDone a customer describes the project once, compares complete quotations and reveals only the supplier they choose. Suppliers stop chasing too: requests come to you, matched to the activity on your licence, with no commission on the work you win. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
-      "caption_ar": "يعرض الفيديو ما سيفعله عملاؤكم القادمون على QuotesDone: يصفون المشروع مرة واحدة، ويقارنون عروضًا مكتملة، ويكشفون عن مورّد واحد. سجّلوا شركتكم لتصلكم طلباتهم. على QuotesDone يصف العميل مشروعه مرة واحدة، ويقارن عروضًا مكتملة، ولا يكشف إلا عن المورّد الذي يختاره. والمورّد أيضًا يتوقف عن الملاحقة: تصلكم الطلبات المطابقة لنشاط رخصتكم، دون عمولة على ما تفوزون به. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.",
+      "title": "Stop chasing: requests matched to your trade, no commission",
+      "caption_en": "The video shows what your future customers will do on QuotesDone: describe the project once, compare complete quotes, reveal one supplier. Register your business so their requests reach you. On QuotesDone a customer describes the project once, compares complete quotations and reveals only the supplier they choose. Suppliers stop chasing too: requests come to you, matched to the trades and services you confirm, with no commission on the work you win. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: https://quotesdone.com/supplier?utm_source=youtube&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment",
+      "caption_ar": "يعرض الفيديو ما سيفعله عملاؤكم القادمون على QuotesDone: يصفون المشروع مرة واحدة، ويقارنون عروضًا مكتملة، ويكشفون عن مورّد واحد. سجّلوا شركتكم لتصلكم طلباتهم. على QuotesDone يصف العميل مشروعه مرة واحدة، ويقارن عروضًا مكتملة، ولا يكشف إلا عن المورّد الذي يختاره. والمورّد أيضًا يتوقف عن الملاحقة: تصلكم الطلبات المطابقة للأنشطة والخدمات التي تؤكّدونها، دون عمولة على ما تفوزون به. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.",
       "caption_language": "en+ar",
       "hashtags": [
         "#Shorts",
@@ -2507,7 +2507,7 @@
         }
       },
       "rationale": "Convention, weak evidence: after-work commute window; Shorts are served by the feed for days, so the hour matters least here.",
-      "chars": 1102
+      "chars": 1142
     },
     {
       "ingest_key": "2026m1-01-instagram",
@@ -2521,15 +2521,15 @@
       "status": "ready_for_approval",
       "end_card_note": "Runs unedited (founder instruction 870). The end card addresses customers; the caption frames it as the demand a registered supplier will receive.",
       "title": "Stop Chasing Suppliers",
-      "caption_en": "The video shows what your future customers will do on QuotesDone: describe the project once, compare complete quotes, reveal one supplier. Register your business so their requests reach you.\n\nOn QuotesDone a customer describes the project once, compares complete quotations and reveals only the supplier they choose. Suppliers stop chasing too: requests come to you, matched to the activity on your licence, with no commission on the work you win. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
-      "caption_ar": "يعرض الفيديو ما سيفعله عملاؤكم القادمون على QuotesDone: يصفون المشروع مرة واحدة، ويقارنون عروضًا مكتملة، ويكشفون عن مورّد واحد. سجّلوا شركتكم لتصلكم طلباتهم.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويقارن عروضًا مكتملة، ولا يكشف إلا عن المورّد الذي يختاره. والمورّد أيضًا يتوقف عن الملاحقة: تصلكم الطلبات المطابقة لنشاط رخصتكم، دون عمولة على ما تفوزون به. والتسجيل مجاني بشكل دائم لأول 1,000 مورّد يسجّلون.\n\nسجّلوا شركتكم عبر الرابط في الملف التعريفي: quotesdone.com/supplier",
+      "caption_en": "The video shows what your future customers will do on QuotesDone: describe the project once, compare complete quotes, reveal one supplier. Register your business so their requests reach you.\n\nOn QuotesDone a customer describes the project once, compares complete quotations and reveals only the supplier they choose. Suppliers stop chasing too: requests come to you, matched to the trades and services you confirm, with no commission on the work you win. The first 1,000 suppliers to register pay no subscription, permanently.\n\nRegister your business: link in bio, quotesdone.com/supplier",
+      "caption_ar": "يعرض الفيديو ما سيفعله عملاؤكم القادمون على QuotesDone: يصفون المشروع مرة واحدة، ويقارنون عروضًا مكتملة، ويكشفون عن مورّد واحد. سجّلوا شركتكم لتصلكم طلباتهم.\n\nعلى QuotesDone يصف العميل مشروعه مرة واحدة، ويقارن عروضًا مكتملة، ولا يكشف إلا عن المورّد الذي يختاره. والمورّد أيضًا يتوقف عن الملاحقة: تصلكم الطلبات المطابقة للأنشطة والخدمات التي تؤكّدونها، دون عمولة على ما تفوزون به. ويُعفى أول 1,000 مورّد يسجّلون من الاشتراك السنوي إعفاءً دائمًا.\n\nسجّلوا شركتكم عبر الرابط في النبذة التعريفية للحساب: quotesdone.com/supplier",
       "caption_language": "en+ar",
       "hashtags": [
         "#UAESuppliers",
         "#UAEBusiness",
         "#DubaiBusiness",
         "#B2BUAE",
-        "#مورّدين_الإمارات"
+        "#موردي_الإمارات"
       ],
       "alt_text_en": "Animated video. Headlines: \"Stop chasing suppliers. Start choosing.\" with messages \"Still waiting on a quote\", \"Could you resend the details?\", \"Just following up.\" \"Describe it. Just once.\" with a brief for SPC flooring for a villa. \"Compare quotes. Not guesswork.\" \"Reveal one. Keep control.\" End card: \"Your next project. Starts here. Post and compare for free.\" Post your job free, quotesdone.com.",
       "alt_text_ar": "فيديو متحرك: رسائل المتابعة المتكررة، ثم طلب يُوصف مرة واحدة، ومقارنة العروض، والكشف عن مورّد واحد فقط. quotesdone.com.",
@@ -2551,7 +2551,7 @@
         }
       },
       "rationale": "UAE guides: Instagram peaks 19:00-22:00 Dubai time on weekdays; owners of small trading and contracting businesses browse after work.",
-      "chars": 1132
+      "chars": 1179
     }
   ]
 }
