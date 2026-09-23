@@ -4030,6 +4030,13 @@
   "cb243ce6af1c",
   "f630de54fc80"
  ],
+ "supabase/functions/_shared/boq_validate.ts": [
+  "0bb60d54624c",
+  "1dead10f2c91",
+  "5e07271551c3",
+  "80525653a9e7",
+  "ce534deaa8f7"
+ ],
  "supabase/functions/_shared/chat_answers.ts": [
   "0a3a4456e635",
   "216a5ef21bd0",
