@@ -13,15 +13,18 @@ declare
   v_top bigint; v_verdict text; v_er numeric; v_med numeric; v_rows int; v_real_before int; v_real_after int;
 begin
   select count(*) into v_real_before from public.marketing_first_touch;
-  insert into public.marketing_post (ingest_key, ingested_by, text_en, text_ar, channels, scheduled_at, status, is_demo, published_at, media_paths)
-  values ('zz-demo-probe-865-a', 'claude', 'ZZ DEMO probe a', 'تجربة', array['instagram','facebook'], '2031-01-05T08:00:00Z', 'published', true, '2031-01-05T08:00:00Z', array['posts/zz/a.png'])
+  insert into public.marketing_post (ingest_key, ingested_by, text_en, text_ar, channels, scheduled_at, status, attempts, is_demo, published_at, media_paths)
+  values ('zz-demo-probe-865-a', 'claude', 'ZZ DEMO probe a', 'تجربة', array['instagram','facebook'], '2031-01-05T08:00:00Z', 'scheduled', 1, true, '2031-01-05T08:00:00Z', array['posts/zz/a.png'])
   returning id into p1;
-  insert into public.marketing_post (ingest_key, ingested_by, text_en, text_ar, channels, scheduled_at, status, is_demo, published_at, media_paths)
-  values ('zz-demo-probe-865-b', 'claude', 'ZZ DEMO probe b', 'تجربة', array['instagram'], '2031-01-12T08:00:00Z', 'published', true, '2031-01-12T08:00:00Z', array['posts/zz/b.png'])
+  insert into public.marketing_post (ingest_key, ingested_by, text_en, text_ar, channels, scheduled_at, status, attempts, is_demo, published_at, media_paths)
+  values ('zz-demo-probe-865-b', 'claude', 'ZZ DEMO probe b', 'تجربة', array['instagram'], '2031-01-12T08:00:00Z', 'scheduled', 1, true, '2031-01-12T08:00:00Z', array['posts/zz/b.png'])
   returning id into p2;
-  insert into public.marketing_post (ingest_key, ingested_by, text_en, text_ar, channels, scheduled_at, status, is_demo, published_at, media_paths)
-  values ('zz-demo-probe-865-c', 'claude', 'ZZ DEMO probe c', 'تجربة', array['instagram'], '2031-01-19T08:00:00Z', 'published', true, '2031-01-19T08:00:00Z', array['posts/zz/c.png'])
+  insert into public.marketing_post (ingest_key, ingested_by, text_en, text_ar, channels, scheduled_at, status, attempts, is_demo, published_at, media_paths)
+  values ('zz-demo-probe-865-c', 'claude', 'ZZ DEMO probe c', 'تجربة', array['instagram'], '2031-01-19T08:00:00Z', 'scheduled', 1, true, '2031-01-19T08:00:00Z', array['posts/zz/c.png'])
   returning id into p3;
+  -- #874's publish guard refuses a ZZ DEMO post going INTO flight. These three are seeded the way a reconcile
+  -- records a post Postiz already has (attempts > 0, then status published), which the guard does not re-gate.
+  update public.marketing_post set status = 'published' where id in (p1, p2, p3);
   insert into public.marketing_post_platform (post_id, platform, postiz_post_id, platform_post_id) values
     (p1, 'instagram', 'zz-pz-a', 'zz-ig-a'), (p1, 'facebook', 'zz-pz-a2', 'zz-fb-a'), (p2, 'instagram', 'zz-pz-b', 'zz-ig-b'), (p3, 'instagram', 'zz-pz-c', 'zz-ig-c');
   insert into public.marketing_post_metric (post_id, platform, checkpoint, metric, value, unavailable_reason, captured_at) values

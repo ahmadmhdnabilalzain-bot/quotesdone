@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T09:55:54.824Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T10:14:18.439Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -194,7 +194,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (551) =====
+-- ===== TABLES (556) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4437,6 +4437,28 @@ CREATE TABLE IF NOT EXISTS public.marketing_duty_run (
   last_result jsonb
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_first_touch (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  lead_id bigint NOT NULL,
+  utm_source text NOT NULL,
+  utm_medium text,
+  utm_campaign text,
+  utm_content text,
+  landing_path text,
+  first_seen_at timestamp with time zone,
+  post_id bigint,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_goal (
+  month text NOT NULL,
+  platform text NOT NULL,
+  metric text NOT NULL,
+  target numeric NOT NULL,
+  benchmark_source text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_insight_day (
   platform text NOT NULL,
   object_type text NOT NULL,
@@ -4546,6 +4568,27 @@ CREATE TABLE IF NOT EXISTS public.marketing_post (
   publish_started_at timestamp with time zone
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_post_metric (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  post_id bigint NOT NULL,
+  platform text NOT NULL,
+  platform_post_id text,
+  checkpoint text NOT NULL,
+  metric text NOT NULL,
+  value numeric,
+  unavailable_reason text,
+  captured_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_post_platform (
+  post_id bigint NOT NULL,
+  platform text NOT NULL,
+  postiz_post_id text,
+  platform_post_id text,
+  permalink text,
+  tied_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_post_variant (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   post_id bigint NOT NULL,
@@ -4591,6 +4634,16 @@ CREATE TABLE IF NOT EXISTS public.marketing_report (
   no_data_yet boolean NOT NULL,
   handoff_id bigint,
   read_by_ceo_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_scorecard_report (
+  period_key text NOT NULL,
+  month text NOT NULL,
+  kind text NOT NULL,
+  rows integer NOT NULL,
+  result jsonb NOT NULL,
+  owner_seat text DEFAULT 'marketing'::text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -8047,6 +8100,8 @@ ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_pkey PRIMA
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_pkey PRIMARY KEY (check_key);
 ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_pkey PRIMARY KEY (duty);
+ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_pkey PRIMARY KEY (month, platform, metric);
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_pkey PRIMARY KEY (platform, object_id, metric, day);
 ALTER TABLE public.marketing_library ADD CONSTRAINT marketing_library_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_pkey PRIMARY KEY (page_id);
@@ -8054,9 +8109,12 @@ ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_
 ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_pkey PRIMARY KEY (platform, surface, attribute);
 ALTER TABLE public.marketing_platform_spec_source ADD CONSTRAINT marketing_platform_spec_source_pkey PRIMARY KEY (source_url);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_post_platform ADD CONSTRAINT marketing_post_platform_pkey PRIMARY KEY (post_id, platform);
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_pkey PRIMARY KEY (report_date);
+ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_pkey PRIMARY KEY (period_key);
 ALTER TABLE public.marketing_snapshots ADD CONSTRAINT marketing_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.match_eval_runs ADD CONSTRAINT match_eval_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.materials ADD CONSTRAINT materials_pkey PRIMARY KEY (id);
@@ -8333,9 +8391,11 @@ ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_one_row_per_attempt UN
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_slug_key UNIQUE (slug);
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_calendar_token_key UNIQUE (calendar_token);
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_campaign_key_key UNIQUE (campaign_key);
+ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_lead_id_key UNIQUE (lead_id);
 ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_ig_id_key UNIQUE (ig_id);
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_mark_token_key UNIQUE (mark_token);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_key UNIQUE (ingest_key);
+ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_post_id_platform_checkpoint_metric_key UNIQUE (post_id, platform, checkpoint, metric);
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_post_id_platform_seq_key UNIQUE (post_id, platform, seq);
 ALTER TABLE public.mdm_brands ADD CONSTRAINT mdm_brands_name_key UNIQUE (name);
 ALTER TABLE public.mdm_manufacturers ADD CONSTRAINT mdm_manufacturers_name_key UNIQUE (name);
@@ -8647,6 +8707,16 @@ ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connectio
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_failure_names_the_need CHECK ((ok OR (btrim(COALESCE(needs, ''::text)) <> ''::text)));
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_platform_check CHECK ((platform = ANY (ARRAY['postiz'::text, 'meta'::text, 'linkedin'::text])));
 ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_duty_check CHECK ((duty = ANY (ARRAY['access'::text, 'insights'::text, 'ad_spend'::text])));
+ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_landing_path_check CHECK ((landing_path ~ '^/\S{0,200}$'::text));
+ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_utm_campaign_check CHECK ((utm_campaign ~ '^[A-Za-z0-9._-]{1,100}$'::text));
+ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_utm_content_check CHECK ((utm_content ~ '^[A-Za-z0-9._-]{1,100}$'::text));
+ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_utm_medium_check CHECK ((utm_medium ~ '^[A-Za-z0-9._-]{1,100}$'::text));
+ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_utm_source_check CHECK ((utm_source ~ '^[A-Za-z0-9._-]{1,100}$'::text));
+ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_benchmark_source_check CHECK ((length(btrim(benchmark_source)) >= 20));
+ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_metric_check CHECK ((metric ~ '^[a-z0-9_]+$'::text));
+ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_month_check CHECK ((month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text));
+ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_platform_check CHECK ((platform = ANY (ARRAY['facebook'::text, 'instagram'::text, 'linkedin'::text, 'x'::text, 'youtube'::text, 'tiktok'::text])));
+ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_target_check CHECK ((target >= (0)::numeric));
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_metric_check CHECK ((metric ~ '^[a-z0-9_]+$'::text));
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_object_id_check CHECK ((btrim(object_id) <> ''::text));
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_object_type_check CHECK ((object_type = ANY (ARRAY['page'::text, 'account'::text, 'post'::text])));
@@ -8686,6 +8756,12 @@ ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_status_check CHE
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_text_ar_check CHECK ((text_ar ~ '[؀-ۿ]'::text));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_text_en_check CHECK ((btrim(text_en) <> ''::text));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_video_sha256_check CHECK ((video_sha256 ~ '^[0-9a-f]{64}$'::text));
+ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_checkpoint_check CHECK ((checkpoint = ANY (ARRAY['1d'::text, '3d'::text, '7d'::text, '28d'::text])));
+ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_metric_check CHECK ((metric ~ '^[a-z0-9_*]+$'::text));
+ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_platform_check CHECK ((platform = ANY (ARRAY['facebook'::text, 'instagram'::text, 'linkedin'::text, 'x'::text, 'youtube'::text, 'tiktok'::text])));
+ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_value_or_reason CHECK (((value IS NULL) <> (unavailable_reason IS NULL)));
+ALTER TABLE public.marketing_post_platform ADD CONSTRAINT marketing_post_platform_has_an_id CHECK (((postiz_post_id IS NOT NULL) OR (platform_post_id IS NOT NULL)));
+ALTER TABLE public.marketing_post_platform ADD CONSTRAINT marketing_post_platform_platform_check CHECK ((platform = ANY (ARRAY['facebook'::text, 'instagram'::text, 'linkedin'::text, 'x'::text, 'youtube'::text, 'tiktok'::text])));
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_arabic_is_arabic CHECK (((language = 'en'::text) OR (caption ~ '[؀-ۿ]'::text)));
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_caption_check CHECK ((btrim(caption) <> ''::text));
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_hashtags_check CHECK (fn_marketing_hashtags_ok(hashtags));
@@ -8710,6 +8786,10 @@ ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_source_u
 ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_status_check CHECK ((status = ANY (ARRAY['new'::text, 'listed'::text, 'sent'::text, 'replied'::text, 'converted'::text, 'declined'::text])));
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_check CHECK ((window_to > window_from));
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_figures_check CHECK ((jsonb_typeof(figures) = 'object'::text));
+ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_kind_check CHECK ((kind = ANY (ARRAY['weekly'::text, 'month_end'::text])));
+ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_month_check CHECK ((month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text));
+ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_owner_seat_check CHECK ((owner_seat = 'marketing'::text));
+ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_period_key_check CHECK ((period_key ~ '^\d{4}-(W\d{2}|\d{2}-end)$'::text));
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_check CHECK ((sender = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_direction_check CHECK ((direction = ANY (ARRAY['up'::text, 'down'::text])));
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_check CHECK ((domain = ANY (ARRAY['demand'::text, 'supply'::text, 'liquidity'::text, 'revenue'::text, 'quality'::text, 'cost'::text, 'ops'::text])));
@@ -9090,8 +9170,12 @@ ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_answer
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_key_fkey FOREIGN KEY (class_key) REFERENCES llm_failure_class(class_key);
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_opened_class_fkey FOREIGN KEY (opened_class) REFERENCES llm_failure_class(class_key);
+ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
+ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE SET NULL;
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_prospect_id_fkey FOREIGN KEY (prospect_id) REFERENCES marketing_prospect(id);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES marketing_campaign(id);
+ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE CASCADE;
+ALTER TABLE public.marketing_post_platform ADD CONSTRAINT marketing_post_platform_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE CASCADE;
 ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_document_id_fkey FOREIGN KEY (document_id) REFERENCES documents(id);
@@ -9528,10 +9612,12 @@ CREATE INDEX llm_cache_emb_idx ON public.llm_cache USING ivfflat (embedding_gte 
 CREATE INDEX llm_cache_expiry_idx ON public.llm_cache USING btree (expires_at);
 CREATE INDEX llm_calls_created_idx ON public.llm_calls USING btree (created_at DESC);
 CREATE INDEX llm_calls_fn_idx ON public.llm_calls USING btree (fn, created_at DESC);
+CREATE INDEX marketing_first_touch_post ON public.marketing_first_touch USING btree (post_id) WHERE (post_id IS NOT NULL);
 CREATE INDEX marketing_outreach_message_day_idx ON public.marketing_outreach_message USING btree (listed_on);
 CREATE UNIQUE INDEX marketing_outreach_message_one_first_idx ON public.marketing_outreach_message USING btree (prospect_id) WHERE (kind = 'first'::text);
 CREATE INDEX marketing_post_campaign_idx ON public.marketing_post USING btree (campaign_id);
 CREATE INDEX marketing_post_due_idx ON public.marketing_post USING btree (scheduled_at) WHERE (status = 'scheduled'::text);
+CREATE INDEX marketing_post_metric_post ON public.marketing_post_metric USING btree (post_id, platform);
 CREATE UNIQUE INDEX marketing_prospect_one_person_idx ON public.marketing_prospect USING btree (lower(full_name), lower(company));
 CREATE UNIQUE INDEX marketing_snap_day ON public.marketing_snapshots USING btree (snapshot_date);
 CREATE INDEX materials_cat ON public.materials USING btree (category);
@@ -22268,6 +22354,7 @@ AS $function$
     ('ops_knowledge.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
     ('ceo_knowledge.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
     ('cad_read_jobs.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a work-queue pointer to the customer''s original drawing in drawing-files, which is backed up through inquiries.drawing_file_path; the job holds no second copy'),
+    ('marketing_first_touch.landing_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): the site page (a URL path such as /en/suppliers) a supplier first landed on from a post, not a stored file; the row is in the daily table export'),
     ('demo-assets',                          'bucket', null, false, null, 'EXEMPT (not a file or not ours): a rehearsal fixture (one sample recording), never a record'),
 
     -- ── (c) EXEMPT (derived): no registry source. The one derived thing left out is a folder, not a
@@ -42136,6 +42223,44 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_first_touch_record(p_lead_id bigint, p_touch jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_ok constant text := '^[A-Za-z0-9._-]{1,100}$';
+  v_src text; v_med text; v_cmp text; v_cnt text; v_path text; v_at timestamptz; v_post bigint; v_id bigint;
+begin
+  if p_lead_id is null or p_touch is null or jsonb_typeof(p_touch) <> 'object' then
+    return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'no first touch');
+  end if;
+  v_src := nullif(btrim(p_touch->>'utm_source'), '');     if v_src !~ v_ok then v_src := null; end if;
+  v_med := nullif(btrim(p_touch->>'utm_medium'), '');     if v_med !~ v_ok then v_med := null; end if;
+  v_cmp := nullif(btrim(p_touch->>'utm_campaign'), '');   if v_cmp !~ v_ok then v_cmp := null; end if;
+  v_cnt := nullif(btrim(p_touch->>'utm_content'), '');    if v_cnt !~ v_ok then v_cnt := null; end if;
+  v_path := nullif(btrim(p_touch->>'landing_path'), '');  if v_path !~ '^/\S{0,200}$' then v_path := null; end if;
+  if v_src is null then
+    return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'no valid utm_source');
+  end if;
+  begin
+    v_at := (p_touch->>'first_seen_at')::timestamptz;
+    if v_at < now() - interval '400 days' or v_at > now() + interval '1 hour' then v_at := null; end if;
+  exception when others then v_at := null;
+  end;
+  if v_med = 'social' and v_cnt is not null then
+    select id into v_post from public.marketing_post where ingest_key = lower(v_cnt);
+  end if;
+  insert into public.marketing_first_touch (lead_id, utm_source, utm_medium, utm_campaign, utm_content, landing_path, first_seen_at, post_id)
+  values (p_lead_id, lower(v_src), v_med, v_cmp, v_cnt, v_path, v_at, v_post)
+  on conflict (lead_id) do nothing
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'recorded', v_id is not null, 'post_id', v_post);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_founder_email()
  RETURNS text
  LANGUAGE sql
@@ -42501,6 +42626,26 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_post_checkpoints_due(p_limit integer DEFAULT 25)
+ RETURNS TABLE(post_id bigint, platform text, platform_post_id text, postiz_post_id text, checkpoint text, published_at timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select pp.post_id, pp.platform, pp.platform_post_id, pp.postiz_post_id, c.checkpoint, p.published_at
+    from public.marketing_post_platform pp
+    join public.marketing_post p on p.id = pp.post_id
+   cross join (values ('1d', 1), ('3d', 3), ('7d', 7), ('28d', 28)) c(checkpoint, days)
+   where p.status = 'published' and not p.is_demo
+     and now() >= p.published_at + make_interval(days => c.days)
+     and now() <  p.published_at + make_interval(days => c.days * 2 + 1)
+     and not exists (select 1 from public.marketing_post_metric m
+                      where m.post_id = pp.post_id and m.platform = pp.platform and m.checkpoint = c.checkpoint)
+   order by p.published_at, c.days
+   limit greatest(1, least(coalesce(p_limit, 25), 100))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_post_guard_publish()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -42783,6 +42928,84 @@ begin
   update public.marketing_report set handoff_id = v_hid where report_date = v_local::date;
   return jsonb_build_object('ok', true, 'reported', true, 'report_date', v_local::date, 'handoff_id', v_hid, 'no_data_yet', v_none);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_scorecard(p_month text, p_include_demo boolean DEFAULT false)
+ RETURNS TABLE(platform text, rank integer, post_id bigint, ingest_key text, title text, checkpoint text, metric text, value numeric, target numeric, account_median numeric, verdict text, benchmark_source text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with posts as (
+    select p.id, p.ingest_key, p.title
+      from public.marketing_post p
+     where to_char(coalesce(p.published_at, p.scheduled_at) at time zone 'Asia/Dubai', 'YYYY-MM') = p_month
+       and (p_include_demo or not p.is_demo)
+  ), latest as (
+    select distinct on (m.post_id, m.platform, m.metric) m.post_id, m.platform, m.checkpoint, m.metric, m.value, m.captured_at
+      from public.marketing_post_metric m join posts on posts.id = m.post_id
+     where m.value is not null
+     order by m.post_id, m.platform, m.metric,
+              case m.checkpoint when '28d' then 4 when '7d' then 3 when '3d' then 2 else 1 end desc
+  ), derived as (
+    select l.post_id, l.platform, l.checkpoint, l.metric, l.value from latest l
+    union all
+    select l.post_id, l.platform, l.checkpoint, 'engagement_rate_by_followers', round(l.value / f.value, 6)
+      from latest l
+      cross join lateral (select d.value from public.marketing_insight_day d
+                           where d.platform = 'instagram' and d.metric = 'followers'
+                             and d.day <= (l.captured_at at time zone 'Asia/Dubai')::date
+                           order by d.day desc limit 1) f
+     where l.platform = 'instagram' and l.metric = 'total_interactions' and f.value > 0
+    union all
+    select pp.post_id, pp.platform, null, 'registrations', count(t.id)::numeric
+      from public.marketing_post_platform pp join posts on posts.id = pp.post_id
+      left join public.marketing_first_touch t on t.post_id = pp.post_id and t.utm_source = pp.platform
+     group by pp.post_id, pp.platform
+  ), med as (
+    select d.platform, d.metric, percentile_cont(0.5) within group (order by d.value)::numeric as median
+      from derived d group by d.platform, d.metric
+  ), scored as (
+    select d.*, round(md.median, 6) as median, g.target, g.benchmark_source,
+           case when g.target is not null then (d.value >= g.target) else (d.value >= md.median) end as good
+      from derived d
+      join med md on md.platform = d.platform and md.metric = d.metric
+      left join public.marketing_goal g on g.month = p_month and g.platform = d.platform and g.metric = d.metric
+  ), post_score as (
+    select s.post_id, s.platform,
+           max(s.value) filter (where s.metric = 'registrations') as regs,
+           count(*) filter (where s.metric <> 'registrations' and s.value >= s.median) as at_or_above
+      from scored s group by s.post_id, s.platform
+  )
+  select s.platform,
+         (dense_rank() over (partition by s.platform order by coalesce(ps.regs, 0) desc, ps.at_or_above desc, s.post_id))::int,
+         s.post_id, p.ingest_key, p.title, s.checkpoint, s.metric, s.value, s.target, s.median,
+         case when s.target is not null then case when s.good then 'met target' else 'below target' end
+              else case when s.good then 'at or above own median' else 'below own median' end || ' (no sourced target)' end,
+         s.benchmark_source
+    from scored s join posts p on p.id = s.post_id join post_score ps on ps.post_id = s.post_id and ps.platform = s.platform
+   order by s.platform, 2, s.metric
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_scorecard_publish(p_kind text, p_period_key text, p_month text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_rows int; v_new boolean;
+begin
+  if p_kind not in ('weekly', 'month_end') then raise exception 'kind must be weekly or month_end'; end if;
+  insert into public.marketing_scorecard_report (period_key, month, kind, rows, result)
+  select p_period_key, p_month, p_kind, count(*), coalesce(jsonb_agg(to_jsonb(s)), '[]'::jsonb)
+    from public.fn_marketing_scorecard(p_month) s
+  on conflict (period_key) do nothing
+  returning rows into v_rows;
+  v_new := v_rows is not null;
+  return jsonb_build_object('ok', true, 'stored', v_new, 'period_key', p_period_key, 'rows', v_rows);
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_social_hand_to_human(p_conversation_id bigint, p_reason text)
@@ -48451,6 +48674,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -48621,16 +48854,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -60868,6 +61091,8 @@ AS $function$
     ('marketing_article','marketing'), ('marketing_prospect','marketing'), ('marketing_outreach_message','marketing'),
     ('marketing_campaign','marketing'), ('marketing_post_variant','marketing'),
     ('marketing_platform_spec','marketing'), ('marketing_platform_spec_source','marketing'),
+    ('marketing_post_platform','marketing'), ('marketing_post_metric','marketing'), ('marketing_first_touch','marketing'),
+    ('marketing_goal','marketing'), ('marketing_scorecard_report','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
 $function$
@@ -69853,6 +70078,8 @@ ALTER TABLE public.marketing_article ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_campaign ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_connection_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_duty_run ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_first_touch ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_goal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_insight_day ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_meta_page ENABLE ROW LEVEL SECURITY;
@@ -69860,9 +70087,12 @@ ALTER TABLE public.marketing_outreach_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_platform_spec ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_platform_spec_source ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_post ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_post_metric ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_post_platform ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_post_variant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_prospect ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_report ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_scorecard_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_eval_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
@@ -70148,15 +70378,20 @@ CREATE POLICY marketing_article_service_role_only ON public.marketing_article AS
 CREATE POLICY marketing_campaign_service_role_only ON public.marketing_campaign AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_connection_check_service_role_only ON public.marketing_connection_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_first_touch_service_role_only ON public.marketing_first_touch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_goal_service_role_only ON public.marketing_goal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_insight_day_service_role_only ON public.marketing_insight_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_meta_page_service_role_only ON public.marketing_meta_page AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_outreach_message_service_role_only ON public.marketing_outreach_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_platform_spec_service_role_only ON public.marketing_platform_spec AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_platform_spec_source_service_role_only ON public.marketing_platform_spec_source AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_post_service_role_only ON public.marketing_post AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_post_metric_service_role_only ON public.marketing_post_metric AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_post_platform_service_role_only ON public.marketing_post_platform AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_post_variant_service_role_only ON public.marketing_post_variant AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_prospect_service_role_only ON public.marketing_prospect AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_report_service_role_only ON public.marketing_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_scorecard_report_service_role_only ON public.marketing_scorecard_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY otp_blocked_prefix_service_role_only ON public.otp_blocked_prefix AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
