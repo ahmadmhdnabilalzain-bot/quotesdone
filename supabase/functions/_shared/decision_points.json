@@ -548,7 +548,7 @@
     {
      "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
      "must_contain": [
-      "and coalesce(active,true) and lower(btrim(name)) = c"
+      "where coalesce(active,true) and lower(btrim(name)) = c"
      ],
      "must_not_contain": [
       "lower(name) like '%'||c||'%'",
