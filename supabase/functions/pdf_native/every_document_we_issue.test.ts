@@ -60,7 +60,7 @@ const REGEN: Standardised = {
   total: 25920, price_basis: 'ex_vat',
   lines: [{ line_no: 1, description: 'ZZ DEMO split AC unit', qty: 4, unit: 'nos', unit_price: 6480, amount: 25920, trade: 'hvac',
     spec: [{ code: 'capacity', label_en: 'Capacity', label_ar: 'السعة', value: '2.5', unit: 'TR', unit_ar: 'طن تبريد', source: 'supplier_portal' }] }],
-  terms: { delivery: '21 days', installation: 'Included', warranty: '2 years — parts and labour', validity: '30 days', payment_terms: '50% advance', exclusions: null },
+  terms: { delivery: '21 days', installation: 'Included', installation_included: true, installation_detail: null, warranty: '2 years — parts and labour', validity: '30 days', payment_terms: '50% advance', exclusions: null },
   prepared_by: 'sales_engineer', prepared_at: '2026-09-22T08:00:00Z',
 };
 const HASH = '94151f940a4567944ff04f362e8c8c3ae6ad87d96cbb7ef280f505420aa11bb2';
@@ -87,12 +87,12 @@ const ROW_AR: ConversationRow = { ...ROW, source_id: '999002', subject: 'ZZ DEMO
 
 for (const l of ['en', 'ar'] as Lang[]) {
   const q = F.liveQuotes()[0];
-  add('quotation', l, QD.quoteDocument({ quote: q, inquiry: F.INQUIRY, items: q.items, letter: QD.supplierLabel(0), lang: l, maskNames: F.identities(), requestUrl: portalLink(l, F.INQUIRY.id, q.id), ...on(l) }).body, [q, F.INQUIRY]);
+  add('quotation', l, F.reasoned((arTexts) => QD.quoteDocument({ quote: q, inquiry: F.INQUIRY, items: q.items, letter: QD.supplierLabel(0), lang: l, maskNames: F.identities(), requestUrl: portalLink(l, F.INQUIRY.id, q.id), ...on(l) , arTexts })).body, [q, F.INQUIRY]);
   const lab = F.labelled();
   // deno-lint-ignore no-explicit-any
   const a: any = deterministicCompare(lab, l); a.all_quotes = rosterOf(lab, a.top3); a.total_quotes = lab.length; a.technical = F.HVAC_TECHNICAL;
-  add('comparison_report', l, QD.compareDocument({ analysis: a, inquiry: F.INQUIRY, lang: l, maskNames: F.identities(), portalUrl: portalLink(l, F.INQUIRY.id), linkFor: (x: string) => portalLink(l, F.INQUIRY.id, x), ...on(l) }).body, [F.QUOTES, F.INQUIRY, F.HVAC_TECHNICAL]);
-  add('request_brief', l, QD.inquiryDocument({ inquiry: F.REQUEST, lang: l, portalUrl: 'https://quotesdone.ae/portal', ...on(l) }).body, [F.REQUEST]);
+  add('comparison_report', l, F.reasoned((arTexts) => QD.compareDocument({ analysis: a, inquiry: F.INQUIRY, lang: l, maskNames: F.identities(), portalUrl: portalLink(l, F.INQUIRY.id), linkFor: (x: string) => portalLink(l, F.INQUIRY.id, x), ...on(l) , arTexts })).body, [F.QUOTES, F.INQUIRY, F.HVAC_TECHNICAL]);
+  add('request_brief', l, F.reasoned((arTexts) => QD.inquiryDocument({ inquiry: F.REQUEST, lang: l, portalUrl: 'https://quotesdone.ae/portal', ...on(l) , arTexts })).body, [F.REQUEST]);
   add('regenerated_quotation', l, pdfBody(REGEN, { inquiry: REGEN_INQ, letter: 'A', lang: l }), [REGEN, REGEN_INQ], l === 'ar' ? '25,920.00' : 'ZZ DEMO split AC unit');
   add('reveal_invoice', l, revealInvoiceDocument(SALE, l), SALE, 'ZZDEMO-0001');
   add('reveal_receipt', l, revealReceiptDocument(SALE, l), SALE, 'ZZDEMO-0001');

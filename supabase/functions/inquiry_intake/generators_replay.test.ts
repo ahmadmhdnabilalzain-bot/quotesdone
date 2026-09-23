@@ -11,7 +11,6 @@
 //
 // GENERATORS is production's category_specs row for `generators`, read 14 Sep 2026.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { detectCat, detectTrades } from './classify.ts';
 import { interviewStep, type SpecField, type InterviewState } from './interview.ts';
 import { requirementsStep, toStored, validateStored, type Answers } from '../_shared/intake_requirements.ts';
 
@@ -47,13 +46,6 @@ function replay(turns: string[], lang: 'en' | 'ar') {
   }
   return { asked, stored: toStored('generators', req, NOW), postable, details: st.details };
 }
-
-Deno.test('"I need Generators work (generators)" is the generators trade — English and Arabic', () => {
-  assertEquals(detectCat('I need Generators work (generators)'), 'generators');
-  assertEquals(detectTrades('I need Generators work (generators)'), ['generators']);
-  assertEquals(detectCat('أحتاج مولد كهرباء احتياطي لفيلا في دبي'), 'generators');
-  assertEquals(detectCat('diesel genset for a warehouse'), 'generators');
-});
 
 Deno.test('replay: the founder\'s request reaches a postable request, with a next question on every turn before that', () => {
   const r = replay([

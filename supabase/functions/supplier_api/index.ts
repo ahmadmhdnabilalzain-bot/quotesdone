@@ -8,12 +8,16 @@ import { arDays } from '../_shared/ar_days.ts';
 // forwarded and served back. See _shared/malware.ts for why the lookup blocks and the analysis does not.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { quoteTerms, reasonQuoteAspects } from '../_shared/reasoned_suppliers.ts';
+import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { CANONICAL_ORIGIN, siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
-import { serviceVocab, servicesState, servicesResolve, servicesRewrite, servicesSaveRewrite, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
+import { servicesState, servicesResolve, servicesRewrite, servicesSaveRewrite, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
 import { boqWithArabic } from '../_shared/boq_arabic.ts';
-import { arTrade } from '../_shared/trade_glossary_ar.ts';
+import { boqReadings, liveReadingStore } from '../_shared/reasoned_documents.ts';
+import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
@@ -21,12 +25,13 @@ import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trade
 import { readExpiry } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { approve, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { requireInternal } from '../_shared/internal_auth.ts';
+import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
 import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import type { Attr } from '../_shared/line_specs/model.ts';
 import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, unionOf, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
 import type { Line } from '../_shared/line_specs/assess.ts';
-import { defaultDeps } from '../_shared/think.ts';
 import type { Ctx } from '../_shared/line_specs/workflow.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
@@ -42,7 +47,7 @@ import { drawingWithheld, signRedactedDrawings } from '../_shared/drawing_pages.
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
 import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction, safeInquiry } from './quote_review_actions.ts';
 import { supabaseReviewRepo } from './quote_review_flow.ts';
-import { jobNo, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
+import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
 import { issueAsMissing, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from './submit_review.ts';
 import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLeads } from '../_shared/sanctioned.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -244,6 +249,11 @@ async function kickDelivery() {
 const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: sup.locale || null });
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
+  // WHICH CATEGORY ASPECTS THE QUOTE STATES is reasoned (think(), reasoned_suppliers.ts; founder_instruction
+  // 886-903), after the response so a submission never waits on a model. Until the reading lands,
+  // trg_quote_quality keeps the category verdict 'needs_reasoning' (not a pass); held, it is queued and
+  // applied by fn_reason_apply_sql__trg_quote_quality when the hold lifts.
+  runtimeWaitUntil()?.(reasonQuoteAspects(defaultDeps(admin, 'supplier_api'), qid).catch((e) => console.error('quote aspects not read:', String(e))));
   const r = await acceptRule(qid);
   // deno-lint-ignore no-explicit-any
   let coaching: any = null;
@@ -341,10 +351,69 @@ async function recordServicesCrossCheck(supplierId: number, companyName: unknown
   } catch (_e) { /* the cross-check is evidence, not a gate - it must never break registration */ }
   return cc;
 }
+/** The regenerated quotation's renderer: the standard quotation (quoteDocument via workflow.ts pdfDoc) in the
+ * supplier's language, under the one alias this supplier carries on this job. An Arabic quotation whose lines are
+ * not all translated by reasoning yet is not rendered: 'arabic_pending' (decision point trade_glossary_ar). */
+// deno-lint-ignore no-explicit-any
+function regenRender(q: any, sup: any, inqRow: any): Render {
+  return async (rec) => {
+    const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null;
+    const [{ data: safeInq }, { data: matches }] = await Promise.all([
+      admin.from('inquiries_supplier_safe').select('emirate').eq('id', q.inquiry_id).maybeSingle(),
+      admin.from('inquiry_matches').select('id,supplier_id').eq('inquiry_id', q.inquiry_id).order('id', { ascending: true }),
+    ]);
+    const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
+    const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
+    const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
+    const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => pdfDoc(rec, { inquiry: { id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no ?? null, category: inqRow?.category ?? null, emirate: safeInq?.emirate ?? null }, letter, lang, arTexts }), { subject: { quote_id: rec.quote_id, kind: 'regenerated_quotation' } });
+    if (!d.doc) {
+      // The quote waits by its own id, whoever filed the lines first; the replay renders it when they are all in.
+      if (d.missing.length) await admin.rpc('fn_arabic_document_wait', { p_quote: String(rec.quote_id), p_texts: d.missing });
+      return 'arabic_pending';
+    }
+    const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, ...d.doc.body, bucket: 'quote-files', folder: `quotes/${sup.id}/${q.inquiry_id}/regenerated`, name: `quotation_${String(rec.quote_id).slice(0, 8)}_option${rec.option_no}_${lang}` }) });
+    const j = await r.json().catch(() => null);
+    return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;
+  };
+}
+
+/** THE REPLAY'S EFFECT (internal credential only, from _shared/reasoned_delivery.ts): a regenerated Arabic quotation
+ * that waited for its reasoned translation is rendered now and its approval request sent (workflow.ts finishArabic). */
+async function arabicFinish(quoteId: string): Promise<Response> {
+  if (!UUID_RE.test(quoteId)) return J({ ok: false, code: 'not_found' }, 404);
+  const repo = supabaseRepo(admin, { dispatch: kickDelivery });
+  const q = await repo.quote(quoteId);
+  if (!q) return J({ ok: false, code: 'not_found' }, 404);
+  const { data: sup } = await admin.from('leads').select('id,locale,whatsapp,phone,claimed_by').eq('id', q.supplier_id).maybeSingle();
+  if (!sup) return J({ ok: false, code: 'not_found' }, 404);
+  const { data: inqRow } = await admin.from('inquiries').select('category,spec,rfq_no').eq('id', q.inquiry_id).maybeSingle();
+  const { count: optCount } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiry_id).eq('supplier_id', sup.id);
+  const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(inqRow?.spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1 };
+  const out = await finishArabic(repo, quoteId, supplierOf(sup, String(sup.claimed_by || '')), ctx, regenRender(q, sup, inqRow));
+  // Done, or nothing waits any more: the waiter row goes. still_pending keeps it for the next replay.
+  if (out.ok || out.code === 'not_pending' || out.code === 'not_found') await admin.from('arabic_document_waiter').delete().eq('quote_id', quoteId);
+  else {
+    // A render that fails is counted; after 5 it stops being replayed (fn_arabic_waiters_ready) and the sales engineer is told.
+    const { data: w } = await admin.from('arabic_document_waiter').select('attempts').eq('quote_id', quoteId).maybeSingle();
+    const attempts = Number(w?.attempts ?? 0) + 1;
+    await admin.from('arabic_document_waiter').update({ attempts, last_tried_at: new Date().toISOString() }).eq('quote_id', quoteId);
+    if (attempts >= 5) await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'arabic_quotation_render_failed', status: 'pending', risk: 'medium',
+      title: 'The Arabic regenerated quotation could not be rendered after 5 tries', detail: { quote_id: quoteId, last: out }, target_table: 'quotes', target_id: quoteId });
+  }
+  return J(out, out.ok ? 200 : 409);
+}
+
 // Named so the quotation review can run this same function in-process with the caller's own session.
 const handle = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
+    // The one internal door, before any session is asked for: the replay of a held Arabic translation.
+    const peek = await req.clone().json().catch(() => ({}));
+    if (peek?.__secret && peek.action === 'spec_arabic_finish') {
+      const auth = await requireInternal(admin, String(peek.__secret), 'supplier_api');
+      if (!auth.ok) return J({ error: 'forbidden' }, 403);
+      return await arabicFinish(String(peek.quote_id || ''));
+    }
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
@@ -374,7 +443,10 @@ const handle = async (req: Request): Promise<Response> => {
         if (!sc.ok) return { ok: false as const, status: sc.status, code: String(sc.body.error || 'file_refused'), message: String(sc.body.message || 'That file cannot be accepted.') };
         return { ok: true as const, bytes: sc.result.bytes, mime: sc.result.mime, name: safeFilename(filename, sc.result.mime) };
       };
-      const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: sup.locale ?? null }, email, self, body, repo: supabaseReviewRepo(admin), scan });
+      const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: sup.locale ?? null }, email, self, body, repo: supabaseReviewRepo(admin), scan,
+        readTerms: async (text: string) => (await quoteTerms(defaultDeps(admin, 'supplier_api'), { text })).value,
+        // The review reads the quotation the way the hold gate will (reasoned_matching.ts readQuote); held: nothing is read, every detail is asked.
+        readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id) });
       return J(out.json, out.status);
     }
 
@@ -1021,10 +1093,8 @@ const handle = async (req: Request): Promise<Response> => {
       // Sign every redacted drawing page for the whole inbox page at once. A page that cannot be signed
       // is counted and raised rather than dropped in silence; the pages that did sign are still served.
       const pagesOf = await signRedactedDrawings(admin, (inq || []).map((i) => ({ id: i.id, paths: i.drawing_redacted_paths })));
-      // The BOQ read in Arabic (audit 21 Sep 2026, findings 26/27): section_ar / description_ar derived from
-      // the sales engineer's own service vocabulary, once per inbox read, only when a BOQ is served.
-      const vocab = (inq || []).some((x: any) => x.boq) ? await serviceVocab(admin) : [];
       const out: any[] = [];
+      const gatedBoqs: unknown[] = [];
       for (const i of (inq || [])) {
         const dp = pagesOf[String(i.id)] || { urls: [], expected: 0, served: 0, failed: 0 };
         const pages: string[] = dp.urls;
@@ -1065,10 +1135,12 @@ const handle = async (req: Request): Promise<Response> => {
         const gated = revealed || !ownerResolved ? null : inboxBoq(i.boq, buyerName, seeds, hits);
         const boqWithheld = gated ? gated.withheld : false;
         const sBoq = revealed ? i.boq : (gated ? gated.boq : null);
-        const sBoqAr = sBoq ? boqWithArabic(sBoq as any, vocab) : null;
-        // The scope in Arabic ONLY when the trade glossary reads every word of it (audit 21 Sep 2026, finding 26);
-        // a partial reading would be a guessed scope, so it stays null and the portal shows the customer's words.
-        const sSummaryAr = sSummary ? (() => { const t = arTrade(sSummary); return t.complete && t.ar && t.ar !== sSummary ? t.ar : null; })() : null;
+        const sBoqAr = sBoq || null;   // its Arabic headings are added after the loop
+        if (gated?.boq) gatedBoqs.push(gated.boq);   // only a gated BOQ's headings may be reasoned over
+        // The scope in Arabic is the REASONED translation of the (already scrubbed) summary, filled in after the
+        // loop in one batch (decision point trade_glossary_ar); until it exists — under the model hold — it stays
+        // null and the portal shows the customer's own words, never a partial or word-by-word reading.
+        const sSummaryAr: string | null = null;
         // ANONYMITY FIX 29 Jul 2026. budget is an 80-char FREE-TEXT box, not a number ("around
         // 250k, call Ahmad on 050 123 4567"), and it was the one customer-authored field on this
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
@@ -1079,6 +1151,22 @@ const handle = async (req: Request): Promise<Response> => {
         const sBudget = revealed ? i.budget : (budgetGate ? budgetGate.boq : null);
         const budgetWithheld = budgetGate ? budgetGate.withheld : false;
         out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+      }
+      // The BOQ read in Arabic (audit 21 Sep 2026, findings 26/27). Which Arabic heading a section means is
+      // reasoned (decision point documents.boq_arabic) over the GATED BOQs only — a revealed BOQ is the customer's
+      // unscrubbed text, so it only looks up readings already remembered and never adds a heading of its own.
+      // Under the hold an unread heading keeps its original words.
+      const served = out.filter((o) => o.boq);
+      if (served.length) {
+        const readings = await boqReadings(defaultDeps(admin, 'supplier_api'), liveReadingStore(admin), gatedBoqs, served.map((o) => o.boq)).catch(() => ({} as Record<string, string>));
+        for (const o of served) o.boq = boqWithArabic(o.boq, readings);
+      }
+      const summaries = out.map((o) => o.summary).filter((x): x is string => typeof x === 'string' && !!x.trim());
+      if (summaries.length) {
+        try {
+          const ar = await arabicOf(defaultDeps(admin, 'supplier_api'), { texts: summaries, fileOnly: true });   // a list never waits on a model
+          for (const o of out) if (typeof o.summary === 'string' && ar.map[o.summary.trim()]) o.summary_ar = ar.map[o.summary.trim()];
+        } catch (_e) { /* the portal shows the customer's own words */ }
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
@@ -1111,6 +1199,10 @@ const handle = async (req: Request): Promise<Response> => {
       // and so changes the hash too. The cache row is never read for anything but the file's location.
       const hashOf = async (input: unknown) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(input))))).map((b) => b.toString(16).padStart(2, '0')).join('');
       const sign = async (b: string, p: string) => { try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
+      // An Arabic document with a line not yet translated by reasoning (the founder's model hold): held, not half-printed.
+      const ARABIC_HELD_REPLY = { ok: false, held: true, code: 'arabic_held',
+        message: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
+        message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.' };
       const served = async (kind: 'inquiry' | 'quotation', subject: string, hash: string, build: () => Promise<{ doc: Record<string, unknown>; ref: string } | null>) => {
         const { data: hit } = await admin.from('supplier_document_cache').select('bucket,path,content_hash').eq('kind', kind).eq('subject_id', subject).eq('supplier_id', sup.id).eq('lang', lang).maybeSingle();
         if (hit && hit.content_hash === hash) { const url = await sign(hit.bucket, hit.path); if (url) return { url, cached: true }; }
@@ -1149,7 +1241,14 @@ const handle = async (req: Request): Promise<Response> => {
         const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
         const inquiry = { id: String(q.inquiry_id), rfq_no: spec?.rfq_no ?? null, category: inq?.category ?? null, emirate: inq?.emirate ?? null, summary: null };
         const ref = quoteRef(inquiry, letter);
-        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote, layout: DOC_VERSION }), async () => ({ doc: quoteDocument({ quote: done.quote, inquiry, items, letter, lang }).body as Record<string, unknown>, ref }));
+        // The supplier's own words in Arabic are reasoned; a line not yet translated holds the Arabic document.
+        let heldAr = false;
+        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote, layout: DOC_VERSION }), async () => {
+          const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => quoteDocument({ quote: done.quote, inquiry, items, letter, lang, arTexts }), { subject: { quote_id: q.id } });
+          if (!d.doc) { heldAr = true; return null; }
+          return { doc: d.doc.body as Record<string, unknown>, ref };
+        });
+        if (heldAr) return J(ARABIC_HELD_REPLY, 202);
         if (r && 'error' in r) return J({ error: 'You have generated many PDFs recently. Please try again shortly.', code: 'rate_limited' }, 429);
         return r ? J({ ok: true, url: r.url, ref, lang, cached: r.cached }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
       }
@@ -1172,7 +1271,13 @@ const handle = async (req: Request): Promise<Response> => {
           documents: d.documents.map((x: any) => ({ kind: x.kind, name: x.name, lines: x.lines })), drawing_pages_failed: d.drawing_pages_failed };
         const ref = quoteRef(row, 'RFQ');
         // The signed drawing URLs are not on the row, so the hash is stable across signings.
-        const r = await served('inquiry', iid, await hashOf({ row, layout: DOC_VERSION }), async () => ({ doc: inquiryDocument({ inquiry: row, lang, portalUrl: CANONICAL_ORIGIN + (lang === 'ar' ? '/ar/portal' : '/portal') }).body as Record<string, unknown>, ref }));
+        let heldAr = false;
+        const r = await served('inquiry', iid, await hashOf({ row, layout: DOC_VERSION }), async () => {
+          const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => inquiryDocument({ inquiry: row, lang, portalUrl: CANONICAL_ORIGIN + (lang === 'ar' ? '/ar/portal' : '/portal'), arTexts }), { subject: { inquiry_id: iid } });
+          if (!d.doc) { heldAr = true; return null; }
+          return { doc: d.doc.body as Record<string, unknown>, ref };
+        });
+        if (heldAr) return J(ARABIC_HELD_REPLY, 202);
         if (r && 'error' in r) return J({ error: 'You have generated many PDFs recently. Please try again shortly.', code: 'rate_limited' }, 429);
         return r ? J({ ok: true, url: r.url, ref, job_no: d.job, lang, cached: r.cached }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
       }
@@ -1335,20 +1440,7 @@ const handle = async (req: Request): Promise<Response> => {
         // The regenerated quotation is the standard quotation (quoteDocument, via workflow.ts pdfBody) in
         // the supplier's own language, under the one alias this supplier carries on this job (the rule
         // quote_pdf above uses). Audit 22 Sep 2026, finding 1: it was a blank page.
-        const render: Render = async (rec) => {
-          const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null;
-          const [{ data: safeInq }, { data: matches }] = await Promise.all([
-            admin.from('inquiries_supplier_safe').select('emirate').eq('id', q.inquiry_id).maybeSingle(),
-            admin.from('inquiry_matches').select('id,supplier_id').eq('inquiry_id', q.inquiry_id).order('id', { ascending: true }),
-          ]);
-          const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
-          const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
-          const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
-          const doc = pdfBody(rec, { inquiry: { id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no ?? null, category: inqRow?.category ?? null, emirate: safeInq?.emirate ?? null }, letter, lang });
-          const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, ...doc, bucket: 'quote-files', folder: `quotes/${sup.id}/${q.inquiry_id}/regenerated`, name: `quotation_${String(rec.quote_id).slice(0, 8)}_option${rec.option_no}_${lang}` }) });
-          const j = await r.json().catch(() => null);
-          return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;
-        };
+        const render = regenRender(q, sup, inqRow);
         const out = await fillIn(repo, qid, supplierOf(sup, email), body.values && typeof body.values === 'object' ? body.values : {}, ctx, render);
         if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 400);
         if (out.complete) return J({ ...out, pdf_url: await signed(out.pdf?.bucket, out.pdf?.path) });
@@ -1376,7 +1468,8 @@ const handle = async (req: Request): Promise<Response> => {
             label_en: 'We could not read this job just now, so we have not sent your quotation. Please confirm your approval again in a moment.',
             label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، ولذلك لم نرسل عرضكم. يُرجى تأكيد الموافقة مرة أخرى بعد قليل.' }] };
           const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
-          const rvw = reviewQuotation(inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)));
+          // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
+          const rvw = reviewQuotation(inqSafe, await readWorking(defaultDeps(admin, 'supplier_api'), inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)), 'review:' + inqSafe.id + ':' + sup.id));
           if (rvw.approved) return null;
           return { missing: rvw.issues.map(issueAsMissing), issues: rvw.issues };
         });
@@ -1485,9 +1578,10 @@ const handle = async (req: Request): Promise<Response> => {
       const reviewRow = await supabaseReviewRepo(admin).review(inquiryId, Number(sup.id)).catch(() => null);
       const safeInq = await safeInquiryOf(req, jwt, inquiryId);
       if (!safeInq) return J({ error: 'not_found', code: 'not_found' }, 404);
-      const rv = reviewQuotation(safeInq, withResolved(
+      // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
+      const rv = reviewQuotation(safeInq, await readWorking(defaultDeps(admin, 'supplier_api'), safeInq, withResolved(
         workingFromSubmit(body, { notes: String(sNotes ?? ''), scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? '') }, confirmedTerms || {}, allMasked, trn),
-        resolvedFrom(reviewRow?.working)));
+        resolvedFrom(reviewRow?.working)), 'review:' + safeInq.id + ':' + sup.id));
       const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
       const reviewIssues = rv.approved ? null : rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar }));
       const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
@@ -1558,7 +1652,10 @@ const handle = async (req: Request): Promise<Response> => {
         // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
         if (dryRun) {
           const acc = await acceptRule(qid);
-          const a = assessQuote({ category, lines: await repo.lines(qid), terms: (await repo.quote(qid))!, requirements, checklist: (await specChecklist(category, qid, 'preflight')).checklist });
+          // The same reading the real submission's gate does (reasoned_matching.ts), so the preflight and the gate agree.
+          const dq = (await repo.quote(qid))!; const dl = await repo.lines(qid);
+          const rd = applyReading(dl, dq.terms_spec, await readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: dl, terms: dq, requirements }));
+          const a = assessQuote({ category, lines: rd.lines, terms: { ...dq, terms_spec: rd.terms_spec }, requirements, checklist: (await specChecklist(category, qid, 'preflight')).checklist });
           // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
           // own ids, so anything that references a line still does). A row this check CREATED is removed.
           let restored = true;
@@ -1598,7 +1695,9 @@ const handle = async (req: Request): Promise<Response> => {
         }
         // THE HOLD GATE (founder, 14 Sep 2026). The sales engineer holds a quote that does not state
         // every required detail exactly, records which line and which detail, and tells the supplier.
-        const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)) });
+        const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
+          // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
+          read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) });
         if (g.held) { results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
         // THE REVIEW'S OWN RULES, held the same way (finding SP-F-02). The gate above is the exact-specs
         // assessment; these are rules 1-7 — the BOQ priced line by line, quantities and units, prices in

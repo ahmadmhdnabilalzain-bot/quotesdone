@@ -34,7 +34,8 @@
 // Written against a repository interface, like line_specs/workflow.ts, so the whole conversation runs
 // in memory in the test — no database, no network, and no way to reach a real supplier.
 import { readDocument } from '../_shared/doc_read/index.ts';
-import { quoteFromExtracted, type Proposal } from '../quote_extract/quote_from_document.ts';
+import { quoteFromExtracted, quoteText, type Proposal } from '../quote_extract/quote_from_document.ts';
+import type { QuoteTermKey } from '../_shared/reasoned_suppliers.ts';
 import type { MissingItem } from '../_shared/line_specs/assess.ts';
 import {
   answerSaid, applyCorrections, awaitingUploadSaid, carryOver, choiceSaid, closedSaid, fromMissing, generatedSaid, greeting, issueKey, notUnderstoodSaid,
@@ -97,6 +98,8 @@ export interface ReviewDeps {
   /** supplier_api quote_pdf: the standardised quotation the customer receives, for this supplier's own quote. */
   quotePdf(quoteId: string, lang: Lang): Promise<{ url: string | null; ref: string | null }>;
   now(): Date;
+  /** What reasoning reads from the working quotation (quote_review.ts readWorking), before the review; absent or held: nothing is read. */
+  readWorking?(inq: SafeInquiry, w: Working): Promise<Working>;
 }
 export type Ctx = { supplierId: number; email: string; lang: Lang; companyName?: string | null };
 
@@ -129,18 +132,25 @@ const STALE_MS = 120_000;
 const WRITABLE: ReviewState[] = ['open', 'changes_requested', 'awaiting_choice', 'awaiting_upload', 'ready_to_submit'];
 
 // ---------------------------------------------------------------------------------------------
-// Reading a quotation file — doc_read and quote_from_document, no model (the same pair quote_extract
-// uses on its deterministic path).
+// Reading a quotation file — doc_read and quote_from_document read the PRICES with no model (the same pair
+// quote_extract uses on its deterministic path). The TERMS (validity, lead time, payment, warranty,
+// exclusions, installation) are what the file means, so they are REASONED by `readTerms` (quote_review_actions
+// passes _shared/reasoned_suppliers.ts quoteTerms; founder_instruction 886-903). Held or absent: the
+// terms stay empty and the review asks the supplier for them — never a label guess.
 // ---------------------------------------------------------------------------------------------
-export async function readQuotationFile(bytes: Uint8Array, filename: string, mime: string, supplierTerms: string[] = []): Promise<FileRead> {
+export async function readQuotationFile(bytes: Uint8Array, filename: string, mime: string, supplierTerms: string[] = [],
+  readTerms?: (text: string) => Promise<Partial<Record<QuoteTermKey, string>> | null>): Promise<FileRead> {
   const rd = await readDocument(bytes, filename, mime);
   if (!rd.ok) return { proposal: null, text: '', kind: 'refused' };
   const texts: string[] = [];
   // deno-lint-ignore no-explicit-any
   const visit = (e: any) => { if (e.text) texts.push(e.text); for (const t of e.tables || []) texts.push(t.map((r: unknown[]) => (r || []).join(' ')).join('\n')); for (const c of e.children || []) visit(c.doc); };
   visit(rd);
-  const p = quoteFromExtracted(rd, supplierTerms);
-  const empty = p.amount == null && !p.line_items.some((l) => l.amount != null);
+  const priced = quoteFromExtracted(rd, supplierTerms);
+  const empty = priced.amount == null && !priced.line_items.some((l) => l.amount != null);
+  // No model is asked about a file with no price.
+  const terms = !empty && readTerms ? await readTerms(quoteText(rd)).catch(() => null) : null;
+  const p = terms ? quoteFromExtracted(rd, supplierTerms, terms) : priced;
   return { proposal: empty ? null : p, text: texts.join('\n'), kind: rd.kind };
 }
 
@@ -216,6 +226,7 @@ function writableOr(l: Loaded, r: ReviewRow | null, now: Date): Fail | null {
 // The review, and the requests it opens and closes.
 // ---------------------------------------------------------------------------------------------
 async function runReview(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r: ReviewRow, w: Working, trigger: string | null) {
+  if (deps.readWorking) w = await deps.readWorking(inq, w);
   const rv = reviewQuotation(inq, w);
   const open = await repo.requests(r.id, true);
   const openIssues = open.filter((x) => x.kind !== 'choice');

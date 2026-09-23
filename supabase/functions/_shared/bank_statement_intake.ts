@@ -7,14 +7,17 @@
 // bank_statement_intake stayed empty. Both paths now call takeInStatement BEFORE any receipt handling, and a
 // recognised statement returns from here — it never reaches the receipt parser or the model gateway.
 //
-// Recognition is isBankStatement over the sender, subject, filenames AND the document's rebuilt rows
-// (pdfTextByRows — the real statement names no bank anywhere but inside the PDF). Reading is readStatement.
+// RECOGNITION IS REASONED (23 Sep 2026, founder_instruction 886-903). Whether a message IS a statement was a word
+// test (isBankStatement: /mashreq/ + /statement/ over the sender, subject, filenames and the rebuilt rows). It is
+// now documentKind (_shared/reasoned_books.ts), which the caller runs over the same envelope and the same rebuilt
+// rows (statementRowText below — the real statement names no bank anywhere but inside the PDF); takeInStatement
+// is called only for a message reasoned to be one. Reading is readStatement.
 // A statement that does not add up is ingested with NO lines and a note: fn_accountant_bank_statement_ingest
 // records it 'unreadable', which fn_accountant_bank_reconcile reports as an open accountant finding.
 // The closing balance is recorded (#659's fn_accountant_bank_balance_record) only for a statement whose
 // every row was proved against it. The bookings (charges -> 6300, owner transfer -> 3000, interest -> 7000,
 // drafts while bank_booking_on_hold = 1) are made by fn_accountant_cost_booking_tick from the lines.
-import { isBankStatement, readStatement } from './bank_statement_parse.ts';
+import { readStatement } from './bank_statement_parse.ts';
 import { pdfTextByRows } from './pdf_text_positions.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -28,6 +31,7 @@ export type StatementInput = {
   sourceRef: string;      // 'resend:<email id>' — the same key from the webhook and the sweep
   archivePath: string;    // receipt-files path (without extension) for the statement PDF
   readNote?: string;
+  rowText?: string;       // statementRowText(pdf), when the caller already rebuilt it for the reasoning
   dryRun?: boolean;
 };
 
@@ -37,15 +41,15 @@ export type StatementOutcome = {
   defects_error?: string;   // fn_accountant_statement_reader_defects could not settle (the statement is still in)
 };
 
-/** null when the message is not a bank statement; otherwise it has been taken in (or read, on a dry run). */
-export async function takeInStatement(admin: Db, i: StatementInput): Promise<StatementOutcome | null> {
-  const byEnvelope = isBankStatement(i.from, i.subject, i.filenames);
-  const rowText = i.pdf && i.pdf.mime === 'application/pdf' ? await pdfTextByRows(i.pdf.bytes).catch(() => '') : '';
+/** The statement PDF's rows rebuilt from positioned text: what the reasoning reads, and what readStatement reads. */
+export async function statementRowText(pdf: StatementInput['pdf']): Promise<string> {
+  return pdf && pdf.mime === 'application/pdf' ? await pdfTextByRows(pdf.bytes).catch(() => '') : '';
+}
+
+/** Takes in a message the caller REASONED to be a bank statement (or reads it, on a dry run). */
+export async function takeInStatement(admin: Db, i: StatementInput): Promise<StatementOutcome> {
+  const rowText = i.rowText ?? await statementRowText(i.pdf);
   const csvText = i.csvText || '';
-  const isStmt = byEnvelope
-    || (!!rowText && isBankStatement(i.from, i.subject, i.filenames, rowText))
-    || (!!i.docText && isBankStatement(i.from, i.subject, i.filenames, i.docText));
-  if (!isStmt) return null;
 
   const st = readStatement(csvText || rowText || i.docText || '');
   const lines = st.lines;

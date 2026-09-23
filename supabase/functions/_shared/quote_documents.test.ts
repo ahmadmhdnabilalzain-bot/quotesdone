@@ -6,8 +6,9 @@
 // renderer. Each document must: render to a PDF that loads back; carry its sections, its legal
 // footer and its document-control line; carry NO supplier identity before the reveal; carry no VAT
 // detail and no TRN; never say "AI" or "assistant"; and — in Arabic — carry no English word in its
-// primary text except brands, standards and codes (the supplier's original wording may sit only on
-// the secondary line labelled "النص الأصلي من المورد"). The comparison report must list every quote,
+// primary text except brands, standards and codes. A person's words reach an Arabic page only as their
+// REASONED Arabic (mocked here by F.reasoned; decision point trade_glossary_ar), never substituted and never
+// half-translated: a page built without it reports them in `untranslated`. The comparison report must list every quote,
 // show a held quote as on hold with none of its details, and never make it a technical column.
 //
 // No permissions are granted by run.mjs, so the brand fonts cannot be fetched here and the renderer
@@ -16,7 +17,7 @@
 // reachable (`deno test --allow-net`), and the sample renderer in the PR proves the Arabic pages.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
 import { PDFDocument, PDFDict, PDFName } from 'https://esm.sh/pdf-lib@1.17.1';
-import { DOC_VERSION, quoteDocument, compareDocument, compareTable, inquiryDocument, jobNoOf, quoteRef, arDuration, arPayment, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv, type Item } from './quote_documents.ts';
+import { DOC_VERSION, quoteDocument, compareDocument, compareTable, inquiryDocument, jobNoOf, quoteRef, arDuration, arUnit, maskContacts, supplierLabel, stripVat, VAT_LINE, VAT_RE, labelFor, toCsv, type Item } from './quote_documents.ts';
 import { footerLines, footerLinesAr, FALLBACK } from './doc_template.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 import { renderPdf } from '../pdf_native/render.ts';
@@ -28,7 +29,7 @@ import { technicalComparison, rendererView } from './line_specs/compare.ts';
 
 // FIXED LABELS ARE ARABIC. A fixed label is what the page itself names: a table's column heads, each
 // row's first cell, a key in a key-value block, a section or sub-heading. Supplier free text is not a
-// fixed label; it stays on the secondary line labelled as the supplier's original wording, by design.
+// fixed label; it is printed as its reasoned Arabic.
 // Measured 14 Sep 2026: a request whose material carried only its key ({component:'glass'}) printed
 // "المادة — glass" as a row label in the Arabic comparison.
 const cellStr = (c: unknown) => typeof c === 'string' ? c : (c && typeof c === 'object' && 'text' in c) ? String((c as { text: unknown }).text ?? '') : '';
@@ -46,7 +47,8 @@ Deno.test('every fixed label in the Arabic comparison is Arabic, a material name
   const terms = { lead_time: '21 days', warranty: '2 years — materials and workmanship', scope: 'Supply and install', exclusions: null, conditions: null, notes: null, terms_spec: null, price_ex_vat: 118500 };
   // The line does NOT name the glass: that is the case that printed the bare key (a line naming it
   // maps to the trade's own glass attributes, which were always Arabic).
-  const line = { line_no: 1, description: 'Aluminium windows supply and install', qty: 40, unit: 'nos', unit_price: 2962, amount: 118500 };
+  // Reasoning read the line as naming the customer's glass (reasoned_matching.ts; compare.ts adds a component to the rows whose lines name it).
+  const line = { line_no: 1, description: 'Aluminium windows supply and install', qty: 40, unit: 'nos', unit_price: 2962, amount: 118500, spec: { '_names:glass': 'windows' }, spec_source: { '_names:glass': 'reasoned' } };
   const q = (id: string, letter: string, price: number) => ({ quote_id: id, label_en: `Supplier ${letter}`, label_ar: `المورّد ${letter}`, supplier_letter: letter, option_no: 0, lines: [line], terms: { ...terms, price_ex_vat: price } });
   // The REQUEST line names the glass (compare.ts adds a customer's component to the lines that name it).
   const tech = technicalComparison({ category: 'aluminium', request_lines: [{ line_no: 1, description: 'Aluminium windows, double glazed glass', qty: 40, unit: 'nos' }],
@@ -55,7 +57,7 @@ Deno.test('every fixed label in the Arabic comparison is Arabic, a material name
   const a = { quotes: [{ label: 'Supplier A', price: 118500 }, { label: 'Supplier B', price: 124900 }],
     all_quotes: [{ label: 'Supplier A', quote_id: 'q1', price: 118500, status: 'shortlisted' }, { label: 'Supplier B', quote_id: 'q2', price: 124900, status: 'shortlisted' }],
     top3: [], technical: rendererView(tech, 'ar'), technical_detail: tech, total_quotes: 2 };
-  const { body } = compareDocument({ analysis: a, inquiry: { ...F.INQUIRY, category: 'aluminium' }, lang: 'ar', ...dates('ar') });
+  const { body } = F.reasoned((arTexts) => compareDocument({ analysis: a, inquiry: { ...F.INQUIRY, category: 'aluminium' }, lang: 'ar', ...dates('ar') , arTexts }));
   const labels = fixedLabels(body as { blocks?: unknown[] });
   assert(labels.some((l) => l.includes('الزجاج')), 'the glass requirement never reached a row label: ' + JSON.stringify(labels.filter((l) => l.includes('المادة'))));
   assertEquals(labels.flatMap((s) => latinLeaks(s).map((w) => `${w}  ←  ${s}`)), [], 'English in a fixed Arabic label');
@@ -77,10 +79,11 @@ Deno.test('compare_csv escapes every spreadsheet formula trigger, tab and carria
   assertStringIncludes(csv, "'@a");
   assertStringIncludes(csv, "\r\nplain\r\n");
 });
-Deno.test('a lead time counted from the order reads in Arabic', () => {
+Deno.test('a lead time is parsed only as a number and a unit; the words around it are reasoned', () => {
   assert(arDuration('21 days'));
-  assertEquals(arDuration('21 days from order'), arDuration('21 days') + ' من تاريخ الطلب');
-  assertEquals(arDuration('4 weeks after approval'), arDuration('4 weeks') + ' من الاعتماد');
+  // The words around the number are the supplier's: reasoned on the page (loc), never substituted here.
+  assertEquals(arDuration('21 days from order'), null);
+  assertEquals(arDuration('4 weeks after approval'), null);
   assertEquals(arDuration('21 days from the moon'), null);
 });
 
@@ -105,11 +108,11 @@ function analysisFor(c: CaseKey, lang: Lang, withTech = true) {
 }
 function quoteBody(c: CaseKey, lang: Lang, idx = 0) {
   const C = CASES[c]; const q = C.live()[idx];
-  return quoteDocument({ quote: q, inquiry: C.inq, items: q.items, letter: supplierLabel(idx), lang, maskNames: C.ids(), requestUrl: portalLink(lang, C.inq.id, q.id), ...dates(lang) }).body;
+  return F.reasoned((arTexts) => quoteDocument({ quote: q, inquiry: C.inq, items: q.items, letter: supplierLabel(idx), lang, maskNames: C.ids(), requestUrl: portalLink(lang, C.inq.id, q.id), ...dates(lang) , arTexts })).body;
 }
 function compareBody(c: CaseKey, lang: Lang, withTech = true) {
   const C = CASES[c];
-  return compareDocument({ analysis: analysisFor(c, lang, withTech), inquiry: C.inq, lang, maskNames: C.ids(), portalUrl: portalLink(lang, C.inq.id), linkFor: (qid: string) => portalLink(lang, C.inq.id, qid), ...dates(lang) }).body;
+  return F.reasoned((arTexts) => compareDocument({ analysis: analysisFor(c, lang, withTech), inquiry: C.inq, lang, maskNames: C.ids(), portalUrl: portalLink(lang, C.inq.id), linkFor: (qid: string) => portalLink(lang, C.inq.id, qid), ...dates(lang) , arTexts })).body;
 }
 // BEFORE THE REVEAL THE CUSTOMER CANNOT REACH A SUPPLIER (founder, 14 Sep 2026): QuotesDone holds an
 // incomplete quote and the sales engineer asks the supplier through customer_support. So no document
@@ -134,15 +137,17 @@ Deno.test('no document the customer receives tells them to ask or contact a supp
 // State (c) on the page: an optional detail one supplier left out is SHOWN as "Not stated (optional)",
 // in both languages, and is never turned into a risk line (it is not chased).
 Deno.test('an optional detail left out is shown as not stated (optional) and never listed as a risk', () => {
+  // What reasoning read from each line, as the gate stores it.
+  const rd = (desc: string): Record<string, string> => ({ material: 'MR MDF', thickness_mm: '18', finish: 'HPL', ...(/edge/.test(desc) ? { edge_band: '2mm PVC' } : {}) });
   const terms = { lead_time: '21 days', warranty: '2 years on workmanship', scope: 'Supply and installation of wardrobes by our team', exclusions: null, conditions: null, notes: null, terms_spec: null, price_ex_vat: 6000 };
-  const q = (id: string, letter: string, desc: string, price: number) => ({ quote_id: id, label_en: `Supplier ${letter}`, label_ar: `المورّد ${letter}`, supplier_letter: letter, option_no: 0, lines: [{ line_no: 1, description: desc, amount: price }], terms: { ...terms, price_ex_vat: price } });
+  const q = (id: string, letter: string, desc: string, price: number) => ({ quote_id: id, label_en: `Supplier ${letter}`, label_ar: `المورّد ${letter}`, supplier_letter: letter, option_no: 0, lines: [{ line_no: 1, description: desc, amount: price, spec: rd(desc), spec_source: Object.fromEntries(Object.keys(rd(desc)).map((k) => [k, 'reasoned'])) }], terms: { ...terms, price_ex_vat: price } });
   const tech = technicalComparison({ category: 'joinery', request_lines: [{ line_no: 1, description: 'Wardrobe 18mm MDF HPL finish', qty: 4, unit: 'nos' }], requirements: null as never, on_hold: 0, now: new Date('2026-09-14'),
     quotes: [q('q1', 'A', 'Wardrobes 18mm MR MDF, HPL finish, 2mm PVC edge banding', 6000), q('q2', 'B', 'Wardrobes 18mm MR MDF, HPL finish', 5500)] as never });
   for (const lang of ['en', 'ar'] as Lang[]) {
     const a = { quotes: [{ label: 'Supplier A', price: 6000 }, { label: 'Supplier B', price: 5500 }],
       all_quotes: [{ label: 'Supplier A', quote_id: 'q1', price: 6000, status: 'shortlisted' }, { label: 'Supplier B', quote_id: 'q2', price: 5500, status: 'shortlisted' }],
       top3: [], technical: rendererView(tech, lang), technical_detail: tech, total_quotes: 2 };
-    const s = JSON.stringify(compareDocument({ analysis: a, inquiry: { ...F.INQUIRY, category: 'joinery' }, lang, ...dates(lang) }).body);
+    const s = JSON.stringify(F.reasoned((arTexts) => compareDocument({ analysis: a, inquiry: { ...F.INQUIRY, category: 'joinery' }, lang, ...dates(lang) , arTexts })).body);
     assertStringIncludes(s, lang === 'ar' ? 'غير مذكورة (اختيارية)' : 'Not stated (optional)');
     assert(!/edge band[^"]{0,40}not stated|شريط الحافة[^"]{0,40}غير مذكورة —/i.test(s), `${lang}: an optional gap became a risk line`);
   }
@@ -243,18 +248,24 @@ const AUDIT_INQ = { id: 'zz-demo-audit-inq', category: 'fitout', summary: 'ZZ DE
 for (const lang of ['en', 'ar'] as const) {
   Deno.test(`quotation (audit 21 Sep, ${lang.toUpperCase()}): specs read as stated, exclusions keep their commas, the key-figure strip does not overlap`, async () => {
     // deno-lint-ignore no-explicit-any
-    const body: any = quoteDocument({ quote: AUDIT_QUOTE, inquiry: AUDIT_INQ, items: AUDIT_ITEMS, letter: 'A', lang, ...dates(lang) }).body;
+    const body: any = F.reasoned((arTexts) => quoteDocument({ quote: AUDIT_QUOTE, inquiry: AUDIT_INQ, items: AUDIT_ITEMS, letter: 'A', lang, ...dates(lang) , arTexts })).body;
     const checks = blocksOf(body, 'checks')[0].items;
     assertEquals(checks[0][1].flag, 'match');
     assertEquals(cellText(checks[0][1]), lang === 'en' ? 'Stated on all 2 lines' : 'مذكورة في جميع البنود (2)');
     const table = blocksOf(body, 'table')[0];
-    assertStringIncludes(JSON.stringify(table.rows[0][2]), 'Knauf'); assertStringIncludes(JSON.stringify(table.rows[0][2]), '12.5');
+    // English prints the supplier's words; Arabic prints their reasoned Arabic (mocked), whole, never substituted.
+    if (lang === 'en') { assertStringIncludes(JSON.stringify(table.rows[0][2]), 'Knauf'); assertStringIncludes(JSON.stringify(table.rows[0][2]), '12.5'); }
+    else assertStringIncludes(JSON.stringify(table.rows[0][2]), 'ترجمة السطر');
     const excl = blocksOf(body, 'p').find((p: any) => /Exclusions|الاستثناءات/.test(String(p.label)));
     assert(excl, 'exclusions paragraph');
-    // English: the sentence verbatim. Arabic: the glossary's text is the primary line; the commas
-    // survive in whichever line carries the supplier's words (the primary text or the original line).
+    // English: the sentence verbatim. Arabic: the WHOLE sentence is handed to reasoning (so its commas reach
+    // the translator), and the page prints what reasoning returned for exactly that sentence.
     if (lang === 'en') assertEquals(excl.text, 'electrical fittings, painting of walls, scaffolding above 4m');
-    else assert(/,|،/.test(String(excl.text) + String(excl.sub || '')), 'Arabic exclusions lost their separators: ' + JSON.stringify(excl));
+    else {
+      const un = quoteDocument({ quote: AUDIT_QUOTE, inquiry: AUDIT_INQ, items: AUDIT_ITEMS, letter: 'A', lang, ...dates(lang) }).untranslated;
+      assert(un.includes('electrical fittings, painting of walls, scaffolding above 4m'), 'the exclusions sentence is reasoned whole: ' + JSON.stringify(un));
+      assertEquals(excl.text, F.mockArabic(un)['electrical fittings, painting of walls, scaffolding above 4m']);
+    }
     // The rendered strip: the warranty value stays inside its own quarter of the strip and never
     // crosses into the "Valid for" cell beside it (finding 12: it was drawn on one unwrapped line).
     await assertRenders(body, lang);
@@ -293,23 +304,15 @@ Deno.test('roster: every quote listed, three shortlisted, the incomplete one hel
   }
 });
 
-Deno.test('Arabic, deterministically: durations, payment terms (LC at sight included), units', () => {
+Deno.test('Arabic, deterministically: durations and units (payment terms are the supplier words, reasoned)', () => {
   assertEquals(arDuration('2 weeks'), 'أسبوعان');
   assertEquals(arDuration('12 months'), '12 شهرًا');
   assertEquals(arDuration('3 weeks'), '3 أسابيع');
   assertEquals(arDuration('10-14 days'), '10–14 يومًا');
   assertEquals(arDuration('3 working days'), '3 أيام عمل');
   assertEquals(arDuration('1 year'), 'سنة واحدة');
-  assertEquals(arDuration('ASAP'), 'فوري');
+  assertEquals(arDuration('ASAP'), null, 'a phrase is reasoned, never substituted');
   assertEquals(arDuration('after the site visit'), null);
-  assertEquals(arPayment('50% advance, 50% on completion'), '50% دفعة مقدّمة، 50% عند الإنجاز');
-  assertEquals(arPayment('100% advance'), '100% دفعة مقدّمة');
-  assertEquals(arPayment('LC at sight'), 'اعتماد مستندي بالاطلاع');
-  assertEquals(arPayment('50% advance, balance by LC'), '50% دفعة مقدّمة، الرصيد باعتماد مستندي');
-  assertEquals(arPayment('30% advance, 60% on delivery, 10% retention'), '30% دفعة مقدّمة، 60% عند التسليم، 10% محتجزة لضمان حسن التنفيذ');
-  assertEquals(arPayment('LC 90 days'), 'اعتماد مستندي لأجل 90 يومًا');
-  // Not every part recognised → not translated as a payment term at all, never half-translated.
-  assertEquals(arPayment('50% advance, balance when we feel like it'), null);
   assertEquals(arUnit('Nos'), 'عدد');
   assertEquals(arUnit('LM'), 'م.ط');
   assertEquals(arUnit('furlong'), null);
@@ -466,13 +469,13 @@ for (const c of ['hvac', 'fitout'] as const) {
 // the attached documents by name; it must mask the contact details the summary carries; in Arabic
 // every primary string is Arabic (file names and codes excepted); and it must render and load back.
 const SUPPLIER_PORTAL = 'https://quotesdone.com/portal';
-function inquiryBody(lang: Lang) { return inquiryDocument({ inquiry: F.REQUEST, lang, portalUrl: lang === 'ar' ? 'https://quotesdone.com/ar/portal' : SUPPLIER_PORTAL, ...dates(lang) }).body; }
+function inquiryBody(lang: Lang) { return F.reasoned((arTexts) => inquiryDocument({ inquiry: F.REQUEST, lang, portalUrl: lang === 'ar' ? 'https://quotesdone.com/ar/portal' : SUPPLIER_PORTAL, ...dates(lang) , arTexts })).body; }
 const strings = (v: unknown): string[] => typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(strings) : v && typeof v === 'object' ? Object.values(v).flatMap(strings) : [];
 Deno.test('inquiry document: job number, deadline, the four answers, every BOQ line and every attachment — both languages', () => {
   for (const lang of ['en', 'ar'] as Lang[]) {
     const body = inquiryBody(lang);
     const all = JSON.stringify(body);
-    const { ref, job, drawings } = inquiryDocument({ inquiry: F.REQUEST, lang });
+    const { ref, job, drawings } = F.reasoned((arTexts) => inquiryDocument({ inquiry: F.REQUEST, lang , arTexts }));
     assertEquals(job, 'ZZD3M0AA'); assertEquals(ref, 'QD-ZZD3M0AA-RFQ'); assertEquals(drawings, 2);
     assertStringIncludes(all, 'ZZD3M0AA');
     assertStringIncludes(all, lang === 'ar' ? '14 أكتوبر 2026' : '14 October 2026', 'the required-by date');
@@ -515,15 +518,15 @@ Deno.test('inquiry document: the Arabic page is Arabic (file names and codes exc
   assertEquals(leaks, [], 'English left in the Arabic primary text');
   const labels = fixedLabels(body).flatMap((s) => latinLeaks(s).map((w) => `${w}  ←  ${s}`));
   assertEquals(labels, [], 'English in a fixed Arabic label');
-  // A secondary line on this document is the customer's wording, labelled so — never "from the supplier".
-  const subs = strings(body.blocks).filter((s) => s.startsWith('النص الأصلي'));
-  assert(subs.length >= 1, 'the budget "around 90k" must fall to the original-wording line');
-  for (const s of subs) assert(s.startsWith('النص الأصلي من العميل: '), 'mislabelled secondary line: ' + s);
+  // No half-translated line: the customer's words are reasoned Arabic, and without that Arabic the page is held.
+  assertEquals(strings(body.blocks).filter((s) => s.startsWith('النص الأصلي')), []);
+  const unreasoned = inquiryDocument({ inquiry: F.REQUEST, lang: 'ar', portalUrl: 'https://quotesdone.com/ar/portal', ...dates('ar') });
+  assert(unreasoned.untranslated.some((t) => /90k/.test(t)), 'the budget "around 90k" is a line the page cannot print until it is reasoned');
 });
 Deno.test('inquiry document: a withheld BOQ and no attachments are said, not hidden', () => {
   const bare = { ...F.REQUEST, boq: null, boq_withheld: true, documents: [], drawing_pages_failed: 0, spec: null };
   for (const lang of ['en', 'ar'] as Lang[]) {
-    const body = inquiryDocument({ inquiry: bare, lang }).body;
+    const body = F.reasoned((arTexts) => inquiryDocument({ inquiry: bare, lang , arTexts })).body;
     const all = JSON.stringify(body);
     // deno-lint-ignore no-explicit-any
     assertEquals((body.blocks as any[]).filter((b) => b.t === 'table').length, 0);
@@ -555,7 +558,7 @@ Deno.test('job number: every document prints inquiries.rfq_no, the number the cu
     // the attachment names come from inquiryDocuments (quote_review_actions.ts), which names them by the same jobNo
     const prefix = String(F.REQUEST.id).slice(0, 8).toUpperCase();
     const documents = F.REQUEST.documents.map((d) => ({ ...d, name: d.name.replace(prefix, '151767') }));
-    const r = inquiryDocument({ inquiry: { ...F.REQUEST, rfq_no: 151767, documents }, lang });
+    const r = F.reasoned((arTexts) => inquiryDocument({ inquiry: { ...F.REQUEST, rfq_no: 151767, documents }, lang , arTexts }));
     assertEquals(r.job, '151767'); assertEquals(r.ref, 'QD-151767-RFQ');
     assert(!JSON.stringify(r.body).includes(String(F.REQUEST.id).slice(0, 8).toUpperCase()), `${lang}: the uuid prefix is not printed`);
   }
@@ -565,17 +568,18 @@ Deno.test('job number: every document prints inquiries.rfq_no, the number the cu
 // The inbox hands the document section_ar / description_ar (_shared/boq_arabic.ts). On the Arabic page a
 // line the glossary alone cannot finish prints the sales engineer's Arabic label, with the customer's
 // words on the secondary line; the English page is unchanged.
-Deno.test('inquiry document: the Arabic page prints the Arabic BOQ section and description, the original under it', () => {
+Deno.test('inquiry document: the Arabic page prints the reasoned Arabic of the BOQ section and description', () => {
   const boq = { boq: [{ section: 'Partitions', section_ar: 'القواطع والجدران الداخلية', description: 'Gypsum board partition, 100mm metal stud, both faces, zz-fixture-word', description_ar: 'قواطع ألواح الجبس', qty: 320, unit: 'm2' }] };
   const table = (lang: Lang) => {
     // deno-lint-ignore no-explicit-any
-    const t = (inquiryDocument({ inquiry: { ...F.REQUEST, boq }, lang }).body.blocks as any[]).filter((b) => b.t === 'table')[1];
+    const t = (F.reasoned((arTexts) => inquiryDocument({ inquiry: { ...F.REQUEST, boq }, lang , arTexts })).body.blocks as any[]).filter((b) => b.t === 'table')[1];
     return t.rows[0];
   };
+  // The Arabic cells are the reasoned translation (mocked here), never the word-matched boq_arabic labels.
   const ar = table('ar');
-  assertEquals(ar[1], 'القواطع والجدران الداخلية');
-  assertEquals(ar[2].text, 'قواطع ألواح الجبس');
-  assertStringIncludes(ar[2].sub, 'Gypsum board partition');
+  assertStringIncludes(String(ar[1]), 'ترجمة السطر');
+  assertStringIncludes(String(ar[2]), 'ترجمة السطر');
+  assert(!JSON.stringify(ar).includes('قواطع ألواح الجبس'), 'a substituted label reached the page');
   const en = table('en');
   assertEquals(cellStr(en[2]), 'Gypsum board partition, 100mm metal stud, both faces, zz-fixture-word');
 });

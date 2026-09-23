@@ -8,13 +8,15 @@
 // MEASURED 23 Sep 2026 (read-only, htdblwldjkcgjvmqkbeh + docs.postiz.com/llms.txt): Postiz's public API
 // publishes, lists posts and reads analytics; it has no endpoint that reads or answers a comment.
 //   instagram / facebook — Meta webhook (marketing_social_inbox) delivers the comment; reply and hide via Graph
-//   youtube              — through the Postiz YouTube connection only (founder, 23 Sep: no own Google OAuth
-//                          keys). Until the founder connects YouTube in Postiz the duty skips it and says so.
-//   linkedin             — ONLY the QuotesDone company page (founder, 23 Sep): linkedinTarget() refuses any
-//                          integration but the one app_secrets.linkedin_company_page_integration_id names.
+//   youtube              — our own OAuth (instructions 919-920 replace the earlier "Postiz only" ruling): the
+//                          founder's one link (marketing_social_connect) stores the channel's token; the duty reads
+//                          commentThreads and answers through the Data API. Not connected: skipped, and says so.
+//   linkedin             — ONLY the QuotesDone company page, through the Community Management API with the
+//                          organization scopes the same link grants; the actor of every reply is the page, never
+//                          a member (never a personal profile).
 //   x                    — REMOVED (founder, 23 Sep 2026: no paid X API). Nothing here reads or answers X.
 //
-// THE POLICY, deterministic first (processComment):
+// THE POLICY, applied to the REASONED class (processComment; the class itself is reasoned, reasoned_social.ts):
 //   spam_abuse       -> hidden where the platform allows it, AND handed to customer_support to review
 //                       (unhideRequest reverses it); never hidden when the comment also asks or wants to join
 //   complaint, sensitive_legal, a request for a person
@@ -30,8 +32,9 @@
 // thread takes at most 3 seat replies in 10 minutes. Nothing is sent unless app_secrets.social_send_enabled
 // = 'on' (the emergency stop) and the author is not a ZZDEMO fixture.
 import { langOf, type Lang } from './chat_answers.ts';
+import { LI_REST, liHeaders } from './marketing_social_oauth.ts';
 
-export type Platform = 'facebook' | 'instagram' | 'youtube';
+export type Platform = 'facebook' | 'instagram' | 'youtube' | 'linkedin';
 export type Class = 'question' | 'praise' | 'complaint' | 'spam_abuse' | 'sales_lead' | 'supplier_enquiry' | 'sensitive_legal' | 'off_topic';
 
 export interface CommentEvent {
@@ -67,31 +70,13 @@ export function normalise(s: string): string {
     .normalize('NFD').replace(/\p{Mn}/gu, '').normalize('NFC');
 }
 
-// ── CLASSIFY ─────────────────────────────────────────────────────────────────────────────────────
-// Word-bounded throughout: 'court' is not 'courtyard', 'كم' is not 'لكم'. Punctuation becomes space
-// (except ? and ؟), so every term is matched between spaces.
-const n = (s: string) => ' ' + normalise(s).toLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
-  .replace(/([?؟])/g, ' $1 ').replace(/[^\p{L}\p{N}?؟%٪'\s]/gu, ' ').replace(/\s+/g, ' ') + ' ';
-const W = (alts: string) => new RegExp(`(?<=\\s)(?:${alts})(?=\\s)`);
-// A hide needs a clear signal: an insult or a known spam pitch, as whole words.
-const ABUSE = W("idiots?|stupid|morons?|scam(?:mers?|s)?|fraudsters?|fuck\\w*|shit\\w*|bastards?|crypto|bitcoin|forex|onlyfans|promo code|dm me for \\w+|(?:buy|get|cheap|free) \\d*k? ?followers|نصاب|نصابين|حرامي|حراميه|تافه|غبي|كلب|اربح|متابعين");
-// …and is never taken when the comment also asks something or wants to join: that person gets an answer.
-const ASKS = W("\\?|؟|how|what|where|when|why|can i|can we|do you|is it|is this|register|registration|sign up|signup|join|quote|quotes|كيف|وش|ايش|متي|وين|ليش|هل|كم|تسجيل|اسجل|انضم|عرض سعر");
-const RULES: [Class, RegExp][] = [
-  ['sensitive_legal', W("lawyer|lawsuit|sue|court|legal action|police|report you|consumer protection|fraud|who (?:is|was) the (?:supplier|customer|client)|name of the (?:supplier|customer|client)|which (?:supplier|company) (?:did|was|is)|اسم المورد|اسم العميل|مين المورد|من هو المورد|منو المورد|محامي|محكمه|قضيه|الشرطه|بلاغ|حمايه المستهلك|احتيال")],
-  ['complaint', W("refund|complain|complaint|terrible|worst|disappointed|never (?:replied|responded|answered)|no one (?:replied|answered)|nobody answered|charged me|overcharged|not happy|bad service|استرجاع|استرداد|شكوي|اشتكي|سيء|سيئ|اسوا|ما احد رد|ما رد|محد رد|خصم مني|خدمه سيئه|غير راضي")],
-  ['supplier_enquiry', W("supplier|contractor|vendor|register (?:my|our) (?:company|business)|register as (?:a )?supplier|list (?:my|our) (?:company|business)|get (?:leads|jobs|projects)|trade licen[cs]e|مورد|موردين|مقاول|تسجيل شركتي|تسجيل شركتنا|رخصه تجاريه")],
-  ['sales_lead', W("i need (?:a |an )?(?:quote|quotation)|need quotes?|quote|quotes|quotation|looking for (?:a |an )?(?:company|someone|quote)|can you (?:do|quote)|how much (?:for|to|would)|price for|احتاج عرض|ابي عرض|ابغي عرض|اريد عرض|عرض سعر|ابحث عن شركه|كم سعر|كم يكلف")],
-  ['question', W("\\?|؟|how|what|where|when|why|can i|do you|is it|fees?|sign up|register|كيف|وش|ايش|متي|وين|ليش|هل|كم")],
-  ['praise', /(?<=\s)(?:great|amazing|awesome|love (?:it|this)|well done|good job|excellent|thank(?:s| you)|nice|brilliant|ممتاز|رائع|جميل|يعطيكم العافيه|شكرا|ما شاء الله|مبدعين|احسنتم)(?=\s)|👏|🔥|❤/],
-];
-export function classify(text: string, wantsPerson = false): Class {
-  const t = n(text);
-  if (ABUSE.test(t) && !ASKS.test(t)) return 'spam_abuse';
-  if (wantsPerson) return 'complaint';
-  for (const [c, re] of RULES) if (re.test(t)) return c;
-  return 'off_topic';
-}
+// ── CLASSIFY: REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903) ────────────────────────
+// The RULES / ABUSE / ASKS regex lists that decided what a public comment IS — hidden, answered, handed off —
+// are deleted. The class arrives already reasoned (_shared/reasoned_social.ts commentClass, decision point
+// marketing_social.comment_classify); null means that reasoning is held, and processComment then hides nothing,
+// says nothing and hands nothing off: the comment is recorded 'held_classify' and the replay
+// (_shared/reasoned_delivery.ts) runs it through this same policy with the reasoned class. guard() below stays:
+// it vets OUR outgoing text, never what a person meant.
 
 // ── THE GUARDS every outgoing text passes before it can be sent (founder, 23 Sep 2026) ────────────────
 // The facts are the company's published ones (site FAQ, supplier agreement v12, portal copy): customers pay
@@ -106,7 +91,7 @@ export const FACTS = {
   domains: /^(www\.)?quotesdone\.(com|ae)$/,
   emails: ['management@quotesdone.com'],
 };
-export const LIMIT: Record<Platform, number> = { instagram: 300, facebook: 300, youtube: 500 };
+export const LIMIT: Record<Platform, number> = { instagram: 300, facebook: 300, youtube: 500, linkedin: 500 };
 const AR = /[؀-ۿ]/g;
 const arabicShare = (s: string) => (s.match(AR) || []).length / Math.max(1, (s.match(/[A-Za-z؀-ۿ]/g) || []).length);
 const NUM_WORDS = 'one|two|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|thousand|half|zero'
@@ -165,20 +150,13 @@ export function guard(draft: string, ev: Pick<CommentEvent, 'platform' | 'text' 
   return [...new Set(f)];
 }
 
-// ── LINKEDIN: the company page, and nothing else (founder, 23 Sep 2026) ─────────────────────────────
-// A reply may go out through a LinkedIn integration only when it is the Postiz 'linkedin-page' integration
-// whose id app_secrets.linkedin_company_page_integration_id names. A personal profile ('linkedin') is refused
-// whatever its id, and so is every page but ours (scripts/checks/linkedin_is_never_automated.test.mjs).
-export function linkedinTarget(integration: { id: string; identifier: string } | null | undefined, companyPageId: string | null | undefined): boolean {
-  return !!integration && !!companyPageId && integration.identifier === 'linkedin-page' && String(integration.id) === String(companyPageId);
-}
 
 // ── THE STORE, injected so tests replay every platform with no network and no database ─────────────
 export interface Decided { kind: string; key: string | null; text: string }
 export interface SendResult { ok: boolean; id?: string | null; error?: string }
 export type HandoffType = 'social.escalation' | 'social.lead';
 export interface Store {
-  insertInbound(ev: CommentEvent, cls: Class): Promise<number | null>;   // null: already answered (idempotency)
+  insertInbound(ev: CommentEvent, cls: Class | null): Promise<number | null>;   // cls null: still being reasoned; returns null: already answered (idempotency)
   release(inId: number): Promise<void>;                                  // processing failed before a send: retry later
   threadAllowed(ev: CommentEvent): Promise<boolean>;
   record(inId: number, row: Outcome): Promise<void>;
@@ -193,7 +171,7 @@ export interface Store {
   seen?(ev: CommentEvent): Promise<boolean>;
 }
 export interface Outcome {
-  classification: Class;
+  classification: Class | null;
   outcome: string;
   reply: string | null;
   decided_by: 'rule' | 'model' | 'guard_fallback' | null;
@@ -208,12 +186,18 @@ export const isFixture = (ev: CommentEvent) => /^ZZDEMO/i.test(ev.authorId) || /
 const SEAT: Record<HandoffType, string> = { 'social.escalation': 'customer_support', 'social.lead': 'sales_engineer' };
 export const seatFor = (t: HandoffType) => SEAT[t];
 
-/** wantsPerson may be a function: the reasoned person check (think()) then runs only for a comment that is
- *  not our own and not empty, and never for one the store already recorded (a redelivery or sweep retry). */
-export async function processComment(s: Store, ev: CommentEvent, wantsPerson: boolean | (() => Promise<boolean>) = false): Promise<string> {
+type Lazy<T> = T | (() => Promise<T>);
+/** The comment policy for a comment whose class was REASONED (`reasoned`; null while that reasoning is held).
+ *  Either argument may be a function: the reasoning (think()) then runs only for a comment that is not our own
+ *  and not empty, and never for one the store already recorded (a redelivery or sweep retry). */
+export async function processComment(s: Store, ev: CommentEvent, reasoned: Lazy<Class | null>, wantsPerson: Lazy<boolean> = false): Promise<string> {
   if (!ev.text.trim() || ev.authorId === ev.accountId) return 'own_or_empty';
-  if (typeof wantsPerson === 'function' && s.seen && (await s.seen(ev))) return 'duplicate';
-  const cls = classify(ev.text, typeof wantsPerson === 'function' ? await wantsPerson() : wantsPerson);
+  const lazy = typeof reasoned === 'function' || typeof wantsPerson === 'function';
+  if (lazy && s.seen && (await s.seen(ev))) return 'duplicate';
+  const klass = typeof reasoned === 'function' ? await reasoned() : reasoned;
+  const person = typeof wantsPerson === 'function' ? await wantsPerson() : wantsPerson;
+  // A reasoned request for a person is handled as a complaint — except abuse, which is hidden and reviewed anyway.
+  const cls: Class | null = person && klass !== 'spam_abuse' ? 'complaint' : klass;
   const inId = await s.insertInbound(ev, cls);
   if (inId == null) return 'duplicate';
   let sent = false;
@@ -229,9 +213,12 @@ export async function processComment(s: Store, ev: CommentEvent, wantsPerson: bo
     const lang = langOf(ev.text);
     const o: Outcome = { classification: cls, outcome: '', reply: null, decided_by: 'rule', send_status: 'not_sent', guard_failures: [], handoff_id: null };
     const done = async (outcome: string) => { o.outcome = outcome; await s.record(inId!, o); return outcome; };
-    const escalate = async (type: HandoffType, extra?: Record<string, unknown>) => { o.handoff_id = await s.handoff(type, ev, o.classification, extra); };
+    const escalate = async (type: HandoffType, extra?: Record<string, unknown>) => { o.handoff_id = await s.handoff(type, ev, o.classification as Class, extra); };
     const ack = async () => { if (!o.handoff_id) await escalate('social.escalation'); return await s.library('comment_escalated_ack', lang); };
 
+    // HELD: what this comment is has not been reasoned yet. Nothing is hidden, said or handed off on a guess;
+    // the replay applies the policy the moment the hold lifts. (The person check has its own queue, point 72.)
+    if (cls === null) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_classify'); }
     if (cls === 'off_topic') return await done('ignored_off_topic');
     if (cls === 'spam_abuse') {
       if (isFixture(ev)) { o.send_status = 'held_fixture'; return await done('hide_held'); }
@@ -240,7 +227,8 @@ export async function processComment(s: Store, ev: CommentEvent, wantsPerson: bo
       sent = r.ok;
       o.send_status = r.ok ? 'hidden' : 'failed'; o.send_error = r.error ?? null;
       // Every hide is reviewed by a person-facing seat, who can reverse it (unhideRequest).
-      if (r.ok) await escalate('social.escalation', { hidden: true, review: 'un-hide if this was not abuse' });
+      // Every hide is reviewed; a hide that could not be done is reviewed too, so abuse is never left unseen.
+      await escalate('social.escalation', r.ok ? { hidden: true, review: 'un-hide if this was not abuse' } : { hidden: false, review: 'could not hide: ' + (r.error || '') });
       return await done(r.ok ? 'hidden' : 'hide_failed');
     }
 
@@ -293,25 +281,72 @@ export function replyRequest(ev: CommentEvent, text: string, token: string): Req
     case 'facebook': return { url: GRAPH + encodeURIComponent(ev.commentId) + '/comments', method: 'POST', headers: auth, body: JSON.stringify({ message: text }) };
     case 'youtube': return { url: 'https://www.googleapis.com/youtube/v3/comments?part=snippet', method: 'POST', headers: auth,
       body: JSON.stringify({ snippet: { parentId: ev.commentId, textOriginal: text } }) };
+    // The actor is the company page (ev.accountId is its organization URN) — never a member.
+    case 'linkedin': return { url: LI_REST + 'socialActions/' + encodeURIComponent(ev.commentId) + '/comments', method: 'POST',
+      headers: { ...J, ...liHeaders(token) },
+      body: JSON.stringify({ actor: ev.accountId, object: ev.threadId, parentComment: ev.commentId, message: { text } }) };
   }
 }
 /** Hides (hidden = true) or restores (hidden = false) a comment. Every hide can be reversed by the reviewing seat. */
-export function hideRequest(ev: CommentEvent, token: string, hidden = true): Req {
+export function hideRequest(ev: CommentEvent, token: string, hidden = true): Req | null {
   const auth = { ...J, Authorization: 'Bearer ' + token };
   switch (ev.platform) {
     case 'instagram': return { url: GRAPH + encodeURIComponent(ev.commentId), method: 'POST', headers: auth, body: JSON.stringify({ hide: hidden }) };
     case 'facebook': return { url: GRAPH + encodeURIComponent(ev.commentId), method: 'POST', headers: auth, body: JSON.stringify({ is_hidden: hidden }) };
     case 'youtube': return { url: 'https://www.googleapis.com/youtube/v3/comments/setModerationStatus?id=' + encodeURIComponent(ev.commentId)
       + '&moderationStatus=' + (hidden ? 'heldForReview' : 'published'), method: 'POST', headers: auth };
+    // LinkedIn offers only DELETE, which cannot be reversed: nothing is hidden, the comment goes to review.
+    case 'linkedin': return null;
   }
 }
 export const unhideRequest = (ev: CommentEvent, token: string) => hideRequest(ev, token, false);
 
-export async function call(f: Fetch, r: Req): Promise<SendResult> {
+export async function call(f: Fetch, r: Req | null): Promise<SendResult> {
+  if (!r) return { ok: false, error: 'this platform has no reversible hide' };
   try {
     const res = await f(r.url, { method: r.method, headers: r.headers, body: r.body });
     const j = await res.json().catch(() => ({})) as any;
     if (!res.ok) return { ok: false, error: String(j?.error?.message || j?.detail || j?.title || res.status).slice(0, 300) };
     return { ok: true, id: j?.data?.id ?? j?.id ?? null };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
+}
+
+// ── READING the comments on our own YouTube channel and LinkedIn company page ──────────────────────────
+// Only comments newer than `since` are read, so connecting does not answer a year of history. The author is kept
+// as the platform's opaque id; no member profile is ever fetched.
+export async function youtubeComments(f: Fetch, token: string, channelId: string, since: Date): Promise<CommentEvent[]> {
+  const r = await f('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&maxResults=50&order=time&moderationStatus=published&allThreadsRelatedToChannelId='
+    + encodeURIComponent(channelId), { headers: { Authorization: 'Bearer ' + token } });
+  const j = await r.json().catch(() => ({})) as any;
+  if (!r.ok) throw new Error('youtube commentThreads HTTP ' + r.status + ': ' + String(j?.error?.message || '').slice(0, 120));
+  const out: CommentEvent[] = [];
+  for (const it of j.items || []) {
+    const c = it?.snippet?.topLevelComment; const s = c?.snippet || {};
+    const at = new Date(s.publishedAt || 0);
+    if (!c?.id || at < since) continue;
+    out.push({ platform: 'youtube', accountId: channelId, commentId: c.id, authorId: String(s.authorChannelId?.value || ''), handle: s.authorDisplayName ?? null,
+      text: String(s.textOriginal || ''), at, threadId: String(it.snippet.videoId || c.id) });
+  }
+  return out;
+}
+export async function linkedinComments(f: Fetch, token: string, orgId: string, since: Date): Promise<CommentEvent[]> {
+  const org = 'urn:li:organization:' + orgId;
+  const r = await f(LI_REST + 'posts?q=author&count=10&sortBy=LAST_MODIFIED&author=' + encodeURIComponent(org), { headers: liHeaders(token) });
+  const j = await r.json().catch(() => ({})) as any;
+  if (!r.ok) throw new Error('linkedin posts HTTP ' + r.status + ': ' + String(j?.message || '').slice(0, 120));
+  const out: CommentEvent[] = [];
+  for (const p of j.elements || []) {
+    const post = String(p.id || ''); if (!post) continue;
+    const c = await f(LI_REST + 'socialActions/' + encodeURIComponent(post) + '/comments?count=50', { headers: liHeaders(token) });
+    const cj = await c.json().catch(() => ({})) as any;
+    if (!c.ok) throw new Error('linkedin comments HTTP ' + c.status + ': ' + String(cj?.message || '').slice(0, 120));
+    for (const e of cj.elements || []) {
+      const at = new Date(Number(e?.created?.time || 0));
+      const urn = String(e?.['$URN'] || e?.commentUrn || '');
+      if (!urn || at < since) continue;
+      out.push({ platform: 'linkedin', accountId: org, commentId: urn, authorId: String(e.actor || ''), handle: null,
+        text: String(e?.message?.text || ''), at, threadId: post });
+    }
+  }
+  return out;
 }

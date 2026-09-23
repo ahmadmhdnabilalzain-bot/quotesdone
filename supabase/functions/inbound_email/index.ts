@@ -4,6 +4,8 @@ import { sanitizeUpload, SAFE_IMAGE } from '../_shared/attachment.ts';
 // can reach a person; a refused one is counted in attachmentsRefused exactly as a bad shape is.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, x-webhook-secret' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -11,29 +13,22 @@ const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 
 const FREE = new Set(['gmail.com','googlemail.com','yahoo.com','ymail.com','yahoo.co.uk','hotmail.com','hotmail.co.uk','outlook.com','live.com','msn.com','icloud.com','me.com','mac.com','aol.com','mail.com','gmx.com','gmx.net','protonmail.com','proton.me','yandex.com','zoho.com','rediffmail.com','hotmail.fr','outlook.sa']);
 
-const KW: Record<string, string[]> = {
-  flooring: ['floor', 'flooring', 'spc', 'vinyl', 'lvt', 'parquet', 'laminate', 'epoxy', 'tile', 'marble', 'granite', 'carpet'],
-  glass: ['glass', 'glazing', 'mirror', 'shower enclosure', 'partition', 'facade', 'curtain wall', 'window'],
-  aluminium: ['aluminium', 'aluminum', 'pergola', 'cladding', 'composite panel'],
-  steel: ['steel', 'metal', 'fabrication', 'welding', 'staircase', 'railing', 'gate'],
-  acrylic: ['acrylic', 'plexiglass', 'perspex', 'display stand'],
-  carpentry: ['carpentry', 'wood', 'joinery', 'wardrobe', 'cabinet', 'kitchen', 'furniture', 'door'],
-  gypsum: ['gypsum', 'false ceiling', 'drywall', 'partition wall', 'ceiling'],
-  signage: ['sign', 'signage', '3d letters', 'lightbox', 'led sign', 'billboard', 'sticker'],
-  wallpaper: ['wallpaper', 'wall covering'],
-  upholstery: ['upholstery', 'sofa', 'curtain', 'blinds', 'cushion'],
-  fitout: ['fitout', 'fit-out', 'fit out', 'interior', 'renovation', 'refurbish', 'turnkey', 'joinery works'],
-  painting: ['paint', 'painting', 'varnish', 'coating'],
-  landscaping: ['landscaping', 'garden', 'grass', 'artificial grass', 'irrigation', 'swimming pool'],
-  scaffolding: ['scaffolding', 'scaffold', 'formwork'],
-  security: ['cctv', 'camera', 'access control', 'intercom', 'alarm', 'security system'],
-  safety: ['safety', 'ppe', 'fire extinguisher', 'fire alarm', 'first aid', 'helmet'],
-};
-function inferSector(text: string): string | null {
-  const t = ' ' + text.toLowerCase() + ' ';
-  let best: string | null = null, n = 0;
-  for (const [c, ks] of Object.entries(KW)) { let m = 0; for (const k of ks) if (t.includes(k)) m++; if (m > n) { n = m; best = c; } }
-  return best;
+// THE SECTOR IS REASONED, NOT COUNTED (23 Sep 2026, founder_instruction 886-903). A KW map scored substrings
+// ('door' in 'outdoor', 'sign' in 'design') and the highest count became leads.sector. It is gone: a new lead's
+// sector is one category_specs trade reasoned from what the sender wrote, or none (decision point
+// inbound_email.infer_sector, _shared/reasoned_trades.ts). It runs after the reply to the webhook is decided and
+// never blocks the intake; held, the sector stays empty and fn_reason_apply_inbound_email__infer_sector fills it
+// (only while still empty) the moment the hold lifts.
+async function reasonSector(leadId: number, text: string): Promise<void> {
+  const { data: specs } = await admin.from('category_specs').select('category,label');
+  const t = await tradeOfText(defaultDeps(admin, 'inbound_email'), {
+    surface: 'inbound_email.infer_sector', text, audience: 'supplier',
+    options: (specs || []).map((r: { category: string; label: string | null }) => ({ slug: r.category, label: r.label || r.category })),
+    dedupeKey: 'lead_sector:' + leadId, subject: { lead_id: leadId },
+  });
+  if (t.value && t.value !== NONE && (specs || []).some((r: { category: string }) => r.category === t.value)) {
+    await admin.from('leads').update({ sector: t.value }).eq('id', leadId).is('sector', null);
+  }
 }
 function domainOf(email: string): string { const m = String(email || '').toLowerCase().match(/@([^>\s]+)/); return m ? m[1].trim() : ''; }
 const empty = (v: unknown) => v === null || v === undefined || (typeof v === 'string' && v.trim() === '');
@@ -105,16 +100,19 @@ Deno.serve(observe('inbound_email', async (req) => {
 
     let createdNew = false;
     if (!lead) {
-      const guessSector = inferSector(subject + ' ' + text);
       const ins = await admin.from('leads').insert({
         company_name: fromName || (isFree ? fromEmail : dom) || fromEmail,
         email: fromEmail, email_domain: dom || null, domain: isFree ? null : (dom || null),
-        sector: guessSector, business_role: 'supplier',
+        sector: null, business_role: 'supplier',
         source: 'email_inbound', enrich_source: 'email_inbound',
         contacted: true, claimed: false, verified: false, permanently_closed: false,
       }).select('*').maybeSingle();
       lead = ins.data; createdNew = !!lead;
       if (!lead) return J({ error: 'could not create lead', detail: ins.error?.message }, 500);
+      // Reasoned beside the intake, never in its way (EdgeRuntime.waitUntil keeps it alive past the response).
+      const sectorWork = reasonSector(Number(lead.id), (subject + '\n' + text).slice(0, 4000)).catch(() => {});
+      // deno-lint-ignore no-explicit-any
+      (globalThis as any).EdgeRuntime?.waitUntil?.(sectorWork);
     }
 
     // profile_ai was DELETED on 8 Sep 2026 under the founder's rule: a function that belongs to
@@ -154,7 +152,6 @@ Deno.serve(observe('inbound_email', async (req) => {
       if (Array.isArray(profile.service_emirates) && profile.service_emirates.length) {
         if (!(lead.verified && Array.isArray(lead.service_emirates) && lead.service_emirates.length)) upd.service_emirates = profile.service_emirates;
       }
-      if (empty(lead.sector)) { const gs = inferSector([profile.services, profile.products, profile.description, subject, text].join(' ')); if (gs) upd.sector = gs; }
     }
     upd.contacted = true;
     upd.portal_updated_at = new Date().toISOString();

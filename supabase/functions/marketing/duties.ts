@@ -17,7 +17,10 @@ import { makeLlmRich } from '../_shared/llm.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { type Deps, runStep, type Step } from '../_shared/marketing_judgement.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
-import { call, linkedinTarget, processComment, unhideRequest, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
+import { call, linkedinComments, processComment, unhideRequest, youtubeComments, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
+import { commentClass } from '../_shared/reasoned_social.ts';
+import { accessToken, type SocialPlatform } from '../_shared/marketing_social_oauth.ts';
+import { pushFacebook, pushWhatsapp, pushYoutube, VARIANTS } from './profile_text.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
 import { postizIntegrations, type PostizIntegration } from '../_shared/marketing_channels.ts';
 import { defaultDeps } from '../_shared/think.ts';
@@ -59,24 +62,36 @@ export class Skip extends Error {}
 //   1. retries every Instagram/Facebook comment an earlier run left unfinished (no outcome after 10 minutes);
 //   2. un-hides what a reviewing seat said was not abuse, and closes each social.* handoff the receiving seat
 //      has answered (the originator closes: fn_marketing_social_handoffs_close);
-//   3. YouTube: through the founder's Postiz YouTube connection only — skipped, and SAYS so, until it is there;
-//   4. LinkedIn: the QuotesDone company page only (linkedinTarget) — a personal profile is refused.
+//   3. YouTube and 4. the LinkedIn company page: read the last 3 days of comments with the token the founder's
+//      one link stored (marketing_social_connect; instructions 919-920) and answer each through processComment,
+//      the same policy and guards as Instagram and Facebook. Not connected: skipped, and SAYS so.
 // X is removed (founder, 23 Sep 2026: no paid X API).
 export const socialComments: Duty = {
   name: 'social_comments',
   owner_seat: 'marketing',
   async run({ admin, sec, now }) {
     const gateway = Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway';
-    const metaToken = (ev: { platform: Platform; accountId: string }) =>
-      ev.platform === 'youtube' ? Promise.resolve(null) : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);
-    let postiz: PostizIntegration[] | null = null;
-    const integrations = async () => {
-      if (postiz) return postiz;
-      const key = await sec('postiz_api_key');
-      if (!key) throw new Skip('no postiz_api_key');
-      const r = await postizIntegrations(timedFetch, (await sec('postiz_api_url')) || 'https://api.postiz.com/public/v1', key);
-      if (r.error) throw new Error('postiz integrations HTTP ' + r.status + ': ' + r.error);
-      return (postiz = r.list.filter((x) => !x.disabled && !x.refreshNeeded));
+    const master = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const save = async (k: string, v: string) => { const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); if (error) throw new Error('app_secrets ' + k + ': ' + error.message); };
+    const own = (p: SocialPlatform) => accessToken(timedFetch, p, master, sec, save);
+    const metaToken = async (ev: { platform: Platform; accountId: string }) =>
+      ev.platform === 'youtube' || ev.platform === 'linkedin' ? (await own(ev.platform))?.access_token ?? null
+        : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);
+    const since = new Date(now.getTime() - 3 * 24 * 3600_000);
+    const answer = async (events: CommentEvent[]) => {
+      const counts: Record<string, number> = { read: events.length };
+      for (const ev of events) {
+        // A person check is REASONED (think()) and lazy, as in retry_unfinished below; held, it is queued.
+        const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
+          message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
+          subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
+        // What the comment IS is reasoned too (reasoned_social.ts), lazily; held, nothing is hidden or said (held_classify).
+        const cls = async () => (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') })).value;
+        const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls, person)
+          .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
+        counts[o] = (counts[o] || 0) + 1;
+      }
+      return counts;
     };
 
     const { out, skipped, errors } = await isolated({
@@ -87,7 +102,59 @@ export const socialComments: Duty = {
           .lt('created_at', new Date(now.getTime() - 10 * 60_000).toISOString())
           .gt('created_at', new Date(now.getTime() - 24 * 3600_000).toISOString()).limit(50);
         if (error) throw new Error('unfinished comments: ' + error.message);
+        // A replay of a held comment that died mid-way leaves outcome 'replaying:<when>'. After 10 minutes it is
+        // handed back to 'held_classify' (compare-and-set, so a live replay is never overtaken; never emptied, so a
+        // failed run cannot delete it — release() returns it to 'held_classify' again) and re-run here with a FRESH
+        // reasoning (a new dedupe key, since its first held question is already closed): answered, the policy runs;
+        // held again, it is queued anew and waits for its own replay.
+        // ALSO: a 'held_classify' comment with NO open held question (a replay answered but its send failed and
+        // release() handed it back, or a run died before its question was filed) is re-run the same way, so no held
+        // comment can wait for a replay that will never come. A row the platform already accepted a reply for
+        // (send_status 'sent', marked at the send) is never re-sent.
+        // A rotating window over the oldest first, sized to the backlog: with 50 or fewer every tick covers all of
+        // them; with more, ceil(n/50) ticks cover all, so rows waiting on an OPEN question (skipped below) never starve
+        // the rest. ponytail: move the "no open question" test into SQL (an RPC) if the backlog grows large.
+        const staleOf = () => admin.from('social_message').select('id', { count: 'exact', head: true })
+          .eq('direction', 'in').eq('channel', 'comment').or('outcome.like.replaying:%,outcome.eq.held_classify');
+        const { count: backlog } = await staleOf();
+        const windows = Math.max(1, Math.ceil((backlog ?? 0) / 50));
+        const from = (Math.floor(now.getTime() / 600_000) % windows) * 50;
+        const { data: stale, error: staleErr } = await admin.from('social_message')
+          .select('id,outcome,send_status,meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
+          .eq('direction', 'in').eq('channel', 'comment').or('outcome.like.replaying:%,outcome.eq.held_classify')
+          .order('occurred_at', { ascending: true }).range(from, from + 49);
+        if (staleErr) throw new Error('stale comment replays: ' + staleErr.message);
         const counts: Record<string, number> = {};
+        for (const r of stale || []) {
+          if (r.send_status === 'sent') {
+            // The platform accepted the reply but the run died before recording it: finish it as answered, never re-send.
+            await admin.from('social_message').update({ outcome: 'replied' }).eq('id', r.id).eq('outcome', r.outcome);
+            counts['finalized_sent'] = (counts['finalized_sent'] || 0) + 1;
+            continue;
+          }
+          if (String(r.outcome).startsWith('replaying:')) {
+            const at = Date.parse(String(r.outcome).slice('replaying:'.length));
+            if (!(at < now.getTime() - 10 * 60_000)) continue;
+            const { data: won } = await admin.from('social_message').update({ outcome: 'held_classify' }).eq('id', r.id).eq('outcome', r.outcome).select('id');
+            if (!won?.length) continue;
+          } else {
+            // This comment's own questions only: the exact key, or it followed by ':' (a retry) — LIKE's _ and % escaped.
+            // This comment's own open class questions, by the subject every one of them carries (exact equality on
+            // platform + message id): no LIKE or key range, so nothing in an id can act as a wildcard, and collation
+            // (which ignores ':' in the database's locale, measured 23 Sep 2026) plays no part.
+            const { data: open } = await admin.from('reasoning_held_question').select('id').eq('status', 'held')
+              .eq('surface', 'marketing_social.comment_classify').eq('subject->>platform', r.platform)
+              .eq('subject->>message_id', r.meta_message_id).limit(1);
+            if (open?.length) continue;
+          }
+          const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
+            authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
+          const cls = (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId,
+            text: String(ev.text || ''), retry: 'retry:' + now.toISOString() })).value;
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls)
+            .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
+          counts['revived:' + o] = (counts['revived:' + o] || 0) + 1;
+        }
         for (const r of data || []) {
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
             authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
@@ -95,7 +162,9 @@ export const socialComments: Duty = {
           const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
             message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
             subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
-          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, person)
+          // What the comment IS is reasoned too (reasoned_social.ts); held, nothing is hidden or said (held_classify).
+          const cls = async () => (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') })).value;
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls, person)
             .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
           counts[o] = (counts[o] || 0) + 1;
         }
@@ -119,17 +188,14 @@ export const socialComments: Duty = {
         return { unhidden, closed };
       },
       async youtube() {
-        const yt = (await integrations()).find((x) => x.identifier === 'youtube');
-        if (!yt) throw new Skip('youtube not connected in Postiz');
-        // Measured 23 Sep 2026 (docs.postiz.com/llms.txt): Postiz's public API has no comment read or reply and
-        // hands out no platform token, and the founder ruled out our own Google OAuth keys. Nothing is read.
-        throw new Skip('youtube connected in Postiz (' + yt.id + '), but Postiz exposes no comment endpoint or token');
+        const t = await own('youtube');
+        if (!t) throw new Skip('youtube not connected (the founder\'s link: scripts/marketing/social_connect_link.mjs youtube)');
+        return await answer(await youtubeComments(timedFetch, t.access_token, t.account_id, since));
       },
       async linkedin() {
-        const ours = await sec('linkedin_company_page_integration_id');
-        const page = (await integrations()).find((x) => linkedinTarget(x, ours));
-        if (!page) throw new Skip('the company page named by linkedin_company_page_integration_id is not connected in Postiz (personal profiles are refused)');
-        throw new Skip('linkedin company page connected, but Postiz exposes no comment endpoint');
+        const t = await own('linkedin');
+        if (!t) throw new Skip('linkedin company page not connected (the founder\'s link: scripts/marketing/social_connect_link.mjs linkedin)');
+        return await answer(await linkedinComments(timedFetch, t.access_token, t.account_id, since));
       },
     });
     const counts = { ...out, skipped };
@@ -222,7 +288,42 @@ function marketingDeps(ctx: DutyContext): Deps {
 // scorecard:    fn_marketing_scorecard stored weekly (Monday, Asia/Dubai) and at month end (the 1st).
 // platform_spec_freshness: the cited platform pages re-read monthly (above).
 // social_comments: public comments read and answered on every synced channel (instruction 866, above).
-// competitor_study, judgement, plan_loop: the judgement duties (instructions 865-867, above).
+// PROFILE TEXT (instruction 920): once a day, every profile an API may write is made to equal profile_text.json.
+export const profileText: Duty = {
+  name: 'profile_text',
+  owner_seat: 'marketing',
+  async run({ admin, sec, now }) {
+    if (now.getUTCHours() !== 3 || now.getUTCMinutes() >= 30) return { due: false };
+    if ((await sec('profile_text_push')) === 'off') return { due: true, held: 'app_secrets.profile_text_push is off' };
+    const since = new Date(now.getTime() - 10 * 60_000).toISOString();
+    const master = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const save = async (k: string, v: string) => { const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); if (error) throw new Error(error.message); };
+    const { out, skipped, errors } = await isolated({
+      async whatsapp() {
+        const [ks, kk, from] = await Promise.all([sec('twilio_api_key_sid'), sec('twilio_api_key_secret'), sec('twilio_wa_from')]);
+        if (!ks || !kk || !from) throw new Skip('no Twilio key or twilio_wa_from');
+        return await pushWhatsapp(timedFetch, 'Basic ' + btoa(`${ks}:${kk}`), from, since);
+      },
+      async facebook() {
+        const { data } = await admin.from('marketing_meta_page').select('page_id').limit(1).maybeSingle();
+        if (!data?.page_id) throw new Skip('no Facebook page cached yet (marketing_meta_page)');
+        const t = await metaPageToken(admin, timedFetch, 'facebook', data.page_id);
+        if (!t) throw new Skip('no page token');
+        return await pushFacebook(timedFetch, data.page_id, t);
+      },
+      async youtube() {
+        const t = await accessToken(timedFetch, 'youtube', master, sec, save);
+        if (!t) throw new Skip('youtube not connected');
+        return await pushYoutube(timedFetch, t.access_token);
+      },
+    });
+    if (errors.length) throw new Error(errors.join(' | ') + ' (' + JSON.stringify({ out, skipped }).slice(0, 300) + ')');
+    return { due: true, ...out, skipped, manual: VARIANTS.filter((v) => v.api === 'manual').map((v) => v.platform + '.' + v.field) };
+  },
+};
+
+
+// competitor_study, judgement, plan_loop: the judgement duties (instructions 865-867, above); profile_text (920).
 export const DUTIES: Duty[] = [
   POST_RESULTS, SCORECARD, platformSpecFreshness, socialComments,
   {
@@ -300,4 +401,5 @@ export const DUTIES: Duty[] = [
       return data as Record<string, unknown>;
     },
   },
+  profileText,
 ];

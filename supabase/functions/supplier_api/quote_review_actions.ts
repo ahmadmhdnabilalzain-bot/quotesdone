@@ -58,7 +58,9 @@ export function inquiryDocuments(i: Json): { job: string; documents: Json[]; boq
   return { job, documents, boq_withheld: !!i.boq_withheld, drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length), drawing_pages_failed: Number(i.drawing_pages_failed || 0) };
 }
 
-export async function reviewAction(o: { sup: Supplier; email: string; self: Self; body: Json; repo: flow.ReviewRepo; scan: flow.ReviewDeps['scan'] }): Promise<{ status: number; json: unknown }> {
+export async function reviewAction(o: { sup: Supplier; email: string; self: Self; body: Json; repo: flow.ReviewRepo; scan: flow.ReviewDeps['scan'];
+  /** The quotation's terms, reasoned (supplier_api passes reasoned_suppliers.ts quoteTerms). */
+  readTerms?: Parameters<typeof flow.readQuotationFile>[4]; readWorking?: flow.ReviewDeps['readWorking'] }): Promise<{ status: number; json: unknown }> {
   const { sup, email, self, body, repo } = o;
   const action = String(body.action);
   const lang: Lang = body.lang === 'ar' || (body.lang !== 'en' && String(sup.locale || '').startsWith('ar')) ? 'ar' : 'en';
@@ -122,10 +124,12 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
       if (b64.length > MAX_B64) return { ok: false, status: 413, code: 'file_too_large', message: 'That file is too large. Please attach a file under 10 MB.' };
       return o.scan(b64, filename, mime);
     },
-    read: (bytes, name, mime) => flow.readQuotationFile(bytes, name, mime, [String(sup.company_name || '')].filter((s) => s.length >= 3)),
+    read: (bytes, name, mime) => flow.readQuotationFile(bytes, name, mime, [String(sup.company_name || '')].filter((s) => s.length >= 3),
+      o.readTerms),
     submit: (p) => self(p),
     quotePdf: async (quoteId, l) => { const r = await self({ action: 'quote_pdf', quote_id: quoteId, lang: l }); return { url: r.json?.url ?? null, ref: r.json?.ref ?? null }; },
     now: () => new Date(),
+    readWorking: o.readWorking,
   };
   const ctx: flow.Ctx = { supplierId: Number(sup.id), email, lang, companyName: sup.company_name ?? null };
   const id = String(body.inquiry_id || '');

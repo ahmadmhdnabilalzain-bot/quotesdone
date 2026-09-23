@@ -7,13 +7,14 @@
 // (type of wood, thickness …) side by side, not only delivery time and installation.
 //
 // WHAT IT IS NOW. Each document is a cover (title, reference, date, request summary, a key-figures
-// strip) and numbered sections, laid out by pdf_native/render.ts. Both are built with no model:
-//   • Everything the platform knows the meaning of is translated deterministically (labels, trades,
-//     emirates, durations, payment terms, units).
-//   • Everything the supplier wrote — item descriptions, specification values, scope, exclusions —
-//     goes through the trade glossary (trade_glossary_ar.ts). What the glossary cannot translate is
-//     NOT left as bare English: the Arabic of the known parts is the primary text and the supplier's
-//     own words sit on a small secondary line labelled "النص الأصلي من المورد".
+// strip) and numbered sections, laid out by pdf_native/render.ts. The builders here are pure:
+//   • Everything the platform knows the meaning of is written from our own keys (labels, trade codes,
+//     emirates, durations, units).
+//   • Everything a person wrote — item descriptions, specification values, scope, exclusions, payment
+//     terms — is translated natively by reasoning (_shared/reasoned_governance.ts nativeArabic, decision
+//     point trade_glossary_ar, 23 Sep 2026) and handed in as `arTexts`. A line without its Arabic is
+//     returned in `untranslated` and the caller HOLDS the Arabic document: never printed half-translated,
+//     and never a glossary's word-by-word substitution (founder_instruction 890).
 //   • The comparison report carries a TECHNICAL COMPARISON: each scope line × each supplier's stated
 //     value per attribute, marked matches / differs / not stated against the request (see
 //     TechnicalComparison below — the renderer input the spec agent's contract fills).
@@ -27,7 +28,7 @@
 // ANONYMITY. The customer pays a reveal fee to learn who quoted. Supplier free text can carry a
 // name, a number or an email ("call Ahmed on 050…"), so every string in both documents passes
 // maskContacts, which also blanks the supplier names the caller hands in. Links are ids only.
-import { arTrade, arUnit as glossaryUnit, arCount as glossaryCount, arAttr, CATEGORY_AR, CATEGORY_EN, WORKING_FORMS, UNIT_FORMS, type Unit } from './trade_glossary_ar.ts';
+import { arUnit as glossaryUnit, arCount as glossaryCount, arAttr, CATEGORY_AR, CATEGORY_EN, WORKING_FORMS, UNIT_FORMS, type Unit } from './trade_glossary_ar.ts';
 import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.ts';
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
@@ -36,8 +37,9 @@ export type Lang = 'en' | 'ar';
 /** The version printed in each document's control line AND carried in its file name. Bump when the
  * layout or wording changes: a cached file whose name lacks the current version is re-rendered
  * (isCurrentDoc). v2.1, 21 Sep 2026: the Arabic fixes of #782/#790/#794 — before this, the cache kept
- * serving documents rendered by v2.0 for as long as the quote was untouched. */
-export const DOC_VERSION = 'v2.1';
+ * serving documents rendered by v2.0 for as long as the quote was untouched. v2.2, 23 Sep 2026: the Arabic of a
+ * person's words is reasoned (decision point trade_glossary_ar), so every glossary-era Arabic file is re-rendered. */
+export const DOC_VERSION = 'v2.2';
 /** The file name pdf_native writes: `<ts>_<name>.pdf`, name = `<ref>-<DOC_VERSION>-<kind>-<lang>`. The
  * version sits BEFORE the kind: trg_quote_pdf_cache_register replaces a quote's earlier vault entry by
  * matching a path that ENDS in `-quotation-<lang>.pdf`, and that ending must not move. */
@@ -104,17 +106,6 @@ const EMIRATES: Record<string, string> = {
 };
 export function arEmirate(s: unknown): string | null { if (hasArabic(s)) return String(s); return EMIRATES[norm(s)] ?? null; }
 
-// Free-typed trade names that are not category codes (older rows, the brief form).
-const CATEGORIES: Array<[RegExp, string]> = [
-  [/^(hvac|ac|a\/c|air ?conditioning|hvac ?(and|&) ?refrigeration|cooling)$/, 'التكييف والتبريد'],
-  [/^mep$/, 'الأعمال الكهروميكانيكية'], [/^electrical( works)?$/, 'الأعمال الكهربائية'], [/^plumbing$/, 'السباكة'],
-  [/^(joinery|carpentry|woodwork)$/, 'النجارة'], [/^painting$/, 'الدهانات'], [/^flooring$/, 'الأرضيات'], [/^tiling$/, 'التبليط'],
-  [/^(glass|glazing|glass (and|&) aluminium|aluminium)$/, 'الزجاج والألمنيوم'], [/^(cctv|security|security systems)$/, 'كاميرات المراقبة والأنظمة الأمنية'],
-  [/^(fire|fire fighting|firefighting|fire alarm|fire protection)$/, 'أنظمة الحماية من الحريق'], [/^(steel|metal|metal works|steel works)$/, 'الأعمال المعدنية'],
-  [/^(signage|printing|signage (and|&) printing)$/, 'اللافتات والطباعة'], [/^cleaning$/, 'التنظيف'], [/^landscaping$/, 'تنسيق الحدائق'],
-  [/^(fit ?out|interior fit ?out|interiors)$/, 'التشطيبات الداخلية'], [/^civil( works)?$/, 'الأعمال المدنية'], [/^events?$/, 'الفعاليات'],
-  [/^(it|networking|it (and|&) networking)$/, 'الشبكات وتقنية المعلومات'], [/^waterproofing$/, 'العزل المائي'],
-];
 /** The English trade name as a person writes it: 'hvac' → 'HVAC', 'fit_out' → 'Fit Out'. */
 export function enCategory(s: unknown): string {
   const code = String(s ?? '').toLowerCase().trim();
@@ -127,78 +118,27 @@ export function arCategory(s: unknown): string | null {
   if (hasArabic(s)) return String(s);
   const code = String(s ?? '').toLowerCase().trim();
   if (CATEGORY_AR[code]) return CATEGORY_AR[code];
-  const n = norm(s); for (const [re, ar] of CATEGORIES) if (re.test(n)) return ar;
-  const t = arTrade(s); return t.complete && t.ar ? t.ar : null;
+  // A trade that is not one of our category keys is free text: the caller reasons it (k.loc), never a word list.
+  return null;
 }
 
 const UNIT_OF: Record<string, Unit> = { day: 'day', days: 'day', week: 'week', weeks: 'week', wk: 'week', wks: 'week', month: 'month', months: 'month', mo: 'month', mos: 'month', year: 'year', years: 'year', yr: 'year', yrs: 'year' };
-/** "2 weeks", "10-14 days", "12 months warranty", "3 working days", "immediate" → Arabic, or null. */
+/** A duration that is ONLY a number (or range) and a unit — "2 weeks", "10-14 days", "3 working days" — in Arabic,
+ * or null. This is format parsing of a number and its unit and nothing else (decision point
+ * documents.quote_duration_emirates, 23 Sep 2026): anything a person wrote around it ("immediate", "from order",
+ * "after approval") is their words, and the document reasons it (loc) instead of substituting phrases. */
 export function arDuration(s: unknown): string | null {
   if (hasArabic(s)) return String(s);
-  let t = norm(s).replace(/\.$/, '');
+  const t = norm(s).replace(/\.$/, '');
   if (!t) return null;
-  if (/^(immediate(ly)?|asap|ex[- ]?stock|from stock|same day)$/.test(t)) return t.includes('stock') ? 'من المخزون فورًا' : 'فوري';
-  // "21 days from order" is the commonest lead time a supplier writes; it fell through to the
-  // "original wording" line on every Arabic report (measured 14 Sep 2026). The anchor is kept.
-  let from = '';
-  const anchor = t.match(/\s+(?:from|after)\s+(?:the\s+)?(order confirmation|purchase order|order|po|lpo|confirmation|approval|advance payment|advance|payment|drawing approval)$/);
-  if (anchor) {
-    from = /approval/.test(anchor[1]) ? ' من الاعتماد' : /advance|payment/.test(anchor[1]) ? ' من استلام الدفعة المقدمة' : ' من تاريخ الطلب';
-    t = t.slice(0, anchor.index);
-  }
-  const r = arDurationCore(t);
-  return r ? r + from : null;
-}
-function arDurationCore(t: string): string | null {
-  const m = t.match(/^(\d{1,4})(?:\s*(?:-|–|to)\s*(\d{1,4}))?\s*(working |business |calendar )?(days?|weeks?|wks?|months?|mos?|years?|yrs?)(?: (?:warranty|validity|guarantee))?$/);
+  const m = t.match(/^(\d{1,4})(?:\s*(?:-|–)\s*(\d{1,4}))?\s*(working |business )?(days?|weeks?|wks?|months?|mos?|years?|yrs?)$/);
   if (!m) return null;
-  const a = Number(m[1]), b = m[2] ? Number(m[2]) : null, unit = UNIT_OF[m[4]], working = !!m[3] && /working|business/.test(m[3]);
+  const a = Number(m[1]), b = m[2] ? Number(m[2]) : null, unit = UNIT_OF[m[4]], working = !!m[3];
   if (!unit) return null;
   if (b === null) return arCount(a, unit, working);
   const f = working && unit === 'day' ? WORKING_FORMS : UNIT_FORMS[unit];
   return `${a}–${b} ${b >= 3 && b <= 10 ? f[2] : f[3]}`;
 }
-const EVENTS: Array<[RegExp, string]> = [
-  [/^(completion|job completion|work completion|project completion)$/, 'الإنجاز'], [/^(delivery|material delivery|supply|delivery of materials|material delivery to site|delivery to site)$/, 'التسليم'],
-  [/^(installation|install)$/, 'التركيب'], [/^(handover|hand over|final handover)$/, 'التسليم النهائي'],
-  [/^(commissioning|testing (and|&) commissioning|t ?& ?c)$/, 'الاختبار والتشغيل'], [/^(approval|drawing approval|approval of drawings|shop drawing approval)$/, 'الاعتماد'],
-  [/^(order|order confirmation|confirmation|lpo|po|signing|contract signing|award)$/, 'تأكيد الطلب'], [/^dispatch$/, 'الشحن'],
-  [/^(mobili[sz]ation|site mobili[sz]ation)$/, 'التجهيز في الموقع'], [/^(invoice|invoicing|submission of invoice)$/, 'تقديم الفاتورة'], [/^(snagging|snag clearance)$/, 'معالجة الملاحظات'],
-];
-function arEvent(s: string): string | null { for (const [re, ar] of EVENTS) if (re.test(s.trim())) return ar; return null; }
-/** A payment-terms phrase is translated only when EVERY part of it is recognised; otherwise null. */
-export function arPayment(s: unknown): string | null {
-  if (hasArabic(s)) return String(s);
-  const t = norm(s).replace(/\.$/, '');
-  if (!t) return null;
-  const parts = t.split(/\s*(?:,|;|\+|\band\b|&)\s*/).filter(Boolean);
-  const out: string[] = [];
-  const LC = '(?:l\\/?c|letter of credit)';
-  for (const p of parts) {
-    let m: RegExpMatchArray | null;
-    if ((m = p.match(/^(\d{1,3})\s*%\s*(?:advance|down ?payment|deposit|upfront|mobili[sz]ation(?: advance)?)(?: payment)?$/))) { out.push(`${m[1]}% دفعة مقدّمة`); continue; }
-    if (new RegExp(`^(?:(?:balance|rest|remaining)\\s+(?:by|through|via|against)\\s+)?${LC}\\s*(?:at sight|sight)$`).test(p)) { out.push(/^(balance|rest|remaining)/.test(p) ? 'الرصيد باعتماد مستندي بالاطلاع' : 'اعتماد مستندي بالاطلاع'); continue; }
-    if ((m = p.match(new RegExp(`^(?:(\\d{1,3})\\s*%\\s*(?:by|through|via)?\\s*)?${LC}\\s*(?:at\\s*)?(\\d{1,3})\\s*days?(?: usance)?$`))) || (m = p.match(new RegExp(`^(?:(\\d{1,3})\\s*%\\s*)?(\\d{1,3})\\s*days?\\s*${LC}$`)))) { out.push(`${m[1] ? m[1] + '% ' : ''}اعتماد مستندي لأجل ${arCount(Number(m[2]), 'day')}`); continue; }
-    if (new RegExp(`^(?:balance|rest|remaining)\\s+(?:by|through|via|against)\\s+${LC}$`).test(p)) { out.push('الرصيد باعتماد مستندي'); continue; }
-    if ((m = p.match(new RegExp(`^(\\d{1,3})\\s*%\\s*(?:by|through|via|against)?\\s*${LC}$`)))) { out.push(`${m[1]}% باعتماد مستندي`); continue; }
-    if (new RegExp(`^${LC}$`).test(p)) { out.push('اعتماد مستندي'); continue; }
-    if ((m = p.match(/^(?:balance|rest|remaining)(?: amount| payment)?\s+(?:on|upon|after|at|against)\s+(.+)$/))) { const ev = arEvent(m[1]); if (!ev) return null; out.push(`الرصيد عند ${ev}`); continue; }
-    if ((m = p.match(/^(?:(\d{1,3})\s*%\s*)?(?:on|upon|after|at|against)\s+(.+)$/))) { const ev = arEvent(m[2]); if (!ev) return null; out.push(m[1] ? `${m[1]}% عند ${ev}` : `عند ${ev}`); continue; }
-    if ((m = p.match(/^(\d{1,3})\s*%\s*(?:before|prior to)\s+(.+)$/))) { const ev = arEvent(m[2]); if (!ev) return null; out.push(`${m[1]}% قبل ${ev}`); continue; }
-    if ((m = p.match(/^(\d{1,3})\s*%\s*(?:progress|monthly progress|against progress|as per progress|progressive)(?: payments?)?$/))) { out.push(`${m[1]}% حسب نسبة الإنجاز`); continue; }
-    if ((m = p.match(/^(\d{1,3})\s*%\s*retention(?:\s+(?:for|released after)\s+(\d{1,3})\s*(days?|months?))?$/)) || (m = p.match(/^retention\s*(?:of\s*)?(\d{1,3})\s*%$/))) { out.push(`${m[1]}% محتجزة لضمان حسن التنفيذ${m[2] ? ' لمدة ' + arCount(Number(m[2]), /month/.test(m[3] || '') ? 'month' : 'day') : ''}`); continue; }
-    if ((m = p.match(/^(\d{1,3})\s*days?\s*(?:credit|pdc)$/)) || (m = p.match(/^(?:credit|pdc)\s*(\d{1,3})\s*days?$/))) { out.push(`دفع آجل خلال ${arCount(Number(m[1]), 'day')}`); continue; }
-    if ((m = p.match(/^(?:within\s+)?(\d{1,3})\s*days?\s*(?:of|from|after)\s*(?:the\s*)?invoice(?: date)?$/))) { out.push(`خلال ${arCount(Number(m[1]), 'day')} من تاريخ الفاتورة`); continue; }
-    if (/^(cash|cash on delivery|cod)$/.test(p)) { out.push(p === 'cash' ? 'نقدًا' : 'نقدًا عند التسليم'); continue; }
-    if (/^(cheque|current cheque|cheque on delivery)$/.test(p)) { out.push(p === 'cheque on delivery' ? 'شيك عند التسليم' : 'شيك'); continue; }
-    if (/^(bank transfer|wire transfer|tt|telegraphic transfer)$/.test(p)) { out.push('تحويل بنكي'); continue; }
-    if (/^against invoice$/.test(p)) { out.push('مقابل الفاتورة'); continue; }
-    if (/^(100\s*%\s*)?(advance|full advance|full payment in advance)$/.test(p)) { out.push('100% دفعة مقدّمة'); continue; }
-    return null;
-  }
-  return out.length ? out.join('، ') : null;
-}
-
 // ── Types: what the caller hands in ─────────────────────────────────────────────────────────────
 export type QuoteRow = {
   id?: string; quote_amount: number | null; lead_time?: string | null; validity?: string | null; warranty?: string | null;
@@ -304,8 +244,14 @@ export function stripVat(s: unknown): string {
 // ── Shared helpers for both documents ────────────────────────────────────────────────────────────
 type Cell = string | { text: string; sub?: string; flag?: SpecFlag; chip?: 'short' | 'open' | 'hold'; link?: string; bold?: boolean; group?: boolean };
 const ORIGINAL = 'النص الأصلي من المورد: ';
-function kit(lang: Lang, names: string[] = []) {
+/** Native Arabic of a person's own words, by source text — written by reasoning upstream (reasoned_governance.ts
+ * nativeArabic), never by substituting glossary words. */
+export type ArTexts = Record<string, string>;
+function kit(lang: Lang, names: string[] = [], arTexts: ArTexts = {}) {
   const ar = lang === 'ar';
+  // Every free-text line this Arabic page needs and was not handed the Arabic of. A document with any is
+  // not served: nativeArabic() reasons them and rebuilds, or holds the document.
+  const untranslated = new Set<string>();
   // Contacts are masked and VAT dropped BEFORE translation, so neither can survive in the Arabic
   // primary text or in the "original wording" line under it.
   const clean = (v: unknown) => maskContacts(stripVat(v), names, 'en');
@@ -315,18 +261,18 @@ function kit(lang: Lang, names: string[] = []) {
     const n = Number(v).toLocaleString('en-AE', { minimumFractionDigits: dec ? 2 : 0, maximumFractionDigits: dec ? 2 : 0 });
     return ar ? `${n} درهم` : `AED ${n}`;
   };
-  // Supplier or customer free text in the page's language. On an Arabic page it is translated by
-  // the glossary; what the glossary cannot finish keeps the original on a secondary line.
+  // Supplier or customer free text in the page's language. On an Arabic page it is the reasoned Arabic handed
+  // in as arTexts; a line without it is recorded in `untranslated` and the document is held, never printed.
   const loc = (v: unknown, max = 400): { text: string; sub?: string } => {
     const s = clipCell(clean(v), max);
-    if (!s || !ar) return { text: s };
-    const t = arTrade(s);
-    if (t.complete) return { text: t.ar };
-    return { text: t.ar || 'انظر النص الأصلي أدناه', sub: ORIGINAL + s };
+    if (!s || !ar || !/[A-Za-z]/.test(s)) return { text: s };
+    if (arTexts[s]) return { text: arTexts[s] };
+    untranslated.add(s);
+    return { text: s };
   };
   const cell = (v: unknown, max = 400): Cell => { const r = loc(v, max); return r.sub ? r : (r.text || '—'); };
   const dur = (v: unknown) => { const c = clipCell(v, 60); if (!c) return ''; return ar ? (arDuration(c) ?? loc(c).text) : c; };
-  const pay = (v: unknown): Cell => { const c = clipCell(clean(v), 90); if (!c) return '—'; if (!ar) return c; const p = arPayment(c); return p ?? cell(c); };
+  const pay = (v: unknown): Cell => { const c = clipCell(clean(v), 90); if (!c) return '—'; return ar ? cell(c) : c; };
   const label = (l: unknown) => labelFor(l, lang);
   // Analysis sentences name suppliers by label and prices in AED: both take the page's language.
   // Any sentence about VAT is dropped in both languages.
@@ -335,7 +281,7 @@ function kit(lang: Lang, names: string[] = []) {
     ? (ar ? arLabelWords(stripVat(v)).replace(/\bAED\s?([\d,.]+)/g, '$1 درهم') : stripVat(v))
     : Array.isArray(v) ? v.map(sentence) : (v && typeof v === 'object') ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === 'link' ? x : sentence(x)])) : v;
   const today = () => new Date().toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-  return { ar, T, money, loc, cell, dur, pay, label, sentence, today };
+  return { ar, T, money, loc, cell, dur, pay, label, sentence, today, untranslated };
 }
 type Kit = ReturnType<typeof kit>;
 const FLAG_WORD: Record<SpecFlag, [string, string]> = { match: ['Matches', 'مطابق'], differs: ['Differs', 'مختلف'], missing: ['Not stated', 'غير مذكور'], optional: ['Not stated (optional)', 'غير مذكورة (اختيارية)'], na: ['N/A', 'لا ينطبق'] };
@@ -373,12 +319,12 @@ const hasSpecs = (it: Item) => !!((it.specs && Object.values(it.specs).some((v) 
 /** The pdf_native body for ONE quote in ONE language. Pure: the caller fetches the rows. */
 // requestUrl: the portal deep link back to this quote on its request (site_origins portalLink).
 /** `partyName`: the supplier's company name once the customer has paid to reveal it; the letter still names the reference. */
-export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string }) {
+export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string; arTexts?: ArTexts }) {
   const { quote: q, inquiry: inq, letter, lang } = args;
   // A line that is itself VAT ("VAT 5%") is not scope; it never reaches the page.
   const items = (args.items || []).filter((it) => !VAT_RE.test(String(it.desc || '')));
   const exVat = Number(q.price_ex_vat) > 0 ? Number(q.price_ex_vat) : Number(q.quote_amount) || 0;
-  const k = kit(lang, args.maskNames || []); const { T, ar } = k;
+  const k = kit(lang, args.maskNames || [], args.arTexts); const { T, ar } = k;
   const ref = quoteRef(inq, letter);
   const date = (ar ? args.date_ar : args.date) || k.today();
   const party = args.partyName || k.label('Supplier ' + letter);
@@ -484,7 +430,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
     cover: maskDeep(cover0, names, lang), control, blocks: maskDeep(blocks, names, lang), options: { letterhead: true },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
-  return { body, ref };
+  return { body, ref, untranslated: [...k.untranslated] };
 }
 
 // ── The comparison report ───────────────────────────────────────────────────────────────────────
@@ -503,8 +449,15 @@ const joinList = (x: any, ar = false) => arrOf(x).map((s: unknown) => String(s ?
 // THE SIDE-BY-SIDE COMMERCIAL TABLE, ONCE. The report renders the rich cells and compare_csv
 // exports the same rows as text (compareTable), so the spreadsheet can never disagree with the page.
 // deno-lint-ignore no-explicit-any
-function commercialRows(a: any, lang: Lang, names: string[] = []): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
-  const k = kit(lang, names); const { T } = k;
+function commercialRows(a: any, lang: Lang, names: string[] = [], arTexts: ArTexts = {}, sink?: Set<string>): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
+  const k = kit(lang, names, arTexts);
+  const out = commercialRowsOf(a, k);
+  if (sink) for (const t of k.untranslated) sink.add(t);
+  return out;
+}
+// deno-lint-ignore no-explicit-any
+function commercialRowsOf(a: any, k: Kit): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
+  const { T } = k;
   const held = heldLabels(a);
   // deno-lint-ignore no-explicit-any
   const qs = arrOf(a?.quotes).filter((q: any) => !held.has(String(q.label)));
@@ -544,11 +497,12 @@ function commercialRows(a: any, lang: Lang, names: string[] = []): { head: Cell[
 const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '' };
 /** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */
 // deno-lint-ignore no-explicit-any
-export function compareTable(a: any, ar: boolean): { head: string[]; rows: string[][] } | null {
-  const r = commercialRows(a, ar ? 'ar' : 'en');
+export function compareTable(a: any, ar: boolean, arTexts: ArTexts = {}): { head: string[]; rows: string[][]; untranslated: string[] } | null {
+  const sink = new Set<string>();
+  const r = commercialRows(a, ar ? 'ar' : 'en', [], arTexts, sink);
   if (!r) return null;
   const txt = (c: Cell) => { if (typeof c === 'string') return c; const m = c.flag ? MARK[c.flag] : ''; return (m && c.text !== '—' ? m + ' ' : '') + c.text; };
-  return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)) };
+  return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)), untranslated: [...sink] };
 }
 /** RFC 4180 cells, plus a leading apostrophe on anything a spreadsheet would run as a formula. */
 // The trigger set is = + - @ AND a leading tab or carriage return (OWASP CSV injection): cells carry
@@ -566,9 +520,9 @@ export function toCsv(head: string[], rows: string[][]): string {
 // it, every supplier cell in "Recommended" and "All quotes received" links to its own quote rather
 // than to the portal in general. The link carries ids only; the label beside it is the anonymous one.
 // deno-lint-ignore no-explicit-any
-export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang: Lang; maskNames?: string[]; portalUrl?: string; linkFor?: (quoteId: string) => string; date?: string; date_ar?: string }) {
+export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang: Lang; maskNames?: string[]; portalUrl?: string; linkFor?: (quoteId: string) => string; date?: string; date_ar?: string; arTexts?: ArTexts }) {
   const { analysis: a, inquiry: inq, lang } = args;
-  const k = kit(lang, args.maskNames || []); const { T, ar } = k;
+  const k = kit(lang, args.maskNames || [], args.arTexts); const { T, ar } = k;
   const ref = 'QD-' + jobNoOf(inq) + '-CMP';
   const date = (ar ? args.date_ar : args.date) || k.today();
   const roster = arrOf(a.all_quotes);
@@ -674,7 +628,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
   }
 
   // 4 — Commercial comparison
-  const side = commercialRows(a, lang, args.maskNames || []);
+  const side = commercialRows(a, lang, args.maskNames || [], args.arTexts, k.untranslated);
   if (side) {
     section('Commercial comparison', 'المقارنة التجارية');
     const colW = 0.76 / Math.max(1, side.labels.length);
@@ -762,7 +716,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     cover: maskDeep(cover0, names, lang), control, blocks: maskDeep(blocks, names, lang), options: { letterhead: true },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
-  return { body, ref };
+  return { body, ref, untranslated: [...k.untranslated] };
 }
 
 // ── The inquiry, as the supplier receives it ───────────────────────────────────────────────────
@@ -805,23 +759,17 @@ export type InquiryDocRow = {
   drawing_pages_failed?: number | null;
 };
 const URGENCY: Record<string, [string, string]> = { urgent: ['Urgent', 'عاجل'], high: ['Urgent', 'عاجل'], normal: ['Standard', 'عادي'], standard: ['Standard', 'عادي'], low: ['Not urgent', 'غير عاجل'], flexible: ['Flexible', 'مرن'] };
-export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; portalUrl?: string; date?: string; date_ar?: string }) {
+export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; portalUrl?: string; date?: string; date_ar?: string; arTexts?: ArTexts }) {
   const { inquiry: i, lang } = args;
-  const k = kit(lang); const { T, ar } = k;
+  const k = kit(lang, [], args.arTexts); const { T, ar } = k;
   const job = jobNoOf(i);
   const ref = quoteRef(i, 'RFQ');
   const date = (ar ? args.date_ar : args.date) || k.today();
   const trade = ar ? (arCategory(i.category) ?? k.loc(i.category).text) : enCategory(i.category);
   const emirate = ar ? (arEmirate(i.emirate) ?? k.loc(i.emirate).text) : String(i.emirate || '');
   const received = i.created_at ? new Date(i.created_at).toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
-  // Customer free text. The glossary can call a fragment complete and still leave a bare Latin word in
-  // it (measured 21 Sep 2026: "around 90k" came back as "90 K"); on the Arabic page such a fragment is
-  // demoted whole to the original-wording line, which here is the CUSTOMER's, not the supplier's.
-  const cust = (v: unknown, max: number): { text: string; sub?: string } => {
-    const r = k.loc(v, max);
-    if (!ar || !/(^|\s)[A-Za-z](\s|$)|\b[a-z]{2,}\b/.test(r.text)) return r;
-    return { text: 'انظر النص الأصلي أدناه', sub: ORIGINAL + clipCell(maskContacts(stripVat(v), [], 'en'), max) };
-  };
+  // Customer free text: the reasoned Arabic, like the supplier's (see loc).
+  const cust = (v: unknown, max: number): { text: string; sub?: string } => k.loc(v, max);
   const summary = cust(i.summary, 800);
   const req = i.spec && typeof i.spec === 'object' ? i.spec.customer_requirements : null;
   // The deadline: the intake's `required_by` (docs/contracts/intake_answers.md) — a date, or flexible,
@@ -868,12 +816,11 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
     if (hasBasis) { head.push(T('Quantity basis', 'أساس الكمية')); widths.push(0.20); align.push('s'); }
     const body = rows.slice(0, 120).map((r, idx) => {
       const c: Cell[] = [String(idx + 1)];
-      // Arabic page: the section and the description the sales engineer's vocabulary names in Arabic
-      // (_shared/boq_arabic.ts, audit 21 Sep 2026 finding 26) where the glossary alone left English; the
-      // customer's original stays on the secondary line, because that is what the supplier prices.
-      if (hasSection) c.push(ar && r.section_ar ? r.section_ar : k.cell(r.section, 60));
-      const dl = k.loc(r.description, 240);
-      c.push(ar && dl.sub && r.description_ar ? { text: r.description_ar, sub: dl.sub } : k.cell(r.description, 240), r.qty == null || r.qty === '' ? '—' : String(r.qty), (ar ? (arUnit(r.unit) ?? k.loc(r.unit).text) : String(r.unit || '')) || '—');
+      // Arabic page: the section and the description are the REASONED Arabic of the customer's words, like every
+      // other line (decision point trade_glossary_ar). The word-matched section_ar / description_ar labels
+      // (_shared/boq_arabic.ts) are not printed on a document.
+      if (hasSection) c.push(k.cell(r.section, 60));
+      c.push(k.cell(r.description, 240), r.qty == null || r.qty === '' ? '—' : String(r.qty), (ar ? (arUnit(r.unit) ?? k.loc(r.unit).text) : String(r.unit || '')) || '—');
       if (hasBasis) { const b = bases[idx]; c.push(b ? { text: T(b.en, b.ar), ...(b.open ? { flag: 'missing' as const } : {}) } : '—'); }
       return c;
     });
@@ -914,5 +861,5 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
     cover: relabel(maskDeep(cover0, [], lang)), control, blocks: relabel(maskDeep(blocks, [], lang)), options: { letterhead: true },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
-  return { body, ref, job, drawings };
+  return { body, ref, job, drawings, untranslated: [...k.untranslated] };
 }
