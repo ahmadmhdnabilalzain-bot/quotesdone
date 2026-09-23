@@ -136,6 +136,9 @@ export function buildPostizPayload(post: PublishInput, list: PostizIntegration[]
     posts.push({ integration: { id: it.id }, value, settings: settingsFor(it.identifier, vs[0], thumb) });
     resolved[ch] = it.identifier;
   }
+  // shortLink: false ALWAYS. POST /public/v1/posts takes a top-level boolean `shortLink`; Postiz's own CLI
+  // defaults it to true and the account preference is "Ask every time" (23 Sep 2026), so it is stated here:
+  // the approved UTM links reach the platforms unchanged.
   return { payload: { type: 'now', date: new Date().toISOString(), shortLink: false, tags: [], posts }, skipped, resolved };
 }
 

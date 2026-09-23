@@ -138,6 +138,23 @@ Deno.test('cancel deletes the post in Postiz; an already-gone post is fine', asy
   assert(!bad.ok && /cannot be deleted/.test(bad.error!));
 });
 
+// Postiz's account "Shortlink Preference" is "Ask every time" (23 Sep 2026). The public API's POST /posts takes
+// a top-level boolean `shortLink` (Postiz CLI 2.0.16 builds the same body and DEFAULTS it to true), so the
+// publisher states false on every create: our UTM links reach every platform exactly as approved.
+Deno.test('every create-post payload says shortLink: false, and the UTM link reaches every platform unchanged', async () => {
+  const UTM = 'https://www.quotesdone.ae/suppliers?utm_source=social&utm_medium=organic&utm_campaign=2026-month1';
+  const withLink: PublishInput = { ...POST, variants: POST.variants.map((x) => ({ ...x, body: x.body + '\n' + UTM })) };
+  let sent: any = null;
+  const { f } = mock([[/\/integrations$/, () => INTEGRATIONS], [/\/upload$/, () => ({ id: 'm', path: 'p' })],
+    [/\/posts$/, (_u, init) => { sent = JSON.parse(String(init?.body)); return [{ postId: 'p1' }]; }]]);
+  const r = await publishPost(f, P, 'k', withLink, true, '');
+  assert(r.mode === 'live' && r.ok);
+  assertEquals(sent.shortLink, false, 'shortLink must be sent as false, never left to the account default');
+  assertEquals(sent.posts.length, 6);
+  for (const p of sent.posts) assert(p.value[0].content.includes(UTM), p.settings.__type + ' lost or changed the UTM link');
+  assertEquals(buildPostizPayload(withLink, INTEGRATIONS, [], null).payload.shortLink, false, 'the dry run shows the same');
+});
+
 Deno.test('ZZ DEMO is caught in the TEXT as well as by the flag', () => {
   assert(isDemoText('Hello', 'ZZ DEMO caption'));
   assert(isDemoText('zz-demo'));
