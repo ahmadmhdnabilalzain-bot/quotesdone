@@ -32,6 +32,7 @@
 // database, no network, and therefore no way to reach a real supplier.
 import { approvalNotice, assessQuote, holdNotice, lineText, releasedNotice, SEAT, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
 import { TRADES } from './model.ts';
+import { applyReading, type QuoteReading } from '../reasoned_matching.ts';
 import { optionLabel } from './options.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 import { requestDelivery } from '../deliver.ts';
@@ -71,7 +72,10 @@ export interface SpecRepo {
   log(counts: Record<string, unknown>, note: string): Promise<void>;
 }
 export type Supplier = { id: number; email: string | null; phone?: string | null; locale: string | null };
-export type Ctx = { category: string | null; requirements: Requirements; ref: string; multiOption?: boolean; now?: () => Date };
+// read: what the supplier's quotation states, read by reasoning (_shared/reasoned_matching.ts readQuote) before
+// the check; null under the model hold, and then only what he stated in keyed fields counts (the quote is held).
+export type Ctx = { category: string | null; requirements: Requirements; ref: string; multiOption?: boolean; now?: () => Date;
+  read?: (q: QuoteRow, lines: Line[]) => Promise<QuoteReading | null> };
 const nowIso = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date()).toISOString();
 const langOf = (s: Supplier): 'en' | 'ar' => (String(s.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
 
@@ -106,9 +110,15 @@ async function persistSpecs(repo: SpecRepo, quoteId: string, a: Assessment, line
  */
 export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, ctx: Ctx) {
   const q = await repo.quote(quoteId); if (!q) throw new Error('quote not found: ' + quoteId);
-  const lines = await repo.lines(quoteId);
+  const stored = await repo.lines(quoteId);
+  // READ BEFORE THE CHECK (23 Sep 2026): what reasoning finds in his own words is written in; under the hold
+  // nothing is, and every required detail is asked of him.
+  const reading = ctx.read ? await ctx.read(q, stored) : null;
+  const applied = applyReading(stored, q.terms_spec, reading);
+  const lines = applied.lines;
+  if (reading) { q.terms_spec = applied.terms_spec; await repo.updateQuote(quoteId, { terms_spec: applied.terms_spec }); }
   const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements });
-  await persistSpecs(repo, quoteId, a, lines);
+  await persistSpecs(repo, quoteId, a, stored);
   const at = nowIso(ctx);
   const live = await repo.liveHold(quoteId);
   let superseded: number | null = null;
