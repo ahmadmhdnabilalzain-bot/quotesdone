@@ -63,10 +63,12 @@ Deno.serve(observe('quote_extract', async (req) => {
         if (!rd.ok) return null;
         // The PRICES are read from the file's layout; the TERMS are what it means, so they are reasoned
         // (think(), founder_instruction 886-903). Held: they are left empty and the supplier types them.
+        const masks = Array.isArray(body.supplier_terms) ? body.supplier_terms.map((s: unknown) => String(s)) : [];
+        const priced = quoteFromExtracted(rd, masks);
+        if (priced.amount == null && !priced.line_items.length) return null;   // no model is asked about a file with no price
         const terms = await quoteTerms(defaultDeps(admin, 'quote_extract'), { text: quoteText(rd) });
-        const p = quoteFromExtracted(rd, Array.isArray(body.supplier_terms) ? body.supplier_terms.map((s: unknown) => String(s)) : [], terms.value ?? {});
-        if (!terms.value) p.notes += ' The lead time, validity, payment terms, warranty and exclusions were not read from the file: please type them in the form.';
-        if (p.amount == null && !p.line_items.length) return null;
+        const p = terms.value ? quoteFromExtracted(rd, masks, terms.value) : priced;
+        if (!terms.value) p.notes += ' The lead time, validity, payment terms, warranty and exclusions were not read from the file: please type them in the form. / لم تُقرأ مدة التسليم وصلاحية العرض وشروط الدفع والضمان والاستثناءات من الملف: يُرجى كتابتها في النموذج.';
         await logRun(p.amount != null ? 'ok' : 'error', { quote_extracted: p.amount != null ? 1 : 0, deterministic: 1, line_items: p.line_items.length, masked_terms: p.masked_terms.length }, `quote_extract read the supplier's ${rd.kind} file with no model (${why}): ${p.line_items.length} priced line(s), total ${p.amount ?? 'not found'}.`);
         return J({ ok: p.amount != null, proposal: { ...p, fallback_reason: why }, extracted_by_model: 'deterministic', error: p.amount != null ? undefined : 'no_amount' });
       } catch (_e) { return null; }

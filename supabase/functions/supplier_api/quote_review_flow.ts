@@ -144,9 +144,11 @@ export async function readQuotationFile(bytes: Uint8Array, filename: string, mim
   // deno-lint-ignore no-explicit-any
   const visit = (e: any) => { if (e.text) texts.push(e.text); for (const t of e.tables || []) texts.push(t.map((r: unknown[]) => (r || []).join(' ')).join('\n')); for (const c of e.children || []) visit(c.doc); };
   visit(rd);
-  const terms = readTerms ? await readTerms(quoteText(rd)).catch(() => null) : null;
-  const p = quoteFromExtracted(rd, supplierTerms, terms ?? {});
-  const empty = p.amount == null && !p.line_items.some((l) => l.amount != null);
+  const priced = quoteFromExtracted(rd, supplierTerms);
+  const empty = priced.amount == null && !priced.line_items.some((l) => l.amount != null);
+  // No model is asked about a file with no price.
+  const terms = !empty && readTerms ? await readTerms(quoteText(rd)).catch(() => null) : null;
+  const p = terms ? quoteFromExtracted(rd, supplierTerms, terms) : priced;
   return { proposal: empty ? null : p, text: texts.join('\n'), kind: rd.kind };
 }
 

@@ -283,6 +283,7 @@ as $fn$
   own as (
     select distinct btrim(w) as w from sc, unnest(coalesce(sc.services, '{}'::text[])) w
      where nullif(btrim(w), '') is not null and btrim(w) not in (select k from keys)
+       and length(btrim(w)) <= 200   -- the reading table's own limit: a longer entry is never sent to a model it cannot be recorded for
   )
   select jsonb_build_object(
     'lead_id', p_lead_id,
@@ -875,6 +876,11 @@ declare r public.reasoning_held_question; f jsonb := coalesce(p_result->'decisio
 begin
   select * into r from public.reasoning_held_question where id = p_id;
   if (r.subject->>'lead_id') is null or (r.subject->>'summary_md5') is null then return jsonb_build_object('skipped', 'no subject'); end if;
+  -- A reading of a summary that has since been edited is stale: it must not replace the reading of the current one.
+  if not exists (select 1 from public.leads l where l.id = (r.subject->>'lead_id')::bigint
+                   and md5(nullif(btrim(coalesce(l.capability_summary, '')), '')) = r.subject->>'summary_md5') then
+    return jsonb_build_object('skipped', 'stale');
+  end if;
   return public.fn_supplier_capability_reading_record((r.subject->>'lead_id')::bigint, r.subject->>'summary_md5',
     jsonb_build_object('manufacturing', public.fn_reason_field_stated(f->'manufacturing'),
                        'installation',  public.fn_reason_field_stated(f->'installation'),
@@ -909,6 +915,10 @@ begin
   select * into r from public.reasoning_held_question where id = p_id;
   if (r.subject->>'quote_id') is null or (r.subject->>'content_md5') is null then return jsonb_build_object('skipped', 'no subject'); end if;
   if not exists (select 1 from public.quotes where id = (r.subject->>'quote_id')::uuid) then return jsonb_build_object('skipped', 'quote gone'); end if;
+  -- A reading of text the supplier has since changed is stale: it must not replace the reading of the current text.
+  if (select md5(coalesce(public.fn_quote_aspect_text(q), '')) from public.quotes q where q.id = (r.subject->>'quote_id')::uuid) <> r.subject->>'content_md5' then
+    return jsonb_build_object('skipped', 'stale');
+  end if;
   select coalesce(array_agg(k order by k), '{}'::text[]) into v_present
     from jsonb_each(coalesce(p_result->'decision'->'fields', '{}'::jsonb)) as e(k, v)
    where public.fn_reason_field_stated(v);

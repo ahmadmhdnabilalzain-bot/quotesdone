@@ -52,15 +52,17 @@ Deno.test('quote terms held: nothing read, nothing queued (the supplier types th
 // ── sql.fn_price_guidance ──
 const TRADES = ['flooring', 'gypsum-false-ceiling', 'waterproofing'];
 Deno.test('price: a reasoned trade and item reach fn_price_guidance by key; the question never does', async () => {
-  const m = mock({ synth: [{ answer: 'They ask the price of a gypsum ceiling.', decision: { choice: 'gypsum-false-ceiling', fields: { item: { value: 'false ceiling', evidence: 'gypsum false ceiling cost' } } } }],
-    rpc: { fn_price_guidance: { trades: TRADES } } });
-  // the second call returns the bands; the mock returns the same object, which is enough to see the args
+  const m = mock({ synth: [{ answer: 'They ask the price of a gypsum ceiling.', decision: { choice: 'gypsum-false-ceiling', fields: { item: { value: 'false ceiling', evidence: 'gypsum false ceiling cost' } } } }] });
+  // The database: the trade list for no trade, the trade's bands for a trade.
+  const BANDS = { ok: true, trade: 'gypsum-false-ceiling', asked_item: 'false ceiling', bands: [{ item: 'ceiling', low: 35, high: 70 }] };
+  const rpc = m.deps.rpc;
+  m.deps.rpc = (fn, a) => fn === 'fn_price_guidance' ? (m.rpcs.push([fn, a]), Promise.resolve({ data: a.p_trade == null ? { ok: false, reason: 'needs_reasoning', trades: TRADES } : BANDS, error: null })) : rpc(fn, a);
   const r = await priceGuidanceFor(m.deps, 'what should a gypsum false ceiling cost per square metre in Dubai');
   const calls = m.rpcs.filter(([f]) => f === 'fn_price_guidance').map(([, a]) => a);
   assertEquals(calls[0], { p_trade: null, p_limit: 6 });
   assertEquals(calls[1], { p_trade: 'gypsum-false-ceiling', p_limit: 6, p_asked_item: 'false ceiling' });
   assert(!JSON.stringify(calls).includes('Dubai'), 'the free text never reaches the SQL');
-  assert(r);
+  assertEquals(r, BANDS);
 });
 Deno.test('price: a question about platform fees is not a price question, and gets no band', async () => {
   const m = mock({ synth: [{ answer: 'They ask about the reveal fee, not a trade price.', decision: { choice: 'not_a_price_question' } }], rpc: { fn_price_guidance: { trades: TRADES } } });
@@ -83,11 +85,19 @@ Deno.test('price held: reason held, no band, not queued (the visitor is answered
 
 // ── sql.fn_supplier_twin ──
 const SUMMARY = 'We manufacture aluminium windows in our Sharjah factory. We do not install; installation is by others.';
+// What this pins is the RULE, not the model: a capability counts only with a value and the words that state it;
+// a field the model leaves out (as it must for "we do not install") is false, and a field whose evidence is not
+// the supplier's own words is refused by think() and never reaches here (think.test.ts pins refuse()).
 Deno.test('capabilities: only what the summary says the company does itself; "we do not install" is not installation', async () => {
   const m = mock({ synth: [{ answer: 'They manufacture; they say they do not install.', decision: { fields: {
     manufacturing: { value: 'manufacture aluminium windows', evidence: 'We manufacture aluminium windows' } } } }] });
   const r = await capabilityKinds(m.deps, { leadId: 9, summary: SUMMARY, summaryMd5: 'a'.repeat(32) });
   assertEquals(r.value, { manufacturing: true, installation: false, maintenance: false, design: false });
+  // A model that claims installation with words the summary does not contain is refused, re-asked, and still refused:
+  // no reading is invented from it.
+  const bad = { answer: 'They install.', decision: { fields: { installation: { value: 'install', evidence: 'we install on site' } } } };
+  const m2 = mock({ synth: [bad, bad, bad] });
+  assertEquals((await capabilityKinds(m2.deps, { leadId: 9, summary: SUMMARY, summaryMd5: 'a'.repeat(32) })).value, null);
 });
 Deno.test('capabilities held: no guess, queued under sql.fn_supplier_twin with the lead and the summary md5', async () => {
   const m = mock({ hold: true });

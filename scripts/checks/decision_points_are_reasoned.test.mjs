@@ -368,13 +368,18 @@ begin
 
   -- 42. The twin: installation from the reasoned reading of the current summary only.
   select id into v_lead from public.leads where nullif(btrim(coalesce(capability_summary, '')), '') is not null
-     and coalesce(engineers_count, 0) = 0 and jsonb_typeof(machinery) is distinct from 'array' order by id limit 1;
+     and coalesce(engineers_count, 0) = 0 and jsonb_typeof(machinery) is distinct from 'array'
+     and not exists (select 1 from public.supplier_capability_reading r where r.lead_id = leads.id) order by id limit 1;
   v := public.fn_supplier_twin(v_lead);
   o := o || jsonb_build_object('twin_before', v->>'capability_reading', 'twin_install_before', v->'capabilities'->1->>'has');
   v_due := public.fn_supplier_readings_due(v_lead);
   v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_twin', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
             jsonb_build_object('lead_id', v_lead, 'summary_md5', v_due->'capability'->>'summary_md5'), 'model_hold', 'zz-b5-twin');
   perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":null,"fields":{"installation":{"value":"ZZ","evidence":"ZZ DEMO"}}}}'::jsonb);
+  -- a late replay of an OLD summary (another md5) must not replace the reading of the current one
+  v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_twin', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead, 'summary_md5', repeat('f', 32)), 'model_hold', 'zz-b5-twin-stale');
+  o := o || jsonb_build_object('twin_stale', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":null,"fields":{}}}'::jsonb)->'effect'->>'skipped');
   v := public.fn_supplier_twin(v_lead);
   o := o || jsonb_build_object('twin_after', v->>'capability_reading', 'twin_install_after', v->'capabilities'->1->>'has',
     'twin_design_after', v->'capabilities'->3->>'has', 'twin_due_after', jsonb_typeof(public.fn_supplier_readings_due(v_lead)->'capability'));
@@ -441,6 +446,7 @@ end $p$;`);
   assert.equal(out.twin_before, 'needs_reasoning'); assert.equal(out.twin_install_before, 'false');
   assert.equal(out.twin_after, 'reasoned'); assert.equal(out.twin_install_after, 'true'); assert.equal(out.twin_design_after, 'false');
   assert.equal(out.twin_due_after, 'null', 'a read summary is not read again');
+  assert.equal(out.twin_stale, 'stale', 'a replay of an edited summary does not overwrite the current reading');
 
   assert.ok(out.gaps_before.includes('own_words') && !out.gaps_before.includes('own_word_is_a_service'), JSON.stringify(out.gaps_before));
   assert.ok(out.gaps_due.includes('ZZ DEMO own words'));
