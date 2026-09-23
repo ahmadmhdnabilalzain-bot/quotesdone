@@ -51,6 +51,11 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'refund.remediate', from: 'ceo', to: 'accountant' },
   { type: 'refund.remediate', from: 'ceo', to: 'sales_engineer' },
   { type: 'incident.fix', from: 'ceo', to: 'accountant' },
+  // a review on a model of another family, blind first (founder_instruction 873;
+  // scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql)
+  { type: 'deliberation.review', from: 'marketing', to: 'ceo' },
+  { type: 'deliberation.review', from: 'ceo', to: 'marketing' },
+  { type: 'deliberation.review', from: 'sales_engineer', to: 'ceo' },
   // customer_support is the only seat that sends email or WhatsApp (founder, 14 Sep 2026)
   { type: 'delivery.request', from: 'sales_engineer', to: 'customer_support' },
   { type: 'delivery.request', from: 'ceo', to: 'customer_support' },
