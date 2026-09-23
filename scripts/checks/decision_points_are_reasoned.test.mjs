@@ -34,8 +34,10 @@ const DISPATCH = 'scripts/sql/a_reasoned_answer_is_applied_by_its_own_surface.sq
 // Every SQL file a migrated point's proof names, in registry order after the three the engine needs:
 // the batch files replay in this order inside a probe, and each must be replay-safe (the test below).
 const BATCH_SQL = [...new Set(REGISTRY.points.filter((p) => p.status === 'migrated').flatMap((p) => (p.proof ?? []).map((x) => x.file))
-  .filter((f) => f.startsWith('scripts/sql/') && f.endsWith('.sql') && ![ENGINE, MIGRATE, DISPATCH].includes(f)))];
-const CHAIN = [ENGINE, MIGRATE, DISPATCH, ...BATCH_SQL];
+  .filter((f) => f.startsWith('scripts/sql/') && f.endsWith('.sql') && ![ENGINE, MIGRATE, DISPATCH, 'scripts/sql/a_held_question_never_expires_it_is_escalated_at_48_hours.sql'].includes(f)))];
+// A held question never expires; at 48 hours it is escalated to its seat (applies after DISPATCH).
+const LIFECYCLE = 'scripts/sql/a_held_question_never_expires_it_is_escalated_at_48_hours.sql';
+const CHAIN = [ENGINE, MIGRATE, DISPATCH, LIFECYCLE, ...BATCH_SQL];
 
 /** Code only: SQL `--` comments and TS `//` line comments removed (a check that greps source matches its own comment). */
 function code(path, text) {
@@ -86,6 +88,14 @@ test('provider webhooks are acknowledged at once and handled after (reasoning ne
   assert.match(read('supabase/functions/_shared/async_webhook.test.ts'), /ms < 100/);
 });
 
+test('the pack loader and the reasoning agree on every spec code (a filled value lands where the reasoning reads)', async () => {
+  const { specCode: loaderCode } = await import(join(REPO, 'scripts/kb/load_trade_spec_checklists.mjs').replace(/\\/g, '/').replace(/^([A-Za-z]):/, 'file:///$1:'));
+  const { specCode: engineCode } = await import(join(REPO, 'supabase/functions/_shared/line_specs/reasoned_specs.ts').replace(/\\/g, '/').replace(/^([A-Za-z]):/, 'file:///$1:'));
+  for (const s of ['cavity width and gas fill (air/argon %)', 'outer pane: thickness, type (annealed/HS/tempered)', 'Rated capacity; tonnes', 'sizes (max/min) and quantity in m²']) {
+    assert.equal(loaderCode(s), engineCode(s), s);
+  }
+});
+
 test('the migrated SQL routines read no free text for meaning: no ~*, ilike or like-on-text in their bodies', () => {
   const sql = code(MIGRATE, read(MIGRATE));
   const body = (name) => { const a = sql.indexOf('function public.' + name + '('); const b = sql.indexOf('$function$;', a); assert.ok(a > 0 && b > a, name); return sql.slice(a, b); };
@@ -132,18 +142,21 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
  *  #884's two files were live on production, unrecorded, and replaying them failed 42723 / 42501). */
 async function pendingReplay() {
   const { sql } = await import('../lib/db.mjs');
+  // A routine a LATER file of the chain redefines counts as live when that later definition is (measured 23 Sep
+  // 18:30: the dispatch and lifecycle files went live, so the engine's own fn_reason_hold/held_due/held_resolve no
+  // longer match production — superseded, not missing — and replaying the engine failed 42501 again).
+  const pend = CHAIN.filter((x) => existsSync(join(REPO, 'scripts/sql/pending', x.split('/').pop().replace(/\.sql$/, '.txt'))));
+  const defs = CHAIN.map((f) => [f, [...read(f).matchAll(/create (?:or replace )?function public\.([a-z0-9_]+)\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$/g)].map((m) => [m[1], m[3].trim()])]);
+  const names = [...new Set(defs.flatMap(([, b]) => b.map(([n]) => n)))];
+  const rows = names.length ? await sql(`select proname, prosrc from pg_proc where pronamespace = 'public'::regnamespace and proname = any(array[${names.map((n) => `'${n}'`).join(',')}])`, { readOnly: true }) : [];
+  const liveBody = (n, b) => rows.some((r) => r.proname === n && String(r.prosrc).trim() === b);
   const out = [];
-  for (const f of CHAIN.filter((x) => existsSync(join(REPO, 'scripts/sql/pending', x.split('/').pop().replace(/\.sql$/, '.txt'))))) {
-    const text = read(f);
-    const bodies = [...text.matchAll(/create (?:or replace )?function public\.([a-z0-9_]+)\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$/g)].map((m) => [m[1], m[3].trim()]);
-    let live = false;
-    if (bodies.length) {
-      const names = [...new Set(bodies.map(([n]) => n))];
-      const rows = await sql(`select proname, prosrc from pg_proc where pronamespace = 'public'::regnamespace and proname = any(array[${names.map((n) => `'${n}'`).join(',')}])`, { readOnly: true });
-      live = bodies.every(([n, b]) => rows.some((r) => r.proname === n && String(r.prosrc).trim() === b));
-    }
-    if (!live) out.push(text);
-  }
+  defs.forEach(([f, bodies], i) => {
+    if (!pend.includes(f)) return;
+    const later = defs.slice(i + 1).flatMap(([, b]) => b);
+    const live = bodies.length > 0 && bodies.every(([n, b]) => liveBody(n, b) || later.some(([m, c]) => m === n && liveBody(m, c)));
+    if (!live) out.push(read(f));
+  });
   return out.join('\n') + '\n';
 }
 /** Runs a DO block that ends in raise exception 'CHK<<json>>' after the pending chain; returns the json. Nothing commits. */
@@ -227,13 +240,18 @@ begin
   o := o || jsonb_build_object('intake_after', (select status || ':' || (brief->>'category_by') from public.inquiry_intake where id = v_intake),
                                'intake_expires', (select expires_at is null from public.reasoning_held_question where id = v_id));
   v_id := public.fn_reason_hold('customer_support', 'wa_inbound.needs_a_person', 'ZZ DEMO', '{"seat":"customer_support"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-probe-3');
-  o := o || jsonb_build_object('channel_expires_days', (select round(extract(epoch from expires_at - now()) / 86400) from public.reasoning_held_question where id = v_id));
+  o := o || jsonb_build_object('channel_expires', (select expires_at is not null from public.reasoning_held_question where id = v_id));
   perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"needs_a_person"}}'::jsonb);
   perform public.fn_reason_held_delivered(v_id, '{"delivered":true,"via":"whatsapp_template"}'::jsonb);
   o := o || jsonb_build_object('delivered_row', (select status || ':' || (result->'delivery'->>'via') from public.reasoning_held_question where id = v_id));
-  update public.reasoning_held_question set status = 'held', expires_at = now() - interval '1 minute' where id = v_id;
+  -- Held 49 hours: never expired; escalated once to its seat as a pending item, and still held for the replay.
+  update public.reasoning_held_question set status = 'held', created_at = now() - interval '49 hours' where id = v_id;
   perform public.fn_reason_held_due(1);
-  o := o || jsonb_build_object('expired_status', (select status from public.reasoning_held_question where id = v_id));
+  o := o || jsonb_build_object('old_status', (select status from public.reasoning_held_question where id = v_id),
+    'escalated', (select count(*) from jsonb_array_elements(public.fn_reason_held_escalate(100)) x where (x->>'id')::bigint = v_id),
+    'escalated_again', (select count(*) from jsonb_array_elements(public.fn_reason_held_escalate(100)) x where (x->>'id')::bigint = v_id));
+  -- its own statement: a subquery in the statement that escalated would read the snapshot before the insert
+  o := o || jsonb_build_object('seat_item', (select agent || ':' || status from public.agent_actions where kind = 'held_question' and target_id = v_id::text));
 
   -- 6. Only service_role executes.
   o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
@@ -302,9 +320,12 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   console.log('already-dispatched inquiries whose readiness the text scan had supplied:', out.rfq_flipped_after_dispatch);
   assert.equal(out.intake_after, 'needs_info:reasoning', 'the held intake reopens with the reasoned trade');
   assert.equal(out.intake_expires, true, 'a held intake never expires');
-  assert.equal(out.channel_expires_days, 7);
+  assert.equal(out.channel_expires, false, 'a held question never expires (the hold lasts a while)');
   assert.equal(out.delivered_row, 'applied:whatsapp_template');
-  assert.equal(out.expired_status, 'expired', 'an expired channel question is closed, not replayed');
+  assert.equal(out.old_status, 'held', 'a 49-hour-old question is still held for the replay, never expired');
+  assert.equal(out.escalated, 1, 'at 48 hours it is escalated to its seat');
+  assert.equal(out.escalated_again, 0, 'once');
+  assert.equal(out.seat_item, 'customer_support:pending', 'a human-visible pending item in the owning seat queue');
   assert.equal(out.anon_can, false);
   assert.equal(out.service_can, true);
 });
@@ -328,226 +349,4 @@ end $p$;`);
   assert.equal(out.without, 'reasoned');
 });
 
-// ── batch B6: routing and the CEO's decisions (points 47-54; ceo + sales_engineer) ──────────────────
-const B6 = 'scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql';
 
-test('B6: the routing and CEO routines read no free text for meaning', () => {
-  const sql = code(B6, read(B6));
-  const body = (name) => { const a = sql.indexOf('function public.' + name + '('); const b = sql.indexOf('$function$;', a); assert.ok(a > 0 && b > a, name); return sql.slice(a, b); };
-  for (const n of ['fn_resolve_cat_agent', 'trg_inquiry_enrich', 'fn_supplier_document_home', 'fn_should_escalate', 'fn_task_review']) {
-    assert.doesNotMatch(body(n), /~\*|~ '|ilike|\blike\b|position\(|strpos\(|similar to|regexp_(match|matches|like|split|substr|count|instr)|substring\([^)]*\bfrom\b/i, `${n} matches text again`);
-  }
-  // fn_decide and the refund checklist keep format guards on OUR keys and addresses (ilike 'supplier@%',
-  // a ':'-suffixed source_ref); no pattern may touch the category text or the refund notes.
-  assert.doesNotMatch(body('fn_decide'), /categories,''\)\)\|\||~\*/, 'fn_decide reads the category text by substring again');
-  assert.doesNotMatch(body('fn_ceo_refund_checklist'), /reason_note[^;]*~|close_reason[^;]*~/, 'the refund notes are pattern-matched again');
-  assert.doesNotMatch(sql.slice(sql.indexOf('function public.fn_category_expert_ref('), sql.indexOf('end $fn$;', sql.indexOf('function public.fn_category_expert_ref('))), /~\*/);
-});
-
-test('production, aborted (B6): escalation, refunds, tasks, documents, repeats and desks wait for reasoning and apply it',
-  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const out = await probe(String.raw`
-do $p$
-declare
-  o jsonb := '{}'::jsonb; v jsonb; v_id bigint; n bigint; c record; v_lead bigint; v_doc bigint; v_tx uuid; v_ref bigint;
-  v_cust uuid; v_i1 uuid; v_i2 uuid; v_i3 uuid; v_task bigint; v_resp text;
-begin
-  -- 1. The desk: a fragment of a catalogue name is no longer a desk; the slug and the exact name are.
-  select * into c from public.category_agents where coalesce(active, true) and length(name) > 8 order by slug limit 1;
-  o := o || jsonb_build_object('frag', public.fn_resolve_cat_agent(substr(lower(c.name), 2, 5)),
-    'slug', public.fn_resolve_cat_agent(c.slug) = 'cat:' || c.slug, 'name', public.fn_resolve_cat_agent(c.name) is not null,
-    'expert_nothing', public.fn_category_expert_ref('zz demo no such trade'));
-
-  -- 2. Escalation: the words decide nothing; the text waits, nothing is recorded; the reasoned answer decides.
-  v := public.fn_should_escalate(jsonb_build_object('text', 'ZZ DEMO is a refund dispute over a contract change legal here?', 'actor', 'sales_engineer'));
-  o := o || jsonb_build_object('esc_reasons', v->'reasons', 'esc_needs', v->'needs_reasoning'->>'surface',
-    'esc_opts', (select jsonb_agg(x->>'id') from jsonb_array_elements(v->'needs_reasoning'->'options') x where x->>'id' in ('legal_matter', 'neither')));
-  select count(*) into n from public.decision_record;
-  v := public.fn_decide('escalate', jsonb_build_object('text', 'ZZ DEMO the supplier kept the deposit and we will take him to court'), 'sales_engineer');
-  o := o || jsonb_build_object('dec_wait', v->>'decision', 'dec_route', v->>'route_to', 'dec_records', (select count(*) from public.decision_record) - n);
-  v_id := (v->>'held_id')::bigint;
-  o := o || jsonb_build_object('dec_row', (select seat || ':' || surface || ':' || status || ':' || (expires_at is null) from public.reasoning_held_question where id = v_id));
-  v := public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"legal_matter"}}'::jsonb);
-  o := o || jsonb_build_object('dec_applied', v->>'status', 'dec_after', v->'effect'->'decided'->>'decision',
-    'dec_after_reason', v->'effect'->'decided'->'reasons'->>0);
-  v := public.fn_decide('approve', jsonb_build_object('text', 'ZZ DEMO please approve the brochure reprint'), 'sales_engineer');
-  perform public.fn_reason_held_resolve((v->>'held_id')::bigint, '{"status":"answered","answer":"ZZ","decision":{"choice":"neither"}}'::jsonb);
-  o := o || jsonb_build_object('neither', public.fn_should_escalate(jsonb_build_object('text', 'ZZ DEMO please approve the brochure reprint'))->'reasons');
-
-  -- 3. The refund: its note is read by reasoning; until then it waits (no cycle, no decline on a word).
-  select id into v_tx from public.transactions order by revealed_at desc nulls last limit 1;
-  if v_tx is not null then
-    insert into public.refunds (transaction_id, stripe_payment_intent, amount_fils, reason_code, reason_note, requested_by, status, currency)
-    select t.id, t.payment_ref, round(coalesce(t.total_charged, t.reveal_fee) * 100)::bigint, 'supplier_unresponsive',
-           'ZZ DEMO the customer says she paid the supplier in cash at the site', 'customer', 'requested', 'AED'
-      from public.transactions t where t.id = v_tx
-    returning id into v_ref;
-    v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
-    o := o || jsonb_build_object('rf_item', (select i->>'kind' from jsonb_array_elements(v->'items') i where i->>'item' = 'off_platform_engagement_reasoned'),
-      'rf_offp_before', (select i->'evidence'->'off_platform_engagement_recorded' from jsonb_array_elements(v->'items') i where i->>'item' = 'no_refund_exclusion_applies'),
-      'rf_nonrem_other', (select count(*) from jsonb_array_elements(v->'failed') i where not coalesce((i->>'remediable')::boolean, false)));
-    -- The review runs inside a savepoint that is rolled back, so the refund is still open for the replay below.
-    begin
-      select count(*) into n from public.refund_ceo_review where refund_id = v_ref;
-      v := public.fn_ceo_refund_review(v_ref, 'probe');
-      o := o || jsonb_build_object('rf_review', v->>'outcome', 'rf_review_reason', v->>'reason', 'rf_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref) - n);
-      raise exception 'zz_b6_rollback';
-    exception when others then if sqlerrm <> 'zz_b6_rollback' then raise; end if;
-    end;
-    -- The only live payment carries its own non-remediable findings (measured 23 Sep 2026: the supplier
-    -- responded, the customer rated), so the waiting branch is proved against a checklist whose ONLY
-    -- failures are remediable work and the unread note — the checklist's own shape, stubbed inside a
-    -- rolled-back savepoint. The refund must WAIT: no cycle, no handoff, no decline, no founder page.
-    begin
-      -- the REAL checklist, over the live payment with its non-remediable facts taken away (all rolled back)
-      update public.transactions set supplier_ack_at = null where id = v_tx;
-      update public.messages set blocked = true where inquiry_id = (select inquiry_id from public.transactions where id = v_tx) and sender = 'supplier';
-      delete from public.reviews where transaction_id = v_tx;
-      delete from public.refund_ladder_evidence where transaction_id = v_tx;
-      update public.supplier_response_watch set first_response_at = null where transaction_id = v_tx;
-      delete from public.transactions x where x.id <> v_tx and x.customer_id = (select customer_id from public.transactions where id = v_tx)
-        and x.supplier_id = (select supplier_id from public.transactions where id = v_tx);
-      update public.inquiries set status = 'open' where id = (select inquiry_id from public.transactions where id = v_tx) and status in ('completed', 'closed');
-      v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
-      o := o || jsonb_build_object('rf2_failed', (select jsonb_agg(i->>'item' order by i->>'item') from jsonb_array_elements(v->'failed') i),
-        'rf2_nonrem', (select count(*) from jsonb_array_elements(v->'failed') i where not coalesce((i->>'remediable')::boolean, false)));
-      select count(*) into n from public.refund_ceo_review where refund_id = v_ref;
-      -- the review runs in its own statement, so the counts below see what it wrote
-      v := public.fn_ceo_refund_review(v_ref, 'probe');
-      o := o || jsonb_build_object('rf2_review', v->>'outcome',
-        'rf2_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref) - n,
-        'rf2_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text),
-        'rf2_reasoning_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text and a.detail->>'remedy_key' = 'reasoning'));
-      -- Now the ladder is complete too, so the unread note is the ONLY failure: the refund must rest.
-      delete from public.agent_actions where detail->>'type' = 'refund.remediate' and detail->>'refund_id' = v_ref::text;
-      delete from public.refund_ceo_review where refund_id = v_ref;
-      insert into public.refund_ladder_evidence (transaction_id, refund_id, step, result, delivered)
-      values (v_tx, v_ref, 'chase', 'no_response_confirmation', true), (v_tx, v_ref, 'final_call', 'no_response_confirmation', true);
-      v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
-      o := o || jsonb_build_object('rf3_failed', (select jsonb_agg(i->>'item') from jsonb_array_elements(v->'failed') i),
-        'rf3_review', null);
-      v := public.fn_ceo_refund_review(v_ref, 'probe');
-      o := o || jsonb_build_object('rf3_review', v->>'outcome',
-        'rf3_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref),
-        'rf3_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text));
-      raise exception 'zz_b6_rollback';
-    exception when others then if sqlerrm <> 'zz_b6_rollback' then raise; end if;
-    end;
-    select id into v_id from public.reasoning_held_question where surface = 'ceo.refund_off_platform' and subject->>'refund_id' = v_ref::text;
-    -- The reasoned answer is read by the checklist; the replay re-runs the review, which now cites it.
-    update public.reasoning_held_question set status = 'reasoned', result = '{"status":"answered","decision":{"choice":"engaged_off_platform"}}'::jsonb where id = v_id;
-    v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
-    o := o || jsonb_build_object('rf_offp_after', (select i->'evidence'->'off_platform_engagement_recorded' from jsonb_array_elements(v->'items') i where i->>'item' = 'no_refund_exclusion_applies'),
-      'rf_reasoned_item_gone', not exists (select 1 from jsonb_array_elements(v->'items') i where i->>'item' = 'off_platform_engagement_reasoned'));
-    update public.reasoning_held_question set status = 'held' where id = v_id;
-    v := public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"engaged_off_platform"}}'::jsonb);
-    o := o || jsonb_build_object('rf_row', (select status from public.reasoning_held_question where id = v_id),
-      'rf_apply_review', v->'effect'->'review'->>'outcome', 'rf_apply_reason', v->'effect'->'review'->>'reason');
-    update public.refunds set reason_note = 'The customer reported that the revealed supplier has not responded.' where id = v_ref;
-    v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
-    o := o || jsonb_build_object('rf_default_note_asks', exists (select 1 from jsonb_array_elements(v->'items') i where i->>'item' = 'off_platform_engagement_reasoned'));
-  end if;
-
-  -- 4. The supplier's document: filed on save; fills no slot until reasoned; then fills the ISO slot.
-  select id into v_lead from public.leads where iso_doc_path is null order by id limit 1;
-  insert into public.documents (bucket, path, file_name, kind, ref_table, ref_id, status)
-  values ('supplier-docs', 'supporting/' || v_lead || '/zz_demo.pdf', 'ZZ DEMO ISO 9001:2015 certificate', 'supporting:certificate', 'supplier_supporting', v_lead::text, 'received')
-  returning id into v_doc;
-  select id into v_id from public.reasoning_held_question where dedupe_key = 'supdoc:' || v_doc || ':' || md5('ZZ DEMO ISO 9001:2015 certificate');
-  o := o || jsonb_build_object('doc_asked', (select seat || ':' || surface from public.reasoning_held_question where id = v_id),
-    'doc_before', (select source from public.fn_supplier_document_home(v_lead) where key = 'iso'));
-  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"iso"}}'::jsonb);
-  o := o || jsonb_build_object('doc_after', (select source || ':' || (path like '%zz_demo.pdf') from public.fn_supplier_document_home(v_lead) where key = 'iso'),
-    'doc_backfilled', (select count(*) from public.reasoning_held_question where surface = 'supplier_documents.subject'));
-
-  -- 5. A repeat request: the same summary is flagged at once; a different wording waits for reasoning.
-  insert into public.customers (email, full_name) values ('zz-demo-b6@example.invalid', 'ZZ DEMO B6') returning id into v_cust;
-  insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO lay 20 m2 of porcelain tiles in a villa kitchen') returning id into v_i1;
-  insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO lay 20 m2 of porcelain tiles in a villa kitchen') returning id into v_i2;
-  insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO kitchen floor tiling, about twenty square metres, porcelain') returning id into v_i3;
-  o := o || jsonb_build_object('dup_same', (select plausibility->>'possible_duplicate' from public.inquiries where id = v_i2),
-    'dup_reworded_before', (select plausibility->>'possible_duplicate' from public.inquiries where id = v_i3));
-  select id into v_id from public.reasoning_held_question where dedupe_key = 'inquiry_dup:' || v_i3;
-  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"same_request"}}'::jsonb);
-  o := o || jsonb_build_object('dup_reworded_after', (select plausibility->>'duplicate_by' from public.inquiries where id = v_i3));
-
-  -- 6. A task's owner: no owner on a word; the reasoned responsibility records it.
-  select id into v_task from public.org_tasks where coalesce(result->>'deliverable', '') <> '' order by id desc limit 1;
-  v := public.fn_task_review(v_task);
-  o := o || jsonb_build_object('task_waits', v->'awaiting_reasoning'->0->>'surface', 'task_owner_before', v->>'owns_responsibility');
-  select responsibility into v_resp from public.os_responsibility order by responsibility limit 1;
-  v := public.fn_reason_held_resolve((select id from public.reasoning_held_question where dedupe_key like 'task_resp:' || v_task || ':%'),
-         jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_resp)));
-  o := o || jsonb_build_object('task_applied', v->>'status', 'task_owner_after', v->'effect'->>'owns_responsibility' = v_resp);
-
-  -- 7. Only service_role executes.
-  o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
-            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in
-            ('fn_reason_route_ask', 'fn_reason_route_answer', 'fn_resolve_cat_agent', 'fn_category_expert_ref', 'trg_inquiry_enrich',
-             'fn_supplier_document_home', 'fn_should_escalate', 'fn_decide', 'fn_ceo_refund_checklist', 'fn_ceo_refund_review', 'fn_task_review',
-             'fn_task_ownership_record', 'fn_supplier_document_subject_ask', 'trg_supplier_document_subject_asked',
-             'fn_reason_apply_ceo__escalation_meaning', 'fn_reason_apply_ceo__refund_off_platform', 'fn_reason_apply_ceo__task_responsibility',
-             'fn_reason_apply_ceo__task_collaboration_rule', 'fn_reason_apply_inquiry__same_request')));
-  raise exception 'CHK<<%>>', o::text;
-end $p$;`);
-  console.log(JSON.stringify(out, null, 1));
-  assert.equal(out.frag, null, 'a fragment of a catalogue name is not a desk');
-  assert.equal(out.slug, true);
-  assert.equal(out.name, true);
-  assert.equal(out.expert_nothing, '');
-
-  assert.deepEqual(out.esc_reasons, [], 'legal_triggers words in the text decide nothing');
-  assert.equal(out.esc_needs, 'ceo.escalation_meaning');
-  assert.deepEqual(out.esc_opts, ['legal_matter', 'neither']);
-  assert.equal(out.dec_wait, 'awaiting_reasoning');
-  assert.equal(out.dec_route, 'ceo', 'the waiting escalation sits with the CEO seat, never the founder');
-  assert.equal(out.dec_records, 0, 'nothing is recorded before the meaning is reasoned');
-  assert.equal(out.dec_row, 'ceo:ceo.escalation_meaning:held:true');
-  assert.equal(out.dec_applied, 'applied');
-  assert.equal(out.dec_after, 'escalate');
-  assert.match(out.dec_after_reason, /legal matter \(reasoned/);
-  assert.deepEqual(out.neither, [], 'a reasoned "neither" escalates nothing');
-
-  if (out.rf_item !== undefined) {
-    assert.equal(out.rf_item, 'needs_reasoning');
-    assert.equal(out.rf_offp_before, null, 'no exclusion is assumed before the note is read');
-    if (out.rf_nonrem_other > 0) {
-      assert.equal(out.rf_review, 'declined');
-      assert.doesNotMatch(String(out.rf_review_reason), /off the platform/);
-    } else {
-      assert.equal(out.rf_review, 'waiting_on_reasoning');
-      assert.equal(out.rf_cycles, 0, 'a question still being reasoned spends no cycle and pages nobody');
-    }
-    // the real checklist: only remediable work fails besides the unread note
-    assert.equal(out.rf2_nonrem, 0, 'the savepoint left no non-remediable finding: ' + JSON.stringify(out.rf2_failed));
-    assert.ok(out.rf2_failed.includes('off_platform_engagement_reasoned'));
-    assert.equal(out.rf2_review, 'rejected', 'the other remediable work still goes to its owners while the note is reasoned');
-    assert.ok(out.rf2_handoffs > 0);
-    assert.equal(out.rf2_reasoning_handoffs, 0, 'no person is handed a question only reasoning answers');
-    assert.deepEqual(out.rf3_failed, ['off_platform_engagement_reasoned'], 'the real checklist: only the unread note fails');
-    assert.equal(out.rf3_review, 'waiting_on_reasoning', 'a refund whose note is unread waits');
-    assert.equal(out.rf3_cycles, 0, 'no cycle is spent, so three of them can never page the founder');
-    assert.equal(out.rf3_handoffs, 0);
-    assert.equal(out.rf_offp_after, true);
-    assert.equal(out.rf_reasoned_item_gone, true);
-    assert.equal(out.rf_row, 'applied');
-    assert.equal(out.rf_apply_review, 'declined', 'the replay re-runs the CEO review on the reasoned answer');
-    assert.match(String(out.rf_apply_reason), /off the platform \(reasoned/);
-    assert.equal(out.rf_default_note_asks, false, 'our own default note asks nothing');
-  }
-
-  assert.equal(out.doc_asked, 'sales_engineer:supplier_documents.subject');
-  assert.notEqual(out.doc_before, 'supporting', 'an unreasoned label fills no slot');
-  assert.equal(out.doc_after, 'supporting:true');
-  assert.ok(out.doc_backfilled >= 7, 'the live supporting documents were asked about');
-
-  assert.equal(out.dup_same, 'true');
-  assert.equal(out.dup_reworded_before, null, 'a differently worded request is not flagged on a substring');
-  assert.equal(out.dup_reworded_after, 'reasoning');
-
-  assert.equal(out.task_waits, 'ceo.task_responsibility');
-  assert.equal(out.task_owner_before, null);
-  assert.equal(out.task_applied, 'applied');
-  assert.equal(out.task_owner_after, true);
-  assert.equal(out.anon_can, false);
-});

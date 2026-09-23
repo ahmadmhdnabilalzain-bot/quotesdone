@@ -123,6 +123,9 @@ verify_jwt = true
 [functions.marketing_outreach]
 verify_jwt = false
 
+[functions.marketing_social_connect]
+verify_jwt = false
+
 [functions.marketing_social_inbox]
 verify_jwt = false
 

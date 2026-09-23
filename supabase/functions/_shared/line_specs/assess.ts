@@ -32,7 +32,7 @@ export type Line = {
   line_no: number; description: string; brand?: string | null; model?: string | null; specification?: string | null;
   qty?: number | string | null; unit?: string | null; unit_price?: number | null; labour?: number | null; install?: number | null;
   amount?: number | null; notes?: string | null;
-  spec?: Record<string, string> | null; spec_source?: Record<string, 'extracted' | 'supplier_portal'> | null;
+  spec?: Record<string, string> | null; spec_source?: Record<string, 'extracted' | 'supplier_portal' | 'reasoned'> | null;
 };
 export type Terms = {
   lead_time?: string | null; warranty?: string | null; scope?: string | null; exclusions?: string | null;
@@ -47,7 +47,7 @@ export type TermsSpec = {
   /** A component the customer named that no line of the quote names, stated on the portal. */
   components?: Record<string, { value: string; source: Src }> | null;
 };
-type Src = 'extracted' | 'supplier_portal';
+type Src = 'extracted' | 'supplier_portal' | 'reasoned';
 
 /** The customer's intake answers — docs/contracts/intake_answers.md (version 1). Every field optional. */
 export type Material = { component: string; label_en?: string | null; label_ar?: string | null; choice?: string | null; choice_en?: string | null; choice_ar?: string | null; note?: string | null };
@@ -258,7 +258,7 @@ export function lineDefs(trade: string | null, text: string, req: Requirements):
   return defs;
 }
 
-export function assessQuote(input: { category: string | null; lines: Line[]; terms: Terms; requirements?: Requirements }): Assessment {
+export function assessQuote(input: { category: string | null; lines: Line[]; terms: Terms; requirements?: Requirements; checklist?: Attr[] }): Assessment {
   const trade = tradeOfCategory(input.category);
   const req = input.requirements ?? null;
   const lines: LineResult[] = [];
@@ -272,7 +272,8 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     const lt = material ? tradeOfLine(trade, text) : null;
     // A line that names a customer's component is a material line even when no trade keyword fits.
     const namesComponent = material && (req?.materials ?? []).some((m) => m?.component && m.component !== 'main' && componentOnLine(m, text));
-    const defs = lt || namesComponent ? lineDefs(lt, text, req) : [];
+    // A trade with no line reader asks each material line its knowledge pack's required specs (reasoned_specs.ts).
+    const defs = lt || namesComponent ? lineDefs(lt, text, req) : (material && !TRADES[trade] && !(COMPOSITE.has(trade) && trade !== 'general') && input.checklist?.length ? input.checklist : []);
     for (const m of req?.materials ?? []) if (m?.component && material && componentOnLine(m, text)) named.add(m.component);
     const spec: Record<string, string> = {}; const source: Record<string, Src> = {};
     for (const a of defs) {
