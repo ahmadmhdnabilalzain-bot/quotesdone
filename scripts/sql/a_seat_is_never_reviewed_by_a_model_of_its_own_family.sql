@@ -46,8 +46,10 @@
 --    turn also needs explicit agreements and disagreements.
 --    The blind leak test walks every proposal string of >= 24 normalised characters (and strings that are
 --    themselves JSON) and refuses the deliberation if one appears in the question or the evidence.
---    The author's model is not taken on trust: ai_cost_log must show that seat calling that model in the
---    last 24 hours (only a ZZ DEMO deliberation is exempt). Provider names compare as lower(btrim()).
+--    The leak test reads the STRING VALUES of the evidence, never its JSON text (escapes hid multi-line copies).
+--    The author's model is not taken on trust: the seat's LATEST successful ai_cost_log call on
+--    p_author_task_class (mandatory) in the last 24 hours must be on it (only a ZZ DEMO deliberation is
+--    exempt, and a demo deliberation never reaches call_model). Provider names compare as lower(btrim()).
 --
 -- 4. INDEPENDENT INFORMATION, ASSEMBLED BY THE REVIEW STEP.  fn_seat_deliberation_independent_context
 --    reads ceo_plan_month (this month and next), fn_ceo_plan_funnel with the drop-off ratios, and the
@@ -307,6 +309,15 @@ revoke execute on function public.fn_seat_deliberation_norm(text) from public, a
 -- THE BLIND LEAK TEST. Every string in the proposal (and inside any string that is itself JSON) of at least
 -- 24 normalised characters is looked for in the normalised haystack. Returns the first fragment found, or null.
 -- ponytail: 24 characters is the floor; a proposal made only of short strings is not protected below it.
+-- The haystack is the STRING VALUES of a document, never its JSON text: in JSON text a newline is the two
+-- characters backslash-n, which normalise to a stray 'n' and hide a multi-line copy (review of #877).
+create or replace function public.fn_seat_deliberation_strings(p jsonb)
+returns text language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select coalesce(string_agg(x #>> '{}', ' '), '') from jsonb_path_query(coalesce(p, 'null'::jsonb), 'strict $.**') x
+   where jsonb_typeof(x) = 'string'
+$fn$;
+revoke execute on function public.fn_seat_deliberation_strings(jsonb) from public, anon, authenticated;
+
 create or replace function public.fn_seat_deliberation_proposal_leak(p_proposal jsonb, p_haystack text)
 returns text language plpgsql immutable set search_path to 'public', 'pg_temp' as $fn$
 declare v_hay text := ' ' || public.fn_seat_deliberation_norm(p_haystack) || ' '; s text; n text; j jsonb; v text;
@@ -468,7 +479,7 @@ begin
       || 'Give the strongest case AGAINST your own verdict in steelman_against, even if you approve. Agree only if it is right.',
     'output_contract', jsonb_build_object('verdict', 'approve|reject|revise', 'recommendation', 'text',
       'reasoning', 'text', 'steelman_against', 'text, at least one full sentence'));
-  if v ? 'proposal' or public.fn_seat_deliberation_proposal_leak(d.proposal, v::text) is not null then
+  if v ? 'proposal' or public.fn_seat_deliberation_proposal_leak(d.proposal, public.fn_seat_deliberation_strings(v)) is not null then
     raise exception 'BLIND_PASS_LEAK: the blind payload for deliberation % carries the proposal (was it pasted into the question or the evidence?)', p_id;
   end if;
   return v;
@@ -508,25 +519,32 @@ create or replace function public.fn_seat_deliberation_open(p_kind text, p_autho
   p_question text, p_evidence jsonb, p_proposal jsonb, p_author_model text, p_author_task_class text default null,
   p_subject_table text default null, p_subject_id text default null, p_demo boolean default false)
 returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v_id bigint; v_h bigint; v_leak text;
+declare v_id bigint; v_h bigint; v_leak text; v_last text;
 begin
   if not exists (select 1 from public.seat_handoff_kind k
                   where k.type = 'deliberation.review' and k.from_seat = p_author_seat and k.to_seat = p_reviewer_seat) then
     raise exception 'no deliberation.review conversation from % to % in seat_handoff_kind: register the pair in the file of the build that starts it',
       p_author_seat, p_reviewer_seat;
   end if;
-  v_leak := public.fn_seat_deliberation_proposal_leak(p_proposal, coalesce(p_question, '') || ' ' || coalesce(p_evidence, '{}'::jsonb)::text);
+  v_leak := public.fn_seat_deliberation_proposal_leak(p_proposal, coalesce(p_question, '') || ' ' || public.fn_seat_deliberation_strings(p_evidence));
   if v_leak is not null then
     raise exception 'BLIND_PASS_LEAK: the question or the evidence carries the proposal ("%"); the reviewer would not be blind', v_leak;
   end if;
   -- THE AUTHOR'S MODEL IS A MEASUREMENT, NOT A CLAIM: ai_gateway logged a call by this seat on this model in the
   -- last 24 hours, or the family the reviewer must avoid is unproven. Only a ZZ DEMO deliberation is exempt.
-  if not (coalesce(p_demo, false) and p_question like 'ZZ DEMO%')
-     and not exists (select 1 from public.ai_cost_log l
-                      where l.model_used = p_author_model and l.ok and l.occurred_at > now() - interval '24 hours'
-                        and (l.agent_key = p_author_seat or l.seat = p_author_seat)) then
-    raise exception 'AUTHOR_MODEL_UNPROVEN: ai_cost_log has no call by % on % in the last 24 hours; the author''s model is not taken on trust',
-      p_author_seat, p_author_model;
+  -- The seat's LATEST successful call on the class that wrote the proposal must be on p_author_model.
+  if not (coalesce(p_demo, false) and p_question like 'ZZ DEMO%') then
+    if coalesce(btrim(p_author_task_class), '') = '' then
+      raise exception 'AUTHOR_MODEL_UNPROVEN: name the task class the proposal was written on (p_author_task_class)';
+    end if;
+    select l.model_used into v_last from public.ai_cost_log l
+     where l.ok and l.task_class = p_author_task_class and l.occurred_at > now() - interval '24 hours'
+       and (l.agent_key = p_author_seat or l.seat = p_author_seat)
+     order by l.occurred_at desc, l.id desc limit 1;
+    if v_last is distinct from p_author_model then
+      raise exception 'AUTHOR_MODEL_UNPROVEN: the latest successful % call by % in the last 24 hours was on %, not %',
+        p_author_task_class, p_author_seat, coalesce(v_last, 'nothing'), p_author_model;
+    end if;
   end if;
   insert into public.seat_deliberation (kind, author_seat, reviewer_seat, question, evidence, proposal, author_model,
                                         author_provider, subject_table, subject_id, demo)
@@ -574,7 +592,7 @@ returns jsonb language sql stable security definer set search_path to 'public', 
     left join lateral (select coalesce(sum(l.cost_aed), 0) spent from public.ai_cost_log l
                         where l.task_class in ('seat_deliberation_blind', 'seat_deliberation_compare')
                           and l.dept_key = c.dept_key and l.agent_key = p_reviewer_seat
-                          and l.occurred_at >= date_trunc('month', p_at)) s on true
+                          and l.occurred_at >= (date_trunc('month', p_at at time zone 'Asia/Dubai') at time zone 'Asia/Dubai')) s on true
 $fn$;
 revoke execute on function public.fn_seat_deliberation_budget(text, text, timestamptz) from public, anon, authenticated;
 
@@ -642,6 +660,13 @@ begin
     return jsonb_build_object('action', 'held', 'phase', v_phase, 'model', v_route->>'model', 'why', v_gate->>'reason');
   end if;
 
+  -- A DEMO DELIBERATION NEVER REACHES A PAID MODEL, hold or no hold.
+  if d.demo then
+    insert into public.seat_deliberation_turn (deliberation_id, round, phase, seat, status, task_class, model, reviews_turn_id, payload_sha256, why)
+    values (p_id, d.round, v_phase, d.reviewer_seat, 'held_not_run', v_class, v_route->>'model', a.id, v_sha, 'held, not run: demo deliberation')
+    on conflict (deliberation_id, round, phase) where status in ('held_not_run', 'no_independent_reviewer') do nothing;
+    return jsonb_build_object('action', 'held', 'phase', v_phase, 'why', 'demo deliberation');
+  end if;
   return jsonb_build_object('action', 'call_model', 'deliberation_id', p_id, 'phase', v_phase, 'round', d.round,
     'task_class', v_class, 'model', v_route->>'model', 'fallback', v_route->>'fallback',
     'counterpart_model', a.model, 'max_tokens', (v_route->>'max_tokens')::int,
