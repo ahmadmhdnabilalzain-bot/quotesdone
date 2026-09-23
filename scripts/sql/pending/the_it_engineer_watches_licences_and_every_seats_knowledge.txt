@@ -1,0 +1,1 @@
+Committed, not applied. Apply after every_seat_duty_has_an_owner_a_clock_and_a_check.sql (it needs public.seat_duty and fn_seat_duty_reason); then deploy resilience_ping, delete this note and append the file to the END of MANIFEST.txt in the same commit. Proved in an aborted transaction by scripts/checks/it_engineer_duties_and_owed_notices_act.test.mjs.

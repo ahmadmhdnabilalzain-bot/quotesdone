@@ -110,6 +110,21 @@ export async function holdingNotice(row: { id: number; surface: string; question
   return await whatsapp(io, phone, q, text);
 }
 
+/** Every owed holding notice (fn_reason_held_notice_due: escalated, a customer phone, not yet delivered, not tried in
+ *  30 minutes) is sent, and EACH ATTEMPT IS RECORDED (fn_reason_held_notice_record), so a failed send comes back on a
+ *  later tick instead of being lost with the step's log (a_customer_notice_that_failed_is_sent_again.sql). A throw is
+ *  a failed attempt, never an abandoned batch. */
+export async function sendHeldNotices(rows: { id: number; surface: string; question?: string; subject?: Record<string, unknown> | null }[], io: DeliveryIO,
+  record: (id: number, d: Delivery) => Promise<unknown>): Promise<{ id: number; delivered: boolean; via: string; detail?: string }[]> {
+  const out = [];
+  for (const r of rows) {
+    const d: Delivery = await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none' as const, detail: String(e?.message || e).slice(0, 200) }));
+    await record(r.id, d).catch(() => null);
+    out.push({ id: r.id, ...d });
+  }
+  return out;
+}
+
 // ── the live io ──────────────────────────────────────────────────────────────────────────────────
 // deno-lint-ignore no-explicit-any
 type Admin = any;
