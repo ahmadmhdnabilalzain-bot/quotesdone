@@ -29,7 +29,25 @@ test('the reveal fee is out of the pricing review, and no price is written', () 
   assert.ok(!/update public\.pricing_config/.test(src), 'the CEO duty writes a price; pricing is the founder\'s');
 });
 
-const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
+test('static: revokes, pinned search_path, RLS + policy, duty prefix = owner seat, pending XOR MANIFEST', () => {
+  const src = read(CEO).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+  const made = [...src.matchAll(/create or replace function public\.(\w+)\(/g)].map((m) => m[1]);
+  assert.ok(made.length >= 9, `expected the CEO routines, found ${made.length}`);
+  for (const name of made) {
+    const head = src.slice(src.indexOf(`function public.${name}(`)).split('$')[0];
+    assert.match(head, /security definer\s+set search_path to 'public', 'pg_temp'/, `${name} is not security definer with a pinned search_path`);
+    assert.match(src, new RegExp(`revoke execute on function public\\.${name}\\([^)]*\\) from public, anon, authenticated;`), `${name} is not revoked`);
+  }
+  assert.match(src, /alter table public\.ceo_review enable row level security/, 'ceo_review has no RLS');
+  assert.match(src, /create policy ceo_review_service_role_only on public\.ceo_review[^;]*using \(false\) with check \(false\)/, 'ceo_review has no service-role-only policy');
+  const duties = [...src.matchAll(/\('(\w+)\.(\w+)', '(\w+)', interval/g)];
+  assert.equal(duties.length, 3, 'expected three ceo duties');
+  for (const [, prefix, , owner] of duties) assert.equal(prefix, owner, `duty ${prefix} is registered to ${owner}`);
+  const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
+  assert.ok(pending(CEO) !== manifest.includes(CEO), 'exactly one of a pending note and a MANIFEST line');
+});
+
+const hasToken =!!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token';
 
 async function probe(block) {
