@@ -380,7 +380,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // after the email must not get a WhatsApp telling him he is still incomplete. FAILS CLOSED
       // (portfolio_gate.ts): an error or a timeout leaves the row queued with its reason, never sends it.
       if (String(n.type || '') === 'supplier_portfolio_incomplete') {
-        const g = await portfolioGate((fn, args) => admin.rpc(fn, args), n.lead_id);
+        const g = await portfolioGate((fn, args, signal) => (signal ? admin.rpc(fn, args).abortSignal(signal) : admin.rpc(fn, args)), n.lead_id);
         if (g.action === 'cancel') { await admin.from('notifications').update({ status: 'cancelled', last_error: g.reason }).eq('id', n.id); skipped++; continue; }
         // held like a row waiting on its template: the claim lapses and the next run re-checks it
         if (g.action === 'hold') { await admin.from('notifications').update({ last_error: g.reason }).eq('id', n.id); skipped++; requeued++; lastErr = g.reason; continue; }
