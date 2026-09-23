@@ -1,0 +1,15 @@
+Committed, not applied (23 Sep 2026, batch B6 of the decision-point migration; seats ceo + sales_engineer).
+
+Apply order: AFTER every_seat_reasons_before_it_answers.sql, meaning_is_decided_by_reasoning_not_by_word_lists.sql and
+a_reasoned_answer_is_applied_by_its_own_surface.sql (it writes reasoning_held_question and relies on
+fn_reason_held_resolve calling fn_reason_apply_<surface>). Then: delete this note and append the file to the END of
+scripts/sql/MANIFEST.txt in the same commit.
+
+Functions to deploy with it: none is required for the SQL to work (every question is filed and read in SQL, and
+replayHeld in resilience_ping already reasons any held row). supabase/functions/_shared/reasoned_routing.ts ships with
+the next deploy of any function; no function imports it yet.
+
+What moves when applied: under the model hold, an escalate/approve on text returns awaiting_reasoning and records
+nothing; a refund with a customer note waits (waiting_on_reasoning) instead of being judged by a pattern; a task's
+owner is recorded only once reasoned; the 6 live supporting documents are each asked about once.
+Proved in one aborted transaction: node --test scripts/checks/decision_points_are_reasoned.test.mjs (B6 tests).
