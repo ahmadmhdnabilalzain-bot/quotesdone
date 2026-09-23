@@ -129,7 +129,7 @@
      "file": "supabase/functions/marketing_social_inbox/index.ts",
      "must_contain": [
       "needsAPerson(defaultDeps(admin, 'marketing_social_inbox')",
-      "person.value === true)",
+      "person.value === true, meaning)",
       "action === 'reasoned_handoff'"
      ]
     }

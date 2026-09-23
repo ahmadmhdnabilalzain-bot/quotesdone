@@ -42,8 +42,10 @@
 -- scripts/checks/decision_points_are_reasoned.test.mjs.
 
 -- ── 1. fn_wa_answer: the reasoned intent, read by key ─────────────────────────────────────────────
--- DROP + CREATE grants EXECUTE to PUBLIC; the revoke and the service_role grant below close it again.
+-- DROP + CREATE grants EXECUTE to PUBLIC; the revoke and the service_role grant below close it again. The new
+-- signature is dropped too, so the file replays safely once applied (a probe replays every pending file).
 drop function if exists public.fn_wa_answer(text, text);
+drop function if exists public.fn_wa_answer(text, text, text);
 create function public.fn_wa_answer(p_from text, p_body text, p_intent text default null)
 returns jsonb
 language plpgsql
@@ -179,6 +181,7 @@ comment on function public.fn_wa_answer(text, text, text) is
 
 -- ── 2. fn_wa_route: the reasoned intent passes through ────────────────────────────────────────────
 drop function if exists public.fn_wa_route(text, text, boolean, boolean);
+drop function if exists public.fn_wa_route(text, text, boolean, boolean, text);
 create function public.fn_wa_route(p_phone text, p_body text, p_has_audio boolean default false,
   p_needs_person boolean default null, p_intent text default null)
  returns jsonb
