@@ -1,12 +1,16 @@
-Committed, not applied. Decision-point batch B7 (seat ceo; the Arabic cache is the sales_engineer's).
-Apply AFTER every_seat_reasons_before_it_answers.sql, meaning_is_decided_by_reasoning_not_by_word_lists.sql and
-a_reasoned_answer_is_applied_by_its_own_surface.sql (its fn_reason_apply_ceo__challenge / __what_if / __kb_jurisdiction
-and fn_reason_apply_sales_engineer__document_arabic are called by that resolver).
-Deploy WITH it, in the same release: customer_api, supplier_api and every function importing
-_shared/quote_documents.ts or _shared/line_specs (they read fn_arabic_translations / fn_arabic_translation_store,
-which this file creates), and the two scripts that pass the jurisdiction lookup to fn_kb_purge_clause
-(scripts/checks/the_knowledge_library_holds_no_foreign_bulk.mjs, scripts/kb/purge_kb_bulk.mjs): the clause's third
-argument is now the reasoned jurisdiction, not the citation.
-After apply, once the founder's hold lifts: select public.fn_kb_jurisdiction_file(50) files the undecided citations
-(13,541 distinct on 23 Sep 2026) for reasoning, in batches; until then that knowledge is kept (clause 4).
+Committed, not applied. Decision-point batch B7 (seat ceo; the Arabic cache and documents are the sales_engineer's).
+Apply AFTER every_seat_reasons_before_it_answers.sql, meaning_is_decided_by_reasoning_not_by_word_lists.sql,
+a_reasoned_answer_is_applied_by_its_own_surface.sql AND a_held_question_never_expires_it_is_escalated_at_48_hours.sql:
+this file redefines fn_reason_hold as the lifecycle version plus the reopen of a failed/expired row, so it must win.
+MANIFEST: the release operator appends this file at apply; it must be the HIGHEST key for fn_challenge, fn_what_if,
+fn_notify_founder, fn_reason_hold, fn_board_review, fn_kb_purge_batch, fn_notifications_digest and
+fn_notifications_founder_mail_policy (older files a_simulation_that_never_said_what_it_moved.sql and
+challenge_reason_from_prior_outcomes.sql define the dropped 2-/3-argument overloads: never re-apply them).
+Deploy WITH it, same release: customer_api, supplier_api, sales_engineer, wa_inbound, resilience_ping (reasoned_delivery:
+the replay renders a waiting Arabic quotation through supplier_api spec_arabic_finish), and every function importing
+_shared/quote_documents.ts (DOC_VERSION v2.2 re-renders every cached glossary-era Arabic PDF). The file adds
+supplier_api to the fn.resilience_ping credential scope for that one internal door.
+The KB check and scripts/kb/purge_kb_bulk.mjs now pass the reasoned jurisdiction to fn_kb_purge_clause.
+After apply, once the founder's hold lifts: select public.fn_kb_jurisdiction_file(50), in batches (13,541 distinct
+citations on 23 Sep 2026 — a one-off reasoning run to budget); until then that knowledge is kept (clause 4).
 Proved by node --test scripts/checks/decision_points_are_reasoned.test.mjs (aborted-transaction probe, B7).

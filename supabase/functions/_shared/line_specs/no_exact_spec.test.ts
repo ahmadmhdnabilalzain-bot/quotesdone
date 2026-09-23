@@ -72,8 +72,9 @@ Deno.test('the question, the reminders, the confirmation and the apology: Englis
   assert(offerMessage(OFFER, 'en', { reminder: 2, final: true }).subject.startsWith('Final reminder: '));
   for (const m of [offerMessage(OFFER, 'ar', { rfqNo: 1042 }), offerMessage(OFFER, 'ar', { reminder: 1 }), offerMessage(OFFER, 'ar', { reminder: 2, final: true }),
     acceptedMessage(OFFER, 'ar', { rfqNo: 1042 }), apologyMessage(OFFER, 'ar', 'declined', { rfqNo: 1042 }), apologyMessage(OFFER, 'ar', 'no_reply')]) {
-    // Without a reasoned translation (the model hold) the person's own words are QUOTED «…», never substituted.
-    const primary = (m.subject + '\n' + m.body).replace(/«[^»]*»/g, '');
+    // Without a reasoned translation the person's own words are a ⟦placeholder⟧ and the message reports them in
+    // `untranslated` — such a message is never sent (it is retried or parked). Everything around them is Arabic.
+    const primary = (m.subject + '\n' + m.body).replace(/⟦[^⟧]*⟧/g, '');
     assertEquals(latinLeaks(primary), [], 'English in an Arabic message: ' + m.subject);
   }
   assert(offerMessage(OFFER, 'ar', {}).body.includes('مورّدان'), 'two suppliers in Arabic');
@@ -86,13 +87,17 @@ Deno.test('no message tells the customer to contact a supplier', () => {
   for (const m of all) assert(!/contact the supplier|ask the supplier|تواصل مع المورّ?د|اسأل المورّ?د/i.test(m.body), m.body);
 });
 
-Deno.test('an Arabic message prints the reasoned Arabic of the words when it has it, and quotes them «…» when it does not', () => {
+Deno.test('an Arabic message prints the reasoned Arabic of the words when it has it, and is NOT sendable when it does not', () => {
   const arTexts = { Wardrobe: 'خزانة ملابس' };
   assertEquals(offerTexts(OFFER), ['Wardrobe', '18', '16', '16', '25']);
-  const withIt = offerMessage(OFFER, 'ar', { arTexts }).body;
-  assert(withIt.includes('البند: خزانة ملابس'), withIt);
-  assertEquals(latinLeaks(withIt), []);
-  const held = offerMessage(OFFER, 'ar', {}).body;
-  assert(held.includes('البند: «Wardrobe»'), 'under the hold the words are quoted exactly as written: ' + held);
-  assert(!/خزانة/.test(held), 'nothing is guessed');
+  const withIt = offerMessage(OFFER, 'ar', { arTexts });
+  assert(withIt.body.includes('البند: خزانة ملابس'), withIt.body);
+  assertEquals(latinLeaks(withIt.body), []);
+  assertEquals(withIt.untranslated, [], 'a whole Arabic message may go');
+  const held = offerMessage(OFFER, 'ar', {});
+  assertEquals(held.untranslated, ['Wardrobe'], 'the caller must not send it: it is retried or parked until reasoned');
+  assert(held.body.includes('البند: ⟦Wardrobe⟧'), 'the placeholder fn_arabic_outbound_flush fills: ' + held.body);
+  assert(!/خزانة|«Wardrobe»/.test(held.body), 'nothing is guessed and nothing is quoted');
+  assertEquals(acceptedMessage({ ...OFFER, accepted_value: 'E1 MDF' }, 'ar', {}).untranslated, ['E1 MDF']);
+  assertEquals(acceptedMessage(OFFER, 'ar', {}).untranslated, [], 'a number needs no translation');
 });

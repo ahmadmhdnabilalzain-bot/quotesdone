@@ -13,6 +13,7 @@ function io(windowOpen: boolean) {
     reportToCeo: (k) => { log.push('ceo ' + k); return Promise.resolve(); },
     socialHandoff: (s) => { log.push('social ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     socialCommentHandoff: (s) => { log.push('comment ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
+    arabicFinish: (id) => { log.push('arabic ' + id); return Promise.resolve({ ok: true }); },
   };
   return { x, log };
 }
@@ -78,4 +79,13 @@ Deno.test('a held ANSWER on WhatsApp goes back as the answer, under the same win
     answered(null, 'In Dubai private pools need a DM permit; which emirate is the villa in?'), x);
   assertEquals(d.via, 'whatsapp_template');
   assertMatch(log[0], /\[what depth can my pool be\?\] In Dubai/);
+});
+
+Deno.test('a held Arabic translation: a waiting regenerated quotation is rendered and asked for approval; anything else was already stored', async () => {
+  const { x, log } = io(true);
+  const r = (subject: Record<string, unknown>): HeldRow => ({ id: 9, seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', subject, request: { seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', question: 'x' } });
+  const d = await deliverReasoned(r({ sources: ['a'], quote_id: 'zz-q', kind: 'regenerated_quotation' }), answered(null, '{\"1\":\"أ\"}'), x);
+  assertEquals([d.delivered, log], [true, ['arabic zz-q']]);
+  const e = await deliverReasoned(r({ sources: ['a'], quote_id: 'zz-q' }), answered(null), x);
+  assertEquals([e.delivered, log.length], [false, 1]);
 });

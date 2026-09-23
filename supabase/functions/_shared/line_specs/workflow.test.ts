@@ -11,7 +11,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { SEAT, SEAT_LABEL, type Line } from './assess.ts';
 import { optionAmount, splitOptions } from './options.ts';
-import { approve, fillIn, formSchema, gate, supabaseRepo, type HoldRow, type NotificationRow, type QuoteRow, type SpecRepo } from './workflow.ts';
+import { approve, fillIn, finishArabic, formSchema, gate, supabaseRepo, type HoldRow, type NotificationRow, type QuoteRow, type SpecRepo } from './workflow.ts';
 
 class Fake implements SpecRepo {
   quotes = new Map<string, QuoteRow>(); items = new Map<string, Line[]>(); holds: HoldRow[] = []; sent: NotificationRow[] = []; runs: string[] = []; dispatched = 0;
@@ -152,5 +152,31 @@ Deno.test('every record the desk writes is the sales engineer\'s; customer_suppo
   const admin = { from: (table: string) => ({ insert: (row: Record<string, unknown>) => { rows.push({ table, row }); return Promise.resolve({ error: null }); } }) };
   await supabaseRepo(admin).log({ signal: 'x' }, 'note');
   assertEquals(rows, [{ table: 'agent_runs', row: { ...rows[0].row, agent: 'sales_engineer', status: 'ok' } }]);
+  nobodyReal(repo);
+});
+
+Deno.test('an Arabic quotation waiting for its reasoned translation is never sent for approval without its PDF; the replay renders it and asks', async () => {
+  const repo = new Fake();
+  repo.quotes.set('q9', q('q9', SUP_AR.id, { warranty: '2 years' }));
+  repo.items.set('q9', [{ line_no: 1, description: 'Wardrobe MDF carcass, HPL finish', qty: 2, unit: 'nos', unit_price: 3000, amount: 6000 }]);
+  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO09', now: NOW };
+  assert((await gate(repo, 'q9', SUP_AR, ctx)).held);
+  const done = await fillIn(repo, 'q9', SUP_AR, { lines: { '1': { thickness_mm: '18' } }, terms: { warranty_coverage: 'Hinges and workmanship' } }, ctx, async () => 'arabic_pending');
+  assert(done.ok && done.complete);
+  assertEquals((done as { arabic_pending?: boolean }).arabic_pending, true);
+  assertEquals([repo.holds[0].state, repo.holds[0].pdf_path], ['awaiting_approval', null]);
+  assertEquals(byType(repo, 'quote_spec_regenerated'), [], 'no approval request without the PDF');
+  assertEquals((await approve(repo, 'q9', SUP_AR, SUP_AR.email, true, ctx, accept(repo))).ok, false);
+  assertEquals((await approve(repo, 'q9', SUP_AR, SUP_AR.email, true, ctx, accept(repo)) as { code?: string }).code, 'arabic_pending');
+  // still untranslated at the replay: stays pending
+  assertEquals((await finishArabic(repo, 'q9', SUP_AR, ctx, async () => 'arabic_pending') as { code?: string }).code, 'still_pending');
+  assertEquals(byType(repo, 'quote_spec_regenerated'), []);
+  // translated: rendered, the approval request goes, and approval now works
+  const fin = await finishArabic(repo, 'q9', SUP_AR, ctx, async () => ({ bucket: 'quote-files', path: 'quotes/zz/q9.pdf' }));
+  assert(fin.ok);
+  assertEquals(repo.holds[0].pdf_path, 'quotes/zz/q9.pdf');
+  assertEquals(byType(repo, 'quote_spec_regenerated'), ['email', 'whatsapp']);
+  assertEquals((await finishArabic(repo, 'q9', SUP_AR, ctx, async () => ({ bucket: 'b', path: 'p' })) as { code?: string }).code, 'not_pending', 'rendered once');
+  assert((await approve(repo, 'q9', SUP_AR, SUP_AR.email, true, ctx, accept(repo))).ok);
   nobodyReal(repo);
 });
