@@ -30,7 +30,7 @@
 //
 // Written against a small repository interface so the workflow test runs entirely in memory: no
 // database, no network, and therefore no way to reach a real supplier.
-import { approvalNotice, assessQuote, holdNotice, lineText, releasedNotice, SEAT, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
+import { approvalNotice, assessQuote, holdNotice, lineText, releasedNotice, SEAT, termItem, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
 import { TRADES, type Attr } from './model.ts';
 import { applyReading, type QuoteReading } from '../reasoned_matching.ts';
 import { needsChecklist, withReasoned } from './reasoned_specs.ts';
@@ -153,6 +153,20 @@ export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, 
   return { held: true as const, hold_id: hold.id, missing: a.missing, superseded, assessment: a, notification_ids: ids };
 }
 
+/**
+ * The quote-level details the form asks. "Is installation included?" is asked WITH its scope or timeline
+ * (23 Sep 2026): since #893 nothing reads the scope out of the supplier's prose, so a "yes" alone came back
+ * as a second hold asking for the detail (post-deploy smoke, "filling in the details regenerates the
+ * quotation": still missing installation_detail). A supplier who answers "no" leaves it blank and fillIn
+ * ignores a blank value, so it is never required of supply-only.
+ */
+export function termsAsked(missing: MissingItem[]): MissingItem[] {
+  const terms = missing.filter((m) => m.scope === 'quote' && m.attr !== 'line_items');
+  const i = terms.findIndex((m) => m.attr === 'installation_included');
+  if (i >= 0 && !terms.some((m) => m.attr === 'installation_detail')) terms.splice(i + 1, 0, termItem('installation_detail'));
+  return terms;
+}
+
 /** What the supplier's fill-in form shows: every missing detail, with the values already read beside it. */
 export function formSchema(a: Assessment, _lines: Line[]) {
   return {
@@ -160,7 +174,7 @@ export function formSchema(a: Assessment, _lines: Line[]) {
       line_no: l.line_no, description: l.description, trade: l.trade, trade_en: l.trade ? TRADES[l.trade].en : null, trade_ar: l.trade ? TRADES[l.trade].ar : null,
       fields: l.defs.map((x) => ({ attr: x.code, label_en: x.en, label_ar: x.ar, type: x.type, unit: x.unit ?? null, unit_ar: x.unit_ar ?? null, options: x.options ?? null, mandatory: x.mandatory, value: l.spec[x.code] ?? null, missing: l.missing.includes(x.code) })),
     })),
-    terms: a.missing.filter((m) => m.scope === 'quote' && m.attr !== 'line_items'),
+    terms: termsAsked(a.missing),
     needs_itemised_lines: a.missing.some((m) => m.attr === 'line_items'),
     values: a.terms,
   };
