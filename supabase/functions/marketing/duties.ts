@@ -91,10 +91,11 @@ export const socialComments: Duty = {
         for (const r of data || []) {
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
             authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
-          const person = await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.needs_a_person',
-            message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social:' + ev.platform + ':' + ev.commentId,
-            subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } });
-          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, person.value === true)
+          // A person check is REASONED (think()); held, it is queued under the same dedupe key the webhook used.
+          const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
+            message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
+            subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, person)
             .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
           counts[o] = (counts[o] || 0) + 1;
         }

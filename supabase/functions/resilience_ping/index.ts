@@ -16,7 +16,7 @@ import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { replayHeld } from '../_shared/think.ts';
-import { deliverReasoned, liveDeliveryIO } from '../_shared/reasoned_delivery.ts';
+import { deliverReasoned, holdingNotice, liveDeliveryIO } from '../_shared/reasoned_delivery.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -1036,12 +1036,22 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // >= 90% of >= 10 proposals, or a review with no independent model, is a finding for the CEO.
   await step('deliberations', async () => advanceOpenDeliberations(admin, 3));
   await step('deliberation_independence', async () => rpc('fn_it_deliberation_independence_watch'));
+  // Reviews held for want of an independent model, and third-family last-resort reviews, reach the CEO (#880).
+  await step('review_independence', async () => rpc('fn_it_review_independence_watch'));
   // Questions a seat could not reason about under the hold are reasoned the moment it lifts
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
   // returns nothing and no model is asked, so this step costs one gate read.
   await step('reasoning_held', async () => replayHeld(admin, 3, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin))));
-  // Reviews held for want of an independent model, and third-family last-resort reviews, reach the CEO (#880).
-  await step('review_independence', async () => rpc('fn_it_review_independence_watch'));
+  // A held question never expires: at 48 hours (or after 5 failed reasonings) it becomes a pending item in its
+  // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
+  // row stays held and is still replayed above the moment the hold lifts.
+  await step('reasoning_escalate', async () => {
+    const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as { id: number; surface: string; question: string; subject: Record<string, unknown> | null }[] | null;
+    const io = liveDeliveryIO(admin);
+    const told = [];
+    for (const r of rows ?? []) told.push({ id: r.id, ...(await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none', detail: String(e?.message || e).slice(0, 200) }))) });
+    return { escalated: (rows ?? []).length, told };
+  });
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');

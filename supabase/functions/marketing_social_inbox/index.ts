@@ -141,14 +141,15 @@ async function handle(ev: InboundEvent): Promise<string> {
   // hidden when abusive, handed to the owning seat when it is a complaint, a dispute or a lead — no person
   // approves a reply (founder, 23 Sep 2026). DMs keep the conversation flow below.
   if (ev.channel === 'comment' && !ev.echo) {
-    // Does the commenter need a person? REASONED (needsAPerson, founder_instruction 886-903), not a word list.
-    const person = await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
-      seat: 'marketing', surface: 'marketing_social.needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
-      dedupeKey: 'social:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
-    });
+    // Does this commenter want a person? REASONED (think()), never a phrase list; held, the comment is still
+    // classified and answered from the policy, and the person check waits in the marketing queue.
+    const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
+      seat: 'marketing', surface: 'marketing_social.comment_needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
+      dedupeKey: 'social_comment:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
+    })).value === true;
     return await processComment(adminStore(admin, timedFetch, () => pageToken(ev), GATEWAY), {
       platform: ev.platform, accountId: ev.accountId, commentId: ev.messageId, authorId: ev.userId, handle: ev.handle,
-      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, person.value === true);
+      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, person);
   }
   // THE CONVERSATION, one per person per platform, owned by the marketing seat.
   const convRow: Record<string, unknown> = { platform: ev.platform, user_id: ev.userId, account_id: ev.accountId };
@@ -218,7 +219,7 @@ async function answer(ev: InboundEvent): Promise<Decision> {
   // Does this person want a person? REASONED (think(), founder_instruction 886-903), never a phrase list.
   // Held (the model hold, or a model that failed): the question is still ANSWERED now (903) from the library,
   // the FAQ and the knowledge; only the person check waits in the marketing seat's queue, and when it is
-  // reasoned to need a person the handoff is sent on this platform (reasoned_handoff below, via
+  // reasoned to need a person the handoff is sent on this platform (reasoned_handoff above, via
   // _shared/reasoned_delivery.ts). Nobody is paged on a guess, and nobody goes unanswered.
   const person = await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
     seat: 'marketing', surface: 'marketing_social.needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
