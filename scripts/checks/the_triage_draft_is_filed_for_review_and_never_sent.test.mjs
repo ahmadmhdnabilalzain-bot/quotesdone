@@ -4,7 +4,8 @@
 // reason is worth stating precisely.
 //
 // founder_instruction 844 draws the line by audience: anything a customer reads, or that can emit
-// Arabic to a person, goes on qwen/qwen3.8-max-0902. email_triage's single call produces
+// Arabic to a person, goes on the customer-facing model (qwen/qwen3.8-max-0902 under 844, openai/gpt-5.6-sol since
+// founder_instruction 854). email_triage's single call produces
 // {category, summary, reply} where the reply is "a short, warm, professional reply ... signed 'The
 // QuotesDone Team'", and the Arabic fixture in the_triage_answer_fits_its_route.test.mjs is exactly
 // that. By the audience rule it should be on Qwen.
@@ -41,8 +42,8 @@ test('email_triage files the draft for a person and does not send it', () => {
   assert.match(src, /agent_actions[\s\S]{0,400}?status:\s*'pending'/,
     `${SRC} no longer files the draft into agent_actions with status 'pending'. A person reviewing and `
     + 'sending it is the entire reason this class is routed to z-ai/glm-5.3-flash instead of '
-    + 'qwen/qwen3.8-max-0902 under founder_instruction 844. Either restore the review step, or move '
-    + `the class to the Qwen row in ${POLICY_SQL} and update its rationale.`);
+    + 'the customer-facing model (openai/gpt-5.6-sol since founder_instruction 854). Either restore the review step, or move '
+    + `the class to a customer-facing row in ${POLICY_SQL} and update its rationale.`);
 
   // And the absence of a send. These are the ways this estate actually sends mail; none may appear
   // in this function. Matched on the CODE with its comments stripped, because this check's own
@@ -63,7 +64,7 @@ test('email_triage files the draft for a person and does not send it', () => {
   assert.deepEqual(found, [],
     `${SRC} now reaches a send path (${found.join(', ')}). The draft would leave the building without a `
     + 'person reading it, in either of two languages, from a model chosen because nobody outside the '
-    + `company sees its output. Move the class to the Qwen row in ${POLICY_SQL} in the same change.`);
+    + `company sees its output. Move the class to a customer-facing row in ${POLICY_SQL} in the same change.`);
 });
 
 test('the routing rationale still names the human gate as its reason', () => {

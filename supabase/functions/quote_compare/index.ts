@@ -291,7 +291,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     // A REFUSAL IS A REFUSAL, AND IT FAILS CLOSED (23 Sep 2026, founder_instruction 841).
     // quote_comparison is the revenue event: the customer pays 3% of the quote he reveals, and
     // this class decides which supplier is ranked first. The model moved from sonnet-5 to
-    // qwen3.8-max, which has never been measured on this estate. The failure that costs the
+    // qwen3.8-max (841) and then to gpt-5.6-sol (854), neither measured on this estate. The failure that costs the
     // customer money is not a crash — it is a model handed two quotations whose scopes do not
     // overlap, inventing a common basis and ranking them anyway. That looks like a helpful
     // answer and is a wrong recommendation somebody pays for.

@@ -122,14 +122,19 @@ export async function servicesState(admin: Admin, supplierId: number) {
   const vocab = base.vocabulary.trades as { code: string; label: string; label_ar?: string | null }[];
   const labelOf = (code: string) => vocab.find((t) => t.code === code);
   const prepared = preparedTrades(cap, base.confirmed);
-  // FIRST RUN IS PRE-TICKED. Before any confirm, and while nothing was ever chosen, every service of
-  // every prepared trade is ticked: the sales engineer's proposal, which the supplier corrects.
+  // FIRST RUN STARTS UNTICKED (founder_instruction 862, 23 Sep 2026: "for suppliers it's as I told you
+  // it start unticked"). It used to tick every service of every prepared trade — including trades the
+  // sales engineer only INFERRED ('on_file', 'documents') — and one press of Confirm saved all of it as
+  // the supplier's stated services. Under founder_instruction 857 a stated service is one the supplier
+  // confirmed he does, so a tick the system placed would have counted as his. The prepared trades are
+  // still offered, with their services listed; the supplier ticks what he does. Every client reads this
+  // (the portal's ServicesTab and any mobile client of services_state), so it is decided here, once.
   const firstRun = !base.confirmed && selected.length === 0;
   const checklist: ChecklistTrade[] = prepared.map(({ code, source }) => {
     const t = labelOf(code);
     return { code, source, label_en: t?.label || code.replace(/_/g, ' '), label_ar: t?.label_ar ?? null, services: byTrade[code] || [] };
   });
-  const ticked = firstRun ? checklist.flatMap((t) => t.services.map((s) => s.key)) : selected;
+  const ticked = firstRun ? [] : selected;
   return {
     ok: true, confirmed: base.confirmed, first_run: firstRun,
     capability: cap, history: base.history, vocabulary: base.vocabulary, trade_proposals: base.trade_proposals,

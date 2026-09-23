@@ -87,6 +87,10 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // (scripts/sql/the_whatsapp_menu_answers_like_a_senior_member_of_staff.sql, instruction 763)
   { type: 'support.case_open', from: 'customer_support', to: 'customer_support' },
   { type: 'support.human_requested', from: 'customer_support', to: 'customer_support' },
+  // three working days after verification the sales engineer hands support one reminder of what a supplier's
+  // portfolio is missing; support re-checks and sends it, the sales engineer re-verifies delivery and closes
+  // (scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql, instruction 858)
+  { type: 'supplier.portfolio_incomplete', from: 'sales_engineer', to: 'customer_support' },
   // the CEO's daily plan names the binding constraint each seat can move; the CEO re-measures and closes it
   // (scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql, applied 22 Sep 2026). Missing here until
   // 22 Sep: that file inserts its four rows with INSERT ... SELECT FROM unnest(...), a shape the static
