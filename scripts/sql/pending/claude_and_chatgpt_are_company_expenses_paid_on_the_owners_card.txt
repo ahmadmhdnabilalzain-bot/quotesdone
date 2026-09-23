@@ -1,0 +1,1 @@
+Committed, not applied: data + DDL for the accountant (founder ruling 24 Sep 2026: Claude and ChatGPT at AED 799 a month, on the owner's card). The release operator applies it with --apply --ddl, then deletes this note and appends the file to the END of MANIFEST.txt.
