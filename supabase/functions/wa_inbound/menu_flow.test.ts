@@ -71,10 +71,11 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
                       reasoningHeld?: boolean } = {}) {
   const sent: Sent[] = []; const rows: Array<Record<string, unknown>> = []; const cases: string[] = []; const notified: string[] = []; const closed: string[] = []; const gaps: string[] = [];
   const history: Turn[] = [...(o.history || [])];
-  const meanings: Array<[string, boolean]> = [];
+  const meanings: Array<[string, boolean]> = []; const offered: boolean[] = [];
   const d: MenuDeps = {
-    meaning: (text, awaitingProblem) => {
+    meaning: (text, awaitingProblem, offerMenu) => {
       meanings.push([text, awaitingProblem]);
+      offered.push(offerMenu);
       if (o.reasoningHeld) return Promise.resolve(null);
       return Promise.resolve(READ[text] ?? (awaitingProblem ? 'problem' : 'other'));
     },
@@ -102,7 +103,7 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
       return Promise.resolve();
     },
   };
-  return { d, sent, rows, cases, notified, closed, gaps, meanings };
+  return { d, sent, rows, cases, notified, closed, gaps, meanings, offered };
 }
 const msg = (body: string, audience: Audience = 'unknown', extra: Partial<MenuInput> = {}): MenuInput => ({ from: FROM, body, audience, ...extra });
 
@@ -215,6 +216,22 @@ Deno.test('menu_choice: a typed option is REASONED to that option; held, it is n
   const held = harness({ reasoningHeld: true, history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
   assertEquals((await menuTurn(held.d, msg('Report a problem'))).handled, false);
   assertEquals(held.sent.length, 0);
+  // Mid-conversation (no menu just shown) the options are not offered, and a reading of "qd_person" pages nobody.
+  const mid = harness({ history: [{ route: 'deterministic', await: null, lang: 'en' }] });
+  mid.d.meaning = (_t, _p, offer) => { mid.offered.push(offer); return Promise.resolve(offer ? 'qd_person' : 'other'); };
+  assertEquals((await menuTurn(mid.d, msg('can someone call me about my quote'))).handled, false);
+  assertEquals([mid.offered, mid.notified], [[false], []]);
+  // While a problem is being described, the menu is not offered either: the description is filed.
+  const pr = harness({ history: [{ route: 'menu_qd_problem', await: 'problem', lang: 'en' }] });
+  // (menuMeaning only ever returns an option it offered: without the menu the reading is 'problem')
+  pr.d.meaning = (_t, _p, offer) => { pr.offered.push(offer); return Promise.resolve(offer ? 'qd_follow' : 'problem'); };
+  assertEquals((await menuTurn(pr.d, msg('I followed up twice and nobody answered'))).route, 'menu_case');
+  assertEquals(pr.offered, [false]);
+  // The founder is never offered the menu options, even right after it.
+  const f = harness({ history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
+  f.d.meaning = (_t, _p, offer) => { f.offered.push(offer); return Promise.resolve('qd_person'); };
+  await menuTurn(f.d, msg('Talk to a person', 'founder'));
+  assertEquals([f.offered, f.notified], [[false], []]);
 });
 
 Deno.test('every option routes to its own flow', async () => {
@@ -238,7 +255,7 @@ Deno.test('every option routes to its own flow', async () => {
 
 Deno.test('follow-up: an unknown number is told plainly nothing is registered on it, never shown anyone\'s requests', async () => {
   // fn_wa_menu_context lists requests only for a CONFIRMED customer number; the reply trusts that.
-  const h = harness({ ctx: { audience: 'unknown', requests: [] } });
+  const h = harness({ ctx: { audience: 'unknown', requests: [] }, history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
   await menuTurn(h.d, msg('Follow up my request'));
   assertMatch(h.sent[0].body, /^There is no request registered under this mobile number \(or its email\)/);
   assertMatch(h.sent[0].body, /https:\/\/quotesdone\.com\/me\?new=1/);
@@ -638,9 +655,10 @@ Deno.test('777: FIGURES from the founder is his internal reading; from anyone el
   // never reads the figures, and nothing sent carries a count.
   for (const aud of ['customer', 'supplier', 'unknown'] as Audience[]) {
     const h = founderHarness(aud);
-    assert((await menuTurn(h.d, msg('FIGURES', aud))).route !== 'founder_figures', aud);
+    // Not matched as a command: the menu turn leaves it to the reasoned handlers, sends nothing itself, reads nothing.
+    assertEquals(await menuTurn(h.d, msg('FIGURES', aud)), { handled: false }, aud);
     assertEquals(h.asked.length, 0, aud + ' must not read the figures');
-    for (const x of h.sent) assert(noCount(x.body));
+    assertEquals(h.sent.length, 0, aud);
   }
   // Only the whole message is the command.
   for (const t of ['figures please', 'send figures', 'the figures for the quote']) assertEquals(isFiguresCommand(t), false, t);

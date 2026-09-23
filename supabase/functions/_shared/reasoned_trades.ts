@@ -3,7 +3,8 @@
 //
 // Replaces, in decision_points.json order:
 //   19 shared.trade_classify      _shared/trade_classify.ts (KW map, tradeHits, detectCat, detectTrades, COMPONENT_OF) — deleted
-//   20 customer_api.keywords      customer_api/keywords.ts detect(): create_inquiry's category fallback — deleted
+//   20 customer_api.keywords      customer_api/keywords.ts detect(): create_inquiry's category fallback — deleted; the
+//                                 trade is the intake's own reasoned one
 //   21 customer_api.resolve_trade customer_api discover: resolveTrade's alias / label-substring match
 //   22 inbound_email.infer_sector inbound_email inferSector: a second KW map scoring substrings
 //
@@ -20,7 +21,7 @@ export const NONE = 'none';
 
 /** Which ONE of `options` is the job these words describe, or 'none'. */
 export async function tradeOfText(deps: ThinkDeps, o: {
-  surface: 'customer_api.keywords' | 'customer_api.resolve_trade' | 'inbound_email.infer_sector';
+  surface: 'customer_api.resolve_trade' | 'inbound_email.infer_sector';
   text: string; options: TradeOption[]; audience: 'customer' | 'supplier';
   dedupeKey?: string; subject?: Record<string, unknown>; queueWhenHeld?: boolean;
 }): Promise<Reasoned<string>> {

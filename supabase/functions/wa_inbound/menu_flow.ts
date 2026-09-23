@@ -33,7 +33,8 @@ export type Content = { sid: string; variables: Record<string, string> };
 export type MenuMeaning = 'greeting' | 'salam' | 'problem' | 'other';
 export type MenuDeps = {
   /** What this message means to the menu, REASONED (_shared/reasoned_menus.ts menuMeaning); null while held. */
-  meaning(text: string, awaitingProblem: boolean): Promise<MenuMeaning | MenuId | null>;
+  /** `offerMenu`: the options may be picked by typing (only right after we showed the menu, never for the founder). */
+  meaning(text: string, awaitingProblem: boolean, offerMenu: boolean): Promise<MenuMeaning | MenuId | null>;
   autoreplyEnabled(): Promise<boolean>;
   /** This number's wa_messages rows in the last 24 hours, newest first, excluding the current message. */
   recentTurns(from: string): Promise<Turn[]>;
@@ -178,9 +179,12 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   }
 
   // What the message MEANS to the menu is reasoned, once (menuMeaning); null while held — never a word list.
-  const meaning = !choice && body ? await d.meaning(body, awaiting === 'problem') : null;
+  // The menu's options are offered to the reasoning ONLY right after we showed the menu (a typed title answers it),
+  // never mid-conversation or for the founder: a reading must not page a person or skip a case on its own.
+  const offerMenu = lastWasMenu && inp.audience !== 'founder';
+  const meaning = !choice && body ? await d.meaning(body, awaiting === 'problem', offerMenu) : null;
   // A typed option (its title, or plainly asking for it) is REASONED to that option (decision point wa_inbound.menu_choice).
-  const picked: MenuId | null = choice ?? ((MENU_IDS as readonly string[]).includes(String(meaning)) ? meaning as MenuId : null);
+  const picked: MenuId | null = choice ?? (offerMenu && (MENU_IDS as readonly string[]).includes(String(meaning)) ? meaning as MenuId : null);
 
   // 1. The message after "Report a problem": reasoned to describe the problem, it is the case. Held, the words are
   //    kept as the case all the same — a person reads them, nothing is lost and they get a reference; only a

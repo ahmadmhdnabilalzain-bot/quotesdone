@@ -1,6 +1,5 @@
 Committed, not applied. Apply AFTER a_reasoned_answer_is_applied_by_its_own_surface.sql (its fn_reason_held_resolve
-calls the two routines this file defines: fn_reason_apply_customer_api__keywords and
-fn_reason_apply_inbound_email__infer_sector).
+calls the routine this file defines: fn_reason_apply_inbound_email__infer_sector).
 Deploy with it (same release, any order after the apply): customer_api, inbound_email, inquiry_intake, site_assistant,
 wa_inbound, marketing_social_inbox, marketing, resilience_ping (the replay imports _shared/reasoned_delivery.ts).
 Proved by node --test scripts/checks/decision_points_are_reasoned.test.mjs (aborted-transaction probe).

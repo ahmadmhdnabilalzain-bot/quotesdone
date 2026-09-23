@@ -1072,26 +1072,12 @@ Deno.serve(observe('customer_api', async (req) => {
       let summary = String(body.summary || '').slice(0, 500);
       if (!summary && briefObj?.summary) summary = String(briefObj.summary).slice(0, 500);
       if (!summary && boqObj?.summary) summary = String(boqObj.summary).slice(0, 500);
-      // No stated trade anywhere (body, intake, drawing): it is REASONED among the category_specs trades, never read
-      // off its words (decision point customer_api.keywords). Answered 'none': 'general' — no trade, never the nearest.
-      // HELD: nothing is posted to suppliers on a guess. The intake goes back to 'held', the customer is told the sales
-      // engineer is confirming the trade, and fn_reason_apply_customer_api__keywords reopens it with the reasoned trade.
-      if (!category) {
-        const { data: specs } = await admin.from('category_specs').select('category,label');
-        const t = await tradeOfText(defaultDeps(admin, 'customer_api'), {
-          surface: 'customer_api.keywords', text: [raw, summary].filter(Boolean).join('\n'), audience: 'customer',
-          options: (specs || []).map((r: { category: string; label: string | null }) => ({ slug: r.category, label: r.label || r.category })),
-          dedupeKey: 'create_inquiry_trade:' + intake.id, subject: { intake_id: String(intake.id) },
-        });
-        if (t.value === null) {
-          await admin.from('inquiry_intake').update({ status: 'held', updated_at: new Date().toISOString() }).eq('id', intake.id);
-          return J({ ok: false, held: true, error: 'trade_being_confirmed', held_id: t.result.held_id ?? null,
-            message: asLocale((cust as { locale?: string })?.locale) === 'ar'
-              ? 'شكرًا لكم. استلمنا طلبكم، ويراجعه الآن مهندس المبيعات لدينا لتحديد التخصص المناسب بدقة. سنكمل معكم هنا فور الانتهاء، ولا حاجة إلى إعادة كتابة أي شيء.'
-              : 'Thank you — our sales engineer is confirming exactly which trade this request belongs to. We will continue here as soon as that is done; there is no need to type anything again.' }, 202);
-        }
-        category = t.value !== NONE && (specs || []).some((r: { category: string }) => r.category === t.value) ? t.value : 'general';
-      }
+      // THE TRADE IS THE INTAKE'S, ALREADY REASONED (23 Sep 2026, decision point customer_api.keywords). The keyword
+      // fallback (./keywords.ts detect()) is deleted and NOTHING here reads the words for a trade: a request only
+      // posts from a 'ready' intake (above), and inquiry_intake always saves a trade on it — the model's, the one
+      // tradeOf reasoned (held: the intake itself is held and never reaches 'ready', point 18), or 'general' when
+      // no listed trade is exactly the job. 'general' here is only that same no-trade answer, never a guess.
+      if (!category) category = 'general';
       const emirate = body.emirate || (briefObj?.emirate || null) || null;
       const specIn = body.spec && typeof body.spec === 'object' ? body.spec : {};
       const spec = (briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : specIn;

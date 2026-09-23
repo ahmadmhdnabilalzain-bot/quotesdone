@@ -316,6 +316,7 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   assert.equal(out.escalated_again, 0, 'once');
   assert.equal(out.seat_item, 'customer_support:pending', 'a human-visible pending item in the owning seat queue');
   assert.equal(out.anon_can, false);
+  assert.equal(out.keywords_routine, false, 'create_inquiry needs no replay routine: its trade is the intake\'s own');
   assert.equal(out.service_can, true);
 });
 
@@ -339,32 +340,13 @@ end $p$;`);
 });
 
 // ── batch B2 (menus, comments, trades): the replay writes the reasoned trade on the row it was held for ─────────────
-test('production, aborted: a held create_inquiry trade reopens its intake and a held lead sector is set — exact slug or nothing, held/empty rows only',
+test('production, aborted: a held lead sector is set by its own routine — exact slug or nothing, empty sectors only',
   { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const out = await probe(String.raw`
 do $p$
-declare o jsonb := '{}'::jsonb; v_slug text; v_in uuid; v_in2 uuid; v_lead bigint; v_lead2 bigint; v_id bigint;
+declare o jsonb := '{}'::jsonb; v_slug text; v_lead bigint; v_lead2 bigint; v_id bigint;
 begin
   select category into v_slug from public.category_specs order by category limit 1;
-  insert into public.inquiry_intake (email, status, turns, raw_input) values ('zz-b2-probe@example.invalid', 'held', '[]'::jsonb, 'ZZ DEMO aluminium windows')
-    returning id into v_in;
-  insert into public.inquiry_intake (email, status, turns, raw_input) values ('zz-b2-probe2@example.invalid', 'held', '[]'::jsonb, 'ZZ DEMO bake a cake')
-    returning id into v_in2;
-  -- the reasoned trade reopens a held intake, ready to post
-  v_id := public.fn_reason_hold('sales_engineer', 'customer_api.keywords', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
-            jsonb_build_object('intake_id', v_in::text), 'model_hold', 'zz-b2-kw-1');
-  o := o || jsonb_build_object('kw_resolve', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_slug))));
-  o := o || jsonb_build_object('kw_row', (select status || ':' || (category = v_slug) from public.inquiry_intake where id = v_in));
-  -- an intake no longer held is never touched
-  v_id := public.fn_reason_hold('sales_engineer', 'customer_api.keywords', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
-            jsonb_build_object('intake_id', v_in::text), 'model_hold', 'zz-b2-kw-2');
-  o := o || jsonb_build_object('kw_again', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"none"}}'::jsonb)->'effect'->'reopened');
-  -- 'none' (no nearest mapping): back to the questions, as general
-  v_id := public.fn_reason_hold('sales_engineer', 'customer_api.keywords', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
-            jsonb_build_object('intake_id', v_in2::text), 'model_hold', 'zz-b2-kw-3');
-  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"none"}}'::jsonb);
-  o := o || jsonb_build_object('kw_none', (select status || ':' || category from public.inquiry_intake where id = v_in2));
-
   insert into public.leads (company_name, email, source, business_role) values ('ZZ DEMO probe lead', 'zz-b2-probe@example.invalid', 'email_inbound', 'supplier')
     returning id into v_lead;
   insert into public.leads (company_name, email, source, business_role, sector) values ('ZZ DEMO probe lead 2', 'zz-b2-probe3@example.invalid', 'email_inbound', 'supplier', 'zz-set-by-a-person')
@@ -385,18 +367,14 @@ begin
 
   -- the routines read no free text, and only service_role executes them
   o := o || jsonb_build_object('reads_text', (select bool_or(p.prosrc ~ '(raw_input|summary|~\*|ilike)') from pg_proc p
-            where p.proname in ('fn_reason_apply_customer_api__keywords', 'fn_reason_apply_inbound_email__infer_sector')),
+            where p.proname = 'fn_reason_apply_inbound_email__infer_sector'),
     'anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
-            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_reason_apply_customer_api__keywords', 'fn_reason_apply_inbound_email__infer_sector')),
+            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'fn_reason_apply_inbound_email__infer_sector'),
+    'keywords_routine', to_regprocedure('public.fn_reason_apply_customer_api__keywords(bigint,jsonb)') is not null,
     'service_can', has_function_privilege('service_role', 'public.fn_reason_apply_inbound_email__infer_sector(bigint,jsonb)', 'execute'));
   raise exception 'CHK<<%>>', o::text;
 end $p$;`);
   console.log(JSON.stringify(out));
-  assert.equal(out.kw_resolve.status, 'applied');
-  assert.equal(out.kw_resolve.effect.reopened, true);
-  assert.equal(out.kw_row, 'ready:true', 'the held intake reopens ready, with the reasoned trade');
-  assert.equal(out.kw_again, false, 'an intake no longer held is never touched');
-  assert.equal(out.kw_none, 'needs_info:general', "'none' goes back to the questions — no nearest mapping");
   assert.equal(out.sector_status, 'applied');
   assert.equal(out.sector_row, true);
   assert.equal(out.sector_kept, 'zz-set-by-a-person', 'a sector already set is never overwritten');

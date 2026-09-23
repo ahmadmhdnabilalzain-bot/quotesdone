@@ -23,15 +23,15 @@ const OPTIONS = [{ slug: 'aluminium', label: 'Aluminium & cladding' }, { slug: '
 
 Deno.test('answered: the reasoned slug, chosen among the real options offered, with none offered beside them', async () => {
   const m = mockDeps({ choice: 'aluminium' });
-  const r = await tradeOfText(m.deps, { surface: 'customer_api.keywords', text: '40 aluminium windows, 6-12-6 glass', options: OPTIONS, audience: 'customer' });
+  const r = await tradeOfText(m.deps, { surface: 'customer_api.resolve_trade', text: '40 aluminium windows, 6-12-6 glass', options: OPTIONS, audience: 'customer' });
   assertEquals(r.value, 'aluminium');
   const synth = m.prompts.find((p) => p.includes('This is a DECISION'))!;
   assert(synth.includes('aluminium (the work or product is exactly Aluminium & cladding)') && synth.includes(NONE + ' (none of the listed trades'));
-  assertEquals((await tradeOfText(mockDeps({ choice: NONE }).deps, { surface: 'customer_api.keywords', text: 'bake me a cake', options: OPTIONS, audience: 'customer' })).value, NONE);
+  assertEquals((await tradeOfText(mockDeps({ choice: NONE }).deps, { surface: 'customer_api.resolve_trade', text: 'bake me a cake', options: OPTIONS, audience: 'customer' })).value, NONE);
 });
 
 Deno.test('an invented trade is never taken: think refuses a choice that is not an option, and the value is null', async () => {
-  const r = await tradeOfText(mockDeps({ choice: 'windows' }).deps, { surface: 'customer_api.keywords', text: 'windows', options: OPTIONS, audience: 'customer' });
+  const r = await tradeOfText(mockDeps({ choice: 'windows' }).deps, { surface: 'customer_api.resolve_trade', text: 'windows', options: OPTIONS, audience: 'customer' });
   assertEquals(r.value, null);
   assertEquals(r.result.status, 'held');
 });

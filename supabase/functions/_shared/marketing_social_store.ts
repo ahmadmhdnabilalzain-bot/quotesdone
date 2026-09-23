@@ -40,9 +40,15 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
         // finished, so this delivery takes it over — a comment is never left unanswered for ever.
         const { data: old } = await admin.from('social_message').select('id,conversation_id,outcome')
           .eq('platform', ev.platform).eq('meta_message_id', ev.commentId).eq('direction', 'in').maybeSingle();
-        // A comment whose class was held (outcome held_classify) is taken over by the replay with its reasoned
-        // class; the row is never emptied first, so a failed send cannot delete it (release only removes outcome-null rows).
-        if (!old || (old.outcome != null && old.outcome !== 'held_classify')) return null;
+        if (!old) return null;
+        if (old.outcome === 'held_classify') {
+          // A comment whose class was held is taken over by ONE replay: a compare-and-set to 'replaying', so a
+          // concurrent replay or redelivery gets nothing and cannot reply twice. The row is never emptied, so a
+          // failed send cannot delete it; release() hands it back to 'held_classify'.
+          const { data: won } = await admin.from('social_message').update({ outcome: 'replaying' })
+            .eq('id', old.id).eq('outcome', 'held_classify').select('id');
+          if (!won?.length) return null;
+        } else if (old.outcome != null) return null;
         row = old;
       }
       inRows.set(row.id, { conv: row.conversation_id, platform: ev.platform });
@@ -51,6 +57,8 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
     async release(inId) {
       // Nothing was sent: the row is removed so the next delivery (or the duty's sweep) processes it afresh.
       await admin.from('social_message').delete().eq('id', inId).is('outcome', null);
+      // A replay that failed before a send gives the comment back to the held state (never deleted, never stuck).
+      await admin.from('social_message').update({ outcome: 'held_classify' }).eq('id', inId).eq('outcome', 'replaying');
     },
     async threadAllowed(ev) {
       try { const { data, error } = await admin.rpc('rl_check', { p_key: 'social_thread:' + ev.platform + ':' + ev.threadId, p_limit: 3, p_seconds: 600 }); return error ? false : data !== false; }
