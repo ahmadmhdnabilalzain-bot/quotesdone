@@ -531,24 +531,86 @@ Deno.serve(observe('sales_engineer', async (req) => {
         return J({ ok: false, error: 'not_permitted', ...may }, 403);
       }
 
+      // ── WHOSE INQUIRY IT IS, AND WHO DECIDES ITS CRITERIA (23 Sep 2026) ────────────────────
+      //
+      // WHAT WAS MEASURED, because the finding handed over said something else. The hand-over said
+      // "a signed-in customer can steer which suppliers receive somebody else's inquiry". A customer
+      // CANNOT reach this branch: the cutoff above (`if (caller.kind === 'customer') return 403`)
+      // refuses every portal caller before `match` is read, and `body.services` does not exist in
+      // this file at all. Nor does any caller in the repository pass criteria: the ONE runtime
+      // caller is customer_api.matchAndNotify, which sends `{action:'match', inquiry_id, persist:false}`
+      // and nothing else. So the lever was reachable only with the sales_engineer credential, an
+      // internal credential, or the founder's admin JWT.
+      //
+      // IT WAS STILL A REAL DOOR, and it was proved open on production before this change: the same
+      // ZZ DEMO gypsum inquiry returned its own gypsum supplier on an honest call, and — with
+      // `trades:['painting'], emirate:'Sharjah'` in the body and nothing else changed — returned
+      // `asked_for.trades = ['painting']` and 0 matches instead. The body won over the stored row on
+      // EVERY criterion, because every one of them was written `body.x || inq.x`. "Only our own
+      // functions can reach it" is an argument about today's callers, not a guard.
+      //
+      // TWO RULES NOW.
+      //  1. OWNERSHIP IS ENFORCED BY THE BUILD, NOT BY A BRANCH THAT CANNOT RUN. The obvious fix —
+      //     `if (caller.kind === 'customer' && inq.customer_id !== caller.customerId) return 403` —
+      //     DOES NOT COMPILE here, and that is the evidence rather than an inconvenience: `deno check`
+      //     reports `Property 'customerId' does not exist on type 'never'`, because the cutoff above
+      //     has already returned for every customer, so the only kinds that reach this line are
+      //     sales_engineer, founder and service. Writing that branch anyway, with a cast to silence
+      //     the compiler, would read as protection while asserting nothing — and would carry a
+      //     bilingual refusal string no customer could ever be shown. So the invariant is stated as a
+      //     type below: if the `match` branch is ever moved above that cutoff, `caller` widens, the
+      //     assignment stops compiling and the green build goes red.
+      //  2. A NAMED INQUIRY DECIDES ITS OWN CRITERIA. When inquiry_id resolves, the stored row is
+      //     the only source and the body contributes nothing but `persist` — which declines a write
+      //     and can therefore narrow nobody. The body is read only when NO inquiry is named, and
+      //     then there is no third party to steer: that path is an operator exercising the matcher.
       const inquiryId = String(body.inquiry_id || '').trim();
       let inq: Record<string, unknown> | null = null;
       if (inquiryId) {
         const { data } = await admin.from('inquiries')
-          .select('id,summary,raw_input,category,keywords,trades,emirate,scope_type,role_needed,budget,expected_value,boq')
+          .select('id,customer_id,summary,raw_input,category,keywords,trades,emirate,scope_type,role_needed,budget,expected_value,boq')
           .eq('id', inquiryId).maybeSingle();
         if (!data) return J({ ok: false, error: 'inquiry_not_found', inquiry_id: inquiryId }, 404);
         inq = data as Record<string, unknown>;
       }
 
+      // THE OWNERSHIP INVARIANT, ENFORCED BY `deno check` (see rule 1 above). No customer caller can
+      // reach `match`: the cutoff earlier in this handler returns 403 for `caller.kind === 'customer'`
+      // before any action below it is read. This assignment is the only thing standing between that
+      // fact and a silent regression — move `match` above the cutoff, or add a customer variant that
+      // skips it, and the type widens and the build fails. customer_id is selected above so the
+      // ownership comparison is one line away the day a customer-facing caller does reach this path.
+      const _onlyOperatorsReachMatch: Exclude<typeof caller, { kind: 'customer' }> = caller;
+      void _onlyOperatorsReachMatch;
+
       const arr = (v: unknown): string[] =>
         (Array.isArray(v) ? v : []).map((x) => String(x).trim().toLowerCase()).filter(Boolean);
+
+      // THE ONE SOURCE OF CRITERIA (see the two rules above). `src` is the stored inquiry whenever
+      // one is named, and the body ONLY when none is — mapped onto the stored column names so that
+      // nothing below has to ask which it is reading, and so that no criterion can be written as
+      // `body.x || inq.x` again without the check noticing.
+      const src: Record<string, unknown> = inq ?? {
+        trades: body.trades, emirate: body.emirate, scope_type: body.project_type,
+        role_needed: body.need, expected_value: body.value, budget: body.value,
+        summary: body.text, raw_input: null, category: null, keywords: [],
+      };
+      // NO STORED EQUIVALENT, SAID OUT LOUD. `inquiries` carries no products and no brands column —
+      // the select above is the whole of what this path reads. On a NAMED inquiry they are therefore
+      // EMPTY, which is both what the one runtime caller sends today and the only non-narrowing
+      // choice: a product or brand term switches the relevance floor ON (relevanceFloorApplies) and
+      // can only REMOVE suppliers, and letting a caller remove suppliers from somebody else's match
+      // is the whole finding. They are deliberately NOT derived from `keywords`: that would turn the
+      // floor on for every inquiry, which is the exact condition that scored aluminium at 5.0 against
+      // a floor of 35 and invited nobody (measured 15 Sep 2026, smoke run 34888342875). On an
+      // UNNAMED call there is no third party to steer, so the caller's own terms are used.
+      const products = inq ? [] : arr(body.products);
+      const brands = inq ? [] : arr(body.brands);
 
       // TRADES. The customer's own words resolved through taxonomy_trade.aliases by
       // public.fn_norm_trades — the estate's normaliser, word-START anchored so 'sign' matches
       // "signage" and not "design". Reused, not re-written.
-      let trades = arr(body.trades);
-      if (!trades.length) trades = arr(inq?.trades);
+      let trades = arr(src.trades);
       // STORED TRADES ARE INTAKE SLUGS, THE MATCHER SPEAKS TAXONOMY CODES (14 Sep 2026). 39 of the 56
       // intake slugs are not taxonomy codes ('glass' is 'glazing', 'fitout' is 'interior_fitout' ...),
       // and passing them through made fn_match_capability answer zero for every request in those
@@ -562,7 +624,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         const { data: codes, error: resErr } = await admin.rpc('fn_taxonomy_trades_for', { p_slugs: trades });
         if (!resErr && Array.isArray(codes)) trades = arr(codes);
       }
-      const brief = [inq?.summary, inq?.raw_input, inq?.category, arr(inq?.keywords).join(' '), body.text]
+      const brief = [src.summary, src.raw_input, src.category, arr(src.keywords).join(' ')]
         .map((x) => String(x ?? '')).filter(Boolean).join(' ').slice(0, 4000);
       if (!trades.length && brief) {
         const { data: nt } = await admin.rpc('fn_norm_trades', { p_text: brief });
@@ -571,10 +633,11 @@ Deno.serve(observe('sales_engineer', async (req) => {
 
       // WHAT THE CUSTOMER NEEDS DONE, not what a supplier would like to sell. taxonomy_role
       // decides which roles can serve each; this only picks the column.
-      const need = String(body.need || '').trim() ||
-        (String(inq?.scope_type || '').toLowerCase().includes('turnkey')
+      const needAsked = inq ? '' : body.need;
+      const need = String(needAsked ?? '').trim() ||
+        (String(src.scope_type || '').toLowerCase().includes('turnkey')
           ? 'whole_scope'
-          : (/supply|material|product/i.test(String(inq?.scope_type || inq?.role_needed || '')) ? 'supplies' : 'executes'));
+          : (/supply|material|product/i.test(String(src.scope_type || src.role_needed || '')) ? 'supplies' : 'executes'));
 
       // VALUE. Only a number that is actually a number gates the size band; a budget we cannot read
       // stays null, because an unreadable budget parsed as 0 would exclude every supplier with a
@@ -584,11 +647,9 @@ Deno.serve(observe('sales_engineer', async (req) => {
         const n = Number(String(v ?? '').replace(/[^0-9.]/g, ''));
         return Number.isFinite(n) && n > 0 ? n : null;
       };
-      const value = num(body.value) ?? num(inq?.expected_value) ?? num(inq?.budget);
-      const emirate = String(body.emirate || inq?.emirate || '').trim() || null;
-      const products = arr(body.products);
-      const brands = arr(body.brands);
-      const projectType = String(body.project_type || inq?.scope_type || '').trim() || null;
+      const value = num(src.expected_value) ?? num(src.budget);
+      const emirate = String(src.emirate ?? '').trim() || null;
+      const projectType = String(src.scope_type ?? '').trim() || null;
 
       // THE FANOUT CEILING IS READ, NOT COMPILED IN. decision_policy holds match_max_fanout = 5,
       // match_max_fanout_per_trade = 3 and match_relevance_floor = 35 (measured 9 Sep 2026). The
@@ -604,6 +665,9 @@ Deno.serve(observe('sales_engineer', async (req) => {
 
       const policy = { max_fanout: maxFanout, max_fanout_per_trade: perTrade, relevance_floor: floor };
       const askedFor = { trades, need, products, brands, project_type: projectType, value, emirate };
+      // WHERE EVERY FIGURE ABOVE CAME FROM, printed rather than assumed. A reader of a match record
+      // should not have to diff the body against the inquiry to know which decided.
+      const criteriaFrom = inq ? 'stored_inquiry' : 'request_body_no_inquiry_named';
 
       if (!trades.length) {
         // NOT A FAILURE AND NOT A COVERAGE GAP. Nobody was asked, because there was no question:
@@ -611,7 +675,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         // a list would be exactly the padding the grant forbids.
         await run('match', 'ok', { inquiry_id: inquiryId || null, trades: 0, matched: 0, gap: 'no_trade_identified' });
         return J({
-          ok: true, seat: 'sales_engineer', inquiry_id: inquiryId || null, asked_for: askedFor, policy,
+          ok: true, seat: 'sales_engineer', inquiry_id: inquiryId || null, asked_for: askedFor, criteria_from: criteriaFrom, policy,
           candidates: 0, above_floor: 0, matched: [], persisted: 0,
           gap: { reason: 'no_trade_identified',
             note: 'The brief names no trade in taxonomy_trade, so fn_match_capability was not called. This is a brief that needs a question answered, not a supply gap.' },
@@ -726,7 +790,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       return J({
         ok: true, seat: 'sales_engineer', caller: caller.kind,
         inquiry_id: inquiryId || null,
-        asked_for: askedFor, policy,
+        asked_for: askedFor, criteria_from: criteriaFrom, policy,
         candidates: rows.length, above_floor: aboveFloor.length,
         matched, persisted, gap,
         grant: { grant: may.grant, limit: may.limit },
