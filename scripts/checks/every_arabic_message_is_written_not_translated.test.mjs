@@ -305,6 +305,52 @@ if (MAIN && process.argv.includes('--write')) {
     }
   });
 
+  // ── ONE ORTHOGRAPHY, ONE NAME PER THING (22 Sep 2026, second review of PR #857) ─────────────────
+  //
+  // These two are added because the PR claimed them and did not have them, which is the same defect
+  // as a check that names the wrong code: a claim without its check.
+  //
+  // THE TANWIN. The accusative tanwin is written with the fathatan BEFORE the alif. That is what the
+  // 21-22 Sep native passes use (52/0 in this check's own anchor SQL, 84/1 in portalText.ts) and what
+  // the 130 Arabic FAQ answers were normalised to (151 occurrences, harakat only, no letter moved).
+  // SCOPE, and it is a real boundary rather than a convenience: measured 22 Sep 2026, SIXTY-SIX lines
+  // on the live UI and edge surfaces still carry the other order — 47 of them in messages/ar.json,
+  // the website copy signed off on 14 Sep, and the rest spread over 13 components and functions, some
+  // of them pinned character-for-character by tests. Normalising those is a mechanical, provable
+  // change (the skeleton is identical; only harakat move) and it is a change of its own, not a
+  // side-effect of this one. So the rule binds where the corpus was just written and where the next
+  // Arabic the company stores will be written: the scripts/sql files this check scans. If the 66 are
+  // ever normalised, delete the SQL_ONLY filter and this paragraph with it.
+  const WRONG_TANWIN = new RegExp('\\u0627\\u064B');
+  test('new Arabic stored by a SQL file writes the tanwin fathatan-first', () => {
+    const hits = [];
+    for (const { file, ranges } of scanned()) {
+      if (!file.startsWith('scripts/sql/')) continue;   // SQL_ONLY — see the paragraph above
+      for (const l of arabicLines(file, ranges)) if (WRONG_TANWIN.test(l.text)) hits.push(`${file}:${l.line} ${l.text.trim().slice(0, 100)}`);
+    }
+    assert.deepEqual(hits, [], 'write the fathatan before the alif (the order the reviewed corpus uses)');
+  });
+
+  // THE FEE HAS ONE NAME. The non-response charge is رسوم عدم الاستجابة — the name the live routines
+  // and the legal texts use. One of the 130 answers had called it رسوم عدم الرد, a second name for one
+  // charge, which is how a customer ends up asking support which of the two they were billed. This one
+  // IS blanket: measured 22 Sep 2026, zero lines on any scanned surface carry the retired name.
+  const RETIRED_FEE_NAME = new RegExp('\\u0631\\u0633\\u0648\\u0645 \\u0639\\u062F\\u0645 \\u0627\\u0644\\u0631\\u062F');
+  test('the non-response charge has exactly one Arabic name', () => {
+    const hits = [];
+    for (const { file, ranges } of scanned()) {
+      for (const l of arabicLines(file, ranges)) if (RETIRED_FEE_NAME.test(l.text)) hits.push(`${file}:${l.line} ${l.text.trim().slice(0, 100)}`);
+    }
+    assert.deepEqual(hits, [], 'the charge is رسوم عدم الاستجابة everywhere; a second name for one fee reaches a customer as two fees');
+  });
+
+  test('the two orthography rules catch what they name and pass the house forms', () => {
+    assert.ok(WRONG_TANWIN.test('تلقائياً'));
+    assert.ok(!WRONG_TANWIN.test('تلقائيًا'));
+    assert.ok(RETIRED_FEE_NAME.test('تُفرض رسوم عدم الرد بعد المهلة'));
+    assert.ok(!RETIRED_FEE_NAME.test('تُفرض رسوم عدم الاستجابة بعد المهلة'));
+  });
+
   test('the SQL anchor is in MANIFEST or pending, so new SQL files are scanned', () => {
     const m = fs.readFileSync(path.join(ROOT, 'scripts/sql/MANIFEST.txt'), 'utf8');
     const listed = m.split(/\r?\n/).map((l) => l.trim()).includes(ANCHOR);

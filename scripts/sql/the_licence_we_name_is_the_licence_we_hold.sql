@@ -25,7 +25,11 @@
 -- and 10 — English, public, approved — read "(E-Trader Licence No. 1633275)" and "DET E-Trader
 -- Licence No. 1633275". Left alone, this change would have put the Arabic twin of id 10 (which says
 -- رخصة تاجر) beside an English original naming a different licence class: one question, two answers.
--- Their embedding_gte is set to NULL so the re-embed rebuilds the vector from the corrected text.
+-- Their embedding_gte is set to NULL so the re-embed rebuilds the vector from the corrected text: a
+-- stale vector would keep answering from the old wording. AFTER APPLY, with the Arabic FAQ file:
+--   node scripts/kb/embed_sales_knowledge.mjs --table=company_faq
+-- one run covers these two English rows and the 128 new Arabic ones (it takes every row whose
+-- embedding_gte is null, in any language).
 --
 -- NOT CHANGED: templates.email_customer, whose footer carries no licence claim at all
 -- ('QuotesDone · Dubai, UAE'), and every other word of this template or those two answers.

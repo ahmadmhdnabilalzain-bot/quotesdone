@@ -43,6 +43,10 @@
 --
 -- AFTER APPLY (the coordinator, and this file is NOT done until it runs):
 --   node scripts/kb/embed_sales_knowledge.mjs --table=company_faq
+-- It selects every company_faq row whose embedding_gte is null, in ANY language, with no limit worth
+-- worrying about (the default is 100,000), so ONE run covers both this file's 128 new Arabic rows and
+-- the two ENGLISH rows (ids 1 and 10) whose vectors the licence correction nulls in
+-- scripts/sql/the_licence_we_name_is_the_licence_we_hold.sql. Run it after BOTH files are applied.
 --   — the free in-region gte-small, never OpenRouter. Until it runs these rows answer through the
 --   keyword step only; the corroborated semantic step skips a record whose embedding_gte is null.
 --
@@ -53,7 +57,7 @@ insert into public.company_faq
 select 'Arabic', v.sort, v.question, v.answer, v.audience, 'approved', true, 'ar', v.note,
        array['arabic','mirror'], now(), 'customer_support'
   from (values
-  (910, 'لماذا أُنشئت QuotesDone؟', 'أُنشئت QuotesDone لإصلاح طريقة الشراء في قطاع المقاولات والخدمات في الإمارات: الحصول اليوم على عدة عروض أسعار قابلة للمقارنة يعني ملاحقة الموردين واحدًا تلو الآخر، والإفصاح عن بيانات التواصل مسبقًا، ثم الردّ على المكالمات والمساومة — بينما يهدر الموردون وقتهم على أعمال ليست من اختصاصهم أصلًا. تتيح QuotesDone للمشتري وصف العمل مرة واحدة، وتلقّي عروض أسعار مجهولة المصدر وقابلة للمقارنة من موردين قادرين فعلًا، مع بقاء زمام الأمر بيده حتى يختار.', 'all', 'Arabic mirror of company_faq id 2', 2),
+  (910, 'لماذا أُنشئت QuotesDone؟', 'أُنشئت QuotesDone لإصلاح طريقة الشراء في قطاع المقاولات والخدمات في الإمارات: الحصول اليوم على عدة عروض أسعار قابلة للمقارنة يعني ملاحقة الموردين واحدًا تلو الآخر، والإفصاح عن بيانات التواصل مسبقًا، ثم الردّ على المكالمات والمساومة — بينما يهدر الموردون وقتهم على أعمال ليست من اختصاصهم أصلًا. تتيح QuotesDone للمشتري وصف العمل مرة واحدة، وتلقّي عروض أسعار مجهولة الهوية وقابلة للمقارنة من موردين قادرين فعلًا، مع بقاء زمام الأمر بيده حتى يختار.', 'all', 'Arabic mirror of company_faq id 2', 2),
   (911, 'بماذا تختلف QuotesDone عن المنافسين؟', 'أربعة فوارق: (1) السرّية — لا يتبادل المشترون والموردون بيانات التواصل حتى يختار المشتري ويسدّد رسوم الاطلاع، فلا رسائل مزعجة ولا التفاف على المنصة. (2) مطابقة دقيقة عبر المحرّك الذكي — يقرأ المحرّك تفاصيل العمل فعليًا ويوجّهه إلى الموردين القادرين عليه وحدهم، بدل إرسال كل طلب إلى الجميع. (3) عروض أسعار منظَّمة وقابلة للمقارنة ومراجَعة الجودة، لا نصوصًا حرّة مبعثرة. (4) اقتصاديات منصفة للمورّد — لا عمولة على الأعمال المكتسبة والبداية مجانية؛ ولا يدفع المشتري إلا على العرض الذي يختاره فعلًا: رسوم اطلاع 3٪ إضافة إلى رسوم معالجة البطاقة.', 'all', 'Arabic mirror of company_faq id 9', 9),
   (912, 'هل يمكنني رفع المخططات؟', 'نعم — يمكنكم إضافة مخططات أو صور أو مقطع فيديو قصير. وتُنقّى المخططات تلقائيًا من أي تفاصيل تكشف الهوية قبل أن يطّلع عليها الموردون.', 'customer', 'Arabic mirror of company_faq id 20', 20),
   (913, 'هل يمكنني التفاوض؟', 'نعم — بعد اطّلاعكم على بيانات المورّد الذي اخترتموه، يمكنكم مناقشة النطاق والسعر والتوقيت معه مباشرة عبر المنصة. أما قبل الاطلاع فيبقى كل شيء مجهول الهوية، فتكتفون بمقارنة عروض الأسعار كما وردت.', 'customer', 'Arabic mirror of company_faq id 27', 27),
