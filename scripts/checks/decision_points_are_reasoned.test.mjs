@@ -373,15 +373,27 @@ begin
   values ('zz_demo_signal', 'zz_demo_unregistered', 'founder', 'CRITICAL URGENT system down', 'ZZ DEMO', 'queued', 'email');
   o := o || jsonb_build_object('mail_queued_to_founder', exists (select 1 from public.notifications where kind = 'zz_demo_unregistered'),
     'mail_task_level', (select result->'founder_mail'->>'level' from public.org_tasks where result->'founder_mail'->>'kind' = 'zz_demo_unregistered' order by id desc limit 1));
-  -- 59 digest: an allowlisted type folds even with an alarming subject; a stated severity goes at once
-  -- (no address at all: a demo address is captured to 'suppressed' after the digest runs, and a real one is not
-  -- a probe's to use; uptime_alert is both an allowed founder kind and a listed digest type)
+  -- 58/59 THROUGH THE REAL PRODUCER: fn_notify_founder (the uptime / platform_down / outbox-heartbeat path) states
+  -- severity from its p_level, so a real outage goes at once. Inside this aborted transaction nothing commits, so
+  -- send_outbox can never see these rows: incapable of reaching the founder, not merely careful.
+  v := public.fn_notify_founder('ZZ DEMO probe outage', 'ZZ DEMO', 'critical', 'uptime_alert', 'zz-demo-b7-probe', null);
+  select jsonb_build_object('producer_severity', min(severity), 'producer_status', min(status), 'producer_rows', count(*))
+    into v from public.notifications where subject = '[Attention] ZZ DEMO probe outage' and channel = 'email';
+  o := o || v;
+  -- A producer that inserts directly and states nothing: its TYPE's registered severity decides (an outage type
+  -- goes at once, a routine type folds), never its subject. No address at all (a demo address is captured to
+  -- 'suppressed' after the digest runs); uptime_alert / ai_quality_alert are both listed digest types.
   insert into public.notifications (type, kind, to_role, subject, body, status, channel)
-  values ('uptime_alert', 'uptime_alert', 'founder', 'CRITICAL failed down', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
-  o := o || jsonb_build_object('digest_words', (select status from public.notifications where id = v_n));
-  insert into public.notifications (type, kind, to_role, subject, body, status, channel, severity)
-  values ('uptime_alert', 'uptime_alert', 'founder', 'routine', 'ZZ DEMO', 'queued', 'email', 'critical') returning id into v_n;
-  o := o || jsonb_build_object('digest_severity', (select status from public.notifications where id = v_n));
+  values ('uptime_alert', 'uptime_alert', 'founder', 'routine words', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
+  o := o || jsonb_build_object('type_outage', (select status || ':' || severity from public.notifications where id = v_n));
+  insert into public.notifications (type, kind, to_role, subject, body, status, channel)
+  values ('ai_quality_alert', 'uptime_alert', 'founder', 'CRITICAL failed down', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
+  o := o || jsonb_build_object('type_routine', (select status || ':' || severity from public.notifications where id = v_n));
+  -- the lifecycle: a failed held question filed again is REOPENED (held, attempts 0, not escalated)
+  v_id := public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
+  update public.reasoning_held_question set status = 'failed', attempts = 5, escalated_at = now() where id = v_id;
+  perform public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
+  o := o || jsonb_build_object('reopened', (select status || ':' || attempts || ':' || (escalated_at is null) || ':' || (expires_at is null) from public.reasoning_held_question where id = v_id));
   -- 60 governance: a registered kind escalates; a kind merely SPELLED like one does not
   insert into public.agent_actions (agent, kind, title, confidence) values ('ceo', 'finance_alert', 'ZZ DEMO', 0.9) returning id into v_n;
   o := o || jsonb_build_object('gov_registered', (select escalated from public.agent_actions where id = v_n));
@@ -403,12 +415,23 @@ begin
   v := public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', '{"1":"هيكل خزانة","2":"still English"}'));
   o := o || jsonb_build_object('ar_applied', v->>'status', 'ar_stored', v->'effect'->'stored',
     'ar_lookup', public.fn_arabic_translations(array['ZZ DEMO wardrobe carcass', 'ZZ DEMO second line']));
+  -- an Arabic MESSAGE is parked until its line is reasoned, then sent whole (never with English or a placeholder)
+  v_n := public.fn_arabic_outbound_park(array['ZZ DEMO parked line'],
+    jsonb_build_array(jsonb_build_object('type', 'spec_offer_accepted', 'kind', 'customer_support_spec_offer_accepted', 'to_role', 'customer',
+      'channel', 'email', 'to_email', 'zz-demo-b7@example.invalid', 'subject', 'ZZ', 'body', 'سنمضي باعتماد ⟦ZZ DEMO parked line⟧', 'status', 'queued',
+      'lang', 'ar', 'requested_by', 'customer_support', 'sender', 'customer_support', 'dedupe_key', 'zz-demo-b7-parked')));
+  o := o || jsonb_build_object('parked_before', (select status from public.arabic_outbound_hold where id = v_n));
+  perform public.fn_arabic_translation_store('{"ZZ DEMO parked line":"سطر مترجم"}'::jsonb, null);
+  o := o || jsonb_build_object('parked_after', (select status from public.arabic_outbound_hold where id = v_n),
+    'parked_body', (select body from public.notifications where to_email = 'zz-demo-b7@example.invalid' order by id desc limit 1));
   -- grants: service_role only on every new routine
   o := o || jsonb_build_object('anon_any', (select bool_or(has_function_privilege('anon', f, 'execute') or has_function_privilege('authenticated', f, 'execute'))
       from unnest(array['public.fn_challenge(text,text,text,jsonb)', 'public.fn_what_if(text,jsonb,text)', 'public.fn_kb_jurisdiction_file(integer)',
                         'public.fn_reason_apply_ceo__challenge(bigint,jsonb)', 'public.fn_reason_apply_ceo__what_if(bigint,jsonb)',
                         'public.fn_reason_apply_ceo__kb_jurisdiction(bigint,jsonb)', 'public.fn_reason_apply_sales_engineer__document_arabic(bigint,jsonb)',
-                        'public.fn_arabic_translations(text[])', 'public.fn_arabic_translation_store(jsonb,bigint)', 'public.fn_kb_purge_clause(text,text,text)']) f),
+                        'public.fn_arabic_translations(text[])', 'public.fn_arabic_translation_store(jsonb,bigint)', 'public.fn_kb_purge_clause(text,text,text)',
+                        'public.fn_arabic_outbound_park(text[],jsonb)', 'public.fn_arabic_outbound_flush(integer)', 'public.fn_notification_severity(text,text)',
+                        'public.fn_notify_founder(text,text,text,text,text,text)', 'public.fn_reason_hold(text,text,text,jsonb,jsonb,jsonb,text,text)']) f),
     'service_all', (select bool_and(has_function_privilege('service_role', f, 'execute'))
       from unnest(array['public.fn_challenge(text,text,text,jsonb)', 'public.fn_what_if(text,jsonb,text)', 'public.fn_arabic_translations(text[])']) f),
     'old_overloads', (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -429,8 +452,14 @@ end $p$;`);
   assert.equal(out.what_if_scenario, 'reveal_fee_discount');
   assert.equal(out.mail_queued_to_founder, false, 'an unregistered kind is never mailed to the founder');
   assert.equal(out.mail_task_level, 'warn', '"CRITICAL URGENT" in the subject sets nothing; the unstated level is the normal one');
-  assert.equal(out.digest_words, 'digest', 'an alarming subject no longer escapes the digest by its words');
-  assert.equal(out.digest_severity, 'queued', 'a stated critical severity goes at once');
+  assert.equal(out.producer_severity, 'critical', 'fn_notify_founder states the severity of what it queues');
+  assert.equal(out.producer_status, 'queued', 'a real outage from the real producer is sent at once, not digested');
+  assert.equal(out.type_outage, 'queued:critical', 'an outage type goes at once whatever its subject says');
+  assert.equal(out.type_routine, 'digest:warn', 'a routine type folds whatever its subject says');
+  assert.equal(out.reopened, 'held:0:true:true', 'a failed question filed again is reopened, never left dead or expiring');
+  assert.equal(out.parked_before, 'held');
+  assert.equal(out.parked_after, 'sent');
+  assert.equal(out.parked_body, 'سنمضي باعتماد سطر مترجم', 'the parked message goes out whole, in Arabic');
   assert.equal(out.gov_registered, true);
   assert.equal(out.gov_spelled, false, 'a kind spelled "legal/refund/payment" is not sensitive unless registered');
   assert.deepEqual([out.kb_null, out.kb_us, out.kb_uae, out.kb_ours, out.kb_citation_text], [4, 5, 3, 1, 4], 'undecided knowledge is kept; citation text decides nothing');

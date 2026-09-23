@@ -22,7 +22,8 @@ import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trade
 import { readExpiry } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { approve, fillIn, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { approve, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { requireInternal } from '../_shared/internal_auth.ts';
 import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
@@ -306,10 +307,55 @@ async function recordServicesCrossCheck(supplierId: number, companyName: unknown
   } catch (_e) { /* the cross-check is evidence, not a gate - it must never break registration */ }
   return cc;
 }
+/** The regenerated quotation's renderer: the standard quotation (quoteDocument via workflow.ts pdfDoc) in the
+ * supplier's language, under the one alias this supplier carries on this job. An Arabic quotation whose lines are
+ * not all translated by reasoning yet is not rendered: 'arabic_pending' (decision point trade_glossary_ar). */
+// deno-lint-ignore no-explicit-any
+function regenRender(q: any, sup: any, inqRow: any): Render {
+  return async (rec) => {
+    const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null;
+    const [{ data: safeInq }, { data: matches }] = await Promise.all([
+      admin.from('inquiries_supplier_safe').select('emirate').eq('id', q.inquiry_id).maybeSingle(),
+      admin.from('inquiry_matches').select('id,supplier_id').eq('inquiry_id', q.inquiry_id).order('id', { ascending: true }),
+    ]);
+    const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
+    const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
+    const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
+    const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => pdfDoc(rec, { inquiry: { id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no ?? null, category: inqRow?.category ?? null, emirate: safeInq?.emirate ?? null }, letter, lang, arTexts }), { subject: { quote_id: rec.quote_id, kind: 'regenerated_quotation' } });
+    if (!d.doc) return 'arabic_pending';
+    const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, ...d.doc.body, bucket: 'quote-files', folder: `quotes/${sup.id}/${q.inquiry_id}/regenerated`, name: `quotation_${String(rec.quote_id).slice(0, 8)}_option${rec.option_no}_${lang}` }) });
+    const j = await r.json().catch(() => null);
+    return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;
+  };
+}
+
+/** THE REPLAY'S EFFECT (internal credential only, from _shared/reasoned_delivery.ts): a regenerated Arabic quotation
+ * that waited for its reasoned translation is rendered now and its approval request sent (workflow.ts finishArabic). */
+async function arabicFinish(quoteId: string): Promise<Response> {
+  if (!UUID_RE.test(quoteId)) return J({ ok: false, code: 'not_found' }, 404);
+  const repo = supabaseRepo(admin, { dispatch: kickDelivery });
+  const q = await repo.quote(quoteId);
+  if (!q) return J({ ok: false, code: 'not_found' }, 404);
+  const { data: sup } = await admin.from('leads').select('id,locale,whatsapp,phone,claimed_by').eq('id', q.supplier_id).maybeSingle();
+  if (!sup) return J({ ok: false, code: 'not_found' }, 404);
+  const { data: inqRow } = await admin.from('inquiries').select('category,spec,rfq_no').eq('id', q.inquiry_id).maybeSingle();
+  const { count: optCount } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiry_id).eq('supplier_id', sup.id);
+  const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(inqRow?.spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1 };
+  const out = await finishArabic(repo, quoteId, supplierOf(sup, String(sup.claimed_by || '')), ctx, regenRender(q, sup, inqRow));
+  return J(out, out.ok ? 200 : 409);
+}
+
 // Named so the quotation review can run this same function in-process with the caller's own session.
 const handle = async (req: Request): Promise<Response> => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   try {
+    // The one internal door, before any session is asked for: the replay of a held Arabic translation.
+    const peek = await req.clone().json().catch(() => ({}));
+    if (peek?.__secret && peek.action === 'spec_arabic_finish') {
+      const auth = await requireInternal(admin, String(peek.__secret), 'supplier_api');
+      if (!auth.ok) return J({ error: 'forbidden' }, 403);
+      return await arabicFinish(String(peek.quote_id || ''));
+    }
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
@@ -1324,23 +1370,7 @@ const handle = async (req: Request): Promise<Response> => {
         // The regenerated quotation is the standard quotation (quoteDocument, via workflow.ts pdfBody) in
         // the supplier's own language, under the one alias this supplier carries on this job (the rule
         // quote_pdf above uses). Audit 22 Sep 2026, finding 1: it was a blank page.
-        const render: Render = async (rec) => {
-          const secret = await secretVal('cred_fn_supplier_api'); if (!secret) return null;
-          const [{ data: safeInq }, { data: matches }] = await Promise.all([
-            admin.from('inquiries_supplier_safe').select('emirate').eq('id', q.inquiry_id).maybeSingle(),
-            admin.from('inquiry_matches').select('id,supplier_id').eq('inquiry_id', q.inquiry_id).order('id', { ascending: true }),
-          ]);
-          const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
-          const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
-          const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
-          // An Arabic quotation whose lines are not all translated by reasoning yet is not rendered (held).
-          const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => pdfDoc(rec, { inquiry: { id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no ?? null, category: inqRow?.category ?? null, emirate: safeInq?.emirate ?? null }, letter, lang, arTexts }), { subject: { quote_id: rec.quote_id } });
-          if (!d.doc) return null;
-          const doc = d.doc.body;
-          const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, ...doc, bucket: 'quote-files', folder: `quotes/${sup.id}/${q.inquiry_id}/regenerated`, name: `quotation_${String(rec.quote_id).slice(0, 8)}_option${rec.option_no}_${lang}` }) });
-          const j = await r.json().catch(() => null);
-          return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;
-        };
+        const render = regenRender(q, sup, inqRow);
         const out = await fillIn(repo, qid, supplierOf(sup, email), body.values && typeof body.values === 'object' ? body.values : {}, ctx, render);
         if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 400);
         if (out.complete) return J({ ...out, pdf_url: await signed(out.pdf?.bucket, out.pdf?.path) });

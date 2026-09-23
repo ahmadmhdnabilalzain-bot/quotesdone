@@ -1534,6 +1534,13 @@ Deno.serve(observe('customer_api', async (req) => {
         // WhatsApp consent is the confirmed WhatsApp number, nothing else (#322): the row names the customer by
         // email and the a03 trigger addresses it to their confirmed number, or records why it was not sent.
         if (c?.email) rows.push({ ...base, channel: 'whatsapp', to_email: c.email, dedupe_key: `spec_offer:${offerId}:${kind}:whatsapp` });
+        // An Arabic confirmation with a line not yet reasoned is PARKED with its placeholders and sent by
+        // fn_arabic_outbound_flush the moment the Arabic exists — never sent with English in it.
+        if (msg.untranslated?.length && rows.length) {
+          const { error: pErr } = await admin.rpc('fn_arabic_outbound_park', { p_texts: msg.untranslated, p_rows: rows });
+          if (pErr) console.error('spec_offer_reply: confirmation not parked —', pErr.message);
+          rows.length = 0;
+        }
         const { data: sent } = rows.length ? await requestDelivery(admin, rows) : { data: [] };
         await admin.rpc('fn_spec_offer_mark', { p_offer: offerId, p_action: 'answered', p_notification_ids: (sent || []).map((d) => d.notification_id).filter((x) => typeof x === 'number') });
       } catch (e) { console.error('spec_offer_reply: confirmation not queued —', String((e as Error)?.message || e)); }

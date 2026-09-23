@@ -25,6 +25,9 @@ export interface DeliveryIO {
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
+  /** A regenerated Arabic quotation that waited for its reasoned Arabic: render it and send the approval request
+   *  (supplier_api spec_arabic_finish -> workflow.ts finishArabic). Decision point trade_glossary_ar. */
+  arabicFinish?(quoteId: string): Promise<Sent>;
 }
 export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'none'; detail?: string };
 
@@ -70,6 +73,14 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person is needed; the comment was already answered' };
     const s = await io.socialCommentHandoff(subject);
     return { delivered: s.ok, via: 'social', detail: s.err };
+  }
+
+  // A held Arabic translation: fn_reason_apply_sales_engineer__document_arabic has stored the Arabic and flushed any
+  // parked message; what is left is a regenerated quotation, which needs a render (a PDF) before its approval request.
+  if (row.surface === 'sales_engineer.document_arabic') {
+    if (subject.kind !== 'regenerated_quotation' || !subject.quote_id || !io.arabicFinish) return { delivered: false, via: 'none', detail: 'stored; no document waits on this translation' };
+    const s = await io.arabicFinish(String(subject.quote_id));
+    return { delivered: s.ok, via: 'none', detail: s.ok ? 'the Arabic quotation was rendered and its approval request sent' : s.err };
   }
 
   // A held ANSWER (think.answer on a channel): the answer itself goes back where the question came from.
@@ -118,6 +129,16 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
     reportToCeo: async (key, subject, evidence) => {
       await admin.rpc('fn_support_report_to_ceo', { p_idempotency_key: key, p_severity: 'routine', p_subject: subject, p_evidence: evidence,
         p_attempted: ['reasoned the held message', 'gave the approved public contact'], p_requested: 'Visibility only. No action is requested.' });
+    },
+    arabicFinish: async (quoteId) => {
+      const { timedFetch } = await import('./timed_fetch.ts');
+      // supplier_api has verify_jwt = true: the service key passes the gateway; __secret decides the caller.
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/supplier_api', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '') },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'spec_arabic_finish', quote_id: quoteId }),
+      }, 60_000);
+      const j = await r.json().catch(() => ({}));
+      return r.ok && j?.ok ? { ok: true } : { ok: false, err: String(j?.code ?? j?.error ?? r.status) };
     },
     socialHandoff: async (subject) => {
       const { timedFetch } = await import('./timed_fetch.ts');

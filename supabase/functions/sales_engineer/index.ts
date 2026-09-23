@@ -109,7 +109,7 @@ async function tellCustomer(o: any, kind: 'offer' | 'reminder' | 'apology_no_rep
   return (data || []).map((d) => d.notification_id).filter((x): x is number => typeof x === 'number');
 }
 async function specOfferSweep(limit: number) {
-  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, errors: [] as string[], precedent: [] as unknown[] };
+  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, arabic_held: 0, errors: [] as string[], precedent: [] as unknown[] };
   const secret = await sec('cred_fn_sales_engineer');
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const { data: cands, error: cErr } = await admin.rpc('fn_spec_offer_candidates', { p_limit: limit });
@@ -154,7 +154,11 @@ async function specOfferSweep(limit: number) {
       for (const o of opened as any[]) {
         if (o.last_sent_at) continue;
         const arTexts = await arabicTextsFor(defaultDeps(admin, 'sales_engineer'), lang, offerTexts(o as OfferForText));
-        const ids = await tellCustomer(o, 'offer', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id), arTexts }), lang, cust);
+        const msg = offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id), arTexts });
+        // An Arabic message never goes out with an untranslated line: it is not marked sent, so the next tick
+        // retries it — by then the replay has put the reasoned Arabic in the cache (decision point trade_glossary_ar).
+        if (msg.untranslated?.length) { out.arabic_held++; continue; }
+        const ids = await tellCustomer(o, 'offer', msg, lang, cust);
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'sent', p_notification_ids: ids });
         out.offers_sent++;
       }
@@ -171,7 +175,9 @@ async function specOfferSweep(limit: number) {
       const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', o.inquiry_id).maybeSingle();
       if (d.action === 'remind') {
         const arTexts = await arabicTextsFor(defaultDeps(admin, 'sales_engineer'), lang, offerTexts(o as OfferForText));
-        const ids = await tellCustomer(o, 'reminder', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final, arTexts }), lang, cust);
+        const msg = offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final, arTexts });
+        if (msg.untranslated?.length) { out.arabic_held++; continue; }   // retried next tick, never sent half-translated
+        const ids = await tellCustomer(o, 'reminder', msg, lang, cust);
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'remind', p_notification_ids: ids });
         out.reminders++;
       } else if (d.action === 'close_no_reply') {

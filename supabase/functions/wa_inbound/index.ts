@@ -527,7 +527,20 @@ async function handleInbound(req: Request): Promise<Response> {
           if (offer) {
             const o = { ...offer, accepted_value: offer.accepted_value ?? so.accepted_value ?? null } as OfferForText;
             const arTexts = so.state === 'accepted' ? await arabicTextsFor(defaultDeps(admin, 'wa_inbound'), lang, offerTexts(o)) : undefined;
-            text = (so.state === 'accepted' ? acceptedMessage(o, lang, { rfqNo: inq?.rfq_no, arTexts }) : apologyMessage(o, lang, 'declined', { rfqNo: inq?.rfq_no })).body;
+            const msg = so.state === 'accepted' ? acceptedMessage(o, lang, { rfqNo: inq?.rfq_no, arTexts }) : apologyMessage(o, lang, 'declined', { rfqNo: inq?.rfq_no });
+            if (msg.untranslated?.length) {
+              // Never an Arabic reply with English in it. A fixed acknowledgement (no free text) answers now; the full
+              // confirmation is parked and goes by email and WhatsApp once its Arabic is reasoned (fn_arabic_outbound_flush).
+              text = 'شكرًا لكم، وصلنا اختياركم وسنرسل لكم التأكيد قريبًا.';
+              const { data: cu } = so.customer_id ? await admin.from('customers').select('email').eq('id', String(so.customer_id)).maybeSingle() : { data: null };
+              if (cu?.email) {
+                const base = { type: 'spec_offer_accepted', kind: 'customer_support_spec_offer_accepted', to_role: 'customer', inquiry_id: String(offer.inquiry_id ?? so.inquiry_id), subject: msg.subject, body: msg.body, status: 'queued', lang, requested_by: 'customer_support', sender: 'customer_support' };
+                const rows = [{ ...base, channel: 'email', to_email: cu.email, dedupe_key: `spec_offer:${so.offer_id}:accepted:email` },
+                              { ...base, channel: 'whatsapp', to_email: cu.email, dedupe_key: `spec_offer:${so.offer_id}:accepted:whatsapp` }];
+                const { error: pErr } = await admin.rpc('fn_arabic_outbound_park', { p_texts: msg.untranslated, p_rows: rows });
+                if (pErr) await logRun('error', { route: 'spec_offer_reply', parked: 0 }, 'the Arabic confirmation could not be parked: ' + pErr.message);
+              }
+            } else text = msg.body;
           }
         } else if (so.error === 'unknown_option') {
           const n = Number(so.options || 0);

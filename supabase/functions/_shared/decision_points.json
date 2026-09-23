@@ -690,7 +690,8 @@
     {
      "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
      "must_contain": [
-      "v_level := coalesce(NEW.severity, case when NEW.type = 'founder_alert' then 'high' end, 'warn');"
+      "v_level := coalesce(NEW.severity, case when NEW.type = 'founder_alert' then 'high' end, 'warn');",
+      "insert into public.notifications (type, kind, to_email, to_role, subject, body, status, channel, severity)"
      ],
      "must_not_contain": [
       "NEW.subject, '') ~* 'critical|urgent'",
@@ -707,12 +708,13 @@
    "severity": "low",
    "where": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
    "decides": "type/subject regex -> digest grouping",
-   "held": "No model is involved: a notification goes at once when its producer marked it high or critical (notifications.severity); only a type listed by name in decision_policy.alert_digest_types is folded into the digest. Nothing is read from the type's or the subject's words.",
+   "held": "No model is involved: severity is what the producer stated — fn_notify_founder from its p_level, a direct producer by its type (notification_type_severity) — and high/critical goes at once; only types listed by name fold into the digest. Nothing is read from the type's or the subject's words.",
    "proof": [
     {
      "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
      "must_contain": [
-      "if NEW.severity in ('high', 'critical') then return NEW; end if;"
+      "if NEW.severity in ('high', 'critical') then return NEW; end if;",
+      "NEW.severity := public.fn_notification_severity(NEW.severity, NEW.type);"
      ],
      "must_not_contain": [
       "~* 'money|refund",
@@ -793,7 +795,7 @@
    "severity": "low",
    "where": "supabase/functions/_shared/trade_glossary_ar.ts",
    "decides": "Arabic glossary substitution on documents",
-   "held": "A person's words on an Arabic document are reasoned (surface sales_engineer.document_arabic) and cached; a document with any line not yet translated is HELD (202 arabic_held; the English version is served) — never printed half-translated. An Arabic message quotes the words «as written» meanwhile. The replay stores the Arabic via fn_reason_apply_sales_engineer__document_arabic.",
+   "held": "A person's words on an Arabic document or message are reasoned (surface sales_engineer.document_arabic) and cached. A document with any line not yet translated is HELD (202 arabic_held; a regenerated quotation stays arabic_pending and is never sent for approval without its PDF). An Arabic message is never sent with English: sales_engineer retries it next tick, customer_api / wa_inbound park it (arabic_outbound_hold) and fn_arabic_outbound_flush sends it once the Arabic exists; wa_inbound answers at once only with a fixed acknowledgement.",
    "proof": [
     {
      "file": "supabase/functions/_shared/reasoned_governance.ts",
@@ -851,13 +853,48 @@
       "if (arTexts[s]) return arTexts[s];"
      ],
      "must_not_contain": [
-      "arTrade("
+      "arTrade(",
+      "'«' + s + '»'"
      ]
     },
     {
      "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
      "must_contain": [
       "function public.fn_reason_apply_sales_engineer__document_arabic("
+     ]
+    },
+    {
+     "file": "supabase/functions/sales_engineer/index.ts",
+     "must_contain": [
+      "if (msg.untranslated?.length) { out.arabic_held++; continue; }"
+     ],
+     "must_not_contain": [
+      "'«' + s + '»'"
+     ]
+    },
+    {
+     "file": "supabase/functions/customer_api/index.ts",
+     "must_contain": [
+      "admin.rpc('fn_arabic_outbound_park'"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/index.ts",
+     "must_contain": [
+      "admin.rpc('fn_arabic_outbound_park'"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/line_specs/workflow.ts",
+     "must_contain": [
+      "if (arabicPending(hold)) return { ok: false as const, code: 'arabic_pending' as const };",
+      "export async function finishArabic("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "if (row.surface === 'sales_engineer.document_arabic') {"
      ]
     }
    ]
@@ -1076,11 +1113,26 @@
   {
    "id": "documents.quote_duration_emirates",
    "order": 83,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "low",
    "where": "supabase/functions/_shared/quote_documents.ts",
-   "decides": "arDuration / EMIRATES: duration and emirate read from free text (format parsing if the text is a structured value; meaning if free text) — found by B7"
+   "decides": "arDuration / EMIRATES: duration and emirate read from free text (format parsing if the text is a structured value; meaning if free text) — found by B7",
+   "held": "A duration is parsed only as a number and its unit (format); every other word a supplier wrote around it (\"immediate\", \"from order\") is reasoned with the rest of the document (loc -> nativeArabic), and under the hold the Arabic document is held, never substituted. The emirate is an exact key lookup of our own emirate value.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/quote_documents.ts",
+     "must_contain": [
+      "export function arDuration(s: unknown): string | null {",
+      "return ar ? (arDuration(c) ?? loc(c).text) : c;"
+     ],
+     "must_not_contain": [
+      "asap|ex[- ]?stock",
+      "order confirmation|purchase order",
+      "(?: (?:warranty|validity|guarantee))?"
+     ]
+    }
+   ]
   }
  ]
 }

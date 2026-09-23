@@ -37,8 +37,9 @@ export type Lang = 'en' | 'ar';
 /** The version printed in each document's control line AND carried in its file name. Bump when the
  * layout or wording changes: a cached file whose name lacks the current version is re-rendered
  * (isCurrentDoc). v2.1, 21 Sep 2026: the Arabic fixes of #782/#790/#794 — before this, the cache kept
- * serving documents rendered by v2.0 for as long as the quote was untouched. */
-export const DOC_VERSION = 'v2.1';
+ * serving documents rendered by v2.0 for as long as the quote was untouched. v2.2, 23 Sep 2026: the Arabic of a
+ * person's words is reasoned (decision point trade_glossary_ar), so every glossary-era Arabic file is re-rendered. */
+export const DOC_VERSION = 'v2.2';
 /** The file name pdf_native writes: `<ts>_<name>.pdf`, name = `<ref>-<DOC_VERSION>-<kind>-<lang>`. The
  * version sits BEFORE the kind: trg_quote_pdf_cache_register replaces a quote's earlier vault entry by
  * matching a path that ENDS in `-quotation-<lang>.pdf`, and that ending must not move. */
@@ -122,27 +123,17 @@ export function arCategory(s: unknown): string | null {
 }
 
 const UNIT_OF: Record<string, Unit> = { day: 'day', days: 'day', week: 'week', weeks: 'week', wk: 'week', wks: 'week', month: 'month', months: 'month', mo: 'month', mos: 'month', year: 'year', years: 'year', yr: 'year', yrs: 'year' };
-/** "2 weeks", "10-14 days", "12 months warranty", "3 working days", "immediate" → Arabic, or null. */
+/** A duration that is ONLY a number (or range) and a unit — "2 weeks", "10-14 days", "3 working days" — in Arabic,
+ * or null. This is format parsing of a number and its unit and nothing else (decision point
+ * documents.quote_duration_emirates, 23 Sep 2026): anything a person wrote around it ("immediate", "from order",
+ * "after approval") is their words, and the document reasons it (loc) instead of substituting phrases. */
 export function arDuration(s: unknown): string | null {
   if (hasArabic(s)) return String(s);
-  let t = norm(s).replace(/\.$/, '');
+  const t = norm(s).replace(/\.$/, '');
   if (!t) return null;
-  if (/^(immediate(ly)?|asap|ex[- ]?stock|from stock|same day)$/.test(t)) return t.includes('stock') ? 'من المخزون فورًا' : 'فوري';
-  // "21 days from order" is the commonest lead time a supplier writes; it fell through to the
-  // "original wording" line on every Arabic report (measured 14 Sep 2026). The anchor is kept.
-  let from = '';
-  const anchor = t.match(/\s+(?:from|after)\s+(?:the\s+)?(order confirmation|purchase order|order|po|lpo|confirmation|approval|advance payment|advance|payment|drawing approval)$/);
-  if (anchor) {
-    from = /approval/.test(anchor[1]) ? ' من الاعتماد' : /advance|payment/.test(anchor[1]) ? ' من استلام الدفعة المقدمة' : ' من تاريخ الطلب';
-    t = t.slice(0, anchor.index);
-  }
-  const r = arDurationCore(t);
-  return r ? r + from : null;
-}
-function arDurationCore(t: string): string | null {
-  const m = t.match(/^(\d{1,4})(?:\s*(?:-|–|to)\s*(\d{1,4}))?\s*(working |business |calendar )?(days?|weeks?|wks?|months?|mos?|years?|yrs?)(?: (?:warranty|validity|guarantee))?$/);
+  const m = t.match(/^(\d{1,4})(?:\s*(?:-|–)\s*(\d{1,4}))?\s*(working |business )?(days?|weeks?|wks?|months?|mos?|years?|yrs?)$/);
   if (!m) return null;
-  const a = Number(m[1]), b = m[2] ? Number(m[2]) : null, unit = UNIT_OF[m[4]], working = !!m[3] && /working|business/.test(m[3]);
+  const a = Number(m[1]), b = m[2] ? Number(m[2]) : null, unit = UNIT_OF[m[4]], working = !!m[3];
   if (!unit) return null;
   if (b === null) return arCount(a, unit, working);
   const f = working && unit === 'day' ? WORKING_FORMS : UNIT_FORMS[unit];

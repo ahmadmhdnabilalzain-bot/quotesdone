@@ -78,10 +78,11 @@ Deno.test('compare_csv escapes every spreadsheet formula trigger, tab and carria
   assertStringIncludes(csv, "'@a");
   assertStringIncludes(csv, "\r\nplain\r\n");
 });
-Deno.test('a lead time counted from the order reads in Arabic', () => {
+Deno.test('a lead time is parsed only as a number and a unit; the words around it are reasoned', () => {
   assert(arDuration('21 days'));
-  assertEquals(arDuration('21 days from order'), arDuration('21 days') + ' من تاريخ الطلب');
-  assertEquals(arDuration('4 weeks after approval'), arDuration('4 weeks') + ' من الاعتماد');
+  // The words around the number are the supplier's: reasoned on the page (loc), never substituted here.
+  assertEquals(arDuration('21 days from order'), null);
+  assertEquals(arDuration('4 weeks after approval'), null);
   assertEquals(arDuration('21 days from the moon'), null);
 });
 
@@ -307,7 +308,7 @@ Deno.test('Arabic, deterministically: durations and units (payment terms are the
   assertEquals(arDuration('10-14 days'), '10–14 يومًا');
   assertEquals(arDuration('3 working days'), '3 أيام عمل');
   assertEquals(arDuration('1 year'), 'سنة واحدة');
-  assertEquals(arDuration('ASAP'), 'فوري');
+  assertEquals(arDuration('ASAP'), null, 'a phrase is reasoned, never substituted');
   assertEquals(arDuration('after the site visit'), null);
   assertEquals(arUnit('Nos'), 'عدد');
   assertEquals(arUnit('LM'), 'م.ط');

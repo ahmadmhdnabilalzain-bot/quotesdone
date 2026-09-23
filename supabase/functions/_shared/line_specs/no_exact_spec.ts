@@ -61,22 +61,27 @@ export function noExactSpec(t: TechnicalComparison | null | undefined): SpecOffe
 // ── THE MESSAGES ─────────────────────────────────────────────────────────────────────────────────
 export type Lang = 'en' | 'ar';
 export type OfferForText = Pick<SpecOffer, 'item' | 'label_en' | 'label_ar' | 'requested' | 'alternatives'> & { accepted_value?: string | null };
-export type Message = { subject: string; body: string };
+export type Message = { subject: string; body: string; untranslated?: string[] };
 
 // Western digits, as everywhere else in the estate: one numeral system per message (instruction 586).
 const arNum = (n: number | string) => String(n);
 /**
  * Supplier or customer words on an Arabic message: their native Arabic, reasoned upstream
- * (_shared/reasoned_governance.ts arabicTextsFor) and handed in as `arTexts`. Without it (the founder's model
- * hold) the words are QUOTED exactly as written, «…» — a quotation, never a word-by-word substitution
- * (decision point trade_glossary_ar, founder_instruction 890). The message around them is Arabic either way.
+ * (_shared/reasoned_governance.ts arabicTextsFor) and handed in as `arTexts`. A line without it is left as the
+ * placeholder ⟦words⟧ and reported in the message's `untranslated`: such a message is NEVER sent. The caller
+ * parks it (fn_arabic_outbound_park) or retries, and it goes out once the Arabic exists (decision point
+ * trade_glossary_ar, founder's decision 23 Sep 2026: an Arabic message never goes out with quoted English).
  */
 export type ArTexts = Record<string, string>;
-function arWords(v: string, arTexts: ArTexts = {}): string {
+/** The placeholder a parked message carries for a line awaiting its reasoned Arabic (fn_arabic_outbound_flush fills it). */
+export const arPlaceholder = (s: string) => '⟦' + s + '⟧';
+function arWords(v: string, arTexts: ArTexts = {}, sink?: Set<string>): string {
   const s = String(v || '').trim();
   if (!s) return '—';
   if (arTexts[s]) return arTexts[s];
-  return /[A-Za-z]/.test(s) ? '«' + s + '»' : s;
+  if (!/[A-Za-z]/.test(s)) return s;
+  sink?.add(s);
+  return arPlaceholder(s);
 }
 /** Every person-written string an Arabic message about this offer prints: what arabicTextsFor translates. */
 export function offerTexts(o: OfferForText): string[] {
@@ -86,9 +91,9 @@ const ref = (rfqNo: number | string | null | undefined, lang: Lang) => rfqNo == 
 const suppliersEn = (n: number) => n === 1 ? '1 supplier' : `${n} suppliers`;
 const suppliersAr = (n: number) => n === 1 ? 'مورّد واحد' : n === 2 ? 'مورّدان' : (n <= 10 ? `${arNum(n)} مورّدين` : `${arNum(n)} مورّدًا`);
 
-function optionLines(o: OfferForText, lang: Lang, arTexts: ArTexts = {}): string {
+function optionLines(o: OfferForText, lang: Lang, arTexts: ArTexts = {}, sink?: Set<string>): string {
   return o.alternatives.map((a, i) => lang === 'ar'
-    ? `${arNum(i + 1)}) ${arWords(a.value, arTexts)} — ${suppliersAr(a.suppliers)}`
+    ? `${arNum(i + 1)}) ${arWords(a.value, arTexts, sink)} — ${suppliersAr(a.suppliers)}`
     : `${i + 1}) ${a.value} — ${suppliersEn(a.suppliers)}`).join('\n');
 }
 
@@ -97,19 +102,21 @@ export function offerMessage(o: OfferForText, lang: Lang, opts: { rfqNo?: number
   const r = opts.reminder ?? 0;
   if (lang === 'ar') {
     const head = r === 0 ? '' : (opts.final ? 'تذكير أخير: ' : 'تذكير: ');
-    return {
+    const sink = new Set<string>();
+    const m = {
       subject: `${head}طلبكم${ref(opts.rfqNo, 'ar')}: لم يقدّم أي مورّد المواصفة المطلوبة بدقة`,
       body: [
         `${head}لم يتمكّن أي مورّد من تقديم عرض مطابق تمامًا للمواصفة التي حددتموها في طلبكم${ref(opts.rfqNo, 'ar')}.`,
-        `البند: ${arWords(o.item, opts.arTexts)} — ${o.label_ar}`,
-        `المواصفة المطلوبة: ${arWords(o.requested, opts.arTexts)}`,
+        `البند: ${arWords(o.item, opts.arTexts, sink)} — ${o.label_ar}`,
+        `المواصفة المطلوبة: ${arWords(o.requested, opts.arTexts, sink)}`,
         'غير أن المورّدين قدّموا البدائل المماثلة التالية:',
-        optionLines(o, 'ar', opts.arTexts),
+        optionLines(o, 'ar', opts.arTexts, sink),
         'هل ترغبون في المتابعة بأحد هذه البدائل؟ يُرجى الرد برقم الخيار، أو بكلمة «لا» إن كنتم لا ترغبون في المتابعة.',
         ...(opts.portalUrl ? [`كما يمكنكم الرد من خلال البوابة: ${opts.portalUrl}`] : []),
         ...(opts.final ? ['هذا هو التذكير الأخير؛ وفي حال عدم ورود ردّكم سنغلق الطلب دون أي رسوم.'] : []),
       ].join('\n'),
     };
+    return { ...m, untranslated: [...sink] };
   }
   const head = r === 0 ? '' : (opts.final ? 'Final reminder: ' : 'Reminder: ');
   return {
@@ -130,9 +137,10 @@ export function offerMessage(o: OfferForText, lang: Lang, opts: { rfqNo?: number
 /** The customer said yes to an option. */
 export function acceptedMessage(o: OfferForText, lang: Lang, opts: { rfqNo?: number | string | null; arTexts?: ArTexts } = {}): Message {
   const v = String(o.accepted_value || '');
+  const sink = new Set<string>();
   return lang === 'ar'
     ? { subject: `طلبكم${ref(opts.rfqNo, 'ar')}: سنتابع بالخيار الذي اخترتموه`,
-        body: `شكرًا لكم. سنمضي في طلبكم${ref(opts.rfqNo, 'ar')} باعتماد ${arWords(v, opts.arTexts)} في ${o.label_ar}، وأصبحت العروض التي تتضمنه تُقارَن بوصفها مطابقة لطلبكم.` }
+        body: `شكرًا لكم. سنمضي في طلبكم${ref(opts.rfqNo, 'ar')} باعتماد ${arWords(v, opts.arTexts, sink)} في ${o.label_ar}، وأصبحت العروض التي تتضمنه تُقارَن بوصفها مطابقة لطلبكم.`, untranslated: [...sink] }
     : { subject: `Your request${ref(opts.rfqNo, 'en')}: we will proceed with your chosen option`,
         body: `Thank you. We will proceed with ${v} for ${o.label_en} on your request${ref(opts.rfqNo, 'en')}, and quotes offering it are now compared as matching your request.` };
 }

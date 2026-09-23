@@ -29,9 +29,38 @@
 -- challenge_heuristic 8 active rows; challenge_record 66 rows, last 7 Sep; decision_policy.alert_digest_types lists
 -- 13 types; no org_task / workflow_step_run / action_execution carries an action_class outside the seeded list.
 --
--- Follows a_reasoned_answer_is_applied_by_its_own_surface.sql (the resolver that calls fn_reason_apply_*).
+-- Follows a_reasoned_answer_is_applied_by_its_own_surface.sql (the resolver that calls fn_reason_apply_*) AND
+-- a_held_question_never_expires_it_is_escalated_at_48_hours.sql (whose fn_reason_hold section 0 below extends).
 -- Pending: scripts/sql/pending/governance_reads_keys_and_reasons_rather_than_spotting_words.txt.
 -- Proved in one aborted transaction: scripts/checks/decision_points_are_reasoned.test.mjs (the B7 probe).
+
+-- ── 0. a held question that failed or expired is REOPENED when it is filed again ─────────────────────────────
+-- Exactly the lifecycle file's fn_reason_hold (no expiry, whatever the surface), except ON CONFLICT: a row that
+-- had gone 'failed' (5 attempts) or 'expired' (the retired 7-day rule) is put back to 'held' with attempts 0 and
+-- escalated_at cleared. This batch's surfaces (ceo.challenge, ceo.what_if, ceo.kb_jurisdiction,
+-- sales_engineer.document_arabic) re-file the same dedupe key whenever the thing is needed again: a document is
+-- asked for again, a citation is still undecided, a proposal is challenged again. Without the reopen a question
+-- that once failed would sit 'failed' for ever and the document it blocks would never be served.
+create or replace function public.fn_reason_hold(p_seat text, p_surface text, p_question text, p_request jsonb,
+  p_plan jsonb, p_subject jsonb, p_reason text, p_dedupe_key text default null)
+returns bigint
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_id bigint;
+begin
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key)
+  values (p_seat, p_surface, left(p_question, 8000), p_request, coalesce(p_plan, '{}'::jsonb), p_subject, p_reason, p_dedupe_key)
+  on conflict (dedupe_key) do update set reason = excluded.reason, plan = excluded.plan,
+    status = case when reasoning_held_question.status in ('failed', 'expired') then 'held' else reasoning_held_question.status end,
+    attempts = case when reasoning_held_question.status in ('failed', 'expired') then 0 else reasoning_held_question.attempts end,
+    escalated_at = case when reasoning_held_question.status in ('failed', 'expired') then null else reasoning_held_question.escalated_at end,
+    expires_at = null
+  returning id into v_id;
+  return v_id;
+end $fn$;
+revoke execute on function public.fn_reason_hold(text, text, text, jsonb, jsonb, jsonb, text, text) from public, anon, authenticated;
+grant execute on function public.fn_reason_hold(text, text, text, jsonb, jsonb, jsonb, text, text) to service_role;
 
 -- ── 1. sql.fn_task_is_demand: the revenue path is a registered key, not a spelling ─────────────────────────
 create table if not exists public.action_class_demand (
@@ -377,6 +406,49 @@ alter table public.notifications add constraint notifications_severity_check
 comment on column public.notifications.severity is
   'How urgent the producer says this is (info|warn|high|critical). Read by fn_notifications_digest and fn_notifications_founder_mail_policy. NULL = not stated: never inferred from the subject.';
 
+-- The producers that insert notifications directly (fn_smoke, fn_ai_quality_watch, ...) state their severity by
+-- TYPE here, once, instead of each routine being rewritten: a keyed default per notification type, never a word.
+-- A row's own severity wins; fn_notify_founder (uptime, platform_down, the outbox heartbeat, every alert) states it
+-- per row from its p_level (below).
+create table if not exists public.notification_type_severity (
+  type       text primary key check (btrim(type) <> ''),
+  severity   text not null check (severity in ('info', 'warn', 'high', 'critical')),
+  reason     text not null check (btrim(reason) <> ''),
+  updated_at timestamptz not null default now()
+);
+alter table public.notification_type_severity enable row level security;
+drop policy if exists notification_type_severity_service_role_only on public.notification_type_severity;
+create policy notification_type_severity_service_role_only on public.notification_type_severity
+  as permissive for all to public using (false) with check (false);
+revoke all on public.notification_type_severity from anon, authenticated;
+comment on table public.notification_type_severity is
+  'The severity a notification TYPE carries when its producer did not state one on the row. Read by fn_notifications_founder_mail_policy and fn_notifications_digest; never inferred from the subject.';
+insert into public.notification_type_severity (type, severity, reason) values
+  ('uptime_alert',        'critical', 'the site is down'),
+  ('smoke_alert',         'high',     'a production integrity check failed (fn_smoke)'),
+  ('exception_alert',     'high',     'an unhandled exception in production'),
+  ('health_alert',        'high',     'a health check failed'),
+  ('ops_alert',           'high',     'an operations failure'),
+  ('rfq_sla_breach',      'high',     'a customer request missed its deadline'),
+  ('ai_quality_alert',    'warn',     'an evaluation regression; reviewed in the brief'),
+  ('supply_health',       'warn',     'routine supply metrics'),
+  ('agent_silence',       'warn',     'a seat was quiet; reviewed in the brief'),
+  ('doc_expiry',          'warn',     'a document expiring; reviewed in the brief'),
+  ('expense_logged',      'info',     'bookkeeping'),
+  ('agent_created',       'info',     'bookkeeping'),
+  ('policy_inconsistency','warn',     'reviewed in the brief')
+on conflict (type) do nothing;
+
+create or replace function public.fn_notification_severity(p_severity text, p_type text)
+returns text
+language sql stable security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select coalesce(p_severity, (select t.severity from public.notification_type_severity t where t.type = p_type))
+$fn$;
+revoke execute on function public.fn_notification_severity(text, text) from public, anon, authenticated;
+grant execute on function public.fn_notification_severity(text, text) to service_role;
+
 create or replace function public.fn_notifications_founder_mail_policy()
 returns trigger
 language plpgsql security definer
@@ -405,6 +477,7 @@ begin
   end if;
 
   -- The routed task's level is what the producer STATED; unstated is filed at the normal level.
+  NEW.severity := public.fn_notification_severity(NEW.severity, NEW.type);
   v_level := coalesce(NEW.severity, case when NEW.type = 'founder_alert' then 'high' end, 'warn');
   begin
     perform public.fn_founder_mail_route(v_kind, NEW.subject, NEW.body, v_level);
@@ -429,6 +502,7 @@ begin
   if coalesce(NEW.to_role,'') not in ('admin','founder','owner') then return NEW; end if;
   -- What the producer marked urgent always goes at once. Nothing else is inferred: only a type the policy
   -- lists BY NAME is folded into the brief.
+  NEW.severity := public.fn_notification_severity(NEW.severity, NEW.type);
   if NEW.severity in ('high', 'critical') then return NEW; end if;
   select value into types from public.decision_policy where key='alert_digest_types';
   if types is not null and types ? coalesce(NEW.type,'') then
@@ -440,6 +514,63 @@ exception when others then
 end $fn$;
 revoke execute on function public.fn_notifications_digest() from public, anon, authenticated;
 grant execute on function public.fn_notifications_digest() to service_role;
+
+-- fn_notify_founder: the canonical definition (the_founder_is_emailed_exceptions_only.sql and its successors, read
+-- from production 23 Sep 2026) with ONE change: every notification it queues states severity from p_level.
+create or replace function public.fn_notify_founder(p_event text, p_detail text, p_level text default 'high',
+  p_kind text default null, p_dedupe_key text default null, p_owner_agent text default null)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_email text; v_phone text; v_kind text; v_level text; v_allowed boolean; v_route jsonb; v_sev text;
+begin
+  v_level := coalesce(nullif(btrim(p_level), ''), 'high');
+  v_kind  := coalesce(nullif(btrim(p_kind), ''), 'unregistered');
+  -- p_level is the producer's own closed vocabulary; this maps it onto notifications.severity by exact value.
+  v_sev := case lower(v_level) when 'critical' then 'critical' when 'urgent' then 'critical' when 'danger' then 'critical'
+                               when 'high' then 'high' when 'error' then 'high' when 'info' then 'info' else 'warn' end;
+  select allowed_to_email into v_allowed from public.founder_mail_policy where kind = v_kind;
+
+  if not coalesce(v_allowed, false) then
+    v_route := public.fn_founder_mail_route(v_kind, p_event, p_detail, v_level, p_owner_agent);
+    insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+    values (v_level, p_event,
+            coalesce(p_detail, '') || E'\n\n-> routed to ' || coalesce(v_route ->> 'owner', v_route ->> 'dept')
+              || ' as org_task #' || (v_route ->> 'task_id') || ' (founder_mail_policy: ' || v_kind || ')',
+            'routed', p_dedupe_key);
+    return v_route || jsonb_build_object('emailed', false);
+  end if;
+
+  if p_dedupe_key is not null and exists (
+       select 1 from public.founder_alerts f
+        where f.dedupe_key = p_dedupe_key and f.channel in ('email', 'whatsapp')
+          and f.created_at > now() - interval '24 hours') then
+    insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+    values (v_level, p_event, p_detail, 'deduped', p_dedupe_key);
+    return jsonb_build_object('mode', 'email', 'emailed', false, 'deduped', true, 'kind', v_kind);
+  end if;
+
+  select nullif(split_part(coalesce(value, ''), ',', 1), '') into v_email from public.app_secrets where key = 'admin_emails';
+  v_email := coalesce(v_email, 'management@quotesdone.com');
+  select nullif(btrim(value), '') into v_phone from public.app_secrets where key = 'admin_mfa_phone';
+
+  insert into public.founder_alerts (level, event, detail, channel, dedupe_key)
+  values (v_level, p_event, p_detail, 'email', p_dedupe_key);
+
+  insert into public.notifications (type, kind, to_email, to_role, subject, body, status, channel, severity)
+  values ('founder_alert', v_kind, v_email, 'founder', '[Attention] ' || p_event, p_detail, 'queued', 'email', v_sev);
+
+  if v_phone is not null and lower(v_level) in ('critical', 'urgent', 'high', 'danger') then
+    insert into public.notifications (type, kind, to_phone, to_role, subject, body, status, channel, severity)
+    values ('founder_alert', v_kind, v_phone, 'founder', p_event,
+            'QuotesDone [' || v_level || ']: ' || p_event
+              || coalesce(E'\n' || nullif(btrim(p_detail), ''), ''), 'queued', 'whatsapp', v_sev);
+  end if;
+  return jsonb_build_object('mode', 'email', 'emailed', true, 'kind', v_kind, 'severity', v_sev);
+end $fn$;
+revoke execute on function public.fn_notify_founder(text, text, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_notify_founder(text, text, text, text, text, text) to service_role;
 
 -- ── 6. sql.fn_governance_stamp: sensitivity is a registered key ─────────────────────────────────────────
 create table if not exists public.governance_sensitive (
@@ -695,6 +826,74 @@ $fn$;
 revoke execute on function public.fn_arabic_translations(text[]) from public, anon, authenticated;
 grant execute on function public.fn_arabic_translations(text[]) to service_role;
 
+-- An Arabic MESSAGE whose person-written lines are not reasoned yet is parked here with ⟦line⟧ placeholders and
+-- sent the moment every line has its Arabic (founder's decision 23 Sep 2026: never an Arabic message with English).
+create table if not exists public.arabic_outbound_hold (
+  id          bigint generated always as identity primary key,
+  texts       text[] not null check (cardinality(texts) > 0),
+  delivery    jsonb not null check (jsonb_typeof(delivery) = 'array'),
+  status      text not null default 'held' check (status in ('held', 'sent', 'failed')),
+  result      jsonb,
+  created_at  timestamptz not null default now(),
+  sent_at     timestamptz
+);
+create index if not exists arabic_outbound_hold_held_idx on public.arabic_outbound_hold (created_at) where status = 'held';
+alter table public.arabic_outbound_hold enable row level security;
+drop policy if exists arabic_outbound_hold_service_role_only on public.arabic_outbound_hold;
+create policy arabic_outbound_hold_service_role_only on public.arabic_outbound_hold
+  as permissive for all to public using (false) with check (false);
+revoke all on public.arabic_outbound_hold from anon, authenticated;
+comment on table public.arabic_outbound_hold is
+  'Arabic customer messages parked until every person-written line has its reasoned Arabic (arabic_translation); sent through customer_support''s delivery door by fn_arabic_outbound_flush. Never sent with a placeholder or English in it.';
+
+create or replace function public.fn_arabic_outbound_park(p_texts text[], p_rows jsonb)
+returns bigint
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_id bigint;
+begin
+  if coalesce(cardinality(p_texts), 0) = 0 or jsonb_typeof(p_rows) is distinct from 'array' then
+    raise exception 'fn_arabic_outbound_park: texts and a delivery array are required' using errcode = '22023';
+  end if;
+  insert into public.arabic_outbound_hold (texts, delivery) values (p_texts, p_rows) returning id into v_id;
+  perform public.fn_arabic_outbound_flush(10);   -- the Arabic may already be in the cache
+  return v_id;
+end $fn$;
+revoke execute on function public.fn_arabic_outbound_park(text[], jsonb) from public, anon, authenticated;
+grant execute on function public.fn_arabic_outbound_park(text[], jsonb) to service_role;
+
+create or replace function public.fn_arabic_outbound_flush(p_limit integer default 20)
+returns integer
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare h record; v_map jsonb; v_rows jsonb; v_row jsonb; v_out jsonb; k text; n integer := 0; v_subject text; v_body text;
+begin
+  for h in select * from public.arabic_outbound_hold where status = 'held' order by id
+            limit greatest(1, least(coalesce(p_limit, 20), 200)) for update skip locked
+  loop
+    v_map := public.fn_arabic_translations(h.texts);
+    if (select count(*) from unnest(h.texts) t where v_map ? t) < cardinality(h.texts) then continue; end if;
+    v_rows := '[]'::jsonb;
+    for v_row in select * from jsonb_array_elements(h.delivery) loop
+      v_subject := coalesce(v_row->>'subject', ''); v_body := coalesce(v_row->>'body', '');
+      foreach k in array h.texts loop
+        v_subject := replace(v_subject, '⟦' || k || '⟧', v_map->>k);
+        v_body := replace(v_body, '⟦' || k || '⟧', v_map->>k);
+      end loop;
+      v_rows := v_rows || jsonb_build_array(v_row || jsonb_build_object('subject', v_subject, 'body', v_body));
+    end loop;
+    if v_rows::text like '%⟦%' then continue; end if;   -- a placeholder it could not fill: never sent
+    v_out := public.fn_customer_support_takes_delivery(v_rows);
+    update public.arabic_outbound_hold set status = 'sent', sent_at = now(), result = v_out where id = h.id;
+    n := n + 1;
+  end loop;
+  return n;
+end $fn$;
+revoke execute on function public.fn_arabic_outbound_flush(integer) from public, anon, authenticated;
+grant execute on function public.fn_arabic_outbound_flush(integer) to service_role;
+
 -- p_pairs: {"<source>": "<arabic>", ...}. A value with no Arabic script (a format check) is not stored.
 create or replace function public.fn_arabic_translation_store(p_pairs jsonb, p_held_id bigint default null)
 returns integer
@@ -710,6 +909,7 @@ begin
    where btrim(e.key) <> '' and e.value ~ '[؀-ۿ]'
   on conflict (source_md5) do update set arabic = excluded.arabic, held_id = excluded.held_id, created_at = now();
   get diagnostics n = row_count;
+  if n > 0 then perform public.fn_arabic_outbound_flush(20); end if;   -- a parked message may now be whole
   return n;
 end $fn$;
 revoke execute on function public.fn_arabic_translation_store(jsonb, bigint) from public, anon, authenticated;
@@ -742,3 +942,8 @@ begin
 end $fn$;
 revoke execute on function public.fn_reason_apply_sales_engineer__document_arabic(bigint, jsonb) from public, anon, authenticated;
 grant execute on function public.fn_reason_apply_sales_engineer__document_arabic(bigint, jsonb) to service_role;
+
+-- The replay (resilience_ping) renders a regenerated Arabic quotation through supplier_api's one internal door
+-- (spec_arabic_finish). Its credential is scoped per target function; supplier_api is added, nothing else.
+update public.internal_credential set scope = array_append(scope, 'supplier_api')
+ where context = 'fn.resilience_ping' and active and not ('supplier_api' = any(coalesce(scope, '{}'::text[])));
