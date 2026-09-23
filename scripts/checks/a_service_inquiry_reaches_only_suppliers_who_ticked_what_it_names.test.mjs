@@ -22,8 +22,9 @@
 //
 // PROPERTY 2 IS MADE, NOT WAITED FOR. The case the ruling changes — a supplier who declares a trade and
 // ticked NOTHING in it — was absent from production on 23 Sep, and the first version of this guard only
-// read real rows, so it went green on the overruled body. The shape is now manufactured inside one
-// always-rolled-back transaction and the REAL fn_match_capability is asked (the 857.2 probe below).
+// read real rows, so it went green on the overruled body. The shape is now made for the run — a ZZ DEMO
+// supplier from demo_factory, given its no-tick capability inside one always-rolled-back transaction —
+// and the REAL fn_match_capability is asked (the 857.2 probe below).
 // Measured 23 Sep 2026: the live #859 body REACHES that supplier (red); this PR's body, installed as a
 // pg_temp copy inside the same rolled-back transaction, does NOT (green); leads count unchanged.
 // The data-reading 857.2 test is kept for the partial-tick case real rows do carry.
@@ -130,14 +131,24 @@ test('857.1: a supplier that ticked a named service is reached', { skip: SKIP },
 // 857.2, THE CASE THE RULING CHANGED, MADE RATHER THAN WAITED FOR. A supplier who declares a trade and
 // ticked NOTHING in it is the only shape that tells the ruled gate from the overruled one, and production
 // may not hold one (on 23 Sep it held none, so the data-reading test below went green on the overruled
-// body). So the shape is manufactured inside ONE transaction that always ends in `raise exception`, and
-// therefore commits nothing: a ZZ DEMO lead (@example.invalid, tagged qd_demo) and a confirmed capability
-// declaring one trade with no service ticked, then the REAL public.fn_match_capability is asked.
+// body). So the shape is made for the run and the REAL public.fn_match_capability is asked.
 //
-// WHY session_replication_role = replica, LOCAL to the transaction. It stops every trigger on leads for
-// this one transaction: the mandatory-six gate (which would refuse an approved row without documents that
-// only storage and the signing function can produce), and every emitter that could enqueue a message.
-// Nothing fires, nothing is queued, and the raise rolls back the rows. It reaches no one.
+// THE SUPPLIER COMES FROM THE FACTORY, NOT FROM THIS FILE. fn_is_matchable requires verified AND
+// approval_status 'approved', and trg_leads_e0_mandatory_six_gate refuses either without the founder's
+// six AS EVIDENCE (a verified +9715 mobile, a verified e-mail, a licence and a company profile that
+// storage actually holds, signed terms). Evidence of that kind cannot be produced inside one SQL
+// transaction, and writing the approval here while switching the gate off would be softening it. So the
+// supplier is built exactly as a_supplier_who_ignores_holds_is_warned_then_held does it: demo_factory
+// makeSupplier (ZZ DEMO, fixture mobile, example.com, withAuth:false) uploads the real documents, signs
+// the agreement and lets the sales engineer approve; withRun tears it all down afterwards, even on a throw.
+// It is built with NO capability row, so nothing about its services exists outside the probe.
+//
+// THE PROBE ITSELF COMMITS NOTHING. One DO block, no exception handler, ending in an unconditional
+// `raise exception`: it writes the one capability row (a confirmed trade with nothing ticked), asks the
+// function, ticks one service, asks again, and rolls it all back. `set local session_replication_role =
+// replica` stops every trigger on the tables it touches for that transaction only, so nothing is queued.
+// It writes no leads row and so consumes no leads_id_seq value; the factory's lead does consume one,
+// which teardown does not give back (sequences are never rolled back) — an id gap there is not a leak.
 //
 // CONTROLS, so a pass cannot be vacuous: the supplier must be matchable and reached with NO service
 // named (otherwise some other gate excluded him and the assertion proves nothing), and reached again
@@ -145,24 +156,17 @@ test('857.1: a supplier that ticked a named service is reached', { skip: SKIP },
 const PROBE_857_2 = String.raw`
 do $probe$
 declare
-  v_lead bigint; v_tr text; v_keys text[]; v_role text; v_auth jsonb; r jsonb;
+  v_lead bigint := __LEAD__; v_tr text := '__TRADE__'; v_keys text[]; v_role text; v_auth jsonb; r jsonb;
 begin
   set local session_replication_role = replica;
-  select t.code, array_agg(s.trade_code || '.' || s.code order by s.code)
-    into v_tr, v_keys
-    from public.taxonomy_trade t join public.taxonomy_trade_service s on s.trade_code = t.code and s.active
-   where t.active group by t.code order by t.code limit 1;
+  select array_agg(s.trade_code || '.' || s.code order by s.code) into v_keys
+    from public.taxonomy_trade_service s where s.active and s.trade_code = v_tr;
   select code into v_role from public.taxonomy_role where executes order by code limit 1;
-  if v_tr is null or v_role is null then
-    raise exception 'PROBE<<{"skipped":"the taxonomy holds no active trade with services, or no role that executes"}>>';
+  if coalesce(cardinality(v_keys), 0) = 0 or v_role is null then
+    raise exception 'PROBE<<{"skipped":"the taxonomy holds no active service for the probe trade, or no role that executes"}>>';
   end if;
   select coalesce(jsonb_object_agg(a, true), '{}'::jsonb) into v_auth
     from public.taxonomy_trade t, unnest(t.authority_required) a where t.code = v_tr;
-  insert into public.leads (company_name, email, verified, approval_status, banned, matching_blocked,
-                            permanently_closed, chat_strikes, tags)
-  values ('ZZ DEMO probe 857.2', 'zz-demo-probe-857@example.invalid', true, 'approved', false, false,
-          false, 0, array['qd_demo'])
-  returning id into v_lead;
   insert into public.supplier_capabilities (supplier_id, trades, roles, services, services_removed,
                                             authority_approvals, excluded_trades, confirmed_at)
   values (v_lead, array[v_tr], array[v_role], '{}'::text[], '{}'::text[], v_auth, '{}'::text[], now());
@@ -175,20 +179,34 @@ begin
     'reached_having_ticked_one', exists (select 1 from public.fn_match_capability(array[v_tr], p_limit := 500, p_services := v_keys) m where m.supplier_id = v_lead));
   raise exception 'PROBE<<%>>', r::text;
 end $probe$;`;
+const PROBE_TRADE = 'aluminium';
 
 test('857.2 (probe): a supplier who ticked NOTHING in the trade named is not reached', { skip: SKIP }, async (t) => {
   const { sql } = await import('../lib/db.mjs');
-  const count = async () => (await sql(`select count(*)::int as n from public.leads`))[0].n;
-  const before = await count();
-  let out = null;
-  try { await sql(PROBE_857_2); } catch (e) {
-    const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e;
-    out = JSON.parse(m[1].replace(/\\"/g, '"'));
+  const { withRun, makeSupplier } = await import('../lib/demo_factory.mjs');
+  let out = null, lead = null, leftBehind = null;
+  // The factory refuses to write fixture rows to production unless QD_FIXTURES=1 (qd_guard). Set for
+  // this test only and restored after, as a_supplier_who_ignores_holds_is_warned_then_held does.
+  const hadFixtures = process.env.QD_FIXTURES;
+  process.env.QD_FIXTURES = '1';
+  // withRun tears the supplier (row, documents, signed terms) down even if the probe or an assert throws.
+  try { await withRun(async (run) => {
+    const sup = await makeSupplier(run, { trade: PROBE_TRADE, withAuth: false, capability: false, company_name: `ZZ DEMO probe 857.2 ${run.tag}` });
+    lead = Number(sup.leadId);
+    try { await sql(PROBE_857_2.replace('__LEAD__', String(lead)).replace('__TRADE__', PROBE_TRADE)); } catch (e) {
+      const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e;
+      out = JSON.parse(m[1].replace(/\\"/g, '"'));
+    }
+    // Keyed to the probe's OWN identity, not to a table total: production gains leads and capability
+    // rows on its own, and a real sign-up landing in the probe's window must not read as a leak.
+    leftBehind = (await sql(`select count(*)::int as n from public.supplier_capabilities where supplier_id = ${lead}`))[0].n;
+  }, { quiet: true }); } finally {
+    if (hadFixtures === undefined) delete process.env.QD_FIXTURES; else process.env.QD_FIXTURES = hadFixtures;
   }
   assert.ok(out, 'the probe did not report: it must end in its own raise, so it can never commit');
   if (out.skipped) return nothing(t, 'NOT_VERIFIED_PROBE_' + out.skipped.replace(/\W+/g, '_').toUpperCase(), out.skipped);
-  console.log(`  probe: ${JSON.stringify(out)}`);
-  assert.equal(await count(), before, 'the probe left a leads row behind: it must roll back');
+  console.log(`  probe on ZZ DEMO lead ${lead}: ${JSON.stringify(out)}`);
+  assert.equal(leftBehind, 0, 'the probe left its capability row behind: it must roll back');
   assert.equal(out.matchable, true, 'the probe supplier is not matchable, so the assertion below would prove nothing');
   assert.equal(out.reached_no_service_named, true, 'the probe supplier is not reached even at trade level, so another gate excluded him');
   assert.equal(out.reached_having_ticked_one, true, 'once he ticks a named service he must be reached');
