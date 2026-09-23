@@ -1050,8 +1050,8 @@ begin
   -- STEP 9. Execution linked BACK to the decision. One correlation_id ties the trace to the
   -- action, and the action carries the decision_record id it came from, so
   -- v_executions_without_decision_trace stays empty for anything this engine produced.
-  -- The row is written 'queued' and public.fn_execution_run (cron execution_run_hourly) performs
-  -- it: it delivers the decision to the actor the decision named and settles the row against the
+  -- The row is written 'queued'; the hourly execution-run routine (retired 8 Sep 2026, so nothing performs
+  -- it today) was to perform it: it delivers the decision to the actor the decision named and settles the row against the
   -- artefact it created. Claiming 'succeeded' here would be claiming an outcome before the act.
   if v_verdict = 'passed' then
     begin v_corr := nullif(current_setting('app.correlation_id', true), '')::uuid;

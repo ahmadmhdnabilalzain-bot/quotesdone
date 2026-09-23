@@ -349,6 +349,9 @@ end $p$;`);
   assert.equal(out.without, 'reasoned');
 });
 
+// ── batch B6: routing and the CEO's decisions (points 47-54; ceo + sales_engineer) ──────────────────
+const B6 = 'scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql';
+
 test('B6: the routing and CEO routines read no free text for meaning', () => {
   const sql = code(B6, read(B6));
   const body = (name) => { const a = sql.indexOf('function public.' + name + '('); const ends = ['$function$;', '$fn$;'].map((e) => sql.indexOf(e, a)).filter((i) => i > a); const b = Math.min(...ends); assert.ok(a > 0 && ends.length, name); return sql.slice(a, b); };
