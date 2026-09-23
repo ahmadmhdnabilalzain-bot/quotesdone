@@ -54,36 +54,42 @@ declare
   v_pr jsonb := '{"plan": "ZZ DEMO spend AED 900 on search, 300 on social"}'::jsonb;
   c_sol constant text := 'openai/gpt-5.6-sol'; c_opus constant text := 'anthropic/claude-opus-5.5';
   v_steel constant text := 'The strongest case against: forty leads a month cannot show that search outperforms social.';
+  v_steel2 constant text := 'Against the revealed plan: a nine hundred dirham search budget is untested against any supplier gap.';
 begin
   select count(*) into n_before from public.seat_deliberation where not demo;
+  -- a second pair exists only inside this rolled-back transaction, for the monitor's control history
+  insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
+  values ('deliberation.review', 'sales_engineer', 'ceo', 'ZZ DEMO probe pair', 'fn_seat_deliberation_acts_on_handoff', interval '2 days', true,
+          'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql');
+  insert into public.seat_deliberation_ceiling values ('sales_engineer', 'ceo', 'marketplace', 50, 'ZZ DEMO probe pair');
 
   -- ROUTING, both directions
-  o := o || jsonb_build_object('sol_author_reviewer', public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo')->>'model',
-                               'opus_author_reviewer', public.fn_ai_route_review('seat_deliberation_blind', c_opus, 'ceo')->>'model',
+  o := o || jsonb_build_object('sol_rev', public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo')->>'model',
+                               'opus_rev', public.fn_ai_route_review('seat_deliberation_blind', c_opus, 'ceo')->>'model',
                                'sol_author_fallback', coalesce(public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo')->>'fallback', 'null'));
 
   -- OPEN under the hold: the reviewing seat's handler runs the step at once
   v_id := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo',
             'ZZ DEMO: should this month''s marketing plan be approved?', v_ev, v_pr, c_sol, null, null, null, true);
-  select jsonb_build_object('status', status, 'model', model, 'provider', provider, 'why', left(why, 60))
+  select jsonb_build_object('status', status, 'provider', provider, 'why', left(why, 26))
     into v from public.seat_deliberation_turn where deliberation_id = v_id and phase = 'blind';
   o := o || jsonb_build_object('held_turn', v,
          'step_again', public.fn_seat_deliberation_step(v_id)->>'action',
          'held_turns_after_two_steps', (select count(*) from public.seat_deliberation_turn where deliberation_id = v_id and status = 'held_not_run'),
-         'handoff_status', (select status || ':' || coalesce(detail->>'awaiting', '') from public.agent_actions
+         'handoff_status', (select status || ':' || (detail ? 'awaiting') from public.agent_actions
                              where id = (select handoff_id from public.seat_deliberation where id = v_id)));
 
   -- SAME FAMILY is refused, recorded or held
   begin
     perform public.fn_seat_deliberation_record(v_id, 'blind', c_sol, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel));
     e := 'ACCEPTED';
-  exception when others then e := left(sqlerrm, 40); end;
+  exception when others then e := left(sqlerrm, 18); end;
   o := o || jsonb_build_object('same_family_recorded', e);
   begin
     insert into public.seat_deliberation_turn (deliberation_id, round, phase, seat, status, model)
     values (v_id, 1, 'compare', 'ceo', 'failed', c_sol);
     e := 'ACCEPTED';
-  exception when others then e := left(sqlerrm, 40); end;
+  exception when others then e := left(sqlerrm, 18); end;
   o := o || jsonb_build_object('same_family_failed_turn', e);
 
   -- BLIND: the proposal is not in the payload; the comparison cannot be built first
@@ -101,6 +107,36 @@ begin
     e := 'OPENED';
   exception when others then e := left(sqlerrm, 15); end;
   o := o || jsonb_build_object('proposal_in_evidence', e);
+  begin
+    perform public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO copied field', v_ev || jsonb_build_object('notes', jsonb_build_array('ok', jsonb_build_object('line', upper('zz demo spend aed 900 on search,   300 on social!')))), v_pr, c_sol, null, null, null, true);
+    e := 'OPENED';
+  exception when others then e := left(sqlerrm, 15); end;
+  o := o || jsonb_build_object('one_copied_field', e);
+  begin
+    perform public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO string-encoded', v_ev || jsonb_build_object('blob', v_pr::text), v_pr, c_sol, null, null, null, true);
+    e := 'OPENED';
+  exception when others then e := left(sqlerrm, 15); end;
+  o := o || jsonb_build_object('string_encoded_proposal', e);
+  begin
+    perform public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO should we: ZZ DEMO spend AED 900 on search, 300 on social?', v_ev, v_pr, c_sol, null, null, null, true);
+    e := 'OPENED';
+  exception when others then e := left(sqlerrm, 15); end;
+  o := o || jsonb_build_object('proposal_in_question', e);
+  begin
+    perform public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO wrapped', v_ev || jsonb_build_object('copied', 'ZZ DEMO spend AED 900 on search, 300 on social'), jsonb_build_object('doc', v_pr::text), c_sol, null, null, null, true);
+    e := 'OPENED';
+  exception when others then e := left(sqlerrm, 15); end;
+  o := o || jsonb_build_object('proposal_string_encoded_in_proposal', e);
+  begin
+    perform public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'Not a demo question', v_ev, v_pr, c_sol, null, null, null, true);
+    e := 'OPENED';
+  exception when others then e := left(sqlerrm, 21); end;
+  o := o || jsonb_build_object('author_unproven_demo_flag_only', e);
+  begin
+    perform public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO real?', v_ev, v_pr, c_sol, null, null, null, false);
+    e := 'OPENED';
+  exception when others then e := left(sqlerrm, 21); end;
+  o := o || jsonb_build_object('author_unproven_not_demo', e);
 
   -- STEELMAN: an approval without it is malformed
   begin
@@ -108,14 +144,35 @@ begin
     e := 'ACCEPTED';
   exception when others then e := left(sqlerrm, 16); end;
   o := o || jsonb_build_object('approval_without_steelman', e);
+  begin
+    perform public.fn_seat_deliberation_record(v_id, 'blind', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', to_jsonb('No counter-case, this plan is fine as it stands'::text)));
+    e := 'ACCEPTED';
+  exception when others then e := left(sqlerrm, 16); end;
+  o := o || jsonb_build_object('steelman_placeholder', e);
+  begin
+    perform public.fn_seat_deliberation_record(v_id, 'blind', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', to_jsonb('Forty leads is thin'::text)));
+    e := 'ACCEPTED';
+  exception when others then e := left(sqlerrm, 16); end;
+  o := o || jsonb_build_object('steelman_too_short', e);
+  begin
+    perform public.fn_seat_deliberation_record(v_id, 'blind', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', jsonb_build_array('The strongest case against: forty leads a month cannot show that search wins.')));
+    e := 'ACCEPTED';
+  exception when others then e := left(sqlerrm, 16); end;
+  o := o || jsonb_build_object('steelman_not_a_string', e);
   perform public.fn_seat_deliberation_record(v_id, 'blind', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel));
   begin
-    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel));
+    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', upper(v_steel),
+              'agreements', 'the split', 'disagreements', 'none'));
+    e := 'ACCEPTED';
+  exception when others then e := left(sqlerrm, 16); end;
+  o := o || jsonb_build_object('compare_repeats_blind_steelman', e);
+  begin
+    perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2));
     e := 'ACCEPTED';
   exception when others then e := left(sqlerrm, 16); end;
   o := o || jsonb_build_object('compare_without_agreements', e);
   perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve',
-            'steelman_against', v_steel, 'agreements', 'the split', 'disagreements', 'none'));
+            'steelman_against', v_steel2, 'agreements', 'the split', 'disagreements', 'none'));
   o := o || jsonb_build_object('reviewed', (select status from public.seat_deliberation where id = v_id),
                                'compare_provider', (select provider from public.seat_deliberation_turn where deliberation_id = v_id and phase = 'compare' and status = 'recorded'),
                                'close', public.fn_seat_deliberation_close(v_id, 'marketing', 'ZZ DEMO approved')->>'final_verdict');
@@ -125,24 +182,31 @@ begin
   for i in 1..12 loop
     v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO q' || i, v_ev, v_pr, c_sol, null, null, null, true);
     perform public.fn_seat_deliberation_record(v_id2, 'blind', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel));
-    perform public.fn_seat_deliberation_record(v_id2, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel, 'agreements', 'all', 'disagreements', 'none'));
+    perform public.fn_seat_deliberation_record(v_id2, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2, 'agreements', 'all', 'disagreements', 'none'));
     v_id2 := public.fn_seat_deliberation_open('sales_engineer.zz_demo_share', 'sales_engineer', 'ceo', 'ZZ DEMO s' || i, v_ev, v_pr, c_opus, null, null, null, true);
     perform public.fn_seat_deliberation_record(v_id2, 'blind', c_sol, jsonb_build_object('verdict', case when i % 2 = 0 then 'approve' else 'reject' end, 'steelman_against', v_steel));
-    perform public.fn_seat_deliberation_record(v_id2, 'compare', c_sol, jsonb_build_object('verdict', case when i % 2 = 0 then 'approve' else 'reject' end, 'steelman_against', v_steel, 'agreements', 'some', 'disagreements', 'some'));
+    perform public.fn_seat_deliberation_record(v_id2, 'compare', c_sol, jsonb_build_object('verdict', case when i % 2 = 0 then 'approve' else 'reject' end, 'steelman_against', v_steel2, 'agreements', 'some', 'disagreements', 'some'));
   end loop;
   v := public.fn_it_deliberation_independence_items(true);
   o := o || jsonb_build_object('monitor_items', (select jsonb_agg(x->>'item') from jsonb_array_elements(v) x),
-    'monitor_marketing', (select x->'evidence' from jsonb_array_elements(v) x where x->>'item' = 'rubber_stamp:ceo:marketing'));
+    'monitor_marketing', (select jsonb_build_object('reviews', x->'evidence'->'reviews', 'approvals', x->'evidence'->'approvals') from jsonb_array_elements(v) x where x->>'item' = 'rubber_stamp:ceo:marketing'));
 
   -- UNHEALTHY OTHER FAMILY: Opus's breaker tripped by a real failure class -> no fallback to Sol
   update public.llm_route_health set opened_class = 'provider_error' where model_id = c_opus;
   v := public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo');
-  o := o || jsonb_build_object('tripped_route', jsonb_build_object('use_llm', v->'use_llm', 'no_independent_reviewer', v->'no_independent_reviewer', 'model', v->'model'));
+  o := o || jsonb_build_object('tripped_route', concat_ws(':', v->>'use_llm', v->>'no_independent_reviewer', coalesce(v->>'model', 'none')));
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO tripped', v_ev, v_pr, c_sol, null, null, null, true);
   o := o || jsonb_build_object('tripped_status', (select status from public.seat_deliberation where id = v_id2),
     'tripped_turn', (select status || ':' || coalesce(model, 'no model') from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'),
     'escalated_finding', (select count(*) from public.it_engineer_finding where issue_key = 'duty:deliberation_independence_demo:no_independent_reviewer:ceo:marketing' and closed_at is null));
 
+  -- THE PAIR CEILING: marketing -> ceo has spent AED 60 of 50 this month (a rolled-back row)
+  update public.llm_route_health set opened_class = null where model_id = c_opus;
+  insert into public.ai_cost_log (fn, dept_key, agent_key, task_class, model_used, cost_aed, ok)
+  values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
+  v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO over budget', v_ev, v_pr, c_sol, null, null, null, true);
+  o := o || jsonb_build_object('over_ceiling_turn', (select status || ':' || left(why, 27) from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'),
+    'budget_ok', public.fn_seat_deliberation_budget('marketing', 'ceo')->'ok', 'budget_dept', public.fn_seat_deliberation_budget('marketing', 'ceo')->>'dept');
   o := o || jsonb_build_object('real_deliberations_untouched', (select count(*) from public.seat_deliberation where not demo) = n_before);
   raise exception 'CHK<<%>>', o::text;
 end $p$;`;
@@ -162,8 +226,8 @@ test('production, in one aborted transaction: independence, blind first, steelma
   assert.ok(out, 'the probe committed instead of rolling back');
   console.log(JSON.stringify(out, null, 1));
 
-  assert.equal(out.sol_author_reviewer, 'anthropic/claude-opus-5.5', 'an author on Sol is reviewed by Opus');
-  assert.equal(out.opus_author_reviewer, 'openai/gpt-5.6-sol', 'an author on Opus is reviewed by Sol');
+  assert.equal(out.sol_rev, 'anthropic/claude-opus-5.5', 'an author on Sol is reviewed by Opus');
+  assert.equal(out.opus_rev, 'openai/gpt-5.6-sol', 'an author on Opus is reviewed by Sol');
   assert.equal(out.sol_author_fallback, 'null', 'no fallback may lie in the author\'s family');
 
   assert.equal(out.held_turn.status, 'held_not_run', 'under the hold the blind step records held, not run');
@@ -171,7 +235,7 @@ test('production, in one aborted transaction: independence, blind first, steelma
   assert.match(out.held_turn.why, /^held, not run: /);
   assert.equal(out.step_again, 'held');
   assert.equal(out.held_turns_after_two_steps, 1, 'held is recorded once, not every tick');
-  assert.match(out.handoff_status, /^pending:/, 'the review travels as a handoff awaiting its reply');
+  assert.equal(out.handoff_status, 'pending:true', 'the review travels as a handoff awaiting its reply');
 
   assert.match(out.same_family_recorded, /^SAME_FAMILY_REVIEW/);
   assert.match(out.same_family_failed_turn, /^SAME_FAMILY_REVIEW/);
@@ -182,6 +246,15 @@ test('production, in one aborted transaction: independence, blind first, steelma
   assert.equal(out.blind_has_supply_gap, 'array');
   assert.equal(out.compare_before_blind, 'BLIND_FIRST');
   assert.equal(out.proposal_in_evidence, 'BLIND_PASS_LEAK');
+  for (const k of ['one_copied_field', 'string_encoded_proposal', 'proposal_in_question', 'proposal_string_encoded_in_proposal'])
+    assert.equal(out[k], 'BLIND_PASS_LEAK', k);
+  assert.equal(out.author_unproven_demo_flag_only, 'AUTHOR_MODEL_UNPROVEN');
+  assert.equal(out.author_unproven_not_demo, 'AUTHOR_MODEL_UNPROVEN');
+  for (const k of ['steelman_placeholder', 'steelman_too_short', 'steelman_not_a_string', 'compare_repeats_blind_steelman'])
+    assert.equal(out[k], 'MALFORMED_REVIEW', k);
+  assert.equal(out.over_ceiling_turn, 'held_not_run:held, not run: pair_ceiling');
+  assert.equal(out.budget_ok, false);
+  assert.equal(out.budget_dept, 'marketing');
 
   assert.equal(out.approval_without_steelman, 'MALFORMED_REVIEW');
   assert.equal(out.compare_without_agreements, 'MALFORMED_REVIEW');
@@ -195,7 +268,7 @@ test('production, in one aborted transaction: independence, blind first, steelma
   assert.equal(out.monitor_marketing.reviews, 13);
   assert.equal(out.monitor_marketing.approvals, 13);
 
-  assert.deepEqual(out.tripped_route, { use_llm: false, no_independent_reviewer: true, model: null });
+  assert.equal(out.tripped_route, 'false:true:none');
   assert.equal(out.tripped_status, 'no_independent_reviewer');
   assert.equal(out.tripped_turn, 'no_independent_reviewer:no model');
   assert.equal(out.escalated_finding, 1, 'no independent reviewer is escalated as a finding');

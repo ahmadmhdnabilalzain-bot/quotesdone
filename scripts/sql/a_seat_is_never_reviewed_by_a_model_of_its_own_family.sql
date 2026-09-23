@@ -40,9 +40,14 @@
 --    refuses to build until a RECORDED blind turn exists, and the guard refuses a compare turn with no
 --    recorded blind turn before it.
 --
--- 3. STEELMAN AGAINST, IN THE GUARD.  Every recorded review turn needs steelman_against (>= 20
---    non-blank characters). An approval without it raises MALFORMED_REVIEW. A compare turn also needs
---    explicit agreements and disagreements.
+-- 3. STEELMAN AGAINST, IN THE GUARD.  Every recorded review turn needs steelman_against as a JSON string
+--    of at least six words that is not a placeholder ('none', 'n/a', 'no counter-case' ...); the compare
+--    turn's must differ from the blind turn's. An approval without one raises MALFORMED_REVIEW. A compare
+--    turn also needs explicit agreements and disagreements.
+--    The blind leak test walks every proposal string of >= 24 normalised characters (and strings that are
+--    themselves JSON) and refuses the deliberation if one appears in the question or the evidence.
+--    The author's model is not taken on trust: ai_cost_log must show that seat calling that model in the
+--    last 24 hours (only a ZZ DEMO deliberation is exempt). Provider names compare as lower(btrim()).
 --
 -- 4. INDEPENDENT INFORMATION, ASSEMBLED BY THE REVIEW STEP.  fn_seat_deliberation_independent_context
 --    reads ceo_plan_month (this month and next), fn_ceo_plan_funnel with the drop-off ratios, and the
@@ -71,8 +76,10 @@
 --   fn_seat_deliberation_record(id, phase, model_used, output [, prompt_tokens, output_tokens, status, why])
 --   fn_seat_deliberation_revise(id, proposal, author_model)   -- only after a 'revise', bounded by max_rounds
 --   fn_seat_deliberation_close(id, closed_by, outcome)         -- the author seat only
---   A NEW PAIR IS ONE ROW: insert ('deliberation.review', <author>, <reviewer>) into seat_handoff_kind
---   in the file of the build that starts the conversation. open() refuses an unregistered pair.
+--   A NEW PAIR IS TWO ROWS, added by the build that calls open() for it: ('deliberation.review', <author>,
+--   <reviewer>) in seat_handoff_kind and its monthly cap in seat_deliberation_ceiling. open() refuses an
+--   unregistered pair; the step holds a pair with no ceiling. Registered here: marketing -> ceo only (its
+--   caller is the marketing monthly plan debate, #876), AED 50/month charged to marketing.
 --
 -- ─── COST PER REVIEW, catalogue prices (opus-5.5 USD 4/20, sol 2/10 per Mtok) ───────────────────
 --   Estimate: blind ~6,000 in / ~900 out; compare ~8,000 in / ~1,100 out (caps 1,500 and 1,800).
@@ -144,7 +151,7 @@ declare
   v_pick text; v_pick_fam text; v_fb text;
   c record;
 begin
-  select r.provider into v_fam from public.model_registry r where r.model_id = p_counterpart_model;
+  select lower(btrim(r.provider)) into v_fam from public.model_registry r where r.model_id = p_counterpart_model;
   if v_fam is null then
     return jsonb_build_object('use_llm', false, 'no_independent_reviewer', true, 'task_class', p_task_class,
       'author_model', p_counterpart_model,
@@ -158,7 +165,7 @@ begin
   end if;
 
   for c in
-    select p.model_id, r.provider, coalesce(r.active and r.approved, false) reg_ok,
+    select p.model_id, lower(btrim(r.provider)) provider, coalesce(r.active and r.approved, false) reg_ok,
            h.model_id is not null measured,
            coalesce(h.open_until > now() and h.opened_class is not null, false) tripped
       from public.review_pool p
@@ -271,7 +278,7 @@ create or replace function public.trg_seat_deliberation_guard()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 begin
   if tg_op = 'INSERT' or new.author_model is distinct from old.author_model then
-    select r.provider into new.author_provider from public.model_registry r where r.model_id = new.author_model;
+    select lower(btrim(r.provider)) into new.author_provider from public.model_registry r where r.model_id = new.author_model;
     if new.author_provider is null then
       raise exception 'seat_deliberation: author model % is not in model_registry; its family cannot be known', new.author_model;
     end if;
@@ -289,13 +296,44 @@ drop trigger if exists trg_seat_deliberation_guard on public.seat_deliberation;
 create trigger trg_seat_deliberation_guard before insert or update on public.seat_deliberation
   for each row execute function public.trg_seat_deliberation_guard();
 
+-- Text reduced to comparable words: lower case, every run of punctuation, quotes, escapes or space one space.
+-- JSON-escaped and plain copies of the same sentence normalise to the same words.
+create or replace function public.fn_seat_deliberation_norm(p text)
+returns text language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select btrim(regexp_replace(lower(coalesce(p, '')), '[^a-z0-9؀-ۿ]+', ' ', 'g'))
+$fn$;
+revoke execute on function public.fn_seat_deliberation_norm(text) from public, anon, authenticated;
+
+-- THE BLIND LEAK TEST. Every string in the proposal (and inside any string that is itself JSON) of at least
+-- 24 normalised characters is looked for in the normalised haystack. Returns the first fragment found, or null.
+-- ponytail: 24 characters is the floor; a proposal made only of short strings is not protected below it.
+create or replace function public.fn_seat_deliberation_proposal_leak(p_proposal jsonb, p_haystack text)
+returns text language plpgsql immutable set search_path to 'public', 'pg_temp' as $fn$
+declare v_hay text := ' ' || public.fn_seat_deliberation_norm(p_haystack) || ' '; s text; n text; j jsonb; v text;
+begin
+  for s in select x #>> '{}' from jsonb_path_query(coalesce(p_proposal, 'null'::jsonb), 'strict $.**') x
+            where jsonb_typeof(x) = 'string' loop
+    n := public.fn_seat_deliberation_norm(s);
+    if length(n) >= 24 and strpos(v_hay, ' ' || n || ' ') > 0 then return left(n, 80); end if;
+    if btrim(s) ~ '^[\[{"]' then
+      begin j := s::jsonb; exception when others then j := null; end;
+      if j is not null then
+        v := public.fn_seat_deliberation_proposal_leak(j, p_haystack);
+        if v is not null then return v; end if;
+      end if;
+    end if;
+  end loop;
+  return null;
+end $fn$;
+revoke execute on function public.fn_seat_deliberation_proposal_leak(jsonb, text) from public, anon, authenticated;
+
 -- THE GUARD. Append-only; provider from the registry; a review turn is never the author's family;
 -- blind before compare; every recorded review states the strongest case against.
 create or replace function public.trg_seat_deliberation_turn_guard()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   d public.seat_deliberation;
-  v_prov text; v_auth_prov text; v_auth_model text;
+  v_prov text; v_auth_prov text; v_auth_model text; v_steel text;
 begin
   if tg_op = 'UPDATE' then
     raise exception 'seat_deliberation_turn % is append-only: record a new turn instead', old.id;
@@ -303,11 +341,11 @@ begin
   select * into d from public.seat_deliberation where id = new.deliberation_id;
 
   if new.model is not null then
-    select r.provider into v_prov from public.model_registry r where r.model_id = new.model;
+    select lower(btrim(r.provider)) into v_prov from public.model_registry r where r.model_id = new.model;
     if v_prov is null then
       raise exception 'seat_deliberation_turn: model % is not in model_registry', new.model;
     end if;
-    if new.provider is not null and new.provider <> v_prov then
+    if new.provider is not null and lower(btrim(new.provider)) <> v_prov then
       raise exception 'seat_deliberation_turn: provider % does not match model_registry (% is %)', new.provider, new.model, v_prov;
     end if;
     new.provider := v_prov;
@@ -328,7 +366,7 @@ begin
      where t.deliberation_id = new.deliberation_id and t.phase = 'proposal' and t.status = 'recorded' and t.round <= new.round
      order by t.round desc, t.id desc limit 1;
   end if;
-  select t.provider, t.model into v_auth_prov, v_auth_model from public.seat_deliberation_turn t
+  select lower(btrim(t.provider)), t.model into v_auth_prov, v_auth_model from public.seat_deliberation_turn t
    where t.id = new.reviews_turn_id and t.deliberation_id = new.deliberation_id and t.phase = 'proposal';
   if v_auth_prov is null then
     raise exception 'seat_deliberation_turn: a % turn must review a recorded proposal of the same deliberation', new.phase;
@@ -344,11 +382,21 @@ begin
     if new.model is null or new.verdict is null then
       raise exception 'MALFORMED_REVIEW: a recorded % turn names its model and its verdict', new.phase;
     end if;
-    if length(regexp_replace(coalesce(new.steelman_against, ''), '\s', '', 'g')) < 20 then
+    -- A steelman is a sentence of at least six words that is not a placeholder, and the comparison's is not
+    -- the blind pass's copied forward. fn_seat_deliberation_record passes a steelman only when it is a JSON string.
+    v_steel := public.fn_seat_deliberation_norm(new.steelman_against);
+    if coalesce(array_length(regexp_split_to_array(nullif(v_steel, ''), ' '), 1), 0) < 6
+       or v_steel ~ '^(none|n a|na|nil|nothing|tbd|not applicable|no (real |strong |serious |obvious )?(counter ?case|case against|counter ?argument|objection|concern|argument|risk|downside)s?|there (is|are) (nothing|no (counter ?case|case|objection|argument|risk|downside)s?))( |$)' then
       raise exception using errcode = 'check_violation',
         message = case when new.verdict = 'approve'
                        then 'MALFORMED_REVIEW: an approval without the strongest case against the proposal is malformed and is rejected'
-                       else 'MALFORMED_REVIEW: every review turn states the strongest case against the proposal' end;
+                       else 'MALFORMED_REVIEW: every review turn states the strongest case against the proposal' end
+                  || ' (at least six words, not a placeholder)';
+    end if;
+    if new.phase = 'compare' and exists (select 1 from public.seat_deliberation_turn b where b.deliberation_id = new.deliberation_id
+          and b.phase = 'blind' and b.status = 'recorded' and public.fn_seat_deliberation_norm(b.steelman_against) = v_steel) then
+      raise exception using errcode = 'check_violation',
+        message = 'MALFORMED_REVIEW: the comparison''s steelman repeats the blind one; argue against the proposal now revealed';
     end if;
     if new.phase = 'compare' then
       if not exists (select 1 from public.seat_deliberation_turn b where b.deliberation_id = new.deliberation_id
@@ -420,8 +468,8 @@ begin
       || 'Give the strongest case AGAINST your own verdict in steelman_against, even if you approve. Agree only if it is right.',
     'output_contract', jsonb_build_object('verdict', 'approve|reject|revise', 'recommendation', 'text',
       'reasoning', 'text', 'steelman_against', 'text, at least one full sentence'));
-  if strpos(v::text, d.proposal::text) > 0 then
-    raise exception 'BLIND_PASS_LEAK: the blind payload for deliberation % carries the proposal (was it pasted into the evidence?)', p_id;
+  if v ? 'proposal' or public.fn_seat_deliberation_proposal_leak(d.proposal, v::text) is not null then
+    raise exception 'BLIND_PASS_LEAK: the blind payload for deliberation % carries the proposal (was it pasted into the question or the evidence?)', p_id;
   end if;
   return v;
 end $fn$;
@@ -460,15 +508,25 @@ create or replace function public.fn_seat_deliberation_open(p_kind text, p_autho
   p_question text, p_evidence jsonb, p_proposal jsonb, p_author_model text, p_author_task_class text default null,
   p_subject_table text default null, p_subject_id text default null, p_demo boolean default false)
 returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v_id bigint; v_h bigint;
+declare v_id bigint; v_h bigint; v_leak text;
 begin
   if not exists (select 1 from public.seat_handoff_kind k
                   where k.type = 'deliberation.review' and k.from_seat = p_author_seat and k.to_seat = p_reviewer_seat) then
     raise exception 'no deliberation.review conversation from % to % in seat_handoff_kind: register the pair in the file of the build that starts it',
       p_author_seat, p_reviewer_seat;
   end if;
-  if strpos(coalesce(p_evidence, '{}'::jsonb)::text, coalesce(p_proposal, '{}'::jsonb)::text) > 0 then
-    raise exception 'BLIND_PASS_LEAK: the evidence carries the proposal; the reviewer would not be blind';
+  v_leak := public.fn_seat_deliberation_proposal_leak(p_proposal, coalesce(p_question, '') || ' ' || coalesce(p_evidence, '{}'::jsonb)::text);
+  if v_leak is not null then
+    raise exception 'BLIND_PASS_LEAK: the question or the evidence carries the proposal ("%"); the reviewer would not be blind', v_leak;
+  end if;
+  -- THE AUTHOR'S MODEL IS A MEASUREMENT, NOT A CLAIM: ai_gateway logged a call by this seat on this model in the
+  -- last 24 hours, or the family the reviewer must avoid is unproven. Only a ZZ DEMO deliberation is exempt.
+  if not (coalesce(p_demo, false) and p_question like 'ZZ DEMO%')
+     and not exists (select 1 from public.ai_cost_log l
+                      where l.model_used = p_author_model and l.ok and l.occurred_at > now() - interval '24 hours'
+                        and (l.agent_key = p_author_seat or l.seat = p_author_seat)) then
+    raise exception 'AUTHOR_MODEL_UNPROVEN: ai_cost_log has no call by % on % in the last 24 hours; the author''s model is not taken on trust',
+      p_author_seat, p_author_model;
   end if;
   insert into public.seat_deliberation (kind, author_seat, reviewer_seat, question, evidence, proposal, author_model,
                                         author_provider, subject_table, subject_id, demo)
@@ -486,20 +544,48 @@ begin
 end $fn$;
 revoke execute on function public.fn_seat_deliberation_open(text, text, text, text, jsonb, jsonb, text, text, text, text, boolean) from public, anon, authenticated;
 
--- The department whose ceiling a review spends against: the REVIEWING seat's.
-create or replace function public.fn_seat_deliberation_dept(p_seat text)
-returns text language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  select case p_seat when 'ceo' then 'exec' when 'marketing' then 'marketing' when 'sales_engineer' then 'marketplace'
-                     when 'accountant' then 'finance' when 'it_engineer' then 'it'
-                     when 'customer_support' then 'customer_experience' end
+-- WHAT A PAIR MAY SPEND ON ITS REVIEWS, and the department that pays. One row per registered pair; a pair with no
+-- row is held (fail closed). marketing -> ceo: AED 50 a month charged to marketing, the founder's approval of
+-- 23 Sep 2026 (opus-5.5 for the CEO's review of marketing, the same cap #876's fn_marketing_class_ceiling holds
+-- for its own ceo_marketing_review class). Spend is what ai_gateway logged through fn_llm_log into ai_cost_log.
+create table if not exists public.seat_deliberation_ceiling (
+  author_seat   text not null,
+  reviewer_seat text not null,
+  dept_key      text not null,
+  cap_aed_month numeric not null check (cap_aed_month >= 0),
+  note          text not null check (btrim(note) <> ''),
+  primary key (author_seat, reviewer_seat)
+);
+alter table public.seat_deliberation_ceiling enable row level security;
+drop policy if exists seat_deliberation_ceiling_service_role_only on public.seat_deliberation_ceiling;
+create policy seat_deliberation_ceiling_service_role_only on public.seat_deliberation_ceiling as permissive for all to public using (false) with check (false);
+revoke all on public.seat_deliberation_ceiling from anon, authenticated;
+insert into public.seat_deliberation_ceiling (author_seat, reviewer_seat, dept_key, cap_aed_month, note) values
+  ('marketing', 'ceo', 'marketing', 50,
+   'Founder approval 23 Sep 2026: the CEO reviews marketing on opus-5.5, up to AED 50 a month, charged to marketing.')
+on conflict (author_seat, reviewer_seat) do nothing;
+
+create or replace function public.fn_seat_deliberation_budget(p_author_seat text, p_reviewer_seat text, p_at timestamptz default now())
+returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select case when c.author_seat is null
+    then jsonb_build_object('ok', false, 'dept', null, 'why', 'no seat_deliberation_ceiling row for ' || p_author_seat || ' -> ' || p_reviewer_seat)
+    else jsonb_build_object('ok', s.spent < c.cap_aed_month, 'dept', c.dept_key, 'cap_aed', c.cap_aed_month, 'spent_aed', s.spent,
+                            'why', 'reviews ' || p_author_seat || ' -> ' || p_reviewer_seat || ' spent AED ' || s.spent || ' of '
+                                   || c.cap_aed_month || ' this month (' || c.dept_key || ')') end
+    from (select 1) one
+    left join public.seat_deliberation_ceiling c on c.author_seat = p_author_seat and c.reviewer_seat = p_reviewer_seat
+    left join lateral (select coalesce(sum(l.cost_aed), 0) spent from public.ai_cost_log l
+                        where l.task_class in ('seat_deliberation_blind', 'seat_deliberation_compare')
+                          and l.dept_key = c.dept_key and l.agent_key = p_reviewer_seat
+                          and l.occurred_at >= date_trunc('month', p_at)) s on true
 $fn$;
-revoke execute on function public.fn_seat_deliberation_dept(text) from public, anon, authenticated;
+revoke execute on function public.fn_seat_deliberation_budget(text, text, timestamptz) from public, anon, authenticated;
 
 create or replace function public.fn_seat_deliberation_step(p_id bigint)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   d public.seat_deliberation; a public.seat_deliberation_turn;
-  v_phase text; v_class text; v_route jsonb; v_gate jsonb; v_payload jsonb; v_sha text;
+  v_phase text; v_class text; v_route jsonb; v_gate jsonb; v_payload jsonb; v_sha text; v_budget jsonb;
 begin
   select * into d from public.seat_deliberation where id = p_id for update;
   if not found then raise exception 'no seat_deliberation %', p_id; end if;
@@ -519,7 +605,15 @@ begin
    where t.deliberation_id = p_id and t.phase = 'proposal' and t.status = 'recorded' and t.round <= d.round
    order by t.round desc, t.id desc limit 1;
 
-  v_route := public.fn_ai_route_review(v_class, a.model, d.reviewer_seat, 'seat_deliberation', public.fn_seat_deliberation_dept(d.reviewer_seat));
+  -- THE PAIR'S CEILING comes first: a spent ceiling is held exactly like the founder's hold, before any routing.
+  v_budget := public.fn_seat_deliberation_budget(d.author_seat, d.reviewer_seat);
+  if not coalesce((v_budget->>'ok')::boolean, false) then
+    insert into public.seat_deliberation_turn (deliberation_id, round, phase, seat, status, task_class, reviews_turn_id, why)
+    values (p_id, d.round, v_phase, d.reviewer_seat, 'held_not_run', v_class, a.id, 'held, not run: pair_ceiling - ' || (v_budget->>'why'))
+    on conflict (deliberation_id, round, phase) where status in ('held_not_run', 'no_independent_reviewer') do nothing;
+    return jsonb_build_object('action', 'held', 'phase', v_phase, 'why', v_budget->>'why');
+  end if;
+  v_route := public.fn_ai_route_review(v_class, a.model, d.reviewer_seat, 'seat_deliberation', v_budget->>'dept');
 
   if coalesce((v_route->>'no_independent_reviewer')::boolean, false) then
     insert into public.seat_deliberation_turn (deliberation_id, round, phase, seat, status, task_class, reviews_turn_id, why)
@@ -554,7 +648,7 @@ begin
   return jsonb_build_object('action', 'call_model', 'deliberation_id', p_id, 'phase', v_phase, 'round', d.round,
     'task_class', v_class, 'model', v_route->>'model', 'fallback', v_route->>'fallback',
     'counterpart_model', a.model, 'max_tokens', (v_route->>'max_tokens')::int,
-    'reviewer_seat', d.reviewer_seat, 'dept', public.fn_seat_deliberation_dept(d.reviewer_seat),
+    'reviewer_seat', d.reviewer_seat, 'dept', v_budget->>'dept', 'budget', v_budget,
     'payload', v_payload, 'payload_sha256', v_sha,
     'system', 'You are the ' || d.reviewer_seat || ' seat of Quotes Done reviewing work from the ' || d.author_seat
               || ' seat. Reply with ONE JSON object matching output_contract and nothing else.');
@@ -581,7 +675,7 @@ begin
     steelman_against, agreements, disagreements, output, why, prompt_tokens, output_tokens, payload_sha256)
   values (p_id, d.round, p_phase, d.reviewer_seat, p_status, 'seat_deliberation_' || p_phase, p_model,
           case when p_status = 'recorded' then lower(o->>'verdict') end,
-          o->>'steelman_against', o->>'agreements', o->>'disagreements', o, p_why, p_prompt_tokens, p_output_tokens,
+          case when jsonb_typeof(o->'steelman_against') = 'string' then o->>'steelman_against' end, o->>'agreements', o->>'disagreements', o, p_why, p_prompt_tokens, p_output_tokens,
           o->>'_payload_sha256')
   returning id into v_id;
 
@@ -680,12 +774,6 @@ revoke execute on function public.fn_seat_deliberation_acts_on_handoff(bigint) f
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
   ('deliberation.review', 'marketing', 'ceo',
    'Marketing asks the CEO to judge a proposal. The CEO reviews on a model of another family, blind first, with the strongest case against (founder_instruction 873).',
-   'fn_seat_deliberation_acts_on_handoff', interval '2 days', true, 'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql'),
-  ('deliberation.review', 'ceo', 'marketing',
-   'The CEO asks marketing for its opinion on a proposal. Marketing reviews on a model of another family, blind first (founder_instruction 873).',
-   'fn_seat_deliberation_acts_on_handoff', interval '2 days', true, 'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql'),
-  ('deliberation.review', 'sales_engineer', 'ceo',
-   'The sales engineer shares something with the CEO for its opinion. The CEO reviews on a model of another family, blind first (founder_instruction 873).',
    'fn_seat_deliberation_acts_on_handoff', interval '2 days', true, 'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql')
 on conflict (type, from_seat, to_seat) do nothing;
 

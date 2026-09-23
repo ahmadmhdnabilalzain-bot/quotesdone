@@ -132,8 +132,10 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"))
       // the CEO's daily plan addresses each directive to the seat the plan names
       || (type === 'ceo.directive' && allSql.includes("fn_seat_handoff('ceo', dr->>'seat', 'ceo.directive'"))
-      // any registered pair of seats opens a review through the one generic opener (founder_instruction 873)
-      || (type === 'deliberation.review' && allSql.includes("fn_seat_handoff(p_author_seat, p_reviewer_seat, 'deliberation.review'"));
+      // a review is started only by a real call site for THIS pair (founder_instruction 873): the generic opener
+      // proves nothing about which pairs anything opens
+      || (type === 'deliberation.review' && (new RegExp(`fn_seat_deliberation_open\\(\\s*'[a-z_.]+',\\s*'${from}',\\s*'${to}'`).test(allSql)
+          || new RegExp(`p_author_seat: '${from}',\\s*p_reviewer_seat: '${to}'`).test(ts)));
     if (!produced) missing.push(`${k}: nothing starts it`);
   }
   assert.deepEqual(missing, []);
