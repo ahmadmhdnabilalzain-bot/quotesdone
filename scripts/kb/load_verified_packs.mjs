@@ -27,7 +27,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readPacks, listPackFiles, validate, rowsOf, upsertSql, makeEmbedder, TABLES, lit } from './verified_packs.mjs';
+import { readPacks, listPackFiles, validate, rowsOf, upsertSql, makeEmbedder, TABLES, lit, vecLit } from './verified_packs.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const KNOWLEDGE = join(REPO, 'knowledge');
@@ -77,6 +77,11 @@ console.log(`embedded ${rows.length} rows (gte-small, free path)`);
 
 for (const [table, rs] of Object.entries(byTable)) {
   for (let i = 0; i < rs.length; i += 20) await sql(upsertSql(table, rs.slice(i, i + 20)));
+  // A text change past gte-small's cut embeds to the SAME vector, and the table's text-change trigger then clears
+  // it (it cannot tell a fresh vector from a stale one that equals it). Measured 24 Sep 2026: 5 support and 2 ceo
+  // rows. Their text is unchanged now, so writing the vector alone is not undone.
+  const bare = new Set((await sql(`select record_id from public.${table} where tags @> array['verified_pack'] and embedding_gte is null`)).map((r) => r.record_id));
+  for (const r of rs.filter((x) => bare.has(x.record_id))) await sql(`update public.${table} set embedding_gte = ${vecLit(r.vec)} where record_id = ${lit(r.record_id)}`);
   // Retire: a verified_pack row this load does not carry. The id list is this table's complete load.
   const gone = await sql(`delete from public.${table} where tags @> array['verified_pack']
       and not (record_id = any(${rs.length ? lit(rs.map((r) => r.record_id)) : `'{}'::text[]`})) returning record_id`);

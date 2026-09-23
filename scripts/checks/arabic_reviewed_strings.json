@@ -559,6 +559,39 @@
   "5f5a880180ca",
   "d04d2f838a0b"
  ],
+ "scripts/sql/customer_support_activates_wins_back_and_settles_disputes.sql": [
+  "014c460148eb",
+  "1efd2d7480a2",
+  "23fae6511568",
+  "2a4de98c1ad0",
+  "2ac2662f4c5c",
+  "2ad58b27f38e",
+  "32d0cb3b0210",
+  "3c9f12e8915e",
+  "3ddf60fc9092",
+  "4040a8441b66",
+  "4481ff8ee53f",
+  "471d753038c2",
+  "49ca63ca0b32",
+  "4d5c33c90293",
+  "4db3d154084e",
+  "7190605bd113",
+  "72634def957c",
+  "75e7824fc97c",
+  "81ad616fa3ea",
+  "846b9fbac6fa",
+  "859798d5f8bb",
+  "8d6c6a64823e",
+  "a237e9974f66",
+  "a5b89465e490",
+  "aea29b61e99a",
+  "c1a8fd1860ac",
+  "c34268e033b4",
+  "cb76a6eb29d7",
+  "cc3d6ea42eb6",
+  "ce481b265d88",
+  "d84aaba829c6"
+ ],
  "scripts/sql/every_arabic_message_is_written_not_translated.sql": [
   "031d0af3af9c",
   "03ca1e1afe2a",
@@ -770,6 +803,15 @@
  "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql": [
   "82d439166a51",
   "a1899880347c"
+ ],
+ "scripts/sql/marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql": [
+  "0e3944a15f96",
+  "25831966a970",
+  "3fbfc9c44cae",
+  "50d6d400e862",
+  "71425d07f632",
+  "a88f17897251",
+  "d5286ce9f7f2"
  ],
  "scripts/sql/one_job_number_on_every_portal_document_and_notice.sql": [
   "2e6cf0d056d2"
@@ -1972,6 +2014,13 @@
  "scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql": [
   "67e0d864b486"
  ],
+ "scripts/sql/the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql": [
+  "70b5a40fe07a",
+  "859798d5f8bb",
+  "9a13507c3538",
+  "d230862d2dc2",
+  "fc89cb827cc1"
+ ],
  "scripts/sql/the_supplier_invitation_goes_once_in_the_suppliers_language_and_never_to_a_demo_or_sanctioned_lead.sql": [
   "361ce5b53fac",
   "3fbfc9c44cae",
@@ -3004,6 +3053,7 @@
   "fcfd8b64593b"
  ],
  "src/components/portal/supplier/InquiriesTab.tsx": [
+  "03f7c97f2ad9",
   "090f162950d4",
   "1e74622e4080",
   "280b6f85d748",
@@ -3074,6 +3124,7 @@
   "429839599eca",
   "5559a277be19",
   "6bd4c0a57cc5",
+  "8702824e1c05",
   "d1b3a7b9b241"
  ],
  "src/components/portal/supplier/QuoteReviewChat.tsx": [
@@ -3083,6 +3134,7 @@
   "4bd37d926d3c",
   "4e6c5e101e79",
   "52f59a016649",
+  "919a4a166942",
   "aa07c2a5992a",
   "b0b241145a94",
   "bd5811efe30f",
@@ -4043,6 +4095,13 @@
   "cb243ce6af1c",
   "f630de54fc80"
  ],
+ "supabase/functions/_shared/boq_validate.ts": [
+  "0bb60d54624c",
+  "1dead10f2c91",
+  "5e07271551c3",
+  "80525653a9e7",
+  "ce534deaa8f7"
+ ],
  "supabase/functions/_shared/chat_answers.ts": [
   "0a3a4456e635",
   "0c1a9b16f2e5",
@@ -4099,6 +4158,9 @@
  "supabase/functions/_shared/document_expiry.ts": [
   "a26139843907",
   "cbb176539761"
+ ],
+ "supabase/functions/_shared/drawing_identity_gate.ts": [
+  "a53833277648"
  ],
  "supabase/functions/_shared/intake_requirements.ts": [
   "0514da7036af",
@@ -4289,6 +4351,10 @@
  ],
  "supabase/functions/_shared/marketing_style.ts": [
   "8a268a74f2b2"
+ ],
+ "supabase/functions/_shared/money.ts": [
+  "10fe3cadd4fc",
+  "a550b43bb2f6"
  ],
  "supabase/functions/_shared/parse_ceiling.ts": [
   "0a8d930d2506",

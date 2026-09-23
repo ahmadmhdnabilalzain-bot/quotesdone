@@ -82,10 +82,12 @@ export const qr = {
 };
 export type PdfResult = { ok: true; url: string; ref: string; lang: Lang; cached?: boolean } | Failure;
 /** Open a document the server signed. Only https URLs are opened; anything else is treated as a failure. */
-export async function openPdf(fetchIt: () => Promise<unknown>): Promise<boolean> {
+// 'held': the Arabic version is still being written (supplier_api answers 202 code arabic_held). That is
+// not a failure, and "could not be prepared, try again" told the supplier the opposite (e2e, 23 Sep 2026).
+export async function openPdf(fetchIt: () => Promise<unknown>): Promise<boolean | 'held'> {
   const j = (await fetchIt().catch(() => null)) as PdfResult | null;
   const u = j && (j as { url?: unknown }).url; const url = typeof u === 'string' && /^https:\/\//i.test(u) ? u : null;
-  if (!url) return false;
+  if (!url) return (j as { code?: unknown } | null)?.code === 'arabic_held' ? 'held' : false;
   window.open(url, '_blank', 'noopener');
   return true;
 }

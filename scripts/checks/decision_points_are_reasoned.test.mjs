@@ -75,9 +75,12 @@ test('no migrated decision point is decided by a word list again, and each one a
   }
   // the engine every migrated point goes through
   const th = read('supabase/functions/_shared/think.ts');
-  for (const s of ["deps.rpc('fn_reason_retrieve'", "deps.rpc('fn_case_recall'", "deps.rpc('fn_reason_hold'", "deps.rpc('fn_reason_propose_knowledge'", 'counterpartModel: model', 'refuse(draft']) {
+  for (const s of ["deps.rpc(rt.retrieve, ", "gte: { retrieve: 'fn_reason_retrieve', recall: 'fn_case_recall'", "ml: { retrieve: 'fn_reason_retrieve_ml', recall: 'fn_case_recall_ml'", "deps.rpc('fn_reason_hold'", "deps.rpc('fn_reason_propose_knowledge'", 'counterpartModel: model', 'refuse(draft']) {
     assert.ok(th.includes(s), `think.ts lost ${s}`);
   }
+  // Case memory: think() recalls through the one shared recall (#910), which calls fn_case_recall itself.
+  assert.ok(th.includes('await recallCases(deps, '), 'think.ts lost its case recall (recallCases)');
+  assert.ok(read('supabase/functions/_shared/case_recall.ts').includes("admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {"), 'case_recall.ts lost fn_case_recall');
   assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, 3, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\)\)\)/);
 });
 

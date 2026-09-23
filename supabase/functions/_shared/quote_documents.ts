@@ -32,6 +32,7 @@ import { arUnit as glossaryUnit, arCount as glossaryCount, arAttr, CATEGORY_AR, 
 import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.ts';
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
+import { aed, aedRange, figure } from './money.ts';
 import { assessQuote, requirementsOf, type Line as SpecLine, type TermsSpec } from './line_specs/assess.ts';
 export type Lang = 'en' | 'ar';
 /** The version printed in each document's control line AND carried in its file name. Bump when the
@@ -256,11 +257,8 @@ function kit(lang: Lang, names: string[] = [], arTexts: ArTexts = {}) {
   // primary text or in the "original wording" line under it.
   const clean = (v: unknown) => maskContacts(stripVat(v), names, 'en');
   const T = (en: string, arx: string) => (ar ? arx : en);
-  const money = (v: unknown, dec = false) => {
-    if (v == null || v === '' || !(Number(v) > 0)) return '—';
-    const n = Number(v).toLocaleString('en-AE', { minimumFractionDigits: dec ? 2 : 0, maximumFractionDigits: dec ? 2 : 0 });
-    return ar ? `${n} درهم` : `AED ${n}`;
-  };
+  // One formatter for both languages (money.ts): the Arabic page differs only in the unit's word.
+  const money = (v: unknown, dec = false) => aed(v, lang, dec);
   // Supplier or customer free text in the page's language. On an Arabic page it is the reasoned Arabic handed
   // in as arTexts; a line without it is recorded in `untranslated` and the document is held, never printed.
   const loc = (v: unknown, max = 400): { text: string; sub?: string } => {
@@ -361,8 +359,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
       if (specCol) r.push(specText(k, it));
       r.push(String(it.qty ?? ''), (ar ? (arUnit(it.unit) ?? k.loc(it.unit).text) : String(it.unit || '')) || '—');
       // The currency sits in the column head, so each cell is the figure alone and stays on one line.
-      const num = (x: unknown) => Number(x) > 0 ? Number(x).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
-      if (priced) r.push(num(it.unit_price), num(it.amount));
+      if (priced) r.push(figure(it.unit_price, true), figure(it.amount, true));
       return r;
     });
     blocks.push({ t: 'table', head, rows, widths: W, align, zebra: true });
@@ -701,7 +698,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
   if (a.disclaimer) { blocks.push({ t: 'space', h: 4 }); blocks.push({ t: 'note', text: k.sentence(String(a.disclaimer)) }); }
 
   const lo = prices.length ? Math.min(...prices) : 0, hi = prices.length ? Math.max(...prices) : 0;
-  const range = !prices.length ? '—' : lo === hi ? k.money(lo) : ar ? `${lo.toLocaleString('en-AE')}–${hi.toLocaleString('en-AE')} درهم` : `AED ${lo.toLocaleString('en-AE')}–${hi.toLocaleString('en-AE')}`;
+  const range = !prices.length ? '—' : lo === hi ? k.money(lo) : aedRange(lo, hi, lang);
   const cover0 = {
     kicker: T('Bid tabulation and technical comparison', 'جدول مقارنة العروض والمقارنة الفنية'), title: T('Quote comparison report', 'تقرير مقارنة العروض'),
     subtitle: clipCell(summary.text, 170),
