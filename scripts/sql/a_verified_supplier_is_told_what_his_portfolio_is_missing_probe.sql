@@ -18,7 +18,7 @@ create temp table if not exists zz_portfolio_probe (verdict text) on commit drop
 do $probe$
 declare
   f text[] := '{}'; v_fn text; v jsonb; v_n int; v_left int;
-  v_a bigint; v_b bigint; v_c bigint; v_h bigint; v_hc bigint;
+  v_a bigint; v_b bigint; v_c bigint; v_d bigint; v_e bigint; v_guard_live boolean; v_h bigint; v_hc bigint;
   v_thu timestamptz := timestamptz '2026-09-17 10:00:00 Asia/Dubai';
   v_mon timestamptz := timestamptz '2026-09-21 12:00:00 Asia/Dubai';   -- due Monday if weekends counted
   v_tue_early timestamptz := timestamptz '2026-09-22 09:59:00 Asia/Dubai';
@@ -29,7 +29,8 @@ begin
   foreach v_fn in array array['public.fn_supplier_portfolio_gaps(bigint)',
       'public.fn_supplier_portfolio_reminder_compose(public.leads,jsonb)',
       'public.fn_customer_support_reminds_supplier_of_portfolio(bigint)',
-      'public.fn_supplier_portfolio_reminder_tick(boolean,timestamptz,bigint)', 'public.fn_seat_clocks_tick()'] loop
+      'public.fn_supplier_portfolio_reminder_tick(boolean,timestamptz,bigint)', 'public.fn_seat_clocks_tick()',
+      'public.fn_supplier_portfolio_match_reads_ticks()', 'public.fn_supplier_portfolio_reminder_still_due(bigint)'] loop
     if to_regprocedure(v_fn) is null then f := f || (v_fn || ' does not exist'); continue; end if;
     if has_function_privilege('anon', to_regprocedure(v_fn), 'execute')
        or has_function_privilege('authenticated', to_regprocedure(v_fn), 'execute')
@@ -51,6 +52,7 @@ begin
   if public.fn_add_working_days(v_thu, 3) <> timestamptz '2026-09-22 10:00:00 Asia/Dubai' then
     f := f || ('(d) Thursday + 3 working days is ' || public.fn_add_working_days(v_thu, 3) || ', not Tuesday 10:00 Dubai'); end if;
 
+  v_guard_live := public.fn_supplier_portfolio_match_reads_ticks();
   begin
     -- ── fixtures: three verified ZZ DEMO suppliers, the mandatory six present so the gate admits them ──
     insert into storage.objects (bucket_id, name) values
@@ -58,22 +60,52 @@ begin
     insert into public.leads (company_name, email, claimed_by, claimed, phone, owner_phone_verified, owner_email_verified,
                               license_doc_path, company_profile_doc_path, signed_terms_path, locale,
                               whatsapp_opt, whatsapp_phone, whatsapp_verified_at, tags)
-    select 'ZZ DEMO portfolio probe ' || s, 'zz.portfolio.' || s || '@example.invalid', 'zz.portfolio.' || s || '@example.invalid', true,
+    select 'ZZ DEMO portfolio probe ' || s, 'zz.portfolio.' || s || '@example.invalid', case when s = 'd' then null else 'zz.portfolio.' || s || '@example.invalid' end, true,
            '+971500000012', true, true, 'zz-demo-portfolio-probe/licence.pdf', 'zz-demo-portfolio-probe/profile.pdf',
            'zz-demo-portfolio-probe/terms.pdf', case s when 'a' then 'ar' else 'en' end,
            'other', '+971500000012', now(), array['qd_demo']
-      from unnest(array['a', 'b', 'c']) s;
+      from unnest(array['a', 'b', 'c', 'd', 'e']) s;
     select id into v_a from public.leads where email = 'zz.portfolio.a@example.invalid';
     select id into v_b from public.leads where email = 'zz.portfolio.b@example.invalid';
     select id into v_c from public.leads where email = 'zz.portfolio.c@example.invalid';
-    update public.leads set verified = true, approval_status = 'approved' where id in (v_a, v_b, v_c);
-    update public.leads set approved_at = v_thu where id in (v_a, v_b, v_c);
-    select count(*) into v_n from public.leads where id in (v_a, v_b, v_c) and verified and approval_status = 'approved' and approved_at = v_thu;
-    if v_n <> 3 then raise exception 'fixture: only % of 3 suppliers are verified on Thursday', v_n; end if;
+    select id into v_d from public.leads where email = 'zz.portfolio.d@example.invalid';
+    select id into v_e from public.leads where email = 'zz.portfolio.e@example.invalid';
+    update public.leads set verified = true, approval_status = 'approved' where id in (v_a, v_b, v_c, v_d, v_e);
+    update public.leads set approved_at = v_thu where id in (v_a, v_b, v_c, v_d, v_e);
+    select count(*) into v_n from public.leads where id in (v_a, v_b, v_c, v_d, v_e) and verified and approval_status = 'approved' and approved_at = v_thu;
+    if v_n <> 5 then raise exception 'fixture: only % of 5 suppliers are verified on Thursday', v_n; end if;
     insert into public.supplier_capabilities (supplier_id, trades, roles, services, confirmed_at) values
       (v_a, '{painting}', '{contractor}', '{}', now()),                       -- declared a trade, ticked nothing
       (v_b, '{painting}', '{contractor}', '{painting.interior}', now()),      -- ticked straight away
-      (v_c, '{painting}', '{contractor}', '{}', now());                       -- will tick between detection and send
+      (v_c, '{painting}', '{contractor}', '{}', now()),                       -- will tick between detection and send
+      (v_d, '{painting}', '{contractor}', '{}', now()),                       -- no portal account address
+      (v_e, '{painting}', '{contractor}', '{}', now());                       -- the #868 guard, both states
+
+    -- ── the #868 guard, both states (review of #869, MUST FIX 1) ──
+    -- Closed (the deployed matcher still has silent_in): a trade gap is not raised, so a supplier whose
+    -- only gap is a trade with nothing ticked is not written to at all.
+    perform set_config('qd.probe_match_reads_ticks', 'false', true);
+    v := public.fn_supplier_portfolio_reminder_tick(true, v_tue, v_e);
+    if (v->>'opened')::int <> 0 or (v->>'complete_at_due')::int <> 1 then
+      f := f || ('guard closed: a supplier whose only gap is an unticked trade was acted on: ' || v::text); end if;
+    if public.fn_supplier_portfolio_reminder_still_due(v_e) then f := f || text 'guard closed: still_due says yes on a trade-only gap'; end if;
+    -- Open (#868 applied): the same supplier is now told, by the next tick, with nothing else changed.
+    perform set_config('qd.probe_match_reads_ticks', 'true', true);
+    v := public.fn_supplier_portfolio_reminder_tick(true, v_tue, v_e);
+    if (v->>'opened')::int <> 1 then f := f || ('guard open: the trade-only gap was not raised: ' || v::text); end if;
+    -- every case below runs with the guard open, the state #868 leaves production in
+
+    -- ── outside Dubai working hours nothing is opened (Tuesday 19:00) ──
+    v := public.fn_supplier_portfolio_reminder_tick(true, timestamptz '2026-09-22 19:00:00 Asia/Dubai', v_a);
+    if (v->>'opened')::int <> 0 or not coalesce((v->>'outside_working_hours')::boolean, false) then
+      f := f || ('a reminder was opened at 19:00 Dubai: ' || v::text); end if;
+
+    -- ── no portal account address: nothing sent, and said why ──
+    v := public.fn_supplier_portfolio_reminder_tick(true, v_tue, v_d);
+    if coalesce((select evidence->>'not_sent' from public.agent_actions where kind = 'handoff' and detail->>'lead_id' = v_d::text
+                  and detail->>'type' = 'supplier.portfolio_incomplete'), '') not like 'the supplier has no portal account address%'
+       or exists (select 1 from public.notifications where lead_id = v_d and type = 'supplier_portfolio_incomplete') then
+      f := f || text 'a supplier with no portal account address was written to leads.email, or not told why nothing went'; end if;
 
     -- ── (d) not before the third working day, and the weekend does not count ──
     v := public.fn_supplier_portfolio_reminder_tick(true, v_mon, v_a);
@@ -137,6 +169,27 @@ begin
     exception when others then null;
     end;
     perform set_config('qd.handoff_closer', '', true);
+
+    -- ── closing waits for BOTH legs to be final (review of #869, MUST FIX 3) ──
+    -- A rehearsal row is captured ('suppressed') on insert; 'sending' is set here to stand for a row the
+    -- outbox has not finished with, then the outcomes a real drain writes.
+    update public.notifications set status = 'sending' where lead_id = v_a and type = 'supplier_portfolio_incomplete';
+    v := public.fn_supplier_portfolio_reminder_tick(true, v_tue + interval '15 minutes', v_a);
+    if (v->>'closed')::int <> 0 or (select status from public.agent_actions where id = v_h) = 'done' then
+      f := f || ('closed while the email was still being sent: ' || v::text); end if;
+    update public.notifications set status = 'sent', sent_at = now(), provider_message_id = 'zz-probe'
+     where lead_id = v_a and type = 'supplier_portfolio_incomplete' and channel = 'email';
+    v := public.fn_supplier_portfolio_reminder_tick(true, v_tue + interval '20 minutes', v_a);
+    if (v->>'closed')::int <> 0 or (v->>'awaiting_final_state')::int <> 1 then
+      f := f || ('closed while the WhatsApp copy was not final: ' || v::text); end if;
+    -- the WhatsApp copy expires as send_whatsapp expires it: held as stale after wa_stale_hours
+    update public.notifications set status = 'held', last_error = 'held: this WhatsApp message was 25h old when the queue was drained, past the 24h staleness bar.'
+     where lead_id = v_a and type = 'supplier_portfolio_incomplete' and channel = 'whatsapp';
+
+    -- ── the send-time re-check send_whatsapp asks for ──
+    if not public.fn_supplier_portfolio_reminder_still_due(v_a) then f := f || text 'still_due says no for an incomplete portfolio'; end if;
+    if public.fn_supplier_portfolio_reminder_still_due(v_c) then f := f || text 'still_due says yes for a supplier who completed it'; end if;
+
     v_n := 0; v_left := 0;
     foreach v_fn in array array[v_a::text, v_b::text, v_c::text] loop
       v := public.fn_supplier_portfolio_reminder_tick(true, v_tue + interval '30 minutes', v_fn::bigint);
@@ -172,7 +225,7 @@ begin
   select count(*) into v_left from storage.objects where name like 'zz-demo-portfolio-probe/%';
   if v_left <> 0 then f := f || (v_left || ' probe storage row(s) survived the rollback'); end if;
   insert into zz_portfolio_probe values (case when cardinality(f) = 0
-    then 'PROBE OK: (a) one handoff, one formal-Arabic email and one WhatsApp twin with its state recorded, at Tuesday 10:00 and not before; (b) a supplier who ticked straight away gets nothing; (c) one who completed between detection and send gets nothing; (d) Thursday + 3 working days is Tuesday, the weekend not counted; (e) re-runs send nothing twice and only sales_engineer closes, after re-verifying; nothing to a real address; zero residue'
+    then 'PROBE OK: (a) one handoff, one formal-Arabic email and one WhatsApp twin with its state recorded, at Tuesday 10:00 and not before; (b) a supplier who ticked straight away gets nothing; (c) one who completed between detection and send gets nothing; (d) Thursday + 3 working days is Tuesday, the weekend not counted; (e) re-runs send nothing twice and only sales_engineer closes, after re-verifying; nothing to a real address; zero residue. #868 guard: closed raises no trade-only reminder, open raises it; the live matcher reads ticks = ' || v_guard_live::text || '. Closing waits for both legs to be final; no portal address, nothing sent; nothing opened at 19:00 Dubai'
     else 'PROBE FAILED: ' || array_to_string(f, '; ') end);
 end $probe$;
 select verdict from zz_portfolio_probe;

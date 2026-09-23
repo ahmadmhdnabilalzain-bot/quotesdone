@@ -30,13 +30,24 @@
 --     open your supplier portal for the full details and any action needed: {{2}}" (UTILITY, EN + AR,
 --     SIDs HX73016b…/HX9ef909… in app_secrets.wa_template_sids) — was asked of Twilio's Content API at
 --     2026-09-23T07:21Z: BOTH languages 'received', i.e. still with Meta, not approved (Twilio ticket
---     29665983). send_whatsapp holds a supplier row on an unapproved template queued, never dropped, and
---     sends it the moment the template is approved.
+--     29665983, escalated with Twilio engineering). send_whatsapp keeps a row on an unapproved template
+--     queued, but its staleness bar (app_secrets.wa_stale_hours = 24) runs FIRST: a row older than 24
+--     hours is moved to 'held' for good. So the WhatsApp copy is ATTEMPTED FOR 24 HOURS AND THEN EXPIRES,
+--     with its reason on the row. While that template waits at Meta, the email is what reaches him.
+--   * fn_match_capability, as deployed today, still reaches a supplier who declares a trade and ticked
+--     nothing in it (its silent_in arm, #859). Until #868 removes that arm, "inquiries in this trade do
+--     not reach you" is false, so that gap is not raised at all (fn_supplier_portfolio_match_reads_ticks,
+--     which reads the deployed body and opens by itself once the arm is gone).
 --
 -- WHAT "MISSING" MEANS (fn_supplier_portfolio_gaps), each named in words a supplier understands:
 --   1. services_not_confirmed  — no confirmed services list at all: no request of any kind reaches him.
 --   2. trade_without_service   — per declared trade that HAS services in our list: none of them ticked.
---   3. own_words               — words stored as services that are not a service on our list.
+--                                Raised only once the deployed matcher reads ticks (see above).
+--   3. own_word_is_a_service   — a word he typed that an active alias names: he is told which service
+--                                to tick (e.g. «الدهانات» is Interior painting).
+--   4. own_words               — words no alias names: they match nothing as written. "Our sales engineer
+--                                is reviewing them" is said only when a pending taxonomy_trade_proposal
+--                                row for that word exists.
 --   A declared trade our list has no services for is not a gap: there is nothing for him to tick, and an
 --   inquiry cannot name a service there either.
 --
@@ -70,6 +81,26 @@ insert into public.decision_policy (key, value, description) values
 on conflict (key) do update set description = excluded.description;
 
 -- ── 2. what is missing ───────────────────────────────────────────────────────────────────────────
+-- DOES THE DEPLOYED MATCHER READ TICKS? While fn_match_capability still carries #859's silent_in arm, a
+-- supplier silent in a trade is reached at trade level, so telling him otherwise would be false. The
+-- deployed body is read, not a flag somebody must remember to flip: #868 removing the arm opens this by
+-- itself. qd.probe_match_reads_ticks lets the rolled-back probe drive both states; nothing else sets it.
+create or replace function public.fn_supplier_portfolio_match_reads_ticks()
+returns boolean
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select coalesce(nullif(current_setting('qd.probe_match_reads_ticks', true), '')::boolean,
+                  position('silent_in' in pg_get_functiondef(
+                    'public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])'::regprocedure)) = 0)
+$fn$;
+revoke execute on function public.fn_supplier_portfolio_match_reads_ticks() from public, anon, authenticated;
+
+-- An own word is compared TRIMMED, and against the aliases with the same test fn_norm_trades and
+-- a_confirmed_trade_is_still_reachable_when_the_inquiry_names_a_service.test.mjs apply (fn_ar_norm,
+-- word-start anchored, Arabic proclitics and ال allowed), so «الدهانات» is told it is Interior painting.
 create or replace function public.fn_supplier_portfolio_gaps(p_lead_id bigint)
 returns jsonb
 language sql
@@ -83,39 +114,85 @@ as $fn$
     select t.code, t.label, coalesce(t.label_ar, t.label) as label_ar
       from sc, unnest(coalesce(sc.trades, '{}'::text[])) tr
       join public.taxonomy_trade t on t.code = tr
-     where exists (select 1 from keys where keys.trade_code = tr)
+     where public.fn_supplier_portfolio_match_reads_ticks()
+       and exists (select 1 from keys where keys.trade_code = tr)
        and not exists (select 1 from unnest(coalesce(sc.services, '{}'::text[])) s
-                         join keys on keys.k = s
-                        where keys.trade_code = tr and s <> all (coalesce(sc.services_removed, '{}'::text[])))
+                         join keys on keys.k = btrim(s)
+                        where keys.trade_code = tr and btrim(s) <> all (coalesce(sc.services_removed, '{}'::text[])))
   ),
   own as (
     select distinct btrim(w) as w
       from sc, unnest(coalesce(sc.services, '{}'::text[])) w
-     where nullif(btrim(w), '') is not null and w not in (select k from keys)
+     where nullif(btrim(w), '') is not null and btrim(w) not in (select k from keys)
+  ),
+  named as (   -- the first active service an alias of which names the word
+    select o.w, x.key, x.label_en, x.label_ar, x.trade_en, x.trade_ar
+      from own o
+      cross join lateral (
+        select s.trade_code || '.' || s.code as key, s.label_en, s.label_ar, t.label as trade_en, coalesce(t.label_ar, t.label) as trade_ar
+          from public.taxonomy_trade_service s
+          join public.taxonomy_trade t on t.code = s.trade_code
+          cross join lateral unnest(s.aliases) a
+         where s.active and length(public.fn_ar_norm(a)) >= 3
+           and public.fn_ar_norm(o.w) ~* ('\m' || case
+                 when public.fn_ar_norm(a) ~ '^[ء-ي]'
+                   then '(?:[وفبلك]?ال|[وف]?لل|[وفبلك])?'
+                        || replace(replace(regexp_replace(public.fn_ar_norm(a), '([.*+?^${}()|\[\]\\])', '\\\1', 'g'), ' ', ' (?:ال)?'), ' (?:ال)?و', ' و(?:ال)?')
+                 else regexp_replace(public.fn_ar_norm(a), '([.*+?^${}()|\[\]\\])', '\\\1', 'g')
+               end)
+         order by s.sort, s.trade_code, s.code limit 1) x
+  ),
+  unnamed as (select o.w from own o where o.w not in (select w from named)),
+  proposed as (   -- said "under review" only when a review row really exists
+    select exists (select 1 from public.taxonomy_trade_proposal p, unnamed u
+                    where p.supplier_id = p_lead_id and p.status = 'pending'
+                      and (btrim(p.label_en) = u.w or btrim(p.label_ar) = u.w)) as yes
   )
   select case
     when not exists (select 1 from sc) then jsonb_build_array(jsonb_build_object(
       'code', 'services_not_confirmed',
-      'en', 'You have not confirmed the services your company provides yet, so no request can reach you.',
-      'ar', 'لم تؤكّدوا بعد الخدمات التي تقدّمها شركتكم، ولذلك لا يصلكم أي طلب.'))
+      'en', 'You have not confirmed the services your company provides yet, so no inquiry can reach you.',
+      'ar', 'لم تؤكّدوا بعد الخدمات التي تقدّمها شركتكم، ولذلك لا يصلكم أي استفسار.'))
     else
       coalesce((select jsonb_agg(jsonb_build_object(
           'code', 'trade_without_service', 'trade', s.code,
-          'en', s.label || ': no service is ticked yet, so requests that name a service in this trade do not reach you.',
-          'ar', s.label_ar || ': لم تحدّدوا أي خدمة فيه بعد، ولذلك لا تصلكم الطلبات التي تذكر خدمة في هذا التخصص.')
+          'en', s.label || ': no service is ticked yet, so inquiries that name a service in this trade do not reach you.',
+          'ar', s.label_ar || ': لم تحدّدوا أي خدمة فيه بعد، ولذلك لا تصلكم الاستفسارات التي تذكر خدمة في هذا التخصص.')
           order by s.code) from silent s), '[]'::jsonb)
+      || coalesce((select jsonb_agg(jsonb_build_object(
+          'code', 'own_word_is_a_service', 'word', n.w, 'service', n.key,
+          'en', '«' || n.w || '» is on our list as "' || n.label_en || '" under ' || n.trade_en
+                || '. Tick it in the Services tab so the inquiries that name it reach you.',
+          'ar', '«' || n.w || '» مدرجة في قائمتنا باسم «' || n.label_ar || '» ضمن ' || n.trade_ar
+                || '. يُرجى تحديدها في تبويب «الخدمات» لتصلكم الاستفسارات التي تذكرها.')
+          order by n.w) from named n), '[]'::jsonb)
       || coalesce((select jsonb_build_array(jsonb_build_object(
-          'code', 'own_words', 'words', jsonb_agg(o.w order by o.w),
-          'en', 'Written in your own words and not yet matched to a service on our list: '
-                || string_agg('«' || o.w || '»', ', ' order by o.w)
-                || '. Our sales engineer is reviewing them; until then they match no request. If one of them is on the list under another name, tick it there.',
-          'ar', 'خدمات كتبتموها بأسلوبكم ولم تُطابَق بعد مع أي خدمة في قائمتنا: '
-                || string_agg('«' || o.w || '»', '، ' order by o.w)
-                || '. ويراجعها مهندس المبيعات حاليًا، ولا تُطابَق مع أي طلب إلى حين اعتمادها. وإن وجدتم أيًّا منها في القائمة باسم آخر، فحدّدوه هناك.'))
-          from own o having count(*) > 0), '[]'::jsonb)
+          'code', 'own_words', 'words', jsonb_agg(u.w order by u.w),
+          'en', 'Written in your own words and not on our list: '
+                || string_agg('«' || u.w || '»', ', ' order by u.w)
+                || '. As written they match no inquiry. If one of them is on the list under another name, tick it there'
+                || case when (select yes from proposed) then '; our sales engineer is reviewing them for the list' else '' end || '.',
+          'ar', 'خدمات كتبتموها بأسلوبكم وليست في قائمتنا: '
+                || string_agg('«' || u.w || '»', '، ' order by u.w)
+                || '. ولا تُطابَق بصيغتها هذه مع أي استفسار. وإن وجدتم أيًّا منها في القائمة باسم آخر، فحدّدوه هناك'
+                || case when (select yes from proposed) then '، ويراجعها مهندس المبيعات حاليًا لإضافتها إلى القائمة' else '' end || '.'))
+          from unnamed u having count(*) > 0), '[]'::jsonb)
   end
 $fn$;
 revoke execute on function public.fn_supplier_portfolio_gaps(bigint) from public, anon, authenticated;
+
+-- send_whatsapp asks this when the WhatsApp copy actually leaves (service_role only).
+create or replace function public.fn_supplier_portfolio_reminder_still_due(p_lead_id bigint)
+returns boolean
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select jsonb_array_length(public.fn_supplier_portfolio_gaps(p_lead_id)) > 0
+$fn$;
+revoke execute on function public.fn_supplier_portfolio_reminder_still_due(bigint) from public, anon, authenticated;
+grant execute on function public.fn_supplier_portfolio_reminder_still_due(bigint) to service_role;
 
 -- ── 3. the words ─────────────────────────────────────────────────────────────────────────────────
 -- The subject is also {{1}} of the WhatsApp template (send_whatsapp varsFor: at most 90 characters), so
@@ -140,10 +217,10 @@ begin
     from jsonb_array_elements(coalesce(p_gaps, '[]'::jsonb)) with ordinality x(g, o);
 
   if v_ar then
-    v_subj := 'خدماتكم لم تُستكمل بعد، وقد تفوتكم طلبات عروض الأسعار';
+    v_subj := 'خدماتكم لم تُستكمل بعد، وقد تفوتكم استفسارات العملاء';
     v_body := coalesce('السادة/ ' || v_name || ' المحترمين،', 'السادة الكرام،') || E'\n\nتحية طيبة وبعد،\n\n'
       || 'نشكركم على إتمام توثيق شركتكم لدى QuotesDone. وقد راجع مهندس المبيعات ملف أعمالكم، وتبيّن أن بعض بياناته لم تُستكمل بعد. '
-      || 'ولمّا كانت الطلبات لا تصلكم إلا في الخدمات التي أكّدتموها، نرجو استكمال ما يلي:'
+      || 'وتعتمد مطابقة الاستفسارات على الخدمات التي أكّدتموها، لذا نرجو استكمال ما يلي:'
       || E'\n\n' || coalesce(v_items, '')
       || E'\n\nطريقة الاستكمال (تستغرق دقيقتين تقريبًا):'
       || E'\n1. سجّلوا الدخول إلى بوابة الموردين: ' || v_link
@@ -152,15 +229,15 @@ begin
       || E'\n4. إن لم تجدوا في القائمة خدمة تقدّمونها، فاكتبوها في خانة «أضيفوا الخدمات التي تقدّمونها» ثم اضغطوا «إعادة صياغة خدماتي».'
       || E'\n5. اضغطوا «تأكيد خدماتي» لحفظ التغييرات، أو «تحديث خدماتي» إن سبق لكم الحفظ.'
       || E'\n\nالخيارات المتاحة لكم:'
-      || E'\n• تحديد الخدمات التي تقدّمونها، فتصلكم الطلبات التي تذكرها.'
-      || E'\n• إزالة التخصص الذي لا تعملون فيه، فلا تصلكم طلباته بعد ذلك.'
+      || E'\n• تحديد الخدمات التي تقدّمونها، فتصلكم الاستفسارات التي تذكرها.'
+      || E'\n• إزالة التخصص الذي لا تعملون فيه، فلا تصلكم استفساراته بعد ذلك.'
       || E'\n• إن احتجتم إلى المساعدة، يكفي الرد على هذه الرسالة أو مراسلتنا عبر واتساب، وسيستكمل فريقنا البيانات معكم.'
       || E'\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\nفريق خدمة العملاء — QuotesDone';
   else
-    v_subj := 'Your services are not complete yet, so you may miss requests';
+    v_subj := 'Your services are not complete yet, so you may miss inquiries';
     v_body := coalesce('Dear ' || v_name || ',', 'Dear Sir or Madam,') || E'\n\n'
       || 'Thank you for completing your verification with QuotesDone. Our sales engineer has reviewed your company''s portfolio, and some of it is still missing. '
-      || 'Requests reach you only for the services you have confirmed, so please complete the following:'
+      || 'Inquiries are matched against the services you have confirmed, so please complete the following:'
       || E'\n\n' || coalesce(v_items, '')
       || E'\n\nHow to complete it (about two minutes):'
       || E'\n1. Sign in to your supplier portal: ' || v_link
@@ -169,8 +246,8 @@ begin
       || E'\n4. If a service you provide is not on the list, write it under "Add the services you provide" and press "Rewrite my services".'
       || E'\n5. Press "Confirm my services" to save, or "Update my services" if you have saved before.'
       || E'\n\nYour options:'
-      || E'\n• Tick the services you provide: you will receive the requests that name them.'
-      || E'\n• Remove a trade you do not work in: you will no longer receive requests for it.'
+      || E'\n• Tick the services you provide: you will receive the inquiries that name them.'
+      || E'\n• Remove a trade you do not work in: you will no longer receive inquiries for it.'
       || E'\n• Need help? Reply to this e-mail or message us on WhatsApp, and our team will complete it with you.'
       || E'\n\nKind regards,\nQuotesDone Customer Support';
   end if;
@@ -205,7 +282,10 @@ begin
                               'gaps_at_detection', a.detail->'gaps_at_detection');
   end if;
 
-  v_to := lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email, '')));
+  -- The portal account's own address. leads.email is a directory listing's address, not necessarily
+  -- the person who signed in, and this message is about his portal account.
+  v_to := lower(btrim(coalesce(l.claimed_by, '')));
+  if v_to = '' then return jsonb_build_object('not_sent', 'the supplier has no portal account address (claimed_by)', 'gaps', v_gaps); end if;
   v_fix := public.fn_seat_clock_lead_is_fixture(l);
   v_why := public.fn_seat_clock_refusal(v_fix, v_to, 'supplier_portfolio_incomplete');
   if v_why is not null then return jsonb_build_object('not_sent', v_why, 'gaps', v_gaps); end if;
@@ -224,8 +304,9 @@ begin
   v_nid := (d.evidence->>'notification_id')::bigint;
   v_wa_id := (d.evidence->'whatsapp_ids'->>0)::bigint;
 
-  -- THE WHATSAPP LEG, AS IT IS AND NOT AS HOPED. A status column is not a delivery record: this names
-  -- the twin row and what holds it, and send_whatsapp is what finally sends it.
+  -- THE WHATSAPP LEG, AS IT IS AND NOT AS HOPED. The twin is attempted for app_secrets.wa_stale_hours
+  -- (24): send_whatsapp checks staleness before the template, so while supplier_account_notice is not
+  -- approved the row expires to 'held' after a day and never sends. The row says so from the start.
   if v_wa_id is null then
     v_wa := jsonb_build_object('state', 'no_whatsapp', 'reason',
       case when l.whatsapp_opt = 'none' then 'the supplier chose not to receive WhatsApp messages'
@@ -239,7 +320,9 @@ begin
     if n.status in ('queued', 'pending') and coalesce(v_tmpl, 'unregistered') <> 'approved' then
       update public.notifications
          set last_error = 'awaiting template: supplier_account_notice is ' || coalesce(v_tmpl, 'unregistered')
-                          || ' at Meta (Twilio ticket 29665983). This row stays queued and goes the moment it is approved; the email carried this reminder.'
+                          || ' at Meta (Twilio ticket 29665983). This copy is tried until it is '
+                          || coalesce((select value from public.app_secrets where key = 'wa_stale_hours'), '24')
+                          || ' hours old and then expires (held as stale) if the template is still not approved. The email carried this reminder.'
        where id = v_wa_id;
       v_wa := jsonb_build_object('state', 'pending_template', 'notification_id', v_wa_id,
                                  'template', 'supplier_account_notice', 'template_status', coalesce(v_tmpl, 'unregistered'));
@@ -258,7 +341,7 @@ revoke execute on function public.fn_customer_support_reminds_supplier_of_portfo
 
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
 values ('supplier.portfolio_incomplete', 'sales_engineer', 'customer_support',
-        'Three working days after verification a supplier''s portfolio still has a gap (fn_supplier_portfolio_gaps). customer_support re-reads it and, if still incomplete, sends one reminder with a guide by email and WhatsApp. sales_engineer re-verifies what was sent and closes (founder instruction 858).',
+        'Three working days after verification a supplier''s portfolio still has a gap (fn_supplier_portfolio_gaps). customer_support re-reads it and, if still incomplete, sends one reminder with a guide by email, and a WhatsApp copy to a confirmed number that is tried for 24 hours and then expires. sales_engineer closes only once the email and the WhatsApp copy have each reached a final state (founder instruction 858).',
         'fn_customer_support_reminds_supplier_of_portfolio', null, true,
         'scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql')
 on conflict (type, from_seat, to_seat) do update
@@ -270,6 +353,10 @@ on conflict (type, from_seat, to_seat) do update
 -- ponytail: suppliers are scanned only while their due date is under 14 days old, so a supplier who was
 -- complete on day 3 is not re-read every 30 minutes forever. A tick outage longer than 14 days would miss
 -- reminders; widen the window if that ever happens.
+--
+-- A NOTIFICATION IS FINAL when nothing will change it any more: sent, or failed / bounced / held (the
+-- WhatsApp staleness expiry) / suppressed / skipped / cancelled / digested, each with its reason on the row.
+-- queued, pending, sending and claimed are not final. The handoff stays open until BOTH legs are final.
 create or replace function public.fn_supplier_portfolio_reminder_tick(
   p_include_fixtures boolean default false, p_now timestamptz default now(), p_lead_id bigint default null)
 returns jsonb
@@ -279,10 +366,13 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare
   v_days int := public.fn_seat_clock_policy('supplier_portfolio_reminder_working_days', 3)::int;
-  h public.agent_actions; l public.leads; v_gaps jsonb; v_due timestamptz; v_ev jsonb; v_email text; v_wa text;
-  v_opened int := 0; v_complete int := 0; v_closed int := 0; v_unverified int := 0;
+  h public.agent_actions; l public.leads; v_gaps jsonb; v_due timestamptz; v_ev jsonb;
+  e public.notifications; w public.notifications; v_key text; v_failed int;
+  v_local timestamp := p_now at time zone 'Asia/Dubai';
+  v_open_hours boolean;
+  v_opened int := 0; v_complete int := 0; v_closed int := 0; v_waiting int := 0; v_capped int := 0;
 begin
-  -- 1. RE-VERIFY WHAT SUPPORT ANSWERED, THEN CLOSE IT. Only the originator closes.
+  -- 1. RE-VERIFY WHAT SUPPORT ANSWERED; CLOSE ONLY WHEN EVERY LEG IS FINAL. Only the originator closes.
   for h in select a.* from public.agent_actions a
             where a.kind = 'handoff' and a.agent = 'customer_support' and a.detail->>'type' = 'supplier.portfolio_incomplete'
               and a.status not in ('done', 'failed') and a.detail ? 'replied_at'
@@ -292,11 +382,18 @@ begin
     if v_ev ? 'not_sent' then
       v_ev := v_ev || jsonb_build_object('reverified', 'nothing was sent, and the reason is recorded');
     else
-      select n.status into v_email from public.notifications n where n.id = (v_ev->>'notification_id')::bigint;
-      select n.status into v_wa from public.notifications n where n.id = (v_ev#>>'{whatsapp,notification_id}')::bigint;
-      if v_email is null then v_unverified := v_unverified + 1; continue; end if;   -- stays open: nothing to prove it
-      v_ev := v_ev || jsonb_build_object('reverified', 'the email is on the outbox', 'email_status', v_email,
-                                         'whatsapp_status', coalesce(v_wa, v_ev#>>'{whatsapp,state}'));
+      e := null; w := null;
+      select * into e from public.notifications n where n.id = (v_ev->>'notification_id')::bigint;
+      select * into w from public.notifications n where n.id = (v_ev#>>'{whatsapp,notification_id}')::bigint;
+      if e.id is null or e.status in ('queued', 'pending', 'sending', 'claimed')
+         or (w.id is not null and w.status in ('queued', 'pending', 'sending', 'claimed')) then
+        v_waiting := v_waiting + 1; continue;   -- stays open: a leg has not reached a final state
+      end if;
+      v_ev := v_ev || jsonb_build_object(
+        'reverified', 'both legs reached a final state',
+        'email', jsonb_build_object('status', e.status, 'sent_at', e.sent_at, 'provider_message_id', e.provider_message_id, 'reason', e.last_error),
+        'whatsapp_final', case when w.id is null then v_ev->'whatsapp'
+                               else jsonb_build_object('status', w.status, 'sent_at', w.sent_at, 'provider_message_id', w.provider_message_id, 'reason', w.last_error) end);
     end if;
     perform set_config('qd.handoff_closer', 'sales_engineer', true);
     perform public.fn_seat_handoff_complete(h.id, v_ev || jsonb_build_object('reverified_by', 'sales_engineer', 'reverified_at', p_now));
@@ -304,7 +401,12 @@ begin
     v_closed := v_closed + 1;
   end loop;
 
-  -- 2. DETECT. One handoff per supplier per verification, never before the third working day.
+  -- 2. DETECT, in Dubai working hours only (09:00-18:00 on a working day): a message about his account
+  --    lands while his office is open, not at midnight.
+  v_open_hours := public.fn_is_working_day(v_local::date) and v_local::time >= time '09:00' and v_local::time < time '18:00';
+  if not v_open_hours then
+    return jsonb_build_object('ok', true, 'opened', 0, 'outside_working_hours', true, 'closed', v_closed, 'awaiting_final_state', v_waiting);
+  end if;
   for l in select * from public.leads x
             where x.verified and x.approval_status = 'approved' and x.approved_at is not null and not coalesce(x.banned, false)
               and public.fn_add_working_days(x.approved_at, v_days) <= p_now
@@ -315,18 +417,32 @@ begin
                                where a.kind = 'handoff' and a.agent = 'customer_support' and a.status <> 'failed'
                                  and a.target_id = 'supplier.portfolio_incomplete:' || x.id || ':' || extract(epoch from x.approved_at)::bigint)
             order by x.id loop
+    v_key := 'supplier.portfolio_incomplete:' || l.id || ':' || extract(epoch from l.approved_at)::bigint;
+    -- A HANDLER THAT KEEPS FAILING IS TRIED THREE TIMES, then recorded once for its seat, not every 30 minutes.
+    select count(*) into v_failed from public.agent_actions a
+     where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'failed' and a.target_id = v_key;
+    if v_failed >= 3 then
+      if not exists (select 1 from public.it_engineer_finding where issue_key = 'portfolio_reminder_failed:' || v_key) then
+        perform public.fn_it_engineer_finding_upsert('portfolio_reminder_failed:' || v_key,
+          left('The portfolio reminder for supplier ' || l.id || ' failed ' || v_failed || ' times and is no longer retried', 300),
+          'fn_supplier_portfolio_reminder_tick', 'agent_facing', 1,
+          jsonb_build_object('lead_id', l.id, 'handoff_key', v_key, 'owner_seat', 'sales_engineer',
+                             'last_error', (select a.detail->>'error' from public.agent_actions a where a.target_id = v_key and a.status = 'failed' order by a.id desc limit 1)),
+          '{}'::text[], '{}'::text[], 'sales_engineer');
+      end if;
+      v_capped := v_capped + 1; continue;
+    end if;
     v_gaps := public.fn_supplier_portfolio_gaps(l.id);
     if jsonb_array_length(v_gaps) = 0 then v_complete := v_complete + 1; continue; end if;   -- did it straight away
     v_due := public.fn_add_working_days(l.approved_at, v_days);
-    perform public.fn_seat_handoff('sales_engineer', 'customer_support', 'supplier.portfolio_incomplete', 'leads',
-      l.id || ':' || extract(epoch from l.approved_at)::bigint,
+    perform public.fn_seat_handoff('sales_engineer', 'customer_support', 'supplier.portfolio_incomplete', 'leads', l.id || ':' || extract(epoch from l.approved_at)::bigint,
       jsonb_build_object('lead_id', l.id, 'verified_at', l.approved_at, 'due_at', v_due, 'gaps_at_detection', v_gaps,
                          'fixture', public.fn_seat_clock_lead_is_fixture(l)));
     v_opened := v_opened + 1;
   end loop;
 
   return jsonb_build_object('ok', true, 'opened', v_opened, 'complete_at_due', v_complete,
-                            'closed', v_closed, 'awaiting_proof', v_unverified);
+                            'closed', v_closed, 'awaiting_final_state', v_waiting, 'retries_exhausted', v_capped);
 end
 $fn$;
 revoke execute on function public.fn_supplier_portfolio_reminder_tick(boolean, timestamptz, bigint) from public, anon, authenticated;

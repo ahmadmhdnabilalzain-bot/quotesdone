@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T07:33:33.668Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T08:01:08.638Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -19322,6 +19322,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -19837,135 +19966,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -29276,7 +29276,10 @@ begin
                               'gaps_at_detection', a.detail->'gaps_at_detection');
   end if;
 
-  v_to := lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email, '')));
+  -- The portal account's own address. leads.email is a directory listing's address, not necessarily
+  -- the person who signed in, and this message is about his portal account.
+  v_to := lower(btrim(coalesce(l.claimed_by, '')));
+  if v_to = '' then return jsonb_build_object('not_sent', 'the supplier has no portal account address (claimed_by)', 'gaps', v_gaps); end if;
   v_fix := public.fn_seat_clock_lead_is_fixture(l);
   v_why := public.fn_seat_clock_refusal(v_fix, v_to, 'supplier_portfolio_incomplete');
   if v_why is not null then return jsonb_build_object('not_sent', v_why, 'gaps', v_gaps); end if;
@@ -29295,8 +29298,9 @@ begin
   v_nid := (d.evidence->>'notification_id')::bigint;
   v_wa_id := (d.evidence->'whatsapp_ids'->>0)::bigint;
 
-  -- THE WHATSAPP LEG, AS IT IS AND NOT AS HOPED. A status column is not a delivery record: this names
-  -- the twin row and what holds it, and send_whatsapp is what finally sends it.
+  -- THE WHATSAPP LEG, AS IT IS AND NOT AS HOPED. The twin is attempted for app_secrets.wa_stale_hours
+  -- (24): send_whatsapp checks staleness before the template, so while supplier_account_notice is not
+  -- approved the row expires to 'held' after a day and never sends. The row says so from the start.
   if v_wa_id is null then
     v_wa := jsonb_build_object('state', 'no_whatsapp', 'reason',
       case when l.whatsapp_opt = 'none' then 'the supplier chose not to receive WhatsApp messages'
@@ -29310,7 +29314,9 @@ begin
     if n.status in ('queued', 'pending') and coalesce(v_tmpl, 'unregistered') <> 'approved' then
       update public.notifications
          set last_error = 'awaiting template: supplier_account_notice is ' || coalesce(v_tmpl, 'unregistered')
-                          || ' at Meta (Twilio ticket 29665983). This row stays queued and goes the moment it is approved; the email carried this reminder.'
+                          || ' at Meta (Twilio ticket 29665983). This copy is tried until it is '
+                          || coalesce((select value from public.app_secrets where key = 'wa_stale_hours'), '24')
+                          || ' hours old and then expires (held as stale) if the template is still not approved. The email carried this reminder.'
        where id = v_wa_id;
       v_wa := jsonb_build_object('state', 'pending_template', 'notification_id', v_wa_id,
                                  'template', 'supplier_account_notice', 'template_status', coalesce(v_tmpl, 'unregistered'));
@@ -42324,25 +42330,12 @@ eff as (
 svc as (
   select e.*,
     array(select unnest(e.eff_services) intersect select key from named) as service_hits,
-    -- THE TRADES THIS SUPPLIER IS SILENT IN (23 Sep 2026, SP-F-01 re-review, corrected the same day
-    -- after finding A): a trade the inquiry named a service in, that this supplier DECLARES, and in
-    -- which it has named no service at all. Per trade, not per inquiry — an earlier draft unioned the
-    -- prefixes of every named trade, so a supplier that had spoken on aluminium was treated as having
-    -- spoken on doors too, and a {doors.fire_doors, aluminium.tensile_structures} inquiry emptied doors
-    -- again. Every real inquiry is this case: the backfill's own three rows carry keys across three,
-    -- two and two trades, because sales_engineer derives ONE key set from one brief across all trades.
-    array(select t.tr from named t
-           where t.tr = any(coalesce(e.trades, '{}'::text[]))
-             and not exists (select 1 from unnest(e.eff_services) k where split_part(k, '.', 1) = t.tr)
-           group by t.tr order by t.tr) as silent_in,
-    -- NEVER ASKED AT ALL (23 Sep 2026, re-review finding C): the inquiry named services only in trades
-    -- this supplier does not declare. silent_in is then empty for the WRONG reason — not "it spoke", but
-    -- "it was never asked" — and with no hit either the supplier was excluded. That is the supplier this
-    -- file exists to protect: one that has never opened the Services tab. It is ordinary rather than a
-    -- corner, because detectTrades and serviceKeysOf read the same brief INDEPENDENTLY, so a brief that
-    -- names two trades and yields keys in only one is the normal shape (the backfilled rows carry keys
-    -- across three, two and two trades). Worst case, a doors-only supplier pool went to zero on an
-    -- inquiry that named doors. It matches the trade gate above and it is asked nothing here.
+    -- NEVER ASKED (23 Sep 2026, re-review finding C; kept under founder instruction 857). The inquiry
+    -- named services only in trades this supplier does not declare, and it is admitted through another
+    -- trade the inquiry names. Nothing was asked of it in any trade it does, so it failed to tick
+    -- nothing: the founder's ruling is about not ticking what was ASKED. detectTrades and serviceKeysOf
+    -- read one brief independently, so a brief naming two trades and yielding keys in only one is the
+    -- normal shape, and without this arm a whole single-trade supplier pool goes to zero on it.
     not exists (select 1 from named t where t.tr = any(coalesce(e.trades, '{}'::text[]))) as never_asked,
     -- ponytail: one scan of service_implication per candidate. At 113 curated rows against a
     -- candidate set the gates above have already cut down, this is not measurable; batch it with a
@@ -42373,15 +42366,14 @@ scored as (
      )) as ptype_hit,
     (p_value is not null and c.min_project_value is not null and c.max_project_value is not null) as size_known
   from svc c
-  -- GATE, four arms. The inquiry named real services, so the supplier must either cover one of them, or
-  -- be trade level for this work — silent in a named trade it declares, or asked about no trade of its
-  -- own at all. Excluding either of those is what emptied whole trades. Read per trade: a supplier that
-  -- has named services in EVERY named trade it declares and covers none of the named ones is still
-  -- excluded, which is the gate doing its job.
+  -- GATE, three arms (founder instruction 857, 23 Sep 2026: "if he didnt tick it in the customer portal
+  -- in his profile then yea it means he didnt confirm that he does it basically"). A supplier that
+  -- declares a trade the inquiry named services in, and ticked NONE of the named ones, has not
+  -- confirmed he does them and does not receive the inquiry. The "silent in a declared named trade"
+  -- arm that let him through is removed; see this file's header.
   where (select k from n) = 0          -- the inquiry named no service this taxonomy knows
-     or cardinality(c.service_hits) > 0 -- it covers one of the services named
-     or cardinality(c.silent_in) > 0    -- it declares a named trade and has named nothing in it
-     or c.never_asked                   -- the services named are in no trade it declares
+     or cardinality(c.service_hits) > 0 -- he ticked one of the services named
+     or c.never_asked                   -- the services named are in no trade he declares
 ),
 ranked as (
   select s.*,
@@ -42400,17 +42392,10 @@ select r.supplier_id, r.company_name, r.score_v as score,
   concat_ws(' · ',
     'trades ' || array_to_string(array(select unnest(r.trades) intersect select unnest(p_trades)), '+'),
     case when cardinality(r.service_hits) > 0 then cardinality(r.service_hits)||'/'||(select k from n)||' services' end,
-    -- WHICH trade it passed at trade level in, not merely that it did (re-review finding A): a
-    -- multi-trade inquiry can hit a service in one trade and pass on silence in another, and the audit
-    -- trail has to say which was which.
-    case when cardinality(r.silent_in) > 0
-           then 'trade level in ' || array_to_string(r.silent_in, '+') end,
-    -- The never-asked arm populates neither silent_in nor service_hits, so it needs its own line or the
-    -- audit trail would show a candidate with no reason at all (re-review finding C).
-    -- ...and only when there was no hit. fn_services_effective adds implied keys through the curated map,
-    -- and an implication can land in a trade the supplier does not declare, so a row CAN be admitted on a
-    -- genuine hit while never_asked is also true. Without this clause `why` printed "1/1 services" and
-    -- "no service named in this supplier's trades" on the same line, which contradicts itself.
+    -- The never-asked arm populates no service hit, so it needs its own line or the audit trail would
+    -- show a candidate with no reason. Only when there was no hit: an implied key can land in a trade
+    -- the supplier does not declare, so a row can be admitted on a genuine hit while never_asked is
+    -- also true, and "1/1 services" beside "no service named" would contradict itself.
     case when (select k from n) > 0 and r.never_asked and cardinality(r.service_hits) = 0
            then 'trade level (no service named in this supplier''s trades)' end,
     case when cardinality(r.via_implication) > 0 then 'implied: ' || array_to_string(r.via_implication, ', ') end,
@@ -47629,6 +47614,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -47799,16 +47794,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -56710,37 +56695,82 @@ AS $function$
     select t.code, t.label, coalesce(t.label_ar, t.label) as label_ar
       from sc, unnest(coalesce(sc.trades, '{}'::text[])) tr
       join public.taxonomy_trade t on t.code = tr
-     where exists (select 1 from keys where keys.trade_code = tr)
+     where public.fn_supplier_portfolio_match_reads_ticks()
+       and exists (select 1 from keys where keys.trade_code = tr)
        and not exists (select 1 from unnest(coalesce(sc.services, '{}'::text[])) s
-                         join keys on keys.k = s
-                        where keys.trade_code = tr and s <> all (coalesce(sc.services_removed, '{}'::text[])))
+                         join keys on keys.k = btrim(s)
+                        where keys.trade_code = tr and btrim(s) <> all (coalesce(sc.services_removed, '{}'::text[])))
   ),
   own as (
     select distinct btrim(w) as w
       from sc, unnest(coalesce(sc.services, '{}'::text[])) w
-     where nullif(btrim(w), '') is not null and w not in (select k from keys)
+     where nullif(btrim(w), '') is not null and btrim(w) not in (select k from keys)
+  ),
+  named as (   -- the first active service an alias of which names the word
+    select o.w, x.key, x.label_en, x.label_ar, x.trade_en, x.trade_ar
+      from own o
+      cross join lateral (
+        select s.trade_code || '.' || s.code as key, s.label_en, s.label_ar, t.label as trade_en, coalesce(t.label_ar, t.label) as trade_ar
+          from public.taxonomy_trade_service s
+          join public.taxonomy_trade t on t.code = s.trade_code
+          cross join lateral unnest(s.aliases) a
+         where s.active and length(public.fn_ar_norm(a)) >= 3
+           and public.fn_ar_norm(o.w) ~* ('\m' || case
+                 when public.fn_ar_norm(a) ~ '^[ء-ي]'
+                   then '(?:[وفبلك]?ال|[وف]?لل|[وفبلك])?'
+                        || replace(replace(regexp_replace(public.fn_ar_norm(a), '([.*+?^${}()|\[\]\\])', '\\\1', 'g'), ' ', ' (?:ال)?'), ' (?:ال)?و', ' و(?:ال)?')
+                 else regexp_replace(public.fn_ar_norm(a), '([.*+?^${}()|\[\]\\])', '\\\1', 'g')
+               end)
+         order by s.sort, s.trade_code, s.code limit 1) x
+  ),
+  unnamed as (select o.w from own o where o.w not in (select w from named)),
+  proposed as (   -- said "under review" only when a review row really exists
+    select exists (select 1 from public.taxonomy_trade_proposal p, unnamed u
+                    where p.supplier_id = p_lead_id and p.status = 'pending'
+                      and (btrim(p.label_en) = u.w or btrim(p.label_ar) = u.w)) as yes
   )
   select case
     when not exists (select 1 from sc) then jsonb_build_array(jsonb_build_object(
       'code', 'services_not_confirmed',
-      'en', 'You have not confirmed the services your company provides yet, so no request can reach you.',
-      'ar', 'لم تؤكّدوا بعد الخدمات التي تقدّمها شركتكم، ولذلك لا يصلكم أي طلب.'))
+      'en', 'You have not confirmed the services your company provides yet, so no inquiry can reach you.',
+      'ar', 'لم تؤكّدوا بعد الخدمات التي تقدّمها شركتكم، ولذلك لا يصلكم أي استفسار.'))
     else
       coalesce((select jsonb_agg(jsonb_build_object(
           'code', 'trade_without_service', 'trade', s.code,
-          'en', s.label || ': no service is ticked yet, so requests that name a service in this trade do not reach you.',
-          'ar', s.label_ar || ': لم تحدّدوا أي خدمة فيه بعد، ولذلك لا تصلكم الطلبات التي تذكر خدمة في هذا التخصص.')
+          'en', s.label || ': no service is ticked yet, so inquiries that name a service in this trade do not reach you.',
+          'ar', s.label_ar || ': لم تحدّدوا أي خدمة فيه بعد، ولذلك لا تصلكم الاستفسارات التي تذكر خدمة في هذا التخصص.')
           order by s.code) from silent s), '[]'::jsonb)
+      || coalesce((select jsonb_agg(jsonb_build_object(
+          'code', 'own_word_is_a_service', 'word', n.w, 'service', n.key,
+          'en', '«' || n.w || '» is on our list as "' || n.label_en || '" under ' || n.trade_en
+                || '. Tick it in the Services tab so the inquiries that name it reach you.',
+          'ar', '«' || n.w || '» مدرجة في قائمتنا باسم «' || n.label_ar || '» ضمن ' || n.trade_ar
+                || '. يُرجى تحديدها في تبويب «الخدمات» لتصلكم الاستفسارات التي تذكرها.')
+          order by n.w) from named n), '[]'::jsonb)
       || coalesce((select jsonb_build_array(jsonb_build_object(
-          'code', 'own_words', 'words', jsonb_agg(o.w order by o.w),
-          'en', 'Written in your own words and not yet matched to a service on our list: '
-                || string_agg('«' || o.w || '»', ', ' order by o.w)
-                || '. Our sales engineer is reviewing them; until then they match no request. If one of them is on the list under another name, tick it there.',
-          'ar', 'خدمات كتبتموها بأسلوبكم ولم تُطابَق بعد مع أي خدمة في قائمتنا: '
-                || string_agg('«' || o.w || '»', '، ' order by o.w)
-                || '. ويراجعها مهندس المبيعات حاليًا، ولا تُطابَق مع أي طلب إلى حين اعتمادها. وإن وجدتم أيًّا منها في القائمة باسم آخر، فحدّدوه هناك.'))
-          from own o having count(*) > 0), '[]'::jsonb)
+          'code', 'own_words', 'words', jsonb_agg(u.w order by u.w),
+          'en', 'Written in your own words and not on our list: '
+                || string_agg('«' || u.w || '»', ', ' order by u.w)
+                || '. As written they match no inquiry. If one of them is on the list under another name, tick it there'
+                || case when (select yes from proposed) then '; our sales engineer is reviewing them for the list' else '' end || '.',
+          'ar', 'خدمات كتبتموها بأسلوبكم وليست في قائمتنا: '
+                || string_agg('«' || u.w || '»', '، ' order by u.w)
+                || '. ولا تُطابَق بصيغتها هذه مع أي استفسار. وإن وجدتم أيًّا منها في القائمة باسم آخر، فحدّدوه هناك'
+                || case when (select yes from proposed) then '، ويراجعها مهندس المبيعات حاليًا لإضافتها إلى القائمة' else '' end || '.'))
+          from unnamed u having count(*) > 0), '[]'::jsonb)
   end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_portfolio_match_reads_ticks()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(nullif(current_setting('qd.probe_match_reads_ticks', true), '')::boolean,
+                  position('silent_in' in pg_get_functiondef(
+                    'public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])'::regprocedure)) = 0)
 $function$
 
 
@@ -56762,10 +56792,10 @@ begin
     from jsonb_array_elements(coalesce(p_gaps, '[]'::jsonb)) with ordinality x(g, o);
 
   if v_ar then
-    v_subj := 'خدماتكم لم تُستكمل بعد، وقد تفوتكم طلبات عروض الأسعار';
+    v_subj := 'خدماتكم لم تُستكمل بعد، وقد تفوتكم استفسارات العملاء';
     v_body := coalesce('السادة/ ' || v_name || ' المحترمين،', 'السادة الكرام،') || E'\n\nتحية طيبة وبعد،\n\n'
       || 'نشكركم على إتمام توثيق شركتكم لدى QuotesDone. وقد راجع مهندس المبيعات ملف أعمالكم، وتبيّن أن بعض بياناته لم تُستكمل بعد. '
-      || 'ولمّا كانت الطلبات لا تصلكم إلا في الخدمات التي أكّدتموها، نرجو استكمال ما يلي:'
+      || 'وتعتمد مطابقة الاستفسارات على الخدمات التي أكّدتموها، لذا نرجو استكمال ما يلي:'
       || E'\n\n' || coalesce(v_items, '')
       || E'\n\nطريقة الاستكمال (تستغرق دقيقتين تقريبًا):'
       || E'\n1. سجّلوا الدخول إلى بوابة الموردين: ' || v_link
@@ -56774,15 +56804,15 @@ begin
       || E'\n4. إن لم تجدوا في القائمة خدمة تقدّمونها، فاكتبوها في خانة «أضيفوا الخدمات التي تقدّمونها» ثم اضغطوا «إعادة صياغة خدماتي».'
       || E'\n5. اضغطوا «تأكيد خدماتي» لحفظ التغييرات، أو «تحديث خدماتي» إن سبق لكم الحفظ.'
       || E'\n\nالخيارات المتاحة لكم:'
-      || E'\n• تحديد الخدمات التي تقدّمونها، فتصلكم الطلبات التي تذكرها.'
-      || E'\n• إزالة التخصص الذي لا تعملون فيه، فلا تصلكم طلباته بعد ذلك.'
+      || E'\n• تحديد الخدمات التي تقدّمونها، فتصلكم الاستفسارات التي تذكرها.'
+      || E'\n• إزالة التخصص الذي لا تعملون فيه، فلا تصلكم استفساراته بعد ذلك.'
       || E'\n• إن احتجتم إلى المساعدة، يكفي الرد على هذه الرسالة أو مراسلتنا عبر واتساب، وسيستكمل فريقنا البيانات معكم.'
       || E'\n\nوتفضلوا بقبول فائق الاحترام والتقدير،\nفريق خدمة العملاء — QuotesDone';
   else
-    v_subj := 'Your services are not complete yet, so you may miss requests';
+    v_subj := 'Your services are not complete yet, so you may miss inquiries';
     v_body := coalesce('Dear ' || v_name || ',', 'Dear Sir or Madam,') || E'\n\n'
       || 'Thank you for completing your verification with QuotesDone. Our sales engineer has reviewed your company''s portfolio, and some of it is still missing. '
-      || 'Requests reach you only for the services you have confirmed, so please complete the following:'
+      || 'Inquiries are matched against the services you have confirmed, so please complete the following:'
       || E'\n\n' || coalesce(v_items, '')
       || E'\n\nHow to complete it (about two minutes):'
       || E'\n1. Sign in to your supplier portal: ' || v_link
@@ -56791,13 +56821,23 @@ begin
       || E'\n4. If a service you provide is not on the list, write it under "Add the services you provide" and press "Rewrite my services".'
       || E'\n5. Press "Confirm my services" to save, or "Update my services" if you have saved before.'
       || E'\n\nYour options:'
-      || E'\n• Tick the services you provide: you will receive the requests that name them.'
-      || E'\n• Remove a trade you do not work in: you will no longer receive requests for it.'
+      || E'\n• Tick the services you provide: you will receive the inquiries that name them.'
+      || E'\n• Remove a trade you do not work in: you will no longer receive inquiries for it.'
       || E'\n• Need help? Reply to this e-mail or message us on WhatsApp, and our team will complete it with you.'
       || E'\n\nKind regards,\nQuotesDone Customer Support';
   end if;
   return jsonb_build_object('lang', v_lang, 'subject', v_subj, 'body', v_body, 'link', v_link);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_portfolio_reminder_still_due(p_lead_id bigint)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_array_length(public.fn_supplier_portfolio_gaps(p_lead_id)) > 0
 $function$
 
 
@@ -56809,10 +56849,13 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_portfolio_reminder_tick(p_include_
 AS $function$
 declare
   v_days int := public.fn_seat_clock_policy('supplier_portfolio_reminder_working_days', 3)::int;
-  h public.agent_actions; l public.leads; v_gaps jsonb; v_due timestamptz; v_ev jsonb; v_email text; v_wa text;
-  v_opened int := 0; v_complete int := 0; v_closed int := 0; v_unverified int := 0;
+  h public.agent_actions; l public.leads; v_gaps jsonb; v_due timestamptz; v_ev jsonb;
+  e public.notifications; w public.notifications; v_key text; v_failed int;
+  v_local timestamp := p_now at time zone 'Asia/Dubai';
+  v_open_hours boolean;
+  v_opened int := 0; v_complete int := 0; v_closed int := 0; v_waiting int := 0; v_capped int := 0;
 begin
-  -- 1. RE-VERIFY WHAT SUPPORT ANSWERED, THEN CLOSE IT. Only the originator closes.
+  -- 1. RE-VERIFY WHAT SUPPORT ANSWERED; CLOSE ONLY WHEN EVERY LEG IS FINAL. Only the originator closes.
   for h in select a.* from public.agent_actions a
             where a.kind = 'handoff' and a.agent = 'customer_support' and a.detail->>'type' = 'supplier.portfolio_incomplete'
               and a.status not in ('done', 'failed') and a.detail ? 'replied_at'
@@ -56822,11 +56865,18 @@ begin
     if v_ev ? 'not_sent' then
       v_ev := v_ev || jsonb_build_object('reverified', 'nothing was sent, and the reason is recorded');
     else
-      select n.status into v_email from public.notifications n where n.id = (v_ev->>'notification_id')::bigint;
-      select n.status into v_wa from public.notifications n where n.id = (v_ev#>>'{whatsapp,notification_id}')::bigint;
-      if v_email is null then v_unverified := v_unverified + 1; continue; end if;   -- stays open: nothing to prove it
-      v_ev := v_ev || jsonb_build_object('reverified', 'the email is on the outbox', 'email_status', v_email,
-                                         'whatsapp_status', coalesce(v_wa, v_ev#>>'{whatsapp,state}'));
+      e := null; w := null;
+      select * into e from public.notifications n where n.id = (v_ev->>'notification_id')::bigint;
+      select * into w from public.notifications n where n.id = (v_ev#>>'{whatsapp,notification_id}')::bigint;
+      if e.id is null or e.status in ('queued', 'pending', 'sending', 'claimed')
+         or (w.id is not null and w.status in ('queued', 'pending', 'sending', 'claimed')) then
+        v_waiting := v_waiting + 1; continue;   -- stays open: a leg has not reached a final state
+      end if;
+      v_ev := v_ev || jsonb_build_object(
+        'reverified', 'both legs reached a final state',
+        'email', jsonb_build_object('status', e.status, 'sent_at', e.sent_at, 'provider_message_id', e.provider_message_id, 'reason', e.last_error),
+        'whatsapp_final', case when w.id is null then v_ev->'whatsapp'
+                               else jsonb_build_object('status', w.status, 'sent_at', w.sent_at, 'provider_message_id', w.provider_message_id, 'reason', w.last_error) end);
     end if;
     perform set_config('qd.handoff_closer', 'sales_engineer', true);
     perform public.fn_seat_handoff_complete(h.id, v_ev || jsonb_build_object('reverified_by', 'sales_engineer', 'reverified_at', p_now));
@@ -56834,7 +56884,12 @@ begin
     v_closed := v_closed + 1;
   end loop;
 
-  -- 2. DETECT. One handoff per supplier per verification, never before the third working day.
+  -- 2. DETECT, in Dubai working hours only (09:00-18:00 on a working day): a message about his account
+  --    lands while his office is open, not at midnight.
+  v_open_hours := public.fn_is_working_day(v_local::date) and v_local::time >= time '09:00' and v_local::time < time '18:00';
+  if not v_open_hours then
+    return jsonb_build_object('ok', true, 'opened', 0, 'outside_working_hours', true, 'closed', v_closed, 'awaiting_final_state', v_waiting);
+  end if;
   for l in select * from public.leads x
             where x.verified and x.approval_status = 'approved' and x.approved_at is not null and not coalesce(x.banned, false)
               and public.fn_add_working_days(x.approved_at, v_days) <= p_now
@@ -56845,18 +56900,32 @@ begin
                                where a.kind = 'handoff' and a.agent = 'customer_support' and a.status <> 'failed'
                                  and a.target_id = 'supplier.portfolio_incomplete:' || x.id || ':' || extract(epoch from x.approved_at)::bigint)
             order by x.id loop
+    v_key := 'supplier.portfolio_incomplete:' || l.id || ':' || extract(epoch from l.approved_at)::bigint;
+    -- A HANDLER THAT KEEPS FAILING IS TRIED THREE TIMES, then recorded once for its seat, not every 30 minutes.
+    select count(*) into v_failed from public.agent_actions a
+     where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'failed' and a.target_id = v_key;
+    if v_failed >= 3 then
+      if not exists (select 1 from public.it_engineer_finding where issue_key = 'portfolio_reminder_failed:' || v_key) then
+        perform public.fn_it_engineer_finding_upsert('portfolio_reminder_failed:' || v_key,
+          left('The portfolio reminder for supplier ' || l.id || ' failed ' || v_failed || ' times and is no longer retried', 300),
+          'fn_supplier_portfolio_reminder_tick', 'agent_facing', 1,
+          jsonb_build_object('lead_id', l.id, 'handoff_key', v_key, 'owner_seat', 'sales_engineer',
+                             'last_error', (select a.detail->>'error' from public.agent_actions a where a.target_id = v_key and a.status = 'failed' order by a.id desc limit 1)),
+          '{}'::text[], '{}'::text[], 'sales_engineer');
+      end if;
+      v_capped := v_capped + 1; continue;
+    end if;
     v_gaps := public.fn_supplier_portfolio_gaps(l.id);
     if jsonb_array_length(v_gaps) = 0 then v_complete := v_complete + 1; continue; end if;   -- did it straight away
     v_due := public.fn_add_working_days(l.approved_at, v_days);
-    perform public.fn_seat_handoff('sales_engineer', 'customer_support', 'supplier.portfolio_incomplete', 'leads',
-      l.id || ':' || extract(epoch from l.approved_at)::bigint,
+    perform public.fn_seat_handoff('sales_engineer', 'customer_support', 'supplier.portfolio_incomplete', 'leads', l.id || ':' || extract(epoch from l.approved_at)::bigint,
       jsonb_build_object('lead_id', l.id, 'verified_at', l.approved_at, 'due_at', v_due, 'gaps_at_detection', v_gaps,
                          'fixture', public.fn_seat_clock_lead_is_fixture(l)));
     v_opened := v_opened + 1;
   end loop;
 
   return jsonb_build_object('ok', true, 'opened', v_opened, 'complete_at_due', v_complete,
-                            'closed', v_closed, 'awaiting_proof', v_unverified);
+                            'closed', v_closed, 'awaiting_final_state', v_waiting, 'retries_exhausted', v_capped);
 end
 $function$
 

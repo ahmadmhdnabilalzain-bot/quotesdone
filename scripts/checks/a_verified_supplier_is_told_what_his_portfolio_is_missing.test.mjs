@@ -69,6 +69,39 @@ test('the message is written in English and in formal Arabic', () => {
   assert.match(body, /Services tab/, 'the English guide does not say where to click');
 });
 
+// THE LOGIC, NOT THE FILES (review of #869). While the live matcher still reaches a supplier who ticked
+// nothing in a trade (fn_match_capability's silent_in arm, removed by #868), telling him "requests in this
+// trade do not reach you" is false, so that gap must not be raised. And a word an active alias already
+// names is not "unmatched": he is told which service it is. The first version of the gap reader failed both.
+test('live: no trade gap while the matcher still reaches silent suppliers; an aliased word names its service', { skip: SKIP }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  const r = await sql(`
+    create temp table if not exists zz_gap_logic (v text) on commit drop;
+    do $t$
+    declare v_id bigint; g jsonb; f text := ''; v_silent boolean;
+    begin
+      v_silent := position('silent_in' in pg_get_functiondef('public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])'::regprocedure)) > 0;
+      begin
+        insert into public.leads (company_name, email) values ('ZZ DEMO gap logic', 'zz.gaplogic@example.invalid') returning id into v_id;
+        insert into public.supplier_capabilities (supplier_id, trades, roles, services, confirmed_at)
+          values (v_id, '{painting}', '{contractor}', array['الدهانات'], now());
+        g := public.fn_supplier_portfolio_gaps(v_id);
+        if v_silent and g @> '[{"code":"trade_without_service"}]' then f := f || 'a trade gap was raised while the live matcher still reaches silent suppliers; '; end if;
+        if not v_silent and not g @> '[{"code":"trade_without_service"}]' then f := f || 'no trade gap once the matcher reads ticks; '; end if;
+        if not coalesce(g::text like '%painting.interior%', false) then f := f || 'the aliased word «الدهانات» was not told its service (painting.interior): ' || coalesce(g::text, 'null') || '; '; end if;
+        raise exception 'zz_done';
+      exception when others then if sqlerrm <> 'zz_done' then f := f || 'raised: ' || sqlerrm; end if;
+      end;
+      insert into zz_gap_logic values (case when f = '' then 'OK' else f end);
+    end $t$;
+    select v from zz_gap_logic;`, { retry: false });
+  assert.equal(String(r?.[0]?.v), 'OK');
+});
+
+test('send_whatsapp re-reads the portfolio before this reminder leaves', () => {
+  assert.match(WA, /supplier_portfolio_incomplete'[\s\S]{0,400}fn_supplier_portfolio_reminder_still_due/, 'a WhatsApp copy can leave after the supplier completed his portfolio');
+});
+
 test('the rolled-back rehearsal on production answers PROBE OK', { skip: SKIP }, async () => {
   assert.ok(PROBE, 'no probe file');
   const { sql } = await import('../lib/db.mjs');
