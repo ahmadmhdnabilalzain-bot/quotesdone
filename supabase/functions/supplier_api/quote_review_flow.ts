@@ -330,8 +330,16 @@ export async function typed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquir
  *  lines that each carry a number: the cheapest test that separates "Gypsum partition 120 sqm 95"
  *  from "validity 30 days", and it only ever decides which READER runs — the review is the same. */
 const PRICED_LINES = 2;
-export const looksTyped = (text: string): boolean =>
-  String(text || '').split(/\r?\n/).filter((l) => /\d/.test(l) && l.trim().length > 6).length >= PRICED_LINES;
+// A ONE-LINE QUOTATION IS STILL A QUOTATION (23 Sep 2026, re-review of SP-F-03). Two priced lines is
+// the right test in the middle of a review, where most messages are sentences and a false positive
+// would hijack a real reply. It is the WRONG test in the one state SP-F-03 exists to close: nothing
+// read yet, or awaiting_upload, the supplier has just been told "type it here", and a single-line
+// "Supply and install aluminium louvres, 60 sqm, 240 = 14400" fell through to "attach the new
+// version" — the dead end itself. There, one priced line is enough. A false positive there is cheap:
+// readTyped answers with typedUnreadableSaid, which tells the supplier how to type it AND that a file
+// is welcome, so it says strictly more than the awaitingUploadSaid it replaces.
+export const looksTyped = (text: string, minLines = PRICED_LINES): boolean =>
+  String(text || '').split(/\r?\n/).filter((l) => /\d/.test(l) && l.trim().length > 6).length >= minLines;
 
 async function readTyped(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, r0: ReviewRow, t: string, trigger: string): Promise<ThreadView> {
   const prior = effectiveState(r0, deps.now());
@@ -373,7 +381,7 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
     await runReview(repo, deps, l.inq, r, applyCorrections(r.working, rr.corrections, l.inq.boq_rows), sm.id);
   } else if (rr.topic) {
     await say(repo, r.id, 'text', answerSaid(rr.topic, l.inq.job_no, open, r.last_review?.boq_lines ?? l.inq.boq_rows.length));
-  } else if ((!r.working || st === 'awaiting_upload') && looksTyped(t)) {
+  } else if ((!r.working || st === 'awaiting_upload') && looksTyped(t, 1)) {
     // THE CHAT BOX IS ALSO THE TYPED PATH (finding SP-F-03). A supplier who answers "type it here"
     // by doing exactly that is using this action, not review_typed, and being told "attach the new
     // version" for the third time is what sent them to the form outside the conversation. The same

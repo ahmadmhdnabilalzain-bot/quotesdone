@@ -451,7 +451,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
                       <span className="text-[12px] text-muted-foreground" dir="auto">{sc(lang, 'meaning_because')} “{p.lines[0]}”</span>
                     </div>
                     <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleKeep(p.key)}>
-                      {kept.has(p.key) ? sc(lang, 'remove') : sc(lang, 'restore')}
+                      {/* "Add", not "Add back": the proposal starts off and was never on the list. */}
+                      {kept.has(p.key) ? sc(lang, 'remove') : sc(lang, 'add')}
                       <span className="sr-only">: {ar ? p.label_ar : p.label_en}</span>
                     </Button>
                   </li>

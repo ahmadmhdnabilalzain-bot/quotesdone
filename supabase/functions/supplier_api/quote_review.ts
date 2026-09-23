@@ -397,7 +397,7 @@ export function generatedSaid(job: string, w: Working, priceExVat: number | null
   ].filter(Boolean);
   return {
     en: `Here is the standardised QuotesDone quotation I have prepared for Job ${job}, exactly as the customer would receive it. Nothing has been sent yet.\n\n`
-      + `${lines.map(rowEn).join('\n')}${more ? `\n… the first ${PREVIEW_LINES} lines are shown; the remaining ${more} are in the quotation and in its PDF.` : ''}\n\n${termsEn.join('\n')}\n\n`
+      + `${lines.map(rowEn).join('\n')}${more ? `\n… the first ${PREVIEW_LINES} lines are shown; the remaining ${more} ${more === 1 ? 'line is' : 'lines are'} in the quotation and in its PDF.` : ''}\n\n${termsEn.join('\n')}\n\n`
       + `Read it through. If it is right, press "Submit to Job ${job}" (or reply "submit") and I will send it and attach the PDF here. If anything is wrong, tell me what to change, or attach your own version instead.`,
     ar: `هذا هو عرض QuotesDone الموحّد الذي أعددته للطلب ${job}، بالصيغة نفسها التي سيستلمها العميل. ولم يُرسل شيء بعد.\n\n`
       + `${lines.map(rowAr).join('\n')}${more ? `\n… المعروض هنا أول ${PREVIEW_LINES} بندًا، وبقية البنود (${more}) مدرجة في العرض وفي نسخته PDF.` : ''}\n\n${termsAr.join('\n')}\n\n`

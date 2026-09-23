@@ -3161,7 +3161,8 @@ CREATE TABLE IF NOT EXISTS public.inquiries (
   accepted_alternatives jsonb DEFAULT '[]'::jsonb NOT NULL,
   spec_offer_checked_at timestamp with time zone,
   spec_offer_attempts integer DEFAULT 0 NOT NULL,
-  spec_offer_next_attempt_at timestamp with time zone
+  spec_offer_next_attempt_at timestamp with time zone,
+  service_keys text[]
 );
 
 CREATE TABLE IF NOT EXISTS public.inquiry_answer (

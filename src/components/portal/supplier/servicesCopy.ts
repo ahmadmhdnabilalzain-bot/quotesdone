@@ -48,6 +48,9 @@ export const SERVICES_COPY = {
     implied_because: 'Included because',
     own_words_title: 'Kept in your own words',
     own_words_help: 'We do not list these yet, so we keep them exactly as you wrote them and our sales engineer reviews them. We never drop them ourselves — remove one only if you did not mean it.',
+    // ADD vs ADD BACK (23 Sep 2026, re-review of SP-F-06). `restore` is for a stated service the
+    // supplier removed — that one really is coming back. The meaning layer's proposals start OFF and
+    // were never on the list, so they use the existing `add` key above instead.
     restore: 'Add back',
     removed_badge: 'Removed',
     edit_text: 'Edit my description',
@@ -59,7 +62,7 @@ export const SERVICES_COPY = {
     we_also_install: 'We also install',
     we_only_supply: 'We only supply',
     meaning_title: 'Services we understood from your wording',
-    meaning_help: 'These are not word-for-word matches: we read what the line means, and each is shown with the line that supports it. Remove any that are wrong.',
+    meaning_help: 'These are not word-for-word matches: we read what the line means, and each is shown with the line that supports it. None of them is on your list yet — add the ones you do.',
     meaning_because: 'From:',
     mic_start: 'Speak your services',
     mic_stop: 'Stop recording',
@@ -134,7 +137,7 @@ export const SERVICES_COPY = {
     we_also_install: 'نتولّى التركيب أيضًا',
     we_only_supply: 'نكتفي بالتوريد',
     meaning_title: 'خدمات استخلصناها من وصفكم',
-    meaning_help: 'هذه ليست مطابقة حرفية للكلمات؛ فقد قرأنا معنى كل سطر، وتظهر كل خدمة مع السطر الذي تستند إليه. يُرجى إزالة أي خدمة غير صحيحة.',
+    meaning_help: 'هذه ليست مطابقة حرفية للكلمات؛ فقد قرأنا معنى كل سطر، وتظهر كل خدمة مع السطر الذي تستند إليه. ولم تُضَف أيٌّ منها إلى قائمتكم بعد — أضيفوا ما تنفّذونه منها.',
     meaning_because: 'من:',
     mic_start: 'تسجيل الخدمات صوتيًا',
     mic_stop: 'إيقاف التسجيل',

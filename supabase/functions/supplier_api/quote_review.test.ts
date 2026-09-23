@@ -7,7 +7,7 @@
 import { assert, assertEquals, assertMatch, assertStringIncludes } from 'jsr:@std/assert@1';
 import { sanitizeUpload, SAFE_DOCS } from '../_shared/attachment.ts';
 import {
-  applyCorrections, fromMissing, issueKey, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
+  applyCorrections, fromMissing, generatedSaid, issueKey, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
   type IssueCode, type SafeInquiry, type Working,
 } from './quote_review.ts';
 import { choose, message, readQuotationFile, start, submit, submitPayload, thread, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
@@ -243,6 +243,34 @@ Deno.test('a quotation typed into the chat is read and reviewed exactly like an 
   assertEquals(t2.state, 'open');
   assertMatch(t2.messages.at(-1)!.body_en || '', /could not read a priced item/);
   assertEquals(((await typed(empty.mem.repo, empty.deps, empty.ctx, INQ_ID, '   ')) as { code?: string }).code, 'text_required');
+
+  // A ONE-LINE QUOTATION IS NOT A DEAD END (23 Sep 2026, re-review of SP-F-03). review_typed has no
+  // caller in src/ — quoteReviewApi.ts exposes choose/submit/message/upload — so the chat box IS the
+  // typed path, and its two-priced-line test sent a single-line quotation straight back to "attach
+  // the new version": the exact dead end SP-F-03 exists to close. Pre-fix this asserts that reply.
+  const one = harness();
+  await start(one.mem.repo, one.deps, one.ctx, INQ_ID);
+  const t3 = ok(await message(one.mem.repo, one.deps, one.ctx, INQ_ID,
+    'Jotun Fenomastic emulsion 2 coats internal walls 450 m2 20 = 9000'));
+  const last = t3.messages.at(-1)!;
+  assert(!/attach the new version/.test(last.body_en || ''), 'a single priced line was answered with "attach the new version" instead of being read');
+  // It was READ, so the review ran and raised its own points (this one line states no VAT basis, no
+  // validity, no lead time and no warranty). changes_requested is the conversation carrying on; the
+  // pre-fix answer left the thread in 'open' with nothing raised.
+  assertEquals(t3.state, 'changes_requested', JSON.stringify(t3.open_requests));
+  assert(t3.open_requests.some((q) => q.code === 'validity'), 'the typed line was not reviewed');
+});
+
+// SP-F-06 / finding 6 of the re-review (23 Sep 2026): the preview prints at most PREVIEW_LINES lines
+// and then says how many are left. At exactly one left it read "the remaining 1 are in the quotation".
+// The Arabic was already number-safe — it carries the count in brackets — so only the English moved.
+Deno.test('the generated preview counts the lines it did not print, in both languages', () => {
+  const line = (i: number) => ({ line_no: i + 1, description: `Line ${i + 1}`, qty: 1, unit: 'no', unit_price: 100, amount: 100, boq_line_no: null });
+  const said = (n: number) => generatedSaid('J-1', { lines: Array.from({ length: n }, (_, i) => line(i)), amount: n * 100, validity: '30 days', lead_time: null, warranty: null, payment_terms: null, exclusions: null, currency: 'AED' } as unknown as Working, n * 100);
+  assertMatch(said(41).en, /the remaining 1 line is in the quotation/);
+  assertMatch(said(42).en, /the remaining 2 lines are in the quotation/);
+  assert(!/remaining/.test(said(40).en), 'at exactly 40 lines nothing is left over, so nothing is counted');
+  assertMatch(said(41).ar, /وبقية البنود \(1\)/);
 });
 
 Deno.test('the hold gate disagreeing reopens the conversation with its own list', async () => {
