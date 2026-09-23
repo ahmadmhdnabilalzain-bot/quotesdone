@@ -46,6 +46,10 @@ import { observe } from '../_shared/observe.ts';
 import type { FaqRow } from '../_shared/chat_answers.ts';
 import { clip, handshake, maxLen, OUR_METADATA, parseEvents, pickPage, sendRequest, tokenExpired, verifySignature, withinWindow, type InboundEvent, type PageAccount } from './meta.ts';
 import { decide, unknown, type CorpusRow, type Decision, type LibraryRow } from './reply.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { ackThenWork } from '../_shared/async_webhook.ts';
+import { requireInternal } from '../_shared/internal_auth.ts';
+import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
@@ -70,21 +74,67 @@ Deno.serve(observe('marketing_social_inbox', async (req) => {
   if (req.method !== 'POST') return new Response('method not allowed', { status: 405 });
 
   const raw = await req.text();
+  // THE REASONED HANDOFF (23 Sep 2026). A person check held under the model hold, reasoned later by the
+  // replay, arrives here with an internal credential; the handoff is sent on the platform reply path.
+  if ((req.headers.get('content-type') || '').includes('application/json')) {
+    let j: Record<string, unknown> = {};
+    try { j = JSON.parse(raw); } catch (_e) { j = {}; }
+    if (j.action === 'reasoned_handoff') {
+      const auth = await requireInternal(admin, j.__secret, 'marketing_social_inbox');
+      if (!auth.ok) return new Response(JSON.stringify({ ok: false, error: 'forbidden' }), { status: 403 });
+      const out = await reasonedHandoff(String(j.platform || ''), String(j.message_id || ''));
+      return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
+  }
   if (!(await verifySignature(raw, req.headers.get('x-hub-signature-256'), await sec('meta_app_secret')))) {
     return new Response('invalid signature', { status: 403 });
   }
   let body: unknown;
   try { body = JSON.parse(raw); } catch (_e) { return new Response('bad json', { status: 400 }); }
 
-  const outcomes: string[] = [];
-  for (const ev of parseEvents(body)) {
-    // One bad event must not make Meta redeliver the whole batch: each is handled on its own, and
-    // the batch is acknowledged with 200 either way (Meta disables a webhook that keeps failing).
-    try { outcomes.push(await handle(ev)); }
-    catch (e) { outcomes.push('error:' + String((e as Error)?.message || e).slice(0, 120)); }
-  }
-  return new Response(JSON.stringify({ ok: true, outcomes }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  const events = parseEvents(body);
+  const handleAll = async () => {
+    const outcomes: string[] = [];
+    for (const ev of events) {
+      // One bad event must not make Meta redeliver the whole batch: each is handled on its own, and
+      // the batch is acknowledged with 200 either way (Meta disables a webhook that keeps failing).
+      try { outcomes.push(await handle(ev)); }
+      catch (e) { outcomes.push('error:' + String((e as Error)?.message || e).slice(0, 120)); }
+    }
+    return outcomes;
+  };
+  // META IS ANSWERED AT ONCE (23 Sep 2026): the signature is verified above, the events are handled after
+  // the 200 under EdgeRuntime.waitUntil, so reasoning (think(): several model calls) can never run past
+  // Meta's webhook deadline (_shared/async_webhook.ts). Each event's outcome is still written on its row.
+  return ackThenWork(new Response(JSON.stringify({ ok: true, accepted: events.length }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    handleAll, 'marketing_social_inbox');
 }));
+
+/** Send the handoff for a message whose person check was reasoned after the fact. Idempotent per message. */
+async function reasonedHandoff(platform: string, messageId: string): Promise<{ ok: boolean; error?: string; outcome?: string }> {
+  const { data: m } = await admin.from('social_message').select('id,conversation_id,channel,parent_id,body,occurred_at')
+    .eq('platform', platform).eq('meta_message_id', messageId).eq('direction', 'in').maybeSingle();
+  if (!m) return { ok: false, error: 'message_not_found' };
+  const { data: already } = await admin.from('social_message').select('id').eq('in_reply_to', m.id).eq('reply_kind', 'handoff').limit(1);
+  if (already && already.length) return { ok: true, outcome: 'already_handed_off' };
+  const { data: conv } = await admin.from('social_conversation').select('id,platform,user_id,account_id,handle').eq('id', m.conversation_id).single();
+  if (!conv) return { ok: false, error: 'conversation_not_found' };
+  const ev: InboundEvent = { platform: conv.platform, channel: m.channel, accountId: conv.account_id, userId: conv.user_id, handle: conv.handle,
+    messageId, text: String(m.body || ''), at: new Date(m.occurred_at), parentId: m.parent_id, echo: false, echoAppId: null, echoMetadata: null };
+  // Meta's own window decides whether a reply may still be sent (meta.ts); outside it the founder is still told.
+  const { data: lib } = await admin.from('social_reply_library').select('key,priority,match_words,reply_en,reply_ar,active').eq('active', true);
+  const d = decide(ev.text, (lib || []) as LibraryRow[], [], [], true);
+  await admin.rpc('fn_marketing_social_hand_to_human', { p_conversation_id: conv.id, p_reason: ev.text });
+  if (!withinWindow(ev.at)) return { ok: true, outcome: 'handed_to_human:outside_window' };
+  const text = clip(d.text, maxLen(ev.platform, ev.channel));
+  const { data: out, error } = await admin.from('social_message').insert({
+    conversation_id: conv.id, platform: ev.platform, channel: ev.channel, direction: 'out', author: 'seat',
+    in_reply_to: m.id, body: text, reply_kind: 'handoff', reply_key: d.key, send_status: 'pending', occurred_at: new Date().toISOString(),
+  }).select('id').single();
+  if (error || !out) return { ok: false, error: error?.message ?? 'no reply row' };
+  await send(ev, out.id as number, text);
+  return { ok: true, outcome: 'handed_to_human' };
+}
 
 async function handle(ev: InboundEvent): Promise<string> {
   // THE CONVERSATION, one per person per platform, owned by the marketing seat.
@@ -148,7 +198,16 @@ async function answer(ev: InboundEvent): Promise<Decision> {
     corpus = (data || []) as CorpusRow[];
   } catch (_e) { corpus = []; }
   const library = (lib || []) as LibraryRow[];
-  const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus);
+  // Does this person want a person? REASONED (think(), founder_instruction 886-903), never a phrase list.
+  // Held (the model hold, or a model that failed): the question is still ANSWERED now (903) from the library,
+  // the FAQ and the knowledge; only the person check waits in the marketing seat's queue, and when it is
+  // reasoned to need a person the handoff is sent on this platform (reasoned_handoff below, via
+  // _shared/reasoned_delivery.ts). Nobody is paged on a guess, and nobody goes unanswered.
+  const person = await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
+    seat: 'marketing', surface: 'marketing_social.needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
+    dedupeKey: 'social:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
+  });
+  const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus, person.value === true);
   if (d.kind !== 'unknown' || !corpus.length || (await sec('social_model_enabled')) !== 'on') return d;
 
   // THE MODEL, SAME DOOR AS THE WEBSITE ASSISTANT (ai_gateway), and only over the passages retrieved

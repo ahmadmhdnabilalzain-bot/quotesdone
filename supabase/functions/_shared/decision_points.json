@@ -1,0 +1,764 @@
+{
+ "about": "Every place the estate decided what words MEAN by matching them, from the word-matching audit of 23 Sep 2026 (class i: a decision about meaning that must become reasoning). founder_instruction 886-903: 'NO word matching anywhere'. 'migrated' = the meaning now comes from _shared/think.ts and its 'proof' is enforced by scripts/checks/decision_points_are_reasoned.test.mjs. 'pending' = still word-decided, in the order they will be migrated (customer-facing and money first). A regex that guards OUR outgoing text, or parses a format, is not listed: the ruling permits it.",
+ "owner": "it_engineer",
+ "points": [
+  {
+   "id": "wa_inbound.needs_a_person",
+   "order": 1,
+   "status": "migrated",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql",
+   "decides": "fn_wa_route: a complaint/dispute needs a person (was p_body ~* '(complain|refund|dispute|angry|lawyer|legal|scam|cheat|fraud|...)')",
+   "proof": [
+    {
+     "file": "scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql",
+     "must_contain": [
+      "v_trouble := coalesce(p_needs_person, false)"
+     ],
+     "must_not_contain": [
+      "~* '(complain"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/index.ts",
+     "must_contain": [
+      "needsAPerson(defaultDeps(admin, 'wa_inbound')",
+      "p_needs_person: needsPerson"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ceo.command_intent",
+   "order": 2,
+   "status": "migrated",
+   "seat": "ceo",
+   "severity": "high",
+   "where": "supabase/functions/ceo_agent/index.ts",
+   "decides": "fn_ceo_classify: position(ceo_command_rule.pattern in text) chose what the founder meant",
+   "proof": [
+    {
+     "file": "scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql",
+     "must_contain": [
+      "drop function if exists public.fn_ceo_classify(text)",
+      "create or replace function public.fn_ceo_command_interpret("
+     ],
+     "must_not_contain": [
+      "from public.fn_ceo_classify("
+     ]
+    },
+    {
+     "file": "supabase/functions/ceo_agent/index.ts",
+     "must_contain": [
+      "commandIntent(defaultDeps(admin, 'ceo_agent')",
+      "fn_ceo_command_interpret"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "inquiry_intake.trade",
+   "order": 3,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "critical",
+   "where": "supabase/functions/inquiry_intake/index.ts",
+   "decides": "the keyword map (trade_classify.ts) overruled the model's trade and struck model trades it did not corroborate",
+   "proof": [
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      "await tradeOf(defaultDeps(admin, 'inquiry_intake')",
+      "if (!modelAnswered && kwTrades.length)"
+     ],
+     "must_not_contain": [
+      "const kept = kwCategory || kwTrades[0]"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "inquiry_intake.exact_spec",
+   "order": 4,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql",
+   "decides": "fn_rfq_required_check: a required spec 'found' when an option token appeared anywhere in the inquiry text",
+   "proof": [
+    {
+     "file": "scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql",
+     "must_contain": [
+      "create or replace function public.fn_rfq_required_check(i inquiries)"
+     ],
+     "must_not_contain": [
+      "blob like '%'||tok||'%'",
+      "blob :="
+     ]
+    },
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      "await statedSpecs(defaultDeps(admin, 'inquiry_intake')"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "marketing_social.needs_a_person",
+   "order": 5,
+   "status": "migrated",
+   "seat": "marketing",
+   "severity": "high",
+   "where": "supabase/functions/marketing_social_inbox/reply.ts",
+   "decides": "wantsHuman: HUMAN_EN/HUMAN_AR regex lists paged the founder",
+   "proof": [
+    {
+     "file": "supabase/functions/marketing_social_inbox/reply.ts",
+     "must_contain": [
+      "if (wantsPerson) return"
+     ],
+     "must_not_contain": [
+      "const HUMAN_EN",
+      "const HUMAN_AR",
+      "function wantsHuman"
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing_social_inbox/index.ts",
+     "must_contain": [
+      "needsAPerson(defaultDeps(admin, 'marketing_social_inbox')",
+      "person.value === true)",
+      "action === 'reasoned_handoff'"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "replay.channel_delivery",
+   "order": 6,
+   "status": "migrated",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "supabase/functions/_shared/think.ts",
+   "decides": "a held WhatsApp/social question reasoned after the hold lifts is delivered on its own channel: WhatsApp free text inside the 24-hour window, the support_reply template outside it; social through the platform reply path",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "await io.waWindowOpen(phone)",
+      "await io.queueWaTemplate(",
+      "await io.socialHandoff(subject)"
+     ]
+    },
+    {
+     "file": "supabase/functions/resilience_ping/index.ts",
+     "must_contain": [
+      "deliverReasoned(row, r, liveDeliveryIO(admin))"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "wa_inbound.intent_table",
+   "order": 7,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "scripts/sql/handing_to_a_person_is_giving_the_number_because_there_is_one_person.sql",
+   "decides": "fn_wa_answer: body tokens vs wa_reply_intent.match_patterns pick the deterministic intent (incl. contact_human)"
+  },
+  {
+   "id": "wa_inbound.coverage_intent",
+   "order": 8,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "supabase/functions/wa_inbound/coverage.ts",
+   "decides": "coverageIntent/mightBeCoverage: EN/AR regexes decide a coverage question and skip the model"
+  },
+  {
+   "id": "wa_inbound.trade_named",
+   "order": 9,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/wa_inbound/coverage.ts",
+   "decides": "tradeNamed: longest label substring decides covered / not covered"
+  },
+  {
+   "id": "shared.size_question",
+   "order": 10,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "supabase/functions/_shared/size_question.ts",
+   "decides": "isSizeQuestion: a canned capability statement pre-empts every other handler"
+  },
+  {
+   "id": "shared.route_question",
+   "order": 11,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "supabase/functions/_shared/chat_answers.ts",
+   "decides": "routeQuestion COST/COUNT/TIMELINE/TRADE_PRICE regexes pick a canned FAQ as the final answer (site widget, social)"
+  },
+  {
+   "id": "marketing_social.library_match",
+   "order": 12,
+   "status": "pending",
+   "seat": "marketing",
+   "severity": "high",
+   "where": "supabase/functions/marketing_social_inbox/reply.ts",
+   "decides": "matchLibrary: match_words substrings pick a standard public reply"
+  },
+  {
+   "id": "marketing_social.on_topic",
+   "order": 13,
+   "status": "pending",
+   "seat": "marketing",
+   "severity": "med",
+   "where": "supabase/functions/marketing_social_inbox/reply.ts",
+   "decides": "onTopic: a shared word decides a corpus passage answers the question"
+  },
+  {
+   "id": "site_assistant.audience",
+   "order": 14,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "med",
+   "where": "supabase/functions/site_assistant/index.ts",
+   "decides": "SUP_RE/CUS_RE audienceFromText: customer vs supplier"
+  },
+  {
+   "id": "site_assistant.person",
+   "order": 15,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "med",
+   "where": "supabase/functions/site_assistant/index.ts",
+   "decides": "'speak to a person' regex files a CEO report"
+  },
+  {
+   "id": "wa_inbound.greeting_state",
+   "order": 16,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "med",
+   "where": "supabase/functions/wa_inbound/menu.ts",
+   "decides": "isGreeting/isMenuWord decide a message in the awaiting-problem state is not the problem"
+  },
+  {
+   "id": "wa_inbound.problem_state",
+   "order": 17,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "med",
+   "where": "supabase/functions/wa_inbound/menu_flow.ts",
+   "decides": "free text after 'Report a problem' becomes a case by flow state, not by what it says"
+  },
+  {
+   "id": "inquiry_intake.held_path_trade",
+   "order": 18,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "critical",
+   "where": "supabase/functions/inquiry_intake/index.ts",
+   "decides": "under the hold the intake no longer seeds its trade from detectCat/detectTrades: the trade is reasoned over every category, and while that is held the intake is HELD (status held, the customer told it is being reviewed) and reopened by fn_reason_held_resolve",
+   "proof": [
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      "candidates: validSlugs.map((slug: string)",
+      "update({ status: 'held'"
+     ]
+    },
+    {
+     "file": "scripts/sql/every_seat_reasons_before_it_answers.sql",
+     "must_contain": [
+      "elsif r.surface = 'inquiry_intake.trade'"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "shared.trade_classify",
+   "order": 19,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "critical",
+   "where": "supabase/functions/_shared/trade_classify.ts",
+   "decides": "KW map, tradeHits, detectCat, detectTrades, COMPONENT_OF (also customer_api create_inquiry fallback)"
+  },
+  {
+   "id": "customer_api.keywords",
+   "order": 20,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/customer_api/keywords.ts",
+   "decides": "keyword trade reading on create_inquiry"
+  },
+  {
+   "id": "customer_api.resolve_trade",
+   "order": 21,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/customer_api/index.ts",
+   "decides": "resolveTrade"
+  },
+  {
+   "id": "inbound_email.infer_sector",
+   "order": 22,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/inbound_email/index.ts",
+   "decides": "inferSector: KW word lists"
+  },
+  {
+   "id": "sql.fn_norm_trades",
+   "order": 23,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "taxonomy_trade.aliases regex -> trade codes (sales_engineer brief)"
+  },
+  {
+   "id": "sql.fn_kb_route",
+   "order": 24,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "kb_operational_alias substring hits -> catalogue category"
+  },
+  {
+   "id": "sql.fn_match_capability",
+   "order": 25,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "products/brands ilike both ways -> supplier match"
+  },
+  {
+   "id": "sql.fn_supplier_product_match",
+   "order": 26,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "position(term in inquiry.want) -> matched_terms"
+  },
+  {
+   "id": "sql.fn_quote_spec_group",
+   "order": 27,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "45-branch category regex -> which specs are required"
+  },
+  {
+   "id": "line_specs.same_value",
+   "order": 28,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "critical",
+   "where": "supabase/functions/_shared/line_specs/compare.ts",
+   "decides": "sameValue -> no-exact-spec offer"
+  },
+  {
+   "id": "line_specs.vague",
+   "order": 29,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/_shared/line_specs/model.ts",
+   "decides": "VAGUE, per-trade attribute readers, tradeOfLine, NO_INSTALL, WARRANTY_ONLY_IF"
+  },
+  {
+   "id": "line_specs.assess",
+   "order": 30,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/_shared/line_specs/assess.ts",
+   "decides": "MATERIAL_LEXICON, readInstallation, readWarranty, readDelivery"
+  },
+  {
+   "id": "supplier_api.quote_review_match",
+   "order": 31,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/supplier_api/quote_review.ts",
+   "decides": "matchBoq token overlap; readReply RE_VALIDITY/RE_LEAD/RE_EXVAT/RE_PRICE_CLAUSE...; RE_GENERATE/RE_SUBMIT topic lists"
+  },
+  {
+   "id": "intake_requirements.parse",
+   "order": 32,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/_shared/intake_requirements.ts",
+   "decides": "NOPREF_RE, NOT_NEEDED_RE, parseRequirementAnswer, statedAnswers, supply-only reading"
+  },
+  {
+   "id": "interview.answers",
+   "order": 33,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/inquiry_intake/interview.ts",
+   "decides": "parseYesNo, isUnknown, AR_GLOSS, glossEnglish, matchOptions, parseWhen"
+  },
+  {
+   "id": "classify.urgency_emirate",
+   "order": 34,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/inquiry_intake/classify.ts",
+   "decides": "detectUrgency regex, detectEmirate substring"
+  },
+  {
+   "id": "sales_engineer.brief_trades",
+   "order": 35,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/sales_engineer/index.ts",
+   "decides": "fn_norm_trades(brief) and the product/service split"
+  },
+  {
+   "id": "line_specs.options_derive_vat",
+   "order": 36,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/_shared/line_specs/options.ts",
+   "decides": "OPTION_HEAD, derive.ts, vat.ts readVat"
+  },
+  {
+   "id": "drawing_boq.vocabulary",
+   "order": 37,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/drawing_boq/legend_vocabulary.ts",
+   "decides": "DEVICE_TYPES/deviceTypeOf, SCOPE_NOTE/NOT_SCOPE, typeFromTitle, ROOM_WORDS"
+  },
+  {
+   "id": "service_rewrite.install",
+   "order": 38,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/_shared/service_rewrite.ts",
+   "decides": "isInstallWork"
+  },
+  {
+   "id": "quote_extract.document",
+   "order": 39,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/quote_extract/quote_from_document.ts",
+   "decides": "quote field reading by label regex"
+  },
+  {
+   "id": "sql.fn_price_guidance",
+   "order": 40,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "price-book like '%x%' -> price band"
+  },
+  {
+   "id": "sql.fn_supplier_opportunities",
+   "order": 41,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "position(cat in capability) -> capacity_hit"
+  },
+  {
+   "id": "sql.fn_supplier_twin",
+   "order": 42,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "capability_summary ilike manufactur/install/service/design"
+  },
+  {
+   "id": "sql.fn_supplier_portfolio_gaps",
+   "order": 43,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "supplier service words vs aliases"
+  },
+  {
+   "id": "sql.fn_rfq_short_of_quotes_tick",
+   "order": 44,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "scope_type ilike turnkey / supply regex"
+  },
+  {
+   "id": "sql.trg_quote_quality",
+   "order": 45,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "quote_quality match_regex on the quote blob"
+  },
+  {
+   "id": "sql.fn_category_key_from_text",
+   "order": 46,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "catalogue name substring, longest wins"
+  },
+  {
+   "id": "sql.fn_resolve_cat_agent",
+   "order": 47,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "category desk by like"
+  },
+  {
+   "id": "sql.fn_category_expert_ref",
+   "order": 48,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "scripts/sql",
+   "decides": "category regex -> expert ref"
+  },
+  {
+   "id": "sql.trg_inquiry_enrich",
+   "order": 49,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "summary ilike left(summary,40) -> duplicate inquiry"
+  },
+  {
+   "id": "sql.fn_supplier_document_home",
+   "order": 50,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "file_name regex -> document class"
+  },
+  {
+   "id": "sql.fn_should_escalate",
+   "order": 51,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "decision_policy.legal_triggers substrings -> escalation"
+  },
+  {
+   "id": "sql.fn_decide",
+   "order": 52,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "category regex branches in the CEO decision routine"
+  },
+  {
+   "id": "sql.fn_ceo_refund_checklist",
+   "order": 53,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "reason_note ~* 'off.?platform' -> refund checklist fact"
+  },
+  {
+   "id": "sql.fn_task_review",
+   "order": 54,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "os_responsibility words in task text -> owner"
+  },
+  {
+   "id": "sql.fn_task_is_demand",
+   "order": 55,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "action_class regex -> demand"
+  },
+  {
+   "id": "sql.fn_challenge",
+   "order": 56,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "challenge_heuristic.pattern on proposal text"
+  },
+  {
+   "id": "sql.fn_what_if",
+   "order": 57,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "question regex -> scenario branch"
+  },
+  {
+   "id": "sql.fn_notifications_founder_mail_policy",
+   "order": 58,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "subject ~* 'critical...' -> founder mail policy"
+  },
+  {
+   "id": "sql.fn_notifications_digest",
+   "order": 59,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "low",
+   "where": "scripts/sql",
+   "decides": "type/subject regex -> digest grouping"
+  },
+  {
+   "id": "sql.fn_governance_stamp",
+   "order": 60,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "low",
+   "where": "scripts/sql",
+   "decides": "agent/kind ~* 'legal...'"
+  },
+  {
+   "id": "sql.fn_kb_purge_clause",
+   "order": 61,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "med",
+   "where": "scripts/sql",
+   "decides": "citation regex -> jurisdiction, purge/keep (fn_kb_is_us_code)"
+  },
+  {
+   "id": "trade_glossary_ar",
+   "order": 62,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "low",
+   "where": "supabase/functions/_shared/trade_glossary_ar.ts",
+   "decides": "Arabic glossary substitution on documents"
+  },
+  {
+   "id": "accountant.receipt_parse",
+   "order": 63,
+   "status": "pending",
+   "seat": "accountant",
+   "severity": "high",
+   "where": "supabase/functions/_shared/receipt_parse.ts",
+   "decides": "parsePeriod, vendorFromAddress/VENDOR_NAMES, parseAmount label reading"
+  },
+  {
+   "id": "accountant.bank_statement",
+   "order": 64,
+   "status": "pending",
+   "seat": "accountant",
+   "severity": "med",
+   "where": "supabase/functions/_shared/bank_statement_parse.ts",
+   "decides": "isBankStatement"
+  },
+  {
+   "id": "accountant.resend_receiptish",
+   "order": 65,
+   "status": "pending",
+   "seat": "accountant",
+   "severity": "med",
+   "where": "supabase/functions/resend_inbound/index.ts",
+   "decides": "isReceiptish subject/from regex"
+  },
+  {
+   "id": "sql.accountant_bank_lines",
+   "order": 66,
+   "status": "pending",
+   "seat": "accountant",
+   "severity": "high",
+   "where": "scripts/sql",
+   "decides": "bank line text regex in _book_bank_charges/_credits/_ad_spend_figures/_renewal_budget_line/owner_transfer/expense_duty"
+  },
+  {
+   "id": "marketing.outreach_reply",
+   "order": 67,
+   "status": "pending",
+   "seat": "marketing",
+   "severity": "high",
+   "where": "supabase/functions/_shared/marketing_outreach.ts",
+   "decides": "classifyReply: decline/later/positive/question word lists pick the reply and whether to stop"
+  },
+  {
+   "id": "send_whatsapp.pending_template",
+   "order": 68,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "low",
+   "where": "supabase/functions/send_whatsapp/index.ts",
+   "decides": "pendingTemplate regex on provider text"
+  },
+  {
+   "id": "transcribe.no_speech",
+   "order": 69,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "low",
+   "where": "supabase/functions/transcribe/index.ts",
+   "decides": "no-speech placeholder regex"
+  },
+  {
+   "id": "sql.fn_os_incident_set_owner_and_due",
+   "order": 70,
+   "status": "pending",
+   "seat": "it_engineer",
+   "severity": "low",
+   "where": "scripts/sql",
+   "decides": "reason ilike '%incident response%' -> incident owner"
+  },
+  {
+   "id": "knowledge.support_ceo_vectors",
+   "order": 71,
+   "status": "pending",
+   "seat": "it_engineer",
+   "severity": "med",
+   "where": "scripts/sql/every_seat_reasons_before_it_answers.sql",
+   "decides": "support_knowledge and ceo_knowledge carry no vector column, so fn_reason_retrieve cannot read them by meaning"
+  }
+ ]
+}

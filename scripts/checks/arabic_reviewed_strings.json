@@ -3562,7 +3562,8 @@
   "c73b02e4b5e8",
   "d098b2f4595a",
   "d8fa797cf5b7",
-  "df2088b9d4e4"
+  "df2088b9d4e4",
+  "71dbe8bed9af"
  ],
  "supabase/functions/inquiry_intake/interview.ts": [
   "064b01e40d4c",
@@ -4026,7 +4027,10 @@
   "96059a8ef96c",
   "a5cba62f3cdc",
   "c55aebde9a84",
-  "d7028cd29b51"
+  "d7028cd29b51",
+  "08c4943939dc",
+  "b081c5467b60",
+  "d9a9b884d813"
  ],
  "scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql": [
   "033fce7adb9c",
@@ -4094,5 +4098,12 @@
   "415d60f32c58",
   "fc3b6977c5b6",
   "5b783224f4d2"
+ ],
+ "supabase/functions/_shared/reasoned_delivery.ts": [
+  "579dd4d95c6e",
+  "c2fe022839a2"
+ ],
+ "supabase/functions/_shared/think.ts": [
+  "4e2156827796"
  ]
 }

@@ -25,6 +25,10 @@ import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 // can reach the API line, which makes it the least-authenticated file entry in the estate.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { ackThenWork, detach } from '../_shared/async_webhook.ts';
+import { sendWhatsApp } from '../_shared/wa_send.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
@@ -367,32 +371,23 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
 // v17's report-as-PDF (WANTS_DOC, mdToHtml, renderReportPdf) is removed with the agent_brain call it
 // rendered (22 Sep 2026): it only ever rendered agent_brain's prose, and agent_brain is not deployed.
 
+// Every reply leaves through here: the fixture guard, the status callback and the Twilio call live in
+// _shared/wa_send.ts (moved 23 Sep 2026 so the reasoning replay sends a held answer the same way).
 async function sendWa(to: string, body: string, mediaUrl?: string | null, content?: Content): Promise<{ ok: boolean; err?: string }> {
-  // Every reply leaves through here, so this one line covers all of them: a fixture number is never
-  // replied to. The caller stores err as send_error in wa_messages, which is the capture record.
-  if (isDemoPhone(to)) return { ok: false, err: FIXTURE_CAPTURE_NOTE };
-  const sid = await sec('twilio_account_sid'); const kSid = await sec('twilio_api_key_sid'); const kSec = await sec('twilio_api_key_secret'); const from = await sec('twilio_wa_from');
-  if (!sid || !kSid || !kSec || !from) return { ok: false, err: 'twilio_not_configured' };
-  const form = new URLSearchParams({ From: 'whatsapp:' + (from.startsWith('+') ? from : '+' + from), To: to.startsWith('whatsapp:') ? to : ('whatsapp:' + to), Body: body });
-  // WhatsApp caps a media caption at 1,024 characters, well below the 1,200 used for a plain
-  // message, so the caller must send the summary here and the substance in the document.
-  if (mediaUrl) form.set('MediaUrl', mediaUrl);
-  // An in-session interactive menu (twilio/list-picker, created by scripts/whatsapp/create_menu_content.mjs).
-  // The Content item carries its own text, so Body is not sent alongside it.
-  if (content) { form.delete('Body'); form.set('ContentSid', content.sid); form.set('ContentVariables', JSON.stringify(content.variables)); }
-  // 22 Sep 2026: every Twilio send names where Twilio reports what became of it (_shared/twilio_status.ts).
-  // A reply here is recorded in wa_messages, not notifications, so wa_status answers it matched=false.
-  form.set('StatusCallback', statusCallbackUrl());
-  try {
-    const r = await timedFetch('https://api.twilio.com/2010-04-01/Accounts/' + sid + '/Messages.json', { method: 'POST', headers: { 'Authorization': 'Basic ' + btoa(kSid + ':' + kSec), 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
-    if (r.ok) return { ok: true };
-    let detail = 'http_' + r.status;
-    try { const j = await r.json(); if (j?.code || j?.message) detail = String(j.code || '') + ' ' + String(j.message || ''); } catch (_e) { /* keep status */ }
-    return { ok: false, err: detail.slice(0, 300) };
-  } catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 300) }; }
+  return await sendWhatsApp(admin, to, body, mediaUrl, content);
 }
 
+// TWILIO IS ANSWERED AT ONCE; THE MESSAGE IS HANDLED AFTER (23 Sep 2026). Reasoning (think()) is several
+// model calls and Twilio allows 15 s, so a Twilio form post gets its empty <Response/> immediately and the
+// handler below runs under EdgeRuntime.waitUntil (_shared/async_webhook.ts). Replies were always sent by
+// the REST API (sendWa), never in the webhook response. An internal JSON caller still waits for the result.
 Deno.serve(observe('wa_inbound', async (req) => {
+  if ((req.headers.get('content-type') || '').includes('application/json')) return await handleInbound(req);
+  const copy = await detach(req);
+  return ackThenWork(TW(200), () => handleInbound(copy), 'wa_inbound');
+}));
+
+async function handleInbound(req: Request): Promise<Response> {
   const logRun = mkLog(Date.now());
   try {
     let From = '', Body = '', Profile = '', MessageSid = '';
@@ -969,8 +964,36 @@ Deno.serve(observe('wa_inbound', async (req) => {
     // conversation and the 24-hour window is opened by the INBOUND message alone -- which is what
     // WhatsApp's own rules say opens it.
     let route: Record<string, unknown> | null = null;
+    // WHETHER THIS NEEDS A PERSON IS REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903).
+    // fn_wa_route used to decide it with a word list over the body ('legal' escalated "is it legal to
+    // build a pool?"; "you took my money and vanished" was not escalated). think() reads the message; under
+    // the hold the answer is null, the message waits in customer_support's queue, and nobody is escalated
+    // on a guess (_shared/reasoned_decisions.ts).
+    let needsPerson: boolean | null = null;
+    if (Body.trim()) {
+      try {
+        needsPerson = (await needsAPerson(defaultDeps(admin, 'wa_inbound'), {
+          seat: 'customer_support', surface: 'wa_inbound.needs_a_person', message: Body.slice(0, 4000),
+          audience: audience === 'supplier' ? 'supplier' : 'customer',
+          dedupeKey: 'wa:' + (MessageSid || From + ':' + Body.slice(0, 40)), subject: { phone: From, message_sid: MessageSid || null },
+        })).value;
+      } catch (_e) { needsPerson = null; /* unreasoned is not "no": the route records it as held */ }
+    }
+    // Held is not "no". Until the reasoning runs, the CEO seat SEES the message (visibility, no page), so a
+    // complaint is never silently parked; the replay then gives the contact on WhatsApp if a person is needed.
+    if (needsPerson === null && Body.trim()) {
+      try {
+        await admin.rpc('fn_support_report_to_ceo', {
+          p_idempotency_key: 'wa:held:' + (MessageSid || From + ':' + Body.slice(0, 40)), p_severity: 'routine',
+          p_subject: 'A WhatsApp message is waiting to be reasoned (model hold): whether it needs a person is not yet known',
+          p_evidence: { from: From, message: Body.slice(0, 300) },
+          p_attempted: ['answered from the database', 'queued the person check in customer_support\'s reasoning queue'],
+          p_requested: 'Visibility only. It is reasoned and answered on WhatsApp the moment the hold lifts.',
+        });
+      } catch (_e) { /* visibility must not block the reply */ }
+    }
     try {
-      const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0 });
+      const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson });
       route = (data || null) as Record<string, unknown> | null;
     } catch (_e) { /* the brain being unreachable must never lose their message */ }
 
@@ -1194,4 +1217,4 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
     await logRun('error', {}, 'exception (message dropped, Twilio still got 200): ' + String((e as Error)?.message || e));
     return TW(200);
   }
-}));
+}

@@ -1,0 +1,12 @@
+Committed, not applied: see every_seat_reasons_before_it_answers.txt, which it must FOLLOW (fn_reason_held_resolve
+calls fn_ceo_command_interpret, defined here). The edge functions that pass p_needs_person / call
+fn_ceo_command_interpret deploy AFTER this file is applied: until then fn_wa_route has no p_needs_person and the
+WhatsApp route call would fail. Proved by node --test scripts/checks/decision_points_are_reasoned.test.mjs.
+Seat: it_engineer (decisions owned by customer_support, ceo, sales_engineer).
+
+Deploy ceo_agent, wa_inbound, marketing_social_inbox, inquiry_intake and resilience_ping IN THE SAME STEP as
+this apply: after it, fn_ceo_command_submit leaves a command 'interpreting' and only the new ceo_agent files it
+for reasoning. Measured 23 Sep 2026 (the check's probe): no undispatched inquiry loses readiness; the 3 inquiries
+on production (all quoted or revealed) no longer get it from the text scan, which no longer gates them.
+The support_reply WhatsApp template (wa_template_setup) must be submitted to Meta; until it is approved a reasoned
+answer due outside the 24-hour window waits queued, never dropped.
