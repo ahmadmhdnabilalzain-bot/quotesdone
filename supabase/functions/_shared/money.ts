@@ -23,8 +23,9 @@ export function aed(v: unknown, lang: MoneyLang, dec = false): string {
   return lang === 'ar' ? `${f} درهم` : `AED ${f}`;
 }
 
-/** A price range: "AED 90,000–112,000" / "90,000–112,000 درهم". */
+/** A price range: "AED 90,000–112,000" / "90,000–112,000 درهم"; fils are kept when either end has them. */
 export function aedRange(lo: unknown, hi: unknown, lang: MoneyLang): string {
-  const r = `${figure(lo)}–${figure(hi)}`;
+  const dec = !Number.isInteger(Number(lo)) || !Number.isInteger(Number(hi));
+  const r = `${figure(lo, dec)}–${figure(hi, dec)}`;
   return lang === 'ar' ? `${r} درهم` : `AED ${r}`;
 }

@@ -15,7 +15,7 @@ import { renderPdf } from './render.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import * as QD from '../_shared/quote_documents.ts';
 import * as F from '../_shared/quote_documents.fixture.ts';
-import { aed, figure } from '../_shared/money.ts';
+import { aed, aedRange, figure } from '../_shared/money.ts';
 // @ts-ignore: a plain .mjs module shared with the nightly journey
 import { amountsInReadingOrder } from '../../../scripts/e2e/pdf_facts.mjs';
 
@@ -58,6 +58,8 @@ Deno.test('one money formatter: the two languages differ only in the unit', () =
   assertEquals(aed(118520, 'en', true), 'AED 118,520.00');
   assertEquals(aed(118520, 'ar', true), '118,520.00 درهم');
   assertEquals(figure(0), '—');
+  assertEquals(aedRange(90000, 112000, 'en'), 'AED 90,000–112,000');
+  assertEquals(aedRange(124900.5, 130000, 'ar'), '124,900.50–130,000.00 درهم', 'a range drops no fils');
   const src = Deno.readTextFileSync(new URL('../_shared/quote_documents.ts', import.meta.url));
   assertEquals(src.match(/\.toLocaleString\(/g)?.length ?? 0, 0, 'quote_documents.ts formats a number itself; use money.ts');
 });
