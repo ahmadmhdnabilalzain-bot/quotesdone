@@ -148,8 +148,12 @@ Deno.serve(observe('ceo_agent', async (req) => {
     if (action === 'context') {
       const query = String(body.query || body.text || '').trim();
       if (!query) return J({ error: 'query_required' }, 400);
+      // BY MEANING (23 Sep 2026, founder_instruction 886-903): the pack is ranked by gte-small distance (free, in-region),
+      // never by which words of the query it shares. No embedding: no records, and the signal says so.
+      const { embedLine } = await import('../_shared/gte_embed.ts');
+      const vec = await embedLine(query);
       const { data, error } = await admin.rpc('fn_ceo_context', {
-        p_query: query,
+        p_query: query, p_embedding: vec ? '[' + vec.join(',') + ']' : null,
         p_max_chars: Number.isFinite(Number(body.max_chars)) ? Number(body.max_chars) : 18000,
         p_limit: Number.isFinite(Number(body.limit)) ? Number(body.limit) : 8,
       });

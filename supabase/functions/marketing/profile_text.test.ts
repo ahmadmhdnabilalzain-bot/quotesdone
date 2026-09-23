@@ -1,7 +1,7 @@
 // deno test --allow-read supabase/functions/marketing/profile_text.test.ts
 // Instruction 920: one description, every profile within its limit, nothing a variant says that the canonical does not.
 import { assert, assertEquals, assertRejects } from 'jsr:@std/assert@1';
-import { length, pushWhatsapp, pushYoutube, render, text, VARIANTS, violations } from './profile_text.ts';
+import { length, PROFILE_RULES, pushWhatsapp, pushYoutube, render, text, VARIANTS, violations } from './profile_text.ts';
 
 Deno.test('every variant is built from canonical sentences and fits its platform', () => {
   assertEquals(violations(), []);
@@ -17,6 +17,20 @@ Deno.test('the corrected claims: trades suppliers confirm, drawings covered, fir
   const all = VARIANTS.map(render).join('\n');
   assert(/trades they confirm/.test(all) && /identity details are covered/.test(all) && /first 1,000 suppliers join free, permanently/.test(all));
   assert(!/licen[cs]e activit/i.test(all));
+});
+
+Deno.test('founder rules 23 Sep: no variant has Arabic script, a licence number or the word AI', () => {
+  for (const v of VARIANTS) for (const [rule, re] of PROFILE_RULES) assert(!re.test(render(v)), `${v.platform}.${v.field} ${rule}`);
+  assert(!/[\u0600-\u06FF]/.test(JSON.stringify(VARIANTS)) && !/"ar\./.test(JSON.stringify(VARIANTS)));
+});
+
+Deno.test('the rule patterns catch what they are meant to catch', () => {
+  const hit = (s: string) => PROFILE_RULES.filter(([, re]) => re.test(s)).map(([r]) => r);
+  assertEquals(hit('\u0627\u0637\u0644\u0628\u0648\u0627').length, 1);
+  assertEquals(hit('Trader Licence 1633275').length, 1);
+  assertEquals(hit('DET 1633275').length, 1);
+  assertEquals(hit('An AI marketplace').length, 1);
+  assertEquals(hit('A smart marketplace. Details, maintain, Licensed.'), []);
 });
 
 const res = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });

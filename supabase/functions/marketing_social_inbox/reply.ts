@@ -7,37 +7,26 @@
 //
 // Order, first hit wins:
 //   1. the person asks for a human        -> handoff (REASONED by the caller through think(); see below)
-//   2. a standard reply from the library   -> public.social_reply_library, which the founder edits;
-//                                             a row matches when one of its match_words appears as
-//                                             whole words in the message (lowest priority number first)
-//   3. the site assistant's question route -> routeQuestion + pickFaq (chat_answers.ts), the same
-//                                             count / cost / timeline FAQs the website widget answers
-//   4. company knowledge                   -> fn_support_corpus_search(p_public => true), the corpus the
-//                                             widget reads; a passage is used only when it shares a
-//                                             substantive word with the question and is written in
-//                                             the asker's language ("a nearest neighbour is always found")
-//   5. nothing grounded                    -> 'unknown': say so, record the gap, offer a person.
+//   2. what they ask, REASONED ONCE by the caller (_shared/reasoned_channels.ts socialMeaning, 23 Sep 2026,
+//      founder_instruction 886-903) among everything grounded this seat can say:
+//        size       -> the capability statement, never a number (instruction 777)
+//        lib:<key>  -> a standard reply from public.social_reply_library, which the founder edits
+//        faq:<type> -> the approved cost / count / timeline FAQ the website widget answers (pickFaq)
+//        kb:<n>     -> the n-th retrieved company-knowledge passage in the asker's language
+//      Until 23 Sep a row's match_words substring picked the library reply, COUNT/COST/TIMELINE regexes
+//      picked the FAQ, and ONE shared word decided a passage answered the question. All three are gone.
+//   3. nothing grounded, or not yet reasoned (the hold) -> 'unknown': say so, record the gap, offer a person;
+//      the caller files the meaning in the marketing seat's queue and the replay sends the grounded reply.
 // A price, a promise or a date is never composed here: every sentence the seat sends is a library
 // row, an approved FAQ answer, or a corpus passage, verbatim.
-import { langOf, onTopic, pickFaq, routeQuestion, isArabic, type FaqRow, type Lang } from '../_shared/chat_answers.ts';
-import { capabilityStatement, isSizeQuestion } from '../_shared/size_question.ts';
+import { isArabic, langOf, pickFaq, type FaqRow, type Lang, type QuestionType } from '../_shared/chat_answers.ts';
+import { capabilityStatement } from '../_shared/size_question.ts';
 import { clip } from './meta.ts';
 
 export interface LibraryRow { key: string; priority: number | null; match_words: string[] | null; reply_en: string; reply_ar: string; active: boolean }
 export interface CorpusRow { content: string; citation?: string | null; rank?: number | null }
 export type ReplyKind = 'handoff' | 'standard' | 'faq' | 'knowledge' | 'unknown' | 'held';
 export interface Decision { kind: ReplyKind; key: string | null; lang: Lang; text: string }
-
-// Arabic: diacritics and tatweel out, the alef / taa marbuta / alef maqsura variants unified, and the
-// common attached prefixes stripped per word — so "والرسوم" and "رسوم" are one word on both sides.
-export function norm(s: string): string {
-  return String(s || '').toLowerCase()
-    .replace(/[ً-ْـ]/g, '').replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
-    .replace(/[’']/g, '')
-    .split(/[^a-z0-9ء-ي]+/).filter(Boolean)
-    .map((w) => (/[ء-ي]/.test(w) && w.length > 4 ? w.replace(/^(وال|بال|فال|لل|ال)/, '') : w))
-    .join(' ');
-}
 
 // ── 1. ASKING FOR A PERSON ───────────────────────────────────────────────────────────────────────
 // REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903: "NO word matching anywhere"). This
@@ -48,40 +37,30 @@ export function norm(s: string): string {
 // seat's queue. The phrasings the list held are now eval cases (scripts/eval/reasoning_eval.mjs), where
 // they measure the reasoning instead of replacing it.
 
-// ── 2. THE LIBRARY ───────────────────────────────────────────────────────────────────────────────
-export function matchLibrary(message: string, library: LibraryRow[]): LibraryRow | null {
-  const hay = ' ' + norm(message) + ' ';
-  const rows = library
-    .filter((r) => r.active && r.priority != null && Array.isArray(r.match_words) && r.match_words.length)
-    .sort((a, b) => (a.priority as number) - (b.priority as number));
-  for (const r of rows) {
-    for (const w of r.match_words as string[]) {
-      const k = norm(w);
-      if (k && hay.includes(' ' + k + ' ')) return r;
-    }
-  }
-  return null;
-}
-
 const pick = (row: LibraryRow | undefined, lang: Lang) => (row ? (lang === 'ar' ? row.reply_ar : row.reply_en) : '');
 const byKey = (library: LibraryRow[], key: string) => library.find((r) => r.key === key && r.active);
 
+/** The retrieved passages a social reply may quote: those written in the asker's language (a script test on
+ *  our own corpus, not a reading of meaning), in retrieval order — the order the reasoning's kb:<n> refers to. */
+export function passagesFor(message: string, corpus: CorpusRow[]): CorpusRow[] {
+  const ar = langOf(message) === 'ar';
+  return corpus.filter((c) => c.content && ar === isArabic(c.content));
+}
+
 // ── THE DECISION ─────────────────────────────────────────────────────────────────────────────────
-export function decide(message: string, library: LibraryRow[], faqs: FaqRow[], corpus: CorpusRow[], wantsPerson: boolean): Decision {
+// `meaning` is the reasoned choice (socialMeaning), or null while it cannot be reasoned: then nothing is guessed.
+export function decide(message: string, library: LibraryRow[], faqs: FaqRow[], passages: CorpusRow[], wantsPerson: boolean, meaning: string | null): Decision {
   const lang = langOf(message);
   if (wantsPerson) return { kind: 'handoff', key: 'human_handoff', lang, text: pick(byKey(library, 'human_handoff'), lang) };
-  // How big are we: what we do, never a number (instruction 777) — before any library row or FAQ.
-  if (isSizeQuestion(message)) return { kind: 'standard', key: 'capability_answer', lang, text: capabilityStatement(lang) };
-
-  const lib = matchLibrary(message, library);
+  const m = meaning ?? '';
+  // How big are we: what we do, never a number (instruction 777).
+  if (m === 'size') return { kind: 'standard', key: 'capability_answer', lang, text: capabilityStatement(lang) };
+  const lib = m.startsWith('lib:') ? library.find((r) => r.active && r.priority != null && 'lib:' + r.key === m) : undefined;
   if (lib) return { kind: 'standard', key: lib.key, lang, text: pick(lib, lang) };
-
-  const faq = pickFaq(routeQuestion(message), lang, faqs);
+  const faq = m.startsWith('faq:') ? pickFaq(m.slice(4) as QuestionType, lang, faqs) : null;
   if (faq) return { kind: 'faq', key: 'faq:' + faq.id, lang, text: clip(String(faq.answer || '').trim(), 700) + suffix(library, lang) };
-
-  const hit = corpus.find((c) => c.content && (lang === 'ar') === isArabic(c.content) && onTopic(message, c.content));
-  if (hit) return { kind: 'knowledge', key: hit.citation ? 'kb:' + hit.citation : 'kb', lang, text: clip(String(hit.content).trim(), 700) + suffix(library, lang) };
-
+  const hit = m.startsWith('kb:') ? passages[Number(m.slice(3))] : undefined;
+  if (hit?.content) return { kind: 'knowledge', key: hit.citation ? 'kb:' + hit.citation : 'kb', lang, text: clip(String(hit.content).trim(), 700) + suffix(library, lang) };
   return unknown(library, lang);
 }
 

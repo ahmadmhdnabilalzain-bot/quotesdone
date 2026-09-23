@@ -1,0 +1,626 @@
+{
+  "trade": "elevators",
+  "entries": [
+    {
+      "id": "elevators:traction-mrl-vs-machine-room-vs-hydraulic",
+      "topic": "Traction MRL vs machine-room traction vs hydraulic lifts",
+      "kind": "comparison",
+      "body_en": "Three drive families dominate UAE lift quotes. Machine-room traction places the hoist machine, controller and governor in a dedicated room, usually above the shaft. It suits tall towers, higher speeds and heavy duty cycles, gives technicians the easiest access, and tends to have the longest service life, but it costs the owner a room of floor area and a heavier roof slab. Machine-room-less (MRL) traction puts a compact gearless machine inside the hoistway, typically on the guide rails or the top of the shaft, with the controller in a landing-door frame or a small cabinet. It frees leasable space, uses less energy and is now the default for low and mid-rise residential and office buildings; its limits are lower maximum speed and load than a full machine-room design and more cramped maintenance access. Hydraulic lifts push the car with an oil-filled jack driven by a pump. They handle heavy loads over short rises cheaply and need no overhead machine, but they consume noticeably more energy, generate heat in the oil (a real issue in UAE summers, often needing an oil cooler), carry an oil leak risk, and give a slower, less refined ride. Practical rule: hydraulic for short-rise goods or car lifts and villas where overhead is limited; MRL for most buildings up to mid-rise; machine-room traction for high-rise, high-speed or very heavy duty. A buyer should always state which family is acceptable, because suppliers quoting different families are not comparable on price, space or running cost.",
+      "body_ar": "تتنافس في عروض المصاعد بالإمارات ثلاث عائلات رئيسية. المصعد الكهربائي بالجر مع غرفة ماكينة يضع الماكينة ولوحة التحكم ومنظم السرعة في غرفة مخصصة فوق البئر عادة، ويناسب الأبراج العالية والسرعات المرتفعة والاستخدام الكثيف، ويمنح الفني أسهل وصول للصيانة وأطول عمر تشغيلي، لكنه يستهلك مساحة غرفة وسقفاً أثقل. أما المصعد بدون غرفة ماكينة (MRL) فيضع ماكينة مدمجة بدون تروس داخل البئر، ولوحة التحكم في إطار باب الطابق أو خزانة صغيرة، فيوفر مساحة قابلة للتأجير ويستهلك طاقة أقل، وأصبح الخيار المعتاد للمباني السكنية والمكتبية المنخفضة والمتوسطة الارتفاع، مع حدود أدنى في السرعة والحمولة وصعوبة نسبية في الوصول للصيانة. والمصعد الهيدروليكي يرفع الكابينة بمكبس زيتي تدفعه مضخة، وهو اقتصادي للأحمال الثقيلة على ارتفاعات قصيرة ولا يحتاج ماكينة علوية، لكنه أعلى استهلاكاً للطاقة، ويسخن زيته في صيف الإمارات فيحتاج غالباً مبرد زيت، مع خطر تسرب الزيت وركوب أبطأ. القاعدة العملية: الهيدروليكي للمسافات القصيرة ومصاعد البضائع والسيارات والفلل محدودة الارتفاع العلوي، والـMRL لمعظم المباني حتى الارتفاع المتوسط، وغرفة الماكينة للأبراج والسرعات العالية. وعلى المشتري أن يحدد العائلة المقبولة، لأن العروض من عائلات مختلفة لا تُقارن سعراً ولا مساحةً ولا تكلفة تشغيل.",
+      "sources": [
+        "https://www.tkelevator.com/us-en/company/insights/traction-conventional-vs-traction-mrl.html",
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:gearless-pm-vs-geared",
+      "topic": "Gearless permanent-magnet machines vs geared traction machines",
+      "kind": "comparison",
+      "body_en": "The hoist machine is the heart of a traction lift. Older and budget installations use a geared machine: an induction motor drives the sheave through a worm or helical gearbox. Gearboxes need oil, wear, lose efficiency to friction and add noise and vibration. Modern practice is the gearless permanent-magnet synchronous machine (PMSM), where a slow-turning motor with rare-earth magnets drives the sheave directly. Benefits are lower energy use, no gear oil, smaller size (which is what makes MRL possible), quieter operation and smoother levelling when paired with a VVVF drive. Manufacturers report meaningful efficiency gains over geared machines, although the exact percentage depends on duty and should not be taken as a fixed figure. Geared machines still appear in some goods lifts, retrofits and low-cost imports because they are cheap and tolerant. For a buyer, the questions are: is the machine gearless PM or geared, who manufactures it (OEM in-house or a third-party machine maker), what is its rated load, speed, sheave diameter and roping ratio, and does it carry type-examination under EN 81-50 components rules. A quote that says only traction machine without naming type and make leaves room to substitute a cheaper geared unit. In the UAE, where lifts run long hours in hot machine spaces, confirm the machine and drive are rated for the ambient temperature of the installed location, and ask whether ventilation or cooling of the machine space or shaft head is required.",
+      "body_ar": "الماكينة هي قلب مصعد الجر. التركيبات القديمة والاقتصادية تستخدم ماكينة بتروس، حيث يدير محرك حثي البكرة عبر علبة تروس دودية أو حلزونية، وهذه تحتاج زيتاً وتتآكل وتفقد جزءاً من الكفاءة بالاحتكاك وتضيف ضجيجاً واهتزازاً. أما الممارسة الحديثة فهي الماكينة المتزامنة بدون تروس ذات المغناطيس الدائم (PMSM)، حيث يدير محرك بطيء الدوران البكرة مباشرة. ومزاياها استهلاك أقل للطاقة، وعدم الحاجة لزيت التروس، وحجم أصغر وهو ما جعل مصاعد MRL ممكنة، وتشغيل أهدأ ووقوف أدق عند اقترانها بمحول تردد VVVF. ويذكر المصنعون وفراً ملموساً مقارنة بالماكينات ذات التروس، لكن النسبة الفعلية تعتمد على نمط التشغيل ولا تؤخذ رقماً ثابتاً. وما زالت ماكينات التروس تظهر في بعض مصاعد البضائع والتحديثات والواردات منخفضة التكلفة لرخصها. على المشتري أن يسأل: هل الماكينة بدون تروس بمغناطيس دائم أم بتروس، ومن صانعها، وما حمولتها وسرعتها وقطر البكرة ونسبة التعليق، وهل مكوناتها معتمدة وفق متطلبات فحص النوع. العرض الذي يكتفي بعبارة ماكينة جر دون تحديد النوع والصانع يفتح الباب لاستبدالها بماكينة أرخص. وفي الإمارات حيث تعمل المصاعد لساعات طويلة في أماكن حارة، يجب التأكد من ملاءمة الماكينة والمحول لدرجة حرارة موقع التركيب، ومن الحاجة إلى تهوية أو تبريد لرأس البئر.",
+      "sources": [
+        "https://www.tkelevator.com/us-en/company/insights/traction-conventional-vs-traction-mrl.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    },
+    {
+      "id": "elevators:lift-types-by-use",
+      "topic": "Lift types by use: passenger, goods, bed/stretcher, car, dumbwaiter, home lift",
+      "kind": "product",
+      "body_en": "Lifts are specified first by what they carry. Passenger lifts are sized by rated load in kilograms and persons (common European sizes run from small residential cars to 1600 kg and above for busy offices and hotels), with finishes and ride quality as major cost drivers. Goods-passenger and goods lifts carry freight with attendants; they need heavier car construction, reinforced floors, buffer rails, wider often side-opening or two-speed doors and a rated load based on the heaviest real item plus trolley or pallet truck. Bed or stretcher lifts in hospitals and clinics need a deep car (a Type 3 accessible car of about 1100 x 2100 mm internal is the minimum that takes a stretcher) and often through-car doors; hospital projects usually specify larger dedicated bed lifts. Car lifts move vehicles in villas, showrooms and car parks and are typically hydraulic or heavy traction, with the rated load set by the heaviest vehicle plus margin and a platform length above the longest vehicle. Dumbwaiters (service lifts) carry goods only, commonly in kitchens and hotels, with small cars at counter or floor level and no passengers permitted. Home lifts serve private villas with low speed and reduced pit and headroom, and in Europe are often built under the Machinery Directive rather than EN 81-20. A buyer must name the category, since it changes the applicable standard, the civil works and the price by a large margin.",
+      "body_ar": "تُحدَّد المصاعد أولاً بما تحمله. مصاعد الركاب تُقاس بالحمولة بالكيلوغرام وعدد الأشخاص، من الكابينات السكنية الصغيرة حتى 1600 كغ وأكثر للمكاتب والفنادق المزدحمة، وتؤثر التشطيبات وجودة الركوب كثيراً في السعر. ومصاعد البضائع ومصاعد البضائع مع مرافق تحتاج هيكلاً أقوى وأرضية معززة ومصدات جانبية وأبواباً أعرض غالباً جانبية الفتح، وتُحسب حمولتها على أثقل قطعة فعلية مع العربة أو الرافعة اليدوية. ومصاعد الأسرّة والنقالات في المستشفيات تحتاج كابينة عميقة، وأقل مقاس يستوعب نقالة هو الكابينة الميسرة من النوع الثالث بنحو 1100 × 2100 مم داخلياً، وغالباً بأبواب أمامية وخلفية، وتحدد المستشفيات عادة مصاعد أسرّة أكبر. ومصاعد السيارات للفلل والمعارض والمواقف تكون هيدروليكية أو بالجر الثقيل، وتُحدد حمولتها بأثقل مركبة مع هامش وطول منصة يزيد على أطول مركبة. ومصاعد الخدمة الصغيرة (دمب ويتر) تحمل البضائع فقط في المطابخ والفنادق ولا يُسمح بركوب الأشخاص. ومصاعد المنازل للفلل الخاصة بسرعة منخفضة وحفرة وارتفاع علوي مخفضين، وتُصنع في أوروبا غالباً وفق توجيه الآلات لا وفق EN 81-20. وعلى المشتري تسمية الفئة لأنها تغير المعيار المطبق والأعمال المدنية والسعر بفارق كبير.",
+      "sources": [
+        "https://www.ikoniclifts.co.uk/blog/en-81-70-lift-car-dimensions-requirements/",
+        "https://www.rjlifts.co.uk/lift-regulations/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:platform-lifts",
+      "topic": "Platform lifts and stair lifts for accessibility",
+      "kind": "product",
+      "body_en": "Where a full lift is not practical, for example a few steps at a villa entrance, a mezzanine in a shop or retrofit access in an older building, buyers often consider a vertical platform lift or an inclined stair lift. These are slow, low-rise devices, typically with a platform rather than a fully enclosed car, operated by hold-to-run controls, and in Europe they are built to their own standards (EN 81-41 for vertical platform lifts and EN 81-40 for stair lifts) under the Machinery Directive rather than EN 81-20. They are not a substitute for a passenger lift where a building code requires an accessible lift, and they are unsuitable for heavy public traffic. Key buyer decisions: rise in millimetres, indoor or outdoor (outdoor units in the UAE face heat, dust and direct sun, so ask for IP rating and UV-stable finishes), platform size to take the intended wheelchair (including electric chairs), rated load, whether an enclosure or shaft is needed, landing gates, and power supply. Confirm whether the local authority and the building's accessibility reviewer accept a platform lift for the specific location; for public buildings in Dubai the accessibility code generally expects compliant lifts, so a platform lift proposal should be checked with the consultant before ordering. Exact acceptance rules by emirate were not established from primary sources in this research.",
+      "body_ar": "عندما لا يكون المصعد الكامل عملياً، مثل درجات قليلة عند مدخل فيلا أو ميزانين في محل أو تحسين الوصول في مبنى قديم، يلجأ المشترون إلى المنصة الرافعة العمودية أو كرسي الدرج المائل. وهي أجهزة بطيئة لارتفاعات قليلة، غالباً بمنصة لا بكابينة مغلقة، وتعمل بأزرار الضغط المستمر، وتُصنع في أوروبا وفق معاييرها الخاصة (EN 81-41 للمنصات العمودية وEN 81-40 لكراسي الدرج) ضمن توجيه الآلات لا وفق EN 81-20. ولا تحل محل مصعد الركاب حيث تشترط الأنظمة مصعداً ميسراً، ولا تناسب الحركة العامة الكثيفة. قرارات المشتري الأساسية: الارتفاع بالمليمتر، والتركيب داخلياً أو خارجياً (الوحدات الخارجية في الإمارات تواجه الحرارة والغبار والشمس المباشرة، فيُسأل عن درجة الحماية IP والتشطيب المقاوم للأشعة)، ومقاس المنصة ليستوعب الكرسي المتحرك بما فيه الكهربائي، والحمولة، والحاجة إلى حاوية أو بئر، وبوابات الطوابق، ومصدر الكهرباء. ويجب التأكد من قبول الجهة المختصة ومراجع إمكانية الوصول للمبنى لهذه المنصة في موقعها المحدد، ففي المباني العامة بدبي يُتوقع عادة مصعد مطابق، لذا يُراجع الاستشاري قبل الطلب. ولم تُثبت قواعد القبول الدقيقة لكل إمارة من مصادر أولية في هذا البحث.",
+      "sources": [
+        "https://www.rjlifts.co.uk/lift-regulations/",
+        "https://www.ikoniclifts.co.uk/blog/en-81-70-lift-car-dimensions-requirements/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:en-81-20-50",
+      "topic": "EN 81-20 and EN 81-50: the core European lift safety standards",
+      "kind": "standard",
+      "body_en": "EN 81-20 sets the safety rules for building and installing new passenger and goods-passenger lifts, and EN 81-50 sets the design rules, calculations, examinations and tests for lift components such as safety gear, buffers, locks and overspeed governors. Together they replaced EN 81-1 (electric) and EN 81-2 (hydraulic) and became mandatory in Europe for lifts placed in service from 1 September 2017. They are widely referenced in the UAE, and UAE third-party inspection bodies report inspecting lifts against EN 81-20/50 (or ASME for American-practice installations). Key changes a buyer notices: stronger car walls and landing doors (resisting 1000 N without permanent deformation above a stated limit), more sensitive door protection across the entrance, car lighting raised to at least 100 lux, stricter fire behaviour of car finishes, laminated glass where glass is used, higher car-roof balustrades, larger refuge spaces in the pit and on the car roof, and shaft lighting for technicians. The larger refuge spaces are why EN 81-20 lifts can need deeper pits and more headroom than older designs, which matters in villas and retrofits. For procurement, ask the supplier to confirm compliance with EN 81-20/50 in writing, to name the notified body or test house behind type-examination certificates for safety components, and to state any deviations (for example reduced pit or headroom solutions) and the compensating measures used.",
+      "body_ar": "يضع المعيار EN 81-20 قواعد السلامة لتصنيع وتركيب مصاعد الركاب ومصاعد البضائع مع الركاب الجديدة، ويضع EN 81-50 قواعد التصميم والحسابات والفحوص والاختبارات لمكونات المصعد مثل جهاز الأمان والمصدات والأقفال ومنظم السرعة الزائدة. وقد حلا محل EN 81-1 للمصاعد الكهربائية وEN 81-2 للهيدروليكية، وأصبحا إلزاميين في أوروبا للمصاعد التي دخلت الخدمة منذ 1 سبتمبر 2017. ويُعتمد عليهما على نطاق واسع في الإمارات، وتذكر جهات الفحص الخارجية أنها تفحص المصاعد وفق EN 81-20/50 أو وفق ASME للتركيبات الأمريكية. وأبرز ما يلمسه المشتري: جدران كابينة وأبواب طوابق أقوى تتحمل 1000 نيوتن دون تشوه دائم فوق الحد، وحماية أبواب أكثر حساسية على كامل المدخل، وإضاءة كابينة لا تقل عن 100 لوكس، واشتراطات أشد لسلوك التشطيبات في الحريق، وزجاج مصفح حيث يُستخدم الزجاج، وحواجز أعلى على سقف الكابينة، ومساحات لجوء أكبر في الحفرة وفوق الكابينة، وإضاءة للبئر للفنيين. ومساحات اللجوء الأكبر هي سبب احتياج مصاعد EN 81-20 إلى حفرة أعمق وارتفاع علوي أكبر من التصاميم القديمة، وهذا مهم في الفلل ومشاريع التحديث. وفي الشراء اطلب من المورد تأكيد المطابقة كتابياً، وتسمية الجهة المعتمدة التي أصدرت شهادات فحص النوع لمكونات الأمان، وبيان أي انحرافات مثل حلول الحفرة أو الارتفاع المخفض والإجراءات التعويضية.",
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:en-81-70-accessibility",
+      "topic": "EN 81-70 accessible lift car types",
+      "kind": "standard",
+      "body_en": "EN 81-70 covers accessibility of passenger lifts for all users including persons with disabilities, and defines car types by internal dimensions. Type 1 is about 1000 x 1300 mm internal with an 800 mm door and a 450 kg rating; it takes one wheelchair user without a companion and is intended mainly for existing buildings where a larger car is impossible. Type 2 is about 1100 x 1400 mm with a 900 mm door and a 630 kg rating; it takes a wheelchair user plus one companion and is the usual minimum for new buildings. Type 3 is about 1100 x 2100 mm with a 900 mm door and a 1000 kg rating; it takes a wheelchair user and several others and can accept a stretcher. Larger types exist for more demanding use. Dimensions are measured between structural car walls, so thick decorative panels, mirrors or handrails can push a nominal car below the threshold; one reference limits decorative finish thickness to around 15 mm. The standard also covers automatic horizontal sliding doors with adjustable dwell time, control heights, tactile and contrasting buttons, audible and visual floor announcements, handrails and levelling accuracy. For UAE projects, buyers should state the required EN 81-70 type per lift, confirm the clear internal dimensions after finishes, and check the building's accessibility requirements with the consultant, since local accessibility codes may add requirements beyond the European standard. Type 4 (1400 x 1600 mm, 1000 kg) and Type 5 (2000 x 1400 mm, 1100 mm door, 1275 kg) allow a wheelchair to turn inside the car.",
+      "body_ar": "يغطي المعيار EN 81-70 إمكانية استخدام مصاعد الركاب لجميع المستخدمين بمن فيهم أصحاب الهمم، ويعرّف أنواع الكابينات بمقاساتها الداخلية. النوع الأول نحو 1000 × 1300 مم داخلياً بباب 800 مم وحمولة 450 كغ، ويستوعب مستخدم كرسي متحرك دون مرافق، ويُقصد به أساساً المباني القائمة التي يتعذر فيها تركيب كابينة أكبر. والنوع الثاني نحو 1100 × 1400 مم بباب 900 مم وحمولة 630 كغ، ويستوعب مستخدم الكرسي مع مرافق واحد، وهو الحد الأدنى المعتاد للمباني الجديدة. والنوع الثالث نحو 1100 × 2100 مم بباب 900 مم وحمولة 1000 كغ، ويستوعب مستخدم الكرسي مع عدة أشخاص ويمكنه استيعاب نقالة. وهناك أنواع أكبر للاستخدامات الأشد. وتُقاس الأبعاد بين الجدران الإنشائية للكابينة، لذا قد تُنزل الألواح الزخرفية السميكة أو المرايا أو المقابض الكابينة الاسمية دون الحد المطلوب، ويحدد أحد المراجع سماكة التشطيب الزخرفي بنحو 15 مم. ويشمل المعيار أيضاً الأبواب الأوتوماتيكية المنزلقة أفقياً مع زمن بقاء قابل للضبط، وارتفاعات لوحات التحكم، والأزرار البارزة المتباينة لونياً، والإعلان الصوتي والمرئي للطوابق، والمقابض، ودقة الوقوف. وفي مشاريع الإمارات يجب على المشتري تحديد النوع المطلوب لكل مصعد، والتأكد من المقاسات الداخلية الصافية بعد التشطيب، ومراجعة اشتراطات إمكانية الوصول مع الاستشاري لأن الأكواد المحلية قد تضيف متطلبات. والنوع 4 (1400 × 1600 مم، 1000 كغ) والنوع 5 (2000 × 1400 مم، باب 1100 مم، 1275 كغ) يسمحان باستدارة الكرسي المتحرك داخل الكابينة.",
+      "sources": [
+        "https://www.ikoniclifts.co.uk/blog/en-81-70-lift-car-dimensions-requirements/",
+        "https://www.rjlifts.co.uk/lift-regulations/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:en-81-72-firefighter-lifts",
+      "topic": "EN 81-72 firefighters lifts and evacuation lifts",
+      "kind": "standard",
+      "body_en": "EN 81-72 adds requirements on top of EN 81-20 for lifts that firefighters take control of during a fire. It assumes the lift well, machinery spaces and lobbies are protected by the building design against fire, heat and smoke. Commonly cited minimums are a car of about 1100 x 1400 mm with a 630 kg rated load for a basic firefighters lift, rising to a 1000 kg rated load and about 1100 x 2100 mm car where the lift is also intended for evacuation or stretcher use. Other areas the standard addresses include protection of electrical equipment against water from firefighting, a secondary power supply, a firefighters switch and control sequence that recalls the car and hands exclusive control to the fire service, communication between car and fire service access level, and means of self-rescue and rescue from outside the car. The lift must reach the furthest floor from the fire-service access level within 60 seconds (for travel up to 200 m), the clear entrance is at least 800 mm, and the car roof has a trap door with ladders for escape; the current edition is EN 81-72:2020. UAE inspection bodies note that firefighting lifts need additional periodic verification of the firefighting operation. For buyers: identify which lifts in the building are designated firefighting or evacuation lifts on the approved fire drawings, specify EN 81-72 (or the code the Civil Defence approval references) for those lifts only, and make sure the supplier coordinates with the fire alarm, generator and pressurisation contractors, since the lift alone cannot achieve compliance.\n\nUAE Fire and Life Safety Code 2018, Chapter 1 (fireman's lift requirements): the fireman's lift must be in a dedicated RC shaft for the full height (all lifts sharing that shaft must meet fireman's lift specification); super high-rise buildings (over 90 m from fire access level) need a fireman's lift lobby of at least 9 m², enclosed by 1-hour smoke barrier with a 60-minute self- or auto-closing door and direct access to an exit stair; the car must take a 610 x 2130 mm stretcher; a Class III hose cabinet must sit just outside the stair; the lift is monitored 24x7 by the emergency command centre and Civil Defence; and the code states installation to ASME A17.1/CSA B44 with communication and override features. EN 81-72 is therefore not the code's named standard; confirm with the Civil Defence approval which standard is accepted.",
+      "body_ar": "يضيف المعيار EN 81-72 متطلبات فوق EN 81-20 للمصاعد التي يتولى رجال الإطفاء التحكم بها أثناء الحريق، ويفترض أن تصميم المبنى يحمي بئر المصعد وأماكن الماكينات والردهات من الحريق والحرارة والدخان. والحدود الدنيا المتداولة كابينة بنحو 1100 × 1400 مم وحمولة 630 كغ لمصعد الإطفاء الأساسي، ترتفع إلى 1000 كغ وكابينة بنحو 1100 × 2100 مم إذا كان المصعد مخصصاً أيضاً للإخلاء أو النقالات. ويتناول المعيار كذلك حماية المعدات الكهربائية من مياه الإطفاء، ومصدر طاقة ثانوياً، ومفتاح رجال الإطفاء وتسلسل تحكم يستدعي الكابينة ويمنح الدفاع المدني تحكماً حصرياً، والاتصال بين الكابينة ومستوى دخول فرق الإطفاء، ووسائل الإنقاذ الذاتي والإنقاذ من خارج الكابينة. ويجب أن يصل المصعد إلى أبعد طابق من مستوى دخول فرق الإطفاء خلال 60 ثانية (لمسافة حتى 200 م)، وألا يقل عرض المدخل الصافي عن 800 مم، مع فتحة في سقف الكابينة وسلالم للإنقاذ؛ والإصدار الحالي هو EN 81-72:2020. وتشير جهات الفحص في الإمارات إلى أن مصاعد الإطفاء تحتاج تحققاً دورياً إضافياً من تشغيل وضع الإطفاء. وعلى المشتري تحديد المصاعد المخصصة للإطفاء أو الإخلاء في مخططات الحريق المعتمدة، واشتراط EN 81-72 أو الكود الذي تشير إليه موافقة الدفاع المدني لهذه المصاعد فقط، والتأكد من تنسيق المورد مع مقاولي إنذار الحريق والمولد وضغط الهواء، إذ لا يحقق المصعد وحده المطابقة.\n\nكود الإمارات للحماية من الحريق وسلامة الأرواح 2018، الفصل الأول (متطلبات مصعد رجال الإطفاء): يوضع مصعد الإطفاء في بئر خرساني مسلح مخصص بكامل الارتفاع (وإذا شاركته مصاعد أخرى البئر وجب أن تستوفي كلها مواصفاته)؛ وتحتاج المباني فائقة الارتفاع (أكثر من 90 م من منسوب وصول الإطفاء) ردهة لمصعد الإطفاء لا تقل عن 9 م² محاطة بحاجز دخان مقاوم لساعة وباب مقاوم 60 دقيقة ذاتي الإغلاق أو يغلق آلياً، مع وصول مباشر إلى درج هروب؛ ويجب أن تتسع العربة لنقالة 610 × 2130 مم؛ وتوضع خزانة خراطيم من الفئة الثالثة خارج الدرج مباشرة؛ ويُراقب المصعد على مدار الساعة من مركز قيادة الطوارئ والدفاع المدني؛ وينص الكود على التركيب وفق ASME A17.1/CSA B44 مع خصائص الاتصال والتجاوز. لذا فإن EN 81-72 ليس المعيار المسمى في الكود، ويجب التأكد من المعيار المقبول في موافقة الدفاع المدني.",
+      "sources": [
+        "https://www.cundall.com/ideas/blog/a-simple-guide-to-the-requirements-for-firefighting-lifts",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/",
+        "https://www.rjlifts.co.uk/lift-regulations/",
+        "https://altivexme.com/what-is-firemans-lift/",
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:en-81-73-fire-recall",
+      "topic": "EN 81-73 behaviour of lifts in the event of fire",
+      "kind": "standard",
+      "body_en": "Not every lift is a firefighters lift, but almost every lift in a building with a fire alarm system must react safely to a fire signal. EN 81-73 describes that behaviour for ordinary passenger and goods-passenger lifts: when the fire alarm sends a signal, the lift stops responding to calls, returns to a designated recall floor (usually the main exit level, or an alternate floor if the fire is detected there), opens its doors to let passengers out and then stays out of normal service. This is sometimes called fire recall or fire homing. It differs from EN 81-72, which keeps a protected lift available for firefighters to operate. Buyers commonly confuse the two and either over-specify every lift as a firefighters lift (costly, and meaningless without protected lobbies and secondary power) or forget the interface for ordinary lifts. The practical requirement is a dry contact or networked interface from the fire alarm panel to each lift controller, with the recall floor and alternate floor defined on the fire strategy and the Civil Defence approved drawings. Specify who supplies and wires that interface, because it sits between the lift contractor and the fire alarm contractor and is a frequent snag at Civil Defence inspection. In the UAE, the UAE Fire and Life Safety Code of Practice (current edition 2018) sets the building-level requirements; confirm the exact clause with the fire consultant, as the specific clause numbers were not verified in this research. The current edition of the standard is EN 81-73:2020.",
+      "body_ar": "ليس كل مصعد مصعد إطفاء، لكن كل مصعد تقريباً في مبنى مزود بنظام إنذار حريق يجب أن يتصرف بأمان عند إشارة الحريق. ويصف المعيار EN 81-73 هذا السلوك لمصاعد الركاب العادية: عند وصول إشارة من الإنذار يتوقف المصعد عن تلبية الطلبات، ويعود إلى طابق الاستدعاء المحدد، وهو عادة طابق الخروج الرئيسي أو طابق بديل إذا كان الحريق مكتشفاً فيه، ويفتح أبوابه ليخرج الركاب ثم يبقى خارج الخدمة العادية. ويختلف هذا عن EN 81-72 الذي يبقي مصعداً محمياً متاحاً لتشغيل رجال الإطفاء. ويخلط المشترون بينهما كثيراً، فإما يطلبون كل المصاعد كمصاعد إطفاء وهذا مكلف وبلا معنى دون ردهات محمية وطاقة ثانوية، أو ينسون الربط للمصاعد العادية. والمتطلب العملي هو وصلة جافة أو ربط شبكي من لوحة إنذار الحريق إلى لوحة تحكم كل مصعد، مع تحديد طابق الاستدعاء والطابق البديل في استراتيجية الحريق ومخططات الدفاع المدني المعتمدة. حدد من يورد هذه الوصلة ويمدها، لأنها تقع بين مقاول المصاعد ومقاول الإنذار، وهي ملاحظة متكررة عند فحص الدفاع المدني. ويحدد كود الإمارات للحريق وسلامة الأرواح (الإصدار الحالي 2018) المتطلبات على مستوى المبنى، فتأكد من البند الدقيق مع استشاري الحريق لأن أرقام البنود لم تُتحقق في هذا البحث. والإصدار الحالي من المعيار هو EN 81-73:2020.",
+      "sources": [
+        "https://www.rjlifts.co.uk/lift-regulations/",
+        "https://altivexme.com/what-is-firemans-lift/",
+        "https://vortexfire.com/insights/amendments-to-the-uae-fire-and-life-safety-code-of-practice-2018"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:en-115-escalators",
+      "topic": "EN 115-1 escalators and moving walks",
+      "kind": "standard",
+      "body_en": "EN 115-1 is the European safety standard for building and installing escalators and moving walks, and EN 115-2 covers upgrading existing units. Its best-known rules concern inclination and speed. Escalators are normally 30 or 35 degrees; at up to 30 degrees the nominal speed may not exceed 0.75 m/s, while above 30 and up to 35 degrees it may not exceed 0.5 m/s, and a 35 degree escalator is not permitted where the rise exceeds 6 m. Moving walks are generally limited to 0.75 m/s, with up to 0.90 m/s allowed only for pallet widths not above 1.10 m and with extra landing conditions; typical moving-walk inclinations are around 10 to 12 degrees. In practice shopping malls run escalators at 0.5 m/s, while metros and airports often choose 0.5 to 0.65 m/s. A buyer must also state step width (common nominal widths are 600, 800 and 1000 mm), rise, number of flat steps at landings, indoor or outdoor duty (outdoor units in the UAE need weather, dust and heat protection), commercial or heavy-duty public transport rating with daily operating hours, energy-saving modes such as slow speed or stop-and-go with sensors, balustrade type (glass or metal), and cladding finish. Outdoor and transit-duty escalators cost considerably more than indoor commercial units and are not interchangeable in a comparison. One supplier guide also gives a minimum of 2 and a maximum of 4 flat steps at each landing.",
+      "body_ar": "المعيار EN 115-1 هو المعيار الأوروبي لسلامة تصنيع وتركيب السلالم والممرات المتحركة، ويغطي EN 115-2 تحديث الوحدات القائمة. وأشهر قواعده تخص زاوية الميل والسرعة. فالسلالم المتحركة عادة بزاوية 30 أو 35 درجة، وحتى 30 درجة لا تتجاوز السرعة الاسمية 0.75 م/ث، وفوق 30 حتى 35 درجة لا تتجاوز 0.5 م/ث، ولا يُسمح بزاوية 35 درجة إذا زاد الارتفاع على 6 أمتار. والممرات المتحركة محدودة عموماً بسرعة 0.75 م/ث، ويُسمح حتى 0.90 م/ث فقط لعرض ألواح لا يزيد على 1.10 م مع شروط إضافية عند المداخل، وميلها المعتاد نحو 10 إلى 12 درجة. وفي الواقع تشغّل مراكز التسوق السلالم بسرعة 0.5 م/ث، بينما تختار المترو والمطارات غالباً 0.5 إلى 0.65 م/ث. وعلى المشتري تحديد عرض الدرجة (الشائع 600 و800 و1000 مم)، والارتفاع، وعدد الدرجات المستوية عند المداخل، والتركيب داخلياً أو خارجياً (الوحدات الخارجية في الإمارات تحتاج حماية من الطقس والغبار والحرارة)، وتصنيف الاستخدام تجارياً أو نقلاً عاماً ثقيلاً مع ساعات التشغيل اليومية، وأوضاع توفير الطاقة كالسرعة البطيئة أو التوقف والتشغيل بالحساسات، ونوع الدرابزين زجاجياً أو معدنياً، وتشطيب الكسوة. والسلالم الخارجية وسلالم النقل العام أغلى كثيراً من الوحدات التجارية الداخلية ولا تُقارن بها مباشرة. ويذكر دليل أحد الموردين أن عدد الدرجات الأفقية عند كل مدخل ومخرج لا يقل عن 2 ولا يزيد على 4.",
+      "sources": [
+        "https://la-grazia.com/e-learning/authorized-speed-for-escalator-and-moving-walk/",
+        "https://amadaelevator.com/en/escalator-pre-installation-information/",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:uae-authority-approvals-inspection",
+      "topic": "UAE lift approvals and third-party inspection and certification",
+      "kind": "authority_approval",
+      "body_en": "In the UAE a lift or escalator is not simply installed and switched on. The municipality having jurisdiction (Dubai Municipality in Dubai, the Abu Dhabi City Municipality and its equivalents in Abu Dhabi, and the relevant municipality in other emirates) sets requirements for installation approval and periodic examination, while Civil Defence approves the fire-related aspects such as firefighting lifts, fire recall and fire alarm interfaces as part of the building fire approval. Inspection bodies report that a third-party examination is required at commissioning, after any major modification or replacement of a safety component, after an entrapment or accident, and periodically, annually in most cases with the interval set by the municipality. Certificates are issued by third-party inspection bodies accredited to ISO/IEC 17020 (in the UAE typically through EIAC) and listed on the municipality register where one exists, in the format each municipality requires, supported by a report with test results. In Dubai, owners and managers are also expected to use licensed lift companies and keep maintenance records available for inspection. For procurement: make the supplier responsible for obtaining the commissioning inspection certificate and any authority approvals in its scope, name the accepted inspection bodies, and include the first annual re-certification either in the installation price or in the maintenance contract. Exact fees and the full text of each municipality regulation were not established from primary sources in this research.",
+      "body_ar": "في الإمارات لا يُركَّب المصعد أو السلم المتحرك ويُشغَّل ببساطة. فالبلدية المختصة، وهي بلدية دبي في دبي، وبلدية مدينة أبوظبي ونظيراتها في أبوظبي، والبلدية المعنية في الإمارات الأخرى، تضع اشتراطات موافقة التركيب والفحص الدوري، بينما يعتمد الدفاع المدني الجوانب المتعلقة بالحريق مثل مصاعد الإطفاء والاستدعاء عند الحريق والربط مع نظام الإنذار ضمن موافقة الحريق للمبنى. وتذكر جهات الفحص أن الفحص من طرف ثالث مطلوب عند التشغيل الأولي، وبعد أي تعديل كبير أو استبدال لمكون أمان، وبعد احتجاز ركاب أو حادث، وبشكل دوري سنوياً في أغلب الحالات حسب ما تحدده البلدية. وتصدر الشهادات جهات فحص معتمدة وفق ISO/IEC 17020، وفي الإمارات غالباً عبر مركز الإمارات الدولي للاعتماد (EIAC)، ومدرجة في سجل البلدية حيث وُجد، وبالصيغة التي تطلبها كل بلدية مع تقرير بنتائج الاختبارات. وفي دبي يُتوقع من الملاك والإدارات التعامل مع شركات مصاعد مرخصة والاحتفاظ بسجلات الصيانة للتفتيش. وفي الشراء: اجعل المورد مسؤولاً عن استخراج شهادة فحص التشغيل الأولي وأي موافقات ضمن نطاقه، وسمِّ جهات الفحص المقبولة، وأدرج أول إعادة اعتماد سنوية في سعر التركيب أو في عقد الصيانة. ولم تُثبت الرسوم الدقيقة والنص الكامل لأنظمة كل بلدية من مصادر أولية في هذا البحث.",
+      "sources": [
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/",
+        "https://yorklift.com/elevator-safety-rules-in-dubai-what-every-building-owner-needs-to-follow/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:traffic-analysis",
+      "topic": "Lift traffic analysis: handling capacity, interval and waiting time",
+      "kind": "glossary",
+      "body_en": "The number, size and speed of lifts should come from a traffic analysis, not from a supplier's catalogue. Traffic analysis assesses quantity and quality of service over a notional five-minute peak. Handling capacity is the number of people, or percentage of the building population, the lift group can move in five minutes; the morning up-peak is the classic design case for offices. Interval (or average interval) is the average time between successive lift departures from the main lobby, and average waiting time is how long a typical passenger waits after pressing the call button; journey or transit time measures time inside the car. Round trip time combines door times, travel, stops and passenger transfer. Published guidance such as CIBSE Guide D gives target values by building type; commonly quoted office figures are a five-minute handling capacity of roughly 12 to 15 percent of population and an interval of about 20 to 30 seconds, but these should be treated as indicative and confirmed from the current guide. Modern practice supplements calculation with simulation, especially for mixed lunch-time traffic and destination dispatch systems. For buyers: ask for the traffic analysis assumptions (population per floor, occupancy density, attendance factor, rated load, speed, door type) because a supplier can make a small group look adequate by assuming low population. Two quotes with different numbers of lifts are only comparable once both meet the same traffic criteria.",
+      "body_ar": "يجب أن يأتي عدد المصاعد وحجمها وسرعتها من تحليل حركة المرور، لا من كتالوج المورد. ويقيّم التحليل كمية الخدمة وجودتها خلال فترة ذروة افتراضية مدتها خمس دقائق. فالسعة الاستيعابية هي عدد الأشخاص، أو نسبتهم من سكان المبنى، الذين تنقلهم مجموعة المصاعد في خمس دقائق، وذروة الصعود الصباحية هي حالة التصميم التقليدية للمكاتب. والفاصل الزمني هو متوسط الوقت بين مغادرات المصاعد المتتالية من الردهة الرئيسية، ومتوسط زمن الانتظار هو ما ينتظره الراكب بعد ضغط زر الطلب، وزمن الرحلة يقيس الوقت داخل الكابينة. وزمن الرحلة الكاملة يجمع أزمنة الأبواب والحركة والتوقفات ودخول الركاب وخروجهم. وتعطي أدلة منشورة مثل CIBSE Guide D قيماً مستهدفة حسب نوع المبنى، ومن الأرقام المتداولة للمكاتب سعة استيعابية نحو 12 إلى 15 بالمئة من السكان في خمس دقائق وفاصل نحو 20 إلى 30 ثانية، لكنها استرشادية وتؤكد من أحدث إصدار للدليل. وتستكمل الممارسة الحديثة الحسابات بالمحاكاة، خاصة لحركة الغداء المختلطة وأنظمة توجيه الوجهة. وعلى المشتري طلب افتراضات التحليل (عدد السكان لكل طابق، الكثافة، نسبة الحضور، الحمولة، السرعة، نوع الباب)، لأن المورد قد يُظهر مجموعة صغيرة كافية بافتراض عدد سكان منخفض. ولا يُقارن عرضان بعدد مصاعد مختلف إلا إذا حقق كلاهما معايير الحركة نفسها.",
+      "sources": [
+        "https://adsimulo.com/what-is-lift-traffic-analysis/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    },
+    {
+      "id": "elevators:vvvf-drives",
+      "topic": "VVVF drives and regenerative drives",
+      "kind": "glossary",
+      "body_en": "VVVF stands for variable voltage variable frequency, the inverter drive that controls motor speed and torque in modern traction lifts. Compared with old two-speed or resistor-controlled motors, a VVVF drive gives smooth acceleration and deceleration, accurate floor levelling, lower starting current, less mechanical wear and lower energy use, and it is effectively standard with gearless permanent-magnet machines. Hydraulic lifts can also use a VVVF-controlled pump motor for smoother starts and reduced oil heating. A regenerative drive goes further: when a lightly loaded car travels up or a heavy car travels down, the machine acts as a generator, and instead of burning that energy in braking resistors (which also heats the machine space) the drive feeds it back into the building supply. Savings depend heavily on traffic, travel height and speed, so treat any fixed percentage in a brochure with caution; regeneration pays back best on high-rise, high-traffic lifts. For buyers: confirm drive make and model, whether the drive is regenerative or resistor-braking, harmonic performance (important for the electrical engineer and DEWA or ADDC connection conditions), rated ambient temperature, and whether spare drives are stocked locally. A cheap drive from an unknown maker can become the single component that keeps a lift out of service for weeks because no one in the UAE holds a replacement.",
+      "body_ar": "يرمز VVVF إلى الجهد المتغير والتردد المتغير، وهو محول التردد الذي يتحكم في سرعة المحرك وعزمه في مصاعد الجر الحديثة. ومقارنة بالمحركات القديمة ثنائية السرعة أو المتحكم بها بالمقاومات، يمنح VVVF تسارعاً وتباطؤاً سلسين ووقوفاً دقيقاً عند الطوابق وتيار بدء أقل وتآكلاً ميكانيكياً أقل واستهلاك طاقة أدنى، وهو معيار فعلي مع ماكينات المغناطيس الدائم بدون تروس. ويمكن للمصاعد الهيدروليكية أيضاً استخدام محرك مضخة متحكم به بـVVVF لبدء أنعم وتسخين أقل للزيت. أما المحول المُرجِع للطاقة فيذهب أبعد: عندما تصعد كابينة خفيفة أو تنزل كابينة ثقيلة تعمل الماكينة كمولد، وبدلاً من حرق الطاقة في مقاومات الكبح التي تسخّن مكان الماكينة يعيدها المحول إلى شبكة المبنى. والوفر يعتمد كثيراً على الحركة والارتفاع والسرعة، فتعامل بحذر مع أي نسبة ثابتة في النشرات، ويكون العائد أفضل في المصاعد العالية كثيفة الاستخدام. وعلى المشتري التأكد من صانع المحول وطرازه، وهل هو مُرجِع للطاقة أم بمقاومات كبح، وأداء التوافقيات المهم للمهندس الكهربائي ولاشتراطات توصيل ديوا أو أدك، ودرجة حرارة التشغيل المقننة، وتوفر محولات احتياطية محلياً. فالمحول الرخيص من صانع مجهول قد يصبح القطعة الوحيدة التي تُبقي المصعد متوقفاً أسابيع لعدم وجود بديل في الإمارات.",
+      "sources": [
+        "https://www.tkelevator.com/us-en/company/insights/traction-conventional-vs-traction-mrl.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    },
+    {
+      "id": "elevators:destination-dispatch",
+      "topic": "Destination dispatch vs conventional collective control",
+      "kind": "comparison",
+      "body_en": "Conventional group control uses up and down buttons at the landing; passengers choose their floor inside the car, and the group controller assigns cars to landing calls without knowing where people are going. Destination dispatch (also called destination control) moves the floor selection to a keypad, touchscreen, card reader or mobile app in the lobby. The system knows each passenger's destination before a car is assigned and groups people travelling to the same or nearby floors into the same car, then tells them which car to use. Benefits reported by manufacturers and integrators include higher handling capacity in up-peak, fewer stops per trip, shorter journey times and, at design stage, the possibility of fewer or smaller cars and a smaller core. It also integrates naturally with access control: a tenant's card can call a car directly to the permitted floors. Drawbacks are higher cost, the need for clear lobby signage and user education, awkward handling of visitors and people who change their minds, and poorer results in low-traffic buildings where there is nothing to group. It is most justified in large offices and mixed-use towers with a strong morning peak. For a buyer, the decision should be based on the traffic analysis or simulation with and without destination dispatch, and the quote should specify the number and type of lobby terminals, integration with turnstiles and access control, and accessibility features for users with disabilities.",
+      "body_ar": "في التحكم الجماعي التقليدي يضغط الراكب زر الصعود أو النزول عند الطابق ثم يختار طابقه داخل الكابينة، ويوزع نظام التحكم الكابينات على الطلبات دون معرفة وجهة الركاب. أما نظام توجيه الوجهة فينقل اختيار الطابق إلى لوحة مفاتيح أو شاشة لمس أو قارئ بطاقات أو تطبيق هاتف في الردهة، فيعرف النظام وجهة كل راكب قبل تخصيص الكابينة، ويجمع المتجهين إلى الطوابق نفسها أو القريبة في كابينة واحدة ثم يخبرهم بأي مصعد يستخدمون. ومن المزايا التي يذكرها المصنعون والمدمجون: سعة استيعابية أعلى في ذروة الصعود، وتوقفات أقل في الرحلة، وزمن رحلة أقصر، وإمكانية تقليل عدد الكابينات أو حجمها في مرحلة التصميم وتصغير النواة. ويتكامل بسهولة مع أنظمة التحكم بالدخول، فبطاقة المستأجر تستدعي مصعداً مباشرة إلى الطوابق المسموحة. وعيوبه تكلفة أعلى، والحاجة إلى لافتات واضحة وتوعية المستخدمين، وصعوبة التعامل مع الزوار ومن يغيرون رأيهم، ونتائج أضعف في المباني قليلة الحركة. وهو مبرر أكثر في المكاتب الكبيرة والأبراج متعددة الاستخدام ذات ذروة صباحية قوية. وعلى المشتري بناء القرار على تحليل الحركة أو المحاكاة مع النظام وبدونه، وأن يحدد العرض عدد لوحات الردهة ونوعها، والتكامل مع البوابات الدوارة والتحكم بالدخول، وميزات إمكانية الوصول لأصحاب الهمم.",
+      "sources": [
+        "https://adsimulo.com/what-is-lift-traffic-analysis/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:ard-rescue-device",
+      "topic": "Automatic rescue device (ARD) and power-failure operation",
+      "kind": "product",
+      "body_en": "An automatic rescue device is a battery or UPS-based unit that takes over when mains power fails while a car is between floors. It moves the car at low speed to the nearest landing, usually in the lighter direction, opens the doors and lets passengers out, then parks the lift. Without it, passengers wait for a technician to perform manual rescue by releasing the brake, which in hot UAE conditions with no car ventilation is both a comfort and a safety concern. An ARD is distinct from connecting the lift to a standby generator: the generator may take seconds to start and may be sized for only some lifts, while the ARD covers the gap and every car fitted with it. Firefighting lifts additionally need a secondary supply under their own standard. Buyers should specify whether ARD is required on every lift, the battery type and expected replacement interval (batteries are consumables and are a common exclusion in maintenance contracts), whether the ARD is integrated by the lift OEM or a third-party add-on, and whether it has been tested at commissioning under the inspection body's witness. Also ask what happens on generator supply: whether the group controller will run a sequenced return of all cars and then keep selected cars in service. Test frequency for ARD in periodic maintenance was not established from primary sources in this research.",
+      "body_ar": "جهاز الإنقاذ الأوتوماتيكي (ARD) وحدة تعمل بالبطاريات أو بمزود طاقة غير منقطعة، تتولى التشغيل عند انقطاع الكهرباء والكابينة بين الطوابق، فتحرك الكابينة ببطء إلى أقرب طابق، غالباً في الاتجاه الأخف، وتفتح الأبواب ليخرج الركاب ثم توقف المصعد. وبدونه ينتظر الركاب فنياً ينفذ الإنقاذ اليدوي بتحرير الفرامل، وهذا في حرارة الإمارات ومع توقف تهوية الكابينة مسألة راحة وسلامة معاً. ويختلف الجهاز عن ربط المصعد بمولد احتياطي، فالمولد قد يستغرق ثواني ليعمل وقد يكفي لبعض المصاعد فقط، بينما يغطي الجهاز الفجوة ويخدم كل كابينة مزودة به. وتحتاج مصاعد الإطفاء كذلك مصدراً ثانوياً وفق معيارها الخاص. وعلى المشتري تحديد ما إذا كان الجهاز مطلوباً لكل مصعد، ونوع البطارية وفترة الاستبدال المتوقعة (البطاريات مواد استهلاكية ومن الاستثناءات الشائعة في عقود الصيانة)، وهل الجهاز مدمج من الشركة المصنعة للمصعد أم إضافة من طرف ثالث، وهل اختُبر عند التشغيل بحضور جهة الفحص. واسأل أيضاً عن التشغيل على المولد: هل يعيد نظام التحكم جميع الكابينات بالتتابع ثم يبقي كابينات محددة في الخدمة. ولم تُثبت فترة اختبار الجهاز في الصيانة الدورية من مصادر أولية في هذا البحث.",
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/",
+        "https://yorklift.com/elevator-safety-rules-in-dubai-what-every-building-owner-needs-to-follow/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:shaft-pit-headroom",
+      "topic": "Shaft, pit and headroom dimensions and builder works",
+      "kind": "installation",
+      "body_en": "A lift quote is only valid for the shaft it was designed for. The key civil dimensions are clear shaft width and depth (plumb, after plaster), pit depth below the lowest landing, headroom (overhead) from the top landing floor to the underside of the shaft ceiling, and for machine-room lifts the room size, height, access, lifting hook and ventilation. EN 81-20 increased refuge spaces in the pit and on the car roof, so pits and headrooms often need to be larger than on older designs, particularly for small cars; manufacturers offer reduced pit or headroom solutions, but these depend on additional protective devices and must be accepted by the inspection body. Pits deeper than 2.5 m have stricter access rules, such as a proper access door or fixed ladder of defined strength. Builder works usually excluded from the lift contractor include the pit waterproofing and drainage, shaft construction and plumbness, fixing points or embedded plates, lifting beams, scaffolding, shaft and pit lighting, main power up to the isolator, telephone or data line for the emergency alarm, fire alarm interface, shaft ventilation and cooling where required, and door-opening fire-rated surrounds. In the UAE, heat in shaft heads and machine spaces is a practical issue, so ventilation or cooling should be agreed. Buyers should send shaft drawings with every RFQ and require the supplier to return a layout drawing confirming fit, or list the civil changes needed.",
+      "body_ar": "عرض المصعد صالح فقط للبئر الذي صُمم له. والأبعاد المدنية الأساسية هي العرض والعمق الصافيان للبئر بعد اللياسة ومع الاستقامة، وعمق الحفرة تحت أدنى طابق، والارتفاع العلوي من أرضية آخر طابق حتى أسفل سقف البئر، ولمصاعد غرفة الماكينة مقاس الغرفة وارتفاعها والوصول إليها وخطاف الرفع والتهوية. وقد زاد EN 81-20 مساحات اللجوء في الحفرة وفوق الكابينة، فأصبحت الحفرة والارتفاع العلوي غالباً أكبر من التصاميم القديمة خاصة للكابينات الصغيرة، ويقدم المصنعون حلولاً مخفضة تعتمد على أجهزة حماية إضافية ويجب أن تقبلها جهة الفحص. والحفر التي يزيد عمقها على 2.5 م لها قواعد وصول أشد كباب وصول أو سلم ثابت بمتانة محددة. وتشمل الأعمال الإنشائية المستثناة عادة من مقاول المصاعد: عزل الحفرة وتصريفها، وبناء البئر واستقامته، ونقاط التثبيت أو الألواح المدفونة، وجسور الرفع، والسقالات، وإضاءة البئر والحفرة، والتغذية الكهربائية حتى المفتاح العازل، وخط الهاتف أو البيانات لإنذار الطوارئ، وربط إنذار الحريق، وتهوية البئر وتبريده عند الحاجة، وإطارات فتحات الأبواب المقاومة للحريق. وفي الإمارات تمثل حرارة رأس البئر وأماكن الماكينات مشكلة عملية، فيُتفق على التهوية أو التبريد. وعلى المشتري إرسال مخططات البئر مع كل طلب عرض، وإلزام المورد بإرجاع مخطط تركيب يؤكد الملاءمة أو يحدد التعديلات المدنية المطلوبة.",
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:cabin-finishes",
+      "topic": "Cabin finishes, doors and fixtures",
+      "kind": "product",
+      "body_en": "Finishes drive both price and lead time and are a frequent source of disputes. Car walls range from painted or powder-coated steel through hairline or mirror stainless steel (grade and pattern should be stated), patterned or coloured stainless, laminates, glass and custom stone or wood veneer panels for hotels and luxury residences. Under EN 81-20 car finishes must meet fire-behaviour limits and any glass must be laminated safety glass, so decorative materials supplied by an interior contractor need to be approved by the lift maker. Heavy stone or thick panels also add weight, which reduces usable load unless the rated load is increased, and they reduce clear internal dimensions, which can break EN 81-70 compliance. Ceilings range from simple panels with LED lighting to custom designs; car lighting must provide at least 100 lux. Floors are usually recessed to receive granite, marble or vinyl from the main contractor, so the recess depth and weight allowance must be agreed. Landing and car doors can be centre-opening (faster, for passenger lifts) or side-opening (wider clear openings in a given shaft, common on goods and bed lifts), with painted, stainless or glass finishes and fire-rated landing doors where the fire strategy requires. Fixtures include car operating panels, hall buttons, displays, hall lanterns, handrails, mirrors and protective pads. Specify each item, or the supplier will quote its standard catalogue range.",
+      "body_ar": "التشطيبات تحدد السعر ومدة التوريد معاً، وهي مصدر متكرر للخلافات. فجدران الكابينة تتدرج من الحديد المدهون أو المطلي بالبودرة، إلى الستانلس ستيل المخطط أو المرآة (ويجب ذكر الدرجة والنقشة)، والستانلس المنقوش أو الملون، والألواح المصفحة، والزجاج، وألواح الحجر أو القشرة الخشبية المخصصة للفنادق والمساكن الفاخرة. ووفق EN 81-20 يجب أن تستوفي تشطيبات الكابينة حدود السلوك عند الحريق، وأن يكون أي زجاج زجاج أمان مصفحاً، لذا يجب أن يعتمد مصنع المصعد المواد الزخرفية التي يوردها مقاول الديكور. والحجر الثقيل أو الألواح السميكة تزيد الوزن فتنقص الحمولة المفيدة ما لم تُرفع الحمولة الاسمية، وتقلل الأبعاد الداخلية الصافية مما قد يخل بمطابقة EN 81-70. والأسقف من ألواح بسيطة بإضاءة LED إلى تصاميم خاصة، ويجب ألا تقل الإضاءة عن 100 لوكس. والأرضيات غالباً منخفضة لاستقبال الجرانيت أو الرخام أو الفينيل من المقاول الرئيسي، فيُتفق على عمق التجويف والوزن المسموح. والأبواب إما مركزية الفتح وهي أسرع لمصاعد الركاب، أو جانبية الفتح لفتحات أعرض في بئر محدد وهي شائعة في مصاعد البضائع والأسرّة، بتشطيب مدهون أو ستانلس أو زجاج، مع أبواب طوابق مقاومة للحريق حيث تتطلب استراتيجية الحريق. والتجهيزات تشمل لوحة تشغيل الكابينة وأزرار الطوابق والشاشات والفوانيس والمقابض والمرايا ووسائد الحماية. حدد كل بند وإلا سيعرض المورد مجموعته القياسية.",
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://www.ikoniclifts.co.uk/blog/en-81-70-lift-car-dimensions-requirements/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:amc-comprehensive-vs-non",
+      "topic": "AMC: comprehensive vs non-comprehensive lift maintenance",
+      "kind": "comparison",
+      "body_en": "After handover, lifts in the UAE run under an annual maintenance contract (AMC), and regular documented maintenance by a licensed lift company is effectively required to keep the annual inspection certificate. A non-comprehensive (sometimes called standard or labour-only) AMC covers scheduled preventive visits, lubrication, adjustments and callouts; spare parts and major components are quoted and charged separately when needed. It has a lower headline price but unpredictable total cost and invites disputes about whether a part really needed replacing. A comprehensive AMC includes labour plus most replacement parts within the annual fee, giving predictable budgeting; it costs more and still has exclusions. Typical exclusions to read carefully, even in comprehensive contracts, are major components (machine, controller boards, drive, ropes), batteries, car and landing door finishes, glass, vandalism, water damage and damage from power disturbances, and modernisation. Other terms that matter: visit frequency, callout response times for entrapments and breakdowns (a separate, shorter target for trapped passengers), 24/7 coverage, whether the annual third-party inspection fee is included, reporting, uptime commitments, spare parts availability, and termination conditions. Newer lifts still under the supplier warranty are often on a non-comprehensive contract, while ageing equipment suits comprehensive cover. A buyer comparing AMC quotes must line up the exclusion lists, not just the annual fee.",
+      "body_ar": "بعد التسليم تعمل المصاعد في الإمارات بموجب عقد صيانة سنوي (AMC)، والصيانة المنتظمة الموثقة من شركة مصاعد مرخصة مطلوبة فعلياً للحفاظ على شهادة الفحص السنوية. فالعقد غير الشامل، ويسمى أحياناً القياسي أو العمالة فقط، يغطي الزيارات الوقائية المجدولة والتشحيم والضبط والاستجابة للأعطال، بينما تُسعَّر قطع الغيار والمكونات الرئيسية وتُحاسب منفصلة عند الحاجة. سعره المعلن أقل لكن تكلفته الإجمالية غير متوقعة، ويفتح باب الخلاف حول ضرورة استبدال القطعة. أما العقد الشامل فيضم العمالة ومعظم قطع الغيار ضمن الرسم السنوي، مما يسهل التخطيط المالي، وهو أغلى وله استثناءات أيضاً. ومن الاستثناءات التي يجب قراءتها بعناية حتى في العقود الشاملة: المكونات الرئيسية كالماكينة ولوحات التحكم والمحول والحبال، والبطاريات، وتشطيبات الكابينة وأبواب الطوابق، والزجاج، والتخريب، وأضرار المياه وتذبذب الكهرباء، والتحديث. ومن الشروط المهمة أيضاً: عدد الزيارات، وزمن الاستجابة للاحتجاز والأعطال مع هدف أقصر للركاب المحتجزين، والتغطية على مدار الساعة، وهل رسم الفحص السنوي من طرف ثالث مشمول، والتقارير، والتزامات نسبة التشغيل، وتوفر قطع الغيار، وشروط الإنهاء. وغالباً توضع المصاعد الجديدة ضمن الضمان على عقد غير شامل، والمعدات القديمة على عقد شامل. وعلى المشتري مقارنة قوائم الاستثناءات لا الرسم السنوي فقط.",
+      "sources": [
+        "https://www.mebsfacility.com/blog/annual-maintenance-contracts-dubai",
+        "https://yorklift.com/elevator-safety-rules-in-dubai-what-every-building-owner-needs-to-follow/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "elevators:modernisation",
+      "topic": "Lift modernisation: partial vs full replacement",
+      "kind": "product",
+      "body_en": "Modernisation means upgrading an existing lift rather than replacing the building's vertical transport from scratch. Typical triggers are obsolete controllers with no available spares, repeated breakdowns, poor levelling, energy use, new accessibility or safety expectations, and an owner's wish to refresh the look. Scope ranges from partial (controller and drive replacement, door operator upgrade, new fixtures and cabin refurbishment, keeping the machine, rails, car frame and counterweight) to full replacement within the existing shaft (new machine, often converting a geared machine-room lift to gearless or MRL, new ropes, doors, car and controller). Because the shaft, pit and headroom were built to an older code, a full replacement may not meet every current EN 81-20 dimension, and the upgrade is usually assessed against EN 81-80 (safety of existing lifts) and the inspection body's view of acceptable deviations. Any major modification or replacement of safety components triggers a new third-party examination in the UAE. Buyers should obtain a condition survey first, define which components are retained, require a phasing plan for buildings where lifts must stay in service, agree the out-of-service duration per lift, confirm the new controller is not proprietary-locked if future competition in maintenance matters, and check who handles removal and disposal of old equipment and oil. Modernisation quotes are rarely comparable unless the retained-component list is identical.",
+      "body_ar": "التحديث يعني ترقية مصعد قائم بدلاً من استبدال منظومة النقل العمودي بالكامل. ومن دوافعه الشائعة: لوحات تحكم متقادمة بلا قطع غيار، وأعطال متكررة، ووقوف غير دقيق، واستهلاك طاقة، وتوقعات جديدة للسلامة وإمكانية الوصول، ورغبة المالك في تجديد المظهر. ويتدرج النطاق من الجزئي، أي استبدال لوحة التحكم والمحول وترقية مشغل الأبواب وتجهيزات جديدة وتجديد الكابينة مع الإبقاء على الماكينة والسكك وإطار الكابينة والثقل الموازن، إلى الاستبدال الكامل داخل البئر القائم، أي ماكينة جديدة مع تحويل مصعد بتروس وغرفة ماكينة غالباً إلى ماكينة بدون تروس أو MRL، وحبال وأبواب وكابينة ولوحة تحكم جديدة. ولأن البئر والحفرة والارتفاع العلوي بُنيت وفق كود أقدم، قد لا يستوفي الاستبدال الكامل كل أبعاد EN 81-20 الحالية، ويُقيَّم التحديث عادة وفق EN 81-80 لسلامة المصاعد القائمة ورأي جهة الفحص في الانحرافات المقبولة. وأي تعديل كبير أو استبدال لمكونات الأمان يستلزم فحصاً جديداً من طرف ثالث في الإمارات. وعلى المشتري إجراء مسح حالة أولاً، وتحديد المكونات المُبقاة، وطلب خطة مراحل للمباني التي يجب أن تبقى مصاعدها في الخدمة، والاتفاق على مدة التوقف لكل مصعد، والتأكد من أن لوحة التحكم الجديدة ليست مغلقة على المصنع إذا كانت المنافسة مستقبلاً في الصيانة مهمة، ومن المسؤول عن إزالة المعدات القديمة والزيت والتخلص منها. ونادراً ما تُقارن عروض التحديث إلا إذا تطابقت قائمة المكونات المُبقاة.",
+      "sources": [
+        "https://www.rjlifts.co.uk/lift-regulations/",
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:spare-parts-proprietary",
+      "topic": "Spare parts, proprietary controllers and maintenance lock-in",
+      "kind": "buyer_mistake",
+      "body_en": "A lift is a 20 to 30 year asset, and the cheapest installation can become the most expensive to own if parts and service are locked to one company. Many OEMs use proprietary controllers, drives and diagnostic tools; an independent maintenance company may be unable to fault-find or adjust without the OEM's service tool or passwords, and replacement boards may only be sold by the OEM at its price. Some lower-cost imports use generic controllers that any competent company can service but whose long-term parts supply is uncertain once the model is discontinued or the local agent closes. Buyers should ask: who manufactures the controller, drive, door operator and machine; whether the service tool, software access and wiring diagrams are handed over to the owner; what the guaranteed parts availability period is after installation; whether critical spares (door operator parts, main boards, drive, encoder, ropes) are stocked in the UAE and with what lead time; and whether the supplier will commit to a price list for spare parts over the first years. Include a clause giving the owner the right to use another licensed maintenance contractor after the defects liability period without losing access to parts. This protects the owner from AMC price rises. The exact market practice of each OEM on tool release varies and was not verified brand by brand in this research.",
+      "body_ar": "المصعد أصل يعمل 20 إلى 30 سنة، وقد يصبح التركيب الأرخص هو الأغلى في الملكية إذا ارتبطت القطع والخدمة بشركة واحدة. فكثير من المصنعين يستخدمون لوحات تحكم ومحولات وأدوات تشخيص خاصة بهم، وقد تعجز شركة صيانة مستقلة عن تشخيص الأعطال أو الضبط دون أداة الخدمة أو كلمات المرور الخاصة بالمصنع، وقد لا تُباع اللوحات البديلة إلا من المصنع وبسعره. وبعض الواردات الأقل تكلفة تستخدم لوحات عامة يستطيع أي فني كفء صيانتها، لكن توفر قطعها على المدى الطويل غير مضمون عند توقف الطراز أو إغلاق الوكيل المحلي. وعلى المشتري أن يسأل: من يصنع لوحة التحكم والمحول ومشغل الأبواب والماكينة، وهل تُسلَّم أداة الخدمة وصلاحيات البرنامج والمخططات الكهربائية للمالك، وما مدة توفر القطع المضمونة بعد التركيب، وهل القطع الحرجة كقطع مشغل الأبواب واللوحات الرئيسية والمحول والمشفر والحبال متوفرة في الإمارات وبأي مدة، وهل يلتزم المورد بقائمة أسعار لقطع الغيار في السنوات الأولى. وأدرج بنداً يمنح المالك حق التعاقد مع شركة صيانة مرخصة أخرى بعد فترة المسؤولية عن العيوب دون فقدان الوصول إلى القطع، فهذا يحميه من ارتفاع أسعار عقود الصيانة. وتختلف ممارسة كل مصنع في تسليم الأدوات ولم يُتحقق منها لكل علامة في هذا البحث.",
+      "sources": [
+        "https://www.mebsfacility.com/blog/annual-maintenance-contracts-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "elevators:lead-times",
+      "topic": "Lead times for lifts and escalators",
+      "kind": "lead_time",
+      "body_en": "Lift and escalator delivery in the UAE is governed by three separate clocks, and buyers often only ask about one. First, engineering and approvals: the supplier prepares layout drawings from the shaft survey, the consultant approves them along with finishes and fixtures, and any reduced pit or headroom solution must be agreed. Nothing goes into production until drawings and finishes are frozen, so late finish decisions are the most common cause of delay. Second, manufacture and shipping: most equipment is made abroad (Europe, Asia or elsewhere depending on the OEM factory) and shipped to the UAE; standard catalogue passenger lifts move faster than custom cars, large goods or car lifts, high-speed units or escalators with special cladding. Third, site installation and commissioning: installation starts only when the shaft is ready, plumb, dry, lit and secured, with permanent or temporary power, and ends with testing, the third-party inspection and certificate. Because production and shipping times vary by factory and season, this research did not establish reliable week counts; buyers should ask each supplier for a written programme split into these three phases, with the date by which drawings and finishes must be approved to hold the delivery date. Treat any quote that promises an immediate delivery for a custom-finish lift, without mentioning approvals, as a warning sign.",
+      "body_ar": "يخضع توريد المصاعد والسلالم المتحركة في الإمارات لثلاث مراحل زمنية منفصلة، وكثيراً ما يسأل المشترون عن واحدة فقط. الأولى الهندسة والموافقات: يعد المورد مخططات التركيب بعد مسح البئر، ويعتمدها الاستشاري مع التشطيبات والتجهيزات، ويُتفق على أي حل مخفض للحفرة أو الارتفاع العلوي، ولا يدخل شيء في الإنتاج قبل تثبيت المخططات والتشطيبات، لذا فتأخر قرارات التشطيب هو أشيع أسباب التأخير. والثانية التصنيع والشحن: تُصنع معظم المعدات في الخارج في أوروبا أو آسيا أو غيرها حسب مصنع الشركة، وتُشحن إلى الإمارات، والمصاعد القياسية أسرع من الكابينات المخصصة ومصاعد البضائع أو السيارات الكبيرة والوحدات عالية السرعة والسلالم ذات الكسوة الخاصة. والثالثة التركيب والتشغيل في الموقع: يبدأ التركيب فقط عندما يكون البئر جاهزاً مستقيماً جافاً مضاءً ومؤمناً مع كهرباء دائمة أو مؤقتة، وينتهي بالاختبارات وفحص الطرف الثالث والشهادة. ولأن أزمنة الإنتاج والشحن تختلف حسب المصنع والموسم، لم يُثبت هذا البحث أعداد أسابيع موثوقة، وعلى المشتري أن يطلب من كل مورد برنامجاً مكتوباً مقسماً إلى هذه المراحل الثلاث، مع التاريخ الذي يجب فيه اعتماد المخططات والتشطيبات للحفاظ على موعد التسليم. واعتبر أي عرض يعد بتسليم فوري لمصعد بتشطيب مخصص دون ذكر الموافقات علامة تحذير.",
+      "sources": [
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/",
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "elevators:price-drivers",
+      "topic": "What drives the price of a lift or escalator",
+      "kind": "price_driver",
+      "body_en": "Lift prices vary widely, and the useful skill is knowing why. Main drivers are: number of stops and travel height, since rails, ropes, landing doors and installation labour scale with them; rated load and car size; speed, because higher speeds need bigger machines, better drives, sometimes a machine room and more precise installation; drive family (hydraulic, MRL or machine-room traction) and machine type (gearless PM versus geared); control features such as group control of several cars, destination dispatch, access control integration and remote monitoring; door type, width and finish, and whether landing doors must be fire-rated; car finishes, which can range from basic painted steel to custom stone and glass and can dominate the price of a luxury lift; special duties such as firefighting (EN 81-72), evacuation, bed, goods, car lifts or outdoor escalators; through-car or adjacent doors; ARD, regenerative drives and energy options; and site conditions such as non-standard shafts, reduced pit or headroom solutions, working at height in occupied buildings and night work. Commercial terms also shift price: warranty length, the free maintenance period included, whether the first third-party inspection and authority fees are included, payment terms, and currency exposure on imported equipment. Because these vary so much, this pack deliberately gives no AED figures; compare quotes on an identical specification and read the inclusions and exclusions line by line.",
+      "body_ar": "تتفاوت أسعار المصاعد كثيراً، والمهارة المفيدة معرفة السبب. أهم العوامل: عدد الوقفات والارتفاع، لأن السكك والحبال وأبواب الطوابق وعمالة التركيب تزيد معها، والحمولة ومقاس الكابينة، والسرعة لأن السرعات الأعلى تحتاج ماكينات أكبر ومحولات أفضل وأحياناً غرفة ماكينة وتركيباً أدق، وعائلة التشغيل هيدروليكي أو MRL أو جر بغرفة ماكينة، ونوع الماكينة بدون تروس بمغناطيس دائم أو بتروس، وميزات التحكم كالتحكم الجماعي لعدة كابينات وتوجيه الوجهة والتكامل مع أنظمة الدخول والمراقبة عن بعد، ونوع الأبواب وعرضها وتشطيبها وهل يلزم أن تكون أبواب الطوابق مقاومة للحريق، وتشطيبات الكابينة التي تتدرج من الحديد المدهون إلى الحجر والزجاج المخصص وقد تهيمن على سعر المصعد الفاخر، والاستخدامات الخاصة كالإطفاء وفق EN 81-72 والإخلاء والأسرّة والبضائع والسيارات والسلالم الخارجية، والأبواب الأمامية والخلفية أو المتجاورة، وجهاز الإنقاذ والمحولات المُرجِعة للطاقة، وظروف الموقع كالآبار غير القياسية وحلول الحفرة أو الارتفاع المخفض والعمل في مبانٍ مشغولة والعمل الليلي. وتؤثر الشروط التجارية أيضاً: مدة الضمان، وفترة الصيانة المجانية، وهل يشمل السعر أول فحص من طرف ثالث ورسوم الجهات، وشروط الدفع، وتعرض المعدات المستوردة لتقلب العملة. ولهذا التفاوت لا تذكر هذه الحزمة أي أرقام بالدرهم عمداً، فقارن العروض على مواصفات متطابقة واقرأ الشمول والاستثناءات بنداً بنداً.",
+      "sources": [
+        "https://www.tkelevator.com/us-en/company/insights/traction-conventional-vs-traction-mrl.html",
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://www.mebsfacility.com/blog/annual-maintenance-contracts-dubai"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "elevators:buyer-mistakes",
+      "topic": "Common buyer mistakes when procuring lifts",
+      "kind": "buyer_mistake",
+      "body_en": "The same mistakes recur on UAE lift purchases. Choosing lifts by count and price without a traffic analysis leads to long waits once the building is occupied, and adding a lift later is rarely possible. Sending an RFQ without shaft drawings produces quotes based on assumptions, and the real pit or headroom then turns out too small for an EN 81-20 lift, forcing civil changes or costly reduced-dimension solutions. Specifying a nominal car size while the interior designer adds thick stone panels reduces clear dimensions below EN 81-70 thresholds and eats into rated load. Treating every lift as a firefighters lift, or none, instead of following the approved fire strategy. Forgetting interfaces: fire alarm recall contacts, generator supply, emergency telephone line, BMS monitoring and access control are often assumed to be someone else's scope. Ignoring UAE heat in shaft heads, machine rooms and outdoor escalators. Accepting a comprehensive-sounding maintenance offer without reading exclusions, or accepting a free first-year maintenance without knowing the price from year two. Buying a proprietary system without securing parts availability and service tool access. Approving finishes late, which delays production. Finally, comparing quotes with different speeds, loads, door widths, machine types or origins as if they were equal. A disciplined buyer freezes the specification first, then compares like with like.",
+      "body_ar": "تتكرر الأخطاء نفسها في شراء المصاعد بالإمارات. فاختيار المصاعد بالعدد والسعر دون تحليل حركة يؤدي إلى انتظار طويل بعد إشغال المبنى، ونادراً ما يمكن إضافة مصعد لاحقاً. وإرسال طلب العرض دون مخططات البئر ينتج عروضاً مبنية على افتراضات، ثم يتبين أن الحفرة أو الارتفاع العلوي الفعلي أصغر مما يحتاجه مصعد EN 81-20، فتلزم تعديلات مدنية أو حلول مخفضة مكلفة. وتحديد مقاس كابينة اسمي بينما يضيف مصمم الديكور ألواح حجر سميكة ينزل بالأبعاد الصافية دون حدود EN 81-70 ويأكل من الحمولة. ومعاملة كل المصاعد كمصاعد إطفاء أو عدم تحديد أي منها بدل اتباع استراتيجية الحريق المعتمدة. ونسيان الربط: وصلات الاستدعاء من إنذار الحريق، وتغذية المولد، وخط هاتف الطوارئ، والمراقبة عبر نظام إدارة المبنى، والتحكم بالدخول، إذ يُفترض غالباً أنها ضمن نطاق طرف آخر. وتجاهل حرارة الإمارات في رأس البئر وغرف الماكينات والسلالم الخارجية. وقبول عرض صيانة يبدو شاملاً دون قراءة الاستثناءات، أو قبول صيانة مجانية للسنة الأولى دون معرفة السعر من السنة الثانية. وشراء نظام مغلق على المصنع دون ضمان توفر القطع وأداة الخدمة. واعتماد التشطيبات متأخراً مما يؤخر الإنتاج. وأخيراً مقارنة عروض مختلفة السرعة والحمولة وعرض الأبواب ونوع الماكينة والمنشأ وكأنها متساوية. المشتري المنضبط يثبت المواصفات أولاً ثم يقارن المتماثل بالمتماثل.",
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://www.ikoniclifts.co.uk/blog/en-81-70-lift-car-dimensions-requirements/",
+        "https://adsimulo.com/what-is-lift-traffic-analysis/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:quote-red-flags",
+      "topic": "Red flags in lift and escalator quotations",
+      "kind": "quote_red_flag",
+      "body_en": "Warning signs in a lift quotation that a senior buyer should challenge: no stated standard, or vague wording such as built to international standards instead of EN 81-20/50 (or the agreed code) with named type-examination certificates for safety components. No machine, drive, controller or door-operator make and model, which allows substitution. Load, speed or car size that does not match the RFQ, or a car size quoted between structural walls when finishes will reduce it. A layout that fits a shaft smaller than normal for that load and speed without stating a reduced pit or headroom solution and its approval status. Missing exclusions list, or builder works and interfaces silently assumed to be by others. Commissioning and the third-party inspection certificate not included, or the authority approval process not mentioned. Country of origin stated only as the brand's home country, when the factory is elsewhere. Warranty that starts at delivery instead of handover, or a short warranty paired with a mandatory expensive AMC. Free maintenance period with no stated price from the following year. Extremely short delivery for custom finishes. Payment terms front-loaded before shaft handover. For escalators, speed or inclination combinations that EN 115-1 does not permit (for example 35 degrees above 6 m rise) or indoor units offered for outdoor locations. Each flag is a question to send back before the quote is compared, not automatically a reason to reject.",
+      "body_ar": "علامات تحذير في عرض المصعد يجب أن يستوضحها المشتري الخبير: عدم ذكر المعيار أو صياغة مبهمة مثل مصنع وفق المعايير الدولية بدلاً من EN 81-20/50 أو الكود المتفق عليه مع شهادات فحص نوع مسماة لمكونات الأمان. وعدم ذكر صانع وطراز الماكينة والمحول ولوحة التحكم ومشغل الأبواب مما يسمح بالاستبدال. وحمولة أو سرعة أو مقاس كابينة لا يطابق طلب العرض، أو مقاس كابينة بين الجدران الإنشائية بينما ستنقصه التشطيبات. ومخطط يلائم بئراً أصغر من المعتاد لتلك الحمولة والسرعة دون ذكر حل الحفرة أو الارتفاع المخفض وحالة اعتماده. وغياب قائمة الاستثناءات أو افتراض أن الأعمال الإنشائية والربط على الآخرين دون تصريح. وعدم شمول التشغيل وشهادة فحص الطرف الثالث، أو عدم ذكر إجراءات موافقة الجهات. وذكر بلد المنشأ على أنه بلد العلامة الأم بينما المصنع في مكان آخر. وضمان يبدأ من التوريد لا من التسليم، أو ضمان قصير مقترن بعقد صيانة إلزامي مكلف. وفترة صيانة مجانية دون سعر معلن للسنة التالية. وتسليم قصير جداً لتشطيبات مخصصة. وشروط دفع مقدمة قبل تسليم البئر. وفي السلالم المتحركة تركيبات سرعة أو ميل لا يسمح بها EN 115-1، مثل 35 درجة لارتفاع يزيد على 6 أمتار، أو وحدات داخلية معروضة لمواقع خارجية. وكل علامة سؤال يُرسل للمورد قبل المقارنة، لا سبباً تلقائياً للرفض.",
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/",
+        "https://www.mebsfacility.com/blog/annual-maintenance-contracts-dubai",
+        "https://amadaelevator.com/en/escalator-pre-installation-information/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:warranty-norms",
+      "topic": "Warranty and defects liability for lifts",
+      "kind": "warranty",
+      "body_en": "Lift warranties are usually stated as a defects liability period from handover or from the date the lift is certified and put into service, commonly bundled with a free maintenance period during which the installer maintains the lift at no charge. The length varies by supplier and project and this research did not establish a reliable market norm, so buyers should ask each supplier to state it explicitly. Points to settle in writing: the start date (handover with inspection certificate, not factory dispatch or delivery to site, since lifts often sit idle during construction); what is covered (materials and workmanship, including machine, controller, drive, doors and safety components); what is excluded (misuse, vandalism, construction-phase damage when the lift was used by contractors, water ingress, power disturbances, consumables such as lamps and batteries); whether the warranty depends on the installer holding the maintenance contract; response times during the warranty; and whether temporary use of the lift during construction (for workers or materials) is allowed and on what terms, because construction use without protection is a common reason warranties are refused. For escalators, confirm whether step chains, handrails and steps are treated as wear parts. Ask also for the handover documents: as-built drawings, wiring diagrams, operation and maintenance manuals, test certificates and the third-party inspection report, as these support both the warranty and the future maintenance contract.",
+      "body_ar": "تُصاغ ضمانات المصاعد عادة كفترة مسؤولية عن العيوب تبدأ من التسليم أو من تاريخ اعتماد المصعد وتشغيله، وغالباً ترافقها فترة صيانة مجانية يصون فيها المركّب المصعد دون مقابل. وتختلف المدة حسب المورد والمشروع، ولم يُثبت هذا البحث عرفاً سوقياً موثوقاً، فعلى المشتري أن يطلب من كل مورد ذكرها صراحة. ومما يجب حسمه كتابياً: تاريخ البدء، أي التسليم مع شهادة الفحص لا الشحن من المصنع أو الوصول للموقع، لأن المصاعد تبقى غالباً دون تشغيل أثناء البناء، وما يغطيه الضمان من مواد وصنعة بما فيها الماكينة ولوحة التحكم والمحول والأبواب ومكونات الأمان، وما يستثنيه كسوء الاستخدام والتخريب وأضرار مرحلة البناء عند استخدام المقاولين للمصعد ودخول المياه وتذبذب الكهرباء والمواد الاستهلاكية كالمصابيح والبطاريات، وهل يعتمد الضمان على بقاء عقد الصيانة مع المركّب، وأزمنة الاستجابة أثناء الضمان، وهل يُسمح باستخدام المصعد مؤقتاً أثناء البناء للعمال أو المواد وبأي شروط، لأن الاستخدام الإنشائي دون حماية سبب شائع لرفض الضمان. وفي السلالم المتحركة تأكد هل تُعامل سلاسل الدرجات والدرابزين المتحرك والدرجات كقطع استهلاكية. واطلب أيضاً وثائق التسليم: المخططات النهائية والمخططات الكهربائية وأدلة التشغيل والصيانة وشهادات الاختبار وتقرير فحص الطرف الثالث، فهي تدعم الضمان وعقد الصيانة مستقبلاً.",
+      "sources": [
+        "https://www.mebsfacility.com/blog/annual-maintenance-contracts-dubai",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "elevators:major-oems",
+      "topic": "Major lift and escalator manufacturers in the UAE market (neutral)",
+      "kind": "glossary",
+      "body_en": "The UAE market is served by the large global OEMs, which in the region include companies such as Otis, Schindler, KONE, TK Elevator (formerly thyssenkrupp Elevator), Mitsubishi Electric, Hitachi, Fujitec and Toshiba, operating through subsidiaries or authorised agents, plus many regional and Asian manufacturers and local integrators who assemble lifts from third-party components (machines, controllers, door operators and rails from specialist component makers). This list is descriptive, not an endorsement, and is not exhaustive. Differences that matter to a buyer are less about the logo than about: which factory actually produces the equipment for this order (country of manufacture can differ from the brand's home country); whether the controller and drive are proprietary or open; the depth of the local service organisation, number of technicians and stock of spare parts in the UAE; references for similar buildings in the same emirate; ability to deliver special duties such as high-speed, firefighting, destination dispatch or heavy-duty escalators; and the licensing of the local entity with the municipality. Integrators using quality components can be competitive for simple residential lifts, while complex high-rise groups generally need an OEM with in-house engineering. A procurement engineer should request the same specification from both types and compare on total cost of ownership, not only the supply price. Market shares and brand-specific claims were not verified in this research.",
+      "body_ar": "يخدم السوق الإماراتي كبار المصنعين العالميين، ومنهم في المنطقة شركات مثل أوتيس وشندلر وكوني وتي كيه إليفيتور (تيسن كروب إليفيتور سابقاً) وميتسوبيشي إلكتريك وهيتاشي وفوجيتك وتوشيبا، عبر شركات تابعة أو وكلاء معتمدين، إضافة إلى مصنعين إقليميين وآسيويين كثيرين ومجمّعين محليين يركّبون المصاعد من مكونات أطراف أخرى كالماكينات ولوحات التحكم ومشغلات الأبواب والسكك من مصنعين متخصصين. وهذه القائمة وصفية لا تزكية، وليست حصرية. والفروق المهمة للمشتري لا تتعلق بالشعار بقدر ما تتعلق بما يلي: أي مصنع ينتج فعلاً معدات هذا الطلب، فبلد التصنيع قد يختلف عن بلد العلامة الأم، وهل لوحة التحكم والمحول مغلقان أم مفتوحان، وحجم جهاز الخدمة المحلي وعدد الفنيين ومخزون قطع الغيار في الإمارات، والمراجع لمبانٍ مشابهة في الإمارة نفسها، والقدرة على تنفيذ الاستخدامات الخاصة كالسرعات العالية ومصاعد الإطفاء وتوجيه الوجهة والسلالم الثقيلة، وترخيص الكيان المحلي لدى البلدية. ويمكن للمجمّعين الذين يستخدمون مكونات جيدة المنافسة في المصاعد السكنية البسيطة، بينما تحتاج مجموعات الأبراج المعقدة عادة إلى مصنع بهندسة داخلية. وعلى مهندس المشتريات طلب المواصفات نفسها من النوعين والمقارنة على التكلفة الإجمالية للملكية لا سعر التوريد فقط. ولم تُتحقق حصص السوق أو ادعاءات العلامات في هذا البحث.",
+      "sources": [
+        "https://www.tkelevator.com/us-en/company/insights/traction-conventional-vs-traction-mrl.html",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "elevators:spec-passenger-lift",
+      "topic": "Spec checklist: passenger lift RFQ",
+      "kind": "spec_checklist",
+      "body_en": "To quote a passenger lift exactly, a supplier needs a complete specification; without it quotes differ in hidden ways and the platform should hold the request. The buyer must state the building type and use, and ideally attach or reference the traffic analysis. For each lift or group: number of lifts in the group; rated load in kg and persons; rated speed in m/s; number of stops and entrances, and whether any are through-car (front and rear) or adjacent; total travel in metres and floor-to-floor heights; drive family accepted (MRL, machine-room traction or hydraulic); shaft width and depth, pit depth and headroom, with drawings, and machine room size if applicable; required car internal dimensions after finishes and the EN 81-70 accessibility type; door type (centre or side opening), clear width and height, and fire rating for landing doors; car finish for walls, ceiling, floor recess, handrail and mirror, and landing door and frame finishes on main and typical floors; fixtures and signalling; applicable standards (EN 81-20/50 and any EN 81-70, 72 or 73 duties); control features such as group control, destination dispatch or access control integration; ARD and generator operation; fire alarm, BMS and emergency telephone interfaces; power supply available; site location in the UAE and emirate for approvals; required delivery or handover date; warranty and free maintenance expectations; and whether the first third-party inspection certificate is to be included.",
+      "body_ar": "لكي يقدم المورد عرضاً دقيقاً لمصعد ركاب يحتاج مواصفات كاملة، وبدونها تختلف العروض بطرق خفية ويجب على المنصة تعليق الطلب. على المشتري تحديد نوع المبنى واستخدامه، ويُفضل إرفاق تحليل الحركة أو الإشارة إليه. ولكل مصعد أو مجموعة: عدد المصاعد في المجموعة، والحمولة بالكيلوغرام وعدد الأشخاص، والسرعة بالمتر في الثانية، وعدد الوقفات والمداخل وهل بعضها أمامي وخلفي أو متجاور، والمسافة الكلية بالمتر وارتفاعات الطوابق، وعائلة التشغيل المقبولة MRL أو جر بغرفة ماكينة أو هيدروليكي، وعرض البئر وعمقه وعمق الحفرة والارتفاع العلوي مع المخططات، ومقاس غرفة الماكينة إن وُجدت، والأبعاد الداخلية المطلوبة للكابينة بعد التشطيب ونوع إمكانية الوصول وفق EN 81-70، ونوع الأبواب مركزية أو جانبية والعرض والارتفاع الصافيان ومقاومة أبواب الطوابق للحريق، وتشطيب الجدران والسقف وتجويف الأرضية والمقبض والمرآة، وتشطيب أبواب الطوابق وإطاراتها في الطابق الرئيسي والطوابق النموذجية، والتجهيزات والإشارات، والمعايير المطبقة EN 81-20/50 وأي متطلبات EN 81-70 أو 72 أو 73، وميزات التحكم كالتحكم الجماعي أو توجيه الوجهة أو التكامل مع أنظمة الدخول، وجهاز الإنقاذ والتشغيل على المولد، والربط مع إنذار الحريق ونظام إدارة المبنى وهاتف الطوارئ، والتغذية الكهربائية المتاحة، وموقع المشروع والإمارة للموافقات، وتاريخ التسليم المطلوب، وتوقعات الضمان والصيانة المجانية، وهل يُشمل أول شهادة فحص من طرف ثالث.",
+      "required_specs": [
+        "building type and use",
+        "traffic analysis or population per floor",
+        "number of lifts per group",
+        "rated load (kg) and persons",
+        "rated speed (m/s)",
+        "number of stops and entrances (front/rear/adjacent)",
+        "total travel (m) and floor heights",
+        "drive type accepted (MRL / machine-room traction / hydraulic)",
+        "shaft width x depth, pit depth, headroom (with drawings)",
+        "machine room size if applicable",
+        "car internal dimensions after finishes",
+        "EN 81-70 accessibility type",
+        "door type, clear width x height, landing door fire rating",
+        "car finishes (walls, ceiling, floor recess, handrail, mirror)",
+        "landing door and frame finishes per floor type",
+        "fixtures and signalling",
+        "applicable standards (EN 81-20/50, 70, 72, 73)",
+        "control features (group, destination dispatch, access control)",
+        "ARD and generator operation",
+        "fire alarm, BMS and emergency phone interfaces",
+        "power supply available",
+        "emirate and site location",
+        "required handover date",
+        "warranty and free maintenance period",
+        "third-party inspection certificate included (yes/no)"
+      ],
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://www.ikoniclifts.co.uk/blog/en-81-70-lift-car-dimensions-requirements/",
+        "https://adsimulo.com/what-is-lift-traffic-analysis/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:spec-goods-bed-car-lift",
+      "topic": "Spec checklist: goods, bed and car lift RFQ",
+      "kind": "spec_checklist",
+      "body_en": "Goods, bed and car lifts fail most often on under-specified loads and doors. A supplier needs: the lift category (goods only with no passengers, goods-passenger with attendant, hospital bed or stretcher lift, vehicle lift, or dumbwaiter); the heaviest single item to be carried and how it is loaded (hand trolley, pallet truck, forklift, bed with equipment, or vehicle driven in), because loading by forklift or with concentrated loads changes the car structure, sill strength and loading class; rated load with margin; required clear car dimensions (for beds, the bed length plus attendants and equipment; for vehicles, the longest and widest vehicle plus clearance); door type and clear opening (side-opening or vertical bi-parting for goods, automatic doors for bed lifts) and whether doors are front and rear or adjacent; speed and travel, stops and floor heights; drive family (hydraulic is common for short-rise heavy or car lifts, traction for taller or busier duty); shaft, pit and headroom dimensions or drawings, and whether a machine room is available; car finish suited to abuse (chequer plate floor, stainless or painted walls, bumper rails, protective panels); operation mode (attendant, automatic, key switch, hospital priority service, car park signalling with traffic lights for vehicle lifts); indoor or outdoor exposure and ventilation, since heat and dust matter in the UAE; interfaces for fire alarm, BMS and access control; power supply; standards required; the emirate; and delivery date. For hospital bed lifts, also state infection-control and smooth-ride expectations and any health-authority requirements from the consultant.",
+      "body_ar": "تفشل مصاعد البضائع والأسرّة والسيارات غالباً بسبب نقص تحديد الأحمال والأبواب. يحتاج المورد إلى: فئة المصعد، بضائع فقط دون ركاب، أو بضائع مع مرافق، أو مصعد أسرّة ونقالات للمستشفى، أو مصعد مركبات، أو مصعد خدمة صغير، وأثقل قطعة منفردة وطريقة تحميلها بعربة يدوية أو رافعة طبليات أو رافعة شوكية أو سرير مع أجهزة أو مركبة تدخل بقيادتها، لأن التحميل بالرافعة الشوكية أو الأحمال المركزة يغير هيكل الكابينة ومتانة العتبة وفئة التحميل، والحمولة الاسمية مع هامش، والأبعاد الصافية المطلوبة للكابينة، فللأسرّة طول السرير مع المرافقين والأجهزة، وللمركبات أطول وأعرض مركبة مع خلوص، ونوع الأبواب والفتحة الصافية، جانبية أو عمودية منفصلة للبضائع وأوتوماتيكية لمصاعد الأسرّة، وهل هي أمامية وخلفية أو متجاورة، والسرعة والمسافة والوقفات وارتفاعات الطوابق، وعائلة التشغيل، فالهيدروليكي شائع للأحمال الثقيلة والسيارات على ارتفاع قصير والجر للارتفاعات أو الاستخدام الأكثف، وأبعاد البئر والحفرة والارتفاع العلوي أو مخططاتها وتوفر غرفة ماكينة، وتشطيب يتحمل الاستخدام الشاق كأرضية ألواح مضلعة وجدران ستانلس أو مدهونة ومصدات وألواح حماية، ونمط التشغيل بمرافق أو أوتوماتيكي أو بمفتاح أو خدمة أولوية للمستشفى أو إشارات مرورية لمصاعد السيارات، والتعرض الداخلي أو الخارجي والتهوية لأهمية الحرارة والغبار في الإمارات، والربط مع إنذار الحريق وإدارة المبنى والتحكم بالدخول، والكهرباء، والمعايير المطلوبة، والإمارة، وتاريخ التسليم. ولمصاعد أسرّة المستشفيات تُذكر أيضاً توقعات مكافحة العدوى وسلاسة الركوب وأي اشتراطات صحية يحددها الاستشاري.",
+      "required_specs": [
+        "lift category (goods / goods-passenger / bed / vehicle / dumbwaiter)",
+        "heaviest single item and loading method",
+        "rated load with margin",
+        "clear car dimensions",
+        "door type and clear opening",
+        "door arrangement (front/rear/adjacent)",
+        "speed, travel, stops, floor heights",
+        "drive type accepted",
+        "shaft, pit, headroom dimensions or drawings",
+        "machine room availability",
+        "car finish and protection",
+        "operation mode (attendant, automatic, key, hospital priority, traffic lights)",
+        "indoor/outdoor exposure and ventilation",
+        "fire alarm, BMS, access control interfaces",
+        "power supply",
+        "standards required",
+        "emirate",
+        "delivery date"
+      ],
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://www.ikoniclifts.co.uk/blog/en-81-70-lift-car-dimensions-requirements/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:spec-escalator",
+      "topic": "Spec checklist: escalator and moving walk RFQ",
+      "kind": "spec_checklist",
+      "body_en": "An escalator or moving walk quote is only comparable when the following are stated. Type: escalator or moving walk (horizontal or inclined). Duty class: commercial (malls, offices, hotels) or heavy-duty public transport (metro, airport), with daily operating hours and expected loading, because transit duty needs stronger trusses, chains and drives. Rise (floor-to-floor height) for escalators, or length and inclination for moving walks. Inclination for escalators (30 or 35 degrees) and confirmation that the combination with rise and speed is allowed under EN 115-1 (35 degrees is not permitted above 6 m rise; above 30 degrees speed is limited to 0.5 m/s). Nominal speed. Step or pallet width (for example 600, 800 or 1000 mm nominal). Number of flat steps at upper and lower landings. Indoor, semi-outdoor or outdoor location, with protection needed against sun, rain, sand and heat, and IP ratings for outdoor units. Balustrade type (glass or metal), height and handrail colour. Truss cladding and soffit finish. Arrangement (single, parallel, crisscross or continuous). Energy-saving operation (standby slow speed, stop-and-go with sensors, direction indication). Safety extras (step lighting, comb lighting, skirt deflectors, anti-climb and anti-slide devices). Intermediate supports, the available pit and support dimensions, and access for delivery of the truss into the building (often a major logistics constraint). Fire alarm and BMS interfaces, power supply, standards, emirate, and required handover date.",
+      "body_ar": "لا يُقارن عرض السلم أو الممر المتحرك إلا إذا ذُكر ما يلي. النوع: سلم متحرك أو ممر متحرك أفقي أو مائل. فئة الاستخدام: تجاري للمراكز التجارية والمكاتب والفنادق، أو نقل عام ثقيل للمترو والمطار، مع ساعات التشغيل اليومية والحمل المتوقع، لأن النقل العام يحتاج هياكل وسلاسل ومحركات أقوى. والارتفاع بين الطابقين للسلم، أو الطول والميل للممر. وزاوية الميل للسلم 30 أو 35 درجة، مع التأكد من أن تركيبها مع الارتفاع والسرعة مسموح وفق EN 115-1، فزاوية 35 درجة غير مسموحة فوق ارتفاع 6 أمتار، وفوق 30 درجة تُحدد السرعة بـ0.5 م/ث. والسرعة الاسمية. وعرض الدرجة أو اللوح مثل 600 أو 800 أو 1000 مم. وعدد الدرجات المستوية عند المدخلين العلوي والسفلي. والموقع داخلي أو شبه خارجي أو خارجي، مع الحماية المطلوبة من الشمس والمطر والرمال والحرارة ودرجات الحماية IP للوحدات الخارجية. ونوع الدرابزين زجاجي أو معدني وارتفاعه ولون المقبض المتحرك. وكسوة الهيكل والسطح السفلي. والترتيب مفرد أو متوازٍ أو متقاطع أو متصل. وتشغيل توفير الطاقة كالسرعة البطيئة في الانتظار أو التوقف والتشغيل بالحساسات ومؤشر الاتجاه. وإضافات السلامة كإضاءة الدرجات والأمشاط وعاكسات الحواف وأجهزة منع التسلق والانزلاق. والدعامات الوسيطة وأبعاد الحفرة والارتكاز المتاحة، ومسار إدخال الهيكل إلى المبنى وهو قيد لوجستي كبير غالباً. والربط مع إنذار الحريق وإدارة المبنى، والكهرباء، والمعايير، والإمارة، وتاريخ التسليم المطلوب.",
+      "required_specs": [
+        "type (escalator / moving walk)",
+        "duty class (commercial / public transport) and daily operating hours",
+        "rise (m) or length (m)",
+        "inclination (30 / 35 degrees or walk angle)",
+        "nominal speed (m/s)",
+        "step or pallet width (mm)",
+        "flat steps at landings",
+        "indoor / semi-outdoor / outdoor and protection required",
+        "balustrade type and height",
+        "cladding and soffit finish",
+        "arrangement (single / parallel / crisscross)",
+        "energy-saving operation",
+        "safety extras",
+        "intermediate supports and pit/support dimensions",
+        "delivery access route for truss",
+        "fire alarm and BMS interfaces",
+        "power supply",
+        "standards (EN 115-1)",
+        "emirate",
+        "handover date"
+      ],
+      "sources": [
+        "https://la-grazia.com/e-learning/authorized-speed-for-escalator-and-moving-walk/",
+        "https://amadaelevator.com/en/escalator-pre-installation-information/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:spec-amc",
+      "topic": "Spec checklist: lift maintenance (AMC) RFQ",
+      "kind": "spec_checklist",
+      "body_en": "Maintenance quotes are meaningless unless the supplier knows exactly what equipment it is taking over and what level of cover is wanted. The buyer should list every unit: lift or escalator, manufacturer, model, year of installation, controller and drive make, load, speed, number of stops, drive type, and whether the lift is under an existing warranty or contract. State the building type and location (emirate), operating hours, and whether any units are firefighting lifts needing periodic verification of firefighter operation. Choose the cover type: non-comprehensive (labour and preventive maintenance, parts charged) or comprehensive (labour plus parts), and list the parts you expect to be included or excluded (machine, controller boards, drive, ropes, door operators, batteries, finishes). Specify preventive visit frequency, 24/7 callout, maximum response time for passenger entrapment and for breakdowns, and any uptime target with penalties. State whether the annual third-party inspection and certificate are included, and who arranges it. Require reporting (visit logs, breakdown history, recommendations), remote monitoring if wanted, and the contractor's licence with the municipality and technician qualifications. Ask for contract length, price escalation terms, handover condition survey at contract start, and termination conditions. Finally, ask the bidder to state whether it has service tool and software access for each existing brand, because a contractor unable to service a proprietary controller cannot deliver the contract.",
+      "body_ar": "عروض الصيانة بلا قيمة ما لم يعرف المورد تماماً المعدات التي سيتسلمها ومستوى التغطية المطلوب. على المشتري أن يسرد كل وحدة: مصعد أو سلم متحرك، والصانع، والطراز، وسنة التركيب، وصانع لوحة التحكم والمحول، والحمولة، والسرعة، وعدد الوقفات، ونوع التشغيل، وهل الوحدة تحت ضمان أو عقد قائم. ويحدد نوع المبنى وموقعه والإمارة وساعات التشغيل، وهل توجد مصاعد إطفاء تحتاج تحققاً دورياً من وضع تشغيل الإطفاء. ثم يختار نوع التغطية: غير شاملة أي عمالة وصيانة وقائية مع احتساب القطع، أو شاملة أي عمالة مع القطع، ويسرد القطع المتوقع شمولها أو استثناؤها كالماكينة ولوحات التحكم والمحول والحبال ومشغلات الأبواب والبطاريات والتشطيبات. ويحدد عدد الزيارات الوقائية، والاستجابة على مدار الساعة، وأقصى زمن استجابة لاحتجاز الركاب وللأعطال، وأي هدف لنسبة التشغيل مع غرامات. ويذكر هل الفحص السنوي من طرف ثالث وشهادته مشمولان ومن يرتبهما. ويطلب التقارير كسجلات الزيارات وتاريخ الأعطال والتوصيات، والمراقبة عن بعد إن رغب، وترخيص المقاول لدى البلدية ومؤهلات الفنيين. ويسأل عن مدة العقد وشروط زيادة السعر ومسح الحالة عند بدء العقد وشروط الإنهاء. وأخيراً يطلب من المتقدم بيان امتلاكه أداة الخدمة وصلاحيات البرنامج لكل علامة قائمة، لأن المقاول العاجز عن صيانة لوحة تحكم مغلقة لا يستطيع تنفيذ العقد.",
+      "required_specs": [
+        "equipment list (type, make, model, year, controller/drive make, load, speed, stops)",
+        "existing warranty or contract status",
+        "building type, emirate, operating hours",
+        "firefighting lifts present",
+        "cover type (comprehensive / non-comprehensive)",
+        "parts included and excluded",
+        "preventive visit frequency",
+        "24/7 callout and entrapment/breakdown response times",
+        "uptime target and penalties",
+        "annual third-party inspection included (yes/no)",
+        "reporting and remote monitoring",
+        "contractor licence and technician qualifications",
+        "contract length and escalation terms",
+        "start-of-contract condition survey",
+        "termination conditions",
+        "service tool / software access per brand"
+      ],
+      "sources": [
+        "https://www.mebsfacility.com/blog/annual-maintenance-contracts-dubai",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/",
+        "https://yorklift.com/elevator-safety-rules-in-dubai-what-every-building-owner-needs-to-follow/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:spec-modernisation",
+      "topic": "Spec checklist: lift modernisation RFQ",
+      "kind": "spec_checklist",
+      "body_en": "A modernisation RFQ must describe the existing lift as precisely as a new-lift RFQ describes the building. The buyer should provide: existing make, model and year; drive type (geared or gearless traction, machine room or MRL, or hydraulic); rated load, speed, stops, entrances and travel; current controller, drive and door operator makes; shaft, pit, headroom and machine room dimensions as surveyed, with photos; and known problems (breakdown history, levelling, noise, obsolete parts). Then define the target scope: controller and drive only; controller, drive, door operators and fixtures; cabin refurbishment; or full replacement within the existing shaft, and for each option list which components are retained (rails, car frame, counterweight, buffers, landing doors, machine, ropes). State required outcomes: target code (EN 81-20 where possible, or improvements measured against EN 81-80 for existing lifts), EN 81-70 accessibility improvements, ARD, destination dispatch or access control integration, energy-saving drive, fire recall interface and remote monitoring. Describe constraints: which lifts must stay in service during works, working hours allowed in an occupied building, noise limits, and maximum out-of-service duration per lift. Ask the bidder to include removal and disposal of old equipment and hydraulic oil, the third-party re-examination certificate after modification, updated drawings and manuals, the warranty on new and retained components, and the AMC price after completion.",
+      "body_ar": "يجب أن يصف طلب عرض التحديث المصعد القائم بدقة لا تقل عن وصف المبنى في طلب مصعد جديد. يقدم المشتري: الصانع والطراز وسنة التركيب، ونوع التشغيل جر بتروس أو بدون تروس، بغرفة ماكينة أو MRL، أو هيدروليكي، والحمولة والسرعة والوقفات والمداخل والمسافة، وصانعي لوحة التحكم والمحول ومشغل الأبواب الحاليين، وأبعاد البئر والحفرة والارتفاع العلوي وغرفة الماكينة كما مُسحت مع صور، والمشكلات المعروفة كتاريخ الأعطال ودقة الوقوف والضجيج والقطع المتقادمة. ثم يحدد النطاق المستهدف: لوحة التحكم والمحول فقط، أو مع مشغلات الأبواب والتجهيزات، أو تجديد الكابينة، أو الاستبدال الكامل داخل البئر القائم، ولكل خيار يسرد المكونات المُبقاة كالسكك وإطار الكابينة والثقل الموازن والمصدات وأبواب الطوابق والماكينة والحبال. ويذكر النتائج المطلوبة: الكود المستهدف، أي EN 81-20 حيث أمكن أو تحسينات مقاسة وفق EN 81-80 للمصاعد القائمة، وتحسينات إمكانية الوصول وفق EN 81-70، وجهاز الإنقاذ، وتوجيه الوجهة أو التكامل مع التحكم بالدخول، ومحولاً موفراً للطاقة، وربط الاستدعاء بإنذار الحريق، والمراقبة عن بعد. ويصف القيود: المصاعد التي يجب أن تبقى في الخدمة أثناء العمل، وساعات العمل المسموحة في مبنى مشغول، وحدود الضجيج، وأقصى مدة توقف لكل مصعد. ويطلب من المتقدم شمول إزالة المعدات القديمة والزيت الهيدروليكي والتخلص منهما، وشهادة إعادة الفحص من طرف ثالث بعد التعديل، والمخططات والأدلة المحدثة، والضمان على المكونات الجديدة والمُبقاة، وسعر عقد الصيانة بعد الإنجاز.",
+      "required_specs": [
+        "existing make, model, year",
+        "existing drive type",
+        "load, speed, stops, entrances, travel",
+        "existing controller, drive, door operator makes",
+        "surveyed shaft, pit, headroom, machine room dimensions with photos",
+        "known problems and breakdown history",
+        "target scope option",
+        "retained components list",
+        "target code / EN 81-80 improvements",
+        "accessibility, ARD, dispatch, access control, energy, fire recall, monitoring requirements",
+        "lifts to stay in service and working hours",
+        "maximum out-of-service duration per lift",
+        "removal and disposal of old equipment and oil",
+        "third-party re-examination certificate included",
+        "updated drawings and manuals",
+        "warranty on new and retained components",
+        "AMC price after completion"
+      ],
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://itmad.ae/capabilities/elevator-escalator-inspection/",
+        "https://www.rjlifts.co.uk/lift-regulations/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "elevators:home-villa-lift",
+      "topic": "Home and villa lifts: what differs",
+      "kind": "product",
+      "body_en": "Villa lifts are among the most frequent lift requests in the UAE and are where buyers most often get unsuitable offers. A private home lift typically serves two to five stops, carries a small number of persons at low speed, and must fit into a shaft that the architect sized before any lift was selected. Options include compact MRL traction lifts built to EN 81-20, hydraulic lifts where overhead is limited, and dedicated home-lift products (screw-driven, belt or hydraulic) that in Europe are often certified under the Machinery Directive with reduced pit and headroom, lower speed and simpler doors. The lower-standard products can be cheaper and fit smaller shafts, but they may use swing landing doors, car gates or hold-to-run operation, have lower capacity, and may be treated differently by the municipality and inspection body; buyers should confirm local acceptance for the specific product before ordering. Also consider panoramic or glass shaft designs, which in the UAE need solar-control glass and ventilation or cooling to avoid overheating the car. Key questions: shaft size and pit depth available (many villas were built with shallow pits), number of stops and doors on each side, whether a wheelchair must fit (EN 81-70 type), finishes, ARD during power cuts, and who maintains the lift after handover, since small brands without a local service base are a long-term risk.",
+      "body_ar": "مصاعد الفلل من أكثر طلبات المصاعد شيوعاً في الإمارات، وفيها يتلقى المشترون أكثر العروض غير المناسبة. فمصعد المنزل الخاص يخدم عادة من وقفتين إلى خمس، ويحمل عدداً قليلاً من الأشخاص بسرعة منخفضة، ويجب أن يدخل في بئر حدد المعماري مقاسه قبل اختيار أي مصعد. والخيارات تشمل مصاعد جر MRL مدمجة وفق EN 81-20، ومصاعد هيدروليكية حيث يكون الارتفاع العلوي محدوداً، ومنتجات مخصصة للمنازل تعمل بالبرغي أو السيور أو الهيدروليك، وتُعتمد في أوروبا غالباً وفق توجيه الآلات مع حفرة وارتفاع علوي مخفضين وسرعة أقل وأبواب أبسط. وقد تكون هذه المنتجات أرخص وتناسب آباراً أصغر، لكنها قد تستخدم أبواب طوابق مفصلية أو بوابات كابينة أو تشغيلاً بالضغط المستمر، وحمولتها أقل، وقد تعاملها البلدية وجهة الفحص بشكل مختلف، فعلى المشتري التأكد من القبول المحلي للمنتج المحدد قبل الطلب. ويُنظر أيضاً في التصاميم البانورامية أو ذات البئر الزجاجي، التي تحتاج في الإمارات زجاجاً عاكساً للحرارة وتهوية أو تبريداً لتجنب سخونة الكابينة. والأسئلة الأساسية: مقاس البئر وعمق الحفرة المتاح، فكثير من الفلل بُنيت بحفر ضحلة، وعدد الوقفات والأبواب في كل جهة، وهل يجب أن يتسع لكرسي متحرك وفق نوع EN 81-70، والتشطيبات، وجهاز الإنقاذ عند انقطاع الكهرباء، ومن يصون المصعد بعد التسليم، لأن العلامات الصغيرة دون قاعدة خدمة محلية خطر على المدى الطويل.",
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/Lift_Standards:_EN_81-20_and_EN_81-50",
+        "https://www.tkelevator.com/us-en/company/insights/traction-conventional-vs-traction-mrl.html",
+        "https://www.rjlifts.co.uk/lift-regulations/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Should I choose an MRL or a hydraulic lift for a 4-storey residential building?",
+      "q_ar": "هل أختار مصعداً بدون غرفة ماكينة أم هيدروليكياً لمبنى سكني من 4 طوابق؟",
+      "expected_entry_ids": [
+        "elevators:traction-mrl-vs-machine-room-vs-hydraulic"
+      ]
+    },
+    {
+      "q_en": "What is the minimum car size for a lift that must take a wheelchair and a companion?",
+      "q_ar": "ما أقل مقاس كابينة لمصعد يجب أن يستوعب كرسياً متحركاً ومرافقاً؟",
+      "expected_entry_ids": [
+        "elevators:en-81-70-accessibility"
+      ]
+    },
+    {
+      "q_en": "Do all lifts in my tower need to be firefighter lifts?",
+      "q_ar": "هل يجب أن تكون كل المصاعد في البرج مصاعد إطفاء؟",
+      "expected_entry_ids": [
+        "elevators:en-81-72-firefighter-lifts",
+        "elevators:en-81-73-fire-recall"
+      ]
+    },
+    {
+      "q_en": "What is the difference between comprehensive and non-comprehensive lift maintenance?",
+      "q_ar": "ما الفرق بين عقد صيانة المصاعد الشامل وغير الشامل؟",
+      "expected_entry_ids": [
+        "elevators:amc-comprehensive-vs-non"
+      ]
+    },
+    {
+      "q_en": "How often must a lift in Dubai be inspected and who issues the certificate?",
+      "q_ar": "كم مرة يجب فحص المصعد في دبي ومن يصدر الشهادة؟",
+      "expected_entry_ids": [
+        "elevators:uae-authority-approvals-inspection"
+      ]
+    },
+    {
+      "q_en": "Can I have a 35 degree escalator with 7 m rise at 0.65 m/s?",
+      "q_ar": "هل يمكن تركيب سلم متحرك بزاوية 35 درجة وارتفاع 7 أمتار وسرعة 0.65 م/ث؟",
+      "expected_entry_ids": [
+        "elevators:en-115-escalators",
+        "elevators:spec-escalator"
+      ]
+    },
+    {
+      "q_en": "What information do I need to send to get a quote for a passenger lift?",
+      "q_ar": "ما المعلومات التي يجب إرسالها للحصول على عرض سعر لمصعد ركاب؟",
+      "expected_entry_ids": [
+        "elevators:spec-passenger-lift",
+        "elevators:shaft-pit-headroom"
+      ]
+    },
+    {
+      "q_en": "Why is one supplier offering 3 lifts and another 4 for the same office tower?",
+      "q_ar": "لماذا يعرض مورد 3 مصاعد وآخر 4 للبرج المكتبي نفسه؟",
+      "expected_entry_ids": [
+        "elevators:traffic-analysis",
+        "elevators:destination-dispatch"
+      ]
+    },
+    {
+      "q_en": "Is a gearless lift worth the extra price over a geared one?",
+      "q_ar": "هل يستحق المصعد بدون تروس السعر الإضافي مقارنة بالمصعد ذي التروس؟",
+      "expected_entry_ids": [
+        "elevators:gearless-pm-vs-geared",
+        "elevators:price-drivers"
+      ]
+    },
+    {
+      "q_en": "The quote says built to international standards and no brand for the controller, is that a problem?",
+      "q_ar": "العرض يقول مصنع وفق المعايير الدولية ولا يذكر علامة لوحة التحكم، هل هذه مشكلة؟",
+      "expected_entry_ids": [
+        "elevators:quote-red-flags",
+        "elevators:spare-parts-proprietary"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 13,
+    "claims_checked": 196,
+    "corrected": [
+      "elevators:en-81-70-accessibility",
+      "elevators:en-81-72-firefighter-lifts",
+      "elevators:en-81-73-fire-recall",
+      "elevators:en-115-escalators"
+    ],
+    "removed": [],
+    "still_unverified": [],
+    "batch": "A9",
+    "note": "Fire-rule facts (EN 81-72/73 interface, UAE FLSC 2018) left for the FC agent to deepen; file re-read immediately before write.",
+    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf)."
+  }
+}

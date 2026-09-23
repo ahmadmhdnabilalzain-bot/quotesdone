@@ -173,3 +173,37 @@ Deno.test('replayHeld reasons a held row once the hold lifts and hands the resul
   assertEquals((res[1].p_result as { decision: { choice: string } }).decision.choice, 'stop');
   assert(!m.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a replay must not re-queue itself');
 });
+
+// ── THE LEARNING LOOP: every judgement is opened by its recall and closed with what it decided ──────
+Deno.test('a judgement is recorded WITH its recall record, then closed with the decision', async () => {
+  const m = mock({ retrieve: KB, replies: {
+    decompose: [J({ steps: [{ id: 's1', goal: 'g', query: 'q' }], facts: [], high_stakes: false })],
+    synthesise: [J({ decision: { choice: 'stop' }, answer: 'The founder asks to halt the campaign now.', reasoning: ['s1: he said stop'], cited: [], confidence: 0.9 })],
+  } });
+  const r = await think(m.deps, { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop the campaign', subject: { command_id: 7 },
+    decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt work' }, { id: 'ask', meaning: 'a question' }] } });
+  assertEquals(r.status, 'answered');
+  const names = m.rpcs.map(([f]) => f);
+  const rec = m.rpcs.find(([f]) => f === 'fn_judgement_record')!;
+  assert(rec, 'no judgement row was opened');
+  assert(names.indexOf('fn_case_recall') < names.indexOf('fn_judgement_record'), 'the judgement was recorded before the recall');
+  assertEquals((rec[1].p_recall as { available: boolean }).available, true);
+  assertEquals(rec[1].p_subject, { command_id: 7 });
+  const dec = m.rpcs.find(([f]) => f === 'fn_judgement_decided')!;
+  assertEquals([dec[1].p_status, dec[1].p_decision], ['answered', 'stop']);
+});
+
+Deno.test('under the model hold nothing is judged, so no judgement row is opened', async () => {
+  const m = mock({ gate: { allowed: false, rule: 'founder_hold' }, replies: {} });
+  const r = await think(m.deps, { seat: 'marketing', surface: 'think.answer', question: 'q' });
+  assertEquals(r.status, 'held');
+  assertEquals(m.rpcs.filter(([f]) => f.startsWith('fn_judgement')).length, 0);
+});
+
+Deno.test('a judgement whose model fails after the recall is closed as held, never left open', async () => {
+  const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'g', query: 'q' }], facts: [] })], synthesise: [{ content: null, error: 'boom' }] } });
+  const r = await think(m.deps, { seat: 'accountant', surface: 'think.answer', question: 'is this VAT-able?' });
+  assertEquals(r.status, 'held');
+  assert(m.rpcs.some(([f]) => f === 'fn_judgement_record'));
+  assertEquals(m.rpcs.find(([f]) => f === 'fn_judgement_decided')?.[1].p_status, 'held');
+});
