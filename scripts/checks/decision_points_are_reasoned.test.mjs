@@ -337,3 +337,33 @@ end $p$;`);
   assert.equal(out.with.effect.choice, 'yes');
   assert.equal(out.without, 'reasoned');
 });
+
+test('production, aborted: documents.boq_arabic — a replayed heading reading is remembered; the table and routine are service_role only',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v_id bigint;
+begin
+  v_id := public.fn_reason_hold('sales_engineer', 'documents.boq_arabic', 'ZZ DEMO heading', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+    '{"section_key":"zz demo ceilings","section":"ZZ DEMO Ceilings"}'::jsonb, 'model_hold', 'boq_section:zz demo ceilings');
+  o := o || jsonb_build_object('resolved', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"ceilings"}}'::jsonb));
+  o := o || jsonb_build_object('reading', (select reading || ':' || reasoned_by from public.boq_section_reading where section_key = 'zz demo ceilings'));
+  v_id := public.fn_reason_hold('sales_engineer', 'documents.boq_arabic', 'ZZ DEMO heading 2', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+    '{"section_key":"zz demo bill 9"}'::jsonb, 'model_hold', 'boq_section:zz demo bill 9');
+  o := o || jsonb_build_object('no_choice', public.fn_reason_apply_documents__boq_arabic(v_id, '{"status":"answered","answer":"ZZ","decision":null}'::jsonb)->>'applied');
+  o := o || jsonb_build_object('anon_can', has_function_privilege('anon', 'public.fn_reason_apply_documents__boq_arabic(bigint, jsonb)', 'execute'),
+    'auth_table', has_table_privilege('authenticated', 'public.boq_section_reading', 'select'),
+    'service_can', has_function_privilege('service_role', 'public.fn_reason_apply_documents__boq_arabic(bigint, jsonb)', 'execute'),
+    'rls', (select relrowsecurity from pg_class where oid = 'public.boq_section_reading'::regclass),
+    'reads_text', (select prosrc ~* '(ilike|~\*| like )' from pg_proc where proname = 'fn_reason_apply_documents__boq_arabic'));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  assert.equal(out.resolved.status, 'applied');
+  assert.equal(out.reading, 'ceilings:replay');
+  assert.equal(out.no_choice, 'false', 'no reasoned choice, nothing remembered — never a guess');
+  assert.equal(out.anon_can, false);
+  assert.equal(out.auth_table, false);
+  assert.equal(out.service_can, true);
+  assert.equal(out.rls, true);
+  assert.equal(out.reads_text, false);
+});
