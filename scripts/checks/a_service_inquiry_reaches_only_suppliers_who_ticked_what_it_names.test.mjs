@@ -20,13 +20,13 @@
 // declares, so the named trades are disjoint from every candidate's own by construction whatever the
 // ZZ DEMO rehearsal set is doing (it was watched going 4 -> 7 -> 1 -> 0 -> 4 -> 1 in one day).
 //
-// PROPERTY 2 IS NOT, AND THAT IS SAID RATHER THAN HIDDEN. The case the ruling changes — a supplier who
-// declares a trade and ticked NOTHING in it — can only be read off a real row that has that shape; no
-// read-only query can manufacture one. Production has none today (its one confirmed row ticked
-// something in every trade it declares), so this test then asserts the partial-tick case it CAN read
-// and prints NOT_VERIFIED_NO_SUPPLIER_TICKED_NOTHING_IN_A_DECLARED_TRADE. The predicate itself was
-// proved red on the live body and green on the ruled one from a read-only VALUES list of synthetic
-// candidates: see the header of scripts/sql/a_supplier_receives_a_service_inquiry_only_for_what_he_ticked.sql.
+// PROPERTY 2 IS MADE, NOT WAITED FOR. The case the ruling changes — a supplier who declares a trade and
+// ticked NOTHING in it — was absent from production on 23 Sep, and the first version of this guard only
+// read real rows, so it went green on the overruled body. The shape is now manufactured inside one
+// always-rolled-back transaction and the REAL fn_match_capability is asked (the 857.2 probe below).
+// Measured 23 Sep 2026: the live #859 body REACHES that supplier (red); this PR's body, installed as a
+// pg_temp copy inside the same rolled-back transaction, does NOT (green); leads count unchanged.
+// The data-reading 857.2 test is kept for the partial-tick case real rows do carry.
 //
 // MEASURED NOTHING IS NOT A DEFECT. With no confirmed capability row there is nothing to measure, and
 // a fixture retiring must not turn this red: each test prints a NOT_VERIFIED_ line and skips, the same
@@ -88,9 +88,10 @@ async function world() {
 test('857.4: an inquiry naming no service reaches every supplier of the trade', { skip: SKIP }, async (t) => {
   const w = await world();
   if (!w.declared.length) return nothing(t, 'NOT_VERIFIED_NO_CONFIRMED_CAPABILITY_ROW', 'production holds no confirmed capability row');
-  const bad = [];
+  const bad = []; let asked = 0;
   for (const tr of w.declared) {
     const base = await w.tradeLevel([tr]);
+    asked += base.size;
     for (const [label, svc] of [['omitted', null], ['{}', []], ["{'Doors'} (no taxonomy key)", ['Doors']]]) {
       const got = await w.match([tr], svc);
       const lost = [...base].filter((id) => !got.has(id));
@@ -102,6 +103,9 @@ test('857.4: an inquiry naming no service reaches every supplier of the trade', 
       if (extra.length) bad.push(`${tr}, p_services ${label}: reached ${extra.join(',')}, whom the trade-level reference does not hold — the reference has drifted`);
     }
   }
+  // Every declared supplier failing some other gate (role, matchable, authority) empties both sides and
+  // would pass having compared nothing. Say so instead, as 857.3 does.
+  if (!asked) return nothing(t, 'NOT_VERIFIED_NO_SUPPLIER_REACHED_AT_TRADE_LEVEL', 'no confirmed supplier passes the gates before the service gate');
   assert.deepEqual(bad, [], 'an inquiry that names no real service must reach every supplier the trade reaches');
 });
 
@@ -121,6 +125,75 @@ test('857.1: a supplier that ticked a named service is reached', { skip: SKIP },
   console.log(`  ${asked} (supplier, ticked service) pair(s) asked`);
   if (!asked) return nothing(t, 'NOT_VERIFIED_NO_TICKED_SERVICE_IN_A_DECLARED_TRADE', 'no confirmed supplier has a ticked service in a trade he declares');
   assert.deepEqual(bad, [], 'a supplier that ticked the very service named must receive the inquiry');
+});
+
+// 857.2, THE CASE THE RULING CHANGED, MADE RATHER THAN WAITED FOR. A supplier who declares a trade and
+// ticked NOTHING in it is the only shape that tells the ruled gate from the overruled one, and production
+// may not hold one (on 23 Sep it held none, so the data-reading test below went green on the overruled
+// body). So the shape is manufactured inside ONE transaction that always ends in `raise exception`, and
+// therefore commits nothing: a ZZ DEMO lead (@example.invalid, tagged qd_demo) and a confirmed capability
+// declaring one trade with no service ticked, then the REAL public.fn_match_capability is asked.
+//
+// WHY session_replication_role = replica, LOCAL to the transaction. It stops every trigger on leads for
+// this one transaction: the mandatory-six gate (which would refuse an approved row without documents that
+// only storage and the signing function can produce), and every emitter that could enqueue a message.
+// Nothing fires, nothing is queued, and the raise rolls back the rows. It reaches no one.
+//
+// CONTROLS, so a pass cannot be vacuous: the supplier must be matchable and reached with NO service
+// named (otherwise some other gate excluded him and the assertion proves nothing), and reached again
+// once he has ticked one of the named services.
+const PROBE_857_2 = String.raw`
+do $probe$
+declare
+  v_lead bigint; v_tr text; v_keys text[]; v_role text; v_auth jsonb; r jsonb;
+begin
+  set local session_replication_role = replica;
+  select t.code, array_agg(s.trade_code || '.' || s.code order by s.code)
+    into v_tr, v_keys
+    from public.taxonomy_trade t join public.taxonomy_trade_service s on s.trade_code = t.code and s.active
+   where t.active group by t.code order by t.code limit 1;
+  select code into v_role from public.taxonomy_role where executes order by code limit 1;
+  if v_tr is null or v_role is null then
+    raise exception 'PROBE<<{"skipped":"the taxonomy holds no active trade with services, or no role that executes"}>>';
+  end if;
+  select coalesce(jsonb_object_agg(a, true), '{}'::jsonb) into v_auth
+    from public.taxonomy_trade t, unnest(t.authority_required) a where t.code = v_tr;
+  insert into public.leads (company_name, email, verified, approval_status, banned, matching_blocked,
+                            permanently_closed, chat_strikes, tags)
+  values ('ZZ DEMO probe 857.2', 'zz-demo-probe-857@example.invalid', true, 'approved', false, false,
+          false, 0, array['qd_demo'])
+  returning id into v_lead;
+  insert into public.supplier_capabilities (supplier_id, trades, roles, services, services_removed,
+                                            authority_approvals, excluded_trades, confirmed_at)
+  values (v_lead, array[v_tr], array[v_role], '{}'::text[], '{}'::text[], v_auth, '{}'::text[], now());
+  r := jsonb_build_object('trade', v_tr, 'services_named', cardinality(v_keys),
+    'matchable', (select public.fn_is_matchable(verified, banned, matching_blocked, approval_status, permanently_closed, chat_strikes) from public.leads where id = v_lead),
+    'reached_no_service_named', exists (select 1 from public.fn_match_capability(array[v_tr], p_limit := 500) m where m.supplier_id = v_lead),
+    'reached_having_ticked_nothing', exists (select 1 from public.fn_match_capability(array[v_tr], p_limit := 500, p_services := v_keys) m where m.supplier_id = v_lead));
+  update public.supplier_capabilities set services = array[v_keys[1]] where supplier_id = v_lead;
+  r := r || jsonb_build_object(
+    'reached_having_ticked_one', exists (select 1 from public.fn_match_capability(array[v_tr], p_limit := 500, p_services := v_keys) m where m.supplier_id = v_lead));
+  raise exception 'PROBE<<%>>', r::text;
+end $probe$;`;
+
+test('857.2 (probe): a supplier who ticked NOTHING in the trade named is not reached', { skip: SKIP }, async (t) => {
+  const { sql } = await import('../lib/db.mjs');
+  const count = async () => (await sql(`select count(*)::int as n from public.leads`))[0].n;
+  const before = await count();
+  let out = null;
+  try { await sql(PROBE_857_2); } catch (e) {
+    const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e;
+    out = JSON.parse(m[1].replace(/\\"/g, '"'));
+  }
+  assert.ok(out, 'the probe did not report: it must end in its own raise, so it can never commit');
+  if (out.skipped) return nothing(t, 'NOT_VERIFIED_PROBE_' + out.skipped.replace(/\W+/g, '_').toUpperCase(), out.skipped);
+  console.log(`  probe: ${JSON.stringify(out)}`);
+  assert.equal(await count(), before, 'the probe left a leads row behind: it must roll back');
+  assert.equal(out.matchable, true, 'the probe supplier is not matchable, so the assertion below would prove nothing');
+  assert.equal(out.reached_no_service_named, true, 'the probe supplier is not reached even at trade level, so another gate excluded him');
+  assert.equal(out.reached_having_ticked_one, true, 'once he ticks a named service he must be reached');
+  assert.equal(out.reached_having_ticked_nothing, false,
+    'founder_instruction 857: he declares the trade and ticked none of the named services, so he did not confirm he does them');
 });
 
 test('857.2: a supplier that declares the trade but ticked none of the named services is NOT reached', { skip: SKIP }, async (t) => {
