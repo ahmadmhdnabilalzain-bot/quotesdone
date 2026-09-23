@@ -105,10 +105,22 @@ export async function reasonedOffers(deps: ThinkDeps, offers: SpecOffer[], inqui
 // each line asks its trade's attributes with verbatim evidence — and each batch carries its own text. Lines past
 // MAX_READ_LINES are left unread and asked of the supplier. A line ALREADY read (any 'reasoned' value on it) is
 // not read again, so the review's turns, the preflight and the gate pay for a line once.
-// ponytail: sequential think() calls inside the request; move the read to a queue if quotes grow past ~20 lines.
+// The line questions of one step run in parallel, and an ANSWERED question is remembered for this worker's life
+// (READS below), so the review, the preflight and the gate of one submission ask each question once.
+// ponytail: in-memory memo per edge worker (200 entries); persist readings if cold starts make it miss.
 export const LINES_PER_CALL = 2;
-export const MAX_READ_LINES = 20;
+export const MAX_READ_LINES = 40;
 const alreadyRead = (l: Line) => Object.values(l.spec_source ?? {}).includes('reasoned');
+const READS = new Map<string, ThinkResult>();
+/** Tests only: forget remembered answers so each case starts cold. */
+export const forgetReads = () => READS.clear();
+async function ask(deps: ThinkDeps, req: Parameters<typeof think>[1]): Promise<ThinkResult> {
+  const key = JSON.stringify([req.surface, req.question, req.decision]);
+  const hit = READS.get(key); if (hit) return hit;
+  const r = await think(deps, req);
+  if (answered(r)) { if (READS.size >= 200) READS.delete(READS.keys().next().value!); READS.set(key, r); }
+  return r;
+}
 /** What reasoning read: per line, values and READ keys to add to its spec (source 'reasoned'); the terms it found. */
 export type QuoteReading = { lines: Record<number, Record<string, string>>; terms: TermsSpec };
 
@@ -142,7 +154,7 @@ export async function readQuote(deps: ThinkDeps, o: { quoteId: string; category:
     const text = [['LEAD TIME', o.terms.lead_time], ['WARRANTY', o.terms.warranty], ['SCOPE', o.terms.scope], ['CONDITIONS', o.terms.conditions],
       ['EXCLUSIONS', o.terms.exclusions], ['NOTES', o.terms.notes]].filter(([, v]) => v && String(v).trim()).map(([k, v]) => `${k}: ${v}`)
       .concat(lines.map((l) => `LINE ${l.line_no}: ${lineText(l).slice(0, 300)}`)).join('\n').slice(0, 6000);
-    const r = await think(deps, { ...base, surface: 'line_specs.assess', question: text,
+    const r = await ask(deps, { ...base, surface: 'line_specs.assess', question: text,
       context: { audience: 'supplier', trade: quoteTrade, conversation: [{ role: 'supplier', text }] },
       decision: { name: 'quote_terms', fields: termFields } });
     if (!answered(r)) return null;
@@ -156,25 +168,25 @@ export async function readQuote(deps: ThinkDeps, o: { quoteId: string; category:
 
   // 2. A composite quote (fit-out, MEP ...): the trade each line is, or none (labour, a fee, a heading).
   const tradeOf: Record<number, string | null> = {};
-  for (const l of lines) {
-    if (!composite) { tradeOf[l.line_no] = TRADES[quoteTrade] ? quoteTrade : null; continue; }
-    const text = `LINE ${l.line_no}: ${lineText(l).slice(0, 1500)}`;
-    const r = await think(deps, { ...base, surface: 'line_specs.vague', question: text, context: { audience: 'supplier', trade: quoteTrade },
+  const trades = composite ? await Promise.all(lines.map((l) => { const text = `LINE ${l.line_no}: ${lineText(l).slice(0, 1500)}`; return ask(deps, { ...base, surface: 'line_specs.vague', question: text, context: { audience: 'supplier', trade: quoteTrade },
       decision: { name: 'line_trade', options: [
         ...lineTradeOptions(quoteTrade).map((t) => ({ id: t, meaning: `a ${TRADES[t].en} item: a material or product of that trade` })),
         { id: 'none', meaning: 'no trade material: labour, transport, a fee, a discount, a heading or a lump sum' },
-      ] } });
-    if (!answered(r)) return null;
-    const t = r.decision?.choice ?? 'none';
+      ] } }); })) : [];
+  if (trades.some((r) => !answered(r))) return null;
+  lines.forEach((l, i) => {
+    if (!composite) { tradeOf[l.line_no] = TRADES[quoteTrade] ? quoteTrade : null; return; }
+    const t = trades[i].decision?.choice ?? 'none';
     put(l.line_no, READ.trade, t);
     tradeOf[l.line_no] = t !== 'none' && TRADES[t] ? t : null;
-  }
+  });
 
   // 3. Every detail each line states, in batches, each with the supplier's own words as evidence.
   const comps = (o.requirements?.materials ?? []).filter((m) => m?.component && m.component !== 'main');
   const asked = lines.filter((l) => tradeOf[l.line_no] || (!composite && comps.length));
-  for (let i = 0; i < asked.length; i += LINES_PER_CALL) {
-    const batch = asked.slice(i, i + LINES_PER_CALL);
+  const batches: Line[][] = [];
+  for (let i = 0; i < asked.length; i += LINES_PER_CALL) batches.push(asked.slice(i, i + LINES_PER_CALL));
+  const results = await Promise.all(batches.map((batch) => {
     const text = batch.map((l) => `LINE ${l.line_no}: ${lineText(l).slice(0, 1500)}`).join('\n');
     const fields = batch.flatMap((l) => {
       const n = l.line_no; const t = tradeOf[n]; const attrs = attrsOf(t);
@@ -189,10 +201,12 @@ export async function readQuote(deps: ThinkDeps, o: { quoteId: string; category:
         }),
       ];
     });
-    const r = await think(deps, { ...base, surface: 'line_specs.assess', question: text,
+    return ask(deps, { ...base, surface: 'line_specs.assess', question: text,
       context: { audience: 'supplier', trade: quoteTrade, conversation: [{ role: 'supplier', text }] },
       decision: { name: 'stated_specs', fields } });
-    if (!answered(r)) return null;
+  }));
+  if (results.some((r) => !answered(r))) return null;
+  for (const r of results) {
     for (const [k, v] of Object.entries(r.decision?.fields ?? {})) {
       const m = k.match(/^L(\d+)__(na__|names__)?(.+)$/);   // our own key format, parsed
       if (!m || !v?.value) continue;

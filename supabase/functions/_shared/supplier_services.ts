@@ -174,16 +174,18 @@ export async function servicesState(admin: Admin, supplierId: number) {
   };
 }
 
+const liveTaxonomy = async (admin: Admin): Promise<{ code: string; label: string }[]> =>
+  ((await admin.from('taxonomy_trade').select('code,label').eq('active', true)).data || []) as { code: string; label: string }[];
+
 /**
  * The trade codes a supplier's own words name. A slug or code resolves exactly (fn_norm_trades); any other words
  * are READ BY REASONING over the live taxonomy (reasoned_matching.ts tradeOfWords, decision point 23 — never an
  * alias match). Held: `held` is true and no code is claimed; the words go to the sales engineer as a proposal.
  */
-export async function resolveText(admin: Admin, text: string): Promise<{ codes: string[]; held: boolean }> {
+export async function resolveText(admin: Admin, text: string, taxonomy?: { code: string; label: string }[]): Promise<{ codes: string[]; held: boolean }> {
   const { data, error } = await admin.rpc('fn_norm_trades', { p_text: text });
   if (!error && Array.isArray(data) && data.length) return { codes: data.map(String), held: false };
-  const { data: tax } = await admin.from('taxonomy_trade').select('code,label').eq('active', true);
-  const r = await tradeOfWords(defaultDeps(admin, 'supplier_api'), { text, trades: (tax || []) as { code: string; label: string }[] });
+  const r = await tradeOfWords(defaultDeps(admin, 'supplier_api'), { text, trades: taxonomy ?? await liveTaxonomy(admin) });
   return { codes: r.value ?? [], held: r.value == null };
 }
 
@@ -441,7 +443,8 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   const freshOwn = own.filter((w) => !storedOwn.has(w.toLowerCase()));
   const resolved: Record<string, string[]> = {}; const proposals: string[] = [];
   // Independent lookups, so one round trip rather than up to 25 in series.
-  const codesFor = (await Promise.all(freshOwn.map((w) => resolveText(admin, w)))).map((r) => r.codes);
+  const taxonomy = freshOwn.length ? await liveTaxonomy(admin) : [];
+  const codesFor = (await Promise.all(freshOwn.map((w) => resolveText(admin, w, taxonomy)))).map((r) => r.codes);
   freshOwn.forEach((w, i) => {
     const codes = codesFor[i];
     resolved[w] = codes;

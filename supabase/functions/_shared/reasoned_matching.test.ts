@@ -3,13 +3,14 @@
 // dedupeKey and subject.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import type { ThinkDeps } from './think.ts';
-import { applyReading, catalogueCategoryOf, productsAsked, readQuote, reasonedOffers, tradeOfWords } from './reasoned_matching.ts';
+import { applyReading, catalogueCategoryOf, forgetReads, productsAsked, readQuote, reasonedOffers, tradeOfWords } from './reasoned_matching.ts';
 import { assessQuote, READ, type Line } from './line_specs/assess.ts';
 import type { SpecOffer } from './line_specs/no_exact_spec.ts';
 
 type Draft = { answer: string; reasoning?: string[]; decision: { choice?: string; fields?: Record<string, { value: string; evidence: string }> } };
 /** A model that decides by `decide(question, systemPrompt)` (the prompt lists the decision's options or fields); `held: true` puts the founder's hold on the gate. */
 function mock(decide: (question: string, sys: string) => Draft, o: { held?: boolean } = {}) {
+  forgetReads();
   const holds: Record<string, unknown>[] = []; let calls = 0;
   const deps: ThinkDeps = {
     gate: () => Promise.resolve((o.held ? { allowed: false, rule: 'founder_hold', held: 1, routes: 8 } : { allowed: true, rule: 'ok' }) as never),
@@ -131,4 +132,12 @@ Deno.test('a line already read is not read again (cost): an all-read quote makes
     { lines: { 1: { material: 'MR MDF' }, 2: { [READ.notMaterial]: 'Installation labour' } }, terms: {} });
   const rd = await readQuote(m.deps, { quoteId: 'q5', category: 'joinery', lines: read.lines, terms: { ...TERMS, terms_spec: read.terms_spec }, requirements: null });
   assertEquals([rd, m.calls()], [{ lines: {}, terms: {} }, 0]);
+});
+
+Deno.test('one submission asks each reading question once: the second read of the same quote is remembered', async () => {
+  const m = mock(reader);
+  await readQuote(m.deps, { quoteId: 'q6', category: 'joinery', lines: LINES, terms: TERMS, requirements: null });
+  const first = m.calls();
+  const again = await readQuote(m.deps, { quoteId: 'review:x', category: 'joinery', lines: LINES, terms: TERMS, requirements: null });
+  assertEquals([m.calls(), again?.lines[1]?.thickness_mm], [first, '18mm']);
 });
