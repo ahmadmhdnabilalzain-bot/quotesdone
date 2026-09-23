@@ -152,6 +152,7 @@ function selfReportedConfidence(text: any): number | null {
 interface Body {
   __secret?: string;
   fn?: string; task_class?: string; dept?: string; agent?: string;
+  counterpart_model?: string;   // the model that wrote what this call reviews (fn_ai_route_review)
   sys?: string;
   sys_stable?: string;                    // the byte-stable half of the system prompt; only this is marked cacheable
   input?: string | Msg[];
@@ -289,7 +290,25 @@ Deno.serve(observe('ai_gateway', async (req) => {
       : inferred;
 
     // ---- 3. ROUTE -----------------------------------------------------------------------
-    const { data: route, error: rErr } = await admin.rpc('fn_ai_route', {
+    // A REVIEW IS ROUTED AWAY FROM ITS AUTHOR'S FAMILY (founder_instruction 873, 23 Sep 2026). A request
+    // that names counterpart_model — the model that wrote what is being reviewed — goes through
+    // fn_ai_route_review, which returns a model AND a fallback from another provider family, or
+    // use_llm:false with no_independent_reviewer. It never falls back to the author's family. A
+    // seat_deliberation_* class without counterpart_model is refused: independence cannot be proved.
+    // (scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql)
+    const counterpart = typeof body.counterpart_model === 'string' && body.counterpart_model.trim()
+      ? body.counterpart_model.trim() : null;
+    if (!counterpart && /^seat_deliberation_/.test(String(body.task_class ?? ''))) {
+      return J({ ok: false, used_llm: false, outcome: 'review_needs_counterpart',
+                 error: 'a seat_deliberation review must name counterpart_model, the model the author wrote on', cost_usd: 0 }, 400);
+    }
+    const { data: route, error: rErr } = counterpart ? await admin.rpc('fn_ai_route_review', {
+      p_task_class: body.task_class ?? null,
+      p_counterpart_model: counterpart,
+      p_agent_key: body.agent ?? null,
+      p_fn: fnName,
+      p_dept_key: body.dept ?? null,
+    }) : await admin.rpc('fn_ai_route', {
       p_task_class: body.task_class ?? null,
       p_dept_key: body.dept ?? null,
       p_confidence: body.confidence ?? null,
@@ -316,7 +335,8 @@ Deno.serve(observe('ai_gateway', async (req) => {
         p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
       });
       return J({ ok: true, used_llm: false,
-                 outcome: route.halted ? 'budget_halted' : 'refused_deterministic',
+                 outcome: route.no_independent_reviewer ? 'no_independent_reviewer'
+                        : route.halted ? 'budget_halted' : 'refused_deterministic',
                  why: route.why, deterministic_alternative: route.deterministic_alternative ?? null,
                  caps, cost_usd: 0 });
     }
