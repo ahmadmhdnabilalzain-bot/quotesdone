@@ -1,6 +1,0 @@
-Committed, not applied. A live defect fix: fn_decide raises 42883 on every call today (it calls
-fn_decision_outcomes, dropped 8 Sep 2026). Replaces fn_decide with the production body (read 23 Sep 2026) and that
-one call inlined. No dependency on any pending file; apply at the operator's next slot. Decision-point batch B6
-(PR #890) redefines fn_decide later and must be applied AFTER this file (its body carries the same inline read).
-Proved by node --test scripts/checks/fn_decide_reads_its_prior_outcomes_inline.test.mjs.
-Seat: ceo.

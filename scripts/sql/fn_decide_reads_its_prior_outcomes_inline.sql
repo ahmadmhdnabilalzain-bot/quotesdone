@@ -1,7 +1,7 @@
 -- FN_DECIDE READS ITS PRIOR OUTCOMES INLINE — a live defect: every call to fn_decide failed.
 -- Seat: ceo. 23 Sep 2026. Found by the decision-point batch B6 probe (PR #890), split out as its own small fix.
 --
--- WHY. retire_the_routines_no_seat_can_reach.sql dropped public.fn_decision_outcomes(text, integer) on 8 Sep 2026;
+-- WHY. retire_the_routines_no_seat_can_reach.sql dropped fn_decision_outcomes (text, integer) on 8 Sep 2026;
 -- the production fn_decide (the_files_were_stale_not_the_database.sql / reputation_tier_gates_every_decision.sql)
 -- still calls it, so every fn_decide raises 42883 "function does not exist".
 -- WHAT. The production definition of fn_decide (pg_get_functiondef, read 23 Sep 2026) with that one call replaced by
@@ -275,7 +275,7 @@ begin
   -- STEP 9. Execution linked BACK to the decision. One correlation_id ties the trace to the
   -- action, and the action carries the decision_record id it came from, so
   -- v_executions_without_decision_trace stays empty for anything this engine produced.
-  -- The row is written 'queued' and public.fn_execution_run (cron execution_run_hourly) performs
+  -- The row is written 'queued' and fn_execution_run (cron execution_run_hourly; retired since, so nothing performs it today) was to perform
   -- it: it delivers the decision to the actor the decision named and settles the row against the
   -- artefact it created. Claiming 'succeeded' here would be claiming an outcome before the act.
   if v_verdict = 'passed' then
