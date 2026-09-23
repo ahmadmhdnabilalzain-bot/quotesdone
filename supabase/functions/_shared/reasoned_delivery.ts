@@ -11,12 +11,21 @@
 //     question, {{2}} the answer). It stays queued, never dropped, until Meta approves that template;
 //   * social (Instagram / Facebook): the platform reply path — marketing_social_inbox's own send, called
 //     with an internal credential, which also applies Meta's messaging window (meta.ts withinWindow).
+//   * a held MEANING (wa_inbound.intent_table, marketing_social.library_match — _shared/reasoned_channels.ts):
+//     the answer the reasoned meaning selects — the database's intent reply, the trade list, the size statement
+//     on WhatsApp; the library / FAQ / passage reply on the platform. Nothing when the meaning selects nothing.
 // deliverReasoned is pure over its `io`, so reasoned_delivery.test.ts pins every branch.
 import type { HeldRow } from './think.ts';
+import { coverageReply, type Trade } from '../wa_inbound/coverage.ts';
+import { capabilityAnswer } from '../wa_inbound/founder_queries.ts';
 import type { ThinkResult } from './think.ts';
+// Batch 8 (accountant + marketing): an expense email's reasoned kind or vendor re-runs the accountant's sweep, and
+// a LinkedIn reply's reasoned class drafts its follow-up. Their branches live with their decisions.
+import { deliverBooks, liveBooksIO, type BooksIO } from './reasoned_books.ts';
+import { deliverOutreach, liveOutreachIO, type OutreachIO } from './reasoned_outreach.ts';
 
 export type Sent = { ok: boolean; err?: string };
-export interface DeliveryIO {
+export interface DeliveryIO extends BooksIO, OutreachIO {
   waWindowOpen(phone: string): Promise<boolean>;
   sendWaText(phone: string, body: string): Promise<Sent>;
   queueWaTemplate(phone: string, question: string, answer: string, lang: 'en' | 'ar'): Promise<Sent>;
@@ -25,10 +34,19 @@ export interface DeliveryIO {
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
+  /** fn_wa_answer with the reasoned intent: the database's answer for this sender, or null. */
+  waIntentReply(phone: string, question: string, intent: string): Promise<string | null>;
+  /** public.taxonomy_trade, active rows: the live trade list a coverage answer is built from. */
+  waTrades(): Promise<Trade[]>;
+  /** A held DM's grounded reply, sent by marketing_social_inbox on the platform (reasoned_reply). */
+  socialReply(subject: Record<string, unknown>, meaning: string): Promise<Sent>;
+  /** Every regenerated Arabic quotation whose lines are now all reasoned (fn_arabic_waiters_ready): render it and send
+   *  the approval request (supplier_api spec_arabic_finish -> workflow.ts finishArabic). Decision point trade_glossary_ar. */
+  arabicFinishReady?(): Promise<Sent>;
   /** A public comment whose CLASS was held: run it through the comment policy with the reasoned class (marketing_social_comments.ts). */
   socialCommentClassified(subject: Record<string, unknown>, cls: string): Promise<Sent>;
 }
-export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'none'; detail?: string };
+export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'none'; detail?: string };
 
 const isAr = (s: string) => /[؀-ۿ]/.test(s);
 
@@ -74,6 +92,40 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     return { delivered: s.ok, via: 'social', detail: s.err };
   }
 
+  if (row.surface === 'wa_inbound.intent_table') {
+    // What an unanswered WhatsApp message asked, reasoned now: the database's answer goes on WhatsApp.
+    const phone = String(subject.phone ?? '');
+    if (!phone) return { delivered: false, via: 'none', detail: 'no phone on the held row' };
+    const lang = isAr(question) ? 'ar' : 'en';
+    let text: string | null = null;
+    if (choice === 'size') text = capabilityAnswer(lang);
+    else if (choice?.startsWith('coverage:') || choice?.startsWith('trade:')) text = coverageReply(choice, await io.waTrades(), lang);
+    // A request for a person is delivered by wa_inbound.needs_a_person (its own held row), never twice.
+    else if (choice?.startsWith('intent:') && !['intent:contact_human', 'intent:greeting', 'intent:small_talk'].includes(choice)) text = await io.waIntentReply(phone, question, choice.slice(7));
+    if (!text) return { delivered: false, via: 'none', detail: 'reasoned: ' + (choice ?? 'no choice') + ' — nothing more is owed; the courteous reply and the knowledge gap stand' };
+    return await whatsapp(io, phone, question, text);
+  }
+
+  if (row.surface === 'marketing_social.library_match') {
+    if (!choice || choice === 'none') return { delivered: false, via: 'none', detail: 'reasoned: no grounded reply; the honest unknown already went' };
+    const s = await io.socialReply(subject, choice);
+    return { delivered: s.ok, via: 'social', detail: s.err };
+  }
+
+  const books = await deliverBooks(row, r, io);
+  if (books) return books;
+  const outreach = await deliverOutreach(row, r, io);
+  if (outreach) return outreach;
+  // A held Arabic translation: fn_reason_apply_sales_engineer__document_arabic has stored the Arabic and flushed any
+  // parked message; what is left is a regenerated quotation, which needs a render (a PDF) before its approval request.
+  // The waiting quotations are found by the QUOTE (arabic_document_waiter), not by this row's subject: the same lines
+  // may have been filed first by another document, and a held row keeps its first subject.
+  if (row.surface === 'sales_engineer.document_arabic') {
+    if (!io.arabicFinishReady) return { delivered: false, via: 'none', detail: 'stored; no renderer wired' };
+    const s = await io.arabicFinishReady();
+    return { delivered: s.ok, via: 'none', detail: s.ok ? 'every quotation whose Arabic is complete was rendered and asked for approval' : s.err };
+  }
+
   if (row.surface === 'marketing_social.comment_classify') {
     // Nothing was hidden, said or handed off while the class was held; the policy runs now, once.
     if (!choice) return { delivered: false, via: 'none', detail: 'no class on the reasoned result' };
@@ -117,6 +169,8 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
   const sec = async (k: string) => { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; };
   const digits = (p: string) => p.replace(/[^0-9]/g, '');
   return {
+    ...liveBooksIO(admin),
+    ...liveOutreachIO(admin),
     waWindowOpen: async (phone) => {
       const { data } = await admin.from('wa_conversation').select('window_expires_at').eq('phone_e164', digits(phone)).maybeSingle();
       return !!data?.window_expires_at && new Date(data.window_expires_at).getTime() > Date.now();
@@ -137,6 +191,22 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       await admin.rpc('fn_support_report_to_ceo', { p_idempotency_key: key, p_severity: 'routine', p_subject: subject, p_evidence: evidence,
         p_attempted: ['reasoned the held message', 'gave the approved public contact'], p_requested: 'Visibility only. No action is requested.' });
     },
+    arabicFinishReady: async () => {
+      const { data: ids, error } = await admin.rpc('fn_arabic_waiters_ready', { p_limit: 10 });
+      if (error) return { ok: false, err: error.message };
+      const errs: string[] = [];
+      for (const quoteId of (Array.isArray(ids) ? ids : []) as string[]) {
+      const { timedFetch } = await import('./timed_fetch.ts');
+      // supplier_api has verify_jwt = true: the service key passes the gateway; __secret decides the caller.
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/supplier_api', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '') },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'spec_arabic_finish', quote_id: String(quoteId) }),
+      }, 60_000);
+      const j = await r.json().catch(() => ({}));
+      if (!(r.ok && j?.ok)) errs.push(quoteId + ': ' + String(j?.code ?? j?.error ?? r.status));
+      }
+      return errs.length ? { ok: false, err: errs.join('; ') } : { ok: true };
+    },
     socialHandoff: async (subject) => {
       const { timedFetch } = await import('./timed_fetch.ts');
       const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/marketing_social_inbox', {
@@ -145,6 +215,27 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       }, 20_000);
       const j = await r.json().catch(() => ({}));
       return r.ok && j?.ok ? { ok: true } : { ok: false, err: String(j?.error ?? r.status) };
+    },
+    waIntentReply: async (phone, question, intent) => {
+      const { data } = await admin.rpc('fn_wa_answer', { p_from: phone, p_body: question.slice(0, 4000), p_intent: intent });
+      return (data as { matched?: boolean; reply?: string } | null)?.matched ? String(data.reply || '') || null : null;
+    },
+    waTrades: async () => {
+      // Each trade with its live group (#885), the same read wa_inbound makes; ungrouped if the groups are absent.
+      const grouped = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases,group:taxonomy_trade_group(code,label_en,label_ar,sort)').eq('active', true).order('sort').order('code');
+      if (!grouped.error) return (grouped.data || []) as unknown as Trade[];
+      const { data } = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases').eq('active', true).order('sort').order('code');
+      return (data || []) as Trade[];
+    },
+    socialReply: async (subject, meaning) => {
+      const { timedFetch } = await import('./timed_fetch.ts');
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/marketing_social_inbox', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'reasoned_reply', platform: subject.platform, message_id: subject.message_id, meaning, passages: subject.passages ?? [] }),
+      }, 20_000);
+      const j = await r.json().catch(() => ({}));
+      // Sent only when the inbox says it answered; 'already_answered', 'outside_window' and the like are reported, not counted.
+      return r.ok && j?.ok && String(j?.outcome ?? '').startsWith('answered') ? { ok: true } : { ok: false, err: String(j?.error ?? j?.outcome ?? r.status) };
     },
     socialCommentClassified: async (subject, cls) => {
       const { data: m } = await admin.from('social_message')

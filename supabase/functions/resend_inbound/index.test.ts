@@ -53,7 +53,18 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   return one ? json(row) : json([row]);
 }) as typeof fetch;
 
-const { handler } = await import('./index.ts');
+const { handler, useThinkDeps } = await import('./index.ts');
+// The reasoning engine, MOCKED (23 Sep 2026): KIND.v is what the email is reasoned to be; KIND.held puts the model on
+// hold. What the email IS was a /mashreq/ + /statement/ word test until then; now it is this decision.
+const KIND = { v: 'bank_statement', held: false };
+useThinkDeps({
+  gate: () => Promise.resolve(KIND.held ? { allowed: false, rule: 'founder_hold' } : { allowed: true, rule: 'ok' }),
+  llm: (phase) => Promise.resolve({ content: phase === 'decompose'
+    ? JSON.stringify({ steps: [{ id: 's1', goal: 'read the document', needs_knowledge: false }], facts: [] })
+    : JSON.stringify({ answer: 'Reasoned over the envelope and the document rows.', reasoning: ['s1'], decision: { choice: KIND.v } }) }),
+  embed: () => Promise.resolve(null),
+  rpc: (fn, args) => { calls.push({ url: 'think:' + fn, method: 'RPC', body: JSON.stringify(args), prefer: '' }); return Promise.resolve({ data: 1, error: null }); },
+});
 
 // An invented e-statement in the real layout; the bank is named ONLY inside the document.
 const LINES = [
@@ -136,6 +147,30 @@ Deno.test({ name: 'a statement that does not add up is ingested empty with a fin
   assert(/does not add up/.test(ing.p_note));
   assertEquals(calls.filter((c) => /fn_accountant_bank_balance_record/.test(c.url)).length, 0);
   noReceiptPath();
+} });
+
+Deno.test({ name: 'under the model hold a statement is not taken in on a word guess: it is kept and queued, and handed over once', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  KIND.held = true; calls.length = 0;
+  try {
+    const out = await (await handler(await delivery(statementPdf(LINES)))).json();
+    assertEquals([out.bank_statement, out.booked, out.held, out.reason], [undefined, false, true, 'awaiting_reasoning']);
+    assertEquals(ingests().length, 0);
+    const hold = calls.find((c) => c.url === 'think:fn_reason_hold')!;
+    assertEquals(JSON.parse(hold.body).p_dedupe_key, 'expense_kind:zz-demo-0001');
+    // one owner while it waits: the accountant's queue, not also a bookkeeper task
+    assertEquals(calls.filter((c) => /fn_receipt_hand_to_bookkeeper/.test(c.url)).length, 0);
+    assert(calls.some((c) => /inbound_messages/.test(c.url) && /\[HELD — nothing booked: What this document is waits for reasoning/.test(c.body)));
+    assertEquals(calls.filter((c) => /expense_entries|ai_gateway/.test(c.url) && c.method !== 'GET').length, 0);
+  } finally { KIND.held = false; }
+} });
+
+Deno.test({ name: 'a PDF reasoned to be something other than a statement is never taken in as one', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  KIND.v = 'other'; calls.length = 0;
+  try {
+    const out = await (await handler(await delivery(statementPdf(LINES)))).json();
+    assertEquals([out.bank_statement, out.reason], [undefined, 'not_an_expense_document']);
+    assertEquals(ingests().length, 0);
+  } finally { KIND.v = 'bank_statement'; }
 } });
 
 // 21 Sep 2026 (customer_support): the supplier mail's List-Unsubscribe mailto and footer now name

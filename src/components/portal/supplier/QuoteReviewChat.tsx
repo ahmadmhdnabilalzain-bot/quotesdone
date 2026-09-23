@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { srvMsg } from './serverCopy';
-import { failed, fileToBase64, qr, REVIEW_STATE, type Issue, type Lang, type MessageView, type ThreadView } from './quoteReviewApi';
+import { failed, fileToBase64, openPdf as openPdfUrl, qr, REVIEW_STATE, type Issue, type Lang, type MessageView, type ThreadView } from './quoteReviewApi';
 import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { Ltr } from '@/lib/Ltr';
 
@@ -35,7 +35,7 @@ const COPY = {
     open: (n: number) => `${n} open point${n === 1 ? '' : 's'}`, tracked: 'Each stays open until you answer it.',
     adjustment: 'Adjustment', clarification: 'Clarification', choice: 'Your choice', line: (n: number) => `Your line ${n}`, boq: (n: number) => `BOQ line ${n}`,
     closed: 'This conversation is closed.', submitted: 'Submitted to the job. The customer sees your quotation without your name until they reveal it.',
-    download: 'Download', pdf: 'Open the standardised quotation (PDF)', pdfEn: 'Open the quotation in English (PDF)', pdfAr: 'Open the quotation in Arabic (PDF)', loading: 'Opening the conversation…', err: 'Something went wrong. Please try again.',
+    download: 'Download', pdf: 'Open the standardised quotation (PDF)', pdfEn: 'Open the quotation in English (PDF)', pdfAr: 'Open the quotation in Arabic (PDF)', loading: 'Opening the conversation…', err: 'Something went wrong. Please try again.', pdfFailed: 'The document could not be prepared. Please try again.', pdfHeld: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
     fileTip: 'PDF with text, Excel, Word, CSV or email — up to 10 MB.', label: 'Message to the sales engineer', log: 'Conversation with the sales engineer',
   },
   ar: {
@@ -46,7 +46,7 @@ const COPY = {
     open: (n: number) => arCount(n, AR_NOUN.openPoint), tracked: 'تبقى كل نقطة مفتوحة إلى أن تجيبوا عنها.',
     adjustment: 'تعديل', clarification: 'استيضاح', choice: 'اختياركم', line: (n: number) => `بندكم ${n}`, boq: (n: number) => `البند ${n} من الجدول`,
     closed: 'أُغلقت هذه المحادثة.', submitted: 'قُدّم العرض إلى الطلب. يطّلع العميل على عرضكم دون أن يظهر اسمكم إلى أن يكشف عنه.',
-    download: 'تنزيل', pdf: 'فتح العرض الموحّد (PDF)', pdfEn: 'فتح العرض بالإنجليزية (PDF)', pdfAr: 'فتح العرض بالعربية (PDF)', loading: 'جارٍ فتح المحادثة…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.',
+    download: 'تنزيل', pdf: 'فتح العرض الموحّد (PDF)', pdfEn: 'فتح العرض بالإنجليزية (PDF)', pdfAr: 'فتح العرض بالعربية (PDF)', loading: 'جارٍ فتح المحادثة…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.', pdfHeld: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.',
     fileTip: 'ملف PDF نصي أو Excel أو Word أو CSV أو رسالة بريد إلكتروني، بحجم أقصاه 10 ميغابايت.', label: 'رسالة إلى مهندس المبيعات', log: 'المحادثة مع مهندس المبيعات',
   },
 };
@@ -101,12 +101,13 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
   // An engineer's review is "header\n\n1. …\n2. …\n\nfooter"; the points render as a list from `issues`.
   const parts = eng && m.issues && m.issues.length ? body.split('\n\n') : null;
   const [opening, setOpening] = useState(false);
+  // A press that fails used to do nothing at all: no tab, no word (e2e, 23 Sep 2026). It says why now.
+  const [pdfNote, setPdfNote] = useState<'' | 'failed' | 'held'>('');
   const openPdf = async (quoteId: string, docLang: Lang = lang) => {
-    setOpening(true);
-    const j = await qr.quotePdf(token, quoteId, docLang).catch(() => null);
+    setOpening(true); setPdfNote('');
+    const ok = await openPdfUrl(() => qr.quotePdf(token, quoteId, docLang));
     setOpening(false);
-    const u = safeUrl(j && j.url ? String(j.url) : null);
-    if (u) window.open(u, '_blank', 'noopener');
+    if (ok !== true) setPdfNote(ok === 'held' ? 'held' : 'failed');
   };
   return (
     <li className={cn('flex flex-col gap-1', eng ? 'items-start' : 'items-end')}>
@@ -127,6 +128,7 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
             <span className="min-w-0 truncate text-[12.5px] text-foreground"><Ltr>{a.name}</Ltr></span>
             {a.kind === 'quotation_file' && safeUrl(a.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={safeUrl(a.url)!} target="_blank" rel="noopener noreferrer">{t.download}</a> : null}
             {a.kind === 'standard_quote' && a.quote_id ? <Button size="sm" variant="outline" disabled={opening} onClick={() => openPdf(a.quote_id!, a.lang ?? lang)}>{a.lang === 'ar' ? t.pdfAr : a.lang === 'en' ? t.pdfEn : t.pdf}</Button> : null}
+            {a.kind === 'standard_quote' && pdfNote ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{pdfNote === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
           </div>
         ))}
       </div>

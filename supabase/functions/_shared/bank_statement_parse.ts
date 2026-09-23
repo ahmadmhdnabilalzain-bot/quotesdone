@@ -11,25 +11,12 @@
 // CSV export — rather than read with a guessed sign. A debit read as a credit would match a payout that
 // never arrived.
 //
+// WHETHER a message IS a bank statement is meaning, not format: it is reasoned (_shared/reasoned_books.ts,
+// documentKind, 23 Sep 2026, founder_instruction 886-903). The /mashreq/ + /statement/ word test that decided it
+// here (isBankStatement) is gone. This file only reads the rows of a document already reasoned to be one.
+//
 // Pure, so it is tested alone (bank_statement_parse.test.ts).
 export type StatementLine = { value_date: string; description: string; amount_aed: number; reference: string | null };
-
-/**
- * Whether a message to the expenses mailbox is a bank statement rather than a receipt.
- * docText (14 Sep 2026): the founder's real Mashreq e-statement arrives as "eStatement_<date>_<n>.pdf",
- * forwarded from his own address — nothing in the sender, the subject or the filename names the bank. The
- * document itself does ("Mashreqbank PSC", "Statement for Period"), so the text the runtime rebuilt from the
- * PDF is the fourth witness.
- */
-export function isBankStatement(from: string, subject: string, filenames: string[] = [], docText = ''): boolean {
-  const f = String(from || '').toLowerCase();
-  const s = String(subject || '').toLowerCase();
-  const names = filenames.map((n) => String(n || '').toLowerCase()).join(' ');
-  const d = String(docText || '');
-  const bank = /mashreq/.test(f) || /mashreq/.test(s) || /mashreq/.test(names) || /mashreq/i.test(d);
-  return bank && (/statement/.test(s) || /statement/.test(names) || /estatement|e-statement/.test(f)
-                  || /statement (?:for )?period/i.test(d));
-}
 
 const MONTHS: Record<string, string> = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
   jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
