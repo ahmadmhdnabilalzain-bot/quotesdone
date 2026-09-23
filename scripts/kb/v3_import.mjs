@@ -12,7 +12,7 @@
 // independent evaluator to load into the cert schema.
 import fs from 'node:fs';
 import path from 'node:path';
-import { mgmtRead, mgmtWriteData, PROD_REF } from '../staging/qd_guard.mjs';
+import { mgmtRead, mgmtWriteData, PROD_REF } from '../lib/qd_guard.mjs';
 import { records } from './v3_package.mjs';
 
 // qd_guard refuses every production write by design, and rightly: a ref in an executable
@@ -44,7 +44,7 @@ const IS_PROD = (process.argv.find((a) => a.startsWith('--ref=')) || '').include
 const write = (ref, sql, where) => (IS_PROD ? prodPost(sql) : mgmtWriteData(ref, sql, where));
 const stmt = (ref, sql, where) => (IS_PROD ? prodPost(sql) : mgmtWriteWrapper(ref, sql, where));
 async function mgmtWriteWrapper(ref, sql, where) {
-  const { mgmtWrite } = await import('../staging/qd_guard.mjs');
+  const { mgmtWrite } = await import('../lib/qd_guard.mjs');
   return mgmtWrite(ref, sql, where);
 }
 

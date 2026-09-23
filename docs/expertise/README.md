@@ -10,7 +10,7 @@ certifying bodies' OWN published syllabi, never against his review. See memory
 
 1. **Map every role → its real certification(s) + authoritative sources.** ← DONE (this doc set)
 2. Collect the sources off the public web (WebFetch/WebSearch/browser + fenced toolbox: Scrapling,
-   you-get, direct download, self-hosted firecrawl). `tools/TOOLBOX.md`.
+   you-get, direct download, self-hosted firecrawl). `docs/archive/tools/TOOLBOX.md`.
 3. Extract with docling / book-to-skill (tables & formulas intact).
 4. Convert to per-role agent skills with book-to-skill.
 5. Load into Postgres/pgvector with free in-region gte-small embeddings; switch retrieval from

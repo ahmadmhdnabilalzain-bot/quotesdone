@@ -10,8 +10,8 @@
 //   QD_FIXTURES=1 node scripts/staging/rehearse_stripe_test_payment.mjs seed      -> prints the ids and the fee
 //   (create the session in the sandbox with those ids, pay it with 4242 4242 4242 4242)
 //   QD_FIXTURES=1 node scripts/staging/rehearse_stripe_test_payment.mjs verify <tag> <quote_id> <session_id>
-import { withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, teardown, newRun, REF, q } from './demo_factory.mjs';
-import { mgmtRead, mgmtFixture } from './qd_guard.mjs';
+import { withRun, makeCustomer, makeSupplier, makeInquiry, makeQuote, teardown, newRun, REF, q } from '../lib/demo_factory.mjs';
+import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 
 if (process.env.QD_FIXTURES !== '1') { console.error('refusing: set QD_FIXTURES=1'); process.exit(2); }
 const [mode, tagArg, quoteArg, sessionArg] = process.argv.slice(2);

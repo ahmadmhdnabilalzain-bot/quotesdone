@@ -21,8 +21,8 @@
 // it had stopped pinning the two live defects it was written for and was failing on a management
 // API 400 instead. The target now comes from demo_factory, which is the one place that decides it,
 // and the fixture writes go through the QD_FIXTURES door in qd_guard.mjs.
-import { withRun, makeCustomer, REF } from './demo_factory.mjs';
-import { mgmtRead } from './qd_guard.mjs';
+import { withRun, makeCustomer, REF } from '../lib/demo_factory.mjs';
+import { mgmtRead } from '../lib/qd_guard.mjs';
 const checks = [];
 const ok = (name, pass, detail) => {
   checks.push({ name, pass });

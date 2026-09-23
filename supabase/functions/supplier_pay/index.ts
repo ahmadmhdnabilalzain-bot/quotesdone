@@ -22,6 +22,13 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase } from '../_shared/site_origins.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
+// WHO IS CALLING, ANSWERED WITHOUT LYING (audit 22 Sep 2026, finding SP-N-08). This function called
+// admin.auth.getUser directly, so the ~35 s auth outages measured on 18 and 21 Sep — documented in
+// _shared/signed_in_user.ts — came back here as 401 "Not signed in": a signed-in supplier trying to clear
+// a debt that is accruing interest was told their session was invalid. signedInUser bounds the call,
+// refuses an impossible token locally, and answers 503 auth_unavailable when the auth server is the thing
+// that failed, which observe() pages and a client retries.
+import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -44,10 +51,11 @@ function owed(d: any): number {
 Deno.serve(observe('supplier_pay', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
-    const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-    const { data: { user } } = await admin.auth.getUser(jwt);
-    if (!user || !user.email) return J({ error: 'Not signed in', code: 'not_signed_in' }, 401);
-    const email = user.email.toLowerCase();
+    // main's shared identity router decides who this is; #858 keeps the stable code on the 401 so the
+    // portal can translate it (SP-I-03) instead of printing "Not signed in" in English on /ar.
+    const who = await signedInUser(admin, req.headers.get('Authorization'));
+    if (!who.ok) return J(who.status === 401 ? { error: 'Not signed in', code: 'not_signed_in' } : refusalBody(who), who.status);
+    const email = who.email;
     // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026; security review the
     // same day found this function authenticated a supplier by leads.claimed_by and asked
     // nothing about the ban). Above everything this function does, so it covers what is written

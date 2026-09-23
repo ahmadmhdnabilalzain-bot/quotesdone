@@ -5,7 +5,7 @@
 // customer JWT through a real RFQ, so a payload that only exists in a source file cannot pass.
 //
 //   node scripts/staging/verify_portal_rfq.mjs
-import { makeCustomer, makeInquiry, call, newRun } from './demo_factory.mjs';
+import { makeCustomer, makeInquiry, call, newRun } from '../lib/demo_factory.mjs';
 
 const run = newRun();
 const fail = [];

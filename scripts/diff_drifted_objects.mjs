@@ -11,8 +11,8 @@
 // (staging routines must reference staging — that is isolation, not drift).
 //
 //   node scripts/diff_drifted_objects.mjs
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
-import { REF as STAGE } from './staging/demo_factory.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
+import { REF as STAGE } from './lib/demo_factory.mjs';
 
 const ROUTINES = ['enqueue_supplier_invites', 'fn_control_mode_open', 'fn_invite_ramp',
                   'fn_schema_export', 'run_health_check'];

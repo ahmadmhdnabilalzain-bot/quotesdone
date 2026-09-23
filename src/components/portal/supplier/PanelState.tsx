@@ -37,6 +37,21 @@ const COPY: Record<string, { en: string; ar: string }> = {
     en: 'Your session has ended. Please sign in again to continue.',
     ar: 'انتهت جلستكم. يُرجى تسجيل الدخول مرة أخرى للمتابعة.',
   },
+  // submit_quote answers 200/ok:true with accepted:false and one of these three codes. They are
+  // refusals with a reason, not load failures, so the generic sentence would lose the reason
+  // (SupplierQuoteBuilder, merge of #858 with main's SP-C-04 fix).
+  spec_hold: {
+    en: 'Your quote is on hold until the exact details listed are stated. Fill them in here or upload a revised quote.',
+    ar: 'عرضكم معلّق حتى تُذكر التفاصيل المطلوبة بدقة. أكملوها هنا أو ارفعوا عرضًا مُعدّلًا.',
+  },
+  quote_review_changes: {
+    en: 'Your quote needs the changes listed in the review before we can send it to the customer.',
+    ar: 'يحتاج عرضكم إلى التعديلات الواردة في المراجعة قبل إرساله إلى العميل.',
+  },
+  draft_saved: {
+    en: 'Your quote was saved as a draft. Add the missing details so we can send it to the customer.',
+    ar: 'حُفِظ عرضكم كمسودة. أضيفوا التفاصيل الناقصة لنرسله إلى العميل.',
+  },
   no_company: {
     en: 'Your company profile is not complete yet, so there is nothing to show here. Please finish the checklist on the Documents tab.',
     ar: 'لم يكتمل ملف شركتكم بعد، فلا يوجد ما يُعرض هنا. يُرجى إكمال القائمة في تبويب المستندات.',

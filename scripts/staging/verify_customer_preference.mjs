@@ -13,8 +13,8 @@
 // remembering — which is precisely what fn_ws_customer_360 did before this change — fails it.
 //
 //   node scripts/staging/verify_customer_preference.mjs      # zero spend, cleans up after itself
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF as STAGE } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF as STAGE } from '../lib/demo_factory.mjs';
 
 const checks = [];
 const step = (name, ok, detail) => {

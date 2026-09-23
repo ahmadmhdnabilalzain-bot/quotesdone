@@ -12,6 +12,12 @@
 //      legal route;
 //   4. after the render-time pass, a +971 number in an Arabic document is not bidi-isolated.
 //
+// 22 SEP 2026 (WEB-08): the self-test used to require href="/ar/terms/" and that English html came
+// back byte-identical. arDoc() now normalises every internal href in BOTH languages — the content is
+// written with a trailing slash and the site serves the path without one, so 463 internal links were
+// answering 308. The expectations below are the corrected ones, not a softened check: the Arabic link
+// must still be prefixed, and English must still be untouched apart from that slash.
+//
 //   node scripts/checks/arabic_docs_have_no_unprefixed_links.mjs
 import fs from 'node:fs';
 import { arDoc } from '../../src/lib/arabicDoc.ts';
@@ -22,11 +28,12 @@ const fails = [];
 // 1. self-test
 const sample = '<p>الهاتف: +971 56 791 8605 · <a href="/terms/">الشروط</a> · <a href="mailto:a@b.co">a@b.co</a> · رقم 1633275</p>';
 const once = arDoc(sample, 'ar');
-if (!once.includes('href="/ar/terms/"')) fails.push('helper: internal link not prefixed');
+if (!once.includes('href="/ar/terms"')) fails.push('helper: internal link not prefixed');
+if (once.includes('href="/ar/terms/"')) fails.push('helper: internal link keeps the 308-causing trailing slash');
 if (!once.includes('<a href="tel:+971567918605" dir="ltr"><bdi dir="ltr">+971 56 791 8605</bdi></a>')) fails.push('helper: phone not isolated as a tel: link');
 if (!once.includes('<bdi dir="ltr">1633275</bdi>') || !once.includes('<bdi dir="ltr">a@b.co</bdi>')) fails.push('helper: licence number or email not isolated');
 if (arDoc(once, 'ar') !== once) fails.push('helper: not idempotent');
-if (arDoc(sample, 'en') !== sample) fails.push('helper: touched English html');
+if (arDoc(sample, 'en') !== sample.replace('/terms/', '/terms')) fails.push('helper: English html changed by more than the trailing slash');
 
 const UNPREFIXED = /href="\/(?!ar[\/"]|_next)[^"]*"/g;
 const BANNED_AR = /وظي?ف/g; // the job/function word and its employee sibling: طلب/مشروع/مهمة/دور instead

@@ -19,7 +19,7 @@
 // check finds the sixth one on the day it is written instead of on the day someone next runs it.
 //
 // THE RULE. A seed that approves or verifies a supplier must do ONE of three things:
-//   1. go through scripts/staging/demo_factory.mjs — the one shared way this estate builds a demo
+//   1. go through scripts/lib/demo_factory.mjs — the one shared way this estate builds a demo
 //      supplier: it uploads the real PDFs, signs the agreement and lets the sales engineer decide; or
 //   2. call public.fn_sales_engineer_verifies_supplier, the production approval path; or
 //   3. supply the evidence itself, in the same file, for each of the six.
@@ -181,7 +181,7 @@ export function howItIsAllowed(src) {
 test('every seeded approved supplier goes through the factory, the sales engineer, or the evidence', () => {
   const findings = [];
   for (const rel of seedingSurfaces()) {
-    if (rel === 'scripts/staging/demo_factory.mjs') continue;                 // it IS the factory
+    if (rel === 'scripts/lib/demo_factory.mjs') continue;                     // it IS the factory
     if (rel === 'scripts/checks/a_seeded_approved_supplier_carries_the_mandatory_six.test.mjs') continue;
     const raw = readFileSync(join(REPO, rel), 'utf8');
     const src = stripComments(raw, /\.sql$/.test(rel));
@@ -193,7 +193,7 @@ test('every seeded approved supplier goes through the factory, the sales enginee
   }
   assert.deepEqual(findings, [],
     'A fixture approves or verifies a supplier without the founder\'s mandatory six. trg_leads_e0_mandatory_six_gate '
-    + 'will refuse it the moment it runs. Build the supplier with scripts/staging/demo_factory.mjs, or approve it '
+    + 'will refuse it the moment it runs. Build the supplier with scripts/lib/demo_factory.mjs, or approve it '
     + 'through fn_sales_engineer_verifies_supplier, or supply the evidence in the same file (a verified +9715 mobile, '
     + 'owner_email_verified, a licence and a company profile that storage.objects actually HOLDS, and signed terms). '
     + 'Never soften the gate.\n  ' + findings.join('\n  '));

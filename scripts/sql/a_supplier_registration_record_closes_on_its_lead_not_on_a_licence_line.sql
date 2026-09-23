@@ -377,7 +377,9 @@ begin
     -- decider checks the record against public.leads and closes on it.
     --
     -- 21 SEP 2026 — THE LICENCE IS NOT PART OF THE ANNOUNCEMENT'S IDENTITY. Measured on
-    -- htdblwldjkcgjvmqkbeh: org_tasks 579041 and 579076 stayed 'assigned' and re-raised
+    -- production (the project ref used to be spelled here; it made the schema export unportable, and a
+    -- routine body is not the place to name one database — 23 Sep 2026): org_tasks 579041 and 579076
+    -- stayed 'assigned' and re-raised
     -- duty:org_task_queue:routine_operational_decision:sales_engineer to the founder because v2
     -- required a "Licence X," line, and supplier_api/index.ts writes that line only when the lead has
     -- a trade_license_no (its licInfo is '' otherwise). Both announcements named ZZ DEMO registration

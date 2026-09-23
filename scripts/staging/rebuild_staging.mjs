@@ -17,7 +17,7 @@
 // Without --apply it is a dry run: it reports what it would do and changes nothing.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { splitStatements } from './sql_split.mjs';
-import { PROD_REF, resolveStagingRef, mgmtWrite, assertNoProductionLiteral } from './qd_guard.mjs';
+import { PROD_REF, resolveStagingRef, mgmtWrite, assertNoProductionLiteral } from '../lib/qd_guard.mjs';
 
 const SCHEMA_FILE = 'C:/Users/Opera/quotesdone/supabase/schema/full_schema.sql';
 const REF = resolveStagingRef(process.argv[2]);

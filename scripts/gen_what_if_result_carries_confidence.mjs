@@ -25,7 +25,7 @@
 //   node scripts/gen_what_if_result_carries_confidence.mjs
 //   node scripts/apply_sql.mjs scripts/sql/what_if_result_carries_confidence.sql --promote
 import { writeFileSync } from 'node:fs';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const ANCHOR = `values (jsonb_build_object('question',p_question,'change',p_change,'confidence',v_conf), v_impact)`;
 const REPL = `values (jsonb_build_object('question',p_question,'change',p_change,'confidence',v_conf),

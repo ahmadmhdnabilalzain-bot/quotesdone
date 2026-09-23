@@ -15,9 +15,20 @@ const AR: Record<string, [string, string, string, string]> = {
 // Tested in durationLabel.test.mjs. Its edge twin is supabase/functions/_shared/ar_days.ts and its SQL twin
 // public.fn_ar_days(int); every_arabic_message_is_written_not_translated.test.mjs keeps the three equal and
 // fails on a template that prints a day count by hand.
-export function arDays(n: number | string): string {
+// THE DUAL AFTER A PREPOSITION IS 'يومين', NOT 'يومان' (string audit 22 Sep 2026, CP-I18N-06).
+// arDays(2) is the nominative dual, which is correct on its own ("يومان") and wrong after خلال,
+// قبل or نحو, where Arabic needs the genitive: "خلال يومان" is the one form a native reader stops
+// at. `genitive` changes THAT FORM ONLY — every other count is identical, which is why the edge twin
+// (supabase/functions/_shared/ar_days.ts) and public.fn_ar_days need no change: they are only ever
+// called without it, and the parity test compares the default.
+export function arDays(n: number | string, opts?: { genitive?: boolean }): string {
   const k = Math.abs(Math.trunc(Number(n)));
   if (k === 0) return 'اليوم'; // "0 days left" reads as today
+  // The genitive dual (main, CP-I18N-06) is the ONE form arCount cannot give: it depends on the
+  // preposition in front of the count, not on the number. Every other count goes through arCount so
+  // the two rules cannot drift, and the default is byte-identical to arCount(k, AR.day) — which is
+  // what the edge twin, public.fn_ar_days and the parity test compare.
+  if (k === 2 && opts && opts.genitive) return 'يومين';
   return arCount(k, AR.day);
 }
 

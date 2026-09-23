@@ -281,7 +281,14 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
  * the quote offered to the commercial accept rule (`accept`, supplied by the caller), which decides
  * whether it goes to the customer and is counted in the comparison.
  */
-export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplier, actorEmail: string, confirm: unknown, ctx: Ctx, accept: (q: QuoteRow) => Promise<boolean>) {
+// `precheck` (22 Sep 2026, sales_engineer — re-review of #854). A caller may have a further reason not
+// to release, and it MUST be asked before the hold is marked released, not inside `accept`. The hold is
+// the supplier's only way back: once it is released, liveHold() — which reads only 'open' and
+// 'awaiting_approval' — stops finding it, so spec_fill and spec_approve both answer
+// not_awaiting_approval and the desk is shut with the quote unsent and nothing named to fix. A
+// precheck that returns items puts the hold back to 'open' carrying them, exactly as `a.held` does
+// above, so the supplier sees what to do and can fill it in. Returning null means release.
+export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplier, actorEmail: string, confirm: unknown, ctx: Ctx, accept: (q: QuoteRow) => Promise<boolean>, precheck?: (q: QuoteRow) => Promise<{ missing: MissingItem[]; issues?: unknown[] } | null>) {
   const q = await repo.quote(quoteId);
   if (!q || Number(q.supplier_id) !== Number(supplier.id)) return { ok: false as const, code: 'not_found' as const };
   const hold = await repo.liveHold(quoteId);
@@ -290,6 +297,13 @@ export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplie
   const lines = await repo.lines(quoteId);
   const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements });
   if (a.held) { await repo.updateHold(hold.id, { state: 'open', missing: a.missing }); return { ok: false as const, code: 'still_missing' as const, missing: a.missing }; }
+  if (precheck) {
+    const pre = await precheck(q);
+    if (pre) {
+      await repo.updateHold(hold.id, { state: 'open', missing: pre.missing });
+      return { ok: false as const, code: 'still_missing' as const, missing: pre.missing, review_issues: pre.issues ?? null };
+    }
+  }
   const at = nowIso(ctx);
   await repo.updateHold(hold.id, { state: 'released', approved_at: at, approved_by: actorEmail, released_at: at });
   const live = await accept(q);

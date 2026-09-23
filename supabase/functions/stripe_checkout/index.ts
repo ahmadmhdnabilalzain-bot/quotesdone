@@ -7,6 +7,7 @@ import { asLocale } from '../_shared/registered_locale.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { payReveal, priceToken, type StripeCall } from './element_pay.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
+import { canReveal } from '../_shared/reveal_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -39,12 +40,20 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     if (!cust) { await logRun('error', {}, 'no_customer_profile for authenticated user - cannot start checkout'); return J({ error: 'No customer profile' }, 403); }
     const body = await req.json().catch(() => ({}));
     const qid = String(body.quote_id || '');
-    const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount').eq('id', qid).maybeSingle();
-    if (!q) { await logRun('error', { quote_id: qid }, 'quote not found - customer cannot pay to reveal'); return J({ error: 'Quote not found' }, 404); }
-    const { data: inq } = await admin.from('inquiries').select('id,customer_id,rfq_no').eq('id', q.inquiry_id).maybeSingle();
-    if (!inq || inq.customer_id !== cust.id) { await logRun('error', { quote_id: qid }, 'ownership violation: customer attempted checkout on another customer inquiry'); return J({ error: 'Not your inquiry' }, 403); }
-    const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
-    if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, ''); return J({ already_revealed: true }); }
+    // NOTHING IS CHARGED THAT COULD NOT BE REVEALED (customer-portal audit CP-09, 22 Sep 2026).
+    // This checked ownership and nothing else: no sanctions ban (instruction 516 — a customer must
+    // never pay 3% to be handed a permanently closed party), no quote status, no request status,
+    // and not the completeness hold that keeps the same quote out of the comparison. The four
+    // checks live in _shared/reveal_guard.ts, which customer_api's own `reveal` calls, so the
+    // dialog the customer confirms and the charge that follows it cannot disagree.
+    const gate = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });
+    if (!gate.ok) {
+      await logRun(gate.code === 'not_your_inquiry' || gate.code === 'quote_not_found' ? 'error' : 'ok', { quote_id: qid, refused: gate.code },
+        'checkout refused before any charge (' + gate.code + '): ' + gate.message);
+      return J({ ok: false, error: gate.error, code: gate.code, message: gate.message, message_ar: gate.message_ar }, gate.status);
+    }
+    const q = gate.quote; const inq = gate.inquiry;
+    if (gate.already_revealed) { await logRun('ok', { quote_id: qid, already_revealed: true }, ''); return J({ already_revealed: true }); }
     // DEMO ACCOUNTS PAY ONLY IN STRIPE TEST MODE (14 Sep 2026, it_engineer's tooling for the ceo).
     // The e2e harness signs in as demo customers on the one production project, which holds the
     // LIVE keys. The mode is derived HERE from the signed-in account's email - a reserved RFC 2606
@@ -54,10 +63,11 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     // is deliberately no fall-through to the live key. A real account is never served the test pair.
     const keys = stripeKeyNames(isDemoEmail(user.email));
     const sk = await secret(keys.secret);
-    // note: this returns HTTP 200 so the client does not treat it as a hard failure,
-    // which is exactly why it needs to be loud in agent_runs
-    if (!sk && keys.mode === 'test') { await logRun('ok', { quote_id: qid, mode: 'test' }, 'demo account: stripe test keys are not configured, so the payment is refused - the live key is never used for a demo account'); return J({ error: 'stripe_test_not_configured', mode: 'test' }, 200); }
-    if (!sk) { await logRun('error', { quote_id: qid }, 'CHECKOUT BLOCKED - stripe_secret_key missing from app_secrets; all reveals are failing'); return J({ error: 'stripe_not_configured' }, 200); }
+    // A PAYMENT THAT CANNOT BE TAKEN IS A 503, NOT AN HTTP 200 (customer-portal audit CP-10,
+    // 22 Sep 2026). These answered 200 with a code, so the browser, every log and every probe read
+    // "the reveal worked". The portal reads the body (errText), so the status costs it nothing.
+    if (!sk && keys.mode === 'test') { await logRun('ok', { quote_id: qid, mode: 'test' }, 'demo account: stripe test keys are not configured, so the payment is refused - the live key is never used for a demo account'); return J({ ok: false, error: 'stripe_test_not_configured', code: 'stripe_test_not_configured', mode: 'test', message: 'Card payments are not available on this test account.', message_ar: 'الدفع بالبطاقة غير متاح على هذا الحساب التجريبي.' }, 503); }
+    if (!sk) { await logRun('error', { quote_id: qid }, 'CHECKOUT BLOCKED - stripe_secret_key missing from app_secrets; all reveals are failing'); return J({ ok: false, error: 'stripe_not_configured', code: 'stripe_not_configured', message: 'Card payments are briefly unavailable. Your quotes are safe — please try again shortly.', message_ar: 'الدفع بالبطاقة غير متاح مؤقتًا. عروضك محفوظة — يُرجى المحاولة بعد قليل.' }, 503); }
     const { data: cfg } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle();
     const fee = revealFee(Number(q.quote_amount), cfg || {});
     if (!(fee > 0)) { await logRun('error', { quote_id: qid, quote_amount: q.quote_amount, fee, has_pricing_config: !!cfg }, 'invalid_fee computed - checkout blocked (check pricing_config rates/caps and quote_amount)'); return J({ error: 'invalid_fee' }, 400); }
@@ -105,7 +115,7 @@ Deno.serve(observe('stripe_checkout', async (req) => {
       const rate = Number(cfg?.standard_reveal_rate);
       if (action === 'element_init') {
         const pk = await secret(keys.publishable);
-        if (!pk) { await logRun(keys.mode === 'test' ? 'ok' : 'error', { quote_id: qid, mode: keys.mode }, 'ELEMENT BLOCKED - ' + keys.publishable + ' missing'); return J({ error: keys.mode === 'test' ? 'stripe_test_not_configured' : 'stripe_not_configured', mode: keys.mode }, 200); }
+        if (!pk) { const code = keys.mode === 'test' ? 'stripe_test_not_configured' : 'stripe_not_configured'; await logRun(keys.mode === 'test' ? 'ok' : 'error', { quote_id: qid, mode: keys.mode }, 'ELEMENT BLOCKED - ' + keys.publishable + ' missing'); return J({ ok: false, error: code, code, mode: keys.mode, message: 'Card payments are briefly unavailable. Your quotes are safe — please try again shortly.', message_ar: 'الدفع بالبطاقة غير متاح مؤقتًا. عروضك محفوظة — يُرجى المحاولة بعد قليل.' }, 503); }
         return J({ ok: true, mode: keys.mode, publishable_key: pk, currency: 'aed', amount_fils: Math.round(ch.total_charged * 100),
           base_fee: ch.base_fee, safest_total: ch.total_charged });
       }

@@ -15,7 +15,7 @@
 // moves nothing that was not public.
 //
 //   node scripts/staging/sync_staging_assets.mjs [--dry]
-import { resolveStagingRef, PROD_REF, mgmtRead } from './qd_guard.mjs';
+import { resolveStagingRef, PROD_REF, mgmtRead } from '../lib/qd_guard.mjs';
 import { readFileSync } from 'node:fs';
 
 // 15 AUG 2026: this tool's whole job is standing a SECOND project up from this one, and there is

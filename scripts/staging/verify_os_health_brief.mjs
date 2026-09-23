@@ -6,8 +6,8 @@
 // STATEMENT — a single statement shares one snapshot and would report the pre-call state.
 //
 //   node scripts/staging/verify_os_health_brief.mjs
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
-import { REF } from './demo_factory.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
+import { REF } from '../lib/demo_factory.mjs';
 
 const ref = process.argv[2] || REF;
 const rd = async (sql) => await mgmtRead(ref, sql);

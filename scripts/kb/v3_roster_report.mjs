@@ -4,7 +4,7 @@
 //   node scripts/kb/v3_roster_report.mjs [--ref=<project>]
 import fs from 'node:fs';
 import path from 'node:path';
-import { mgmtRead, PROD_REF } from '../staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 
 const refArg = process.argv.find((a) => a.startsWith('--ref='));
 const REF = refArg ? refArg.slice(6) : PROD_REF;

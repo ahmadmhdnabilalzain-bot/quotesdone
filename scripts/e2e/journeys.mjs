@@ -7,7 +7,7 @@
 import { writeFileSync } from 'node:fs';
 import { call, read, write, waitFor } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE, assertHarnessSignedIn } from './browser.mjs';
-import { makeInquiry } from '../staging/demo_factory.mjs';
+import { makeInquiry } from '../lib/demo_factory.mjs';
 import { journeyAuditButtons } from './journey_audit_buttons.mjs';
 import { payHostedTestCheckout, checkoutBlockers } from './stripe_test_checkout.mjs';
 
@@ -257,11 +257,16 @@ export async function journeySuppliers(ctx) {
   // taking the slots is contention between two harness runs, not a product defect: SKIP, said so. A
   // run that is over (its window closed) should have been swept by run.mjs; that stays a FAIL because
   // the sweep missed it, and so does a miss with no other run's fixture to explain it.
-  const others = direct.length ? await read(`select m.supplier_id, substring(x from '^qd_run:(.*)$') tag,
-      exists (select 1 from public.rehearsal_window w where w.run_tag = x and w.ended_at is null) open
+  // EVERY other match is named, tagged or not (22 Sep 2026). The cross join to the run tag dropped
+  // any competitor that carries none - a real lead, or a demo supplier whose tag was lost - and the
+  // step then read "0/3 matched" with no cause at all, which is exactly what finding
+  // duty:journey:b supplier:routing_invited_the_demo_suppliers looked like at 01:09Z. A left join
+  // names them; an untagged competitor has no open run, so it can never read as concurrency.
+  const others = direct.length ? await read(`select m.supplier_id, coalesce(substring(t.x from '^qd_run:(.*)$'), case when l.is_demo then 'demo, no run tag' else 'a real lead' end) tag,
+      coalesce(exists (select 1 from public.rehearsal_window w where w.run_tag = t.x and w.ended_at is null), false) open
     from public.inquiry_matches m join public.leads l on l.id = m.supplier_id
-    cross join lateral (select x from unnest(coalesce(l.tags,'{}')) x where x like 'qd_run:%' limit 1) t
-    where m.inquiry_id = ${q(inquiryId)} and x <> ${q('qd_run:' + ctx.run.tag)}`) : [];
+    left join lateral (select x from unnest(coalesce(l.tags,'{}')) x where x like 'qd_run:%' limit 1) t on true
+    where m.inquiry_id = ${q(inquiryId)} and coalesce(t.x, '') <> ${q('qd_run:' + ctx.run.tag)}`) : [];
   const concurrentOnly = direct.length > 0 && others.length >= direct.length && others.every((o) => o.open);
   rep.step(J, 'routing invited the demo suppliers', direct.length === 0 ? 'PASS' : concurrentOnly ? 'SKIP' : 'FAIL',
     `${fx.suppliers.length - direct.length}/${fx.suppliers.length} matched by the product; ${direct.length} invited directly by the harness` +

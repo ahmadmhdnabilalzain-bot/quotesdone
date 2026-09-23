@@ -3,7 +3,7 @@
 //
 //   node scripts/kb/v3_identity_load.mjs --ref=<project>
 import fs from 'node:fs';
-import { mgmtRead, mgmtWriteData, PROD_REF } from '../staging/qd_guard.mjs';
+import { mgmtRead, mgmtWriteData, PROD_REF } from '../lib/qd_guard.mjs';
 
 const refArg = process.argv.find((a) => a.startsWith('--ref='));
 const REF = refArg ? refArg.slice(6) : PROD_REF;
