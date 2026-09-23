@@ -142,13 +142,13 @@ async function handle(ev: InboundEvent): Promise<string> {
   if (ev.channel === 'comment' && !ev.echo) {
     // Does this commenter want a person? REASONED (think()), never a phrase list; held, the comment is still
     // classified and answered from the policy, and the person check waits in the marketing queue.
-    const person = await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
+    const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
       seat: 'marketing', surface: 'marketing_social.comment_needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
       dedupeKey: 'social_comment:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
-    });
+    })).value === true;
     return await processComment(adminStore(admin, timedFetch, () => pageToken(ev), GATEWAY), {
       platform: ev.platform, accountId: ev.accountId, commentId: ev.messageId, authorId: ev.userId, handle: ev.handle,
-      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, person.value === true);
+      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, person);
   }
   // THE CONVERSATION, one per person per platform, owned by the marketing seat.
   const convRow: Record<string, unknown> = { platform: ev.platform, user_id: ev.userId, account_id: ev.accountId };

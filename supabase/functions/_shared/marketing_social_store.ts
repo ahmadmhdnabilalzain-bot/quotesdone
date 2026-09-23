@@ -19,6 +19,10 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
   };
   const inRows = new Map<number, { conv: number; platform: string }>();
   return {
+    async seen(ev) {
+      const { data } = await admin.from('social_message').select('outcome').eq('platform', ev.platform).eq('meta_message_id', ev.commentId).eq('direction', 'in').maybeSingle();
+      return data?.outcome != null;
+    },
     async insertInbound(ev, cls) {
       const conv: Record<string, unknown> = { platform: ev.platform, user_id: ev.authorId || ('anon:' + ev.commentId), account_id: ev.accountId, last_inbound_at: ev.at.toISOString() };
       if (ev.handle) conv.handle = ev.handle.slice(0, 120);
