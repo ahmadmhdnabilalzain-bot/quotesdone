@@ -76,7 +76,9 @@ begin
           jsonb_build_object('pending', jsonb_build_array('decompose', 'resolve', 'retrieve', 'decide'), 'filed_by', 'sql'),
           p_subject, 'awaiting_reasoning', p_dedupe_key, null)
   on conflict (dedupe_key) do update set status = 'held', attempts = 0, last_attempt_at = null, expires_at = null
-   where reasoning_held_question.status in ('expired', 'failed')
+   where reasoning_held_question.status = 'expired'
+      -- a failed question (five model failures) reopens at most once a day, so a broken model is not paid for on every tick
+      or (reasoning_held_question.status = 'failed' and coalesce(reasoning_held_question.last_attempt_at, reasoning_held_question.created_at) < now() - interval '24 hours')
   returning id into v_id;
   if v_id is null then
     select id into v_id from public.reasoning_held_question where dedupe_key = p_dedupe_key;
@@ -1498,7 +1500,7 @@ revoke execute on function public.fn_reason_apply_ceo__task_responsibility(bigin
 grant execute on function public.fn_reason_apply_ceo__task_responsibility(bigint, jsonb) to service_role;
 
 -- A collaboration rule reasoned to apply is recorded against the task, and its challenges are replayed.
--- ponytail: the task already rests (awaiting_reasoning) if the rule blocks; it is re-reviewed by its lane, not here.
+-- A task the lane parked while the rule waited is unparked here, so the lane reviews it again on the answer.
 create or replace function public.fn_reason_apply_ceo__task_collaboration_rule(p_id bigint, p_result jsonb)
 returns jsonb
 language plpgsql security definer
@@ -1509,6 +1511,9 @@ begin
   select * into r from public.reasoning_held_question where id = p_id;
   select * into c from public.collaboration_rule where id::text = r.subject->>'rule_id';
   if c.id is null or coalesce(p_result->'decision'->>'choice', '') <> 'applies' then
+    update public.org_tasks set status = 'assigned', updated_at = now(),
+           result = coalesce(result, '{}'::jsonb) || jsonb_build_object('unparked', jsonb_build_object('at', now(), 'by', 'reasoning', 'held_id', p_id))
+     where id::text = r.subject->>'task_id' and status = 'blocked' and (result ? 'parked');
     return jsonb_build_object('rule_id', r.subject->>'rule_id', 'applies', false);
   end if;
   insert into review_chain (subject_type, subject_id, dept_key, author_agent, reviewer_agent, stage, decision, reason, confidence)
@@ -1536,6 +1541,9 @@ begin
       v_n := v_n + 1;
     end if;
   end loop;
+  update public.org_tasks set status = 'assigned', updated_at = now(),
+         result = coalesce(result, '{}'::jsonb) || jsonb_build_object('unparked', jsonb_build_object('at', now(), 'by', 'reasoning', 'held_id', p_id))
+   where id::text = r.subject->>'task_id' and status = 'blocked' and (result ? 'parked');
   return jsonb_build_object('rule_id', c.id, 'applies', true, 'task_id', r.subject->>'task_id', 'challenges', v_n);
 end $fn$;
 revoke execute on function public.fn_reason_apply_ceo__task_collaboration_rule(bigint, jsonb) from public, anon, authenticated;
