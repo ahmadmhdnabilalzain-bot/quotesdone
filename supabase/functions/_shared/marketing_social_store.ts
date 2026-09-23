@@ -121,7 +121,11 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
     },
     async reply(ev, text) {
       const t = await tokenFor(ev);
-      return t ? await call(f, replyRequest(ev, text, t)) : { ok: false, error: 'no credential for ' + ev.platform };
+      const r = t ? await call(f, replyRequest(ev, text, t)) : { ok: false, error: 'no credential for ' + ev.platform };
+      // SENT is marked on the inbound row the moment the platform accepts it, before record() runs: a run that dies
+      // after the send is never re-sent by the sweep (marketing duty retry_unfinished skips a row marked sent).
+      if (r.ok) await admin.from('social_message').update({ send_status: 'sent' }).eq('platform', ev.platform).eq('meta_message_id', ev.commentId).eq('direction', 'in');
+      return r;
     },
     async hide(ev) {
       const t = await tokenFor(ev);

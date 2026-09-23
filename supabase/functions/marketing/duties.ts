@@ -93,20 +93,31 @@ export const socialComments: Duty = {
         // failed run cannot delete it — release() returns it to 'held_classify' again) and re-run here with a FRESH
         // reasoning (a new dedupe key, since its first held question is already closed): answered, the policy runs;
         // held again, it is queued anew and waits for its own replay.
+        // ALSO: a 'held_classify' comment with NO open held question (a replay answered but its send failed and
+        // release() handed it back, or a run died before its question was filed) is re-run the same way, so no held
+        // comment can wait for a replay that will never come. A row the platform already accepted a reply for
+        // (send_status 'sent', marked at the send) is never re-sent.
         const { data: stale, error: staleErr } = await admin.from('social_message')
-          .select('id,outcome,meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
-          .eq('direction', 'in').eq('channel', 'comment').like('outcome', 'replaying:%').limit(50);
+          .select('id,outcome,send_status,meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
+          .eq('direction', 'in').eq('channel', 'comment').or('outcome.like.replaying:%,outcome.eq.held_classify').limit(50);
         if (staleErr) throw new Error('stale comment replays: ' + staleErr.message);
         const counts: Record<string, number> = {};
         for (const r of stale || []) {
-          const at = Date.parse(String(r.outcome).slice('replaying:'.length));
-          if (!(at < now.getTime() - 10 * 60_000)) continue;
-          const { data: won } = await admin.from('social_message').update({ outcome: 'held_classify' }).eq('id', r.id).eq('outcome', r.outcome).select('id');
-          if (!won?.length) continue;
+          if (r.send_status === 'sent') continue;
+          if (String(r.outcome).startsWith('replaying:')) {
+            const at = Date.parse(String(r.outcome).slice('replaying:'.length));
+            if (!(at < now.getTime() - 10 * 60_000)) continue;
+            const { data: won } = await admin.from('social_message').update({ outcome: 'held_classify' }).eq('id', r.id).eq('outcome', r.outcome).select('id');
+            if (!won?.length) continue;
+          } else {
+            const { data: open } = await admin.from('reasoning_held_question').select('id').eq('status', 'held')
+              .like('dedupe_key', 'social_comment_class:' + r.platform + ':' + r.meta_message_id + '%').limit(1);
+            if (open?.length) continue;
+          }
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
             authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
           const cls = (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId,
-            text: String(ev.text || ''), retry: String(r.outcome) })).value;
+            text: String(ev.text || ''), retry: 'retry:' + now.toISOString() })).value;
           const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls)
             .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
           counts['revived:' + o] = (counts['revived:' + o] || 0) + 1;
