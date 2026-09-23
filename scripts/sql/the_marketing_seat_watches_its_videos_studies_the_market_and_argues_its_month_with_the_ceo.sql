@@ -293,6 +293,7 @@ begin
     if v_ok and k = 'post_metric' then
       execute 'select exists (select 1 from public.marketing_post_metric m where to_jsonb(m)->>''id'' = $1)' into v_ok using r;
     elsif v_ok and k = 'scorecard' then
+      -- TODO(#875): pin this to marketing_post_metric's own date column once #875 merges; a text match on the row stands in.
       execute 'select exists (select 1 from public.marketing_post_metric m where to_jsonb(m)::text like ''%"'' || $1 || ''-%'')'
         into v_ok using left(r, 7);
     end if;
@@ -367,19 +368,19 @@ returns boolean language sql immutable set search_path to 'public', 'pg_temp' as
 $fn$;
 
 -- THE ATTEMPT CAP (review of #876). Every non-held attempt (written, rejected, failed) counts per step, subject and
--- Dubai day; after 2 the subject waits for tomorrow. A subject that failed (rejected/failed, nothing written) on each
--- of the last 3 Dubai days is QUARANTINED: it leaves the queue until someone fixes it, and fn_marketing_plan_loop_tick
+-- Dubai day; after 2 the subject waits for tomorrow. A subject that failed (rejected/failed) on 3 or more Dubai days
+-- since its last written run is QUARANTINED: it leaves the queue until someone fixes it, and fn_marketing_plan_loop_tick
 -- raises an IT finding owned by marketing. Returns null when the subject may run, else the reason.
 create or replace function public.fn_marketing_subject_blocked(p_step text, p_subject text, p_at timestamptz default now())
 returns text language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   with d as (select (p_at at time zone 'Asia/Dubai')::date today)
   select case
-    when (select count(distinct r.run_day) from public.marketing_model_run r, d
+    -- counted SINCE the last written run, not in a window tied to today: a quarantine does not lapse at midnight
+    when (select count(distinct r.run_day) from public.marketing_model_run r
            where r.step = p_step and r.subject = p_subject and r.outcome in ('rejected','failed')
-             and r.run_day between d.today - 2 and d.today) = 3
-         and not exists (select 1 from public.marketing_model_run r, d where r.step = p_step and r.subject = p_subject
-                           and r.outcome = 'written' and r.run_day between d.today - 2 and d.today)
-      then 'quarantined: failed on each of the last 3 days'
+             and r.id > coalesce((select max(w.id) from public.marketing_model_run w
+                                   where w.step = p_step and w.subject = p_subject and w.outcome = 'written'), 0)) >= 3
+      then 'quarantined: failed on 3 or more days since its last written run'
     when (select count(*) from public.marketing_model_run r, d where r.step = p_step and r.subject = p_subject
            and r.outcome in ('written','rejected','failed') and r.run_day = d.today) >= 2
       then 'attempt cap: 2 attempts today'
@@ -948,7 +949,7 @@ begin
   -- SENT MEANS THE OUTBOX SAYS SENT (review of #876): the brief is 'brief_requested' until the notification that
   -- customer_support queued for it reads status 'sent'.
   for p in select * from public.marketing_month_plan where status = 'brief_requested' order by month loop
-    if exists (select 1 from public.agent_actions a join public.notifications nt on nt.id::text = a.evidence->>'notification_id'
+    if exists (select 1 from public.agent_actions a join public.notifications nt on nt.id::text = coalesce(a.detail->>'retry_notification_id', a.evidence->>'notification_id')
                 where a.id = p.brief_handoff_id and nt.status = 'sent') then
       update public.marketing_month_plan set status = 'sent_to_founder', updated_at = now() where month = p.month;
       n_delivered := n_delivered + 1;
@@ -956,7 +957,7 @@ begin
   end loop;
   -- A QUARANTINED SUBJECT IS A FINDING OWNED BY MARKETING, not a silent gap in the queue.
   for q in select distinct r.step, r.subject from public.marketing_model_run r
-            where r.run_day >= (now() at time zone 'Asia/Dubai')::date - 2 and r.outcome in ('rejected','failed')
+            where r.outcome in ('rejected','failed')
               and public.fn_marketing_subject_blocked(r.step, r.subject) like 'quarantined%' loop
     perform public.fn_it_engineer_finding_upsert('marketing:step_quarantined:' || q.step || ':' || q.subject,
       'Marketing step ' || q.step || ' failed 3 days running on ' || left(q.subject, 40) || ' and left the queue',
