@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T12:54:24.896Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T14:07:14.092Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -201,7 +201,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (573) =====
+-- ===== TABLES (576) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -6147,6 +6147,40 @@ CREATE TABLE IF NOT EXISTS public.quotes (
   extracted_by_model text
 );
 
+CREATE TABLE IF NOT EXISTS public.reasoning_held_question (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  seat text NOT NULL,
+  surface text NOT NULL,
+  question text NOT NULL,
+  request jsonb NOT NULL,
+  plan jsonb DEFAULT '{}'::jsonb NOT NULL,
+  subject jsonb,
+  reason text NOT NULL,
+  status text DEFAULT 'held'::text NOT NULL,
+  expires_at timestamp with time zone,
+  attempts integer DEFAULT 0 NOT NULL,
+  last_attempt_at timestamp with time zone,
+  result jsonb,
+  reasoned_at timestamp with time zone,
+  applied_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  dedupe_key text
+);
+
+CREATE TABLE IF NOT EXISTS public.reasoning_knowledge_candidate (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  seat text NOT NULL,
+  question text NOT NULL,
+  finding text NOT NULL,
+  sources jsonb NOT NULL,
+  embedding_gte vector(384),
+  status text DEFAULT 'pending_review'::text NOT NULL,
+  reviewed_by text,
+  reviewed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  finding_sha text GENERATED ALWAYS AS (md5(lower(btrim(finding)))) STORED
+);
+
 CREATE TABLE IF NOT EXISTS public.red_episode (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   source text NOT NULL,
@@ -7748,6 +7782,15 @@ CREATE TABLE IF NOT EXISTS public.templates (
   updated_by text
 );
 
+CREATE TABLE IF NOT EXISTS public.trade_spec_checklist (
+  trade_code text NOT NULL,
+  topic_id text NOT NULL,
+  topic text NOT NULL,
+  specs jsonb NOT NULL,
+  source_pack text NOT NULL,
+  loaded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.transactions (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   quote_id uuid,
@@ -8481,6 +8524,8 @@ ALTER TABLE public.quote_review_request ADD CONSTRAINT quote_review_request_pkey
 ALTER TABLE public.quote_reviews ADD CONSTRAINT quote_reviews_pkey PRIMARY KEY (id);
 ALTER TABLE public.quote_spec_hold ADD CONSTRAINT quote_spec_hold_pkey PRIMARY KEY (id);
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_pkey PRIMARY KEY (id);
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_pkey PRIMARY KEY (id);
+ALTER TABLE public.reasoning_knowledge_candidate ADD CONSTRAINT reasoning_knowledge_candidate_pkey PRIMARY KEY (id);
 ALTER TABLE public.red_episode ADD CONSTRAINT red_episode_pkey PRIMARY KEY (id);
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_pkey PRIMARY KEY (refund_id);
 ALTER TABLE public.refund_ceo_check ADD CONSTRAINT refund_ceo_check_pkey PRIMARY KEY (id);
@@ -8589,6 +8634,7 @@ ALTER TABLE public.taxonomy_trade_group ADD CONSTRAINT taxonomy_trade_group_pkey
 ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposal_pkey PRIMARY KEY (id);
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_pkey PRIMARY KEY (trade_code, code);
 ALTER TABLE public.templates ADD CONSTRAINT templates_pkey PRIMARY KEY (name);
+ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_pkey PRIMARY KEY (trade_code, topic_id);
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_pkey PRIMARY KEY (domain, key);
 ALTER TABLE public.undo_log ADD CONSTRAINT undo_log_pkey PRIMARY KEY (id);
@@ -8687,6 +8733,8 @@ ALTER TABLE public.prompt_benchmarks ADD CONSTRAINT prompt_benchmarks_prompt_key
 ALTER TABLE public.prompt_versions ADD CONSTRAINT prompt_versions_prompt_key_version_key UNIQUE (prompt_key, version);
 ALTER TABLE public.qualification_playbooks ADD CONSTRAINT qualification_playbooks_category_version_key UNIQUE (category, version);
 ALTER TABLE public.quote_reviews ADD CONSTRAINT quote_reviews_inquiry_id_supplier_id_key UNIQUE (inquiry_id, supplier_id);
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_dedupe_key_key UNIQUE (dedupe_key);
+ALTER TABLE public.reasoning_knowledge_candidate ADD CONSTRAINT reasoning_knowledge_candidate_finding_sha_key UNIQUE (finding_sha);
 ALTER TABLE public.refund_ceo_review ADD CONSTRAINT refund_ceo_review_one_per_cycle UNIQUE (refund_id, cycle);
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_stripe_refund_id_key UNIQUE (stripe_refund_id);
 ALTER TABLE public.reg_catalog ADD CONSTRAINT reg_catalog_authority_code_name_key UNIQUE (authority, code_name);
@@ -9185,6 +9233,18 @@ ALTER TABLE public.quotes ADD CONSTRAINT quotes_price_ex_vat_positive CHECK (((p
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_quote_amount_check CHECK ((quote_amount > (0)::numeric));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_supplier_trn_shape CHECK (((supplier_trn IS NULL) OR (supplier_trn ~ '^100[0-9]{12}$'::text)));
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_vat_treatment_known CHECK (((vat_treatment IS NULL) OR (vat_treatment = ANY (ARRAY['exclusive'::text, 'inclusive'::text, 'not_registered'::text, 'not_stated'::text, 'confirmed_on_portal'::text]))));
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_plan_check CHECK (((jsonb_typeof(plan) = 'object'::text) AND (length((plan)::text) <= 60000)));
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_question_check CHECK (((btrim(question) <> ''::text) AND (length(question) <= 8000)));
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_reason_check CHECK ((btrim(reason) <> ''::text));
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_request_check CHECK (((jsonb_typeof(request) = 'object'::text) AND (length((request)::text) <= 60000)));
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_status_check CHECK ((status = ANY (ARRAY['held'::text, 'reasoned'::text, 'applied'::text, 'failed'::text, 'expired'::text])));
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_subject_check CHECK (((subject IS NULL) OR (jsonb_typeof(subject) = 'object'::text)));
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_surface_check CHECK ((surface ~ '^[a-z_]+(\.[a-z_]+)*$'::text));
+ALTER TABLE public.reasoning_knowledge_candidate ADD CONSTRAINT reasoning_knowledge_candidate_check CHECK (((status = 'pending_review'::text) OR ((reviewed_by IS NOT NULL) AND (reviewed_at IS NOT NULL))));
+ALTER TABLE public.reasoning_knowledge_candidate ADD CONSTRAINT reasoning_knowledge_candidate_finding_check CHECK (((btrim(finding) <> ''::text) AND (length(finding) <= 4000)));
+ALTER TABLE public.reasoning_knowledge_candidate ADD CONSTRAINT reasoning_knowledge_candidate_question_check CHECK ((btrim(question) <> ''::text));
+ALTER TABLE public.reasoning_knowledge_candidate ADD CONSTRAINT reasoning_knowledge_candidate_sources_check CHECK (((jsonb_typeof(sources) = 'array'::text) AND (jsonb_array_length(sources) > 0)));
+ALTER TABLE public.reasoning_knowledge_candidate ADD CONSTRAINT reasoning_knowledge_candidate_status_check CHECK ((status = ANY (ARRAY['pending_review'::text, 'approved'::text, 'rejected'::text])));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_amount_ck CHECK ((amount_aed > (0)::numeric));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_attempts_ck CHECK (((attempts >= 0) AND (attempts <= 5)));
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_authoriser_ck CHECK (((state <> 'ceo_authorized'::text) OR ((decided_by = 'ceo'::text) AND (decided_at IS NOT NULL) AND (decision_rationale IS NOT NULL))));
@@ -9338,6 +9398,10 @@ ALTER TABLE public.taxonomy_trade_proposal ADD CONSTRAINT taxonomy_trade_proposa
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_code_check CHECK ((code ~ '^[a-z][a-z0-9_]*$'::text));
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_label_ar_check CHECK ((label_ar ~ '[ء-ي]'::text));
 ALTER TABLE public.taxonomy_trade_service ADD CONSTRAINT taxonomy_trade_service_label_en_check CHECK ((btrim(label_en) <> ''::text));
+ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_specs_check CHECK (((jsonb_typeof(specs) = 'array'::text) AND (jsonb_array_length(specs) > 0)));
+ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_topic_check CHECK ((btrim(topic) <> ''::text));
+ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_topic_id_check CHECK ((btrim(topic_id) <> ''::text));
+ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_trade_code_check CHECK ((trade_code ~ '^[a-z0-9_-]+$'::text));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_domain_check CHECK ((domain = ANY (ARRAY['action_kind'::text, 'notification_type'::text, 'customer_signal'::text])));
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_label_check CHECK ((btrim(label) <> ''::text));
 ALTER TABLE public.vendor_billing_ended ADD CONSTRAINT vendor_billing_ended_kind_ck CHECK ((kind = ANY (ARRAY['ended'::text, 'annual'::text, 'one_off'::text, 'portal_only'::text])));
@@ -9561,6 +9625,8 @@ ALTER TABLE public.quote_reviews ADD CONSTRAINT quote_reviews_supplier_id_fkey F
 ALTER TABLE public.quote_spec_hold ADD CONSTRAINT quote_spec_hold_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE;
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.quotes ADD CONSTRAINT quotes_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
+ALTER TABLE public.reasoning_held_question ADD CONSTRAINT reasoning_held_question_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
+ALTER TABLE public.reasoning_knowledge_candidate ADD CONSTRAINT reasoning_knowledge_candidate_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.refund_case ADD CONSTRAINT refund_case_case_id_fkey FOREIGN KEY (case_id) REFERENCES support_case(case_id);
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_refund_decision_id_fkey FOREIGN KEY (refund_decision_id) REFERENCES ceo_approval(decision_id);
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_topup_of_fkey FOREIGN KEY (topup_of) REFERENCES refunds(id);
@@ -10011,6 +10077,7 @@ CREATE UNIQUE INDEX quote_spec_hold_one_live ON public.quote_spec_hold USING btr
 CREATE UNIQUE INDEX quotes_inquiry_supplier_option_key ON public.quotes USING btree (inquiry_id, supplier_id, option_no);
 CREATE INDEX quotes_original_file_path_idx ON public.quotes USING btree (original_file_path) WHERE (original_file_path IS NOT NULL);
 CREATE INDEX quotes_stale_idx ON public.quotes USING btree (inquiry_id) WHERE (stale_at IS NOT NULL);
+CREATE INDEX reasoning_held_question_due_idx ON public.reasoning_held_question USING btree (status, last_attempt_at NULLS FIRST, created_at) WHERE (status = 'held'::text);
 CREATE UNIQUE INDEX red_episode_one_open_per_key ON public.red_episode USING btree (check_key) WHERE (resolved_at IS NULL);
 CREATE INDEX red_episode_open ON public.red_episode USING btree (resolved_at) WHERE (resolved_at IS NULL);
 CREATE UNIQUE INDEX refund_case_one_live_per_transaction ON public.refund_case USING btree (transaction_id) WHERE (state <> ALL (ARRAY['ineligible'::text, 'ceo_declined'::text, 'failed'::text, 'canceled'::text]));
@@ -19124,6 +19191,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -19149,16 +19226,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -19870,6 +19937,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -20385,135 +20581,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -24364,18 +24431,35 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ceo_classify(p_text text)
- RETURNS TABLE(intent_id text, rule_id bigint, matched text)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
+CREATE OR REPLACE FUNCTION public.fn_ceo_command_interpret(p_command_id bigint, p_intent text, p_why text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select r.intent_id, r.rule_id, r.pattern
-    from public.ceo_command_rule r
-   where position(r.pattern in lower(coalesce(p_text, ''))) > 0
-   order by r.rank asc, length(r.pattern) desc
-   limit 1
-$function$
+declare c public.ceo_command; v_work boolean;
+begin
+  select * into c from public.ceo_command where command_id = p_command_id for update;
+  if not found then raise exception 'no command %', p_command_id using errcode = 'P0002'; end if;
+  select i.needs_work into v_work from public.ceo_command_intent i where i.intent_id = p_intent;
+  if v_work is null then raise exception 'unknown intent %', p_intent using errcode = '22023'; end if;
+  -- Idempotent: a command already understood is not re-routed (a replay after a live answer is a no-op).
+  if c.state <> 'interpreting' then
+    return jsonb_build_object('command_id', p_command_id, 'intent', c.intent_id, 'state', c.state, 'changed', false);
+  end if;
+  update public.ceo_command set intent_id = p_intent, state = 'accepted',
+         outcome = coalesce(outcome, left('understood as ' || p_intent || coalesce(': ' || nullif(btrim(p_why), ''), ''), 1000))
+   where command_id = p_command_id;
+  -- An instruction that asks for work becomes work. One that states a rule or asks a question is
+  -- accepted and answered without manufacturing a task nobody wanted.
+  if v_work then
+    insert into public.ceo_task (command_id, title, detail) values (p_command_id, left(btrim(c.body), 200), c.body);
+    update public.ceo_command set state = 'routed'        where command_id = p_command_id;
+    update public.ceo_command set state = 'tasks_created' where command_id = p_command_id;
+  end if;
+  select * into c from public.ceo_command where command_id = p_command_id;
+  return jsonb_build_object('command_id', p_command_id, 'intent', c.intent_id, 'state', c.state, 'changed', true);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_command_state_guard()
@@ -24399,38 +24483,21 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_command_submit(p_channel text, p_from t
  RETURNS TABLE(command_id bigint, intent_id text, state text, matched text)
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare
-  v_intent text; v_rule bigint; v_match text; v_id bigint;
+declare v_id bigint;
 begin
   if coalesce(btrim(p_body), '') = '' then
     raise exception 'an empty instruction is not an instruction' using errcode = '22023';
   end if;
-
-  select c.intent_id, c.rule_id, c.matched into v_intent, v_rule, v_match
-    from public.fn_ceo_classify(p_body) c;
-  v_intent := coalesce(v_intent, 'ambiguous');
-
+  -- Recorded first, understood second. 'interpreting' is the state ceo_command_state already defines as
+  -- "the CEO is working out what was asked"; fn_ceo_command_interpret moves it on with the reasoned intent.
   insert into public.ceo_command (channel, from_identity, body, intent_id, matched_rule, state)
-  values (p_channel, p_from, p_body, v_intent, v_rule, 'received')
+  values (p_channel, p_from, p_body, 'ambiguous', null, 'received')
   returning ceo_command.command_id into v_id;
-
-  -- An instruction that asks for work becomes work. One that states a rule or asks a question is
-  -- accepted and answered without manufacturing a task nobody wanted.
   update public.ceo_command set state = 'interpreting' where ceo_command.command_id = v_id;
-  if exists (select 1 from public.ceo_command_intent i where i.intent_id = v_intent and i.needs_work) then
-    update public.ceo_command set state = 'accepted' where ceo_command.command_id = v_id;
-    insert into public.ceo_task (command_id, title, detail)
-    values (v_id, left(btrim(p_body), 200), p_body);
-    update public.ceo_command set state = 'routed'        where ceo_command.command_id = v_id;
-    update public.ceo_command set state = 'tasks_created' where ceo_command.command_id = v_id;
-  else
-    update public.ceo_command set state = 'accepted' where ceo_command.command_id = v_id;
-  end if;
-
   return query
-    select c.command_id, c.intent_id, c.state, v_match
+    select c.command_id, c.intent_id, c.state, null::text
       from public.ceo_command c where c.command_id = v_id;
 end
 $function$
@@ -51657,6 +51724,198 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_held_delivered(p_id bigint, p_delivery jsonb)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  update public.reasoning_held_question
+     set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('delivery', p_delivery),
+         status = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then 'applied' else status end,
+         applied_at = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then now() else applied_at end
+   where id = p_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_held_due(p_limit integer DEFAULT 3)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_gate jsonb; v jsonb;
+begin
+  -- What can no longer be answered usefully is closed with its reason, never replayed at cost — and this
+  -- runs under the hold too, so an expired question does not wait for the release to be closed.
+  update public.reasoning_held_question set status = 'expired' where status = 'held' and expires_at < now();
+  update public.reasoning_held_question set status = 'failed' where status = 'held' and attempts >= 5;
+  v_gate := public.fn_kernel_paid_provider_gate('hold-probe/not-a-model');
+  if coalesce(v_gate->>'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state') then
+    return '[]'::jsonb;
+  end if;
+  with due as (
+    select id from public.reasoning_held_question
+     where status = 'held' and attempts < 5 and (expires_at is null or expires_at >= now())
+       and (last_attempt_at is null or last_attempt_at < now() - interval '10 minutes')
+     order by last_attempt_at nulls first, created_at
+     limit greatest(1, least(coalesce(p_limit, 3), 10))
+     for update skip locked
+  ), claimed as (
+    update public.reasoning_held_question h set attempts = h.attempts + 1, last_attempt_at = now()
+      from due where h.id = due.id
+    returning h.id, h.seat, h.surface, h.request, h.subject
+  )
+  select coalesce(jsonb_agg(to_jsonb(claimed)), '[]'::jsonb) into v from claimed;
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_held_resolve(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; v_effect jsonb := null;
+begin
+  select * into r from public.reasoning_held_question where id = p_id for update;
+  if not found then raise exception 'no held question %', p_id using errcode = 'P0002'; end if;
+  if coalesce(p_result->>'status', '') <> 'answered' then
+    update public.reasoning_held_question
+       set result = p_result, status = case when attempts >= 5 then 'failed' else 'held' end
+     where id = p_id;
+    return jsonb_build_object('id', p_id, 'status', 'still_held');
+  end if;
+  update public.reasoning_held_question set result = p_result, status = 'reasoned', reasoned_at = now() where id = p_id;
+  if r.surface = 'ceo.command_intent' and (r.subject->>'command_id') is not null then
+    v_effect := public.fn_ceo_command_interpret((r.subject->>'command_id')::bigint, p_result->'decision'->>'choice',
+                  left(coalesce(p_result->>'answer', ''), 1000));
+    update public.reasoning_held_question set status = 'applied', applied_at = now() where id = p_id;
+  elsif r.surface = 'inquiry_intake.trade' and (r.subject->>'intake_id') is not null then
+    -- The held intake gets its reasoned trade and reopens; the portal continues the interview from it.
+    update public.inquiry_intake i
+       set category = p_result->'decision'->>'choice', status = 'needs_info', updated_at = now(),
+           brief = coalesce(i.brief, '{}'::jsonb) || jsonb_build_object('category_by', 'reasoning', 'held_id', p_id)
+     where i.id::text = r.subject->>'intake_id' and i.status = 'held'
+       and exists (select 1 from public.category_specs cs where cs.category = p_result->'decision'->>'choice');
+    v_effect := jsonb_build_object('intake_id', r.subject->>'intake_id', 'category', p_result->'decision'->>'choice', 'reopened', found);
+    update public.reasoning_held_question set status = 'applied', applied_at = now() where id = p_id;
+  end if;
+  return jsonb_build_object('id', p_id, 'status', case when v_effect is null then 'reasoned' else 'applied' end, 'effect', v_effect);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_hold(p_seat text, p_surface text, p_question text, p_request jsonb, p_plan jsonb, p_subject jsonb, p_reason text, p_dedupe_key text DEFAULT NULL::text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint;
+begin
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, expires_at)
+  values (p_seat, p_surface, left(p_question, 8000), p_request, coalesce(p_plan, '{}'::jsonb), p_subject, p_reason, p_dedupe_key,
+          case when p_surface in ('ceo.command_intent', 'inquiry_intake.trade') then null else now() + interval '7 days' end)
+  on conflict (dedupe_key) do update set reason = excluded.reason, plan = excluded.plan
+  returning id into v_id;
+  return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_propose_knowledge(p_seat text, p_question text, p_finding text, p_sources jsonb, p_embedding vector)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint;
+begin
+  if jsonb_typeof(p_sources) <> 'array' or jsonb_array_length(p_sources) = 0
+     or exists (select 1 from jsonb_array_elements(p_sources) s where coalesce(s->>'url', '') !~ '^https://') then
+    raise exception 'a research finding needs at least one https source' using errcode = '22023';
+  end if;
+  insert into public.reasoning_knowledge_candidate (seat, question, finding, sources, embedding_gte)
+  values (p_seat, left(p_question, 2000), left(p_finding, 4000), p_sources, p_embedding)
+  on conflict (finding_sha) do nothing
+  returning id into v_id;
+  return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_retrieve(p_seat text, p_embedding vector, p_k integer DEFAULT 6)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+ SET "hnsw.iterative_scan" TO 'relaxed_order'
+ SET "hnsw.ef_search" TO '100'
+AS $function$
+declare
+  k   integer := greatest(1, least(coalesce(p_k, 6), 12));
+  out jsonb := '[]'::jsonb;
+begin
+  if p_embedding is null then return out; end if;
+
+  -- Each source is ordered by distance on its own, so each uses its own index; the union is then
+  -- ranked by the same distance. Excerpts are cut, never the ranking.
+  with hits as (
+    (select 'kb_chunks' src, c.id::text id, c.title, left(c.content, 1200) excerpt, c.citation,
+            1 - (c.embedding_gte <=> p_embedding) sim, 'reviewed' trust
+       from public.kb_chunks c where c.embedding_gte is not null
+      order by c.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path,
+            1 - (o.embedding_gte <=> p_embedding), 'reviewed'
+       from public.ops_knowledge o
+      where o.embedding_gte is not null and o.runtime_eligible and o.supersession_state = 'current'
+        and o.scope_type in ('company', 'external_source', 'category')
+      order by o.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref,
+            1 - (a.embedding_gte <=> p_embedding), 'reviewed'
+       from public.agent_knowledge a
+      where a.embedding_gte is not null and a.agent_key in (p_seat, '_global')
+      order by a.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'company_faq', f.id::text, f.question, left(f.answer, 1200), 'FAQ ' || f.id,
+            1 - (f.embedding_gte <=> p_embedding), 'reviewed'
+       from public.company_faq f where f.embedding_gte is not null and f.status = 'approved'
+      order by f.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+       from public.sales_knowledge s
+      where p_seat = 'sales_engineer' and s.embedding_gte is not null and s.runtime_index_eligible
+      order by s.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+       from public.accountant_knowledge s
+      where p_seat = 'accountant' and s.embedding_gte is not null and s.runtime_index_eligible
+      order by s.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+       from public.it_engineer_knowledge s
+      where p_seat = 'it_engineer' and s.embedding_gte is not null and s.runtime_index_eligible
+      order by s.embedding_gte <=> p_embedding limit k)
+    union all
+    (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url',
+            1 - (r.embedding_gte <=> p_embedding), case when r.status = 'approved' then 'reviewed' else 'pending_review' end
+       from public.reasoning_knowledge_candidate r
+      where r.embedding_gte is not null and r.status <> 'rejected'
+      order by r.embedding_gte <=> p_embedding limit k)
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('source', src, 'id', id, 'title', title, 'excerpt', excerpt,
+           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust) order by sim desc), '[]'::jsonb)
+    into out
+    from (select * from hits order by sim desc limit k * 2) t;
+  return out;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_receipt_hand_to_bookkeeper(p_inbound_id bigint, p_review_ids bigint[], p_reason text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -54297,8 +54556,8 @@ CREATE OR REPLACE FUNCTION public.fn_rfq_required_check(i inquiries)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  spec_fields jsonb; f jsonb; bag jsonb := '{}'::jsonb; blob text;
-  k text; v text; bk text; opt text; tok text; toks text[];
+  spec_fields jsonb; f jsonb; bag jsonb := '{}'::jsonb;
+  k text; v text; bk text; tok text;
   reqn int := 0; have text[] := '{}';
   miss jsonb := '[]'::jsonb; advisory jsonb := '[]'::jsonb; found boolean;
 begin
@@ -54347,11 +54606,6 @@ begin
     || case when coalesce(i.drawing_file_path,'') <> '' or i.boq is not null then
             jsonb_build_object('drawing','provided') else '{}'::jsonb end;
 
-  blob := lower(concat_ws(' ', i.summary, i.raw_input, i.spec::text));
-  foreach tok in array coalesce(regexp_split_to_array(lower(coalesce(i.category,'')), '[^a-z0-9]+'), '{}'::text[]) loop
-    if length(coalesce(tok,'')) >= 4 then blob := replace(blob, tok, ' '); end if;
-  end loop;
-
   for f in select value from jsonb_array_elements(spec_fields)
             where coalesce((value->>'required')::boolean, false)
   loop
@@ -54368,6 +54622,8 @@ begin
 
     if public._rfq_answered(bag->>k) then found := true; end if;
 
+    -- A KEY of ours that names the same field under another spelling (the concept map, or the key's own
+    -- parts): our schema against our schema, a format reconciliation — not a reading of the customer's words.
     if not found then
       for bk in select key from jsonb_each_text(bag) loop
         if public._rfq_answered(bag->>bk) then
@@ -54387,15 +54643,8 @@ begin
       end loop;
     end if;
 
-    if not found and jsonb_typeof(f->'options') = 'array' then
-      for opt in select lower(o) from jsonb_array_elements_text(f->'options') o loop
-        toks := coalesce(regexp_split_to_array(regexp_replace(coalesce(opt,''),'[^a-z0-9 ]',' ','g'), '\s+'), '{}'::text[]);
-        foreach tok in array toks loop
-          if length(coalesce(tok,'')) >= 4 and blob like '%'||tok||'%' then found := true; end if;
-        end loop;
-        exit when found;
-      end loop;
-    end if;
+    -- NO free-text scan. Whether the customer's own words state this field is reasoned in inquiry_intake
+    -- (think(), surface 'inquiry_intake.exact_spec') and arrives here as a keyed answer, or not at all.
 
     if found then
       have := array_append(have, k);
@@ -64639,6 +64888,19 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_trade_spec_checklist(p_category text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object('topic_id', c.topic_id, 'topic', c.topic, 'specs', c.specs) order by c.trade_code, c.topic_id), '[]'::jsonb)
+    from public.trade_spec_checklist c
+   where c.trade_code = p_category
+      or c.trade_code = any(coalesce(public.fn_taxonomy_trades_for(array[p_category]), '{}'::text[]))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_transaction_attach_invoice(p_transaction_id uuid, p_invoice jsonb, p_doc_path text DEFAULT NULL::text, p_doc_name text DEFAULT NULL::text, p_doc_content_type text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -66089,11 +66351,11 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_wa_route(p_phone text, p_body text, p_has_audio boolean DEFAULT false)
+CREATE OR REPLACE FUNCTION public.fn_wa_route(p_phone text, p_body text, p_has_audio boolean DEFAULT false, p_needs_person boolean DEFAULT NULL::boolean)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
   v_digits text := regexp_replace(coalesce(p_phone,''), '[^0-9]', '', 'g');
@@ -66122,11 +66384,14 @@ begin
   v_reply  := v_det->>'reply';
   select * into v_conv from public.wa_conversation where phone_e164 = v_digits;
 
+  -- Script detection picks the reply language; it is a format test, not a reading of meaning.
   v_latin := coalesce(p_body, '') ~ '^[\s\x20-\x7E]*$';
 
-  -- The two ways a message needs a person.
+  -- The two ways a message needs a person. The second is REASONED (think() in wa_inbound): a complaint,
+  -- a dispute, a refund demand, an accusation or a legal threat, however it is worded. Null = not yet
+  -- reasoned (the hold): nobody is escalated on a guess; the message waits in customer_support's queue.
   v_asked   := coalesce(v_intent = 'contact_human', false);
-  v_trouble := coalesce(p_body,'') ~* '(complain|refund|dispute|angry|lawyer|legal|scam|cheat|fraud|شكوى|احتيال|نصب)';
+  v_trouble := coalesce(p_needs_person, false);
 
   -- One decision now, not two. Needing a person and getting his number are the same thing here.
   v_person := v_asked or v_trouble;
@@ -66134,6 +66399,8 @@ begin
     when v_asked   then 'They asked for a person, or asked who runs the company.'
     when v_trouble then 'This is a complaint, a dispute or an accusation. It needs a person whether '
                      || 'they asked for one or not, and the founder is the only person there is.'
+    when p_needs_person is null then 'Whether this needs a person has not been reasoned yet (the model hold); '
+                     || 'it is waiting in customer_support''s queue and nobody was escalated on a guess.'
     else 'Nobody asked for a person and nothing here needs one. A number given out by a machine '
       || 'cannot be taken back.' end;
 
@@ -66183,6 +66450,9 @@ begin
 
     -- One decision. Handing to a person and giving the number are the same act.
     'needs_a_person', v_person,
+    'person_decided_by', case when v_asked then 'intent'
+                              when p_needs_person is null then 'held: not yet reasoned'
+                              else 'reasoning' end,
     'founder_number', case when v_person then (coalesce((select value from public.app_secrets where key = 'founder_public_phone'),
                    '(no approved public contact is configured — tell the CEO)')) else null end,
     'person_reason', v_reason,
@@ -72945,6 +73215,8 @@ ALTER TABLE public.quote_review_request ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quote_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quote_spec_hold ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.quotes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reasoning_held_question ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reasoning_knowledge_candidate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.red_episode ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refund_case ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.refund_ceo_check ENABLE ROW LEVEL SECURITY;
@@ -73053,6 +73325,7 @@ ALTER TABLE public.taxonomy_trade_group ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxonomy_trade_proposal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.taxonomy_trade_service ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trade_spec_checklist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ui_label ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.undo_log ENABLE ROW LEVEL SECURITY;
@@ -73178,6 +73451,8 @@ CREATE POLICY quote_review_request_supplier_reads_own ON public.quote_review_req
   WHERE ((r.id = quote_review_request.review_id) AND (r.owner_email IS NOT NULL) AND (r.owner_email = lower(COALESCE((( SELECT auth.jwt() AS jwt) ->> 'email'::text), ''::text)))))));
 CREATE POLICY quote_reviews_supplier_reads_own ON public.quote_reviews AS PERMISSIVE FOR SELECT TO authenticated USING (((owner_email IS NOT NULL) AND (owner_email = lower(COALESCE((( SELECT auth.jwt() AS jwt) ->> 'email'::text), ''::text)))));
 CREATE POLICY quote_spec_hold_service_role_only ON public.quote_spec_hold AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY reasoning_held_question_service_role_only ON public.reasoning_held_question AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY reasoning_knowledge_candidate_service_role_only ON public.reasoning_knowledge_candidate AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY refund_ceo_check_service_role_only ON public.refund_ceo_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY refund_ceo_review_service_role_only ON public.refund_ceo_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY refund_incident_service_role_only ON public.refund_incident AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -73215,6 +73490,7 @@ CREATE POLICY taxonomy_trade_code_service_role_only ON public.taxonomy_trade_cod
 CREATE POLICY taxonomy_trade_group_service_role_only ON public.taxonomy_trade_group AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY taxonomy_trade_proposal_service_role_only ON public.taxonomy_trade_proposal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY taxonomy_trade_service_service_role_only ON public.taxonomy_trade_service AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY trade_spec_checklist_service_role_only ON public.trade_spec_checklist AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.transactions AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.vision_horizon AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
