@@ -537,7 +537,7 @@ export function SupplierPortal() {
       try {
         // A failure here must never block the portal: the supplier can still register manually, which
         // is exactly what everyone has had to do until now. It is said out loud all the same.
-        const j = await call('supplier_api', { action: 'claim', t }, access);
+        const j = await call('supplier_api', { action: 'claim', t, first_touch: (() => { try { return readFirstTouch(window.localStorage); } catch (_e) { return null; } })() }, access);
         if (!(j && j.ok)) setClaimRefusal(claimRefusalKey(j));
       } catch (_e) { setClaimRefusal('load_failed'); }
       try { sessionStorage.removeItem(CLAIM_KEY); } catch (_e) {}
