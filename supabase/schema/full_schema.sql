@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T10:14:18.439Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T10:33:14.680Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -6729,7 +6729,11 @@ CREATE TABLE IF NOT EXISTS public.social_message (
   sent_at timestamp with time zone,
   outcome text,
   occurred_at timestamp with time zone DEFAULT now() NOT NULL,
-  created_at timestamp with time zone DEFAULT now() NOT NULL
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  classification text,
+  decided_by text,
+  guard_failures text[] DEFAULT '{}'::text[] NOT NULL,
+  handoff_id bigint
 );
 
 CREATE TABLE IF NOT EXISTS public.social_posts (
@@ -8935,14 +8939,16 @@ ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_it
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_ar_check CHECK ((reason_ar ~ '[ء-ي]'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_reason_en_check CHECK ((btrim(reason_en) <> ''::text));
 ALTER TABLE public.skills_matrix ADD CONSTRAINT skills_matrix_rating_check CHECK (((rating >= 1) AND (rating <= 5)));
-ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_check CHECK ((platform = ANY (ARRAY['instagram'::text, 'facebook'::text])));
+ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_check CHECK ((platform = ANY (ARRAY['instagram'::text, 'facebook'::text, 'youtube'::text])));
 ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_status_check CHECK ((status = ANY (ARRAY['auto'::text, 'handed_to_human'::text])));
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_author_check CHECK ((author = ANY (ARRAY['person'::text, 'seat'::text, 'human'::text])));
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_channel_check CHECK ((channel = ANY (ARRAY['dm'::text, 'comment'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_classification_check CHECK ((classification = ANY (ARRAY['question'::text, 'praise'::text, 'complaint'::text, 'spam_abuse'::text, 'sales_lead'::text, 'supplier_enquiry'::text, 'sensitive_legal'::text, 'off_topic'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_decided_by_check CHECK ((decided_by = ANY (ARRAY['rule'::text, 'model'::text, 'guard_fallback'::text])));
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_direction_check CHECK ((direction = ANY (ARRAY['in'::text, 'out'::text])));
-ALTER TABLE public.social_message ADD CONSTRAINT social_message_platform_check CHECK ((platform = ANY (ARRAY['instagram'::text, 'facebook'::text])));
-ALTER TABLE public.social_message ADD CONSTRAINT social_message_reply_kind_check CHECK ((reply_kind = ANY (ARRAY['handoff'::text, 'standard'::text, 'faq'::text, 'knowledge'::text, 'unknown'::text])));
-ALTER TABLE public.social_message ADD CONSTRAINT social_message_send_status_check CHECK ((send_status = ANY (ARRAY['pending'::text, 'held_switch_off'::text, 'held_fixture'::text, 'sent'::text, 'failed'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_platform_check CHECK ((platform = ANY (ARRAY['instagram'::text, 'facebook'::text, 'youtube'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_reply_kind_check CHECK ((reply_kind = ANY (ARRAY['handoff'::text, 'standard'::text, 'faq'::text, 'knowledge'::text, 'unknown'::text, 'model'::text, 'escalated'::text])));
+ALTER TABLE public.social_message ADD CONSTRAINT social_message_send_status_check CHECK ((send_status = ANY (ARRAY['pending'::text, 'held_switch_off'::text, 'held_fixture'::text, 'sent'::text, 'failed'::text, 'held_model'::text, 'rate_limited'::text, 'not_sent'::text, 'hidden'::text])));
 ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_clickable CHECK ((((image_url IS NOT NULL) OR (media_missing IS NOT NULL)) AND ((NOT ((mode = 'now'::text) AND (status = ANY (ARRAY['sent'::text, 'published'::text])))) OR ((permalinks IS NOT NULL) AND (permalinks <> '{}'::jsonb)) OR (permalink_missing IS NOT NULL))));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_alternatives_shape CHECK (((jsonb_typeof(alternatives) = 'array'::text) AND (jsonb_array_length(alternatives) >= 1) AND (NOT jsonb_path_exists(alternatives, '$[*]?(@.type() != "object")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*].keyvalue()?((@."key" != "option_id" && @."key" != "value") && @."key" != "suppliers")'::jsonpath)) AND (NOT jsonb_path_exists(alternatives, '$[*]."suppliers"?(@.type() != "number")'::jsonpath))));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_channel_check CHECK (((answer_channel IS NULL) OR (answer_channel = ANY (ARRAY['portal'::text, 'whatsapp'::text, 'email'::text]))));
@@ -18781,16 +18787,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18816,6 +18812,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -43055,6 +43061,66 @@ begin
       p_owner_agent => 'marketing'));
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_social_handoff_answered(p_id bigint, p_seat text, p_note text, p_unhide boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions;
+begin
+  select * into a from public.agent_actions
+   where id = p_id and kind = 'handoff' and status = 'pending' and detail->>'type' in ('social.escalation', 'social.lead') for update;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'no pending social handoff ' || p_id); end if;
+  if a.agent is distinct from p_seat then
+    return jsonb_build_object('ok', false, 'reason', 'handoff ' || p_id || ' is addressed to ' || a.agent || ', not ' || coalesce(p_seat, 'nobody'));
+  end if;
+  if coalesce(btrim(p_note), '') = '' then return jsonb_build_object('ok', false, 'reason', 'an answer needs a note of what was done'); end if;
+  update public.agent_actions
+     set detail = detail || jsonb_build_object('answered_at', now(), 'answered_by', p_seat, 'answer', left(p_note, 1000))
+                         || case when p_unhide then jsonb_build_object('unhide', true) else '{}'::jsonb end
+   where id = p_id;
+  return jsonb_build_object('ok', true, 'handoff_id', p_id);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_social_handoff_waits(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('waiting', coalesce(a.detail ->> 'waiting_for', a.agent || ' to answer the commenter privately'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_social_handoffs_close()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h record; n_closed int := 0; n_waiting int := 0;
+begin
+  for h in select a.id, a.detail from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'from' = 'marketing'
+              and a.detail->>'type' in ('social.escalation', 'social.lead')
+  loop
+    if h.detail ? 'answered_at' and (coalesce((h.detail->>'unhide')::boolean, false) = false or h.detail ? 'unhidden_at') then
+      perform set_config('qd.handoff_closer', 'marketing', true);
+      perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('verified_by', 'marketing', 'verified_at', now(),
+        'answer', h.detail->>'answer', 'answered_by', h.detail->>'answered_by', 'unhidden_at', h.detail->>'unhidden_at'));
+      perform set_config('qd.handoff_closer', '', true);
+      n_closed := n_closed + 1;
+    else
+      n_waiting := n_waiting + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('closed', n_closed, 'waiting', n_waiting);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_social_set_status(p_conversation_id bigint, p_status text, p_by text)
