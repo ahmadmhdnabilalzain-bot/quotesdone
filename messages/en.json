@@ -22,7 +22,7 @@
     "kicker": "Every trade in the UAE · except food & beverage, for now",
     "title": "Anonymous quotes from licence-checked UAE suppliers.",
     "sealed": "Every quote arrives sealed. Only the one you choose is ever opened.",
-    "how": "Describe the job once. We send it without your name to suppliers licensed for your trade anywhere in the UAE, and their quotes reach you in 3–5 working days.",
+    "how": "Describe the job once. We send it without your name to verified suppliers who have confirmed they work in your trade, anywhere in the UAE, and their quotes reach you in 3–5 working days.",
     "price": [
       {
         "k": "Free",
@@ -199,7 +199,7 @@
     "cells": [
       {
         "title": "Your identity is stripped",
-        "body": "Your name, number and company are removed from the brief and from the drawings before any supplier sees them. No cold calls, no inbox flooding."
+        "body": "Your name, number and company are removed from the brief before any supplier sees it, and a drawing is shared only after your details on it are covered. No cold calls, no inbox flooding."
       },
       {
         "title": "Licence-checked suppliers only",
@@ -293,9 +293,9 @@
       "title": "Free to quote. Invited only to jobs you can do.",
       "bullets": [
         "Free to quote — the customer pays the 3% reveal fee, you pay no commission",
-        "Invites only for the trades your licence covers, for jobs anywhere in the UAE",
+        "Invites only for the trades and services you confirm on your verified profile, for jobs anywhere in the UAE",
         "Your quote is listed for the customer with every other one; the strongest three are also levelled into their comparison report",
-        "Before a reveal you see the full scope, the emirate and drawings with identity removed — never the customer’s name"
+        "Before a reveal you see the full scope, the quantities, the emirate and any drawing whose identifying details have been covered — never the customer’s name"
       ],
       "cta": "Become a supplier"
     }
@@ -370,10 +370,10 @@
   },
   "supplierLanding": {
     "metaTitle": "For suppliers — QuotesDone, anonymous quotes for every trade in the UAE",
-    "metaDesc": "Quote on real UAE jobs in every trade except food & beverage. No commission, free registration for the first 1,000 suppliers, invited only to jobs your licence covers.",
+    "metaDesc": "Quote on real UAE jobs in every trade except food & beverage. No commission, free registration for the first 1,000 suppliers, matched to the trades and services you confirm on your verified profile.",
     "kicker": "For suppliers, manufacturers and contractors in the UAE",
     "title": "Quote on real UAE jobs. Keep 100% of what you win.",
-    "sub": "QuotesDone sends you anonymous briefs for the trade your licence covers, from customers anywhere in the UAE. You quote from the portal; the customer pays the reveal fee.",
+    "sub": "QuotesDone sends you anonymous briefs matched to the trades and services you confirm on your verified profile, from customers anywhere in the UAE. You quote from the portal; the customer pays the reveal fee.",
     "cta": "Open the supplier portal",
     "cta2": "How the marketplace works",
     "econTitle": "The economics",
@@ -388,11 +388,11 @@
       },
       {
         "k": "Only jobs you can do",
-        "v": "You are invited when your licensed trade matches the brief, wherever in the UAE the job is."
+        "v": "You are matched to the trades and services you confirm on your verified profile, wherever in the UAE the job is."
       },
       {
         "k": "The buyer stays anonymous",
-        "v": "You see the scope, the quantities and the drawings with identity removed. The customer’s name reaches you only when they choose you."
+        "v": "You see the scope and the quantities with personal details removed, and you quote on the work described. The customer’s name reaches you when they choose you."
       },
       {
         "k": "Ranked on fit, never on fees",
@@ -426,7 +426,7 @@
   },
   "howPage": {
     "metaTitle": "How QuotesDone works — anonymous quotes, end to end",
-    "metaDesc": "How a job in any trade moves through QuotesDone: the brief, licensed matching, checked quotes, the comparison report and the reveal.",
+    "metaDesc": "How a job in any trade moves through QuotesDone: the brief, matching to verified suppliers, checked quotes, the comparison report and the reveal.",
     "kicker": "How it works",
     "title": "How an anonymous quote works, end to end",
     "sub": "Built for every trade in the UAE, except food & beverage for now. Every step below is what the platform does, not what a person does for you.",
@@ -440,8 +440,8 @@
         "body": "It recognises the trade, asks the questions suppliers need answered and lists the documents and approvals they will be held to."
       },
       {
-        "title": "Licensed suppliers are invited",
-        "body": "Only suppliers licensed for that trade, from anywhere in the UAE, capped so the job never becomes a bidding flood. Your identity is removed first."
+        "title": "Verified suppliers are invited",
+        "body": "Only verified suppliers who confirm that trade on their profile, from anywhere in the UAE, capped so the job never becomes a bidding flood. Your identity is removed first."
       },
       {
         "title": "Quotes are checked",
@@ -463,7 +463,7 @@
     "rows": [
       {
         "who": "The supplier sees",
-        "before": "The scope, the quantities, the emirate and drawings with identity removed",
+        "before": "The scope, the quantities, the emirate and any drawing whose identifying details have been covered",
         "after": "Your name and contact details, to start the job"
       },
       {
