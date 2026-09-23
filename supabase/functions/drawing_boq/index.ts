@@ -16,11 +16,6 @@ import { boqFromSheet } from './boq_from_sheet.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { DRAWING_KINDS, drawingIdentityTerms, gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
-
-/** The STEP text of an IFC upload (the reader's `text` holds only names, not the file). */
-function stepTextOf(b64: string): string {
-  try { return new TextDecoder('utf-8').decode(Uint8Array.from(atob(b64.replace(/^data:[^;]+;base64,/, '').slice(0, 64 * 1024 * 1024)), (c) => c.charCodeAt(0))); } catch (_e) { return ''; }
-}
 import { empty } from '../_shared/doc_read/types.ts';
 import { drawingInput } from './drawing_input.ts';
 import { CONFIRM_MAX_TOKENS, CONFIRM_ROUTE, CONFIRM_SYS, confirmUserText, mergeConfirm, parseConfirm, redactedPageFor, type ConfirmReply, type RedactedPage, type RedactionRun } from './confirm.ts';
@@ -144,8 +139,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
       // identity left anywhere else withholds the take-off. See _shared/drawing_identity_gate.ts.
       const cad = r.dxf_text !== undefined;
       if (!cad && !DRAWING_KINDS.has(r.kind)) return J({ ok: true, boq: withCodeAuthor(boq), kind: r.kind, needs: r.needs });
-      const raw = r.kind === 'ifc' ? stepTextOf(String(body.file_b64 || '')) : r.text;
-      const g = gateDrawingBoq(boq, drawingIdentityTerms(r.kind, raw, r.dxf_text), cad);
+      const g = gateDrawingBoq(boq, drawingIdentityTerms(r.text, r.dxf_text, r.identity_terms), cad);
       return J({ ok: true, boq: g.boq ? withCodeAuthor(g.boq) : null, kind: r.kind, needs: r.needs, identity_dropped_lines: g.dropped_lines, ...(g.boq ? {} : { identity_held: true }) });
     }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below

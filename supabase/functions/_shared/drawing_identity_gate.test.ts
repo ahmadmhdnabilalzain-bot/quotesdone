@@ -1,6 +1,6 @@
 // drawing_identity_gate — synthetic ZZ DEMO drawings only (never a customer file). Each test is the case
 // the gate exists for. Measured: with the re-read removed (every line kept, rest not scanned) tests 2 and 3 fail;
-// with the IFC terms removed test 4 fails. Test 1 is a regression: the DXF reader already cuts the contact
+// with the IFC identity_terms removed test 4 fails. Test 1 is a regression: the DXF reader already cuts the contact
 // text out of its lines, so the gate must not cost a quantity there.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { readDocument } from './doc_read/index.ts';
@@ -9,18 +9,16 @@ import { IFC_FIXTURE_TEXT } from './doc_read/ifc.fixtures.ts';
 import { dxfFrom, dxfSection } from './doc_read/cad.fixtures.ts';
 import { consultantDxf } from './cad_identity.test.ts';
 import { drawingIdentityTerms, gateDrawingBoq, labelTerms, residualIdentity } from './drawing_identity_gate.ts';
-import { ifcIdentityTerms } from './ifc_identity.ts';
 import { dxfTextOf } from './cad_identity.ts';
 
-const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
 const PARTY = ['ORBIT', 'HARBOUR', 'KEYSTONE', 'zz.drafter', 'REEM', '000 0012', '0000012', 'orbit.example', 'ZZ-L-4471', 'ZZ-4471'];
 const leaks = (v: unknown) => { const t = JSON.stringify(v ?? '').toUpperCase(); return PARTY.filter((x) => t.includes(x.toUpperCase())); };
 
-async function served(bytes: Uint8Array, name: string, mime: string, raw: string) {
+async function served(bytes: Uint8Array, name: string, mime: string) {
   const r: any = await readDocument(bytes, name, mime);
   assert(r.ok, JSON.stringify(r));
   const boq = boqFromExtracted(r, '');
-  return { r, g: gateDrawingBoq(boq, drawingIdentityTerms(r.kind, raw, r.dxf_text), r.dxf_text !== undefined) };
+  return { r, g: gateDrawingBoq(boq, drawingIdentityTerms(r.text, r.dxf_text, r.identity_terms), r.dxf_text !== undefined) };
 }
 
 Deno.test('1. DXF (regression): through the gate every quantity survives and no party is served', async () => {
@@ -30,7 +28,7 @@ Deno.test('1. DXF (regression): through the gate every quantity survives and no 
   ]), [0, 'EOF']]));
   // Two ENTITIES sections read as one drawing by the DXF reader; the second carries only the contact MTEXT.
   const bytes = new TextEncoder().encode(base + extra);
-  const { g } = await served(bytes, 'plan.dxf', 'image/vnd.dxf', '');
+  const { g } = await served(bytes, 'plan.dxf', 'image/vnd.dxf');
   assert(g.boq, 'the take-off is not withheld for one dirty note');
   assertEquals(leaks(g.boq), [], 'identity reached the supplier-facing take-off');
   const q = (re: RegExp) => ((g.boq as any).boq as any[]).filter((l) => re.test(l.description)).map((l) => l.qty);
@@ -65,9 +63,8 @@ const ifcWithParties = () => IFC_FIXTURE_TEXT
 
 Deno.test('4. IFC: project, storey, person, organisation, phone and e-mail stay out; the quantities stay in', async () => {
   const src = ifcWithParties();
-  const terms = ifcIdentityTerms(src);
-  for (const t of ['ZZ HARBOUR TOWER', 'ZZ Orbit Consulting', 'Kassab', '+971 50 000 0012', 'zz@orbit.example.invalid', 'ZZ Keystone Architects']) assert(terms.includes(t), `term missing: ${t} in ${JSON.stringify(terms)}`);
-  const { g } = await served(new TextEncoder().encode(src), 'model.ifc', 'application/x-step', src);
+  const { r, g } = await served(new TextEncoder().encode(src), 'model.ifc', 'application/x-step');
+  for (const t of ['ZZ HARBOUR TOWER', 'ZZ Orbit Consulting', 'Kassab', '+971 50 000 0012', 'zz@orbit.example.invalid', 'ZZ Keystone Architects']) assert(r.identity_terms.includes(t), `term missing: ${t} in ${JSON.stringify(r.identity_terms)}`);
   assert(g.boq, JSON.stringify(g));
   assertEquals(leaks(g.boq), [], 'identity reached the supplier-facing take-off');
   const walls = ((g.boq as any).boq as any[]).filter((l) => /Length/.test(l.description)).map((l) => l.qty);

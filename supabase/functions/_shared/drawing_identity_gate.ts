@@ -14,8 +14,8 @@
 //    second model of another family, fail-closed). The PDF's text take-off had no re-read.
 //
 // WHAT THIS DOES — deterministic, no model:
-//  1. terms: what the file itself says identifies the job (cadIdentityTerms for DXF/DWG, ifcIdentityTerms
-//     for IFC, "Client: …" style label values from the text layer of anything else).
+//  1. terms: what the file itself says identifies the job (cadIdentityTerms for DXF/DWG, the reader's identity_terms
+//     for IFC (computed in doc_read/ifc.ts from the one parse), "Client: …" style label values from the text layer of anything else).
 //  2. redact: every string of the BOQ through anonymise.redactText with those terms (as before for CAD).
 //  3. VERIFY: every line is RE-READ with anonymise.residualScan — the file's terms as bare substrings
 //     (looser than redaction) plus e-mail, URL, UAE phone, US phone, web host, street address, P.O. Box,
@@ -25,7 +25,6 @@
 // Quantities are never changed; a dropped line is counted in missing_info so the customer knows.
 import { redactText, residualScan, seedTerms } from './anonymise.ts';
 import { cadIdentityTerms, neutraliseCadLines } from './cad_identity.ts';
-import { ifcIdentityTerms } from './ifc_identity.ts';
 
 // Named constant, so src/lib/boqNotes.test.mjs finds it and fails if it has no Arabic.
 const GATE_DROPPED_NOTE = (n: number) => `${n} line(s) of the drawing's take-off were withheld because they still named a party after redaction; please add them by hand if they are needed.`;
@@ -45,10 +44,10 @@ export function labelTerms(text: string): string[] {
 }
 
 /** The identity terms a read file states about its own job. */
-export function drawingIdentityTerms(kind: string, fileText: string, dxfText?: string): string[] {
+export function drawingIdentityTerms(fileText: string, dxfText?: string, fileTerms: string[] = []): string[] {
   const t = new Set<string>(labelTerms(fileText));
   if (dxfText) cadIdentityTerms(dxfText).forEach((x) => t.add(x));
-  if (kind === 'ifc') ifcIdentityTerms(fileText).forEach((x) => t.add(x));
+  fileTerms.forEach((x) => t.add(x));
   return [...t];
 }
 
