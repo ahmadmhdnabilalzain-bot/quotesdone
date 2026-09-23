@@ -26,6 +26,7 @@ import type { Cell, Extracted } from '../_shared/doc_read/types.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 import { OPTION_HEAD, optionAmount, optionNumber, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat, type VatTreatment } from '../_shared/line_specs/vat.ts';
+import type { QuoteTermKey } from '../_shared/reasoned_suppliers.ts';
 
 export type QuoteLine = { description: string; qty: string; amount: number | null; option?: number; /** A "Specification" column, when the file has one. */ specification?: string };
 export type Proposal = {
@@ -101,24 +102,6 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
   return null;
 }
 
-// A term is read wherever it sits on a line, not only at its start. MEASURED 21 Sep 2026 (auditor's
-// PDF, ZZDEMO_quotation_D958E1EA.pdf): "Ref: … Date: 21 Sep 2026 Validity: 30 days" is one line, and
-// the `^`-anchored form read no validity from it. A value ends at the next "Label:" on the line, at a
-// sentence end, or at the end of the line — "Lead time: 4 weeks from LPO. Payment: 50% advance" gives
-// "4 weeks from LPO", not the payment terms too. A validity or lead time with no digit and no
-// "immediate / ex stock" is prose ("prices valid subject to…"), not a term, and is dropped.
-// The next label is looked for on the SAME line ([ \t], not \s): with \s, "50% on completion\nExclusions:"
-// read "completion\nExclusions" as a two-word label and cut the payment terms to "50% advance, 50% on".
-const VALUE = String.raw`([^\n|·]{2,160}?)(?=\s*(?:[.;]\s|\s+(?:[A-Z][a-z]+(?:[ \t][a-z]+)?|[؀-ۿ]+(?:[ \t][؀-ۿ]+)?)[ \t]*[:\-–]\s|$))`;
-const FIELD: [keyof Proposal, RegExp][] = [
-  ['lead_time', new RegExp(String.raw`(?:^|[\s|·])(?:lead\s*time|delivery(?:\s*(?:time|period))?|completion|مدة التسليم|مدة التنفيذ)\s*[:\-–]\s*${VALUE}`, 'im')],
-  ['validity', new RegExp(String.raw`(?:^|[\s|·])(?:validity|valid\s*(?:for|until|till)?|offer\s*valid(?:ity)?|صلاحية العرض|الصلاحية|العرض ساري)\s*[:\-–]?\s*${VALUE}`, 'im')],
-  ['payment_terms', new RegExp(String.raw`(?:^|[\s|·])(?:payment(?:\s*terms)?|terms\s*of\s*payment|شروط الدفع|الدفع)\s*[:\-–]\s*${VALUE}`, 'im')],
-  ['warranty', new RegExp(String.raw`(?:^|[\s|·])(?:warranty|guarantee|الضمان)\s*[:\-–]?\s*${VALUE}`, 'im')],
-  ['exclusions', new RegExp(String.raw`(?:^|[\s|·])(?:exclusions?|excluded|not\s*included|الاستثناءات)\s*[:\-–]\s*${VALUE}`, 'im')],
-];
-const CONCRETE = /\d|immediate|ex[\s-]?stock|from\s*stock|فوري|من المخزون/i;
-
 // ── Priced lines written as TEXT (a PDF's text layer, a plain email) ──────────────────────────
 // MEASURED 21 Sep 2026: doc_read/pdf returns a PDF as visual text lines and no table, so a quotation
 // whose three lines read "001 Gypsum board partition …  320 m2 @ AED 95.00 = AED 30,400.00" produced
@@ -179,7 +162,16 @@ export function rowText(row: Cell[] | null | undefined): string {
   return cells.filter((c, i) => c || i === 0).join(note ? ', ' : ' ');
 }
 
-export function quoteFromExtracted(ex: Extracted, terms: string[] = []): Proposal {
+/** The file's text as quoteFromExtracted reads it (tables' rows first, then the reader's text), for the
+ *  reasoning that reads the terms. */
+export function quoteText(ex: Extracted): string {
+  const out: string[] = [];
+  const visit = (e: Extracted) => { for (const tb of e.tables) out.push(tb.map(rowText).join('\n')); if (e.text) out.push(e.text); for (const c of e.children) visit(c.doc); };
+  visit(ex);
+  return out.join('\n');
+}
+
+export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Partial<Record<QuoteTermKey, string>> = {}): Proposal {
   const masked = new Set<string>();
   const t = terms.map((s) => String(s || '').trim()).filter((s) => s.length >= 3);
   const clean = (s: string) => {
@@ -231,17 +223,13 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = []): Proposa
     subtotal: b?.subtotal ?? null, vat_amount: vat.vat_amount, total_incl_vat: vat.vat_amount && gross ? gross : null, vat_treatment: vat.treatment,
     price_ex_vat: options.length ? null : vat.price_ex_vat, trn: vat.trn, options, option_totals,
   };
-  // What the file says about installation ("Installation included 4 weeks", "supply only") has no
-  // field of its own; it is kept as a condition so the hold gate's readInstallation reads it. Only
-  // sentences that name installation — a note row of a CSV, a line of a PDF — never priced lines.
-  const inst = [...new Set(text.split(/\n|(?<=[.;])\s+/).map((s) => s.replace(/\s+/g, ' ').trim())
-    .filter((s) => s.length >= 8 && s.length <= 200 && /install|تركيب|supply\s*only|توريد\s*فقط/i.test(s) && !TEXT_LINE.test(s)))];
-  if (inst.length) p.conditions = clean(inst.join(' ')).slice(0, 600);
-  for (const [k, re] of FIELD) {
-    const m = text.match(re); if (!m) continue;
-    const v = clean(m[1].trim()).replace(/[.;,\s]+$/, '').slice(0, 200);
-    if ((k === 'validity' || k === 'lead_time') && !CONCRETE.test(v)) continue;
-    (p as Record<string, unknown>)[k] = v;
+  // THE TERMS (lead time, validity, payment, warranty, exclusions, installation / conditions) are what the
+  // file MEANS, so they are not read here by label patterns (founder_instruction 886-903): quote_extract
+  // reasons them from quoteText() (_shared/reasoned_suppliers.ts quoteTerms) and passes them in as `read`.
+  // They are masked like every other field. Under the model hold `read` is empty and the supplier types them.
+  for (const [k, v] of Object.entries(read)) {
+    const s = clean(String(v ?? '').trim()).replace(/[.;,\s]+$/, '').slice(0, k === 'conditions' ? 600 : 200);
+    if (s) (p as Record<string, unknown>)[k] = s;
   }
   if (vat.trn) masked.add('TRN');
   p.masked_terms = [...masked];

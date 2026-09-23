@@ -2,8 +2,8 @@
 // The marketing seat answers public comments with no person approving a reply (instruction 866, 23 Sep 2026).
 // Every platform is replayed with a mocked fetch and an in-memory store: nothing here can reach an account.
 import { assert, assertEquals, assertRejects } from 'jsr:@std/assert@1';
-import { call, classify, guard, hideRequest, LIMIT, normalise, processComment, replyRequest, unhideRequest,
-  type CommentEvent, type Decided, type Outcome, type Platform, type Store } from './marketing_social_comments.ts';
+import { call, guard, hideRequest, LIMIT, normalise, processComment, replyRequest, unhideRequest,
+  type Class, type CommentEvent, type Decided, type Outcome, type Platform, type Store } from './marketing_social_comments.ts';
 
 // The fixed replies are read from the SQL that ships them, so the test pins the rows production gets.
 const SQL = ['every_social_message_is_answered.sql', 'the_marketing_seat_answers_comments_on_every_channel.sql']
@@ -112,7 +112,7 @@ Deno.test('adversarial comments each end in the right outcome, with no approval 
   for (const [text, outcome, cls, handoffs] of cases) {
     const s = memStore();
     const e = ev(text);
-    assertEquals(await processComment(s, e), outcome, text);
+    assertEquals(await processComment(s, e, cls as Class), outcome, text);
     const row = s.mem.rows.get('instagram:' + e.commentId)!;
     assertEquals(row.classification, cls, text);
     assertEquals(s.mem.handoffs, handoffs, text);
@@ -123,25 +123,29 @@ Deno.test('adversarial comments each end in the right outcome, with no approval 
   }
 });
 
-Deno.test("hiding needs a clear signal, and never takes a comment that asks or wants to join (the reviewer's cases)", () => {
-  assertEquals(classify('Is this a scam? how do I register as supplier'), 'supplier_enquiry');
-  assertEquals(classify('stupid question but how do I sign up?'), 'question');
-  assert(classify('We are a tiling supplier, see our work at www.bestfloors.ae') !== 'spam_abuse');
-  assertEquals(classify('We are a tiling supplier, see our work at www.bestfloors.ae'), 'supplier_enquiry');
-  const cy = classify('courtyard paving quote');
-  assert(cy !== 'sensitive_legal' && cy !== 'spam_abuse', 'courtyard is not court: ' + cy);
-  assertEquals(classify('شكرا لكم'), 'praise');                      // لكم is not the question word كم
-  assertEquals(classify('كم سعر الدهان؟'), 'sales_lead');
-  assertEquals(classify('great, how do I register?'), 'question');
-  assertEquals(classify('hello', true), 'complaint');
-  assert(classify('love https://quotesdone.com') !== 'spam_abuse');
+Deno.test('the class is REASONED; held, nothing is hidden, said or handed off — the comment waits for the replay', async () => {
+  for (const text of ['you are all scammers and idiots', 'I will take you to court', 'I need a quote for painting']) {
+    const s = memStore();
+    const e = ev(text);
+    assertEquals(await processComment(s, e, null), 'held_classify', text);
+    const row = s.mem.rows.get('instagram:' + e.commentId)!;
+    assertEquals(row.classification, null);
+    assertEquals(row.send_status, 'held_model');
+    assertEquals(s.mem.hides.length + s.mem.replies.length + s.mem.handoffs.length, 0, text);
+  }
+  // a reasoned request for a person is the complaint policy (also while the class itself is held); abuse is still hidden
+  const p = memStore();
+  assertEquals(await processComment(p, ev('hello'), null, true), 'replied');
+  assertEquals(p.mem.handoffs, ['customer_support:social.escalation']);
+  const a = memStore();
+  assertEquals(await processComment(a, ev('idiots'), 'spam_abuse', true), 'hidden');
 });
 
 Deno.test('every text that would be sent passes the guard and fits — library, FAQ and knowledge included; a fact is never truncated', async () => {
   // a FAQ/knowledge answer carrying a DM instruction and a phone number: not posted, escalated instead
   const bad = memStore({ det: { kind: 'faq', key: 'x', text: "Reply 'agent' or call +971 50 931 9355 to reach us." } });
   const e1 = ev('how do I reach you?');
-  assertEquals(await processComment(bad, e1), 'replied');
+  assertEquals(await processComment(bad, e1, 'question'), 'replied');
   const r1 = bad.mem.rows.get('instagram:' + e1.commentId)!;
   assertEquals(r1.decided_by, 'guard_fallback');
   assert(r1.guard_failures.includes('dm_instruction') && r1.guard_failures.includes('phone'), JSON.stringify(r1.guard_failures));
@@ -150,18 +154,18 @@ Deno.test('every text that would be sent passes the guard and fits — library, 
   const long = 'Posting is free. '.repeat(40);
   const lg = memStore({ det: { kind: 'knowledge', key: 'k', text: long } });
   const e2 = ev('what is posting like?');
-  await processComment(lg, e2);
+  await processComment(lg, e2, 'question');
   assert(lg.mem.rows.get('instagram:' + e2.commentId)!.guard_failures.includes('too_long'));
   assert(!lg.mem.replies[0].text.includes('…') && lg.mem.replies[0].text === LIB.get('comment_escalated_ack')!.en);
   // a clean FAQ answer goes as it is
   const ok = memStore({ det: { kind: 'faq', key: 'pricing', text: 'Posting a request is free; a 3% reveal fee applies only if you reveal a supplier.' } });
-  assertEquals(await processComment(ok, ev('is it free?', { platform: 'youtube' })), 'replied');
+  assertEquals(await processComment(ok, ev('is it free?', { platform: 'youtube' }), 'question'), 'replied');
   assert(ok.mem.replies[0].text.startsWith('Posting a request is free'));
 });
 
 Deno.test('a model draft is sent only when it passes every guard; a failing draft is escalated, never queued for approval', async () => {
   const good = memStore({ model: true, draft: 'Posting a request on QuotesDone is free; a 3% reveal fee applies only if you reveal a supplier.' });
-  assertEquals(await processComment(good, ev('what happens after I post?')), 'replied');
+  assertEquals(await processComment(good, ev('what happens after I post?'), 'question'), 'replied');
   assertEquals(good.mem.replies.length, 1);
   for (const bad of [
     'Customers pay 5% on every job.', 'Suppliers pay AED 500 a year.', 'We are licensed under E-Trader licence 1633275.',
@@ -170,7 +174,7 @@ Deno.test('a model draft is sent only when it passes every guard; a failing draf
   ]) {
     const s = memStore({ model: true, draft: bad });
     const e = ev('what happens after I post?');
-    assertEquals(await processComment(s, e), 'replied', bad);
+    assertEquals(await processComment(s, e, 'question'), 'replied', bad);
     const row = s.mem.rows.get('instagram:' + e.commentId)!;
     assertEquals(row.decided_by, 'guard_fallback', bad);
     assert(row.guard_failures.length > 0, bad);
@@ -195,44 +199,44 @@ Deno.test('the fixed facts pass the guards in both languages and fit every platf
 Deno.test('a handoff that throws gives the comment back: it is retried, not left without an outcome', async () => {
   const s = memStore({ handoffThrows: true });
   const e = ev('I paid and nobody answered, I want a refund');
-  await assertRejects(() => processComment(s, e));
+  await assertRejects(() => processComment(s, e, 'complaint'));
   assertEquals(s.mem.released.length, 1);
   assertEquals(s.mem.replies.length, 0);
   // the same comment delivered again is processed, not dropped as a duplicate
   const again = { ...s, async handoff() { return 7; } } as Store;
-  assertEquals(await processComment(again, { ...e }), 'replied');
+  assertEquals(await processComment(again, { ...e }, 'complaint'), 'replied');
 });
 
 Deno.test('idempotent: the same comment delivered twice is answered once', async () => {
   const s = memStore();
   const e = ev('amazing platform');
-  assertEquals(await processComment(s, e), 'replied');
-  assertEquals(await processComment(s, { ...e }), 'duplicate');
+  assertEquals(await processComment(s, e, 'praise'), 'replied');
+  assertEquals(await processComment(s, { ...e }, 'praise'), 'duplicate');
   assertEquals(s.mem.replies.length, 1);
 });
 
 Deno.test('no loop: our own comment is never answered, and a thread takes at most 3 replies', async () => {
   const s = memStore();
-  assertEquals(await processComment(s, ev('thanks for the support!', { authorId: 'OUR' })), 'own_or_empty');
+  assertEquals(await processComment(s, ev('thanks for the support!', { authorId: 'OUR' }), 'praise'), 'own_or_empty');
   const outs = [];
-  for (let i = 0; i < 5; i++) outs.push(await processComment(s, ev('great work', { threadId: 'same' })));
+  for (let i = 0; i < 5; i++) outs.push(await processComment(s, ev('great work', { threadId: 'same' }), 'praise'));
   assertEquals(outs, ['replied', 'replied', 'replied', 'rate_limited', 'rate_limited']);
 });
 
 Deno.test('the kill switch holds: nothing is sent or hidden while social_send_enabled is off, and fixtures never reach anyone', async () => {
   const s = memStore({ send: false });
-  assertEquals(await processComment(s, ev('great work')), 'reply_held');
-  assertEquals(await processComment(s, ev('idiot')), 'hide_held');
+  assertEquals(await processComment(s, ev('great work'), 'praise'), 'reply_held');
+  assertEquals(await processComment(s, ev('idiot'), 'spam_abuse'), 'hide_held');
   assertEquals(s.mem.replies.length + s.mem.hides.length, 0);
   const f = memStore();
-  assertEquals(await processComment(f, ev('great work', { authorId: 'ZZDEMO1' })), 'reply_held');
+  assertEquals(await processComment(f, ev('great work', { authorId: 'ZZDEMO1' }), 'praise'), 'reply_held');
   assertEquals(f.mem.replies.length, 0);
 });
 
 Deno.test('the model held: a judgement question is recorded "held, not run" and nothing is said', async () => {
   const s = memStore({ model: false, draft: 'should never be asked for' });
   const e = ev('what makes you different from other platforms?');
-  assertEquals(await processComment(s, e), 'held_not_run');
+  assertEquals(await processComment(s, e, 'question'), 'held_not_run');
   assertEquals(s.mem.rows.get('instagram:' + e.commentId)!.send_status, 'held_model');
   assertEquals(s.mem.replies.length, 0);
 });
@@ -274,18 +278,19 @@ Deno.test('the duty: one platform failing never stops the others, and a credenti
   assertEquals(r.errors, ['broken: boom']);
 });
 
-Deno.test('the reasoned person check is lazy: never asked for our own comment or one already handled; asked once otherwise', async () => {
-  let asked = 0;
+Deno.test('the reasoned class and person check are lazy: never asked for our own comment or one already handled; asked once otherwise', async () => {
+  let asked = 0; let classed = 0;
   const person = () => { asked++; return Promise.resolve(true); };
+  const cls = () => { classed++; return Promise.resolve('question' as Class); };
   const own = memStore();
   const mine = ev('what are your fees?');
-  assertEquals(await processComment(own, { ...mine, authorId: mine.accountId }, person), 'own_or_empty');
+  assertEquals(await processComment(own, { ...mine, authorId: mine.accountId }, cls, person), 'own_or_empty');
   const seen = Object.assign(memStore(), { seen: () => Promise.resolve(true) });
-  assertEquals(await processComment(seen, ev('still waiting'), person), 'duplicate');
-  assertEquals(asked, 0);
+  assertEquals(await processComment(seen, ev('still waiting'), cls, person), 'duplicate');
+  assertEquals([asked, classed], [0, 0]);
   const s = Object.assign(memStore(), { seen: () => Promise.resolve(false) });
   const e = ev('is anyone there, I paid last week');
-  await processComment(s, e, person);
-  assertEquals(asked, 1);
+  await processComment(s, e, cls, person);
+  assertEquals([asked, classed], [1, 1]);
   assertEquals(s.mem.rows.get('instagram:' + e.commentId)!.classification, 'complaint');
 });

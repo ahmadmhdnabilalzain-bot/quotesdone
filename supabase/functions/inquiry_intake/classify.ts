@@ -11,7 +11,8 @@
 // 14 Sep 2026 (later): the trade map and its matcher moved to _shared/trade_classify.ts, so the
 // create_inquiry fallback in customer_api reads trades the same way. Why the matcher changed — a
 // fire alarm drawing filed as flooring because of "ground floor" — is written there.
-export { KW, detectCat, detectTrades, tradeHits, tradePhrases } from '../_shared/trade_classify.ts';
+// 23 Sep 2026 (founder_instruction 886-903): the trade map is DELETED. The trade is reasoned among the real
+// category_specs rows (think(): _shared/reasoned_decisions.ts tradeOf, _shared/reasoned_trades.ts), never read off words.
 
 export const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'];
 export function detectEmirate(text: string): string | null { const t = String(text || '').toLowerCase(); for (const e of EMIRATES) if (t.includes(e.toLowerCase())) return e; if (t.includes('rak')) return 'Ras Al Khaimah'; return null; }

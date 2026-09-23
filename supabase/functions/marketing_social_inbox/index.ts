@@ -50,6 +50,7 @@ import { ackThenWork } from '../_shared/async_webhook.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { processComment } from '../_shared/marketing_social_comments.ts';
+import { commentClass } from '../_shared/reasoned_social.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -196,9 +197,12 @@ async function handle(ev: InboundEvent): Promise<string> {
       seat: 'marketing', surface: 'marketing_social.comment_needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
       dedupeKey: 'social_comment:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
     })).value === true;
+    // What the comment IS (hide / answer / hand off) is REASONED too (reasoned_social.ts); held, nothing is hidden
+    // or said and the replay applies the policy (reasoned_delivery.ts).
+    const cls = async () => (await commentClass(defaultDeps(admin, 'marketing_social_inbox'), { platform: ev.platform, commentId: ev.messageId, authorId: ev.userId, text: ev.text })).value;
     return await processComment(adminStore(admin, timedFetch, () => pageToken(ev), GATEWAY), {
       platform: ev.platform, accountId: ev.accountId, commentId: ev.messageId, authorId: ev.userId, handle: ev.handle,
-      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, person);
+      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, cls, person);
   }
   // THE CONVERSATION, one per person per platform, owned by the marketing seat.
   const convRow: Record<string, unknown> = { platform: ev.platform, user_id: ev.userId, account_id: ev.accountId };

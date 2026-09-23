@@ -8,7 +8,7 @@
 //
 // ALUMINIUM is production's category_specs row for `aluminium`, read 14 Sep 2026.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { detectCat, utilityText } from './classify.ts';
+import { utilityText } from './classify.ts';
 import { interviewStep, type SpecField, type InterviewState } from './interview.ts';
 import { requirementsStep, statedAnswers, toStored, validateStored, type Answers } from '../_shared/intake_requirements.ts';
 
@@ -50,7 +50,6 @@ function replay(turns: string[]) {
 }
 
 Deno.test('journey a: the harness\'s own messages reach a postable request with no model', () => {
-  assertEquals(detectCat(JOURNEY_A[0]), 'aluminium');
   const r = replay(JOURNEY_A);
   console.log(r.log.join('\n'));
   console.log('details:', JSON.stringify(r.details));
@@ -86,7 +85,6 @@ const AUDIT = [
 ];
 
 Deno.test('finding 8a: the auditor\'s electrical request is never asked what it already stated', () => {
-  assertEquals(detectCat(AUDIT[0]), 'electrical');
   const NOW21 = new Date('2026-09-21T09:00:00Z');
   let st: InterviewState = { details: {}, asked_key: null };
   let req: Answers = {}; let reqAsked: string | null = null;

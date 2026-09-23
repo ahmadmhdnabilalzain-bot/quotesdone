@@ -1,13 +1,6 @@
 import { assertEquals } from 'jsr:@std/assert@1';
-import { isBankStatement, parseAmount, parseDate, parseStatement, readStatement } from './bank_statement_parse.ts';
+import { parseAmount, parseDate, parseStatement, readStatement } from './bank_statement_parse.ts';
 import { linesFromRuns, type TextRun } from './pdf_text_positions.ts';
-
-Deno.test('a Mashreq statement is told apart from a receipt', () => {
-  assertEquals(isBankStatement('estatements@mashreq.com', 'Your Mashreq account statement for August 2026'), true);
-  assertEquals(isBankStatement('management@quotesdone.com', 'Fw: Mashreq statement Aug'), true);
-  assertEquals(isBankStatement('invoice+statements@vercel.com', 'Your receipt from Vercel'), false);
-  assertEquals(isBankStatement('noreply@mashreq.com', 'Your card was used'), false);
-});
 
 Deno.test('dates are day-first and invalid ones are refused', () => {
   assertEquals(parseDate('03/09/2026'), '2026-09-03');
@@ -157,12 +150,6 @@ Deno.test('a page-break header between two rows breaks only the wrap split, neve
   const st = readStatement(ESTATEMENT.replace('Output 000111222333\n', 'Output 000111222333\nPage 3 of 5\nDate Transaction Reference no Debit Credit Balance\n'));
   assertEquals(st.problem, null);
   assertEquals(st.lines.map((l) => l.amount_aed), [2500, -150, -7.5, -7.5, 1234.56]);
-});
-
-Deno.test('the real e-statement is recognised from the document when the email names no bank', () => {
-  assertEquals(isBankStatement('management@quotesdone.com', 'Fwd: statement', ['eStatement_02 Aug 2026_1234567890.pdf'], ESTATEMENT), true);
-  assertEquals(isBankStatement('management@quotesdone.com', 'Fwd: statement', ['eStatement_02 Aug 2026_1234567890.pdf']), false);
-  assertEquals(isBankStatement('billing@vercel.com', 'Your receipt', ['invoice.pdf'], 'Invoice total AED 90.00'), false);
 });
 
 Deno.test('the runtime path: positioned PDF runs rebuilt into rows read the same as the text', () => {
