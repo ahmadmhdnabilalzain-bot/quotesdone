@@ -25,6 +25,8 @@ import { observe } from '../_shared/observe.ts';
 import { capabilityStatement, isSizeQuestion } from '../_shared/size_question.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -620,19 +622,29 @@ Deno.serve(observe('site_assistant', async (req) => {
     // goes to the same place: the CEO, for visibility. Nobody is paged, nothing is promised, and the
     // published number we gave them is real and answered — it is printed on /contact/. The
     // idempotency key buckets by caller and hour so a visitor repeating themselves files ONE report.
-    if (/(speak|talk|chat)\s+(to|with)\s+(a\s+)?(real\s+)?(person|human|human being|agent|someone)|real person|customer service (agent|rep)|أريد التحدث (إلى|مع)|شخص حقيقي|موظف حقيقي/i.test(message)) {
-      try {
-        await admin.rpc('fn_support_report_to_ceo', {
-          p_idempotency_key: 'widget:person:' + ip + ':' + new Date().toISOString().slice(0, 13),
-          p_severity: 'routine',
-          p_subject: 'A website visitor asked to speak to a person and was given the public contact',
-          p_evidence: { surface: 'website_widget', path, message: message.slice(0, 300), answered, number_given: true },
-          p_attempted: ['answered from company knowledge', 'shared the approved public contact'],
-          p_requested: 'Visibility only. There is no escalation to a human and nothing is waiting on this.',
-          p_source_agent: 'customer_support',
-        });
-      } catch (_e) { /* the visitor already has their answer; visibility must not block it */ }
-    }
+    // 23 Sep 2026 (founder_instruction 886-903): whether they asked is REASONED (think(), decision point
+    // site_assistant.person), no longer a 'speak to a person' regex. It runs beside the reply, never in its
+    // way (EdgeRuntime.waitUntil). Held: the reply they got already carries the public contact whenever a
+    // person is asked for; the report is filed by the replay (reasoned_delivery.ts) once it is reasoned.
+    const hour = new Date().toISOString().slice(0, 13);
+    const personWork = (async () => {
+      const person = await needsAPerson(defaultDeps(admin, 'site_assistant'), {
+        seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
+        dedupeKey: 'widget:person:' + ip + ':' + hour, subject: { path },
+      });
+      if (person.value !== true) return;
+      await admin.rpc('fn_support_report_to_ceo', {
+        p_idempotency_key: 'widget:person:' + ip + ':' + hour,
+        p_severity: 'routine',
+        p_subject: 'A website visitor asked to speak to a person and was given the public contact',
+        p_evidence: { surface: 'website_widget', path, message: message.slice(0, 300), answered, number_given: true },
+        p_attempted: ['answered from company knowledge', 'shared the approved public contact'],
+        p_requested: 'Visibility only. There is no escalation to a human and nothing is waiting on this.',
+        p_source_agent: 'customer_support',
+      });
+    })().catch(() => { /* the visitor already has their answer; visibility must not block it */ });
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(personWork);
 
     try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: matchedIds, seat: seatForSurface, answered, gap_task_id: gapTaskId, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
     // scope lets the portal say "answering from your account" instead of leaving the customer to

@@ -69,11 +69,12 @@
     {
      "file": "supabase/functions/inquiry_intake/index.ts",
      "must_contain": [
-      "await tradeOf(defaultDeps(admin, 'inquiry_intake')",
-      "if (!modelAnswered && kwTrades.length)"
+      "await tradeOf(defaultDeps(admin, 'inquiry_intake')"
      ],
      "must_not_contain": [
-      "const kept = kwCategory || kwTrades[0]"
+      "const kept = kwCategory || kwTrades[0]",
+      "detectCat(",
+      "kwTrades"
      ]
     }
    ]
@@ -235,29 +236,99 @@
   {
    "id": "site_assistant.person",
    "order": 15,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "med",
    "where": "supabase/functions/site_assistant/index.ts",
-   "decides": "'speak to a person' regex files a CEO report"
+   "decides": "'speak to a person' regex files a CEO report",
+   "held": "Held: the visitor's reply is not touched (the assistant gives the public contact whenever a person is asked for); only the CEO's visibility report waits in the customer_support queue (dedupe widget:person:<ip>:<hour>), and reasoned_delivery files it when the replay reasons that a person was asked for. Nobody is reported on a regex.",
+   "proof": [
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "surface: 'site_assistant.person'",
+      "if (person.value !== true) return;"
+     ],
+     "must_not_contain": [
+      "(speak|talk|chat)\\s+(to|with)",
+      "شخص حقيقي"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "row.surface === 'site_assistant.person'"
+     ]
+    }
+   ]
   },
   {
    "id": "wa_inbound.greeting_state",
    "order": 16,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "med",
    "where": "supabase/functions/wa_inbound/menu.ts",
-   "decides": "isGreeting/isMenuWord decide a message in the awaiting-problem state is not the problem"
+   "decides": "isGreeting/isMenuWord decide a message in the awaiting-problem state is not the problem",
+   "held": "Held: no message is taken as a greeting on a word; it goes on to the other handlers, whose last word is the menu (reofferMenu), so nobody is unanswered. Nothing is queued: by the time the hold lifts the conversation has moved on (queueWhenHeld false).",
+   "proof": [
+    {
+     "file": "supabase/functions/wa_inbound/menu_flow.ts",
+     "must_contain": [
+      "await d.meaning(body, awaiting === 'problem')",
+      "if (meaning === 'greeting' || meaning === 'salam')"
+     ],
+     "must_not_contain": [
+      "isGreeting(",
+      "isMenuWord(",
+      "isSalam("
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/menu.ts",
+     "must_contain": [],
+     "must_not_contain": [
+      "const GREETINGS",
+      "const MENU_WORDS",
+      "function isGreeting",
+      "function isSalam"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_menus.ts",
+     "must_contain": [
+      "'wa_inbound.problem_state' : 'wa_inbound.greeting_state'",
+      "await think(deps"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/index.ts",
+     "must_contain": [
+      "menuMeaning(defaultDeps(admin, 'wa_inbound')"
+     ]
+    }
+   ]
   },
   {
    "id": "wa_inbound.problem_state",
    "order": 17,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "med",
    "where": "supabase/functions/wa_inbound/menu_flow.ts",
-   "decides": "free text after 'Report a problem' becomes a case by flow state, not by what it says"
+   "decides": "free text after 'Report a problem' becomes a case by flow state, not by what it says",
+   "held": "Held: after \"Report a problem\" the words are kept as the support case all the same (a person reads them, the customer gets a reference; the turn records meaning=held); only a message REASONED to be a hello or something else is not filed. Not queued: the case itself carries the words.",
+   "proof": [
+    {
+     "file": "supabase/functions/wa_inbound/menu_flow.ts",
+     "must_contain": [
+      "(meaning === 'problem' || meaning === null)"
+     ],
+     "must_not_contain": [
+      "!isGreeting(body) && !isMenuWord(body)"
+     ]
+    }
+   ]
   },
   {
    "id": "inquiry_intake.held_path_trade",
@@ -286,38 +357,127 @@
   {
    "id": "shared.trade_classify",
    "order": 19,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "critical",
-   "where": "supabase/functions/_shared/trade_classify.ts",
-   "decides": "KW map, tradeHits, detectCat, detectTrades, COMPONENT_OF (also customer_api create_inquiry fallback)"
+   "where": "supabase/functions/_shared/reasoned_trades.ts",
+   "decides": "KW map, tradeHits, detectCat, detectTrades, COMPONENT_OF (also customer_api create_inquiry fallback)",
+   "held": "Held: no trade is read off words anywhere. The intake's trade is reasoned by tradeOf (held: the intake is held, point 18); create_inquiry and inbound_email reason via tradeOfText (points 20, 22); the model path's trade stands with no keyword override. _shared/trade_classify.ts (KW, tradeHits, detectCat, detectTrades, COMPONENT_OF) is deleted.",
+   "proof": [
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      "let category = draft.category || (drawingBoq && drawingBoq.category) || null;"
+     ],
+     "must_not_contain": [
+      "detectCat(",
+      "detectTrades(",
+      "trade_classify.ts'"
+     ]
+    },
+    {
+     "file": "supabase/functions/inquiry_intake/classify.ts",
+     "must_contain": [],
+     "must_not_contain": [
+      "from '../_shared/trade_classify.ts'"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_trades.ts",
+     "must_contain": [
+      "await think(deps",
+      "never the nearest one"
+     ],
+     "must_not_contain": [
+      "KW[",
+      "tradeHits("
+     ]
+    }
+   ]
   },
   {
    "id": "customer_api.keywords",
    "order": 20,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
-   "where": "supabase/functions/customer_api/keywords.ts",
-   "decides": "keyword trade reading on create_inquiry"
+   "where": "supabase/functions/customer_api/index.ts",
+   "decides": "keyword trade reading on create_inquiry",
+   "held": "Held: a request with no stated trade goes out as 'general' (none, never the nearest) and the question waits in the sales engineer's queue (dedupe create_inquiry_trade:<inquiry id>); fn_reason_apply_customer_api__keywords sets the reasoned category_specs trade on that inquiry while it is still 'general'. customer_api/keywords.ts (KW, detect) is deleted.",
+   "proof": [
+    {
+     "file": "supabase/functions/customer_api/index.ts",
+     "must_contain": [
+      "surface: 'customer_api.keywords'",
+      "dedupeKey: 'create_inquiry_trade:' + inq!.id"
+     ],
+     "must_not_contain": [
+      "from './keywords.ts'",
+      "detect(raw",
+      "KW[category]"
+     ]
+    },
+    {
+     "file": "scripts/sql/a_reasoned_trade_is_set_on_the_row_it_was_held_for.sql",
+     "must_contain": [
+      "create or replace function public.fn_reason_apply_customer_api__keywords(p_id bigint, p_result jsonb)",
+      "and i.category = 'general'"
+     ]
+    }
+   ]
   },
   {
    "id": "customer_api.resolve_trade",
    "order": 21,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/customer_api/index.ts",
-   "decides": "resolveTrade"
+   "decides": "resolveTrade",
+   "held": "Held: a typed word that is not itself a taxonomy code is not searched and is returned in `confirming` (why_empty trade_being_confirmed); nothing is queued because the answer is this live search, which the customer runs again (queueWhenHeld false). The alias and label-substring matches are deleted.",
+   "proof": [
+    {
+     "file": "supabase/functions/customer_api/index.ts",
+     "must_contain": [
+      "surface: 'customer_api.resolve_trade'",
+      "confirming.push(w)"
+     ],
+     "must_not_contain": [
+      "const resolveTrade = (w: string)",
+      ".toLowerCase().includes(w) && w.length >= 4"
+     ]
+    }
+   ]
   },
   {
    "id": "inbound_email.infer_sector",
    "order": 22,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "supabase/functions/inbound_email/index.ts",
-   "decides": "inferSector: KW word lists"
+   "decides": "inferSector: KW word lists",
+   "held": "Held: the new lead is saved with no sector (nothing is guessed), the question waits in the sales engineer's queue (dedupe lead_sector:<lead id>), and fn_reason_apply_inbound_email__infer_sector sets the reasoned category_specs trade while the sector is still empty. The reasoning runs beside the intake (EdgeRuntime.waitUntil), never blocking it.",
+   "proof": [
+    {
+     "file": "supabase/functions/inbound_email/index.ts",
+     "must_contain": [
+      "surface: 'inbound_email.infer_sector'",
+      "sector: null, business_role: 'supplier'"
+     ],
+     "must_not_contain": [
+      "function inferSector",
+      "const KW: Record<string, string[]>"
+     ]
+    },
+    {
+     "file": "scripts/sql/a_reasoned_trade_is_set_on_the_row_it_was_held_for.sql",
+     "must_contain": [
+      "create or replace function public.fn_reason_apply_inbound_email__infer_sector(p_id bigint, p_result jsonb)",
+      "and l.sector is null"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_norm_trades",
@@ -774,7 +934,7 @@
      "file": "supabase/functions/marketing_social_inbox/index.ts",
      "must_contain": [
       "surface: 'marketing_social.comment_needs_a_person'",
-      "}, person.value === true);"
+      "cls.value, person.value === true);"
      ],
      "must_not_contain": [
       "wantsHuman("
@@ -784,7 +944,7 @@
      "file": "supabase/functions/marketing/duties.ts",
      "must_contain": [
       "surface: 'marketing_social.comment_needs_a_person'",
-      "ev, person.value === true)"
+      "ev, cls.value, person.value === true)"
      ],
      "must_not_contain": [
       "wantsHuman("
@@ -802,11 +962,54 @@
   {
    "id": "marketing_social.comment_classify",
    "order": 73,
-   "status": "pending",
+   "status": "migrated",
    "seat": "marketing",
    "severity": "high",
    "where": "supabase/functions/_shared/marketing_social_comments.ts",
-   "decides": "classify: the RULES regex lists (sensitive_legal, complaint, supplier_enquiry, sales_lead, question, praise) and ABUSE/ASKS decide what a public comment is, whether it is hidden, answered or handed off (#866)"
+   "decides": "classify: the RULES regex lists (sensitive_legal, complaint, supplier_enquiry, sales_lead, question, praise) and ABUSE/ASKS decide what a public comment is, whether it is hidden, answered or handed off (#866)",
+   "held": "Held: the comment is stored with no class and outcome held_classify — nothing is hidden, said or handed off on a guess (a reasoned request for a person still gets the complaint policy); the class waits in the marketing queue (dedupe social_comment_class:<platform>:<id>) and reasoned_delivery runs it through the same policy with the reasoned class when the hold lifts. guard() stays: it vets OUR outgoing text.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/marketing_social_comments.ts",
+     "must_contain": [
+      "if (cls === null) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_classify'); }"
+     ],
+     "must_not_contain": [
+      "const RULES",
+      "const ABUSE",
+      "const ASKS",
+      "export function classify("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_social.ts",
+     "must_contain": [
+      "surface: 'marketing_social.comment_classify'",
+      "await think(deps"
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing_social_inbox/index.ts",
+     "must_contain": [
+      "await commentClass(defaultDeps(admin, 'marketing_social_inbox')",
+      "cls.value, person.value === true);"
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing/duties.ts",
+     "must_contain": [
+      "await commentClass(defaultDeps(admin, 'marketing')",
+      "ev, cls.value, person.value === true)"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "row.surface === 'marketing_social.comment_classify'",
+      "io.socialCommentClassified(subject, choice)"
+     ]
+    }
+   ]
   }
  ]
 }

@@ -38,20 +38,9 @@ export function norm(s: string): string {
     .replace(/[!?.,،؟\s]+/g, ' ').trim();
 }
 
-const GREETINGS = [
-  'hi', 'hii', 'hey', 'hello', 'hallo', 'salam', 'salaam', 'marhaba', 'good morning', 'good afternoon', 'good evening',
-  'السلام عليكم', 'سلام عليكم', 'السلام عليكم ورحمه الله', 'السلام عليكم ورحمه الله وبركاته', 'سلام', 'مرحبا', 'مرحبا بكم',
-  'اهلا', 'اهلا وسهلا', 'هلا', 'صباح الخير', 'مساء الخير',
-].map(norm);
-const MENU_WORDS = ['menu', 'options', 'start', 'main menu', 'قائمه', 'القائمه', 'الخيارات', 'خيارات'].map(norm);
-
-/** A greeting on its own, or with "there"/"team"/"QuotesDone" after it. */
-export function isGreeting(text: string): boolean {
-  const n = norm(text).replace(/\b(there|team|quotesdone)\b/g, '').trim();
-  return n.length > 0 && GREETINGS.includes(n);
-}
-export function isMenuWord(text: string): boolean { return MENU_WORDS.includes(norm(text)); }
-export function isSalam(text: string): boolean { return /^(ال)?سلام/.test(norm(text)); }
+// GREETINGS / MENU_WORDS and isGreeting / isMenuWord / isSalam are DELETED (23 Sep 2026, founder_instruction
+// 886-903): whether a message is only a hello, a request for the menu, or a salam is REASONED
+// (_shared/reasoned_menus.ts menuMeaning; decision points wa_inbound.greeting_state and wa_inbound.problem_state).
 
 export function menuItems(lang: Lang, audience: Audience): MenuItem[] {
   const sup = audience === 'supplier';

@@ -5,11 +5,11 @@
 //
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/wa_inbound/menu_flow.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
-import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
+import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, type MenuInput, type MenuMeaning, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
 import { type Figures, isFiguresCommand } from './founder_queries.ts';
 import { coverageIntent, coverageReply, groupedTrades, type Trade, tradeNamed } from './coverage.ts';
 import {
-  type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, isGreeting, type Lang, MENU_BUTTON, sorryLead,
+  type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, type Lang, MENU_BUTTON, sorryLead,
   MENU_IDS, menuChoice, type MenuContext, menuItems, optionReply, WELCOME_TAIL, welcomeText, withinHours,
 } from './menu.ts';
 
@@ -63,11 +63,21 @@ export const TRADES: Trade[] = [
 ];
 
 type Sent = { to: string; body: string; content?: Content };
+// THE REASONED MEANING, MOCKED (the real one is think(): _shared/reasoned_menus.ts, tested in reasoned_menus.test.ts).
+// These are the readings a model returns for the fixtures below; the routing is what this file proves.
+const READ: Record<string, MenuMeaning> = { 'Hi': 'greeting', 'Hello': 'greeting', 'hello': 'greeting', 'menu': 'greeting', 'MENU': 'greeting', 'السلام عليكم': 'salam' };
 function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>; contentFails?: boolean; faq?: string | null;
-                      enabled?: boolean; history?: Turn[]; weWrote?: boolean; held?: boolean; appended?: boolean; gapOk?: boolean } = {}) {
+                      enabled?: boolean; history?: Turn[]; weWrote?: boolean; held?: boolean; appended?: boolean; gapOk?: boolean;
+                      reasoningHeld?: boolean } = {}) {
   const sent: Sent[] = []; const rows: Array<Record<string, unknown>> = []; const cases: string[] = []; const notified: string[] = []; const closed: string[] = []; const gaps: string[] = [];
   const history: Turn[] = [...(o.history || [])];
+  const meanings: Array<[string, boolean]> = [];
   const d: MenuDeps = {
+    meaning: (text, awaitingProblem) => {
+      meanings.push([text, awaitingProblem]);
+      if (o.reasoningHeld) return Promise.resolve(null);
+      return Promise.resolve(READ[text] ?? (awaitingProblem ? 'problem' : 'other'));
+    },
     autoreplyEnabled: () => Promise.resolve(o.enabled ?? true),
     recentTurns: () => Promise.resolve([...history]),
     weWroteRecently: () => Promise.resolve(o.weWrote ?? false),
@@ -92,7 +102,7 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
       return Promise.resolve();
     },
   };
-  return { d, sent, rows, cases, notified, closed, gaps };
+  return { d, sent, rows, cases, notified, closed, gaps, meanings };
 }
 const msg = (body: string, audience: Audience = 'unknown', extra: Partial<MenuInput> = {}): MenuInput => ({ from: FROM, body, audience, ...extra });
 
@@ -110,9 +120,37 @@ Deno.test('the list fits WhatsApp: 6 items, titles <= 24, descriptions <= 72, bu
   }
 });
 
-Deno.test('greetings are recognised in English and Arabic, and a question is not a greeting', () => {
-  for (const g of ['Hi', 'hi!', 'Hello there', 'السلام عليكم', 'السلام عليكم ورحمة الله وبركاته', 'مرحبا', 'مرحبًا', 'Good morning']) assert(isGreeting(g), g);
-  for (const q of ['hi, what are your fees?', 'how do I register', 'أريد عرض سعر']) assert(!isGreeting(q), q);
+Deno.test('greeting_state: the menu opens only on a REASONED hello; held, nothing is guessed and the other handlers answer', async () => {
+  // reasoned 'other' (a question beside the hello): not taken as a greeting
+  const q = harness({ history: [{ route: 'deterministic', await: null, lang: 'en' }] });
+  assertEquals((await menuTurn(q.d, msg('hi, what are your fees?'))).handled, false);
+  assertEquals(q.meanings, [['hi, what are your fees?', false]]);
+  // held: even a bare "Hi" mid-conversation is left to the handlers, whose last word is the menu (reofferMenu)
+  const h = harness({ reasoningHeld: true, history: [{ route: 'deterministic', await: null, lang: 'en' }] });
+  assertEquals((await menuTurn(h.d, msg('Hi'))).handled, false);
+  assertEquals(h.sent.length, 0);
+  // a list reply is structured: no reasoning is asked for at all
+  const l = harness();
+  await menuTurn(l.d, msg('x', 'unknown', { listId: 'qd_general' }));
+  assertEquals(l.meanings, []);
+});
+
+Deno.test('problem_state: after "Report a problem" a reasoned hello is not filed; held, the words are kept as the case', async () => {
+  const at = [{ route: 'menu_qd_problem', await: 'problem', lang: 'en' as Lang }];
+  const g = harness({ history: at });
+  assertEquals((await menuTurn(g.d, msg('Hi'))).route, 'menu_welcome');
+  assertEquals(g.cases, []);
+  assertEquals(g.meanings, [['Hi', true]]);
+  const o = harness({ history: at, reasoningHeld: true });
+  const r = await menuTurn(o.d, msg('the supplier never came'));
+  assertEquals(r.route, 'menu_case');
+  assertEquals(o.cases, ['the supplier never came']);
+  assertEquals((o.rows[0].extra as Record<string, unknown>).meaning, 'held');
+  // reasoned 'other' in the problem state (not a problem, not a hello) goes to its own handler
+  const x = harness({ history: at });
+  x.d.meaning = () => Promise.resolve('other');
+  assertEquals((await menuTurn(x.d, msg('what are your fees?'))).handled, false);
+  assertEquals(x.cases, []);
 });
 
 Deno.test('first "Hi" from an unknown number: English welcome signed QuotesDone, sent as the interactive list', async () => {

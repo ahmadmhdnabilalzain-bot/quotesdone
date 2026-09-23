@@ -18,6 +18,7 @@ import { modelHeld } from '../_shared/llm_hold.ts';
 import { type Deps, runStep, type Step } from '../_shared/marketing_judgement.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { call, linkedinTarget, processComment, unhideRequest, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
+import { commentClass } from '../_shared/reasoned_social.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
 import { postizIntegrations, type PostizIntegration } from '../_shared/marketing_channels.ts';
 import { defaultDeps } from '../_shared/think.ts';
@@ -95,7 +96,8 @@ export const socialComments: Duty = {
           const person = await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
             message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
             subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } });
-          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, person.value === true)
+          const cls = await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId, text: String(ev.text || '') });
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls.value, person.value === true)
             .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
           counts[o] = (counts[o] || 0) + 1;
         }

@@ -9,7 +9,7 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { detectCat, detectTrades, detectEmirate, detectUrgency, utilityText } from './classify.ts';
+import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
@@ -28,7 +28,7 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 
-// KW, detectCat, detectTrades, detectEmirate, detectUrgency and isArabic live in ./classify.ts (tested there).
+// detectEmirate, detectUrgency and isArabic live in ./classify.ts (tested there); the trade map is deleted (reasoned_trades.ts).
 function sanitizeInput(text: string): string { return String(text || '').replace(/\bignore (all |any |previous )?(above|prior|earlier)?\s*(instructions|prompts?|rules?)\b/gi, '[removed]').replace(/\b(system|assistant|developer)\s*:/gi, '$1 -').slice(0, 4000); }
 
 // `subject` is the verified session email: ai_gateway answers our own ZZ DEMO / @example.invalid harness
@@ -117,8 +117,11 @@ Deno.serve(observe('inquiry_intake', async (req) => {
     // either language is still understood.
     const ar = asLocale((cust as any)?.locale) === 'ar';
 
-    let category = draft.category || detectCat(allText) || (drawingBoq && drawingBoq.category) || null;
-    if (category && !validSlugs.includes(category)) { category = detectCat(allText) || null; }
+    // The trade is never read off words (founder_instruction 886-903; the keyword map, _shared/trade_classify.ts,
+    // is deleted): it is the one a previous turn stored, the drawing's, the model's reading below, or — when the
+    // model gives none — REASONED among every category_specs row (tradeOf, surface inquiry_intake.trade).
+    let category = draft.category || (drawingBoq && drawingBoq.category) || null;
+    if (category && !validSlugs.includes(category)) category = null;
     // 6 Aug 2026. THE OPERATIONAL ROUTER HAD NO CALLER, AND ARABIC COULD NOT BE CLASSIFIED AT ALL.
     // detectCat (:58) matches a hardcoded ENGLISH keyword map, so an Arabic request matched nothing,
     // category stayed null, and that customer got no checklist, no category knowledge and no
@@ -152,13 +155,10 @@ Deno.serve(observe('inquiry_intake', async (req) => {
       } catch (_e) { /* routing is a fallback and must never block intake */ }
     }
     const emirate = detectEmirate(allText);
-    let kwTrades = detectTrades(allText).filter((c) => validSlugs.includes(c));
-    // De-noise facet over-detection: 'tiling' is the same job as 'flooring' for floor tiles — don't split it out.
-    if (kwTrades.includes('flooring') && kwTrades.includes('tiling')) kwTrades = kwTrades.filter((c) => c !== 'tiling');
 
     // Gather checklist(s). For a multi-trade request, include EACH detected trade's REQUIRED fields so the
     // model does not anchor on one category and re-ask details already given for the other trades.
-    const tradeSlugsForChecklist = Array.from(new Set([category, ...kwTrades].filter((c) => c && validSlugs.includes(c as string)))).slice(0, 4) as string[];
+    const tradeSlugsForChecklist = Array.from(new Set([category].filter((c) => c && validSlugs.includes(c as string)))).slice(0, 4) as string[];
     let checklist: any[] = [];
     const perTradeChecklists: { slug: string; label: string; fields: any[] }[] = [];
     if (tradeSlugsForChecklist.length) {
@@ -225,7 +225,7 @@ Deno.serve(observe('inquiry_intake', async (req) => {
         const STOP = new Set(['and', 'the', 'for', 'with', 'services', 'service', 'supply', 'supplies', 'system', 'systems', 'custom', 'made', 'installation', 'install', 'works', 'work', 'general', 'trading', 'solutions', 'company', 'contracting', 'contractors', 'materials', 'material', 'equipment', 'products', 'product', 'repair', 'maintenance', 'design', 'uae', 'dubai', 'abu', 'dhabi', 'sharjah', 'ajman', 'fujairah']);
         const clean = (str: string) => String(str || '').toLowerCase().split(/[^a-z0-9]+/).filter((w: string) => w.length > 2 && !STOP.has(w));
         const catToks = new Set(clean(category));
-        const allToks = new Set([...clean(category), ...clean(catLabel), ...kwTrades.flatMap((t: string) => clean(t))]);
+        const allToks = new Set([...clean(category), ...clean(catLabel)]);
         let best: any = null; let bestScore = 0;
         for (const a of (agents || [])) {
           if (a.slug === category) { best = a; bestScore = 99; break; }
@@ -402,7 +402,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       });
       if (t.value && validSlugs.includes(t.value)) {
         // The reasoned trade replaces the keyword one everywhere the deterministic interview reads it.
-        category = t.value; kwTrades = [];
+        category = t.value;
         const { data: cs } = await admin.from('category_specs').select('fields').eq('category', category).maybeSingle();
         checklist = Array.isArray(cs?.fields) ? cs.fields : [];
         draft.brief = { ...(draft.brief && typeof draft.brief === 'object' ? draft.brief : {}), category_by: 'reasoning' };
@@ -422,8 +422,6 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     let nextQuestion: { key: string | null; text: string; options: string[] | null; suggested?: string | null } | null = null;
     let readinessFields: { filled: number; required: number } | null = null;
     if (!out) {
-      const multi = kwTrades.length > 1;
-      if (multi && validSlugs.includes('fitout') && (!category || category === 'general')) category = 'fitout';
       // THIS IS THE LIVE PATH TODAY, NOT A RARE FALLBACK. Every model route in llm_route_health is
       // open_until 2126 under the founder's OpenRouter hold, so `out` is null on every real intake
       // and these questions are what a customer actually sees.
@@ -456,7 +454,6 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       const plainAsk = ar
         ? 'صِف لنا العمل بأسلوبك: ما الذي تريد إنجازه، وفي أي نوع من المواقع، وما حجمه تقريبًا. وإن كانت لديك صورة أو مخطط فأرفقه، وسنستخلص منه التفاصيل نيابةً عنك.'
         : 'Tell me in your own words what you need done — what the job is, what kind of space it is in, and roughly how big. If you have a photo or a drawing, attach it and I will read the details off it for you instead of asking.';
-      const multiMsg = ar ? 'يبدو أن طلبك يشمل أكثر من تخصص. زوّدنا بمزيد من التفاصيل عن كل جزء (النطاق، والمساحة أو الكمية، والمدة الزمنية لكل منها) لنرسل طلبك إلى المورّدين المناسبين.' : 'It looks like your request covers more than one trade. Tell me a bit more about each part (scope, area/quantity and timeline for each) so I can send it to the right suppliers.';
       const firstUser = String(turns.find((t: any) => t.role === 'user')?.text || allText);
       const score = step && step.readiness.required ? Math.round(100 * step.readiness.filled / step.readiness.required) : 10;
       const provenanceStated = step ? Object.fromEntries(Object.keys(step.details).map((k) => [k, 'stated'])) : {};
@@ -467,7 +464,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       } else if (step && !step.complete && step.next) {
         const firstTurn = !prevState.asked_key && turns.filter((t: any) => t.role === 'user').length <= 1;
         const ack = firstTurn
-          ? (multi ? multiMsg + ' ' : (ar ? 'فهمت. ' : `Got it — ${catLabel || category} work. `))
+          ? (ar ? 'فهمت. ' : `Got it — ${catLabel || category} work. `)
           : (step.filled_now.length ? (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ') : '');
         out = { category, status: 'needs_info', assistant_message: ack + step.next.text, questions: [step.next.text], readiness: Math.min(score, 95), missing: remaining, brief: null, provenance: provenanceStated };
       } else if (step && step.complete) {
@@ -511,42 +508,20 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     // trade and the keyword evidence disagree, the disagreement is REASONED — think() weighs the
     // candidates against the customer's whole description (_shared/reasoned_decisions.ts tradeOf) — and
     // the reasoned trade stands. If that reasoning is held, the model's own reading stands; nothing is
-    // decided by the word map. The deterministic interview under the hold (out === null above) still
-    // seeds its checklist from the map: that path is the next intake item in decision_points.json.
-    const kwCategory = detectCat(allText);
-    let classifierOverride: { model: string; kept: string; by?: string } | null = null;
+    // decided by the word map. LATER THE SAME DAY the map itself was deleted (decision point 19,
+    // shared.trade_classify): with no keyword evidence left there is nothing to disagree with.
+    const classifierOverride: { model: string; kept: string; by?: string } | null = null;
     let requiredGate: { category: string; missing_keys: string[] } | null = null;
     let cat = out.category || category;
-    const modelAnswered = llmParseOk;   // `out` is the model's reading, not the deterministic interview's
-    if (modelAnswered && out.category && kwTrades.length && !kwTrades.includes(out.category) && out.category !== kwCategory) {
-      const candidates = Array.from(new Set([String(out.category), kwCategory, ...kwTrades].filter((c): c is string => !!c && validSlugs.includes(c))))
-        .map((slug) => ({ slug, label: slug.replace(/[-_]/g, ' ') }));
-      const t = candidates.length > 1
-        ? await tradeOf(defaultDeps(admin, 'inquiry_intake'), { conversation: allText, candidates, dedupeKey: 'intake_trade:' + (draft.id ?? email) + ':' + turns.length })
-        : null;
-      if (t?.value && t.value !== out.category) { classifierOverride = { model: String(out.category), kept: t.value, by: 'reasoning' }; cat = t.value; }
-    }
-    if (!cat || (!validSlugs.includes(cat) && cat !== 'general')) { cat = detectCat(allText) || (validSlugs.includes(String(draft.category)) ? draft.category : null) || 'general'; }
+    // No word map is left to disagree with the model (23 Sep 2026): the model's trade stands, or the trade a
+    // previous turn stored; with neither it is 'general' — no trade, never the nearest one.
+    if (!cat || (!validSlugs.includes(cat) && cat !== 'general')) { cat = (validSlugs.includes(String(draft.category)) ? draft.category : null) || 'general'; }
     category = cat;
     let status = ['rejected', 'needs_info', 'ready'].includes(out.status) ? out.status : 'needs_info';
     // Stamp the answering agent on the turn so the next turn knows the specialist has already introduced itself.
     turns.push({ role: 'assistant', text: out.assistant_message || '', agent: ACTOR });
 
     let trades = Array.isArray(out.trades) ? out.trades.map((s: any) => String(s)).filter((s: string) => validSlugs.includes(s)) : [];
-    // Same rule for the trade list. A hallucinated extra trade is not harmless: every trade adds
-    // its own checklist, so one invented trade can hold a complete request at needs_info forever.
-    // When the keyword layer found anything at all, a model trade it did not corroborate is
-    // dropped. When there is no keyword evidence, the model is all we have and is trusted.
-    // (Model path: the model's trade list stands — a word map does not get to strike a trade out of it.)
-    if (!modelAnswered && kwTrades.length) {
-      const supported = trades.filter((s: string) => kwTrades.includes(s) || s === kwCategory);
-      if (supported.length !== trades.length) {
-        classifierOverride = classifierOverride
-          ?? { model: trades.filter((s: string) => !supported.includes(s)).join(','), kept: supported.join(',') || kwTrades.join(',') };
-      }
-      trades = supported;
-    }
-    if (!trades.length && !modelAnswered) trades = kwTrades.slice();
     if (category && validSlugs.includes(category) && !trades.includes(category)) trades.unshift(category);
     if (trades.includes('flooring') && trades.includes('tiling')) trades = trades.filter((c: string) => c !== 'tiling');
     trades = Array.from(new Set(trades)).slice(0, 6);

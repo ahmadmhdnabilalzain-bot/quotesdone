@@ -14,7 +14,7 @@
 //                          integration but the one app_secrets.linkedin_company_page_integration_id names.
 //   x                    — REMOVED (founder, 23 Sep 2026: no paid X API). Nothing here reads or answers X.
 //
-// THE POLICY, deterministic first (processComment):
+// THE POLICY, applied to the REASONED class (processComment; the class itself is reasoned, reasoned_social.ts):
 //   spam_abuse       -> hidden where the platform allows it, AND handed to customer_support to review
 //                       (unhideRequest reverses it); never hidden when the comment also asks or wants to join
 //   complaint, sensitive_legal, a request for a person
@@ -67,31 +67,13 @@ export function normalise(s: string): string {
     .normalize('NFD').replace(/\p{Mn}/gu, '').normalize('NFC');
 }
 
-// ── CLASSIFY ─────────────────────────────────────────────────────────────────────────────────────
-// Word-bounded throughout: 'court' is not 'courtyard', 'كم' is not 'لكم'. Punctuation becomes space
-// (except ? and ؟), so every term is matched between spaces.
-const n = (s: string) => ' ' + normalise(s).toLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
-  .replace(/([?؟])/g, ' $1 ').replace(/[^\p{L}\p{N}?؟%٪'\s]/gu, ' ').replace(/\s+/g, ' ') + ' ';
-const W = (alts: string) => new RegExp(`(?<=\\s)(?:${alts})(?=\\s)`);
-// A hide needs a clear signal: an insult or a known spam pitch, as whole words.
-const ABUSE = W("idiots?|stupid|morons?|scam(?:mers?|s)?|fraudsters?|fuck\\w*|shit\\w*|bastards?|crypto|bitcoin|forex|onlyfans|promo code|dm me for \\w+|(?:buy|get|cheap|free) \\d*k? ?followers|نصاب|نصابين|حرامي|حراميه|تافه|غبي|كلب|اربح|متابعين");
-// …and is never taken when the comment also asks something or wants to join: that person gets an answer.
-const ASKS = W("\\?|؟|how|what|where|when|why|can i|can we|do you|is it|is this|register|registration|sign up|signup|join|quote|quotes|كيف|وش|ايش|متي|وين|ليش|هل|كم|تسجيل|اسجل|انضم|عرض سعر");
-const RULES: [Class, RegExp][] = [
-  ['sensitive_legal', W("lawyer|lawsuit|sue|court|legal action|police|report you|consumer protection|fraud|who (?:is|was) the (?:supplier|customer|client)|name of the (?:supplier|customer|client)|which (?:supplier|company) (?:did|was|is)|اسم المورد|اسم العميل|مين المورد|من هو المورد|منو المورد|محامي|محكمه|قضيه|الشرطه|بلاغ|حمايه المستهلك|احتيال")],
-  ['complaint', W("refund|complain|complaint|terrible|worst|disappointed|never (?:replied|responded|answered)|no one (?:replied|answered)|nobody answered|charged me|overcharged|not happy|bad service|استرجاع|استرداد|شكوي|اشتكي|سيء|سيئ|اسوا|ما احد رد|ما رد|محد رد|خصم مني|خدمه سيئه|غير راضي")],
-  ['supplier_enquiry', W("supplier|contractor|vendor|register (?:my|our) (?:company|business)|register as (?:a )?supplier|list (?:my|our) (?:company|business)|get (?:leads|jobs|projects)|trade licen[cs]e|مورد|موردين|مقاول|تسجيل شركتي|تسجيل شركتنا|رخصه تجاريه")],
-  ['sales_lead', W("i need (?:a |an )?(?:quote|quotation)|need quotes?|quote|quotes|quotation|looking for (?:a |an )?(?:company|someone|quote)|can you (?:do|quote)|how much (?:for|to|would)|price for|احتاج عرض|ابي عرض|ابغي عرض|اريد عرض|عرض سعر|ابحث عن شركه|كم سعر|كم يكلف")],
-  ['question', W("\\?|؟|how|what|where|when|why|can i|do you|is it|fees?|sign up|register|كيف|وش|ايش|متي|وين|ليش|هل|كم")],
-  ['praise', /(?<=\s)(?:great|amazing|awesome|love (?:it|this)|well done|good job|excellent|thank(?:s| you)|nice|brilliant|ممتاز|رائع|جميل|يعطيكم العافيه|شكرا|ما شاء الله|مبدعين|احسنتم)(?=\s)|👏|🔥|❤/],
-];
-export function classify(text: string, wantsPerson = false): Class {
-  const t = n(text);
-  if (ABUSE.test(t) && !ASKS.test(t)) return 'spam_abuse';
-  if (wantsPerson) return 'complaint';
-  for (const [c, re] of RULES) if (re.test(t)) return c;
-  return 'off_topic';
-}
+// ── CLASSIFY: REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903) ────────────────────────
+// The RULES / ABUSE / ASKS regex lists that decided what a public comment IS — hidden, answered, handed off —
+// are deleted. The class arrives already reasoned (_shared/reasoned_social.ts commentClass, decision point
+// marketing_social.comment_classify); null means that reasoning is held, and processComment then hides nothing,
+// says nothing and hands nothing off: the comment is recorded 'held_classify' and the replay
+// (_shared/reasoned_delivery.ts) runs it through this same policy with the reasoned class. guard() below stays:
+// it vets OUR outgoing text, never what a person meant.
 
 // ── THE GUARDS every outgoing text passes before it can be sent (founder, 23 Sep 2026) ────────────────
 // The facts are the company's published ones (site FAQ, supplier agreement v12, portal copy): customers pay
@@ -178,7 +160,7 @@ export interface Decided { kind: string; key: string | null; text: string }
 export interface SendResult { ok: boolean; id?: string | null; error?: string }
 export type HandoffType = 'social.escalation' | 'social.lead';
 export interface Store {
-  insertInbound(ev: CommentEvent, cls: Class): Promise<number | null>;   // null: already answered (idempotency)
+  insertInbound(ev: CommentEvent, cls: Class | null): Promise<number | null>;   // null: the class is still being reasoned   // null: already answered (idempotency)
   release(inId: number): Promise<void>;                                  // processing failed before a send: retry later
   threadAllowed(ev: CommentEvent): Promise<boolean>;
   record(inId: number, row: Outcome): Promise<void>;
@@ -191,7 +173,7 @@ export interface Store {
   hide(ev: CommentEvent): Promise<SendResult>;
 }
 export interface Outcome {
-  classification: Class;
+  classification: Class | null;
   outcome: string;
   reply: string | null;
   decided_by: 'rule' | 'model' | 'guard_fallback' | null;
@@ -206,9 +188,11 @@ export const isFixture = (ev: CommentEvent) => /^ZZDEMO/i.test(ev.authorId) || /
 const SEAT: Record<HandoffType, string> = { 'social.escalation': 'customer_support', 'social.lead': 'sales_engineer' };
 export const seatFor = (t: HandoffType) => SEAT[t];
 
-export async function processComment(s: Store, ev: CommentEvent, wantsPerson = false): Promise<string> {
+/** The comment policy for a comment whose class was REASONED (`reasoned`), or null while that reasoning is held. */
+export async function processComment(s: Store, ev: CommentEvent, reasoned: Class | null, wantsPerson = false): Promise<string> {
   if (!ev.text.trim() || ev.authorId === ev.accountId) return 'own_or_empty';
-  const cls = classify(ev.text, wantsPerson);
+  // A reasoned request for a person is handled as a complaint — except abuse, which is hidden and reviewed anyway.
+  const cls: Class | null = wantsPerson && reasoned !== 'spam_abuse' ? 'complaint' : reasoned;
   const inId = await s.insertInbound(ev, cls);
   if (inId == null) return 'duplicate';
   let sent = false;
@@ -224,9 +208,12 @@ export async function processComment(s: Store, ev: CommentEvent, wantsPerson = f
     const lang = langOf(ev.text);
     const o: Outcome = { classification: cls, outcome: '', reply: null, decided_by: 'rule', send_status: 'not_sent', guard_failures: [], handoff_id: null };
     const done = async (outcome: string) => { o.outcome = outcome; await s.record(inId!, o); return outcome; };
-    const escalate = async (type: HandoffType, extra?: Record<string, unknown>) => { o.handoff_id = await s.handoff(type, ev, o.classification, extra); };
+    const escalate = async (type: HandoffType, extra?: Record<string, unknown>) => { o.handoff_id = await s.handoff(type, ev, o.classification as Class, extra); };
     const ack = async () => { if (!o.handoff_id) await escalate('social.escalation'); return await s.library('comment_escalated_ack', lang); };
 
+    // HELD: what this comment is has not been reasoned yet. Nothing is hidden, said or handed off on a guess;
+    // the replay applies the policy the moment the hold lifts. (The person check has its own queue, point 72.)
+    if (cls === null) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_classify'); }
     if (cls === 'off_topic') return await done('ignored_off_topic');
     if (cls === 'spam_abuse') {
       if (isFixture(ev)) { o.send_status = 'held_fixture'; return await done('hide_held'); }

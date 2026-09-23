@@ -29,6 +29,7 @@ import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
@@ -571,6 +572,8 @@ async function handleInbound(req: Request): Promise<Response> {
     // the founder's command channel, and it never takes a document (the media branch below owns those).
     const waFrom = 'whatsapp:' + (await sec('twilio_wa_from'));
     const menuDeps: MenuDeps = {
+      meaning: async (text: string, awaitingProblem: boolean) =>
+        (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined })).value,
       autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
       recentTurns: async (from: string): Promise<Turn[]> => {
         const { data } = await admin.from('wa_messages').select('meta,lang,created_at').eq('wa_from', from)

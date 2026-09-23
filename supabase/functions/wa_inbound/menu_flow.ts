@@ -4,8 +4,10 @@
 // with fakes and index.ts supplies the database and Twilio. menuTurn decides; it never guesses:
 //   - an interactive list reply (ListId / ButtonPayload), a typed option title, or — only right after
 //     we offered the menu — a bare number, selects an option;
-//   - a greeting or MENU / قائمة gets the welcome and the menu, whatever came before it;
-//   - the message after "Report a problem" becomes a support case with a reference number;
+//   - a message REASONED to be only a hello or a request for the menu (d.meaning, _shared/reasoned_menus.ts)
+//     gets the welcome and the menu, whatever came before it;
+//   - the message after "Report a problem" becomes a support case with a reference number when it is reasoned
+//     to describe the problem, or while that reasoning is held (the words are kept for a person, never lost);
 //   - anything else returns handled:false and the existing handlers answer it FIRST (document intake,
 //     the founder's command channel, the supplier price change, fn_wa_route's intents). Only if none of
 //     them did, and the message is a first contact — nothing from them AND nothing from us to them in
@@ -20,8 +22,7 @@
 // which never touches the outbox. per_recipient_24h=1 applied here would answer "hi" and then refuse
 // the option they picked from our own list. wa_autoreply_enabled still governs every send.
 import {
-  type Audience, caseClosedNotice, caseConfirm, type CaseResult, contentKey, founderCommand, greetLine, isGreeting, isMenuWord,
-  isSalam, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
+  type Audience, caseClosedNotice, caseConfirm, type CaseResult, contentKey, founderCommand, greetLine, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
 } from './menu.ts';
 import { coverageReply, mightBeCoverage, type Trade } from './coverage.ts';
 import { capabilityAnswer, figuresText, type Figures, isFiguresCommand, isSizeQuestion } from './founder_queries.ts';
@@ -29,7 +30,10 @@ import { capabilityAnswer, figuresText, type Figures, isFiguresCommand, isSizeQu
 export type Turn = { route: string | null; await: string | null; lang: Lang | null };
 export type SendResult = { ok: boolean; err?: string };
 export type Content = { sid: string; variables: Record<string, string> };
+export type MenuMeaning = 'greeting' | 'salam' | 'problem' | 'other';
 export type MenuDeps = {
+  /** What this message means to the menu, REASONED (_shared/reasoned_menus.ts menuMeaning); null while held. */
+  meaning(text: string, awaitingProblem: boolean): Promise<MenuMeaning | null>;
   autoreplyEnabled(): Promise<boolean>;
   /** This number's wa_messages rows in the last 24 hours, newest first, excluding the current message. */
   recentTurns(from: string): Promise<Turn[]>;
@@ -96,12 +100,12 @@ async function answerOf(d: MenuDeps, text: string): Promise<string | null> {
 }
 
 async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContext, route: string, lead: string | null,
-                        more: Record<string, unknown> = {}) {
+                        more: Record<string, unknown> = {}, salam = false) {
   const key = contentKey(lang, ctx.audience);
   const sid = await d.contentSid(key);
   // Content body = {{1}} + WELCOME_TAIL, so the text we record is exactly what the list shows.
-  const line = lead ?? greetLine(lang, ctx.audience, ctx.name, isSalam(inp.body));
-  const shown = lead === null ? welcomeText(lang, ctx.audience, ctx.name, isSalam(inp.body)) : line + '\n\n' + WELCOME_TAIL[lang];
+  const line = lead ?? greetLine(lang, ctx.audience, ctx.name, salam);
+  const shown = lead === null ? welcomeText(lang, ctx.audience, ctx.name, salam) : line + '\n\n' + WELCOME_TAIL[lang];
   await reply(d, inp, lang, route, shown, null, { ...more, audience: ctx.audience, content_key: key, content_sid: sid },
     sid ? { sid, variables: { '1': line } } : undefined, menuAsText(lang, ctx.audience, lead === null ? shown : line));
 }
@@ -171,10 +175,15 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
     return { handled: true, route: 'capability_answer' };
   }
 
-  // 1. The message after "Report a problem" is the problem.
-  if (!choice && awaiting === 'problem' && body && !isGreeting(body) && !isMenuWord(body)) {
+  // What the message MEANS to the menu is reasoned, once (menuMeaning); null while held — never a word list.
+  const meaning = !choice && body ? await d.meaning(body, awaiting === 'problem') : null;
+
+  // 1. The message after "Report a problem": reasoned to describe the problem, it is the case. Held, the words are
+  //    kept as the case all the same — a person reads them, nothing is lost and they get a reference; only a
+  //    message REASONED to be a hello or something else is not filed.
+  if (!choice && awaiting === 'problem' && body && (meaning === 'problem' || meaning === null)) {
     const c = await d.openCase(inp.from, body, lang);
-    await reply(d, inp, lang, 'menu_case', caseConfirm(lang, c), null, { case_ref: c.ref, case_appended: !!c.appended });
+    await reply(d, inp, lang, 'menu_case', caseConfirm(lang, c), null, { case_ref: c.ref, case_appended: !!c.appended, meaning: meaning ?? 'held' });
     return { handled: true, route: 'menu_case' };
   }
 
@@ -189,10 +198,10 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
     return { handled: true, route: 'menu_' + choice };
   }
 
-  // 3. An explicit greeting or the word MENU: the welcome, even mid-conversation — they asked for it.
+  // 3. Reasoned to be only a greeting or a request for the menu: the welcome, even mid-conversation — they asked for it.
   //    Anything substantive is NOT taken here; it goes to its own handler first (welcomeFirstContact).
-  if (isGreeting(body) || isMenuWord(body)) {
-    await sendMenu(d, inp, lang, await d.context(inp.from), 'menu_welcome', null);
+  if (meaning === 'greeting' || meaning === 'salam') {
+    await sendMenu(d, inp, lang, await d.context(inp.from), 'menu_welcome', null, { meaning }, meaning === 'salam');
     return { handled: true, route: 'menu_welcome' };
   }
 
