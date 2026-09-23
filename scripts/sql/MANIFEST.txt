@@ -1696,3 +1696,4 @@ scripts/sql/every_seat_reasons_before_it_answers.sql
 scripts/sql/a_trade_without_a_line_reader_is_held_on_its_packs_required_specs.sql
 scripts/sql/a_reasoned_answer_is_applied_by_its_own_surface.sql
 scripts/sql/a_held_question_never_expires_it_is_escalated_at_48_hours.sql
+scripts/sql/youtube_and_linkedin_connect_with_one_link.sql
