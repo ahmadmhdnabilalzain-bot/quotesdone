@@ -1,0 +1,853 @@
+{
+  "trade": "plumbing",
+  "entries": [
+    {
+      "id": "plumbing:ppr-vs-cpvc",
+      "topic": "PPR vs CPVC for hot and cold water supply",
+      "kind": "comparison",
+      "body_en": "PPR (polypropylene random copolymer, made to DIN 8077/8078 and ISO 15874) and CPVC (chlorinated PVC, ASTM D2846/F441 or ISO 15877) are the two dominant plastic pipes for internal hot and cold water in UAE villas and towers. PPR is joined by socket heat fusion: pipe and fitting melt into one piece, so a correctly fused joint has no solvent, no seal and very low leak risk, but it needs a fusion machine, correct heating times and trained fitters. CPVC is joined by solvent cement, which is fast and needs no power, but joint quality depends on cleaning, primer where required, cure time before pressure testing and fitter discipline; cement residue and dry joints are the classic failure. PPR is heavier-walled and sized by outside diameter in millimetres (20, 25, 32...), whereas CPVC is often supplied in CTS/inch sizes, so mixing systems needs adaptors. Both tolerate UAE hot-water temperatures within their ratings; PPR is typically rated around 70 C continuous. Both expand more than metal and need expansion allowances on long hot runs and UV protection outdoors. Choice in practice follows the consultant specification and the Authority approved-materials list, then installer familiarity. A buyer should never let a supplier substitute one for the other without consultant approval, because fittings, test procedures and warranties differ.",
+      "body_ar": "تُعدّ أنابيب البولي بروبلين PPR (وفق DIN 8077/8078 وISO 15874) وأنابيب CPVC (وفق ASTM D2846/F441 أو ISO 15877) الخيارين الأكثر انتشاراً لتمديدات المياه الساخنة والباردة داخل الفلل والأبراج في الدولة. يُوصل الـPPR بالصهر الحراري فيصبح الأنبوب والوصلة قطعة واحدة بلا مادة لاصقة ولا جوان، فتكون احتمالية التسريب منخفضة جداً متى نُفّذ اللحام بالحرارة والزمن الصحيحين وعلى يد فنيين مدرّبين، لكنه يحتاج إلى ماكينة لحام. أما الـCPVC فيُوصل بالغراء اللاصق، وهو أسرع ولا يحتاج كهرباء، لكن جودة الوصلة مرهونة بالتنظيف واستخدام البرايمر عند اللزوم وترك وقت التصلّب الكافي قبل اختبار الضغط؛ والوصلات الجافة أو الزائدة الغراء هي سبب الأعطال المعتاد. يُقاس الـPPR بالقطر الخارجي بالمليمتر (20، 25، 32...) بينما يأتي الـCPVC غالباً بمقاسات الإنش، فيلزم محوّلات عند الخلط. كلاهما يتحمل حرارة المياه في الدولة ضمن تصنيفه، ويُصنّف الـPPR عادةً لنحو 70 درجة مئوية تشغيلاً مستمراً، وكلاهما يتمدد أكثر من المعادن ويحتاج إلى معالجة التمدد وحماية من الأشعة فوق البنفسجية خارجياً. يُحسم الاختيار عملياً وفق مواصفات الاستشاري وقائمة المواد المعتمدة لدى الجهة المختصة. ولا يُقبل من المورّد استبدال أحدهما بالآخر دون موافقة الاستشاري لاختلاف الوصلات وإجراءات الاختبار والضمان.",
+      "required_specs": [],
+      "sources": [
+        "https://www.polytechuae.com/ppr-pipes-range/",
+        "https://www.sam-uk.com/what-is-ppr-pipe-an-in-depth-guide-to-uses-types-standards",
+        "https://swdplastic.com/ten-things-you-must-know-about-plastic-pipes/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:ppr-pn-classes",
+      "topic": "PPR pressure classes PN10, PN16, PN20, PN25 and SDR",
+      "kind": "product",
+      "body_en": "PPR pipe is sold in pressure classes: PN10, PN16, PN20 and PN25 (bar at 20 C over a 50-year design life). The PN is tied to the SDR (outside diameter divided by wall thickness): lower SDR means thicker wall and higher rating. Because plastic loses strength as temperature rises, the PN at 20 C is not the working rating for hot water. The common UAE practice is PN20 (or PN25 / fibre-composite) for hot water and PN16 or PN20 for cold, with PN10 limited to low-pressure cold or irrigation. Multilayer PPR pipes with a glass-fibre or aluminium middle layer (often called PPR-FB/GF or stabi) cut thermal expansion substantially, useful on long exposed hot risers. When quoting, a supplier must state the exact PN or SDR, the diameter series, the material grade (PP-R or PP-RCT), and whether the pipe is plain, fibre or aluminium composite. A red flag is a price comparison where one supplier quotes PN16 against another quoting PN20 for the same hot-water line; the thinner pipe will always look cheaper. Ask for the manufacturer datasheet showing wall thickness per size and the pressure-temperature derating table.",
+      "body_ar": "تُباع أنابيب PPR بفئات ضغط PN10 وPN16 وPN20 وPN25، وهي قيمة الضغط بالبار عند 20 درجة مئوية لعمر تصميمي 50 سنة. وترتبط فئة PN بنسبة SDR (القطر الخارجي مقسوماً على سماكة الجدار)؛ فكلما انخفضت النسبة زادت السماكة وارتفع التصنيف. ولأن البلاستيك يفقد من متانته مع ارتفاع الحرارة، فإن قيمة PN عند 20 درجة ليست هي قدرة التشغيل للمياه الساخنة. الممارسة الشائعة في الدولة استخدام PN20 أو PN25 أو الأنابيب المركّبة بالألياف للمياه الساخنة، وPN16 أو PN20 للمياه الباردة، ويقتصر PN10 على الخطوط الباردة منخفضة الضغط أو الري. أما الأنابيب متعددة الطبقات بطبقة وسطى من الألياف الزجاجية أو الألمنيوم فتقلل التمدد الحراري كثيراً وتفيد في الصواعد الساخنة الطويلة المكشوفة. عند التسعير يجب أن يحدد المورّد فئة PN أو SDR بدقة، وسلسلة الأقطار، ونوع المادة PP-R أو PP-RCT، وهل الأنبوب عادي أو مقوّى بالألياف أو بالألمنيوم. ومن علامات الخطر مقارنة سعر مورّد يعرض PN16 بآخر يعرض PN20 لنفس خط المياه الساخنة؛ فالأنبوب الأرقّ سيبدو دائماً أرخص. اطلب نشرة المصنّع الفنية التي تبيّن سماكة الجدار لكل مقاس وجدول تخفيض الضغط مع الحرارة.",
+      "required_specs": [],
+      "sources": [
+        "https://www.polytechuae.com/ppr-pipes-range/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:pex-a-vs-pex-b",
+      "topic": "PEX-a vs PEX-b vs PEX-c and PEX-AL-PEX",
+      "kind": "comparison",
+      "body_en": "PEX (crosslinked polyethylene) is flexible pipe used for manifold (home-run) water distribution and underfloor heating. The letters describe the crosslinking method, not a quality grade: PEX-a uses peroxide during extrusion (Engel method) and reaches the highest crosslink degree (about 70 percent minimum under ASTM F876); PEX-b uses silane after extrusion (about 65 percent minimum); PEX-c uses electron-beam irradiation. All must meet the same pressure and temperature requirements of ASTM F876/F877 in North America or EN ISO 15875 internationally. Practical differences: PEX-a is the most flexible and allows cold-expansion fittings, and kinks can be repaired with heat; PEX-b is stiffer and normally uses crimp or press fittings. PEX-AL-PEX (multilayer composite) holds its shape when bent and expands less, so it is popular for exposed runs. Oxygen-barrier PEX (EVOH layer) is needed for closed heating loops. A buyer must state PEX type, pipe size and series (SDR), oxygen barrier yes/no, fitting system (expansion, crimp, press, compression) and require that pipe and fittings come from one matched system; mixing brands of press fittings is a common warranty voider.",
+      "body_ar": "أنابيب PEX هي بولي إيثيلين متشابك، مرنة، تُستخدم في التوزيع عبر المجمّعات (المانيفولد) وفي التدفئة تحت الأرضية. والحروف a وb وc تدل على طريقة التشبيك لا على درجة الجودة: فـPEX-a يُشبَّك بالبيروكسيد أثناء البثق ويبلغ أعلى نسبة تشبيك (حد أدنى نحو 70% وفق ASTM F876)، وPEX-b يُشبَّك بالسيلان بعد البثق (حد أدنى نحو 65%)، وPEX-c يُشبَّك بالإشعاع الإلكتروني. وجميعها ملزمة بنفس متطلبات الضغط والحرارة في ASTM F876/F877 أو EN ISO 15875 دولياً. عملياً، الـPEX-a الأكثر مرونة ويقبل وصلات التمدد البارد، ويمكن إصلاح الانثناء فيه بالحرارة، أما الـPEX-b فأكثر صلابة ويُستخدم معه عادةً وصلات الكبس أو البرس. والأنبوب المركّب PEX-AL-PEX يحتفظ بشكله بعد الثني وتمدده أقل، فيُفضَّل في التمديدات المكشوفة. ويلزم أنبوب بحاجز أكسجين (طبقة EVOH) في دوائر التدفئة المغلقة. على المشتري أن يحدد نوع الـPEX والمقاس والسلسلة، ووجود حاجز الأكسجين، ونظام الوصلات (تمدد، كبس، برس، ضغط)، وأن يشترط أن يكون الأنبوب والوصلات من نظام واحد متوافق؛ فخلط وصلات برس من علامات مختلفة يُسقط الضمان غالباً.",
+      "required_specs": [],
+      "sources": [
+        "https://www.viega.us/en/resources/Blog/truth-about-types-of-pex.html",
+        "https://store.astm.org/f0876-23.html"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:hdpe-pe100-sdr",
+      "topic": "HDPE PE80 vs PE100 and SDR/PN for mains and external water",
+      "kind": "product",
+      "body_en": "HDPE pipe is the usual material for buried external water mains, site ring mains, irrigation mains and many pressure drainage lines in the UAE. Grades are PE80 and PE100; the number reflects minimum required strength (MRS 8 or 10 MPa), so PE100 gives the same pressure rating with a thinner wall. HDPE is sized by outside diameter and its pressure class follows SDR: for PE100 at 20 C, SDR11 is PN16, SDR17 is PN10 and SDR 7.4 is PN25. Potable HDPE is normally black with blue stripes or fully blue; black with other stripes may indicate non-potable or other services, so colour coding should match the specification. Jointing is butt fusion for larger sizes and electrofusion for fittings, tappings and repairs; both need certified welders, calibrated machines and weld records. Relevant standards are ISO 4427 / EN 12201 for water pipe. A buyer must specify grade, SDR/PN, diameter range, colour, coil or straight length, potable approval, and jointing method, and should ask whether fittings are moulded or fabricated (fabricated fittings are often de-rated). Suppliers quoting PE80 or higher SDR to win on price is a classic red flag.",
+      "body_ar": "أنابيب HDPE هي المادة المعتادة لخطوط المياه الخارجية المدفونة وحلقات المياه في المواقع وخطوط الري الرئيسية وكثير من خطوط الصرف المضغوط في الدولة. تتوفر بدرجتي PE80 وPE100، والرقم يعبّر عن الحد الأدنى للمتانة المطلوبة (8 أو 10 ميغاباسكال)، لذا يعطي PE100 نفس تصنيف الضغط بجدار أرقّ. يُقاس الأنبوب بالقطر الخارجي ويتبع تصنيف ضغطه نسبة SDR: ففي PE100 عند 20 درجة يقابل SDR11 فئة PN16، وSDR17 فئة PN10، وSDR 7.4 فئة PN25. أنابيب مياه الشرب عادةً سوداء بخطوط زرقاء أو زرقاء بالكامل، وقد تدل الألوان الأخرى على خدمات غير صالحة للشرب، فيجب أن يطابق اللون المواصفات. تُلحم المقاسات الكبيرة باللحام التناكبي، وتُستخدم الوصلات الكهربائية للقطع والتفريعات والإصلاحات، ويحتاج الاثنان إلى لحّامين معتمدين وماكينات معايرة وسجلات لحام. المعايير المرجعية ISO 4427 وEN 12201. على المشتري تحديد الدرجة وSDR/PN ونطاق الأقطار واللون، ولفائف أو أطوال مستقيمة، واعتماد مياه الشرب، وطريقة الوصل، والسؤال عمّا إذا كانت القطع مصبوبة أم مصنّعة يدوياً لأن المصنّعة تُخفَّض قدرتها غالباً. وعرض PE80 أو SDR أعلى للفوز بالسعر علامة خطر معروفة.",
+      "required_specs": [],
+      "sources": [
+        "https://hdpepipefactory.com/blog/hdpe-pipe-size-chart"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:upvc-drainage",
+      "topic": "uPVC drainage and soil pipes: pressure vs non-pressure, above vs below ground",
+      "kind": "product",
+      "body_en": "uPVC is the default material for soil, waste and vent pipework and for buried gravity sewers in UAE buildings. Two families must not be confused. Non-pressure drainage pipe is made for gravity flow: above-ground soil and waste systems (commonly BS EN 1329 or BS 4514/5255 heritage sizes) and below-ground sewer pipe (BS EN 1401, typically in stiffness classes SN4 or SN8). Pressure uPVC (BS EN 1452 / ISO 1452, classed by PN) is for water supply or pumped lines and has thicker walls. Buried pipe under roads or heavy fill usually needs SN8 and proper bedding. Joints are either solvent weld or ring-seal (push-fit rubber ring); ring-seal allows movement and is common below ground. Common sizes are 110 mm for soil stacks and 160/200 mm and above for building drains. In tall buildings, acoustic drainage (mineral-filled PP or HDPE) is increasingly specified where noise matters. Buyers must specify the standard, diameter, stiffness class or PN, joint type, colour, fittings range (access plugs, rodding eyes, traps) and whether the system is from one manufacturer. Substituting thin-wall non-standard pipe on buried runs is a known quality risk.",
+      "body_ar": "يُعدّ الـuPVC المادة الافتراضية لأنابيب الصرف الصحي والمياه الرمادية والتهوية وخطوط المجاري الأرضية بالجاذبية في مباني الدولة. ويجب عدم الخلط بين عائلتين: أنابيب الصرف غير المضغوطة المصممة للتدفق بالجاذبية، ومنها أنظمة الصرف فوق الأرض (غالباً وفق BS EN 1329 أو المقاسات البريطانية القديمة) وأنابيب المجاري تحت الأرض وفق BS EN 1401 بفئات صلابة مثل SN4 أو SN8؛ وأنابيب الضغط وفق BS EN 1452 / ISO 1452 المصنفة بفئة PN وهي لتغذية المياه أو الخطوط المضخوخة وجدرانها أسمك. الأنابيب المدفونة تحت الطرق أو الردم الثقيل تحتاج عادةً فئة SN8 مع فرشة صحيحة. تُوصل إما بالغراء أو بحلقة مطاطية (دفع وتثبيت)، والحلقة المطاطية تسمح بالحركة وشائعة تحت الأرض. المقاسات الشائعة 110 مم للمداخن الرأسية و160/200 مم فأكثر للمصارف الرئيسية. وفي الأبراج يزداد اشتراط أنظمة الصرف العازلة للصوت حيث يهم مستوى الضوضاء. على المشتري تحديد المعيار والقطر وفئة الصلابة أو PN ونوع الوصلة واللون ونطاق القطع (سدادات الكشف، فتحات التسليك، السيفونات) وأن تكون المنظومة من مصنّع واحد. واستبدال أنابيب رقيقة غير مطابقة في الخطوط المدفونة خطر جودة معروف.",
+      "required_specs": [],
+      "sources": [
+        "https://swdplastic.com/ten-things-you-must-know-about-plastic-pipes/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:copper-pipe",
+      "topic": "Copper pipe: Table X/Y/Z (EN 1057) and Type K/L/M (ASTM B88)",
+      "kind": "product",
+      "body_en": "Copper remains in use for high-end residential hot water, medical gas (separate specialist trade), chilled/condensate in some designs, and where fire performance or longevity is valued. British/European copper tube follows BS EN 1057 and was historically described as Table X (general above-ground), Table Y (thicker, suitable for burial, often annealed coils) and Table Z (thin-wall). American tube follows ASTM B88 as Type K (thickest, underground), Type L (general interior and many commercial specs) and Type M (thinnest). Sizes differ between the two families, so fittings are not interchangeable. Joints are capillary soldered (lead-free solder is required for potable water), brazed, compression or press-fit. Copper is sensitive to aggressive water, high velocity (erosion-corrosion) and stray electrical currents; dissimilar metal contact with GI needs dielectric isolation. Copper prices follow the LME metal price closely, so quotes often carry short validity. Buyers must state standard, wall class (Table X or Type L etc.), temper (hard straight lengths or annealed coil), size range, jointing method and insulation requirements.",
+      "body_ar": "لا يزال النحاس مستخدماً في تمديدات المياه الساخنة للمساكن الراقية، وفي بعض تصاميم خطوط التكثيف، وحيث تُقدَّر مقاومة الحريق وطول العمر (أما الغازات الطبية فتخصص مستقل). تتبع الأنابيب البريطانية والأوروبية المعيار BS EN 1057، وكانت تُعرف تاريخياً بجدول X للاستخدام العام فوق الأرض، وجدول Y الأسمك والمناسب للدفن وغالباً لفائف ملدّنة، وجدول Z رقيق الجدار. أما الأمريكية فتتبع ASTM B88 بأنواع K (الأسمك، للدفن) وL (للاستخدام الداخلي العام وكثير من المواصفات التجارية) وM (الأرقّ). والمقاسات تختلف بين العائلتين فلا تتبادل الوصلات. تُوصل بالقصدير الشعري (ويلزم لحام خالٍ من الرصاص لمياه الشرب) أو باللحام بالنحاس أو بوصلات الضغط أو البرس. النحاس حساس للمياه العدوانية والسرعات العالية (التآكل بالتعرية) وللتيارات الكهربائية الشاردة، ويلزم عزل كهربائي عند تلامسه مع الحديد المجلفن. وتتبع أسعاره سعر المعدن في بورصة لندن عن قرب، لذا تكون صلاحية العروض قصيرة. على المشتري تحديد المعيار وفئة الجدار والمعاملة (أطوال صلبة أو لفائف ملدّنة) والمقاسات وطريقة الوصل ومتطلبات العزل.",
+      "required_specs": [],
+      "sources": [
+        "https://swdplastic.com/ten-things-you-must-know-about-plastic-pipes/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:gi-pipe",
+      "topic": "Galvanised iron (GI) and steel pipe in plumbing",
+      "kind": "product",
+      "body_en": "Galvanised steel pipe (commonly called GI) to BS EN 10255 (formerly BS 1387, light/medium/heavy) or ASTM A53 was once standard for water supply but in the UAE is now mostly limited to exposed plant-room headers, pump discharge headers, irrigation risers, fire-fighting (a separate trade, often black steel with red paint) and mechanical rooms. For potable water it has largely been replaced by PPR, CPVC, PEX and copper because the zinc coating is consumed over time, especially with hot water and desalinated water, leading to rust, reduced bore and discoloured water. Threaded joints need proper sealant; grooved couplings are used on larger sizes. Where GI meets copper or stainless steel, dielectric unions prevent galvanic corrosion. A buyer asking for GI should state standard, weight class (medium is the usual default), size, galvanising standard, threaded or grooved ends, and confirm with the consultant that GI is permitted for the intended service. A supplier offering GI for a hot-water domestic network without a design basis should be questioned.",
+      "body_ar": "كانت أنابيب الحديد المجلفن (GI) وفق BS EN 10255 (سابقاً BS 1387 بدرجات خفيف ومتوسط وثقيل) أو ASTM A53 هي المعيار لتغذية المياه، لكنها في الدولة اليوم تقتصر غالباً على مجمّعات غرف المضخات المكشوفة وخطوط طرد المضخات وصواعد الري والغرف الميكانيكية، أما أنظمة الإطفاء فتخصص مستقل وتُستخدم فيها عادةً أنابيب سوداء مطلية بالأحمر. في مياه الشرب حلّ محلّها إلى حد كبير الـPPR والـCPVC والـPEX والنحاس، لأن طبقة الزنك تُستهلك مع الوقت، خاصة مع المياه الساخنة والمياه المحلاة، فيحدث الصدأ وضيق المقطع وتغيّر لون المياه. الوصلات الملولبة تحتاج مانع تسريب مناسب، وتُستخدم الوصلات المحززة في المقاسات الكبيرة. وعند التقاء الحديد المجلفن بالنحاس أو الستانلس ستيل تلزم وصلات عازلة لمنع التآكل الجلفاني. على من يطلب الحديد المجلفن تحديد المعيار ودرجة الوزن (المتوسط هو الافتراضي المعتاد) والمقاس ومعيار الجلفنة ونوع الأطراف ملولبة أو محززة، والتأكد من الاستشاري أن الاستخدام مسموح للخدمة المقصودة. وأي مورّد يعرض حديداً مجلفناً لشبكة مياه ساخنة منزلية دون أساس تصميمي يجب مساءلته.",
+      "required_specs": [],
+      "sources": [
+        "https://swdplastic.com/ten-things-you-must-know-about-plastic-pipes/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:pipe-material-selection",
+      "topic": "Choosing a pipe material by service in UAE buildings",
+      "kind": "comparison",
+      "body_en": "A senior engineer chooses pipe by service, not by habit. Internal cold and hot potable water: PPR (fusion), CPVC (solvent), PEX or PEX-AL-PEX (manifold), or copper for premium work; all must be on the relevant Authority approved list and potable-certified. Hot water returns and long hot risers: fibre or aluminium-stabilised PPR, CPVC, or copper to control expansion. External buried mains and site networks: HDPE PE100 with fusion joints, or ductile iron on large utility-side lines. Soil, waste and vent above ground: uPVC, or acoustic PP/HDPE in quiet buildings; cast iron is sometimes specified for fire or acoustic reasons. Below-ground gravity sewers: uPVC to EN 1401 (SN8 under traffic), GRP or HDPE structured-wall in larger diameters. Pumped drainage and rising mains: HDPE or pressure uPVC. Plant rooms and pump headers: stainless steel, GI, or ductile iron with grooved couplings. Irrigation: HDPE and uPVC. The decisive inputs are temperature, pressure (including pump shut-off head), water chemistry (desalinated water is soft and aggressive to metals), exposure to sun, noise requirements and the consultant specification. Record the selection basis in the RFQ so all suppliers price the same thing.",
+      "body_ar": "يختار المهندس المتمرس نوع الأنبوب حسب الخدمة لا بحكم العادة. للمياه الباردة والساخنة الصالحة للشرب داخل المبنى: PPR بالصهر، أو CPVC بالغراء، أو PEX وPEX-AL-PEX مع المجمّعات، أو النحاس للأعمال الراقية، بشرط أن تكون جميعها ضمن قائمة المواد المعتمدة لدى الجهة المختصة ومعتمدة لمياه الشرب. لخطوط الراجع الساخن والصواعد الساخنة الطويلة: PPR مقوّى بالألياف أو الألمنيوم، أو CPVC، أو النحاس للتحكم في التمدد. للخطوط الخارجية المدفونة وشبكات الموقع: HDPE PE100 بوصلات صهر، أو الحديد الدكتايل في الخطوط الكبيرة. للصرف والتهوية فوق الأرض: uPVC، أو أنظمة PP/HDPE العازلة للصوت في المباني الهادئة، وأحياناً الحديد الزهر لاعتبارات الحريق أو الصوت. للمجاري الأرضية بالجاذبية: uPVC وفق EN 1401 (SN8 تحت مسارات المركبات)، أو GRP أو HDPE مضلّع للأقطار الكبيرة. للصرف المضخوخ: HDPE أو uPVC مضغوط. لغرف المضخات والمجمّعات: ستانلس ستيل أو حديد مجلفن أو دكتايل بوصلات محززة. للري: HDPE وuPVC. المدخلات الحاسمة هي الحرارة والضغط (بما فيه ضغط الإغلاق للمضخة) وكيمياء المياه (المياه المحلاة يسرة وعدوانية للمعادن) والتعرض للشمس ومتطلبات الضوضاء ومواصفات الاستشاري. سجّل أساس الاختيار في طلب التسعير ليُسعّر جميع الموردين نفس الشيء.",
+      "required_specs": [],
+      "sources": [
+        "https://www.polytechuae.com/ppr-pipes-range/",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:spec-pipes-fittings",
+      "topic": "Spec checklist: pipes and fittings supply",
+      "kind": "spec_checklist",
+      "body_en": "To get exact, comparable quotes for pipes and fittings a buyer must fix every variable that moves the price. Material and grade (PPR / PP-RCT, CPVC, PEX-a/b, HDPE PE100, uPVC, copper, GI). Governing standard (for example DIN 8077/8078, ASTM F441, EN ISO 15875, ISO 4427, EN 1401, EN 1057). Pressure class or wall (PN, SDR, SN stiffness, Table/Type). Diameter list with quantities in metres per size, not a lump sum. Fittings schedule: elbows, tees, reducers, unions, valves, transition fittings with counts per size, or at least a fittings allowance percentage stated explicitly. Colour and marking requirements. Potable approval evidence (WRAS or equivalent, Authority approved-materials list for Dubai or Abu Dhabi). Brand or approved equivalent, and country of origin. Packing (lengths, coils) and delivery location, offloading and site access. Required documents: datasheets, test certificates, warranty letter. Delivery lead time and partial delivery schedule. Without per-size quantities and the pressure class the supplier will guess, and quotes cannot be compared line by line.",
+      "body_ar": "للحصول على عروض دقيقة وقابلة للمقارنة لتوريد الأنابيب والقطع، يجب أن يثبّت المشتري كل متغيّر يؤثر في السعر: المادة والدرجة (PPR/PP-RCT، CPVC، PEX-a/b، HDPE PE100، uPVC، نحاس، حديد مجلفن)؛ المعيار الحاكم (مثل DIN 8077/8078 أو ASTM F441 أو EN ISO 15875 أو ISO 4427 أو EN 1401 أو EN 1057)؛ فئة الضغط أو سماكة الجدار (PN أو SDR أو فئة الصلابة SN أو الجدول/النوع)؛ قائمة الأقطار مع الكميات بالمتر لكل مقاس لا مبلغاً إجمالياً؛ جدول القطع من أكواع وتيهات ومسلوبات ويونيونات ومحابس ووصلات انتقالية بعددها لكل مقاس، أو على الأقل نسبة صريحة لبدل القطع؛ متطلبات اللون والوسم؛ إثبات اعتماد مياه الشرب (WRAS أو ما يعادله، وقائمة المواد المعتمدة في دبي أو أبوظبي)؛ العلامة التجارية أو ما يعادلها وبلد المنشأ؛ التعبئة (أطوال أو لفائف) وموقع التسليم والتنزيل وإمكانية الوصول؛ الوثائق المطلوبة من نشرات فنية وشهادات اختبار وخطاب ضمان؛ مدة التوريد وجدول التسليم الجزئي. بدون كميات لكل مقاس وفئة ضغط سيخمّن المورّد، ولن يمكن مقارنة العروض بنداً بنداً.",
+      "required_specs": [
+        "pipe material and grade",
+        "governing standard",
+        "pressure class PN/SDR or stiffness SN or wall class",
+        "diameter list with metres per size",
+        "fittings schedule with counts per size",
+        "colour and marking",
+        "potable approval evidence (WRAS/Authority list)",
+        "brand or approved equivalent and origin",
+        "packing (lengths/coils)",
+        "delivery location and schedule",
+        "required certificates and datasheets"
+      ],
+      "sources": [
+        "https://www.polytechuae.com/ppr-pipes-range/",
+        "https://hdpepipefactory.com/blog/hdpe-pipe-size-chart"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:water-heater-types",
+      "topic": "Water heaters: electric storage vs instantaneous vs solar vs heat pump",
+      "kind": "comparison",
+      "body_en": "Four heater families dominate UAE projects. Electric storage heaters (typically 30 to 100 litres for apartments, larger for villas) heat a tank with an immersion element and thermostat; they are cheap to buy and easy to replace but carry standing heat losses and are covered by the UAE energy-efficiency labelling regime for water heaters. Instantaneous (tankless) electric heaters heat on demand; they need a large electrical load per unit and suit a single basin or kitchen point, not a whole villa. Solar water heaters (flat-plate or evacuated-tube collectors, thermosiphon or pumped, with electric backup) are required on new Dubai buildings that need hot water under the Green Building Regulations, which target a large share of domestic hot water from solar where roof space allows. Heat-pump water heaters extract heat from air and typically use a fraction of the electricity of a resistance heater; they suit villas, hotels and staff accommodation and are allowed as an alternative in some green code paths. Choice depends on authority requirements, roof space, number of draw-off points, simultaneous demand, electrical capacity and lifecycle cost. The buyer must state capacity, heating type, power rating, voltage/phase, orientation (vertical/horizontal), pressure rating, tank lining, and the required efficiency label or certification.",
+      "body_ar": "تهيمن أربع عائلات من السخانات على مشاريع الدولة. السخانات الكهربائية بخزان (عادةً من 30 إلى 100 لتر للشقق وأكبر للفلل) تسخّن الخزان بعنصر غاطس وثرموستات، وهي رخيصة وسهلة الاستبدال لكن فيها فقد حراري مستمر، وتخضع لنظام بطاقة كفاءة الطاقة للسخانات في الدولة. السخانات الفورية بدون خزان تسخّن عند الطلب وتحتاج حملاً كهربائياً كبيراً للوحدة، وتناسب مغسلة واحدة أو مطبخاً لا فيلا كاملة. السخانات الشمسية (ألواح مسطحة أو أنابيب مفرّغة، بالسريان الطبيعي أو بالضخ، مع دعم كهربائي) مطلوبة في المباني الجديدة بدبي التي تحتاج مياهاً ساخنة وفق لوائح المباني الخضراء التي تستهدف تغطية نسبة كبيرة من المياه الساخنة بالطاقة الشمسية متى سمحت مساحة السطح. أما السخانات بالمضخة الحرارية فتستخلص الحرارة من الهواء وتستهلك عادةً جزءاً من كهرباء السخان المقاوم، وتناسب الفلل والفنادق وسكن العمال، وتُقبل بديلاً في بعض مسارات الكود الأخضر. يتحدد الاختيار بمتطلبات الجهة المختصة ومساحة السطح وعدد نقاط السحب والطلب المتزامن والقدرة الكهربائية وتكلفة دورة الحياة. وعلى المشتري تحديد السعة ونوع التسخين والقدرة والجهد والطور والوضع رأسي أو أفقي وتصنيف الضغط وبطانة الخزان وبطاقة الكفاءة أو الشهادة المطلوبة.",
+      "required_specs": [],
+      "sources": [
+        "https://solarthermalworld.org/news/dubai-no-solar-thermal-system-no-building-permit/",
+        "https://www.iea.org/policies/5216-solar-water-heating-regulation",
+        "https://metslab.ae/water-heater-eer-testing-uae-gcc/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:dubai-solar-water-heating-mandate",
+      "topic": "Dubai solar water heating requirement (Green Building Regulations / Al Sa'fat)",
+      "kind": "authority_approval",
+      "body_en": "Dubai has required solar water heating on certain new buildings since March 2012, as part of the green building requirements developed by Dubai Municipality and DEWA and later carried into the Al Sa'fat green building system. The published rule is that new single-owner buildings such as villas, hotels, labour accommodation, malls and public buildings must cover at least 75 percent of their annual domestic hot-water demand with solar energy, provided enough roof space is available; heated swimming pools are expected to take at least half of their heating from solar. Reporting on the rule is explicit that a building permit is not issued unless the solar water-heating design is submitted with the permit documents. Buildings with multiple owners or tenants were reported as exempt from the original obligation, so the exact trigger for any given project should be confirmed against the current Al Sa'fat tier. Supply is controlled too: the scheme relied on a register of licensed suppliers of certified solar water-heating systems, so the buyer should ask whether the supplier and the specific system are on the current register. In practice a Dubai villa or hotel cannot simply switch to electric-only heaters to save money. A proper quote should state the certification of the collector and tank, collector area, tank volume, backup element rating and the solar fraction the design achieves. Retrofits on older villas are not bound in the same way, but products should still be certified and correctly installed with roof fixings suited to wind loads.",
+      "body_ar": "تشترط دبي منذ مارس 2012 تركيب أنظمة تسخين المياه بالطاقة الشمسية في فئات من المباني الجديدة، ضمن متطلبات المباني الخضراء التي وضعتها بلدية دبي مع هيئة كهرباء ومياه دبي ثم انتقلت إلى نظام السعفات. وتنص القاعدة المنشورة على أن المباني الجديدة ذات المالك الواحد، كالفلل والفنادق وسكن العمال والمراكز التجارية والمباني الحكومية، يجب أن تغطي ما لا يقل عن 75% من احتياجها السنوي من المياه الساخنة بالطاقة الشمسية متى توفرت مساحة كافية على السطح، وأن تغطي أحواض السباحة المدفأة نصف احتياجها الحراري على الأقل من الشمس. وتؤكد التقارير أن رخصة البناء لا تصدر ما لم تُقدَّم مخططات نظام التسخين الشمسي مع مستندات الرخصة. وقد أُفيد بأن المباني متعددة الملاك أو المستأجرين كانت مستثناة من الالتزام الأصلي، لذا يجب التحقق من الشرط المنطبق على كل مشروع وفق فئة السعفات الحالية. كما أن التوريد منضبط، إذ اعتمد النظام على سجل للموردين المرخصين لأنظمة التسخين الشمسي المعتمدة، فعلى المشتري أن يسأل هل المورد والنظام بعينه مدرجان في السجل الحالي. وعملياً لا يمكن لفيلا أو فندق في دبي الاكتفاء بسخانات كهربائية لتوفير الكلفة. ويجب أن يبيّن العرض السليم شهادة المجمّع والخزان، ومساحة المجمّعات، وسعة الخزان، وقدرة السخان الاحتياطي، ونسبة التغطية الشمسية التي يحققها التصميم. أما الفلل القديمة عند الاستبدال فلا تخضع للالتزام نفسه، لكن ينبغي أن تكون المنتجات معتمدة ومركّبة تركيباً صحيحاً بتثبيتات سطح تتحمل أحمال الرياح.",
+      "required_specs": [],
+      "sources": [
+        "https://solarthermalworld.org/news/dubai-no-solar-thermal-system-no-building-permit/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:water-heater-energy-label",
+      "topic": "Energy efficiency labelling of water heaters (ESMA/MoIAT, ECAS)",
+      "kind": "standard",
+      "body_en": "Electric water heaters sold in the UAE fall under the national energy-efficiency labelling and conformity regime first set up by the Emirates Authority for Standardisation and Metrology (ESMA), whose functions now sit with the Ministry of Industry and Advanced Technology (MoIAT) under the Emirates Conformity Assessment Scheme (ECAS). Before sale, a model must be tested by an accredited laboratory and registered, and the product must carry the UAE label showing its star rating and energy performance. Testing laboratories describe safety testing to IEC 60335-2-21 and performance and efficiency testing to IEC 60379, with results used to derive the star rating; the label figures shown can include annual consumption and efficiency indicators. The exact capacity range covered and the thresholds for each star class are set in the technical regulation and were not confirmed from a primary text for this pack, so they are not stated here. For procurement: ask the supplier for the ECAS or energy-label registration certificate for the exact model, check that capacity and power on the certificate match the quote, and note the star rating. A heater arriving without the UAE label, or with only a foreign energy label, points to grey-market import and may be refused at handover inspection. Solar and heat-pump heaters are subject to their own certification routes, and in Dubai solar systems are tied to the green-building registration of certified systems. When comparing two quotes, a higher star rating usually costs more up front but reduces standing losses over the heater's life.",
+      "body_ar": "تخضع سخانات المياه الكهربائية المباعة في الدولة لنظام بطاقات كفاءة الطاقة والمطابقة الوطني الذي أسسته هيئة الإمارات للمواصفات والمقاييس، وانتقلت مهامه إلى وزارة الصناعة والتكنولوجيا المتقدمة ضمن نظام الإمارات لتقييم المطابقة. وقبل البيع يجب أن يُختبر الطراز في مختبر معتمد ويُسجَّل، وأن يحمل بطاقة الدولة التي تبيّن تصنيف النجوم والأداء الطاقي. وتذكر المختبرات أن اختبار السلامة يتم وفق IEC 60335-2-21، واختبار الأداء والكفاءة وفق IEC 60379، وتُستخدم النتائج لتحديد عدد النجوم، وقد تتضمن البطاقة الاستهلاك السنوي ومؤشرات الكفاءة. أما نطاق السعات المشمولة وحدود كل فئة نجوم فتحددها اللائحة الفنية ولم نتحقق منها من نص رسمي، لذا لا نذكرها هنا. وفي الشراء: اطلب من المورد شهادة التسجيل أو بطاقة الطاقة للطراز نفسه، وتأكد من تطابق السعة والقدرة في الشهادة مع العرض، ودوّن تصنيف النجوم. ووصول سخان بلا بطاقة الدولة أو ببطاقة أجنبية فقط مؤشر على استيراد موازٍ، وقد يُرفض عند فحص التسليم. ولسخانات الطاقة الشمسية والمضخات الحرارية مسارات اعتماد خاصة بها، وفي دبي ترتبط الأنظمة الشمسية بسجل الأنظمة المعتمدة ضمن متطلبات المباني الخضراء. وعند مقارنة عرضين فإن التصنيف الأعلى يكلف عادة أكثر عند الشراء لكنه يقلل فاقد الحرارة طوال عمر السخان.",
+      "required_specs": [],
+      "sources": [
+        "https://metslab.ae/water-heater-eer-testing-uae-gcc/",
+        "https://cdn.intertek.com/www-intertek-com/dms-legacy/UAE-ECAS-Complete-Manufacturers-Guidance-EESL.pdf",
+        "https://dubaisce.gov.ae/en/taqati/esma/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:spec-water-heater",
+      "topic": "Spec checklist: water heaters",
+      "kind": "spec_checklist",
+      "body_en": "A water heater enquiry is only quotable when the following are fixed. Type (electric storage, instantaneous, solar thermosiphon, solar pumped/split, heat pump, central calorifier). Storage capacity in litres and, for central systems, the number of fixtures, occupants or peak demand. Heating element power (kW), voltage and phase. Mounting: vertical or horizontal, wall or floor, indoor or roof. Working pressure rating of the tank and whether a pressure-reducing valve is needed. Tank material and lining (glass/enamel-lined steel, stainless steel) and anode type. For solar: collector type and area, tank volume, backup heater rating, certification and registration of the system, frame and roof fixing method. For heat pump: heating capacity, COP at stated conditions, refrigerant. Safety accessories: temperature and pressure relief valve, expansion vessel, non-return valve, thermostatic mixing valve for Legionella-safe storage temperature with scald protection at outlets. Required UAE energy label or certificate. Warranty terms separated for tank and components. Installation scope: removal of old unit, connection, electrical isolator, commissioning.",
+      "body_ar": "لا يمكن تسعير طلب سخان مياه إلا بعد تثبيت ما يلي: النوع (كهربائي بخزان، فوري، شمسي بالسريان الطبيعي، شمسي بالضخ أو منفصل، مضخة حرارية، سخان مركزي)؛ سعة التخزين باللتر، وللأنظمة المركزية عدد الأدوات الصحية أو الشاغلين أو الطلب الأقصى؛ قدرة العنصر بالكيلوواط والجهد والطور؛ طريقة التركيب رأسي أو أفقي، جداري أو أرضي، داخلي أو على السطح؛ ضغط التشغيل المقنن للخزان وهل يلزم صمام تخفيض ضغط؛ مادة الخزان وبطانته (فولاذ مبطن بالمينا أو ستانلس ستيل) ونوع الأنود؛ وللأنظمة الشمسية نوع المجمّع ومساحته وسعة الخزان وقدرة السخان الاحتياطي وشهادة النظام وتسجيله وطريقة تثبيت الهيكل على السطح؛ وللمضخة الحرارية القدرة الحرارية ومعامل الأداء عند ظروف محددة ونوع غاز التبريد؛ ملحقات السلامة من صمام تنفيس الحرارة والضغط وخزان التمدد وصمام عدم الرجوع وصمام الخلط الحراري للحفاظ على حرارة تخزين آمنة من الليجيونيلا مع الحماية من الحروق عند المخارج؛ بطاقة الطاقة أو الشهادة المطلوبة في الدولة؛ شروط الضمان مفصولة للخزان وللمكونات؛ ونطاق التركيب من فك القديم والتوصيل وعازل كهربائي والتشغيل التجريبي.",
+      "required_specs": [
+        "heater type",
+        "capacity (litres) or demand basis",
+        "power kW, voltage, phase",
+        "mounting orientation and location",
+        "tank pressure rating",
+        "tank material/lining and anode",
+        "solar: collector type/area, DCL certification",
+        "heat pump: capacity and COP",
+        "safety valves (T&P relief, expansion vessel, TMV)",
+        "UAE energy label/certificate",
+        "warranty split tank vs components",
+        "installation scope"
+      ],
+      "sources": [
+        "https://metslab.ae/water-heater-eer-testing-uae-gcc/",
+        "https://solarthermalworld.org/news/dubai-no-solar-thermal-system-no-building-permit/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:booster-pumps",
+      "topic": "Booster pump sets: fixed speed vs variable speed (VFD) and duty/standby",
+      "kind": "comparison",
+      "body_en": "Most UAE towers and many villas take water from a ground or roof tank and need a booster set to deliver adequate pressure at every floor and fixture. Fixed-speed sets run pumps at full speed controlled by pressure switches and a pressure vessel; they are cheaper but cause pressure swings, frequent starts and wasted energy. Variable-speed sets use a drive (VFD) on each pump to hold a constant set pressure as demand varies; they cost more but save energy, reduce water hammer and extend motor life, and are the norm in modern specifications. Sets are specified as duty/standby (one runs, one waits), or duty/assist/standby for larger demands, with automatic alternation and fault changeover. Vertical multistage pumps in stainless steel are typical. Key design inputs are the peak flow (from loading units or fixture counts), the required pressure at the highest or furthest outlet plus friction losses, and any pressure zoning with PRVs in tall buildings. A buyer must state flow (m3/h or L/s), head (m or bar), number of pumps and arrangement, motor power and supply, materials (pump and manifold), control panel features (dry-run protection, BMS interface), pressure vessel size, and site conditions such as ambient temperature for motor rating.",
+      "body_ar": "تستقي معظم الأبراج وكثير من الفلل في الدولة المياه من خزان أرضي أو علوي وتحتاج إلى مجموعة ضخ تعزيزية لتوفير ضغط كافٍ لكل طابق وأداة صحية. المجموعات ثابتة السرعة تشغّل المضخات بالسرعة الكاملة وتتحكم بها مفاتيح ضغط وخزان ضغط، وهي أرخص لكنها تسبب تذبذب الضغط وكثرة مرات التشغيل وهدر الطاقة. أما المجموعات متغيرة السرعة فتستخدم محوّل تردد لكل مضخة للحفاظ على ضغط ثابت مع تغيّر الطلب، وهي أغلى لكنها توفّر الطاقة وتقلل المطرقة المائية وتطيل عمر المحركات، وأصبحت القاعدة في المواصفات الحديثة. تُحدَّد المجموعات بنظام تشغيل واحدة واحتياط واحدة، أو تشغيل ومساعدة واحتياط للأحمال الأكبر، مع تبديل آلي عند العطل وتناوب التشغيل. والمضخات الرأسية متعددة المراحل من الستانلس ستيل هي الشائعة. المدخلات التصميمية الأساسية: التدفق الأقصى (من وحدات التحميل أو عدد الأدوات)، والضغط المطلوب عند أعلى أو أبعد مخرج مع فواقد الاحتكاك، وتقسيم المناطق بصمامات تخفيض الضغط في الأبراج. على المشتري تحديد التدفق (م3/ساعة أو لتر/ثانية) والرفع (متر أو بار) وعدد المضخات وترتيبها وقدرة المحرك والتغذية الكهربائية والمواد (المضخة والمجمّع) وخصائص لوحة التحكم (الحماية من التشغيل الجاف، الربط مع نظام إدارة المبنى) وحجم خزان الضغط وظروف الموقع مثل حرارة المحيط لتقنين المحرك.",
+      "required_specs": [],
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:spec-pumps",
+      "topic": "Spec checklist: pumps (booster, transfer, sump/sewage)",
+      "kind": "spec_checklist",
+      "body_en": "Pump quotes are meaningless without a duty point. For every pump the buyer must provide: application (domestic booster, transfer from ground tank to roof tank, sump/drainage, sewage lifting, circulation for hot water return, irrigation); liquid (potable, grey water, raw sewage with solids, hot water with temperature); duty flow and total head at the duty point; number of pumps and arrangement (single, duty/standby, duty/assist/standby); pump type (end-suction, vertical multistage, submersible, inline circulator, grinder); materials of casing, impeller and shaft (cast iron, bronze, stainless steel 304/316); motor power, voltage, phase, IP rating and efficiency class (IE2/IE3/IE4); speed control (fixed or VFD); control panel scope (level controls, float switches, alarms, BMS contacts); accessories (pressure vessel, valves, non-return valves, anti-vibration mounts, base frame); for submersibles the solids passage and guide-rail/auto-coupling; site ambient and whether indoor or outdoor; and required approvals, test certificates and warranty. Two quotes with different duty points cannot be compared. For transfer pumps feeding a roof tank, also state the tank levels and the high-level cut-off so the pump stops before overflow; the Abu Dhabi Guide, for example, places the high-level signal at least 50 mm below the roof tank overflow.",
+      "body_ar": "لا معنى لعروض المضخات دون نقطة تشغيل محددة. لكل مضخة يجب أن يقدّم المشتري: الاستخدام (تعزيز منزلي، نقل من خزان أرضي إلى علوي، تصريف بيارات، رفع مياه صرف صحي، تدوير المياه الساخنة الراجعة، ري)؛ نوع السائل (مياه شرب، مياه رمادية، صرف خام بمواد صلبة، مياه ساخنة مع درجة حرارتها)؛ التدفق والرفع الكلي عند نقطة التشغيل؛ عدد المضخات وترتيبها (مفردة، تشغيل واحتياط، تشغيل ومساعدة واحتياط)؛ نوع المضخة (شفط طرفي، رأسية متعددة المراحل، غاطسة، دوارة على الخط، طاحنة)؛ مواد الجسم والدفّاعة والعمود (حديد زهر، برونز، ستانلس 304/316)؛ قدرة المحرك والجهد والطور ودرجة الحماية IP وفئة الكفاءة IE2/IE3/IE4؛ التحكم بالسرعة ثابتة أو محوّل تردد؛ نطاق لوحة التحكم (مفاتيح المستوى، العوامات، الإنذارات، نقاط الربط مع إدارة المبنى)؛ الملحقات (خزان ضغط، محابس، صمامات عدم رجوع، مساند مانعة للاهتزاز، قاعدة)؛ وللمضخات الغاطسة مقاس مرور المواد الصلبة ونظام القضبان والوصلة الآلية؛ حرارة المحيط وهل التركيب داخلي أم خارجي؛ والاعتمادات وشهادات الاختبار والضمان المطلوبة. لا يمكن مقارنة عرضين بنقطتي تشغيل مختلفتين. وفي مضخات النقل التي تغذي خزاناً علوياً، حدّد أيضاً مستويات الخزان ونقطة الإيقاف العليا كي تتوقف المضخة قبل الفائض؛ فدليل أبوظبي مثلاً يضع إشارة المستوى الأعلى على بعد 50 ملم على الأقل تحت أنبوب فائض الخزان العلوي.",
+      "required_specs": [
+        "application",
+        "liquid type and temperature",
+        "duty flow",
+        "total head at duty",
+        "number of pumps and arrangement",
+        "pump type",
+        "materials casing/impeller/shaft",
+        "motor kW, voltage, phase, IP, IE class",
+        "speed control fixed/VFD",
+        "control panel scope",
+        "accessories (vessel, valves, base)",
+        "submersible solids passage/auto-coupling",
+        "site conditions",
+        "certificates and warranty"
+      ],
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:sewage-sump-pumps",
+      "topic": "Submersible drainage, sump and sewage lifting pumps",
+      "kind": "product",
+      "body_en": "Basements, podium car parks, lift pits and low-level toilets in the UAE often cannot drain by gravity, so water is collected in sumps and lifted by submersible pumps. Drainage (dewatering) pumps handle clear or lightly dirty water such as car-park washdown and seepage; they have small solids passage and are not for toilet waste. Sewage pumps have vortex or channel impellers with larger free passage (often quoted as 50 to 80 mm for building sewage) or cutter/grinder impellers that macerate solids so small-diameter rising mains can be used. Compact packaged lifting stations serve a single toilet or basement flat. Good practice includes duty/standby pumps, automatic alternation, high-level alarm, a non-return valve and isolation valve on each discharge, guide-rail and auto-coupling so pumps can be lifted without entering the pit, and a vent. In car parks, oil and sand interceptors are commonly required upstream by the authority. Common failures in the UAE are wet-wipe clogging, float-switch tangling and motor overheating from running dry. Buyers must specify the liquid, solids passage, flow and head, pit dimensions, number of pumps, panel and alarm scope, and cable length to the panel.",
+      "body_ar": "كثيراً ما لا تستطيع السراديب ومواقف البوديوم وحفر المصاعد ودورات المياه المنخفضة في الدولة التصريف بالجاذبية، فتُجمع المياه في بيارات وتُرفع بمضخات غاطسة. مضخات التصريف تتعامل مع المياه الصافية أو قليلة الاتساخ مثل مياه غسيل المواقف والرشح، ومقاس مرور المواد فيها صغير ولا تصلح لمخلفات المراحيض. أما مضخات الصرف الصحي فلها دفّاعات دوامية أو قناتية بمرور حر أكبر (يُذكر غالباً بين 50 و80 مم لصرف المباني) أو دفّاعات قاطعة/طاحنة تفتت المواد الصلبة فتسمح باستخدام خطوط طرد صغيرة القطر. وتخدم محطات الرفع المدمجة مرحاضاً واحداً أو شقة في السرداب. من الممارسة الجيدة: مضختان تشغيل واحتياط مع تناوب آلي، وإنذار مستوى عالٍ، وصمام عدم رجوع ومحبس عزل على كل خط طرد، وقضبان توجيه ووصلة آلية لرفع المضخة دون النزول إلى البيارة، وفتحة تهوية. وفي المواقف تشترط الجهات عادةً مصائد زيوت ورمال قبل البيارة. الأعطال الشائعة في الدولة انسداد المضخات بالمناديل المبللة وتشابك العوامات وسخونة المحركات بسبب التشغيل الجاف. على المشتري تحديد نوع السائل ومرور المواد الصلبة والتدفق والرفع وأبعاد البيارة وعدد المضخات ونطاق اللوحة والإنذار وطول الكابل إلى اللوحة.",
+      "required_specs": [],
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:water-tanks-grp-pe-concrete",
+      "topic": "Water storage tanks: GRP sectional vs PE (polyethylene) vs concrete vs steel",
+      "kind": "comparison",
+      "body_en": "Almost every UAE building stores water because supply pressure and continuity vary. GRP (glass-reinforced plastic) sectional panel tanks are bolted together from moulded panels, typically 1 m x 1 m modules, so almost any capacity and footprint can be built on site on roofs or in plant rooms; they need a level base or steel channels, internal stays, sealants that are potable-approved, insulation panels in hot climates, and access ladders and manholes. Polyethylene (PE) one-piece rotomoulded tanks are cheap and quick for villas, commonly from a few hundred to several thousand gallons; they should be food-grade, UV-stabilised and preferably multi-layer insulated to limit heat gain and algae. Reinforced concrete tanks (often underground) are built into the structure and need potable-safe internal coatings or GRP lining. Steel sectional tanks (hot-dip galvanised or stainless) are used where strength or fire-water combination is required. Authorities expect potable tank materials to meet WRAS or equivalent, and the Abu Dhabi water regulations specify air gaps, overflow and backflow arrangements. Buyers must specify capacity (and in gallons or m3 unambiguously), dimensions/footprint limits, material, insulation, number of compartments, fittings (inlet float valve, overflow, drain, vent, level indicator), location and delivery/access constraints.",
+      "body_ar": "تكاد جميع مباني الدولة تخزّن المياه لتفاوت ضغط الإمداد واستمراريته. خزانات الفايبرجلاس GRP المقطعية تُجمّع بالمسامير من ألواح مصبوبة، عادةً وحدات 1×1 متر، فيمكن بناء أي سعة ومساحة تقريباً في الموقع على الأسطح أو في غرف المعدات، وتحتاج قاعدة مستوية أو مجاري حديدية، ودعامات داخلية، ومواد إحكام معتمدة لمياه الشرب، وألواحاً معزولة في المناخ الحار، وسلالم وفتحات تفتيش. خزانات البولي إيثيلين PE المصبوبة قطعة واحدة رخيصة وسريعة للفلل، وتتراوح عادةً من بضع مئات إلى عدة آلاف من الغالونات، ويجب أن تكون صالحة للأغذية ومقاومة للأشعة فوق البنفسجية ويفضَّل أن تكون متعددة الطبقات معزولة للحد من اكتساب الحرارة ونمو الطحالب. الخزانات الخرسانية المسلحة (غالباً أرضية) تُبنى ضمن الهيكل وتحتاج دهانات داخلية آمنة لمياه الشرب أو تبطيناً بالفايبرجلاس. والخزانات الفولاذية المقطعية (مجلفنة بالغمس الساخن أو ستانلس) تُستخدم حيث تلزم المتانة أو الدمج مع مياه الإطفاء. تتوقع الجهات أن تطابق مواد خزانات الشرب WRAS أو ما يعادله، وتحدد لوائح المياه في أبوظبي فجوات الهواء وترتيبات الفائض ومنع الارتداد. على المشتري تحديد السعة (بالغالون أو المتر المكعب دون لبس) وحدود الأبعاد، والمادة، والعزل، وعدد الأقسام، والتجهيزات (عوامة الدخول، الفائض، التصريف، التهوية، مؤشر المستوى)، والموقع وقيود التوريد والوصول.",
+      "required_specs": [],
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf",
+        "https://aljilanigrc.com/grp-lining-for-water-tank/",
+        "https://lionyardtrading.ae/compliance",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:tank-gallon-units",
+      "topic": "Imperial vs US gallons in UAE tank sizing",
+      "kind": "buyer_mistake",
+      "body_en": "Water tanks in the UAE market are very often sold in gallons, and this is a frequent source of mis-quoting. An imperial gallon is about 4.546 litres while a US gallon is about 3.785 litres, a difference of roughly 20 percent. Local tank traders commonly mean imperial gallons (the long-standing UK convention in the Gulf), but imported products and some catalogues use US gallons. A 1,000-gallon tank could therefore hold about 4,546 or 3,785 litres depending on the convention. Nominal capacity can also be gross volume to the brim rather than usable volume below the overflow. To avoid disputes, the RFQ should state required usable capacity in litres or cubic metres, and ask the supplier to confirm gross and effective capacity and which gallon they mean. For GRP sectional tanks, capacity follows from internal dimensions (length x width x height in metres = m3), so ask for the panel layout and effective water height. Comparing a quote in US gallons against another in imperial gallons without converting is a classic buyer mistake that makes the smaller tank look cheaper.",
+      "body_ar": "تُباع خزانات المياه في سوق الدولة كثيراً بالغالون، وهذا مصدر متكرر للخطأ في التسعير. فالغالون الإمبراطوري نحو 4.546 لتر، بينما الغالون الأمريكي نحو 3.785 لتر، أي بفارق يقارب 20%. يقصد تجار الخزانات المحليون عادةً الغالون الإمبراطوري (العرف البريطاني الراسخ في الخليج)، لكن بعض المنتجات المستوردة والكتالوجات تستخدم الغالون الأمريكي. فالخزان بسعة 1000 غالون قد يسع نحو 4546 لتراً أو 3785 لتراً حسب العرف المستخدم. كما قد تكون السعة الاسمية هي الحجم الإجمالي حتى الحافة لا الحجم الفعلي تحت مستوى الفائض. ولتجنب النزاعات يجب أن يذكر طلب التسعير السعة الفعلية المطلوبة باللتر أو المتر المكعب، وأن يُطلب من المورّد تأكيد السعة الإجمالية والفعلية وأي غالون يقصد. وفي خزانات الفايبرجلاس المقطعية تُحسب السعة من الأبعاد الداخلية (الطول × العرض × الارتفاع بالمتر = متر مكعب)، فاطلب مخطط الألواح وارتفاع المياه الفعلي. ومقارنة عرض بالغالون الأمريكي بآخر بالإمبراطوري دون تحويل خطأ شائع يجعل الخزان الأصغر يبدو أرخص.",
+      "required_specs": [],
+      "sources": [
+        "https://lionyardtrading.ae/compliance",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:tank-cleaning-dm",
+      "topic": "Water tank cleaning and disinfection rules (Dubai Municipality)",
+      "kind": "authority_approval",
+      "body_en": "Potable water tanks in UAE buildings must be kept clean because the building owner, not the utility, is responsible for water quality once it passes the meter. In Dubai, industry guidance summarising Dubai Municipality requirements describes cleaning and disinfection at least every six months for residential and commercial properties, with quarterly cleaning for higher-risk premises such as schools and healthcare facilities. The same guidance cites a Dubai Municipality technical guideline on drinking-water tanks (reported as issued in September 2024) and states that the work must be done by licensed operators holding a Municipality permit for tank cleaning, a trade licence for the activity, public-health registration and staff trained in confined-space entry and approved disinfection methods; fines for non-compliance are reported to be substantial. These details come from service-provider summaries rather than the Municipality text itself, so confidence is medium and the current circular should be checked. In Abu Dhabi, the DoE Water Supply Regulations 2024 make the responsible person carry out regular tank inspections and clean tanks when necessary according to the procedures in the companion Guide and its referenced code of practice for inspection and cleaning of customer water tanks. For buyers of maintenance contracts: ask for the company's permit and licence, the visit frequency, the method (drain, scrub, disinfect, flush, test), who supplies chemicals, whether water sampling and laboratory reports are included, and whether pipework disinfection is in scope. Very cheap contracts often cut frequency or exclude testing.",
+      "body_ar": "يجب الحفاظ على نظافة خزانات مياه الشرب في المباني لأن مالك المبنى، لا شركة التوزيع، هو المسؤول عن جودة المياه بعد العداد. وفي دبي تشير الإرشادات المتداولة لدى القطاع، التي تلخص متطلبات بلدية دبي، إلى تنظيف الخزانات وتعقيمها مرة كل ستة أشهر على الأقل للعقارات السكنية والتجارية، وكل ثلاثة أشهر للمنشآت الأعلى خطورة كالمدارس والمنشآت الصحية. وتستند هذه الإرشادات إلى دليل فني لبلدية دبي بشأن خزانات مياه الشرب يُذكر أنه صدر في سبتمبر 2024، وتنص على أن العمل يُنفَّذ بواسطة مشغلين مرخصين يحملون تصريح البلدية لتنظيف الخزانات ورخصة تجارية للنشاط وتسجيلاً صحياً، مع عمال مدربين على دخول الأماكن المحصورة وطرق التعقيم المعتمدة، ويُذكر أن غرامات المخالفة كبيرة. وهذه التفاصيل مأخوذة من ملخصات مقدمي الخدمة لا من نص البلدية نفسه، لذا فالثقة متوسطة ويجب مراجعة التعميم الساري. وفي أبوظبي تُلزم لوائح إمداد المياه 2024 الصادرة عن دائرة الطاقة الشخص المسؤول بإجراء فحوص دورية للخزانات وتنظيفها عند الحاجة وفق إجراءات الدليل المرافق ومدونة الممارسة لفحص وتنظيف خزانات العملاء. وعند شراء عقد الصيانة: اطلب تصريح الشركة ورخصتها، وعدد الزيارات، والطريقة (تفريغ، فرك، تعقيم، شطف، فحص)، ومن يوفر المواد الكيميائية، وهل تشمل الخدمة أخذ العينات وتقارير المختبر، وهل تعقيم الأنابيب ضمن النطاق. والعقود الرخيصة جداً كثيراً ما تقلل عدد الزيارات أو تستثني الفحوص.",
+      "required_specs": [],
+      "sources": [
+        "https://greenhorizondubai.com/dubai-municipality-water-tank-cleaning-complete-procedure-approved-companies/",
+        "https://thekleeners.com/water-tank-cleaning-regulations-in-dubai-2026-guide/",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:spec-water-tank",
+      "topic": "Spec checklist: water storage tanks",
+      "kind": "spec_checklist",
+      "body_en": "To quote a tank exactly, the buyer must state: service (potable domestic, fire reserve, combined, irrigation, grey water, hot water); required effective capacity in litres or m3 (and if gallons, which gallon); material (GRP sectional, PE one-piece, steel sectional, concrete with lining); maximum footprint and height and the access route for delivery (lift size, stair, crane); location (roof, ground, underground, indoor plant room) and base type; insulation requirement (insulated GRP panels, multi-layer PE) given UAE heat; number of compartments and partition for cleaning without shutdown; connections: inlet size with float valve, outlet(s), overflow with air gap, drain, vent with insect screen; internal/external ladder, manhole size and lockable cover; level indicator or level transmitter for BMS; potable certification (WRAS or equivalent) and Authority approval; installation, leak test and disinfection before handover; warranty period on panels and sealants. For replacement jobs add dismantling and disposal of the old tank. In Abu Dhabi, also require the tank nameplate details the DoE Guide lists (capacity, manufacturer, date and potable approval) and access covers that are elevated, lockable and gasketed.",
+      "body_ar": "لتسعير خزان بدقة يجب أن يحدد المشتري: الخدمة (مياه شرب منزلية، احتياطي حريق، مشترك، ري، مياه رمادية، مياه ساخنة)؛ السعة الفعلية المطلوبة باللتر أو المتر المكعب (وإن كانت بالغالون فأي غالون)؛ المادة (فايبرجلاس مقطعي، بولي إيثيلين قطعة واحدة، فولاذ مقطعي، خرسانة مبطنة)؛ أقصى مساحة وارتفاع مسموحين ومسار الوصول للتوريد (مقاس المصعد، الدرج، الرافعة)؛ الموقع (سطح، أرضي، مدفون، غرفة معدات داخلية) ونوع القاعدة؛ متطلبات العزل (ألواح فايبرجلاس معزولة أو بولي إيثيلين متعدد الطبقات) نظراً لحرارة الدولة؛ عدد الأقسام والفاصل للتنظيف دون إيقاف الإمداد؛ التوصيلات: مقاس الدخول مع العوامة، المخارج، الفائض مع فجوة هوائية، التصريف، التهوية مع شبك مانع للحشرات؛ السلالم الداخلية والخارجية ومقاس فتحة التفتيش وغطاء قابل للقفل؛ مؤشر المستوى أو محوّل مستوى للربط مع إدارة المبنى؛ اعتماد مياه الشرب (WRAS أو ما يعادله) وموافقة الجهة المختصة؛ التركيب واختبار التسريب والتعقيم قبل التسليم؛ ومدة الضمان على الألواح ومواد الإحكام. وفي أعمال الاستبدال يُضاف فك الخزان القديم والتخلص منه. وفي أبوظبي اشترط أيضاً بيانات لوحة الخزان التي يوردها دليل دائرة الطاقة (السعة والمصنّع وتاريخ التصنيع واعتماد مياه الشرب)، وأغطية فتحات مرتفعة قابلة للقفل ومزودة بحشوات.",
+      "required_specs": [
+        "service/use",
+        "effective capacity in litres or m3 (gallon type if used)",
+        "material",
+        "footprint and height limits",
+        "delivery access route",
+        "location and base",
+        "insulation",
+        "number of compartments",
+        "connections (inlet float valve, outlet, overflow, drain, vent)",
+        "ladders and manhole",
+        "level indication",
+        "potable certification and authority approval",
+        "installation, leak test and disinfection",
+        "warranty",
+        "removal of old tank (if replacement)"
+      ],
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf",
+        "https://aljilanigrc.com/grp-lining-for-water-tank/",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:sanitaryware-materials",
+      "topic": "Sanitaryware materials: vitreous china vs fireclay vs acrylic vs solid surface vs steel",
+      "kind": "comparison",
+      "body_en": "Vitreous china is the standard ceramic for WCs, basins and bidets: a clay body fired at high temperature to very low water absorption, glazed for hygiene; it is strong enough for most pieces but large items can warp in firing. Fireclay is a thicker, heavier ceramic body with glaze, used for large sinks, kitchen and laboratory sinks and big basins because it holds shape at large sizes; it is heavier to install and costlier. Acrylic (often glass-fibre reinforced) is the usual bathtub and shower-tray material: light, warm to touch, repairable, but scratches more easily and needs a rigid support frame. Enamelled steel and cast iron baths are harder and more durable but heavy and cold. Solid surface and cast-mineral (resin-stone) are used for designer basins, counters and freestanding tubs, can be seamless and repaired by sanding, but must be matched to heat and chemical exposure. Stainless steel dominates kitchen sinks and heavy-use public washrooms. UAE sanitary appliances fall under GSO/UAE technical regulations for sanitary appliances (check the applicable standard with the consultant), and projects in Dubai may require listing on Municipality approved materials. Buyers must name material, dimensions, mounting and colour, since white vs coloured and glaze options change price.",
+      "body_ar": "الخزف الزجاجي (فيتريوس تشاينا) هو السيراميك القياسي للمراحيض والمغاسل والشطافات: جسم طيني يُحرق بحرارة عالية حتى يصبح امتصاصه للماء منخفضاً جداً ويُزجّج للنظافة، وهو متين لمعظم القطع لكن القطع الكبيرة قد تتشوه أثناء الحرق. أما الفايركلاي فجسم سيراميكي أسمك وأثقل مزجّج، يُستخدم في الأحواض الكبيرة وأحواض المطابخ والمختبرات والمغاسل الكبيرة لأنه يحافظ على شكله بالأحجام الكبيرة، لكنه أثقل في التركيب وأغلى. الأكريليك (غالباً مقوّى بالألياف الزجاجية) هو المادة المعتادة لأحواض الاستحمام وقواعد الدش: خفيف ودافئ الملمس وقابل للإصلاح لكنه أسهل خدشاً ويحتاج هيكل دعم صلباً. وأحواض الفولاذ المطلي بالمينا والحديد الزهر أصلب وأدوم لكنها ثقيلة وباردة. والأسطح الصلبة والحجر الصناعي من الراتنج تُستخدم للمغاسل التصميمية والكاونترات والأحواض القائمة، ويمكن أن تكون بلا فواصل وتُصلح بالصنفرة، لكن يجب مراعاة تعرضها للحرارة والمواد الكيميائية. ويهيمن الستانلس ستيل على أحواض المطابخ ودورات المياه العامة كثيفة الاستخدام. تخضع الأدوات الصحية في الدولة للوائح الخليجية والإماراتية الخاصة بالأدوات الصحية (يُتحقق من المواصفة المنطبقة مع الاستشاري)، وقد تشترط مشاريع دبي إدراج المنتج في قائمة مواد البلدية المعتمدة. على المشتري تحديد المادة والأبعاد وطريقة التركيب واللون، لأن الأبيض مقابل الملوّن وخيارات التزجيج تغيّر السعر.",
+      "required_specs": [],
+      "sources": [
+        "https://www.yidabath.com/bathroom-fixtures-supplier-uae-contractor-guide/",
+        "https://yasutrading.com/blog/bathroom-fittings-uae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:wc-types-flushing",
+      "topic": "WC types: wall-hung with concealed cistern vs floor-mounted close-coupled vs flush valve",
+      "kind": "comparison",
+      "body_en": "Floor-mounted close-coupled WCs (pan and cistern bolted together) are the cheapest and simplest to install and maintain; outlet type matters: P-trap (horizontal to wall) or S-trap (to floor), and for S-trap the set-out distance from wall to outlet centre (the rough-in) must be stated. Wall-hung WCs mount on a steel concealed frame with an in-wall cistern; they save floor space, ease cleaning and look premium, but the frame, cistern and flush plate are a separate package, and wall build-up depth and structural fixing must be planned. Back-to-wall pans with concealed cisterns sit in between. Flushometer (direct flush valve) systems are used in high-traffic public toilets and need adequate pipe size and pressure. Dual-flush cisterns (commonly around 6/3 or 4.5/3 litres) are normal under UAE water-efficiency expectations. Rimless pans reduce hidden soiling. Integrated bidet-shattaf options, a spray hose (shattaf) with stop valve, are almost universal in UAE bathrooms and must be counted as separate items. Buyers should specify type, outlet (P or S and set-out), flush volumes, cistern type, frame and flush-plate model, seat (soft-close, quick-release), shattaf and angle valves.",
+      "body_ar": "المراحيض الأرضية المتصلة بالخزان هي الأرخص والأبسط في التركيب والصيانة، ويهم فيها نوع المخرج: مخرج أفقي إلى الجدار (P-trap) أو رأسي إلى الأرض (S-trap)، ومع المخرج الأرضي يجب تحديد المسافة من الجدار إلى مركز المخرج. أما المراحيض المعلقة فتُركّب على هيكل فولاذي مخفي مع خزان داخل الجدار، فتوفر مساحة الأرضية وتسهّل التنظيف وتبدو فاخرة، لكن الهيكل والخزان ولوحة الدفق تُورّد كحزمة منفصلة، ويجب التخطيط لعمق الجدار والتثبيت الإنشائي. والمراحيض الملاصقة للجدار مع خزان مخفي حل وسط بينهما. وتُستخدم صمامات الدفق المباشر في دورات المياه العامة كثيفة الاستخدام وتحتاج مقاس أنابيب وضغطاً كافيين. والخزانات مزدوجة الدفق (عادةً نحو 6/3 أو 4.5/3 لترات) هي المعتاد وفق توقعات كفاءة المياه في الدولة. والمراحيض بدون حافة تقلل الاتساخ المخفي. أما الشطاف مع محبس الإيقاف فهو شبه عام في حمامات الدولة ويجب احتسابه بنداً مستقلاً. على المشتري تحديد النوع والمخرج (P أو S والمسافة) وأحجام الدفق ونوع الخزان وطراز الهيكل ولوحة الدفق والمقعد (إغلاق هادئ، فك سريع) والشطاف والمحابس الزاوية.",
+      "required_specs": [],
+      "sources": [
+        "https://www.yidabath.com/bathroom-fixtures-supplier-uae-contractor-guide/",
+        "https://gulfnews.com/uae/environment/low-water-flow-in-new-buildings-to-save-60-water-1.1460636"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:mixers-cartridges-thermostatic",
+      "topic": "Taps and mixers: ceramic cartridge, single-lever vs thermostatic, exposed vs concealed",
+      "kind": "comparison",
+      "body_en": "Modern taps use ceramic disc cartridges that shear water flow with polished ceramic plates; they are durable and drip-free compared with old rubber-washer valves, and cartridge size (commonly 35 or 40 mm in single-lever mixers) affects smoothness and spare availability. Single-lever mixers blend hot and cold manually. Thermostatic mixers hold a set outlet temperature even when supply pressure or temperature changes, which gives scald protection; they are strongly preferred in showers, hotels, hospitals, schools and elderly care, and wherever hot water is stored hot enough to control Legionella. Concealed (built-in) shower valves have a universal in-wall body installed during first fix and a trim kit fitted later; the body and trim must be from the same system, and the wall depth must suit. Exposed mixers are easier to service. Body material matters: lead-free brass (DZR, dezincification-resistant, in hard or desalinated water conditions) is the quality benchmark; zinc-alloy bodies are cheaper and corrode faster. Finishes (chrome, brushed nickel, black, PVD) differ in durability; PVD is more wear-resistant than paint. Flow rate and aerators determine water-efficiency label rating. Buyers must specify type, mounting, body material, cartridge type, finish, flow rate, and whether the concealed body is included.",
+      "body_ar": "تعتمد الخلاطات الحديثة على خرطوشة بأقراص سيراميكية مصقولة تتحكم في التدفق، وهي أدوم ولا تقطر مقارنةً بالمحابس القديمة ذات الجلدة المطاطية، ويؤثر مقاس الخرطوشة (عادةً 35 أو 40 مم في الخلاط ذي الذراع الواحدة) على نعومة الاستخدام وتوفر قطع الغيار. خلاط الذراع الواحدة يمزج الحار والبارد يدوياً، أما الخلاط الثرموستاتي فيثبّت حرارة المخرج المضبوطة حتى مع تغيّر ضغط أو حرارة التغذية، فيحمي من الحروق، ويُفضَّل بقوة في الدش والفنادق والمستشفيات والمدارس ورعاية كبار السن، وحيثما تُخزّن المياه ساخنة بما يكفي للسيطرة على الليجيونيلا. خلاطات الدش المخفية لها جسم داخل الجدار يُركّب في المرحلة الأولى وطقم خارجي يُركّب لاحقاً، ويجب أن يكونا من النظام نفسه وأن يناسب عمق الجدار. والخلاطات المكشوفة أسهل صيانة. مادة الجسم مهمة: النحاس الخالي من الرصاص والمقاوم لنزع الزنك هو معيار الجودة في ظروف المياه العسرة أو المحلاة، بينما أجسام سبائك الزنك أرخص وأسرع تآكلاً. وتختلف التشطيبات (كروم، نيكل مصقول، أسود، PVD) في المتانة، وتشطيب PVD أقوى من الطلاء. ويحدد معدل التدفق والمهوّي تصنيف بطاقة كفاءة المياه. على المشتري تحديد النوع والتركيب ومادة الجسم ونوع الخرطوشة والتشطيب ومعدل التدفق وهل يشمل العرض الجسم المخفي.",
+      "required_specs": [],
+      "sources": [
+        "https://www.yidabath.com/bathroom-fixtures-supplier-uae-contractor-guide/",
+        "https://gulfnews.com/uae/environment/low-water-flow-in-new-buildings-to-save-60-water-1.1460636"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:water-efficiency-label",
+      "topic": "UAE water efficiency labelling of fixtures (ESMA/MoIAT, Dubai WELS)",
+      "kind": "standard",
+      "body_en": "The UAE runs a mandatory Water Efficiency Label for water fixtures, set up by the Emirates Authority for Standardisation and Metrology (ESMA), whose conformity functions now sit with MoIAT. Taps, showerheads, flush cisterns and similar fixtures are tested for flow rate or flush volume and graded, and every fixture on the market must carry the certified label. The rollout was staged: manufacturers and importers had to stop producing or importing non-compliant fixtures by mid-2015, existing non-compliant stock had to be cleared by the end of 2015, and full enforcement started on 1 January 2016. At launch, ESMA contrasted ordinary fixtures averaging around 12 litres per minute with labelled fixtures averaging up to about 5 litres per minute, roughly a 60 percent cut in water use; the scheme was justified by UAE residential consumption of around 550 litres per person per day, far above international averages. Green-building codes such as Dubai Al Sa'fat and Abu Dhabi Estidama set maximum flow rates for new buildings that may be stricter than the minimum label. Procurement implications: ask for the UAE water-efficiency certificate for the exact model and the flow rate at test pressure; a foreign WaterSense or WELS label alone is not enough; check that the consultant's green-code flow limits are met by the specific aerator or flow regulator fitted. The star thresholds themselves are defined in the technical regulation and should be read from the certificate rather than assumed.",
+      "body_ar": "تطبق الدولة بطاقة كفاءة المياه الإلزامية للأدوات الصحية، التي أطلقتها هيئة الإمارات للمواصفات والمقاييس وانتقلت مهام المطابقة فيها إلى وزارة الصناعة والتكنولوجيا المتقدمة. وتُختبر الحنفيات ورؤوس الدش وصناديق الطرد ونحوها من حيث معدل التدفق أو حجم الطرد وتُصنَّف، ويجب أن تحمل كل أداة في السوق البطاقة المعتمدة. وقد طُبّق النظام على مراحل: توقف المصنعون والمستوردون عن إنتاج أو استيراد الأدوات غير المطابقة بحلول منتصف 2015، وصُرف المخزون غير المطابق حتى نهاية 2015، وبدأ التطبيق الكامل في 1 يناير 2016. وعند الإطلاق قارنت الهيئة بين أدوات عادية بمتوسط تدفق نحو 12 لتراً في الدقيقة وأدوات حاصلة على البطاقة بمتوسط يصل إلى نحو 5 لترات في الدقيقة، أي خفض يقارب 60% في الاستهلاك، وبُرّر النظام بأن استهلاك الفرد السكني في الدولة يقارب 550 لتراً يومياً، وهو أعلى كثيراً من المتوسطات العالمية. وتضع أكواد المباني الخضراء مثل السعفات في دبي واستدامة في أبوظبي حدوداً قصوى للتدفق في المباني الجديدة قد تكون أشد من الحد الأدنى للبطاقة. وفي الشراء: اطلب شهادة كفاءة المياه للطراز نفسه ومعدل التدفق عند ضغط الاختبار؛ ولا تكفي بطاقة أجنبية مثل WaterSense أو WELS وحدها؛ وتحقق من أن المهوّي أو منظم التدفق المركّب يحقق حدود الاستشاري. أما حدود النجوم فتحددها اللائحة الفنية وتُقرأ من الشهادة لا بالافتراض.",
+      "required_specs": [],
+      "sources": [
+        "https://gulfnews.com/uae/environment/low-water-flow-in-new-buildings-to-save-60-water-1.1460636"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:spec-sanitaryware",
+      "topic": "Spec checklist: sanitaryware and mixers",
+      "kind": "spec_checklist",
+      "body_en": "Sanitaryware quotes differ mostly because scope is vague. Fix these items per bathroom type and multiply by quantity: WC type (floor close-coupled, wall-hung, back-to-wall), outlet P or S and set-out, flush volumes, cistern/frame/flush plate model, seat type; basin type (counter-top, under-counter, pedestal, semi-pedestal, wall-hung) and size, overflow yes/no, waste and bottle trap finish; shower: mixer type (single-lever or thermostatic), exposed or concealed with body included, head size, hand shower, rail, drain type (point drain or linear channel and length); bathtub material and size, freestanding or built-in, waste/overflow; shattaf with angle valve; kitchen sink material, bowls and tap; accessories (towel rails, paper holders, mirrors) only if in scope; finish across all brassware; brand or approved equivalent and origin; UAE water-efficiency label; colour; delivery per floor or unit; installation included or supply only; warranty (ceramics often long, cartridges and finishes shorter). A schedule by room type with counts is the minimum a supplier needs.",
+      "body_ar": "تختلف عروض الأدوات الصحية غالباً بسبب غموض النطاق. ثبّت البنود التالية لكل نوع حمام واضربها في الكمية: نوع المرحاض (أرضي متصل، معلق، ملاصق للجدار) والمخرج P أو S والمسافة وأحجام الدفق وطراز الخزان والهيكل ولوحة الدفق ونوع المقعد؛ نوع المغسلة (فوق الكاونتر، تحت الكاونتر، بعمود، بنصف عمود، معلقة) ومقاسها ووجود فتحة فائض وتشطيب الصرف والسيفون؛ الدش: نوع الخلاط (ذراع واحدة أو ثرموستاتي)، مكشوف أو مخفي مع شمول الجسم، مقاس الرأس، الدش اليدوي، القضيب، نوع التصريف (نقطي أو قناة خطية وطولها)؛ مادة حوض الاستحمام ومقاسه، قائم أو مدمج، مع الصرف والفائض؛ الشطاف مع المحبس الزاوي؛ حوض المطبخ ومادته وعدد أحواضه والخلاط؛ الإكسسوارات (حاملات المناشف والورق والمرايا) إن كانت ضمن النطاق؛ التشطيب الموحد لكل الأدوات النحاسية؛ العلامة أو ما يعادلها وبلد المنشأ؛ بطاقة كفاءة المياه الإماراتية؛ اللون؛ التسليم لكل طابق أو وحدة؛ هل يشمل التركيب أم توريد فقط؛ والضمان (طويل غالباً للسيراميك وأقصر للخراطيش والتشطيبات). وجدول حسب نوع الغرفة مع الأعداد هو الحد الأدنى الذي يحتاجه المورّد.",
+      "required_specs": [
+        "schedule by room type with counts",
+        "WC type, outlet P/S and set-out, flush volumes",
+        "cistern/frame/flush plate",
+        "basin type and size",
+        "shower mixer type, exposed/concealed incl. body",
+        "drain type",
+        "bathtub material/size",
+        "shattaf and angle valves",
+        "kitchen sink and tap",
+        "finish",
+        "brand or equivalent and origin",
+        "UAE water efficiency label",
+        "supply only or supply and install",
+        "warranty"
+      ],
+      "sources": [
+        "https://www.yidabath.com/bathroom-fixtures-supplier-uae-contractor-guide/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:water-filtration",
+      "topic": "Water filtration: sediment, carbon, UV and reverse osmosis (RO)",
+      "kind": "comparison",
+      "body_en": "UAE mains water is largely desalinated and treated to drinking standards at the utility, but it can pick up sediment, rust or bacterial growth in building tanks and pipes, and chlorine taste. Filtration is therefore chosen by the problem. Sediment filters (spun or pleated cartridges rated in microns, for example 5 to 50 micron) catch sand and rust, often as whole-house point-of-entry units after the tank. Activated carbon (granular or block) removes chlorine taste and odour and some organics. UV sterilisers disinfect bacteria and viruses but only work on clear water, so they follow sediment filtration and need lamp replacement roughly annually. Reverse osmosis (RO) under-sink units force water through a membrane that rejects most dissolved salts; they deliver very low TDS drinking water, waste part of the feed water as reject, and often include a remineralisation stage because RO water is very soft. Point-of-use RO is for drinking and cooking only, not whole house. Buyers should state the problem to solve (taste, sediment, bacteria, TDS), flow required, point of entry or point of use, cartridge sizes and replacement interval, certification (NSF/ANSI or equivalent), and whether an annual maintenance plan is included. Claims of medical benefit or alkaline miracle water are marketing, not engineering.",
+      "body_ar": "مياه الشبكة في الدولة في معظمها محلاة ومعالجة وفق معايير الشرب لدى الجهة المزوّدة، لكنها قد تكتسب رواسب أو صدأ أو نمواً بكتيرياً في خزانات المبنى وأنابيبه، إضافة إلى طعم الكلور. لذلك تُختار الفلترة حسب المشكلة: فلاتر الرواسب (خراطيش ملفوفة أو مطوية مصنفة بالميكرون، مثل 5 إلى 50 ميكرون) تلتقط الرمل والصدأ، وغالباً تُركّب لكامل المنزل عند نقطة الدخول بعد الخزان. والكربون النشط (حبيبي أو كتلة) يزيل طعم ورائحة الكلور وبعض المواد العضوية. وأجهزة التعقيم بالأشعة فوق البنفسجية تقضي على البكتيريا والفيروسات لكنها تعمل فقط مع المياه الصافية، فتأتي بعد فلتر الرواسب وتحتاج تغيير المصباح سنوياً تقريباً. أما التناضح العكسي RO تحت المغسلة فيدفع المياه عبر غشاء يرفض معظم الأملاح الذائبة، فينتج مياه شرب منخفضة الأملاح جداً، مع هدر جزء من المياه كمياه مرفوضة، وغالباً يتضمن مرحلة إعادة تمعدن لأن مياهه يسرة جداً. ويُستخدم الـRO عند نقطة الاستخدام للشرب والطبخ فقط لا لكامل المنزل. على المشتري تحديد المشكلة المطلوب حلها (الطعم، الرواسب، البكتيريا، الأملاح) والتدفق المطلوب ونقطة الدخول أو الاستخدام ومقاسات الخراطيش وفترة تغييرها والشهادة (NSF/ANSI أو ما يعادلها) وهل تشمل خطة صيانة سنوية. أما ادعاءات الفوائد العلاجية أو المياه القلوية المعجزة فهي تسويق لا هندسة.",
+      "required_specs": [],
+      "sources": [
+        "https://greenhorizondubai.com/dubai-municipality-water-tank-cleaning-complete-procedure-approved-companies/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:water-softeners",
+      "topic": "Water softeners (ion exchange) vs salt-free conditioners",
+      "kind": "comparison",
+      "body_en": "Hardness (calcium and magnesium) causes scale on heater elements, shower heads, glass and mixers. Hardness in UAE supplies varies by area and source (desalinated, blended or borehole water); no authority figure for typical UAE hardness was established in this pass, so the only reliable basis is a test of the actual supply.\n\nAn ion-exchange softener passes water through resin or zeolite loaded with sodium; calcium and magnesium swap places with the sodium, so hardness is genuinely removed. The resin is recharged with salt brine, either on a timer or by demand-initiated (metered) regeneration, which uses less salt and water; twin-tank units give continuous soft water. Softeners are rated by the grains of hardness they can remove between regenerations, so sizing depends on hardness and daily water use. The process adds about 8 mg/L of sodium per grain per gallon of hardness removed, so people on sodium-restricted diets are often given one unsoftened kitchen tap for drinking and cooking. Standard softeners handle only limited iron; high iron and manganese need dedicated removal. A laboratory water test before purchase is the extension-service advice.\n\nSalt-free conditioners do not remove hardness. Template-assisted crystallisation (TAC) converts dissolved hardness into microscopic crystals that stay suspended; in a WateReuse Research Foundation study using the German DVGW-W512 protocol, TAC reduced scale by more than 88%, while electromagnetic and electrically induced precipitation devices reduced it by about 50%. Manufacturer claims of higher figures should be read with that in mind, and simple magnetic devices have weaker evidence.\n\nSpecify flow rate and peak demand, measured hardness (mg/L as CaCO3 or grains per gallon), TDS and iron, resin volume and capacity in grains, valve type (timer or meter), bypass, salt use per regeneration, drain point for regeneration waste and service arrangements. A supplier selling a softener without testing the water is a red flag.",
+      "body_ar": "يسبب عسر الماء (الكالسيوم والمغنيسيوم) ترسبات على عناصر السخانات ورؤوس الدش والزجاج والخلاطات. ويختلف عسر مياه الإمارات بحسب المنطقة والمصدر (مياه محلاة أو مخلوطة أو آبار)، ولم يُثبت في هذه المراجعة رقم رسمي لمتوسط العسر في الإمارات، لذا فالأساس الموثوق الوحيد هو فحص المياه الفعلية.\n\nيمرر مُليّن التبادل الأيوني الماء عبر راتنج أو زيوليت محمّل بالصوديوم، فيحل الكالسيوم والمغنيسيوم محل الصوديوم، فيُزال العسر فعلاً. ويُعاد شحن الراتنج بمحلول ملحي إما بمؤقت زمني أو بتجديد حسب الاستهلاك (بعداد)، وهو أقل استهلاكاً للملح والماء، وتوفر الوحدات ثنائية الخزان ماءً ليناً دون انقطاع. وتُصنّف المليّنات بعدد حبات العسر التي تزيلها بين دورتي تجديد، لذا يعتمد تحديد الحجم على درجة العسر والاستهلاك اليومي. وتضيف العملية نحو 8 ملغ/لتر من الصوديوم لكل حبة/غالون من العسر المزال، ولذلك يُترك غالباً صنبور مطبخ غير مُليّن للشرب والطهي لمن يتبعون حمية قليلة الصوديوم. ولا تعالج المليّنات العادية إلا كميات محدودة من الحديد، أما الحديد والمنغنيز المرتفعان فيحتاجان إلى نظام إزالة مخصص. وتنصح جهات الإرشاد بفحص الماء في مختبر قبل الشراء.\n\nأما أجهزة المعالجة بلا ملح فلا تزيل العسر. فتقنية التبلور بمساعدة القالب (TAC) تحوّل العسر الذائب إلى بلورات مجهرية تبقى معلقة في الماء، وفي دراسة لمؤسسة WateReuse للأبحاث وفق البروتوكول الألماني DVGW-W512 خفّضت TAC الترسبات بأكثر من 88%، بينما خفّضتها الأجهزة الكهرومغناطيسية وأجهزة الترسيب الكهربائي بنحو 50%. لذا ينبغي قراءة ادعاءات المصنّعين بأرقام أعلى في ضوء ذلك، والأدلة على الأجهزة المغناطيسية البسيطة أضعف.\n\nوحدد في الطلب معدل التدفق وذروة الطلب والعسر المقاس (ملغ/لتر كربونات كالسيوم أو حبة/غالون) والأملاح الذائبة والحديد وحجم الراتنج وسعته بالحبات ونوع الصمام (مؤقت أو عداد) والتجاوز واستهلاك الملح لكل تجديد ونقطة تصريف مياه التجديد وترتيبات الخدمة. والمورد الذي يبيع مليّناً دون فحص الماء علامة تحذير.",
+      "required_specs": [],
+      "sources": [
+        "https://www.ndsu.edu/agriculture/extension/publications/water-softening-ion-exchange",
+        "https://www.waterboards.ca.gov/water_issues/programs/grants_loans/water_recycling/research/ion_exchange_water_softeners.pdf",
+        "https://antunes.com/wp-content/uploads/2019/03/Template-Assisted-Crystallization-TAC-Guide-Antunes-1050086.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:backflow-prevention",
+      "topic": "Backflow prevention: air gap, double check valve, RPZ",
+      "kind": "product",
+      "body_en": "Backflow is water flowing the wrong way, from a building's installation back towards the potable supply, either by back-siphonage (a drop in mains pressure) or back-pressure (a downstream system such as a booster, heater or irrigation dosing unit at higher pressure). Protection is chosen by the risk of the fluid at each point of use. The Abu Dhabi DoE Guide adopts the five fluid categories of the UK water fittings regime: category 1 is wholesome water straight from the distributor, rising through water with impaired taste or temperature, then low, significant and finally serious health hazards (category 5, such as sewage-contaminated or pathogen-bearing water). The higher the category, the stronger the device: a single check valve suits low risks, double checks and reduced pressure zone (RPZ) valves protect higher ones, and only air gaps protect the most serious risks. The Guide lists air-gap types by European standard, for example type AA unrestricted discharge (BS EN 13076), type AB weir overflow (BS EN 13077) and type AF/AG circular overflows (BS EN 14622/14623). Tank inlets must have a float valve and an overflow arrangement giving an air gap, and tanks serving industrial, livestock or agricultural uses exposed to category 3 to 5 fluids must be dedicated to that use with suitable backflow protection. RPZ valves need above-ground installation where the relief port can discharge, and periodic testing. Buyers should state the fluid category, device type and size, and whether commissioning and annual testing are in scope.",
+      "body_ar": "الارتداد هو جريان المياه في الاتجاه المعاكس من تمديدات المبنى نحو شبكة مياه الشرب، إما بالسحب العكسي عند انخفاض ضغط الشبكة، أو بالضغط العكسي حين يكون نظام لاحق كمضخة التعزيز أو السخان أو وحدة حقن الأسمدة في الري بضغط أعلى. ويُختار جهاز الحماية بحسب خطورة السائل عند كل نقطة استخدام. ويتبنى دليل دائرة الطاقة في أبوظبي فئات السوائل الخمس المأخوذة من النظام البريطاني: الفئة الأولى مياه صالحة مباشرة من شركة التوزيع، ثم مياه تغيّر طعمها أو حرارتها، ثم خطر صحي منخفض فكبير فجسيم (الفئة الخامسة كالمياه الملوثة بالصرف أو الحاملة للجراثيم). وكلما ارتفعت الفئة لزم جهاز أقوى: صمام عدم رجوع مفرد للمخاطر المنخفضة، وصمامان مزدوجان وصمامات منطقة الضغط المنخفض (RPZ) للمخاطر الأعلى، ولا يحمي من المخاطر الجسيمة إلا الفجوة الهوائية. ويورد الدليل أنواع الفجوات الهوائية وفق المواصفات الأوروبية، مثل النوع AA ذي التصريف غير المقيد (BS EN 13076) والنوع AB ذي الفائض الهداري (BS EN 13077) والنوعين AF وAG ذوي الفائض الدائري (BS EN 14622 و14623). ويجب أن تُزوَّد مداخل الخزانات بعوامة وترتيب فائض يحقق فجوة هوائية، وأن تُخصَّص الخزانات التي تخدم استخدامات صناعية أو حيوانية أو زراعية معرضة لسوائل من الفئات 3 إلى 5 لذلك الاستخدام وحده مع حماية مناسبة من الارتداد. وتُركَّب صمامات RPZ فوق الأرض حيث يمكن لفتحة التنفيس أن تصرّف، وتُختبر دورياً. وعلى المشتري تحديد فئة السائل ونوع الجهاز ومقاسه، وهل التشغيل والفحص السنوي ضمن النطاق.",
+      "required_specs": [],
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:abu-dhabi-water-supply-regs",
+      "topic": "Abu Dhabi Water Supply Regulations 2024 (DoE) and distribution company approvals",
+      "kind": "authority_approval",
+      "body_en": "In Abu Dhabi, the customer side of every water connection is governed by the Water Supply Regulations 2024 issued by the Department of Energy (DoE), the successor to the former Regulation and Supervision Bureau and ADWEA. The Regulations came into force on 1 January 2024 and replaced the Water Supply Regulations 2009; a companion Guide sets out how to comply. They define the duties of the distribution company, the customer and the responsible person for water fittings downstream of the point of delivery, which expressly includes ground and roof storage tanks, pumps and meters. Key obligations: fittings must be of approved quality, installed per the Guide and good practice; tanks need float-controlled inlets with overflow air gaps; the responsible person must inspect and, when needed, clean tanks; leaks must be repaired promptly, with the distribution company able to act if they are not; and temporary supplies need backflow devices. The Guide adds concrete numbers a buyer can check: fittings must withstand at least 1.5 times the maximum operating pressure; completed installations up to the roof tank are hydraulically tested at 1.5 times the maximum allowable operating pressure for up to three hours; pressure-reducing valves are required where pressure is likely to exceed 2.5 bar; GRP tanks must meet WRc, WRAS or equivalent approval. An entity that fails to comply may face a fine of not less than AED 250,000 under the sector law. ADDC and AADC handle connections and publish their own design guidelines; ask suppliers for evidence their products are accepted.",
+      "body_ar": "في أبوظبي يخضع جانب العميل من كل توصيلة مياه للوائح إمداد المياه 2024 الصادرة عن دائرة الطاقة، الخلف القانوني لمكتب التنظيم والرقابة السابق ولهيئة مياه وكهرباء أبوظبي. وقد دخلت اللوائح حيز التنفيذ في 1 يناير 2024 وحلت محل لوائح 2009، ويرافقها دليل يشرح طريقة الامتثال. وتحدد اللوائح واجبات شركة التوزيع والعميل والشخص المسؤول عن تمديدات المياه بعد نقطة التسليم، وهي تشمل صراحةً الخزانات الأرضية والعلوية والمضخات والعدادات. ومن أهم الالتزامات: أن تكون التمديدات بجودة معتمدة ومركّبة وفق الدليل والممارسة السليمة؛ وأن تُزوَّد الخزانات بمداخل تتحكم فيها عوامة مع فائض يحقق فجوة هوائية؛ وأن يفحص الشخص المسؤول الخزانات وينظفها عند الحاجة؛ وأن تُصلح التسربات فوراً ولشركة التوزيع التدخل إن لم تُصلح؛ وأن تُزوَّد الإمدادات المؤقتة بأجهزة منع الارتداد. ويضيف الدليل أرقاماً يستطيع المشتري التحقق منها: يجب أن تتحمل التمديدات 1.5 ضعف أقصى ضغط تشغيل على الأقل؛ وتُختبر التمديدات المكتملة حتى الخزان العلوي هيدروليكياً عند 1.5 ضعف أقصى ضغط تشغيل مسموح لمدة أقصاها ثلاث ساعات؛ ويلزم تركيب صمامات تخفيض الضغط حيث يُرجَّح أن يتجاوز الضغط 2.5 بار؛ ويجب أن تستوفي خزانات الفايبرجلاس اعتماد WRc أو WRAS أو ما يعادله. وقد تتعرض الجهة المخالفة لغرامة لا تقل عن 250,000 درهم بموجب قانون القطاع. وتتولى شركتا التوزيع في أبوظبي والعين طلبات التوصيل وتنشران أدلة التصميم الخاصة بهما، فاطلب من الموردين ما يثبت قبول منتجاتهم.",
+      "required_specs": [],
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf",
+        "https://www.aadc.ae/docs/GL.AM.01.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:dubai-approvals",
+      "topic": "Dubai approvals: Dubai Municipality building permit, approved materials, DEWA water connection",
+      "kind": "authority_approval",
+      "body_en": "In Dubai, plumbing and drainage designs form part of the building permit reviewed by Dubai Municipality (or the relevant free-zone or master-developer authority such as Trakhees, Dubai Development Authority or others, depending on location). Drainage connections to the public sewer are approved and inspected by the Municipality's sewerage authority, and new buildings must meet the Dubai green building requirements (Al Sa'fat), including water-efficient fixtures and solar hot water. Construction products commonly need conformity with Dubai Municipality product approval or Dubai Central Laboratory certification where the product category is regulated, and UAE-wide products need MoIAT/ECAS conformity (for example water-efficiency labels, water heaters). DEWA approves the water connection and meter, and publishes requirements for meter rooms and customer installations. For procurement, this means: ask whether the product is on the DM/DCL list for the category, whether it carries the UAE label where one exists, and whether the supplier can provide the approval certificate number. Free-zone projects may have different approval routes, so confirm the authority having jurisdiction before sourcing. Approval lists change; treat any certificate as valid only on its stated dates.",
+      "body_ar": "في دبي تُعدّ تصاميم التمديدات الصحية والصرف جزءاً من رخصة البناء التي تراجعها بلدية دبي، أو الجهة المختصة في المنطقة الحرة أو لدى المطوّر الرئيسي مثل تراخيص أو سلطة دبي للتطوير أو غيرهما حسب الموقع. ويعتمد قسم الصرف الصحي في البلدية توصيلات الصرف إلى الشبكة العامة ويفتشها، ويجب أن تستوفي المباني الجديدة متطلبات المباني الخضراء في دبي (السعفات)، بما فيها الأدوات الموفرة للمياه والتسخين الشمسي. وتحتاج منتجات البناء عادةً إلى مطابقة اعتماد منتجات بلدية دبي أو شهادة مختبر دبي المركزي إذا كانت فئتها منظّمة، كما تحتاج المنتجات على مستوى الدولة إلى مطابقة وزارة الصناعة والتكنولوجيا المتقدمة ضمن نظام ECAS (مثل بطاقات كفاءة المياه والسخانات). وتعتمد هيئة كهرباء ومياه دبي توصيل المياه والعداد وتنشر متطلبات غرف العدادات وتمديدات المستهلك. ولأغراض الشراء: اسأل هل المنتج مدرج في قائمة البلدية أو المختبر المركزي لفئته، وهل يحمل بطاقة الدولة حيث وُجدت، وهل يستطيع المورّد تقديم رقم شهادة الاعتماد. وقد تختلف مسارات الاعتماد في مشاريع المناطق الحرة، فتأكد من الجهة المختصة قبل التوريد. والقوائم تتغير، فاعتبر أي شهادة سارية فقط ضمن تواريخها المذكورة.",
+      "required_specs": [],
+      "sources": [
+        "https://solarthermalworld.org/news/dubai-no-solar-thermal-system-no-building-permit/",
+        "https://www.yidabath.com/bathroom-fixtures-supplier-uae-contractor-guide/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:wras-watermark-nsf",
+      "topic": "Potable water product approvals: WRAS, WaterMark, NSF/ANSI 61, KIWA, ACS",
+      "kind": "standard",
+      "body_en": "UAE consultants and authorities routinely ask that products in contact with drinking water carry a recognised potable-water approval. WRAS (Water Regulations Advisory Scheme, UK) approves products against UK water fittings regulations and material tests (BS 6920) for taste, odour, appearance, microbial growth and leaching; it is the most commonly cited approval in UAE specifications and in Abu Dhabi tank requirements. NSF/ANSI 61 (US) certifies drinking-water system components for health effects of leached substances; NSF/ANSI 372 covers lead-free content. WaterMark is the Australian certification scheme for plumbing products. KIWA (Netherlands) and ACS (France) are European equivalents. These are not interchangeable automatically: a specification may accept one or several, sometimes with or equivalent language that the consultant decides. Buyers should ask for the certificate itself, check that it names the exact product range and size, and check its expiry and that it is listed on the scheme's public directory. A generic WRAS logo in a brochure, a certificate for the raw material only, or a certificate in another company's name are common red flags.",
+      "body_ar": "يطلب الاستشاريون والجهات في الدولة عادةً أن تحمل المنتجات الملامسة لمياه الشرب اعتماداً معترفاً به. فاعتماد WRAS البريطاني يقيّم المنتجات وفق لوائح تجهيزات المياه البريطانية واختبارات المواد (BS 6920) من حيث الطعم والرائحة والمظهر ونمو الميكروبات وتسرب المواد، وهو الاعتماد الأكثر ذكراً في مواصفات الدولة وفي متطلبات خزانات أبوظبي. ويعتمد معيار NSF/ANSI 61 الأمريكي مكونات أنظمة مياه الشرب من حيث الأثر الصحي للمواد المتسربة، ويغطي NSF/ANSI 372 خلو المنتجات من الرصاص. وWaterMark هو نظام الاعتماد الأسترالي للمنتجات الصحية، وKIWA الهولندي وACS الفرنسي نظيران أوروبيان. وهذه الاعتمادات غير قابلة للتبادل تلقائياً، فقد تقبل المواصفات أحدها أو عدة منها، أحياناً بعبارة أو ما يعادله التي يقررها الاستشاري. على المشتري طلب الشهادة نفسها، والتحقق من أنها تسمّي نطاق المنتج والمقاس بدقة، ومن تاريخ انتهائها، ومن إدراجها في الدليل العام للجهة المانحة. ومن علامات الخطر الشائعة شعار WRAS عام في كتيّب، أو شهادة للمادة الخام فقط، أو شهادة باسم شركة أخرى.",
+      "required_specs": [],
+      "sources": [
+        "https://aljilanigrc.com/grp-lining-for-water-tank/",
+        "https://www.scribd.com/document/180951105/Abu-Dhabi-UAE-RSB-WaterSupplyRegs2009-pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:pressure-testing",
+      "topic": "Pressure (leak) testing of water supply pipework",
+      "kind": "installation",
+      "body_en": "Every water supply installation must be pressure tested before it is hidden in walls, ceilings or screed, and the record kept for handover. Two reference methods are common in UAE specifications. BS EN 806-4 sets the test pressure at 1.1 times the maximum design pressure, where the design pressure is itself taken as 1.5 times the maximum operating pressure; the UK water fittings regime asks for 1.5 times the maximum working pressure. The UK water regulations advisory service points out that for a 5 bar system this gives about 8.25 bar under EN 806 against 7.5 bar under the UK rule, so an installation tested to EN 806 also satisfies the UK requirement. In Abu Dhabi the DoE Guide requires the whole installation up to the roof tank to be tested hydraulically at 1.5 times the maximum allowable operating pressure for a maximum of three hours, and fittings must be rated for at least 1.5 times the maximum operating pressure. Plastic pipes (PPR, PEX, CPVC) creep under pressure, so their procedures include a conditioning phase and an allowed pressure fall; judging plastic by a metal-pipe criterion, or testing CPVC before the solvent cement has cured, produces misleading results. Use calibrated gauges, record start and end pressures, times and temperatures, and have the consultant witness. After testing, potable systems are flushed and disinfected before use. Buyers of installation work should ask which standard and test pressure the contractor will use, who witnesses, and whether flushing, disinfection and laboratory sampling are included.",
+      "body_ar": "يجب اختبار كل تمديدات إمداد المياه بالضغط قبل إخفائها في الجدران أو الأسقف أو طبقة التسوية، مع حفظ السجل للتسليم. وهناك طريقتان مرجعيتان شائعتان في مواصفات الدولة: المواصفة BS EN 806-4 تحدد ضغط الاختبار بـ 1.1 ضعف ضغط التصميم الأقصى، ويُحسب ضغط التصميم نفسه بـ 1.5 ضعف أقصى ضغط تشغيل؛ بينما يطلب النظام البريطاني لتمديدات المياه 1.5 ضعف أقصى ضغط عمل. ويوضح الجهاز الاستشاري البريطاني أن نظاماً بضغط 5 بار يُختبر عند نحو 8.25 بار وفق EN 806 مقابل 7.5 بار وفق القاعدة البريطانية، فالتمديدات المختبرة وفق EN 806 تستوفي المتطلب البريطاني أيضاً. وفي أبوظبي يشترط دليل دائرة الطاقة اختبار كامل التمديدات حتى الخزان العلوي هيدروليكياً عند 1.5 ضعف أقصى ضغط تشغيل مسموح لمدة أقصاها ثلاث ساعات، وأن تتحمل التمديدات 1.5 ضعف أقصى ضغط تشغيل على الأقل. والأنابيب البلاستيكية (PPR وPEX وCPVC) تتمدد تحت الضغط، لذا تتضمن إجراءاتها مرحلة تهيئة وهبوطاً مسموحاً في الضغط؛ والحكم عليها بمعيار الأنابيب المعدنية، أو اختبار CPVC قبل جفاف لاصقه، يعطي نتائج مضللة. استخدم عدادات معايرة، وسجّل ضغط البداية والنهاية والأوقات ودرجات الحرارة، واجعل الاستشاري يشهد الاختبار. وبعد الاختبار تُشطف أنظمة مياه الشرب وتُعقَّم قبل الاستخدام. وعلى مشتري أعمال التركيب أن يسأل عن المواصفة وضغط الاختبار الذي سيعتمده المقاول، ومن يشهد الاختبار، وهل الشطف والتعقيم وأخذ عينات المختبر مشمولة.",
+      "required_specs": [],
+      "sources": [
+        "https://www.waterregsuk.co.uk/topics/all-faqs/is-the-pressure-testing-specified-in-bs-en-806-acceptable/",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf",
+        "https://www.scribd.com/document/745742379/BS-EN-806-4-2010"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:drainage-testing",
+      "topic": "Testing drainage: water test, air test, CCTV survey",
+      "kind": "installation",
+      "body_en": "Gravity drainage is tested differently from pressure water pipes because it normally runs part-full at atmospheric pressure. Below-ground drains are commonly tested with a water test (the line is plugged and filled to a set head above the crown, with loss measured over a period) or an air test (the line is plugged, pressurised to a small head of water gauge, and pressure loss measured), following the method in the consultant's specification or European practice such as BS EN 1610. Above-ground soil and waste stacks are usually air tested and then performance tested by filling and discharging fixtures to check traps are not siphoned. Before handover, and when buying existing properties with drainage complaints, a CCTV survey of buried lines identifies cracks, root intrusion, back-falls, displaced joints and grease build-up. Manholes and inspection chambers are checked for benching, levels and covers of the right load class (for example heavier classes under vehicle routes). In Dubai, connections to the public sewer are inspected by the Municipality. Buyers should confirm the test method, who witnesses, whether CCTV is included, and whether jetting (high-pressure cleaning) is quoted separately.",
+      "body_ar": "يُختبر الصرف بالجاذبية بطريقة تختلف عن أنابيب المياه المضغوطة لأنه يعمل عادةً ممتلئاً جزئياً وتحت الضغط الجوي. فالمصارف الأرضية تُختبر عادةً باختبار الماء (تُسد الخطوط وتُملأ حتى ارتفاع محدد فوق أعلى الأنبوب ويُقاس الفقد خلال فترة) أو باختبار الهواء (تُسد الخطوط وتُضغط إلى ارتفاع صغير بمقياس الماء ويُقاس هبوط الضغط)، وفق الطريقة الواردة في مواصفات الاستشاري أو الممارسة الأوروبية مثل BS EN 1610. أما مداخن الصرف فوق الأرض فتُختبر عادةً بالهواء ثم يُختبر أداؤها بملء الأدوات الصحية وتفريغها للتأكد من عدم سحب مياه السيفونات. وقبل التسليم، أو عند شراء عقار قائم فيه شكاوى صرف، يكشف المسح بالكاميرا للخطوط المدفونة التشققات وتغلغل الجذور والميول العكسية والوصلات المزاحة وتراكم الدهون. وتُفحص غرف التفتيش من حيث القنوات الداخلية والمناسيب والأغطية بفئة التحميل المناسبة (فئات أثقل تحت مسارات المركبات). وفي دبي تفتش البلدية التوصيلات إلى شبكة الصرف العامة. على المشتري التأكد من طريقة الاختبار ومن يشهده وهل يشمل المسح بالكاميرا وهل التنظيف بالضغط العالي مسعّر بشكل منفصل.",
+      "required_specs": [],
+      "sources": [
+        "https://www.waterregsuk.co.uk/topics/all-faqs/is-the-pressure-testing-specified-in-bs-en-806-acceptable/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:prv-pressure-zoning",
+      "topic": "Pressure reducing valves and pressure zoning in towers",
+      "kind": "installation",
+      "body_en": "Excess pressure at fixtures causes splashing, noise, water waste, premature failure of cartridges and flexible hoses, and burst heaters, while too little pressure gives poor showers and fails thermostatic mixers. Tall buildings are therefore split into pressure zones, each fed by its own booster set or by pressure reducing valves (PRVs) on branch floors, so that static pressure at fixtures stays within the range the specification sets. A PRV reduces a higher, variable inlet pressure to a steady set outlet pressure; it should be installed with isolation valves, a strainer upstream, pressure gauges on both sides, and ideally in a duty/standby pair on risers so maintenance does not cut supply. Individual apartments and villas often have a PRV at the inlet to protect storage heaters, whose rated working pressure is limited, together with an expansion relief arrangement. Common mistakes are omitting the strainer (so debris jams the PRV), installing PRVs where they cannot be reached, and setting pressure without measuring flow pressure at the furthest outlet. Buyers should specify size, inlet pressure range, outlet setting, body material, and whether it is direct-acting or pilot-operated.",
+      "body_ar": "الضغط الزائد عند الأدوات الصحية يسبب تناثر المياه والضوضاء وهدر المياه والتلف المبكر للخراطيش والوصلات المرنة وانفجار السخانات، بينما يؤدي الضغط الضعيف إلى دش ضعيف وتعطل الخلاطات الثرموستاتية. لذلك تُقسّم الأبراج إلى مناطق ضغط، تُغذّى كل منها بمجموعة ضخ خاصة أو بصمامات تخفيض ضغط على أدوار التفريع، بحيث يبقى الضغط الساكن عند الأدوات ضمن النطاق الذي تحدده المواصفات. يخفّض صمام تخفيض الضغط ضغط الدخول الأعلى والمتغيّر إلى ضغط خروج ثابت مضبوط، ويُركّب مع محابس عزل ومصفاة قبله وعدادات ضغط على الجانبين، ويُفضَّل على الصواعد أن يكون زوجاً (تشغيل واحتياط) حتى لا تقطع الصيانة الإمداد. وكثيراً ما يكون للشقق والفلل صمام تخفيض عند المدخل لحماية السخانات ذات الخزان، لأن ضغط التشغيل المقنن لها محدود، مع ترتيب لتنفيس التمدد. ومن الأخطاء الشائعة حذف المصفاة (فتنحشر الشوائب في الصمام)، وتركيب الصمامات في أماكن يصعب الوصول إليها، وضبط الضغط دون قياس الضغط أثناء التدفق عند أبعد مخرج. على المشتري تحديد المقاس ونطاق ضغط الدخول وضبط الخروج ومادة الجسم وهل الصمام مباشر الفعل أم بصمام تجريبي.",
+      "required_specs": [],
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:legionella-hot-water",
+      "topic": "Legionella control, storage temperature and thermostatic mixing",
+      "kind": "installation",
+      "body_en": "Legionella bacteria multiply in water roughly between 20 and 45 C, which is a real risk in the UAE where cold water in roof tanks and exposed pipes can heat up well above 25 C in summer. Common international guidance (for example UK HSE practice) is to store hot water at 60 C or above and distribute so that outlets reach at least 50 C within a short time, while keeping cold water as cool as possible. Because 60 C water scalds quickly, thermostatic mixing valves (TMVs) are installed close to outlets in showers, basins in healthcare, schools and elderly care to deliver a safe blended temperature. Other controls include avoiding dead legs and little-used outlets, insulating and shading cold-water pipes and tanks, circulating hot water returns in large buildings, periodic flushing, and disinfection after installation. Hotels, hospitals and large facilities in the UAE are generally expected to have a written water safety or Legionella management plan. For buyers: specify storage temperature, circulation pump and return, TMV type and location, insulation of both hot and cold pipes, and ask the contractor to include flushing and disinfection certificates at handover.",
+      "body_ar": "تتكاثر بكتيريا الليجيونيلا في المياه تقريباً بين 20 و45 درجة مئوية، وهذا خطر فعلي في الدولة حيث قد تسخن المياه الباردة في الخزانات العلوية والأنابيب المكشوفة صيفاً إلى ما فوق 25 درجة بكثير. والإرشاد الدولي الشائع (مثل ممارسة هيئة الصحة والسلامة البريطانية) هو تخزين المياه الساخنة عند 60 درجة أو أكثر وتوزيعها بحيث تبلغ المخارج 50 درجة على الأقل خلال وقت قصير، مع إبقاء المياه الباردة أبرد ما يمكن. ولأن مياه 60 درجة تحرق بسرعة، تُركّب صمامات خلط ثرموستاتية قرب المخارج في الدش والمغاسل في المنشآت الصحية والمدارس ورعاية كبار السن لتوفير حرارة مخلوطة آمنة. ومن وسائل التحكم الأخرى تجنب الأطراف الميتة والمخارج قليلة الاستخدام، وعزل وتظليل أنابيب وخزانات المياه الباردة، وتدوير المياه الساخنة الراجعة في المباني الكبيرة، والشطف الدوري، والتعقيم بعد التركيب. ويُتوقع عموماً من الفنادق والمستشفيات والمرافق الكبيرة في الدولة وجود خطة مكتوبة لسلامة المياه أو إدارة الليجيونيلا. للمشتري: حدد حرارة التخزين، ومضخة التدوير والراجع، ونوع صمامات الخلط ومواقعها، وعزل الأنابيب الساخنة والباردة معاً، واطلب من المقاول تضمين شهادات الشطف والتعقيم عند التسليم.",
+      "required_specs": [],
+      "sources": [
+        "https://greenhorizondubai.com/dubai-municipality-water-tank-cleaning-complete-procedure-approved-companies/",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:grease-traps-interceptors",
+      "topic": "Grease traps and oil/sand interceptors",
+      "kind": "authority_approval",
+      "body_en": "Kitchens in restaurants, hotels, labour camps, malls and some residential towers must pass waste water through a grease trap (grease interceptor) before it reaches the public sewer; Dubai Municipality and other emirate authorities enforce grease trap installation and periodic cleaning because fats, oils and grease block municipal sewers. Traps are sized by flow rate and retention time from the connected fixtures and are available in stainless steel, polyethylene, GRP or built concrete; smaller under-sink units suit a single sink, while larger in-ground units serve central kitchens. Cleaning is by licensed waste-collection contractors with records kept, and many authorities track grease-trap maintenance. Car parks, workshops and fuel stations need oil (petrol) interceptors and sometimes sand/silt traps before connecting to storm or sewer networks. Common mistakes: undersized traps, dishwashers discharging very hot water that carries grease through, lack of access for pump-out trucks, and no sample point. Buyers should specify the connected fixtures and flow, material, location (under-sink, indoor floor, external buried), load class of covers, and whether a maintenance contract is included. Note: grease traps are also a kitchen/F&B-adjacent topic but the plumbing supply and installation sits in this trade.",
+      "body_ar": "يجب أن تمرّ مياه الصرف في مطابخ المطاعم والفنادق وسكن العمال والمراكز التجارية وبعض الأبراج السكنية عبر مصيدة شحوم قبل وصولها إلى شبكة الصرف العامة، إذ تفرض بلدية دبي وجهات الإمارات الأخرى تركيبها وتنظيفها دورياً لأن الدهون والزيوت تسد المجاري العامة. تُحدد أحجام المصائد وفق التدفق وزمن البقاء المحسوب من الأدوات المتصلة، وتتوفر من الستانلس ستيل أو البولي إيثيلين أو الفايبرجلاس أو الخرسانة المبنية؛ فالوحدات الصغيرة تحت المغسلة تناسب حوضاً واحداً، والوحدات الأرضية الكبيرة تخدم المطابخ المركزية. ويتولى التنظيف مقاولو جمع نفايات مرخّصون مع حفظ السجلات، وتتابع جهات كثيرة صيانة المصائد. وتحتاج المواقف والورش ومحطات الوقود إلى مصائد زيوت وأحياناً مصائد رمال قبل التوصيل بشبكات الأمطار أو الصرف. ومن الأخطاء الشائعة: مصائد صغيرة الحجم، وغسالات صحون تصرف مياهاً شديدة الحرارة تحمل الدهون عبر المصيدة، وعدم توفر وصول لشاحنات الشفط، وعدم وجود نقطة أخذ عينات. على المشتري تحديد الأدوات المتصلة والتدفق والمادة والموقع (تحت المغسلة، أرضي داخلي، مدفون خارجي) وفئة تحميل الأغطية وهل يشمل العرض عقد صيانة.",
+      "required_specs": [],
+      "sources": [
+        "https://lionyardtrading.ae/compliance"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:installation-uae-heat",
+      "topic": "Installation good practice in UAE conditions: supports, sleeves, insulation, UV",
+      "kind": "installation",
+      "body_en": "UAE heat and building practice drive several installation rules that separate a good plumbing contractor from a poor one. Plastic pipes expand far more than metal, so long hot runs need expansion loops or offsets, fixed and sliding supports at the manufacturer's recommended spacings, and allowance at wall penetrations. Pipes crossing walls and slabs pass through sleeves, with fire-stopping where they cross fire-rated elements (a fire-safety interface, not optional). Cold-water pipes and tanks on roofs and in ceiling voids should be insulated to limit heat gain and condensation; hot pipes are insulated to limit losses; exposed insulation needs UV-resistant cladding. PPR, PVC and PE degrade in direct sun unless UV-stabilised or protected. Concealed pipes in walls should avoid joints where possible, and manifolds should remain accessible. Isolation valves on each apartment, bathroom and major fixture make maintenance possible without shutting a building. Falls on drainage lines must be maintained (building drains commonly around 1 in 40 to 1 in 100 depending on size and specification), with rodding access at changes of direction. Buyers should check that the quote includes supports, sleeves, insulation, testing and commissioning rather than pipe and fittings alone.",
+      "body_ar": "تفرض حرارة الدولة وممارسات البناء فيها عدة قواعد تركيب تميّز مقاول التمديدات الجيد من الضعيف. فالأنابيب البلاستيكية تتمدد أكثر بكثير من المعدنية، لذا تحتاج الخطوط الساخنة الطويلة إلى حلقات أو إزاحات تمدد، ودعامات ثابتة ومنزلقة وفق المسافات التي يوصي بها المصنّع، ومراعاة ذلك عند اختراق الجدران. وتمر الأنابيب عبر الجدران والبلاطات داخل جلب، مع مواد منع انتشار الحريق عند عبور العناصر المقاومة للحريق (وهذا تقاطع مع السلامة من الحريق لا خيار فيه). وينبغي عزل أنابيب وخزانات المياه الباردة على الأسطح وفي فراغات الأسقف للحد من اكتساب الحرارة والتكثف، وعزل الأنابيب الساخنة للحد من الفقد، مع تغطية العزل المكشوف بغلاف مقاوم للأشعة فوق البنفسجية. ويتلف الـPPR والـPVC والـPE تحت الشمس المباشرة ما لم تكن مثبّتة ضد الأشعة أو محمية. ويُفضّل تجنب الوصلات في الأنابيب المخفية داخل الجدران، وإبقاء المجمّعات قابلة للوصول. وتتيح محابس العزل لكل شقة وحمام وأداة رئيسية إجراء الصيانة دون قطع المياه عن المبنى. ويجب الحفاظ على ميول خطوط الصرف (عادةً بين 1:40 و1:100 تقريباً حسب القطر والمواصفات) مع فتحات تسليك عند تغيير الاتجاه. على المشتري التحقق من أن العرض يشمل الدعامات والجلب والعزل والاختبار والتشغيل لا الأنابيب والقطع فقط.",
+      "required_specs": [],
+      "sources": [
+        "https://www.polytechuae.com/ppr-pipes-range/",
+        "https://www.sam-uk.com/what-is-ppr-pipe-an-in-depth-guide-to-uses-types-standards",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:warranty-norms",
+      "topic": "Warranty norms for plumbing products and installation",
+      "kind": "warranty",
+      "body_en": "Plumbing warranties vary widely and buyers often confuse the manufacturer's product warranty with the installer's workmanship warranty. Plastic pipe manufacturers commonly advertise long product warranties (often 10 years or more, sometimes promoted alongside a 50-year design life), but these usually require installation by trained or certified installers using the manufacturer's matched fittings and tools, and cover the product only, not consequential water damage unless explicitly stated. Sanitaryware ceramics often carry long warranties on the ceramic body, while cartridges, flush mechanisms, finishes and electronic parts carry much shorter terms. Water heaters typically separate the tank warranty (longer) from elements, thermostats and valves (shorter), and warranties may be voided by missing pressure-relief valves or unsuitable water pressure. Pumps usually carry one to two years on the unit, sometimes extended with an AMC. In UAE construction contracts the contractor is typically liable through the defects liability period after handover, and the UAE Civil Code imposes decennial (ten-year) liability on contractors and architects for structural failures, which is separate from plumbing product warranties. Buyers should obtain written warranty letters naming the project, the scope, the start date and the conditions, and should not accept verbal warranty promises.",
+      "body_ar": "تختلف ضمانات التمديدات الصحية كثيراً، وغالباً يخلط المشترون بين ضمان المصنّع للمنتج وضمان المقاول لجودة التنفيذ. يعلن مصنّعو الأنابيب البلاستيكية عادةً ضمانات طويلة للمنتج (غالباً 10 سنوات أو أكثر، وأحياناً يُروَّج لها مع عمر تصميمي 50 سنة)، لكنها تشترط عادةً تركيباً على يد فنيين مدرّبين أو معتمدين باستخدام قطع المصنّع وأدواته، وتغطي المنتج فقط لا الأضرار المائية التبعية ما لم يُذكر ذلك صراحة. وتحمل الأدوات الصحية الخزفية غالباً ضمانات طويلة على جسم السيراميك، بينما تحمل الخراطيش وآليات الدفق والتشطيبات والأجزاء الإلكترونية فترات أقصر بكثير. وتفصل السخانات عادةً ضمان الخزان (الأطول) عن العناصر والثرموستات والصمامات (الأقصر)، وقد يسقط الضمان بغياب صمام تنفيس الضغط أو بضغط مياه غير مناسب. وتحمل المضخات عادةً سنة إلى سنتين على الوحدة، تُمدد أحياناً بعقد صيانة. وفي عقود البناء بالدولة يتحمل المقاول المسؤولية خلال فترة ضمان العيوب بعد التسليم، كما يفرض القانون المدني الإماراتي مسؤولية عشرية على المقاول والمهندس عن الانهيارات والعيوب الإنشائية، وهي منفصلة عن ضمانات منتجات التمديدات. على المشتري الحصول على خطابات ضمان مكتوبة تسمّي المشروع والنطاق وتاريخ البدء والشروط، وعدم قبول وعود ضمان شفهية.",
+      "required_specs": [],
+      "sources": [
+        "https://www.polytechuae.com/ppr-pipes-range/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:quote-red-flags",
+      "topic": "Red flags in plumbing supplier and contractor quotes",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for these warning signs when reviewing plumbing quotes. A lump-sum pipe price with no per-size quantities, or fittings shown only as a vague percentage. A lower pressure class (PN16 instead of PN20 for hot water, SDR17 instead of SDR11 for HDPE) or PE80 instead of PE100, which makes the price look better. Brand or approved equivalent where the equivalent is unnamed until delivery. No potable approval certificate, or a certificate for a different product, company or expired date. Water heaters or fixtures without the UAE energy or water-efficiency label, suggesting grey imports. Pump quotes without a stated duty point (flow and head) or with motors undersized for UAE ambient temperatures. Tank capacity in gallons without saying imperial or US, or gross instead of effective capacity. Concealed shower mixers priced without the in-wall body, or wall-hung WCs priced without the frame and flush plate. Installation quotes excluding testing, flushing, disinfection, supports, sleeves or insulation. Warranty offered verbally only, or conditional on things the buyer cannot control. Unusually short validity combined with a large advance payment. Each of these should be clarified in writing before comparing prices.",
+      "body_ar": "انتبه لعلامات التحذير التالية عند مراجعة عروض التمديدات الصحية: سعر إجمالي للأنابيب دون كميات لكل مقاس، أو قطع مذكورة كنسبة مبهمة فقط. فئة ضغط أقل (PN16 بدل PN20 للمياه الساخنة، أو SDR17 بدل SDR11 للـHDPE) أو PE80 بدل PE100 لتحسين السعر ظاهرياً. عبارة العلامة أو ما يعادلها دون تسمية البديل إلا عند التوريد. غياب شهادة اعتماد مياه الشرب، أو شهادة لمنتج آخر أو شركة أخرى أو منتهية. سخانات أو أدوات صحية بلا بطاقة الطاقة أو كفاءة المياه الإماراتية، ما يشير إلى استيراد موازٍ. عروض مضخات بلا نقطة تشغيل (تدفق ورفع) أو بمحركات أصغر مما تحتاجه حرارة الدولة. سعة خزان بالغالون دون تحديد إمبراطوري أو أمريكي، أو سعة إجمالية بدل الفعلية. خلاطات دش مخفية مسعّرة دون الجسم الداخلي، أو مراحيض معلقة دون الهيكل ولوحة الدفق. عروض تركيب تستثني الاختبار أو الشطف أو التعقيم أو الدعامات أو الجلب أو العزل. ضمان شفهي فقط أو مشروط بأمور خارج سيطرة المشتري. صلاحية قصيرة على نحو غير معتاد مع دفعة مقدمة كبيرة. يجب توضيح كل ذلك كتابياً قبل مقارنة الأسعار.",
+      "required_specs": [],
+      "sources": [
+        "https://metslab.ae/water-heater-eer-testing-uae-gcc/",
+        "https://gulfnews.com/uae/environment/low-water-flow-in-new-buildings-to-save-60-water-1.1460636",
+        "https://hdpepipefactory.com/blog/hdpe-pipe-size-chart"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:price-drivers",
+      "topic": "What drives plumbing prices",
+      "kind": "price_driver",
+      "body_en": "Plumbing prices move with a small number of factors, and a buyer who understands them can judge whether a quote is reasonable without a price list. Raw material indices: copper and brass prices follow the LME copper price; plastic pipe prices follow polymer prices (polypropylene, PVC resin, polyethylene), which move with oil and petrochemical markets; stainless steel follows nickel. Pressure class and wall thickness: higher PN or lower SDR means more material per metre. Brand tier and origin: European premium brands, regional GCC manufacturers and Asian imports can differ several-fold for similar function; certification (WRAS, NSF) adds cost. Specification level: thermostatic vs single-lever mixers, concealed vs exposed, wall-hung vs floor WC, PVD vs chrome, insulated GRP tanks, VFD pumps. Quantity and packaging: project quantities, full lengths and coils are cheaper than retail cuts. Logistics: delivery to high floors, crane hire for roof tanks, remote locations and night work in restricted zones. Labour and scope: testing, disinfection, supports, insulation and commissioning. Payment terms and validity: longer credit or fixed prices on volatile metals carry risk premiums. Exact market prices are not given here because they change; compare like-for-like quotes instead.",
+      "body_ar": "تتحرك أسعار التمديدات الصحية بعدد محدود من العوامل، ومن يفهمها يستطيع الحكم على معقولية العرض دون قائمة أسعار. مؤشرات المواد الخام: أسعار النحاس والنحاس الأصفر تتبع سعر النحاس في بورصة لندن للمعادن، وأسعار الأنابيب البلاستيكية تتبع أسعار البوليمرات (البولي بروبلين وراتنج PVC والبولي إيثيلين) المرتبطة بأسواق النفط والبتروكيماويات، والستانلس ستيل يتبع النيكل. فئة الضغط وسماكة الجدار: PN أعلى أو SDR أقل يعني مادة أكثر لكل متر. فئة العلامة والمنشأ: قد تختلف العلامات الأوروبية الفاخرة والمصنّعون الخليجيون والواردات الآسيوية أضعافاً لوظيفة متشابهة، والاعتمادات (WRAS وNSF) تضيف تكلفة. مستوى المواصفات: خلاط ثرموستاتي مقابل ذراع واحدة، مخفي مقابل مكشوف، معلق مقابل أرضي، PVD مقابل كروم، خزانات فايبرجلاس معزولة، مضخات بمحوّل تردد. الكمية والتعبئة: كميات المشاريع والأطوال الكاملة واللفائف أرخص من القطع بالتجزئة. الخدمات اللوجستية: التوصيل للأدوار العليا واستئجار الرافعات لخزانات الأسطح والمواقع النائية والعمل الليلي في المناطق المقيدة. العمالة والنطاق: الاختبار والتعقيم والدعامات والعزل والتشغيل. شروط الدفع والصلاحية: الائتمان الأطول أو تثبيت الأسعار على المعادن المتقلبة يحملان علاوة مخاطر. لم تُذكر أسعار سوقية دقيقة هنا لأنها تتغير؛ قارن العروض المتماثلة بدلاً من ذلك.",
+      "required_specs": [],
+      "sources": [
+        "https://www.polytechuae.com/ppr-pipes-range/",
+        "https://hdpepipefactory.com/blog/hdpe-pipe-size-chart"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:lead-times",
+      "topic": "Typical lead times in plumbing supply",
+      "kind": "lead_time",
+      "body_en": "Lead time depends mainly on whether an item is a stocked commodity, a regional manufactured product or a project-specific import. Stocked commodities in the UAE (common PPR, CPVC, uPVC and HDPE sizes from local or GCC factories, standard fittings, common angle valves, popular electric water heaters and PE tanks) are usually available from distributor stock and delivered within days, subject to quantity. Large project quantities, less common sizes or pressure classes, and bespoke HDPE fabricated fittings may need a production slot. GRP sectional tanks need fabrication or panel supply plus site assembly time. Imported European sanitaryware and brassware ranges, especially specific colours or finishes, concealed systems and designer pieces, frequently need ordering from the manufacturer with shipping and customs, which can take several weeks to months. Booster pump sets with custom control panels are assembled to order and need factory testing. Solar water heating systems and heat pumps may depend on model availability and DCL certification of the specific model. Exact durations are not established here and should be confirmed in writing per line, together with partial delivery options and penalties for delay. Ordering long-lead items (sanitaryware, pump sets) early is standard practice.",
+      "body_ar": "تعتمد مدة التوريد أساساً على كون البند سلعة متوفرة بالمخزون، أو منتجاً مصنّعاً إقليمياً، أو استيراداً خاصاً بالمشروع. فالسلع المتوفرة في الدولة (مقاسات الـPPR والـCPVC والـuPVC والـHDPE الشائعة من مصانع محلية أو خليجية، والقطع القياسية، والمحابس الزاوية الشائعة، والسخانات الكهربائية الرائجة، وخزانات البولي إيثيلين) تتوفر عادةً من مخزون الموزعين وتُسلّم خلال أيام حسب الكمية. أما كميات المشاريع الكبيرة والمقاسات أو فئات الضغط الأقل شيوعاً وقطع الـHDPE المصنّعة خصيصاً فقد تحتاج دوراً في خط الإنتاج. وتحتاج خزانات الفايبرجلاس المقطعية إلى تصنيع أو توريد ألواح ثم وقت تجميع في الموقع. وكثيراً ما تتطلب مجموعات الأدوات الصحية والنحاسية الأوروبية المستوردة، خاصة الألوان أو التشطيبات المحددة والأنظمة المخفية والقطع التصميمية، طلباً من المصنّع مع الشحن والتخليص، وقد يستغرق ذلك من عدة أسابيع إلى أشهر. وتُجمّع مجموعات الضخ بلوحات تحكم خاصة حسب الطلب وتحتاج اختباراً في المصنع. وقد تعتمد أنظمة التسخين الشمسي والمضخات الحرارية على توفر الطراز واعتماد مختبر دبي المركزي له. لم تُحدَّد مدد دقيقة هنا، ويجب تأكيدها كتابياً لكل بند مع خيارات التسليم الجزئي وغرامات التأخير. والطلب المبكر للبنود طويلة التوريد (الأدوات الصحية ومجموعات الضخ) ممارسة معتادة.",
+      "required_specs": [],
+      "sources": [
+        "https://www.yidabath.com/bathroom-fixtures-supplier-uae-contractor-guide/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:buyer-mistakes",
+      "topic": "Common buyer mistakes in plumbing procurement",
+      "kind": "buyer_mistake",
+      "body_en": "Recurring mistakes seen in UAE plumbing purchases: choosing pipe by price rather than service, for example PN16 PPR on hot water or non-potable-rated pipe on drinking lines; mixing pipe and fitting brands or systems (PEX press fittings from another brand, CPVC cement not matched to pipe) and losing the warranty; ordering wall-hung WCs or concealed mixers without the frame, body or flush plate; forgetting the shattaf, angle valves, flexible connectors and bottle traps, which then arrive late and delay handover; ordering tanks in gallons without defining which gallon or effective capacity; buying a booster pump by horsepower rather than duty flow and head; buying an electric water heater without a pressure-reducing valve on high-pressure supply, leading to relief-valve discharge or tank failure; ignoring solar hot water or water-efficiency requirements for Dubai new builds; installing filters or softeners without a water test; skipping pressure testing before tiling, which makes leaks very expensive to trace; and accepting a supply-only price without clarity on offloading, distribution to floors and returns of surplus. A short, precise specification per item prevents most of these.",
+      "body_ar": "أخطاء متكررة في مشتريات التمديدات الصحية في الدولة: اختيار الأنبوب حسب السعر لا الخدمة، مثل PPR فئة PN16 على المياه الساخنة أو أنابيب غير معتمدة لمياه الشرب على خطوط الشرب؛ خلط علامات أو أنظمة الأنابيب والقطع (وصلات برس لـPEX من علامة أخرى، أو غراء CPVC غير متوافق مع الأنبوب) فيضيع الضمان؛ طلب مراحيض معلقة أو خلاطات مخفية دون الهيكل أو الجسم أو لوحة الدفق؛ نسيان الشطافات والمحابس الزاوية والوصلات المرنة والسيفونات فتصل متأخرة وتؤخر التسليم؛ طلب خزانات بالغالون دون تحديد نوع الغالون أو السعة الفعلية؛ شراء مضخة تعزيز بالقدرة الحصانية بدل التدفق والرفع المطلوبين؛ شراء سخان كهربائي دون صمام تخفيض ضغط على إمداد مرتفع الضغط، فيحدث تنفيس مستمر أو تلف الخزان؛ تجاهل متطلبات التسخين الشمسي وكفاءة المياه في المباني الجديدة بدبي؛ تركيب فلاتر أو منقّيات دون تحليل للمياه؛ تخطي اختبار الضغط قبل التبليط مما يجعل تتبع التسريبات مكلفاً جداً؛ وقبول سعر توريد فقط دون وضوح في التنزيل والتوزيع على الطوابق وإرجاع الفائض. ومواصفات قصيرة ودقيقة لكل بند تمنع معظم هذه الأخطاء.",
+      "required_specs": [],
+      "sources": [
+        "https://solarthermalworld.org/news/dubai-no-solar-thermal-system-no-building-permit/",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:glossary",
+      "topic": "Plumbing glossary for buyers",
+      "kind": "glossary",
+      "body_en": "PN: nominal pressure in bar at 20 C. SDR: standard dimension ratio, outside diameter divided by wall thickness; lower is thicker. SN: ring stiffness class of buried gravity pipe (SN4, SN8). PPR / PP-RCT: polypropylene random copolymer pipe; RCT has improved high-temperature strength. CPVC: chlorinated PVC for hot and cold water. PEX-a/b/c: crosslinked polyethylene by different methods. PE100: high-density polyethylene grade with 10 MPa minimum required strength. DZR brass: dezincification-resistant brass. TMV: thermostatic mixing valve. PRV: pressure reducing valve. NRV: non-return (check) valve. RPZ: reduced pressure zone backflow preventer. Air gap: vertical separation between water inlet and highest water level. T&P valve: temperature and pressure relief valve on heaters. VFD: variable frequency drive for pump speed. Duty/standby: one pump runs, one waits. Head: pump pressure expressed in metres of water. P-trap / S-trap: WC outlet to wall or floor. Shattaf: bidet spray hose. Grease trap: interceptor for kitchen fats. WRAS: UK potable water product approval. ECAS: Emirates Conformity Assessment Scheme. DCL: Dubai Central Laboratory. DoE: Abu Dhabi Department of Energy, issuer of the Water Supply Regulations.",
+      "body_ar": "PN: الضغط الاسمي بالبار عند 20 درجة مئوية. SDR: نسبة القطر الخارجي إلى سماكة الجدار؛ كلما قلّت زادت السماكة. SN: فئة صلابة الحلقة لأنابيب الصرف المدفونة (SN4، SN8). PPR / PP-RCT: أنابيب بولي بروبلين كوبوليمر عشوائي؛ ونوع RCT أقوى في الحرارة العالية. CPVC: بولي فينيل كلورايد مكلور للمياه الحارة والباردة. PEX-a/b/c: بولي إيثيلين متشابك بطرق مختلفة. PE100: درجة بولي إيثيلين عالي الكثافة بمتانة دنيا 10 ميغاباسكال. نحاس DZR: نحاس أصفر مقاوم لنزع الزنك. TMV: صمام خلط ثرموستاتي. PRV: صمام تخفيض الضغط. NRV: صمام عدم الرجوع. RPZ: صمام منع ارتداد بمنطقة ضغط مخفّض. الفجوة الهوائية: المسافة الرأسية بين فوهة الدخول وأعلى منسوب للمياه. صمام T&P: صمام تنفيس الحرارة والضغط في السخانات. VFD: محوّل تردد للتحكم في سرعة المضخة. تشغيل/احتياط: مضخة تعمل وأخرى تنتظر. الرفع: ضغط المضخة معبّراً عنه بأمتار من الماء. P-trap / S-trap: مخرج المرحاض إلى الجدار أو الأرض. الشطاف: خرطوم الرش للطهارة. مصيدة الشحوم: معترض لدهون المطابخ. WRAS: اعتماد بريطاني لمنتجات مياه الشرب. ECAS: نظام الإمارات لتقييم المطابقة. DCL: مختبر دبي المركزي. DoE: دائرة الطاقة في أبوظبي، مُصدِرة لوائح إمداد المياه.",
+      "required_specs": [],
+      "sources": [
+        "https://www.viega.us/en/resources/Blog/truth-about-types-of-pex.html",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf",
+        "https://hdpepipefactory.com/blog/hdpe-pipe-size-chart",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:spec-installation-works",
+      "topic": "Spec checklist: plumbing installation works (supply and install)",
+      "kind": "spec_checklist",
+      "body_en": "For a supply-and-install plumbing package the scope, not the pipe price, drives the difference between quotes. The buyer must state: the property type, number of units/bathrooms/kitchens and floors; whether drawings exist (approved IFC drawings or only a sketch) and who produces shop drawings and authority submissions; scope boundaries (from meter or tank outlet to fixtures; soil and waste to first manhole or to municipal connection); pipe materials and classes per service; fixtures supplied by whom (client-supplied or contractor-supplied); water heater, pump and tank scope; testing standard and witnessing; flushing, disinfection and lab testing; insulation and supports; builder's work (chasing, core drilling, sleeves, making good) included or by others; working hours and access restrictions (occupied building, community rules, permits from facilities management); approvals and inspections (Municipality, DEWA/ADDC connection, NOCs); as-built drawings and O&M manuals at handover; defects liability and warranty; payment milestones and retention. Missing boundaries lead to disputes over who connects to the sewer or who breaks the walls.",
+      "body_ar": "في حزم التمديدات الصحية توريداً وتركيباً، يصنع النطاق لا سعر الأنبوب الفارق بين العروض. على المشتري تحديد: نوع العقار وعدد الوحدات والحمامات والمطابخ والأدوار؛ هل توجد مخططات (معتمدة للتنفيذ أو مجرد رسم مبدئي) ومن يعد مخططات الورشة وتقديمات الجهات؛ حدود النطاق (من العداد أو مخرج الخزان حتى الأدوات، والصرف حتى أول غرفة تفتيش أو حتى التوصيل بالشبكة العامة)؛ مواد الأنابيب وفئاتها لكل خدمة؛ من يورّد الأدوات الصحية (العميل أو المقاول)؛ نطاق السخانات والمضخات والخزانات؛ معيار الاختبار ومن يشهده؛ الشطف والتعقيم والفحوص المخبرية؛ العزل والدعامات؛ الأعمال المدنية المساندة (التكسير والتخريم والجلب والترميم) ضمن النطاق أم على غيره؛ ساعات العمل وقيود الوصول (مبنى مسكون، قوانين المجتمع السكني، تصاريح إدارة المرافق)؛ الموافقات والتفتيش (البلدية، توصيل هيئة الكهرباء والمياه أو شركة التوزيع، شهادات عدم الممانعة)؛ المخططات النهائية وأدلة التشغيل والصيانة عند التسليم؛ فترة ضمان العيوب والضمان؛ مراحل الدفع والمحتجزات. وغياب الحدود يقود إلى نزاعات حول من يوصل الصرف أو من يكسر الجدران.",
+      "required_specs": [
+        "property type and counts (units, bathrooms, kitchens, floors)",
+        "drawing status and who does shop drawings/submissions",
+        "scope boundaries (meter/tank to fixtures; drainage to manhole/connection)",
+        "pipe materials and classes per service",
+        "who supplies fixtures",
+        "heater/pump/tank scope",
+        "testing standard and witnessing",
+        "flushing, disinfection, lab tests",
+        "insulation and supports",
+        "builder's work included or excluded",
+        "working hours and access restrictions",
+        "approvals and NOCs",
+        "as-built drawings and O&M manuals",
+        "defects liability, warranty, payment terms"
+      ],
+      "sources": [
+        "https://www.waterregsuk.co.uk/topics/all-faqs/is-the-pressure-testing-specified-in-bs-en-806-acceptable/",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "plumbing:abu-dhabi-tank-design-rules",
+      "topic": "Abu Dhabi potable tank design and installation rules (DoE Guide 2024)",
+      "kind": "standard",
+      "body_en": "The DoE Water Supply Guide that accompanies Abu Dhabi's Water Supply Regulations 2024 contains detailed, checkable rules for customer storage tanks, and a buyer can use them directly in an RFQ. Location: tanks must be sited away from pollution sources, and all access and inspection openings must sit at least 300 mm above the highest recorded flood level. The inlet to a ground storage tank must not be higher than 4,000 mm above finished ground level at the plot boundary so that network pressure can fill it. Float valves or equivalent devices must be rigidly fixed and close with a clear margin below the overflow, and every outlet other than vents and overflows needs a servicing valve close to the tank. The overflow or warning pipe must be rigid and at least twice the inlet bore and never under 19 mm. Tanks deeper than 2,000 mm need a level indicator (except some preformed PE tanks), at least one capped or down-facing vent of at least 65 mm is required, with more vents on large tanks, and tanks with water deeper than 1,500 mm need an internal non-metallic ladder. A nameplate at least 300 x 200 mm must show capacity (in cubic metres or imperial gallons), manufacturer, date and the potable approval such as WRAS. GRP sectional tanks follow a former ADWEA specification, must use hot-pressed panels meeting WRc or WRAS, need stainless or galvanised bracing depending on size, insulated panels outdoors, a galvanised skid on concrete plinths and clear access around the tank; tanks above 10,000 litres need two lockable access covers. New tanks are water tested and disinfected before use.",
+      "body_ar": "يتضمن دليل إمداد المياه المرافق للوائح أبوظبي 2024 الصادر عن دائرة الطاقة قواعد تفصيلية قابلة للتحقق لخزانات العملاء، ويمكن للمشتري إدراجها مباشرة في طلب التسعير. فمن حيث الموقع يجب إبعاد الخزانات عن مصادر التلوث، وأن تكون جميع فتحات الوصول والتفتيش أعلى بـ 300 ملم على الأقل من أعلى منسوب فيضان مسجل. ولا يجوز أن يزيد ارتفاع مدخل الخزان الأرضي على 4,000 ملم فوق منسوب الأرض النهائي عند حد القطعة كي يتمكن ضغط الشبكة من ملئه. ويجب تثبيت العوامات أو ما يعادلها تثبيتاً محكماً بحيث تُغلق بهامش واضح تحت الفائض، وأن يُركَّب محبس خدمة قريب من الخزان على كل مخرج عدا فتحات التهوية والفائض. ويكون أنبوب الفائض أو الإنذار صلباً وقطره الداخلي ضعف قطر المدخل على الأقل ولا يقل عن 19 ملم. وتحتاج الخزانات التي يزيد عمقها على 2,000 ملم مؤشر مستوى (باستثناء بعض خزانات البولي إيثيلين الجاهزة)، ويلزم منفذ تهوية واحد على الأقل مغطى أو متجه للأسفل بقطر لا يقل عن 65 ملم مع منافذ إضافية للخزانات الكبيرة، وتحتاج الخزانات التي يتجاوز عمق مائها 1,500 ملم سلماً داخلياً غير معدني. ويجب تثبيت لوحة بيانات لا تقل عن 300 × 200 ملم تبيّن السعة (بالمتر المكعب أو الغالون الإمبراطوري) والمصنع والتاريخ واعتماد مياه الشرب مثل WRAS. وتتبع خزانات الفايبرجلاس المقطعية مواصفة سابقة لهيئة مياه وكهرباء أبوظبي، ويجب أن تُصنع من ألواح مكبوسة على الساخن مستوفية لاعتماد WRc أو WRAS، مع تدعيم من الستانلس أو الحديد المجلفن بحسب الحجم، وألواح معزولة في الخارج، وقاعدة فولاذية مجلفنة على قواعد خرسانية، ومسافة وصول حول الخزان؛ وتحتاج الخزانات الأكبر من 10,000 لتر غطاءين قابلين للقفل. وتُختبر الخزانات الجديدة بالماء وتُعقَّم قبل الاستخدام.",
+      "sources": [
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Guide_Final.pdf",
+        "https://www.doe.gov.ae/-/media/Project/DOE/Department-Of-Energy/Media-Center-Publications/2024_1_4_Water-Supply-Regulation_Final.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Should I use PPR or CPVC for the hot water in my villa?",
+      "q_ar": "هل أستخدم PPR أم CPVC لتمديدات المياه الساخنة في الفيلا؟",
+      "expected_entry_ids": [
+        "plumbing:ppr-vs-cpvc",
+        "plumbing:ppr-pn-classes"
+      ]
+    },
+    {
+      "q_en": "Supplier A quoted PN16 PPR and supplier B PN20 for hot water lines. Why is A cheaper?",
+      "q_ar": "المورد الأول عرض PPR فئة PN16 والثاني PN20 لخطوط المياه الساخنة، لماذا الأول أرخص؟",
+      "expected_entry_ids": [
+        "plumbing:ppr-pn-classes",
+        "plumbing:quote-red-flags"
+      ]
+    },
+    {
+      "q_en": "What is the difference between PEX-a and PEX-b?",
+      "q_ar": "ما الفرق بين PEX-a وPEX-b؟",
+      "expected_entry_ids": [
+        "plumbing:pex-a-vs-pex-b"
+      ]
+    },
+    {
+      "q_en": "I need a 2000 gallon water tank on the roof. What do I need to tell suppliers?",
+      "q_ar": "أحتاج خزان مياه 2000 غالون على السطح، ماذا أخبر الموردين؟",
+      "expected_entry_ids": [
+        "plumbing:spec-water-tank",
+        "plumbing:tank-gallon-units",
+        "plumbing:water-tanks-grp-pe-concrete"
+      ]
+    },
+    {
+      "q_en": "Can I install only electric water heaters in a new building in Dubai instead of solar?",
+      "q_ar": "هل يمكنني تركيب سخانات كهربائية فقط بدل الشمسية في مبنى جديد في دبي؟",
+      "expected_entry_ids": [
+        "plumbing:dubai-solar-water-heating-mandate",
+        "plumbing:water-heater-types"
+      ]
+    },
+    {
+      "q_en": "How often must building water tanks be cleaned in Dubai and by whom?",
+      "q_ar": "كم مرة يجب تنظيف خزانات المياه في دبي ومن يقوم بذلك؟",
+      "expected_entry_ids": [
+        "plumbing:tank-cleaning-dm"
+      ]
+    },
+    {
+      "q_en": "Which booster pump should I buy for a 12 storey building?",
+      "q_ar": "أي مضخة تعزيز أشتري لمبنى من 12 طابقاً؟",
+      "expected_entry_ids": [
+        "plumbing:booster-pumps",
+        "plumbing:spec-pumps",
+        "plumbing:prv-pressure-zoning"
+      ]
+    },
+    {
+      "q_en": "Is a WRAS certificate required for pipes in Abu Dhabi?",
+      "q_ar": "هل شهادة WRAS مطلوبة للأنابيب في أبوظبي؟",
+      "expected_entry_ids": [
+        "plumbing:wras-watermark-nsf",
+        "plumbing:abu-dhabi-water-supply-regs"
+      ]
+    },
+    {
+      "q_en": "Do I need a water softener or an RO filter for my apartment?",
+      "q_ar": "هل أحتاج منقّي عسرة أم فلتر تناضح عكسي لشقتي؟",
+      "expected_entry_ids": [
+        "plumbing:water-softeners",
+        "plumbing:water-filtration"
+      ]
+    },
+    {
+      "q_en": "Wall-hung toilet or floor-mounted: what is included and what should the quote show?",
+      "q_ar": "مرحاض معلق أم أرضي: ماذا يشمل وماذا يجب أن يظهر في العرض؟",
+      "expected_entry_ids": [
+        "plumbing:wc-types-flushing",
+        "plumbing:spec-sanitaryware"
+      ]
+    },
+    {
+      "q_en": "At what pressure should the plumbing be tested before tiling?",
+      "q_ar": "عند أي ضغط يجب اختبار التمديدات قبل التبليط؟",
+      "expected_entry_ids": [
+        "plumbing:pressure-testing"
+      ]
+    },
+    {
+      "q_en": "Why do some taps have a star label and does it matter?",
+      "q_ar": "لماذا تحمل بعض الحنفيات بطاقة نجوم وهل هذا مهم؟",
+      "expected_entry_ids": [
+        "plumbing:water-efficiency-label",
+        "plumbing:mixers-cartridges-thermostatic"
+      ]
+    },
+    {
+      "q_en": "In Abu Dhabi, what test pressure and duration apply to a new villa water installation?",
+      "q_ar": "في أبوظبي ما ضغط الاختبار ومدته لتمديدات مياه فيلا جديدة؟",
+      "expected_entry_ids": [
+        "plumbing:pressure-testing",
+        "plumbing:abu-dhabi-water-supply-regs"
+      ]
+    },
+    {
+      "q_en": "What must a GRP roof tank have to be accepted in Abu Dhabi (vents, ladder, nameplate)?",
+      "q_ar": "ما الذي يجب توفره في خزان فايبرجلاس علوي ليُقبل في أبوظبي (التهوية والسلم ولوحة البيانات)؟",
+      "expected_entry_ids": [
+        "plumbing:abu-dhabi-tank-design-rules",
+        "plumbing:spec-water-tank"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 27,
+    "claims_checked": 210,
+    "corrected": [
+      "plumbing:dubai-solar-water-heating-mandate",
+      "plumbing:water-heater-energy-label",
+      "plumbing:spec-water-heater",
+      "plumbing:spec-pumps",
+      "plumbing:tank-cleaning-dm",
+      "plumbing:spec-water-tank",
+      "plumbing:sanitaryware-materials",
+      "plumbing:water-efficiency-label",
+      "plumbing:backflow-prevention",
+      "plumbing:abu-dhabi-water-supply-regs",
+      "plumbing:pressure-testing",
+      "plumbing:abu-dhabi-tank-design-rules",
+      "plumbing:water-softeners"
+    ],
+    "removed": [],
+    "still_unverified": [],
+    "notes": "Sources restricted to URLs retrieved this session (HTTP 200 or WebFetch-read). NFPA/UL landing pages confirm the standard exists, not clause text. Removed dead en-standard.eu/ul.com/dcd.gov.ae links. A2b (2026-09-23): re-sourced plumbing:water-softeners against fetched primary sources (UAE Fire & Life Safety Code 2011 PDF text, manufacturer datasheets/manuals, BSI/NFPA pages); unsupported claims removed or marked \"not established\"."
+  }
+}

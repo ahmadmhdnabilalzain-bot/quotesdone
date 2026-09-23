@@ -148,8 +148,12 @@ Deno.serve(observe('ceo_agent', async (req) => {
     if (action === 'context') {
       const query = String(body.query || body.text || '').trim();
       if (!query) return J({ error: 'query_required' }, 400);
+      // BY MEANING (23 Sep 2026, founder_instruction 886-903): the pack is ranked by gte-small distance (free, in-region),
+      // never by which words of the query it shares. No embedding: no records, and the signal says so.
+      const { embedLine } = await import('../_shared/gte_embed.ts');
+      const vec = await embedLine(query);
       const { data, error } = await admin.rpc('fn_ceo_context', {
-        p_query: query,
+        p_query: query, p_embedding: vec ? '[' + vec.join(',') + ']' : null,
         p_max_chars: Number.isFinite(Number(body.max_chars)) ? Number(body.max_chars) : 18000,
         p_limit: Number.isFinite(Number(body.limit)) ? Number(body.limit) : 8,
       });
@@ -366,7 +370,7 @@ Deno.serve(observe('ceo_agent', async (req) => {
       // inside the answer's natural range. every_seat_gets_the_model_its_own_work_needs.sql adds the
       // class on anthropic/claude-opus-5.5 with 2000; this side has to ask for 2000 or the clamp
       // keeps the old ceiling with a better model behind it.
-      const llm = makeLlmRich(undefined, { fn: 'ceo_agent', taskClass: 'ceo_judgement', max: 2000, timeoutMs: 25000, temperature: 0.1 });
+      const llm = makeLlmRich(undefined, { json: true, fn: 'ceo_agent', taskClass: 'ceo_judgement', max: 2000, timeoutMs: 25000, temperature: 0.1 });
       // THE CEO NEVER JUDGES ON A SEAT'S OWN FAMILY (founder instruction ~891). The input carries the marketing
       // report (built in SQL) and the open directive replies; fn_ceo_judgement_counterparts names the models those
       // replies' seats wrote on (or 'deterministic'), and ai_gateway routes the judgement away from all of their families.

@@ -97,6 +97,9 @@ comment on table public.reasoning_knowledge_candidate is
   'A fact web research found on a UAE authority page and a seat cited in an answer. Every row carries its URLs. Retrieval reads pending rows marked pending_review; a reviewer approves or rejects.';
 
 -- ── 3. retrieval by meaning, per plan step ──────────────────────────────────────────────────────
+-- SUPERSEDED (23 Sep 2026) by scripts/sql/every_verified_pack_has_a_home_and_every_seat_reads_its_own.sql,
+-- which adds support_knowledge, ceo_knowledge and marketing_knowledge and lets customer_support read the
+-- trade packs. That file's MANIFEST line is later, so its definition is the canonical one once applied.
 create or replace function public.fn_reason_retrieve(p_seat text, p_embedding vector(384), p_k integer default 6)
 returns jsonb
 language plpgsql stable security definer
