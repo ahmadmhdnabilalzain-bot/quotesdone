@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T21:25:45.734Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T22:15:02.305Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -9163,7 +9163,7 @@ ALTER TABLE public.field_definition ADD CONSTRAINT fd_trade_specific_has_trade C
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_review_status_check CHECK ((review_status = ANY (ARRAY['approved'::text, 'question_for_founder'::text])));
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_scope_check CHECK ((scope = ANY (ARRAY['shared'::text, 'trade_specific'::text, 'trade_subset'::text])));
 ALTER TABLE public.file_scan ADD CONSTRAINT file_scan_verdict_check CHECK ((verdict = ANY (ARRAY['clean'::text, 'malicious'::text, 'suspicious'::text, 'unknown'::text, 'unavailable'::text])));
-ALTER TABLE public.founder_instruction ADD CONSTRAINT founder_instruction_status_check CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'deferred_by_founder'::text, 'superseded'::text, 'refused'::text])));
+ALTER TABLE public.founder_instruction ADD CONSTRAINT founder_instruction_status_check CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'deferred_by_founder'::text, 'superseded'::text, 'refused'::text, 'standing'::text])));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_elsewhere_ck CHECK (((moves_to IS NULL) OR (moves_to <> owner)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_to_ck CHECK (((moves_to IS NULL) = (moves_to_note IS NULL)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_note_ck CHECK ((btrim(note) <> ''::text));

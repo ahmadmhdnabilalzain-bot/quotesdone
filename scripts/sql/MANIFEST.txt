@@ -1715,3 +1715,4 @@ scripts/sql/the_model_files_bucket_is_a_download_not_a_record.sql
 scripts/sql/every_judgement_learns_from_its_outcome.sql
 scripts/sql/an_arabic_question_finds_the_same_knowledge_as_an_english_one.sql
 scripts/sql/the_multilingual_embedder_is_the_it_engineers.sql
+scripts/sql/a_standing_rule_is_recorded_not_left_open.sql
