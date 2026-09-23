@@ -22,6 +22,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { checkArticle, type Article } from '../_shared/marketing_articles.ts';
 import { composeFirst, composeFollowUp, founderList, SITE, type ListItem, type Prospect } from '../_shared/marketing_outreach.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { replyClass } from '../_shared/reasoned_outreach.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/marketing_outreach';
@@ -112,6 +114,7 @@ const L = {
   reply: 'Paste the reply and draft the follow-up · الصق الرد لإعداد المتابعة', message: 'Message · الرسالة',
   note: 'Connection note · ملاحظة طلب التواصل', follow: 'Follow-up to send · رسالة المتابعة', unknown: 'This link is not valid. · هذا الرابط غير صالح.',
   recorded: 'Recorded. · سُجّل.',
+  recordedHeld: 'Recorded. The follow-up is drafted as soon as the reply has been read. · سُجّل الرد، وتُكتب رسالة المتابعة فور قراءته.',
 };
 function page(inner: string, status = 200) {
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>QuotesDone · LinkedIn</title></head><body style="margin:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#1f2937"><div style="max-width:620px;margin:32px auto;padding:16px">${inner}</div></body></html>`;
@@ -145,11 +148,15 @@ async function onePage(req: Request, m: string) {
   const a = String(form?.get('a') || '');
   if (a === 'replied') {
     const reply = String(form?.get('reply') || '').slice(0, 4000);
-    const f = composeFollowUp({ full_name: d.prospect.full_name, language: d.language }, reply);
+    // WHAT THE REPLY MEANS is reasoned (think(), founder_instruction 886-903), never read off a word list. Held:
+    // the reply is recorded as replied, nobody is closed and no follow-up is drafted on a guess; the marketing
+    // seat's queue reasons it when the hold lifts and fn_marketing_outreach_reply_reasoned drafts it then.
+    const cls = reply.trim() ? (await replyClass(defaultDeps(admin, 'marketing_outreach'), { reply, sent: String(d.body || ''), token: m, language: d.language === 'ar' ? 'ar' : 'en' })).value : null;
+    const f = cls ? composeFollowUp({ full_name: d.prospect.full_name, language: d.language }, cls) : null;
     const { data: res } = await admin.rpc('fn_marketing_outreach_mark', {
-      p_token: m, p_status: 'replied', p_reply: reply, p_reply_class: f.cls, p_follow_up: f.lint.length ? null : f.message,
+      p_token: m, p_status: 'replied', p_reply: reply, p_reply_class: cls, p_follow_up: f && !f.lint.length ? f.message : null,
     });
-    return render(m, await load(), res?.ok ? L.recorded : String(res?.error || 'error'));
+    return render(m, await load(), res?.ok ? (cls ? L.recorded : L.recordedHeld) : String(res?.error || 'error'));
   }
   if (!['sent', 'converted', 'declined'].includes(a)) return render(m, d);
   const { data: res } = await admin.rpc('fn_marketing_outreach_mark', { p_token: m, p_status: a });

@@ -21,6 +21,9 @@
 
 import { readFileSync } from 'node:fs';
 import { sql } from '../lib/db.mjs';
+// 23 Sep 2026: the pack is read by MEANING only (gte-small through ai_gateway's free embed path), so the query is
+// embedded the same way the seat's runtime embeds it; a query that cannot be embedded retrieves nothing.
+import { embedText } from './embed_sales_knowledge.mjs';
 
 const args = process.argv.slice(2);
 const at = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : null; };
@@ -43,9 +46,10 @@ const modulesOf = (recordId) => {
 let hit = 0, partial = 0, miss = 0, noCoverage = 0;
 const detail = [];
 for (const s of scenarios) {
+  const vec = await embedText(queryFor(s), 'embed_retrieval_eval');
   const want = (s.related_modules || []).map((x) => String(x).replace(/^0+/, ''));
   const rows = await sql(`select f.record_id, k.related_modules
-    from public.fn_ceo_knowledge_search(${lit(queryFor(s))}, ${K}) f
+    from public.fn_ceo_knowledge_search(${lit(queryFor(s))}, ${K}, p_embedding => ${vec ? lit(vec) + '::vector(384)' : 'null'}) f
     join public.ceo_knowledge k on k.record_id = f.record_id`);
   const got = new Set();
   for (const r of rows) {

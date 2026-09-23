@@ -1,0 +1,660 @@
+{
+  "trade": "av_it",
+  "entries": [
+    {
+      "id": "av_it:led-wall-pixel-pitch",
+      "topic": "LED video wall pixel pitch and viewing distance",
+      "kind": "comparison",
+      "body_en": "Pixel pitch is the centre-to-centre distance between LED pixels, stated in millimetres (P1.2, P1.5, P2.5, P3.9 and so on). A smaller pitch means more pixels per square metre, a sharper image at close range, and a much higher price, because LED count and driver-IC count rise with the square of resolution. Daktronics' published rule of thumb is that optimal viewing distance in feet is about three times the pitch in millimetres (a 10 mm pitch is best viewed from about 30 ft, roughly 0.9 m per mm), and it recommends fine pitch of 2.5 mm or less for close-range retail and lobby viewing. Outdoor modules are sold with high brightness (a P4 outdoor module datasheet quotes over 5,000 nits) and IP65 protection. Other decisive variables: SMD versus COB (chip-on-board) encapsulation, refresh rate (outdoor module datasheets quote 1,920-3,840 Hz; the higher figure matters for camera-facing walls), grey-scale bit depth, cabinet size, front- or rear-service access, and the processor/controller that maps the input to the wall. Buyers should state the wall's active size and target resolution, not just the pitch, because the same size in two pitches gives very different pixel counts. Manufacturer guidance differs, so state the nearest viewer distance in the enquiry and let each bidder justify its pitch. Verification note (23 Sep 2026): typical indoor brightness ranges and pitch bands per application were not established from a fetched source and were removed; confirm with each manufacturer's datasheet.",
+      "body_ar": "المسافة بين البكسلات (Pixel Pitch) هي المسافة بالمليمتر بين مركز كل بكسل LED والذي يليه، مثل P1.2 وP1.5 وP2.5 وP3.9. كلما صغرت المسافة زادت كثافة البكسلات في المتر المربع وارتفعت حدة الصورة عن قرب، لكن السعر يرتفع كثيراً لأن عدد الثنائيات ورقائق التشغيل يتضاعف مع الدقة. القاعدة التي تنشرها Daktronics أن مسافة المشاهدة المثلى بالأقدام تساوي نحو ثلاثة أضعاف المسافة بين البكسلات بالمليمتر (شاشة 10 مم تُشاهد على أفضل وجه من نحو 30 قدماً، أي قرابة 0.9 متر لكل مليمتر)، وتوصي بمسافة 2.5 مم أو أقل للمشاهدة القريبة في المحلات والردهات. وتُباع الوحدات الخارجية بسطوع مرتفع (تذكر نشرة وحدة خارجية P4 أكثر من 5,000 نِت) وبحماية IP65. ومن العوامل الحاسمة أيضاً: تقنية التغليف SMD أو COB، ومعدل التحديث (تذكر نشرات الوحدات الخارجية 1,920 إلى 3,840 هرتز، والقيمة الأعلى مهمة أمام الكاميرات)، وعمق التدرج اللوني، ومقاس الكابينة، وإمكانية الصيانة من الأمام أو الخلف، ووحدة المعالجة التي توزع الإشارة على الشاشة. على المشتري أن يحدد المقاس الفعلي للشاشة والدقة المطلوبة، لا المسافة بين البكسلات فقط، لأن المقاس نفسه بمسافتين مختلفتين يعطي عدد بكسلات مختلفاً جداً. وتختلف إرشادات المصنّعين، لذا يجب ذكر أقرب مسافة للمشاهد في الطلب وأن يبرر كل مورد المسافة التي يقترحها. ملاحظة التحقق (23 سبتمبر 2026): لم تثبت من مصدر تم فحصه نطاقات السطوع الداخلي المعتادة ولا فئات المسافة لكل استخدام، فحُذفت؛ يُرجع فيها إلى نشرة كل مصنّع.",
+      "required_specs": [],
+      "sources": [
+        "https://www.daktronics.com/en-us/support/kb/000030569",
+        "https://www.colorlitled.com/p4-outdoor-led-module/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:led-vs-lcd-videowall",
+      "topic": "Direct-view LED vs LCD video wall vs projection",
+      "kind": "comparison",
+      "body_en": "Three technologies compete for large images. LCD video walls tile commercial panels (typically 46 or 55 inch) with a visible bezel seam, quoted as bezel-to-bezel width (for example 0.88 mm on Samsung razor-narrow 55-inch video wall panels, from 0.44 mm per edge); they are the cheapest per square metre at close viewing, offer high native resolution per tile, and suit control rooms where data is read up close, but seams cut through text and tiles age unevenly, so colour calibration matters. Direct-view LED is seamless, very bright, scales to any size in cabinet steps and survives long operating hours, but fine pitches are expensive and brightness uniformity depends on binning of LEDs from the same batch; always order spare modules from the same batch. Projection (laser phosphor projectors) gives the largest image for the lowest cost, but needs a controlled light environment, screen space and throw distance, and contrast collapses in bright rooms. In UAE lobbies and malls with glazing and daylight, LED usually wins; for training rooms with blinds, projection remains economical; for 24/7 operations rooms, compare narrow-bezel LCD against fine-pitch LED on total cost over the design life including power, cooling and spares. Verification note (A4c, 23 Sep 2026): the 0.88 mm bezel-to-bezel figure is confirmed by the Samsung VHR-R/VMB-R datasheet; the 1.8 mm example was removed. Pixel pitch and projector specifications are covered by Daktronics and Epson. The relative cost per square metre of the three technologies is commercial and not established; get priced alternatives.",
+      "body_ar": "هناك ثلاث تقنيات رئيسية للصور الكبيرة. جدران الفيديو LCD تتكون من شاشات تجارية متلاصقة (عادةً 46 أو 55 بوصة) مع فاصل إطار مرئي يُذكر بعرضه الإجمالي (مثلاً 0.88 مم في شاشات جدران الفيديو 55 بوصة فائقة النحافة من سامسونج، بواقع 0.44 مم لكل حافة)، وهي الأرخص للمتر المربع عند المشاهدة القريبة، ودقتها عالية لكل شاشة، وتناسب غرف التحكم التي تُقرأ فيها البيانات عن قرب، لكن الفواصل تقطع النصوص وتتقادم الشاشات بشكل غير متساوٍ مما يستلزم معايرة الألوان. أما شاشات LED المباشرة فهي بلا فواصل، عالية السطوع، يمكن تكبيرها بأي مقاس بوحدات الكابينة وتتحمل ساعات تشغيل طويلة، لكن المسافات الدقيقة مكلفة، وتجانس السطوع يعتمد على أن تكون الثنائيات من الدفعة الإنتاجية نفسها، لذا يجب طلب وحدات احتياطية من الدفعة ذاتها. والعرض بالبروجكتر (ليزر فوسفور) يعطي أكبر صورة بأقل تكلفة، لكنه يحتاج إلى إضاءة محكومة ومساحة للشاشة ومسافة إسقاط، ويضعف التباين في الغرف المضيئة. في ردهات الإمارات ومراكز التسوق ذات الواجهات الزجاجية تتفوق شاشات LED غالباً، وفي قاعات التدريب ذات الستائر يبقى البروجكتر اقتصادياً، ولغرف التشغيل المستمر على مدار الساعة تجب المقارنة بين LCD رفيعة الإطار وLED دقيقة المسافة على أساس التكلفة الكلية طوال العمر التصميمي بما فيها الكهرباء والتبريد وقطع الغيار. ملاحظة التحقق (A4c، 23 سبتمبر 2026): تأكد رقم 0.88 مم من نشرة سامسونج لسلسلتي VHR-R وVMB-R، وحُذف مثال 1.8 مم. ومسافة البكسل ومواصفات البروجكتر مؤكدة من دكترونكس وإبسون. أما مقارنة التكلفة للمتر المربع بين التقنيات الثلاث فهي تجارية وغير مثبتة؛ اطلب عروضاً مسعّرة للبدائل.",
+      "required_specs": [],
+      "sources": [
+        "https://image-us.samsung.com/SamsungUS/samsungbusiness/pdf/spec-sheets/Razor_Narrow_Video_Wall_Datasheet_VHR-R_VMB-R_Series.pdf",
+        "https://www.daktronics.com/en-us/support/kb/000030569",
+        "https://mediaserver.goepson.com/ImConvServlet/imconv/e224749d2488dcb4715acc853f1ee4127cbaa508/original?assetDescr=EB-PU2220B_Projector_Specification_Sheet_CPD-62056R4.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "av_it:projector-lumens",
+      "topic": "Projector brightness (ANSI lumens), throw ratio and laser vs lamp",
+      "kind": "product",
+      "body_en": "Projector brightness is quoted in ANSI lumens (or ISO 21118 lumens, which use the same nine-point averaged measurement as the older ANSI method); beware 'LED lumens' or unqualified 'lumens' on cheap units, which are not comparable. Required brightness depends on screen size, screen gain and ambient light: a small meeting room with controlled lighting may work with 3,000-4,000 lumens, a typical classroom or boardroom with some daylight needs 5,000-7,000, and auditoria or halls commonly need 10,000 lumens and above. AVIXA's Image System Contrast Ratio standard gives a method to size brightness against ambient light rather than guessing. Throw ratio (distance divided by image width) decides where the projector hangs; short-throw and ultra-short-throw units avoid shadows in classrooms, and interchangeable lenses give flexibility in halls. Laser light sources are rated by makers such as Epson at about 20,000 hours before brightness falls to 50% and need no lamp changes, whereas lamp projectors need lamps every few thousand hours, so compare running cost, not purchase price. Also specify native resolution (WUXGA 1920x1200 is common for business, 4K UHD for large venues), contrast, lens shift, inputs (HDMI, HDBaseT), and whether it is rated for 24/7 or portrait operation. Verification note (23 Sep 2026): the room-by-room lumen ranges (3,000-4,000, 5,000-7,000, 10,000+) are rules of thumb that were not established from a fetched source; size brightness from the AVIXA method instead.",
+      "body_ar": "يُقاس سطوع البروجكتر بوحدة ANSI لومن (أو لومن ISO 21118 المكافئة في طريقة القياس)، ويجب الحذر من عبارات مثل «LED لومن» أو «لومن» بلا تحديد في الأجهزة الرخيصة لأنها غير قابلة للمقارنة. السطوع المطلوب يعتمد على حجم الشاشة ومعامل انعكاسها والإضاءة المحيطة: غرفة اجتماعات صغيرة بإضاءة محكومة قد يكفيها 3,000 إلى 4,000 لومن، والفصل الدراسي أو قاعة الإدارة مع بعض ضوء النهار تحتاج 5,000 إلى 7,000، والمسارح والقاعات الكبيرة تحتاج عادةً 10,000 لومن فأكثر. ويقدم معيار AVIXA لتباين الصورة المعروضة (ANSI/AVIXA 3M-2011) طريقة لحساب السطوع مقابل الإضاءة المحيطة بدلاً من التخمين. أما نسبة الإسقاط (المسافة مقسومة على عرض الصورة) فتحدد موقع تعليق الجهاز، والأجهزة قصيرة الإسقاط تمنع الظلال في الفصول، والعدسات القابلة للتبديل تمنح مرونة في القاعات. مصادر الضوء بالليزر الفوسفوري مصنفة عادةً بنحو 20,000 ساعة حتى نصف السطوع ولا تحتاج إلى تبديل مصابيح، بينما تحتاج أجهزة المصابيح إلى تغيير المصباح كل بضعة آلاف ساعة، لذا قارن تكلفة التشغيل لا سعر الشراء فقط. وحدد كذلك الدقة الأصلية (WUXGA 1920x1200 شائعة للأعمال و4K للقاعات الكبيرة)، والتباين، وإزاحة العدسة، والمداخل (HDMI وHDBaseT)، وهل الجهاز مصنف للتشغيل المستمر أو بالوضع العمودي. ملاحظة التحقق (23 سبتمبر 2026): نطاقات شدة الإضاءة لكل نوع غرفة (3,000-4,000 و5,000-7,000 و10,000 فأكثر) قواعد تقريبية لم تثبت من مصدر تم فحصه؛ يُفضّل الحساب بطريقة AVIXA.",
+      "required_specs": [],
+      "sources": [
+        "https://www.projectorcentral.com/philips-epson-agree-on-brightness-measurements.htm",
+        "https://mediaserver.goepson.com/ImConvServlet/imconv/e224749d2488dcb4715acc853f1ee4127cbaa508/original?assetDescr=EB-PU2220B_Projector_Specification_Sheet_CPD-62056R4.pdf",
+        "https://www.avixa.org/standards/image-system-contrast-ratio"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:commercial-vs-consumer-display",
+      "topic": "Commercial/professional displays vs consumer TVs",
+      "kind": "comparison",
+      "body_en": "Buyers often try to save by installing consumer TVs in offices, hotels and signage. Professional displays differ in ways that matter: they are rated for extended duty cycles (commonly 16/7 or 24/7) whereas a consumer TV is designed for a few hours a day, and running a TV beyond its intended use can void the warranty; they offer control ports (RS-232, LAN/RS-232 over IP) for room controllers and central management; they support portrait orientation; they have higher brightness options (500-700 nits for normal signage, 2,500 nits or more for window-facing), anti-burn-in features, locked menus, and power-on scheduling; and they often have an OPS or system-on-chip slot for signage players. Hospitality TVs are a separate category with a hotel mode, IPTV/Pro:Idiom support and cloning. For meeting rooms, interactive flat panels add touch and whiteboarding. Specify diagonal, brightness, duty cycle, orientation, control protocol, required inputs, VESA mount pattern, and warranty terms including on-site swap. A red flag is a quote describing a TV model as a 'commercial display' without a duty-cycle rating on its datasheet. Verification note (23 Sep 2026): Samsung confirms consumer TVs are designed for about eight hours a day and that commercial use invalidates their warranty, and professional makers rate displays for 16/7 or 24/7; the brightness figures (500-700 and 2,500 nits) were not established from a fetched source.",
+      "body_ar": "يحاول بعض المشترين التوفير بتركيب أجهزة تلفزيون منزلية في المكاتب والفنادق وشاشات الإعلانات. لكن الشاشات الاحترافية تختلف في أمور جوهرية: فهي مصنفة لساعات تشغيل طويلة (عادةً 16 ساعة يومياً طوال الأسبوع أو على مدار الساعة) بينما التلفزيون المنزلي مصمم لساعات قليلة يومياً، وتشغيله بما يتجاوز الاستخدام المقصود قد يُسقط الضمان. كما توفر الشاشات الاحترافية منافذ تحكم (RS-232 والشبكة) لأنظمة التحكم في الغرف والإدارة المركزية، وتدعم الوضع العمودي، وتتوفر بسطوع أعلى (500 إلى 700 نِت للإعلانات العادية و2,500 نِت أو أكثر للواجهات الزجاجية)، مع خصائص منع احتراق الصورة، وقفل القوائم، وجدولة التشغيل، وغالباً فتحة OPS أو مشغل مدمج للمحتوى. وتلفزيونات الفنادق فئة مستقلة تتضمن وضع الفندق ودعم IPTV والتشفير ونسخ الإعدادات. وفي غرف الاجتماعات تضيف الشاشات التفاعلية اللمس والسبورة الرقمية. حدد القياس القطري، والسطوع، وساعات التشغيل، والاتجاه، وبروتوكول التحكم، والمداخل، ونمط تثبيت VESA، وشروط الضمان بما فيها الاستبدال في الموقع. ومن علامات الخطر أن يصف العرض طراز تلفزيون منزلي بأنه «شاشة تجارية» دون تصنيف ساعات تشغيل في نشرته الفنية. ملاحظة التحقق (23 سبتمبر 2026): تؤكد Samsung أن أجهزة التلفاز المنزلية مصممة لنحو ثماني ساعات يومياً وأن الاستخدام التجاري يُبطل ضمانها، ويصنّف المصنّعون الشاشات الاحترافية للتشغيل 16/7 أو 24/7؛ أما أرقام السطوع (500-700 و2,500 نِت) فلم تثبت من مصدر تم فحصه.",
+      "required_specs": [],
+      "sources": [
+        "https://insights.samsung.com/2022/08/24/can-you-use-consumer-tvs-for-commercial-digital-signage-2",
+        "https://www.agneovo.com/en_us/insight/commercial-display-or-consumer-tv-a-professional-buyers-guide"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:conference-room-systems",
+      "topic": "Conference and meeting room AV systems",
+      "kind": "product",
+      "body_en": "A meeting room system is sized by room type. Huddle rooms (2-6 people) usually use an all-in-one video bar (camera, microphones and speaker in one unit) on a single display, running Microsoft Teams Rooms, Zoom Rooms or a bring-your-own-device (BYOD) USB mode. Medium rooms (8-16) add a separate PTZ or intelligent framing camera, ceiling or table microphones with a DSP handling acoustic echo cancellation (AEC), and often dual displays. Boardrooms and divisible rooms add beamforming ceiling microphone arrays, multiple cameras with speaker tracking, a matrix switcher or AV-over-IP, a control processor with touch panel, and room combining logic. Key decisions: which platform is certified (Teams/Zoom certification lists name approved devices), whether the system is 'native room' (a compute appliance in the room) or BYOD, wireless presentation (clickshare-type dongles or app-based casting), and acoustics: hard glass and marble rooms common in UAE offices cause reverberation that no microphone fully fixes, so acoustic treatment may be required. Display sizing follows AVIXA's DISCAS method: the farthest viewer distance governs the minimum image height for the content being read. Ask for a line diagram, device list with certification, and commissioning test (echo, level, camera framing) at handover. Verification note (23 Sep 2026): Microsoft publishes the certified Teams Rooms device list and AVIXA's DISCAS standard sets display size from viewing positions; the room-size bands are practitioner guidance, not a standard.",
+      "body_ar": "يُحدد نظام غرفة الاجتماعات حسب نوع الغرفة. غرف الاجتماعات الصغيرة (من 2 إلى 6 أشخاص) تستخدم عادةً جهاز «فيديو بار» متكاملاً يجمع الكاميرا والميكروفونات والسماعة مع شاشة واحدة، ويعمل بنظام Microsoft Teams Rooms أو Zoom Rooms أو بوضع توصيل الجهاز الشخصي عبر USB. الغرف المتوسطة (من 8 إلى 16 شخصاً) تضيف كاميرا PTZ منفصلة أو كاميرا بتأطير ذكي، وميكروفونات سقفية أو مكتبية مع معالج صوت رقمي DSP لإلغاء الصدى، وغالباً شاشتين. وقاعات مجالس الإدارة والقاعات القابلة للتقسيم تضيف مصفوفات ميكروفونات سقفية موجهة، وكاميرات متعددة تتبع المتحدث، ومحول مصفوفة أو نظام صوت وصورة عبر الشبكة، ومعالج تحكم بلوحة لمس، ومنطق دمج القاعات. القرارات الأساسية: أي منصة معتمدة (قوائم اعتماد Teams وZoom تسمي الأجهزة المعتمدة)، وهل النظام غرفة أصلية بجهاز حوسبة داخلها أم يعتمد على جهاز المستخدم، والعرض اللاسلكي، والصوتيات؛ فالغرف ذات الزجاج والرخام الشائعة في مكاتب الإمارات تسبب ارتداداً صوتياً لا تعالجه الميكروفونات وحدها، وقد تلزم معالجة صوتية. ويتبع تحديد حجم الشاشة منهجية DISCAS من AVIXA حيث تحدد مسافة أبعد مشاهد أقل ارتفاع للصورة. اطلب مخططاً خطياً، وقائمة أجهزة مع شهادات الاعتماد، واختبار تشغيل عند التسليم يشمل الصدى ومستوى الصوت وتأطير الكاميرا. ملاحظة التحقق (23 سبتمبر 2026): تنشر Microsoft قائمة الأجهزة المعتمدة لغرف Teams، ويحدد معيار DISCAS من AVIXA مقاس الشاشة من مواقع المشاهدة؛ أما فئات أحجام الغرف فهي إرشاد عملي لا معيار.",
+      "required_specs": [],
+      "sources": [
+        "https://learn.microsoft.com/en-us/microsoftteams/rooms/certified-hardware",
+        "https://www.avixa.org/resources/standards/display-image-size-for-2d-content"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:pa-100v-vs-low-impedance",
+      "topic": "PA and background music: 100 V line vs low impedance (8 ohm)",
+      "kind": "comparison",
+      "body_en": "Commercial public address and background music systems in malls, offices, hotels and car parks mostly use constant-voltage distribution, called 100 V line in Europe, the Middle East and most of Asia (70 V in North America). The amplifier output is stepped up to a high voltage so current is low, allowing long cable runs with small conductors and many loudspeakers wired in parallel on one line. Each loudspeaker has a transformer with power taps (e.g. 1.5/3/6 W), and the designer simply adds up the taps: the total must not exceed the amplifier rating (HARMAN's guide states this rule), and designers normally leave some headroom. Low-impedance (4 or 8 ohm) systems drive loudspeakers directly without transformers; they give higher fidelity and efficiency and are used for concert, auditorium, club and high-quality music playback, but cable runs must be short and thick and the number of speakers per channel is limited by impedance matching. Mixing the two is a classic error: a low-impedance speaker on a 100 V line will be destroyed, and a transformer speaker on a low-impedance output will be quiet and mismatched. Specify the line voltage, taps, zone count and amplifier headroom in the enquiry. Verification note (23 Sep 2026): a fixed 20% margin is not a published rule and was removed.",
+      "body_ar": "تعتمد أنظمة النداء العام والموسيقى الخلفية في المراكز التجارية والمكاتب والفنادق ومواقف السيارات غالباً على التوزيع بجهد ثابت، ويُعرف بخط 100 فولت في أوروبا والشرق الأوسط ومعظم آسيا (70 فولت في أمريكا الشمالية). يُرفع جهد خرج المضخم ليكون التيار منخفضاً، مما يسمح بمسافات كوابل طويلة بمقاطع صغيرة وتوصيل عدد كبير من السماعات على التوازي في خط واحد. لكل سماعة محول بنقاط قدرة (مثل 1.5 أو 3 أو 6 واط)، ويجمع المصمم هذه القدرات بحيث لا يتجاوز المجموع قدرة المضخم (كما ينص دليل HARMAN)، مع ترك هامش عادةً. أما أنظمة المعاوقة المنخفضة (4 أو 8 أوم) فتشغل السماعات مباشرة بلا محولات، وتعطي جودة وكفاءة أعلى، وتُستخدم في الحفلات والمسارح والنوادي وتشغيل الموسيقى عالية الجودة، لكن الكوابل يجب أن تكون قصيرة وسميكة، وعدد السماعات لكل قناة محدود بمطابقة المعاوقة. والخلط بين النوعين خطأ شائع: سماعة منخفضة المعاوقة على خط 100 فولت تتلف، وسماعة بمحول على خرج منخفض المعاوقة يكون صوتها ضعيفاً وغير متوافق. حدد في الطلب جهد الخط، ونقاط القدرة، وعدد المناطق، وهامش قدرة المضخم. ملاحظة التحقق (23 سبتمبر 2026): حُذف هامش الـ20% الثابت لأنه ليس قاعدة منشورة.",
+      "required_specs": [],
+      "sources": [
+        "https://help.harmanpro.com/guide-to-constant-voltage-systems",
+        "https://en.wikipedia.org/wiki/Constant-voltage_speaker_system"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:voice-evac-en54",
+      "topic": "Voice evacuation systems: EN 54-16 VACIE and EN 54-24 loudspeakers",
+      "kind": "standard",
+      "body_en": "A voice alarm (voice evacuation) system is a life-safety system, not just a PA system. In the European framework it is covered by EN 54-16 for voice alarm control and indicating equipment (VACIE: the controller, amplifiers, routing and fault monitoring) and EN 54-24 for voice alarm loudspeakers (tested for acoustic performance and for construction that holds up under fire conditions, including a thermal fuse and ceramic terminal block). EN 54-4 covers power supply equipment. System design, installation and maintenance guidance is in BS 5839-8 in the UK and CEN/TS 54-32 in Europe; NFPA 72 is the reference for emergency voice/alarm communication in NFPA-based designs. Core requirements include monitored loudspeaker lines (open/short and often earth fault detection), amplifier redundancy or standby, battery backup for a defined standby and alarm duration, priority of emergency messages over background music, and minimum speech intelligibility measured as STI (a common target is 0.5, with a lower bound for individual points). Cabling must be fire-resistant to the specified category. In the UAE the system must follow the UAE Fire and Life Safety Code and be approved by the relevant Civil Defence authority; confirm the product is on its approved list before ordering. Verification note (23 Sep 2026): EN 54-16 (VACIE), EN 54-24 (loudspeakers) and EN 54-4 (power supply) are confirmed in a manufacturer design guide; the STI target of 0.5, the thermal-fuse and ceramic-terminal details, CEN/TS 54-32, and the UAE Fire and Life Safety Code and Civil Defence approval requirements were not established from a fetched primary source in this pass and must be confirmed with the Civil Defence authority and the current code.\n\nEstablished from the 2018 code text (UAE Fire and Life Safety Code 2018, Chapter 7): voice evacuation plus two-way firefighter telephones are required in super high-rise and high-rise buildings, malls, assembly, theme parks, educational, hotel and detention occupancies, and storage/industrial buildings over 5,000 m² (Table 7.3); messages 15 dB above ambient in public areas, 10 dB in private areas, 75 dBA at pillow level in sleeping areas; speakers listed and approved, with strobes in basements, plant rooms and noisy industrial areas; all wiring 2-hour fire rated; installation only by Civil Defence approved fire alarm contractors, not AV, BMS or home-automation contractors (Section 4.2).",
+      "body_ar": "نظام الإخلاء الصوتي نظام لسلامة الأرواح وليس مجرد نظام نداء عام. في الإطار الأوروبي يغطيه المعيار EN 54-16 لمعدات التحكم والإشارة في الإنذار الصوتي (VACIE: وحدة التحكم والمضخمات والتوجيه ومراقبة الأعطال)، والمعيار EN 54-24 لسماعات الإنذار الصوتي التي تُختبر في أدائها الصوتي وفي بنيتها تحت ظروف الحريق، ومنها المصهر الحراري والطرفية الخزفية. ويغطي EN 54-4 معدات التغذية الكهربائية. أما إرشادات التصميم والتركيب والصيانة فترد في BS 5839-8 في بريطانيا وCEN/TS 54-32 في أوروبا، ويُرجع إلى NFPA 72 للاتصالات الصوتية الطارئة في التصاميم المعتمدة على NFPA. من المتطلبات الأساسية: مراقبة خطوط السماعات (الفتح والقصر وغالباً التسرب الأرضي)، ومضخمات احتياطية، وبطاريات لمدة احتياط وإنذار محددة، وأولوية الرسائل الطارئة على الموسيقى الخلفية، وحد أدنى لوضوح الكلام يُقاس بمؤشر STI (الهدف الشائع 0.5 مع حد أدنى لكل نقطة). ويجب أن تكون الكوابل مقاومة للحريق حسب الفئة المحددة. وفي الإمارات يجب أن يلتزم النظام بكود الإمارات للحماية من الحرائق وسلامة الأرواح وأن يعتمده الدفاع المدني المختص، فتأكد من وجود المنتج في قائمته المعتمدة قبل الطلب. ملاحظة التحقق (23 سبتمبر 2026): تأكدت المعايير EN 54-16 وEN 54-24 وEN 54-4 من دليل تصميم مصنّع؛ أما هدف STI بقيمة 0.5 وتفاصيل الصهر الحراري والأطراف الخزفية وCEN/TS 54-32 ومتطلبات كود الإمارات للحريق والدفاع المدني فلم تثبت من مصدر أولي في هذه المراجعة، ويجب تأكيدها مع الدفاع المدني والكود الساري.\n\nثابت من نص الكود (كود الإمارات للحماية من الحريق وسلامة الأرواح 2018، الفصل السابع): يلزم نظام الإخلاء الصوتي مع هواتف ثنائية الاتجاه لرجال الإطفاء في المباني فائقة الارتفاع والشاهقة والمراكز التجارية ومباني التجمعات والمدن الترفيهية والمنشآت التعليمية والفندقية ومرافق الاحتجاز، ومباني التخزين والصناعة التي تتجاوز 5,000 م² (الجدول 7.3)؛ وتعلو الرسائل الضجيج المحيط بمقدار 15 ديسيبل في المناطق العامة و10 ديسيبل في الخاصة، و75 ديسيبل عند الوسادة في مناطق النوم؛ والمكبرات مدرجة ومعتمدة مع ومضات ضوئية في الأقبية وغرف المعدات والمناطق الصناعية الصاخبة؛ وجميع الأسلاك مقاومة للحريق لساعتين؛ ولا يركّب النظام إلا مقاولو الإنذار المعتمدون من الدفاع المدني، لا مقاولو الأنظمة السمعية البصرية أو إدارة المباني أو المنازل الذكية (البند 4.2).",
+      "required_specs": [],
+      "sources": [
+        "https://www.zenitel.com/sites/default/files/2024-01/EN%2054%20Integra%20System%20Dersign%20Guide%20T-0667-231_Iss2.5.pdf",
+        "https://www.dbaudio.com/global/en/about-db/press/newsroom/db-audiotechnik-bolsters-commitment-to-european-safety-standards-with-a-variety-of-solutions-now-en-54-certified/",
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:pa-va-fire-interface",
+      "topic": "Interfacing PA/voice alarm with the fire alarm panel",
+      "kind": "installation",
+      "body_en": "The voice alarm system is triggered by the fire alarm control panel, and that interface is where many projects fail inspection. Typical integration uses monitored dry contacts or relay modules from the fire panel into the VACIE, one per evacuation zone or per cause-and-effect group, or a certified serial/network protocol where both manufacturers support it. The cause-and-effect matrix, agreed with the fire consultant, defines which zones receive the evacuate message, which receive the alert message (phased evacuation), and which get silence. The link itself must be monitored so a broken wire shows as a fault. When the fire alarm activates, background music and paging must be overridden automatically; any fire-rated area must use EN 54-24 loudspeakers and fire-resistant cable. Other interfaces commonly required: muting of AV systems in auditoria and ballrooms (the DJ or hall sound must cut on alarm), release of access-control doors, lift homing, and signal to the BMS. At testing and commissioning the contractor demonstrates each zone message, intelligibility (STI) readings, battery autonomy and fault reporting before Civil Defence inspection. Ask for the cause-and-effect matrix and the interface schedule in the quotation scope. Verification note (23 Sep 2026): the manufacturer design guide confirms EN 54-16 fault indication for the transmission path to the fire panel and for voice-alarm zones; the other interfaces listed are common practice and the Civil Defence inspection sequence was not established from a fetched source.",
+      "body_ar": "يتم تشغيل نظام الإنذار الصوتي من لوحة التحكم في إنذار الحريق، وهذا الربط هو الموضع الذي تفشل فيه مشاريع كثيرة عند الفحص. يكون الربط عادةً بملامسات جافة مراقبة أو وحدات مرحلات من لوحة الحريق إلى وحدة VACIE، واحدة لكل منطقة إخلاء أو لكل مجموعة في مصفوفة السبب والنتيجة، أو عبر بروتوكول تسلسلي أو شبكي معتمد إذا كان المصنعان يدعمانه. تحدد مصفوفة السبب والنتيجة المتفق عليها مع استشاري الحريق أي المناطق تتلقى رسالة الإخلاء، وأيها تتلقى رسالة التنبيه (إخلاء مرحلي)، وأيها تبقى صامتة. ويجب أن يكون الربط نفسه مراقباً بحيث يظهر أي سلك مقطوع كعطل. عند تفعيل الإنذار يجب أن تُلغى الموسيقى الخلفية والنداءات تلقائياً، وأي منطقة مصنفة للحريق يجب أن تستخدم سماعات EN 54-24 وكوابل مقاومة للحريق. ومن الروابط المطلوبة أيضاً: كتم أنظمة الصوت في المسارح وقاعات الاحتفالات، وتحرير أبواب التحكم بالدخول، وإرجاع المصاعد، وإشارة إلى نظام إدارة المبنى. وعند الاختبار والتشغيل يثبت المقاول رسالة كل منطقة وقراءات وضوح الكلام STI ومدة البطاريات والإبلاغ عن الأعطال قبل فحص الدفاع المدني. اطلب مصفوفة السبب والنتيجة وجدول الربط ضمن نطاق العرض. ملاحظة التحقق (23 سبتمبر 2026): يؤكد دليل التصميم من المصنّع مؤشرات الأعطال في مسار الإرسال إلى لوحة الحريق وفي مناطق الإنذار الصوتي وفق EN 54-16؛ أما بقية الربوط فممارسة شائعة، ولم يثبت تسلسل فحص الدفاع المدني من مصدر تم فحصه.",
+      "required_specs": [],
+      "sources": [
+        "https://www.zenitel.com/sites/default/files/2024-01/EN%2054%20Integra%20System%20Dersign%20Guide%20T-0667-231_Iss2.5.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:matv-smatv-iptv",
+      "topic": "MATV vs SMATV vs IPTV for TV distribution",
+      "kind": "comparison",
+      "body_en": "MATV (master antenna television) distributes terrestrial broadcast channels from a rooftop antenna through a coaxial network of amplifiers, splitters and wall outlets. SMATV (satellite MATV) adds satellite dishes and headend equipment: either multiswitches that pass satellite polarities to each outlet so every room needs its own receiver, or a headend that demodulates/transmodulates selected channels into RF (for example DVB-T or DVB-C) so ordinary TVs can tune them. In the UAE, satellite reception is the main source of free-to-air content, so residential towers typically use SMATV with multiswitches or a channel headend, sized by the number of outlets and required channel list. IPTV delivers channels as IP multicast streams over the building's structured cabling and network switches (which must support IGMP snooping), and suits hotels and hospitals that want an interactive portal, video on demand, messaging, and integration with the property management system. Hybrid systems combine an RF backbone with IP set-top boxes. The choice depends on existing cabling (coax vs Cat6), number of rooms, whether interactive services are required, and content licensing: premium channels need commercial rights from the broadcaster, which is a separate cost from the equipment. Verification note (23 Sep 2026): the SMATV headend concept is confirmed; UAE-specific statements (satellite as the main free-to-air source, content licensing terms) were not established from a fetched source.",
+      "body_ar": "نظام MATV (هوائي تلفزيوني مركزي) يوزع القنوات الأرضية من هوائي على السطح عبر شبكة محورية من المضخمات والمقسمات والمخارج الجدارية. ونظام SMATV (هوائي فضائي مركزي) يضيف أطباق الأقمار الصناعية ومعدات الرأس: إما محولات متعددة (Multiswitch) تنقل استقطابات القمر إلى كل مخرج بحيث تحتاج كل غرفة إلى جهاز استقبال خاص، أو وحدة رأس تحول قنوات مختارة إلى إشارة RF (مثل DVB-T أو DVB-C) لتلتقطها أجهزة التلفزيون العادية. في الإمارات يُعد الاستقبال الفضائي المصدر الرئيسي للقنوات المجانية، لذا تستخدم الأبراج السكنية عادةً نظام SMATV بمحولات متعددة أو وحدة رأس، ويُحدد حجمه بعدد المخارج وقائمة القنوات المطلوبة. أما IPTV فيبث القنوات كتدفقات IP متعددة الإرسال عبر الكابلات الهيكلية ومحولات الشبكة (التي يجب أن تدعم IGMP Snooping)، ويناسب الفنادق والمستشفيات التي تريد بوابة تفاعلية وفيديو عند الطلب ورسائل وربطاً مع نظام إدارة الفندق. وهناك أنظمة هجينة تجمع شبكة RF مع أجهزة IP. يعتمد الاختيار على الكابلات القائمة (محوري أم Cat6)، وعدد الغرف، والحاجة للخدمات التفاعلية، وترخيص المحتوى، فالقنوات المدفوعة تحتاج إلى حقوق تجارية من الجهة الناقلة وهي تكلفة منفصلة عن المعدات. ملاحظة التحقق (23 سبتمبر 2026): تأكد مفهوم محطة الرأس في SMATV؛ أما العبارات الخاصة بالإمارات (الأقمار الصناعية مصدراً رئيسياً وشروط ترخيص المحتوى) فلم تثبت من مصدر تم فحصه.",
+      "required_specs": [],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Satellite_Master_Antenna_Television"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:nurse-call",
+      "topic": "Nurse call systems",
+      "kind": "product",
+      "body_en": "A nurse call system lets patients, residents and staff summon help and escalates unanswered calls. Components are patient call points (bedhead units with pull-cord or push-button and pear handset), bathroom/toilet pull-cord emergency points with reset at the point, over-door dome lights that show call type by colour, staff presence buttons, zone displays or corridor displays, master stations, and integration to staff DECT/Wi-Fi handsets or smartphones. Systems are either conventional wired (hard-wired call-and-light), bus-based, or IP-based, which supports two-way speech, call logging and reports, integration with RTLS, bed exits and ADT feeds. Call types must be distinct (patient call, bathroom emergency, staff assist, code blue/cardiac). DIN VDE 0834 is the German/European standard for call systems in hospitals, care homes and similar facilities, covering planning, installation, testing and operation; consultants may also cite UK or US healthcare guidance. In the UAE, healthcare projects are also reviewed by DHA, DoH Abu Dhabi or MOHAP according to emirate. Specify the standard, number of beds and toilets, call types, integration targets and whether speech is required. Verification note (A4c, 23 Sep 2026): DIN VDE 0834 scope is confirmed by ZVEI. The Dubai Health Authority Health Facility Guidelines list nurse call systems among the engineering services of a health facility, so DHA projects in Dubai follow them; the equivalent Abu Dhabi (DoH) and MOHAP documents were not fetched and are not established. HTM 08-03, UL 1069 and FGI are not relied on.",
+      "body_ar": "يمكّن نظام استدعاء التمريض المرضى والنزلاء والطاقم من طلب المساعدة، ويصعّد الاستدعاءات التي لا يُرد عليها. مكوناته: نقاط استدعاء المريض (وحدات رأس السرير بحبل سحب أو زر ويدٍ متدلية)، ونقاط طوارئ الحمامات بحبل سحب مع إعادة ضبط من النقطة نفسها، ومصابيح فوق الأبواب تبين نوع الاستدعاء باللون، وأزرار حضور الطاقم، وشاشات المناطق والممرات، ومحطات رئيسية، وربط بأجهزة DECT أو Wi-Fi أو الهواتف الذكية للطاقم. الأنظمة إما سلكية تقليدية، أو ناقلية (Bus)، أو عبر IP وهي تدعم التحدث باتجاهين وتسجيل الاستدعاءات والتقارير والربط مع أنظمة تحديد المواقع وتنبيهات مغادرة السرير وبيانات القبول والخروج. يجب أن تكون أنواع الاستدعاء متمايزة (استدعاء مريض، طوارئ حمام، طلب مساعدة طاقم، رمز أزرق). ويُعد DIN VDE 0834 المعيار الألماني الأوروبي لأنظمة الاستدعاء في المستشفيات ودور الرعاية وما يماثلها، ويغطي التخطيط والتركيب والاختبار والتشغيل، وقد يستشهد الاستشاريون بإرشادات صحية بريطانية أو أمريكية. وفي الإمارات تراجع مشاريع الرعاية الصحية هيئة الصحة بدبي أو دائرة الصحة في أبوظبي أو وزارة الصحة حسب الإمارة. حدد المعيار، وعدد الأسرّة والحمامات، وأنواع الاستدعاء، والأنظمة المطلوب الربط بها، وهل يلزم التحدث الصوتي. ملاحظة التحقق (A4c، 23 سبتمبر 2026): نطاق المعيار DIN VDE 0834 مؤكد من ZVEI. وإرشادات المنشآت الصحية لهيئة الصحة بدبي تدرج أنظمة نداء التمريض ضمن الخدمات الهندسية للمنشأة، فتلتزم بها مشاريع الهيئة في دبي؛ أما وثائق دائرة الصحة في أبوظبي ووزارة الصحة المقابلة فلم تُفحص وتبقى غير مثبتة. ولا يُعتمد على HTM 08-03 أو UL 1069 أو FGI.",
+      "required_specs": [],
+      "sources": [
+        "https://www.zvei.org/en/press-media/publications/call-systems-according-to-din-vde-0834",
+        "https://services.dha.gov.ae/tahpi-app/HealthFacilityGuidelines/Guidelines/FileContent/Preview/DHAHFG/DHA_part_a_complete"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:low-current-overview",
+      "topic": "Low-current (ELV) systems overview",
+      "kind": "glossary",
+      "body_en": "In UAE construction, 'low current' or ELV (extra-low voltage) is the package of building systems that run on signal-level or low-voltage power rather than mains distribution. It normally includes: structured cabling (copper and fibre backbone), active network (switches, Wi-Fi), telephony (IP-PBX), CCTV, access control and intercom, intruder alarm, fire alarm and voice evacuation (often a separate life-safety contractor), public address and background music, MATV/SMATV/IPTV, nurse call in healthcare, building management system (BMS) field wiring, car park guidance, digital signage, audio-visual rooms, gate barriers and home automation. Telecom infrastructure for service providers (etisalat by e& and du) must follow their in-building guidelines, including main telecom room sizes, containment and fibre-to-the-premises provisions, and is inspected by them before service connection. Life-safety parts go through Civil Defence; CCTV in Dubai falls under the Security Industry Regulatory Agency (SIRA) and in Abu Dhabi under the Monitoring and Control Centre rules. Scope splits between the ELV contractor, the MEP contractor (containment, power points) and the IT integrator are a common source of gaps, so each quotation should list what is included: containment, power, racks, testing, and authority approvals. Verification note (23 Sep 2026): TDRA's Telecommunications Networks Specifications Manual for Buildings (prepared with e& and du) and SIRA's role over CCTV in Dubai are confirmed; the Abu Dhabi Monitoring and Control Centre rules were not established from a fetched source.",
+      "body_ar": "في قطاع الإنشاءات بالإمارات يُقصد بـ«التيار الخفيف» أو ELV مجموعة أنظمة المبنى التي تعمل على مستوى الإشارة أو الجهد المنخفض جداً بدلاً من توزيع الكهرباء الرئيسية. وتشمل عادةً: الكابلات الهيكلية (النحاسية والألياف)، والشبكة النشطة (المحولات والواي فاي)، والهاتف (IP-PBX)، والمراقبة بالكاميرات، والتحكم بالدخول والإنتركم، وإنذار التسلل، وإنذار الحريق والإخلاء الصوتي (غالباً عبر مقاول سلامة مستقل)، والنداء العام والموسيقى الخلفية، وأنظمة MATV وSMATV وIPTV، واستدعاء التمريض في المنشآت الصحية، وأسلاك نظام إدارة المبنى، وإرشاد مواقف السيارات، والشاشات الإعلانية، وغرف الصوت والصورة، والبوابات، والمنازل الذكية. البنية التحتية للاتصالات الخاصة بمزودي الخدمة (اتصالات من e& ودو) يجب أن تتبع إرشاداتهم الداخلية للمباني، بما فيها مقاسات غرف الاتصالات والمسارات وتمديدات الألياف للوحدات، ويفحصونها قبل توصيل الخدمة. أما أنظمة السلامة فتمر عبر الدفاع المدني، وكاميرات المراقبة في دبي تخضع لمؤسسة تنظيم الصناعة الأمنية (SIRA) وفي أبوظبي لقواعد مركز المراقبة والتحكم. وتقسيم النطاق بين مقاول التيار الخفيف ومقاول الأعمال الكهروميكانيكية (المسارات ونقاط الكهرباء) ومتكامل تقنية المعلومات مصدر شائع للثغرات، لذا يجب أن يبين كل عرض ما يشمله: المسارات، والكهرباء، والخزائن، والاختبار، وموافقات الجهات. ملاحظة التحقق (23 سبتمبر 2026): تأكد دليل مواصفات شبكات الاتصالات في المباني الصادر عن الهيئة بالتعاون مع اتصالات ودو، ودور SIRA في كاميرات المراقبة في دبي؛ ولم تثبت قواعد مركز المراقبة والتحكم في أبوظبي من مصدر تم فحصه.",
+      "required_specs": [],
+      "sources": [
+        "https://tdra.gov.ae/en/initiatives/telecommunications-infrastructure-guidelines",
+        "https://www.kewsolutions.com/sira-regulations-for-cctv-installation-dubai/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:hdbaset-vs-av-over-ip",
+      "topic": "HDBaseT vs AV-over-IP (SDVoE, NDI, compressed codecs)",
+      "kind": "comparison",
+      "body_en": "HDBaseT is a point-to-point extension technology: a transmitter and receiver pair carry uncompressed HDMI video, audio, control (IR/RS-232), Ethernet and power (PoH) over a single category cable. HDBaseT 1.0 reaches up to 100 m for 1080p; 4K reaches 70 m over Cat5e and above (100 m on select Cat6a); HDBaseT 2.0 (2013) took 4K30 4:4:4 / 4K60 4:2:0 to 100 m over Cat6. It is simple, has near-zero latency and needs no network design, but each link is fixed and scaling beyond a matrix switcher's port count is costly. AV-over-IP encodes video onto an Ethernet network so any source can reach any display, scales to hundreds of endpoints, and supports video walls and multiview. Options differ: SDVoE and similar 10 GbE systems deliver near-lossless 4K60 with very low latency but need 10G switches and fibre; 1 GbE systems (e.g. those using JPEG-XS, or proprietary compression, and NDI in broadcast environments) run on common switches with more compression. AV-over-IP needs a properly configured managed network (multicast, IGMP snooping and querier, VLANs, jumbo frames where required); many failures are network misconfiguration, not the AV devices. Choose HDBaseT for a single room with a few fixed links; AV-over-IP for multi-room, stadium, campus or control-room distribution. Per the HDBaseT Alliance, HDBaseT 3.0 (2019) carries uncompressed 4K60 4:4:4 up to 100 m, adds full-duplex Gigabit Ethernet, keeps the 100 W power delivery that HDBaseT has offered since version 1.0, and recommends Cat6A U/FTP cable for full performance. Verification note (23 Sep 2026): SDVoE, JPEG-XS and NDI characteristics were not checked against a fetched primary source and are indicative only.",
+      "body_ar": "HDBaseT تقنية تمديد من نقطة إلى نقطة: زوج من المرسل والمستقبل ينقل فيديو HDMI غير مضغوط مع الصوت والتحكم (IR وRS-232) والإيثرنت والطاقة عبر كابل واحد من الفئة المعيارية. يصل HDBaseT 1.0 إلى 100 متر لدقة 1080p، ودقة 4K إلى 70 متراً على Cat5e فما فوق (100 متر على بعض كابلات Cat6a)، ونقل HDBaseT 2.0 (2013) دقة 4K30 بترميز 4:4:4 أو 4K60 بترميز 4:2:0 حتى 100 متر على Cat6. وهي بسيطة، وزمن التأخير فيها شبه معدوم، ولا تحتاج إلى تصميم شبكة، لكن كل وصلة ثابتة، والتوسع فوق عدد منافذ محول المصفوفة مكلف. أما الصوت والصورة عبر الشبكة (AV-over-IP) فيرمّز الفيديو على شبكة إيثرنت بحيث يصل أي مصدر إلى أي شاشة، ويتوسع إلى مئات النقاط، ويدعم جدران الفيديو والعرض المتعدد. والخيارات متفاوتة: أنظمة SDVoE وما شابهها على شبكات 10 جيجابت تعطي 4K60 شبه بلا فقد مع تأخير ضئيل جداً لكنها تحتاج محولات 10G وألياف، وأنظمة 1 جيجابت (مثل JPEG-XS أو الضغط الخاص، وNDI في بيئات البث) تعمل على محولات شائعة مع ضغط أعلى. ويحتاج هذا النظام إلى شبكة مُدارة مضبوطة جيداً (البث المتعدد وIGMP Snooping والـQuerier والشبكات الافتراضية والإطارات الكبيرة عند الحاجة)، وكثير من الأعطال سببها إعداد الشبكة لا أجهزة الصوت والصورة. اختر HDBaseT لغرفة واحدة بعدد قليل من الوصلات الثابتة، واختر AV-over-IP للتوزيع على عدة غرف أو ملاعب أو حرم جامعي أو غرف تحكم. وبحسب تحالف HDBaseT فإن الإصدار 3.0 (2019) ينقل صورة 4K60 بدقة 4:4:4 غير مضغوطة حتى 100 متر، ويضيف إيثرنت جيجابت ثنائي الاتجاه، ويحتفظ بتغذية كهربائية حتى 100 واط المتاحة منذ الإصدار 1.0، ويوصي بكابل Cat6A من نوع U/FTP للحصول على الأداء الكامل. ملاحظة التحقق (23 سبتمبر 2026): لم تُفحص خصائص SDVoE وJPEG-XS وNDI مقابل مصدر أولي، فهي إرشادية فقط.",
+      "required_specs": [],
+      "sources": [
+        "https://hdbaset.org/hdbaset-technology/",
+        "https://www.getdante.com/support/faq/networks-and-switches/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:dante-audio-networking",
+      "topic": "Dante and AES67 audio networking",
+      "kind": "product",
+      "body_en": "Dante, developed by Audinate, is the dominant audio-over-IP protocol in professional AV. It carries many channels of uncompressed, low-latency digital audio over standard Ethernet (a single 1 Gb link can carry hundreds of channels at 48 kHz), replacing heavy multicore analogue cable between microphones, DSPs, amplifiers and mixing consoles. Devices are discovered and routed with Dante Controller software; Dante Domain Manager adds user permissions, subnet routing and audit for enterprise and campus deployments. Dante uses PTP clock synchronisation, so the network should use managed switches with QoS (DSCP prioritisation for clock and audio), energy-efficient Ethernet (EEE) disabled on audio ports, and a redundant secondary network for critical systems such as auditoria or houses of worship. AES67 is an open interoperability standard; many Dante devices support an AES67 mode for exchange with other ecosystems (e.g. Ravenna, Livewire), and SMPTE ST 2110-30 in broadcast builds on it. Dante AV extends the protocol to video. When buying, check the channel count per device (for example Dante 16x16), sample rate support, whether devices are Dante-certified or merely 'compatible', redundancy ports, PoE powering, and whether a Dante licence upgrade is needed to unlock channels. Verification note (23 Sep 2026): Audinate's switch FAQ and Yamaha's Dante design guide confirm gigabit switches, DSCP QoS with strict priority and four queues, and disabling Energy Efficient Ethernet; AES67 (AES, 2013) interoperates with RAVENNA, Livewire and Dante and underpins SMPTE ST 2110-30. Dante Domain Manager and Dante AV features were not checked against a fetched source.",
+      "body_ar": "بروتوكول Dante من شركة Audinate هو البروتوكول السائد لنقل الصوت عبر الشبكات في أنظمة الصوت والصورة الاحترافية. ينقل عدداً كبيراً من قنوات الصوت الرقمي غير المضغوط وبتأخير منخفض عبر شبكة إيثرنت قياسية (وصلة واحدة بسرعة 1 جيجابت تحمل مئات القنوات عند 48 كيلوهرتز)، فيحل محل الكوابل التماثلية الثقيلة متعددة الأسلاك بين الميكروفونات ومعالجات الصوت والمضخمات وطاولات المزج. تُكتشف الأجهزة وتُوجَّه ببرنامج Dante Controller، ويضيف Dante Domain Manager صلاحيات المستخدمين والتوجيه بين الشبكات الفرعية والتدقيق للمؤسسات والحرم الجامعية. يعتمد Dante على تزامن الساعة PTP، لذا يجب أن تستخدم الشبكة محولات مُدارة مع جودة الخدمة (أولوية DSCP للساعة والصوت)، وتعطيل خاصية توفير الطاقة EEE على منافذ الصوت، وشبكة احتياطية ثانوية للأنظمة الحرجة مثل المسارح ودور العبادة. أما AES67 فمعيار مفتوح للتوافق، وكثير من أجهزة Dante تدعم وضع AES67 للتبادل مع منظومات أخرى، ويبني عليه معيار SMPTE ST 2110-30 في البث. ويمدد Dante AV البروتوكول ليشمل الفيديو. عند الشراء تحقق من عدد القنوات لكل جهاز (مثل 16x16)، ومعدلات العينة المدعومة، وهل الجهاز معتمد من Dante أم «متوافق» فقط، ومنافذ الاحتياط، والتغذية عبر PoE، وهل يلزم ترخيص إضافي لتفعيل القنوات. ملاحظة التحقق (23 سبتمبر 2026): تؤكد صفحة الأسئلة الشائعة من Audinate ودليل Yamaha استخدام مبدّلات جيجابت وجودة خدمة DSCP بأولوية صارمة وأربع طوابير وإيقاف Energy Efficient Ethernet؛ ويتيح AES67 (الصادر عن AES عام 2013) التوافق مع RAVENNA وLivewire وDante ويعتمد عليه SMPTE ST 2110-30. ولم تُفحص ميزات Dante Domain Manager وDante AV مقابل مصدر.",
+      "required_specs": [],
+      "sources": [
+        "https://www.getdante.com/support/faq/networks-and-switches/",
+        "https://usa.yamaha.com/products/contents/proaudio/docs/dante_network_design_guide/101_network_switches.html",
+        "https://en.wikipedia.org/wiki/Dante_(networking)",
+        "https://en.wikipedia.org/wiki/AES67"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:tdra-type-approval",
+      "topic": "TDRA equipment type approval and dealer registration",
+      "kind": "authority_approval",
+      "body_en": "Any radio or telecommunications terminal equipment sold, imported or used in the UAE must be type-approved by the Telecommunications and Digital Government Regulatory Authority (TDRA). This covers Wi-Fi access points and routers, IP phones and DECT handsets, wireless microphones and in-ear monitors, wireless presentation dongles, Bluetooth devices, two-way radios, GSM/4G/5G modules, smart-home hubs and many AV products with wireless functions. Approval is applied for by a UAE entity that holds TDRA dealer registration, backed by a trade licence whose activity covers telecom equipment, and both registrations run in parallel. The application needs valid test reports for radio, EMC and safety (and SAR where relevant), datasheets and user manuals. TDRA classifies devices into risk levels: level 1 approvals are fastest, while higher levels may need technical inspection and longer processing; approval is valid for three years and approved models appear in TDRA's public approved-equipment list, and approved products carry a TDRA label. Wireless microphones and other devices must also operate only on frequencies permitted in the UAE spectrum plan. For buyers: ask the supplier for the TDRA approval certificate or registration number for every wireless item; grey-market imports without approval can be seized at customs or rejected at handover. TDRA's published service terms: only registered telecom-equipment suppliers can apply (via UAE Pass); devices are risk-rated Level 1, 2 or 3 with stated processing of about 1, 5 and 10 working days; fees are AED 500 for review plus AED 200 for the certificate, with optional inspection fees; applications need datasheets, test reports from accredited labs and 1-2 samples. Equipment registrations are reported as valid for three years and supplier registrations for five, so check the certificate date. Verification note (23 Sep 2026): that approved products carry a TDRA label was not established from a fetched source; TDRA also lists an optional Wi-Fi inspection fee of AED 8,100.",
+      "body_ar": "يجب أن تحصل أي معدات لاسلكية أو طرفية للاتصالات تُباع أو تُستورد أو تُستخدم في الإمارات على اعتماد النوع من هيئة تنظيم الاتصالات والحكومة الرقمية (TDRA). ويشمل ذلك نقاط الوصول اللاسلكية والموجّهات، وهواتف IP وأجهزة DECT، والميكروفونات اللاسلكية وسماعات المراقبة، وأجهزة العرض اللاسلكي، وأجهزة البلوتوث، وأجهزة اللاسلكي الثنائية، ووحدات الاتصال الخلوي، ومحاور المنازل الذكية، وكثيراً من منتجات الصوت والصورة التي تحتوي على وظائف لاسلكية. يتقدم بطلب الاعتماد كيان إماراتي مسجل لدى الهيئة كتاجر، بموجب رخصة تجارية يشمل نشاطها معدات الاتصالات، ويسير التسجيلان بالتوازي. ويتطلب الطلب تقارير اختبار سارية للترددات الراديوية والتوافق الكهرومغناطيسي والسلامة (ومعدل الامتصاص النوعي عند الحاجة)، والنشرات الفنية وأدلة الاستخدام. تصنف الهيئة الأجهزة إلى مستويات خطورة: المستوى الأول هو الأسرع، والمستويات الأعلى قد تحتاج إلى فحص فني ووقت أطول، ومدة الاعتماد ثلاث سنوات، وتظهر الطرازات المعتمدة في قائمة المعدات المعتمدة المنشورة لدى الهيئة وتحمل ملصق الهيئة. كما يجب أن تعمل الميكروفونات اللاسلكية وغيرها على الترددات المسموح بها في خطة الطيف الإماراتية. على المشتري أن يطلب من المورد شهادة اعتماد الهيئة أو رقم التسجيل لكل جهاز لاسلكي، فالواردات غير المعتمدة قد تُحجز في الجمارك أو تُرفض عند التسليم. ووفق شروط الخدمة المنشورة لدى الهيئة: لا يتقدّم إلا المورّد المسجّل لأجهزة الاتصالات عبر الهوية الرقمية، وتُصنَّف الأجهزة إلى مستويات خطورة 1 و2 و3 بمدة معالجة تقارب يوم عمل و5 و10 أيام عمل، والرسوم 500 درهم للمراجعة و200 درهم للشهادة مع رسوم فحص اختيارية، ويُشترط تقديم النشرات الفنية وتقارير فحص من مختبرات معتمدة وعيّنة أو عيّنتين. وتُذكر صلاحية تسجيل الجهاز بثلاث سنوات وتسجيل المورّد بخمس سنوات، لذا يجب التحقق من تاريخ الشهادة. ملاحظة التحقق (23 سبتمبر 2026): لم يثبت من مصدر تم فحصه أن المنتجات المعتمدة تحمل ملصقاً من الهيئة؛ وتذكر الهيئة رسماً اختيارياً لفحص أجهزة الواي فاي قدره 8,100 درهم.",
+      "required_specs": [],
+      "sources": [
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment",
+        "https://www.tuv.com/market-access-services/en/certification-filter/united-arab-emirates-telecommunication-apparatus-(tdra)-approval.html"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:cat6-vs-cat6a",
+      "topic": "Structured cabling: Cat6 vs Cat6A, UTP vs F/UTP, permanent link testing",
+      "kind": "comparison",
+      "body_en": "Structured cabling follows ISO/IEC 11801 and TIA-568 series standards. Cat6 (Class E) is rated to 250 MHz and supports 1 Gbps to 100 m; it can carry 10GBASE-T only over shorter distances (commonly cited as up to about 55 m in good conditions). Cat6A (Class EA) is rated to 500 MHz and supports 10 Gbps over the full 90 m permanent link plus patch cords (100 m channel), and handles higher-power PoE (IEEE 802.3bt up to 90 W at the source) with less heating in bundles, which matters for Wi-Fi 6/6E/7 access points, PTZ cameras and LED lighting. Shielding variants: U/UTP (unshielded), F/UTP (overall foil) and S/FTP (individually foiled pairs with braid); shielded systems resist interference and alien crosstalk but must be bonded and earthed end to end. Cable jacket must suit the location: LSZH (low smoke zero halogen) is the norm in UAE buildings. Warranty: manufacturers of structured cabling systems typically offer 20-25 year system warranties only when installed by a certified installer, all components are from the same system, and every link is tested with a calibrated certifier (e.g. Fluke DSX) with results submitted. Fibre backbones connect telecom rooms. Ask for test reports for 100% of links. Verification note (23 Sep 2026): the 55 m Cat6 10G limit, 802.3bt power levels and DSX certification are confirmed; the 20-25 year system warranty terms and the claim that LSZH is the UAE norm were not established from a fetched source.",
+      "body_ar": "تتبع الكابلات الهيكلية معايير ISO/IEC 11801 وسلسلة TIA-568. كابل Cat6 (الفئة E) مصنف حتى 250 ميجاهرتز ويدعم 1 جيجابت حتى 100 متر، ولا يحمل 10 جيجابت إلا لمسافات أقصر (يُذكر عادةً نحو 55 متراً في الظروف الجيدة). أما Cat6A (الفئة EA) فمصنف حتى 500 ميجاهرتز ويدعم 10 جيجابت على كامل الوصلة الدائمة بطول 90 متراً مع أسلاك التوصيل (قناة 100 متر)، ويتحمل تغذية PoE عالية القدرة (IEEE 802.3bt حتى 90 واط عند المصدر) مع حرارة أقل داخل الحزم، وهذا مهم لنقاط الوصول Wi-Fi 6 و6E و7 وكاميرات PTZ وإنارة LED. أنواع التدريع: U/UTP غير مدرّع، وF/UTP برقاقة شاملة، وS/FTP بأزواج مغلفة كل على حدة مع ضفيرة؛ والأنظمة المدرعة تقاوم التداخل لكن يجب ربطها وتأريضها من الطرف إلى الطرف. ويجب أن يناسب غلاف الكابل الموقع، والمعتاد في مباني الإمارات هو LSZH (دخان منخفض وخالٍ من الهالوجين). أما الضمان فالمصنعون يقدمون عادةً ضمان نظام من 20 إلى 25 سنة فقط إذا ركّبه مركّب معتمد، وكانت كل المكونات من النظام نفسه، واختُبرت كل وصلة بجهاز فحص معاير (مثل Fluke DSX) وقُدمت النتائج. وتربط الألياف البصرية غرف الاتصالات. اطلب تقارير اختبار لجميع الوصلات دون استثناء. ملاحظة التحقق (23 سبتمبر 2026): تأكدت حدود 55 متراً لـ Cat6 عند 10 جيجابت ومستويات قدرة 802.3bt واعتماد أجهزة DSX؛ أما شروط ضمان الأنظمة 20-25 سنة وكون LSZH هو المعتاد في الإمارات فلم تثبت من مصدر تم فحصه.",
+      "required_specs": [],
+      "sources": [
+        "https://www.blackbox.com/insights/blackbox-explains/inner/detail/copper-cable/copper-category-standards/6-things-to-consider-when-choosing-catx-ethernet-cables",
+        "https://ethernetalliance.org/wp-content/uploads/2018/04/WP_EA_Overview8023bt_FINAL.pdf",
+        "https://www.flukenetworks.com/edocs/datasheet-dsx-8000-cableanalyzer",
+        "https://en.wikipedia.org/wiki/ISO/IEC_11801"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:fibre-om-os",
+      "topic": "Fibre optic: multimode OM3/OM4/OM5 vs singlemode OS2",
+      "kind": "comparison",
+      "body_en": "Fibre is used for backbones between telecom rooms, between buildings, and for long AV and CCTV runs. Multimode fibre (50/125 um core) is graded OM3, OM4 and OM5; it uses lower-cost VCSEL optics and suits distances inside a building: 10GBASE-SR reaches roughly 300 m on OM3 and 400 m on OM4 (40/100G short-reach distances were not established from a fetched source). OM5 is wideband multimode aimed at short-wave division multiplexing. Singlemode fibre (OS2, about 9 um core) supports kilometres and virtually unlimited bandwidth; transceivers used to cost more, but the gap has narrowed, and singlemode is standard for campus links, service provider fibre-to-the-home and anything likely to be upgraded. Connectors: LC is standard in racks; SC common in service-provider plant; MPO/MTP for high-density data centres. Cable construction: tight-buffered for indoor, loose-tube armoured or rodent-resistant for outdoor ducts, and LSZH jackets indoors. Specify core count, fibre type, construction, connector type and polish (UPC or APC, never mix), and require OTDR and insertion-loss test results per core. Jacket colour codes are standardised, but confirm the colour against the cable datasheet. Verification note (23 Sep 2026): Fluke confirms 300 m (OM3) and 400 m (OM4) for 10G and the TIA/ISO OM/OS naming; 40/100G distances and specific colour codes were not confirmed.",
+      "body_ar": "تُستخدم الألياف البصرية للربط الرئيسي بين غرف الاتصالات وبين المباني وللمسافات الطويلة في أنظمة الصوت والصورة والمراقبة. الألياف متعددة الأنماط (قطر اللب 50/125 ميكرون) تُصنف OM3 وOM4 وOM5، وتستخدم وحدات إرسال أرخص، وتناسب المسافات داخل المبنى: يصل 10GBASE-SR إلى نحو 300 متر على OM3 و400 متر على OM4، بينما تصل وصلات 40 و100 جيجابت قصيرة المدى إلى نحو 100 متر على OM3 و150 متراً على OM4. أما OM5 فألياف واسعة النطاق مخصصة للتعدد الموجي قصير الموجة. والألياف أحادية النمط (OS2 بلب نحو 9 ميكرون) تدعم كيلومترات وعرض نطاق شبه غير محدود، وكانت وحدات الإرسال لها أغلى لكن الفارق تقلص، وهي المعيار لربط الحرم ولألياف مزودي الخدمة إلى المنازل ولكل ما يُتوقع ترقيته. الموصلات: LC هو المعيار في الخزائن، وSC شائع لدى مزودي الخدمة، وMPO/MTP لمراكز البيانات عالية الكثافة. بنية الكابل: مخزن بإحكام للداخل، وأنبوب فضفاض مدرع أو مقاوم للقوارض للقنوات الخارجية، وغلاف LSZH في الداخل. حدد عدد الشعيرات ونوعها وبنية الكابل ونوع الموصل وصقله (UPC أو APC ولا يُخلط بينهما)، واطلب نتائج اختبار OTDR وفقد الإدخال لكل شعيرة. رموز الألوان: الأزرق المائي معتاد لـOM3 وOM4، والأخضر الليموني لـOM5، والأصفر للأحادي. ملاحظة التحقق (23 سبتمبر 2026): تؤكد Fluke مسافات 300 متر (OM3) و400 متر (OM4) عند 10 جيجابت وتسميات OM/OS؛ ولم تتأكد مسافات 40/100 جيجابت ولا ألوان الأغلفة المحددة، فيُرجع فيها إلى نشرة الكابل.",
+      "required_specs": [],
+      "sources": [
+        "https://www.flukenetworks.com/knowledge-base/copper-testing/om1-om2-om3-om4-om5-and-os1-os2-fiber",
+        "https://www.thefoa.org/tech/ref/basic/fiber.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:wifi-access-points",
+      "topic": "Enterprise Wi-Fi: Wi-Fi 6/6E/7, controllers and site surveys",
+      "kind": "product",
+      "body_en": "Enterprise wireless is designed for capacity, not just coverage. Wi-Fi 6 (802.11ax) works in 2.4 and 5 GHz; Wi-Fi 6E adds the 6 GHz band; Wi-Fi 7 (802.11be) adds 320 MHz channels and multi-link operation. Use of 6 GHz depends on the national regulator: TDRA has opened part of the 6 GHz band for Wi-Fi in the UAE, so check the currently permitted range and that the access point model is TDRA type-approved with the UAE country code. Access points are managed by a hardware controller, a cloud controller, or a controller-less architecture; licences and subscriptions are often mandatory for cloud-managed platforms and are a recurring cost that must be quoted for the full term. Designs should start from a predictive survey (software such as Ekahau or Hamina) using real floor plans and wall materials, followed by a post-installation validation survey. UAE buildings with low-e coated glass, concrete cores and marble dramatically attenuate signals, and outdoor/high-temperature areas need IP-rated APs with a suitable operating temperature. Specify user density, applications (voice, video), SSIDs and security (WPA3-Enterprise, 802.1X/RADIUS), PoE budget on switches (Wi-Fi 6E/7 APs often need 802.3at or bt), and uplink speeds (2.5/5 GbE multigig). Verification note (23 Sep 2026): TDRA opened 5925-6425 MHz for indoor Wi-Fi at 250 mW EIRP; Wi-Fi 7 features are confirmed. The attenuation of low-e glass and marble is practitioner experience, not established from a fetched source.",
+      "body_ar": "تُصمم الشبكات اللاسلكية للمؤسسات على أساس السعة لا التغطية فقط. يعمل Wi-Fi 6 (802.11ax) في نطاقي 2.4 و5 جيجاهرتز، ويضيف Wi-Fi 6E نطاق 6 جيجاهرتز، ويضيف Wi-Fi 7 (802.11be) قنوات بعرض 320 ميجاهرتز والتشغيل متعدد الوصلات. واستخدام نطاق 6 جيجاهرتز يعتمد على الجهة التنظيمية؛ فقد فتحت هيئة تنظيم الاتصالات جزءاً منه للواي فاي في الإمارات، لذا تحقق من النطاق المسموح حالياً وأن طراز نقطة الوصول معتمد من الهيئة ومضبوط على رمز الدولة الإماراتي. تُدار نقاط الوصول بوحدة تحكم مادية أو سحابية أو بمعمارية دون وحدة تحكم، والتراخيص والاشتراكات غالباً إلزامية للمنصات السحابية وهي تكلفة متكررة يجب تسعيرها لكامل المدة. يبدأ التصميم بمسح تنبؤي ببرامج مثل Ekahau أو Hamina باستخدام المخططات الفعلية ومواد الجدران، ثم مسح تحقق بعد التركيب. والمباني في الإمارات ذات الزجاج العاكس المطلي والأنوية الخرسانية والرخام تضعف الإشارة بشدة، والمناطق الخارجية أو الحارة تحتاج نقاط وصول بدرجة حماية مناسبة ونطاق حرارة تشغيل ملائم. حدد كثافة المستخدمين، والتطبيقات (صوت وفيديو)، وأسماء الشبكات والأمان (WPA3-Enterprise و802.1X/RADIUS)، وميزانية PoE في المحولات (نقاط 6E و7 تحتاج غالباً 802.3at أو bt)، وسرعات الربط (2.5 أو 5 جيجابت). ملاحظة التحقق (23 سبتمبر 2026): فتحت الهيئة النطاق 5925-6425 ميغاهرتز للواي فاي الداخلي بقدرة 250 ملي واط؛ وتأكدت ميزات Wi-Fi 7. أما توهين الزجاج منخفض الانبعاث والرخام فخبرة عملية لم تثبت من مصدر تم فحصه.",
+      "required_specs": [],
+      "sources": [
+        "https://tdra.gov.ae/en/media/press-release/2020/the-telecommunications-regulatory-authority-tra-adds-additional-500-mhz-of-6-ghz",
+        "https://www.ezurio.com/resources/blog/how-does-wi-fi-7-compare-to-wi-fi-6-6e",
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:ip-pbx-telephony",
+      "topic": "IP telephony: IP-PBX, SIP trunks and VoIP rules in the UAE",
+      "kind": "product",
+      "body_en": "Office telephony today is mostly an IP-PBX (on-premise appliance or virtual server) or a cloud/hosted PBX, with SIP handsets powered by PoE, DECT for mobile staff, and integration with Microsoft Teams or other unified communications. Sizing is by extensions, concurrent external calls (trunk channels), features (IVR, call recording, queues and call-centre reporting, hotel PMS integration for hospitality) and licences, which are often per user and per year. In the UAE, external calling must go through licensed operators (etisalat by e& and du) via SIP trunks, ISDN/PRI or analogue lines; VoIP services are regulated and only apps and services approved under TDRA policy are permitted for public calling, so a quote relying on an unlicensed foreign VoIP provider for PSTN calls is a compliance risk. All handsets and DECT base stations must be TDRA type-approved. Emergency calling and call recording (privacy and consent) must be considered. The network needs QoS and a voice VLAN; a PoE budget per switch; and UPS for switches if phones must work in a power cut. Specify number of users and handset types (basic, executive, conference, DECT), trunk provider and channels, recording and retention, integrations, redundancy and the licence term included. Verification note (A4c, 23 Sep 2026): TDRA type approval of terminal equipment is confirmed, and TDRA's Internet Guidelines state that VoIP services for UAE users are allowed only when provided with the licensees or approved by TDRA; non-compliant VoIP traffic falls under prohibited content.",
+      "body_ar": "تعتمد الاتصالات الهاتفية في المكاتب اليوم غالباً على مقسم IP-PBX (جهاز محلي أو خادم افتراضي) أو مقسم سحابي، مع هواتف SIP تُغذى عبر PoE، وأجهزة DECT للموظفين المتنقلين، وربط مع Microsoft Teams أو غيره من أنظمة الاتصالات الموحدة. يُحدد الحجم بعدد التحويلات، وعدد المكالمات الخارجية المتزامنة، والخصائص (الرد الآلي، وتسجيل المكالمات، وطوابير الانتظار وتقارير مراكز الاتصال، والربط مع نظام إدارة الفندق)، والتراخيص التي تكون غالباً لكل مستخدم سنوياً. وفي الإمارات يجب أن تمر المكالمات الخارجية عبر المشغلين المرخصين (اتصالات من e& ودو) من خلال خطوط SIP أو ISDN/PRI أو الخطوط التماثلية، وخدمات الاتصال عبر الإنترنت منظمة ولا يُسمح إلا بالتطبيقات والخدمات المعتمدة وفق سياسة الهيئة، لذا فإن أي عرض يعتمد على مزود أجنبي غير مرخص للاتصال بالشبكة العامة يمثل مخاطرة تنظيمية. ويجب أن تكون جميع الأجهزة الهاتفية ومحطات DECT معتمدة من الهيئة. كما يجب مراعاة مكالمات الطوارئ وتسجيل المكالمات (الخصوصية والموافقة). وتحتاج الشبكة إلى جودة خدمة وشبكة افتراضية للصوت، وميزانية PoE لكل محول، ومزود طاقة احتياطي إذا وجب أن تعمل الهواتف عند انقطاع الكهرباء. حدد عدد المستخدمين وأنواع الأجهزة، ومزود الخطوط وعدد القنوات، والتسجيل ومدة الاحتفاظ، والربط مع الأنظمة، والاحتياط، ومدة الترخيص المشمولة. ملاحظة التحقق (A4c، 23 سبتمبر 2026): تأكد اعتماد نوع الأجهزة الطرفية من الهيئة، وتنص إرشادات الإنترنت الصادرة عن الهيئة على أن خدمات الاتصال عبر الإنترنت لمستخدمي الإمارات مسموحة فقط إذا قُدمت بالتعاون مع المرخص لهم أو اعتمدتها الهيئة، وأن الحركة غير الملتزمة تندرج ضمن المحتوى المحظور.",
+      "required_specs": [],
+      "sources": [
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment",
+        "https://tdra.gov.ae/en/About/tdra-sectors/information-and-digital-government/departments/policy-and-programs-department/internet-guidelines"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:racks-ups-comms-room",
+      "topic": "Network racks, UPS and communications room basics",
+      "kind": "product",
+      "body_en": "Each floor or zone telecom room and the main equipment room house racks, patch panels, switches and servers. Racks are specified by height in rack units (U, 44.45 mm each; 42U and 47U are common), width (600 mm for patching, 800 mm for cable management) and depth (1,000-1,200 mm for servers), with load rating, perforated doors for airflow, cable managers, and PDUs (basic, metered or switched). Wall-mounted cabinets (6U-15U) suit small offices. UPS options: line-interactive for small closets; online double-conversion for server rooms and critical AV/control rooms; specified by kVA/kW, topology, battery autonomy at actual load (e.g. 15 or 30 minutes), bypass, and network monitoring card. Batteries (VRLA lead-acid typically 3-5 year design life in the heat of the Gulf, shortened by high room temperature; lithium-ion longer but pricier) are consumables and often excluded from standard warranty. Rooms need dedicated cooling (split or precision units, redundancy for 24/7), earthing and bonding bar, fire detection (and often clean-agent suppression for server rooms), access control, and containment coordinated with the MEP contractor. Service-provider rooms must follow etisalat/du dimension requirements. A common oversight is cooling sized for the fit-out day, not for the equipment added later. Verification note (23 Sep 2026): 1U = 44.45 mm and the 42U norm are confirmed; the 3-5 year VRLA life in Gulf heat was not established from a fetched source.",
+      "body_ar": "تحتوي غرفة الاتصالات في كل طابق أو منطقة وغرفة المعدات الرئيسية على خزائن ولوحات توصيل ومحولات وخوادم. تُحدد الخزائن بالارتفاع بوحدات الرف (U، كل وحدة 44.45 مم، والشائع 42U و47U)، وبالعرض (600 مم للتوصيل و800 مم لإدارة الكوابل)، وبالعمق (1,000 إلى 1,200 مم للخوادم)، مع قدرة التحميل، وأبواب مثقبة للتهوية، ومنظمات الكوابل، ووحدات توزيع الطاقة (أساسية أو بقياس أو قابلة للتحكم). والخزائن الجدارية (من 6U إلى 15U) تناسب المكاتب الصغيرة. خيارات مزود الطاقة غير المنقطعة UPS: التفاعلي مع الخط للغرف الصغيرة، والتحويل المزدوج المتصل لغرف الخوادم وغرف التحكم الحرجة، ويُحدد بالقدرة kVA/kW، ونوع التقنية، ومدة البطارية عند الحمل الفعلي (مثل 15 أو 30 دقيقة)، والتحويل الجانبي، وبطاقة المراقبة الشبكية. والبطاريات (الرصاص الحمضي المغلق عمرها التصميمي عادةً 3 إلى 5 سنوات ويقصر مع حرارة الخليج، والليثيوم أطول عمراً وأغلى) مواد استهلاكية وغالباً مستثناة من الضمان القياسي. تحتاج الغرف إلى تبريد مخصص (وحدات منفصلة أو دقيقة مع احتياط للتشغيل المستمر)، وقضيب تأريض وربط، وكشف حريق (وغالباً إطفاء بالغاز النظيف لغرف الخوادم)، وتحكم بالدخول، ومسارات منسقة مع مقاول الأعمال الكهروميكانيكية. وغرف مزودي الخدمة يجب أن تتبع اشتراطات اتصالات ودو في المقاسات. ومن الأخطاء الشائعة تصميم التبريد ليوم التسليم فقط لا للمعدات التي تُضاف لاحقاً. ملاحظة التحقق (23 سبتمبر 2026): تأكد أن الوحدة 1U تساوي 44.45 مم وأن ارتفاع 42U هو المعتاد؛ ولم يثبت عمر بطاريات VRLA من 3 إلى 5 سنوات في حرارة الخليج من مصدر تم فحصه.",
+      "required_specs": [],
+      "sources": [
+        "https://en.wikipedia.org/wiki/19-inch_rack"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:digital-signage",
+      "topic": "Digital signage: players, CMS and content licensing",
+      "kind": "product",
+      "body_en": "A digital signage system has four parts: displays (professional panels, LED, kiosks or menu boards), media players (built-in system-on-chip in the display, an OPS slot-in PC, or an external player), a content management system (CMS, on-premise or cloud SaaS) that schedules playlists by screen, zone and time, and content itself. The CMS is usually licensed per screen per year, so the total cost of ownership is dominated by subscriptions over 3-5 years rather than hardware. Key requirements: Arabic and English right-to-left layout support, remote monitoring (screen-on proof of play, screenshots, alerts), integration with data feeds (queue management, flight information, menu pricing, emergency override from the fire alarm), user roles for content approval, and offline caching if the network drops. For outdoor or window-facing screens in the UAE, high-brightness (manufacturer full-outdoor ranges are rated around 3,500 nits typical) panels with thermal management and anti-glare are required; advertising displays facing public roads need an advertising permit from the competent authority (the municipality, or the Dubai Development Authority in its areas). Specify screen count and sizes, orientation, player type, CMS deployment and licence term, content creation responsibility, and support SLA. Red flag: quotes that price the player hardware but omit the recurring CMS licence or say 'free CMS' with no support or updates. Verification note (A4c, 23 Sep 2026): the 2,500-nit figure was replaced by the Samsung full-outdoor datasheet rating (3,500 nits typical, 4,000 peak); advertising permits are confirmed by the Dubai Development Authority advertising permit service. CMS licence models and subscription share of cost are commercial and not established.",
+      "body_ar": "يتكون نظام اللوحات الإعلانية الرقمية من أربعة أجزاء: الشاشات (احترافية أو LED أو أكشاك أو لوحات قوائم الطعام)، ومشغلات المحتوى (مدمجة في الشاشة أو حاسب OPS يُركّب في الشاشة أو مشغل خارجي)، ونظام إدارة المحتوى (محلي أو سحابي) الذي يجدول قوائم العرض حسب الشاشة والمنطقة والوقت، ثم المحتوى نفسه. يُرخص نظام إدارة المحتوى عادةً لكل شاشة سنوياً، لذا فإن التكلفة الكلية تهيمن عليها الاشتراكات خلال 3 إلى 5 سنوات لا الأجهزة. المتطلبات الأساسية: دعم التخطيط العربي والإنجليزي من اليمين لليسار، والمراقبة عن بعد (إثبات العرض واللقطات والتنبيهات)، والربط مع مصادر البيانات (أنظمة الطوابير ومعلومات الرحلات وأسعار القوائم والتجاوز الطارئ من نظام إنذار الحريق)، وصلاحيات المستخدمين لاعتماد المحتوى، والتخزين المؤقت عند انقطاع الشبكة. وللشاشات الخارجية أو المواجهة للواجهات في الإمارات تلزم شاشات عالية السطوع (تُصنّف فئات الشاشات الخارجية لدى المصنّعين بنحو 3,500 نِت نموذجياً) مع إدارة حرارية ومضادة للوهج، والشاشات الإعلانية المواجهة للطرق العامة تحتاج تصريح إعلان من الجهة المختصة (البلدية، أو سلطة دبي للتطوير في مناطقها). حدد عدد الشاشات ومقاساتها، واتجاهها، ونوع المشغل، وطريقة نشر نظام المحتوى ومدة الترخيص، ومسؤولية إنتاج المحتوى، واتفاقية مستوى الخدمة. ومن علامات الخطر العروض التي تسعّر المشغلات وتغفل ترخيص إدارة المحتوى المتكرر، أو تذكر «نظاماً مجانياً» بلا دعم أو تحديثات. ملاحظة التحقق (A4c، 23 سبتمبر 2026): استُبدل رقم 2,500 نِت بتصنيف نشرة سامسونج للشاشات الخارجية (3,500 نِت نموذجياً و4,000 ذروة)، وتأكدت تصاريح الإعلان من خدمة تصريح الإعلان لدى سلطة دبي للتطوير. أما نماذج ترخيص إدارة المحتوى وحصة الاشتراكات من التكلفة فتجارية وغير مثبتة.",
+      "required_specs": [],
+      "sources": [
+        "https://image-us.samsung.com/SamsungUS/samsungbusiness/pdf/spec-sheets/OH46B_OH55A-SOH75A_Full_Outdoor_Datasheet.pdf",
+        "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "av_it:spec-led-wall",
+      "topic": "Spec checklist: LED video wall",
+      "kind": "spec_checklist",
+      "body_en": "A supplier cannot quote an LED wall accurately from 'a big screen for the lobby'. The enquiry must fix the active area and aspect ratio, the pixel pitch or the target resolution (and minimum viewing distance to justify it), and whether it is indoor or outdoor. Brightness in nits, refresh rate (camera-facing walls need high refresh), encapsulation (SMD, GOB or COB), and service access (front service is essential when the wall sits against a wall with no rear corridor) change both the product and the structure. The processor or controller and its inputs (HDMI 2.0, 12G-SDI, fibre) determine what content sources can be shown, and whether scaling or multi-window is needed. Structural support (ground stack, wall mount, hanging frame or custom steel) and who designs and certifies it must be stated, as must power supply and heat load for the MEP team. Spares policy: request a percentage of spare modules and power supplies from the same production batch. Warranty years, on-site response time, and expected LED lifetime to half brightness complete the specification. For outdoor walls add IP rating, wind load, municipality permit responsibility and content-control (dimming schedule). Verification note (23 Sep 2026): checklist fields follow the verified pixel-pitch entry.",
+      "body_ar": "لا يمكن للمورد تسعير شاشة LED بدقة من عبارة «شاشة كبيرة للردهة». يجب أن يحدد الطلب المساحة الفعلية ونسبة الأبعاد، والمسافة بين البكسلات أو الدقة المستهدفة (وأقل مسافة مشاهدة تبررها)، وهل الشاشة داخلية أم خارجية. والسطوع بالنِت، ومعدل التحديث (الشاشات المواجهة للكاميرات تحتاج معدلاً عالياً)، وتقنية التغليف (SMD أو GOB أو COB)، وطريقة الصيانة (الصيانة الأمامية ضرورية إذا كانت الشاشة ملاصقة لجدار بلا ممر خلفي) تغيّر المنتج والهيكل معاً. ووحدة المعالجة ومداخلها (HDMI 2.0 و12G-SDI والألياف) تحدد مصادر المحتوى الممكن عرضها، وهل يلزم تكبير الصورة أو تعدد النوافذ. ويجب تحديد الهيكل الحامل (قائم على الأرض أو مثبت على الجدار أو معلق أو إطار فولاذي خاص) ومن يصممه ويعتمده، والتغذية الكهربائية والحمل الحراري لفريق الأعمال الكهروميكانيكية. وسياسة قطع الغيار: اطلب نسبة من الوحدات ومزودات الطاقة الاحتياطية من الدفعة الإنتاجية نفسها. ويكتمل الوصف بمدة الضمان، وزمن الاستجابة في الموقع، والعمر المتوقع للثنائيات حتى نصف السطوع. وللشاشات الخارجية أضف درجة الحماية، وحمل الرياح، ومسؤولية تصريح البلدية، وجدول التعتيم. ملاحظة التحقق (23 سبتمبر 2026): حقول القائمة مبنية على مدخل المسافة بين البكسلات بعد التحقق.",
+      "required_specs": [
+        "indoor_or_outdoor",
+        "active_width_mm_x_height_mm",
+        "pixel_pitch_mm_or_target_resolution",
+        "min_viewing_distance_m",
+        "brightness_nits",
+        "refresh_rate_hz",
+        "encapsulation_smd_gob_cob",
+        "front_or_rear_service",
+        "processor_inputs_and_multiwindow",
+        "mounting_structure_and_who_certifies",
+        "power_and_heat_load",
+        "ip_rating_for_outdoor",
+        "spare_modules_percent_same_batch",
+        "warranty_years_and_onsite_response",
+        "content_control_or_cms"
+      ],
+      "sources": [
+        "https://www.daktronics.com/en-us/support/kb/000030569",
+        "https://www.colorlitled.com/p4-outdoor-led-module/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:spec-conference-room",
+      "topic": "Spec checklist: meeting / conference room AV",
+      "kind": "spec_checklist",
+      "body_en": "For a meeting-room AV quote to be comparable, state the room dimensions and ceiling height, seating count and layout, and wall and ceiling finishes (glass and hard surfaces change the microphone and acoustic design). Name the conferencing platform (Microsoft Teams Rooms, Zoom Rooms, Google Meet, or BYOD only) and whether devices must be on that platform's certified list. State display count and size or ask the supplier to size them to the farthest viewer, whether interactive touch is required, and the camera requirement (fixed, PTZ, speaker tracking, content camera). Define microphone type (ceiling array, table, wireless handheld for presenters), speaker type, and any need for voice lift or hearing-assistance. List the sources (laptops HDMI/USB-C, wireless presentation, PCs), control (touch panel, scheduling panel outside the room), and integrations (room booking, lighting, blinds). Clarify who provides the network ports, power, containment and furniture cut-outs, and whether platform licences, warranty extensions and a support contract are included and for how long. Finally, require commissioning documentation, as-built drawings, user training and a defined acceptance test. Verification note (23 Sep 2026): checklist fields follow the verified conference-room entry.",
+      "body_ar": "لكي تكون عروض أسعار أنظمة غرف الاجتماعات قابلة للمقارنة، حدد أبعاد الغرفة وارتفاع السقف، وعدد المقاعد وتوزيعها، وتشطيبات الجدران والسقف (فالزجاج والأسطح الصلبة تغير تصميم الميكروفونات والصوتيات). اذكر منصة المؤتمرات (Microsoft Teams Rooms أو Zoom Rooms أو Google Meet أو التوصيل بالجهاز الشخصي فقط) وهل يجب أن تكون الأجهزة ضمن قائمة الاعتماد لتلك المنصة. حدد عدد الشاشات ومقاسها أو اطلب من المورد تحديدها حسب أبعد مشاهد، وهل يلزم اللمس التفاعلي، ومتطلبات الكاميرا (ثابتة أو PTZ أو تتبع المتحدث أو كاميرا للمحتوى). وحدد نوع الميكروفونات (مصفوفة سقفية أو مكتبية أو لاسلكية يدوية للمقدم)، ونوع السماعات، وأي حاجة لتقوية الصوت أو أنظمة مساعدة السمع. واذكر المصادر (حواسيب عبر HDMI أو USB-C، والعرض اللاسلكي، والحواسيب الثابتة)، والتحكم (لوحة لمس، ولوحة حجز خارج الغرفة)، والربط (حجز الغرف والإضاءة والستائر). ووضح من يوفر منافذ الشبكة والكهرباء والمسارات وفتحات الأثاث، وهل تشمل الأسعار تراخيص المنصة وتمديد الضمان وعقد الدعم ولأي مدة. وأخيراً اشترط وثائق التشغيل والمخططات النهائية وتدريب المستخدمين واختبار قبول محدداً. ملاحظة التحقق (23 سبتمبر 2026): حقول القائمة مبنية على مدخل غرف الاجتماعات بعد التحقق.",
+      "required_specs": [
+        "room_dimensions_and_ceiling_height",
+        "seat_count_and_layout",
+        "wall_ceiling_finishes",
+        "conferencing_platform_and_certification",
+        "display_count_size_or_farthest_viewer",
+        "interactive_touch_required",
+        "camera_type",
+        "microphone_type",
+        "speaker_type_and_voice_lift",
+        "sources_and_wireless_presentation",
+        "control_and_room_booking",
+        "integrations_lighting_blinds",
+        "network_power_containment_by_whom",
+        "licences_and_support_term",
+        "commissioning_and_training"
+      ],
+      "sources": [
+        "https://learn.microsoft.com/en-us/microsoftteams/rooms/certified-hardware",
+        "https://www.avixa.org/resources/standards/display-image-size-for-2d-content"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:spec-pa-voice-evac",
+      "topic": "Spec checklist: PA / background music / voice evacuation",
+      "kind": "spec_checklist",
+      "body_en": "State first whether the system is background music and paging only, or a certified voice alarm system; the second must be EN 54-16/EN 54-24 (or UL-listed per NFPA 72 on US-based projects) and Civil Defence approved, which changes everything from amplifiers to cable. Give the number of zones and their use (offices, car park, retail, back of house, outdoor), approximate areas and ceiling heights or drawings, and required sound level and intelligibility target (STI). List loudspeaker types per zone (ceiling, pendant, horn for car parks and plant rooms, wall, IP-rated outdoor) and their tap settings or let the designer calculate them. Specify distribution (100 V line), amplifier redundancy (N+1 or standby), battery standby and alarm durations, and fire-resistant cable category. Define the fire alarm interface and cause-and-effect matrix, paging microphones (all-call and zone selection), music sources, local volume controls (which must be overridden in emergency), and any network or Dante requirement. Add pre-recorded evacuation and alert messages in Arabic and English, testing and STI measurement, Civil Defence approval responsibility, and the maintenance contract term. Verification note (23 Sep 2026): standards named are confirmed; Civil Defence approval rules were not established from a fetched source.",
+      "body_ar": "حدد أولاً هل النظام للموسيقى الخلفية والنداء فقط أم نظام إنذار صوتي معتمد؛ فالثاني يجب أن يكون وفق EN 54-16 وEN 54-24 (أو مدرجاً لدى UL وفق NFPA 72 في المشاريع ذات المرجعية الأمريكية) ومعتمداً من الدفاع المدني، وهذا يغير كل شيء من المضخمات إلى الكوابل. اذكر عدد المناطق واستخدامها (مكاتب، مواقف، محلات، مناطق خدمية، خارجية)، والمساحات التقريبية وارتفاعات الأسقف أو المخططات، ومستوى الصوت المطلوب وهدف وضوح الكلام (STI). وحدد أنواع السماعات لكل منطقة (سقفية، معلقة، بوقية للمواقف وغرف المعدات، جدارية، خارجية بدرجة حماية) ونقاط قدرتها أو اترك حسابها للمصمم. وحدد طريقة التوزيع (خط 100 فولت)، واحتياط المضخمات، ومدة البطاريات في الاحتياط والإنذار، وفئة الكابل المقاوم للحريق. وعرّف الربط مع إنذار الحريق ومصفوفة السبب والنتيجة، وميكروفونات النداء (نداء عام واختيار المناطق)، ومصادر الموسيقى، ومتحكمات الصوت المحلية (التي يجب تجاوزها في الطوارئ)، وأي متطلبات شبكية أو Dante. وأضف رسائل الإخلاء والتنبيه المسجلة بالعربية والإنجليزية، والاختبار وقياس وضوح الكلام، ومسؤولية الحصول على اعتماد الدفاع المدني، ومدة عقد الصيانة. ملاحظة التحقق (23 سبتمبر 2026): المعايير المذكورة مؤكدة؛ ولم تثبت قواعد اعتماد الدفاع المدني من مصدر تم فحصه.",
+      "required_specs": [
+        "bgm_paging_only_or_certified_voice_alarm",
+        "standard_en54_or_nfpa72",
+        "zone_count_and_use",
+        "areas_ceiling_heights_or_drawings",
+        "spl_and_sti_target",
+        "loudspeaker_types_per_zone",
+        "line_voltage_and_taps",
+        "amplifier_redundancy",
+        "battery_standby_and_alarm_duration",
+        "fire_resistant_cable_category",
+        "fire_alarm_interface_and_cause_effect",
+        "paging_stations",
+        "music_sources_and_local_volume_controls",
+        "arabic_english_messages",
+        "civil_defence_approval_by_whom",
+        "maintenance_term"
+      ],
+      "sources": [
+        "https://www.zenitel.com/sites/default/files/2024-01/EN%2054%20Integra%20System%20Dersign%20Guide%20T-0667-231_Iss2.5.pdf",
+        "https://help.harmanpro.com/guide-to-constant-voltage-systems"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:spec-structured-cabling",
+      "topic": "Spec checklist: structured cabling and network",
+      "kind": "spec_checklist",
+      "body_en": "A cabling enquiry must give the number of outlets (data, voice, Wi-Fi AP, CCTV, AV points) per floor or by drawing, and the category (Cat6 or Cat6A) with shielding (U/UTP, F/UTP, S/FTP) and jacket (LSZH). State whether a named manufacturer's certified system and extended warranty (typically 20-25 years) is required, because that dictates installer certification and component brand consistency. Define the backbone: fibre type (OM4 or OS2), core count, and copper backbone for voice if any. Give telecom room locations, rack sizes and quantities, patch panels, cable managers and PDUs. Clarify containment responsibility (trays, conduits, floor boxes) and whether the MEP contractor provides it. Specify testing: 100% permanent link certification with a named tester class and submission of native test files, fibre OTDR and loss testing, labelling scheme (per TIA-606) and as-built drawings. For active equipment, list switch port counts, PoE budget, uplink speeds, stacking/redundancy, Wi-Fi AP count or survey scope, firewall throughput, and licensing term. Also confirm service-provider (etisalat/du) requirements for the building entry and main telecom room, and TDRA approval for any wireless equipment. Verification note (23 Sep 2026): TIA-606 labelling and the certifier requirements are confirmed; warranty length is manufacturer-specific.",
+      "body_ar": "يجب أن يتضمن طلب الكابلات عدد المخارج (بيانات، صوت، نقاط واي فاي، كاميرات، نقاط صوت وصورة) لكل طابق أو حسب المخططات، والفئة (Cat6 أو Cat6A) مع نوع التدريع (U/UTP أو F/UTP أو S/FTP) والغلاف (LSZH). وحدد هل يلزم نظام معتمد من مصنع بعينه مع ضمان ممتد (عادةً 20 إلى 25 سنة)، لأن ذلك يفرض اعتماد المركّب وتوحيد علامة المكونات. وعرّف الربط الرئيسي: نوع الألياف (OM4 أو OS2)، وعدد الشعيرات، والكابل النحاسي الرئيسي للصوت إن وجد. واذكر مواقع غرف الاتصالات، ومقاسات الخزائن وعددها، ولوحات التوصيل، ومنظمات الكوابل، ووحدات توزيع الطاقة. ووضح مسؤولية المسارات (الحوامل والأنابيب وصناديق الأرضيات) وهل يوفرها مقاول الأعمال الكهروميكانيكية. وحدد الاختبار: فحص 100% من الوصلات الدائمة بجهاز من فئة محددة وتسليم ملفات الاختبار الأصلية، واختبار OTDR والفقد للألياف، ونظام الترقيم (وفق TIA-606)، والمخططات النهائية. وللأجهزة النشطة اذكر عدد منافذ المحولات، وميزانية PoE، وسرعات الربط، والتكديس أو الاحتياط، وعدد نقاط الواي فاي أو نطاق المسح، وسرعة الجدار الناري، ومدة التراخيص. وتأكد كذلك من اشتراطات مزود الخدمة (اتصالات أو دو) لمدخل المبنى وغرفة الاتصالات الرئيسية، ومن اعتماد الهيئة لأي معدات لاسلكية. ملاحظة التحقق (23 سبتمبر 2026): تأكد معيار الترقيم TIA-606 ومتطلبات جهاز الاعتماد؛ ومدة الضمان تختلف حسب المصنّع.",
+      "required_specs": [
+        "outlet_counts_by_type_and_floor",
+        "category_cat6_or_cat6a",
+        "shielding_type",
+        "jacket_lszh",
+        "certified_system_and_warranty_years",
+        "backbone_fibre_type_and_core_count",
+        "telecom_room_locations_and_rack_sizes",
+        "containment_by_whom",
+        "testing_scope_and_native_files",
+        "labelling_standard",
+        "switch_ports_poe_uplinks",
+        "wifi_ap_count_or_survey",
+        "licence_term",
+        "service_provider_requirements",
+        "tdra_approval_for_wireless"
+      ],
+      "sources": [
+        "https://www.blackbox.com/insights/blackbox-explains/inner/detail/copper-cable/copper-category-standards/6-things-to-consider-when-choosing-catx-ethernet-cables",
+        "https://www.flukenetworks.com/edocs/datasheet-dsx-8000-cableanalyzer",
+        "https://www.flukenetworks.com/knowledge-base/copper-testing/om1-om2-om3-om4-om5-and-os1-os2-fiber",
+        "https://en.wikipedia.org/wiki/ANSI/TIA-568"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:buyer-mistakes",
+      "topic": "Common buyer mistakes in AV, IT and low-current procurement",
+      "kind": "buyer_mistake",
+      "body_en": "The most frequent errors in this trade are scope errors, not product errors. First, buying hardware without the recurring licences: cloud Wi-Fi, CMS for signage, conferencing room licences, IP-PBX user licences and some switch features stop working when subscriptions lapse. Second, confusing a background-music system with a certified voice-evacuation system, then failing Civil Defence inspection. Third, specifying LED walls by pitch only, or choosing a fine pitch that the viewing distance does not need, which inflates cost several-fold. Fourth, ignoring acoustics in glass-walled meeting rooms and blaming the microphones later. Fifth, forgetting the network for AV-over-IP and Dante: unmanaged switches without IGMP snooping flood the network with multicast. Sixth, importing wireless microphones, APs or presentation devices without TDRA approval, or using frequencies not allowed in the UAE. Seventh, leaving containment, power points, and rack space unassigned between ELV, MEP and IT contractors. Eighth, accepting cabling without 100% test reports, which voids the manufacturer warranty. Ninth, sizing UPS and cooling only for day-one load. Tenth, not requiring Arabic content capability (RTL layout in signage, Arabic evacuation messages). Verification note (23 Sep 2026): points are practitioner guidance built on the verified entries.",
+      "body_ar": "أكثر الأخطاء شيوعاً في هذا المجال أخطاء في النطاق لا في المنتج. أولاً: شراء الأجهزة دون التراخيص المتكررة؛ فالواي فاي السحابي، وأنظمة إدارة المحتوى، وتراخيص غرف المؤتمرات، وتراخيص مستخدمي المقسم، وبعض خصائص المحولات تتوقف عند انتهاء الاشتراك. ثانياً: الخلط بين نظام الموسيقى الخلفية ونظام الإخلاء الصوتي المعتمد، ثم الرسوب في فحص الدفاع المدني. ثالثاً: تحديد شاشات LED بالمسافة بين البكسلات وحدها، أو اختيار مسافة دقيقة لا تحتاجها مسافة المشاهدة فتتضاعف التكلفة. رابعاً: إهمال الصوتيات في غرف الاجتماعات الزجاجية ثم لوم الميكروفونات. خامساً: نسيان الشبكة في أنظمة AV-over-IP وDante؛ فالمحولات غير المُدارة بلا IGMP Snooping تُغرق الشبكة بالبث المتعدد. سادساً: استيراد ميكروفونات لاسلكية أو نقاط وصول أو أجهزة عرض دون اعتماد الهيئة، أو استخدام ترددات غير مسموحة في الإمارات. سابعاً: ترك المسارات ونقاط الكهرباء ومساحة الخزائن دون تحديد المسؤول بين مقاول التيار الخفيف والأعمال الكهروميكانيكية وتقنية المعلومات. ثامناً: قبول الكابلات دون تقارير اختبار كاملة، مما يُسقط ضمان المصنع. تاسعاً: تحديد حجم مزود الطاقة الاحتياطية والتبريد لحمل اليوم الأول فقط. عاشراً: عدم اشتراط دعم المحتوى العربي (التخطيط من اليمين لليسار في اللوحات، ورسائل الإخلاء بالعربية). ملاحظة التحقق (23 سبتمبر 2026): النقاط إرشاد عملي مبني على المدخلات المتحقق منها.",
+      "required_specs": [],
+      "sources": [
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment",
+        "https://www.getdante.com/support/faq/networks-and-switches/",
+        "https://www.zenitel.com/sites/default/files/2024-01/EN%2054%20Integra%20System%20Dersign%20Guide%20T-0667-231_Iss2.5.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:quote-red-flags",
+      "topic": "Red flags in AV / IT / low-current supplier quotes",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for these signals when comparing quotes. A lump sum with no bill of quantities, model numbers or quantities cannot be compared or verified. Brand names without exact model numbers let the supplier substitute a lower tier. 'Equivalent' products for certified items (EN 54 loudspeakers, Teams-certified devices, TDRA-approved wireless) without the certificate. Licences, subscriptions or cloud management shown as 'included' with no term stated, or omitted altogether. LED walls with no processor, spares or structure in the price; projectors quoted in unqualified 'lumens'. Voice evacuation quoted with standard (non fire-rated) cable, or no battery calculation. Cabling quoted without testing, labelling or the manufacturer's warranty registration, or by a non-certified installer while claiming a 25-year warranty. Consumer TVs described as commercial displays. Missing items: mounts, cabling, containment, programming, commissioning, training, as-built drawings, authority approvals. Unusually short lead times for fine-pitch LED or large AV systems, which are usually built to order. Warranty offered only 'back to base' when on-site service was required, or warranty from the reseller instead of the manufacturer. Payment terms demanding full advance for imported items without a bank guarantee. Verification note (23 Sep 2026): points are practitioner guidance built on the verified entries.",
+      "body_ar": "انتبه لهذه المؤشرات عند مقارنة العروض. المبلغ الإجمالي دون جدول كميات أو أرقام طرازات أو كميات لا يمكن مقارنته أو التحقق منه. وذكر العلامات التجارية دون أرقام الطرازات بالتحديد يسمح للمورد بالاستبدال بفئة أدنى. ومنتجات «مكافئة» للبنود المعتمدة (سماعات EN 54، وأجهزة معتمدة من Teams، ولاسلكي معتمد من الهيئة) دون شهادة. وتراخيص أو اشتراكات أو إدارة سحابية موصوفة بأنها «مشمولة» دون ذكر المدة، أو غائبة كلياً. وشاشات LED دون معالج أو قطع غيار أو هيكل ضمن السعر، وبروجكترات مسعّرة بـ«لومن» غير محدد. وإخلاء صوتي بكابل عادي غير مقاوم للحريق أو دون حساب البطاريات. وكابلات دون اختبار أو ترقيم أو تسجيل ضمان المصنع، أو بمركّب غير معتمد مع ادعاء ضمان 25 سنة. وأجهزة تلفزيون منزلية موصوفة بأنها شاشات تجارية. وبنود ناقصة: الحوامل، والكوابل، والمسارات، والبرمجة، والتشغيل، والتدريب، والمخططات النهائية، وموافقات الجهات. ومدد توريد قصيرة بشكل غير معتاد لشاشات LED الدقيقة أو الأنظمة الكبيرة التي تُصنع عادةً حسب الطلب. وضمان يقتصر على الإعادة للمورد حين يلزم الإصلاح في الموقع، أو ضمان من الموزع بدلاً من المصنع. وشروط دفع تطلب كامل المبلغ مقدماً للبنود المستوردة دون ضمان بنكي. ملاحظة التحقق (23 سبتمبر 2026): النقاط إرشاد عملي مبني على المدخلات المتحقق منها.",
+      "required_specs": [],
+      "sources": [
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment",
+        "https://learn.microsoft.com/en-us/microsoftteams/rooms/certified-hardware",
+        "https://www.projectorcentral.com/philips-epson-agree-on-brightness-measurements.htm"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:price-drivers",
+      "topic": "Price drivers for AV, IT and low-current systems",
+      "kind": "price_driver",
+      "body_en": "Prices in this trade move on a few main drivers. For LED walls: pixel pitch (cost rises steeply as pitch shrinks), encapsulation (COB above SMD), brightness and outdoor protection, processor capability, structure and service access. For displays: size (large formats above 85-98 inches jump in price), brightness, duty cycle and touch. For projectors: brightness, laser vs lamp, lens options and resolution. For conference rooms: platform (certified native rooms vs BYOD), camera and microphone sophistication, number of rooms (standardised room templates reduce cost), and control programming hours. For PA/VA: EN 54 certification (certified amplifiers, loudspeakers and fire-resistant cable cost significantly more than commercial BGM), zone count, redundancy and battery autonomy. For cabling: Cat6 vs Cat6A and shielding, certified-system warranties, containment complexity, ceiling heights and working hours (night work in operating malls and hospitals costs more). For network: port counts, PoE budget, multigig and 10G uplinks, and multi-year licences. Across all: brand tier, currency and freight for imported goods, project duration (site supervision and access), authority approvals, and the support/maintenance term. Prices should always be compared on equal scope and equal licence terms. Verification note (23 Sep 2026): no prices are stated; drivers are practitioner guidance.",
+      "body_ar": "تتحرك الأسعار في هذا المجال وفق عوامل رئيسية قليلة. لشاشات LED: المسافة بين البكسلات (ترتفع التكلفة بحدة كلما صغرت)، وتقنية التغليف (COB أغلى من SMD)، والسطوع والحماية الخارجية، وقدرات المعالج، والهيكل وطريقة الصيانة. للشاشات: المقاس (الأحجام الكبيرة فوق 85 إلى 98 بوصة تقفز أسعارها)، والسطوع، وساعات التشغيل، واللمس. للبروجكترات: السطوع، والليزر مقابل المصباح، وخيارات العدسات، والدقة. لغرف المؤتمرات: المنصة (غرف أصلية معتمدة مقابل التوصيل الشخصي)، ومستوى الكاميرات والميكروفونات، وعدد الغرف (توحيد نماذج الغرف يخفض التكلفة)، وساعات برمجة التحكم. للنداء والإخلاء: اعتماد EN 54 (المضخمات والسماعات والكوابل المقاومة للحريق المعتمدة أغلى بكثير من أنظمة الموسيقى التجارية)، وعدد المناطق، والاحتياط، ومدة البطاريات. للكابلات: Cat6 مقابل Cat6A والتدريع، وضمانات الأنظمة المعتمدة، وتعقيد المسارات، وارتفاع الأسقف، وساعات العمل (العمل الليلي في المراكز التجارية والمستشفيات العاملة أغلى). للشبكات: عدد المنافذ، وميزانية PoE، وسرعات الربط المتعددة و10 جيجابت، والتراخيص متعددة السنوات. وعلى العموم: فئة العلامة التجارية، وسعر العملة والشحن للبضائع المستوردة، ومدة المشروع، وموافقات الجهات، ومدة الدعم والصيانة. ويجب دائماً المقارنة على نطاق متساوٍ وشروط تراخيص متساوية. ملاحظة التحقق (23 سبتمبر 2026): لا توجد أسعار؛ والعوامل إرشاد عملي.",
+      "required_specs": [],
+      "sources": [
+        "https://www.blackbox.com/insights/blackbox-explains/inner/detail/copper-cable/copper-category-standards/6-things-to-consider-when-choosing-catx-ethernet-cables",
+        "https://www.daktronics.com/en-us/support/kb/000030569"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:lead-times",
+      "topic": "Typical lead times for AV / IT / low-current items in the UAE",
+      "kind": "lead_time",
+      "body_en": "Lead times vary widely and should be confirmed per quote; no single authoritative figure exists, so treat the following as typical patterns rather than guarantees. Standard stock items held by UAE distributors (common displays, switches, access points, Cat6 cable, patch panels, standard IP phones, ceiling speakers) are often available within days to about two weeks. Items built to order or imported for the project (fine-pitch LED walls, large-venue projectors and lenses, EN 54 voice alarm racks configured for the project, specialist cameras, custom racks and structures) commonly take several weeks to a few months, including sea freight and customs. Anything requiring TDRA type approval for a model not yet approved adds the approval processing time, and approval must precede import. Civil Defence approval of a voice evacuation design and subsequent inspection add to the programme and depend on submission quality. Certified cabling warranties are registered after testing, which can take weeks after installation. Supply-chain disruption (semiconductors, shipping routes) has lengthened lead times in some years, so require the supplier to state lead time per line item, ex-stock quantities, and the validity of the quoted lead time. Verification note (23 Sep 2026): only TDRA processing times (1, 5 or 10 working days by risk level) are confirmed; all other durations are not established.",
+      "body_ar": "تتفاوت مدد التوريد كثيراً ويجب تأكيدها في كل عرض، ولا يوجد رقم مرجعي رسمي واحد، لذا تُعد الأمثلة التالية أنماطاً معتادة لا ضمانات. البنود القياسية المتوفرة لدى الموزعين في الإمارات (الشاشات الشائعة، والمحولات، ونقاط الوصول، وكابلات Cat6، ولوحات التوصيل، والهواتف القياسية، والسماعات السقفية) تتوفر غالباً خلال أيام إلى نحو أسبوعين. أما البنود المصنعة حسب الطلب أو المستوردة للمشروع (شاشات LED الدقيقة، وبروجكترات القاعات الكبيرة وعدساتها، وخزائن الإنذار الصوتي EN 54 المهيأة للمشروع، والكاميرات المتخصصة، والخزائن والهياكل الخاصة) فتستغرق عادةً عدة أسابيع إلى بضعة أشهر بما فيها الشحن البحري والتخليص الجمركي. وأي جهاز يحتاج اعتماد النوع من الهيئة لطراز غير معتمد بعد يضيف مدة معالجة الاعتماد، ويجب أن يسبق الاعتماد الاستيراد. كما أن اعتماد الدفاع المدني لتصميم الإخلاء الصوتي والفحص اللاحق يضيفان إلى البرنامج الزمني ويعتمدان على جودة التقديم. وتُسجل ضمانات الكابلات المعتمدة بعد الاختبار، وقد يستغرق ذلك أسابيع بعد التركيب. وقد أدت اضطرابات سلاسل التوريد (أشباه الموصلات وخطوط الشحن) إلى إطالة المدد في بعض السنوات، لذا اطلب من المورد ذكر مدة التوريد لكل بند، والكميات المتوفرة في المخزون، ومدة صلاحية المدة المذكورة. ملاحظة التحقق (23 سبتمبر 2026): تأكدت فقط مدد معالجة الهيئة (1 أو 5 أو 10 أيام عمل حسب مستوى المخاطر)؛ وبقية المدد غير مثبتة.",
+      "required_specs": [],
+      "sources": [
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:warranty-and-handover",
+      "topic": "Warranty, commissioning and handover norms",
+      "kind": "warranty",
+      "body_en": "Warranty in AV and IT has three layers that buyers often confuse. The manufacturer's product warranty (commonly 1-3 years for AV electronics, often longer or lifetime-limited for some switches and cabling components) usually covers parts, sometimes only return-to-base. The installer's workmanship warranty covers installation defects, and in UAE construction is often aligned with the contract's defects liability period, commonly 12 months after handover. The structured cabling system warranty (often 20-25 years) is a separate manufacturer programme that requires a certified installer and full test results. Extended support contracts add on-site response times (e.g. next business day, 4-hour for critical rooms), preventive maintenance visits, firmware updates and loan equipment. LED walls should include spare modules; UPS batteries and projector lamps are consumables typically excluded. Handover should include commissioning and test reports (cable certification, STI measurements for voice alarm, Wi-Fi validation survey, AV acceptance test), as-built drawings, configuration backups and passwords transferred to the owner, licence certificates in the owner's name with expiry dates, O&M manuals, and user training. Check that the warranty starts at handover, not at delivery to site. Verification note (23 Sep 2026): warranty durations (1-3 years, 12-month defects liability, 20-25 years for cabling) were not established from a fetched source.",
+      "body_ar": "للضمان في أنظمة الصوت والصورة وتقنية المعلومات ثلاث طبقات يخلط بينها المشترون كثيراً. ضمان المصنع للمنتج (عادةً من سنة إلى ثلاث سنوات للأجهزة الإلكترونية، وأطول أو مدى الحياة بشروط لبعض المحولات ومكونات الكابلات) يغطي القطع غالباً، وأحياناً بالإعادة للمورد فقط. وضمان المركّب لجودة التنفيذ يغطي عيوب التركيب، وفي عقود الإنشاءات بالإمارات يتوافق غالباً مع فترة مسؤولية العيوب، وهي عادةً 12 شهراً بعد التسليم. أما ضمان نظام الكابلات الهيكلية (غالباً 20 إلى 25 سنة) فبرنامج مستقل من المصنع يتطلب مركّباً معتمداً ونتائج اختبار كاملة. وعقود الدعم الممتدة تضيف أزمنة استجابة في الموقع (مثل يوم العمل التالي أو 4 ساعات للغرف الحرجة)، وزيارات صيانة وقائية، وتحديثات البرامج الثابتة، وأجهزة بديلة مؤقتة. ويجب أن تتضمن شاشات LED وحدات احتياطية، أما بطاريات مزودات الطاقة ومصابيح البروجكترات فمواد استهلاكية مستثناة عادةً. ويجب أن يشمل التسليم تقارير التشغيل والاختبار (فحص الكابلات، وقياسات وضوح الكلام للإنذار الصوتي، ومسح التحقق للواي فاي، واختبار قبول أنظمة الصوت والصورة)، والمخططات النهائية، ونسخ الإعدادات وكلمات المرور منقولة للمالك، وشهادات التراخيص باسم المالك مع تواريخ انتهائها، وأدلة التشغيل والصيانة، وتدريب المستخدمين. وتأكد أن الضمان يبدأ من تاريخ التسليم لا من تاريخ التوريد للموقع. ملاحظة التحقق (23 سبتمبر 2026): لم تثبت مدد الضمان (1-3 سنوات، و12 شهراً لفترة المسؤولية عن العيوب، و20-25 سنة للكابلات) من مصدر تم فحصه.",
+      "required_specs": [],
+      "sources": [
+        "https://www.flukenetworks.com/edocs/datasheet-dsx-8000-cableanalyzer"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:civil-defence-sira-approvals",
+      "topic": "UAE authority approvals touching low-current systems",
+      "kind": "authority_approval",
+      "body_en": "Several UAE authorities touch this trade and a supplier should state which approvals it handles. Life-safety systems (fire alarm, voice evacuation, emergency lighting monitoring) must comply with the UAE Fire and Life Safety Code of Practice (current edition 2018) and be approved by the Civil Defence authority of the emirate (for example Dubai Civil Defence, or Abu Dhabi Civil Defence); products normally must be listed or approved by Civil Defence, and installation contractors must be registered with them. CCTV in Dubai is regulated by the Security Industry Regulatory Agency (SIRA), which sets camera, recording and retention requirements for regulated premises and requires approved companies; Abu Dhabi has its own monitoring and control regulations. Radio and telecom terminal equipment requires TDRA type approval, and telecom infrastructure in new buildings must meet the service provider guidelines of etisalat by e& and du, including inspections before connection. Healthcare projects are reviewed by the health authority of the emirate. Free-zone projects may add the free zone's own authority (for example Trakhees in some Dubai areas, or JAFZA/DMCC). Outdoor advertising screens need an advertising permit (for example from the Dubai Development Authority in its areas). Buyers should ask who submits, who pays fees, and whether approval is a condition of final payment. Verification note (A4c, 23 Sep 2026): SIRA CCTV rules, TDRA type approval and the telecom infrastructure guidelines are confirmed; the Dubai Building Code refers to the UAE Fire and Life Safety Code, and TÜV Rheinland confirms that products need a Civil Defence certificate of compliance aligned with that code. Contractor registration rules with Civil Defence and free-zone authority roles remain not established from a primary source (the Civil Defence pages load by script).\n\nUAE Fire and Life Safety Code 2018, Chapter 7, Section 4.2: voice evacuation and two-way telephone systems may be installed only by Civil Defence approved and licensed fire detection and alarm contractors, who qualify by passing the Civil Defence examination; general, MEP, electrical, BMS and home-automation contractors are excluded, and work may not start before Civil Defence stamped drawings are received.",
+      "body_ar": "تتعامل عدة جهات إماراتية مع هذا المجال، وعلى المورد أن يوضح أي الموافقات يتولاها. أنظمة سلامة الأرواح (إنذار الحريق، والإخلاء الصوتي، ومراقبة إنارة الطوارئ) يجب أن تلتزم بكود الإمارات للحماية من الحرائق وسلامة الأرواح (الإصدار الساري 2018) وأن يعتمدها الدفاع المدني في الإمارة المعنية (مثل الدفاع المدني في دبي أو في أبوظبي)، وعادةً يجب أن تكون المنتجات مدرجة أو معتمدة لديه والمقاولون مسجلين لديه. وكاميرات المراقبة في دبي تنظمها مؤسسة تنظيم الصناعة الأمنية (SIRA) التي تحدد متطلبات الكاميرات والتسجيل ومدة الاحتفاظ للمنشآت الخاضعة لها وتشترط شركات معتمدة، ولأبوظبي أنظمتها الخاصة بالمراقبة والتحكم. وأجهزة الراديو والاتصالات الطرفية تتطلب اعتماد النوع من الهيئة، والبنية التحتية للاتصالات في المباني الجديدة يجب أن تستوفي إرشادات مزودي الخدمة اتصالات من e& ودو بما فيها الفحص قبل التوصيل. وتراجع الجهات الصحية في كل إمارة مشاريع الرعاية الصحية. وقد تضيف المناطق الحرة جهاتها الخاصة (مثل مؤسسة تراخيص في بعض مناطق دبي، أو جافزا ومركز دبي للسلع المتعددة). والشاشات الإعلانية الخارجية تحتاج تصريح إعلان (مثل تصريح سلطة دبي للتطوير في مناطقها). على المشتري أن يسأل من يقدّم الطلبات، ومن يدفع الرسوم، وهل الاعتماد شرط للدفعة النهائية. ملاحظة التحقق (A4c، 23 سبتمبر 2026): تأكدت قواعد SIRA للمراقبة، واعتماد النوع من الهيئة، وإرشادات البنية التحتية للاتصالات؛ ويشير كود دبي للبناء إلى كود الإمارات للحماية من الحرائق، وتؤكد تي يو في راينلاند أن المنتجات تحتاج شهادة مطابقة من الدفاع المدني وفق هذا الكود. أما قواعد تسجيل المقاولين لدى الدفاع المدني وأدوار سلطات المناطق الحرة فتبقى غير مثبتة من مصدر أولي (صفحات الدفاع المدني تُحمَّل بالبرمجة).\n\nكود الإمارات للحماية من الحريق وسلامة الأرواح 2018، الفصل السابع، البند 4.2: لا يركّب أنظمة الإخلاء الصوتي والهاتف ثنائي الاتجاه إلا مقاولو كشف وإنذار الحريق المعتمدون والمرخصون من الدفاع المدني بعد اجتياز اختباره، ويُستبعد المقاولون العامون ومقاولو الكهروميكانيك والكهرباء وإدارة المباني والمنازل الذكية، ولا يبدأ العمل قبل استلام المخططات المختومة من الدفاع المدني.",
+      "required_specs": [],
+      "sources": [
+        "https://www.kewsolutions.com/sira-regulations-for-cctv-installation-dubai/",
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment",
+        "https://tdra.gov.ae/en/initiatives/telecommunications-infrastructure-guidelines",
+        "https://www.tuv.com/market-access-services/en/certification-filter/uae-civil-defence-approval-certificate-of-compliance.html",
+        "https://dda.gov.ae/-/media/Project/TECOM/Media/DDA/Planning-and-development/Design/pdf/Dubai-Building-Code_English_2021-Edition.pdf",
+        "https://dda.gov.ae/en/planning-development/advertising-and-events/advertising-services/advertising-permit",
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    },
+    {
+      "id": "av_it:wireless-microphones",
+      "topic": "Wireless microphones: UHF, 1.9 GHz DECT-band, 2.4 GHz and frequency planning",
+      "kind": "comparison",
+      "body_en": "Wireless microphones for presenters, conferences and events use one of several radio approaches. UHF analogue or digital systems give the longest range and the most channels in large venues, but must operate only in frequency ranges permitted by the national regulator; a system bought abroad may be tuned to a band not allowed in the UAE, and TDRA type approval is required. Systems in the 1.9 GHz band (DECT-type technology) and 2.4 GHz digital systems are licence-free in many countries and simpler to deploy for meeting rooms, but have fewer simultaneous channels and share the band with Wi-Fi (2.4 GHz) or DECT phones (1.9 GHz), so crowded buildings can suffer dropouts. For multi-room venues, a frequency coordination plan and a spectrum scan on site are good practice; many professional systems include automatic scanning and network management with Dante or other outputs. Batteries: rechargeable docking systems reduce operating cost versus AA batteries. Specify channel count, handheld/lavalier/headset types, frequency band and its UAE permissibility, TDRA approval, encryption if confidential meetings are held, and antenna distribution for large halls. Verification note (A4c, 23 Sep 2026): Shure confirms that permitted frequency ranges and power differ by country, so a system sold in one region may be illegal in another; TDRA type approval is confirmed. The specific UAE-permitted bands and the channel-count comparison of 1.9 GHz and 2.4 GHz systems are not established; ask the supplier for the TDRA approval and the band.",
+      "body_ar": "تستخدم الميكروفونات اللاسلكية للمقدمين والمؤتمرات والفعاليات عدة تقنيات راديوية. أنظمة UHF التماثلية أو الرقمية تعطي أطول مدى وأكبر عدد من القنوات في القاعات الكبيرة، لكن يجب أن تعمل فقط في نطاقات التردد المسموح بها من الجهة التنظيمية الوطنية؛ فالنظام المشترى من الخارج قد يكون مضبوطاً على نطاق غير مسموح في الإمارات، ويلزم اعتماد النوع من الهيئة. أما الأنظمة في نطاق 1.9 جيجاهرتز (تقنية شبيهة بـDECT) والأنظمة الرقمية في 2.4 جيجاهرتز فهي معفاة من الترخيص في كثير من الدول وأسهل تركيباً لغرف الاجتماعات، لكن عدد قنواتها المتزامنة أقل، وتتشارك النطاق مع الواي فاي (2.4) أو هواتف DECT (1.9)، فقد تنقطع في المباني المزدحمة. وفي المنشآت متعددة القاعات يُستحسن إعداد خطة تنسيق ترددات ومسح طيفي في الموقع، وكثير من الأنظمة الاحترافية تتضمن مسحاً آلياً وإدارة شبكية مع مخرجات Dante أو غيرها. أما البطاريات فأنظمة الشحن بالقاعدة تخفض تكلفة التشغيل مقارنة ببطاريات AA. حدد عدد القنوات، وأنواع الميكروفونات (يدوي أو مشبك أو رأسي)، ونطاق التردد ومدى السماح به في الإمارات، واعتماد الهيئة، والتشفير إذا كانت الاجتماعات سرية، وتوزيع الهوائيات للقاعات الكبيرة. ملاحظة التحقق (A4c، 23 سبتمبر 2026): تؤكد شور أن نطاقات التردد والقدرة المسموحة تختلف بين الدول، فالنظام المباع في منطقة قد يكون غير قانوني في أخرى؛ واعتماد النوع من الهيئة مؤكد. أما النطاقات المسموحة تحديداً في الإمارات ومقارنة عدد القنوات بين أنظمة 1.9 و2.4 جيجاهرتز فغير مثبتة؛ اطلب من المورد اعتماد الهيئة والنطاق.",
+      "required_specs": [],
+      "sources": [
+        "https://tdra.gov.ae/en/Services/register-and-approve-telecommunication-equipment",
+        "https://www.shure.com/en-MEA/insights/tell-me-about-wireless-mic-frequencies"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    },
+    {
+      "id": "av_it:dsp-and-control",
+      "topic": "Audio DSP, matrix switching and AV control systems",
+      "kind": "glossary",
+      "body_en": "Behind most professional AV rooms sit three kinds of processors. The audio DSP (digital signal processor) mixes microphones and sources, applies equalisation, dynamics and feedback suppression, performs acoustic echo cancellation for conferencing, and routes audio to amplifiers or networked endpoints; it is sized by input/output count, AEC channel count and network audio channels. Video switching is done by a matrix switcher (fixed or modular, with HDMI, HDBaseT, fibre cards), a presentation switcher with built-in scaling for small rooms, or AV-over-IP encoders and decoders for large distributions; scalers adapt resolution between sources and displays. The control system (control processor plus touch panels or keypads) gives users one-touch operation of displays, sources, lighting scenes, blinds and room combining, and needs custom programming, which is a labour cost and an intellectual-property question: the owner should receive the uncompiled source code or at least the compiled file and the right to modify it, otherwise future changes depend on the original programmer. Integrators also provide monitoring platforms that alert on offline devices. Key terms in quotes: I/O counts, 4K60 4:4:4 support, HDCP versions, EDID management, and programming hours. Verification note (23 Sep 2026): this entry is descriptive; the source-code ownership advice is practice, not a rule.",
+      "body_ar": "خلف معظم غرف الصوت والصورة الاحترافية ثلاثة أنواع من المعالجات. معالج الصوت الرقمي DSP يمزج الميكروفونات والمصادر، ويطبق التسوية والتحكم الديناميكي ومنع الصفير، ويلغي صدى المؤتمرات، ويوجه الصوت إلى المضخمات أو النقاط الشبكية، ويُحدد حجمه بعدد المداخل والمخارج وقنوات إلغاء الصدى وقنوات الصوت الشبكي. أما تحويل الفيديو فيتم بمحول مصفوفة (ثابت أو معياري ببطاقات HDMI وHDBaseT وألياف)، أو بمحول عرض مع تحجيم مدمج للغرف الصغيرة، أو بمشفرات ومفككات AV-over-IP للتوزيع الواسع، وأجهزة التحجيم تكيّف الدقة بين المصادر والشاشات. ونظام التحكم (معالج تحكم مع لوحات لمس أو أزرار) يمنح المستخدم تشغيلاً بلمسة واحدة للشاشات والمصادر ومشاهد الإضاءة والستائر ودمج القاعات، ويحتاج برمجة خاصة تمثل تكلفة عمالة ومسألة ملكية فكرية: يجب أن يحصل المالك على الشيفرة المصدرية أو على الأقل الملف المترجم وحق التعديل عليه، وإلا أصبحت أي تعديلات مستقبلية مرهونة بالمبرمج الأصلي. ويوفر المتكاملون كذلك منصات مراقبة تنبه عند انقطاع الأجهزة. ومن المصطلحات المهمة في العروض: عدد المداخل والمخارج، ودعم 4K60 4:4:4، وإصدارات HDCP، وإدارة EDID، وساعات البرمجة. ملاحظة التحقق (23 سبتمبر 2026): هذا المدخل وصفي؛ ونصيحة ملكية الشيفرة المصدرية ممارسة لا قاعدة.",
+      "required_specs": [],
+      "sources": [
+        "https://hdbaset.org/hdbaset-technology/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "av_it:cctv-scope-boundary",
+      "topic": "Where CCTV and access control sit relative to the AV/IT package",
+      "kind": "glossary",
+      "body_en": "Buyers frequently send one enquiry mixing AV, IT and security. CCTV, access control, intercom and intruder alarm are normally procured as a security package (with SIRA approval in Dubai), but they depend on the IT package: PoE switch ports and power budget, VLANs, network bandwidth for camera streams, server or NVR rack space, UPS capacity, and structured cabling outlets at camera positions. Voice evacuation and fire alarm are life-safety packages even when the PA supplier provides the background music. Nurse call is a healthcare package that uses the IT network for IP systems. TV distribution (SMATV/IPTV) may be a separate specialist. For a clean quote, each supplier's scope should list the interfaces it depends on from others: 'switch ports provided by IT', 'containment by MEP', 'fire alarm contacts by the fire contractor'. Where one integrator takes the whole ELV package, it should still show each system separately priced so it can be compared. The sales engineer should route the security portion to the security trade and keep the network requirements in this trade's specification. Verification note (23 Sep 2026): SIRA's role is confirmed; the scope split is practice.",
+      "body_ar": "كثيراً ما يرسل المشترون طلباً واحداً يخلط بين الصوت والصورة وتقنية المعلومات والأمن. عادةً تُشترى كاميرات المراقبة والتحكم بالدخول والإنتركم وإنذار التسلل كحزمة أمنية (مع اعتماد SIRA في دبي)، لكنها تعتمد على حزمة تقنية المعلومات: منافذ PoE وميزانية الطاقة، والشبكات الافتراضية، وعرض النطاق لتدفقات الكاميرات، ومساحة الخوادم أو المسجلات في الخزائن، وقدرة مزود الطاقة الاحتياطية، ومخارج الكابلات الهيكلية في مواقع الكاميرات. والإخلاء الصوتي وإنذار الحريق حزم لسلامة الأرواح حتى لو قدم مورد النداء العام الموسيقى الخلفية. واستدعاء التمريض حزمة صحية تستخدم شبكة تقنية المعلومات في أنظمة IP. وقد يكون توزيع التلفزيون (SMATV/IPTV) لدى متخصص مستقل. وللحصول على عرض واضح يجب أن يذكر نطاق كل مورد الروابط التي يعتمد فيها على غيره: «منافذ المحولات من تقنية المعلومات»، «المسارات من مقاول الأعمال الكهروميكانيكية»، «ملامسات إنذار الحريق من مقاول الحريق». وإذا تولى متكامل واحد كامل حزمة التيار الخفيف فيجب أن يسعّر كل نظام على حدة لإمكان المقارنة. وعلى مهندس المبيعات توجيه الجزء الأمني إلى تخصص الأمن والإبقاء على متطلبات الشبكة ضمن مواصفات هذا التخصص. ملاحظة التحقق (23 سبتمبر 2026): تأكد دور SIRA؛ وتقسيم النطاق ممارسة عملية.",
+      "required_specs": [],
+      "sources": [
+        "https://www.kewsolutions.com/sira-regulations-for-cctv-installation-dubai/",
+        "https://ethernetalliance.org/wp-content/uploads/2018/04/WP_EA_Overview8023bt_FINAL.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What pixel pitch do I need for a 5 m wide LED wall in a boardroom viewed from 3 m?",
+      "q_ar": "ما المسافة بين البكسلات المناسبة لشاشة LED بعرض 5 أمتار في قاعة اجتماعات تُشاهد من 3 أمتار؟",
+      "expected_entry_ids": [
+        "av_it:led-wall-pixel-pitch",
+        "av_it:spec-led-wall"
+      ]
+    },
+    {
+      "q_en": "Should I choose an LCD video wall or an LED wall for our control room?",
+      "q_ar": "هل نختار جدار فيديو LCD أم شاشة LED لغرفة التحكم؟",
+      "expected_entry_ids": [
+        "av_it:led-vs-lcd-videowall"
+      ]
+    },
+    {
+      "q_en": "Can I use 8 ohm speakers on our existing 100V PA amplifier in the mall?",
+      "q_ar": "هل يمكن تركيب سماعات 8 أوم على مضخم النداء 100 فولت الموجود في المركز التجاري؟",
+      "expected_entry_ids": [
+        "av_it:pa-100v-vs-low-impedance"
+      ]
+    },
+    {
+      "q_en": "Our background music system - is it enough for Civil Defence voice evacuation approval?",
+      "q_ar": "هل يكفي نظام الموسيقى الخلفية لدينا للحصول على اعتماد الدفاع المدني للإخلاء الصوتي؟",
+      "expected_entry_ids": [
+        "av_it:voice-evac-en54",
+        "av_it:pa-va-fire-interface",
+        "av_it:civil-defence-sira-approvals"
+      ]
+    },
+    {
+      "q_en": "HDBaseT or AV over IP for 20 screens across three floors?",
+      "q_ar": "HDBaseT أم AV-over-IP لتوزيع 20 شاشة على ثلاثة طوابق؟",
+      "expected_entry_ids": [
+        "av_it:hdbaset-vs-av-over-ip"
+      ]
+    },
+    {
+      "q_en": "The supplier's wireless microphones are not TDRA approved - is that a problem?",
+      "q_ar": "الميكروفونات اللاسلكية لدى المورد غير معتمدة من هيئة تنظيم الاتصالات، هل هذه مشكلة؟",
+      "expected_entry_ids": [
+        "av_it:tdra-type-approval",
+        "av_it:wireless-microphones"
+      ]
+    },
+    {
+      "q_en": "Cat6 or Cat6A for a new office with Wi-Fi 7 access points?",
+      "q_ar": "Cat6 أم Cat6A لمكتب جديد بنقاط وصول Wi-Fi 7؟",
+      "expected_entry_ids": [
+        "av_it:cat6-vs-cat6a",
+        "av_it:wifi-access-points"
+      ]
+    },
+    {
+      "q_en": "Hotel of 200 rooms: IPTV or SMATV?",
+      "q_ar": "فندق من 200 غرفة: IPTV أم SMATV؟",
+      "expected_entry_ids": [
+        "av_it:matv-smatv-iptv"
+      ]
+    },
+    {
+      "q_en": "What must I tell suppliers to get comparable quotes for a Teams meeting room?",
+      "q_ar": "ما المعلومات التي أعطيها للموردين لأحصل على عروض قابلة للمقارنة لغرفة اجتماعات Teams؟",
+      "expected_entry_ids": [
+        "av_it:spec-conference-room",
+        "av_it:conference-room-systems"
+      ]
+    },
+    {
+      "q_en": "Two cabling quotes differ by 40% - what should I check?",
+      "q_ar": "عرضان للكابلات بينهما فرق 40%، ماذا أراجع؟",
+      "expected_entry_ids": [
+        "av_it:quote-red-flags",
+        "av_it:spec-structured-cabling",
+        "av_it:price-drivers"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 34,
+    "claims_checked": 224,
+    "corrected": [
+      "av_it:led-wall-pixel-pitch",
+      "av_it:projector-lumens",
+      "av_it:pa-100v-vs-low-impedance",
+      "av_it:nurse-call",
+      "av_it:hdbaset-vs-av-over-ip",
+      "av_it:tdra-type-approval",
+      "av_it:fibre-om-os",
+      "av_it:led-vs-lcd-videowall",
+      "av_it:digital-signage",
+      "av_it:civil-defence-sira-approvals",
+      "av_it:voice-evac-en54"
+    ],
+    "removed": [],
+    "still_unverified": [],
+    "method": "A4b re-pass 2026-09-23: each claim grep-checked against fetched page text; unsupported specifics removed or stated as not established inside the entry (see Verification note).",
+    "A4c": {
+      "date": "2026-09-23",
+      "entries": 6,
+      "fetched_urls": 14,
+      "claims_checked": 45,
+      "corrected": [
+        "av_it:led-vs-lcd-videowall",
+        "av_it:nurse-call",
+        "av_it:digital-signage",
+        "av_it:civil-defence-sira-approvals"
+      ]
+    },
+    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf)."
+  }
+}
