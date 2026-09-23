@@ -62,7 +62,7 @@ Deno.serve(observe('quote_extract', async (req) => {
         const p = quoteFromExtracted(rd, Array.isArray(body.supplier_terms) ? body.supplier_terms.map((s: unknown) => String(s)) : []);
         if (p.amount == null && !p.line_items.length) return null;
         await logRun(p.amount != null ? 'ok' : 'error', { quote_extracted: p.amount != null ? 1 : 0, deterministic: 1, line_items: p.line_items.length, masked_terms: p.masked_terms.length }, `quote_extract read the supplier's ${rd.kind} file with no model (${why}): ${p.line_items.length} priced line(s), total ${p.amount ?? 'not found'}.`);
-        return J({ ok: p.amount != null, proposal: { ...p, fallback_reason: why }, error: p.amount != null ? undefined : 'no_amount' });
+        return J({ ok: p.amount != null, proposal: { ...p, fallback_reason: why }, extracted_by_model: 'deterministic', error: p.amount != null ? undefined : 'no_amount' });
       } catch (_e) { return null; }
     };
     const secret = await sec('cred_fn_ai');
@@ -83,6 +83,9 @@ Deno.serve(observe('quote_extract', async (req) => {
 
     let ai: any = {};
     let aiParseOk = false;
+    // The model that read the quotation. supplier_api records it against the file, the submitted quote carries it, and
+    // quote_compare names it as counterpart_model so the comparison is never on the reader's family (instruction ~891).
+    let extractedBy = 'unknown';
     const aiPages = imgs.length ? Math.min(imgs.length, 8) : (body.file_b64 ? 1 : 0);
     try {
       // 5 Aug 2026. This asked for 2000 output tokens. Measured against deployed staging on a
@@ -96,6 +99,7 @@ Deno.serve(observe('quote_extract', async (req) => {
       const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'quote_extract', subject: body.subject ?? null, max: 6000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }], client_timeout_ms: 100000 }) });
       const jd = await r.json();
       if (!r.ok || jd?.ok === false) { const d = await detQuote('ai_gateway_refused'); if (d) return d; await logRun('error', { quote_extracted: 0, pages: aiPages, ai_ok: 0 }, 'quote_extract could not read a supplier quotation because the vision model call returned an error (' + String(jd?.detail || jd?.error || ('http ' + r.status)).slice(0, 140) + '). The supplier\'s quotation exists but produced no structured quote, so the customer\'s comparison is missing a real price.'); return J({ error: 'ai_error', detail: jd?.detail || jd?.error || JSON.stringify(jd).slice(0,300) }, 502); }
+      extractedBy = typeof jd?.model === 'string' && jd.model ? jd.model : 'unknown';
       const _rawContent = jd?.content || '{}';
       ai = parseJson(_rawContent);
       aiParseOk = !!(ai && typeof ai === 'object' && Object.keys(ai).length > 0);
@@ -121,6 +125,6 @@ Deno.serve(observe('quote_extract', async (req) => {
     // on !jd.ok, so it could never fire: the supplier was handed a blank form with no explanation
     // and their real price silently left the customer's comparison. Report the outcome truthfully;
     // an extraction that produced no parseable JSON or no total is a failure, not a success.
-    return J({ ok: _okRun, proposal: ai, error: _okRun ? undefined : (aiParseOk ? 'no_amount' : 'unreadable_quotation'), detail: _okRun ? undefined : _note.slice(0, 200) });
+    return J({ ok: _okRun, proposal: ai, extracted_by_model: extractedBy, error: _okRun ? undefined : (aiParseOk ? 'no_amount' : 'unreadable_quotation'), detail: _okRun ? undefined : _note.slice(0, 200) });
   } catch (e) { await logRun('error', { quote_extracted: 0, unhandled_exception: 1 }, 'quote_extract threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e).slice(0, 200) + ' — a supplier quotation was not converted into a comparable quote and will be missing from the customer\'s comparison.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 }));

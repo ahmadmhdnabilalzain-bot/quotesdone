@@ -39,7 +39,14 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 // the coded result standing, its open lines marked "not confirmed by a second reading".
 // The ONLY image it can send is `page`: a redacted page drawing_redact recorded as complete
 // (confirm.ts redactedPageFor), downloaded here by its recorded path. It takes no request input.
-async function confirmStep(lines: any[], page: RedactedPage): Promise<Record<string, unknown>> {
+// A take-off counted by code names its author as code, so the confirm routes normally; a draft with no author named is
+// 'unknown' and the confirm is withheld (#880 review, item 4).
+// deno-lint-ignore no-explicit-any
+const withCodeAuthor = (b: any) => (b && typeof b === 'object' && !Array.isArray(b) ? { ...b, author_model: b.author_model ?? 'deterministic' } : b);
+// `author` is the model that drafted the lines, or 'deterministic' when code counted them. drawing_boq_confirm is a
+// review class (model_policy.reviews_class): ai_gateway refuses it without counterpart_model and routes it away from
+// the author's family (every_review_class_is_judged_by_another_family_than_its_author.sql, founder instruction ~891).
+async function confirmStep(lines: any[], page: RedactedPage, author: string): Promise<Record<string, unknown>> {
   const { data: file, error } = await admin.storage.from('drawing-files').download(page.path);
   if (error || !file) { const m = mergeConfirm(lines, null); return { boq: m.lines, confirm: m.status, confirm_detail: { why: 'redacted_page_unreadable' } }; }
   const u8 = new Uint8Array(await file.arrayBuffer()); let bin = '';
@@ -48,7 +55,7 @@ async function confirmStep(lines: any[], page: RedactedPage): Promise<Record<str
   let reply: ConfirmReply | null = null; let why = 'no_reply';
   try {
     const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-      __secret: key, fn: 'drawing_boq', task_class: CONFIRM_ROUTE, max: CONFIRM_MAX_TOKENS, temperature: 0, sys: CONFIRM_SYS,
+      __secret: key, fn: 'drawing_boq', task_class: CONFIRM_ROUTE, counterpart_model: author, max: CONFIRM_MAX_TOKENS, temperature: 0, sys: CONFIRM_SYS,
       input: [{ role: 'user', content: [{ type: 'text', text: confirmUserText(lines) }, { type: 'image_url', image_url: { url: dataUrl(btoa(bin), 'image/jpeg') } }] }] }) });
     const jd = await r.json();
     if (r.ok && jd?.ok !== false && jd?.content) { reply = parseConfirm(String(jd.content), new Set(lines.map((l: any) => lineKey(l)))); why = reply ? 'ok' : 'unparseable'; }
@@ -95,7 +102,9 @@ Deno.serve(observe('drawing_boq', async (req) => {
         : { data: null };
       const page = redactedPageFor(run as RedactionRun | null);
       if (!page) { const m = mergeConfirm(lines, null); return J({ ok: true, boq: m.lines, confirm: m.status, confirm_detail: { why: 'redaction_not_verified' } }); }
-      return J({ ok: true, ...(await confirmStep(lines, page)) });
+      // No author named: 'unknown' — the confirm is withheld, never routed as if code wrote it (every reader now names its author).
+      const author = typeof body.author_model === 'string' && body.author_model.trim() ? body.author_model.trim().slice(0, 200) : 'unknown';
+      return J({ ok: true, ...(await confirmStep(lines, page, author)) });
     }
     // 22 Sep 2026. THE LENGTHS, as a second call after the take-off (drawing_set.ts, "THE LENGTHS ARE A SECOND
     // CALL"): the same PDF read WITH its CAD layers, duct and pipe runs measured at the printed scale, and
@@ -125,7 +134,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
       // 22 Sep 2026 (redaction audit, #827): nothing a CAD file says about its own job reaches a BOQ line.
       // Every CAD reader (ASCII and binary DXF, DWG) hands back the DXF text it measured as dxf_text.
       const boq = boqFromExtracted(r, hint, ocrText, drawing);
-      return J({ ok: true, boq: r.dxf_text !== undefined ? cadSupplierBoq(boq, r.dxf_text) : boq, kind: r.kind, needs: r.needs });
+      return J({ ok: true, boq: withCodeAuthor(r.dxf_text !== undefined ? cadSupplierBoq(boq, r.dxf_text) : boq), kind: r.kind, needs: r.needs });
     }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below
     // returned ai_error on every drawing and the customer's file never informed the brief (website
@@ -145,7 +154,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
       if (!pdfB64) {
         if (!ocrText && !drawing.lines?.length) return null;
         // No confirm here: it runs only as mode 'confirm', after redaction (see below).
-        return J({ ok: true, boq: { ...boqFromExtracted(empty('image'), hint, ocrText, drawing), fallback_reason: why } });
+        return J({ ok: true, boq: { ...boqFromExtracted(empty('image'), hint, ocrText, drawing), fallback_reason: why, author_model: 'deterministic' } });
       }
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
@@ -157,9 +166,9 @@ Deno.serve(observe('drawing_boq', async (req) => {
         // "<qty> <unit>" text reader run.
         const sched = Array.isArray(body.schedule_tables) ? (body.schedule_tables as ScheduleTable[]).slice(0, 40).filter((t) => t && Array.isArray(t.rows)) : [];
         const set = boqFromDrawingSet(pages, hint, sched);
-        if (set) return J({ ok: true, boq: { ...set, fallback_reason: why } });
+        if (set) return J({ ok: true, boq: { ...set, fallback_reason: why, author_model: 'deterministic' } });
         const out = boqFromPages(pages, hint);
-        return J({ ok: true, boq: { ...out, fallback_reason: why } });
+        return J({ ok: true, boq: { ...out, fallback_reason: why, author_model: 'deterministic' } });
       } catch (_e) { return null; }
     };
     const key = await sec('cred_fn_ai');
@@ -181,6 +190,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
     if (content.length < 2) return J({ error: 'no readable image' }, 400);
 
     let rawContent = '';
+    let authorModel = 'unknown';
     let ai: any = {};
     try {
       const payload = { __secret: key, fn: 'drawing_boq', max: 8000, temperature: 0.1, sys: SYS, input: [{ role: 'user', content }] };
@@ -188,6 +198,8 @@ Deno.serve(observe('drawing_boq', async (req) => {
       const jd = await r.json();
       if (!r.ok || jd?.ok === false) { const d = await deterministic('ai_gateway_refused'); if (d) return d; return J({ error: 'ai_error', detail: jd?.detail || jd?.error || '', deterministic: pdfB64 ? 'pdf_unreadable' : 'no_pdf_supplied', meta: JSON.stringify(jd).slice(0,600) }, 502); }
       rawContent = jd?.content || '';
+      // The draft's author, carried back by customer_api into mode 'confirm' so the confirm is routed to another family.
+      authorModel = typeof jd?.model === 'string' && jd.model ? jd.model : 'unknown';
       if (body.__debug) return J({ ok: true, _len: String(rawContent).length, finish: jd?.finish_reason });
       ai = parseJson(rawContent || '{}');
     } catch (e) { const d = await deterministic('ai_exception'); if (d) return d; return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
@@ -203,6 +215,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
     ai.summary = scrub(ai.summary||'');
     ai.scale_detected = scrub(ai.scale_detected||'');
     if (!['low','medium','high'].includes(ai.confidence)) ai.confidence = 'low';
+    ai.author_model = authorModel;
     return J({ ok: true, boq: ai });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }));

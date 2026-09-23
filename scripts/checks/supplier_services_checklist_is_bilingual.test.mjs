@@ -28,6 +28,16 @@ const rows = [...seed.matchAll(/\('([a-z_]+)','([a-z][a-z0-9_]*)','([^']+)','([^
 const labelsFile = read('scripts/sql/a_suppliers_documents_propose_trades_and_a_new_trade_is_reviewed_not_dropped.sql');
 const block = labelsFile.slice(labelsFile.indexOf('update public.taxonomy_trade t set label_ar'), labelsFile.indexOf(') v(code, ar)'));
 const TRADES = [...block.matchAll(/\('([a-z_]+)','[^']+'\)/g)].map((m) => m[1]);
+// THE TRADES OF 23 SEP 2026 (founder instructions 895/899/900): each new trade and its services are one
+// file, rows in the same (trade, code, EN, AR, sort) shape, so they are held to the same rule — plus the
+// services that file adds under existing trades (the research's merges), which must name a known trade.
+const added = read('scripts/sql/the_missing_trades_join_the_taxonomy_under_twelve_groups.sql');
+const NEW_TRADES = [...added.slice(added.indexOf('insert into public.taxonomy_trade (code, label'), added.indexOf(') as v(code, label, label_ar'))
+  .matchAll(/^ {2}\('([a-z_0-9]+)','[^']+','[^']+',/gm)].map((m) => m[1]);
+const addedRows = [...added.matchAll(/\('([a-z_]+)','([a-z][a-z0-9_]*)','([^']+)','([^']+)',(\d+)\)/g)]
+  .map(([, trade, code, en, ar]) => ({ trade, code, en, ar }));
+// Their services live in a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql.
+const EXISTING_ONLY = ['office_equipment', 'pos_retail'];
 
 test('the seed covers all 40 trades with five services each, EN and AR', () => {
   assert.equal(TRADES.length, 40);
@@ -36,6 +46,22 @@ test('the seed covers all 40 trades with five services each, EN and AR', () => {
   assert.equal(new Set(keys).size, keys.length, 'a service key repeats');
   for (const r of rows) {
     assert.ok(TRADES.includes(r.trade), `unknown trade ${r.trade}`);
+    assert.ok(AR.test(r.ar), `${r.trade}.${r.code} has no Arabic`);
+    assert.ok(!AR.test(r.en), `${r.trade}.${r.code} has Arabic in English`);
+  }
+});
+
+test('every trade added on 23 Sep 2026 has at least three services, EN and AR, and each key is unique', () => {
+  assert.ok(NEW_TRADES.length >= 150, `only ${NEW_TRADES.length} new trades parsed`);
+  const known = new Set([...TRADES, ...EXISTING_ONLY, ...NEW_TRADES]);
+  for (const t of NEW_TRADES) {
+    assert.ok(!TRADES.includes(t), `${t} already existed`);
+    assert.ok(addedRows.filter((r) => r.trade === t).length >= 3, `${t} has fewer than three services`);
+  }
+  const keys = [...rows, ...addedRows].map((r) => r.trade + '.' + r.code);
+  assert.equal(new Set(keys).size, keys.length, 'a service key repeats across the seeds');
+  for (const r of addedRows) {
+    assert.ok(known.has(r.trade), `unknown trade ${r.trade}`);
     assert.ok(AR.test(r.ar), `${r.trade}.${r.code} has no Arabic`);
     assert.ok(!AR.test(r.en), `${r.trade}.${r.code} has Arabic in English`);
   }
