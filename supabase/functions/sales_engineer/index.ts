@@ -35,7 +35,8 @@ import { defaultDeps } from '../_shared/think.ts';
 import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
 import { reasonedOffers } from '../_shared/reasoned_matching.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
-import { langOf, notYet, onTopic, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
+import { langOf, notYet, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
+import { portalPassage, quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -277,7 +278,12 @@ async function answerFromOwnQuotes(customerId: string, message: string, lang: 'e
         lead_time: q.lead_time, payment_terms: q.payment_terms, validity: q.validity, notes: q.notes, items,
       };
     });
-    return quoteAnswer(message, quotes, lang);
+    // WHICH quote and field the question is about — and whether a threshold line applies — is REASONED
+    // (quoteQuestion, decision point shared.quote_answer), never FIELD_RE / QUOTE_RE / a shared-word score. Held,
+    // null: the question falls through to the corpora, where the held passage choice ends in the honest notYet.
+    const shown = quotes.slice(0, 15);
+    const choice = (await quoteQuestion(defaultDeps(admin, 'sales_engineer'), { message, quotes: shown })).value;
+    return quoteAnswer(choice, shown, lang, message);
   } catch { return null; }   // a read failure falls through to the corpora rather than failing the turn
 }
 
@@ -387,19 +393,23 @@ Deno.serve(observe('sales_engineer', async (req) => {
       if (error) return J({ ok: false, error: 'retrieval_failed', detail: error.message }, 503);
 
       const r = data as Record<string, unknown>;
-      // ON TOPIC OR NOT AT ALL (21 Sep 2026). A cited passage must share a substantive word with the
-      // question — the estate's own lens, "a nearest neighbour is always found", applied at the
-      // last step so that a floor slip in any corpus still cannot put an unrelated passage in front
-      // of a customer. What survives is answered; when nothing does, the gap is recorded and the
-      // honest sentence goes out in the asker's language.
-      const recs = ((r.records || []) as Array<Record<string, unknown>>)
-        .filter((x) => onTopic(message, String(x.title || '') + ' ' + String(x.content || '')));
+      // ON TOPIC OR NOT AT ALL (21 Sep 2026): a nearest neighbour is always found, so a cited passage must be
+      // one that answers the question, applied at the last step so a floor slip in any corpus cannot put an
+      // unrelated passage in front of a customer. What survives is answered; otherwise the gap is recorded.
+      // WHICH retrieved passage answers is REASONED (portalPassage, decision point sales_engineer.on_topic) — one
+      // shared word decided it until 23 Sep 2026. Held (the model hold), none is chosen: the gap is recorded and
+      // the honest sentence goes out with its task number; nothing is guessed.
+      const all = (r.records || []) as Array<Record<string, unknown>>;
+      const pick = r.answered === true && all.length
+        ? (await portalPassage(defaultDeps(admin, 'sales_engineer'), { message, passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || '') })) })).value
+        : null;
+      const recs = pick?.startsWith('kb:') && all[Number(pick.slice(3))] ? [all[Number(pick.slice(3))]] : [];
       let answered = r.answered === true && recs.length > 0;
       let taskId: number | null = (r.task_id as number | undefined) ?? null;
       if (!answered && r.answered === true) {
         // the routine cited something; every citation was off topic, so it recorded no gap. Record it.
         try {
-          const { data: g } = await admin.rpc('fn_support_knowledge_gap', { p_question: message, p_refusal: 'cited_off_topic', p_surface: 'customer_portal' });
+          const { data: g } = await admin.rpc('fn_support_knowledge_gap', { p_question: message, p_refusal: pick === null ? 'not_reasoned_yet' : 'cited_off_topic', p_surface: 'customer_portal' });
           taskId = ((g as Record<string, unknown> | null)?.task_id as number | undefined) ?? null;
         } catch { /* the honest sentence still goes out */ }
       }

@@ -13,6 +13,9 @@ function io(windowOpen: boolean) {
     reportToCeo: (k) => { log.push('ceo ' + k); return Promise.resolve(); },
     socialHandoff: (s) => { log.push('social ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     socialCommentHandoff: (s) => { log.push('comment ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
+    waIntentReply: (p, _q, intent) => { log.push('intent ' + p + ' ' + intent); return Promise.resolve(intent === 'pricing' ? 'Posting a request is free.' : null); },
+    waTrades: () => Promise.resolve([{ code: 'hvac', label: 'HVAC & air conditioning', label_ar: 'التكييف والتهوية', aliases: [] }]),
+    socialReply: (s, meaning) => { log.push('reply ' + s.platform + ' ' + s.message_id + ' ' + meaning); return Promise.resolve({ ok: true }); },
     accountantSweep: (id) => { log.push('sweep ' + id); return Promise.resolve({ ok: true, found: true, verdict: 'booked' }); },
     receiptToBookkeeper: (id) => { log.push('bookkeeper ' + id); return Promise.resolve({ ok: true }); },
     outreachPage: () => Promise.resolve({ full_name: 'ZZ DEMO Sara', language: 'en' as const }),
@@ -84,6 +87,46 @@ Deno.test('a held ANSWER on WhatsApp goes back as the answer, under the same win
     answered(null, 'In Dubai private pools need a DM permit; which emirate is the villa in?'), x);
   assertEquals(d.via, 'whatsapp_template');
   assertMatch(log[0], /\[what depth can my pool be\?\] In Dubai/);
+});
+
+// ── a held MEANING (reasoned_channels.ts): the answer the reasoned meaning selects, once ────────────
+const meaningRow = (surface: string, question: string, subject: Record<string, unknown>): HeldRow => ({
+  id: 9, seat: surface.startsWith('wa_') ? 'customer_support' : 'marketing', surface, subject,
+  request: { seat: 'customer_support', surface, question, decision: { name: 'q', options: [{ id: 'none', meaning: '' }] } },
+});
+
+Deno.test('WhatsApp meaning: an intent is answered by the database, a trade from the live list, size by the statement', async () => {
+  const wa = { channel: 'whatsapp', phone: '+971500000021' };
+  const a = io(true);
+  const i = await deliverReasoned(meaningRow('wa_inbound.intent_table', 'is it free?', wa), answered('intent:pricing'), a.x);
+  assertEquals([i.delivered, i.via], [true, 'whatsapp_text']);
+  assertEquals(a.log, ['intent +971500000021 pricing', 'text +971500000021 Posting a request is free.']);
+  const b = io(true);
+  await deliverReasoned(meaningRow('wa_inbound.intent_table', 'هل تقدمون أعمال التكييف', wa), answered('trade:hvac'), b.x);
+  assertMatch(b.log[0], /^text \+971500000021 نعم، التكييف والتهوية من التخصصات/);
+  const c = io(false);
+  const s = await deliverReasoned(meaningRow('wa_inbound.intent_table', 'how many suppliers do you have', wa), answered('size'), c.x);
+  assertEquals(s.via, 'whatsapp_template'); // outside the window: the template, never free text
+  assertMatch(c.log[0], /^template \+971500000021 en \[how many suppliers do you have\] Thank you for your interest in QuotesDone/);
+});
+
+Deno.test('WhatsApp meaning: nothing more is sent for none, for a person (its own held row delivers that), or with no phone', async () => {
+  const { x, log } = io(true);
+  for (const [choice, subject] of [['none', { phone: '+971500000021' }], ['intent:contact_human', { phone: '+971500000021' }], ['intent:pricing', {}]] as const) {
+    const d = await deliverReasoned(meaningRow('wa_inbound.intent_table', 'q', subject), answered(choice), x);
+    assertEquals([d.delivered, d.via], [false, 'none'], choice);
+  }
+  assertEquals(log, []);
+});
+
+Deno.test('social meaning: the grounded reply is sent on the platform; none sends nothing', async () => {
+  const { x, log } = io(true);
+  const subject = { platform: 'instagram', message_id: 'mZZDEMO', passages: [] };
+  const d = await deliverReasoned(meaningRow('marketing_social.library_match', 'who sets the warranty?', subject), answered('kb:0'), x);
+  assertEquals([d.delivered, d.via], [true, 'social']);
+  const n = await deliverReasoned(meaningRow('marketing_social.library_match', 'what is the weather', subject), answered('none'), x);
+  assertEquals([n.delivered, n.via], [false, 'none']);
+  assertEquals(log, ['reply instagram mZZDEMO kb:0']);
 });
 
 // Batch 8 (accountant + marketing): the effect of an expense or outreach reasoning, reached through deliverReasoned.
