@@ -181,7 +181,8 @@ declare h public.reasoning_held_question; v_choice text := p_result->'decision'-
 begin
   select * into h from public.reasoning_held_question where id = p_id;
   if not exists (select 1 from jsonb_array_elements(h.request->'decision'->'options') o where o->>'id' = v_choice) then
-    return jsonb_build_object('applied', false, 'reason', 'the choice is not one of the options: ' || coalesce(v_choice, 'none'));
+    -- fn_reason_held_resolve marks a row applied whenever its apply returns, so a non-answer RAISES and is reasoned again.
+    raise exception 'CHOICE_NOT_AN_OPTION: % (held question %)', coalesce(v_choice, 'no choice'), p_id;
   end if;
   select i.id, i.created_at, c.id as cid, c.full_name, c.email, c.locale into r
     from public.inquiries i join public.customers c on c.id = i.customer_id where i.id::text = h.subject->>'inquiry_id';
@@ -369,7 +370,8 @@ declare h public.reasoning_held_question; v_choice text := p_result->'decision'-
 begin
   select * into h from public.reasoning_held_question where id = p_id;
   if v_choice is null or v_choice not in ('dispute', 'not_dispute') then
-    return jsonb_build_object('applied', false, 'reason', 'the choice is not one of the options: ' || coalesce(v_choice, 'none'));
+    -- fn_reason_held_resolve marks a row applied whenever its apply returns, so a non-answer RAISES and is reasoned again.
+    raise exception 'CHOICE_NOT_AN_OPTION: % (held question %)', coalesce(v_choice, 'no choice'), p_id;
   end if;
   if v_choice = 'not_dispute' then return jsonb_build_object('applied', true, 'opened', false); end if;
   return public.fn_customer_support_dispute_open((h.subject->>'transaction_id')::uuid, h.subject->>'party',
@@ -454,7 +456,8 @@ declare h public.reasoning_held_question; v_choice text := p_result->'decision'-
 begin
   select * into h from public.reasoning_held_question where id = p_id;
   if v_choice is null or v_choice not in ('customer_upheld', 'supplier_upheld', 'shared', 'no_fault') then
-    return jsonb_build_object('applied', false, 'reason', 'the choice is not one of the options: ' || coalesce(v_choice, 'none'));
+    -- fn_reason_held_resolve marks a row applied whenever its apply returns, so a non-answer RAISES and is reasoned again.
+    raise exception 'CHOICE_NOT_AN_OPTION: % (held question %)', coalesce(v_choice, 'no choice'), p_id;
   end if;
   select * into d from public.post_reveal_dispute where id = (h.subject->>'dispute_id')::bigint and stage = 'review' for update;
   if not found then return jsonb_build_object('applied', false, 'reason', 'the dispute is not awaiting a finding'); end if;

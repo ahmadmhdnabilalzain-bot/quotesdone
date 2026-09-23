@@ -51,7 +51,8 @@ test('static: revokes, search_path, RLS + policy, duties defined, choices valida
       assert.match(src, new RegExp(`revoke execute on function public\\.${name}\\([^)]*\\) from public, anon, authenticated;`), `${f}: ${name} is not revoked`);
       if (name.startsWith('fn_reason_apply_')) {
         const body = src.slice(src.indexOf(`function public.${name}(`)).split('$fn$;')[0];
-        assert.match(body, /the choice is not one of the options/, `${f}: ${name} applies a choice without validating it`);
+        // a non-answer must RAISE: fn_reason_held_resolve marks a row applied whenever its apply returns, even null
+        assert.match(body, /raise exception 'CHOICE_NOT_AN_OPTION/, `${f}: ${name} does not raise on a choice outside the options`);
       }
     }
     for (const [, t] of src.matchAll(/create table if not exists public\.(\w+)/g)) {
@@ -145,7 +146,10 @@ begin
   select id into h from reasoning_held_question where dedupe_key = 'stalled_request:' || i1;
   o := o || jsonb_build_object('stalled_held', (select jsonb_build_object('seat', seat, 'stakes', request->>'stakes', 'status', status) from reasoning_held_question where id = h));
   o := o || jsonb_build_object('stalled', fn_reason_held_resolve(h, format(m, 'add_details')::jsonb)->'status');
-  o := o || jsonb_build_object('bad_choice', fn_reason_apply_customer_support__stalled_request(h, format(m, 'nonsense')::jsonb)->'applied');
+  begin
+    perform fn_reason_apply_customer_support__stalled_request(h, format(m, 'nonsense')::jsonb);
+    o := o || jsonb_build_object('bad_choice', true);
+  exception when others then o := o || jsonb_build_object('bad_choice', sqlerrm not like 'CHOICE_NOT_AN_OPTION%'); end;
 
   select id into h from reasoning_held_question where dedupe_key = 'circumvention:silent_after_reveal:' || t2;
   o := o || jsonb_build_object('circ', fn_reason_held_resolve(h, format(m, 'circumvention')::jsonb)->'effect'->'review'->'deliberation_id' is not null);

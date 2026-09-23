@@ -163,7 +163,8 @@ declare h public.reasoning_held_question; v_choice text := p_result->'decision'-
 begin
   select * into h from public.reasoning_held_question where id = p_id;
   if v_choice is null or v_choice not in ('circumvention', 'benign', 'insufficient_evidence') then
-    return jsonb_build_object('applied', false, 'reason', 'the choice is not one of the options: ' || coalesce(v_choice, 'none'));
+    -- fn_reason_held_resolve marks a row applied whenever its apply returns, so a non-answer RAISES and is reasoned again.
+    raise exception 'CHOICE_NOT_AN_OPTION: % (held question %)', coalesce(v_choice, 'no choice'), p_id;
   end if;
   select * into f from public.fraud_flags
    where kind = h.subject->>'kind' and subject_type = h.subject->>'subject_type' and subject_id = h.subject->>'subject_id' for update;
