@@ -49,7 +49,8 @@ test('email_triage: an answer that cannot be recorded stops the batch instead of
 test('resend_inbound: an email already on file is answered before any reader or model', () => {
   const ri = read('supabase/functions/resend_inbound/index.ts');
   const dedupe = ri.indexOf(".eq('provider_email_id', providerEmailId)");
-  const firstModel = ri.indexOf('/functions/v1/ai_gateway');
+  // 23 Sep 2026: the receipt model fallback is gone; the first model call is the reasoning (documentKind, think()).
+  const firstModel = ri.indexOf('await documentKind(');
   const firstReaderCall = ri.indexOf('await extractDoc(');
   assert.ok(dedupe > 0, 'resend_inbound no longer looks the email up by its Resend id');
   assert.ok(dedupe < firstModel && (firstReaderCall < 0 || dedupe < firstReaderCall), 'the redelivery check must come before every model and reader call');
