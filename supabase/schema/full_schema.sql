@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T10:46:08.035Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T11:04:44.460Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -55565,7 +55565,7 @@ CREATE OR REPLACE FUNCTION public.fn_seat_deliberation_norm(p text)
  IMMUTABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select btrim(regexp_replace(lower(coalesce(p, '')), '[^a-z0-9؀-ۿ]+', ' ', 'g'))
+  select btrim(regexp_replace(lower(coalesce(p, '')), '[^a-z0-9\u0600-\u06ff]+', ' ', 'g'))
 $function$
 
 
