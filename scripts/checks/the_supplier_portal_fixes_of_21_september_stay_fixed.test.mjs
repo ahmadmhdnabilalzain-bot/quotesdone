@@ -88,7 +88,10 @@ test('finding 26/27: the Arabic BOQ reads the sales engineer vocabulary and its 
   const api = code(read('supabase', 'functions', 'supplier_api', 'index.ts'));
   assert.match(api, /boqWithArabic\(/);
   const qd = code(read('supabase', 'functions', '_shared', 'quote_documents.ts'));
-  assert.match(qd, /r\.description_ar/, 'the inquiry PDF prints the Arabic description on an Arabic page');
+  // 23 Sep 2026 (decision point trade_glossary_ar): the inquiry PDF prints the REASONED Arabic of the description
+  // (k.cell -> loc -> arTexts), not the word-matched description_ar; the portal view above still shows both.
+  assert.match(qd, /c\.push\(k\.cell\(r\.description, 240\)/, 'the inquiry PDF prints the reasoned Arabic description on an Arabic page');
+  assert.doesNotMatch(qd, /r\.description_ar/, 'the word-matched BOQ label is not printed on a document');
   for (const f of ['InquiriesTab.tsx', 'QuotationsTab.tsx']) {
     // 22 Sep 2026: `aedIn` was folded into supplier/money.ts as `aed(lang, …)` — the audit found the
     // same amount written three ways on one screen (SP-I-10). The assertion is unchanged; only the

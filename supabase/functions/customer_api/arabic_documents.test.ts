@@ -73,14 +73,13 @@ const dates = { date_ar: '21 سبتمبر 2026' };
 Deno.test('the Arabic ZZ DEMO quotation is Arabic, keeps the supplier\'s own words as authored, renders with 0 glyphs dropped', async () => {
   // A note the trade glossary cannot finish: it must reach the page exactly as the supplier wrote it.
   const q = { ...F.liveQuotes()[0], notes: 'Site survey by appointment on Tuesday mornings; parking permit arranged by the tenant.' };
-  const body = quoteDocument({ quote: q, inquiry: F.INQUIRY, items: q.items, letter: supplierLabel(0), lang: 'ar', maskNames: F.identities(), ...dates }).body;
+  const body = F.reasoned((arTexts) => quoteDocument({ quote: q, inquiry: F.INQUIRY, items: q.items, letter: supplierLabel(0), lang: 'ar', maskNames: F.identities(), ...dates , arTexts })).body;
   await assertArabicDocument(body);
-  // Supplier free text is never machine-translated: what the glossary cannot finish is printed as the
-  // supplier wrote it, on the secondary line that says so.
-  const s = subs(body.blocks);
-  assert(s.length > 0, 'the supplier\'s original wording is not on the page');
-  for (const x of s) assert(x.startsWith('النص الأصلي من المورد'), 'an unlabelled secondary line: ' + x);
-  assert(s.some((x) => /[A-Za-z]/.test(x)), 'the supplier\'s English wording was not kept as authored');
+  // The supplier's note is printed as its REASONED Arabic (mocked), whole; never substituted word by word, and
+  // never half-translated: built without the reasoning, the page reports the note as untranslated (held).
+  assertEquals(subs(body.blocks), []);
+  const unreasoned = quoteDocument({ quote: q, inquiry: F.INQUIRY, items: q.items, letter: supplierLabel(0), lang: 'ar', maskNames: F.identities(), ...dates });
+  assert(unreasoned.untranslated.includes(q.notes), 'the note is not reported for reasoning');
 });
 
 Deno.test('the Arabic ZZ DEMO comparison report is Arabic and renders with 0 glyphs dropped', async () => {
@@ -88,7 +87,7 @@ Deno.test('the Arabic ZZ DEMO comparison report is Arabic and renders with 0 gly
   // deno-lint-ignore no-explicit-any
   const a: any = deterministicCompare(lab, 'ar');
   a.all_quotes = rosterOf(lab, a.top3); a.total_quotes = lab.length; a.technical = F.HVAC_TECHNICAL;
-  const body = compareDocument({ analysis: a, inquiry: F.INQUIRY, lang: 'ar', maskNames: F.identities(), ...dates }).body;
+  const body = F.reasoned((arTexts) => compareDocument({ analysis: a, inquiry: F.INQUIRY, lang: 'ar', maskNames: F.identities(), ...dates , arTexts })).body;
   await assertArabicDocument(body);
 });
 

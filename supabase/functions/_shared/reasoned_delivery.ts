@@ -14,9 +14,13 @@
 // deliverReasoned is pure over its `io`, so reasoned_delivery.test.ts pins every branch.
 import type { HeldRow } from './think.ts';
 import type { ThinkResult } from './think.ts';
+// Batch 8 (accountant + marketing): an expense email's reasoned kind or vendor re-runs the accountant's sweep, and
+// a LinkedIn reply's reasoned class drafts its follow-up. Their branches live with their decisions.
+import { deliverBooks, liveBooksIO, type BooksIO } from './reasoned_books.ts';
+import { deliverOutreach, liveOutreachIO, type OutreachIO } from './reasoned_outreach.ts';
 
 export type Sent = { ok: boolean; err?: string };
-export interface DeliveryIO {
+export interface DeliveryIO extends BooksIO, OutreachIO {
   waWindowOpen(phone: string): Promise<boolean>;
   sendWaText(phone: string, body: string): Promise<Sent>;
   queueWaTemplate(phone: string, question: string, answer: string, lang: 'en' | 'ar'): Promise<Sent>;
@@ -25,10 +29,13 @@ export interface DeliveryIO {
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
+  /** Every regenerated Arabic quotation whose lines are now all reasoned (fn_arabic_waiters_ready): render it and send
+   *  the approval request (supplier_api spec_arabic_finish -> workflow.ts finishArabic). Decision point trade_glossary_ar. */
+  arabicFinishReady?(): Promise<Sent>;
   /** A public comment whose CLASS was held: run it through the comment policy with the reasoned class (marketing_social_comments.ts). */
   socialCommentClassified(subject: Record<string, unknown>, cls: string): Promise<Sent>;
 }
-export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'none'; detail?: string };
+export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'none'; detail?: string };
 
 const isAr = (s: string) => /[؀-ۿ]/.test(s);
 
@@ -74,6 +81,20 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     return { delivered: s.ok, via: 'social', detail: s.err };
   }
 
+  const books = await deliverBooks(row, r, io);
+  if (books) return books;
+  const outreach = await deliverOutreach(row, r, io);
+  if (outreach) return outreach;
+  // A held Arabic translation: fn_reason_apply_sales_engineer__document_arabic has stored the Arabic and flushed any
+  // parked message; what is left is a regenerated quotation, which needs a render (a PDF) before its approval request.
+  // The waiting quotations are found by the QUOTE (arabic_document_waiter), not by this row's subject: the same lines
+  // may have been filed first by another document, and a held row keeps its first subject.
+  if (row.surface === 'sales_engineer.document_arabic') {
+    if (!io.arabicFinishReady) return { delivered: false, via: 'none', detail: 'stored; no renderer wired' };
+    const s = await io.arabicFinishReady();
+    return { delivered: s.ok, via: 'none', detail: s.ok ? 'every quotation whose Arabic is complete was rendered and asked for approval' : s.err };
+  }
+
   if (row.surface === 'marketing_social.comment_classify') {
     // Nothing was hidden, said or handed off while the class was held; the policy runs now, once.
     if (!choice) return { delivered: false, via: 'none', detail: 'no class on the reasoned result' };
@@ -117,6 +138,8 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
   const sec = async (k: string) => { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; };
   const digits = (p: string) => p.replace(/[^0-9]/g, '');
   return {
+    ...liveBooksIO(admin),
+    ...liveOutreachIO(admin),
     waWindowOpen: async (phone) => {
       const { data } = await admin.from('wa_conversation').select('window_expires_at').eq('phone_e164', digits(phone)).maybeSingle();
       return !!data?.window_expires_at && new Date(data.window_expires_at).getTime() > Date.now();
@@ -136,6 +159,22 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
     reportToCeo: async (key, subject, evidence) => {
       await admin.rpc('fn_support_report_to_ceo', { p_idempotency_key: key, p_severity: 'routine', p_subject: subject, p_evidence: evidence,
         p_attempted: ['reasoned the held message', 'gave the approved public contact'], p_requested: 'Visibility only. No action is requested.' });
+    },
+    arabicFinishReady: async () => {
+      const { data: ids, error } = await admin.rpc('fn_arabic_waiters_ready', { p_limit: 10 });
+      if (error) return { ok: false, err: error.message };
+      const errs: string[] = [];
+      for (const quoteId of (Array.isArray(ids) ? ids : []) as string[]) {
+      const { timedFetch } = await import('./timed_fetch.ts');
+      // supplier_api has verify_jwt = true: the service key passes the gateway; __secret decides the caller.
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/supplier_api', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '') },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'spec_arabic_finish', quote_id: String(quoteId) }),
+      }, 60_000);
+      const j = await r.json().catch(() => ({}));
+      if (!(r.ok && j?.ok)) errs.push(quoteId + ': ' + String(j?.code ?? j?.error ?? r.status));
+      }
+      return errs.length ? { ok: false, err: errs.join('; ') } : { ok: true };
     },
     socialHandoff: async (subject) => {
       const { timedFetch } = await import('./timed_fetch.ts');

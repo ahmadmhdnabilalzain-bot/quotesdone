@@ -30,9 +30,10 @@ import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
 import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
-import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
-import { reasonedOffers } from '../_shared/reasoned_matching.ts';
+import { noExactSpec, offerMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { defaultDeps } from '../_shared/think.ts';
+import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
+import { reasonedOffers } from '../_shared/reasoned_matching.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
 import { langOf, notYet, onTopic, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
@@ -109,7 +110,7 @@ async function tellCustomer(o: any, kind: 'offer' | 'reminder' | 'apology_no_rep
   return (data || []).map((d) => d.notification_id).filter((x): x is number => typeof x === 'number');
 }
 async function specOfferSweep(limit: number) {
-  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, errors: [] as string[], precedent: [] as unknown[], held_for_reasoning: 0 };
+  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, arabic_held: 0, errors: [] as string[], precedent: [] as unknown[], held_for_reasoning: 0 };
   const secret = await sec('cred_fn_sales_engineer');
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const { data: cands, error: cErr } = await admin.rpc('fn_spec_offer_candidates', { p_limit: limit });
@@ -160,7 +161,13 @@ async function specOfferSweep(limit: number) {
       // deno-lint-ignore no-explicit-any
       for (const o of opened as any[]) {
         if (o.last_sent_at) continue;
-        const ids = await tellCustomer(o, 'offer', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id) }), lang, cust);
+        const arTexts = await arabicTextsFor(defaultDeps(admin, 'sales_engineer'), lang, offerTexts(o as OfferForText));
+        const msg = offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id), arTexts });
+        // An Arabic message never goes out with an untranslated line: it is not marked sent, so the next tick
+        // retries it — by then the replay has put the reasoned Arabic in the cache (decision point trade_glossary_ar).
+        if (msg.untranslated?.length) { out.arabic_held++; continue; }
+        await admin.rpc('fn_spec_offer_restart_clock', { p_offer: o.id });   // a late first send gets its full window
+        const ids = await tellCustomer(o, 'offer', msg, lang, cust);
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'sent', p_notification_ids: ids });
         out.offers_sent++;
       }
@@ -176,7 +183,10 @@ async function specOfferSweep(limit: number) {
       const lang = await registeredLocale(admin, { role: 'customer', customerId: o.customer_id });
       const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', o.inquiry_id).maybeSingle();
       if (d.action === 'remind') {
-        const ids = await tellCustomer(o, 'reminder', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final }), lang, cust);
+        const arTexts = await arabicTextsFor(defaultDeps(admin, 'sales_engineer'), lang, offerTexts(o as OfferForText));
+        const msg = offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final, arTexts });
+        if (msg.untranslated?.length) { out.arabic_held++; continue; }   // retried next tick, never sent half-translated
+        const ids = await tellCustomer(o, 'reminder', msg, lang, cust);
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'remind', p_notification_ids: ids });
         out.reminders++;
       } else if (d.action === 'close_no_reply') {
