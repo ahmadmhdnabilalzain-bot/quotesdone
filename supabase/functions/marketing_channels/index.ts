@@ -22,6 +22,8 @@
 // what it WOULD have sent and leaves the post scheduled. Nothing in this function writes to Meta or spends.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import {
   assetMismatch, deletePostizPost, dubaiDate, findInPostiz, integrationFor, isDemoText, measureAccess, postizIds, postizIntegrations, postizReleases,
   publishPost, pullInsights, readAdSpend, stripTokens, type MetaEnv, type PublishInput, type Variant,
@@ -287,7 +289,7 @@ async function requeue(e: Env, body: any) {
 const LINK_MARGIN_DAYS = 14;
 
 async function brandBytes(path: string) {
-  try { const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/brand/${path}`); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null; }
+  try { const r = await timedFetch(`${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/brand/${path}`, {}, 10_000); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null; }
   catch { return null; }
 }
 
