@@ -41,7 +41,21 @@ function isolateText(raw: string): string {
   return out + esc(t.slice(last));
 }
 
+// MEASURED 22 SEP 2026 (production walk, /ar/blog): 25 Arabic posts carry a FAQPage block as
+// <script type="application/ld+json">, and this pass treated the JSON as prose — every Latin run in it
+// was wrapped in <bdi> and every " became &quot;, so the structured data no longer parsed and Google
+// read no FAQ on any of them. A <script> or <style> body is code, never text to isolate, so those
+// segments are copied through untouched.
+const CODE = /<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi;
+const isolateProse = (html: string) =>
+  html.replace(/(^|>)([^<]+)/g, (_m, lead: string, text: string) => lead + isolateText(text));
+
 export function isolateLatin(html: string): string {
-  return html.replace(/(^|>)([^<]+)/g, (_m, lead: string, text: string) => lead + isolateText(text));
+  let out = '', last = 0;
+  for (const m of html.matchAll(CODE)) {
+    out += isolateProse(html.slice(last, m.index)) + m[0];
+    last = m.index! + m[0].length;
+  }
+  return out + isolateProse(html.slice(last));
 }
 export const bidiText = (s: string) => isolateLatin(esc(s));

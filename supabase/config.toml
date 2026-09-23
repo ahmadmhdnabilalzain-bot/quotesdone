@@ -189,6 +189,11 @@ verify_jwt = false
 [functions.site_assistant]
 verify_jwt = false
 
+# The website posts its own runtime errors here (Next.js instrumentation onRequestError). No JWT:
+# the site has no Supabase session on that path; the shared secret in x-qd-site-secret is the gate.
+[functions.site_error_ingest]
+verify_jwt = false
+
 [functions.sms_inbound]
 verify_jwt = false
 

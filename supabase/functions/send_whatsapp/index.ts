@@ -114,7 +114,7 @@ async function founderFallback(n: WaRow, reason: string): Promise<string|null> {
 
 function normPhone(p: string){ let s=String(p||'').trim().replace(/[^0-9+]/g,''); if(!s) return ''; if(s.startsWith('00')) s='+'+s.slice(2); if(!s.startsWith('+')){ if(s.startsWith('0')) s='+971'+s.slice(1); else s='+'+s; } return s; }
 const SUP_URL='https://quotesdone.com/suppliers';
-const APP_URL='https://quotesdone.com/app';
+const APP_URL='https://quotesdone.com/me';
 const PORTAL_URL='https://quotesdone.com/portal';
 function tmplKey(type:string):string|null{
   const t=(type||'').toLowerCase();

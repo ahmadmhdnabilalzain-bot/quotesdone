@@ -326,7 +326,10 @@ Deno.test('763/1 the working hours are the company\'s published hours (src/conte
   assertEquals(HOURS.ar, company.hours.ar);
   assertEquals(withinHours(new Date('2026-09-22T06:00:00Z')), true);   // Tuesday 10:00 Dubai
   assertEquals(withinHours(new Date('2026-09-22T15:00:00Z')), false);  // Tuesday 19:00 Dubai
-  assertEquals(withinHours(new Date('2026-09-25T06:00:00Z')), false);  // Friday
+  // 22 Sep 2026 (WEB-04): the working week is Monday to Friday everywhere on the estate, so Friday
+  // is inside the hours and Sunday is outside. This line pinned the old Sunday-to-Thursday week.
+  assertEquals(withinHours(new Date('2026-09-25T06:00:00Z')), true);   // Friday 10:00 Dubai
+  assertEquals(withinHours(new Date('2026-09-27T06:00:00Z')), false);  // Sunday 10:00 Dubai
 });
 
 Deno.test('763/2 links go to the right portal: customers and strangers to /me, only suppliers to /portal', () => {
@@ -386,7 +389,7 @@ Deno.test('763/4 after "Talk to a person" the seat stays quiet until it is close
 
 Deno.test('763/4 the reply is honest about timing, and the alert is actionable', () => {
   assertMatch(optionReply('qd_person', 'en', { audience: 'unknown', name: null }, new Date('2026-09-22T06:00:00Z')),
-    /working hours are Sunday to Thursday, 9am to 6pm \(GST\), excluding UAE public holidays\.\nAutomatic replies/);
+    /working hours are Monday to Friday, 9am to 6pm \(GST\), excluding UAE public holidays\.\nAutomatic replies/);
   assertMatch(optionReply('qd_person', 'en', { audience: 'unknown', name: null }, new Date('2026-09-22T16:00:00Z')), /outside those hours now/);
   const a = humanAlert({ phone: 'whatsapp:+971500000041', name: 'management@quotesdone.com', profile: 'ZZ DEMO Ahmad',
                          audience: 'customer', lastMessages: ['my quote is missing', 'hello?'] });
